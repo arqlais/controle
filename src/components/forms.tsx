@@ -11,6 +11,8 @@ import {
   STATUS,
   isStudent,
   suggestPrice,
+  PAY_MODES,
+  type PayMode,
   money,
   splitPayments,
   today,
@@ -154,13 +156,13 @@ export function newProject(clientId = ''): Project {
   }
 }
 
-type PayMode = 'avista' | '50-50' | '30-70' | '3x' | 'manter'
+type PayChoice = PayMode | 'manter'
 
 export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?: Project; clientId?: string; onClose: () => void; onSaved?: (p: Project) => void }) {
   const { data, upsert } = useStore()
   const { settings } = data
   const [p, setP] = useState<Project>(() => initial ?? { ...newProject(clientId), revisionsIncluded: settings.defaultRevisions })
-  const [payMode, setPayMode] = useState<PayMode>(initial?.payments.length ? 'manter' : '50-50')
+  const [payMode, setPayMode] = useState<PayChoice>(initial?.payments.length ? 'manter' : '50-50')
   const [showNewClient, setShowNewClient] = useState(false)
   const set = <K extends keyof Project>(k: K, v: Project[K]) => setP((x) => ({ ...x, [k]: v }))
   const client = data.clients.find((c) => c.id === p.clientId)
@@ -175,7 +177,6 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
       service: id,
       quantity: qty,
       value: s && s.pricing !== 'livre' && (!x.value || x.value === suggested) ? suggestPrice(s, qty, 'media', isStudent(client), settings) : x.value,
-      estimatedHours: s ? Math.round(s.hours * qty * 10) / 10 : x.estimatedHours,
     }))
   }
 
@@ -291,14 +292,11 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         </Field>
 
         <Field label="Forma de pagamento" span={3} hint="Gera as parcelas automaticamente. Você pode ajustar cada uma depois, na página do projeto.">
-          <Segmented<PayMode>
+          <Segmented<PayChoice>
             value={payMode}
             options={[
-              ...(initial?.payments.length ? [{ value: 'manter' as PayMode, label: 'Manter parcelas atuais' }] : []),
-              { value: '50-50', label: '50% + 50%' },
-              { value: '30-70', label: '30% + 70%' },
-              { value: 'avista', label: 'À vista' },
-              { value: '3x', label: '3x mensal' },
+              ...(initial?.payments.length ? [{ value: 'manter' as PayChoice, label: 'manter parcelas atuais' }] : []),
+              ...(Object.keys(PAY_MODES) as PayMode[]).map((k) => ({ value: k as PayChoice, label: PAY_MODES[k] })),
             ]}
             onChange={setPayMode}
           />
@@ -307,10 +305,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         <Field label="Revisões incluídas">
           <input type="number" min={0} value={p.revisionsIncluded} onChange={(e) => set('revisionsIncluded', Number(e.target.value) || 0)} />
         </Field>
-        <Field label="Horas estimadas">
-          <input type="number" min={0} step={0.5} value={p.estimatedHours} onChange={(e) => set('estimatedHours', Number(e.target.value) || 0)} />
-        </Field>
-        <Field label="Link dos arquivos" hint="Drive, WeTransfer, Dropbox…">
+        <Field label="Link dos arquivos" span={2} hint="Drive, WeTransfer, Dropbox…">
           <input value={p.filesLink} onChange={(e) => set('filesLink', e.target.value)} placeholder="https://" />
         </Field>
 

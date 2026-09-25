@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Client, Payment, Project, Quote, Settings } from '../types'
-import { fmtDateLong, money, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { fmtDateLong, itemDiscount, money, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -131,17 +131,19 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
   const p = s.proposal
-  const clientName = client?.company && client.type !== 'estudante' ? client.company : client?.name ?? '[nome do cliente]'
+  const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
   const total = quoteTotal(quote, s.urgencyFee)
   const sub = quoteSubtotal(quote)
   const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
+  const totalDiscount = quote.mode === 'opcoes' ? 0 : quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
   const discountLine =
     quote.discountNote ||
-    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', quote.discount ? `com ${money(quote.discount)} de desconto` : ''].filter(Boolean).join(' · ')
+    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', totalDiscount ? `com ${money(totalDiscount)} de desconto` : ''].filter(Boolean).join(' · ')
   const two = quote.mode === 'opcoes'
   const options = quote.options.slice(0, 2)
   const rows: [string, string][] = [
     ['projeto', quote.title || '[nome do projeto]'],
+    ...(quote.area > 0 ? [['área', `${quote.area.toLocaleString('pt-BR')} m²`] as [string, string]] : []),
     ['data', fmt(quote.createdAt)],
     ['validade', plural(quote.validityDays, 'dia', 'dias')],
   ]

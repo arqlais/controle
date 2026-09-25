@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ProjectForm, EventForm } from '../components/forms'
 import { ReceiptDoc } from '../components/Docs'
-import { usePrint } from '../components/Print'
+import { usePdf } from '../components/Print'
 import { Badge, Empty, MoneyInput, Progress, Section, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import type { Payment, Priority, Project, ProjectStatus } from '../types'
@@ -20,7 +20,6 @@ import {
   isOpen,
   money,
   paymentState,
-  projectHours,
   projectOpen,
   projectPaid,
   projectTotal,
@@ -40,8 +39,7 @@ export default function ProjectDetail({ id }: { id: string }) {
   const [edit, setEdit] = useState(false)
   const [newEvent, setNewEvent] = useState(false)
   const [task, setTask] = useState('')
-  const [log, setLog] = useState({ date: today(), hours: 1, note: '' })
-  const { print, portal } = usePrint()
+  const pdf = usePdf()
 
   const duplicate = () => {
     if (!p) return
@@ -77,7 +75,6 @@ export default function ProjectDetail({ id }: { id: string }) {
 
   const total = projectTotal(p)
   const paid = projectPaid(p)
-  const hours = projectHours(p)
   const u = urgency(p)
   const scheduled = p.payments.reduce((s, x) => s + x.amount, 0)
   const diff = Math.round((total - scheduled) * 100) / 100
@@ -167,11 +164,15 @@ export default function ProjectDetail({ id }: { id: string }) {
           sub={p.status === 'entregue' ? `entregue em ${fmtDate(p.deliveredDate)}` : p.dueDate ? relativeDays(p.dueDate) : 'sem prazo'}
         />
         <Stat
-          label="Horas"
-          value={`${hours}h${p.estimatedHours ? ` / ${p.estimatedHours}h` : ''}`}
-          icon="target"
-          tone={p.estimatedHours && hours > p.estimatedHours ? 'warn' : undefined}
-          sub={hours ? `${money(total / hours)}/hora (meta ${money(data.settings.hourlyTarget)})` : 'lance suas horas abaixo'}
+          label="Etapas"
+          value={`${done}/${p.tasks.length}`}
+          icon="check"
+          sub={
+            <>
+              <Progress value={done} max={p.tasks.length} />
+              <span>{p.tasks.find((t) => !t.done)?.text ?? 'tudo concluído'}</span>
+            </>
+          }
         />
       </div>
 
@@ -252,7 +253,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                           </td>
                           <td className="actions nowrap">
                             {x.paidDate && (
-                              <button className="icon-btn" title="Gerar recibo" onClick={() => print(<ReceiptDoc s={data.settings} client={client} project={p} payment={x} />)}>
+                              <button className="icon-btn" title="Gerar recibo" onClick={() => pdf.download(<ReceiptDoc s={data.settings} client={client} project={p} payment={x} />, `Recibo - ${p.title} - ${x.description}.pdf`)}>
                                 <Icon name="printer" size={16} />
                               </button>
                             )}
@@ -347,44 +348,6 @@ export default function ProjectDetail({ id }: { id: string }) {
             )}
           </Section>
 
-          <Section title="Horas trabalhadas">
-            <Timer
-              start={p.timerStart}
-              onStart={() => save({ timerStart: new Date().toISOString() })}
-              onStop={() => {
-                const h = Math.max(0.25, Math.round(((Date.now() - new Date(p.timerStart!).getTime()) / 3_600_000) * 4) / 4)
-                save({ timerStart: null, timeLogs: [...p.timeLogs, { id: uid(), date: today(), hours: h, note: 'Cronômetro' }] })
-                toast(`${h.toLocaleString("pt-BR")}h lançadas neste projeto.`)
-              }}
-            />
-            <form
-              className="hours-form"
-              onSubmit={(e) => {
-                e.preventDefault()
-                if (!log.hours) return
-                save({ timeLogs: [...p.timeLogs, { id: uid(), ...log }] })
-                setLog({ date: today(), hours: 1, note: '' })
-              }}
-            >
-              <input type="date" value={log.date} onChange={(e) => setLog({ ...log, date: e.target.value })} />
-              <input type="number" step={0.25} min={0} value={log.hours} onChange={(e) => setLog({ ...log, hours: Number(e.target.value) })} aria-label="Horas" />
-              <input value={log.note} onChange={(e) => setLog({ ...log, note: e.target.value })} placeholder="O que foi feito" />
-              <button className="btn small">Lançar</button>
-            </form>
-            <ul className="mini-list">
-              {[...p.timeLogs].reverse().map((t) => (
-                <li key={t.id}>
-                  <span className="muted nowrap">{fmtDate(t.date)}</span>
-                  <span className="grow">{t.note || '—'}</span>
-                  <b className="nowrap">{t.hours}h</b>
-                  <button className="icon-btn subtle" onClick={() => save({ timeLogs: p.timeLogs.filter((x) => x.id !== t.id) })} aria-label="Remover">
-                    <Icon name="x" size={14} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Section>
-
           <Section
             title="Compromissos"
             action={
@@ -438,7 +401,7 @@ export default function ProjectDetail({ id }: { id: string }) {
           <button
             className="btn ghost danger small"
             onClick={async () => {
-              if (await askDelete(`o projeto "${p.title}" (com pagamentos e horas)`)) {
+              if (await askDelete(`o projeto "${p.title}" (com pagamentos e etapas)`)) {
                 remove('projects', p.id)
                 go('projetos')
               }
@@ -451,7 +414,7 @@ export default function ProjectDetail({ id }: { id: string }) {
 
       {edit && <ProjectForm initial={p} onClose={() => setEdit(false)} />}
       {newEvent && <EventFormForProject projectId={p.id} onClose={() => setNewEvent(false)} />}
-      {portal}
+      {pdf.portal}
     </div>
   )
 }
@@ -463,35 +426,5 @@ function EventFormForProject({ projectId, onClose }: { projectId: string; onClos
       isNew
       onClose={onClose}
     />
-  )
-}
-
-function Timer({ start, onStart, onStop }: { start: string | null; onStart: () => void; onStop: () => void }) {
-  const [, tick] = useState(0)
-  useEffect(() => {
-    if (!start) return
-    const t = setInterval(() => tick((n) => n + 1), 1000)
-    return () => clearInterval(t)
-  }, [start])
-  if (!start)
-    return (
-      <button className="btn block timer-btn" onClick={onStart}>
-        <Icon name="clock" size={16} /> iniciar cronômetro
-      </button>
-    )
-  const secs = Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 1000))
-  const hh = String(Math.floor(secs / 3600)).padStart(2, '0')
-  const mm = String(Math.floor((secs % 3600) / 60)).padStart(2, '0')
-  const ss = String(secs % 60).padStart(2, '0')
-  return (
-    <div className="timer running">
-      <span className="timer-dot" />
-      <b>
-        {hh}:{mm}:{ss}
-      </b>
-      <button className="btn primary small" onClick={onStop}>
-        parar e lançar
-      </button>
-    </div>
   )
 }

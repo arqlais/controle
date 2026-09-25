@@ -10,7 +10,11 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
     "@supabase/supabase-js": "^2.117.2",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

@@ -470,14 +470,6 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .demo-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px; margin: 6px 0 14px; border: 1px dashed var(--accent-soft); border-radius: var(--radius); background: var(--accent-tint); font-size: 13px; }
 
 /* ---------- proposta / recibo (A4, design do Canva) ---------- */
-.print-area { display: none; }
-@media print {
-  @page { size: A4; margin: 0; }
-  html, body { background: #fff !important; }
-  body > *:not(.print-area) { display: none !important; }
-  .print-area { display: block; }
-  .proposal { box-shadow: none !important; }
-}
 .proposal {
   --p-ink: #1f3a4d; --p-rose: #a86a60; --p-arch: #e8d6cf; --p-paper: #f8f5f2;
   --p-serif: 'Cormorant Garamond', Georgia, serif;
@@ -715,7 +707,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .service-main { display: flex; gap: 8px; align-items: center; }
 .service-main select { width: auto; }
 .service-name { font-weight: 600; }
-.service-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.service-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tiers { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 10px 12px; background: var(--bg); border-radius: 12px; }
 .tier { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tier > input { width: 70px; }
@@ -736,3 +728,17 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
   .q-options, .q-item-grid, .form-grid.two { grid-template-columns: 1fr; }
   .service-fields { grid-template-columns: 1fr 1fr; }
 }
+
+/* folha usada para gerar o PDF, fora da área visível */
+.pdf-stage { position: fixed; left: -10000px; top: 0; width: 794px; pointer-events: none; }
+
+.quote-layout.no-preview { grid-template-columns: minmax(0, 880px); }
+.mobile-switch.is-hidden { display: none !important; }
+.check.toggle { padding: 9px 0; }
+
+/* aprovar / recusar direto na lista */
+.quick-actions { display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: nowrap; }
+.btn.approve { background: color-mix(in srgb, var(--good) 12%, var(--surface)); border-color: color-mix(in srgb, var(--good) 35%, transparent); color: var(--good); }
+.btn.approve:hover { background: var(--good); color: #fff; }
+.btn.refuse { padding-inline: 9px; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 30%, transparent); background: transparent; }
+.btn.refuse:hover { background: var(--bad); color: #fff; }

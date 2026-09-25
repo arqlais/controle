@@ -136,6 +136,7 @@ export interface QuoteItem {
   quantity: number
   complexity: Complexity
   price: number // valor total do item
+  unitDiscount?: number // desconto em R$ por unidade (ex.: por imagem) sobre a tabela
   auto: boolean // true = valor segue a tabela; false = digitado à mão
 }
 
@@ -154,6 +155,9 @@ export interface Quote {
   clientId: string
   title: string
   mode: 'escopo' | 'opcoes' // valor único com escopo, ou 2 opções para o cliente escolher
+  pdf: boolean // gera a proposta em PDF (nem todo orçamento precisa)
+  area: number // m² do projeto, mostrado na legenda da proposta (0 = não mostrar)
+  clientLabel: string // nome em "para …" (vazio = nome do cliente)
   items: QuoteItem[]
   options: QuoteOption[]
   chosenOption: string

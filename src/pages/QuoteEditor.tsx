@@ -4,13 +4,13 @@ import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
-import { DocScale, usePrint } from '../components/Print'
+import { DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
-import type { Complexity, Project, Quote, QuoteItem, QuoteOption, QuoteStatus } from '../types'
+import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus } from '../types'
+import { projectFromQuote } from '../quoteActions'
 import {
   COMPLEXITY,
-  DEFAULT_TASKS,
   QUOTE_STATUS,
   addDays,
   fmtDateLong,
@@ -20,7 +20,6 @@ import {
   quoteNumber,
   quoteSubtotal,
   quoteTotal,
-  splitPayments,
   suggestPrice,
   today,
   uid,
@@ -43,6 +42,9 @@ export default function QuoteEditor({ id }: { id: string }) {
         clientId: '',
         title: '',
         mode: 'escopo',
+        pdf: false,
+        area: 0,
+        clientLabel: '',
         items: [newItem()],
         options: [newOption(1), newOption(2)],
         chosenOption: '',
@@ -64,7 +66,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [newClient, setNewClient] = useState(false)
   const [dirty, setDirty] = useState(!existing)
   const [view, setView] = useState<'editar' | 'ver'>('editar')
-  const { print, portal } = usePrint()
+  const pdf = usePdf()
 
   if (id !== 'novo' && !existing) return <Empty title="Orçamento não encontrado" action={<a className="btn" href={href('orcamentos')}>Voltar</a>} />
 
@@ -84,10 +86,15 @@ export default function QuoteEditor({ id }: { id: string }) {
     return {
       ...it,
       detail: it.auto || !it.detail ? detail : it.detail,
-      price: it.auto && s && s.pricing !== 'livre' ? suggestPrice(s, it.quantity, it.complexity, stud, settings) : it.price,
+      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, stud, settings) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
     }
   }
-  const setItem = (iid: string, patch: Partial<QuoteItem>) => set({ items: q.items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i)) })
+  const setItem = (iid: string, patch: Partial<QuoteItem>) => {
+    const items = q.items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i))
+    // a área do primeiro serviço por m² vira a área do projeto (se ainda estiver vazia)
+    const m2 = items.find((i) => service(i.service)?.pricing === 'm2')
+    set({ items, ...(!q.area && m2 && patch.quantity !== undefined ? { area: m2.quantity } : {}) })
+  }
   const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)) })
 
   const sub = quoteSubtotal(q)
@@ -136,39 +143,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     const saved = save({ status: 'aprovado' })
     if (!saved) return
     if (saved.projectId && data.projects.some((p) => p.id === saved.projectId)) return go('projetos', saved.projectId)
-    const chosen = saved.options.find((o) => o.id === saved.chosenOption)
-    const firstItem = saved.items[0]
-    const start = today()
-    const deadline = chosen ? chosen.deadlineDays : saved.deadlineDays
-    const due = addDays(start, Math.round(deadline * 1.4)) // dias úteis → corridos
-    const value = chosen ? chosen.price : total
-    const project: Project = {
-      id: uid(),
-      clientId: saved.clientId,
-      title: saved.title || 'Projeto',
-      service: chosen ? '' : firstItem?.service ?? '',
-      quantity: chosen ? 1 : firstItem?.quantity ?? 1,
-      description: chosen
-        ? [`Opção ${saved.options.indexOf(chosen) + 1} · ${chosen.name}`, ...chosen.included.filter(Boolean).map((x) => `— ${x}`)].join('\n')
-        : saved.items.map((i) => `${i.title}${i.detail ? ` · ${i.detail}` : ''}${i.description ? ` — ${i.description}` : ''}`).join('\n'),
-      status: 'briefing',
-      priority: saved.urgency ? 'urgente' : 'media',
-      startDate: start,
-      dueDate: due,
-      deliveredDate: null,
-      value,
-      discount: 0,
-      payments: splitPayments(value, '50-50', start, due),
-      revisionsIncluded: saved.revisions,
-      revisionsUsed: 0,
-      estimatedHours: chosen ? 0 : Math.round(saved.items.reduce((acc, i) => acc + (service(i.service)?.hours ?? 0) * i.quantity, 0) * 10) / 10,
-      timeLogs: [],
-      tasks: DEFAULT_TASKS.map((t) => ({ id: uid(), text: t, done: false })),
-      filesLink: '',
-      timerStart: null,
-      notes: `Criado a partir do orçamento Nº ${quoteNumber(saved)}.`,
-      createdAt: start,
-    }
+    const project = projectFromQuote(saved, settings.urgencyFee)
     upsert('projects', project)
     upsert('quotes', { ...saved, projectId: project.id })
     go('projetos', project.id)
@@ -189,9 +164,11 @@ export default function QuoteEditor({ id }: { id: string }) {
           <h1>{q.title || 'novo orçamento'}</h1>
         </div>
         <div className="row gap-s wrap">
-          <button className="btn primary" onClick={() => print(preview)}>
-            <Icon name="download" size={16} /> baixar PDF
-          </button>
+          {q.pdf && (
+            <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Orçamento ${quoteNumber(q)} - ${q.clientLabel || client?.name || 'cliente'}.pdf`)}>
+              <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
+            </button>
+          )}
           {client?.phone && (
             <a
               className="btn ghost"
@@ -221,7 +198,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="mobile-switch">
+      <div className={`mobile-switch ${q.pdf ? '' : 'is-hidden'}`}>
         <Segmented
           value={view}
           onChange={setView}
@@ -232,7 +209,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         />
       </div>
 
-      <div className={`quote-layout view-${view}`}>
+      <div className={`quote-layout view-${q.pdf ? view : 'editar'} ${q.pdf ? '' : 'no-preview'}`}>
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
@@ -275,6 +252,17 @@ export default function QuoteEditor({ id }: { id: string }) {
                   ]}
                 />
               </Field>
+              <Field label="Nome na proposta" hint="Aparece em “para …” e na assinatura.">
+                <input id="q-label" value={q.clientLabel} onChange={(e) => set({ clientLabel: e.target.value })} placeholder={client?.name ?? 'nome do cliente'} />
+              </Field>
+              <Field label="Área do projeto (m²)" hint="Opcional — aparece na legenda da proposta.">
+                <input id="q-area" type="number" min={0} value={q.area || ''} onChange={(e) => set({ area: Number(e.target.value) || 0 })} placeholder="—" />
+              </Field>
+              <Field label="Proposta em PDF">
+                <label className="check toggle">
+                  <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar PDF com o design da proposta
+                </label>
+              </Field>
               <Field label="Data">
                 <input id="q-date" type="date" value={q.createdAt} onChange={(e) => set({ createdAt: e.target.value || today() })} />
               </Field>
@@ -295,7 +283,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 {q.items.map((it, n) => {
                   const s = service(it.service)
                   const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings)
-                  const rate = s && s.pricing === 'pacote' ? unitRate(s, it.quantity) : 0
+                  const rate = s && (s.pricing === 'pacote' || s.pricing === 'unidade') ? unitRate(s, it.quantity) : 0
                   return (
                     <div key={it.id} className="q-item">
                       <div className="q-item-head">
@@ -348,6 +336,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                         <Field label="O que está incluso" span={2}>
                           <input value={it.description} onChange={(e) => setItem(it.id, { description: e.target.value })} placeholder="Ambientes, nível de detalhe, ajustes…" />
                         </Field>
+                        {s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
+                          <Field label={`Desconto por ${s.unit}`} hint={it.unitDiscount ? `fica ${money(Math.max(0, rate || s.price) - it.unitDiscount)}/${s.unit}` : 'opcional'}>
+                            <MoneyInput value={it.unitDiscount ?? 0} onChange={(v) => setItem(it.id, { unitDiscount: v, auto: true })} />
+                          </Field>
+                        )}
                         <Field
                           label="Valor"
                           hint={
@@ -358,7 +351,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                         >
                           <div className="row gap-s">
                             <MoneyInput value={it.price} onChange={(v) => setItem(it.id, { price: v, auto: false })} />
-                            {!it.auto && s && s.pricing !== 'livre' && it.price !== suggestion && (
+                            {!it.auto && s && s.pricing !== 'livre' && (
                               <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Voltar ao valor da tabela">
                                 tabela
                               </button>
@@ -509,6 +502,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           </Section>
         </div>
 
+        {q.pdf && (
         <aside className="quote-preview">
           <DocScale>{preview}</DocScale>
           <p className="muted small center">
@@ -518,10 +512,11 @@ export default function QuoteEditor({ id }: { id: string }) {
             </a>
           </p>
         </aside>
+        )}
       </div>
 
       {newClient && <ClientForm onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
-      {portal}
+      {pdf.portal}
     </div>
   )
 }

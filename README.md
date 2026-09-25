@@ -6,10 +6,10 @@ Sistema de gestão para freelancer de visualização arquitetônica: clientes, d
 
 | Área | Recursos |
 | --- | --- |
-| **Início** | **Para fazer**: parcelas vencidas (cobrar no WhatsApp), entregas de hoje/amanhã, orçamentos sem resposta, revisões extras, cronômetro ligado. |
+| **Início** | **Para fazer**: parcelas vencidas (cobrar no WhatsApp), entregas de hoje/amanhã, orçamentos sem resposta, revisões extras |
 | **Painel** | Saudação, alertas de atraso, recebido × meta do mês, total a receber, lucro, valor/hora médio, *prioridades agora* (ordenadas por urgência + prazo), próximos 7 dias, gráfico de 6 meses e receita **profissionais × estudantes** |
 | **Demandas** | Quadro Kanban (arrastar e soltar) ou lista ordenável; status (briefing → produção → revisão → aguardando cliente → entregue, pausado, cancelado); prioridade + **urgência automática** (vira urgente quando faltam ≤ 2 dias ou atrasou) |
-| **Projeto** | Parcelas editáveis (50/50, 30/70, à vista, 3x), marcar pago, **recibo em PDF** com valor por extenso, botão **Cobrar no WhatsApp** com Pix, etapas (checklist), contador de revisões inclusas × usadas, **cronômetro** e lançamento de horas com **R$/hora real**, duplicar demanda, briefing, link dos arquivos, compromissos |
+| **Projeto** | Parcelas editáveis (50/50, 30/70, à vista, 3x), marcar pago, **recibo em PDF** com valor por extenso, botão **Cobrar no WhatsApp** com Pix, etapas (checklist), contador de revisões inclusas × usadas, duplicar demanda, briefing, link dos arquivos, compromissos |
 | **Clientes** | Tipos: arquiteto, designer de interiores, escritório, construtora, incorporadora, estudante; filtro profissionais/estudantes; faturado, em aberto, ticket médio, origem (indicação, Instagram…), **histórico de conversas com data**, último projeto, favoritos, arquivar, atalhos WhatsApp/e-mail/Instagram |
 | **Orçamentos** | Itens da sua tabela de preços (preço **profissional** e **estudante** automáticos), taxa de urgência, desconto, prazo, revisões, validade; **PDF da proposta**, texto pronto para WhatsApp, taxa de aprovação, **lembrete para cobrar resposta** após 3 dias, busca e filtro por cliente, duplicar proposta; **aprovado → vira projeto** com parcelas e etapas |
 | **Financeiro** | Mês a mês: recebido, previsto, despesas, lucro e margem; parcelas vencidas; despesas únicas ou **mensais** (licenças, DAS/MEI…); 12 meses em gráfico; relatórios por serviço, tipo de cliente, melhores clientes, origem e categoria de despesa; exportação **CSV** para contador, **limite anual do MEI** com projeção |

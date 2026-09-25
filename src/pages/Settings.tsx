@@ -20,8 +20,8 @@ const PRESETS: { name: string; s: Partial<Settings> }[] = [
   { name: 'Rosé', s: { accent: '#8a4b5a', accentSoft: '#e0bfc3', background: '#f8f1f0', surface: '#ffffff', text: '#2a1d20' } },
 ]
 
-const DISPLAY_FONTS = ['The Seasons', 'Cormorant Garamond', 'Playfair Display']
-const BODY_FONTS = ['Poppins', 'DM Sans']
+const DISPLAY_FONTS = ['The Seasons', 'Cormorant Garamond']
+const BODY_FONTS = ['Poppins']
 
 export default function SettingsPage() {
   const { data, setSettings, replaceAll } = useStore()
@@ -251,9 +251,6 @@ export default function SettingsPage() {
               <Field label="Teto anual do MEI" hint="Só se você abrir um MEI: mostra no Financeiro quanto do teto já usou. Com 0, fica escondido.">
                 <MoneyInput value={s.meiLimit} onChange={(n) => setSettings({ meiLimit: n })} />
               </Field>
-              <Field label="Meta de valor/hora">
-                <MoneyInput value={s.hourlyTarget} onChange={(n) => setSettings({ hourlyTarget: n })} />
-              </Field>
               <Field label="Taxa de urgência (%)">
                 <input type="number" min={0} value={s.urgencyFee} onChange={(e) => setSettings({ urgencyFee: Number(e.target.value) || 0 })} />
               </Field>
@@ -324,9 +321,6 @@ export default function SettingsPage() {
                   </Field>
                   <Field label="Valor mínimo">
                     <MoneyInput value={x.min} onChange={(n) => setService(x.id, { min: n })} />
-                  </Field>
-                  <Field label={`Horas por ${x.pricing === 'm2' ? 'm²' : x.unit}`}>
-                    <input type="number" step={0.05} min={0} value={x.hours} onChange={(e) => setService(x.id, { hours: Number(e.target.value) || 0 })} />
                   </Field>
                 </div>
               )}
@@ -406,6 +400,9 @@ function ProposalSettings() {
     clientId: '',
     title: 'Casa Pampulha — áreas sociais',
     mode,
+    pdf: true,
+    area: 140,
+    clientLabel: '',
     items: [
       { id: 'a', service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media', price: 370, auto: true },
       { id: 'b', service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
@@ -442,7 +439,7 @@ function ProposalSettings() {
             </Field>
             <Field label="Fonte dos títulos">
               <select value={p.serif} onChange={(e) => setP({ serif: e.target.value })}>
-                {['Cormorant Garamond', 'The Seasons', 'Playfair Display'].map((f) => (
+                {['Cormorant Garamond', 'The Seasons'].map((f) => (
                   <option key={f}>{f}</option>
                 ))}
               </select>

@@ -2,7 +2,7 @@ import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, pushRemote } from './cloud'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Data, ProposalStyle, ServiceDef, Settings } from './types'
+import type { Data, Project, ProposalStyle, ServiceDef, Settings } from './types'
 import { DEFAULT_TASKS, addDays, splitPayments, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
@@ -19,6 +19,15 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'planta-hum', name: 'Planta humanizada', unit: 'planta', pricing: 'unidade', price: 300, min: 0, hours: 4, tiers: [] },
   { id: 'personalizado', name: 'Serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
+
+export const PAYMENT_TERMS =
+  '50% de sinal para iniciar e 50% na aprovação, via pix.\nou 100% no início, ou cartão de crédito (juros do parcelamento por conta do cliente).'
+
+/** Sinal pago em demanda "aguardando sinal" → passa para "em execução". */
+function autoStatus(p: Project): Project {
+  if (p.status !== 'briefing' || !p.payments[0]?.paidDate) return p
+  return { ...p, status: 'producao', tasks: p.tasks.map((t) => (/sinal/i.test(t.text) ? { ...t, done: true } : t)) }
+}
 
 export const DEFAULT_PROPOSAL: ProposalStyle = {
   eyebrow: 'proposta de',
@@ -67,7 +76,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hourlyTarget: 60,
   urgencyFee: 30,
   defaultRevisions: 2,
-  defaultPaymentTerms: '50% no aceite e 50% na entrega.\npix à vista com 5% de desconto ou cartão de crédito.',
+  defaultPaymentTerms: PAYMENT_TERMS,
   services: DEFAULT_SERVICES,
 }
 
@@ -107,6 +116,9 @@ export function normalize(d: Partial<Data>): Data {
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
       mode: q.mode ?? 'escopo',
+      pdf: q.pdf ?? true,
+      area: q.area ?? 0,
+      clientLabel: q.clientLabel ?? '',
       options: q.options ?? [],
       chosenOption: q.chosenOption ?? '',
       discountNote: q.discountNote ?? '',
@@ -125,6 +137,8 @@ export function normalize(d: Partial<Data>): Data {
         proposal: { ...DEFAULT_PROPOSAL, ...(d.settings?.proposal ?? {}) },
         // antes desta versão o teto do MEI vinha ligado por padrão; ela trabalha como pessoa física
         meiLimit: d.settings?.proposal ? (d.settings.meiLimit ?? 0) : 0,
+        defaultPaymentTerms:
+          !d.settings?.defaultPaymentTerms || /^50% (no aceite|de entrada)/.test(d.settings.defaultPaymentTerms) ? PAYMENT_TERMS : d.settings.defaultPaymentTerms,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
         services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })),
       },
@@ -295,7 +309,8 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
   const dataRef = useRef(data)
   dataRef.current = data
 
-  const upsert = useCallback(<C extends Collection>(c: C, item: Item<C>) => {
+  const upsert = useCallback(<C extends Collection>(c: C, raw: Item<C>) => {
+    const item = (c === 'projects' ? autoStatus(raw as Project) : raw) as Item<C>
     setData((d) => {
       const list = d[c] as Item<C>[]
       const exists = list.some((x) => x.id === item.id)
@@ -428,7 +443,7 @@ export function demoData(settings: Settings): Data {
   const projects = [
     mk(mari.id, 'Apartamento Savassi — living e cozinha', 'render-vray', 4, 1800, 'producao', 'alta', -6, 3, '50-50', 1),
     mk(rafa.id, 'Suíte master — Casa Vila da Serra', 'render-vray', 3, 1350, 'revisao', 'media', -12, 1, '50-50', 1),
-    mk(horiz.id, 'Edifício Aurora — fachada e áreas comuns', 'render-vray', 6, 3300, 'briefing', 'media', 2, 20, '3x', 0),
+    mk(horiz.id, 'Edifício Aurora — fachada e áreas comuns', 'render-vray', 6, 3300, 'briefing', 'media', 2, 20, '50-50', 0),
     mk(bia.id, 'Planta humanizada — Casa Pampulha', 'planta-hum', 2, 600, 'aguardando', 'baixa', -9, -1, 'avista', 1),
     mk(mari.id, 'Loja Lourdes — fachada', 'render-vray', 2, 1100, 'entregue', 'media', -40, -25, '50-50', 2),
     mk(horiz.id, 'Decorado — apartamento 2 quartos', 'render-vray', 5, 2250, 'entregue', 'alta', -70, -50, '50-50', 1),
@@ -458,6 +473,9 @@ export function demoData(settings: Settings): Data {
       clientId: bia.id,
       title: 'Renders — Casa Pampulha',
       mode: 'escopo' as const,
+      pdf: true,
+      area: 140,
+      clientLabel: '',
       options: [],
       chosenOption: '',
       discountNote: '',

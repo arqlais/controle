@@ -21,8 +21,6 @@ import {
   monthKey,
   monthSummary,
   paymentLate,
-  projectHours,
-  projectTotal,
   relativeDays,
   sum,
   today,
@@ -73,12 +71,6 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
     return { prof, stud }
   }, [pays])
 
-  // valor/hora do mês: recebido em projetos com horas lançadas
-  const hourly = useMemo(() => {
-    const worked = data.projects.filter((p) => p.status === 'entregue' && projectHours(p) > 0)
-    const h = sum(worked, projectHours)
-    return h ? sum(worked, projectTotal) / h : 0
-  }, [data.projects])
 
   const weekDeliveries = upcoming.filter((u) => u.kind === 'entrega').length
   const hour = new Date().getHours()
@@ -163,7 +155,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
           value={money(m.profit)}
           icon="target"
           tone={m.profit < 0 ? 'bad' : 'good'}
-          sub={hourly ? `valor/hora médio: ${money(hourly)}` : `despesas: ${money(m.expenses)}`}
+          sub={`despesas: ${money(m.expenses)}`}
         />
       </div>
 
@@ -271,7 +263,6 @@ function TodoList() {
     const pix = data.settings.pixKey ? ` Chave Pix: ${data.settings.pixKey}.` : ''
 
     for (const p of data.projects) {
-      if (p.timerStart) out.push({ key: `t-${p.id}`, tone: 'info', icon: 'clock', title: `Cronômetro ligado: ${p.title}`, sub: 'não esqueça de parar ao terminar', link: href('projetos', p.id) })
       if (!isOpen(p)) continue
       const dd = p.dueDate ? daysUntil(p.dueDate) : 99
       if (dd <= 1)

@@ -35,22 +35,23 @@ export const CLIENT_TYPES: Record<ClientType, string> = {
 export const isStudent = (c?: Client) => c?.type === 'estudante'
 
 export const STATUS: Record<ProjectStatus, { label: string; color: string }> = {
-  briefing: { label: 'Briefing', color: '#9aa3ab' },
+  briefing: { label: 'Aguardando sinal', color: '#9aa3ab' },
   producao: { label: 'Em execução', color: '#5b7a99' },
-  revisao: { label: 'Em revisão', color: '#c29a55' },
-  aguardando: { label: 'Aguardando cliente', color: '#a888a8' },
+  revisao: { label: 'Em ajustes', color: '#c29a55' },
+  aguardando: { label: 'Aguardando aprovação', color: '#a888a8' },
   entregue: { label: 'Entregue', color: '#6f9a7c' },
   pausado: { label: 'Pausado', color: '#b8b0aa' },
   cancelado: { label: 'Cancelado', color: '#b5524c' },
 }
 
-/** Etapas padrão — o método: briefing → ajustes → execução → entrega final. */
+/** Etapas padrão de uma demanda freelancer (sem questionário de briefing). */
 export const DEFAULT_TASKS = [
-  'Briefing: arquivos e referências recebidos',
+  'Sinal recebido',
+  'Arquivos e informações recebidos',
   'Ajustes no arquivo recebido',
   'Execução',
   'Prévia enviada para aprovação',
-  'Revisões',
+  'Ajustes pedidos',
   'Entrega final',
 ]
 export const BOARD_COLUMNS: ProjectStatus[] = ['briefing', 'producao', 'revisao', 'aguardando', 'entregue']
@@ -89,7 +90,7 @@ export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }>
   recusado: { label: 'Recusado', color: '#b5524c' },
 }
 
-export const PAYMENT_METHODS = ['Pix', 'Transferência', 'Boleto', 'Cartão', 'Dinheiro']
+export const PAYMENT_METHODS = ['Pix', 'Cartão de crédito']
 
 /* ---------- formatação ---------- */
 
@@ -228,6 +229,9 @@ export function itemDetail(s: ServiceDef | undefined, qty: number, complexity: C
   return `${qty} ${unit}`
 }
 
+/** Desconto dado por unidade nos itens que seguem a tabela. */
+export const itemDiscount = (i: { auto: boolean; unitDiscount?: number; quantity: number }) => (i.auto ? (i.unitDiscount ?? 0) * i.quantity : 0)
+
 export const quoteSubtotal = (q: Quote) => (q.mode === 'opcoes' ? 0 : q.items.reduce((s, i) => s + (i.price || 0), 0))
 export const quoteNumber = (q: Quote) => `${q.createdAt.slice(0, 4)}-${String(q.number).padStart(3, '0')}`
 export const quoteTotal = (q: Quote, urgencyFee: number) => {
@@ -244,30 +248,32 @@ export const quoteTotal = (q: Quote, urgencyFee: number) => {
 }
 
 /** Divide um valor em parcelas (ex.: 50% entrada + 50% na entrega). */
-export function splitPayments(total: number, mode: 'avista' | '50-50' | '3x' | '30-70', start: string, due: string): Payment[] {
-  const mk = (description: string, amount: number, dueDate: string): Payment => ({
+export type PayMode = '50-50' | 'inicio' | 'cartao'
+
+export const PAY_MODES: Record<PayMode, string> = {
+  '50-50': '50% sinal + 50% na aprovação',
+  inicio: '100% no início',
+  cartao: 'cartão de crédito',
+}
+
+/** Parcelas conforme a forma combinada: sinal + aprovação, tudo no início, ou cartão. */
+export function splitPayments(total: number, mode: PayMode | 'avista', start: string, due: string): Payment[] {
+  const mk = (description: string, amount: number, dueDate: string, method = 'Pix'): Payment => ({
     id: uid(),
     description,
     amount: Math.round(amount * 100) / 100,
     dueDate,
     paidDate: null,
-    method: 'Pix',
+    method,
   })
   switch (mode) {
+    case 'cartao':
+      return [mk('Pagamento no cartão', total, start, 'Cartão de crédito')]
+    case 'inicio':
     case 'avista':
-      return [mk('Pagamento único', total, start)]
-    case '50-50':
-      return [mk('Entrada 50%', total / 2, start), mk('Saldo 50% na entrega', total - Math.round((total / 2) * 100) / 100, due || start)]
-    case '30-70':
-      return [mk('Sinal 30%', total * 0.3, start), mk('Saldo 70% na entrega', total - Math.round(total * 30) / 100, due || start)]
-    case '3x': {
-      const part = Math.round((total / 3) * 100) / 100
-      return [
-        mk('Parcela 1/3', part, start),
-        mk('Parcela 2/3', part, addDays(start, 30)),
-        mk('Parcela 3/3', total - part * 2, addDays(start, 60)),
-      ]
-    }
+      return [mk('Pagamento 100% no início', total, start)]
+    default:
+      return [mk('Sinal 50%', total / 2, start), mk('Saldo 50% na aprovação', total - Math.round((total / 2) * 100) / 100, due || start)]
   }
 }
 
