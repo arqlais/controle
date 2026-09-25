@@ -4,11 +4,32 @@ import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
-import { usePrint } from '../components/Print'
+import { DocScale, usePrint } from '../components/Print'
 import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
-import type { Project, Quote, QuoteStatus } from '../types'
-import { DEFAULT_TASKS, QUOTE_STATUS, addDays, fmtDateLong, isStudent, money, quoteSubtotal, quoteTotal, splitPayments, today, uid, whatsappLink } from '../utils'
+import type { Complexity, Project, Quote, QuoteItem, QuoteOption, QuoteStatus } from '../types'
+import {
+  COMPLEXITY,
+  DEFAULT_TASKS,
+  QUOTE_STATUS,
+  addDays,
+  fmtDateLong,
+  isStudent,
+  itemDetail,
+  money,
+  quoteNumber,
+  quoteSubtotal,
+  quoteTotal,
+  splitPayments,
+  suggestPrice,
+  today,
+  uid,
+  unitRate,
+  whatsappLink,
+} from '../utils'
+
+const newItem = (): QuoteItem => ({ id: uid(), service: '', title: '', detail: '', description: '', quantity: 1, complexity: 'media', price: 0, auto: true })
+const newOption = (n: number): QuoteOption => ({ id: uid(), name: n === 1 ? 'essencial' : 'completo', summary: '', included: [''], deadlineDays: 10, price: 0 })
 
 export default function QuoteEditor({ id }: { id: string }) {
   const { data, upsert, remove } = useStore()
@@ -18,11 +39,16 @@ export default function QuoteEditor({ id }: { id: string }) {
     () =>
       existing ?? {
         id: uid(),
-        number: Math.max(0, ...data.quotes.map((x) => x.number)) + 1,
+        number: Math.max(0, ...data.quotes.filter((x) => x.createdAt.slice(0, 4) === today().slice(0, 4)).map((x) => x.number)) + 1,
         clientId: '',
         title: '',
-        items: [{ id: uid(), service: '', description: '', quantity: 1, unitPrice: 0 }],
+        mode: 'escopo',
+        items: [newItem()],
+        options: [newOption(1), newOption(2)],
+        chosenOption: '',
         discount: 0,
+        discountNote: '',
+        files: settings.proposal.files,
         urgency: false,
         deadlineDays: 10,
         validityDays: 15,
@@ -37,25 +63,36 @@ export default function QuoteEditor({ id }: { id: string }) {
   )
   const [newClient, setNewClient] = useState(false)
   const [dirty, setDirty] = useState(!existing)
+  const [view, setView] = useState<'editar' | 'ver'>('editar')
   const { print, portal } = usePrint()
 
   if (id !== 'novo' && !existing) return <Empty title="Orçamento não encontrado" action={<a className="btn" href={href('orcamentos')}>Voltar</a>} />
 
   const client = data.clients.find((c) => c.id === q.clientId)
   const student = isStudent(client)
+  const service = (sid: string) => settings.services.find((s) => s.id === sid)
+
   const set = (patch: Partial<Quote>) => {
     setQ((x) => ({ ...x, ...patch }))
     setDirty(true)
   }
-  const setItem = (iid: string, patch: Partial<Quote['items'][number]>) => set({ items: q.items.map((i) => (i.id === iid ? { ...i, ...patch } : i)) })
-  const priceFor = (serviceId: string, stud = student) => {
-    const s = settings.services.find((x) => x.id === serviceId)
-    return s ? (stud ? s.studentPrice : s.price) : 0
+
+  /** Recalcula detalhe e valor do item quando ele segue a tabela. */
+  const recompute = (it: QuoteItem, stud = student): QuoteItem => {
+    const s = service(it.service)
+    const detail = itemDetail(s, it.quantity, it.complexity)
+    return {
+      ...it,
+      detail: it.auto || !it.detail ? detail : it.detail,
+      price: it.auto && s && s.pricing !== 'livre' ? suggestPrice(s, it.quantity, it.complexity, stud, settings) : it.price,
+    }
   }
+  const setItem = (iid: string, patch: Partial<QuoteItem>) => set({ items: q.items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i)) })
+  const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)) })
 
   const sub = quoteSubtotal(q)
   const total = quoteTotal(q, settings.urgencyFee)
-  const serviceName = (sid: string) => settings.services.find((s) => s.id === sid)?.name ?? ''
+  const two = q.mode === 'opcoes'
 
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
@@ -71,54 +108,65 @@ export default function QuoteEditor({ id }: { id: string }) {
     return next
   }
 
-  const text = () =>
-    [
-      `*Orçamento #${String(q.number).padStart(3, '0')} — ${q.title}*`,
-      `Olá, ${client?.name.split(' ')[0] ?? ''}! Segue a proposta:`,
-      '',
-      ...q.items.map((i) => `• ${i.quantity}x ${serviceName(i.service) || i.description}${serviceName(i.service) && i.description ? ` (${i.description})` : ''} — ${money(i.quantity * i.unitPrice)}`),
-      q.urgency ? `• Taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '',
-      q.discount ? `• Desconto — −${money(q.discount)}` : '',
-      '',
-      `*Total: ${money(total)}*`,
-      `Prazo: ${q.deadlineDays} dias após aprovação · ${q.revisions} revisões inclusas`,
-      q.paymentTerms ? `Pagamento: ${q.paymentTerms}` : '',
-      `Válido até ${fmtDateLong(addDays(q.createdAt, q.validityDays))}.`,
-    ]
+  const text = () => {
+    const first = client?.name.split(' ')[0] ?? ''
+    const head = [`*Orçamento Nº ${quoteNumber(q)} — ${q.title}*`, `Olá, ${first}! Segue a proposta:`, '']
+    const body = two
+      ? q.options.flatMap((o, i) => [
+          `*Opção ${i + 1} · ${o.name}* — ${money(o.price)}`,
+          ...o.included.filter(Boolean).map((x) => `• ${x}`),
+          `prazo: ${o.deadlineDays} dias úteis`,
+          '',
+        ])
+      : [
+          ...q.items.map((i) => `• ${i.title}${i.detail ? ` · ${i.detail}` : ''} — ${money(i.price)}`),
+          q.urgency ? `• Taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '',
+          q.discount ? `• Desconto — −${money(q.discount)}` : '',
+          '',
+          `*Investimento: ${money(total)}*`,
+          `Prazo: ${q.deadlineDays} dias úteis após o sinal · ${q.revisions} rodada(s) de ajuste`,
+        ]
+    return [...head, ...body, q.paymentTerms ? `Pagamento: ${q.paymentTerms.replace(/\n/g, ' ')}` : '', `Válido até ${fmtDateLong(addDays(q.createdAt, q.validityDays))}.`]
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
       .join('\n')
+  }
 
   const approve = () => {
+    if (two && !q.chosenOption) return toast('Marque qual opção o cliente escolheu.')
     const saved = save({ status: 'aprovado' })
     if (!saved) return
     if (saved.projectId && data.projects.some((p) => p.id === saved.projectId)) return go('projetos', saved.projectId)
-    const first = saved.items[0]
+    const chosen = saved.options.find((o) => o.id === saved.chosenOption)
+    const firstItem = saved.items[0]
     const start = today()
-    const due = addDays(start, saved.deadlineDays)
-    const service = settings.services.find((s) => s.id === first?.service)
+    const deadline = chosen ? chosen.deadlineDays : saved.deadlineDays
+    const due = addDays(start, Math.round(deadline * 1.4)) // dias úteis → corridos
+    const value = chosen ? chosen.price : total
     const project: Project = {
       id: uid(),
       clientId: saved.clientId,
       title: saved.title || 'Projeto',
-      service: first?.service ?? '',
-      quantity: saved.items.reduce((s, i) => s + i.quantity, 0),
-      description: saved.items.map((i) => `${i.quantity}x ${serviceName(i.service) || i.description}${i.description && serviceName(i.service) ? ` — ${i.description}` : ''}`).join('\n'),
+      service: chosen ? '' : firstItem?.service ?? '',
+      quantity: chosen ? 1 : firstItem?.quantity ?? 1,
+      description: chosen
+        ? [`Opção ${saved.options.indexOf(chosen) + 1} · ${chosen.name}`, ...chosen.included.filter(Boolean).map((x) => `— ${x}`)].join('\n')
+        : saved.items.map((i) => `${i.title}${i.detail ? ` · ${i.detail}` : ''}${i.description ? ` — ${i.description}` : ''}`).join('\n'),
       status: 'briefing',
       priority: saved.urgency ? 'urgente' : 'media',
       startDate: start,
       dueDate: due,
       deliveredDate: null,
-      value: quoteSubtotal(saved) * (saved.urgency ? 1 + settings.urgencyFee / 100 : 1),
-      discount: saved.discount,
-      payments: splitPayments(total, '50-50', start, due),
+      value,
+      discount: 0,
+      payments: splitPayments(value, '50-50', start, due),
       revisionsIncluded: saved.revisions,
       revisionsUsed: 0,
-      estimatedHours: saved.items.reduce((s, i) => s + (settings.services.find((x) => x.id === i.service)?.hours ?? 0) * i.quantity, 0) || (service?.hours ?? 0),
+      estimatedHours: chosen ? 0 : Math.round(saved.items.reduce((acc, i) => acc + (service(i.service)?.hours ?? 0) * i.quantity, 0) * 10) / 10,
       timeLogs: [],
-      tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: false })),
+      tasks: DEFAULT_TASKS.map((t) => ({ id: uid(), text: t, done: false })),
       filesLink: '',
       timerStart: null,
-      notes: `Criado a partir do orçamento #${saved.number}.`,
+      notes: `Criado a partir do orçamento Nº ${quoteNumber(saved)}.`,
       createdAt: start,
     }
     upsert('projects', project)
@@ -126,32 +174,23 @@ export default function QuoteEditor({ id }: { id: string }) {
     go('projetos', project.id)
   }
 
+  const preview = <QuoteDoc s={settings} client={client} quote={q} />
+
   return (
     <div className="page">
       <a href={href('orcamentos')} className="back">
-        <Icon name="chevronL" size={16} /> Orçamentos
+        <Icon name="chevronL" size={16} /> orçamentos
       </a>
       <div className="page-head">
         <div>
           <p className="eyebrow">
-            Orçamento #{String(q.number).padStart(3, '0')} · <Badge color={QUOTE_STATUS[q.status].color}>{QUOTE_STATUS[q.status].label}</Badge>
+            nº {quoteNumber(q)} <Badge color={QUOTE_STATUS[q.status].color}>{QUOTE_STATUS[q.status].label}</Badge>
           </p>
-          <h1>{q.title || 'Novo orçamento'}</h1>
+          <h1>{q.title || 'novo orçamento'}</h1>
         </div>
         <div className="row gap-s wrap">
-          <button className="btn ghost" onClick={() => print(<QuoteDoc s={settings} client={client} quote={q} />)}>
-            <Icon name="printer" size={16} /> PDF
-          </button>
-          <button
-            className="btn ghost"
-            onClick={() => {
-              navigator.clipboard
-                ?.writeText(text())
-                .then(() => toast('Texto copiado. Cole no WhatsApp ou e-mail.'))
-                .catch(() => toast('Não deu para copiar aqui — selecione o texto da pré-visualização.'))
-            }}
-          >
-            <Icon name="copy" size={16} /> Copiar texto
+          <button className="btn primary" onClick={() => print(preview)}>
+            <Icon name="download" size={16} /> baixar PDF
           </button>
           {client?.phone && (
             <a
@@ -160,108 +199,247 @@ export default function QuoteEditor({ id }: { id: string }) {
               target="_blank"
               rel="noreferrer"
               onClick={() => q.status === 'rascunho' && save({ status: 'enviado' })}
+              title="Abre o WhatsApp com o resumo; anexe o PDF na conversa"
             >
-              <Icon name="whatsapp" size={16} /> Enviar
+              <Icon name="whatsapp" size={16} /> enviar
             </a>
           )}
-          <button className="btn primary" onClick={() => save()} disabled={!dirty}>
-            {dirty ? 'Salvar' : 'Salvo'}
+          <button
+            className="btn ghost"
+            onClick={() =>
+              navigator.clipboard
+                ?.writeText(text())
+                .then(() => toast('Resumo copiado.'))
+                .catch(() => toast('Não deu para copiar aqui.'))
+            }
+          >
+            <Icon name="copy" size={16} /> copiar resumo
+          </button>
+          <button className={`btn ${dirty ? 'primary' : 'ghost'}`} onClick={() => save()} disabled={!dirty}>
+            {dirty ? 'salvar' : 'salvo'}
           </button>
         </div>
       </div>
 
-      <div className="grid-2 wide-left">
-        <div className="stack">
-          <Section title="Dados">
+      <div className="mobile-switch">
+        <Segmented
+          value={view}
+          onChange={setView}
+          options={[
+            { value: 'editar', label: 'editar' },
+            { value: 'ver', label: 'ver proposta' },
+          ]}
+        />
+      </div>
+
+      <div className={`quote-layout view-${view}`}>
+        <div className="stack quote-form">
+          <Section title="dados">
             <div className="form-grid">
-              <Field label="Título / projeto" span={2}>
-                <input value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: Renders — Casa Pampulha" />
+              <Field label="Projeto" span={2}>
+                <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: Casa Pampulha — áreas sociais" />
               </Field>
               <Field label="Cliente">
                 <div className="row gap-s">
                   <select
+                    id="q-client"
                     value={q.clientId}
                     onChange={(e) => {
                       const c = data.clients.find((x) => x.id === e.target.value)
-                      const stud = isStudent(c)
-                      // reajusta preços de tabela quando muda entre estudante/profissional
-                      set({
-                        clientId: e.target.value,
-                        items: q.items.map((i) => (i.service && i.unitPrice === priceFor(i.service) ? { ...i, unitPrice: priceFor(i.service, stud) } : i)),
-                      })
+                      set({ clientId: e.target.value, items: q.items.map((i) => recompute(i, isStudent(c))) })
                     }}
                   >
                     <option value="">Selecione…</option>
-                    {[...data.clients].filter((c) => !c.archived).sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
+                    {[...data.clients]
+                      .filter((c) => !c.archived)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                          {c.company ? ` · ${c.company}` : ''}
+                        </option>
+                      ))}
                   </select>
                   <button className="btn ghost small" onClick={() => setNewClient(true)} title="Novo cliente">
                     +
                   </button>
                 </div>
               </Field>
-            </div>
-            {student && <p className="small text-warn">Cliente estudante: usando a tabela de preços para estudantes.</p>}
-          </Section>
-
-          <Section
-            title="Itens"
-            action={
-              <button className="btn small" onClick={() => set({ items: [...q.items, { id: uid(), service: '', description: '', quantity: 1, unitPrice: 0 }] })}>
-                <Icon name="plus" size={14} /> Item
-              </button>
-            }
-          >
-            <div className="quote-items">
-              {q.items.map((i) => (
-                <div key={i.id} className="quote-item">
-                  <select value={i.service} onChange={(e) => setItem(i.id, { service: e.target.value, unitPrice: priceFor(e.target.value) || i.unitPrice })}>
-                    <option value="">Personalizado</option>
-                    {settings.services.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                  <input value={i.description} onChange={(e) => setItem(i.id, { description: e.target.value })} placeholder="Detalhe (ambiente, vista…)" />
-                  <input type="number" min={0} value={i.quantity} onChange={(e) => setItem(i.id, { quantity: Number(e.target.value) || 0 })} aria-label="Quantidade" />
-                  <MoneyInput value={i.unitPrice} onChange={(n) => setItem(i.id, { unitPrice: n })} />
-                  <b className="num">{money(i.quantity * i.unitPrice)}</b>
-                  <button className="icon-btn subtle" onClick={() => set({ items: q.items.filter((x) => x.id !== i.id) })} aria-label="Remover item">
-                    <Icon name="x" size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <div className="quote-totals">
-              <div>
-                <span>Subtotal</span>
-                <b>{money(sub)}</b>
-              </div>
-              <label className="check">
-                <input type="checkbox" checked={q.urgency} onChange={(e) => set({ urgency: e.target.checked })} /> Taxa de urgência (+{settings.urgencyFee}%)
-                {q.urgency && <b>{money((sub * settings.urgencyFee) / 100)}</b>}
-              </label>
-              <div>
-                <span>Desconto</span>
-                <MoneyInput value={q.discount} onChange={(n) => set({ discount: n })} />
-              </div>
-              <div className="grand">
-                <span>Total</span>
-                <b>{money(total)}</b>
-              </div>
-            </div>
-          </Section>
-
-          <Section title="Condições">
-            <div className="form-grid">
-              <Field label="Prazo (dias)">
-                <input type="number" min={1} value={q.deadlineDays} onChange={(e) => set({ deadlineDays: Number(e.target.value) || 0 })} />
+              <Field label="Modelo da proposta" span={2}>
+                <Segmented
+                  value={q.mode}
+                  onChange={(mode) => set({ mode, options: q.options.length ? q.options : [newOption(1), newOption(2)] })}
+                  options={[
+                    { value: 'escopo', label: 'escopo com valor único' },
+                    { value: 'opcoes', label: '2 opções para escolher' },
+                  ]}
+                />
               </Field>
-              <Field label="Revisões inclusas">
+              <Field label="Data">
+                <input id="q-date" type="date" value={q.createdAt} onChange={(e) => set({ createdAt: e.target.value || today() })} />
+              </Field>
+            </div>
+            {student && <p className="small text-warn">Cliente estudante: sugestões com {settings.studentDiscount}% de desconto.</p>}
+          </Section>
+
+          {!two ? (
+            <Section
+              title="escopo"
+              action={
+                <button className="btn small" onClick={() => set({ items: [...q.items, newItem()] })}>
+                  <Icon name="plus" size={14} /> serviço
+                </button>
+              }
+            >
+              <div className="q-items">
+                {q.items.map((it, n) => {
+                  const s = service(it.service)
+                  const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings)
+                  const rate = s && s.pricing === 'pacote' ? unitRate(s, it.quantity) : 0
+                  return (
+                    <div key={it.id} className="q-item">
+                      <div className="q-item-head">
+                        <span className="q-n">{String(n + 1).padStart(2, '0')}</span>
+                        <select
+                          value={it.service}
+                          onChange={(e) => {
+                            const ns = service(e.target.value)
+                            setItem(it.id, {
+                              service: e.target.value,
+                              title: ns?.name ?? it.title,
+                              quantity: ns?.pricing === 'm2' ? Math.max(it.quantity, 50) : ns?.pricing === 'livre' ? 1 : it.quantity > 40 ? 1 : it.quantity,
+                              auto: true,
+                              detail: '',
+                            })
+                          }}
+                        >
+                          <option value="">Personalizado (valor livre)</option>
+                          {settings.services.map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="icon-btn subtle" onClick={() => set({ items: q.items.filter((x) => x.id !== it.id) })} aria-label="Remover serviço">
+                          <Icon name="x" size={14} />
+                        </button>
+                      </div>
+                      <div className="q-item-grid">
+                        <Field label="Nome na proposta">
+                          <input value={it.title} onChange={(e) => setItem(it.id, { title: e.target.value })} placeholder="Ex.: Renderização V-Ray" />
+                        </Field>
+                        {s && s.pricing !== 'livre' && (
+                          <Field label={s.pricing === 'm2' ? 'Área (m²)' : `Quantidade (${s.unit})`}>
+                            <input type="number" min={0} value={it.quantity} onChange={(e) => setItem(it.id, { quantity: Number(e.target.value) || 0 })} />
+                          </Field>
+                        )}
+                        {s?.pricing === 'm2' && (
+                          <Field label="Complexidade">
+                            <Segmented<Complexity>
+                              value={it.complexity}
+                              onChange={(c) => setItem(it.id, { complexity: c })}
+                              options={(Object.keys(COMPLEXITY) as Complexity[]).map((k) => ({ value: k, label: COMPLEXITY[k] }))}
+                            />
+                          </Field>
+                        )}
+                        <Field label="Detalhe (ao lado do nome)">
+                          <input value={it.detail} onChange={(e) => set({ items: q.items.map((i) => (i.id === it.id ? { ...i, detail: e.target.value } : i)) })} placeholder="Ex.: 5 imagens" />
+                        </Field>
+                        <Field label="O que está incluso" span={2}>
+                          <input value={it.description} onChange={(e) => setItem(it.id, { description: e.target.value })} placeholder="Ambientes, nível de detalhe, ajustes…" />
+                        </Field>
+                        <Field
+                          label="Valor"
+                          hint={
+                            s && s.pricing !== 'livre'
+                              ? `tabela: ${money(suggestion)}${rate ? ` · ${money(rate)}/${s.unit}` : ''}${s.pricing === 'm2' ? ` · ${money(s.price)}/m² × ${settings.complexity[it.complexity]}` : ''}`
+                              : 'digite o valor'
+                          }
+                        >
+                          <div className="row gap-s">
+                            <MoneyInput value={it.price} onChange={(v) => setItem(it.id, { price: v, auto: false })} />
+                            {!it.auto && s && s.pricing !== 'livre' && it.price !== suggestion && (
+                              <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Voltar ao valor da tabela">
+                                tabela
+                              </button>
+                            )}
+                          </div>
+                        </Field>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="quote-totals">
+                <div>
+                  <span>subtotal</span>
+                  <b>{money(sub)}</b>
+                </div>
+                <label className="check">
+                  <input type="checkbox" checked={q.urgency} onChange={(e) => set({ urgency: e.target.checked })} /> taxa de urgência (+{settings.urgencyFee}%)
+                  {q.urgency && <b>{money((sub * settings.urgencyFee) / 100)}</b>}
+                </label>
+                <div className="discount-row">
+                  <span>desconto</span>
+                  {[5, 10, 15].map((pct) => (
+                    <button key={pct} className="btn small ghost" onClick={() => set({ discount: Math.round(sub * (1 + (q.urgency ? settings.urgencyFee / 100 : 0)) * pct) / 100 })}>
+                      {pct}%
+                    </button>
+                  ))}
+                  <MoneyInput value={q.discount} onChange={(n) => set({ discount: n })} />
+                </div>
+                <div className="grand">
+                  <span>investimento</span>
+                  <b>{money(total)}</b>
+                </div>
+                <Field label="Nota abaixo do valor (opcional)" hint="Em branco, o sistema escreve o desconto sozinho.">
+                  <input value={q.discountNote} onChange={(e) => set({ discountNote: e.target.value })} placeholder="Ex.: valor especial para pacote fechado" />
+                </Field>
+              </div>
+            </Section>
+          ) : (
+            <Section title="opções">
+              <div className="q-options">
+                {q.options.slice(0, 2).map((o, n) => (
+                  <div key={o.id} className="q-item">
+                    <div className="q-item-head">
+                      <span className="q-n">opção {n + 1}</span>
+                      <label className="check small">
+                        <input type="radio" name="chosen" checked={q.chosenOption === o.id} onChange={() => set({ chosenOption: o.id })} /> cliente escolheu esta
+                      </label>
+                    </div>
+                    <Field label="Nome do escopo">
+                      <input value={o.name} onChange={(e) => setOption(o.id, { name: e.target.value })} />
+                    </Field>
+                    <Field label="Resumo">
+                      <input value={o.summary} onChange={(e) => setOption(o.id, { summary: e.target.value })} placeholder="O que esta opção entrega" />
+                    </Field>
+                    <Field label="Itens inclusos" hint="Um por linha.">
+                      <textarea rows={4} value={o.included.join('\n')} onChange={(e) => setOption(o.id, { included: e.target.value.split('\n') })} />
+                    </Field>
+                    <div className="form-grid two">
+                      <Field label="Prazo (dias úteis)">
+                        <input type="number" min={1} value={o.deadlineDays} onChange={(e) => setOption(o.id, { deadlineDays: Number(e.target.value) || 0 })} />
+                      </Field>
+                      <Field label="Investimento">
+                        <MoneyInput value={o.price} onChange={(v) => setOption(o.id, { price: v })} />
+                      </Field>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <PriceHelper />
+            </Section>
+          )}
+
+          <Section title="condições">
+            <div className="form-grid">
+              {!two && (
+                <Field label="Prazo (dias úteis)">
+                  <input type="number" min={1} value={q.deadlineDays} onChange={(e) => set({ deadlineDays: Number(e.target.value) || 0 })} />
+                </Field>
+              )}
+              <Field label="Rodadas de ajuste">
                 <input type="number" min={0} value={q.revisions} onChange={(e) => set({ revisions: Number(e.target.value) || 0 })} />
               </Field>
               <Field label="Validade (dias)">
@@ -270,69 +448,117 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Pagamento" span={3}>
                 <textarea rows={2} value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} />
               </Field>
-              <Field label="Observações" span={3} hint="Ex.: não inclui modelagem de mobiliário personalizado; arquivos entregues em 4K…">
-                <textarea rows={3} value={q.notes} onChange={(e) => set({ notes: e.target.value })} />
+              <Field label="Arquivos entregues" span={3}>
+                <input value={q.files} onChange={(e) => set({ files: e.target.value })} placeholder="imagens JPG em alta, modelo .skp, pranchas em PDF" />
+              </Field>
+              <Field label="Observações (opcional)" span={3}>
+                <textarea rows={2} value={q.notes} onChange={(e) => set({ notes: e.target.value })} />
               </Field>
             </div>
           </Section>
-        </div>
 
-        <div className="stack">
-          <Section title="Status">
+          <Section title="status">
             <Segmented<QuoteStatus>
               value={q.status}
               onChange={(s) => (existing ? save({ status: s }) : set({ status: s }))}
               options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
             />
             <button className="btn primary block" onClick={approve}>
-              <Icon name="check" size={16} /> {q.projectId ? 'Abrir projeto criado' : 'Aprovado → criar projeto'}
+              <Icon name="check" size={16} /> {q.projectId ? 'abrir projeto criado' : 'aprovado → criar projeto'}
             </button>
-            <p className="muted small">Cria a demanda com prazo, etapas e parcelas 50% + 50% já calculados.</p>
+            <div className="row gap-s wrap">
+              {existing && (
+                <button
+                  className="btn ghost small"
+                  onClick={() => {
+                    const copy: Quote = {
+                      ...q,
+                      id: uid(),
+                      number: Math.max(0, ...data.quotes.map((x) => x.number)) + 1,
+                      title: `${q.title} (cópia)`,
+                      items: q.items.map((i) => ({ ...i, id: uid() })),
+                      options: q.options.map((o) => ({ ...o, id: uid() })),
+                      chosenOption: '',
+                      status: 'rascunho',
+                      sentAt: '',
+                      createdAt: today(),
+                      projectId: '',
+                    }
+                    upsert('quotes', copy)
+                    go('orcamentos', copy.id)
+                    toast('Orçamento duplicado como rascunho.')
+                  }}
+                >
+                  <Icon name="copy" size={14} /> duplicar
+                </button>
+              )}
+              {existing && (
+                <button
+                  className="btn ghost danger small"
+                  onClick={async () => {
+                    if (await askDelete(`o orçamento Nº ${quoteNumber(q)}`)) {
+                      remove('quotes', q.id)
+                      go('orcamentos')
+                    }
+                  }}
+                >
+                  <Icon name="trash" size={14} /> excluir
+                </button>
+              )}
+            </div>
           </Section>
-          <Section title="Pré-visualização da mensagem">
-            <pre className="preview">{text()}</pre>
-          </Section>
-          {existing && (
-            <button
-              className="btn ghost small"
-              onClick={() => {
-                const copy: Quote = {
-                  ...q,
-                  id: uid(),
-                  number: Math.max(0, ...data.quotes.map((x) => x.number)) + 1,
-                  title: `${q.title} (cópia)`,
-                  items: q.items.map((i) => ({ ...i, id: uid() })),
-                  status: 'rascunho',
-                  sentAt: '',
-                  createdAt: today(),
-                  projectId: '',
-                }
-                upsert('quotes', copy)
-                go('orcamentos', copy.id)
-                toast('Orçamento duplicado como rascunho.')
-              }}
-            >
-              <Icon name="copy" size={14} /> Duplicar orçamento
-            </button>
-          )}
-          {existing && (
-            <button
-              className="btn ghost danger small"
-              onClick={async () => {
-                if (await askDelete(`o orçamento #${q.number}`)) {
-                  remove('quotes', q.id)
-                  go('orcamentos')
-                }
-              }}
-            >
-              <Icon name="trash" size={14} /> Excluir orçamento
-            </button>
-          )}
         </div>
+
+        <aside className="quote-preview">
+          <DocScale>{preview}</DocScale>
+          <p className="muted small center">
+            Pré-visualização do PDF · textos e cores em{' '}
+            <a className="link" href={href('config')}>
+              configurações
+            </a>
+          </p>
+        </aside>
       </div>
 
       {newClient && <ClientForm onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
       {portal}
+    </div>
+  )
+}
+
+/** Calculadora rápida pela tabela, para montar o valor das opções. */
+function PriceHelper() {
+  const { data } = useStore()
+  const { settings } = data
+  const priced = settings.services.filter((x) => x.pricing !== 'livre')
+  const [sid, setSid] = useState(priced[0]?.id ?? '')
+  const [qty, setQty] = useState(10)
+  const [cx, setCx] = useState<Complexity>('media')
+  const s = settings.services.find((x) => x.id === sid)
+  return (
+    <div className="price-helper">
+      <span className="field-label">calculadora da tabela</span>
+      <div className="row gap-s wrap">
+        <select value={sid} onChange={(e) => setSid(e.target.value)} style={{ width: 'auto' }}>
+          {priced.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </select>
+        <input type="number" min={0} value={qty} onChange={(e) => setQty(Number(e.target.value) || 0)} style={{ width: 90 }} aria-label="Quantidade" />
+        <span className="muted small">{s?.pricing === 'm2' ? 'm²' : s?.unit}</span>
+        {s?.pricing === 'm2' && (
+          <select value={cx} onChange={(e) => setCx(e.target.value as Complexity)} style={{ width: 'auto' }}>
+            {(Object.keys(COMPLEXITY) as Complexity[]).map((k) => (
+              <option key={k} value={k}>
+                {COMPLEXITY[k]}
+              </option>
+            ))}
+          </select>
+        )}
+        <b>= {money(suggestPrice(s, qty, cx, false, settings))}</b>
+      </div>
     </div>
   )
 }

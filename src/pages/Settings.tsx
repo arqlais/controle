@@ -1,10 +1,13 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
-import { Badge, Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
-import type { Settings } from '../types'
-import { download, money, today, uid } from '../utils'
+import type { Complexity, Pricing, Quote, Settings } from '../types'
+import { COMPLEXITY, PRICING, download, money, today, uid } from '../utils'
+import { DEFAULT_PROPOSAL } from '../store'
+import { QuoteDoc } from '../components/Docs'
+import { DocScale } from '../components/Print'
 import { CLOUD } from '../cloud'
 
 const PRESETS: { name: string; s: Partial<Settings> }[] = [
@@ -210,7 +213,10 @@ export default function SettingsPage() {
         <div className="stack">
           <Section title="Seus dados (recibos e propostas)">
             <div className="form-grid">
-              <Field label="Seu nome">
+              <Field label="Nome completo" hint="Rodapé da proposta e recibo.">
+                <input value={s.legalName} onChange={(e) => setSettings({ legalName: e.target.value })} />
+              </Field>
+              <Field label="Como te chamo">
                 <input value={s.ownerName} onChange={(e) => setSettings({ ownerName: e.target.value })} />
               </Field>
               <Field label="CPF / CNPJ (MEI)">
@@ -242,7 +248,7 @@ export default function SettingsPage() {
               <Field label="Meta mensal de faturamento">
                 <MoneyInput value={s.monthlyGoal} onChange={(n) => setSettings({ monthlyGoal: n })} />
               </Field>
-              <Field label="Teto anual do MEI" hint="Aparece no Financeiro. Deixe 0 se não for MEI.">
+              <Field label="Teto anual do MEI" hint="Só se você abrir um MEI: mostra no Financeiro quanto do teto já usou. Com 0, fica escondido.">
                 <MoneyInput value={s.meiLimit} onChange={(n) => setSettings({ meiLimit: n })} />
               </Field>
               <Field label="Meta de valor/hora">
@@ -250,6 +256,19 @@ export default function SettingsPage() {
               </Field>
               <Field label="Taxa de urgência (%)">
                 <input type="number" min={0} value={s.urgencyFee} onChange={(e) => setSettings({ urgencyFee: Number(e.target.value) || 0 })} />
+              </Field>
+              <Field label="Desconto para estudantes (%)" hint="Aplicado nas sugestões de valor.">
+                <input type="number" min={0} max={90} value={s.studentDiscount} onChange={(e) => setSettings({ studentDiscount: Number(e.target.value) || 0 })} />
+              </Field>
+              <Field label="Complexidade (multiplica o m²)" span={3}>
+                <div className="row gap-s">
+                  {(Object.keys(COMPLEXITY) as Complexity[]).map((k) => (
+                    <label key={k} className="cx-field">
+                      <span className="small muted">{COMPLEXITY[k]} ×</span>
+                      <input type="number" step={0.05} min={0.5} value={s.complexity[k]} onChange={(e) => setSettings({ complexity: { ...s.complexity, [k]: Number(e.target.value) || 1 } })} />
+                    </label>
+                  ))}
+                </div>
               </Field>
               <Field label="Revisões padrão">
                 <input type="number" min={0} value={s.defaultRevisions} onChange={(e) => setSettings({ defaultRevisions: Number(e.target.value) || 0 })} />
@@ -263,69 +282,79 @@ export default function SettingsPage() {
       </div>
 
       <Section
-        title="Tabela de preços e serviços"
+        title="tabela de preços"
         action={
           <button
             className="btn small"
-            onClick={() => setSettings({ services: [...s.services, { id: uid(), name: 'Novo serviço', unit: 'unidade', price: 0, studentPrice: 0, hours: 1 }] })}
+            onClick={() => setSettings({ services: [...s.services, { id: uid(), name: 'Novo serviço', unit: 'unidade', pricing: 'unidade', price: 0, tiers: [], min: 0, hours: 1 }] })}
           >
-            <Icon name="plus" size={14} /> Serviço
+            <Icon name="plus" size={14} /> serviço
           </button>
         }
       >
         <p className="muted small">
-          Dois preços por serviço: <b>profissional</b> (arquitetos, designers, escritórios, construtoras) e <b>estudante</b>. O sistema escolhe sozinho conforme o tipo do cliente. As horas por
-          unidade estimam seu valor/hora real.
+          Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b> ou <b>valor livre</b>{' '}
+          (você digita no orçamento). Estudantes recebem {s.studentDiscount}% de desconto na sugestão. No orçamento você sempre pode digitar outro valor.
         </p>
-        <div className="table-wrap">
-          <table className="table compact">
-            <thead>
-              <tr>
-                <th>Serviço</th>
-                <th>Unidade</th>
-                <th>Profissional</th>
-                <th>Estudante</th>
-                <th>Horas/un.</th>
-                <th>R$/hora</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {s.services.map((x) => (
-                <tr key={x.id}>
-                  <td>
-                    <input className="cell-input" value={x.name} onChange={(e) => setService(x.id, { name: e.target.value })} />
-                  </td>
-                  <td>
-                    <input className="cell-input" value={x.unit} onChange={(e) => setService(x.id, { unit: e.target.value })} style={{ width: 90 }} />
-                  </td>
-                  <td style={{ minWidth: 120 }}>
+        <div className="services">
+          {s.services.map((x) => (
+            <div key={x.id} className="service-row">
+              <div className="service-main">
+                <input className="service-name" value={x.name} onChange={(e) => setService(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
+                <select value={x.pricing} onChange={(e) => setService(x.id, { pricing: e.target.value as Pricing, unit: e.target.value === 'm2' ? 'm²' : x.unit === 'm²' ? 'unidade' : x.unit })} aria-label="Forma de preço">
+                  {(Object.keys(PRICING) as Pricing[]).map((k) => (
+                    <option key={k} value={k}>
+                      {PRICING[k]}
+                    </option>
+                  ))}
+                </select>
+                <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })} aria-label="Remover">
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
+              {x.pricing !== 'livre' && (
+                <div className="service-fields">
+                  {x.pricing !== 'm2' && (
+                    <Field label="Unidade">
+                      <input value={x.unit} onChange={(e) => setService(x.id, { unit: e.target.value })} placeholder="imagem" />
+                    </Field>
+                  )}
+                  <Field label={x.pricing === 'm2' ? 'R$ por m²' : x.pricing === 'pacote' ? `Avulso (1 ${x.unit})` : `R$ por ${x.unit}`}>
                     <MoneyInput value={x.price} onChange={(n) => setService(x.id, { price: n })} />
-                  </td>
-                  <td style={{ minWidth: 120 }}>
-                    <MoneyInput value={x.studentPrice} onChange={(n) => setService(x.id, { studentPrice: n })} />
-                  </td>
-                  <td>
-                    <input className="cell-input" type="number" step={0.5} min={0} value={x.hours} onChange={(e) => setService(x.id, { hours: Number(e.target.value) || 0 })} style={{ width: 70 }} />
-                  </td>
-                  <td className="nowrap">
-                    {x.hours ? (
-                      <Badge color={x.price / x.hours >= s.hourlyTarget ? '#2f855a' : '#c53030'}>{money(x.price / x.hours)}</Badge>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="actions">
-                    <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })}>
-                      <Icon name="trash" size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </Field>
+                  <Field label="Valor mínimo">
+                    <MoneyInput value={x.min} onChange={(n) => setService(x.id, { min: n })} />
+                  </Field>
+                  <Field label={`Horas por ${x.pricing === 'm2' ? 'm²' : x.unit}`}>
+                    <input type="number" step={0.05} min={0} value={x.hours} onChange={(e) => setService(x.id, { hours: Number(e.target.value) || 0 })} />
+                  </Field>
+                </div>
+              )}
+              {x.pricing === 'pacote' && (
+                <div className="tiers">
+                  {x.tiers.map((t, i) => (
+                    <div key={i} className="tier">
+                      <input type="number" min={1} value={t.qty} onChange={(e) => setService(x.id, { tiers: x.tiers.map((y, j) => (j === i ? { ...y, qty: Number(e.target.value) || 0 } : y)) })} aria-label="Quantidade do pacote" />
+                      <span className="muted small">{x.unit}s por</span>
+                      <MoneyInput value={t.price} onChange={(n) => setService(x.id, { tiers: x.tiers.map((y, j) => (j === i ? { ...y, price: n } : y)) })} />
+                      <span className="muted small nowrap">{t.qty ? `= ${money(t.price / t.qty)}/${x.unit}` : ''}</span>
+                      <button className="icon-btn subtle" onClick={() => setService(x.id, { tiers: x.tiers.filter((_, j) => j !== i) })} aria-label="Remover pacote">
+                        <Icon name="x" size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button className="btn small ghost" onClick={() => setService(x.id, { tiers: [...x.tiers, { qty: (x.tiers.at(-1)?.qty ?? 0) + 5, price: 0 }] })}>
+                    <Icon name="plus" size={14} /> pacote
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </Section>
+
+      <ProposalSettings />
+
 
       <Section title="Backup e dados">
         <p className="muted small">
@@ -361,5 +390,116 @@ export default function SettingsPage() {
         </div>
       </Section>
     </div>
+  )
+}
+
+/** Textos, fontes e cores da proposta em PDF, com pré-visualização. */
+function ProposalSettings() {
+  const { data, setSettings } = useStore()
+  const s = data.settings
+  const p = s.proposal
+  const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch } })
+  const [mode, setMode] = useState<'escopo' | 'opcoes'>('escopo')
+  const sample: Quote = {
+    id: 'amostra',
+    number: 1,
+    clientId: '',
+    title: 'Casa Pampulha — áreas sociais',
+    mode,
+    items: [
+      { id: 'a', service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media', price: 370, auto: true },
+      { id: 'b', service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
+    ],
+    options: [
+      { id: 'o1', name: 'essencial', summary: 'imagens para apresentar o projeto', included: ['5 renders V-Ray', 'pós-produção', '1 rodada de ajuste'], deadlineDays: 10, price: 370 },
+      { id: 'o2', name: 'completo', summary: 'modelagem + imagens', included: ['modelagem 3D completa', '10 renders V-Ray', 'pós-produção', 'arquivo .skp'], deadlineDays: 15, price: 1650 },
+    ],
+    chosenOption: '',
+    discount: 0,
+    discountNote: '',
+    files: p.files,
+    urgency: false,
+    deadlineDays: 10,
+    validityDays: 15,
+    revisions: s.defaultRevisions,
+    paymentTerms: s.defaultPaymentTerms,
+    notes: '',
+    status: 'rascunho',
+    sentAt: '',
+    createdAt: today(),
+    projectId: '',
+  }
+  return (
+    <Section title="modelo da proposta (PDF)">
+      <div className="proposal-settings">
+        <div className="stack">
+          <div className="form-grid">
+            <Field label="Texto acima do título">
+              <input value={p.eyebrow} onChange={(e) => setP({ eyebrow: e.target.value })} />
+            </Field>
+            <Field label="Título">
+              <input value={p.title} onChange={(e) => setP({ title: e.target.value })} />
+            </Field>
+            <Field label="Fonte dos títulos">
+              <select value={p.serif} onChange={(e) => setP({ serif: e.target.value })}>
+                {['Cormorant Garamond', 'The Seasons', 'Playfair Display'].map((f) => (
+                  <option key={f}>{f}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Arquivos entregues (padrão)" span={3}>
+              <input value={p.files} onChange={(e) => setP({ files: e.target.value })} />
+            </Field>
+            <Field label="Pagamento (padrão)" span={3} hint="Usado em todo orçamento novo; dá para mudar em cada um.">
+              <textarea rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
+            </Field>
+            {(
+              [
+                ['ink', 'Azul (textos)'],
+                ['rose', 'Rosé (rótulos)'],
+                ['arch', 'Arco'],
+                ['paper', 'Fundo'],
+              ] as ['ink' | 'rose' | 'arch' | 'paper', string][]
+            ).map(([k, label]) => (
+              <Field key={k} label={label}>
+                <div className="color-input">
+                  <input type="color" value={p[k]} onChange={(e) => setP({ [k]: e.target.value })} />
+                  <input value={p[k]} onChange={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value) && setP({ [k]: e.target.value })} maxLength={7} />
+                </div>
+              </Field>
+            ))}
+            <Field label="Arco com o valor">
+              <Segmented
+                value={p.showArch ? 's' : 'n'}
+                options={[
+                  { value: 's', label: 'mostrar' },
+                  { value: 'n', label: 'esconder' },
+                ]}
+                onChange={(v) => setP({ showArch: v === 's' })}
+              />
+            </Field>
+          </div>
+          <p className="muted small">
+            Rodapé usa seus dados acima (Pix, nome completo, WhatsApp, Instagram e site). O logo enviado em Identidade visual substitui o arco + nome.{' '}
+            <button className="link" onClick={() => setSettings({ proposal: DEFAULT_PROPOSAL })}>
+              restaurar modelo original
+            </button>
+          </p>
+        </div>
+        <div className="stack-s">
+          <Segmented
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'escopo', label: 'escopo' },
+              { value: 'opcoes', label: '2 opções' },
+            ]}
+          />
+          <DocScale>
+            <QuoteDoc s={s} quote={sample} client={{ id: '', name: 'Mariana Costa', company: 'Costa Arquitetura', type: 'escritorio', email: '', phone: '', instagram: '', city: '', document: '', origin: '', notes: '', favorite: false, archived: false, history: [], createdAt: '' }} />
+          </DocScale>
+        </div>
+      </div>
+    </Section>
   )
 }

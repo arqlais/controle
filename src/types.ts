@@ -125,12 +125,27 @@ export interface CalendarEvent {
 
 export type QuoteStatus = 'rascunho' | 'enviado' | 'aprovado' | 'recusado'
 
+export type Complexity = 'simples' | 'media' | 'alta'
+
 export interface QuoteItem {
   id: string
-  service: string
-  description: string
+  service: string // id do serviço ('' = personalizado)
+  title: string // nome que aparece na proposta
+  detail: string // "5 imagens", "120 m² · complexidade média"…
+  description: string // o que está incluso
   quantity: number
-  unitPrice: number
+  complexity: Complexity
+  price: number // valor total do item
+  auto: boolean // true = valor segue a tabela; false = digitado à mão
+}
+
+export interface QuoteOption {
+  id: string
+  name: string
+  summary: string
+  included: string[]
+  deadlineDays: number
+  price: number
 }
 
 export interface Quote {
@@ -138,8 +153,13 @@ export interface Quote {
   number: number
   clientId: string
   title: string
+  mode: 'escopo' | 'opcoes' // valor único com escopo, ou 2 opções para o cliente escolher
   items: QuoteItem[]
+  options: QuoteOption[]
+  chosenOption: string
   discount: number
+  discountNote: string
+  files: string // arquivos entregues
   urgency: boolean
   deadlineDays: number
   validityDays: number
@@ -152,13 +172,35 @@ export interface Quote {
   projectId: string
 }
 
+export type Pricing = 'unidade' | 'pacote' | 'm2' | 'livre'
+
+export interface PriceTier {
+  qty: number // a partir desta quantidade
+  price: number // valor do pacote (ex.: 5 imagens = 370)
+}
+
 export interface ServiceDef {
   id: string
   name: string
-  unit: string // imagem, prancha, m², segundo, projeto
-  price: number // preço profissional
-  studentPrice: number // preço estudante
+  unit: string // imagem, prancha, m², projeto
+  pricing: Pricing // por unidade, pacotes, por m² × complexidade ou valor livre
+  price: number // R$ por unidade (ou por m²)
+  tiers: PriceTier[] // pacotes com desconto por quantidade
+  min: number // valor mínimo do item
   hours: number // horas estimadas por unidade
+  studentPrice?: number // (antigo) substituído pelo desconto de estudante
+}
+
+export interface ProposalStyle {
+  eyebrow: string // "proposta de"
+  title: string // "orçamento"
+  serif: string // fonte dos títulos da proposta
+  ink: string // azul-marinho
+  rose: string // rosé dos rótulos
+  arch: string // cor do arco
+  paper: string // fundo
+  files: string // arquivos entregues (padrão)
+  showArch: boolean
 }
 
 export interface Settings {
@@ -188,6 +230,10 @@ export interface Settings {
   uppercaseLabels: boolean
   dark: boolean
   monthlyGoal: number
+  studentDiscount: number // % de desconto na tabela para estudantes
+  complexity: Record<Complexity, number> // multiplicadores do m²
+  legalName: string // nome completo (proposta, recibo)
+  proposal: ProposalStyle
   meiLimit: number // teto anual do MEI
   hourlyTarget: number
   urgencyFee: number // %

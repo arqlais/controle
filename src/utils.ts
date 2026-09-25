@@ -2,6 +2,10 @@ import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
 import type {
   Client,
+  Complexity,
+  Pricing,
+  ServiceDef,
+  Settings,
   ClientType,
   Data,
   EventType,
@@ -62,7 +66,7 @@ export const PRIORITY: Record<Priority, { label: string; color: string; weight: 
 export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
   software: 'Softwares / licenças',
   equipamento: 'Equipamento / hardware',
-  impostos: 'Impostos (DAS / MEI)',
+  impostos: 'Impostos (carnê-leão / IR)',
   marketing: 'Marketing / anúncios',
   internet: 'Internet / energia',
   cursos: 'Cursos / assets',
@@ -192,8 +196,48 @@ export function lastMonths(n: number, from = today()) {
   return keys
 }
 
-export const quoteSubtotal = (q: Quote) => q.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+/* ---------- preços e orçamentos ---------- */
+
+export const COMPLEXITY: Record<Complexity, string> = { simples: 'simples', media: 'média', alta: 'alta' }
+export const PRICING: Record<Pricing, string> = { unidade: 'por unidade', pacote: 'pacotes', m2: 'por m² × complexidade', livre: 'valor livre' }
+
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+/** Valor por unidade que vale para esta quantidade (o maior pacote alcançado). */
+export function unitRate(s: ServiceDef, qty: number) {
+  if (s.pricing !== 'pacote') return s.price
+  let rate = s.price
+  for (const t of [...s.tiers].sort((a, b) => a.qty - b.qty)) if (qty >= t.qty && t.qty > 0) rate = t.price / t.qty
+  return rate
+}
+
+/** Sugestão de valor pela tabela (0 quando o serviço é de valor livre). */
+export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings) {
+  if (!s || s.pricing === 'livre') return 0
+  let v = s.pricing === 'm2' ? s.price * qty * (st.complexity[complexity] ?? 1) : unitRate(s, qty) * qty
+  v = Math.max(v, s.min || 0)
+  if (student && st.studentDiscount) v *= 1 - st.studentDiscount / 100
+  return round2(v)
+}
+
+/** Texto curto que aparece na proposta ao lado do serviço. */
+export function itemDetail(s: ServiceDef | undefined, qty: number, complexity: Complexity) {
+  if (!s || s.pricing === 'livre') return ''
+  if (s.pricing === 'm2') return `${qty.toLocaleString('pt-BR')} m² · complexidade ${COMPLEXITY[complexity]}`
+  const unit = qty === 1 ? s.unit : s.unit.endsWith('m') ? s.unit.slice(0, -1) + 'ns' : s.unit + 's'
+  return `${qty} ${unit}`
+}
+
+export const quoteSubtotal = (q: Quote) => (q.mode === 'opcoes' ? 0 : q.items.reduce((s, i) => s + (i.price || 0), 0))
+export const quoteNumber = (q: Quote) => `${q.createdAt.slice(0, 4)}-${String(q.number).padStart(3, '0')}`
 export const quoteTotal = (q: Quote, urgencyFee: number) => {
+  if (q.mode === 'opcoes') {
+    // opção escolhida; sem escolha ainda, considera a de menor valor
+    const chosen = q.options.find((o) => o.id === q.chosenOption)
+    if (chosen) return chosen.price
+    const prices = q.options.map((o) => o.price).filter((n) => n > 0)
+    return prices.length ? Math.min(...prices) : 0
+  }
   const sub = quoteSubtotal(q)
   const withUrg = q.urgency ? sub * (1 + urgencyFee / 100) : sub
   return Math.max(0, withUrg - q.discount)

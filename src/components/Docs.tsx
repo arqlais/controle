@@ -1,6 +1,6 @@
+import type { CSSProperties, ReactNode } from 'react'
 import type { Client, Payment, Project, Quote, Settings } from '../types'
-import { fmtDateLong, money, quoteSubtotal, quoteTotal, today, addDays } from '../utils'
-
+import { fmtDateLong, money, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -39,148 +39,291 @@ export function porExtenso(valor: number) {
   return [r, c].filter(Boolean).join(' e ') || 'zero reais'
 }
 
-function DocHeader({ s, title, sub }: { s: Settings; title: string; sub?: string }) {
+
+/* ============================================================
+   Documentos no design da proposta do Canva (A4):
+   arco rosé, serifada nos títulos, Poppins no texto.
+   Cores e textos vêm de Configurações → Modelo da proposta.
+   ============================================================ */
+
+const fmt = (s: string) => {
+  const [y, m, d] = s.split('-')
+  return `${d}/${m}/${y}`
+}
+
+export function ArchIcon({ size = 30, color, dot }: { size?: number; color: string; dot: string }) {
   return (
-    <header className="doc-head">
-      <div>
-        {s.logo ? <img src={s.logo} alt="" className="doc-logo" /> : <div className="doc-brand">{s.brandName}</div>}
-        {s.tagline && <div className="doc-tag">{s.tagline}</div>}
-      </div>
-      <div className="doc-title">
-        <h1>{title}</h1>
-        {sub && <span>{sub}</span>}
-      </div>
+    <svg width={size} height={size * 1.15} viewBox="0 0 26 30" fill="none" aria-hidden>
+      <path d="M2 29V13a11 11 0 0 1 22 0v16" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M1 29h24" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="13" cy="20" r="2" fill={dot} />
+    </svg>
+  )
+}
+
+function Paper({ s, children }: { s: Settings; children: ReactNode }) {
+  const p = s.proposal
+  const style = {
+    '--p-ink': p.ink,
+    '--p-rose': p.rose,
+    '--p-arch': p.arch,
+    '--p-paper': p.paper,
+    '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
+  } as CSSProperties
+  return (
+    <article className="proposal" style={style}>
+      {children}
+    </article>
+  )
+}
+
+function Brand({ s, right }: { s: Settings; right: string }) {
+  const p = s.proposal
+  return (
+    <header className="p-top">
+      {s.logo ? (
+        <img src={s.logo} alt="" className="p-logo-img" />
+      ) : (
+        <div className="p-logo">
+          <ArchIcon color={p.ink} dot={p.rose} />
+          <span>
+            {s.brandName.replace(/\.$/, '')}
+            <i>.</i>
+          </span>
+        </div>
+      )}
+      <span className="p-number">{right}</span>
     </header>
   )
 }
 
-function DocFooter({ s }: { s: Settings }) {
+function Footer({ s, sign }: { s: Settings; sign?: ReactNode }) {
+  const line1 = [s.pixKey && `pix ${s.pixKey}`, s.legalName || s.ownerName].filter(Boolean).join(' · ')
+  const line2 = [s.phone, s.instagram, s.website.replace(/^https?:\/\/(www\.)?/, '')].filter(Boolean).join(' · ')
   return (
-    <footer className="doc-foot">
-      {[s.ownerName, s.document && `CPF/CNPJ ${s.document}`, s.phone, s.email, s.website, s.instagram].filter(Boolean).join('  ·  ')}
+    <footer className="p-foot">
+      <div className="p-contact">
+        <ArchIcon size={20} color={s.proposal.rose} dot={s.proposal.ink} />
+        <div>
+          {line1 && <div>{line1}</div>}
+          {line2 && <div>{line2}</div>}
+        </div>
+      </div>
+      {sign}
     </footer>
   )
 }
 
-export function ReceiptDoc({ s, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
+function Info({ rows }: { rows: [string, string][] }) {
   return (
-    <article className="doc">
-      <DocHeader s={s} title="Recibo" sub={money(payment.amount)} />
-      <p className="doc-text">
-        Recebi de <b>{client?.company || client?.name || '—'}</b>
-        {client?.document && <>, CPF/CNPJ {client.document}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
-        <b>{payment.description.toLowerCase()}</b> do projeto <b>{project.title}</b>.
-      </p>
-      <p className="doc-text">
-        Forma de pagamento: {payment.method || '—'} · Data do pagamento: {fmtDateLong(payment.paidDate ?? today())}
-      </p>
-      <p className="doc-text">Para maior clareza, firmo o presente recibo, dando plena quitação do valor acima.</p>
-      <p className="doc-text right">
-        {s.city ? `${s.city}, ` : ''}
-        {new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}
-      </p>
-      <div className="signature">
-        <span />
-        <div>{s.ownerName || s.brandName}</div>
-        {s.document && <small>{s.document}</small>}
-      </div>
-      <DocFooter s={s} />
-    </article>
+    <dl className="p-info">
+      {rows.map(([k, v]) => (
+        <div key={k}>
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
   )
 }
 
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  const sub = quoteSubtotal(quote)
+  const p = s.proposal
+  const clientName = client?.company && client.type !== 'estudante' ? client.company : client?.name ?? '[nome do cliente]'
   const total = quoteTotal(quote, s.urgencyFee)
-  const serviceName = (id: string) => s.services.find((x) => x.id === id)?.name ?? ''
+  const sub = quoteSubtotal(quote)
+  const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
+  const discountLine =
+    quote.discountNote ||
+    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', quote.discount ? `com ${money(quote.discount)} de desconto` : ''].filter(Boolean).join(' · ')
+  const two = quote.mode === 'opcoes'
+  const options = quote.options.slice(0, 2)
+  const rows: [string, string][] = [
+    ['projeto', quote.title || '[nome do projeto]'],
+    ['data', fmt(quote.createdAt)],
+    ['validade', plural(quote.validityDays, 'dia', 'dias')],
+  ]
+
   return (
-    <article className="doc">
-      <DocHeader s={s} title="Proposta" sub={`Nº ${String(quote.number).padStart(3, '0')} · ${fmtDateLong(quote.createdAt)}`} />
-      <section className="doc-grid">
-        <div>
-          <small>Cliente</small>
-          <b>{client?.name ?? '—'}</b>
-          {client?.company && <span>{client.company}</span>}
+    <Paper s={s}>
+      <Brand s={s} right={`Nº ${quoteNumber(quote)}`} />
+
+      <section className={`p-hero ${two ? 'is-options' : ''}`}>
+        <div className="p-hero-text">
+          <p className="p-eyebrow">{p.eyebrow}</p>
+          <h1 className="p-title">{p.title}</h1>
+          <p className="p-for">para {clientName}</p>
+          <Info rows={rows} />
         </div>
-        <div>
-          <small>Projeto</small>
-          <b>{quote.title}</b>
-        </div>
+        {p.showArch && (
+          <div className="p-arch">
+            <span className="p-dot" />
+            {two ? (
+              <>
+                <b className="p-arch-num">{options.length || 2}</b>
+                <em>
+                  opções para
+                  <br />
+                  você escolher
+                </em>
+              </>
+            ) : (
+              <>
+                <span className="p-label">investimento</span>
+                <b className="p-arch-price">{money(total)}</b>
+                {discountLine && <span className="p-arch-note">{discountLine}</span>}
+              </>
+            )}
+          </div>
+        )}
       </section>
-      <table className="doc-table">
-        <thead>
-          <tr>
-            <th>Serviço</th>
-            <th className="num">Qtd.</th>
-            <th className="num">Unitário</th>
-            <th className="num">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {quote.items.map((i) => (
-            <tr key={i.id}>
-              <td>
-                <b>{serviceName(i.service) || i.description}</b>
-                {serviceName(i.service) && i.description && <div className="muted">{i.description}</div>}
-              </td>
-              <td className="num">{i.quantity}</td>
-              <td className="num">{money(i.unitPrice)}</td>
-              <td className="num">{money(i.quantity * i.unitPrice)}</td>
-            </tr>
+
+      {two ? (
+        <section className="p-options">
+          {options.map((o, i) => (
+            <div key={o.id} className="p-option">
+              <div className="p-option-head">
+                <span className={`p-badge ${i ? 'is-light' : ''}`}>{i + 1}</span>
+                <div>
+                  <span className="p-label">opção {i + 1}</span>
+                  <h3>{o.name || '[nome do escopo]'}</h3>
+                </div>
+              </div>
+              {o.summary && <p className="p-muted">{o.summary}</p>}
+              <ul className="p-list">
+                {o.included.filter(Boolean).map((it, k) => (
+                  <li key={k}>{it}</li>
+                ))}
+              </ul>
+              <p className="p-muted">prazo: {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
+              <span className="p-label p-label-dot">investimento</span>
+              <b className="p-option-price">{money(o.price)}</b>
+            </div>
           ))}
-        </tbody>
-        <tfoot>
-          {(quote.urgency || quote.discount > 0) && (
-            <tr>
-              <td colSpan={3}>Subtotal</td>
-              <td className="num">{money(sub)}</td>
-            </tr>
+        </section>
+      ) : (
+        <section className="p-scope">
+          <div className="p-scope-head">
+            <span className="p-label">escopo</span>
+            <span className="p-label is-muted">valor</span>
+          </div>
+          {quote.items.map((it, i) => (
+            <div key={it.id} className="p-scope-row">
+              <span className="p-scope-n">{String(i + 1).padStart(2, '0')}</span>
+              <div className="p-scope-main">
+                <b>
+                  {it.title || 'serviço'}
+                  {it.detail && <span> · {it.detail}</span>}
+                </b>
+                {it.description && <p className="p-muted">{it.description}</p>}
+              </div>
+              <span className="p-scope-price">{money(it.price)}</span>
+            </div>
+          ))}
+          {p.showArch === false && (
+            <div className="p-scope-total">
+              <span className="p-label">investimento</span>
+              <b>{money(total)}</b>
+              {discountLine && <span className="p-muted">{discountLine}</span>}
+            </div>
           )}
-          {quote.urgency && (
-            <tr>
-              <td colSpan={3}>Taxa de urgência ({s.urgencyFee}%)</td>
-              <td className="num">{money((sub * s.urgencyFee) / 100)}</td>
-            </tr>
-          )}
-          {quote.discount > 0 && (
-            <tr>
-              <td colSpan={3}>Desconto</td>
-              <td className="num">− {money(quote.discount)}</td>
-            </tr>
-          )}
-          <tr className="doc-total">
-            <td colSpan={3}>Total</td>
-            <td className="num">{money(total)}</td>
-          </tr>
-        </tfoot>
-      </table>
-      <section className="doc-terms">
+        </section>
+      )}
+
+      <section className="p-terms">
         <div>
-          <small>Prazo de entrega</small>
-          <b>{quote.deadlineDays} dias {quote.urgency ? '(urgente)' : 'úteis'}</b>
-          <span>após aprovação e recebimento dos arquivos</span>
+          <span className="p-label">pagamento</span>
+          <p>{quote.paymentTerms}</p>
         </div>
         <div>
-          <small>Revisões inclusas</small>
-          <b>{quote.revisions}</b>
-          <span>rodadas de ajustes</span>
+          <span className="p-label">arquivos entregues</span>
+          <p>{quote.files}</p>
         </div>
         <div>
-          <small>Validade</small>
-          <b>{fmtDateLong(addDays(quote.createdAt, quote.validityDays))}</b>
-          <span>{quote.validityDays} dias</span>
+          <span className="p-label">{two ? 'ajustes' : 'prazo'}</span>
+          <p>
+            {two
+              ? `${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'} em qualquer uma das opções.`
+              : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal, com ${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'}.`}
+          </p>
         </div>
       </section>
-      {quote.paymentTerms && (
-        <p className="doc-text">
-          <small>Pagamento</small>
-          <br />
-          {quote.paymentTerms}
-          {s.pixKey && <> Chave Pix: {s.pixKey}.</>}
+      {quote.notes && <p className="p-notes">{quote.notes}</p>}
+
+      <Footer
+        s={s}
+        sign={
+          <div className="p-sign">
+            {two && (
+              <div className="p-choice">
+                opção escolhida:
+                {options.map((o, i) => (
+                  <span key={o.id}>
+                    <i className={quote.chosenOption === o.id ? 'on' : ''} /> {i + 1}
+                  </span>
+                ))}
+              </div>
+            )}
+            <span className="p-sign-line" />
+            <span>de acordo · {clientName}</span>
+          </div>
+        }
+      />
+    </Paper>
+  )
+}
+
+export function ReceiptDoc({ s, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
+  const payer = client?.company || client?.name || '—'
+  return (
+    <Paper s={s}>
+      <Brand s={s} right={fmt(payment.paidDate ?? today())} />
+      <section className="p-hero">
+        <div className="p-hero-text">
+          <p className="p-eyebrow">comprovante de pagamento</p>
+          <h1 className="p-title">recibo</h1>
+          <p className="p-for">de {payer}</p>
+          <Info
+            rows={[
+              ['projeto', project.title],
+              ['referente a', payment.description.toLowerCase()],
+              ['forma', payment.method || '—'],
+            ]}
+          />
+        </div>
+        {s.proposal.showArch && (
+          <div className="p-arch">
+            <span className="p-dot" />
+            <span className="p-label">valor recebido</span>
+            <b className="p-arch-price">{money(payment.amount)}</b>
+          </div>
+        )}
+      </section>
+      <section className="p-receipt">
+        <p>
+          Recebi de <b>{payer}</b>
+          {client?.document && <>, CPF/CNPJ {client.document}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
+          {payment.description.toLowerCase()} do projeto <b>{project.title}</b>, dando plena quitação deste valor.
         </p>
-      )}
-      {quote.notes && <p className="doc-text pre">{quote.notes}</p>}
-      <DocFooter s={s} />
-    </article>
+        <p className="p-muted">
+          {s.city ? `${s.city}, ` : ''}
+          {fmtDateLong(payment.paidDate ?? today())}
+        </p>
+      </section>
+      <Footer
+        s={s}
+        sign={
+          <div className="p-sign">
+            <span className="p-sign-line" />
+            <span>
+              {s.legalName || s.ownerName}
+              {s.document ? ` · CPF ${s.document}` : ''}
+            </span>
+          </div>
+        }
+      />
+    </Paper>
   )
 }

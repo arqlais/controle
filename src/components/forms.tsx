@@ -10,6 +10,7 @@ import {
   PRIORITY,
   STATUS,
   isStudent,
+  suggestPrice,
   money,
   splitPayments,
   today,
@@ -164,7 +165,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
   const set = <K extends keyof Project>(k: K, v: Project[K]) => setP((x) => ({ ...x, [k]: v }))
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = settings.services.find((s) => s.id === p.service)
-  const suggested = service ? (isStudent(client) ? service.studentPrice : service.price) * p.quantity : 0
+  const suggested = suggestPrice(service, p.quantity, 'media', isStudent(client), settings)
   const total = Math.max(0, p.value - p.discount)
 
   const applyService = (id: string, qty = p.quantity) => {
@@ -173,7 +174,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
       ...x,
       service: id,
       quantity: qty,
-      value: s && (!x.value || x.value === suggested) ? (isStudent(client) ? s.studentPrice : s.price) * qty : x.value,
+      value: s && s.pricing !== 'livre' && (!x.value || x.value === suggested) ? suggestPrice(s, qty, 'media', isStudent(client), settings) : x.value,
       estimatedHours: s ? Math.round(s.hours * qty * 10) / 10 : x.estimatedHours,
     }))
   }

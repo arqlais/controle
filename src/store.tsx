@@ -2,21 +2,46 @@ import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, pushRemote } from './cloud'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Data, Settings } from './types'
+import type { Data, ProposalStyle, ServiceDef, Settings } from './types'
 import { DEFAULT_TASKS, addDays, splitPayments, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
+
+// Preços da tabela do site (render V-Ray e IA). Os por m² são ponto de partida — ajuste em Configurações.
+export const DEFAULT_SERVICES: ServiceDef[] = [
+  { id: 'render-vray', name: 'Renderização V-Ray', unit: 'imagem', pricing: 'pacote', price: 80, min: 0, hours: 4, tiers: [ { qty: 5, price: 370 }, { qty: 10, price: 710 }, { qty: 15, price: 975 } ] },
+  { id: 'render-ia', name: 'Renderização I.A', unit: 'imagem', pricing: 'pacote', price: 50, min: 0, hours: 1.5, tiers: [ { qty: 5, price: 240 }, { qty: 10, price: 460 }, { qty: 15, price: 630 } ] },
+  { id: 'modelagem', name: 'Modelagem 3D', unit: 'm²', pricing: 'm2', price: 6, min: 350, hours: 0.08, tiers: [] },
+  { id: 'detalhamento', name: 'Detalhamento', unit: 'm²', pricing: 'm2', price: 12, min: 400, hours: 0.1, tiers: [] },
+  { id: 'executivo', name: 'Projeto executivo', unit: 'm²', pricing: 'm2', price: 15, min: 600, hours: 0.12, tiers: [] },
+  { id: 'mapas', name: 'Mapas urbanos', unit: 'mapa', pricing: 'unidade', price: 150, min: 0, hours: 2.5, tiers: [] },
+  { id: 'pranchas', name: 'Pranchas e monografia', unit: 'prancha', pricing: 'unidade', price: 200, min: 0, hours: 3, tiers: [] },
+  { id: 'planta-hum', name: 'Planta humanizada', unit: 'planta', pricing: 'unidade', price: 300, min: 0, hours: 4, tiers: [] },
+  { id: 'personalizado', name: 'Serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
+]
+
+export const DEFAULT_PROPOSAL: ProposalStyle = {
+  eyebrow: 'proposta de',
+  title: 'orçamento',
+  serif: 'Cormorant Garamond',
+  ink: '#1f3a4d',
+  rose: '#a86a60',
+  arch: '#e8d6cf',
+  paper: '#f8f5f2',
+  files: 'imagens JPG em alta resolução',
+  showArch: true,
+}
 
 export const DEFAULT_SETTINGS: Settings = {
   brandName: 'laís',
   tagline: 'renderização · modelagem · detalhamento',
   ownerName: 'Laís',
   email: '',
-  phone: '',
-  instagram: '',
-  website: 'www.lais3d.com.br',
+  phone: '+55 11 96928-8192',
+  instagram: '@lais_3d',
+  website: 'lais3d.com.br',
   document: '',
-  pixKey: '',
+  pixKey: '11951233515',
   calendarToken: '',
   city: '',
   logo: '',
@@ -34,22 +59,16 @@ export const DEFAULT_SETTINGS: Settings = {
   uppercaseLabels: false,
   dark: false,
   monthlyGoal: 6000,
-  meiLimit: 81000,
+  studentDiscount: 40,
+  complexity: { simples: 1, media: 1.3, alta: 1.6 },
+  legalName: 'Laís Amaral Vieira',
+  proposal: DEFAULT_PROPOSAL,
+  meiLimit: 0,
   hourlyTarget: 60,
   urgencyFee: 30,
   defaultRevisions: 2,
-  defaultPaymentTerms: '50% de entrada para início + 50% na entrega das imagens finais, via Pix.',
-  services: [
-    { id: 'render-int', name: 'Renderização interna (V-Ray)', unit: 'imagem', price: 450, studentPrice: 250, hours: 6 },
-    { id: 'render-ext', name: 'Renderização externa / fachada', unit: 'imagem', price: 550, studentPrice: 300, hours: 7 },
-    { id: 'render-ia', name: 'Renderização com IA', unit: 'imagem', price: 180, studentPrice: 100, hours: 1.5 },
-    { id: 'modelagem', name: 'Modelagem 3D', unit: 'projeto', price: 800, studentPrice: 400, hours: 10 },
-    { id: 'detalhamento', name: 'Detalhamento', unit: 'prancha', price: 250, studentPrice: 140, hours: 4 },
-    { id: 'executivo', name: 'Projeto executivo', unit: 'prancha', price: 300, studentPrice: 170, hours: 5 },
-    { id: 'mapas', name: 'Mapas urbanos', unit: 'mapa', price: 150, studentPrice: 90, hours: 2.5 },
-    { id: 'prancha', name: 'Pranchas e monografia', unit: 'prancha', price: 200, studentPrice: 120, hours: 3 },
-    { id: 'planta-hum', name: 'Planta humanizada', unit: 'planta', price: 300, studentPrice: 160, hours: 4 },
-  ],
+  defaultPaymentTerms: '50% no aceite e 50% na entrega.\npix à vista com 5% de desconto ou cartão de crédito.',
+  services: DEFAULT_SERVICES,
 }
 
 export function emptyData(): Data {
@@ -84,8 +103,33 @@ export function normalize(d: Partial<Data>): Data {
     })),
     expenses: d.expenses ?? [],
     events: d.events ?? [],
-    quotes: (d.quotes ?? []).map((q) => ({ ...q, sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt) })),
-    settings: migrateSettings({ ...base.settings, ...(d.settings ?? {}), services: d.settings?.services ?? base.settings.services }, d.settings),
+    quotes: (d.quotes ?? []).map((q) => ({
+      ...q,
+      sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
+      mode: q.mode ?? 'escopo',
+      options: q.options ?? [],
+      chosenOption: q.chosenOption ?? '',
+      discountNote: q.discountNote ?? '',
+      files: q.files ?? DEFAULT_PROPOSAL.files,
+      items: q.items.map((i) => {
+        const old = i as typeof i & { unitPrice?: number }
+        return i.price !== undefined
+          ? i
+          : { ...i, title: '', detail: '', complexity: 'media' as const, price: (old.quantity ?? 1) * (old.unitPrice ?? 0), auto: false }
+      }),
+    })),
+    settings: migrateSettings(
+      {
+        ...base.settings,
+        ...(d.settings ?? {}),
+        proposal: { ...DEFAULT_PROPOSAL, ...(d.settings?.proposal ?? {}) },
+        // antes desta versão o teto do MEI vinha ligado por padrão; ela trabalha como pessoa física
+        meiLimit: d.settings?.proposal ? (d.settings.meiLimit ?? 0) : 0,
+        complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
+        services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })),
+      },
+      d.settings,
+    ),
   }
 }
 
@@ -382,20 +426,20 @@ export function demoData(settings: Settings): Data {
   }
 
   const projects = [
-    mk(mari.id, 'Apartamento Savassi — living e cozinha', 'render-int', 4, 1800, 'producao', 'alta', -6, 3, '50-50', 1),
-    mk(rafa.id, 'Suíte master — Casa Vila da Serra', 'render-int', 3, 1350, 'revisao', 'media', -12, 1, '50-50', 1),
-    mk(horiz.id, 'Edifício Aurora — fachada e áreas comuns', 'render-ext', 6, 3300, 'briefing', 'media', 2, 20, '3x', 0),
+    mk(mari.id, 'Apartamento Savassi — living e cozinha', 'render-vray', 4, 1800, 'producao', 'alta', -6, 3, '50-50', 1),
+    mk(rafa.id, 'Suíte master — Casa Vila da Serra', 'render-vray', 3, 1350, 'revisao', 'media', -12, 1, '50-50', 1),
+    mk(horiz.id, 'Edifício Aurora — fachada e áreas comuns', 'render-vray', 6, 3300, 'briefing', 'media', 2, 20, '3x', 0),
     mk(bia.id, 'Planta humanizada — Casa Pampulha', 'planta-hum', 2, 600, 'aguardando', 'baixa', -9, -1, 'avista', 1),
-    mk(mari.id, 'Loja Lourdes — fachada', 'render-ext', 2, 1100, 'entregue', 'media', -40, -25, '50-50', 2),
-    mk(horiz.id, 'Decorado — apartamento 2 quartos', 'render-int', 5, 2250, 'entregue', 'alta', -70, -50, '50-50', 1),
-    mk(pedro.id, 'Renders para TCC — biblioteca', 'render-ext', 2, 600, 'producao', 'baixa', -3, 9, '50-50', 1),
-    mk(rafa.id, 'Home office — Buritis', 'render-int', 2, 900, 'entregue', 'media', -100, -85, 'avista', 1),
+    mk(mari.id, 'Loja Lourdes — fachada', 'render-vray', 2, 1100, 'entregue', 'media', -40, -25, '50-50', 2),
+    mk(horiz.id, 'Decorado — apartamento 2 quartos', 'render-vray', 5, 2250, 'entregue', 'alta', -70, -50, '50-50', 1),
+    mk(pedro.id, 'Renders para TCC — biblioteca', 'render-ia', 2, 600, 'producao', 'baixa', -3, 9, '50-50', 1),
+    mk(rafa.id, 'Home office — Buritis', 'render-vray', 2, 900, 'entregue', 'media', -100, -85, 'avista', 1),
   ]
 
   const expenses = [
     { id: uid(), description: 'D5 Render Pro', category: 'software' as const, amount: 190, date: addDays(t, -150), recurring: true, notes: '' },
     { id: uid(), description: 'SketchUp Pro', category: 'software' as const, amount: 170, date: addDays(t, -150), recurring: true, notes: '' },
-    { id: uid(), description: 'DAS MEI', category: 'impostos' as const, amount: 76, date: addDays(t, -150), recurring: true, notes: '' },
+    { id: uid(), description: 'Carnê-leão (IR)', category: 'impostos' as const, amount: 120, date: addDays(t, -150), recurring: true, notes: '' },
     { id: uid(), description: 'Biblioteca de modelos 3D', category: 'cursos' as const, amount: 120, date: addDays(t, -10), recurring: false, notes: '' },
     { id: uid(), description: 'Anúncio Instagram', category: 'marketing' as const, amount: 80, date: addDays(t, -4), recurring: false, notes: '' },
   ]
@@ -413,11 +457,16 @@ export function demoData(settings: Settings): Data {
       number: 1,
       clientId: bia.id,
       title: 'Renders — Casa Pampulha',
+      mode: 'escopo' as const,
+      options: [],
+      chosenOption: '',
+      discountNote: '',
+      files: 'imagens JPG em alta resolução e modelo .skp',
       items: [
-        { id: uid(), service: 'render-int', description: 'Sala de estar e jantar', quantity: 2, unitPrice: 450 },
-        { id: uid(), service: 'render-ext', description: 'Fachada principal', quantity: 1, unitPrice: 550 },
+        { id: uid(), service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media' as const, price: 370, auto: true },
+        { id: uid(), service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'modelagem completa a partir do DWG, com mobiliário', quantity: 140, complexity: 'media' as const, price: 1092, auto: true },
       ],
-      discount: 50,
+      discount: 62,
       urgency: false,
       deadlineDays: 10,
       validityDays: 15,
