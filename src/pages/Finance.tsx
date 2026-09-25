@@ -4,7 +4,7 @@ import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
-import { Badge, Empty, Progress, Section, Segmented, Stat } from '../components/ui'
+import { Badge, Empty, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
 import type { Expense } from '../types'
 import {
@@ -62,6 +62,7 @@ export default function Finance() {
     })
     .sort((a, b) => (filter === 'pagos' ? (b.pay.paidDate ?? '').localeCompare(a.pay.paidDate ?? '') : a.pay.dueDate.localeCompare(b.pay.dueDate)))
 
+  const { visible, more } = usePaged(rows)
   const expenses = expensesInMonth(data, month).sort((a, b) => a.date.localeCompare(b.date))
   const lateTotal = sum(pays.filter((x) => paymentState(x.pay) === 'vencido'), (x) => x.pay.amount)
   const openTotal = sum(pays.filter((x) => !x.pay.paidDate), (x) => x.pay.amount)
@@ -138,6 +139,8 @@ export default function Finance() {
         <Stat label="Lucro" value={money(s.profit)} icon="target" tone={s.profit < 0 ? 'bad' : 'good'} sub={s.received ? `margem de ${Math.round((s.profit / s.received) * 100)}%` : undefined} />
       </div>
 
+      {settings.meiLimit > 0 && <MeiBar year={month.slice(0, 4)} />}
+
       {lateTotal > 0 && (
         <div className="alert-strip">
           <Icon name="alert" />
@@ -205,7 +208,7 @@ export default function Finance() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ pay, project, client }) => {
+                  {visible.map(({ pay, project, client }) => {
                     const st = paymentState(pay)
                     return (
                       <tr key={pay.id}>
@@ -248,6 +251,7 @@ export default function Finance() {
                   </tr>
                 </tfoot>
               </table>
+              {more && <div className="table-more">{more}</div>}
             </div>
           )}
         </Section>
@@ -382,6 +386,38 @@ function Reports({ month }: { month: string }) {
           <Donut data={toDonut([...expByCat.entries()].sort((a, b) => b[1] - a[1]))} />
         </Section>
       </div>
+    </div>
+  )
+}
+
+/** Faturamento do ano (pelo que foi recebido) comparado ao teto anual do MEI. */
+function MeiBar({ year }: { year: string }) {
+  const { data } = useStore()
+  const limit = data.settings.meiLimit
+  const received = sum(
+    allPayments(data).filter((x) => x.pay.paidDate?.startsWith(year)),
+    (x) => x.pay.amount,
+  )
+  const pct = Math.round((received / limit) * 100)
+  const isCurrent = year === today().slice(0, 4)
+  const monthsElapsed = isCurrent ? new Date().getMonth() + 1 : 12
+  const projection = (received / monthsElapsed) * 12
+  const tone = pct >= 90 ? 'text-bad' : pct >= 70 || projection > limit ? 'text-warn' : 'muted'
+  return (
+    <div className="mei card">
+      <div className="mei-top">
+        <span className="stat-label">limite do MEI em {year}</span>
+        <span className={`small ${tone}`}>
+          {money(received)} de {money(limit)} · {pct}%
+        </span>
+      </div>
+      <Progress value={received} max={limit} color={pct >= 90 ? 'var(--bad)' : pct >= 70 ? 'var(--warn)' : undefined} />
+      {isCurrent && received > 0 && (
+        <p className={`small ${projection > limit ? 'text-warn' : 'muted'}`}>
+          No ritmo atual, o ano fecha em cerca de {money(projection)}
+          {projection > limit ? ' — acima do teto. Vale conversar com um contador sobre migrar para ME.' : '.'}
+        </p>
+      )}
     </div>
   )
 }

@@ -7,6 +7,12 @@ export type ClientType =
   | 'estudante'
   | 'outro'
 
+export interface ClientNote {
+  id: string
+  date: string
+  text: string
+}
+
 export interface Client {
   id: string
   name: string
@@ -20,6 +26,7 @@ export interface Client {
   origin: string // indicação, instagram, site...
   notes: string
   favorite: boolean
+  history: ClientNote[] // conversas e combinados, com data
   archived: boolean
   createdAt: string
 }
@@ -78,6 +85,7 @@ export interface Project {
   timeLogs: TimeLog[]
   tasks: Task[]
   filesLink: string
+  timerStart: string | null // cronômetro rodando desde (ISO)
   notes: string
   createdAt: string
 }
@@ -139,6 +147,7 @@ export interface Quote {
   paymentTerms: string
   notes: string
   status: QuoteStatus
+  sentAt: string // quando foi enviado ao cliente (para lembrar de cobrar resposta)
   createdAt: string
   projectId: string
 }
@@ -162,6 +171,7 @@ export interface Settings {
   website: string
   document: string
   pixKey: string
+  calendarToken: string // chave secreta do link de agenda para o celular
   city: string
   logo: string // data URL
   customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons
@@ -178,6 +188,7 @@ export interface Settings {
   uppercaseLabels: boolean
   dark: boolean
   monthlyGoal: number
+  meiLimit: number // teto anual do MEI
   hourlyTarget: number
   urgencyFee: number // %
   defaultRevisions: number

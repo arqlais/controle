@@ -242,6 +242,9 @@ export default function SettingsPage() {
               <Field label="Meta mensal de faturamento">
                 <MoneyInput value={s.monthlyGoal} onChange={(n) => setSettings({ monthlyGoal: n })} />
               </Field>
+              <Field label="Teto anual do MEI" hint="Aparece no Financeiro. Deixe 0 se não for MEI.">
+                <MoneyInput value={s.meiLimit} onChange={(n) => setSettings({ meiLimit: n })} />
+              </Field>
               <Field label="Meta de valor/hora">
                 <MoneyInput value={s.hourlyTarget} onChange={(n) => setSettings({ hourlyTarget: n })} />
               </Field>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -6,7 +6,7 @@ import { ProjectForm, EventForm } from '../components/forms'
 import { ReceiptDoc } from '../components/Docs'
 import { usePrint } from '../components/Print'
 import { Badge, Empty, MoneyInput, Progress, Section, Stat } from '../components/ui'
-import { askDelete } from '../components/dialog'
+import { askDelete, toast } from '../components/dialog'
 import type { Payment, Priority, Project, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
@@ -27,6 +27,9 @@ import {
   relativeDays,
   today,
   uid,
+  addDays,
+  daysBetween,
+  splitPayments,
   urgency,
   whatsappLink,
 } from '../utils'
@@ -39,6 +42,31 @@ export default function ProjectDetail({ id }: { id: string }) {
   const [task, setTask] = useState('')
   const [log, setLog] = useState({ date: today(), hours: 1, note: '' })
   const { print, portal } = usePrint()
+
+  const duplicate = () => {
+    if (!p) return
+    const span = p.startDate && p.dueDate ? daysBetween(p.startDate, p.dueDate) : 10
+    const total = projectTotal(p)
+    const copy: Project = {
+      ...p,
+      id: uid(),
+      title: `${p.title} (cópia)`,
+      status: 'briefing',
+      startDate: today(),
+      dueDate: addDays(today(), Math.max(1, span)),
+      deliveredDate: null,
+      payments: total > 0 ? splitPayments(total, '50-50', today(), addDays(today(), Math.max(1, span))) : [],
+      revisionsUsed: 0,
+      timeLogs: [],
+      timerStart: null,
+      tasks: p.tasks.map((t) => ({ ...t, id: uid(), done: false })),
+      notes: '',
+      createdAt: today(),
+    }
+    upsert('projects', copy)
+    go('projetos', copy.id)
+    toast('Demanda duplicada. Ajuste nome, prazo e valor.')
+  }
 
   if (!p) return <Empty title="Projeto não encontrado" action={<a className="btn" href={href('projetos')}>Voltar</a>} />
 
@@ -110,6 +138,9 @@ export default function ProjectDetail({ id }: { id: string }) {
           )}
           <button className="btn ghost" onClick={() => setEdit(true)}>
             <Icon name="edit" size={16} /> Editar
+          </button>
+          <button className="btn ghost" onClick={duplicate} title="Nova demanda igual a esta, para o mesmo cliente">
+            <Icon name="copy" size={16} /> Duplicar
           </button>
         </div>
       </div>
@@ -317,6 +348,15 @@ export default function ProjectDetail({ id }: { id: string }) {
           </Section>
 
           <Section title="Horas trabalhadas">
+            <Timer
+              start={p.timerStart}
+              onStart={() => save({ timerStart: new Date().toISOString() })}
+              onStop={() => {
+                const h = Math.max(0.25, Math.round(((Date.now() - new Date(p.timerStart!).getTime()) / 3_600_000) * 4) / 4)
+                save({ timerStart: null, timeLogs: [...p.timeLogs, { id: uid(), date: today(), hours: h, note: 'Cronômetro' }] })
+                toast(`${h.toLocaleString("pt-BR")}h lançadas neste projeto.`)
+              }}
+            />
             <form
               className="hours-form"
               onSubmit={(e) => {
@@ -423,5 +463,35 @@ function EventFormForProject({ projectId, onClose }: { projectId: string; onClos
       isNew
       onClose={onClose}
     />
+  )
+}
+
+function Timer({ start, onStart, onStop }: { start: string | null; onStart: () => void; onStop: () => void }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    if (!start) return
+    const t = setInterval(() => tick((n) => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [start])
+  if (!start)
+    return (
+      <button className="btn block timer-btn" onClick={onStart}>
+        <Icon name="clock" size={16} /> iniciar cronômetro
+      </button>
+    )
+  const secs = Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 1000))
+  const hh = String(Math.floor(secs / 3600)).padStart(2, '0')
+  const mm = String(Math.floor((secs % 3600) / 60)).padStart(2, '0')
+  const ss = String(secs % 60).padStart(2, '0')
+  return (
+    <div className="timer running">
+      <span className="timer-dot" />
+      <b>
+        {hh}:{mm}:{ss}
+      </b>
+      <button className="btn primary small" onClick={onStop}>
+        parar e lançar
+      </button>
+    </div>
   )
 }

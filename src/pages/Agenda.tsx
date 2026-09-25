@@ -3,7 +3,10 @@ import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { EventForm } from '../components/forms'
-import { Section } from '../components/ui'
+import { Modal, Section } from '../components/ui'
+import { toast } from '../components/dialog'
+import { CLOUD, SUPABASE_URL } from '../cloud'
+import { buildICS } from '../ics'
 import type { CalendarEvent } from '../types'
 import {
   EVENT_TYPES,
@@ -109,18 +112,7 @@ export default function Agenda() {
 
   const shift = (n: number) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + n, 1))
 
-  const exportICS = () => {
-    const esc = (s: string) => s.replace(/[,;\\]/g, (m) => `\\${m}`).replace(/\n/g, '\\n')
-    const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-    const ev = items
-      .filter((i) => i.date >= t && !i.done)
-      .map((i) => {
-        const d = i.date.replace(/-/g, '')
-        const timed = i.time ? `DTSTART:${d}T${i.time.replace(':', '')}00` : `DTSTART;VALUE=DATE:${d}`
-        return ['BEGIN:VEVENT', `UID:${i.id}@controle`, `DTSTAMP:${stamp}`, timed, `SUMMARY:${esc(i.title)}`, `DESCRIPTION:${esc(i.sub)}`, 'END:VEVENT'].join('\r\n')
-      })
-    download(`agenda-${t}.ics`, ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Controle//PT-BR', ...ev, 'END:VCALENDAR'].join('\r\n'), 'text/calendar')
-  }
+  const [connect, setConnect] = useState(false)
 
   return (
     <div className="page">
@@ -150,8 +142,8 @@ export default function Agenda() {
           </div>
         </div>
         <div className="row gap-s wrap">
-          <button className="btn ghost" onClick={exportICS} title="Importe no Google Agenda, Apple ou Outlook">
-            <Icon name="download" size={16} /> Exportar .ics
+          <button className="btn ghost" onClick={() => setConnect(true)}>
+            <Icon name="phone" size={16} /> Conectar ao celular
           </button>
           <button className="btn primary" onClick={() => setForm({ date: selected })}>
             <Icon name="plus" size={16} /> Compromisso
@@ -243,6 +235,7 @@ export default function Agenda() {
         </div>
       </div>
 
+      {connect && <ConnectCalendar onClose={() => setConnect(false)} />}
       {form && <EventForm initial={form.ev} date={form.date} onClose={() => setForm(null)} />}
     </div>
   )
@@ -279,5 +272,89 @@ function AgendaRow({ i, showDate, onEdit, onToggle }: { i: Item; showDate?: bool
         {body}
       </a>
     </li>
+  )
+}
+
+function ConnectCalendar({ onClose }: { onClose: () => void }) {
+  const { data, setSettings } = useStore()
+  const token = data.settings.calendarToken
+  const url = token ? `${SUPABASE_URL}/functions/v1/agenda?token=${token}` : ''
+  const webcal = url.replace(/^https:/, 'webcal:')
+
+  const newToken = () => {
+    const bytes = crypto.getRandomValues(new Uint8Array(24))
+    setSettings({ calendarToken: Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('') })
+  }
+  const copy = () =>
+    navigator.clipboard
+      ?.writeText(url)
+      .then(() => toast('Link copiado.'))
+      .catch(() => toast('Selecione o link e copie manualmente.'))
+
+  return (
+    <Modal title="agenda no celular" onClose={onClose} wide>
+      {CLOUD ? (
+        <div className="connect">
+          <p>
+            Assine sua agenda do estúdio no celular: <b>entregas, parcelas a receber e compromissos</b> aparecem sozinhos no calendário do iPhone ou do Google, com lembrete
+            na véspera. Tudo que você mudar aqui atualiza lá automaticamente.
+          </p>
+          {!token ? (
+            <button className="btn primary" onClick={newToken}>
+              <Icon name="link" size={16} /> gerar meu link de agenda
+            </button>
+          ) : (
+            <>
+              <div className="connect-link">
+                <input id="calendar-url" readOnly value={url} onFocus={(e) => e.target.select()} />
+                <button className="btn small" onClick={copy}>
+                  <Icon name="copy" size={14} /> copiar
+                </button>
+              </div>
+              <div className="connect-steps">
+                <section>
+                  <h3>iPhone</h3>
+                  <ol>
+                    <li>
+                      Abra este sistema no iPhone e toque em{' '}
+                      <a className="link" href={webcal}>
+                        adicionar ao calendário
+                      </a>
+                      , ou:
+                    </li>
+                    <li>Ajustes → Calendário → Contas → Adicionar conta → Outra → Adicionar calendário assinado.</li>
+                    <li>Cole o link e salve.</li>
+                  </ol>
+                </section>
+                <section>
+                  <h3>Android / Google Agenda</h3>
+                  <ol>
+                    <li>No computador, abra calendar.google.com.</li>
+                    <li>Em “Outras agendas”, clique em + → “Do URL”.</li>
+                    <li>Cole o link e clique em “Adicionar agenda”. Ela aparece no celular sozinha.</li>
+                  </ol>
+                </section>
+              </div>
+              <p className="muted small">
+                O iPhone atualiza de hora em hora; o Google Agenda pode levar algumas horas. O link é secreto: se alguém tiver acesso a ele, gere um novo.{' '}
+                <button className="link" onClick={newToken}>
+                  gerar novo link
+                </button>
+              </p>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="connect">
+          <p>
+            A sincronização automática funciona quando o login na nuvem está ligado (veja o README). Por enquanto, você pode baixar a agenda e importar uma vez no calendário do
+            celular.
+          </p>
+          <button className="btn" onClick={() => download(`agenda-${today()}.ics`, buildICS(data, data.settings.brandName), 'text/calendar')}>
+            <Icon name="download" size={16} /> baixar agenda (.ics)
+          </button>
+        </div>
+      )}
+    </Modal>
   )
 }

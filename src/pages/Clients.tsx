@@ -3,8 +3,8 @@ import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
-import { Badge, Empty, Segmented } from '../components/ui'
-import { CLIENT_TYPES, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink } from '../utils'
+import { Badge, Empty, Segmented, usePaged } from '../components/ui'
+import { CLIENT_TYPES, daysUntil, relativeDays, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink } from '../utils'
 import type { ClientType } from '../types'
 
 type Profile = 'todos' | 'profissionais' | 'estudantes'
@@ -48,6 +48,7 @@ export default function Clients() {
   }, [data, q, profile, type, sort, archived])
 
   const total = sum(rows, (r) => r.paid)
+  const { visible, more } = usePaged(rows)
 
   return (
     <div className="page">
@@ -105,7 +106,7 @@ export default function Clients() {
               <tr>
                 <th>Cliente</th>
                 <th>Tipo</th>
-                <th className="hide-mobile">Cidade</th>
+                <th className="hide-mobile">Último projeto</th>
                 <th className="num">Projetos</th>
                 <th className="num">Faturado</th>
                 <th className="num">Em aberto</th>
@@ -113,7 +114,7 @@ export default function Clients() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ c, paid, open, active, count }) => (
+              {visible.map(({ c, paid, open, active, count, last }) => (
                 <tr key={c.id} onClick={() => go('clientes', c.id)} className="clickable">
                   <td>
                     <div className="client-cell">
@@ -129,7 +130,13 @@ export default function Clients() {
                   <td>
                     <Badge color={isStudent(c) ? '#8b5cf6' : '#4a5a78'}>{CLIENT_TYPES[c.type]}</Badge>
                   </td>
-                  <td className="hide-mobile muted">{c.city}</td>
+                  <td className="hide-mobile">
+                    {count ? (
+                      <span className={active ? '' : -daysUntil(last) > 90 ? 'text-warn' : 'muted'}>{active ? 'em andamento' : relativeDays(last)}</span>
+                    ) : (
+                      <span className="muted">nenhum ainda</span>
+                    )}
+                  </td>
                   <td className="num">
                     {count}
                     {active > 0 && <span className="muted small"> ({active} ativos)</span>}
@@ -161,6 +168,7 @@ export default function Clients() {
               </tr>
             </tfoot>
           </table>
+          {more && <div className="table-more">{more}</div>}
         </div>
       )}
 

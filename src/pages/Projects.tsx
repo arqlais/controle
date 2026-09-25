@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ProjectForm } from '../components/forms'
-import { Badge, Empty, Segmented } from '../components/ui'
+import { Badge, Empty, Segmented, usePaged } from '../components/ui'
 import type { Priority, Project, ProjectStatus } from '../types'
 import {
   BOARD_COLUMNS,
@@ -233,6 +233,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
       {label}
     </th>
   )
+  const { visible, more } = usePaged(rows)
   if (!rows.length) return <Empty title="Nada por aqui" text="Nenhuma demanda com esses filtros." />
   return (
     <div className="table-wrap card">
@@ -249,7 +250,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
           </tr>
         </thead>
         <tbody>
-          {rows.map((p) => {
+          {visible.map((p) => {
             const u = urgency(p)
             return (
               <tr key={p.id} className="clickable" onClick={() => go('projetos', p.id)}>
@@ -292,6 +293,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
           </tr>
         </tfoot>
       </table>
+      {more && <div className="table-more">{more}</div>}
     </div>
   )
 }

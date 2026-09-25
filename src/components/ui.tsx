@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
 
 let openModals = 0
@@ -155,3 +155,17 @@ export function MoneyInput({ value, onChange, ...rest }: { value: number; onChan
   )
 }
 
+
+/** Mostra listas longas aos poucos (evita telas gigantes com muitos clientes). */
+export function usePaged<T>(items: T[], size = 30) {
+  const [limit, setLimit] = useState(size)
+  const visible = items.slice(0, limit)
+  const rest = items.length - visible.length
+  const more =
+    rest > 0 ? (
+      <button className="btn ghost small show-more" onClick={() => setLimit((l) => l + size)}>
+        mostrar mais {Math.min(rest, size)} de {rest}
+      </button>
+    ) : null
+  return { visible, more }
+}

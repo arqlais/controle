@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { demoData, useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
-import { Badge, Empty, Progress, Section, Stat } from '../components/ui'
+import { Badge, Empty, Progress, Section, Stat, usePaged } from '../components/ui'
+import { needsFollowUp, waitingDays } from './Quotes'
 import { BarChart, Donut } from '../components/Charts'
 import {
   EVENT_TYPES,
@@ -27,6 +28,7 @@ import {
   today,
   urgency,
   urgencyScore,
+  whatsappLink,
 } from '../utils'
 
 export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'cliente') => void }) {
@@ -39,7 +41,6 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
   const pays = useMemo(() => allPayments(data), [data])
   const open = data.projects.filter(isOpen)
   const late = data.projects.filter(isLate)
-  const latePays = pays.filter((x) => paymentLate(x.pay))
   const receivable = sum(pays.filter((x) => !x.pay.paidDate), (x) => x.pay.amount)
 
   const priorities = [...open].sort((a, b) => urgencyScore(b) - urgencyScore(a)).slice(0, 7)
@@ -130,24 +131,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         </div>
       </section>
 
-      {(late.length > 0 || latePays.length > 0) && (
-        <div className="alert-strip">
-          <Icon name="alert" />
-          <div>
-            {late.length > 0 && (
-              <a href={href('projetos')}>
-                <b>{late.length}</b> {late.length === 1 ? 'projeto atrasado' : 'projetos atrasados'}
-              </a>
-            )}
-            {late.length > 0 && latePays.length > 0 && ' · '}
-            {latePays.length > 0 && (
-              <a href={href('financeiro')}>
-                <b>{latePays.length}</b> {latePays.length === 1 ? 'pagamento vencido' : 'pagamentos vencidos'} ({money(sum(latePays, (x) => x.pay.amount))})
-              </a>
-            )}
-          </div>
-        </div>
-      )}
+      <TodoList />
 
       <div className="stats">
         <Stat
@@ -264,5 +248,104 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         </Section>
       </div>
     </div>
+  )
+}
+
+interface Todo {
+  key: string
+  tone: 'bad' | 'warn' | 'info'
+  icon: string
+  title: string
+  sub: string
+  link: string
+  action?: { label: string; href?: string; onClick?: () => void; icon?: string }
+}
+
+/** O que precisa de atenção agora, com a ação a um clique. */
+function TodoList() {
+  const { data, upsert } = useStore()
+  const todos = useMemo(() => {
+    const out: Todo[] = []
+    const client = (id: string) => data.clients.find((c) => c.id === id)
+    const first = (id: string) => client(id)?.name.split(' ')[0] ?? ''
+    const pix = data.settings.pixKey ? ` Chave Pix: ${data.settings.pixKey}.` : ''
+
+    for (const p of data.projects) {
+      if (p.timerStart) out.push({ key: `t-${p.id}`, tone: 'info', icon: 'clock', title: `Cronômetro ligado: ${p.title}`, sub: 'não esqueça de parar ao terminar', link: href('projetos', p.id) })
+      if (!isOpen(p)) continue
+      const dd = p.dueDate ? daysUntil(p.dueDate) : 99
+      if (dd <= 1)
+        out.push({
+          key: `e-${p.id}`,
+          tone: dd < 0 ? 'bad' : 'warn',
+          icon: 'flag',
+          title: `${dd < 0 ? 'Atrasado' : dd === 0 ? 'Entregar hoje' : 'Entregar amanhã'}: ${p.title}`,
+          sub: `${client(p.clientId)?.name ?? ''} · ${p.tasks.filter((t) => t.done).length}/${p.tasks.length} etapas`,
+          link: href('projetos', p.id),
+        })
+      if (p.revisionsUsed > p.revisionsIncluded)
+        out.push({ key: `r-${p.id}`, tone: 'warn', icon: 'edit', title: `Revisões extras em ${p.title}`, sub: `${p.revisionsUsed - p.revisionsIncluded} além das ${p.revisionsIncluded} combinadas — combine a cobrança`, link: href('projetos', p.id) })
+    }
+    for (const { pay, project, client: c } of allPayments(data)) {
+      if (!paymentLate(pay)) continue
+      const text = `Oi, ${c?.name.split(' ')[0] ?? ''}! Tudo bem? Passando para lembrar da parcela "${pay.description}" do projeto ${project.title}, de ${money(pay.amount)}, que venceu em ${fmtDate(pay.dueDate)}.${pix} Obrigada!`
+      out.push({
+        key: `p-${pay.id}`,
+        tone: 'bad',
+        icon: 'wallet',
+        title: `Cobrar ${money(pay.amount)} · ${c?.name ?? ''}`,
+        sub: `${pay.description} · venceu ${relativeDays(pay.dueDate)}`,
+        link: href('projetos', project.id),
+        action: c?.phone
+          ? { label: 'cobrar', href: whatsappLink(c.phone, text), icon: 'whatsapp' }
+          : { label: 'marcar pago', onClick: () => upsert('projects', { ...project, payments: project.payments.map((x) => (x.id === pay.id ? { ...x, paidDate: today() } : x)) }) },
+      })
+    }
+    for (const q of data.quotes.filter(needsFollowUp)) {
+      const c = client(q.clientId)
+      const text = `Oi, ${first(q.clientId)}! Tudo bem? Passando para saber se conseguiu ver a proposta #${String(q.number).padStart(3, '0')} (${q.title}). Qualquer ajuste é só me falar.`
+      out.push({
+        key: `q-${q.id}`,
+        tone: 'info',
+        icon: 'file',
+        title: `Pedir retorno: orçamento #${String(q.number).padStart(3, '0')}`,
+        sub: `${c?.name ?? ''} · sem resposta há ${waitingDays(q)} dias`,
+        link: href('orcamentos', q.id),
+        action: c?.phone ? { label: 'mensagem', href: whatsappLink(c.phone, text), icon: 'whatsapp' } : undefined,
+      })
+    }
+    const order = { bad: 0, warn: 1, info: 2 }
+    return out.sort((a, b) => order[a.tone] - order[b.tone])
+  }, [data, upsert])
+
+  const { visible, more } = usePaged(todos, 6)
+  if (!todos.length) return null
+  return (
+    <Section title={`para fazer · ${todos.length}`}>
+      <ul className="todo-list">
+        {visible.map((t) => (
+          <li key={t.key} className={`todo tone-${t.tone}`}>
+            <span className="todo-icon">
+              <Icon name={t.icon} size={16} />
+            </span>
+            <a href={t.link} className="grow">
+              <div className="list-title">{t.title}</div>
+              <div className="list-sub">{t.sub}</div>
+            </a>
+            {t.action &&
+              (t.action.href ? (
+                <a className="btn small" href={t.action.href} target="_blank" rel="noreferrer">
+                  {t.action.icon && <Icon name={t.action.icon} size={14} />} {t.action.label}
+                </a>
+              ) : (
+                <button className="btn small" onClick={t.action.onClick}>
+                  {t.action.label}
+                </button>
+              ))}
+          </li>
+        ))}
+      </ul>
+      {more}
+    </Section>
   )
 }

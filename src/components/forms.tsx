@@ -35,6 +35,7 @@ export function newClient(): Client {
     notes: '',
     favorite: false,
     archived: false,
+    history: [],
     createdAt: today(),
   }
 }
@@ -146,6 +147,7 @@ export function newProject(clientId = ''): Project {
     timeLogs: [],
     tasks: [],
     filesLink: '',
+    timerStart: null,
     notes: '',
     createdAt: t,
   }
@@ -398,10 +400,14 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
   const [ev, setEv] = useState<CalendarEvent>(
     initial ?? { id: uid(), title: '', date: date ?? today(), time: '', type: 'reuniao', projectId: '', notes: '', done: false },
   )
+  const [repeat, setRepeat] = useState(0)
   const set = <K extends keyof CalendarEvent>(k: K, v: CalendarEvent[K]) => setEv((x) => ({ ...x, [k]: v }))
   const save = () => {
     if (!ev.title.trim()) return toast('Dê um título ao compromisso.')
     upsert('events', ev)
+    // repetição semanal: cria as próximas ocorrências como compromissos independentes
+    for (let i = 1; i <= repeat; i++) upsert('events', { ...ev, id: uid(), date: addDays(ev.date, 7 * i), done: false })
+    if (repeat) toast(`${repeat + 1} compromissos criados, um por semana.`)
     onClose()
   }
   return (
@@ -452,6 +458,18 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
             ))}
           </select>
         </Field>
+        {!editing && (
+          <Field label="Repetir toda semana" span={3} hint="Útil para aulas, orientação do TCC ou reuniões fixas.">
+            <select id="event-repeat" value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}>
+              <option value={0}>Não repetir</option>
+              {[4, 8, 12, 16, 20].map((n) => (
+                <option key={n} value={n}>
+                  Por mais {n} semanas
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Projeto relacionado" span={3}>
           <select value={ev.projectId} onChange={(e) => set('projectId', e.target.value)}>
             <option value="">—</option>

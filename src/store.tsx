@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   website: 'www.lais3d.com.br',
   document: '',
   pixKey: '',
+  calendarToken: '',
   city: '',
   logo: '',
   customFont: '',
@@ -33,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   uppercaseLabels: false,
   dark: false,
   monthlyGoal: 6000,
+  meiLimit: 81000,
   hourlyTarget: 60,
   urgencyFee: 30,
   defaultRevisions: 2,
@@ -72,16 +74,17 @@ export function normalize(d: Partial<Data>): Data {
   return {
     version: 1,
     demo: d.demo,
-    clients: d.clients ?? [],
+    clients: (d.clients ?? []).map((c) => ({ ...c, history: c.history ?? [] })),
     projects: (d.projects ?? []).map((p) => ({
       ...p,
+      timerStart: p.timerStart ?? null,
       payments: p.payments ?? [],
       tasks: p.tasks ?? [],
       timeLogs: p.timeLogs ?? [],
     })),
     expenses: d.expenses ?? [],
     events: d.events ?? [],
-    quotes: d.quotes ?? [],
+    quotes: (d.quotes ?? []).map((q) => ({ ...q, sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt) })),
     settings: migrateSettings({ ...base.settings, ...(d.settings ?? {}), services: d.settings?.services ?? base.settings.services }, d.settings),
   }
 }
@@ -313,6 +316,7 @@ export function demoData(settings: Settings): Data {
     notes: '',
     favorite: false,
     archived: false,
+    history: [] as { id: string; date: string; text: string }[],
     createdAt: addDays(t, -120),
   })
   const clients = [
@@ -323,6 +327,10 @@ export function demoData(settings: Settings): Data {
     c('Pedro Alves', 'UFMG', 'estudante', 'Belo Horizonte', 'Faculdade'),
   ]
   clients[0].favorite = true
+  clients[0].history = [
+    { id: uid(), date: addDays(t, -30), text: 'Prefere receber prévias em baixa resolução pelo WhatsApp antes do render final.' },
+    { id: uid(), date: addDays(t, -6), text: 'Fechou o living e a cozinha do Savassi; pediu mais uma vista da bancada.' },
+  ]
   const [mari, rafa, horiz, bia, pedro] = clients
 
   const mk = (
@@ -367,6 +375,7 @@ export function demoData(settings: Settings): Data {
         done: i < ({ briefing: 0, producao: 2, revisao: 4, aguardando: 4, entregue: 6, pausado: 1, cancelado: 0 } as const)[status],
       })),
       filesLink: '',
+      timerStart: null,
       notes: '',
       createdAt: start,
     }
@@ -416,7 +425,8 @@ export function demoData(settings: Settings): Data {
       paymentTerms: settings.defaultPaymentTerms,
       notes: '',
       status: 'enviado' as const,
-      createdAt: addDays(t, -2),
+      sentAt: addDays(t, -5),
+      createdAt: addDays(t, -5),
       projectId: '',
     },
   ]

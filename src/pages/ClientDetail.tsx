@@ -3,7 +3,8 @@ import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm, ProjectForm } from '../components/forms'
-import { Badge, Empty, Section, Stat } from '../components/ui'
+import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
+import type { Client } from '../types'
 import { askDelete } from '../components/dialog'
 import {
   CLIENT_TYPES,
@@ -21,6 +22,8 @@ import {
   projectTotal,
   quoteTotal,
   sum,
+  today,
+  uid,
   whatsappLink,
 } from '../utils'
 
@@ -29,10 +32,11 @@ export default function ClientDetail({ id }: { id: string }) {
   const c = data.clients.find((x) => x.id === id)
   const [edit, setEdit] = useState(false)
   const [newProject, setNewProject] = useState(false)
+  const projects = data.projects.filter((p) => p.clientId === id).sort((a, b) => b.startDate.localeCompare(a.startDate))
+  const pagedProjects = usePaged(projects, 10)
 
   if (!c) return <Empty title="Cliente não encontrado" action={<a className="btn" href={href('clientes')}>Voltar</a>} />
 
-  const projects = data.projects.filter((p) => p.clientId === id).sort((a, b) => b.startDate.localeCompare(a.startDate))
   const valid = projects.filter((p) => p.status !== 'cancelado')
   const paid = sum(valid, projectPaid)
   const open = sum(valid, projectOpen)
@@ -93,6 +97,7 @@ export default function ClientDetail({ id }: { id: string }) {
       </div>
 
       <div className="grid-2 wide-left">
+        <div className="stack">
         <Section
           title="Projetos"
           action={
@@ -105,7 +110,7 @@ export default function ClientDetail({ id }: { id: string }) {
             <Empty title="Nenhum projeto ainda" />
           ) : (
             <ul className="list">
-              {projects.map((p) => (
+              {pagedProjects.visible.map((p) => (
                 <li key={p.id}>
                   <a className="list-item" href={href('projetos', p.id)}>
                     <span className="prio-bar" style={{ background: STATUS[p.status].color }} />
@@ -124,7 +129,10 @@ export default function ClientDetail({ id }: { id: string }) {
               ))}
             </ul>
           )}
+          {pagedProjects.more}
         </Section>
+        <ClientHistory client={c} />
+        </div>
 
         <div className="stack">
           <Section title="Contato">
@@ -203,5 +211,51 @@ export default function ClientDetail({ id }: { id: string }) {
       {edit && <ClientForm initial={c} onClose={() => setEdit(false)} />}
       {newProject && <ProjectForm clientId={c.id} onClose={() => setNewProject(false)} onSaved={(p) => go('projetos', p.id)} />}
     </div>
+  )
+}
+
+function ClientHistory({ client }: { client: Client }) {
+  const { upsert } = useStore()
+  const [text, setText] = useState('')
+  const [date, setDate] = useState(today())
+  const notes = [...client.history].sort((a, b) => b.date.localeCompare(a.date))
+  const { visible, more } = usePaged(notes, 8)
+  return (
+    <Section title="histórico de conversas">
+      <form
+        className="history-form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!text.trim()) return
+          upsert('clients', { ...client, history: [...client.history, { id: uid(), date, text: text.trim() }] })
+          setText('')
+          setDate(today())
+        }}
+      >
+        <input id="history-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Data" />
+        <input id="history-text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex.: enviei a prévia; pediu troca do piso da sala" />
+        <button className="btn small">anotar</button>
+      </form>
+      {notes.length === 0 ? (
+        <p className="muted small">Registre combinados, pedidos e preferências — tudo fica aqui com data, para não se perder no WhatsApp.</p>
+      ) : (
+        <ul className="history">
+          {visible.map((n) => (
+            <li key={n.id}>
+              <span className="history-date">{fmtDate(n.date)}</span>
+              <p className="grow">{n.text}</p>
+              <button
+                className="icon-btn subtle"
+                aria-label="Apagar anotação"
+                onClick={() => upsert('clients', { ...client, history: client.history.filter((x) => x.id !== n.id) })}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {more}
+    </Section>
   )
 }

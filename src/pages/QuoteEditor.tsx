@@ -30,6 +30,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         paymentTerms: settings.defaultPaymentTerms,
         notes: '',
         status: 'rascunho',
+        sentAt: '',
         createdAt: today(),
         projectId: '',
       },
@@ -58,6 +59,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
+    if (next.status !== 'rascunho' && !next.sentAt) next.sentAt = today()
     if (!next.clientId) {
       toast('Escolha o cliente.')
       return null
@@ -115,6 +117,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       timeLogs: [],
       tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: false })),
       filesLink: '',
+      timerStart: null,
       notes: `Criado a partir do orçamento #${saved.number}.`,
       createdAt: start,
     }
@@ -289,6 +292,29 @@ export default function QuoteEditor({ id }: { id: string }) {
           <Section title="Pré-visualização da mensagem">
             <pre className="preview">{text()}</pre>
           </Section>
+          {existing && (
+            <button
+              className="btn ghost small"
+              onClick={() => {
+                const copy: Quote = {
+                  ...q,
+                  id: uid(),
+                  number: Math.max(0, ...data.quotes.map((x) => x.number)) + 1,
+                  title: `${q.title} (cópia)`,
+                  items: q.items.map((i) => ({ ...i, id: uid() })),
+                  status: 'rascunho',
+                  sentAt: '',
+                  createdAt: today(),
+                  projectId: '',
+                }
+                upsert('quotes', copy)
+                go('orcamentos', copy.id)
+                toast('Orçamento duplicado como rascunho.')
+              }}
+            >
+              <Icon name="copy" size={14} /> Duplicar orçamento
+            </button>
+          )}
           {existing && (
             <button
               className="btn ghost danger small"
