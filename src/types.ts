@@ -164,8 +164,11 @@ export interface Settings {
   pixKey: string
   city: string
   logo: string // data URL
+  customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons
+  themeVersion: number
   accent: string
   accentSoft: string
+  accentInk: string // rosé terroso dos itálicos e rótulos
   background: string
   surface: string
   text: string

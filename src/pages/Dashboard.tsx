@@ -79,6 +79,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
     return h ? sum(worked, projectTotal) / h : 0
   }, [data.projects])
 
+  const weekDeliveries = upcoming.filter((u) => u.kind === 'entrega').length
   const hour = new Date().getHours()
   const hello = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
   const d = new Date()
@@ -87,10 +88,12 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
     return (
       <div className="page">
         <div className="hero">
-          <p className="eyebrow">{settings.brandName}</p>
-          <h1>Seu estúdio, organizado.</h1>
+          <p className="eyebrow">{settings.tagline || settings.brandName}</p>
+          <h1>
+            seu estúdio, <em>organizado</em>
+          </h1>
           <p className="lead">Clientes, demandas, prazos, orçamentos e financeiro num só lugar. Comece cadastrando um cliente ou explore com dados de exemplo.</p>
-          <div className="row gap">
+          <div className="row gap wrap">
             <button className="btn primary" onClick={() => onQuick('cliente')}>
               <Icon name="plus" size={16} /> Cadastrar primeiro cliente
             </button>
@@ -106,19 +109,26 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">
-            {d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
+      <section className="welcome">
+        <div className="welcome-text">
+          <p className="welcome-date">{d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <h1>
-            {hello}, {settings.ownerName || settings.brandName}
+            <em>{hello.toLowerCase()},</em> {(settings.ownerName || settings.brandName).toLowerCase()}
           </h1>
+          <p className="welcome-sub">
+            {weekDeliveries === 0 ? 'nenhuma entrega nesta semana' : weekDeliveries === 1 ? '1 entrega nesta semana' : `${weekDeliveries} entregas nesta semana`} ·{' '}
+            {money(receivable)} a receber
+          </p>
         </div>
-        <button className="btn ghost" onClick={() => onQuick('projeto')}>
-          <Icon name="plus" size={16} /> Nova demanda
-        </button>
-      </div>
+        <div className="welcome-actions">
+          <button className="btn light" onClick={() => onQuick('projeto')}>
+            <Icon name="plus" size={16} /> nova demanda
+          </button>
+          <a className="btn outline-light" href={href('orcamentos', 'novo')}>
+            novo orçamento
+          </a>
+        </div>
+      </section>
 
       {(late.length > 0 || latePays.length > 0) && (
         <div className="alert-strip">

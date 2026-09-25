@@ -31,22 +31,32 @@ export const CLIENT_TYPES: Record<ClientType, string> = {
 export const isStudent = (c?: Client) => c?.type === 'estudante'
 
 export const STATUS: Record<ProjectStatus, { label: string; color: string }> = {
-  briefing: { label: 'Briefing / a iniciar', color: '#8a8f98' },
-  producao: { label: 'Em produção', color: '#3b6fd8' },
-  revisao: { label: 'Em revisão', color: '#b7791f' },
-  aguardando: { label: 'Aguardando cliente', color: '#8b5cf6' },
-  entregue: { label: 'Entregue', color: '#2f855a' },
-  pausado: { label: 'Pausado', color: '#a0a0a0' },
-  cancelado: { label: 'Cancelado', color: '#c53030' },
+  briefing: { label: 'Briefing', color: '#9aa3ab' },
+  producao: { label: 'Em execução', color: '#5b7a99' },
+  revisao: { label: 'Em revisão', color: '#c29a55' },
+  aguardando: { label: 'Aguardando cliente', color: '#a888a8' },
+  entregue: { label: 'Entregue', color: '#6f9a7c' },
+  pausado: { label: 'Pausado', color: '#b8b0aa' },
+  cancelado: { label: 'Cancelado', color: '#b5524c' },
 }
+
+/** Etapas padrão — o método: briefing → ajustes → execução → entrega final. */
+export const DEFAULT_TASKS = [
+  'Briefing: arquivos e referências recebidos',
+  'Ajustes no arquivo recebido',
+  'Execução',
+  'Prévia enviada para aprovação',
+  'Revisões',
+  'Entrega final',
+]
 export const BOARD_COLUMNS: ProjectStatus[] = ['briefing', 'producao', 'revisao', 'aguardando', 'entregue']
 export const OPEN_STATUSES: ProjectStatus[] = ['briefing', 'producao', 'revisao', 'aguardando', 'pausado']
 
 export const PRIORITY: Record<Priority, { label: string; color: string; weight: number }> = {
-  baixa: { label: 'Baixa', color: '#8a8f98', weight: 0 },
-  media: { label: 'Média', color: '#3b6fd8', weight: 1 },
-  alta: { label: 'Alta', color: '#dd6b20', weight: 2 },
-  urgente: { label: 'Urgente', color: '#c53030', weight: 3 },
+  baixa: { label: 'Baixa', color: '#9aa3ab', weight: 0 },
+  media: { label: 'Média', color: '#5b7a99', weight: 1 },
+  alta: { label: 'Alta', color: '#c98a5e', weight: 2 },
+  urgente: { label: 'Urgente', color: '#b5524c', weight: 3 },
 }
 
 export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
@@ -61,18 +71,18 @@ export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
 }
 
 export const EVENT_TYPES: Record<EventType, { label: string; color: string }> = {
-  reuniao: { label: 'Reunião com cliente', color: '#3b6fd8' },
-  faculdade: { label: 'Faculdade / TCC', color: '#8b5cf6' },
-  entrega: { label: 'Entrega parcial', color: '#2f855a' },
-  pessoal: { label: 'Pessoal', color: '#d53f8c' },
-  outro: { label: 'Outro', color: '#8a8f98' },
+  reuniao: { label: 'Reunião com cliente', color: '#5b7a99' },
+  faculdade: { label: 'Faculdade / TCC', color: '#a888a8' },
+  entrega: { label: 'Entrega parcial', color: '#6f9a7c' },
+  pessoal: { label: 'Pessoal', color: '#d19a8f' },
+  outro: { label: 'Outro', color: '#9aa3ab' },
 }
 
 export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }> = {
-  rascunho: { label: 'Rascunho', color: '#8a8f98' },
-  enviado: { label: 'Enviado', color: '#3b6fd8' },
-  aprovado: { label: 'Aprovado', color: '#2f855a' },
-  recusado: { label: 'Recusado', color: '#c53030' },
+  rascunho: { label: 'Rascunho', color: '#9aa3ab' },
+  enviado: { label: 'Enviado', color: '#5b7a99' },
+  aprovado: { label: 'Aprovado', color: '#6f9a7c' },
+  recusado: { label: 'Recusado', color: '#b5524c' },
 }
 
 export const PAYMENT_METHODS = ['Pix', 'Transferência', 'Boleto', 'Cartão', 'Dinheiro']

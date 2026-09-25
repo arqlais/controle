@@ -132,7 +132,7 @@ export default function Agenda() {
               <Icon name="chevronL" />
             </button>
             <h1>
-              {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
+              {MONTHS[cursor.getMonth()].toLowerCase()} <em>{cursor.getFullYear()}</em>
             </h1>
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês">
               <Icon name="chevronR" />

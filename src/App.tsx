@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, useStore } from './store'
-import { DialogHost, ask } from './components/dialog'
+import { ask } from './components/dialog'
+import { signOut } from './components/Auth'
+import { CLOUD } from './cloud'
+import type { SyncStatus } from './store'
 import { applyTheme } from './theme'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
@@ -18,19 +21,19 @@ import QuoteEditor from './pages/QuoteEditor'
 import SettingsPage from './pages/Settings'
 
 const NAV = [
-  { page: 'inicio', label: 'Início', icon: 'home' },
-  { page: 'projetos', label: 'Demandas', icon: 'folder' },
-  { page: 'clientes', label: 'Clientes', icon: 'users' },
-  { page: 'financeiro', label: 'Financeiro', icon: 'wallet' },
-  { page: 'agenda', label: 'Agenda', icon: 'calendar' },
-  { page: 'orcamentos', label: 'Orçamentos', icon: 'file' },
-  { page: 'config', label: 'Configurações', icon: 'settings' },
+  { page: 'inicio', label: 'início', icon: 'home' },
+  { page: 'projetos', label: 'demandas', icon: 'folder' },
+  { page: 'clientes', label: 'clientes', icon: 'users' },
+  { page: 'financeiro', label: 'financeiro', icon: 'wallet' },
+  { page: 'agenda', label: 'agenda', icon: 'calendar' },
+  { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
+  { page: 'config', label: 'configurações', icon: 'settings' },
 ]
 
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 
 export default function App() {
-  const { data, setSettings, lastSaved, replaceAll } = useStore()
+  const { data, setSettings, lastSaved, replaceAll, sync, userEmail } = useStore()
   const { settings } = data
   const route = useRoute()
   const [quick, setQuick] = useState<Quick>(null)
@@ -71,7 +74,13 @@ export default function App() {
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
         <a className="brand" href={href('inicio')}>
-          {settings.logo ? <img src={settings.logo} alt={settings.brandName} /> : <span className="brand-name">{settings.brandName}</span>}
+          {settings.logo ? (
+            <img src={settings.logo} alt={settings.brandName} />
+          ) : (<span className="brand-name">
+              {settings.brandName.replace(/\.$/, '')}
+              <i>.</i>
+            </span>
+          )}
           {settings.tagline && <span className="brand-tag">{settings.tagline}</span>}
         </a>
         <nav>
@@ -87,10 +96,15 @@ export default function App() {
           })}
         </nav>
         <div className="sidebar-foot">
-          <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema">
+          <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema claro/escuro">
             <Icon name={settings.dark ? 'sun' : 'moon'} />
           </button>
-          <span className="muted small">{lastSaved ? `Salvo ${lastSaved.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : 'Dados salvos neste navegador'}</span>
+          <SyncBadge sync={sync} lastSaved={lastSaved} />
+          {CLOUD && (
+            <button className="btn small ghost" onClick={() => signOut()} title={userEmail}>
+              sair
+            </button>
+          )}
         </div>
       </aside>
       <div className="scrim" onClick={() => setMenuOpen(false)} />
@@ -179,7 +193,6 @@ export default function App() {
       {quick === 'cliente' && <ClientForm onClose={() => setQuick(null)} onSaved={(c) => go('clientes', c.id)} />}
       {quick === 'evento' && <EventForm onClose={() => setQuick(null)} />}
       {quick === 'despesa' && <ExpenseForm onClose={() => setQuick(null)} />}
-      <DialogHost />
     </div>
   )
 }
@@ -247,5 +260,16 @@ function GlobalSearch() {
         </div>
       )}
     </div>
+  )
+}
+
+function SyncBadge({ sync, lastSaved }: { sync: SyncStatus; lastSaved: Date | null }) {
+  const time = lastSaved?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  const label =
+    sync === 'saving' ? 'salvando…' : sync === 'offline' ? 'sem conexão · salvo no aparelho' : sync === 'saved' ? `na nuvem${time ? ` · ${time}` : ''}` : time ? `salvo ${time}` : 'salvo neste navegador'
+  return (
+    <span className={`sync-status grow ${sync === 'saving' ? 'saving' : sync === 'offline' ? 'error' : ''}`}>
+      <i /> {label}
+    </span>
   )
 }

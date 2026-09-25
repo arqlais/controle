@@ -1,15 +1,16 @@
 import { ARTIFACT } from './env'
+import { CLOUD, fetchRemote, pushRemote } from './cloud'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, Settings } from './types'
-import { addDays, splitPayments, today, uid } from './utils'
+import { DEFAULT_TASKS, addDays, splitPayments, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
 
 export const DEFAULT_SETTINGS: Settings = {
-  brandName: 'Lais 3D',
-  tagline: 'Visualização arquitetônica',
-  ownerName: 'Lais',
+  brandName: 'laís',
+  tagline: 'renderização · modelagem · detalhamento',
+  ownerName: 'Laís',
   email: '',
   phone: '',
   instagram: '',
@@ -18,15 +19,18 @@ export const DEFAULT_SETTINGS: Settings = {
   pixKey: '',
   city: '',
   logo: '',
-  accent: '#1c1c1c',
-  accentSoft: '#b89b7a',
-  background: '#f4f1ec',
+  customFont: '',
+  themeVersion: 2,
+  accent: '#3e4b57',
+  accentSoft: '#d6b3ab',
+  accentInk: '#a88a80',
+  background: '#f5f1ee',
   surface: '#ffffff',
-  text: '#1c1c1c',
-  displayFont: 'Cormorant Garamond',
-  bodyFont: 'Inter',
-  radius: 10,
-  uppercaseLabels: true,
+  text: '#3e4b57',
+  displayFont: 'The Seasons',
+  bodyFont: 'Poppins',
+  radius: 18,
+  uppercaseLabels: false,
   dark: false,
   monthlyGoal: 6000,
   hourlyTarget: 60,
@@ -34,14 +38,15 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultRevisions: 2,
   defaultPaymentTerms: '50% de entrada para início + 50% na entrega das imagens finais, via Pix.',
   services: [
-    { id: 'render-int', name: 'Render interno', unit: 'imagem', price: 450, studentPrice: 250, hours: 6 },
-    { id: 'render-ext', name: 'Render externo / fachada', unit: 'imagem', price: 550, studentPrice: 300, hours: 7 },
-    { id: 'planta-hum', name: 'Planta humanizada', unit: 'planta', price: 300, studentPrice: 160, hours: 4 },
+    { id: 'render-int', name: 'Renderização interna (V-Ray)', unit: 'imagem', price: 450, studentPrice: 250, hours: 6 },
+    { id: 'render-ext', name: 'Renderização externa / fachada', unit: 'imagem', price: 550, studentPrice: 300, hours: 7 },
+    { id: 'render-ia', name: 'Renderização com IA', unit: 'imagem', price: 180, studentPrice: 100, hours: 1.5 },
     { id: 'modelagem', name: 'Modelagem 3D', unit: 'projeto', price: 800, studentPrice: 400, hours: 10 },
-    { id: 'animacao', name: 'Animação / vídeo', unit: 'segundo', price: 60, studentPrice: 35, hours: 0.5 },
-    { id: 'tour360', name: 'Tour 360°', unit: 'panorama', price: 500, studentPrice: 280, hours: 6 },
-    { id: 'pos', name: 'Pós-produção', unit: 'imagem', price: 150, studentPrice: 80, hours: 2 },
-    { id: 'prancha', name: 'Prancha / diagramação', unit: 'prancha', price: 200, studentPrice: 120, hours: 3 },
+    { id: 'detalhamento', name: 'Detalhamento', unit: 'prancha', price: 250, studentPrice: 140, hours: 4 },
+    { id: 'executivo', name: 'Projeto executivo', unit: 'prancha', price: 300, studentPrice: 170, hours: 5 },
+    { id: 'mapas', name: 'Mapas urbanos', unit: 'mapa', price: 150, studentPrice: 90, hours: 2.5 },
+    { id: 'prancha', name: 'Pranchas e monografia', unit: 'prancha', price: 200, studentPrice: 120, hours: 3 },
+    { id: 'planta-hum', name: 'Planta humanizada', unit: 'planta', price: 300, studentPrice: 160, hours: 4 },
   ],
 }
 
@@ -49,9 +54,11 @@ export function emptyData(): Data {
   return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], settings: DEFAULT_SETTINGS }
 }
 
-function load(): Data {
+const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
+
+function load(userId?: string): Data {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = localStorage.getItem(cacheKey(userId))
     if (!raw) return ARTIFACT ? demoData(DEFAULT_SETTINGS) : emptyData()
     return normalize(JSON.parse(raw))
   } catch {
@@ -75,12 +82,37 @@ export function normalize(d: Partial<Data>): Data {
     expenses: d.expenses ?? [],
     events: d.events ?? [],
     quotes: d.quotes ?? [],
-    settings: { ...base.settings, ...(d.settings ?? {}), services: d.settings?.services ?? base.settings.services },
+    settings: migrateSettings({ ...base.settings, ...(d.settings ?? {}), services: d.settings?.services ?? base.settings.services }, d.settings),
+  }
+}
+
+/** Dados salvos com a identidade antiga recebem as cores e fontes do site. */
+function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
+  if ((saved?.themeVersion ?? 0) >= 2) return s
+  const v = DEFAULT_SETTINGS
+  return {
+    ...s,
+    themeVersion: 2,
+    brandName: !saved?.brandName || saved.brandName === 'Lais 3D' ? v.brandName : s.brandName,
+    tagline: !saved?.tagline || saved.tagline === 'Visualização arquitetônica' ? v.tagline : s.tagline,
+    ownerName: !saved?.ownerName || saved.ownerName === 'Lais' ? v.ownerName : s.ownerName,
+    accent: v.accent,
+    accentSoft: v.accentSoft,
+    accentInk: v.accentInk,
+    background: v.background,
+    surface: v.surface,
+    text: v.text,
+    displayFont: v.displayFont,
+    bodyFont: v.bodyFont,
+    radius: v.radius,
+    uppercaseLabels: v.uppercaseLabels,
   }
 }
 
 type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes'
 type Item<C extends Collection> = Data[C][number]
+
+export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
 
 interface Store {
   data: Data
@@ -89,30 +121,132 @@ interface Store {
   setSettings: (patch: Partial<Settings>) => void
   replaceAll: (d: Data) => void
   lastSaved: Date | null
+  sync: SyncStatus
+  userEmail: string
 }
 
 const Ctx = createContext<Store | null>(null)
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<Data>(load)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const first = useRef(true)
+const hasContent = (d: Data) => !d.demo && (d.clients.length > 0 || d.projects.length > 0 || d.quotes.length > 0 || d.expenses.length > 0)
 
+/** Com `userId`, os dados vivem na nuvem; o navegador guarda só uma cópia de trabalho. */
+export function StoreProvider({ children, userId, userEmail = '' }: { children: ReactNode; userId?: string; userEmail?: string }) {
+  const cloud = CLOUD && !!userId
+  const [data, setData] = useState<Data>(() => load(userId))
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [sync, setSync] = useState<SyncStatus>(cloud ? 'loading' : 'local')
+  const first = useRef(true)
+  const fromRemote = useRef(false) // mudança veio da nuvem: não reenviar
+  const remoteAt = useRef<string>('') // updated_at da última versão conhecida da nuvem
+  const pending = useRef(false)
+
+  // 1) ao entrar: busca a versão da nuvem antes de qualquer envio
+  useEffect(() => {
+    if (!cloud) return
+    let alive = true
+    ;(async () => {
+      try {
+        const remote = await fetchRemote(userId!)
+        if (!alive) return
+        if (remote) {
+          remoteAt.current = remote.updatedAt
+          fromRemote.current = true
+          setData(normalize(remote.data))
+        } else {
+          // primeira vez: sobe o que já existia neste navegador (se for real)
+          const local = load(userId)
+          const legacy = load()
+          const start = hasContent(local) ? local : hasContent(legacy) ? legacy : { ...emptyData(), settings: local.settings }
+          remoteAt.current = await pushRemote(userId!, start)
+          fromRemote.current = true
+          setData(start)
+        }
+        setSync('saved')
+        setLastSaved(new Date())
+      } catch {
+        if (alive) setSync('offline')
+      }
+    })()
+    return () => {
+      alive = false
+    }
+  }, [cloud, userId])
+
+  // 2) a cada mudança: cópia local na hora, nuvem logo em seguida
   useEffect(() => {
     if (first.current) {
       first.current = false
       return
     }
-    const t = setTimeout(() => {
+    try {
+      localStorage.setItem(cacheKey(userId), JSON.stringify(data))
+    } catch {
+      if (!cloud) toast('Não foi possível salvar neste navegador. Faça um backup em Configurações.')
+    }
+    if (!cloud) {
+      setLastSaved(new Date())
+      return
+    }
+    if (fromRemote.current) {
+      fromRemote.current = false
+      return
+    }
+    if (sync === 'loading') return
+    pending.current = true
+    setSync('saving')
+    const t = setTimeout(async () => {
       try {
-        localStorage.setItem(KEY, JSON.stringify(data))
+        remoteAt.current = await pushRemote(userId!, data)
+        pending.current = false
+        setSync('saved')
         setLastSaved(new Date())
-      } catch (e) {
-        toast('Não foi possível salvar neste navegador. Faça um backup em Configurações.')
+      } catch {
+        setSync('offline')
       }
-    }, 250)
+    }, 700)
     return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data])
+
+  // 3) ao voltar para a aba / reconectar: pega alterações feitas em outro aparelho
+  useEffect(() => {
+    if (!cloud) return
+    const refresh = async () => {
+      if (document.visibilityState !== 'visible') return
+      try {
+        if (pending.current) {
+          // havia algo não enviado (ex.: sem internet): reenvia
+          remoteAt.current = await pushRemote(userId!, dataRef.current)
+          pending.current = false
+          setSync('saved')
+          setLastSaved(new Date())
+          return
+        }
+        const remote = await fetchRemote(userId!)
+        if (remote && remote.updatedAt > remoteAt.current) {
+          remoteAt.current = remote.updatedAt
+          fromRemote.current = true
+          setData(normalize(remote.data))
+        }
+        setSync('saved')
+      } catch {
+        setSync('offline')
+      }
+    }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('online', refresh)
+    const iv = setInterval(refresh, 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('online', refresh)
+      clearInterval(iv)
+    }
+  }, [cloud, userId])
+
+  const dataRef = useRef(data)
+  dataRef.current = data
 
   const upsert = useCallback(<C extends Collection>(c: C, item: Item<C>) => {
     setData((d) => {
@@ -147,7 +281,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const replaceAll = useCallback((d: Data) => setData(normalize(d)), [])
 
-  const value = useMemo(() => ({ data, upsert, remove, setSettings, replaceAll, lastSaved }), [data, upsert, remove, setSettings, replaceAll, lastSaved])
+  const value = useMemo(
+    () => ({ data, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail }),
+    [data, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail],
+  )
+  if (sync === 'loading') return <div className="loading-screen"><span className="brand-name">{data.settings.brandName}<i>.</i></span><p className="muted small">carregando seus dados…</p></div>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
@@ -222,13 +360,12 @@ export function demoData(settings: Settings): Data {
       revisionsUsed: status === 'revisao' ? 1 : 0,
       estimatedHours: quantity * 6,
       timeLogs: status === 'briefing' ? [] : [{ id: uid(), date: start, hours: quantity * 3, note: 'Modelagem e setup de luz' }],
-      tasks: [
-        { id: uid(), text: 'Receber arquivos (DWG / SKP)', done: status !== 'briefing' },
-        { id: uid(), text: 'Modelagem', done: ['revisao', 'aguardando', 'entregue'].includes(status) },
-        { id: uid(), text: 'Materiais e iluminação', done: ['revisao', 'aguardando', 'entregue'].includes(status) },
-        { id: uid(), text: 'Render + pós-produção', done: ['aguardando', 'entregue'].includes(status) },
-        { id: uid(), text: 'Enviar prévia para aprovação', done: ['aguardando', 'entregue'].includes(status) },
-      ],
+      tasks: DEFAULT_TASKS.map((text, i) => ({
+        id: uid(),
+        text,
+        // quantas etapas já foram feitas em cada status
+        done: i < ({ briefing: 0, producao: 2, revisao: 4, aguardando: 4, entregue: 6, pausado: 1, cancelado: 0 } as const)[status],
+      })),
       filesLink: '',
       notes: '',
       createdAt: start,

@@ -54,7 +54,9 @@ export default function Clients() {
       <div className="page-head">
         <div>
           <p className="eyebrow">{data.clients.filter((c) => !c.archived).length} clientes ativos</p>
-          <h1>Clientes</h1>
+          <h1>
+            meus <em>clientes</em>
+          </h1>
         </div>
         <button className="btn primary" onClick={() => setForm(true)}>
           <Icon name="plus" size={16} /> Novo cliente

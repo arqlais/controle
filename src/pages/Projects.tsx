@@ -74,7 +74,9 @@ export default function Projects() {
           <p className="eyebrow">
             {data.projects.filter(isOpen).length} ativas · {money(sum(data.projects.filter(isOpen), projectTotal))} em produção
           </p>
-          <h1>Demandas</h1>
+          <h1>
+            minhas <em>demandas</em>
+          </h1>
         </div>
         <button className="btn primary" onClick={() => setForm(true)}>
           <Icon name="plus" size={16} /> Nova demanda

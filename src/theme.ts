@@ -25,30 +25,49 @@ const mix = (a: string, b: string, t: number) => {
 export function applyTheme(s: Settings) {
   const root = document.documentElement
   const dark = s.dark
-  const bg = dark ? '#141414' : s.background
-  const surface = dark ? '#1d1d1d' : s.surface
-  const text = dark ? '#ece8e2' : s.text
-  // no modo escuro, se o acento for muito escuro usamos o tom secundário
-  const accent = dark && luminance(s.accent) < 0.08 ? s.accentSoft : s.accent
+  // modo escuro: grafite profundo, mantendo o rosé como acento
+  const bg = dark ? '#1f262d' : s.background
+  const surface = dark ? '#28313a' : s.surface
+  const text = dark ? '#efe7e3' : s.text
+  const accent = dark ? s.accentSoft : s.accent
+  const ink = dark ? mix(s.accentSoft, '#ffffff', 0.15) : s.accentInk
   const vars: Record<string, string> = {
     '--bg': bg,
     '--surface': surface,
-    '--surface-2': mix(surface, text, dark ? 0.06 : 0.035),
+    '--surface-2': mix(bg, s.accentSoft, dark ? 0.08 : 0.16),
     '--text': text,
-    '--muted': mix(text, bg, 0.45),
-    '--border': mix(bg, text, dark ? 0.16 : 0.12),
+    '--muted': mix(text, bg, 0.42),
+    '--border': mix(bg, s.accentSoft, dark ? 0.22 : 0.3),
     '--accent': accent,
-    '--accent-contrast': luminance(accent) > 0.45 ? '#141414' : '#ffffff',
+    '--accent-contrast': luminance(accent) > 0.45 ? '#2b343c' : '#ffffff',
     '--accent-soft': s.accentSoft,
-    '--accent-tint': mix(surface, accent, 0.08),
+    '--accent-ink': ink,
+    '--accent-tint': mix(surface, s.accentSoft, dark ? 0.18 : 0.26),
+    '--slate': dark ? '#141a20' : s.text,
     '--radius': `${s.radius}px`,
-    '--font-display': `'${s.displayFont}', Georgia, serif`,
-    '--font-body': `'${s.bodyFont}', system-ui, -apple-system, sans-serif`,
-    '--label-transform': s.uppercaseLabels ? 'uppercase' : 'none',
-    '--label-spacing': s.uppercaseLabels ? '0.08em' : '0',
+    '--font-display': `'${s.displayFont}', 'Cormorant Garamond', Georgia, serif`,
+    '--font-body': `'${s.bodyFont}', 'Poppins', system-ui, -apple-system, sans-serif`,
+    '--label-transform': s.uppercaseLabels ? 'uppercase' : 'lowercase',
   }
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
-  document.title = `Controle · ${s.brandName}`
+  document.title = `controle · ${s.brandName}`
+  applyCustomFont(s)
+}
+
+/** Fonte enviada pela usuária (ex.: The Seasons), registrada com o nome escolhido em "fonte dos títulos". */
+function applyCustomFont(s: Settings) {
+  let el = document.getElementById('custom-font') as HTMLStyleElement | null
+  if (!s.customFont) {
+    el?.remove()
+    return
+  }
+  if (!el) {
+    el = document.createElement('style')
+    el.id = 'custom-font'
+    document.head.appendChild(el)
+  }
+  const css = `@font-face{font-family:'${s.displayFont}';src:url(${s.customFont});font-display:swap;}`
+  if (el.textContent !== css) el.textContent = css
 }

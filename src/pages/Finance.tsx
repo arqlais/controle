@@ -93,7 +93,9 @@ export default function Finance() {
             <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior">
               <Icon name="chevronL" />
             </button>
-            <h1>{monthLabel(month)}</h1>
+            <h1>
+              {monthLabel(month).split(' ')[0].toLowerCase()} <em>{month.slice(0, 4)}</em>
+            </h1>
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês">
               <Icon name="chevronR" />
             </button>

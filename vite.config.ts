@@ -5,4 +5,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: './',
   plugins: [react()],
+  // na versão Artifact tudo precisa ir dentro de um único HTML (fontes inclusas)
+  build: { assetsInlineLimit: process.env.VITE_ARTIFACT === '1' ? 100_000_000 : 4096 },
 })

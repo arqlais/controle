@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import type { CalendarEvent, Client, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
 import {
   CLIENT_TYPES,
+  DEFAULT_TASKS,
   EVENT_TYPES,
   EXPENSE_CATEGORIES,
   PRIORITY,
@@ -188,7 +189,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
     if (!final.tasks.length && !initial) {
       final = {
         ...final,
-        tasks: ['Receber arquivos e briefing', 'Modelagem', 'Materiais e iluminação', 'Render + pós-produção', 'Enviar prévia', 'Entrega final'].map((text) => ({
+        tasks: DEFAULT_TASKS.map((text) => ({
           id: uid(),
           text,
           done: false,

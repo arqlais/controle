@@ -5,9 +5,11 @@ import { Badge, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Settings } from '../types'
 import { download, money, today, uid } from '../utils'
+import { CLOUD } from '../cloud'
 
 const PRESETS: { name: string; s: Partial<Settings> }[] = [
-  { name: 'Preto & areia', s: { accent: '#1c1c1c', accentSoft: '#b89b7a', background: '#f4f1ec', surface: '#ffffff', text: '#1c1c1c' } },
+  { name: 'laís (site)', s: { accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57' } },
+  { name: 'Preto & areia', s: { accent: '#1c1c1c', accentSoft: '#b89b7a', accentInk: '#8f7458', background: '#f4f1ec', surface: '#ffffff', text: '#1c1c1c' } },
   { name: 'Branco galeria', s: { accent: '#111111', accentSoft: '#9a9a9a', background: '#fafafa', surface: '#ffffff', text: '#111111' } },
   { name: 'Terracota', s: { accent: '#a4553a', accentSoft: '#d9b99b', background: '#f6f0ea', surface: '#fffdfb', text: '#2b211c' } },
   { name: 'Oliva', s: { accent: '#4f5b3a', accentSoft: '#c2b79a', background: '#f2f1ea', surface: '#ffffff', text: '#1f2419' } },
@@ -15,20 +17,32 @@ const PRESETS: { name: string; s: Partial<Settings> }[] = [
   { name: 'Rosé', s: { accent: '#8a4b5a', accentSoft: '#e0bfc3', background: '#f8f1f0', surface: '#ffffff', text: '#2a1d20' } },
 ]
 
-const DISPLAY_FONTS = ['Cormorant Garamond', 'Playfair Display', 'Montserrat', 'Inter', 'DM Sans']
-const BODY_FONTS = ['Inter', 'DM Sans', 'Montserrat']
+const DISPLAY_FONTS = ['The Seasons', 'Cormorant Garamond', 'Playfair Display']
+const BODY_FONTS = ['Poppins', 'DM Sans']
 
 export default function SettingsPage() {
   const { data, setSettings, replaceAll } = useStore()
   const s = data.settings
   const fileRef = useRef<HTMLInputElement>(null)
   const logoRef = useRef<HTMLInputElement>(null)
+  const fontRef = useRef<HTMLInputElement>(null)
 
   const onLogo = (f?: File) => {
     if (!f) return
     if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB (PNG ou SVG de preferência).')
     const r = new FileReader()
     r.onload = () => setSettings({ logo: String(r.result) })
+    r.readAsDataURL(f)
+  }
+
+  const onFont = (f?: File) => {
+    if (!f) return
+    if (f.size > 900_000) return toast('Arquivo de fonte muito grande (máx. 900 KB). Prefira .woff2 ou .woff.')
+    const r = new FileReader()
+    r.onload = () => {
+      setSettings({ customFont: String(r.result), displayFont: 'The Seasons' })
+      toast('Fonte The Seasons aplicada.')
+    }
     r.readAsDataURL(f)
   }
 
@@ -55,7 +69,9 @@ export default function SettingsPage() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Sistema</p>
-          <h1>Configurações</h1>
+          <h1>
+            configurações <em>do estúdio</em>
+          </h1>
         </div>
       </div>
 
@@ -101,7 +117,8 @@ export default function SettingsPage() {
             {(
               [
                 ['accent', 'Cor principal'],
-                ['accentSoft', 'Cor secundária'],
+                ['accentSoft', 'Rosé'],
+                ['accentInk', 'Rosé dos itálicos'],
                 ['background', 'Fundo'],
                 ['surface', 'Cartões'],
                 ['text', 'Texto'],
@@ -123,6 +140,30 @@ export default function SettingsPage() {
                 ))}
               </select>
             </Field>
+            <Field
+              label="Fonte dos itálicos"
+              span={3}
+              hint={
+                s.customFont
+                  ? 'Usando o arquivo enviado.'
+                  : 'A The Seasons já vem embutida no sistema. Envie outro arquivo só se quiser trocar a fonte dos títulos.'
+              }
+            >
+              <div className="row gap-s">
+                <button className="btn small" onClick={() => fontRef.current?.click()}>
+                  <Icon name="upload" size={14} /> {s.customFont ? 'Trocar arquivo' : 'Enviar outra fonte'}
+                </button>
+                {s.customFont && (
+                  <button className="btn small ghost" onClick={() => setSettings({ customFont: '' })}>
+                    Remover
+                  </button>
+                )}
+                <span className="font-sample">
+                  <em>você projeta</em>
+                </span>
+                <input ref={fontRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" hidden onChange={(e) => onFont(e.target.files?.[0])} />
+              </div>
+            </Field>
             <Field label="Fonte do texto">
               <select value={s.bodyFont} onChange={(e) => setSettings({ bodyFont: e.target.value })}>
                 {BODY_FONTS.map((f) => (
@@ -132,16 +173,6 @@ export default function SettingsPage() {
             </Field>
             <Field label={`Cantos arredondados · ${s.radius}px`}>
               <input type="range" min={0} max={20} value={s.radius} onChange={(e) => setSettings({ radius: Number(e.target.value) })} />
-            </Field>
-            <Field label="Rótulos">
-              <Segmented
-                value={s.uppercaseLabels ? 'u' : 'n'}
-                options={[
-                  { value: 'u', label: 'CAIXA ALTA' },
-                  { value: 'n', label: 'Normal' },
-                ]}
-                onChange={(v) => setSettings({ uppercaseLabels: v === 'u' })}
-              />
             </Field>
             <Field label="Tema">
               <Segmented
@@ -161,6 +192,7 @@ export default function SettingsPage() {
                 setSettings({
                   accent: DEFAULT_SETTINGS.accent,
                   accentSoft: DEFAULT_SETTINGS.accentSoft,
+                  accentInk: DEFAULT_SETTINGS.accentInk,
                   background: DEFAULT_SETTINGS.background,
                   surface: DEFAULT_SETTINGS.surface,
                   text: DEFAULT_SETTINGS.text,
@@ -294,8 +326,17 @@ export default function SettingsPage() {
 
       <Section title="Backup e dados">
         <p className="muted small">
-          Os dados ficam salvos <b>neste navegador</b>. Faça backup com frequência (ex.: toda sexta) e guarde no Drive — o arquivo também serve para passar os dados para outro computador ou
-          celular.
+          {CLOUD ? (
+            <>
+              Seus dados ficam <b>na nuvem</b>, protegidos pelo seu login, e aparecem iguais no computador e no celular. O backup é uma cópia extra: baixe de vez em quando e guarde no
+              Drive.
+            </>
+          ) : (
+            <>
+              Os dados ficam salvos <b>neste navegador</b>. Faça backup com frequência (ex.: toda sexta) e guarde no Drive — o arquivo também serve para passar os dados para outro
+              computador ou celular.
+            </>
+          )}
         </p>
         <div className="row gap-s wrap">
           <button className="btn primary" onClick={() => download(`backup-controle-${today()}.json`, JSON.stringify(data, null, 2))}>

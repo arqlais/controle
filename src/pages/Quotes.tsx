@@ -20,7 +20,9 @@ export default function Quotes() {
       <div className="page-head">
         <div>
           <p className="eyebrow">Propostas comerciais</p>
-          <h1>Orçamentos</h1>
+          <h1>
+            orçamentos <em>&amp; propostas</em>
+          </h1>
         </div>
         <button className="btn primary" onClick={() => go('orcamentos', 'novo')}>
           <Icon name="plus" size={16} /> Novo orçamento

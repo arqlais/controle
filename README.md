@@ -30,15 +30,25 @@ O workflow `.github/workflows/deploy.yml` publica a cada push na `main`.
 No GitHub: **Settings → Pages → Source: GitHub Actions**. O endereço fica `https://<usuario>.github.io/controle/`.
 (Também funciona arrastando a pasta `dist/` para Netlify ou Vercel — dá para usar um subdomínio como `controle.lais3d.com.br`.)
 
-## Seus dados
+## Login e dados na nuvem (Supabase, grátis)
 
-Tudo fica salvo **no navegador** (localStorage) — nada vai para servidor. Por isso:
-- Faça **backup** em Configurações → *Baixar backup* com frequência e guarde no Drive.
-- Para usar em outro aparelho, *Restaurar backup* nele.
+Com a nuvem ligada, o sistema pede **e-mail e senha**, os dados ficam iguais em qualquer aparelho e nada se perde ao fechar o navegador.
+
+1. Crie uma conta em [supabase.com](https://supabase.com) → **New project** (região São Paulo).
+2. **SQL Editor → New query**: cole o conteúdo de [`supabase/schema.sql`](supabase/schema.sql) e clique em **Run**.
+3. **Authentication → Users → Add user → Create new user**: seu e-mail + senha, marcando *Auto Confirm User*.
+4. **Authentication → Sign In / Providers**: desligue **Allow new users to sign up** (ninguém mais consegue criar conta).
+5. **Authentication → URL Configuration**: em *Site URL* coloque `https://arqlais.github.io/controle/` (usado no "esqueci minha senha").
+6. **Project Settings → API**: copie a *Project URL* e a chave *anon public*.
+7. No GitHub: **Settings → Secrets and variables → Actions → aba Variables** → crie `SUPABASE_URL` e `SUPABASE_ANON_KEY` com esses valores.
+8. Rode o deploy de novo (Actions → *Publicar no GitHub Pages* → *Run workflow*).
+
+A chave *anon* é pública por natureza; quem protege os dados são as regras de acesso (RLS) do `schema.sql`: só a usuária logada lê e altera os próprios dados.
+Sem essas variáveis, o sistema funciona só no navegador (localStorage) — use o backup em Configurações.
 
 ## Identidade visual
 
-Ajuste em **Configurações → Identidade visual**: envie o logo (PNG/SVG), coloque os códigos hex das cores do site e escolha as fontes. Recibos e propostas usam o mesmo visual.
+Segue o site www.lais3d.com.br: **Poppins** + **The Seasons Italic** (embutida em `src/fonts`, recorte com os caracteres do português), areia `#F5F1EE`, grafite `#3E4B57`, rosé `#D6B3AB` e rosé terroso `#A88A80`. Tudo ajustável em **Configurações → Identidade visual**. Recibos e propostas usam o mesmo visual.
 
 ## Stack
 

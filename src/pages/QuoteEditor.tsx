@@ -8,7 +8,7 @@ import { usePrint } from '../components/Print'
 import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, addDays, fmtDateLong, isStudent, money, quoteSubtotal, quoteTotal, splitPayments, today, uid, whatsappLink } from '../utils'
+import { DEFAULT_TASKS, QUOTE_STATUS, addDays, fmtDateLong, isStudent, money, quoteSubtotal, quoteTotal, splitPayments, today, uid, whatsappLink } from '../utils'
 
 export default function QuoteEditor({ id }: { id: string }) {
   const { data, upsert, remove } = useStore()
@@ -113,7 +113,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       revisionsUsed: 0,
       estimatedHours: saved.items.reduce((s, i) => s + (settings.services.find((x) => x.id === i.service)?.hours ?? 0) * i.quantity, 0) || (service?.hours ?? 0),
       timeLogs: [],
-      tasks: ['Receber arquivos e briefing', 'Modelagem', 'Materiais e iluminação', 'Render + pós-produção', 'Enviar prévia', 'Entrega final'].map((text) => ({ id: uid(), text, done: false })),
+      tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: false })),
       filesLink: '',
       notes: `Criado a partir do orçamento #${saved.number}.`,
       createdAt: start,

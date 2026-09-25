@@ -1,13 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { StoreProvider } from './store'
+import { AuthGate } from './components/Auth'
+import { DialogHost } from './components/dialog'
 import App from './App'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <StoreProvider>
+    <AuthGate>
       <App />
-    </StoreProvider>
+    </AuthGate>
+    <DialogHost />
   </StrictMode>,
 )
