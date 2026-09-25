@@ -5,7 +5,8 @@ import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
 import { usePrint } from '../components/Print'
-import { Badge, Empty, Field, MoneyInput, Section, Segmented, confirmDelete } from '../components/ui'
+import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { askDelete, toast } from '../components/dialog'
 import type { Project, Quote, QuoteStatus } from '../types'
 import { QUOTE_STATUS, addDays, fmtDateLong, isStudent, money, quoteSubtotal, quoteTotal, splitPayments, today, uid, whatsappLink } from '../utils'
 
@@ -58,7 +59,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
     if (!next.clientId) {
-      alert('Escolha o cliente.')
+      toast('Escolha o cliente.')
       return null
     }
     upsert('quotes', next)
@@ -141,8 +142,10 @@ export default function QuoteEditor({ id }: { id: string }) {
           <button
             className="btn ghost"
             onClick={() => {
-              navigator.clipboard?.writeText(text())
-              alert('Texto copiado! Cole no WhatsApp ou e-mail.')
+              navigator.clipboard
+                ?.writeText(text())
+                .then(() => toast('Texto copiado. Cole no WhatsApp ou e-mail.'))
+                .catch(() => toast('Não deu para copiar aqui — selecione o texto da pré-visualização.'))
             }}
           >
             <Icon name="copy" size={16} /> Copiar texto
@@ -289,8 +292,8 @@ export default function QuoteEditor({ id }: { id: string }) {
           {existing && (
             <button
               className="btn ghost danger small"
-              onClick={() => {
-                if (confirmDelete(`o orçamento #${q.number}`)) {
+              onClick={async () => {
+                if (await askDelete(`o orçamento #${q.number}`)) {
                   remove('quotes', q.id)
                   go('orcamentos')
                 }

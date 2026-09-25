@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useStore } from './store'
+import { emptyData, useStore } from './store'
+import { DialogHost, ask } from './components/dialog'
 import { applyTheme } from './theme'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
@@ -29,7 +30,7 @@ const NAV = [
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 
 export default function App() {
-  const { data, setSettings, lastSaved } = useStore()
+  const { data, setSettings, lastSaved, replaceAll } = useStore()
   const { settings } = data
   const route = useRoute()
   const [quick, setQuick] = useState<Quick>(null)
@@ -139,7 +140,30 @@ export default function App() {
             )}
           </div>
         </header>
-        <main className="content">{page}</main>
+        <main className="content">
+          {data.demo && (
+            <div className="demo-banner">
+              <span>
+                <b>Dados de exemplo.</b> Clientes e valores fictícios para você explorar. Pode editar à vontade.
+              </span>
+              <div className="row gap-s">
+                <button
+                  className="btn small"
+                  onClick={async () =>
+                    (await ask('Apagar os dados de exemplo e começar com o sistema vazio? Suas configurações ficam.', { confirmLabel: 'Começar do zero', danger: true })) &&
+                    replaceAll({ ...emptyData(), settings: data.settings })
+                  }
+                >
+                  Começar do zero
+                </button>
+                <button className="btn small ghost" onClick={() => replaceAll({ ...data, demo: false })}>
+                  Ocultar aviso
+                </button>
+              </div>
+            </div>
+          )}
+          {page}
+        </main>
       </div>
 
       <nav className="bottom-nav">
@@ -155,6 +179,7 @@ export default function App() {
       {quick === 'cliente' && <ClientForm onClose={() => setQuick(null)} onSaved={(c) => go('clientes', c.id)} />}
       {quick === 'evento' && <EventForm onClose={() => setQuick(null)} />}
       {quick === 'despesa' && <ExpenseForm onClose={() => setQuick(null)} />}
+      <DialogHost />
     </div>
   )
 }

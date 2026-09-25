@@ -5,7 +5,8 @@ import { Icon } from '../components/Icon'
 import { ProjectForm, EventForm } from '../components/forms'
 import { ReceiptDoc } from '../components/Docs'
 import { usePrint } from '../components/Print'
-import { Badge, Empty, MoneyInput, Progress, Section, Stat, confirmDelete } from '../components/ui'
+import { Badge, Empty, MoneyInput, Progress, Section, Stat } from '../components/ui'
+import { askDelete } from '../components/dialog'
 import type { Payment, Priority, Project, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
@@ -229,7 +230,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                                 <Icon name="x" size={16} />
                               </button>
                             )}
-                            <button className="icon-btn" title="Excluir parcela" onClick={() => confirm('Excluir parcela?') && save({ payments: p.payments.filter((y) => y.id !== x.id) })}>
+                            <button className="icon-btn" title="Excluir parcela" onClick={async () => (await askDelete(`a parcela "${x.description}"`)) && save({ payments: p.payments.filter((y) => y.id !== x.id) })}>
                               <Icon name="trash" size={16} />
                             </button>
                           </td>
@@ -396,8 +397,8 @@ export default function ProjectDetail({ id }: { id: string }) {
 
           <button
             className="btn ghost danger small"
-            onClick={() => {
-              if (confirmDelete(`o projeto "${p.title}" (com pagamentos e horas)`)) {
+            onClick={async () => {
+              if (await askDelete(`o projeto "${p.title}" (com pagamentos e horas)`)) {
                 remove('projects', p.id)
                 go('projetos')
               }

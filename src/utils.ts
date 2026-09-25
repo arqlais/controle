@@ -1,3 +1,5 @@
+import { ARTIFACT } from './env'
+import { toast } from './components/dialog'
 import type {
   Client,
   ClientType,
@@ -226,6 +228,14 @@ export const whatsappLink = (phone: string, text = '') => {
 export const instagramLink = (handle: string) => `https://instagram.com/${handle.replace(/^@/, '').trim()}`
 
 export function download(filename: string, content: string, type = 'application/json') {
+  if (ARTIFACT) {
+    // o visualizador de Artifacts bloqueia downloads: copia o conteúdo
+    navigator.clipboard
+      ?.writeText(content)
+      .then(() => toast(`Conteúdo de ${filename} copiado. Cole num arquivo de texto para salvar.`))
+      .catch(() => toast('Downloads não funcionam aqui. Use o sistema publicado para baixar arquivos.'))
+    return
+  }
   const blob = new Blob([content], { type })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

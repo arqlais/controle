@@ -1,3 +1,5 @@
+import { ARTIFACT } from './env'
+import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, Settings } from './types'
 import { addDays, splitPayments, today, uid } from './utils'
@@ -50,10 +52,10 @@ export function emptyData(): Data {
 function load(): Data {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return emptyData()
+    if (!raw) return ARTIFACT ? demoData(DEFAULT_SETTINGS) : emptyData()
     return normalize(JSON.parse(raw))
   } catch {
-    return emptyData()
+    return ARTIFACT ? demoData(DEFAULT_SETTINGS) : emptyData()
   }
 }
 
@@ -62,6 +64,7 @@ export function normalize(d: Partial<Data>): Data {
   const base = emptyData()
   return {
     version: 1,
+    demo: d.demo,
     clients: d.clients ?? [],
     projects: (d.projects ?? []).map((p) => ({
       ...p,
@@ -105,7 +108,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(KEY, JSON.stringify(data))
         setLastSaved(new Date())
       } catch (e) {
-        alert('Não foi possível salvar (armazenamento cheio?). Faça um backup em Configurações.')
+        toast('Não foi possível salvar neste navegador. Faça um backup em Configurações.')
       }
     }, 250)
     return () => clearTimeout(t)
@@ -281,5 +284,5 @@ export function demoData(settings: Settings): Data {
     },
   ]
 
-  return { version: 1, clients, projects, expenses, events, quotes, settings }
+  return { version: 1, demo: true, clients, projects, expenses, events, quotes, settings }
 }

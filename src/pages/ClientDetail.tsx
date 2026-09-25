@@ -3,7 +3,8 @@ import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm, ProjectForm } from '../components/forms'
-import { Badge, Empty, Section, Stat, confirmDelete } from '../components/ui'
+import { Badge, Empty, Section, Stat } from '../components/ui'
+import { askDelete } from '../components/dialog'
 import {
   CLIENT_TYPES,
   QUOTE_STATUS,
@@ -186,8 +187,8 @@ export default function ClientDetail({ id }: { id: string }) {
             </button>
             <button
               className="btn ghost danger small"
-              onClick={() => {
-                if (confirmDelete(`o cliente "${c.name}" e todos os ${projects.length} projeto(s) dele`)) {
+              onClick={async () => {
+                if (await askDelete(`o cliente "${c.name}" e todos os ${projects.length} projeto(s) dele`)) {
                   remove('clients', c.id)
                   go('clientes')
                 }

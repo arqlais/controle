@@ -155,6 +155,3 @@ export function MoneyInput({ value, onChange, ...rest }: { value: number; onChan
   )
 }
 
-export function confirmDelete(what: string) {
-  return window.confirm(`Excluir ${what}? Essa ação não pode ser desfeita.`)
-}

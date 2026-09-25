@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { Badge, Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { ask, askDelete, toast } from '../components/dialog'
 import type { Settings } from '../types'
 import { download, money, today, uid } from '../utils'
 
@@ -25,7 +26,7 @@ export default function SettingsPage() {
 
   const onLogo = (f?: File) => {
     if (!f) return
-    if (f.size > 600_000) return alert('Use uma imagem menor que 600 KB (PNG ou SVG de preferência).')
+    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB (PNG ou SVG de preferência).')
     const r = new FileReader()
     r.onload = () => setSettings({ logo: String(r.result) })
     r.readAsDataURL(f)
@@ -34,13 +35,13 @@ export default function SettingsPage() {
   const onImport = (f?: File) => {
     if (!f) return
     const r = new FileReader()
-    r.onload = () => {
+    r.onload = async () => {
       try {
         const parsed = JSON.parse(String(r.result))
         if (!parsed.clients || !parsed.projects) throw new Error()
-        if (confirm(`Importar backup com ${parsed.clients.length} clientes e ${parsed.projects.length} projetos? Os dados atuais serão substituídos.`)) replaceAll(normalize(parsed))
+        if (await ask(`Importar backup com ${parsed.clients.length} clientes e ${parsed.projects.length} projetos? Os dados atuais serão substituídos.`, { confirmLabel: 'Importar' })) replaceAll(normalize(parsed))
       } catch {
-        alert('Arquivo inválido.')
+        toast('Arquivo inválido: escolha um backup .json gerado por este sistema.')
       }
     }
     r.readAsText(f)
@@ -280,7 +281,7 @@ export default function SettingsPage() {
                     )}
                   </td>
                   <td className="actions">
-                    <button className="icon-btn" onClick={() => confirm(`Remover "${x.name}"?`) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })}>
+                    <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })}>
                       <Icon name="trash" size={16} />
                     </button>
                   </td>
@@ -304,12 +305,12 @@ export default function SettingsPage() {
             <Icon name="upload" size={16} /> Restaurar backup
           </button>
           <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onImport(e.target.files?.[0])} />
-          <button className="btn ghost" onClick={() => confirm('Substituir tudo por dados de exemplo?') && replaceAll(demoData(s))}>
+          <button className="btn ghost" onClick={async () => (await ask('Substituir tudo por dados de exemplo?', { confirmLabel: 'Carregar exemplo', danger: true })) && replaceAll(demoData(s))}>
             Carregar exemplo
           </button>
           <button
             className="btn ghost danger"
-            onClick={() => confirm('Apagar TODOS os clientes, projetos, orçamentos e lançamentos? (as configurações ficam)') && replaceAll({ ...emptyData(), settings: s })}
+            onClick={async () => (await ask('Apagar TODOS os clientes, projetos, orçamentos e lançamentos? As configurações ficam.', { confirmLabel: 'Apagar tudo', danger: true })) && replaceAll({ ...emptyData(), settings: s })}
           >
             Apagar dados
           </button>

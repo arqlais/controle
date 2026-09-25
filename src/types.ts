@@ -184,6 +184,7 @@ export interface Settings {
 
 export interface Data {
   version: number
+  demo?: boolean // true enquanto só houver dados de exemplo
   clients: Client[]
   projects: Project[]
   expenses: Expense[]

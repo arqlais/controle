@@ -4,7 +4,8 @@ import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
-import { Badge, Empty, Progress, Section, Segmented, Stat, confirmDelete } from '../components/ui'
+import { Badge, Empty, Progress, Section, Segmented, Stat } from '../components/ui'
+import { askDelete } from '../components/dialog'
 import type { Expense } from '../types'
 import {
   CLIENT_TYPES,
@@ -283,7 +284,7 @@ export default function Finance() {
                       <td className="muted">{e.recurring ? `desde ${fmtDateLong(e.date)}` : fmtDate(e.date)}</td>
                       <td className="num">{money(e.amount)}</td>
                       <td className="actions" onClick={(ev) => ev.stopPropagation()}>
-                        <button className="icon-btn" onClick={() => confirmDelete(`a despesa "${e.description}"${e.recurring ? ' (de todos os meses)' : ''}`) && remove('expenses', e.id)}>
+                        <button className="icon-btn" onClick={async () => (await askDelete(`a despesa "${e.description}"${e.recurring ? ' (de todos os meses)' : ''}`)) && remove('expenses', e.id)}>
                           <Icon name="trash" size={16} />
                         </button>
                       </td>

@@ -48,7 +48,7 @@ export function applyTheme(s: Settings) {
     '--label-spacing': s.uppercaseLabels ? '0.08em' : '0',
   }
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
-  root.dataset.theme = dark ? 'dark' : 'light'
+  root.dataset.appTheme = dark ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
   document.title = `Controle · ${s.brandName}`
 }

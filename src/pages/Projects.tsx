@@ -28,7 +28,13 @@ type Scope = 'ativos' | 'todos' | 'atrasados' | 'arquivo'
 
 export default function Projects() {
   const { data, upsert } = useStore()
-  const [view, setView] = useState<View>(() => (localStorage.getItem('proj-view') as View) || 'quadro')
+  const [view, setView] = useState<View>(() => {
+    try {
+      return (localStorage.getItem('proj-view') as View) || 'quadro'
+    } catch {
+      return 'quadro'
+    }
+  })
   const [q, setQ] = useState('')
   const [clientId, setClientId] = useState('')
   const [prio, setPrio] = useState<Priority | ''>('')
@@ -39,7 +45,11 @@ export default function Projects() {
 
   const changeView = (v: View) => {
     setView(v)
-    localStorage.setItem('proj-view', v)
+    try {
+      localStorage.setItem('proj-view', v)
+    } catch {
+      /* sem armazenamento: só não lembra a escolha */
+    }
   }
 
   const clientName = (id: string) => data.clients.find((c) => c.id === id)?.name ?? '—'

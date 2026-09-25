@@ -1,3 +1,4 @@
+import { ask, askDelete, toast } from './dialog'
 import { useState } from 'react'
 import { useStore } from '../store'
 import type { CalendarEvent, Client, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
@@ -42,7 +43,7 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
   const [c, setC] = useState<Client>(initial ?? newClient())
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }))
   const save = () => {
-    if (!c.name.trim()) return alert('Informe o nome do cliente.')
+    if (!c.name.trim()) return toast('Informe o nome do cliente.')
     upsert('clients', c)
     onSaved?.(c)
     onClose()
@@ -174,13 +175,13 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
     }))
   }
 
-  const save = () => {
-    if (!p.title.trim()) return alert('Dê um nome para o projeto.')
-    if (!p.clientId) return alert('Escolha o cliente.')
+  const save = async () => {
+    if (!p.title.trim()) return toast('Dê um nome para o projeto.')
+    if (!p.clientId) return toast('Escolha o cliente.')
     let final = p
     if (payMode !== 'manter') {
       const paidSum = p.payments.filter((x) => x.paidDate).reduce((s, x) => s + x.amount, 0)
-      if (paidSum > 0 && !confirm('Recriar as parcelas vai apagar os pagamentos já registrados deste projeto. Continuar?')) return
+      if (paidSum > 0 && !(await ask('Recriar as parcelas vai apagar os pagamentos já registrados deste projeto. Continuar?', { confirmLabel: 'Recriar parcelas', danger: true }))) return
       final = { ...p, payments: total > 0 ? splitPayments(total, payMode, p.startDate, p.dueDate) : [] }
     }
     if (final.status === 'entregue' && !final.deliveredDate) final = { ...final, deliveredDate: today() }
@@ -332,7 +333,7 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
   )
   const set = <K extends keyof Expense>(k: K, v: Expense[K]) => setE((x) => ({ ...x, [k]: v }))
   const save = () => {
-    if (!e.description.trim()) return alert('Descreva a despesa.')
+    if (!e.description.trim()) return toast('Descreva a despesa.')
     upsert('expenses', e)
     onClose()
   }
@@ -398,7 +399,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
   )
   const set = <K extends keyof CalendarEvent>(k: K, v: CalendarEvent[K]) => setEv((x) => ({ ...x, [k]: v }))
   const save = () => {
-    if (!ev.title.trim()) return alert('Dê um título ao compromisso.')
+    if (!ev.title.trim()) return toast('Dê um título ao compromisso.')
     upsert('events', ev)
     onClose()
   }
@@ -411,8 +412,8 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
           {editing && (
             <button
               className="btn danger ghost"
-              onClick={() => {
-                if (confirm('Excluir compromisso?')) {
+              onClick={async () => {
+                if (await askDelete('este compromisso')) {
                   remove('events', ev.id)
                   onClose()
                 }
