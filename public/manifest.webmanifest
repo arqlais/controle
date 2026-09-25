@@ -1,0 +1,9 @@
+{
+  "name": "Controle · Lais 3D",
+  "short_name": "Controle",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f1ec",
+  "theme_color": "#1c1c1c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
