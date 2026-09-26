@@ -52,7 +52,7 @@ export function applyTheme(s: Settings) {
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
-  document.title = `controle · ${s.brandName}`
+  document.title = `${s.brandName} · gestão`
   applyCustomFont(s)
 }
 
