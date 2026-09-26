@@ -74,6 +74,20 @@ export const DEFAULT_CHECKLISTS: Record<string, ChecklistDefaults> = {
     1.5,
   ),
 }
+/** Como cada serviço é entregue (vai no PDF em "formatos de arquivos entregues"). */
+export const DEFAULT_DELIVERY: Record<string, Pick<ServiceDef, 'delivery' | 'deliveryOpen'>> = {
+  'render-vray': { delivery: 'imagens em PNG/JPG em alta resolução', deliveryOpen: '' },
+  'render-ia': { delivery: 'imagens em PNG/JPG em alta resolução', deliveryOpen: '' },
+  modelagem: { delivery: 'arquivo aberto em SketchUp 2026', deliveryOpen: '' },
+  detalhamento: { delivery: 'PDF fechado, pronto para execução', deliveryOpen: 'PDF pronto para execução + arquivo aberto (editável) do layout' },
+  executivo: { delivery: 'PDF fechado, pronto para execução', deliveryOpen: 'PDF pronto para execução + arquivo aberto (editável) do layout' },
+  pranchas: { delivery: 'PDF em alta resolução', deliveryOpen: '' },
+  diagramacao: { delivery: 'PDF em alta resolução', deliveryOpen: '' },
+  mapas: { delivery: 'PNG/JPG em alta resolução', deliveryOpen: '' },
+  diagramas: { delivery: 'PNG/JPG em alta resolução', deliveryOpen: '' },
+  'planta-hum': { delivery: 'PNG/JPG em alta resolução', deliveryOpen: '' },
+}
+
 /** Primeira versão das listas (sem valores): quem ainda está com ela recebe a lista completa. */
 const OLD_CHECKLISTS: Record<string, string[]> = {
   executivo: ['planta de layout (mobiliário)', 'planta de demolição', 'planta de construção', 'planta elétrica', 'planta de iluminação', 'planta de forro', 'planta hidráulica', 'paginação de piso/revestimentos', 'cortes', 'elevações'],
@@ -89,7 +103,8 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Planta humanizada', 'Serviço personalizado'])
   const out = list.map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
-  return out.map((x) => {
+  return out.map((y) => {
+    const x = y.delivery === undefined && DEFAULT_DELIVERY[y.id] ? { ...y, ...DEFAULT_DELIVERY[y.id] } : y
     const d = DEFAULT_CHECKLISTS[x.id]
     if (!d) return x
     const untouched = x.checklist === undefined || (!x.checklistPrices && x.checklist.join('|') === OLD_CHECKLISTS[x.id]?.join('|'))
@@ -190,6 +205,7 @@ export const DEFAULT_SETTINGS: Settings = {
   meiLimit: 0,
   hourlyTarget: 60,
   urgencyFee: 30,
+  openFileFee: 30,
   defaultRevisions: 1,
   revisionsV1: true,
   defaultPaymentTerms: PAYMENT_TERMS,

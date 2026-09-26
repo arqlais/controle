@@ -1224,3 +1224,4 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .proposal.is-xlong .p-row-list li { break-inside: avoid; margin-bottom: 2px; }
 .proposal.is-xlong .p-infos { margin-top: 18px; }
 .proposal.is-xlong .p-total { margin-top: 18px; }
+.service-delivery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 10px; } @media (max-width: 820px) { .service-delivery { grid-template-columns: 1fr; } }

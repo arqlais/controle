@@ -348,7 +348,7 @@ export const pricedByList = (s: ServiceDef | undefined, lines: string[]) =>
   !!s && hasList(s) && !!s.checklistPrices && Object.keys(s.checklistPrices).length > 0 && lines.some((l) => l.trim()) && s.pricing !== 'livre'
 
 /** Sugestão de valor pela tabela (0 quando o serviço é de valor livre). */
-export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = []) {
+export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = [], openFile = false) {
   if (!s || s.pricing === 'livre') return 0
   const cx = st.complexity[complexity] ?? 1
   let v: number
@@ -358,6 +358,8 @@ export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity:
     v = s.pricing === 'm2' ? rate * qty * cx : rate * cx
   } else v = s.pricing === 'm2' ? s.price * qty * cx : unitRate(s, qty) * qty
   v = Math.max(v, s.min || 0)
+  // arquivo aberto: taxa interna embutida no valor (a proposta só diz como será entregue)
+  if (openFile && s.deliveryOpen) v *= 1 + (st.openFileFee ?? 30) / 100
   if (student && st.studentDiscount) v *= 1 - st.studentDiscount / 100
   return round2(v)
 }
@@ -629,7 +631,8 @@ export function scopeQuestion(services: ServiceDef[]) {
   const lists = services.filter((s) => s.checklist?.some((c) => c.trim())).sort((a, b) => b.checklist!.length - a.checklist!.length)
   if (!lists.length) return ''
   const blocks = lists.map((s) => [`${s.checklistTitle || s.name}:`, ...s.checklist!.filter((c) => c.trim()).map((c) => `- ${c.trim()}`), '- outros: ___'].join('\n'))
-  return ['Quais plantas você gostaria?', ...blocks, 'Com isso consigo te passar o valor certinho 😊'].join('\n\n')
+  const file = lists.some((s) => s.deliveryOpen) ? ['E o arquivo final: você precisa só do PDF pronto para execução ou também do arquivo aberto (editável)?'] : []
+  return ['Quais plantas você gostaria?', ...blocks, ...file, 'Com isso consigo te passar o valor certinho 😊'].join('\n\n')
 }
 
 /** Lê a resposta do cliente (a mesma lista, só com o que ele quer) e separa por serviço. */
@@ -666,3 +669,28 @@ export function parseScopeReply(text: string, services: ServiceDef[]) {
   }
   return out
 }
+
+/* ---------- formatos de arquivos entregues ---------- */
+
+/** O orçamento tem algum serviço que pode ser entregue com arquivo aberto? */
+export const quoteServices = (q: Quote, services: ServiceDef[]) => {
+  const items = q.mode === 'opcoes' ? q.options.flatMap((o) => o.items) : q.items
+  const ids = [...new Set(items.map((i) => i.service).filter(Boolean))]
+  return ids.map((id) => services.find((s) => s.id === id)).filter((s): s is ServiceDef => !!s)
+}
+export const canOpenFile = (q: Quote, services: ServiceDef[]) => quoteServices(q, services).some((s) => !!s.deliveryOpen)
+
+/** Texto de "formatos de arquivos entregues" montado pelos serviços do orçamento. */
+export function autoFiles(q: Quote, services: ServiceDef[]) {
+  const parts = quoteServices(q, services)
+    .map((s) => ({ name: s.name, text: ((q.openFile && s.deliveryOpen) || s.delivery || '').trim() }))
+    .filter((x) => x.text)
+  const texts = [...new Set(parts.map((x) => x.text))]
+  if (!texts.length) return ''
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+  if (texts.length === 1) return `${cap(texts[0])}.`
+  // serviços com entregas diferentes: "executivo e detalhamento: PDF… · renderização V-Ray: PNG…"
+  return texts.map((t) => `${parts.filter((x) => x.text === t).map((x) => x.name).join(' e ')}: ${t}`).join(' · ')
+}
+/** O que vai no PDF: automático (pelos serviços) ou o texto escrito à mão. */
+export const quoteFiles = (q: Quote, services: ServiceDef[]) => (q.filesAuto ? autoFiles(q, services) || q.files : q.files)

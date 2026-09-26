@@ -284,6 +284,14 @@ export default function SettingsPage() {
                         </Field>
                       </div>
                     )}
+                    <div className="service-delivery">
+                      <Field label="Como é entregue" hint="Vai no PDF em “formatos de arquivos entregues”.">
+                        <input value={x.delivery ?? ''} onChange={(e) => setService(x.id, { delivery: e.target.value })} placeholder="Ex.: PDF fechado, pronto para execução" />
+                      </Field>
+                      <Field label="Se o cliente quiser o arquivo aberto" hint="Em branco = não se aplica. Soma a taxa interna de arquivo aberto.">
+                        <input value={x.deliveryOpen ?? ''} onChange={(e) => setService(x.id, { deliveryOpen: e.target.value })} placeholder="Ex.: PDF + arquivo aberto (editável) do layout" />
+                      </Field>
+                    </div>
                     {x.pricing === 'pacote' && (
                       <div className="tiers">
                         {x.tiers.map((t, i) => (
@@ -359,6 +367,9 @@ export default function SettingsPage() {
                 <div className="form-grid">
                   <Field label="Taxa de urgência (%)">
                     <input type="number" min={0} value={s.urgencyFee} onChange={(e) => setSettings({ urgencyFee: Number(e.target.value) || 0 })} />
+                  </Field>
+                  <Field label="Arquivo aberto (%)" hint="Interno: somado ao valor quando o cliente quer o arquivo editável. Não aparece no PDF.">
+                    <input type="number" min={0} value={s.openFileFee ?? 30} onFocus={(e) => e.target.select()} onChange={(e) => setSettings({ openFileFee: Number(e.target.value) || 0 })} />
                   </Field>
                   <Field label="Desconto para estudantes (%)" hint="Aplicado nas sugestões de valor.">
                     <input type="number" min={0} max={90} value={s.studentDiscount} onChange={(e) => setSettings({ studentDiscount: Number(e.target.value) || 0 })} />

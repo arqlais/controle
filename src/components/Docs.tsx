@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
-import { atHandle, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { atHandle, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -216,7 +216,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const infos = [
     { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms.trim() || PAYMENT_TERMS },
     { icon: 'calendar' as const, label: 'Prazos e cronograma', text: quote.schedule },
-    { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: quote.files },
+    { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: quoteFiles(quote, s.services) },
   ].filter((x) => x.text?.trim())
 
   const sub = quoteSubtotal(quote)

@@ -11,6 +11,8 @@ import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import {
+  canOpenFile,
+  quoteFiles,
   checklistMatch,
   checklistPrice,
   checklistRate,
@@ -61,6 +63,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         discount: 0,
         discountNote: '',
         files: settings.proposal.files,
+        filesAuto: true,
         schedule: settings.proposal.schedule,
         urgency: false,
         deadlineDays: 10,
@@ -96,6 +99,17 @@ export default function QuoteEditor({ id }: { id: string }) {
   const sub = quoteSubtotal(q)
   const total = quoteTotal(q, settings.urgencyFee)
 
+  // arquivo aberto: recalcula os serviços que seguem a tabela com (ou sem) a taxa interna
+  const setOpenFile = (openFile: boolean) => {
+    const reprice = (items: QuoteItem[]) =>
+      items.map((it) => {
+        const sv = settings.services.find((x) => x.id === it.service)
+        if (!it.auto || it.joined || !sv || sv.pricing === 'livre' || !sv.deliveryOpen) return it
+        const price = Math.max(0, suggestPrice(sv, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile) - (it.unitDiscount ?? 0) * it.quantity)
+        return { ...it, price }
+      })
+    set({ openFile, items: reprice(q.items), options: q.options.map((o) => ({ ...o, items: reprice(o.items) })) })
+  }
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
     if (next.status !== 'rascunho' && !next.sentAt) next.sentAt = today()
@@ -310,7 +324,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           {!two ? (
             <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
-              <ItemsEditor items={q.items} student={student} settings={settings} onChange={(items) => set({ items })} />
+              <ItemsEditor items={q.items} student={student} openFile={!!q.openFile} settings={settings} onChange={(items) => set({ items })} />
               <div className="quote-totals">
                 <div>
                   <span>subtotal</span>
@@ -355,7 +369,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <Field label="Título do quadro" hint="Em branco, usa o título do projeto.">
                   <input value={o.name} onChange={(e) => setOption(o.id, { name: e.target.value })} placeholder={q.title || 'Ex.: renderização V-Ray'} />
                 </Field>
-                <ItemsEditor items={o.items} student={student} settings={settings} onChange={(items) => setOption(o.id, { items })} />
+                <ItemsEditor items={o.items} student={student} openFile={!!q.openFile} settings={settings} onChange={(items) => setOption(o.id, { items })} />
                 <div className="quote-totals">
                   <div className="discount-row">
                     <span>desconto</span>
@@ -384,8 +398,32 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Prazos e cronograma" span={3}>
                 <input value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
               </Field>
-              <Field label="Formatos de arquivos entregues" span={3}>
-                <input value={q.files} onChange={(e) => set({ files: e.target.value })} placeholder="PDF e arquivo editável do layout." />
+              {canOpenFile(q, settings.services) && (
+                <Field group label="Arquivo final" span={3} hint={q.openFile ? `Valor com +${settings.openFileFee ?? 30}% embutido (não aparece no PDF). A proposta só diz como será entregue.` : 'Pergunte ao cliente no início. Aberto soma uma taxa interna no valor.'}>
+                  <Segmented<'fechado' | 'aberto'>
+                    value={q.openFile ? 'aberto' : 'fechado'}
+                    onChange={(v) => setOpenFile(v === 'aberto')}
+                    options={[
+                      { value: 'fechado', label: 'fechado (PDF)' },
+                      { value: 'aberto', label: 'aberto (editável)' },
+                    ]}
+                  />
+                </Field>
+              )}
+              <Field
+                label="Formatos de arquivos entregues"
+                span={3}
+                hint={
+                  q.filesAuto ? (
+                    'Automático pelos serviços do orçamento. Pode escrever por cima.'
+                  ) : (
+                    <button type="button" className="link small" onClick={() => set({ filesAuto: true })}>
+                      usar o texto automático pelos serviços
+                    </button>
+                  )
+                }
+              >
+                <input value={quoteFiles(q, settings.services)} onChange={(e) => set({ files: e.target.value, filesAuto: false })} placeholder="Ex.: PDF fechado, pronto para execução." />
               </Field>
               <Field label="Rodadas de ajuste" hint="Controle interno.">
                 <input type="number" min={0} inputMode="numeric" value={q.revisions} onFocus={(e) => e.target.select()} onChange={(e) => set({ revisions: Number(e.target.value) || 0 })} />
@@ -553,11 +591,11 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
         // o que foi escrito à mão (fora da lista) continua
         const own = cur.description.split('\n').filter((l) => l.trim() && !checklistMatch(s, l) && !picked.some((x) => x.toLowerCase() === l.trim().toLowerCase()))
         const lines = [...picked, ...own]
-        const price = cur.auto && s.pricing !== 'livre' ? suggestPrice(s, cur.quantity, cur.complexity, student, settings, lines) : cur.price
+        const price = cur.auto && s.pricing !== 'livre' ? suggestPrice(s, cur.quantity, cur.complexity, student, settings, lines, !!q.openFile) : cur.price
         items = items.map((i) => (i === cur ? { ...i, description: lines.join('\n'), price } : i))
       } else {
         const quantity = s.pricing === 'm2' ? q.area || 50 : s.pricing === 'livre' ? 1 : picked.length
-        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings, picked)
+        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings, picked, !!q.openFile)
         items = [...items, { ...newItem(), service: sid, title: s.name, quantity, price, detail: itemDetail(s, quantity, 'media'), description: picked.join('\n') }]
       }
     }
@@ -645,7 +683,7 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 }
 
 /** Lista de serviços com preço pela tabela, desconto por unidade e valor editável. */
-function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[]; student: boolean; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
+function ItemsEditor({ items, student, openFile, settings, onChange }: { items: QuoteItem[]; student: boolean; openFile: boolean; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
   const service = (sid: string) => settings.services.find((s) => s.id === sid)
 
   const recompute = (it: QuoteItem): QuoteItem => {
@@ -654,7 +692,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
     return {
       ...it,
       detail: it.auto || !it.detail ? itemDetail(s, it.quantity, it.complexity) : it.detail,
-      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings, it.description.split('\n')) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
+      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
     }
   }
   const setItem = (iid: string, patch: Partial<QuoteItem>) => onChange(items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i)))
@@ -665,7 +703,8 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
         const s = service(it.service)
         const lines = it.description.split('\n')
         const byList = pricedByList(s, lines)
-        const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings, lines)
+        const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings, lines, openFile)
+        const openNote = openFile && s?.deliveryOpen ? ` · inclui arquivo aberto +${settings.openFileFee ?? 30}% (não aparece no PDF)` : ''
         const rate = s && (s.pricing === 'pacote' || s.pricing === 'unidade') ? unitRate(s, it.quantity) : 0
         return (
           <div key={it.id} className="q-item">
@@ -775,10 +814,10 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                     ? (() => {
                         const { rate: r, count } = checklistRate(s, lines)
                         const base = `${count} ${count === 1 ? 'item' : 'itens'} = ${money(r)}${s.pricing === 'm2' ? `/m² × ${it.quantity} m²` : ''} × ${settings.complexity[it.complexity]}`
-                        return `tabela: ${money(suggestion)} · ${base}${s.min && suggestion <= s.min ? ` (valor mínimo ${money(s.min)})` : ''}`
+                        return `tabela: ${money(suggestion)} · ${base}${s.min && suggestion <= s.min ? ` (valor mínimo ${money(s.min)})` : ''}${openNote}`
                       })()
                     : s && s.pricing !== 'livre'
-                    ? `tabela: ${money(suggestion)}${rate ? ` · ${money(rate)}/${s.unit}` : ''}${s.pricing === 'm2' ? ` · ${money(s.price)}/m² × ${settings.complexity[it.complexity]}` : ''}`
+                    ? `tabela: ${money(suggestion)}${rate ? ` · ${money(rate)}/${s.unit}` : ''}${s.pricing === 'm2' ? ` · ${money(s.price)}/m² × ${settings.complexity[it.complexity]}` : ''}${openNote}`
                     : 'digite o valor'
                 }
               >

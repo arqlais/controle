@@ -204,6 +204,8 @@ export interface Quote {
   discount: number
   discountNote: string
   files: string // formatos de arquivos entregues
+  filesAuto?: boolean // true = o texto de entrega sai dos serviços escolhidos
+  openFile?: boolean // cliente quer o arquivo aberto (taxa interna, não aparece no PDF)
   schedule: string // prazos e cronograma (texto da proposta)
   urgency: boolean
   deadlineDays: number
@@ -240,6 +242,8 @@ export interface ServiceDef {
   checklist?: string[] // o que o cliente pode escolher (plantas, tipos de detalhamento…)
   checklistPrices?: Record<string, number> // valor de cada opção: R$/m² (serviço por m²) ou R$ cada (por unidade)
   customRate?: number // valor de um item personalizado (escrito à mão), na mesma unidade
+  delivery?: string // como é entregue (ex.: "PDF fechado, pronto para execução")
+  deliveryOpen?: string // como é entregue quando o cliente quer o arquivo aberto ('' = não se aplica)
 }
 
 export interface MessageTemplate {
@@ -298,6 +302,7 @@ export interface Settings {
   meiLimit: number // teto anual do MEI
   hourlyTarget: number
   urgencyFee: number // %
+  openFileFee?: number // % a mais quando o cliente quer o arquivo aberto (interno)
   defaultRevisions: number
   quoteStart?: number // numeração dos orçamentos começa aqui (ex.: 100); depois segue o maior + 1
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
