@@ -198,7 +198,7 @@ const discountText = (value: number) => (value > 0 ? `com ${money(value)} de des
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
   const clientName = client?.name || '[nome do cliente]'
-  const heading = (name: string) => [name || quote.title || 'serviços', quote.area > 0 ? `${quote.area.toLocaleString('pt-BR')} m²` : ''].filter(Boolean).join(' • ')
+  const heading = (name: string) => [name || quote.title || 'serviços', quote.area > 0 ? `${quote.areaApprox ? '≈ ' : ''}${quote.area.toLocaleString('pt-BR')} m²` : ''].filter(Boolean).join(' • ')
   const infos = [
     { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms.trim() || PAYMENT_TERMS },
     { icon: 'calendar' as const, label: 'Prazos e cronograma', text: quote.schedule },

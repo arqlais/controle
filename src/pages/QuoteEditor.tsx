@@ -214,8 +214,13 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field label="Área (m²) · opcional" hint="Só para modelagem, executivo, detalhamento… 0 = não aparece no PDF.">
-                <input id="q-area" type="number" min={0} value={q.area} onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
+              <Field label="Área (m²) · opcional" hint="Só para modelagem, executivo, detalhamento… 0 = não aparece. Marque ≈ quando for uma média.">
+                <div className="area-field">
+                  <input id="q-area" type="number" min={0} value={q.area} onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
+                  <label className={`area-approx ${q.areaApprox ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
+                    <input type="checkbox" checked={!!q.areaApprox} onChange={(e) => set({ areaApprox: e.target.checked })} />≈ estimada
+                  </label>
+                </div>
               </Field>
               <Field label="Modelo" span={2}>
                 <Segmented
