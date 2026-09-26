@@ -49,6 +49,7 @@ export default function SettingsPage() {
     const ok = TABS.find((t) => t.id === saved && (!narrow || !t.desktop))
     return ok ? ok.id : 'aparencia'
   })
+  const [showKey, setShowKey] = useState(false)
   const pickTab = (id: TabId) => {
     setTab(id)
     try {
@@ -464,9 +465,10 @@ export default function SettingsPage() {
                       </>
                     }
                   >
+                    <span className="pw-field">
                     <input
                       type="text"
-                      className="secret-input"
+                      className={showKey ? '' : 'secret-input'}
                       name="gemini-api-key"
                       data-lpignore="true"
                       data-1p-ignore
@@ -476,6 +478,19 @@ export default function SettingsPage() {
                       onChange={(e) => setSettings({ aiKey: e.target.value.trim() })}
                       placeholder="AIza…"
                     />
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setShowKey((v) => !v)
+                      }}
+                      aria-label={showKey ? 'Esconder chave' : 'Ver chave'}
+                      title={showKey ? 'Esconder chave' : 'Ver chave'}
+                    >
+                      <Icon name={showKey ? 'eye-off' : 'eye'} size={17} />
+                    </button>
+                    </span>
                   </Field>
                   <Field
                     label="Minhas regras para a IA"
