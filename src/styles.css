@@ -1238,3 +1238,18 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .floors button:disabled { opacity: 0.35; cursor: default; }
 .service-floor { margin-top: 10px; font-size: 13px; }
 .area-extras { flex-wrap: nowrap; } .area-extras > * { flex: none; }
+
+/* orçamentos: selecionar vários */
+.pick { display: inline-flex; align-items: center; margin-right: 10px; vertical-align: middle; cursor: pointer; }
+.pick input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.table tr.is-picked td { background: var(--accent-tint) !important; }
+.bulk-bar { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; }
+.bulk-bar .link { margin-left: auto; }
+@media (max-width: 820px) {
+  .bulk-bar { position: fixed; left: 12px; right: 12px; top: auto; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 30; border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-btn); padding: 10px 12px; }
+  .bulk-bar .muted.small { display: none; }
+}
+@media (max-width: 820px) {
+  .table.cards-mobile tbody tr.is-picked { background: var(--accent-tint); }
+  .table.cards-mobile tbody tr.is-picked td { background: none !important; }
+}

@@ -6,6 +6,7 @@ import { Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
 import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
+import { ask, toast } from '../components/dialog'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
 const FOLLOW_UP_DAYS = 3
@@ -15,7 +16,8 @@ export const waitingDays = (q: Quote) => (q.status === 'enviado' && q.sentAt ? -
 export const needsFollowUp = (q: Quote) => q.status === 'enviado' && waitingDays(q) >= FOLLOW_UP_DAYS
 
 export default function Quotes() {
-  const { data } = useStore()
+  const { data, upsert, remove } = useStore()
+  const [picked, setPicked] = useState<Set<string>>(new Set())
 
   const [filter, setFilter] = useState<Filter>('todos')
   const [q, setQ] = useState('')
@@ -37,6 +39,31 @@ export default function Quotes() {
   const approved = data.quotes.filter((x) => x.status === 'aprovado')
   const pending = data.quotes.filter((x) => x.status === 'enviado')
   const followUps = data.quotes.filter(needsFollowUp)
+
+  // seleção de vários: mudar status ou excluir de uma vez
+  const toggle = (id: string) =>
+    setPicked((cur) => {
+      const next = new Set(cur)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const allVisible = visible.length > 0 && visible.every((x) => picked.has(x.id))
+  const toggleAll = () => setPicked(allVisible ? new Set() : new Set(visible.map((x) => x.id)))
+  const chosen = data.quotes.filter((x) => picked.has(x.id))
+  const bulkStatus = (status: QuoteStatus) => {
+    // enviado: conta a partir da data do orçamento (antigos não viram "cobrar resposta" de uma vez)
+    for (const x of chosen) upsert('quotes', { ...x, status, sentAt: status === 'rascunho' ? x.sentAt : x.sentAt || x.createdAt })
+    toast(`${chosen.length} orçamento(s) → ${QUOTE_STATUS[status].label.toLowerCase()}`)
+    setPicked(new Set())
+  }
+  const bulkDelete = async () => {
+    const linked = chosen.filter((x) => x.projectId).length
+    if (!(await ask(`Excluir ${chosen.length} orçamento(s)?${linked ? ` ${linked} já viraram demanda: as demandas continuam.` : ''}`, { confirmLabel: 'Excluir', danger: true }))) return
+    for (const x of chosen) remove('quotes', x.id)
+    toast(`${chosen.length} orçamento(s) excluídos.`)
+    setPicked(new Set())
+  }
 
   const followText = (x: Quote) => templateText(data.settings, 'retorno', 'Oi, {cliente}! Conseguiu ver a proposta {proposta}?', client(x.clientId), undefined, x)
 
@@ -101,10 +128,37 @@ export default function Quotes() {
         />
       ) : (
         <div className="table-wrap card">
+          {picked.size > 0 && (
+            <div className="bulk-bar">
+              <b>{picked.size} selecionado(s)</b>
+              {!allVisible && (
+                <button className="link small" onClick={toggleAll}>
+                  selecionar todos ({visible.length})
+                </button>
+              )}
+              <span className="muted small">mudar para</span>
+              {(['rascunho', 'enviado', 'recusado'] as QuoteStatus[]).map((st) => (
+                <button key={st} className="btn small ghost" onClick={() => bulkStatus(st)}>
+                  {QUOTE_STATUS[st].label.toLowerCase()}
+                </button>
+              ))}
+              <button className="btn small ghost danger" onClick={bulkDelete}>
+                <Icon name="trash" size={14} /> excluir
+              </button>
+              <button className="link small" onClick={() => setPicked(new Set())}>
+                limpar seleção
+              </button>
+            </div>
+          )}
           <table className="table cards-mobile quote-table">
             <thead>
               <tr>
-                <th>nº</th>
+                <th className="nowrap">
+                  <label className="pick" onClick={(e) => e.stopPropagation()} title="Selecionar todos">
+                    <input type="checkbox" checked={allVisible} onChange={toggleAll} aria-label="Selecionar todos" />
+                  </label>
+                  nº
+                </th>
                 <th>Proposta</th>
                 <th>Status</th>
                 <th className="hide-mobile">Resposta</th>
@@ -117,8 +171,13 @@ export default function Quotes() {
                 const c = client(x.clientId)
                 const wait = waitingDays(x)
                 return (
-                  <tr key={x.id} className="clickable" onClick={() => go('orcamentos', x.id)}>
-                    <td className="muted nowrap q-num">{quoteNumber(x)}</td>
+                  <tr key={x.id} className={`clickable ${picked.has(x.id) ? 'is-picked' : ''}`} onClick={() => go('orcamentos', x.id)}>
+                    <td className="muted nowrap q-num">
+                      <label className="pick" onClick={(e) => e.stopPropagation()}>
+                        <input type="checkbox" checked={picked.has(x.id)} onChange={() => toggle(x.id)} aria-label={`Selecionar ${quoteNumber(x)}`} />
+                      </label>
+                      {quoteNumber(x)}
+                    </td>
                     <td className="q-main">
                       <div className="list-title">{x.title || 'Sem título'}</div>
                       <div className="list-sub">
