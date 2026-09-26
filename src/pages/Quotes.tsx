@@ -226,7 +226,7 @@ export default function Quotes() {
                     <td className="q-main">
                       <div className="list-title">
                         {x.title || 'Sem título'}
-                        {x.mode === 'opcoes' && <span className="mini-tag">{x.combo ? '2 propostas' : '2 opções'}</span>}
+                        {x.mode === 'opcoes' && <span className="mini-tag">{`${Math.min(3, x.options.length)} ${x.combo ? 'propostas' : 'opções'}`}</span>}
                       </div>
                       <div className="list-sub">
                         {c?.name ?? '—'} · {fmtDate(x.createdAt)}

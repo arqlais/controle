@@ -1,5 +1,5 @@
 import type { Project, Quote } from './types'
-import { BOTH, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
+import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 /** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
@@ -7,9 +7,9 @@ const sub = (d: string) => (d.trim() ? '\n' + d.split('\n').filter((l) => l.trim
 
 /** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
 export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = ''): Project {
-  // 2 propostas fechadas juntas: vira uma demanda só, com os serviços das duas (pacote com o desconto)
+  // propostas fechadas juntas: vira uma demanda só, com os serviços de todas (pacote com o desconto)
   const both = isCombo(q) && q.chosenOption === BOTH
-  const pair = q.options.slice(0, 2)
+  const pair = shownOptions(q)
   const chosen = both ? { ...pair[0], name: pair.map((o) => o.name).filter(Boolean).join(' + '), items: pair.flatMap((o) => o.items), discount: pair.flatMap((o) => o.items).reduce((n, i) => n + (i.price || 0), 0) - comboTotal(q) } : q.options.find((o) => o.id === q.chosenOption)
   const useOption = q.mode === 'opcoes' && chosen
   const firstItem = q.items[0]

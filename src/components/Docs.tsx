@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
-import { atHandle, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { allLabel, atHandle, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -251,8 +251,8 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
       <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
       <Title s={s} />
       {quote.mode === 'opcoes' ? (
-        <section className="p-options">
-          {quote.options.slice(0, 2).map((o, n) => {
+        <section className={`p-options ${quote.options.length > 2 ? 'is-3' : ''}`}>
+          {quote.options.slice(0, 3).map((o, n) => {
             const disc = (o.discount || 0) + o.items.reduce((acc, i) => acc + itemDiscount(i), 0)
             return (
               <div key={o.id} className="p-option">
@@ -282,7 +282,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
       )}
       {isCombo(quote) && (quote.comboDiscount ?? 0) > 0 && (
         <div className="p-combo">
-          <TotalBar label="fechando as duas juntas" value={comboTotal(quote)} note={`em vez de ${money(comboSeparate(quote))} · economia de ${money(comboSeparate(quote) - comboTotal(quote))}`} />
+          <TotalBar label={`fechando ${allLabel(quote)} juntas`} value={comboTotal(quote)} note={`em vez de ${money(comboSeparate(quote))} · economia de ${money(comboSeparate(quote) - comboTotal(quote))}`} />
         </div>
       )}
       {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}

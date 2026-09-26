@@ -182,7 +182,7 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
         {(Object.keys(QUOTE_STATUS) as QuoteStatus[]).flatMap((k) =>
           k === 'aprovado' && multi
             ? [
-                ...q.options.slice(0, 2).map((o, i) => (
+                ...q.options.slice(0, 3).map((o, i) => (
                   <option key={o.id} value={`aprovado:${o.id}`}>
                     Aprovado · {i + 1}
                   </option>

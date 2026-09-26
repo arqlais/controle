@@ -528,6 +528,13 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .p-option .p-card { padding: 22px 20px 24px 25px; flex: 1; }
 .p-option .p-card-title { font-size: 14px; }
 .p-option .p-row { padding-right: 0; }
+.p-options.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.p-options.is-3 .p-option .p-card { padding: 18px 14px 20px 16px; }
+.p-options.is-3 .p-card-title { font-size: 12.5px; }
+.p-options.is-3 .p-row.is-price-first { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.p-options.is-3 .p-row-title { font-size: 13.3px; }
+.p-options.is-3 .p-total-value b { font-size: 17px; }
+.p-options.is-3 .p-total.is-compact { padding-left: 14px; padding-right: 14px; }
 
 .p-infos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 25px; }
 .p-info-item { display: flex; gap: 10px; align-items: flex-start; }
@@ -1411,3 +1418,6 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .proposal.is-xlong .p-option-label { margin-bottom: 8px; }
 .proposal.is-xlong .p-option .p-card { padding: 16px 16px 18px 20px; }
 .proposal.is-xlong .p-combo { margin-top: 12px; }
+
+.option-actions { display: inline-flex; align-items: center; gap: 14px; }
+.add-option { width: 100%; justify-content: center; border-style: dashed; margin-bottom: 18px; }

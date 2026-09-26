@@ -27,7 +27,7 @@ function quoteLine(q: Quote, d: Data, names = true, max = 8) {
   const scope =
     q.mode === 'opcoes'
       ? q.options
-          .slice(0, 2)
+          .slice(0, 3)
           .map((o, i) => `${q.combo ? 'proposta' : 'opção'} ${i + 1}${o.name ? ` "${o.name}"` : ''}: ${o.items.map((it) => itemText(it, max)).join(' + ')}`)
           .join(' | ') + (q.combo && q.comboDiscount ? ` | juntas com desconto de ${money(q.comboDiscount)}` : '')
       : q.items.map((it) => itemText(it, max)).join(' + ')
@@ -44,7 +44,7 @@ export function processBriefing(d: Data) {
 - Pagamento: ${s.defaultPaymentTerms || '50% de sinal no aceite e 50% na entrega'}. O saldo vence quando a demanda é concluída.
 - Prazo: combinado com cada cliente (dias úteis, corridos ou data), não vai na proposta.
 - Rodadas de ajuste incluídas: ${s.defaultRevisions}.
-- Às vezes mando 2 opções (básica e completa) ou 2 propostas com desconto se fechar as duas juntas. Serviços podem ser cobrados juntos (um valor só).
+- Às vezes mando 2 ou 3 opções (ex.: básica e completa) ou 2–3 propostas (projetos diferentes) com desconto se fechar todas juntas. Serviços podem ser cobrados juntos (um valor só).
 - Executivo e detalhamento: valor base do projeto + soma das plantas/itens escolhidos × m² × complexidade. Os valores não crescem na proporção da área: projetos pequenos ficam perto do valor base.
 - Cada pavimento a mais encarece (+${s.floorFee ?? 50}% por pavimento nos serviços marcados). Arquivo aberto (editável) soma +${s.openFileFee ?? 30}% embutido, sem citar na proposta — a proposta só diz como será entregue.
 - Modelagem de áreas muito grandes (loteamentos, complexos) não segue o m²: é por escopo.

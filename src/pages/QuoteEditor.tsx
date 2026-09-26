@@ -14,6 +14,8 @@ import { CloseDeal } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
 import {
   BOTH,
+  MAX_OPTIONS,
+  allLabel,
   comboSeparate,
   comboTotal,
   isCombo,
@@ -140,8 +142,8 @@ export default function QuoteEditor({ id }: { id: string }) {
     const head = [`*Proposta ${quoteNumber(q)}${q.title ? ` — ${q.title}` : ''}*`, `Olá, ${first}! Segue o orçamento:`, '']
     const body = two
       ? [
-          ...q.options.slice(0, 2).flatMap((o, i) => [`*${q.combo ? 'Proposta' : 'Opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `Total: ${money(optionTotal(o))}`, '']),
-          ...(isCombo(q) && q.comboDiscount ? [`*Fechando as duas juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
+          ...q.options.slice(0, MAX_OPTIONS).flatMap((o, i) => [`*${q.combo ? 'Proposta' : 'Opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `Total: ${money(optionTotal(o))}`, '']),
+          ...(isCombo(q) && q.comboDiscount ? [`*Fechando ${allLabel(q)} juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
         ]
       : [...q.items.map(line), q.urgency ? `• Taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• Desconto — −${money(q.discount)}` : '', '', `*Investimento total: ${money(total)}*`]
     return [...head, ...body, q.paymentTerms ? `Pagamento: ${q.paymentTerms}` : '', q.schedule ? `Prazos: ${q.schedule}` : '']
@@ -150,7 +152,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
 
   const approve = () => {
-    if (two && !q.chosenOption) return toast(q.combo ? 'Marque o que o cliente fechou: uma proposta ou as duas.' : 'Marque qual opção o cliente escolheu.')
+    if (two && !q.chosenOption) return toast(q.combo ? `Marque o que o cliente fechou: uma proposta ou ${allLabel(q)}.` : 'Marque qual opção o cliente escolheu.')
     if (q.projectId && data.projects.some((p) => p.id === q.projectId)) return go('projetos', q.projectId)
     if (!q.clientId) return toast('Escolha o cliente.')
     setClosing(q) // a janela salva o orçamento aprovado junto com a demanda
@@ -318,8 +320,8 @@ export default function QuoteEditor({ id }: { id: string }) {
                   }
                   options={[
                     { value: 'escopo', label: 'valor único' },
-                    { value: 'opcoes', label: '2 opções' },
-                    { value: 'combo', label: '2 propostas + juntas' },
+                    { value: 'opcoes', label: 'opções' },
+                    { value: 'combo', label: 'propostas + juntas' },
                   ]}
                 />
               </Field>
@@ -389,14 +391,22 @@ export default function QuoteEditor({ id }: { id: string }) {
               </Field>
             </Section>
           ) : (
-            q.options.slice(0, 2).map((o, n) => (
+            <>
+            {q.options.slice(0, MAX_OPTIONS).map((o, n) => (
               <Section
                 key={o.id}
                 title={`${q.combo ? 'proposta' : 'opção'} ${n + 1}`}
                 action={
-                  <label className="check small">
-                    <input type="radio" name="chosen" checked={q.chosenOption === o.id} onChange={() => set({ chosenOption: o.id })} /> {q.combo ? 'cliente fechou só esta' : 'cliente escolheu esta'}
-                  </label>
+                  <span className="option-actions">
+                    <label className="check small">
+                      <input type="radio" name="chosen" checked={q.chosenOption === o.id} onChange={() => set({ chosenOption: o.id })} /> {q.combo ? 'cliente fechou só esta' : 'cliente escolheu esta'}
+                    </label>
+                    {n >= 2 && (
+                      <button type="button" className="link small muted-link" onClick={() => set({ options: q.options.filter((x) => x.id !== o.id), chosenOption: q.chosenOption === o.id ? '' : q.chosenOption })}>
+                        remover
+                      </button>
+                    )}
+                  </span>
                 }
               >
                 <Field label="Título do quadro" hint="Em branco, usa o título do projeto.">
@@ -420,15 +430,21 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <input value={o.note} onChange={(e) => setOption(o.id, { note: e.target.value })} placeholder="Opcional" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
                 </Field>
               </Section>
-            ))
+            ))}
+            {q.options.length < MAX_OPTIONS && (
+              <button type="button" id="q-add-option" className="btn ghost add-option" onClick={() => set({ options: [...q.options.slice(0, MAX_OPTIONS), newOption()] })}>
+                + {q.combo ? 'proposta' : 'opção'} {q.options.length + 1}
+              </button>
+            )}
+            </>
           )}
 
           {isCombo(q) && (
             <Section
-              title="fechando as duas juntas"
+              title={`fechando ${allLabel(q)} juntas`}
               action={
                 <label className="check small">
-                  <input type="radio" name="chosen" checked={q.chosenOption === BOTH} onChange={() => set({ chosenOption: BOTH })} /> cliente fechou as duas
+                  <input type="radio" name="chosen" checked={q.chosenOption === BOTH} onChange={() => set({ chosenOption: BOTH })} /> cliente fechou {allLabel(q)}
                 </label>
               }
             >
@@ -451,7 +467,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <b>{money(comboTotal(q))}</b>
                 </div>
               </div>
-              <p className="muted small">Na proposta aparece o valor de cada uma e, embaixo, quanto fica fechando as duas juntas.</p>
+              <p className="muted small">Na proposta aparece o valor de cada uma e, embaixo, quanto fica fechando {allLabel(q)} juntas.</p>
             </Section>
           )}
 

@@ -664,7 +664,7 @@ function ProposalSettings() {
             onChange={setMode}
             options={[
               { value: 'escopo', label: 'escopo' },
-              { value: 'opcoes', label: '2 opções' },
+              { value: 'opcoes', label: 'opções' },
             ]}
           />
           <DocScale>
