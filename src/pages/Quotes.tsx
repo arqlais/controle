@@ -110,7 +110,7 @@ export default function Quotes() {
           tone={followUps.length ? 'warn' : undefined}
           onClick={() => setFilter('cobrar')}
         />
-        <Stat label="Taxa de aprovação" value={decided.length ? `${Math.round((approved.length / decided.length) * 100)}%` : '—'} sub={`${approved.length} de ${decided.length} respondidos`} icon="target" />
+        <Stat label="Taxa de aprovação" value={decided.length ? `${Math.round((approved.length / decided.length) * 100)}%` : '—'} sub={`${approved.length} de ${decided.length} encerrados`} icon="target" />
         <Stat label="Valor aprovado" value={money(sum(approved, (x) => quoteDeal(x, fee)))} sub={approved.length ? `ticket médio ${money(sum(approved, (x) => quoteDeal(x, fee)) / approved.length)}` : undefined} icon="check" tone="good" />
       </div>
 
@@ -134,7 +134,7 @@ export default function Quotes() {
               )
             })}
             <span className="mix-total muted small">
-              {data.quotes.length} no total{decided.length ? ` · dos respondidos, ${Math.round((approved.length / decided.length) * 100)}% aprovados` : ''}
+              {data.quotes.length} no total{decided.length ? ` · dos encerrados, ${Math.round((approved.length / decided.length) * 100)}% aprovados` : ''}
             </span>
           </div>
         </section>

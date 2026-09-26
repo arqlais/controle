@@ -1418,6 +1418,9 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .proposal.is-xlong .p-option-label { margin-bottom: 8px; }
 .proposal.is-xlong .p-option .p-card { padding: 16px 16px 18px 20px; }
 .proposal.is-xlong .p-combo { margin-top: 12px; }
+/* nunca grudar o título "proposta de orçamento" nos rótulos opção/proposta 1, 2, 3 */
+.proposal.is-long .p-options { margin-top: -6px; }
+.proposal.is-xlong .p-options { margin-top: 4px; }
 
 .option-actions { display: inline-flex; align-items: center; gap: 14px; }
 .add-option { width: 100%; justify-content: center; border-style: dashed; margin-bottom: 18px; }

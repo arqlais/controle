@@ -114,7 +114,7 @@ export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }>
   rascunho: { label: 'Rascunho', color: '#9aa3ab' },
   enviado: { label: 'Enviado', color: '#5b7a99' },
   aprovado: { label: 'Aprovado', color: '#6f9a7c' },
-  recusado: { label: 'Recusado', color: '#b5524c' },
+  recusado: { label: 'Não fechou', color: '#c99a92' },
 }
 
 export const PAYMENT_METHODS = ['Pix', 'Cartão de crédito']

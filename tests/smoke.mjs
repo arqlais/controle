@@ -117,7 +117,7 @@ try {
 
     // 3c. duas propostas: fechando as duas juntas sai mais barato
     await go('#/orcamentos/novo'); await page.waitForTimeout(500)
-    await page.getByRole('button', { name: '2 propostas + juntas' }).click(); await page.waitForTimeout(150)
+    await page.getByRole('button', { name: 'propostas + juntas' }).click(); await page.waitForTimeout(150)
     await page.locator('.q-item-head select').nth(0).selectOption('render-vray')
     await page.locator('.q-item-head select').nth(1).selectOption('render-ia'); await page.waitForTimeout(150)
     const comboSec = page.locator('section.card', { has: page.locator('h3', { hasText: 'fechando as duas juntas' }) })
