@@ -1424,3 +1424,7 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 
 .option-actions { display: inline-flex; align-items: center; gap: 14px; }
 .add-option { width: 100%; justify-content: center; border-style: dashed; margin-bottom: 18px; }
+
+/* clientes: nº de projetos sempre alinhado; ponto verde = tem projeto em andamento */
+.proj-count { position: relative; display: inline-block; }
+.proj-active { position: absolute; left: calc(100% + 7px); top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 18%, transparent); }

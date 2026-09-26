@@ -138,8 +138,10 @@ export default function Clients() {
                     )}
                   </td>
                   <td className="num" data-label="projetos">
-                    {count}
-                    {active > 0 && <span className="muted small"> ({active} ativos)</span>}
+                    <span className="proj-count" title={active ? `${active} em andamento` : undefined}>
+                      {count}
+                      {active > 0 && <i className="proj-active" aria-label={`${active} em andamento`} />}
+                    </span>
                   </td>
                   <td className="num" data-label="faturado">{money(paid)}</td>
                   <td className={`num ${open > 0 ? 'text-warn' : 'muted'}`} data-label="em aberto">{money(open)}</td>
