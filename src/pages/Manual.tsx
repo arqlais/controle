@@ -39,9 +39,9 @@ const STEPS: Step[] = [
       <><b>Modelo</b>: “valor único” ou “2 opções” (quando quer oferecer duas propostas lado a lado).</>,
       <>Em <b>serviços</b>, adicione cada item da tabela. Para dar desconto numa imagem, use o desconto por unidade; para serviço sem preço fixo, digite o valor livre.</>,
       <>Deixe marcado <b>gerar proposta em PDF</b> só se for mandar o PDF.</>,
-      <>Confira <b>informações da proposta</b>: pagamento, texto de prazos e formatos de arquivo (já vêm preenchidos).</>,
+      <>Confira <b>informações da proposta</b>: pagamento, prazos e cronograma e formatos de arquivo (já vêm preenchidos). <b>Rodadas de ajuste</b> vêm com 1.</>,
     ],
-    tip: <>O prazo de entrega <b>não vai na proposta</b>: ele é combinado no fechamento (passo 05).</>,
+    tip: <>No PDF fica só “Prazos e cronograma: serão definidos conforme a necessidade do cliente.” O prazo de verdade você alinha com a cliente antes de fechar e registra no sistema (passo 05).</>,
   },
   {
     n: '03',
@@ -73,7 +73,7 @@ const STEPS: Step[] = [
     todo: [
       <>Na lista de <b>orçamentos</b>, clique na pílula de status e escolha <b>Aprovado</b> (ou, dentro do orçamento, <b>aprovado → criar demanda</b>).</>,
       <>Na janela <b>Fechou por quanto?</b>: se negociou, troque o valor. O PDF continua com o valor original; o financeiro usa o fechado.</>,
-      <>Coloque o <b>prazo de entrega</b> combinado (opcional, dá para pôr depois).</>,
+      <>Se vocês alinharam um prazo, coloque em <b>Prazo combinado · se houver</b>, na mesma janela. Sem pressa? Deixe em branco.</>,
       <>A demanda é criada sozinha em <b>demandas</b>, na coluna <b>em alinhamento</b>, com as parcelas “sinal 50%” e “saldo 50%”.</>,
     ],
     tip: <>Orçamento com vários serviços vira um <b>pacote</b> automaticamente, para você poder retirar um projeto depois sem refazer a conta.</>,
@@ -98,6 +98,7 @@ const STEPS: Step[] = [
       <>Mude a fase clicando na <b>pílula de fase</b> (no quadro, na lista ou no início). Não precisa abrir nada.</>,
       <>Dentro da demanda: marque as <b>etapas</b> conforme avança, conte as <b>revisões</b> (+ / −) e anote tudo em <b>briefing e anotações</b>.</>,
       <>Reunião ou entrega parcial? <b>compromissos → +</b>. Aparece na agenda.</>,
+      <>Prazo combinado depois? Clique na data do card <b>prazo combinado</b>, no topo da demanda, e escolha o dia.</>,
       <>O link da pasta (Drive, WeTransfer) fica em <b>editar → Link dos arquivos</b>.</>,
     ],
   },
@@ -169,6 +170,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
 
 const WHERE: [string, string, string][] = [
   ['o que fazer hoje', 'início → para fazer', 'inicio'],
+  ['definir ou mudar o prazo', 'demanda → card “prazo combinado” (clique na data)', 'projetos'],
   ['mudar a fase de uma demanda', 'pílula de fase (quadro, lista ou início)', 'projetos'],
   ['aprovar / recusar orçamento', 'orçamentos → pílula de status', 'orcamentos'],
   ['marcar pagamento', 'botão no cartão da demanda ou financeiro → Marcar pago', 'financeiro'],

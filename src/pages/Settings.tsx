@@ -243,7 +243,7 @@ export default function SettingsPage() {
             </div>
           </Section>
 
-          <Section title="Metas e regras de negócio">
+          <Section title="Metas e regras de negócio" className="desktop-only">
             <div className="form-grid">
               <Field label="Meta mensal de faturamento">
                 <MoneyInput value={s.monthlyGoal} onChange={(n) => setSettings({ monthlyGoal: n })} />
@@ -516,6 +516,7 @@ function MessagesSettings() {
   const update = (id: string, patch: Partial<(typeof list)[number]>) => setSettings({ messages: list.map((m) => (m.id === id ? { ...m, ...patch } : m)) })
   return (
     <Section
+      className="desktop-only"
       title="mensagens padrão"
       action={
         <button className="btn small" onClick={() => setSettings({ messages: [...list, { id: uid(), name: 'nova mensagem', text: 'Oi, {cliente}! ' }] })}>

@@ -150,7 +150,7 @@ export function newProject(clientId = ''): Project {
     value: 0,
     discount: 0,
     payments: [],
-    revisionsIncluded: 2,
+    revisionsIncluded: 1,
     revisionsUsed: 0,
     estimatedHours: 0,
     timeLogs: [],

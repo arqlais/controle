@@ -288,6 +288,7 @@ export interface Settings {
   hourlyTarget: number
   urgencyFee: number // %
   defaultRevisions: number
+  revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
   services: ServiceDef[]
   customColumns: BoardColumn[] // colunas extras do quadro de demandas

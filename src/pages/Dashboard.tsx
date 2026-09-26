@@ -222,7 +222,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         </Section>
       </div>
 
-      <div className="grid-2 is-even">
+      <div className="grid-2 is-even hide-mobile">
         <Section title="Receitas × despesas · 6 meses" action={<a href={href('financeiro')} className="link">Financeiro →</a>}>
           <BarChart
             labels={months.map((k) => MONTHS[Number(k.slice(5)) - 1].slice(0, 3))}

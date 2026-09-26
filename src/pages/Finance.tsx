@@ -141,7 +141,7 @@ export default function Finance() {
       {settings.meiLimit > 0 && <MeiBar year={month.slice(0, 4)} />}
 
       {lateTotal > 0 && (
-        <div className="alert-strip">
+        <div className="alert-strip is-warn">
           <Icon name="alert" />
           <div>
             Você tem <b>{money(lateTotal)}</b> para cobrar (sinais em aberto e saldos de demandas concluídas).{' '}
@@ -152,7 +152,7 @@ export default function Finance() {
         </div>
       )}
 
-      <Section title="Últimos 12 meses">
+      <Section title="Últimos 12 meses" className="hide-mobile">
         <BarChart
           labels={months12.map((k) => MONTHS[Number(k.slice(5)) - 1].slice(0, 3))}
           goal={settings.monthlyGoal || undefined}

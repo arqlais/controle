@@ -164,11 +164,26 @@ export default function ProjectDetail({ id }: { id: string }) {
           }
         />
         <Stat
-          label="Prazo"
-          value={fmtDate(p.dueDate)}
+          label="Prazo combinado"
+          value={
+            <input
+              type="date"
+              className={`stat-date ${p.dueDate ? '' : 'is-empty'}`}
+              value={p.dueDate}
+              onChange={(e) => save({ dueDate: e.target.value })}
+              aria-label="Prazo combinado com a cliente"
+              title="Clique para definir ou mudar o prazo"
+            />
+          }
           icon="clock"
           tone={isLate(p) ? 'bad' : isOpen(p) && p.dueDate && daysUntil(p.dueDate) <= 2 ? 'warn' : undefined}
-          sub={p.status === 'entregue' ? `entregue em ${fmtDate(p.deliveredDate)}` : p.dueDate ? relativeDays(p.dueDate) : 'sem prazo'}
+          sub={
+            p.status === 'entregue'
+              ? `entregue em ${fmtDate(p.deliveredDate)}`
+              : p.dueDate
+                ? relativeDays(p.dueDate)
+                : 'sem prazo · clique na data para definir, se houver'
+          }
         />
         <Stat
           label="Etapas"
@@ -226,7 +241,7 @@ export default function ProjectDetail({ id }: { id: string }) {
               <p className="muted small">Nenhuma parcela. Adicione ou edite o projeto para gerar automaticamente.</p>
             ) : (
               <div className="table-wrap">
-                <table className="table compact">
+                <table className="table compact cards-mobile pay-table">
                   <thead>
                     <tr>
                       <th>Descrição</th>
@@ -245,16 +260,16 @@ export default function ProjectDetail({ id }: { id: string }) {
                           <td>
                             <input className="cell-input" value={x.description} onChange={(e) => setPayment(x.id, { description: e.target.value })} />
                           </td>
-                          <td style={{ minWidth: 120 }}>
+                          <td style={{ minWidth: 120 }} data-label="valor">
                             <MoneyInput value={x.amount} onChange={(n) => setPayment(x.id, { amount: n })} />
                           </td>
-                          <td>
+                          <td data-label="quando">
                             <select className="cell-input" value={payWhen(x)} onChange={(e) => setPayment(x.id, { on: e.target.value as Payment['on'], dueDate: e.target.value === 'conclusao' ? p.dueDate || '' : x.dueDate || today() })}>
                               <option value="fechamento">no fechamento</option>
                               <option value="conclusao">na conclusão</option>
                             </select>
                           </td>
-                          <td>
+                          <td data-label="forma">
                             <select className="cell-input" value={x.method} onChange={(e) => setPayment(x.id, { method: e.target.value })}>
                               {PAYMENT_METHODS.map((m) => (
                                 <option key={m}>{m}</option>
