@@ -233,13 +233,16 @@ export function itemDetail(s: ServiceDef | undefined, qty: number, complexity: C
 export const itemDiscount = (i: { auto: boolean; unitDiscount?: number; quantity: number }) => (i.auto ? (i.unitDiscount ?? 0) * i.quantity : 0)
 
 export const quoteSubtotal = (q: Quote) => (q.mode === 'opcoes' ? 0 : q.items.reduce((s, i) => s + (i.price || 0), 0))
-export const quoteNumber = (q: Quote) => `${q.createdAt.slice(0, 4)}-${String(q.number).padStart(3, '0')}`
+export const quoteNumber = (q: Quote) => `#${String(q.number).padStart(3, '0')}`
+
+/** Total de uma opção: soma dos serviços menos o desconto da opção. */
+export const optionTotal = (o: { items: { price: number }[]; discount: number }) => Math.max(0, o.items.reduce((s, i) => s + (i.price || 0), 0) - (o.discount || 0))
 export const quoteTotal = (q: Quote, urgencyFee: number) => {
   if (q.mode === 'opcoes') {
     // opção escolhida; sem escolha ainda, considera a de menor valor
     const chosen = q.options.find((o) => o.id === q.chosenOption)
-    if (chosen) return chosen.price
-    const prices = q.options.map((o) => o.price).filter((n) => n > 0)
+    if (chosen) return optionTotal(chosen)
+    const prices = q.options.map(optionTotal).filter((n) => n > 0)
     return prices.length ? Math.min(...prices) : 0
   }
   const sub = quoteSubtotal(q)

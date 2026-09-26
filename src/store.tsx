@@ -20,8 +20,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'personalizado', name: 'Serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
 
-export const PAYMENT_TERMS =
-  '50% de sinal para iniciar e 50% na aprovação, via pix.\nou 100% no início, ou cartão de crédito (juros do parcelamento por conta do cliente).'
+export const PAYMENT_TERMS = 'Pix — 50% de entrada + 50% na aprovação final | Crédito — 100%'
 
 /** Sinal pago em demanda "aguardando sinal" → passa para "em execução". */
 function autoStatus(p: Project): Project {
@@ -29,15 +28,19 @@ function autoStatus(p: Project): Project {
   return { ...p, status: 'producao', tasks: p.tasks.map((t) => (/sinal/i.test(t.text) ? { ...t, done: true } : t)) }
 }
 
+// Modelo "Proposta #001" (Canva): faixa grafite, The Seasons no título, quadro de serviços e faixa rosé do total.
 export const DEFAULT_PROPOSAL: ProposalStyle = {
+  version: 2,
   eyebrow: 'proposta de',
   title: 'orçamento',
-  serif: 'Cormorant Garamond',
-  ink: '#1f3a4d',
-  rose: '#a86a60',
-  arch: '#e8d6cf',
-  paper: '#f8f5f2',
-  files: 'imagens JPG em alta resolução',
+  serif: 'The Seasons',
+  ink: '#2a4352',
+  rose: '#af8c86',
+  arch: '#e7d5cf',
+  paper: '#f7f5f1',
+  bar: '#4a5d6b',
+  files: 'PDF e arquivo editável do layout.',
+  schedule: 'serão definidos conforme a necessidade do cliente.',
   showArch: true,
 }
 
@@ -45,7 +48,7 @@ export const DEFAULT_SETTINGS: Settings = {
   brandName: 'laís',
   tagline: 'renderização · modelagem · detalhamento',
   ownerName: 'Laís',
-  email: '',
+  email: 'arq.laisav@gmail.com',
   phone: '+55 11 96928-8192',
   instagram: '@lais_3d',
   website: 'lais3d.com.br',
@@ -119,7 +122,29 @@ export function normalize(d: Partial<Data>): Data {
       pdf: q.pdf ?? true,
       area: q.area ?? 0,
       clientLabel: q.clientLabel ?? '',
-      options: q.options ?? [],
+      schedule: q.schedule ?? DEFAULT_PROPOSAL.schedule,
+      options: (q.options ?? []).map((o) =>
+        o.items
+          ? o
+          : {
+              ...o,
+              // opção antiga (lista de textos + valor único) vira serviços
+              items: (o.included ?? []).filter(Boolean).map((t, i) => ({
+                id: uid(),
+                service: '',
+                title: t,
+                detail: '',
+                description: '',
+                quantity: 1,
+                complexity: 'media' as const,
+                price: i === 0 ? o.price ?? 0 : 0,
+                auto: false,
+              })),
+              note: o.summary ?? '',
+              discount: 0,
+              discountNote: '',
+            },
+      ),
       chosenOption: q.chosenOption ?? '',
       discountNote: q.discountNote ?? '',
       files: q.files ?? DEFAULT_PROPOSAL.files,
@@ -134,11 +159,13 @@ export function normalize(d: Partial<Data>): Data {
       {
         ...base.settings,
         ...(d.settings ?? {}),
-        proposal: { ...DEFAULT_PROPOSAL, ...(d.settings?.proposal ?? {}) },
+        // modelo novo da proposta substitui o anterior (version < 2)
+        proposal: (d.settings?.proposal?.version ?? 0) >= 2 ? { ...DEFAULT_PROPOSAL, ...d.settings!.proposal } : DEFAULT_PROPOSAL,
+        email: d.settings?.email || 'arq.laisav@gmail.com',
         // antes desta versão o teto do MEI vinha ligado por padrão; ela trabalha como pessoa física
         meiLimit: d.settings?.proposal ? (d.settings.meiLimit ?? 0) : 0,
         defaultPaymentTerms:
-          !d.settings?.defaultPaymentTerms || /^50% (no aceite|de entrada)/.test(d.settings.defaultPaymentTerms) ? PAYMENT_TERMS : d.settings.defaultPaymentTerms,
+          !d.settings?.defaultPaymentTerms || /^50% (no aceite|de entrada|de sinal)/.test(d.settings.defaultPaymentTerms) ? PAYMENT_TERMS : d.settings.defaultPaymentTerms,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
         services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })),
       },
@@ -479,7 +506,8 @@ export function demoData(settings: Settings): Data {
       options: [],
       chosenOption: '',
       discountNote: '',
-      files: 'imagens JPG em alta resolução e modelo .skp',
+      files: 'PDF e arquivo editável do layout.',
+      schedule: DEFAULT_PROPOSAL.schedule,
       items: [
         { id: uid(), service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media' as const, price: 370, auto: true },
         { id: uid(), service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'modelagem completa a partir do DWG, com mobiliário', quantity: 140, complexity: 'media' as const, price: 1092, auto: true },

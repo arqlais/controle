@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
-import type { Client, Payment, Project, Quote, Settings } from '../types'
-import { fmtDateLong, itemDiscount, money, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
+import { itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -41,9 +41,10 @@ export function porExtenso(valor: number) {
 
 
 /* ============================================================
-   Documentos no design da proposta do Canva (A4):
-   arco rosé, serifada nos títulos, Poppins no texto.
-   Cores e textos vêm de Configurações → Modelo da proposta.
+   Proposta no modelo "Proposta #001" (Canva), em A4 (794 × 1123 px):
+   faixa grafite com o nome · campos nome/data/nº · "proposta de orçamento"
+   · quadro de serviços · faixa rosé do total · 3 informações com ícone
+   · rodapé com contatos. Cores e textos em Configurações → Modelo da proposta.
    ============================================================ */
 
 const fmt = (s: string) => {
@@ -51,281 +52,222 @@ const fmt = (s: string) => {
   return `${d}/${m}/${y}`
 }
 
-export function ArchIcon({ size = 30, color, dot }: { size?: number; color: string; dot: string }) {
-  return (
-    <svg width={size} height={size * 1.15} viewBox="0 0 26 30" fill="none" aria-hidden>
-      <path d="M2 29V13a11 11 0 0 1 22 0v16" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M1 29h24" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="13" cy="20" r="2" fill={dot} />
-    </svg>
-  )
-}
-
-function Paper({ s, children }: { s: Settings; children: ReactNode }) {
+function Sheet({ s, year, children }: { s: Settings; year: string; children: ReactNode }) {
   const p = s.proposal
   const style = {
     '--p-ink': p.ink,
     '--p-rose': p.rose,
-    '--p-arch': p.arch,
+    '--p-total': p.arch,
     '--p-paper': p.paper,
+    '--p-bar': p.bar,
     '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
   } as CSSProperties
   return (
     <article className="proposal" style={style}>
-      {children}
+      <div className="p-bar">
+        <span>{(s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
+        <span>{year}</span>
+      </div>
+      <div className="p-body">{children}</div>
     </article>
   )
 }
 
-function Brand({ s, right }: { s: Settings; right: string }) {
-  const p = s.proposal
+function Fields({ name, date, label, value }: { name: string; date: string; label: string; value: string }) {
   return (
-    <header className="p-top">
-      {s.logo ? (
-        <img src={s.logo} alt="" className="p-logo-img" />
-      ) : (
-        <div className="p-logo">
-          <ArchIcon color={p.ink} dot={p.rose} />
-          <span>
-            {s.brandName.replace(/\.$/, '')}
-            <i>.</i>
-          </span>
-        </div>
-      )}
-      <span className="p-number">{right}</span>
-    </header>
+    <section className="p-fields">
+      <div className="p-field is-name">
+        <span className="p-label">nome</span>
+        <div className="p-box">{name}</div>
+      </div>
+      <div className="p-field">
+        <span className="p-label">data</span>
+        <div className="p-box">{fmt(date)}</div>
+      </div>
+      <div className="p-field">
+        <span className="p-label">{label}</span>
+        <div className="p-box">{value}</div>
+      </div>
+    </section>
   )
 }
 
-function Footer({ s, sign }: { s: Settings; sign?: ReactNode }) {
-  const line1 = [s.pixKey && `pix ${s.pixKey}`, s.legalName || s.ownerName].filter(Boolean).join(' · ')
-  const line2 = [s.phone, s.instagram, s.website.replace(/^https?:\/\/(www\.)?/, '')].filter(Boolean).join(' · ')
+function Title({ s, eyebrow, title }: { s: Settings; eyebrow?: string; title?: string }) {
   return (
-    <footer className="p-foot">
-      <div className="p-contact">
-        <ArchIcon size={20} color={s.proposal.rose} dot={s.proposal.ink} />
-        <div>
-          {line1 && <div>{line1}</div>}
-          {line2 && <div>{line2}</div>}
+    <section className="p-title-block">
+      <span className="p-eyebrow">{eyebrow ?? s.proposal.eyebrow}</span>
+      <h1 className="p-title">{title ?? s.proposal.title}</h1>
+    </section>
+  )
+}
+
+const ICONS = {
+  pay: (
+    <>
+      <rect x="5" y="8" width="14" height="9.5" rx="1.6" />
+      <path d="M5 11h14" />
+      <path d="M7.5 15h3" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="5.5" y="7" width="13" height="11.5" rx="1.6" />
+      <path d="M5.5 10.5h13M9 5.5v3M15 5.5v3" />
+      <path d="M9 13.3h.01M12 13.3h.01M15 13.3h.01M9 16h.01M12 16h.01" strokeWidth="2" />
+    </>
+  ),
+  folder: <path d="M5 8.5a1.5 1.5 0 0 1 1.5-1.5h3.2l1.6 1.8h6.2A1.5 1.5 0 0 1 19 10.3v6.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 16.5z" />,
+}
+
+function InfoRow({ items, color }: { items: { icon: keyof typeof ICONS; label: string; text: string }[]; color: string }) {
+  return (
+    <section className="p-infos">
+      {items.map((it) => (
+        <div key={it.label} className="p-info-item">
+          <svg viewBox="0 0 24 24" className="p-info-icon" aria-hidden>
+            <circle cx="12" cy="12" r="12" fill={color} />
+            <g fill="none" stroke="#e1cac4" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+              {ICONS[it.icon]}
+            </g>
+          </svg>
+          <p>
+            <b>{it.label}:</b> {it.text}
+          </p>
         </div>
-      </div>
-      {sign}
+      ))}
+    </section>
+  )
+}
+
+function Contacts({ s }: { s: Settings }) {
+  const items: [string, string][] = [
+    ['cell', s.phone],
+    ['instagram', s.instagram],
+    ['site', s.website.replace(/^https?:\/\/(www\.)?/, '')],
+    ['e-mail', s.email],
+  ].filter(([, v]) => v) as [string, string][]
+  return (
+    <footer className="p-contacts">
+      {items.map(([k, v]) => (
+        <span key={k}>
+          <i>{k}:</i> {v}
+        </span>
+      ))}
     </footer>
   )
 }
 
-function Info({ rows }: { rows: [string, string][] }) {
+function Rows({ items, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean }) {
   return (
-    <dl className="p-info">
-      {rows.map(([k, v]) => (
-        <div key={k}>
-          <dt>{k}</dt>
-          <dd>{v}</dd>
+    <div className="p-rows">
+      {items.map((it, i) => (
+        <div key={it.id} className={`p-row ${priceFirst ? 'is-price-first' : ''}`}>
+          {priceFirst ? <b className="p-row-price">{money(it.price)}</b> : <b className="p-row-n">{String(i + 1).padStart(2, '0')}</b>}
+          <div className="p-row-main">
+            <span className="p-row-title">
+              {it.title || 'serviço'}
+              {it.detail ? ` · ${it.detail}` : ''}
+            </span>
+            {it.description && <span className="p-row-desc">{it.description}</span>}
+          </div>
+          {!priceFirst && <span className="p-row-price">{money(it.price)}</span>}
         </div>
       ))}
-    </dl>
+    </div>
   )
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+function TotalBar({ label, value, note, compact }: { label: string; value: number; note?: string; compact?: boolean }) {
+  return (
+    <div className={`p-total ${compact ? 'is-compact' : ''}`}>
+      <span className="p-total-label">{label}</span>
+      <div className="p-total-value">
+        <b>{money(value)}</b>
+        {note && <i>{note}</i>}
+      </div>
+    </div>
+  )
+}
+
+const discountText = (value: number) => (value > 0 ? `com ${money(value)} de desconto` : '')
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  const p = s.proposal
   const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
-  const total = quoteTotal(quote, s.urgencyFee)
+  const heading = (name: string) => [name || quote.title || 'serviços', quote.area > 0 ? `${quote.area.toLocaleString('pt-BR')} m²` : ''].filter(Boolean).join(' • ')
+  const infos = [
+    { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms },
+    { icon: 'calendar' as const, label: 'Prazos e cronograma', text: quote.schedule },
+    { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: quote.files },
+  ].filter((x) => x.text?.trim())
+
   const sub = quoteSubtotal(quote)
   const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
-  const totalDiscount = quote.mode === 'opcoes' ? 0 : quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
-  const discountLine =
-    quote.discountNote ||
-    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', totalDiscount ? `com ${money(totalDiscount)} de desconto` : ''].filter(Boolean).join(' · ')
-  const two = quote.mode === 'opcoes'
-  const options = quote.options.slice(0, 2)
-  const rows: [string, string][] = [
-    ['projeto', quote.title || '[nome do projeto]'],
-    ...(quote.area > 0 ? [['área', `${quote.area.toLocaleString('pt-BR')} m²`] as [string, string]] : []),
-    ['data', fmt(quote.createdAt)],
-    ['validade', plural(quote.validityDays, 'dia', 'dias')],
-  ]
+  const scopeDiscount = quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
+  const scopeNote = quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · ')
 
   return (
-    <Paper s={s}>
-      <Brand s={s} right={`Nº ${quoteNumber(quote)}`} />
-
-      <section className={`p-hero ${two ? 'is-options' : ''}`}>
-        <div className="p-hero-text">
-          <p className="p-eyebrow">{p.eyebrow}</p>
-          <h1 className="p-title">{p.title}</h1>
-          <p className="p-for">para {clientName}</p>
-          <Info rows={rows} />
-        </div>
-        {p.showArch && (
-          <div className="p-arch">
-            <span className="p-dot" />
-            {two ? (
-              <>
-                <b className="p-arch-num">{options.length || 2}</b>
-                <em>
-                  opções para
-                  <br />
-                  você escolher
-                </em>
-              </>
-            ) : (
-              <>
-                <span className="p-label">investimento</span>
-                <b className="p-arch-price">{money(total)}</b>
-                {discountLine && <span className="p-arch-note">{discountLine}</span>}
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      {two ? (
+    <Sheet s={s} year={quote.createdAt.slice(0, 4)}>
+      <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
+      <Title s={s} />
+      {quote.mode === 'opcoes' ? (
         <section className="p-options">
-          {options.map((o, i) => (
-            <div key={o.id} className="p-option">
-              <div className="p-option-head">
-                <span className={`p-badge ${i ? 'is-light' : ''}`}>{i + 1}</span>
-                <div>
-                  <span className="p-label">opção {i + 1}</span>
-                  <h3>{o.name || '[nome do escopo]'}</h3>
+          {quote.options.slice(0, 2).map((o, n) => {
+            const disc = (o.discount || 0) + o.items.reduce((acc, i) => acc + itemDiscount(i), 0)
+            return (
+              <div key={o.id} className="p-option">
+                <span className="p-option-label">opção {n + 1}</span>
+                <div className="p-card">
+                  <h3 className="p-card-title">{heading(o.name)}</h3>
+                  <Rows items={o.items} priceFirst />
+                  {o.note && <p className="p-note">{o.note}</p>}
                 </div>
+                <TotalBar compact label="total" value={optionTotal(o)} note={o.discountNote || discountText(disc)} />
               </div>
-              {o.summary && <p className="p-muted">{o.summary}</p>}
-              <ul className="p-list">
-                {o.included.filter(Boolean).map((it, k) => (
-                  <li key={k}>{it}</li>
-                ))}
-              </ul>
-              <p className="p-muted">prazo: {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
-              <span className="p-label p-label-dot">investimento</span>
-              <b className="p-option-price">{money(o.price)}</b>
-            </div>
-          ))}
+            )
+          })}
         </section>
       ) : (
-        <section className="p-scope">
-          <div className="p-scope-head">
-            <span className="p-label">escopo</span>
-            <span className="p-label is-muted">valor</span>
+        <>
+          <div className="p-card">
+            <div className="p-card-head">
+              <h3 className="p-card-title">{heading(quote.title)}</h3>
+              <span className="p-label">valor</span>
+            </div>
+            <Rows items={quote.items} />
+            {quote.notes && <p className="p-note">{quote.notes}</p>}
           </div>
-          {quote.items.map((it, i) => (
-            <div key={it.id} className="p-scope-row">
-              <span className="p-scope-n">{String(i + 1).padStart(2, '0')}</span>
-              <div className="p-scope-main">
-                <b>
-                  {it.title || 'serviço'}
-                  {it.detail && <span> · {it.detail}</span>}
-                </b>
-                {it.description && <p className="p-muted">{it.description}</p>}
-              </div>
-              <span className="p-scope-price">{money(it.price)}</span>
-            </div>
-          ))}
-          {p.showArch === false && (
-            <div className="p-scope-total">
-              <span className="p-label">investimento</span>
-              <b>{money(total)}</b>
-              {discountLine && <span className="p-muted">{discountLine}</span>}
-            </div>
-          )}
-        </section>
+          <TotalBar label="investimento total" value={quoteTotal(quote, s.urgencyFee)} note={scopeNote} />
+        </>
       )}
-
-      <section className="p-terms">
-        <div>
-          <span className="p-label">pagamento</span>
-          <p>{quote.paymentTerms}</p>
-        </div>
-        <div>
-          <span className="p-label">arquivos entregues</span>
-          <p>{quote.files}</p>
-        </div>
-        <div>
-          <span className="p-label">{two ? 'ajustes' : 'prazo'}</span>
-          <p>
-            {two
-              ? `${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'} em qualquer uma das opções.`
-              : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal, com ${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'}.`}
-          </p>
-        </div>
-      </section>
-      {quote.notes && <p className="p-notes">{quote.notes}</p>}
-
-      <Footer
-        s={s}
-        sign={
-          <div className="p-sign">
-            {two && (
-              <div className="p-choice">
-                opção escolhida:
-                {options.map((o, i) => (
-                  <span key={o.id}>
-                    <i className={quote.chosenOption === o.id ? 'on' : ''} /> {i + 1}
-                  </span>
-                ))}
-              </div>
-            )}
-            <span className="p-sign-line" />
-            <span>de acordo · {clientName}</span>
-          </div>
-        }
-      />
-    </Paper>
+      {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}
+      {infos.length > 0 && <InfoRow items={infos} color={s.proposal.bar} />}
+      <Contacts s={s} />
+    </Sheet>
   )
 }
 
 export function ReceiptDoc({ s, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
   const payer = client?.company || client?.name || '—'
+  const date = payment.paidDate ?? today()
   return (
-    <Paper s={s}>
-      <Brand s={s} right={fmt(payment.paidDate ?? today())} />
-      <section className="p-hero">
-        <div className="p-hero-text">
-          <p className="p-eyebrow">comprovante de pagamento</p>
-          <h1 className="p-title">recibo</h1>
-          <p className="p-for">de {payer}</p>
-          <Info
-            rows={[
-              ['projeto', project.title],
-              ['referente a', payment.description.toLowerCase()],
-              ['forma', payment.method || '—'],
-            ]}
-          />
-        </div>
-        {s.proposal.showArch && (
-          <div className="p-arch">
-            <span className="p-dot" />
-            <span className="p-label">valor recebido</span>
-            <b className="p-arch-price">{money(payment.amount)}</b>
-          </div>
-        )}
-      </section>
-      <section className="p-receipt">
-        <p>
+    <Sheet s={s} year={date.slice(0, 4)}>
+      <Fields name={payer} date={date} label="forma" value={payment.method || '—'} />
+      <Title s={s} eyebrow="comprovante de" title="recibo" />
+      <div className="p-card">
+        <h3 className="p-card-title">{project.title}</h3>
+        <p className="p-receipt">
           Recebi de <b>{payer}</b>
           {client?.document && <>, CPF/CNPJ {client.document}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
           {payment.description.toLowerCase()} do projeto <b>{project.title}</b>, dando plena quitação deste valor.
         </p>
-        <p className="p-muted">
+        <p className="p-note">
           {s.city ? `${s.city}, ` : ''}
-          {fmtDateLong(payment.paidDate ?? today())}
+          {fmt(date)} · {s.legalName || s.ownerName}
+          {s.document ? ` · CPF ${s.document}` : ''}
         </p>
-      </section>
-      <Footer
-        s={s}
-        sign={
-          <div className="p-sign">
-            <span className="p-sign-line" />
-            <span>
-              {s.legalName || s.ownerName}
-              {s.document ? ` · CPF ${s.document}` : ''}
-            </span>
-          </div>
-        }
-      />
-    </Paper>
+      </div>
+      <TotalBar label="valor recebido" value={payment.amount} />
+      <Contacts s={s} />
+    </Sheet>
   )
 }

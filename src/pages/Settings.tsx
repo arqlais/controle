@@ -408,13 +408,20 @@ function ProposalSettings() {
       { id: 'b', service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
     ],
     options: [
-      { id: 'o1', name: 'essencial', summary: 'imagens para apresentar o projeto', included: ['5 renders V-Ray', 'pós-produção', '1 rodada de ajuste'], deadlineDays: 10, price: 370 },
-      { id: 'o2', name: 'completo', summary: 'modelagem + imagens', included: ['modelagem 3D completa', '10 renders V-Ray', 'pós-produção', 'arquivo .skp'], deadlineDays: 15, price: 1650 },
+      {
+        id: 'o1', name: 'renderização I.A', note: '', discount: 0, discountNote: '', deadlineDays: 7,
+        items: [{ id: 'c', service: 'render-ia', title: 'Renderização I.A', detail: '10 imagens', description: 'áreas sociais e fachada', quantity: 10, complexity: 'media', price: 460, auto: true }],
+      },
+      {
+        id: 'o2', name: 'renderização V-Ray', note: '', discount: 0, discountNote: '', deadlineDays: 12,
+        items: [{ id: 'd', service: 'render-vray', title: 'Renderização V-Ray', detail: '10 imagens', description: 'áreas sociais e fachada', quantity: 10, complexity: 'media', price: 710, auto: true }],
+      },
     ],
     chosenOption: '',
     discount: 0,
     discountNote: '',
     files: p.files,
+    schedule: p.schedule,
     urgency: false,
     deadlineDays: 10,
     validityDays: 15,
@@ -444,7 +451,10 @@ function ProposalSettings() {
                 ))}
               </select>
             </Field>
-            <Field label="Arquivos entregues (padrão)" span={3}>
+            <Field label="Prazos e cronograma (padrão)" span={3}>
+              <input value={p.schedule} onChange={(e) => setP({ schedule: e.target.value })} />
+            </Field>
+            <Field label="Formatos de arquivos entregues (padrão)" span={3}>
               <input value={p.files} onChange={(e) => setP({ files: e.target.value })} />
             </Field>
             <Field label="Pagamento (padrão)" span={3} hint="Usado em todo orçamento novo; dá para mudar em cada um.">
@@ -454,9 +464,10 @@ function ProposalSettings() {
               [
                 ['ink', 'Azul (textos)'],
                 ['rose', 'Rosé (rótulos)'],
-                ['arch', 'Arco'],
+                ['arch', 'Faixa do total'],
+                ['bar', 'Faixa do topo e ícones'],
                 ['paper', 'Fundo'],
-              ] as ['ink' | 'rose' | 'arch' | 'paper', string][]
+              ] as ['ink' | 'rose' | 'arch' | 'paper' | 'bar', string][]
             ).map(([k, label]) => (
               <Field key={k} label={label}>
                 <div className="color-input">
@@ -465,19 +476,9 @@ function ProposalSettings() {
                 </div>
               </Field>
             ))}
-            <Field label="Arco com o valor">
-              <Segmented
-                value={p.showArch ? 's' : 'n'}
-                options={[
-                  { value: 's', label: 'mostrar' },
-                  { value: 'n', label: 'esconder' },
-                ]}
-                onChange={(v) => setP({ showArch: v === 's' })}
-              />
-            </Field>
           </div>
           <p className="muted small">
-            Rodapé usa seus dados acima (Pix, nome completo, WhatsApp, Instagram e site). O logo enviado em Identidade visual substitui o arco + nome.{' '}
+            A faixa do topo usa seu nome completo; o rodapé usa WhatsApp, Instagram, site e e-mail (em Seus dados).{' '}
             <button className="link" onClick={() => setSettings({ proposal: DEFAULT_PROPOSAL })}>
               restaurar modelo original
             </button>

@@ -142,11 +142,16 @@ export interface QuoteItem {
 
 export interface QuoteOption {
   id: string
-  name: string
-  summary: string
-  included: string[]
+  name: string // título do quadro (ex.: "renderização V-Ray • 10 imagens")
+  items: QuoteItem[] // serviços desta opção, cada um com valor
+  note: string // observação dentro do quadro
+  discount: number // desconto desta opção (R$)
+  discountNote: string // texto abaixo do total
   deadlineDays: number
-  price: number
+  // campos antigos (propostas criadas antes do modelo novo)
+  summary?: string
+  included?: string[]
+  price?: number
 }
 
 export interface Quote {
@@ -163,7 +168,8 @@ export interface Quote {
   chosenOption: string
   discount: number
   discountNote: string
-  files: string // arquivos entregues
+  files: string // formatos de arquivos entregues
+  schedule: string // prazos e cronograma (texto da proposta)
   urgency: boolean
   deadlineDays: number
   validityDays: number
@@ -196,14 +202,17 @@ export interface ServiceDef {
 }
 
 export interface ProposalStyle {
+  version: number
   eyebrow: string // "proposta de"
   title: string // "orçamento"
-  serif: string // fonte dos títulos da proposta
-  ink: string // azul-marinho
+  serif: string // fonte do título
+  ink: string // azul dos textos
   rose: string // rosé dos rótulos
-  arch: string // cor do arco
-  paper: string // fundo
-  files: string // arquivos entregues (padrão)
+  arch: string // fundo da faixa do total
+  paper: string // fundo da folha
+  bar: string // faixa do topo e ícones
+  files: string // formatos de arquivos entregues (padrão)
+  schedule: string // prazos e cronograma (padrão)
   showArch: boolean
 }
 
