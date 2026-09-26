@@ -268,7 +268,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
           </select>
         </Field>
         <Field label={`Quantidade${service ? ` (${service.unit}s)` : ''}`}>
-          <input type="number" min={0} value={p.quantity} onChange={(e) => applyService(p.service, Number(e.target.value) || 0)} />
+          <input type="number" min={0} inputMode="decimal" value={p.quantity || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => applyService(p.service, Number(e.target.value) || 0)} />
         </Field>
         <Field label="Status">
           <select value={p.status} onChange={(e) => set('status', e.target.value as ProjectStatus)}>

@@ -76,7 +76,7 @@ const STEPS: Step[] = [
       <>Se vocês alinharam um prazo, coloque em <b>prazo combinado</b>, na mesma janela: em <b>dias úteis</b> (pula fins de semana e feriados), <b>dias corridos</b> (conta todos os dias) ou uma <b>data exata</b>. Sem pressa? Deixe em branco.</>,
       <>A demanda é criada sozinha em <b>demandas</b>, na coluna <b>em alinhamento</b>, com as parcelas “sinal 50%” e “saldo 50%”.</>,
     ],
-    tip: <>Orçamento com vários serviços vira um <b>pacote</b> automaticamente, para você poder retirar um projeto depois sem refazer a conta.</>,
+    tip: <>Orçamento com vários serviços vira um <b>pacote</b> automaticamente, para você poder retirar um projeto depois sem refazer a conta. Dois serviços com um valor só? No segundo, marque <b>cobrar junto com o serviço de cima</b>.</>,
   },
   {
     n: '06',
@@ -125,7 +125,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Quero lançar orçamentos antigos (do ano todo)',
-    a: <>No orçamento, em <b>nº e data</b> (em dados), coloque o número e a data reais. A contagem é contínua: o próximo novo pega o maior número já usado + 1 (dá para escolher o início em configurações → propostas). Ao aprovar, coloque em <b>fechou em</b> o dia em que a cliente aprovou e marque <b>o sinal já foi pago</b>, se for o caso. Assim a demanda e o financeiro de cada mês ficam certos. Pagamentos seguintes: na demanda, marque pago e ajuste a data ao lado.</>,
+    a: <>No orçamento, em <b>nº e data</b> (em dados), coloque o número e a data reais. A contagem é contínua: o próximo novo pega o maior número já usado + 1 (dá para escolher o início em configurações → propostas). Ao aprovar, coloque em <b>fechou em</b> o dia em que a cliente aprovou (pode ser dias depois do orçamento; dá para corrigir depois no próprio orçamento) e marque <b>o sinal já foi pago</b>, se for o caso. Assim a demanda e o financeiro de cada mês ficam certos. Pagamentos seguintes: na demanda, marque pago e ajuste a data ao lado.</>,
     page: 'orcamentos',
   },
   {

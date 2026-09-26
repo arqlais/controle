@@ -13,7 +13,14 @@ export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedO
   const start = closedOn || today() // dia em que fechou (orçamentos antigos: a data real)
   const value = q.closedValue && q.closedValue > 0 ? q.closedValue : useOption ? optionTotal(chosen) : quoteTotal(q, urgencyFee)
   // vários serviços com valor → vira pacote (dá para retirar um depois e o desconto se ajusta)
-  const lines = (useOption ? chosen.items : q.items).filter((i) => i.price > 0)
+  // serviços cobrados juntos viram uma linha só, com o nome dos dois
+  const merged = (useOption ? chosen.items : q.items).reduce<typeof q.items>((acc, i) => {
+    const last = acc[acc.length - 1]
+    if (i.joined && last) acc[acc.length - 1] = { ...last, title: `${[last.title, cleanDetail(last.detail)].filter(Boolean).join(' · ')} + ${i.title}`, detail: i.detail }
+    else acc.push(i)
+    return acc
+  }, [])
+  const lines = merged.filter((i) => i.price > 0)
   const full = lines.reduce((s, i) => s + i.price, 0)
   const asPackage = lines.length > 1 && value <= full
   return {

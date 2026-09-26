@@ -120,7 +120,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const diff = Math.round((proposed - value) * 100) / 100
   const confirm = () => {
     if (value <= 0) return toast('Informe o valor fechado.')
-    const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, sentAt: q.sentAt || closedOn }
+    const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, sentAt: q.sentAt || closedOn, closedAt: closedOn }
     const base = projectFromQuote(approved, fee, due, closedOn)
     // lançando orçamentos antigos: o sinal já entra pago na data do fechamento
     const project = signalPaid && base.payments[0] ? { ...base, payments: base.payments.map((x, i) => (i === 0 ? { ...x, paidDate: closedOn } : x)) } : base
@@ -154,7 +154,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
           <MoneyInput value={value} onChange={setValue} />
         </Field>
         <Field label="Fechou em" hint="Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.">
-          <input type="date" value={closedOn} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
+          <input type="date" value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
         </Field>
         <label className="check">
           <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})

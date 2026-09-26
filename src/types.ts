@@ -168,6 +168,7 @@ export interface QuoteItem {
   price: number // valor total do item
   unitDiscount?: number // desconto em R$ por unidade (ex.: por imagem) sobre a tabela
   auto: boolean // true = valor segue a tabela; false = digitado à mão
+  joined?: boolean // cobrado junto com o serviço de cima (um valor só para os dois)
 }
 
 export interface QuoteOption {
@@ -209,6 +210,7 @@ export interface Quote {
   notes: string
   status: QuoteStatus
   sentAt: string // quando foi enviado ao cliente (para lembrar de cobrar resposta)
+  closedAt?: string // quando a cliente fechou (pode ser dias depois do orçamento)
   createdAt: string
   projectId: string
   closedValue?: number // valor fechado depois da negociação (0 = o da proposta)

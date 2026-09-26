@@ -332,6 +332,10 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
                 </section>
                 <section>
                   <h3>Android / Google Agenda</h3>
+                  <a className="btn small primary" href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">
+                    <Icon name="calendar" size={14} /> adicionar ao meu Google Agenda
+                  </a>
+                  <p className="muted small">Entre com a sua conta Google e confirme. Se não abrir, faça à mão:</p>
                   <ol>
                     <li>No computador, abra calendar.google.com.</li>
                     <li>Em “Outras agendas”, clique em + → “Do URL”.</li>

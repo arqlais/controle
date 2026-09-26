@@ -11,6 +11,7 @@ import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import {
+  daysBetween,
   nextQuoteNumber,
   COMPLEXITY,
   QUOTE_STATUS,
@@ -251,9 +252,9 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field label="Área (m²) · opcional" hint="0 = não aparece no PDF · ≈ para área média.">
+              <Field label="Área (m²) · opcional" hint="Em branco = não aparece no PDF · ≈ para área média.">
                 <div className="area-field">
-                  <input id="q-area" type="number" min={0} value={q.area} onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
+                  <input id="q-area" type="number" min={0} inputMode="decimal" value={q.area || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
                   <label className={`area-approx ${q.areaApprox ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
                     <input type="checkbox" checked={!!q.areaApprox} onChange={(e) => set({ areaApprox: e.target.checked })} />≈ estimada
                   </label>
@@ -275,6 +276,29 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </label>
               </div>
             </div>
+            {q.status === 'aprovado' && (
+              <div className="closed-row">
+                <label htmlFor="q-closed">
+                  <Icon name="check" size={14} /> fechou em
+                </label>
+                <input
+                  id="q-closed"
+                  type="date"
+                  value={q.closedAt || (q.projectId ? data.projects.find((x) => x.id === q.projectId)?.startDate : '') || ''}
+                  min={q.createdAt}
+                  max={today()}
+                  onChange={(e) => {
+                    const d = e.target.value
+                    if (!d) return
+                    set({ closedAt: d })
+                    // a demanda começa no dia em que fechou
+                    const p = q.projectId ? data.projects.find((x) => x.id === q.projectId) : undefined
+                    if (p && p.startDate !== d) upsert('projects', { ...p, startDate: d })
+                  }}
+                />
+                <span className="muted small">{q.closedAt && q.closedAt > q.createdAt ? `${daysBetween(q.createdAt, q.closedAt)} dia(s) depois do orçamento` : 'pode ser diferente da data do orçamento'}</span>
+              </div>
+            )}
             {student && <p className="small text-warn">Cliente estudante: sugestões com {settings.studentDiscount}% de desconto.</p>}
           </Section>
 
@@ -358,7 +382,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <input value={q.files} onChange={(e) => set({ files: e.target.value })} placeholder="PDF e arquivo editável do layout." />
               </Field>
               <Field label="Rodadas de ajuste" hint="Controle interno.">
-                <input type="number" min={0} value={q.revisions} onChange={(e) => set({ revisions: Number(e.target.value) || 0 })} />
+                <input type="number" min={0} inputMode="numeric" value={q.revisions} onFocus={(e) => e.target.select()} onChange={(e) => set({ revisions: Number(e.target.value) || 0 })} />
               </Field>
             </div>
           </Section>
@@ -447,6 +471,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
 
   const recompute = (it: QuoteItem): QuoteItem => {
     const s = service(it.service)
+    if (it.joined) return { ...it, detail: it.auto || !it.detail ? itemDetail(s, it.quantity, it.complexity) : it.detail, price: 0, unitDiscount: 0 }
     return {
       ...it,
       detail: it.auto || !it.detail ? itemDetail(s, it.quantity, it.complexity) : it.detail,
@@ -495,7 +520,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
               </Field>
               {s && s.pricing !== 'livre' && (
                 <Field label={s.pricing === 'm2' ? 'Área (m²)' : `Quantidade (${s.unit})`}>
-                  <input type="number" min={0} value={it.quantity} onChange={(e) => setItem(it.id, { quantity: Number(e.target.value) || 0 })} />
+                  <input type="number" min={0} inputMode="decimal" value={it.quantity || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => setItem(it.id, { quantity: Number(e.target.value) || 0 })} />
                 </Field>
               )}
               {s?.pricing === 'm2' && (
@@ -523,11 +548,31 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                   autoCorrect="on"
                 />
               </Field>
-              {s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
+              {n > 0 && (
+                <div className="field span-2">
+                  <label className="check toggle">
+                    <input type="checkbox" checked={!!it.joined} onChange={(e) => {
+                        // ao juntar, o valor deste serviço passa para o de cima (dá para ajustar lá o valor combinado)
+                        const joined = e.target.checked
+                        const own = recompute({ ...it, joined: false, auto: true }).price
+                        onChange(
+                          items.map((x, j) =>
+                            j === n - 1 ? { ...x, price: Math.max(0, x.price + (joined ? own : -own)), auto: false } : x.id === it.id ? recompute({ ...it, joined, auto: true }) : x,
+                          ),
+                        )
+                      }}
+                    /> cobrar junto com o serviço de cima (um valor só para os dois)
+                  </label>
+                </div>
+              )}
+              {!it.joined && s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
                 <Field label={`Desconto por ${s.unit}`} hint={it.unitDiscount ? `fica ${money(Math.max(0, rate - it.unitDiscount))}/${s.unit}` : 'opcional'}>
                   <MoneyInput value={it.unitDiscount ?? 0} onChange={(v) => setItem(it.id, { unitDiscount: v, auto: true })} />
                 </Field>
               )}
+              {it.joined ? (
+                <p className="muted small q-joined-note">Somado ao valor do serviço {String(n).padStart(2, '0')}: ajuste lá o valor combinado dos dois.</p>
+              ) : (
               <Field
                 label="Valor"
                 hint={
@@ -545,6 +590,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                   )}
                 </div>
               </Field>
+              )}
             </div>
           </div>
         )

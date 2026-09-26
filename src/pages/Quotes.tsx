@@ -101,7 +101,7 @@ export default function Quotes() {
         />
       ) : (
         <div className="table-wrap card">
-          <table className="table cards-mobile">
+          <table className="table cards-mobile quote-table">
             <thead>
               <tr>
                 <th>nº</th>
@@ -118,14 +118,15 @@ export default function Quotes() {
                 const wait = waitingDays(x)
                 return (
                   <tr key={x.id} className="clickable" onClick={() => go('orcamentos', x.id)}>
-                    <td className="muted nowrap">{quoteNumber(x)}</td>
-                    <td>
+                    <td className="muted nowrap q-num">{quoteNumber(x)}</td>
+                    <td className="q-main">
                       <div className="list-title">{x.title || 'Sem título'}</div>
                       <div className="list-sub">
                         {c?.name ?? '—'} · {fmtDate(x.createdAt)}
+                        {x.closedAt && x.closedAt !== x.createdAt ? ` · fechou ${fmtDate(x.closedAt)}` : ''}
                       </div>
                     </td>
-                    <td>
+                    <td className="q-status">
                       <QuoteStatusSelect q={x} />
                     </td>
                     <td className="hide-mobile">
@@ -139,11 +140,11 @@ export default function Quotes() {
                         <span className="muted">—</span>
                       )}
                     </td>
-                    <td className="num" data-label="total">
+                    <td className="num q-total" data-label="total">
                       {money(quoteDeal(x, fee))}
                       {quoteDeal(x, fee) !== quoteTotal(x, fee) && <div className="small muted"><s>{money(quoteTotal(x, fee))}</s> negociado</div>}
                     </td>
-                    <td className="actions" onClick={(e) => e.stopPropagation()}>
+                    <td className="actions q-act" onClick={(e) => e.stopPropagation()}>
                       <div className="quick-actions">
                         {needsFollowUp(x) && c?.phone && (
                           <a className="icon-btn" href={whatsappLink(c.phone, followText(x))} target="_blank" rel="noreferrer" title="Cobrar resposta no WhatsApp">

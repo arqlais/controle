@@ -176,12 +176,12 @@ function Desc({ text }: { text: string }) {
 
 function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean }) {
   // serviço em branco (sem nome e sem valor) não vai para a proposta
-  const items = all.filter((it) => it.title.trim() || it.price > 0)
+  const items = all.filter((it) => it.title.trim() || it.price > 0 || it.joined)
   return (
     <div className="p-rows">
       {items.map((it, i) => (
         <div key={it.id} className={`p-row ${priceFirst ? 'is-price-first' : ''}`}>
-          {priceFirst ? <b className="p-row-price">{money(it.price)}</b> : <b className="p-row-n">{items.length === 1 ? '—' : String(i + 1).padStart(2, '0')}</b>}
+          {priceFirst ? <b className="p-row-price">{it.joined ? '+ incluso' : money(it.price)}</b> : <b className="p-row-n">{items.length === 1 ? '—' : String(i + 1).padStart(2, '0')}</b>}
           <div className="p-row-main">
             <span className="p-row-title">
               {it.title || 'serviço'}
@@ -189,7 +189,7 @@ function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boo
             </span>
             <Desc text={it.description} />
           </div>
-          {!priceFirst && <span className="p-row-price">{money(it.price)}</span>}
+          {!priceFirst && <span className={`p-row-price ${it.joined ? 'is-joined' : ''}`}>{it.joined ? 'incluso acima' : money(it.price)}</span>}
         </div>
       ))}
     </div>
