@@ -10,6 +10,107 @@ import { toast } from './dialog'
 
 /* Controles rápidos: mudar a fase e marcar pagamento sem abrir a demanda. */
 
+/* Trocar a fase de uma demanda: quando há algo importante a confirmar (entregue, início,
+   cancelar), abre uma pergunta antes; senão muda direto. Vale para todos os lugares. */
+type Pending = { p: Project; status: string } | null
+let pendingSet: ((v: Pending) => void) | null = null
+
+export function requestStatus(p: Project, status: string, apply: (next: Project) => void) {
+  if (p.status === status) return
+  const unpaid = p.payments.filter((x) => !x.paidDate && x.amount > 0)
+  const ask =
+    (status === 'entregue' && p.status !== 'entregue') ||
+    (status === 'producao' && p.status === 'briefing' && p.payments[0] && !p.payments[0].paidDate) ||
+    (status === 'cancelado' && p.status !== 'cancelado')
+  if (ask && pendingSet) {
+    applyRef = apply
+    pendingSet({ p, status })
+    return
+  }
+  apply({ ...p, status, deliveredDate: status === 'entregue' ? p.deliveredDate ?? today() : null })
+  toast(`“${p.title}” → ${statusInfo(status).label.toLowerCase()}`)
+  void unpaid
+}
+let applyRef: ((next: Project) => void) | null = null
+
+/** Janela das perguntas (fica montada uma vez no App). */
+export function StatusDialogHost() {
+  const [pending, setPending] = useState<Pending>(null)
+  pendingSet = setPending
+  if (!pending) return null
+  return <StatusDialog key={pending.p.id + pending.status} p={pending.p} status={pending.status} onClose={() => setPending(null)} />
+}
+
+function StatusDialog({ p, status, onClose }: { p: Project; status: string; onClose: () => void }) {
+  const unpaid = p.payments.filter((x) => !x.paidDate && x.amount > 0)
+  const [date, setDate] = useState(today())
+  const [paid, setPaid] = useState<Record<string, boolean>>({})
+  const [tasks, setTasks] = useState(true)
+  const openTasks = p.tasks.filter((t) => !t.done).length
+  const label = statusInfo(status).label.toLowerCase()
+  const confirm = () => {
+    let next: Project = { ...p, status, deliveredDate: status === 'entregue' ? date : null }
+    next = { ...next, payments: next.payments.map((x) => (paid[x.id] ? { ...x, paidDate: date } : x)) }
+    if (status === 'entregue' && tasks) next = { ...next, tasks: next.tasks.map((t) => ({ ...t, done: true })) }
+    applyRef?.(next)
+    const n = Object.values(paid).filter(Boolean).length
+    toast(`“${p.title}” → ${label}${n ? ` · ${n} pagamento(s) marcado(s)` : ''}`)
+    onClose()
+  }
+  const title = status === 'entregue' ? 'marcar como entregue' : status === 'cancelado' ? 'cancelar demanda' : `mudar para ${label}`
+  return (
+    <Modal
+      title={title}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>
+            voltar
+          </button>
+          <button className={`btn ${status === 'cancelado' ? 'danger' : 'primary'}`} onClick={confirm}>
+            {status === 'cancelado' ? 'cancelar demanda' : `confirmar: ${label}`}
+          </button>
+        </>
+      }
+    >
+      <p className="muted small" style={{ margin: '0 0 14px' }}>
+        <b>{p.title}</b>
+      </p>
+      {status === 'entregue' && (
+        <Field label="Entregue em">
+          <DateInput value={date} max={today()} onChange={(e) => setDate(e.target.value || today())} />
+        </Field>
+      )}
+      {status === 'cancelado' && (
+        <p className="small">
+          A demanda sai do quadro e das cobranças. {unpaid.length ? 'As parcelas em aberto ficam registradas, mas não serão cobradas.' : ''}
+        </p>
+      )}
+      {unpaid.length > 0 && status !== 'cancelado' && (
+        <div className="status-q">
+          <span className="field-label">{status === 'producao' ? 'o sinal já foi pago?' : 'o que já foi pago?'}</span>
+          {(status === 'producao' ? unpaid.slice(0, 1) : unpaid).map((x) => (
+            <label key={x.id} className="check toggle">
+              <input type="checkbox" checked={!!paid[x.id]} onChange={(e) => setPaid((v) => ({ ...v, [x.id]: e.target.checked }))} />
+              <span>
+                {x.description || 'parcela'} · <b className="money">{money(x.amount)}</b>
+              </span>
+            </label>
+          ))}
+          <span className="muted small">
+            {status === 'producao' ? 'Se marcar, entra como recebido hoje.' : `Os marcados entram como recebidos em ${date.split('-').reverse().join('/')}. Os outros continuam em “a receber”.`}
+          </span>
+        </div>
+      )}
+      {status === 'entregue' && openTasks > 0 && (
+        <label className="check toggle">
+          <input type="checkbox" checked={tasks} onChange={(e) => setTasks(e.target.checked)} /> concluir as {openTasks} etapa(s) que faltam
+        </label>
+      )}
+    </Modal>
+  )
+}
+
 export function StatusSelect({ p }: { p: Project }) {
   const { upsert } = useStore()
   const info = statusInfo(p.status)
@@ -19,11 +120,7 @@ export function StatusSelect({ p }: { p: Project }) {
       value={p.status}
       style={{ color: info.color, borderColor: `${info.color}66`, background: `${info.color}14` }}
       onClick={(e) => e.stopPropagation()}
-      onChange={(e) => {
-        const status = e.target.value
-        upsert('projects', { ...p, status, deliveredDate: status === 'entregue' ? p.deliveredDate ?? today() : null })
-        toast(`“${p.title}” → ${statusInfo(status).label.toLowerCase()}`)
-      }}
+      onChange={(e) => requestStatus(p, e.target.value, (next) => upsert('projects', next))}
       aria-label="Fase da demanda"
     >
       {allStatuses().map((k) => (

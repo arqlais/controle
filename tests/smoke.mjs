@@ -32,6 +32,7 @@ try {
         const card = page.locator('.kcard select.status-select').first()
         // o card muda de coluna: procura a demanda de novo pelo título
         await card.selectOption(v); await page.waitForTimeout(250)
+        if (await page.locator('.modal').count()) { await page.locator('.modal-foot .btn').last().click(); await page.waitForTimeout(200) }
       }
       ok(errors.length === 0, `${vp.name}: quadro troca de fase sem erro`)
     }
@@ -52,8 +53,17 @@ try {
       const all = await statusSel.locator('option').evaluateAll((os) => os.map((o) => o.value))
       for (const v of all) {
         await statusSel.selectOption(v); await page.waitForTimeout(250)
+        // fases importantes perguntam antes (pagamentos, data de entrega): confirma
+        if (await page.locator('.modal').count()) {
+          if (v === 'entregue') { const box = page.locator('.modal .status-q input[type=checkbox]').first(); if (await box.count()) await box.check() }
+          await page.locator('.modal-foot .btn').last().click(); await page.waitForTimeout(250)
+        }
         const now = (await stored()).projects.find((p) => p.id === paid.id).status
         ok(now === v, `${vp.name}: demanda com sinal pago vai para "${v}"`)
+        if (v === 'entregue') {
+          const pr = (await stored()).projects.find((p) => p.id === paid.id)
+          ok(!!pr.deliveredDate && pr.tasks.every((t) => t.done), `${vp.name}: ao entregar, pergunta e registra data e etapas`)
+        }
       }
     } else ok(false, `${vp.name}: não achei demanda com sinal pago no exemplo`)
 

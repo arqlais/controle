@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
-import { PayNext, StatusSelect } from '../components/quick'
+import { PayNext, StatusSelect, requestStatus } from '../components/quick'
 import { Icon } from '../components/Icon'
 import { ProjectForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
@@ -14,6 +14,8 @@ import {
   COLUMN_COLORS,
   uid,
   daysUntil,
+  deadlineInfo,
+  quoteNumber,
   fmtDate,
   isLate,
   isOpen,
@@ -22,7 +24,6 @@ import {
   projectTotal,
   relativeDays,
   sum,
-  today,
   urgency,
   urgencyScore,
 } from '../utils'
@@ -79,10 +80,7 @@ export default function Projects() {
       .filter((p) => !term || p.title.toLowerCase().includes(term) || clientName(p.clientId).toLowerCase().includes(term))
   }, [data, q, clientId, prio])
 
-  const move = (p: Project, status: ProjectStatus) => {
-    if (p.status === status) return
-    upsert('projects', { ...p, status, deliveredDate: status === 'entregue' ? p.deliveredDate ?? today() : null })
-  }
+  const move = (p: Project, status: ProjectStatus) => requestStatus(p, status, (next) => upsert('projects', next))
 
   return (
     <div className="page">
@@ -234,16 +232,22 @@ export default function Projects() {
 }
 
 function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; onDragStart: () => void }) {
-  const u = urgency(p)
+  const { data } = useStore()
   const done = p.tasks.filter((t) => t.done).length
+  const quote = data.quotes.find((q) => q.projectId === p.id)
+  const dl = deadlineInfo(p)
   return (
     <div className="kcard" draggable onDragStart={onDragStart} onClick={() => go('projetos', p.id)}>
       <div className="kcard-top">
-        <Badge color={PRIORITY[u.level].color}>{u.reason || PRIORITY[u.level].label}</Badge>
-        {p.dueDate && <span className={`small ${isLate(p) ? 'text-bad' : 'muted'}`}>{fmtDate(p.dueDate)}</span>}
+        <span className="kcard-client">{client || 'sem cliente'}</span>
+        {quote && <span className="kcard-num">{quoteNumber(quote)}</span>}
       </div>
       <div className="kcard-title">{p.title}</div>
-      <div className="muted small">{client}</div>
+      <div className="kcard-deadline">
+        {p.priority === 'urgente' && isOpen(p) && <span className="dl-chip tone-bad solid">urgente</span>}
+        <span className={`dl-chip tone-${dl.tone}`}>{dl.text}</span>
+        {p.dueDate && isOpen(p) && <span className="muted small">{fmtDate(p.dueDate)}</span>}
+      </div>
       {p.tasks.length > 0 && (
         <div className="kcard-progress">
           <div className="progress thin">

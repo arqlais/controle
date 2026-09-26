@@ -154,6 +154,10 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
     page: 'config',
   },
   {
+    q: 'Mudar a fase de uma demanda',
+    a: <>Pelo status no cartão, na lista, dentro da demanda ou arrastando entre colunas. Nas trocas importantes o sistema pergunta antes: ao <b>entregar</b>, a data de entrega, o que já foi pago e se conclui as etapas; ao ir para <b>em execução</b>, se o sinal já foi pago; ao <b>cancelar</b>, pede confirmação. O cartão mostra o cliente, o nº da proposta e o prazo em palavras (faltam X dias, entrega hoje, atrasado X dias).</>,
+  },
+  {
     q: 'Conversar com a IA (chat)',
     a: <>O botão <b>✦</b> no canto da tela abre o <b>assistente</b>: um chat (dá para anexar fotos, PDF e prints que o cliente mandou, no clipe ou arrastando) que conhece sua tabela, plantas com valores, seu processo e seus orçamentos. Ele usa o Gemini com uma chave gratuita sua (<b>configurações → assistente</b>, onde também dá para escrever suas regras). A qualquer momento, <b>levar a conversa para o Claude</b> abre o Claude com tudo escrito.</>,
   },

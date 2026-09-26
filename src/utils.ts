@@ -229,6 +229,25 @@ export const projectOpen = (p: Project) => projectTotal(p) - projectPaid(p)
 export const projectHours = (p: Project) => p.timeLogs.reduce((s, t) => s + t.hours, 0)
 export const isOpen = (p: Project) => p.status !== 'entregue' && p.status !== 'cancelado'
 export const isLate = (p: Project) => isOpen(p) && !!p.dueDate && daysUntil(p.dueDate) < 0
+
+/** Situação do prazo em palavras: "faltam 5 dias", "entrega hoje", "atrasado 12 dias", "entregue no prazo"… */
+export function deadlineInfo(p: Project): { text: string; tone: 'good' | 'warn' | 'bad' | 'muted' } {
+  const dias = (n: number) => `${n} dia${n === 1 ? '' : 's'}`
+  if (p.status === 'cancelado') return { text: 'cancelado', tone: 'muted' }
+  if (p.status === 'entregue') {
+    if (p.dueDate && p.deliveredDate) {
+      const late = daysBetween(p.dueDate, p.deliveredDate)
+      return late > 0 ? { text: `entregue com ${dias(late)} de atraso`, tone: 'warn' } : { text: 'entregue no prazo', tone: 'good' }
+    }
+    return { text: p.deliveredDate ? `entregue em ${fmtDate(p.deliveredDate)}` : 'entregue', tone: 'good' }
+  }
+  if (!p.dueDate) return { text: 'sem prazo definido', tone: 'muted' }
+  const d = daysUntil(p.dueDate)
+  if (d < 0) return { text: `atrasado ${dias(-d)}`, tone: 'bad' }
+  if (d === 0) return { text: 'entrega hoje', tone: 'bad' }
+  if (d === 1) return { text: 'entrega amanhã', tone: 'warn' }
+  return { text: `faltam ${dias(d)}`, tone: d <= 3 ? 'warn' : 'good' }
+}
 /** Sem vencimento por data: o sinal é cobrado no fechamento e o saldo na conclusão. */
 export const payWhen = (x: Payment): 'fechamento' | 'conclusao' => x.on ?? (/saldo|aprova|conclus|entrega/i.test(x.description) ? 'conclusao' : 'fechamento')
 export const PAY_WHEN = { fechamento: 'no fechamento', conclusao: 'na conclusão' } as const

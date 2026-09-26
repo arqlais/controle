@@ -9,6 +9,7 @@ import { usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
+import { requestStatus } from '../components/quick'
 import type { Client, Extra, Payment, Priority, Project, ProjectItem, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
@@ -110,10 +111,7 @@ export default function ProjectDetail({ id }: { id: string }) {
           </p>
           <h1>{p.title}</h1>
           <div className="row gap-s wrap">
-            <select className="pill-select" value={p.status} onChange={(e) => {
-              const status = e.target.value as ProjectStatus
-              save({ status, deliveredDate: status === 'entregue' ? p.deliveredDate ?? today() : null })
-            }} style={{ color: statusInfo(p.status).color }}>
+            <select className="pill-select" value={p.status} onChange={(e) => requestStatus(p, e.target.value as ProjectStatus, (next) => save(next))} style={{ color: statusInfo(p.status).color }}>
               {allStatuses().map((k) => (
               <option key={k} value={k}>
                 {statusInfo(k).label}
@@ -132,7 +130,7 @@ export default function ProjectDetail({ id }: { id: string }) {
         </div>
         <div className="row gap-s wrap detail-actions">
           {isOpen(p) && (
-            <button className="btn primary" onClick={() => save({ status: 'entregue', deliveredDate: today(), tasks: p.tasks.map((t) => ({ ...t, done: true })) })}>
+            <button className="btn primary" onClick={() => requestStatus(p, 'entregue', (next) => save(next))}>
               <Icon name="check" size={16} /> Marcar como entregue
             </button>
           )}

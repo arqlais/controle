@@ -7,6 +7,7 @@ import { signOut } from './components/Auth'
 import { CLOUD } from './cloud'
 import { AvatarGlyph } from './components/Avatar'
 import { AIChat } from './components/AIChat'
+import { StatusDialogHost } from './components/quick'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
@@ -283,6 +284,7 @@ export default function App() {
           )}
           {page}
         </main>
+        <StatusDialogHost />
         <AIChat quoteId={route.page === 'orcamentos' && route.id && route.id !== 'novo' ? route.id : undefined} />
       </div>
 
