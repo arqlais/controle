@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { Settings } from './types'
 
 const hexToRgb = (hex: string) => {
@@ -21,10 +22,37 @@ const mix = (a: string, b: string, t: number) => {
   return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`
 }
 
+/* Modo claro/escuro é escolha de cada aparelho (não vai para a nuvem):
+   o notebook pode ficar escuro e o celular claro, ou o contrário. */
+const THEME_KEY = 'controle-tema-escuro'
+const themeListeners = new Set<(dark: boolean) => void>()
+export function getDeviceDark(): boolean {
+  try {
+    return localStorage.getItem(THEME_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+export function setDeviceDark(dark: boolean) {
+  try {
+    localStorage.setItem(THEME_KEY, dark ? '1' : '0')
+  } catch {
+    /* sem armazenamento: vale só enquanto a página estiver aberta */
+  }
+  themeListeners.forEach((l) => l(dark))
+}
+export function useDeviceDark(): [boolean, (dark: boolean) => void] {
+  const [dark, setDark] = useState(getDeviceDark)
+  useEffect(() => {
+    themeListeners.add(setDark)
+    return () => void themeListeners.delete(setDark)
+  }, [])
+  return [dark, setDeviceDark]
+}
+
 /** Aplica a identidade visual (Configurações → Identidade visual) nas variáveis CSS. */
-export function applyTheme(s: Settings) {
+export function applyTheme(s: Settings, dark = false) {
   const root = document.documentElement
-  const dark = s.dark
   // modo escuro: grafite profundo, mantendo o rosé como acento
   const bg = dark ? '#1f262d' : s.background
   const surface = dark ? '#28313a' : s.surface

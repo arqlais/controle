@@ -190,6 +190,8 @@ const WHERE: [string, string, string][] = [
   ['mudar ordem do menu', 'organizar menu (abaixo do menu)', ''],
   ['manual e configurações', 'grupo “ajustes e dicas”, no fim do menu', ''],
   ['seus dados, logo, pix e senha', 'perfil (seu nome no pé do menu)', 'perfil'],
+  ['menu completo no celular', 'ícone ☰ no canto superior esquerdo', ''],
+  ['modo escuro', 'lua no pé do menu (vale só para o aparelho em que você ligar)', ''],
   ['sair da conta', 'perfil → conta e segurança', 'perfil'],
   ['backup dos dados', 'configurações → backup e dados', 'config'],
 ]

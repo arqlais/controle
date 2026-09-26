@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useDeviceDark } from '../theme'
 import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
@@ -26,6 +27,7 @@ const BODY_FONTS = ['Poppins']
 export default function SettingsPage() {
   const { data, setSettings, replaceAll } = useStore()
   const s = data.settings
+  const [dark, setDark] = useDeviceDark()
   const fileRef = useRef<HTMLInputElement>(null)
   const fontRef = useRef<HTMLInputElement>(null)
 
@@ -148,14 +150,14 @@ export default function SettingsPage() {
             <Field label={`Cantos arredondados · ${s.radius}px`}>
               <input type="range" min={0} max={20} value={s.radius} onChange={(e) => setSettings({ radius: Number(e.target.value) })} />
             </Field>
-            <Field label="Tema">
+            <Field label="Tema deste aparelho" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
               <Segmented
-                value={s.dark ? 'd' : 'l'}
+                value={dark ? 'd' : 'l'}
                 options={[
                   { value: 'l', label: 'Claro' },
                   { value: 'd', label: 'Escuro' },
                 ]}
-                onChange={(v) => setSettings({ dark: v === 'd' })}
+                onChange={(v) => setDark(v === 'd')}
               />
             </Field>
           </div>

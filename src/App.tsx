@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
 import type { SyncStatus } from './store'
-import { applyTheme } from './theme'
+import { applyTheme, useDeviceDark } from './theme'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
@@ -65,7 +65,8 @@ export default function App() {
     setSettings({ navOrder: pages })
   }
 
-  useEffect(() => applyTheme(settings), [settings])
+  const [dark, setDark] = useDeviceDark()
+  useEffect(() => applyTheme(settings, dark), [settings, dark])
   useEffect(() => setMenuOpen(false), [route.page, route.id])
 
   const alerts = useMemo(
@@ -171,8 +172,8 @@ export default function App() {
           {profileMissing(settings).length > 0 && <em className="profile-chip-dot" title="Perfil incompleto" />}
         </a>
         <div className="sidebar-foot">
-          <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema claro/escuro">
-            <Icon name={settings.dark ? 'sun' : 'moon'} />
+          <button className="icon-btn" onClick={() => setDark(!dark)} title="Tema claro/escuro (só neste aparelho)">
+            <Icon name={dark ? 'sun' : 'moon'} />
           </button>
           <button
             className="icon-btn desktop-only"
@@ -269,16 +270,13 @@ export default function App() {
       </div>
 
       <nav className="bottom-nav">
-        {nav.slice(0, 4).map((n) => (
+        {/* 5 atalhos do dia a dia; o resto (orçamentos, manual, configurações, perfil) fica no menu do canto superior */}
+        {nav.slice(0, 5).map((n) => (
           <a key={n.page} href={href(n.page)} className={route.page === n.page ? 'active' : ''}>
             <Icon name={n.icon} />
             <span>{n.label}</span>
           </a>
         ))}
-        <button type="button" className={[...nav.slice(4), ...TOOLS].some((n) => n.page === route.page) ? 'active' : ''} onClick={() => setMenuOpen(true)}>
-          <Icon name="menu" />
-          <span>mais</span>
-        </button>
       </nav>
 
       {quick === 'projeto' && <ProjectForm onClose={() => setQuick(null)} onSaved={(p) => go('projetos', p.id)} />}
