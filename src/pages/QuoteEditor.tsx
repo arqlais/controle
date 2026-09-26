@@ -237,6 +237,19 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar proposta em PDF
                 </label>
               </Field>
+              <Field label="Data da proposta" hint={q.createdAt === today() ? 'Hoje. Para orçamento antigo, coloque a data real.' : 'Data do orçamento (vai no PDF e na lista).'}>
+                <input
+                  id="q-date"
+                  type="date"
+                  value={q.createdAt}
+                  max={today()}
+                  onChange={(e) => {
+                    const d = e.target.value || today()
+                    // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
+                    set({ createdAt: d, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
+                  }}
+                />
+              </Field>
             </div>
             {student && <p className="small text-warn">Cliente estudante: sugestões com {settings.studentDiscount}% de desconto.</p>}
           </Section>

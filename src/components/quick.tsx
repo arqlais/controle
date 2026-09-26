@@ -112,11 +112,15 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const proposed = quoteTotal({ ...q, closedValue: 0 }, fee)
   const [value, setValue] = useState(q.closedValue && q.closedValue > 0 ? q.closedValue : proposed)
   const [due, setDue] = useState('')
+  const [closedOn, setClosedOn] = useState(today())
+  const [signalPaid, setSignalPaid] = useState(false)
   const diff = Math.round((proposed - value) * 100) / 100
   const confirm = () => {
     if (value <= 0) return toast('Informe o valor fechado.')
-    const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, sentAt: q.sentAt || today() }
-    const project = projectFromQuote(approved, fee, due)
+    const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, sentAt: q.sentAt || closedOn }
+    const base = projectFromQuote(approved, fee, due, closedOn)
+    // lançando orçamentos antigos: o sinal já entra pago na data do fechamento
+    const project = signalPaid && base.payments[0] ? { ...base, payments: base.payments.map((x, i) => (i === 0 ? { ...x, paidDate: closedOn } : x)) } : base
     upsert('projects', project)
     upsert('quotes', { ...approved, projectId: project.id })
     toast(`Aprovado por ${money(value)}! Demanda “${project.title}” criada, aguardando sinal.`)
@@ -146,6 +150,12 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
         <Field label="Fechou por quanto?" hint={diff > 0 ? `Negociado: ${money(diff)} a menos que a proposta (${money(proposed)}).` : diff < 0 ? `${money(-diff)} a mais que a proposta (${money(proposed)}).` : `Mesmo valor da proposta. Se negociou, é só mudar aqui.`}>
           <MoneyInput value={value} onChange={setValue} />
         </Field>
+        <Field label="Fechou em" hint="Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.">
+          <input type="date" value={closedOn} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
+        </Field>
+        <label className="check">
+          <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})
+        </label>
         <Field label="Prazo combinado · se houver" hint="Só se vocês alinharam um prazo. Dá para definir ou mudar depois, no card “prazo combinado” da demanda.">
           <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
         </Field>

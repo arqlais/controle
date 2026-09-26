@@ -124,6 +124,11 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
     page: 'projetos',
   },
   {
+    q: 'Quero lançar orçamentos antigos (do ano todo)',
+    a: <>No orçamento, troque a <b>data da proposta</b> (em dados) para a data real. Ao aprovar, coloque em <b>fechou em</b> o dia em que a cliente aprovou e marque <b>o sinal já foi pago</b>, se for o caso. Assim a demanda e o financeiro de cada mês ficam certos. Pagamentos seguintes: na demanda, marque pago e ajuste a data ao lado.</>,
+    page: 'orcamentos',
+  },
+  {
     q: 'Negociamos e fechou por outro valor',
     a: <>Na hora de aprovar, troque o valor em <b>Fechou por quanto?</b>. A lista de orçamentos mostra o valor fechado com o proposto riscado.</>,
     page: 'orcamentos',

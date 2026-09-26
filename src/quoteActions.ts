@@ -6,11 +6,11 @@ import { DEFAULT_TASKS, cleanDetail, optionTotal, quoteNumber, quoteTotal, split
 const sub = (d: string) => (d.trim() ? '\n' + d.split('\n').filter((l) => l.trim()).map((l) => `   · ${l.trim()}`).join('\n') : '')
 
 /** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
-export function projectFromQuote(q: Quote, urgencyFee: number, due = ''): Project {
+export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = ''): Project {
   const chosen = q.options.find((o) => o.id === q.chosenOption)
   const useOption = q.mode === 'opcoes' && chosen
   const firstItem = q.items[0]
-  const start = today()
+  const start = closedOn || today() // dia em que fechou (orçamentos antigos: a data real)
   const value = q.closedValue && q.closedValue > 0 ? q.closedValue : useOption ? optionTotal(chosen) : quoteTotal(q, urgencyFee)
   // vários serviços com valor → vira pacote (dá para retirar um depois e o desconto se ajusta)
   const lines = (useOption ? chosen.items : q.items).filter((i) => i.price > 0)
