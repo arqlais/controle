@@ -238,7 +238,7 @@ function ClientHistory({ client }: { client: Client }) {
         }}
       >
         <input id="history-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Data" />
-        <input id="history-text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex.: enviei a prévia; pediu troca do piso da sala" />
+        <input id="history-text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex.: enviei a prévia; pediu troca do piso da sala" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
         <button className="btn small">anotar</button>
       </form>
       {notes.length === 0 ? (

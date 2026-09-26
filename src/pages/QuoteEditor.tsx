@@ -268,11 +268,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <b>{money(total)}</b>
                 </div>
                 <Field label="Texto abaixo do total" hint="Em branco, o sistema escreve o desconto sozinho.">
-                  <input value={q.discountNote} onChange={(e) => set({ discountNote: e.target.value })} placeholder="Ex.: valor especial para pacote fechado" />
+                  <input value={q.discountNote} onChange={(e) => set({ discountNote: e.target.value })} placeholder="Ex.: valor especial para pacote fechado" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
                 </Field>
               </div>
               <Field label="Observação (dentro do quadro)">
-                <textarea rows={2} value={q.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Opcional" />
+                <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={q.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Opcional" />
               </Field>
             </Section>
           ) : (
@@ -305,7 +305,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </div>
                 <div className="form-grid two">
                   <Field label="Observação (dentro do quadro)">
-                    <input value={o.note} onChange={(e) => setOption(o.id, { note: e.target.value })} placeholder="Opcional" />
+                    <input value={o.note} onChange={(e) => setOption(o.id, { note: e.target.value })} placeholder="Opcional" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
                   </Field>
                   <Field label="Prazo interno (dias úteis)" hint="Para o prazo da demanda; não vai no PDF.">
                     <input type="number" min={1} value={o.deadlineDays} onChange={(e) => setOption(o.id, { deadlineDays: Number(e.target.value) || 0 })} />
@@ -449,7 +449,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                   })
                 }}
               >
-                <option value="">Personalizado (valor livre)</option>
+                <option value="">escolha o serviço…</option>
                 {settings.services.map((x) => (
                   <option key={x.id} value={x.id}>
                     {x.name}
@@ -462,7 +462,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
             </div>
             <div className="q-item-grid">
               <Field label="Serviço (na proposta)">
-                <input value={it.title} onChange={(e) => setItem(it.id, { title: e.target.value })} placeholder="Ex.: Renderização V-Ray" />
+                <input value={it.title} onChange={(e) => setItem(it.id, { title: e.target.value })} placeholder="Ex.: renderização V-Ray" />
               </Field>
               {s && s.pricing !== 'livre' && (
                 <Field label={s.pricing === 'm2' ? 'Área (m²)' : `Quantidade (${s.unit})`}>
@@ -482,7 +482,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                 <input value={it.detail} onChange={(e) => onChange(items.map((i) => (i.id === it.id ? { ...i, detail: e.target.value } : i)))} placeholder="Ex.: 5 imagens" />
               </Field>
               <Field label="O que está incluso" span={2}>
-                <input value={it.description} onChange={(e) => setItem(it.id, { description: e.target.value })} placeholder="Ambientes, nível de detalhe…" />
+                <input value={it.description} onChange={(e) => setItem(it.id, { description: e.target.value })} placeholder="Ambientes, nível de detalhe…" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
               </Field>
               {s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
                 <Field label={`Desconto por ${s.unit}`} hint={it.unitDiscount ? `fica ${money(Math.max(0, rate - it.unitDiscount))}/${s.unit}` : 'opcional'}>

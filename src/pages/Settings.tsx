@@ -271,7 +271,7 @@ export default function SettingsPage() {
                 <input type="number" min={0} value={s.defaultRevisions} onChange={(e) => setSettings({ defaultRevisions: Number(e.target.value) || 0 })} />
               </Field>
               <Field label="Condições de pagamento padrão" span={3}>
-                <textarea rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
+                <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
               </Field>
             </div>
           </Section>
@@ -409,17 +409,17 @@ function ProposalSettings() {
     area: mode === 'escopo' ? 140 : 0,
     clientLabel: '',
     items: [
-      { id: 'a', service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media', price: 370, auto: true },
-      { id: 'b', service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
+      { id: 'a', service: 'render-vray', title: 'renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media', price: 370, auto: true },
+      { id: 'b', service: 'modelagem', title: 'modelagem 3d', detail: '140 m² · complexidade média', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
     ],
     options: [
       {
-        id: 'o1', name: 'renderização I.A', note: '', discount: 0, discountNote: '', deadlineDays: 7,
-        items: [{ id: 'c', service: 'render-ia', title: 'Renderização I.A', detail: '10 imagens', description: 'áreas sociais e fachada', quantity: 10, complexity: 'media', price: 460, auto: true }],
+        id: 'o1', name: 'renderização por IA', note: '', discount: 0, discountNote: '', deadlineDays: 7,
+        items: [{ id: 'c', service: 'render-ia', title: 'renderização por IA', detail: '10 imagens', description: 'áreas sociais e fachada', quantity: 10, complexity: 'media', price: 460, auto: true }],
       },
       {
         id: 'o2', name: 'renderização V-Ray', note: '', discount: 0, discountNote: '', deadlineDays: 12,
-        items: [{ id: 'd', service: 'render-vray', title: 'Renderização V-Ray', detail: '10 imagens', description: 'áreas sociais e fachada', quantity: 10, complexity: 'media', price: 710, auto: true }],
+        items: [{ id: 'd', service: 'render-vray', title: 'renderização V-Ray', detail: '10 imagens', description: 'áreas sociais e fachada', quantity: 10, complexity: 'media', price: 710, auto: true }],
       },
     ],
     chosenOption: '',
@@ -463,7 +463,7 @@ function ProposalSettings() {
               <input value={p.files} onChange={(e) => setP({ files: e.target.value })} />
             </Field>
             <Field label="Pagamento (padrão)" span={3} hint="Usado em todo orçamento novo; dá para mudar em cada um.">
-              <textarea rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
+              <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
             </Field>
             {(
               [

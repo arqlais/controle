@@ -348,3 +348,14 @@ export function formatPhone(value: string) {
 }
 
 export const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'yahoo.com.br', 'live.com', 'uol.com.br', 'bol.com.br']
+
+/** Nome próprio com iniciais maiúsculas: "natasha da silva" → "Natasha da Silva". */
+export function titleCase(name: string) {
+  const small = new Set(['da', 'de', 'do', 'das', 'dos', 'e'])
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map((w, i) => (i > 0 && small.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toLocaleUpperCase('pt-BR') + w.slice(1)))
+    .join(' ')
+}

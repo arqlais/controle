@@ -3,22 +3,37 @@ import { CLOUD, fetchRemote, pushRemote } from './cloud'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, Project, ProposalStyle, ServiceDef, Settings } from './types'
-import { DEFAULT_TASKS, addDays, splitPayments, today, uid } from './utils'
+import { DEFAULT_TASKS, addDays, splitPayments, titleCase, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
 
 // Preços da tabela do site (render V-Ray e IA). Os por m² são ponto de partida — ajuste em Configurações.
 export const DEFAULT_SERVICES: ServiceDef[] = [
-  { id: 'render-vray', name: 'Renderização V-Ray', unit: 'imagem', pricing: 'pacote', price: 80, min: 0, hours: 4, tiers: [ { qty: 5, price: 370 }, { qty: 10, price: 710 }, { qty: 15, price: 975 } ] },
-  { id: 'render-ia', name: 'Renderização I.A', unit: 'imagem', pricing: 'pacote', price: 50, min: 0, hours: 1.5, tiers: [ { qty: 5, price: 240 }, { qty: 10, price: 460 }, { qty: 15, price: 630 } ] },
-  { id: 'modelagem', name: 'Modelagem 3D', unit: 'm²', pricing: 'm2', price: 6, min: 350, hours: 0.08, tiers: [] },
-  { id: 'detalhamento', name: 'Detalhamento', unit: 'm²', pricing: 'm2', price: 12, min: 400, hours: 0.1, tiers: [] },
-  { id: 'executivo', name: 'Projeto executivo', unit: 'm²', pricing: 'm2', price: 15, min: 600, hours: 0.12, tiers: [] },
-  { id: 'mapas', name: 'Mapas urbanos', unit: 'mapa', pricing: 'unidade', price: 150, min: 0, hours: 2.5, tiers: [] },
-  { id: 'pranchas', name: 'Pranchas e monografia', unit: 'prancha', pricing: 'unidade', price: 200, min: 0, hours: 3, tiers: [] },
-  { id: 'planta-hum', name: 'Planta humanizada', unit: 'planta', pricing: 'unidade', price: 300, min: 0, hours: 4, tiers: [] },
-  { id: 'personalizado', name: 'Serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
+  { id: 'render-vray', name: 'renderização V-Ray', unit: 'imagem', pricing: 'pacote', price: 80, min: 0, hours: 4, tiers: [ { qty: 5, price: 370 }, { qty: 10, price: 710 }, { qty: 15, price: 975 } ] },
+  { id: 'render-ia', name: 'renderização por IA', unit: 'imagem', pricing: 'pacote', price: 50, min: 0, hours: 1.5, tiers: [ { qty: 5, price: 240 }, { qty: 10, price: 460 }, { qty: 15, price: 630 } ] },
+  { id: 'modelagem', name: 'modelagem 3d', unit: 'm²', pricing: 'm2', price: 6, min: 350, hours: 0.08, tiers: [] },
+  { id: 'detalhamento', name: 'detalhamento', unit: 'm²', pricing: 'm2', price: 12, min: 400, hours: 0.1, tiers: [] },
+  { id: 'executivo', name: 'executivo', unit: 'm²', pricing: 'm2', price: 15, min: 600, hours: 0.12, tiers: [] },
+  { id: 'pranchas', name: 'prancha', unit: 'prancha', pricing: 'unidade', price: 200, min: 0, hours: 3, tiers: [] },
+  { id: 'mapas', name: 'mapa urbano', unit: 'mapa', pricing: 'unidade', price: 150, min: 0, hours: 2.5, tiers: [] },
+  { id: 'diagramas', name: 'diagramas', unit: 'diagrama', pricing: 'unidade', price: 80, min: 0, hours: 1, tiers: [] },
+  { id: 'diagramacao', name: 'diagramação', unit: 'prancha', pricing: 'unidade', price: 120, min: 0, hours: 2, tiers: [] },
+  { id: 'personalizado', name: 'serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
+
+/** Nomes antigos (com maiúscula / plural) → nomes atuais, sem perder os preços já ajustados. */
+function migrateServices(list: ServiceDef[]): ServiceDef[] {
+  const renamed: Record<string, string> = {
+    'render-vray': 'renderização V-Ray', 'render-ia': 'renderização por IA', modelagem: 'modelagem 3d', detalhamento: 'detalhamento',
+    executivo: 'executivo', pranchas: 'prancha', mapas: 'mapa urbano', personalizado: 'serviço personalizado',
+  }
+  const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Serviço personalizado'])
+  const out = list
+    .filter((x) => !(x.id === 'planta-hum' && x.name === 'Planta humanizada'))
+    .map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
+  for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && (d.id === 'diagramas' || d.id === 'diagramacao')) out.splice(out.length - 1, 0, d)
+  return out
+}
 
 export const PAYMENT_TERMS = 'Pix — 50% de entrada + 50% na aprovação final | Crédito — 100%'
 
@@ -107,7 +122,7 @@ export function normalize(d: Partial<Data>): Data {
   return {
     version: 1,
     demo: d.demo,
-    clients: (d.clients ?? []).map((c) => ({ ...c, type: (c.type as string) === 'incorporadora' ? 'construtora' : c.type, history: c.history ?? [] })),
+    clients: (d.clients ?? []).map((c) => ({ ...c, name: titleCase(c.name), type: (c.type as string) === 'incorporadora' ? 'construtora' : c.type, history: c.history ?? [] })),
     projects: (d.projects ?? []).map((p) => ({
       ...p,
       timerStart: p.timerStart ?? null,
@@ -173,7 +188,7 @@ export function normalize(d: Partial<Data>): Data {
         instagram: d.settings?.instagram || DEFAULT_SETTINGS.instagram,
         website: d.settings?.website || DEFAULT_SETTINGS.website,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
-        services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })),
+        services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 }))),
       },
       d.settings,
     ),
@@ -515,8 +530,8 @@ export function demoData(settings: Settings): Data {
       files: 'PDF e arquivo editável do layout.',
       schedule: DEFAULT_PROPOSAL.schedule,
       items: [
-        { id: uid(), service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media' as const, price: 370, auto: true },
-        { id: uid(), service: 'modelagem', title: 'Modelagem 3D', detail: '140 m² · complexidade média', description: 'modelagem completa a partir do DWG, com mobiliário', quantity: 140, complexity: 'media' as const, price: 1092, auto: true },
+        { id: uid(), service: 'render-vray', title: 'renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media' as const, price: 370, auto: true },
+        { id: uid(), service: 'modelagem', title: 'modelagem 3d', detail: '140 m² · complexidade média', description: 'modelagem completa a partir do DWG, com mobiliário', quantity: 140, complexity: 'media' as const, price: 1092, auto: true },
       ],
       discount: 62,
       urgency: false,

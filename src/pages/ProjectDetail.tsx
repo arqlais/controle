@@ -311,13 +311,13 @@ export default function ProjectDetail({ id }: { id: string }) {
           </Section>
 
           <Section title="Briefing e anotações">
-            <textarea
+            <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on"
               rows={4}
               value={p.description}
               onChange={(e) => save({ description: e.target.value })}
               placeholder="Ambientes, referências, câmeras, formato de entrega…"
             />
-            <textarea
+            <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on"
               rows={3}
               value={p.notes}
               onChange={(e) => save({ notes: e.target.value })}

@@ -12,6 +12,7 @@ import {
   allStatuses,
   isStudent,
   suggestPrice,
+  titleCase,
   PAY_MODES,
   type PayMode,
   money,
@@ -51,8 +52,9 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }))
   const save = () => {
     if (!c.name.trim()) return toast('Informe o nome do cliente.')
-    upsert('clients', c)
-    onSaved?.(c)
+    const saved = { ...c, name: titleCase(c.name) }
+    upsert('clients', saved)
+    onSaved?.(saved)
     onClose()
   }
   return (
@@ -120,7 +122,7 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
           />
         </Field>
         <Field label="Observações" span={3} hint="Preferências de estilo, softwares que usa, forma de enviar arquivos...">
-          <textarea rows={3} value={c.notes} onChange={(e) => set('notes', e.target.value)} />
+          <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={3} value={c.notes} onChange={(e) => set('notes', e.target.value)} />
         </Field>
       </div>
     </Modal>
@@ -318,7 +320,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         </Field>
 
         <Field label="Briefing / descrição" span={3}>
-          <textarea rows={3} value={p.description} onChange={(e) => set('description', e.target.value)} placeholder="Ambientes, referências, estilo, câmeras, formato de entrega…" />
+          <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={3} value={p.description} onChange={(e) => set('description', e.target.value)} placeholder="Ambientes, referências, estilo, câmeras, formato de entrega…" />
         </Field>
       </div>
       {showEditClient && client && <ClientForm initial={client} onClose={() => setShowEditClient(false)} />}
@@ -446,7 +448,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
     >
       <div className="form-grid">
         <Field label="Título *" span={3}>
-          <input autoFocus value={ev.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex.: Reunião de briefing, prova, orientação do TCC" />
+          <input autoFocus value={ev.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex.: Reunião de briefing, prova, orientação do TCC" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
         </Field>
         <Field label="Data">
           <input type="date" value={ev.date} onChange={(e) => set('date', e.target.value)} />
@@ -486,7 +488,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
           </select>
         </Field>
         <Field label="Notas" span={3}>
-          <textarea rows={2} value={ev.notes} onChange={(e) => set('notes', e.target.value)} />
+          <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={ev.notes} onChange={(e) => set('notes', e.target.value)} />
         </Field>
       </div>
     </Modal>
