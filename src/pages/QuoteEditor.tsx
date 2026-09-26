@@ -66,6 +66,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       },
   )
   const [newClient, setNewClient] = useState(false)
+  const [editClient, setEditClient] = useState(false)
   const [dirty, setDirty] = useState(!existing)
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   const pdf = usePdf()
@@ -206,6 +207,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                         </option>
                       ))}
                   </select>
+                  {client && (
+                    <button className="btn ghost small" onClick={() => setEditClient(true)} title="Editar dados da cliente">
+                      <Icon name="edit" size={14} />
+                    </button>
+                  )}
                   <button className="btn ghost small" onClick={() => setNewClient(true)} title="Novo cliente">
                     +
                   </button>
@@ -400,6 +406,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       </div>
 
       {newClient && <ClientForm onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
+      {editClient && client && <ClientForm initial={client} onClose={() => setEditClient(false)} />}
       {pdf.portal}
     </div>
   )

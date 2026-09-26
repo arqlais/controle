@@ -20,6 +20,7 @@ import {
   uid,
 } from '../utils'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
+import { Icon } from './Icon'
 
 /* ---------------- Cliente ---------------- */
 
@@ -164,6 +165,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
   const [p, setP] = useState<Project>(() => initial ?? { ...newProject(clientId), revisionsIncluded: settings.defaultRevisions })
   const [payMode, setPayMode] = useState<PayChoice>(initial?.payments.length ? 'manter' : '50-50')
   const [showNewClient, setShowNewClient] = useState(false)
+  const [showEditClient, setShowEditClient] = useState(false)
   const set = <K extends keyof Project>(k: K, v: Project[K]) => setP((x) => ({ ...x, [k]: v }))
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = settings.services.find((s) => s.id === p.service)
@@ -238,6 +240,11 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
                 </option>
               ))}
             </select>
+            {client && (
+              <button type="button" className="btn ghost small" onClick={() => setShowEditClient(true)} title="Editar dados do cliente">
+                <Icon name="edit" size={14} />
+              </button>
+            )}
             <button type="button" className="btn ghost small" onClick={() => setShowNewClient(true)} title="Novo cliente">
               +
             </button>
@@ -313,6 +320,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
           <textarea rows={3} value={p.description} onChange={(e) => set('description', e.target.value)} placeholder="Ambientes, referências, estilo, câmeras, formato de entrega…" />
         </Field>
       </div>
+      {showEditClient && client && <ClientForm initial={client} onClose={() => setShowEditClient(false)} />}
       {showNewClient && (
         <ClientForm
           onClose={() => setShowNewClient(false)}
