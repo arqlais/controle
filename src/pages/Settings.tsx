@@ -4,8 +4,8 @@ import { Icon } from '../components/Icon'
 import { EmailInput, Field, MoneyInput, PhoneInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, PRICING, download, money, today, uid } from '../utils'
-import { DEFAULT_PROPOSAL } from '../store'
+import { COMPLEXITY, MESSAGE_VARS, PRICING, download, money, today, uid } from '../utils'
+import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
 import { CLOUD } from '../cloud'
@@ -278,6 +278,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <MessagesSettings />
+
       <p className="mobile-only desktop-note">
         <Icon name="settings" size={16} /> Identidade visual, tabela de preços e modelo da proposta são editados no computador.
       </p>
@@ -503,6 +505,48 @@ function ProposalSettings() {
           </DocScale>
         </div>
       </div>
+    </Section>
+  )
+}
+
+/** Mensagens prontas para cada situação com a cliente, com {variáveis} preenchidas na hora de enviar. */
+function MessagesSettings() {
+  const { data, setSettings } = useStore()
+  const list = data.settings.messages
+  const update = (id: string, patch: Partial<(typeof list)[number]>) => setSettings({ messages: list.map((m) => (m.id === id ? { ...m, ...patch } : m)) })
+  return (
+    <Section
+      title="mensagens padrão"
+      action={
+        <button className="btn small" onClick={() => setSettings({ messages: [...list, { id: uid(), name: 'nova mensagem', text: 'Oi, {cliente}! ' }] })}>
+          <Icon name="plus" size={14} /> mensagem
+        </button>
+      }
+    >
+      <p className="muted small">
+        Aparecem no botão <b>mensagens</b> da cliente, da demanda e do orçamento, já com os dados preenchidos. Use as variáveis:{' '}
+        {MESSAGE_VARS.map(([k, d]) => (
+          <code key={k} className="var-chip" title={d}>
+            {`{${k}}`}
+          </code>
+        ))}
+      </p>
+      <div className="msg-edit-list">
+        {list.map((m) => (
+          <div key={m.id} className="msg-edit">
+            <div className="row gap-s">
+              <input className="service-name" value={m.name} onChange={(e) => update(m.id, { name: e.target.value })} aria-label="Quando usar" />
+              <button className="icon-btn" onClick={async () => (await askDelete(`a mensagem "${m.name}"`)) && setSettings({ messages: list.filter((x) => x.id !== m.id) })} aria-label="Excluir mensagem">
+                <Icon name="trash" size={16} />
+              </button>
+            </div>
+            <textarea rows={3} value={m.text} onChange={(e) => update(m.id, { text: e.target.value })} spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
+          </div>
+        ))}
+      </div>
+      <button className="link" onClick={async () => (await ask('Voltar às mensagens padrão originais? As suas edições nas mensagens serão perdidas.', { confirmLabel: 'Restaurar' })) && setSettings({ messages: DEFAULT_MESSAGES })}>
+        restaurar mensagens originais
+      </button>
     </Section>
   )
 }

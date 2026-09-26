@@ -26,6 +26,7 @@ import {
   today,
   urgency,
   urgencyScore,
+  templateText,
   whatsappLink,
 } from '../utils'
 
@@ -259,8 +260,6 @@ function TodoList() {
   const todos = useMemo(() => {
     const out: Todo[] = []
     const client = (id: string) => data.clients.find((c) => c.id === id)
-    const first = (id: string) => client(id)?.name.split(' ')[0] ?? ''
-    const pix = data.settings.pixKey ? ` Chave Pix: ${data.settings.pixKey}.` : ''
 
     for (const p of data.projects) {
       if (!isOpen(p)) continue
@@ -279,7 +278,7 @@ function TodoList() {
     }
     for (const { pay, project, client: c } of allPayments(data)) {
       if (!paymentLate(pay)) continue
-      const text = `Oi, ${c?.name.split(' ')[0] ?? ''}! Tudo bem? Passando para lembrar da parcela "${pay.description}" do projeto ${project.title}, de ${money(pay.amount)}, que venceu em ${fmtDate(pay.dueDate)}.${pix} Obrigada!`
+      const text = templateText(data.settings, 'cobranca-atraso', 'Oi, {cliente}! A parcela "{parcela}" de {valor_parcela} venceu em {vencimento}. Chave pix: {pix}.', c, project)
       out.push({
         key: `p-${pay.id}`,
         tone: 'bad',
@@ -294,7 +293,7 @@ function TodoList() {
     }
     for (const q of data.quotes.filter(needsFollowUp)) {
       const c = client(q.clientId)
-      const text = `Oi, ${first(q.clientId)}! Tudo bem? Passando para saber se conseguiu ver a proposta #${String(q.number).padStart(3, '0')} (${q.title}). Qualquer ajuste é só me falar.`
+      const text = templateText(data.settings, 'retorno', 'Oi, {cliente}! Conseguiu ver a proposta {proposta}?', c, undefined, q)
       out.push({
         key: `q-${q.id}`,
         tone: 'info',

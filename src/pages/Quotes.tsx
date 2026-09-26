@@ -4,7 +4,7 @@ import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteNumber, quoteTotal, sum, today, whatsappLink } from '../utils'
+import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteNumber, quoteTotal, sum, templateText, today, whatsappLink } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { toast } from '../components/dialog'
 
@@ -50,8 +50,7 @@ export default function Quotes() {
   const pending = data.quotes.filter((x) => x.status === 'enviado')
   const followUps = data.quotes.filter(needsFollowUp)
 
-  const followText = (x: Quote) =>
-    `Oi, ${client(x.clientId)?.name.split(' ')[0] ?? ''}! Tudo bem? Passando para saber se conseguiu ver a proposta #${String(x.number).padStart(3, '0')} (${x.title}). Qualquer ajuste é só me falar. 😊`
+  const followText = (x: Quote) => templateText(data.settings, 'retorno', 'Oi, {cliente}! Conseguiu ver a proposta {proposta}?', client(x.clientId), undefined, x)
 
   return (
     <div className="page">

@@ -6,6 +6,7 @@ import { ClientForm, ProjectForm } from '../components/forms'
 import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
 import type { Client } from '../types'
 import { askDelete } from '../components/dialog'
+import { MessagesButton } from '../components/Messages'
 import { PayNext, StatusSelect } from '../components/quick'
 import {
   CLIENT_COLORS,
@@ -87,6 +88,7 @@ export default function ClientDetail({ id }: { id: string }) {
           <button className="btn ghost" onClick={() => setEdit(true)}>
             <Icon name="edit" size={16} /> Editar
           </button>
+          <MessagesButton client={c} project={projects.find(isOpen) ?? projects[0]} quote={quotes.find((q) => q.status === 'enviado' || q.status === 'rascunho')} />
         </div>
       </div>
 

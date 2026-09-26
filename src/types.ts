@@ -207,6 +207,12 @@ export interface ServiceDef {
   studentPrice?: number // (antigo) substituído pelo desconto de estudante
 }
 
+export interface MessageTemplate {
+  id: string
+  name: string // quando usar (ex.: "cobrar resposta do orçamento")
+  text: string // com {cliente}, {projeto}, {valor}…
+}
+
 export interface ProposalStyle {
   version: number
   eyebrow: string // "proposta de"
@@ -261,6 +267,7 @@ export interface Settings {
   services: ServiceDef[]
   customColumns: BoardColumn[] // colunas extras do quadro de demandas
   navOrder: string[] // ordem do menu lateral
+  messages: MessageTemplate[] // mensagens padrão para o cliente
 }
 
 export interface Data {

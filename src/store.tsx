@@ -2,7 +2,7 @@ import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, pushRemote } from './cloud'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Data, Project, ProposalStyle, ServiceDef, Settings } from './types'
+import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings } from './types'
 import { DEFAULT_TASKS, addDays, splitPayments, titleCase, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
@@ -33,6 +33,20 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
   return out
 }
+
+/** Mensagens padrão — editáveis em Configurações. {variáveis} são preenchidas com os dados do caso. */
+export const DEFAULT_MESSAGES: MessageTemplate[] = [
+  { id: 'primeiro-contato', name: 'primeiro contato', text: 'Oi, {cliente}! Tudo bem? Aqui é a {meu_nome}. Obrigada pelo contato! Me conta um pouquinho do projeto: o que você precisa (renders, modelagem, detalhamento…), quantas imagens ou a metragem, e para quando você precisa? Assim já te passo um orçamento certinho.' },
+  { id: 'envio-orcamento', name: 'envio do orçamento', text: 'Oi, {cliente}! Segue a proposta {proposta} do projeto {projeto}, no valor de {valor}. Qualquer dúvida ou ajuste é só me chamar!' },
+  { id: 'retorno', name: 'cobrar resposta do orçamento', text: 'Oi, {cliente}! Tudo bem? Passando para saber se conseguiu ver a proposta {proposta} ({projeto}). Qualquer ajuste é só me falar. 😊' },
+  { id: 'aprovado', name: 'orçamento aprovado · pedir sinal', text: 'Que ótimo, {cliente}! Fico muito feliz 🤍 Para darmos início, o sinal é de {valor_parcela} via pix (chave: {pix}). Assim que confirmar, me envia por favor os arquivos do projeto (DWG/SKP) e as referências.' },
+  { id: 'sinal-recebido', name: 'sinal recebido · início', text: 'Oi, {cliente}! Sinal recebido, obrigada! Já comecei o projeto {projeto} e a previsão de entrega é {prazo}. Qualquer novidade te aviso por aqui.' },
+  { id: 'previa', name: 'envio de prévia para aprovação', text: 'Oi, {cliente}! Segue a prévia do projeto {projeto}. Dá uma olhada com calma e me diz se está tudo de acordo ou se prefere algum ajuste. 😊' },
+  { id: 'cobranca', name: 'lembrete de pagamento', text: 'Oi, {cliente}! Tudo bem? Passando para lembrar da parcela "{parcela}" do projeto {projeto}, de {valor_parcela}, com vencimento em {vencimento}. Chave pix: {pix}. Obrigada!' },
+  { id: 'cobranca-atraso', name: 'pagamento em atraso', text: 'Oi, {cliente}! Tudo bem? A parcela "{parcela}" do projeto {projeto}, de {valor_parcela}, venceu em {vencimento}. Consegue verificar para mim? Chave pix: {pix}. Obrigada!' },
+  { id: 'entrega', name: 'entrega final', text: 'Oi, {cliente}! Projeto {projeto} finalizado 🎉 Os arquivos finais estão aqui: {arquivos}. Foi um prazer trabalhar com você! Se puder, me conta o que achou do resultado.' },
+  { id: 'depoimento', name: 'pedir depoimento / indicação', text: 'Oi, {cliente}! Espero que o projeto tenha ficado do jeitinho que você queria. Se puder deixar um depoimento rápido ou me indicar para alguém, me ajuda muito! 🤍' },
+]
 
 export const PAYMENT_TERMS = 'Pix — 50% de entrada + 50% na aprovação final | Crédito — 100%'
 
@@ -97,6 +111,7 @@ export const DEFAULT_SETTINGS: Settings = {
   services: DEFAULT_SERVICES,
   customColumns: [],
   navOrder: [],
+  messages: DEFAULT_MESSAGES,
 }
 
 export function emptyData(): Data {

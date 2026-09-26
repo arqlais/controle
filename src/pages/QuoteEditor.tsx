@@ -7,6 +7,7 @@ import { QuoteDoc } from '../components/Docs'
 import { DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
+import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, Settings } from '../types'
 import { projectFromQuote } from '../quoteActions'
 import {
@@ -173,6 +174,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           >
             <Icon name="copy" size={16} /> copiar resumo
           </button>
+          <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
           <button className={`btn ${dirty ? 'primary' : 'ghost'}`} onClick={() => save()} disabled={!dirty}>
             {dirty ? 'salvar' : 'salvo'}
           </button>

@@ -367,3 +367,49 @@ export const cleanDetail = (d: string) =>
     .replace(/\s*·?\s*complexidade\s+\S+/gi, '')
     .replace(/^\s*[\d.,]+\s*m²\s*·?\s*/i, '') // m² fica só no título do quadro
     .trim()
+
+/** Variáveis disponíveis nas mensagens padrão. */
+export const MESSAGE_VARS: [string, string][] = [
+  ['cliente', 'primeiro nome da cliente'],
+  ['projeto', 'nome do projeto / orçamento'],
+  ['valor', 'valor total'],
+  ['proposta', 'número da proposta (#001)'],
+  ['parcela', 'próxima parcela em aberto'],
+  ['valor_parcela', 'valor dessa parcela'],
+  ['vencimento', 'vencimento dessa parcela'],
+  ['prazo', 'prazo de entrega'],
+  ['arquivos', 'link dos arquivos'],
+  ['pix', 'sua chave pix'],
+  ['meu_nome', 'seu nome'],
+]
+
+export function messageVars(st: Settings, client?: Client, project?: Project, quote?: Quote): Record<string, string> {
+  const next = project?.payments.find((x) => !x.paidDate)
+  const total = project ? projectTotal(project) : quote ? quoteTotal(quote, st.urgencyFee) : 0
+  return {
+    cliente: client?.name.split(' ')[0] ?? '',
+    projeto: project?.title || quote?.title || '',
+    valor: total ? money(total) : '',
+    proposta: quote ? quoteNumber(quote) : '',
+    parcela: next?.description.toLowerCase() ?? '',
+    valor_parcela: next ? money(next.amount) : total ? money(total / 2) : '',
+    vencimento: next ? fmtDateLong(next.dueDate) : '',
+    prazo: project?.dueDate ? fmtDateLong(project.dueDate) : '',
+    arquivos: project?.filesLink ?? '',
+    pix: st.pixKey,
+    meu_nome: st.ownerName || st.legalName,
+  }
+}
+
+/** Troca {variáveis} pelos dados; variável vazia some sem deixar chaves no texto. */
+export const fillMessage = (text: string, vars: Record<string, string>) =>
+  text
+    .replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
+    .replace(/ {2,}/g, ' ')
+    .replace(/ ([,.!?)])/g, '$1')
+
+/** Texto de uma mensagem padrão pelo id, já preenchido (com um texto de reserva se ela foi apagada). */
+export function templateText(st: Settings, id: string, fallback: string, client?: Client, project?: Project, quote?: Quote) {
+  const t = st.messages.find((m) => m.id === id)?.text ?? fallback
+  return fillMessage(t, messageVars(st, client, project, quote))
+}

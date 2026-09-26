@@ -7,6 +7,7 @@ import { ReceiptDoc } from '../components/Docs'
 import { usePdf } from '../components/Print'
 import { Badge, Empty, MoneyInput, Progress, Section, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
+import { MessagesButton } from '../components/Messages'
 import type { Payment, Priority, Project, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
@@ -16,7 +17,6 @@ import {
   allStatuses,
   daysUntil,
   fmtDate,
-  fmtDateLong,
   isLate,
   isOpen,
   money,
@@ -26,6 +26,8 @@ import {
   projectTotal,
   relativeDays,
   today,
+  templateText,
+  paymentLate,
   uid,
   addDays,
   daysBetween,
@@ -83,12 +85,9 @@ export default function ProjectDetail({ id }: { id: string }) {
   const events = data.events.filter((e) => e.projectId === p.id).sort((a, b) => a.date.localeCompare(b.date))
   const pending = p.payments.filter((x) => !x.paidDate)
 
-  const chargeMsg = () => {
-    const first = client?.name.split(' ')[0] ?? ''
-    const next = pending[0]
-    const pix = data.settings.pixKey ? ` Chave Pix: ${data.settings.pixKey}` : ''
-    return `Oi, ${first}! Tudo bem? Passando pra lembrar da parcela "${next?.description}" do projeto ${p.title}, no valor de ${money(next?.amount ?? 0)}${next ? `, com vencimento em ${fmtDateLong(next.dueDate)}` : ''}.${pix} Obrigada!`
-  }
+  // usa a mensagem padrão de cobrança (Configurações → mensagens padrão)
+  const chargeMsg = () =>
+    templateText(data.settings, pending[0] && paymentLate(pending[0]) ? 'cobranca-atraso' : 'cobranca', 'Oi, {cliente}! Passando para lembrar da parcela "{parcela}" de {valor_parcela}. Chave pix: {pix}.', client, p)
 
   return (
     <div className="page">
@@ -137,6 +136,7 @@ export default function ProjectDetail({ id }: { id: string }) {
           <button className="btn ghost" onClick={() => setEdit(true)}>
             <Icon name="edit" size={16} /> Editar
           </button>
+          <MessagesButton client={client} project={p} quote={data.quotes.find((q) => q.projectId === p.id)} />
           <button className="btn ghost" onClick={duplicate} title="Nova demanda igual a esta, para o mesmo cliente">
             <Icon name="copy" size={16} /> Duplicar
           </button>
