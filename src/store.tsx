@@ -51,10 +51,13 @@ export const DEFAULT_MESSAGES: MessageTemplate[] = [
 export const PAYMENT_TERMS = 'Pix — 50% de entrada + 50% na aprovação final | Crédito — 100%'
 
 /** Sinal pago em demanda "aguardando sinal" → passa para "em execução". */
-function autoStatus(raw: Project): Project {
+function autoStatus(raw: Project, prev?: Project): Project {
   // parcelas "na conclusão" acompanham o prazo combinado da demanda (sem prazo = sem data)
   const p = { ...raw, payments: raw.payments.map((x) => (!x.paidDate && payWhen(x) === 'conclusao' ? { ...x, on: 'conclusao' as const, dueDate: raw.dueDate || '' } : x)) }
-  if (p.status !== 'briefing' || !p.payments[0]?.paidDate) return p
+  // só no momento em que o sinal PASSA a ser pago: "em alinhamento" vira "em execução".
+  // Depois disso a fase é livre (dá para voltar para "em alinhamento" quando quiser).
+  const signalJustPaid = !!p.payments[0]?.paidDate && !(prev?.payments.find((x) => x.id === p.payments[0].id)?.paidDate)
+  if (p.status !== 'briefing' || !signalJustPaid || (prev && prev.status !== 'briefing')) return p
   return { ...p, status: 'producao', tasks: p.tasks.map((t) => (/sinal/i.test(t.text) ? { ...t, done: true } : t)) }
 }
 
@@ -400,9 +403,10 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
   dataRef.current = data
 
   const upsert = useCallback(<C extends Collection>(c: C, raw: Item<C>) => {
-    const item = (c === 'projects' ? autoStatus(raw as Project) : raw) as Item<C>
     setActive((d) => {
       const list = d[c] as Item<C>[]
+      const prev = list.find((x) => x.id === raw.id)
+      const item = (c === 'projects' ? autoStatus(raw as Project, prev as Project | undefined) : raw) as Item<C>
       const exists = list.some((x) => x.id === item.id)
       const next = exists ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item]
       return { ...d, [c]: next }

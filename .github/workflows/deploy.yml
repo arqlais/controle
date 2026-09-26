@@ -24,6 +24,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # testa as ações do dia a dia antes de publicar: se algo quebrar, o site não é atualizado
+      - run: npx playwright-core install --with-deps chromium
+      - run: npm run test:smoke
       - run: npm run build
         env:
           # Settings → Secrets and variables → Actions → Variables
