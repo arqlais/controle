@@ -155,7 +155,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Conversar com a IA (chat)',
-    a: <>O botão <b>✦</b> no canto da tela abre o <b>assistente</b>: um chat que conhece sua tabela, plantas com valores, seu processo e seus orçamentos. Ele usa o Gemini com uma chave gratuita sua (<b>configurações → assistente</b>, onde também dá para escrever suas regras). A qualquer momento, <b>levar a conversa para o Claude</b> abre o Claude com tudo escrito.</>,
+    a: <>O botão <b>✦</b> no canto da tela abre o <b>assistente</b>: um chat (dá para anexar fotos, PDF e prints que o cliente mandou, no clipe ou arrastando) que conhece sua tabela, plantas com valores, seu processo e seus orçamentos. Ele usa o Gemini com uma chave gratuita sua (<b>configurações → assistente</b>, onde também dá para escrever suas regras). A qualquer momento, <b>levar a conversa para o Claude</b> abre o Claude com tudo escrito.</>,
   },
   {
     q: 'Pedir ajuda à IA para montar um orçamento',
