@@ -410,6 +410,7 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
                   </a>
                 </li>
                 <li>Toque em “Assinar” e depois em “Adicionar”. Pronto.</li>
+                <li className="muted small">A agenda vem na cor da sua marca. Se já tinha assinado antes e ficou de outra cor: Calendário → Calendários → ⓘ ao lado da agenda → Cor → Personalizada.</li>
                 <li className="muted small">Se o botão não abrir: Ajustes → Calendário → Contas → Adicionar conta → Outra → Adicionar calendário assinado → cole o link abaixo.</li>
               </ol>
             )}
@@ -422,6 +423,7 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
                   </a>
                 </li>
                 <li>Entre com a sua conta Google e confirme “Adicionar”. A agenda aparece no app Google Agenda do celular.</li>
+                <li className="muted small">O Google escolhe a cor sozinho: no computador, em calendar.google.com, passe o mouse na agenda → ⋮ → escolha a cor (o + permite a cor exata da sua marca).</li>
                 <li className="muted small">Se não abrir: no computador, calendar.google.com → “Outras agendas” → + → “Do URL” → cole o link abaixo.</li>
               </ol>
             )}

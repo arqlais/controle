@@ -82,8 +82,10 @@ export function calendarEntries(data: Data): Entry[] {
 }
 
 export function buildICS(data: Data, name = 'Estúdio') {
+  // cor da agenda no calendário do celular: a cor principal da identidade visual (rosé)
+  const color = /^#[0-9a-f]{6}$/i.test(data.settings?.accentSoft ?? '') ? data.settings.accentSoft : ''
   const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//controle-lais//PT-BR', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${esc(name)}`, 'X-WR-TIMEZONE:America/Sao_Paulo', 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H']
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//controle-lais//PT-BR', 'CALSCALE:GREGORIAN', `X-WR-CALNAME:${esc(name)}`, 'X-WR-TIMEZONE:America/Sao_Paulo', ...(color ? [`X-APPLE-CALENDAR-COLOR:${color.toUpperCase()}`] : []), 'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 'X-PUBLISHED-TTL:PT1H']
   for (const e of calendarEntries(data)) {
     lines.push('BEGIN:VEVENT', `UID:${e.uid}@controle-lais`, `DTSTAMP:${stamp}`)
     if (e.time) {
