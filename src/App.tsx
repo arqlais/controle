@@ -33,7 +33,11 @@ const NAV = [
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 
 export default function App() {
-  const { data, setSettings, lastSaved, replaceAll, sync, userEmail } = useStore()
+  const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample } = useStore()
+  // olho: com dados de exemplo salvos, liga/desliga o aviso; com dados reais, mostra o exemplo só na tela
+  const ownDemo = !isSample && (data.demo || hasDemoData(data))
+  const exampleOn = isSample || (ownDemo && data.demo)
+  const toggleExample = () => (isSample ? showSample(false) : ownDemo ? replaceAll({ ...data, demo: !data.demo }) : showSample(true))
   const { settings } = data
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
@@ -145,16 +149,14 @@ export default function App() {
           <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema claro/escuro">
             <Icon name={settings.dark ? 'sun' : 'moon'} />
           </button>
-          {(data.demo || hasDemoData(data)) && (
-            <button
-              className="icon-btn desktop-only"
-              onClick={() => replaceAll({ ...data, demo: !data.demo })}
-              title={data.demo ? 'Ocultar aviso do exemplo' : 'Mostrar aviso do exemplo'}
-              aria-label={data.demo ? 'Ocultar aviso do exemplo' : 'Mostrar aviso do exemplo'}
-            >
-              <Icon name={data.demo ? 'eye' : 'eye-off'} />
-            </button>
-          )}
+          <button
+            className="icon-btn desktop-only"
+            onClick={toggleExample}
+            title={exampleOn ? 'Ocultar exemplo' : 'Ver exemplo preenchido'}
+            aria-label={exampleOn ? 'Ocultar exemplo' : 'Ver exemplo preenchido'}
+          >
+            <Icon name={exampleOn ? 'eye' : 'eye-off'} />
+          </button>
           <SyncBadge sync={sync} lastSaved={lastSaved} />
           {CLOUD && (
             <button className="btn small ghost" onClick={() => signOut()} title={userEmail}>
@@ -211,6 +213,16 @@ export default function App() {
           </div>
         </header>
         <main className="content">
+          {isSample && (
+            <div className="demo-banner">
+              <span>
+                <b>Exemplo preenchido.</b> Só para visualizar: seus dados estão guardados e nada feito aqui é salvo.
+              </span>
+              <button className="btn small" onClick={() => showSample(false)}>
+                voltar para meus dados
+              </button>
+            </div>
+          )}
           {data.demo && (
             <div className="demo-banner">
               <span>
