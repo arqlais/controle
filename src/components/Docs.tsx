@@ -160,6 +160,20 @@ function Contacts({ s }: { s: Settings }) {
   )
 }
 
+/** "O que está incluso": uma linha vira texto; várias linhas viram tópicos discretos. */
+function Desc({ text }: { text: string }) {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
+  if (!lines.length) return null
+  if (lines.length === 1) return <span className="p-row-desc">{lines[0]}</span>
+  return (
+    <ul className="p-row-desc p-row-list">
+      {lines.map((l, i) => (
+        <li key={i}>{l}</li>
+      ))}
+    </ul>
+  )
+}
+
 function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean }) {
   // serviço em branco (sem nome e sem valor) não vai para a proposta
   const items = all.filter((it) => it.title.trim() || it.price > 0)
@@ -173,7 +187,7 @@ function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boo
               {it.title || 'serviço'}
               {cleanDetail(it.detail) ? ` · ${cleanDetail(it.detail)}` : ''}
             </span>
-            {it.description && <span className="p-row-desc">{it.description}</span>}
+            <Desc text={it.description} />
           </div>
           {!priceFirst && <span className="p-row-price">{money(it.price)}</span>}
         </div>
