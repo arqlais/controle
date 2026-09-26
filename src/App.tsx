@@ -19,6 +19,7 @@ import Agenda from './pages/Agenda'
 import Quotes from './pages/Quotes'
 import QuoteEditor from './pages/QuoteEditor'
 import SettingsPage from './pages/Settings'
+import Manual from './pages/Manual'
 
 const NAV = [
   { page: 'inicio', label: 'início', icon: 'home' },
@@ -28,6 +29,7 @@ const NAV = [
   { page: 'agenda', label: 'agenda', icon: 'calendar' },
   { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
   { page: 'config', label: 'configurações', icon: 'settings' },
+  { page: 'manual', label: 'manual', icon: 'book' },
 ]
 
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
@@ -86,6 +88,8 @@ export default function App() {
         return route.id ? <QuoteEditor key={route.id} id={route.id} /> : <Quotes />
       case 'config':
         return <SettingsPage />
+      case 'manual':
+        return <Manual />
       default:
         return <Dashboard onQuick={setQuick} />
     }
