@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
-import { EmailInput, Field, MoneyInput, PhoneInput, Section, Segmented } from '../components/ui'
+import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
 import { COMPLEXITY, MESSAGE_VARS, PRICING, download, money, today, uid } from '../utils'
@@ -27,16 +27,7 @@ export default function SettingsPage() {
   const { data, setSettings, replaceAll } = useStore()
   const s = data.settings
   const fileRef = useRef<HTMLInputElement>(null)
-  const logoRef = useRef<HTMLInputElement>(null)
   const fontRef = useRef<HTMLInputElement>(null)
-
-  const onLogo = (f?: File) => {
-    if (!f) return
-    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB (PNG ou SVG de preferência).')
-    const r = new FileReader()
-    r.onload = () => setSettings({ logo: String(r.result) })
-    r.readAsDataURL(f)
-  }
 
   const onFont = (f?: File) => {
     if (!f) return
@@ -80,28 +71,8 @@ export default function SettingsPage() {
 
       <div className="grid-2">
         <Section title="Identidade visual" className="desktop-only">
-          <p className="muted small">Ajuste para ficar igual ao seu site: envie o logo e use as mesmas cores (código hex) e fontes.</p>
+          <p className="muted small">Cores e fontes iguais às do seu site. Logo, nome e contatos ficam no <a href="#/perfil" className="link">perfil</a>.</p>
           <div className="form-grid">
-            <Field label="Nome da marca">
-              <input value={s.brandName} onChange={(e) => setSettings({ brandName: e.target.value })} />
-            </Field>
-            <Field label="Frase / especialidade" span={2}>
-              <input value={s.tagline} onChange={(e) => setSettings({ tagline: e.target.value })} />
-            </Field>
-            <Field label="Logo" span={3} hint="Aparece no menu, nos recibos e nas propostas.">
-              <div className="row gap-s">
-                {s.logo ? <img src={s.logo} alt="" className="logo-preview" /> : <span className="muted small">Sem logo — usando o nome da marca.</span>}
-                <button className="btn small" onClick={() => logoRef.current?.click()}>
-                  <Icon name="upload" size={14} /> Enviar
-                </button>
-                {s.logo && (
-                  <button className="btn small ghost" onClick={() => setSettings({ logo: '' })}>
-                    Remover
-                  </button>
-                )}
-                <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => onLogo(e.target.files?.[0])} />
-              </div>
-            </Field>
           </div>
 
           <div className="presets">
@@ -211,36 +182,11 @@ export default function SettingsPage() {
         </Section>
 
         <div className="stack">
-          <Section title="Seus dados (recibos e propostas)">
-            <div className="form-grid">
-              <Field label="Nome completo" hint="Rodapé da proposta e recibo.">
-                <input value={s.legalName} onChange={(e) => setSettings({ legalName: e.target.value })} />
-              </Field>
-              <Field label="Como te chamo">
-                <input value={s.ownerName} onChange={(e) => setSettings({ ownerName: e.target.value })} />
-              </Field>
-              <Field label="CPF / CNPJ (MEI)">
-                <input value={s.document} onChange={(e) => setSettings({ document: e.target.value })} />
-              </Field>
-              <Field label="Chave Pix">
-                <input value={s.pixKey} onChange={(e) => setSettings({ pixKey: e.target.value })} />
-              </Field>
-              <Field label="WhatsApp">
-                <PhoneInput id="my-phone" value={s.phone} onChange={(v) => setSettings({ phone: v })} placeholder="+55 11 99999-9999" />
-              </Field>
-              <Field label="E-mail">
-                <EmailInput id="my-email" value={s.email} onChange={(v) => setSettings({ email: v })} />
-              </Field>
-              <Field label="Instagram">
-                <input value={s.instagram} onChange={(e) => setSettings({ instagram: e.target.value })} />
-              </Field>
-              <Field label="Site">
-                <input value={s.website} onChange={(e) => setSettings({ website: e.target.value })} />
-              </Field>
-              <Field label="Cidade">
-                <input value={s.city} onChange={(e) => setSettings({ city: e.target.value })} />
-              </Field>
-            </div>
+          <Section title="Seus dados">
+            <p className="muted small">Nome, logo, contatos, pix e CPF/CNPJ agora ficam no <b>perfil do estúdio</b>, junto com a sua conta.</p>
+            <a className="btn small" href="#/perfil">
+              <Icon name="users" size={14} /> abrir perfil
+            </a>
           </Section>
 
           <Section title="Metas e regras de negócio" className="desktop-only">

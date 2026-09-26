@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
-import { signOut } from './components/Auth'
-import { CLOUD } from './cloud'
 import type { SyncStatus } from './store'
 import { applyTheme } from './theme'
 import { go, href, useRoute } from './router'
@@ -20,6 +18,7 @@ import Quotes from './pages/Quotes'
 import QuoteEditor from './pages/QuoteEditor'
 import SettingsPage from './pages/Settings'
 import Manual from './pages/Manual'
+import Profile, { initials, profileMissing } from './pages/Profile'
 
 const NAV = [
   { page: 'inicio', label: 'início', icon: 'home' },
@@ -93,6 +92,8 @@ export default function App() {
         return <SettingsPage />
       case 'manual':
         return <Manual />
+      case 'perfil':
+        return <Profile />
       default:
         return <Dashboard onQuick={setQuick} />
     }
@@ -161,6 +162,14 @@ export default function App() {
             </button>
           </div>
         </nav>
+        <a href={href('perfil')} className={`profile-chip ${route.page === 'perfil' ? 'active' : ''}`} title="Perfil do estúdio e conta">
+          <span className="profile-chip-avatar">{settings.logo ? <img src={settings.logo} alt="" /> : initials(settings)}</span>
+          <span className="grow">
+            <b>{settings.ownerName || settings.brandName || 'meu perfil'}</b>
+            <small>{userEmail || 'perfil do estúdio'}</small>
+          </span>
+          {profileMissing(settings).length > 0 && <em className="profile-chip-dot" title="Perfil incompleto" />}
+        </a>
         <div className="sidebar-foot">
           <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema claro/escuro">
             <Icon name={settings.dark ? 'sun' : 'moon'} />
@@ -174,11 +183,6 @@ export default function App() {
             <Icon name={exampleOn ? 'eye' : 'eye-off'} />
           </button>
           <SyncBadge sync={sync} lastSaved={lastSaved} />
-          {CLOUD && (
-            <button className="btn small ghost" onClick={() => signOut()} title={userEmail}>
-              sair
-            </button>
-          )}
         </div>
       </aside>
       <div className="scrim" onClick={() => setMenuOpen(false)} />

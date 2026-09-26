@@ -145,7 +145,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Mudar preço da tabela, dados da proposta ou cores do PDF',
-    a: <><b>configurações → tabela de preços</b> e <b>modelo da proposta (PDF)</b>, só no computador. <b>Seus dados</b> (nome, pix, contatos do rodapé) dá para mudar também pelo celular.</>,
+    a: <><b>configurações → tabela de preços</b> e <b>modelo da proposta (PDF)</b>, só no computador. Seus dados (nome, logo, pix, contatos do rodapé) ficam no <b>perfil</b>, que abre pelo seu nome no pé do menu, também no celular.</>,
     page: 'config',
   },
   {
@@ -189,6 +189,8 @@ const WHERE: [string, string, string][] = [
   ['criar coluna no quadro', 'demandas → quadro → nova coluna (no fim)', 'projetos'],
   ['mudar ordem do menu', 'organizar menu (abaixo do menu)', ''],
   ['manual e configurações', 'grupo “ajustes e dicas”, no fim do menu', ''],
+  ['seus dados, logo, pix e senha', 'perfil (seu nome no pé do menu)', 'perfil'],
+  ['sair da conta', 'perfil → conta e segurança', 'perfil'],
   ['backup dos dados', 'configurações → backup e dados', 'config'],
 ]
 

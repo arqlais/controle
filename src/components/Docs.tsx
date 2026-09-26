@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { DEFAULT_SETTINGS, PAYMENT_TERMS } from '../store'
+import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
 import { cleanDetail, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
@@ -141,14 +141,14 @@ function InfoRow({ items, color }: { items: { icon: keyof typeof ICONS; label: s
 }
 
 function Contacts({ s }: { s: Settings }) {
-  // rodapé fixo do modelo: campo vazio usa o contato padrão
-  const d = DEFAULT_SETTINGS
-  const items: [string, string][] = [
-    ['cell', s.phone || d.phone],
-    ['instagram', s.instagram || d.instagram],
-    ['site', (s.website || d.website).replace(/^https?:\/\/(www\.)?/, '')],
-    ['e-mail', s.email || d.email],
-  ]
+  // rodapé do modelo: contatos do perfil (campo vazio não aparece)
+  const items = ([
+    ['cell', s.phone],
+    ['instagram', s.instagram],
+    ['site', s.website.replace(/^https?:\/\/(www\.)?/, '')],
+    ['e-mail', s.email],
+  ] as [string, string][]).filter(([, v]) => v.trim())
+  if (!items.length) return null
   return (
     <footer className="p-contacts">
       {items.map(([k, v]) => (

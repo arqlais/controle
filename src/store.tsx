@@ -74,16 +74,30 @@ export const DEFAULT_PROPOSAL: ProposalStyle = {
   showArch: true,
 }
 
-export const DEFAULT_SETTINGS: Settings = {
+/** Perfil da Laís: usado só na prévia (Artifact) e para completar dados antigos dela.
+ *  Conta nova de outra pessoa começa com o perfil em branco (DEFAULT_SETTINGS). */
+export const LAIS_PROFILE = {
   brandName: 'laís',
   tagline: 'renderização · modelagem · detalhamento',
   ownerName: 'Laís',
+  legalName: 'Laís Amaral Vieira',
   email: 'arq.laisav@gmail.com',
   phone: '+55 11 96928-8192',
   instagram: '@lais_3d',
   website: 'lais3d.com.br',
-  document: '',
   pixKey: '11951233515',
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  brandName: 'meu estúdio',
+  tagline: '',
+  ownerName: '',
+  email: '',
+  phone: '',
+  instagram: '',
+  website: '',
+  document: '',
+  pixKey: '',
   calendarToken: '',
   city: '',
   logo: '',
@@ -103,7 +117,7 @@ export const DEFAULT_SETTINGS: Settings = {
   monthlyGoal: 6000,
   studentDiscount: 40,
   complexity: { simples: 1, media: 1.3, alta: 1.6 },
-  legalName: 'Laís Amaral Vieira',
+  legalName: '',
   proposal: DEFAULT_PROPOSAL,
   meiLimit: 0,
   hourlyTarget: 60,
@@ -126,10 +140,10 @@ const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
 function load(userId?: string): Data {
   try {
     const raw = localStorage.getItem(cacheKey(userId))
-    if (!raw) return ARTIFACT ? demoData(DEFAULT_SETTINGS) : emptyData()
+    if (!raw) return ARTIFACT ? demoData({ ...DEFAULT_SETTINGS, ...LAIS_PROFILE }) : emptyData()
     return normalize(JSON.parse(raw))
   } catch {
-    return ARTIFACT ? demoData(DEFAULT_SETTINGS) : emptyData()
+    return ARTIFACT ? demoData({ ...DEFAULT_SETTINGS, ...LAIS_PROFILE }) : emptyData()
   }
 }
 
@@ -197,14 +211,14 @@ export function normalize(d: Partial<Data>): Data {
         ...(d.settings ?? {}),
         // modelo novo da proposta substitui o anterior (version < 2)
         proposal: (d.settings?.proposal?.version ?? 0) >= 2 ? { ...DEFAULT_PROPOSAL, ...d.settings!.proposal } : DEFAULT_PROPOSAL,
-        email: d.settings?.email || 'arq.laisav@gmail.com',
+        email: d.settings?.email ?? '',
         // antes desta versão o teto do MEI vinha ligado por padrão; ela trabalha como pessoa física
         meiLimit: d.settings?.proposal ? (d.settings.meiLimit ?? 0) : 0,
         // pagamento padrão do modelo (textos antigos são trocados)
         defaultPaymentTerms: !d.settings?.defaultPaymentTerms || /^50% (no aceite|de entrada|de sinal)/.test(d.settings.defaultPaymentTerms) ? PAYMENT_TERMS : d.settings.defaultPaymentTerms,
-        phone: d.settings?.phone || DEFAULT_SETTINGS.phone,
-        instagram: d.settings?.instagram || DEFAULT_SETTINGS.instagram,
-        website: d.settings?.website || DEFAULT_SETTINGS.website,
+        phone: d.settings?.phone ?? '',
+        instagram: d.settings?.instagram ?? '',
+        website: d.settings?.website ?? '',
         // padrão de rodadas de ajuste passou a ser 1 (uma vez só; depois vale o que ela escolher)
         defaultRevisions: d.settings?.revisionsV1 ? d.settings.defaultRevisions : 1,
         revisionsV1: true,

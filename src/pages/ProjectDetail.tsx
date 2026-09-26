@@ -128,7 +128,7 @@ export default function ProjectDetail({ id }: { id: string }) {
             {u.reason && <Badge color={PRIORITY[u.level].color} solid>{u.reason}</Badge>}
           </div>
         </div>
-        <div className="row gap-s wrap">
+        <div className="row gap-s wrap detail-actions">
           {isOpen(p) && (
             <button className="btn primary" onClick={() => save({ status: 'entregue', deliveredDate: today(), tasks: p.tasks.map((t) => ({ ...t, done: true })) })}>
               <Icon name="check" size={16} /> Marcar como entregue
@@ -143,7 +143,7 @@ export default function ProjectDetail({ id }: { id: string }) {
             <Icon name="edit" size={16} /> Editar
           </button>
           <MessagesButton client={client} project={p} quote={data.quotes.find((q) => q.projectId === p.id)} />
-          <button className="btn ghost" onClick={duplicate} title="Nova demanda igual a esta, para o mesmo cliente">
+          <button className="btn ghost hide-mobile" onClick={duplicate} title="Nova demanda igual a esta, para o mesmo cliente">
             <Icon name="copy" size={16} /> Duplicar
           </button>
         </div>
