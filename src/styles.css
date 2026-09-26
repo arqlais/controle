@@ -548,40 +548,6 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .p-choice i { width: 13px; height: 13px; border: 1.3px solid var(--p-ink); border-radius: 50%; display: inline-block; }
 .p-choice i.on { background: var(--p-ink); }
 
-/* modelo minimalista */
-.m-sheet { flex: 1; display: flex; flex-direction: column; gap: 70px; padding: 10px 20px 0; }
-.m-sheet b, .m-n, .m-meta { font-variant-numeric: lining-nums; }
-.m-top { display: flex; justify-content: space-between; align-items: baseline; }
-.m-brand { font-family: var(--p-serif); font-size: 26px; line-height: 1; }
-.m-brand i { color: var(--p-rose); font-style: normal; }
-.m-meta { font-size: 10px; letter-spacing: 0.24em; color: color-mix(in srgb, var(--p-ink) 55%, var(--p-paper)); }
-.m-hero { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px; }
-.m-title { margin: 0 0 0 -4px; font-family: var(--p-serif); font-style: italic; font-weight: 400; font-size: 96px; line-height: 0.9; letter-spacing: -0.02em; color: var(--p-ink); text-transform: none; }
-.m-for { margin: 22px 0 0; font-size: 20px; font-weight: 300; }
-.m-for span { font-family: var(--p-serif); font-style: italic; color: var(--p-rose); font-size: 22px; margin-right: 6px; }
-.m-arch { width: 90px; height: 130px; flex: none; }
-
-.m-scope { display: flex; flex-direction: column; }
-.m-row { display: flex; justify-content: space-between; gap: 24px; padding: 13px 0; font-size: 14.5px; }
-.m-row em { font-style: normal; color: color-mix(in srgb, var(--p-ink) 55%, var(--p-paper)); }
-.m-price { white-space: nowrap; }
-.m-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 20px; padding-top: 22px; border-top: 1px solid var(--p-ink); }
-.m-total b { font-family: var(--p-serif); font-weight: 400; font-size: 50px; line-height: 1; white-space: nowrap; }
-
-.m-options { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
-.m-option { display: flex; flex-direction: column; gap: 10px; }
-.m-n { font-family: var(--p-serif); font-style: italic; font-size: 18px; color: var(--p-rose); }
-.m-option h3 { margin: 0; font-family: var(--p-serif); font-style: italic; font-weight: 400; font-size: 34px; line-height: 1.05; color: var(--p-ink); text-transform: none; letter-spacing: 0; }
-.m-list { list-style: none; margin: 6px 0 0; padding: 0; flex: 1; }
-.m-list li { padding: 4px 0; font-size: 13px; color: color-mix(in srgb, var(--p-ink) 80%, var(--p-paper)); }
-.m-option-price { margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--p-ink); font-family: var(--p-serif); font-weight: 400; font-size: 40px; line-height: 1; }
-
-.m-terms { display: flex; flex-direction: column; gap: 4px; }
-.m-terms p { margin: 0; font-size: 12px; white-space: pre-line; color: color-mix(in srgb, var(--p-ink) 65%, var(--p-paper)); }
-
-.m-foot { margin-top: auto; display: flex; justify-content: space-between; align-items: baseline; gap: 20px; font-size: 11px; color: color-mix(in srgb, var(--p-ink) 65%, var(--p-paper)); }
-.m-thanks { font-family: var(--p-serif); font-style: italic; font-size: 20px; color: var(--p-rose); }
-
 /* pré-visualização em escala */
 .doc-scale { width: 100%; overflow: hidden; border-radius: 10px; box-shadow: 0 18px 40px -20px rgba(31, 58, 77, 0.35); background: #fff; }
 .doc-scale-inner { transform-origin: top left; width: 794px; }

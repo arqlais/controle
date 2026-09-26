@@ -431,16 +431,6 @@ function ProposalSettings() {
       <div className="proposal-settings">
         <div className="stack">
           <div className="form-grid">
-            <Field label="Modelo" span={3}>
-              <Segmented
-                value={p.layout}
-                options={[
-                  { value: 'minimal', label: 'minimalista' },
-                  { value: 'arco', label: 'arco rosé' },
-                ]}
-                onChange={(v) => setP({ layout: v })}
-              />
-            </Field>
             <Field label="Texto acima do título">
               <input value={p.eyebrow} onChange={(e) => setP({ eyebrow: e.target.value })} />
             </Field>
@@ -467,9 +457,7 @@ function ProposalSettings() {
                 ['arch', 'Arco'],
                 ['paper', 'Fundo'],
               ] as ['ink' | 'rose' | 'arch' | 'paper', string][]
-            )
-              .filter(([k]) => k !== 'arch' || p.layout === 'arco')
-              .map(([k, label]) => (
+            ).map(([k, label]) => (
               <Field key={k} label={label}>
                 <div className="color-input">
                   <input type="color" value={p[k]} onChange={(e) => setP({ [k]: e.target.value })} />
@@ -477,18 +465,16 @@ function ProposalSettings() {
                 </div>
               </Field>
             ))}
-            {p.layout === 'arco' && (
-              <Field label="Arco com o valor">
-                <Segmented
-                  value={p.showArch ? 's' : 'n'}
-                  options={[
-                    { value: 's', label: 'mostrar' },
-                    { value: 'n', label: 'esconder' },
-                  ]}
-                  onChange={(v) => setP({ showArch: v === 's' })}
-                />
-              </Field>
-            )}
+            <Field label="Arco com o valor">
+              <Segmented
+                value={p.showArch ? 's' : 'n'}
+                options={[
+                  { value: 's', label: 'mostrar' },
+                  { value: 'n', label: 'esconder' },
+                ]}
+                onChange={(v) => setP({ showArch: v === 's' })}
+              />
+            </Field>
           </div>
           <p className="muted small">
             Rodapé usa seus dados acima (Pix, nome completo, WhatsApp, Instagram e site). O logo enviado em Identidade visual substitui o arco + nome.{' '}

@@ -129,11 +129,7 @@ function Info({ rows }: { rows: [string, string][] }) {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
-export function QuoteDoc(props: { s: Settings; client?: Client; quote: Quote }) {
-  return props.s.proposal.layout === 'arco' ? <QuoteDocArch {...props} /> : <QuoteDocMinimal {...props} />
-}
-
-function QuoteDocArch({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
+export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
   const p = s.proposal
   const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
   const total = quoteTotal(quote, s.urgencyFee)
@@ -177,7 +173,7 @@ function QuoteDocArch({ s, client, quote }: { s: Settings; client?: Client; quot
               </>
             ) : (
               <>
-                <span className="p-label">investimento</span>
+                <span className="p-label">investimento total</span>
                 <b className="p-arch-price">{money(total)}</b>
                 {discountLine && <span className="p-arch-note">{discountLine}</span>}
               </>
@@ -277,90 +273,6 @@ function QuoteDocArch({ s, client, quote }: { s: Settings; client?: Client; quot
           </div>
         }
       />
-    </Paper>
-  )
-}
-
-/* ---------- modelo minimalista: só o essencial, muito respiro
-   e um arco em traço fino como único enfeite ---------- */
-
-function QuoteDocMinimal({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  const p = s.proposal
-  const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
-  const total = quoteTotal(quote, s.urgencyFee)
-  const two = quote.mode === 'opcoes'
-  const options = quote.options.slice(0, 2)
-  const contact = [s.pixKey && `pix ${s.pixKey}`, s.phone, s.instagram].filter(Boolean).join('   ·   ')
-  const deadline = two
-    ? plural(quote.revisions, 'rodada de ajuste', 'rodadas de ajuste')
-    : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} · ${plural(quote.revisions, 'ajuste', 'ajustes')}`
-
-  return (
-    <Paper s={s}>
-      <div className="m-sheet">
-        <header className="m-top">
-          {s.logo ? <img src={s.logo} alt="" className="p-logo-img" /> : <span className="m-brand">{s.brandName.replace(/\.$/, '')}<i>.</i></span>}
-          <span className="m-meta">
-            {fmt(quote.createdAt)} · nº {String(quote.number).padStart(3, '0')}
-          </span>
-        </header>
-
-        <section className="m-hero">
-          <div>
-            <h1 className="m-title">{p.title}</h1>
-            <p className="m-for">
-              <span>para</span> {clientName}
-            </p>
-          </div>
-          <svg className="m-arch" viewBox="0 0 90 130" fill="none" aria-hidden>
-            <path d="M1 130V45a44 44 0 0 1 88 0v85" stroke="var(--p-rose)" strokeWidth="1.2" />
-            <circle cx="45" cy="40" r="4" fill="var(--p-rose)" />
-          </svg>
-        </section>
-
-        {two ? (
-          <section className="m-options">
-            {options.map((o, i) => (
-              <div key={o.id} className="m-option">
-                <span className="m-n">{String(i + 1).padStart(2, '0')}</span>
-                <h3>{o.name || '[opção]'}</h3>
-                <ul className="m-list">
-                  {o.included.filter(Boolean).map((it, k) => (
-                    <li key={k}>{it}</li>
-                  ))}
-                </ul>
-                <b className="m-option-price">{money(o.price)}</b>
-              </div>
-            ))}
-          </section>
-        ) : (
-          <section className="m-scope">
-            {quote.items.map((it) => (
-              <div key={it.id} className="m-row">
-                <span>
-                  {it.title || 'serviço'}
-                  {it.detail && <em> · {it.detail}</em>}
-                </span>
-                <span className="m-price">{money(it.price)}</span>
-              </div>
-            ))}
-            <div className="m-total">
-              <span className="p-label">total</span>
-              <b>{money(total)}</b>
-            </div>
-          </section>
-        )}
-
-        <section className="m-terms">
-          <p>{quote.paymentTerms}</p>
-          <p>{deadline}</p>
-        </section>
-
-        <footer className="m-foot">
-          <span>{contact}</span>
-          <span className="m-thanks">obrigada!</span>
-        </footer>
-      </div>
     </Paper>
   )
 }
