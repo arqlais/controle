@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
 import { EMAIL_DOMAINS, formatPhone } from '../utils'
 
@@ -28,18 +29,22 @@ export function Modal({
     }
   }, [onClose])
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal aria-label={title}>
-        <header className="modal-head">
-          <h2>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Fechar">
-            <Icon name="x" />
-          </button>
-        </header>
-        <div className="modal-body">{children}</div>
-        {footer && <footer className="modal-foot">{footer}</footer>}
-      </div>
-    </div>
+    // renderizada direto no <body>: fica centralizada na tela toda, fora de qualquer limite de largura da página
+    createPortal(
+      <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+        <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal aria-label={title}>
+          <header className="modal-head">
+            <h2>{title}</h2>
+            <button className="icon-btn" onClick={onClose} aria-label="Fechar">
+              <Icon name="x" />
+            </button>
+          </header>
+          <div className="modal-body">{children}</div>
+          {footer && <footer className="modal-foot">{footer}</footer>}
+        </div>
+      </div>,
+      document.body,
+    )
   )
 }
 

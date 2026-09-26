@@ -364,8 +364,8 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .font-sample { font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 26px; color: var(--accent-ink); line-height: 1; }
 
 /* ---------- modal ---------- */
-.modal-backdrop { position: fixed; inset: 0; background: rgba(40, 48, 56, 0.45); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 100; padding: 20px; animation: fade 0.15s; }
-.modal { background: var(--surface); border-radius: 24px; width: min(640px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; box-shadow: 0 30px 70px -20px rgba(40, 48, 56, 0.4); }
+.modal-backdrop { position: fixed; inset: 0; width: auto; max-width: none; background: color-mix(in srgb, var(--bg) 45%, transparent); -webkit-backdrop-filter: blur(7px) saturate(0.9); backdrop-filter: blur(7px) saturate(0.9); display: grid; place-items: center; z-index: 100; padding: 20px; animation: fade 0.15s; }
+.modal { background: var(--surface); border-radius: 24px; width: min(640px, 100%); max-height: calc(100vh - 40px); display: flex; flex-direction: column; border: 1px solid var(--border); box-shadow: 0 40px 90px -30px rgba(40, 48, 56, 0.45), 0 12px 30px -18px rgba(40, 48, 56, 0.25); }
 .modal-wide { width: min(840px, 100%); }
 .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 26px; border-bottom: 1px solid var(--border); }
 .modal-head h2 { text-transform: lowercase; }
