@@ -1122,3 +1122,6 @@ input[type='color']:hover { box-shadow: 0 0 0 1px var(--accent-soft), 0 4px 10px
 .area-approx.on { border-color: var(--accent-soft); background: var(--accent-tint); color: var(--accent-ink); }
 .area-field { flex-direction: column; gap: 6px; }
 .area-approx { align-self: flex-start; padding: 5px 12px; font-size: 12px; }
+/* "o que está incluso": várias linhas, respeitadas no PDF */
+textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; padding-top: 10px; padding-bottom: 10px; }
+.p-row-desc { white-space: pre-line; line-height: 1.5; }

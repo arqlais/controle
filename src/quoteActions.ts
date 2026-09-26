@@ -2,6 +2,9 @@ import type { Project, Quote } from './types'
 import { DEFAULT_TASKS, cleanDetail, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
+/** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
+const sub = (d: string) => (d.trim() ? '\n' + d.split('\n').filter((l) => l.trim()).map((l) => `   · ${l.trim()}`).join('\n') : '')
+
 /** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
 export function projectFromQuote(q: Quote, urgencyFee: number, due = ''): Project {
   const chosen = q.options.find((o) => o.id === q.chosenOption)
@@ -23,8 +26,8 @@ export function projectFromQuote(q: Quote, urgencyFee: number, due = ''): Projec
     service: (useOption ? chosen.items[0] : firstItem)?.service ?? '',
     quantity: (useOption ? chosen.items[0] : firstItem)?.quantity ?? 1,
     description: useOption
-      ? [`Opção ${q.options.indexOf(chosen) + 1}${chosen.name ? ` · ${chosen.name}` : ''}`, ...chosen.items.map((i) => `— ${i.title}${i.detail ? ` · ${i.detail}` : ''}${i.description ? `: ${i.description}` : ''}`)].join('\n')
-      : q.items.map((i) => `${i.title}${i.detail ? ` · ${i.detail}` : ''}${i.description ? ` — ${i.description}` : ''}`).join('\n'),
+      ? [`Opção ${q.options.indexOf(chosen) + 1}${chosen.name ? ` · ${chosen.name}` : ''}`, ...chosen.items.map((i) => `— ${i.title}${i.detail ? ` · ${i.detail}` : ''}${sub(i.description)}`)].join('\n')
+      : q.items.map((i) => `${i.title}${i.detail ? ` · ${i.detail}` : ''}${sub(i.description)}`).join('\n'),
     status: 'briefing',
     priority: q.urgency ? 'urgente' : 'media',
     startDate: start,

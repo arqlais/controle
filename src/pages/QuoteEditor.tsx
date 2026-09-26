@@ -473,8 +473,18 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
               <Field label="Detalhe (ao lado do serviço)">
                 <input value={it.detail} onChange={(e) => onChange(items.map((i) => (i.id === it.id ? { ...i, detail: e.target.value } : i)))} placeholder="Ex.: 5 imagens" />
               </Field>
-              <Field label="O que está incluso" span={2}>
-                <input value={it.description} onChange={(e) => setItem(it.id, { description: e.target.value })} placeholder="Ambientes, nível de detalhe…" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
+              <Field label="O que está incluso" span={2} hint="Enter para uma nova linha: cada linha aparece embaixo da outra na proposta.">
+                <textarea
+                  className="auto-grow"
+                  rows={Math.max(1, it.description.split('\n').length)}
+                  value={it.description}
+                  onChange={(e) => setItem(it.id, { description: e.target.value })}
+                  placeholder="Ambientes, nível de detalhe…"
+                  spellCheck
+                  lang="pt-BR"
+                  autoCapitalize="sentences"
+                  autoCorrect="on"
+                />
               </Field>
               {s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
                 <Field label={`Desconto por ${s.unit}`} hint={it.unitDiscount ? `fica ${money(Math.max(0, rate - it.unitDiscount))}/${s.unit}` : 'opcional'}>
