@@ -36,59 +36,28 @@ export function AuthGate({ children }: { children: ReactNode }) {
 export const signOut = () => supabase?.auth.signOut()
 
 /** Marca exibida no login (antes de saber quem está entrando). Troque aqui ao comercializar. */
-const PRODUCT = { name: 'laís', line1: 'você projeta,', line2: 'a gente cuida da produção' }
-
-const hello = () => {
-  const h = new Date().getHours()
-  return h < 12 ? 'bom dia' : h < 18 ? 'boa tarde' : 'boa noite'
-}
+const PRODUCT = { name: 'laís', line1: 'você projeta,', line2: 'eu cuido da produção' }
 
 function AuthLayout({ children }: { children: ReactNode }) {
   useEffect(() => applyTheme(DEFAULT_SETTINGS), [])
   return (
     <div className="auth">
-      <aside className="auth-art" aria-hidden>
-        <div className="auth-grid" />
-        <svg className="auth-house" viewBox="0 0 400 300" fill="none">
-          <path d="M40 250 L40 140 L200 60 L360 140 L360 250 Z" />
-          <path d="M40 140 L200 220 L360 140 M200 220 L200 300" />
-          <path d="M110 176 L110 236 L160 260 L160 200 Z M240 200 L240 260 L300 232 L300 172 Z" />
-          <path d="M200 60 L200 20" strokeDasharray="4 6" />
-        </svg>
-        <span className="auth-brand">
-          {PRODUCT.name}
-          <i>.</i>
-        </span>
-        <div className="auth-cards">
-          <div className="auth-card c1">
-            <small>proposta #014</small>
-            <b>aprovada · R$ 2.400,00</b>
-          </div>
-          <div className="auth-card c2">
-            <small>sinal recebido</small>
-            <b>
-              <span className="ok">✓</span> R$ 1.200,00
-            </b>
-          </div>
-          <div className="auth-card c3">
-            <small>entrega amanhã</small>
-            <b>suíte master — casa vila</b>
-          </div>
-        </div>
-        <div className="auth-copy">
+      <aside className="auth-art">
+        <div className="auth-art-inner">
+          <span className="brand-name">
+            {PRODUCT.name}
+            <i>.</i>
+          </span>
           <h2>
             <em>{PRODUCT.line1}</em>
             <br />
             {PRODUCT.line2}
           </h2>
-          <p>clientes · demandas · orçamentos · financeiro · agenda</p>
+          <p>Clientes, demandas, prazos, orçamentos e financeiro do estúdio — num só lugar, em qualquer aparelho.</p>
         </div>
       </aside>
       <main className="auth-form">
         <div className="auth-box">{children}</div>
-        <p className="auth-foot">
-          <Icon name="check" size={13} /> acesso protegido · seus dados ficam na nuvem e aparecem em qualquer aparelho
-        </p>
       </main>
     </div>
   )
@@ -122,7 +91,7 @@ function Login() {
   return (
     <AuthLayout>
       <div>
-        <p className="eyebrow">{hello()}</p>
+        <p className="eyebrow">área restrita</p>
         <h1>
           {forgot ? (
             <>
