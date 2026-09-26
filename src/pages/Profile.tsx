@@ -59,13 +59,20 @@ export default function Profile() {
       </div>
 
       <section className="card profile-hero">
-        <div className="profile-avatar" onClick={() => logoRef.current?.click()} title="Trocar logo">
-          {s.logo ? <img src={s.logo} alt="" /> : <span>{initials(s)}</span>}
-          <em>
-            <Icon name="upload" size={14} />
-          </em>
+        <div className="profile-avatar-col">
+          <div className="profile-avatar" onClick={() => logoRef.current?.click()} title="Trocar foto">
+            {s.logo ? <img src={s.logo} alt="" /> : <Icon name="user" size={38} />}
+            <em>
+              <Icon name="upload" size={14} />
+            </em>
+          </div>
+          <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => onLogo(e.target.files?.[0])} />
+          {s.logo && (
+            <button className="link profile-remove" onClick={() => set({ logo: '' })}>
+              remover foto
+            </button>
+          )}
         </div>
-        <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => onLogo(e.target.files?.[0])} />
         <div className="grow">
           <h2 className="profile-name">
             {s.brandName.replace(/\.$/, '') || 'seu estúdio'}
@@ -115,7 +122,7 @@ export default function Profile() {
                 </button>
                 {s.logo && (
                   <button className="btn small ghost" onClick={() => set({ logo: '' })}>
-                    Remover
+                    <Icon name="trash" size={14} /> Remover foto
                   </button>
                 )}
               </div>

@@ -1053,3 +1053,20 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .profile-chip-avatar { border-radius: 50%; }
 .profile-chip-avatar img { object-fit: cover; }
 .photo-preview { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px var(--accent-soft); }
+
+/* canto do menu, proporções finais */
+.brand { gap: 12px; padding: 4px 10px 26px; align-items: center; }
+.brand-photo { width: 48px; height: 48px; border-width: 2px; display: grid; place-items: center; color: var(--accent-ink);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-soft) 70%, transparent), 0 8px 18px -8px rgba(62, 75, 87, 0.4); }
+.brand-photo.is-empty { background: var(--accent-tint); }
+.brand-text { gap: 3px; }
+.brand-kicker { font-family: var(--font-body); font-style: normal; font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: lowercase; color: var(--accent-ink); line-height: 1; }
+.brand .brand-name, .brand.has-photo .brand-name { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+/* perfil: foto + remover */
+.profile-avatar-col { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: none; }
+.profile-avatar { color: var(--accent-ink); }
+.profile-avatar:has(img) { background: var(--surface); }
+.profile-avatar:not(:has(img)) { background: var(--accent-tint); }
+.profile-remove { font-size: 11.5px; color: var(--muted); }
+.profile-remove:hover { color: var(--bad); }
+.profile-chip-avatar { color: var(--accent-ink); }

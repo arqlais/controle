@@ -20,7 +20,7 @@ import Quotes from './pages/Quotes'
 import QuoteEditor from './pages/QuoteEditor'
 import SettingsPage from './pages/Settings'
 import Manual from './pages/Manual'
-import Profile, { initials, profileMissing } from './pages/Profile'
+import Profile, { profileMissing } from './pages/Profile'
 
 const NAV = [
   { page: 'inicio', label: 'início', icon: 'home' },
@@ -105,12 +105,8 @@ export default function App() {
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
-        <a className={`brand ${settings.logo ? 'has-photo' : ''}`} href={href('inicio')}>
-          {settings.logo && (
-            <span className="brand-photo">
-              <img src={settings.logo} alt="" />
-            </span>
-          )}
+        <a className="brand" href={href('inicio')}>
+          <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}>{settings.logo ? <img src={settings.logo} alt="" /> : <Icon name="user" size={24} />}</span>
           <span className="brand-text">
             <span className="brand-kicker">meu estúdio</span>
             <span className="brand-name">
@@ -170,7 +166,7 @@ export default function App() {
           </div>
         </nav>
         <a href={href('perfil')} className={`profile-chip ${route.page === 'perfil' ? 'active' : ''}`} title="Perfil do estúdio e conta">
-          <span className="profile-chip-avatar">{settings.logo ? <img src={settings.logo} alt="" /> : initials(settings)}</span>
+          <span className="profile-chip-avatar">{settings.logo ? <img src={settings.logo} alt="" /> : <Icon name="user" size={18} />}</span>
           <span className="grow">
             <b>{settings.ownerName || settings.brandName || 'meu perfil'}</b>
             <small>{userEmail || 'perfil do estúdio'}</small>
