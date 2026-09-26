@@ -61,11 +61,13 @@ export default function Profile() {
 
       <section className="card profile-hero">
         <div className="profile-avatar-col">
-          <div className="profile-avatar" onClick={() => logoRef.current?.click()} title="Trocar foto">
-            {s.logo ? <img src={s.logo} alt="" /> : <Icon name="user" size={38} />}
-            <em>
-              <Icon name="upload" size={14} />
-            </em>
+          <div className="profile-avatar-wrap">
+            <div className="profile-avatar" onClick={() => logoRef.current?.click()} title="Trocar foto">
+              {s.logo ? <img src={s.logo} alt="" /> : <Icon name="user" size={38} />}
+            </div>
+            <button type="button" className="profile-avatar-badge" onClick={() => logoRef.current?.click()} aria-label={s.logo ? 'Trocar foto' : 'Enviar foto'} title={s.logo ? 'Trocar foto' : 'Enviar foto'}>
+              <Icon name={s.logo ? 'edit' : 'plus'} size={15} />
+            </button>
           </div>
           <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => onLogo(e.target.files?.[0])} />
           {s.logo && (
