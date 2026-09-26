@@ -17,7 +17,7 @@ const CHECK: [keyof Settings, string][] = [
   ['email', 'e-mail'],
   ['pixKey', 'chave pix'],
   ['instagram', 'instagram'],
-  ['logo', 'logo'],
+  ['logo', 'foto ou logo'],
 ]
 
 export const profileMissing = (s: Settings) => CHECK.filter(([k]) => !String(s[k] ?? '').trim()).map(([, l]) => l)
@@ -39,7 +39,7 @@ export default function Profile() {
 
   const onLogo = (f?: File) => {
     if (!f) return
-    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB (PNG ou SVG de preferência).')
+    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB.')
     const r = new FileReader()
     r.onload = () => set({ logo: String(r.result) })
     r.readAsDataURL(f)
@@ -107,9 +107,9 @@ export default function Profile() {
             <Field label="Cidade">
               <input value={s.city} onChange={(e) => set({ city: e.target.value })} />
             </Field>
-            <Field label="Logo" span={2} hint="PNG ou SVG, até 600 KB. Sem logo, o sistema usa o nome da marca.">
+            <Field label="Foto ou logo" span={2} hint="Aparece redonda no canto do menu. JPG ou PNG, até 600 KB.">
               <div className="row gap-s">
-                {s.logo ? <img src={s.logo} alt="" className="logo-preview" /> : <span className="muted small">Sem logo.</span>}
+                {s.logo ? <img src={s.logo} alt="" className="photo-preview" /> : <span className="muted small">Sem foto.</span>}
                 <button className="btn small" onClick={() => logoRef.current?.click()}>
                   <Icon name="upload" size={14} /> {s.logo ? 'Trocar' : 'Enviar'}
                 </button>

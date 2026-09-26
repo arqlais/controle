@@ -105,15 +105,19 @@ export default function App() {
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
-        <a className="brand" href={href('inicio')}>
-          {settings.logo ? (
-            <img src={settings.logo} alt={settings.brandName} />
-          ) : (<span className="brand-name">
-              {settings.brandName.replace(/\.$/, '')}
-              <i>.</i>
+        <a className={`brand ${settings.logo ? 'has-photo' : ''}`} href={href('inicio')}>
+          {settings.logo && (
+            <span className="brand-photo">
+              <img src={settings.logo} alt="" />
             </span>
           )}
-          {settings.tagline && <span className="brand-tag">{settings.tagline}</span>}
+          <span className="brand-text">
+            <span className="brand-kicker">meu estúdio</span>
+            <span className="brand-name">
+              {settings.brandName.replace(/\.$/, '') || 'estúdio'}
+              <i>.</i>
+            </span>
+          </span>
         </a>
         <nav className={organizing ? 'organizing' : ''}>
           {nav.map((n, i) => {
