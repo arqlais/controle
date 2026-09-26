@@ -215,7 +215,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                     title="Vários projetos fechados juntos, com desconto"
                     onClick={() => save(withPackage(p, [{ id: uid(), title: p.title, price: p.value }], p.discount))}
                   >
-                    <Icon name="box" size={14} /> Pacote
+                    <Icon name="layers" size={14} /> Pacote
                   </button>
                 )}
                 <button className="btn small ghost" onClick={() => setNewExtra(true)} title="Cliente pediu algo a mais depois de fechar">

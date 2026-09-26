@@ -104,7 +104,7 @@ export function Progress({ value, max, color }: { value: number; max: number; co
   )
 }
 
-export function Empty({ icon = 'box', title, text, action }: { icon?: string; title: string; text?: string; action?: ReactNode }) {
+export function Empty({ icon = 'inbox', title, text, action }: { icon?: string; title: string; text?: string; action?: ReactNode }) {
   return (
     <div className="empty">
       <Icon name={icon} size={32} />
