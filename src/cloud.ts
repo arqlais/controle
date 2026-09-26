@@ -30,3 +30,27 @@ export async function pushRemote(userId: string, payload: Data): Promise<string>
   if (error) throw error
   return updatedAt
 }
+
+/* Agenda do celular: o sistema publica um arquivo .ics (formato de calendário) no
+   Storage do Supabase, num endereço secreto. O iPhone, o Google Agenda e outros
+   "assinam" esse endereço e buscam as novidades sozinhos. Nada de servidor extra:
+   basta o bucket "agenda" criado pelo supabase/schema.sql. */
+const BUCKET = 'agenda'
+const agendaPath = (userId: string, token: string) => `${userId}/${token}.ics`
+export const agendaUrl = (userId: string, token: string) => `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${agendaPath(userId, token)}`
+
+/** Publica (ou apaga, sem token) a agenda da usuária. Remove links antigos. */
+export async function publishAgenda(userId: string, token: string, ics: string) {
+  const st = supabase!.storage.from(BUCKET)
+  const { data: files, error: listError } = await st.list(userId)
+  if (listError) throw listError
+  const old = (files ?? []).filter((f) => f.name !== `${token}.ics`).map((f) => `${userId}/${f.name}`)
+  if (old.length) await st.remove(old)
+  if (!token) return
+  const { error } = await st.upload(agendaPath(userId, token), new Blob([ics], { type: 'text/calendar' }), {
+    upsert: true,
+    contentType: 'text/calendar; charset=utf-8',
+    cacheControl: '60',
+  })
+  if (error) throw error
+}

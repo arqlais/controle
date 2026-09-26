@@ -1,5 +1,6 @@
 import { ARTIFACT } from './env'
-import { CLOUD, fetchRemote, pushRemote } from './cloud'
+import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
+import { buildICS } from './ics'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings } from './types'
@@ -334,9 +335,21 @@ interface Store {
   lastSaved: Date | null
   sync: SyncStatus
   userEmail: string
+  userId: string
+  agenda: AgendaStatus // publicação da agenda do celular
+  publishAgendaNow: () => Promise<boolean>
   isSample: boolean // mostrando o exemplo (não salva)
   showSample: (on: boolean) => void
 }
+
+export interface AgendaStatus {
+  state: 'idle' | 'ok' | 'erro'
+  at?: Date
+  error?: string
+}
+
+// só republica quando o conteúdo da agenda muda (a hora de geração não conta)
+const agendaSignature = (ics: string) => ics.replace(/^DTSTAMP:.*$/gm, '')
 
 const Ctx = createContext<Store | null>(null)
 
@@ -346,6 +359,27 @@ const hasContent = (d: Data) => !d.demo && (d.clients.length > 0 || d.projects.l
 export function StoreProvider({ children, userId, userEmail = '' }: { children: ReactNode; userId?: string; userEmail?: string }) {
   const cloud = CLOUD && !!userId
   const [data, setData] = useState<Data>(() => load(userId))
+  const [agenda, setAgenda] = useState<AgendaStatus>({ state: 'idle' })
+  const agendaSent = useRef('')
+  const publishAgendaFor = useCallback(
+    async (d: Data, force = false) => {
+      if (!cloud || !userId) return false
+      const token = d.settings.calendarToken
+      const ics = token ? buildICS(d, `${(d.settings.brandName || 'meu estúdio').replace(/\.$/, '')} · agenda`) : ''
+      const sig = `${token}|${agendaSignature(ics)}`
+      if (!force && sig === agendaSent.current) return true
+      try {
+        await publishAgenda(userId, token, ics)
+        agendaSent.current = sig
+        setAgenda({ state: 'ok', at: new Date() })
+        return true
+      } catch (e) {
+        setAgenda({ state: 'erro', error: e instanceof Error ? e.message : String(e) })
+        return false
+      }
+    },
+    [cloud, userId],
+  )
   // modo exemplo: dados fictícios só em memória — nada é salvo nem enviado para a nuvem
   const [sample, setSample] = useState<Data | null>(null)
   const sampleOn = useRef(false)
@@ -418,6 +452,7 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
         pending.current = false
         setSync('saved')
         setLastSaved(new Date())
+        if (data.settings.calendarToken || agendaSent.current) void publishAgendaFor(data)
       } catch {
         setSync('offline')
       }
@@ -506,9 +541,10 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
     (on: boolean) => setSample(on ? { ...demoData(data.settings), demo: false } : null),
     [data.settings],
   )
+  const publishAgendaNow = useCallback(() => publishAgendaFor(dataRef.current, true), [publishAgendaFor])
   const value = useMemo(
-    () => ({ data: view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, isSample: !!sample, showSample }),
-    [view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, sample, showSample],
+    () => ({ data: view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId: userId ?? '', agenda, publishAgendaNow, isSample: !!sample, showSample }),
+    [view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId, agenda, publishAgendaNow, sample, showSample],
   )
   if (sync === 'loading') return <div className="loading-screen"><span className="brand-name">{data.settings.brandName}<i>.</i></span><p className="muted small">carregando seus dados…</p></div>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

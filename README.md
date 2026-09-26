@@ -46,9 +46,8 @@ Com a nuvem ligada, o sistema pede **e-mail e senha**, os dados ficam iguais em 
 
 ### Agenda no celular (sincroniza sozinha)
 
-9. No Supabase: **Edge Functions → Deploy a new function → Via Editor**, nome **`agenda`**. Cole o conteúdo de [`supabase/functions/agenda/index.ts`](supabase/functions/agenda/index.ts) e clique em **Deploy**.
-10. Nos detalhes da função, **desligue "Verify JWT"** (apps de calendário não fazem login; o link é protegido por uma chave secreta).
-11. No sistema: **Agenda → Conectar ao celular → gerar meu link** e siga as instruções para iPhone ou Google Agenda.
+9. O `schema.sql` já cria o bucket **agenda** no Storage (rode de novo se você rodou uma versão antiga). O sistema publica ali a agenda de cada usuária num endereço secreto; não precisa de função nem servidor.
+10. No sistema: **Agenda → conectar ao celular → ligar agenda no celular** e siga as instruções para iPhone ou Google Agenda.
 
 Entregas, parcelas a receber e compromissos aparecem no calendário do celular, com lembrete na véspera (ou 30 min antes, quando tem horário).
 

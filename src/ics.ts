@@ -1,8 +1,7 @@
 import type { Data } from './types'
 
-/* Calendário no formato iCalendar (.ics) — o mesmo formato que o link de
-   assinatura (supabase/functions/agenda) entrega para o celular.
-   Mantenha as duas versões com a mesma lógica. */
+/* Calendário no formato iCalendar (.ics). O sistema publica este arquivo no
+   Storage do Supabase (ver publishAgenda em cloud.ts) e o celular assina o link. */
 
 const EVENT_LABEL: Record<string, string> = {
   reuniao: 'Reunião',

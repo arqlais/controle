@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { EventForm } from '../components/forms'
 import { Modal, MonthPicker, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { CLOUD, SUPABASE_URL } from '../cloud'
+import { CLOUD, agendaUrl } from '../cloud'
 import { buildICS } from '../ics'
 import type { CalendarEvent } from '../types'
 import {
@@ -279,11 +279,27 @@ function AgendaRow({ i, showDate, onEdit, onToggle }: { i: Item; showDate?: bool
   )
 }
 
+/** Ajuste único no Supabase para a agenda do celular (mesmo texto do supabase/schema.sql). */
+const AGENDA_SQL = `insert into storage.buckets (id, name, public) values ('agenda', 'agenda', true) on conflict (id) do update set public = true;
+drop policy if exists "agenda: dona vê" on storage.objects;
+drop policy if exists "agenda: dona cria" on storage.objects;
+drop policy if exists "agenda: dona altera" on storage.objects;
+drop policy if exists "agenda: dona apaga" on storage.objects;
+create policy "agenda: dona vê" on storage.objects for select to authenticated using (bucket_id = 'agenda' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "agenda: dona cria" on storage.objects for insert to authenticated with check (bucket_id = 'agenda' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "agenda: dona altera" on storage.objects for update to authenticated using (bucket_id = 'agenda' and (storage.foldername(name))[1] = auth.uid()::text) with check (bucket_id = 'agenda' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "agenda: dona apaga" on storage.objects for delete to authenticated using (bucket_id = 'agenda' and (storage.foldername(name))[1] = auth.uid()::text);`
+
 function ConnectCalendar({ onClose }: { onClose: () => void }) {
-  const { data, setSettings } = useStore()
+  const { data, setSettings, userId, agenda, publishAgendaNow } = useStore()
   const token = data.settings.calendarToken
   const sync = { entregas: true, pagamentos: true, compromissos: true, ...(data.settings.calendarSync ?? {}) }
-  const url = token ? `${SUPABASE_URL}/functions/v1/agenda?token=${token}` : ''
+  const url = token && userId ? agendaUrl(userId, token) : ''
+  // ao abrir (e depois de ligar), publica na hora para já dar para adicionar no celular
+  useEffect(() => {
+    if (CLOUD && token) void publishAgendaNow()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
   const webcal = url.replace(/^https:/, 'webcal:')
   const [device, setDevice] = useState<'iphone' | 'android' | 'outro'>(() => (/iphone|ipad|mac/i.test(navigator.userAgent) ? 'iphone' : /android/i.test(navigator.userAgent) ? 'android' : 'iphone'))
 
@@ -347,9 +363,30 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            <p className="sync-on">
-              <Icon name="check" size={16} /> Agenda do celular ligada. Falta só adicionar no seu celular (uma vez):
-            </p>
+            {agenda.state === 'erro' ? (
+              <div className="sync-error">
+                <b>A agenda ainda não pode ser publicada.</b>
+                <p className="small">
+                  Falta um ajuste único no Supabase: SQL Editor → New query → cole o código abaixo → Run. Depois toque em <b>tentar de novo</b>.
+                </p>
+                <textarea readOnly rows={4} value={AGENDA_SQL} onFocus={(e) => e.target.select()} />
+                <div className="row gap-s">
+                  <button className="btn small" onClick={() => navigator.clipboard?.writeText(AGENDA_SQL).then(() => toast('Código copiado.'))}>
+                    <Icon name="copy" size={14} /> copiar código
+                  </button>
+                  <button className="btn small primary" onClick={() => void publishAgendaNow()}>
+                    tentar de novo
+                  </button>
+                </div>
+                <p className="muted small">detalhe: {agenda.error}</p>
+              </div>
+            ) : (
+              <p className="sync-on">
+                <Icon name="check" size={16} />
+                {agenda.state === 'ok' ? `Agenda publicada às ${agenda.at!.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. ` : 'Publicando a agenda… '}
+                Falta só adicionar no seu celular (uma vez):
+              </p>
+            )}
             <div className="segmented sync-device">
               {(
                 [
