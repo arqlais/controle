@@ -187,7 +187,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
-              <Field label="Cliente" span={3} hint="O nome da cliente vai no campo “nome” da proposta.">
+              <Field label="Cliente" span={2} hint="O nome da cliente vai no campo “nome” da proposta.">
                 <div className="row gap-s">
                   <select id="q-client" value={q.clientId} onChange={(e) => set({ clientId: e.target.value })}>
                     <option value="">Selecione…</option>
@@ -211,10 +211,23 @@ export default function QuoteEditor({ id }: { id: string }) {
                   </button>
                 </div>
               </Field>
+              <Field label="Data da proposta" hint={q.createdAt === today() ? 'Hoje · orçamento antigo? coloque a data real.' : 'Vai no PDF e na lista.'}>
+                <input
+                  id="q-date"
+                  type="date"
+                  value={q.createdAt}
+                  max={today()}
+                  onChange={(e) => {
+                    const d = e.target.value || today()
+                    // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
+                    set({ createdAt: d, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
+                  }}
+                />
+              </Field>
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field label="Área (m²) · opcional" hint="Só para modelagem, executivo, detalhamento… 0 = não aparece. Marque ≈ quando for uma média.">
+              <Field label="Área (m²) · opcional" hint="0 = não aparece no PDF · ≈ para área média.">
                 <div className="area-field">
                   <input id="q-area" type="number" min={0} value={q.area} onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
                   <label className={`area-approx ${q.areaApprox ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
@@ -236,19 +249,6 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <label className="check toggle">
                   <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar proposta em PDF
                 </label>
-              </Field>
-              <Field label="Data da proposta" hint={q.createdAt === today() ? 'Hoje. Para orçamento antigo, coloque a data real.' : 'Data do orçamento (vai no PDF e na lista).'}>
-                <input
-                  id="q-date"
-                  type="date"
-                  value={q.createdAt}
-                  max={today()}
-                  onChange={(e) => {
-                    const d = e.target.value || today()
-                    // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
-                    set({ createdAt: d, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
-                  }}
-                />
               </Field>
             </div>
             {student && <p className="small text-warn">Cliente estudante: sugestões com {settings.studentDiscount}% de desconto.</p>}
