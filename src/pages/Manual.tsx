@@ -140,12 +140,12 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Quero mudar o texto das mensagens',
-    a: <><b>configurações → mensagens padrão</b> (no computador). As palavras entre chaves, como {'{cliente}'} e {'{valor}'}, são preenchidas sozinhas.</>,
+    a: <><b>configurações → aba mensagens</b> (no computador). As palavras entre chaves, como {'{cliente}'} e {'{valor}'}, são preenchidas sozinhas.</>,
     page: 'config',
   },
   {
     q: 'Mudar preço da tabela, dados da proposta ou cores do PDF',
-    a: <><b>configurações → tabela de preços</b> e <b>modelo da proposta (PDF)</b>, só no computador. Seus dados (nome, logo, pix, contatos do rodapé) ficam no <b>perfil</b>, que abre pelo seu nome no pé do menu, também no celular.</>,
+    a: <><b>configurações → aba preços</b> e <b>aba propostas</b> (modelo do PDF), só no computador. Seus dados (nome, logo, pix, contatos do rodapé) ficam no <b>perfil</b>, que abre pelo seu nome no pé do menu, também no celular.</>,
     page: 'config',
   },
   {
@@ -169,7 +169,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'O que fica só no computador?',
-    a: <>Para o celular ficar enxuto, algumas coisas aparecem só no computador: gráficos (início e financeiro), <b>mensagens padrão</b>, <b>metas e regras de negócio</b>, <b>tabela de preços</b>, <b>modelo da proposta</b>, identidade visual e o <b>olho</b> do exemplo. No celular fica o dia a dia: para fazer, demandas, clientes, pagamentos e agenda.</>,
+    a: <>Para o celular ficar enxuto, algumas coisas aparecem só no computador: gráficos (início e financeiro), <b>mensagens padrão</b>, <b>metas</b>, <b>preços</b>, <b>tabela de preços</b>, <b>modelo da proposta</b>, identidade visual e o <b>olho</b> do exemplo. No celular fica o dia a dia: para fazer, demandas, clientes, pagamentos e agenda.</>,
   },
   {
     q: 'Não acho uma cliente, demanda ou orçamento',
@@ -193,7 +193,8 @@ const WHERE: [string, string, string][] = [
   ['menu completo no celular', 'ícone ☰ no canto superior esquerdo', ''],
   ['modo escuro', 'lua no pé do menu (vale só para o aparelho em que você ligar)', ''],
   ['sair da conta', 'ícone de sair no pé do menu, à direita (ou perfil → conta e segurança)', ''],
-  ['backup dos dados', 'configurações → backup e dados', 'config'],
+  ['backup dos dados', 'configurações → aba dados', 'config'],
+  ['meta mensal e cores do sistema', 'configurações → abas metas e aparência (no computador)', 'config'],
 ]
 
 const ROUTINE: [string, string[]][] = [
