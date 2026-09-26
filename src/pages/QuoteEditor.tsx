@@ -165,7 +165,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         </div>
         <div className="row gap-s wrap">
           {q.pdf && (
-            <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Orçamento ${quoteNumber(q)} - ${q.clientLabel || client?.name || 'cliente'}.pdf`)}>
+            <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Orçamento ${quoteNumber(q)} - ${q.clientLabel || client?.name || 'cliente'}.pdf`, { editable: true })}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
             </button>
           )}

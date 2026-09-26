@@ -115,13 +115,13 @@ function Footer({ s, sign }: { s: Settings; sign?: ReactNode }) {
   )
 }
 
-function Info({ rows }: { rows: [string, string][] }) {
+function Info({ rows, edit }: { rows: [string, string][]; edit?: boolean }) {
   return (
     <dl className="p-info">
       {rows.map(([k, v]) => (
         <div key={k}>
           <dt>{k}</dt>
-          <dd>{v}</dd>
+          <dd data-edit={edit ? '' : undefined}>{v}</dd>
         </div>
       ))}
     </dl>
@@ -172,6 +172,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
       <section className="q-hero">
         <h1 className="q-title">{s.proposal.title}</h1>
         <Info
+          edit
           rows={[
             ['cliente', clientName],
             ['data', fmt(quote.createdAt)],
@@ -185,16 +186,18 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
           {options.map((o, i) => (
             <div key={o.id} className="q-option">
               <span className="p-label">opção {i + 1}</span>
-              <h2>{o.name || '[nome da opção]'}</h2>
+              <h2 data-edit>{o.name || '[nome da opção]'}</h2>
               <ul>
                 {o.included.filter(Boolean).map((it, k) => (
-                  <li key={k}>{it}</li>
+                  <li key={k}>
+                    <span data-edit>{it}</span>
+                  </li>
                 ))}
               </ul>
-              <p className="q-small">prazo: {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
+              <p className="q-small" data-edit>prazo: {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
               <div className="q-option-total">
                 <span className="p-label">valor</span>
-                <b>{money(o.price)}</b>
+                <b data-edit>{money(o.price)}</b>
               </div>
             </div>
           ))}
@@ -217,21 +220,31 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
             <div key={it.id} className="q-row">
               <span className="q-n">{String(i + 1).padStart(2, '0')}</span>
               <div className="q-row-main">
-                <b>
+                <b data-edit>
                   {it.title || 'serviço'}
                   {it.detail && <span> · {it.detail}</span>}
                 </b>
-                {it.description && <p className="q-small">{it.description}</p>}
+                {it.description && (
+                  <p className="q-small" data-edit>
+                    {it.description}
+                  </p>
+                )}
               </div>
-              <span className="q-price">{money(it.price)}</span>
+              <span className="q-price" data-edit>
+                {money(it.price)}
+              </span>
             </div>
           ))}
           <div className="q-total">
             <div>
               <span className="p-label">total</span>
-              {note && <p className="q-small">{note}</p>}
+              {note && (
+                <p className="q-small" data-edit>
+                  {note}
+                </p>
+              )}
             </div>
-            <b>{money(total)}</b>
+            <b data-edit>{money(total)}</b>
           </div>
         </section>
       )}
@@ -250,26 +263,30 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
             </span>
             <div>
               <span className="p-label">{label}</span>
-              <p>{text}</p>
+              <p data-edit="multi">{text}</p>
             </div>
           </div>
         ))}
       </section>
-      {quote.notes && <p className="p-notes">{quote.notes}</p>}
+      {quote.notes && (
+        <p className="p-notes" data-edit="multi">
+          {quote.notes}
+        </p>
+      )}
 
       <footer className="q-foot">
         <div className="q-pay">
           {s.pixKey && (
             <span>
-              <b>pix</b> {s.pixKey}
+              <b>pix</b> <span data-edit>{s.pixKey}</span>
             </span>
           )}
-          <span>{s.legalName || s.ownerName}</span>
+          <span data-edit>{s.legalName || s.ownerName}</span>
         </div>
         <div className="q-contacts">
           {contacts.map(([icon, v]) => (
             <span key={icon}>
-              <Icon name={icon} size={13} /> {v}
+              <Icon name={icon} size={13} /> <span data-edit>{v}</span>
             </span>
           ))}
         </div>

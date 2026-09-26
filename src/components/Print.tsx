@@ -36,7 +36,7 @@ export function DocScale({ children }: { children: ReactNode }) {
  *  A folha é desenhada fora da tela, convertida em imagem de alta resolução
  *  e colocada em páginas A4. */
 export function usePdf() {
-  const [job, setJob] = useState<{ doc: ReactNode; filename: string } | null>(null)
+  const [job, setJob] = useState<{ doc: ReactNode; filename: string; editable?: boolean } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -49,8 +49,22 @@ export function usePdf() {
         await new Promise((r) => setTimeout(r, 150))
         const el = ref.current?.firstElementChild as HTMLElement | null
         if (!el || cancelled) return
-        const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
-        const canvas = await toCanvas(el, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#ffffff' })
+        const { toCanvas } = await import('html-to-image')
+        const render = (node: HTMLElement) => toCanvas(node, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#ffffff' })
+        if (job.editable) {
+          const { editablePdf } = await import('../editablePdf')
+          const bytes = await editablePdf(el, render)
+          if (cancelled) return
+          const a = document.createElement('a')
+          a.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/pdf' }))
+          a.download = job.filename
+          a.click()
+          setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+          toast('PDF editável baixado.')
+          return
+        }
+        const { jsPDF } = await import('jspdf')
+        const canvas = await render(el)
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true })
         const pageW = 210
         const pageH = 297
@@ -77,10 +91,10 @@ export function usePdf() {
     }
   }, [job])
 
-  const download = (doc: ReactNode, filename: string) => {
+  const download = (doc: ReactNode, filename: string, opts: { editable?: boolean } = {}) => {
     if (ARTIFACT) return setPreview(doc) // o visualizador do Claude bloqueia downloads
     toast('Gerando PDF…')
-    setJob({ doc, filename: filename.replace(/[\\/:*?"<>|]+/g, '-') })
+    setJob({ doc, filename: filename.replace(/[\\/:*?"<>|]+/g, '-'), editable: opts.editable })
   }
 
   const portal = (
