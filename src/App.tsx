@@ -108,9 +108,11 @@ export default function App() {
                 key={n.page}
                 href={href(n.page)}
                 className={`${route.page === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''}`}
-                draggable
-                onDragStart={() => setDragNav(n.page)}
+                // só dá para arrastar com "organizar menu" ligado (evita mudar sem querer)
+                draggable={organizing}
+                onDragStart={() => organizing && setDragNav(n.page)}
                 onDragOver={(e) => {
+                  if (!organizing) return
                   e.preventDefault()
                   if (dragNav && dragNav !== n.page) moveNav(dragNav, i)
                 }}
