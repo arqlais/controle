@@ -18,6 +18,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'mapas', name: 'mapa urbano', unit: 'mapa', pricing: 'unidade', price: 150, min: 0, hours: 2.5, tiers: [] },
   { id: 'diagramas', name: 'diagramas', unit: 'diagrama', pricing: 'unidade', price: 80, min: 0, hours: 1, tiers: [] },
   { id: 'diagramacao', name: 'diagramação', unit: 'prancha', pricing: 'unidade', price: 120, min: 0, hours: 2, tiers: [] },
+  { id: 'planta-hum', name: 'planta humanizada', unit: 'planta', pricing: 'unidade', price: 300, min: 0, hours: 4, tiers: [] },
   { id: 'personalizado', name: 'serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
 
@@ -25,13 +26,11 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
 function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const renamed: Record<string, string> = {
     'render-vray': 'renderização V-Ray', 'render-ia': 'renderização por IA', modelagem: 'modelagem 3d', detalhamento: 'detalhamento',
-    executivo: 'executivo', pranchas: 'prancha', mapas: 'mapa urbano', personalizado: 'serviço personalizado',
+    executivo: 'executivo', pranchas: 'prancha', mapas: 'mapa urbano', 'planta-hum': 'planta humanizada', personalizado: 'serviço personalizado',
   }
-  const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Serviço personalizado'])
-  const out = list
-    .filter((x) => !(x.id === 'planta-hum' && x.name === 'Planta humanizada'))
-    .map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
-  for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && (d.id === 'diagramas' || d.id === 'diagramacao')) out.splice(out.length - 1, 0, d)
+  const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Planta humanizada', 'Serviço personalizado'])
+  const out = list.map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
+  for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
   return out
 }
 
