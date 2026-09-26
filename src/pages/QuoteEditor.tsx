@@ -269,9 +269,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                   ]}
                 />
               </Field>
-              <Field label="PDF">
+              <Field label="Proposta" hint={q.pdf ? 'Aparece o botão “baixar PDF” no topo.' : 'Sem PDF: envie só o resumo pelo WhatsApp.'}>
                 <label className="check toggle">
-                  <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar proposta em PDF
+                  <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar em PDF para baixar e enviar
                 </label>
               </Field>
             </div>
