@@ -23,13 +23,14 @@ import {
   monthLabel,
   monthSummary,
   paymentState,
-  relativeDays,
+  PAY_WHEN,
+  payWhen,
   sum,
   today,
 } from '../utils'
 
 type Tab = 'receber' | 'despesas' | 'relatorios'
-type PayFilter = 'abertos' | 'vencidos' | 'pagos' | 'todos'
+type PayFilter = 'abertos' | 'cobrar' | 'pagos' | 'todos'
 
 export default function Finance() {
   const { data, upsert, remove } = useStore()
@@ -52,19 +53,19 @@ export default function Finance() {
   const series = months12.map((k) => monthSummary(data, k))
 
   const rows = pays
-    .filter(({ pay }) => {
-      const st = paymentState(pay)
+    .filter(({ pay, project }) => {
+      const st = paymentState(pay, project)
       if (filter === 'abertos' && st === 'pago') return false
-      if (filter === 'vencidos' && st !== 'vencido') return false
+      if (filter === 'cobrar' && st !== 'cobrar') return false
       if (filter === 'pagos' && st !== 'pago') return false
-      if (onlyMonth) return monthKey(pay.paidDate ?? pay.dueDate) === month
+      if (onlyMonth) return pay.paidDate ? monthKey(pay.paidDate) === month : !pay.dueDate || monthKey(pay.dueDate) === month
       return true
     })
-    .sort((a, b) => (filter === 'pagos' ? (b.pay.paidDate ?? '').localeCompare(a.pay.paidDate ?? '') : a.pay.dueDate.localeCompare(b.pay.dueDate)))
+    .sort((a, b) => (filter === 'pagos' ? (b.pay.paidDate ?? '').localeCompare(a.pay.paidDate ?? '') : (a.pay.dueDate || '9').localeCompare(b.pay.dueDate || '9')))
 
   const { visible, more } = usePaged(rows)
   const expenses = expensesInMonth(data, month).sort((a, b) => a.date.localeCompare(b.date))
-  const lateTotal = sum(pays.filter((x) => paymentState(x.pay) === 'vencido'), (x) => x.pay.amount)
+  const lateTotal = sum(pays.filter((x) => paymentState(x.pay, x.project) === 'cobrar'), (x) => x.pay.amount)
   const openTotal = sum(pays.filter((x) => !x.pay.paidDate), (x) => x.pay.amount)
 
   const markPaid = (projectId: string, payId: string, paid: boolean) => {
@@ -143,8 +144,8 @@ export default function Finance() {
         <div className="alert-strip">
           <Icon name="alert" />
           <div>
-            Você tem <b>{money(lateTotal)}</b> em parcelas vencidas.{' '}
-            <button className="link" onClick={() => { setTab('receber'); setFilter('vencidos'); setOnlyMonth(false) }}>
+            Você tem <b>{money(lateTotal)}</b> para cobrar (sinais em aberto e saldos de demandas concluídas).{' '}
+            <button className="link" onClick={() => { setTab('receber'); setFilter('cobrar'); setOnlyMonth(false) }}>
               Ver e cobrar →
             </button>
           </div>
@@ -181,7 +182,7 @@ export default function Finance() {
             <div className="row gap-s wrap">
               <select value={filter} onChange={(e) => setFilter(e.target.value as PayFilter)}>
                 <option value="abertos">Em aberto</option>
-                <option value="vencidos">Vencidos</option>
+                <option value="cobrar">A cobrar</option>
                 <option value="pagos">Pagos</option>
                 <option value="todos">Todos</option>
               </select>
@@ -200,14 +201,14 @@ export default function Finance() {
                   <tr>
                     <th>Cliente / projeto</th>
                     <th>Parcela</th>
-                    <th>Vencimento</th>
+                    <th>Quando</th>
                     <th className="num">Valor</th>
                     <th>Situação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {visible.map(({ pay, project, client }) => {
-                    const st = paymentState(pay)
+                    const st = paymentState(pay, project)
                     return (
                       <tr key={pay.id}>
                         <td>
@@ -217,9 +218,13 @@ export default function Finance() {
                           </a>
                         </td>
                         <td>{pay.description}</td>
-                        <td className={`nowrap ${st === 'vencido' ? 'text-bad' : ''}`}>
-                          {fmtDate(pay.dueDate)}
-                          {!pay.paidDate && <div className="small muted">{relativeDays(pay.dueDate)}</div>}
+                        <td className={`nowrap ${st === 'cobrar' ? 'text-warn' : ''}`}>
+                          {PAY_WHEN[payWhen(pay)]}
+                          {!pay.paidDate && (
+                            <div className="small muted">
+                              {st === 'cobrar' ? 'já pode cobrar' : pay.dueDate ? `prazo ${fmtDate(pay.dueDate)}` : 'sem prazo definido'}
+                            </div>
+                          )}
                         </td>
                         <td className="num" data-label="valor">{money(pay.amount)}</td>
                         <td>
@@ -228,7 +233,7 @@ export default function Finance() {
                               pago {fmtDate(pay.paidDate)}
                             </button>
                           ) : (
-                            <button className={`btn small ${st === 'vencido' ? 'danger' : ''}`} onClick={() => markPaid(project.id, pay.id, true)}>
+                            <button className={`btn small ${st === 'cobrar' ? 'warn' : ''}`} onClick={() => markPaid(project.id, pay.id, true)}>
                               Marcar pago
                             </button>
                           )}

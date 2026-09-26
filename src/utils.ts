@@ -165,10 +165,14 @@ export const projectOpen = (p: Project) => projectTotal(p) - projectPaid(p)
 export const projectHours = (p: Project) => p.timeLogs.reduce((s, t) => s + t.hours, 0)
 export const isOpen = (p: Project) => p.status !== 'entregue' && p.status !== 'cancelado'
 export const isLate = (p: Project) => isOpen(p) && !!p.dueDate && daysUntil(p.dueDate) < 0
-export const paymentLate = (x: Payment) => !x.paidDate && !!x.dueDate && daysUntil(x.dueDate) < 0
+/** Sem vencimento por data: o sinal é cobrado no fechamento e o saldo na conclusão. */
+export const payWhen = (x: Payment): 'fechamento' | 'conclusao' => x.on ?? (/saldo|aprova|conclus|entrega/i.test(x.description) ? 'conclusao' : 'fechamento')
+export const PAY_WHEN = { fechamento: 'no fechamento', conclusao: 'na conclusão' } as const
+/** Já dá para cobrar: sinal em aberto, ou saldo em aberto com a demanda em aprovação/entregue. */
+export const paymentDue = (x: Payment, p?: Project) => !x.paidDate && (payWhen(x) === 'fechamento' || (!!p && (p.status === 'aguardando' || p.status === 'entregue')))
 
-export type PaymentState = 'pago' | 'vencido' | 'pendente'
-export const paymentState = (x: Payment): PaymentState => (x.paidDate ? 'pago' : paymentLate(x) ? 'vencido' : 'pendente')
+export type PaymentState = 'pago' | 'cobrar' | 'pendente'
+export const paymentState = (x: Payment, p?: Project): PaymentState => (x.paidDate ? 'pago' : paymentDue(x, p) ? 'cobrar' : 'pendente')
 
 /** Urgência calculada: combina prioridade escolhida com a proximidade do prazo. */
 export function urgency(p: Project): { level: Priority; reason: string } {
@@ -286,13 +290,14 @@ export const PAY_MODES: Record<PayMode, string> = {
 
 /** Parcelas conforme a forma combinada: sinal + aprovação, tudo no início, ou cartão. */
 export function splitPayments(total: number, mode: PayMode | 'avista', start: string, due: string): Payment[] {
-  const mk = (description: string, amount: number, dueDate: string, method = 'Pix'): Payment => ({
+  const mk = (description: string, amount: number, dueDate: string, method = 'Pix', on: Payment['on'] = 'fechamento'): Payment => ({
     id: uid(),
     description,
     amount: Math.round(amount * 100) / 100,
     dueDate,
     paidDate: null,
     method,
+    on,
   })
   switch (mode) {
     case 'cartao':
@@ -301,7 +306,7 @@ export function splitPayments(total: number, mode: PayMode | 'avista', start: st
     case 'avista':
       return [mk('Pagamento 100% no início', total, start)]
     default:
-      return [mk('Sinal 50%', total / 2, start), mk('Saldo 50% na aprovação', total - Math.round((total / 2) * 100) / 100, due || start)]
+      return [mk('Sinal 50%', total / 2, start), mk('Saldo 50% na aprovação', total - Math.round((total / 2) * 100) / 100, due, 'Pix', 'conclusao')]
   }
 }
 
@@ -398,7 +403,7 @@ export function messageVars(st: Settings, client?: Client, project?: Project, qu
     proposta: quote ? quoteNumber(quote) : '',
     parcela: next?.description.toLowerCase() ?? '',
     valor_parcela: next ? money(next.amount) : total ? money(total / 2) : '',
-    vencimento: next ? fmtDateLong(next.dueDate) : '',
+    vencimento: next ? (next.dueDate ? fmtDateLong(next.dueDate) : PAY_WHEN[payWhen(next)]) : '',
     prazo: project?.dueDate ? fmtDateLong(project.dueDate) : '',
     arquivos: project?.filesLink ?? '',
     pix: st.pixKey,
@@ -433,7 +438,7 @@ export function rebalancePayments(p: Project): Payment[] {
   const target = Math.max(0, r2(projectTotal(p) - paid - fixedOpen))
   const open = p.payments.filter((x) => !x.paidDate && !fixed.has(x.id))
   if (!open.length) {
-    return target > 0.004 ? [...p.payments, { id: uid(), description: 'Saldo', amount: target, dueDate: p.dueDate || today(), paidDate: null, method: 'Pix' }] : p.payments
+    return target > 0.004 ? [...p.payments, { id: uid(), description: 'Saldo', amount: target, dueDate: p.dueDate || '', paidDate: null, method: 'Pix', on: 'conclusao' }] : p.payments
   }
   const cur = open.reduce((s, x) => s + x.amount, 0)
   let left = target

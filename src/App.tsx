@@ -8,7 +8,7 @@ import { applyTheme } from './theme'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, paymentLate, setCustomColumns } from './utils'
+import { allPayments, isLate, paymentDue, setCustomColumns } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -67,7 +67,7 @@ export default function App() {
   const alerts = useMemo(
     () => ({
       projetos: data.projects.filter(isLate).length,
-      financeiro: allPayments(data).filter((x) => paymentLate(x.pay)).length,
+      financeiro: allPayments(data).filter((x) => paymentDue(x.pay, x.project)).length,
     }),
     [data],
   )

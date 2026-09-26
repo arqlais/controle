@@ -163,10 +163,10 @@ export default function ClientDetail({ id }: { id: string }) {
             ) : (
               <ul className="mini-list">
                 {payments.slice(0, 10).map(({ pay, p }) => {
-                  const st = paymentState(pay)
+                  const st = paymentState(pay, p)
                   return (
                     <li key={pay.id}>
-                      <span className={`pill pill-${st}`}>{st}</span>
+                      <span className={`pill pill-${st}`}>{st === 'cobrar' ? 'a cobrar' : st}</span>
                       <span className="grow">
                         {pay.description}
                         <span className="muted small"> · {p.title}</span>

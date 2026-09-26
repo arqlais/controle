@@ -56,7 +56,7 @@ export function calendarEntries(data: Data): Entry[] {
       })
     }
     for (const pay of p.payments) {
-      if (pay.paidDate) continue
+      if (pay.paidDate || !pay.dueDate) continue // saldo sem prazo definido não vira evento
       out.push({
         uid: `pagamento-${pay.id}`,
         date: pay.dueDate,

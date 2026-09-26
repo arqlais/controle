@@ -1,14 +1,13 @@
 import type { Project, Quote } from './types'
-import { DEFAULT_TASKS, addDays, cleanDetail, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
+import { DEFAULT_TASKS, cleanDetail, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
-export function projectFromQuote(q: Quote, urgencyFee: number): Project {
+/** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
+export function projectFromQuote(q: Quote, urgencyFee: number, due = ''): Project {
   const chosen = q.options.find((o) => o.id === q.chosenOption)
   const useOption = q.mode === 'opcoes' && chosen
   const firstItem = q.items[0]
   const start = today()
-  const deadline = useOption ? chosen.deadlineDays : q.deadlineDays
-  const due = addDays(start, Math.round(deadline * 1.4)) // dias úteis → corridos
   const value = q.closedValue && q.closedValue > 0 ? q.closedValue : useOption ? optionTotal(chosen) : quoteTotal(q, urgencyFee)
   // vários serviços com valor → vira pacote (dá para retirar um depois e o desconto se ajusta)
   const lines = (useOption ? chosen.items : q.items).filter((i) => i.price > 0)

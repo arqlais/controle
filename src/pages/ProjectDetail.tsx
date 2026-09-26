@@ -27,7 +27,7 @@ import {
   relativeDays,
   today,
   templateText,
-  paymentLate,
+  payWhen,
   uid,
   addDays,
   daysBetween,
@@ -93,7 +93,7 @@ export default function ProjectDetail({ id }: { id: string }) {
 
   // usa a mensagem padrão de cobrança (Configurações → mensagens padrão)
   const chargeMsg = () =>
-    templateText(data.settings, pending[0] && paymentLate(pending[0]) ? 'cobranca-atraso' : 'cobranca', 'Oi, {cliente}! Passando para lembrar da parcela "{parcela}" de {valor_parcela}. Chave pix: {pix}.', client, p)
+    templateText(data.settings, 'cobranca', 'Oi, {cliente}! Passando para lembrar da parcela "{parcela}" de {valor_parcela}. Chave pix: {pix}.', client, p)
 
   return (
     <div className="page">
@@ -212,7 +212,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                     save({
                       payments: [
                         ...p.payments,
-                        { id: uid(), description: `Parcela ${p.payments.length + 1}`, amount: Math.max(0, diff), dueDate: p.dueDate || today(), paidDate: null, method: 'Pix' },
+                        { id: uid(), description: `Parcela ${p.payments.length + 1}`, amount: Math.max(0, diff), dueDate: p.dueDate || '', paidDate: null, method: 'Pix', on: 'conclusao' },
                       ],
                     })
                   }
@@ -231,7 +231,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                     <tr>
                       <th>Descrição</th>
                       <th>Valor</th>
-                      <th>Vencimento</th>
+                      <th>Quando</th>
                       <th>Forma</th>
                       <th>Situação</th>
                       <th />
@@ -239,7 +239,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                   </thead>
                   <tbody>
                     {p.payments.map((x) => {
-                      const st = paymentState(x)
+                      const st = paymentState(x, p)
                       return (
                         <tr key={x.id}>
                           <td>
@@ -249,7 +249,10 @@ export default function ProjectDetail({ id }: { id: string }) {
                             <MoneyInput value={x.amount} onChange={(n) => setPayment(x.id, { amount: n })} />
                           </td>
                           <td>
-                            <input className="cell-input" type="date" value={x.dueDate} onChange={(e) => setPayment(x.id, { dueDate: e.target.value })} />
+                            <select className="cell-input" value={payWhen(x)} onChange={(e) => setPayment(x.id, { on: e.target.value as Payment['on'], dueDate: e.target.value === 'conclusao' ? p.dueDate || '' : x.dueDate || today() })}>
+                              <option value="fechamento">no fechamento</option>
+                              <option value="conclusao">na conclusão</option>
+                            </select>
                           </td>
                           <td>
                             <select className="cell-input" value={x.method} onChange={(e) => setPayment(x.id, { method: e.target.value })}>
@@ -265,8 +268,8 @@ export default function ProjectDetail({ id }: { id: string }) {
                                 <input className="cell-input small" type="date" value={x.paidDate} onChange={(e) => setPayment(x.id, { paidDate: e.target.value || null })} />
                               </div>
                             ) : (
-                              <button className={`btn small ${st === 'vencido' ? 'danger' : ''}`} onClick={() => setPayment(x.id, { paidDate: today() })}>
-                                {st === 'vencido' ? 'Vencido · ' : ''}Marcar pago
+                              <button className={`btn small ${st === 'cobrar' ? 'warn' : ''}`} onClick={() => setPayment(x.id, { paidDate: today() })}>
+                                {st === 'cobrar' ? 'A cobrar · ' : ''}Marcar pago
                               </button>
                             )}
                           </td>
@@ -496,7 +499,6 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
   const [qty, setQty] = useState(1)
   const [unit, setUnit] = useState(0)
   const [mode, setMode] = useState<Extra['mode']>(open ? 'saldo' : 'separado')
-  const [due, setDue] = useState(p.dueDate || today())
 
   const submit = () => {
     const value = byUnit ? Math.round(qty * unit * 100) / 100 : amount
@@ -509,7 +511,7 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
       payments = p.payments.map((y) => (y.id === open.id ? { ...y, amount: Math.round((y.amount + value) * 100) / 100 } : y))
     } else {
       paymentId = uid()
-      payments = [...p.payments, { id: paymentId, description: `Adicional · ${title.trim()}`, amount: value, dueDate: due, paidDate: null, method: 'Pix' }]
+      payments = [...p.payments, { id: paymentId, description: `Adicional · ${title.trim()}`, amount: value, dueDate: p.dueDate || '', paidDate: null, method: 'Pix', on: 'conclusao' }]
     }
     const extra: Extra = { id: uid(), date: today(), title: title.trim(), value, mode: mode === 'saldo' && open ? 'saldo' : 'separado', paymentId, ...(byUnit ? { quantity: qty, unitPrice: unit } : {}) }
     onSave({ extras: [...(p.extras ?? []), extra], payments })
@@ -550,12 +552,7 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
         <label className="check" style={{ gridColumn: '1 / -1' }}>
           <input type="checkbox" checked={byUnit} onChange={(e) => setByUnit(e.target.checked)} /> calcular por quantidade (ex.: 15 imagens × R$ 35,00)
         </label>
-        {mode === 'separado' && (
-          <Field label="Vencimento">
-            <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
-          </Field>
-        )}
-        <Field label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + (byUnit ? qty * unit : amount))}.` : 'Vira uma parcela nova, separada das outras.'}>
+        <Field label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + (byUnit ? qty * unit : amount))}.` : 'Vira uma parcela nova, cobrada na conclusão.'}>
           <Segmented<Extra['mode']>
             value={open ? mode : 'separado'}
             onChange={setMode}

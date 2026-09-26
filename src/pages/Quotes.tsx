@@ -4,7 +4,7 @@ import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
+import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
@@ -115,8 +115,6 @@ export default function Quotes() {
             <tbody>
               {visible.map((x) => {
                 const c = client(x.clientId)
-                const valid = addDays(x.createdAt, x.validityDays)
-                const expired = x.status === 'enviado' && daysUntil(valid) < 0
                 const wait = waitingDays(x)
                 return (
                   <tr key={x.id} className="clickable" onClick={() => go('orcamentos', x.id)}>
@@ -132,8 +130,8 @@ export default function Quotes() {
                     </td>
                     <td className="hide-mobile">
                       {x.status === 'enviado' ? (
-                        <span className={expired ? 'text-bad' : wait >= FOLLOW_UP_DAYS ? 'text-warn' : 'muted'}>
-                          {expired ? 'validade vencida' : wait === 0 ? 'enviado hoje' : `aguardando há ${wait} dia${wait > 1 ? 's' : ''}`}
+                        <span className={wait >= FOLLOW_UP_DAYS ? 'text-warn' : 'muted'}>
+                          {wait === 0 ? 'enviado hoje' : `aguardando há ${wait} dia${wait > 1 ? 's' : ''}`}
                         </span>
                       ) : x.status === 'aprovado' && x.projectId ? (
                         <span className="muted">virou projeto</span>

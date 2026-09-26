@@ -20,7 +20,8 @@ import {
   money,
   monthKey,
   monthSummary,
-  paymentLate,
+  paymentDue,
+  payWhen,
   relativeDays,
   sum,
   today,
@@ -51,7 +52,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         items.push({ date: p.dueDate, label: p.title, sub: 'Entrega', color: PRIORITY[urgency(p).level].color, link: href('projetos', p.id), kind: 'entrega' })
     })
     pays.forEach(({ pay, project, client }) => {
-      if (!pay.paidDate && daysUntil(pay.dueDate) >= 0 && daysUntil(pay.dueDate) <= 7)
+      if (!pay.paidDate && pay.dueDate && daysUntil(pay.dueDate) >= 0 && daysUntil(pay.dueDate) <= 7)
         items.push({ date: pay.dueDate, label: `${money(pay.amount)} · ${client?.name ?? ''}`, sub: pay.description, color: '#2f855a', link: href('projetos', project.id), kind: 'pagamento' })
     })
     data.events.forEach((e) => {
@@ -280,14 +281,14 @@ function TodoList() {
         out.push({ key: `r-${p.id}`, tone: 'warn', icon: 'edit', title: `Revisões extras em ${p.title}`, sub: `${p.revisionsUsed - p.revisionsIncluded} além das ${p.revisionsIncluded} combinadas — combine a cobrança`, link: href('projetos', p.id) })
     }
     for (const { pay, project, client: c } of allPayments(data)) {
-      if (!paymentLate(pay)) continue
-      const text = templateText(data.settings, 'cobranca-atraso', 'Oi, {cliente}! A parcela "{parcela}" de {valor_parcela} venceu em {vencimento}. Chave pix: {pix}.', c, project)
+      if (!paymentDue(pay, project)) continue
+      const text = templateText(data.settings, 'cobranca', 'Oi, {cliente}! Passando para lembrar da parcela "{parcela}" de {valor_parcela}. Chave pix: {pix}.', c, project)
       out.push({
         key: `p-${pay.id}`,
-        tone: 'bad',
+        tone: 'warn',
         icon: 'wallet',
         title: `Cobrar ${money(pay.amount)} · ${c?.name ?? ''}`,
-        sub: `${pay.description} · venceu ${relativeDays(pay.dueDate)}`,
+        sub: `${pay.description} · ${payWhen(pay) === 'fechamento' ? 'aguardando o sinal' : 'demanda concluída'}`,
         link: href('projetos', project.id),
         action: c?.phone
           ? { label: 'cobrar', href: whatsappLink(c.phone, text), icon: 'whatsapp' }

@@ -65,6 +65,7 @@ export default function Agenda() {
       })
     })
     allPayments(data).forEach(({ pay, project, client }) => {
+      if (!pay.paidDate && !pay.dueDate) return // cobrado na conclusão, sem prazo definido
       list.push({
         id: `pay-${pay.id}`,
         date: pay.paidDate ?? pay.dueDate,

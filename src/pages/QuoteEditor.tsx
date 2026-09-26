@@ -13,7 +13,6 @@ import { CloseDeal } from '../components/quick'
 import {
   COMPLEXITY,
   QUOTE_STATUS,
-  addDays,
   cleanDetail,
   fmtDateLong,
   isStudent,
@@ -110,7 +109,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     const body = two
       ? q.options.slice(0, 2).flatMap((o, i) => [`*Opção ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `Total: ${money(optionTotal(o))}`, ''])
       : [...q.items.map(line), q.urgency ? `• Taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• Desconto — −${money(q.discount)}` : '', '', `*Investimento total: ${money(total)}*`]
-    return [...head, ...body, q.paymentTerms ? `Pagamento: ${q.paymentTerms}` : '', q.schedule ? `Prazos: ${q.schedule}` : '', `Válido até ${fmtDateLong(addDays(q.createdAt, q.validityDays))}.`]
+    return [...head, ...body, q.paymentTerms ? `Pagamento: ${q.paymentTerms}` : '', q.schedule ? `Prazos: ${q.schedule}` : '']
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
       .join('\n')
   }
@@ -298,14 +297,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                     <input value={o.discountNote} onChange={(e) => setOption(o.id, { discountNote: e.target.value })} />
                   </Field>
                 </div>
-                <div className="form-grid two">
-                  <Field label="Observação (dentro do quadro)">
-                    <input value={o.note} onChange={(e) => setOption(o.id, { note: e.target.value })} placeholder="Opcional" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
-                  </Field>
-                  <Field label="Prazo interno (dias úteis)" hint="Para o prazo da demanda; não vai no PDF.">
-                    <input type="number" min={1} value={o.deadlineDays} onChange={(e) => setOption(o.id, { deadlineDays: Number(e.target.value) || 0 })} />
-                  </Field>
-                </div>
+                <Field label="Observação (dentro do quadro)">
+                  <input value={o.note} onChange={(e) => setOption(o.id, { note: e.target.value })} placeholder="Opcional" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
+                </Field>
               </Section>
             ))
           )}
@@ -321,16 +315,8 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Formatos de arquivos entregues" span={3}>
                 <input value={q.files} onChange={(e) => set({ files: e.target.value })} placeholder="PDF e arquivo editável do layout." />
               </Field>
-              {!two && (
-                <Field label="Prazo interno (dias úteis)" hint="Para o prazo da demanda.">
-                  <input type="number" min={1} value={q.deadlineDays} onChange={(e) => set({ deadlineDays: Number(e.target.value) || 0 })} />
-                </Field>
-              )}
               <Field label="Rodadas de ajuste" hint="Controle interno.">
                 <input type="number" min={0} value={q.revisions} onChange={(e) => set({ revisions: Number(e.target.value) || 0 })} />
-              </Field>
-              <Field label="Validade (dias)" hint="Para lembrar de cobrar resposta.">
-                <input type="number" min={1} value={q.validityDays} onChange={(e) => set({ validityDays: Number(e.target.value) || 0 })} />
               </Field>
             </div>
           </Section>

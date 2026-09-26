@@ -3,7 +3,7 @@ import { CLOUD, fetchRemote, pushRemote } from './cloud'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings } from './types'
-import { DEFAULT_TASKS, addDays, splitPayments, titleCase, today, uid } from './utils'
+import { DEFAULT_TASKS, addDays, payWhen, splitPayments, titleCase, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
 
@@ -51,7 +51,9 @@ export const DEFAULT_MESSAGES: MessageTemplate[] = [
 export const PAYMENT_TERMS = 'Pix — 50% de entrada + 50% na aprovação final | Crédito — 100%'
 
 /** Sinal pago em demanda "aguardando sinal" → passa para "em execução". */
-function autoStatus(p: Project): Project {
+function autoStatus(raw: Project): Project {
+  // parcelas "na conclusão" acompanham o prazo combinado da demanda (sem prazo = sem data)
+  const p = { ...raw, payments: raw.payments.map((x) => (!x.paidDate && payWhen(x) === 'conclusao' ? { ...x, on: 'conclusao' as const, dueDate: raw.dueDate || '' } : x)) }
   if (p.status !== 'briefing' || !p.payments[0]?.paidDate) return p
   return { ...p, status: 'producao', tasks: p.tasks.map((t) => (/sinal/i.test(t.text) ? { ...t, done: true } : t)) }
 }

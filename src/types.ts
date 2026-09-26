@@ -55,6 +55,7 @@ export interface Payment {
   dueDate: string // yyyy-mm-dd
   paidDate: string | null
   method: string
+  on?: 'fechamento' | 'conclusao' // quando é cobrada: sinal no fechamento, saldo na conclusão
 }
 
 export interface Task {
