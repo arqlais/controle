@@ -1211,3 +1211,16 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .scope-chip.is-own svg { opacity: 0.6; }
 .scope-add input { width: 190px; max-width: 100%; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; min-height: 0; border-style: dashed; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent); }
+
+/* proposta com escopo grande: título mais perto e quadro mais compacto, sem espremer */
+.proposal.is-long .p-body { padding-top: 46px; }
+.proposal.is-long .p-title-block { margin: 44px 0 38px -4px; }
+.proposal.is-long .p-row { padding: 11px 0 12px; }
+.proposal.is-xlong .p-body { padding-top: 38px; }
+.proposal.is-xlong .p-title-block { margin: 30px 0 26px -4px; }
+.proposal.is-xlong .p-title { font-size: 52px; }
+.proposal.is-xlong .p-row { padding: 9px 0 10px; }
+.proposal.is-xlong .p-row-list { display: block; columns: 2; column-gap: 24px; }
+.proposal.is-xlong .p-row-list li { break-inside: avoid; margin-bottom: 2px; }
+.proposal.is-xlong .p-infos { margin-top: 18px; }
+.proposal.is-xlong .p-total { margin-top: 18px; }

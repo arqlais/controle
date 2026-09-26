@@ -53,7 +53,7 @@ const fmt = (s: string) => {
   return `${d}/${m}/${y}`
 }
 
-function Sheet({ s, year, children }: { s: Settings; year: string; children: ReactNode }) {
+function Sheet({ s, year, children, density = '' }: { s: Settings; year: string; children: ReactNode; density?: '' | 'is-long' | 'is-xlong' }) {
   const p = s.proposal
   const style = {
     '--p-ink': p.ink,
@@ -64,7 +64,7 @@ function Sheet({ s, year, children }: { s: Settings; year: string; children: Rea
     '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
   } as CSSProperties
   return (
-    <article className="proposal" style={style}>
+    <article className={`proposal ${density}`} style={style}>
       <div className="p-bar">
         <span>{(s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
         <span>{year}</span>
@@ -224,8 +224,13 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const scopeDiscount = quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
   const scopeNote = quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · ')
 
+  // escopo grande (muitos serviços / tópicos): aproxima o título e o quadro para caber sem espremer
+  const weight = (items: QuoteItem[]) => items.reduce((n, i) => n + 2 + i.description.split('\n').filter((l) => l.trim()).length, 0)
+  const size = (quote.mode === 'opcoes' ? Math.max(0, ...quote.options.map((o) => weight(o.items))) : weight(quote.items)) + (quote.notes?.trim() ? 1 : 0)
+  const density = size >= 24 ? 'is-xlong' : size >= 12 ? 'is-long' : ''
+
   return (
-    <Sheet s={s} year={quote.createdAt.slice(0, 4)}>
+    <Sheet s={s} year={quote.createdAt.slice(0, 4)} density={density}>
       <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
       <Title s={s} />
       {quote.mode === 'opcoes' ? (
