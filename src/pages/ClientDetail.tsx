@@ -198,7 +198,7 @@ export default function ClientDetail({ id }: { id: string }) {
             </Section>
           )}
 
-          <div className="row gap-s">
+          <div className="row gap-s wrap">
             <button className="btn ghost small" onClick={() => upsert('clients', { ...c, archived: !c.archived })}>
               {c.archived ? 'Desarquivar' : 'Arquivar cliente'}
             </button>
