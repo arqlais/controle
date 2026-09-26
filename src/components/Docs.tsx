@@ -129,150 +129,130 @@ function Info({ rows }: { rows: [string, string][] }) {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
+/** Proposta simples e funcional: cliente, data, nº, escopo com valores,
+ *  pagamento, prazo e arquivos. Serve para valor único ou 2 opções. */
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  const p = s.proposal
   const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
   const total = quoteTotal(quote, s.urgencyFee)
   const sub = quoteSubtotal(quote)
   const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
-  const totalDiscount = quote.mode === 'opcoes' ? 0 : quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
-  const discountLine =
-    quote.discountNote ||
-    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', totalDiscount ? `com ${money(totalDiscount)} de desconto` : ''].filter(Boolean).join(' · ')
   const two = quote.mode === 'opcoes'
   const options = quote.options.slice(0, 2)
-  const rows: [string, string][] = [
-    ['projeto', quote.title || '[nome do projeto]'],
-    ...(quote.area > 0 ? [['área', `${quote.area.toLocaleString('pt-BR')} m²`] as [string, string]] : []),
-    ['data', fmt(quote.createdAt)],
-    ['validade', plural(quote.validityDays, 'dia', 'dias')],
-  ]
+  const totalDiscount = two ? 0 : quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
+  const note =
+    quote.discountNote ||
+    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', totalDiscount ? `com ${money(totalDiscount)} de desconto` : ''].filter(Boolean).join(' · ')
+  const revisions = `${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'}`
+  const contact = [s.pixKey && `pix ${s.pixKey}`, s.legalName || s.ownerName, s.phone, s.instagram].filter(Boolean).join(' · ')
 
   return (
     <Paper s={s}>
-      <Brand s={s} right={`Nº ${quoteNumber(quote)}`} />
-
-      <section className={`p-hero ${two ? 'is-options' : ''}`}>
-        <div className="p-hero-text">
-          <p className="p-eyebrow">{p.eyebrow}</p>
-          <h1 className="p-title">{p.title}</h1>
-          <p className="p-for">para {clientName}</p>
-          <Info rows={rows} />
-        </div>
-        {p.showArch && (
-          <div className="p-arch">
-            <span className="p-dot" />
-            {two ? (
-              <>
-                <b className="p-arch-num">{options.length || 2}</b>
-                <em>
-                  opções para
-                  <br />
-                  você escolher
-                </em>
-              </>
-            ) : (
-              <>
-                <span className="p-label">investimento total</span>
-                <b className="p-arch-price">{money(total)}</b>
-                {discountLine && <span className="p-arch-note">{discountLine}</span>}
-              </>
-            )}
+      <header className="q-top">
+        {s.logo ? (
+          <img src={s.logo} alt="" className="p-logo-img" />
+        ) : (
+          <div className="p-logo">
+            <ArchIcon color={s.proposal.ink} dot={s.proposal.rose} />
+            <span>
+              {s.brandName.replace(/\.$/, '')}
+              <i>.</i>
+            </span>
           </div>
         )}
+        <h1 className="q-title">{s.proposal.title}</h1>
+      </header>
+
+      <section className="q-info">
+        <div>
+          <span className="p-label">cliente</span>
+          <b>{clientName}</b>
+        </div>
+        <div>
+          <span className="p-label">data</span>
+          <b>{fmt(quote.createdAt)}</b>
+        </div>
+        <div>
+          <span className="p-label">orçamento nº</span>
+          <b>{quoteNumber(quote)}</b>
+        </div>
       </section>
 
       {two ? (
-        <section className="p-options">
+        <section className="q-options">
           {options.map((o, i) => (
-            <div key={o.id} className="p-option">
-              <div className="p-option-head">
-                <span className={`p-badge ${i ? 'is-light' : ''}`}>{i + 1}</span>
-                <div>
-                  <span className="p-label">opção {i + 1}</span>
-                  <h3>{o.name || '[nome do escopo]'}</h3>
-                </div>
-              </div>
-              {o.summary && <p className="p-muted">{o.summary}</p>}
-              <ul className="p-list">
+            <div key={o.id} className="q-option">
+              <span className="p-label">opção {i + 1}</span>
+              <h2>{o.name || '[nome da opção]'}</h2>
+              <ul>
                 {o.included.filter(Boolean).map((it, k) => (
                   <li key={k}>{it}</li>
                 ))}
               </ul>
-              <p className="p-muted">prazo: {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
-              <span className="p-label p-label-dot">investimento</span>
-              <b className="p-option-price">{money(o.price)}</b>
+              <p className="q-small">prazo: {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
+              <div className="q-option-total">
+                <span className="p-label">valor</span>
+                <b>{money(o.price)}</b>
+              </div>
             </div>
           ))}
         </section>
       ) : (
-        <section className="p-scope">
-          <div className="p-scope-head">
-            <span className="p-label">escopo</span>
-            <span className="p-label is-muted">valor</span>
+        <section>
+          <div className="q-head">
+            <span className="p-label">escopo{quote.title ? ` · ${quote.title}` : ''}</span>
+            <span className="p-label">valor</span>
           </div>
-          {quote.items.map((it, i) => (
-            <div key={it.id} className="p-scope-row">
-              <span className="p-scope-n">{String(i + 1).padStart(2, '0')}</span>
-              <div className="p-scope-main">
+          {quote.items.map((it) => (
+            <div key={it.id} className="q-row">
+              <div>
                 <b>
                   {it.title || 'serviço'}
                   {it.detail && <span> · {it.detail}</span>}
                 </b>
-                {it.description && <p className="p-muted">{it.description}</p>}
+                {it.description && <p className="q-small">{it.description}</p>}
               </div>
-              <span className="p-scope-price">{money(it.price)}</span>
+              <span className="q-price">{money(it.price)}</span>
             </div>
           ))}
-          {p.showArch === false && (
-            <div className="p-scope-total">
-              <span className="p-label">investimento</span>
-              <b>{money(total)}</b>
-              {discountLine && <span className="p-muted">{discountLine}</span>}
+          <div className="q-total">
+            <div>
+              <span className="p-label">total</span>
+              {note && <p className="q-small">{note}</p>}
             </div>
-          )}
+            <b>{money(total)}</b>
+          </div>
         </section>
       )}
 
-      <section className="p-terms">
+      <section className="q-terms">
         <div>
           <span className="p-label">pagamento</span>
           <p>{quote.paymentTerms}</p>
         </div>
         <div>
-          <span className="p-label">arquivos entregues</span>
-          <p>{quote.files}</p>
+          <span className="p-label">prazo</span>
+          <p>{two ? `conforme a opção escolhida · ${revisions}.` : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal · ${revisions}.`}</p>
         </div>
         <div>
-          <span className="p-label">{two ? 'ajustes' : 'prazo'}</span>
-          <p>
-            {two
-              ? `${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'} em qualquer uma das opções.`
-              : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal, com ${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'}.`}
-          </p>
+          <span className="p-label">arquivos</span>
+          <p>{quote.files}</p>
         </div>
       </section>
       {quote.notes && <p className="p-notes">{quote.notes}</p>}
 
-      <Footer
-        s={s}
-        sign={
-          <div className="p-sign">
-            {two && (
-              <div className="p-choice">
-                opção escolhida:
-                {options.map((o, i) => (
-                  <span key={o.id}>
-                    <i className={quote.chosenOption === o.id ? 'on' : ''} /> {i + 1}
-                  </span>
-                ))}
-              </div>
-            )}
-            <span className="p-sign-line" />
-            <span>de acordo · {clientName}</span>
+      <footer className="q-foot">
+        <span>{contact}</span>
+        {two && (
+          <div className="p-choice">
+            opção escolhida:
+            {options.map((o, i) => (
+              <span key={o.id}>
+                <i className={quote.chosenOption === o.id ? 'on' : ''} /> {i + 1}
+              </span>
+            ))}
           </div>
-        }
-      />
+        )}
+      </footer>
     </Paper>
   )
 }
