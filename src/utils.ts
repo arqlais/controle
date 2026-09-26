@@ -554,3 +554,59 @@ export function packageSummary(p: Project): string {
   lines.push(`💵 total restante: ${money(Math.max(0, projectOpen(p)))}`)
   return lines.join('\n')
 }
+
+/* ---------- escopo: perguntar ao cliente o que ele precisa e ler a resposta ---------- */
+
+const scopeNorm = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[⁠​‌‍﻿]/g, '')
+    .toLowerCase()
+    .replace(/^[\s\-–—•·*>✔✅☑️\d.)]+/u, '')
+    .replace(/\s+/g, ' ')
+    .replace(/[:\s]+$/, '')
+    .trim()
+const scopeCore = (s: string) => scopeNorm(s.replace(/\(.*?\)/g, ''))
+
+/** Mensagem "quais plantas você gostaria?" com as listas dos serviços (executivo, detalhamento…). */
+export function scopeQuestion(services: ServiceDef[]) {
+  // a lista principal (a maior, ex.: plantas executivas) vem primeiro
+  const lists = services.filter((s) => s.checklist?.some((c) => c.trim())).sort((a, b) => b.checklist!.length - a.checklist!.length)
+  if (!lists.length) return ''
+  const blocks = lists.map((s) => [`${s.checklistTitle || s.name}:`, ...s.checklist!.filter((c) => c.trim()).map((c) => `- ${c.trim()}`), '- outros: ___'].join('\n'))
+  return ['Quais plantas você gostaria?', ...blocks, 'Com isso consigo te passar o valor certinho 😊'].join('\n\n')
+}
+
+/** Lê a resposta do cliente (a mesma lista, só com o que ele quer) e separa por serviço. */
+export function parseScopeReply(text: string, services: ServiceDef[]) {
+  const lists = services.filter((s) => s.checklist?.length)
+  const out: Record<string, string[]> = {}
+  let current: ServiceDef | undefined
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/[⁠​﻿]/g, '').trim()
+    const n = scopeNorm(line)
+    if (!n || n.endsWith('?') || n.includes('valor certinho')) continue
+    // título de uma lista ("plantas executivas:", "detalhamentos (caso precise):")
+    const head = lists.find((s) => {
+      const t = scopeCore(s.checklistTitle || s.name)
+      const c = scopeCore(line)
+      return c === t || c === scopeNorm(s.name) || (line.trim().endsWith(':') && (c.startsWith(t) || t.startsWith(c)))
+    })
+    if (head) {
+      current = head
+      continue
+    }
+    let item = line.replace(/^[\s\-–—•·*>✔✅☑️\d.)]+/u, '').trim()
+    const other = /^outros?\s*:/i.exec(item)
+    if (other) item = item.slice(other[0].length).trim()
+    if (!item || /^_+$/.test(item)) continue
+    // item igual ao da lista → usa o nome da lista; senão mantém como o cliente escreveu
+    const exact = (s: ServiceDef) => s.checklist!.find((c) => scopeNorm(c) === scopeNorm(item) || scopeCore(c) === scopeCore(item))
+    const owner = (current && (exact(current) || !lists.some((s) => s !== current && exact(s))) ? current : lists.find((s) => exact(s))) ?? current
+    if (!owner) continue
+    const name = exact(owner) ?? item
+    out[owner.id] = [...(out[owner.id] ?? []), ...(out[owner.id]?.includes(name) ? [] : [name])]
+  }
+  return out
+}

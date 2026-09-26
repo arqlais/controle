@@ -22,6 +22,15 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'personalizado', name: 'serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
 
+/** Listas que o cliente escolhe (quais plantas / quais detalhamentos) — editáveis em Configurações → preços. */
+export const DEFAULT_CHECKLISTS: Record<string, Pick<ServiceDef, 'checklistTitle' | 'checklist'>> = {
+  executivo: {
+    checklistTitle: 'plantas executivas',
+    checklist: ['planta de layout (mobiliário)', 'planta de demolição', 'planta de construção', 'planta elétrica', 'planta de iluminação', 'planta de forro', 'planta hidráulica', 'paginação de piso/revestimentos', 'cortes', 'elevações'],
+  },
+  detalhamento: { checklistTitle: 'detalhamentos (caso precise)', checklist: ['marcenaria', 'marmoraria (pedras)', 'serralheria'] },
+}
+
 /** Nomes antigos (com maiúscula / plural) → nomes atuais, sem perder os preços já ajustados. */
 function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const renamed: Record<string, string> = {
@@ -31,7 +40,7 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Planta humanizada', 'Serviço personalizado'])
   const out = list.map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
-  return out
+  return out.map((x) => (DEFAULT_CHECKLISTS[x.id] && x.checklist === undefined ? { ...x, ...DEFAULT_CHECKLISTS[x.id] } : x))
 }
 
 /** Mensagens padrão — editáveis em Configurações. {variáveis} são preenchidas com os dados do caso. */
@@ -128,7 +137,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultRevisions: 1,
   revisionsV1: true,
   defaultPaymentTerms: PAYMENT_TERMS,
-  services: DEFAULT_SERVICES,
+  services: migrateServices(DEFAULT_SERVICES),
   customColumns: [],
   navOrder: [],
   messages: DEFAULT_MESSAGES,
@@ -226,7 +235,7 @@ export function normalize(d: Partial<Data>): Data {
         defaultRevisions: d.settings?.revisionsV1 ? d.settings.defaultRevisions : 1,
         revisionsV1: true,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
-        services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 }))),
+        services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 }))),
       },
       d.settings,
     ),

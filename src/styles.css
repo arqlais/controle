@@ -1184,3 +1184,12 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .closed-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--good); }
 .closed-row input { width: auto; min-width: 150px; }
 .proposal .p-row-price.is-joined { font-size: 11px; font-style: italic; opacity: 0.75; white-space: normal; text-align: right; max-width: 110px; }
+
+/* orçamento: o que o cliente escolheu (plantas, detalhamentos) */
+.scope-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.scope-chip { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font: inherit; font-size: 12.5px; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s; }
+.scope-chip:hover { border-color: var(--accent-soft); color: var(--text); }
+.scope-chip.on { background: var(--accent-tint); border-color: var(--accent-soft); color: var(--text); font-weight: 600; }
+.scope-text { width: 100%; font-size: 13.5px; line-height: 1.5; resize: vertical; }
+.scope-found { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--surface-2); font-size: 13px; }
+.service-checklist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px 14px; margin-top: 10px; align-items: start; } .service-checklist .link { grid-column: 1 / -1; justify-self: start; } @media (max-width: 820px) { .service-checklist { grid-template-columns: 1fr; } }

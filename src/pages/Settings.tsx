@@ -302,6 +302,28 @@ export default function SettingsPage() {
                         </button>
                       </div>
                     )}
+                    {x.checklist?.length ? (
+                      <div className="service-checklist">
+                        <Field label="Título da lista" hint="Vai na pergunta ao cliente.">
+                          <input value={x.checklistTitle ?? ''} onChange={(e) => setService(x.id, { checklistTitle: e.target.value })} placeholder="Ex.: plantas executivas" />
+                        </Field>
+                        <Field label="O que o cliente pode escolher" hint="Uma por linha. No orçamento viram botões para marcar.">
+                          <textarea
+                            rows={Math.max(3, x.checklist.length)}
+                            value={x.checklist.join('\n')}
+                            onChange={(e) => setService(x.id, { checklist: e.target.value.split('\n') })}
+                            onBlur={() => setService(x.id, { checklist: x.checklist!.map((l) => l.trim()).filter(Boolean) })}
+                          />
+                        </Field>
+                        <button className="link small" onClick={() => setService(x.id, { checklist: [], checklistTitle: '' })}>
+                          remover lista
+                        </button>
+                      </div>
+                    ) : (
+                      <button className="link small" onClick={() => setService(x.id, { checklist: [''], checklistTitle: x.name })}>
+                        + lista para o cliente escolher (ex.: quais plantas)
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

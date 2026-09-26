@@ -233,6 +233,8 @@ export interface ServiceDef {
   min: number // valor mínimo do item
   hours: number // horas estimadas por unidade
   studentPrice?: number // (antigo) substituído pelo desconto de estudante
+  checklistTitle?: string // ex.: "plantas executivas" (título da lista que o cliente escolhe)
+  checklist?: string[] // o que o cliente pode escolher (plantas, tipos de detalhamento…)
 }
 
 export interface MessageTemplate {

@@ -75,6 +75,19 @@ try {
       ok(after === before + 1, `${vp.name}: marcar pagamento`)
     }
 
+    // 3b. orçamento: colar a resposta do cliente marca as plantas; campo de m² apaga o zero; cobrar junto
+    await go('#/orcamentos/novo'); await page.waitForTimeout(500)
+    await page.getByRole('button', { name: 'colar resposta' }).click()
+    await page.locator('.scope-text').fill('plantas executivas:\n- planta de layout (mobiliário)\n- \u2060planta elétrica\n\ndetalhamentos (caso precise):\n- marcenaria\n- serralheria com vidraçaria')
+    await page.getByRole('button', { name: 'marcar no orçamento' }).click(); await page.waitForTimeout(300)
+    const descs = await page.locator('.q-item textarea').evaluateAll((els) => els.map((e) => e.value))
+    ok(descs.length === 2 && descs[0].includes('planta elétrica') && descs[1].includes('serralheria com vidraçaria'), `${vp.name}: resposta do cliente vira executivo + detalhamento`)
+    const qty = page.locator('.q-item').first().locator('input[type=number]').first()
+    await qty.fill(''); await qty.type('34')
+    ok((await qty.inputValue()) === '34', `${vp.name}: área do serviço aceita 34 sem sobrar o 0`)
+    await page.locator('.q-item').nth(1).getByText('cobrar junto com o serviço de cima').click(); await page.waitForTimeout(200)
+    ok((await page.getByText('Somado ao valor do serviço 01').count()) === 1, `${vp.name}: cobrar dois serviços juntos`)
+
     // 4. todas as páginas abrem sem erro e sem passar da largura da tela
     for (const r of ['inicio', 'projetos', 'clientes', 'financeiro', 'agenda', 'orcamentos', 'config', 'manual', 'perfil', 'orcamentos/novo']) {
       await go(`#/${r}`); await page.waitForTimeout(300)

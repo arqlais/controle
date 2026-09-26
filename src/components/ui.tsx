@@ -155,8 +155,11 @@ export function MoneyInput({ value, onChange, ...rest }: { value: number; onChan
         inputMode="decimal"
         step="0.01"
         min="0"
-        value={Number.isFinite(value) ? value : 0}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        // sempre em centavos (evita 663.0000000000001) e vazio no lugar do 0, para digitar direto
+        value={Number.isFinite(value) && value ? Math.round(value * 100) / 100 : ''}
+        placeholder="0"
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => onChange(Math.round((parseFloat(e.target.value) || 0) * 100) / 100)}
         {...rest}
       />
     </div>

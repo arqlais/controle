@@ -76,7 +76,7 @@ const STEPS: Step[] = [
       <>Se vocês alinharam um prazo, coloque em <b>prazo combinado</b>, na mesma janela: em <b>dias úteis</b> (pula fins de semana e feriados), <b>dias corridos</b> (conta todos os dias) ou uma <b>data exata</b>. Sem pressa? Deixe em branco.</>,
       <>A demanda é criada sozinha em <b>demandas</b>, na coluna <b>em alinhamento</b>, com as parcelas “sinal 50%” e “saldo 50%”.</>,
     ],
-    tip: <>Orçamento com vários serviços vira um <b>pacote</b> automaticamente, para você poder retirar um projeto depois sem refazer a conta. Dois serviços com um valor só? No segundo, marque <b>cobrar junto com o serviço de cima</b>.</>,
+    tip: <>Orçamento com vários serviços vira um <b>pacote</b> automaticamente, para você poder retirar um projeto depois sem refazer a conta. Dois serviços com um valor só? No segundo, marque <b>cobrar junto com o serviço de cima</b>. Executivo e detalhamento: em <b>serviços → perguntar</b> mande a lista de plantas ao cliente; quando ele responder, use <b>colar resposta</b> e as plantas escolhidas entram sozinhas no orçamento (ou toque nelas para marcar).</>,
   },
   {
     n: '06',

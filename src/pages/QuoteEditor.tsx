@@ -5,12 +5,14 @@ import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale, usePdf } from '../components/Print'
-import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import {
+  parseScopeReply,
+  scopeQuestion,
   daysBetween,
   nextQuoteNumber,
   COMPLEXITY,
@@ -303,7 +305,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           </Section>
 
           {!two ? (
-            <Section title="serviços">
+            <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
               <ItemsEditor items={q.items} student={student} settings={settings} onChange={(items) => set({ items })} />
               <div className="quote-totals">
                 <div>
@@ -465,6 +467,114 @@ export default function QuoteEditor({ id }: { id: string }) {
   )
 }
 
+/** Perguntar ao cliente quais plantas/detalhamentos ele quer e marcar tudo colando a resposta. */
+function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settings: Settings; phone: string; student: boolean; onApply: (items: QuoteItem[]) => void }) {
+  const [open, setOpen] = useState<'' | 'perguntar' | 'resposta'>('')
+  const [reply, setReply] = useState('')
+  const question = scopeQuestion(settings.services)
+  if (!question) return null
+  const found = reply.trim() ? parseScopeReply(reply, settings.services) : {}
+  const count = Object.values(found).reduce((n, l) => n + l.length, 0)
+
+  const apply = () => {
+    let items = q.items.filter((i) => i.service || i.title.trim() || i.price > 0) // tira linhas em branco
+    for (const [sid, picked] of Object.entries(found)) {
+      const s = settings.services.find((x) => x.id === sid)
+      if (!s || !picked.length) continue
+      const cur = items.find((i) => i.service === sid)
+      if (cur) {
+        // o que foi escrito à mão (fora da lista) continua
+        const own = cur.description.split('\n').filter((l) => l.trim() && !s.checklist!.some((c) => c.toLowerCase() === l.trim().toLowerCase()) && !picked.includes(l.trim()))
+        items = items.map((i) => (i === cur ? { ...i, description: [...picked, ...own].join('\n') } : i))
+      } else {
+        const quantity = s.pricing === 'm2' ? q.area || 50 : s.pricing === 'livre' ? 1 : picked.length
+        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings)
+        items = [...items, { ...newItem(), service: sid, title: s.name, quantity, price, detail: itemDetail(s, quantity, 'media'), description: picked.join('\n') }]
+      }
+    }
+    onApply(items.length ? items : [newItem()])
+    setReply('')
+    setOpen('')
+    toast(`${count} ${count === 1 ? 'item marcado' : 'itens marcados'} no orçamento.`)
+  }
+  const copy = () =>
+    navigator.clipboard
+      ?.writeText(question)
+      .then(() => toast('Pergunta copiada. É só colar na conversa.'))
+      .catch(() => toast('Selecione o texto e copie.'))
+
+  return (
+    <div className="row gap-s">
+      <button className="btn small ghost" onClick={() => setOpen('perguntar')} title="Mandar a lista de plantas para o cliente escolher">
+        <Icon name="whatsapp" size={14} /> perguntar
+      </button>
+      <button className="btn small" onClick={() => setOpen('resposta')} title="Colar o que o cliente respondeu e marcar tudo sozinho">
+        <Icon name="check" size={14} /> colar resposta
+      </button>
+      {open === 'perguntar' && (
+        <Modal
+          title="quais plantas o cliente quer?"
+          onClose={() => setOpen('')}
+          footer={
+            <>
+              <button className="btn ghost" onClick={copy}>
+                <Icon name="copy" size={14} /> copiar
+              </button>
+              {phone && (
+                <a className="btn primary" href={whatsappLink(phone, question)} target="_blank" rel="noreferrer">
+                  <Icon name="whatsapp" size={14} /> abrir no WhatsApp
+                </a>
+              )}
+            </>
+          }
+        >
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Mande esta lista. Quando o cliente responder apagando o que não quer, cole a resposta em <b>colar resposta</b> e o orçamento se monta sozinho.
+          </p>
+          <textarea className="scope-text" readOnly rows={Math.min(22, question.split('\n').length + 1)} value={question} onFocus={(e) => e.target.select()} />
+          <p className="muted small">A lista é editável em configurações → preços, em cada serviço.</p>
+        </Modal>
+      )}
+      {open === 'resposta' && (
+        <Modal
+          title="colar resposta do cliente"
+          onClose={() => setOpen('')}
+          footer={
+            <>
+              <button className="btn ghost" onClick={() => setOpen('')}>
+                cancelar
+              </button>
+              <button className="btn primary" disabled={!count} onClick={apply}>
+                marcar no orçamento
+              </button>
+            </>
+          }
+        >
+          <textarea
+            className="scope-text"
+            autoFocus
+            rows={12}
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            placeholder={'Cole aqui o que o cliente respondeu, ex.:\n\nplantas executivas:\n- planta de layout\n- planta elétrica\n\ndetalhamentos:\n- marcenaria'}
+          />
+          {count > 0 && (
+            <div className="scope-found">
+              {Object.entries(found).map(([sid, list]) => (
+                <div key={sid}>
+                  <b>{settings.services.find((x) => x.id === sid)?.name}</b> · {list.length}
+                  <div className="muted small">{list.join(' · ')}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {reply.trim() && !count && <p className="small text-warn">Não reconheci nenhum item. Confira se a resposta tem os títulos (ex.: “plantas executivas:”).</p>}
+        </Modal>
+      )}
+    </div>
+  )
+}
+
 /** Lista de serviços com preço pela tabela, desconto por unidade e valor editável. */
 function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[]; student: boolean; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
   const service = (sid: string) => settings.services.find((s) => s.id === sid)
@@ -535,7 +645,35 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
               <Field label="Detalhe (ao lado do serviço)">
                 <input value={it.detail} onChange={(e) => onChange(items.map((i) => (i.id === it.id ? { ...i, detail: e.target.value } : i)))} placeholder="Ex.: 5 imagens" />
               </Field>
-              <Field label="O que está incluso" span={2} hint="Enter para uma nova linha: cada linha aparece embaixo da outra na proposta.">
+              {s?.checklist?.length ? (
+                <Field group span={2} label={`${s.checklistTitle || 'o que o cliente quer'} · toque para marcar`}>
+                  <div className="scope-chips">
+                    {s.checklist.filter((c) => c.trim()).map((c) => {
+                      const lines = it.description.split('\n').map((l) => l.trim())
+                      const on = lines.some((l) => l.toLowerCase() === c.toLowerCase())
+                      return (
+                        <button
+                          key={c}
+                          type="button"
+                          className={`scope-chip ${on ? 'on' : ''}`}
+                          aria-pressed={on}
+                          onClick={() => {
+                            const rest = it.description.split('\n').filter((l) => l.trim() && l.trim().toLowerCase() !== c.toLowerCase())
+                            // mantém a ordem da lista: os marcados primeiro, depois o que foi escrito à mão
+                            const picked = s.checklist!.filter((x) => (x === c ? !on : rest.some((l) => l.trim().toLowerCase() === x.toLowerCase())))
+                            const own = rest.filter((l) => !s.checklist!.some((x) => x.toLowerCase() === l.trim().toLowerCase()))
+                            setItem(it.id, { description: [...picked, ...own].join('\n') })
+                          }}
+                        >
+                          {on && <Icon name="check" size={12} />}
+                          {c}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </Field>
+              ) : null}
+              <Field label="O que está incluso" span={2} hint={s?.checklist?.length ? 'Os marcados acima entram aqui. Algo diferente (ex.: serralheria com vidraçaria)? escreva numa linha nova.' : 'Enter para uma nova linha: cada linha aparece embaixo da outra na proposta.'}>
                 <textarea
                   className="auto-grow"
                   rows={Math.max(1, it.description.split('\n').length)}
@@ -557,7 +695,16 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                         const own = recompute({ ...it, joined: false, auto: true }).price
                         onChange(
                           items.map((x, j) =>
-                            j === n - 1 ? { ...x, price: Math.max(0, x.price + (joined ? own : -own)), auto: false } : x.id === it.id ? recompute({ ...it, joined, auto: true }) : x,
+                            j === n - 1
+                              ? (() => {
+                                  const price = Math.max(0, Math.round((x.price + (joined ? own : -own)) * 100) / 100)
+                                  // ao separar de novo, se voltou ao valor da tabela, volta a seguir a tabela
+                                  const table = recompute({ ...x, auto: true }).price
+                                  return { ...x, price: !joined && Math.abs(price - table) < 0.01 ? table : price, auto: !joined && Math.abs(price - table) < 0.01 }
+                                })()
+                              : x.id === it.id
+                                ? recompute({ ...it, joined, auto: true })
+                                : x,
                           ),
                         )
                       }}
