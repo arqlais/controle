@@ -139,17 +139,22 @@ export default function App() {
             <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
               {organizing ? 'pronto' : 'organizar menu'}
             </button>
-            {(data.demo || hasDemoData(data)) && (
-              <button type="button" className="link desktop-only" onClick={() => replaceAll({ ...data, demo: !data.demo })}>
-                {data.demo ? 'ocultar aviso do exemplo' : 'mostrar aviso do exemplo'}
-              </button>
-            )}
           </div>
         </nav>
         <div className="sidebar-foot">
           <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema claro/escuro">
             <Icon name={settings.dark ? 'sun' : 'moon'} />
           </button>
+          {(data.demo || hasDemoData(data)) && (
+            <button
+              className="icon-btn desktop-only"
+              onClick={() => replaceAll({ ...data, demo: !data.demo })}
+              title={data.demo ? 'Ocultar aviso do exemplo' : 'Mostrar aviso do exemplo'}
+              aria-label={data.demo ? 'Ocultar aviso do exemplo' : 'Mostrar aviso do exemplo'}
+            >
+              <Icon name={data.demo ? 'eye' : 'eye-off'} />
+            </button>
+          )}
           <SyncBadge sync={sync} lastSaved={lastSaved} />
           {CLOUD && (
             <button className="btn small ghost" onClick={() => signOut()} title={userEmail}>
