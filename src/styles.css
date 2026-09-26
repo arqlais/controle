@@ -1221,6 +1221,7 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .proposal.is-xlong .p-title { font-size: 52px; }
 .proposal.is-xlong .p-row { padding: 9px 0 10px; }
 .proposal.is-xlong .p-row-list { display: block; columns: 2; column-gap: 24px; }
+.proposal.is-xlong .p-option .p-row-list { columns: 1; }
 .proposal.is-xlong .p-row-list li { break-inside: avoid; margin-bottom: 2px; }
 .proposal.is-xlong .p-infos { margin-top: 18px; }
 .proposal.is-xlong .p-total { margin-top: 18px; }
@@ -1404,3 +1405,9 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .dl-chip.tone-muted { color: var(--muted); background: var(--surface-2); }
 .status-q { display: grid; gap: 8px; margin: 14px 0; padding: 14px; border-radius: 14px; background: var(--surface-2); }
 .status-q .check { font-size: 13.5px; }
+/* respiro mínimo e equilibrado entre as informações e o rodapé */
+.proposal .p-infos { margin-bottom: 26px; }
+.proposal.is-long .p-option-label { margin-bottom: 10px; }
+.proposal.is-xlong .p-option-label { margin-bottom: 8px; }
+.proposal.is-xlong .p-option .p-card { padding: 16px 16px 18px 20px; }
+.proposal.is-xlong .p-combo { margin-top: 12px; }

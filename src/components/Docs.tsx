@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
 import { atHandle, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
@@ -53,8 +54,28 @@ const fmt = (s: string) => {
   return `${d}/${m}/${y}`
 }
 
-function Sheet({ s, year, children, density = '' }: { s: Settings; year: string; children: ReactNode; density?: '' | 'is-long' | 'is-xlong' }) {
+const LEVELS = ['', 'is-long', 'is-xlong'] as const
+// respiro mínimo entre as informações e o rodapé (na folha em tamanho real)
+const MIN_GAP = 84
+
+/** Folha da proposta. Com `fit`, mede o espaço de verdade: começa com o espaçamento normal e
+    só aproxima o título e compacta o quadro quando o escopo não deixa respiro antes do rodapé. */
+function Sheet({ s, year, children, fit }: { s: Settings; year: string; children: ReactNode; fit?: string }) {
   const p = s.proposal
+  const ref = useRef<HTMLElement>(null)
+  const [level, setLevel] = useState(0)
+  useLayoutEffect(() => setLevel(0), [fit])
+  useLayoutEffect(() => {
+    if (fit === undefined || !ref.current) return
+    const infos = ref.current.querySelector<HTMLElement>('.p-infos, .p-total, .p-options, .p-card')
+    const foot = ref.current.querySelector<HTMLElement>('.p-contacts')
+    if (!foot) return
+    const blocks = [...ref.current.querySelectorAll<HTMLElement>('.p-body > *')].filter((el) => el !== foot)
+    const last = blocks[blocks.length - 1] ?? infos
+    if (!last) return
+    const gap = foot.offsetTop - (last.offsetTop + last.offsetHeight)
+    if (gap < MIN_GAP && level < LEVELS.length - 1) setLevel(level + 1)
+  })
   const style = {
     '--p-ink': p.ink,
     '--p-rose': p.rose,
@@ -64,7 +85,7 @@ function Sheet({ s, year, children, density = '' }: { s: Settings; year: string;
     '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
   } as CSSProperties
   return (
-    <article className={`proposal ${density}`} style={style}>
+    <article ref={ref} className={`proposal ${LEVELS[level]}`} style={style}>
       <div className="p-bar">
         <span>{(s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
         <span>{year}</span>
@@ -225,12 +246,8 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const scopeNote = quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · ')
 
   // escopo grande (muitos serviços / tópicos): aproxima o título e o quadro para caber sem espremer
-  const weight = (items: QuoteItem[]) => items.reduce((n, i) => n + 2 + i.description.split('\n').filter((l) => l.trim()).length, 0)
-  const size = (quote.mode === 'opcoes' ? Math.max(0, ...quote.options.map((o) => weight(o.items))) : weight(quote.items)) + (quote.notes?.trim() ? 1 : 0)
-  const density = size >= 24 ? 'is-xlong' : size >= 12 ? 'is-long' : ''
-
   return (
-    <Sheet s={s} year={quote.createdAt.slice(0, 4)} density={density}>
+    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, s.proposal])}>
       <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
       <Title s={s} />
       {quote.mode === 'opcoes' ? (
