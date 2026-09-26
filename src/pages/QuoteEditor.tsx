@@ -75,7 +75,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const client = data.clients.find((c) => c.id === q.clientId)
   const student = isStudent(client)
   const two = q.mode === 'opcoes'
-  const displayName = q.clientLabel.trim() || client?.name || 'cliente'
+  const displayName = client?.name || 'cliente'
 
   const set = (patch: Partial<Quote>) => {
     setQ((x) => ({ ...x, ...patch }))
@@ -192,7 +192,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
-              <Field label="Cliente" span={2}>
+              <Field label="Cliente" span={3} hint="O nome da cliente vai no campo “nome” da proposta.">
                 <div className="row gap-s">
                   <select id="q-client" value={q.clientId} onChange={(e) => set({ clientId: e.target.value })}>
                     <option value="">Selecione…</option>
@@ -210,9 +210,6 @@ export default function QuoteEditor({ id }: { id: string }) {
                     +
                   </button>
                 </div>
-              </Field>
-              <Field label="Nome na proposta" hint="Campo “nome” do PDF.">
-                <input id="q-label" value={q.clientLabel} onChange={(e) => set({ clientLabel: e.target.value })} placeholder={client?.name ?? 'nome do cliente'} />
               </Field>
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />

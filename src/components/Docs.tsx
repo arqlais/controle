@@ -192,7 +192,7 @@ function TotalBar({ label, value, note, compact }: { label: string; value: numbe
 const discountText = (value: number) => (value > 0 ? `com ${money(value)} de desconto` : '')
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
+  const clientName = client?.name || '[nome do cliente]'
   const heading = (name: string) => [name || quote.title || 'serviços', quote.area > 0 ? `${quote.area.toLocaleString('pt-BR')} m²` : ''].filter(Boolean).join(' • ')
   const infos = [
     { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms },
