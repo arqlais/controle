@@ -1428,3 +1428,14 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 /* clientes: nº de projetos sempre alinhado; ponto verde = tem projeto em andamento */
 .proj-count { position: relative; display: inline-block; }
 .proj-active { position: absolute; left: calc(100% + 7px); top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 18%, transparent); }
+
+/* clientes repetidos */
+.dupe-note { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 12px 16px; margin-bottom: 14px; border: 1px dashed var(--accent-soft); border-radius: 14px; background: color-mix(in srgb, var(--accent-soft) 12%, var(--surface)); font-size: 13.5px; }
+.dupe-note > span { flex: 1 1 220px; }
+.dupe-note svg { color: var(--accent-soft); flex: none; }
+.merge-names { display: flex; flex-wrap: wrap; gap: 8px; }
+.merge-name { display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; font-size: 14px; }
+.merge-name.is-on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 600; }
+.merge-summary { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--surface-2, color-mix(in srgb, var(--text) 4%, transparent)); font-size: 13.5px; line-height: 1.5; }
+.merge-name { white-space: nowrap; }
+.merge-name input { width: auto; min-height: 0; height: auto; margin: 0; padding: 0; accent-color: var(--accent); flex: none; }

@@ -316,6 +316,7 @@ export interface Settings {
   defaultPaymentTerms: string
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
   aiNotes?: string // regras e jeito de trabalhar, escritas por você, para a IA seguir
+  notDuplicates?: string[] // pares de clientes marcados como pessoas diferentes (ids "a|b")
   aiShareNames?: boolean // mandar nomes de clientes para a IA (padrão: não)
   services: ServiceDef[]
   customColumns: BoardColumn[] // colunas extras do quadro de demandas

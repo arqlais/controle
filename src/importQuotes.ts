@@ -1,3 +1,4 @@
+import { similarName } from './mergeClients'
 import type { Client, Data, Quote, QuoteItem, QuoteOption } from './types'
 import { quoteTotal, uid } from './utils'
 
@@ -69,7 +70,9 @@ export function mergeQuotePack(data: Data, pack: QuotePack, urgencyFee: number) 
   let newClients = 0
 
   for (const pq of pack.quotes) {
-    let c = clients.find((x) => norm(x.name) === norm(pq.client))
+    // mesmo nome, ou um só cliente com o nome quase igual (erro de digitação: Vieia × Vieira)
+    const alike = clients.filter((x) => similarName(x.name, pq.client))
+    let c = clients.find((x) => norm(x.name) === norm(pq.client)) ?? (alike.length === 1 ? alike[0] : undefined)
     const options: QuoteOption[] = (pq.options ?? []).map((o) => ({
       id: uid(),
       name: o.name ?? '',

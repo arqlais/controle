@@ -8,6 +8,7 @@ import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
 import type { Client } from '../types'
 import { askDelete } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
+import { MergeClients } from '../components/MergeClients'
 import { PayNext, QuoteStatusSelect, StatusSelect } from '../components/quick'
 import {
   CLIENT_COLORS,
@@ -33,6 +34,7 @@ export default function ClientDetail({ id }: { id: string }) {
   const { data, upsert, remove } = useStore()
   const c = data.clients.find((x) => x.id === id)
   const [edit, setEdit] = useState(false)
+  const [merge, setMerge] = useState(false)
   const [newProject, setNewProject] = useState(false)
   const projects = data.projects.filter((p) => p.clientId === id).sort((a, b) => b.startDate.localeCompare(a.startDate))
   const pagedProjects = usePaged(projects, 10)
@@ -200,6 +202,9 @@ export default function ClientDetail({ id }: { id: string }) {
             <button className="btn ghost small" onClick={() => upsert('clients', { ...c, archived: !c.archived })}>
               {c.archived ? 'Desarquivar' : 'Arquivar cliente'}
             </button>
+            <button className="btn ghost small" onClick={() => setMerge(true)}>
+              Juntar com outro cadastro
+            </button>
             <button
               className="btn ghost danger small"
               onClick={async () => {
@@ -216,6 +221,7 @@ export default function ClientDetail({ id }: { id: string }) {
       </div>
 
       {edit && <ClientForm initial={c} onClose={() => setEdit(false)} />}
+      {merge && <MergeClients keep={c} onClose={() => setMerge(false)} />}
       {newProject && <ProjectForm clientId={c.id} onClose={() => setNewProject(false)} onSaved={(p) => go('projetos', p.id)} />}
     </div>
   )

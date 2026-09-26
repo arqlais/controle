@@ -5,19 +5,26 @@ import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
 import { CLIENT_COLORS, CLIENT_TYPES, daysUntil, relativeDays, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink } from '../utils'
-import type { ClientType } from '../types'
+import type { Client, ClientType } from '../types'
+import { MergeClients } from '../components/MergeClients'
+import { duplicatePairs } from '../mergeClients'
 
 type Profile = 'todos' | 'profissionais' | 'estudantes'
 type Sort = 'faturamento' | 'nome' | 'recentes' | 'aberto'
 
 export default function Clients() {
-  const { data } = useStore()
+  const { data, setSettings } = useStore()
   const [q, setQ] = useState('')
   const [profile, setProfile] = useState<Profile>('todos')
   const [type, setType] = useState<ClientType | ''>('')
   const [sort, setSort] = useState<Sort>('faturamento')
   const [archived, setArchived] = useState(false)
   const [form, setForm] = useState(false)
+  const [merging, setMerging] = useState<[Client, Client] | null>(null)
+  const pairKey = (a: Client, b: Client) => [a.id, b.id].sort().join('|')
+  const dupes = useMemo(() => duplicatePairs(data.clients).filter(([a, b]) => !(data.settings.notDuplicates ?? []).includes(pairKey(a, b))), [data.clients, data.settings.notDuplicates])
+  // fica o cadastro com mais histórico (orçamentos + demandas)
+  const weight = (c: Client) => data.quotes.filter((x) => x.clientId === c.id).length + data.projects.filter((x) => x.clientId === c.id).length * 2 + (c.company ? 1 : 0)
 
   const rows = useMemo(() => {
     const term = q.toLowerCase()
@@ -63,6 +70,21 @@ export default function Clients() {
           <Icon name="plus" size={16} /> Novo cliente
         </button>
       </div>
+
+      {dupes.slice(0, 3).map(([a, b]) => (
+        <div key={pairKey(a, b)} className="dupe-note">
+          <Icon name="users" size={16} />
+          <span>
+            <b>{a.name}</b> e <b>{b.name}</b> parecem a mesma pessoa.
+          </span>
+          <button className="btn small primary" onClick={() => setMerging(weight(a) >= weight(b) ? [a, b] : [b, a])}>
+            juntar
+          </button>
+          <button className="link small muted-link" onClick={() => setSettings({ notDuplicates: [...(data.settings.notDuplicates ?? []), pairKey(a, b)] })}>
+            são pessoas diferentes
+          </button>
+        </div>
+      ))}
 
       <div className="toolbar">
         <div className="search inline">
@@ -174,6 +196,7 @@ export default function Clients() {
         </div>
       )}
 
+      {merging && <MergeClients keep={merging[0]} other={merging[1]} onClose={() => setMerging(null)} />}
       {form && <ClientForm onClose={() => setForm(false)} />}
     </div>
   )
