@@ -401,7 +401,7 @@ function ProposalSettings() {
     title: 'Casa Pampulha — áreas sociais',
     mode,
     pdf: true,
-    area: 140,
+    area: mode === 'escopo' ? 140 : 0,
     clientLabel: '',
     items: [
       { id: 'a', service: 'render-vray', title: 'Renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media', price: 370, auto: true },

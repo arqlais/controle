@@ -501,7 +501,7 @@ export function demoData(settings: Settings): Data {
       title: 'Renders — Casa Pampulha',
       mode: 'escopo' as const,
       pdf: true,
-      area: 140,
+      area: 0,
       clientLabel: '',
       options: [],
       chosenOption: '',

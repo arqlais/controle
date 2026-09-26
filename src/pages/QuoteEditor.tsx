@@ -214,7 +214,7 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field label="Área do projeto (m²)" hint="Opcional: “• 140 m²” no título do quadro.">
+              <Field label="Área (m²) · opcional" hint="Só para modelagem, executivo, detalhamento… Vazio = não aparece no PDF.">
                 <input id="q-area" type="number" min={0} value={q.area || ''} onChange={(e) => set({ area: Number(e.target.value) || 0 })} placeholder="—" />
               </Field>
               <Field label="Modelo" span={2}>
