@@ -4,6 +4,7 @@ import { href } from '../router'
 import { Icon } from './Icon'
 import { buildAIPrompt, claudeLink } from './AskAI'
 import { toast } from './dialog'
+import { lowerKeepRS } from '../utils'
 
 /* Assistente de orçamentos (chat) com o Gemini do Google, usando a chave da própria usuária.
    A cada pergunta vai junto o "briefing" do estúdio: processo, regras, tabela e histórico. */
@@ -173,7 +174,7 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
     setBusy(true)
     try {
       const answer = await askGemini(s.aiKey, buildAIPrompt(data, '', current, !!s.aiShareNames, 'chat'), history)
-      setMsgs((m) => [...m, { role: 'model', text: answer }])
+      setMsgs((m) => [...m, { role: 'model', text: s.aiLowercase !== false ? lowerKeepRS(answer) : answer }])
     } catch (e) {
       setMsgs((m) => [...m, { role: 'model', text: `⚠ ${e instanceof Error ? e.message : 'Não foi possível responder agora.'}` }])
     } finally {

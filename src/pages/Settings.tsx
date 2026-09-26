@@ -501,6 +501,10 @@ export default function SettingsPage() {
                   </Field>
                 </div>
                 <label className="check toggle">
+                  <input type="checkbox" checked={s.aiLowercase !== false} onChange={(e) => setSettings({ aiLowercase: e.target.checked })} /> escrever tudo em letra minúscula (R$ sempre maiúsculo)
+                </label>
+                <p className="muted small">Vale para o Gemini aqui no chat e para o que for levado ao Claude.</p>
+                <label className="check toggle">
                   <input type="checkbox" checked={!!s.aiShareNames} onChange={(e) => setSettings({ aiShareNames: e.target.checked })} /> enviar os nomes dos clientes para a IA
                 </label>
                 <p className="muted small">Desligado, a IA vê escopos e valores dos orçamentos, mas não os nomes dos clientes.</p>

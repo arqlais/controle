@@ -405,6 +405,13 @@ export const quoteNumber = (q: Quote) => `#${String(q.number).padStart(3, '0')}`
 /** Total de uma opção: soma dos serviços menos o desconto da opção. */
 export const optionTotal = (o: { items: { price: number }[]; discount: number }) => Math.max(0, o.items.reduce((s, i) => s + (i.price || 0), 0) - (o.discount || 0))
 /** "propostas + juntas": o cliente pode fechar uma, outra, ou todas juntas com desconto. */
+/** Tudo em minúsculas, menos R$ (e links, que quebrariam). */
+export const lowerKeepRS = (t: string) =>
+  t
+    .split(/(https?:\/\/\S+)/g)
+    .map((part, i) => (i % 2 ? part : part.toLowerCase().replace(/r\$/g, 'R$')))
+    .join('')
+
 export const BOTH = 'ambas'
 /** até 3 opções/propostas lado a lado */
 export const MAX_OPTIONS = 3

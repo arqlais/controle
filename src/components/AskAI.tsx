@@ -52,7 +52,8 @@ export function processBriefing(d: Data) {
 - Uma mesma cliente pode pedir várias demandas de uma vez (ex.: 3 projetos diferentes): viram UM orçamento com cada projeto como um serviço separado (título do projeto + escopo em tópicos + valor) e o total no fim; se fizer sentido, um desconto por fechar tudo junto.
 - Renderização: por IA é mais barata e rápida; V-Ray é a de maior qualidade. Imagens em pacotes (5, 10, 15).
 - O +${s.openFileFee ?? 30}% de arquivo aberto só vale para executivo e detalhamento (entregues em PDF). Modelagem já é entregue com o SketchUp aberto: não soma nada.
-- Nunca invente números de orçamentos: cite apenas os que estão na lista de orçamentos anteriores abaixo.${s.aiNotes?.trim() ? `
+- Nunca invente números de orçamentos: cite apenas os que estão na lista de orçamentos anteriores abaixo.${s.aiLowercase !== false ? `
+- Estilo de escrita (obrigatório): escreva TUDO em letra minúscula — respostas, propostas, títulos, tópicos, mensagens para clientes e nomes de serviços —, sem nenhuma maiúscula, nem no início de frases ou em nomes. A única exceção é o símbolo de dinheiro: sempre "R$" com R maiúsculo (ex.: R$ 1.200,00).` : ''}${s.aiNotes?.trim() ? `
 
 ## Minhas regras (escritas por mim)
 ${s.aiNotes.trim()}` : ''}`
@@ -103,7 +104,7 @@ ${history || '(nenhum ainda)'}`
 3. Perguntas que faltam fazer ao cliente antes de fechar o valor (área, pavimentos, arquivo aberto ou fechado, prazo, referências…).
 4. Texto do "não inclui" no meu estilo.
 5. Uma mensagem curta e simpática para eu mandar ao cliente no WhatsApp.
-Se algo estiver ambíguo, diga o que você assumiu.`
+Se algo estiver ambíguo, diga o que você assumiu.${s.aiLowercase !== false ? '\nLembrete de estilo: escreva tudo em letra minúscula (inclusive títulos e a mensagem para o cliente); só o "R$" fica com R maiúsculo.' : ''}`
   if (mode === 'chat')
     return `${intro}\n\n${studio}\n\n## Como responder no chat\nConverse comigo sobre orçamentos, preços, escopo e clientes usando as informações acima. Seja breve e prático; use tópicos curtos. Quando eu colar o pedido de um cliente, responda com:\n${wants}`
   return `${intro}
