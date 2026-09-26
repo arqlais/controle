@@ -34,7 +34,7 @@ export default function Projects() {
   const { data, upsert, setSettings, replaceAll } = useStore()
   const custom = data.settings.customColumns
   const panHandlers = useDragScroll()
-  const boardRef = useScrollFade()
+  const board = useBoardFit()
   const [newCol, setNewCol] = useState('')
   const removeColumn = async (col: string) => {
     const count = data.projects.filter((p) => p.status === col).length
@@ -137,12 +137,22 @@ export default function Projects() {
             <option value="todos">Todos</option>
           </select>
         )}
+        {view === 'quadro' && (board.edges.left || board.edges.right) && (
+          <div className="board-nav">
+            <button className="icon-btn" disabled={!board.edges.left} onClick={() => board.step(-1)} aria-label="Colunas anteriores">
+              <Icon name="chevronL" size={16} />
+            </button>
+            <button className="icon-btn" disabled={!board.edges.right} onClick={() => board.step(1)} aria-label="Mais colunas">
+              <Icon name="chevronR" size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {data.projects.length === 0 ? (
         <Empty icon="folder" title="Nenhuma demanda ainda" text="Cadastre seu primeiro projeto para acompanhar prazos e pagamentos." action={<button className="btn primary" onClick={() => setForm(true)}>Nova demanda</button>} />
       ) : view === 'quadro' ? (
-        <div className="board" ref={boardRef} {...panHandlers}>
+        <div className="board" ref={board.ref} {...panHandlers}>
           {boardColumns().map((col) => {
             let items = filtered.filter((p) => p.status === col)
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
@@ -333,15 +343,20 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
 }
 
 /** Arrastar o quadro para os lados com o mouse (no celular o dedo já desliza). */
-/** Esmaece a borda do quadro quando há mais colunas para os lados (em vez de parecer cortado). */
-function useScrollFade() {
+/** Quadro na largura da página: mostra só colunas inteiras; as demais ficam ao lado para arrastar. */
+function useBoardFit() {
   const ref = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ left: false, right: false })
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const update = () => {
-      el.classList.toggle('fade-right', el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
-      el.classList.toggle('fade-left', el.scrollLeft > 4)
+      const gap = 14
+      const fit = Math.max(1, Math.floor((el.clientWidth + gap) / (230 + gap)))
+      el.style.setProperty('--cols', String(fit))
+      const left = el.scrollLeft > 4
+      const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+      setEdges((e) => (e.left === left && e.right === right ? e : { left, right }))
     }
     update()
     el.addEventListener('scroll', update, { passive: true })
@@ -352,7 +367,20 @@ function useScrollFade() {
       ro.disconnect()
     }
   })
-  return ref
+  const step = (dir: 1 | -1) => {
+    const el = ref.current
+    const col = el?.querySelector<HTMLElement>('.column')
+    if (el && col) el.scrollBy({ left: dir * (col.offsetWidth + 14), behavior: 'smooth' })
+  }
+  return { ref, edges, step }
+}
+
+/** Depois de arrastar, encaixa na coluna mais próxima (nunca fica coluna cortada). */
+function snapToColumn(el: HTMLElement) {
+  const col = el.querySelector<HTMLElement>('.column')
+  if (!col) return
+  const w = col.offsetWidth + 14
+  el.scrollTo({ left: Math.round(el.scrollLeft / w) * w, behavior: 'smooth' })
 }
 
 function useDragScroll() {
@@ -371,11 +399,17 @@ function useDragScroll() {
       s.el.scrollLeft = s.left - (e.clientX - s.x)
     },
     onPointerUp: () => {
-      state.current?.el.classList.remove('is-panning')
+      const s = state.current
+      if (!s) return
+      s.el.classList.remove('is-panning')
+      snapToColumn(s.el)
       state.current = null
     },
     onPointerLeave: () => {
-      state.current?.el.classList.remove('is-panning')
+      const s = state.current
+      if (!s) return
+      s.el.classList.remove('is-panning')
+      snapToColumn(s.el)
       state.current = null
     },
   }

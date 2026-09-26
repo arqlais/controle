@@ -129,7 +129,6 @@ input[type='range'] { padding: 0; accent-color: var(--accent); border: 0; }
 .content { padding: 6px 36px 72px; width: 100%; min-width: 0; }
 /* largura compacta para leitura; só o quadro de demandas usa a tela toda */
 .page > *, .content > .demo-banner { max-width: 1348px; width: 100%; }
-.page > .board { max-width: none; }
 .page { display: flex; flex-direction: column; gap: 22px; animation: fade 0.3s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 10px; }
@@ -830,7 +829,9 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .money { text-transform: none; }
 .list-item.clickable { cursor: pointer; }
 
-/* quadro: borda esmaecida indica que dá para arrastar para o lado */
-.board.fade-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
-.board.fade-left { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); }
-.board.fade-left.fade-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); }
+/* quadro: mesma largura da página, só colunas inteiras; o resto fica ao lado para arrastar */
+.board { grid-auto-columns: calc((100% - (var(--cols, 5) - 1) * 14px) / var(--cols, 5)); }
+.board-nav { display: flex; gap: 6px; margin-left: auto; }
+.board-nav .icon-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+.board-nav .icon-btn:disabled { opacity: 0.3; cursor: default; }
+@media (max-width: 820px) { .board { grid-auto-columns: 82vw; } .board-nav { display: none; } }
