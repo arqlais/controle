@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
-import { cleanDetail, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { atHandle, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -144,8 +144,8 @@ function Contacts({ s }: { s: Settings }) {
   // rodapé do modelo: contatos do perfil (campo vazio não aparece)
   const items = ([
     ['cell', s.phone],
-    ['instagram', s.instagram],
-    ['site', s.website.replace(/^https?:\/\/(www\.)?/, '')],
+    ['instagram', atHandle(s.instagram)],
+    ['site', cleanSite(s.website)],
     ['e-mail', s.email],
   ] as [string, string][]).filter(([, v]) => v.trim())
   if (!items.length) return null

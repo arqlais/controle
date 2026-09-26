@@ -19,6 +19,11 @@ import type {
   QuoteStatus,
 } from './types'
 
+/** Instagram sempre com @ na frente (a pessoa pode digitar com ou sem). */
+export const atHandle = (v: string) => (v.trim() ? '@' + v.trim().replace(/^@+/, '') : '')
+/** Site sem https:// nem www., do jeito que fica bonito impresso. */
+export const cleanSite = (v: string) => v.trim().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4)
 
 /* ---------- rótulos ---------- */

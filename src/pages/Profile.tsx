@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { EmailInput, Field, PhoneInput, Section } from '../components/ui'
 import { toast } from '../components/dialog'
 import type { Settings } from '../types'
+import { atHandle, cleanSite } from '../utils'
 
 /* Perfil do estúdio: quem você é, como aparece nas propostas e recibos, e a sua conta. */
 
@@ -45,7 +46,7 @@ export default function Profile() {
     r.readAsDataURL(f)
   }
 
-  const contacts = [s.phone, s.instagram, s.website.replace(/^https?:\/\/(www\.)?/, ''), s.email].filter((x) => x.trim())
+  const contacts = [s.phone, atHandle(s.instagram), cleanSite(s.website), s.email].filter((x) => x.trim())
 
   return (
     <div className="page profile">
@@ -132,6 +133,9 @@ export default function Profile() {
 
         <div className="stack">
           <Section title="contato e recebimento">
+            <p className="muted small" style={{ marginTop: 0 }}>
+              WhatsApp, e-mail, Instagram e site vão <b>automaticamente para o rodapé da proposta</b>. Deixe em branco o que não quiser mostrar.
+            </p>
             <div className="form-grid two">
               <Field label="WhatsApp">
                 <PhoneInput id="profile-phone" value={s.phone} onChange={(v) => set({ phone: v })} placeholder="+55 11 99999-9999" />
@@ -140,12 +144,12 @@ export default function Profile() {
                 <EmailInput id="profile-email" value={s.email} onChange={(v) => set({ email: v })} />
               </Field>
               <Field label="Instagram">
-                <input value={s.instagram} onChange={(e) => set({ instagram: e.target.value })} placeholder="@seuperfil" />
+                <input value={s.instagram} onChange={(e) => set({ instagram: e.target.value })} onBlur={() => s.instagram.trim() && set({ instagram: atHandle(s.instagram) })} placeholder="@seuperfil" />
               </Field>
               <Field label="Site">
                 <input value={s.website} onChange={(e) => set({ website: e.target.value })} placeholder="seusite.com.br" />
               </Field>
-              <Field label="Chave pix" span={2} hint="Entra sozinha nas mensagens de cobrança.">
+              <Field label="Chave pix" span={2} hint="Não vai no PDF; entra sozinha nas mensagens de cobrança.">
                 <input value={s.pixKey} onChange={(e) => set({ pixKey: e.target.value })} />
               </Field>
             </div>
