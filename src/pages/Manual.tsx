@@ -145,7 +145,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Mudar preço da tabela, dados da proposta ou cores do PDF',
-    a: <><b>configurações → tabela de preços</b>, <b>seus dados</b> e <b>modelo da proposta (PDF)</b>. Só no computador.</>,
+    a: <><b>configurações → tabela de preços</b> e <b>modelo da proposta (PDF)</b>, só no computador. <b>Seus dados</b> (nome, pix, contatos do rodapé) dá para mudar também pelo celular.</>,
     page: 'config',
   },
   {
@@ -160,7 +160,16 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Quero ver o sistema preenchido de exemplo',
-    a: <>O <b>olho</b> no rodapé do menu (ao lado da lua) mostra o exemplo sem mexer nos seus dados. Clique de novo para voltar.</>,
+    a: <>No computador, o <b>olho</b> no rodapé do menu (ao lado da lua) mostra o exemplo sem mexer nos seus dados. Clique de novo para voltar.</>,
+  },
+  {
+    q: 'O que quer dizer “no fechamento”, “na conclusão” e “a cobrar”?',
+    a: <>Não existe vencimento por data. Cada parcela diz <b>quando</b> é paga: o sinal <b>no fechamento</b> e o saldo <b>na conclusão</b> (dá para trocar na tabela de pagamentos da demanda). Ela vira <b>a cobrar</b> quando já pode ser cobrada: sinal ainda não pago, ou saldo com a demanda em “aguardando aprovação” ou “entregue”. Aparece no início, no financeiro e no número do menu.</>,
+    page: 'financeiro',
+  },
+  {
+    q: 'O que fica só no computador?',
+    a: <>Para o celular ficar enxuto, algumas coisas aparecem só no computador: gráficos (início e financeiro), <b>mensagens padrão</b>, <b>metas e regras de negócio</b>, <b>tabela de preços</b>, <b>modelo da proposta</b>, identidade visual e o <b>olho</b> do exemplo. No celular fica o dia a dia: para fazer, demandas, clientes, pagamentos e agenda.</>,
   },
   {
     q: 'Não acho uma cliente, demanda ou orçamento',
@@ -179,6 +188,7 @@ const WHERE: [string, string, string][] = [
   ['histórico de uma cliente', 'clientes → abrir a cliente', 'clientes'],
   ['criar coluna no quadro', 'demandas → quadro → nova coluna (no fim)', 'projetos'],
   ['mudar ordem do menu', 'organizar menu (abaixo do menu)', ''],
+  ['manual e configurações', 'grupo “ajustes e dicas”, no fim do menu', ''],
   ['backup dos dados', 'configurações → backup e dados', 'config'],
 ]
 
