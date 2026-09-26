@@ -144,7 +144,8 @@ export default function Agenda() {
         </div>
         <div className="row gap-s wrap">
           <button className="btn ghost" onClick={() => setConnect(true)}>
-            <Icon name="phone" size={16} /> {data.settings.calendarToken ? 'agenda no celular ✓' : 'conectar ao celular'}
+            <Icon name="smartphone" size={16} /> {data.settings.calendarToken ? 'agenda no celular' : 'conectar ao celular'}
+            {data.settings.calendarToken && <span className="sync-dot" title="ligada" />}
           </button>
           <button className="btn primary" onClick={() => setForm({ date: selected })}>
             <Icon name="plus" size={16} /> Compromisso
@@ -358,7 +359,7 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
             </p>
             {options}
             <button className="btn primary" onClick={newToken}>
-              <Icon name="phone" size={16} /> ligar agenda no celular
+              <Icon name="smartphone" size={16} /> ligar agenda no celular
             </button>
           </>
         ) : (

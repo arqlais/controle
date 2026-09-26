@@ -194,7 +194,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                   onClick={() => save({ noPhone: !p.noPhone })}
                   title={p.noPhone ? 'Mandar prazo e parcelas desta demanda para a agenda do celular' : 'Tirar esta demanda da agenda do celular'}
                 >
-                  <Icon name="phone" size={12} /> {p.noPhone ? 'fora da agenda do celular · incluir' : 'na agenda do celular · tirar'}
+                  <Icon name="smartphone" size={12} /> {p.noPhone ? 'fora da agenda do celular · incluir' : 'na agenda do celular · tirar'}
                 </button>
               )}
             </>
