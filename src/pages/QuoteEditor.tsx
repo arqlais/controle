@@ -14,6 +14,7 @@ import { CloseDeal } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
 import {
   BOTH,
+  optionArea,
   MAX_OPTIONS,
   allLabel,
   comboSeparate,
@@ -102,6 +103,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     setQ((x) => ({ ...x, ...patch }))
     setDirty(true)
   }
+  const oa = (o: QuoteOption) => optionArea(q, o)
   const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)) })
 
   const sub = quoteSubtotal(q)
@@ -112,15 +114,25 @@ export default function QuoteEditor({ id }: { id: string }) {
   const reprice = (patch: { openFile?: boolean; floors?: number }) => {
     const openFile = patch.openFile ?? !!q.openFile
     const fl = patch.floors ?? floors
-    const again = (items: QuoteItem[]) =>
-      items.map((it) => {
-        const sv = settings.services.find((x) => x.id === it.service)
-        if (!it.auto || it.joined || !sv || sv.pricing === 'livre') return it
-        const price = Math.max(0, suggestPrice(sv, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile, fl) - (it.unitDiscount ?? 0) * it.quantity)
-        return { ...it, price }
-      })
-    set({ ...patch, items: again(q.items), options: q.options.map((o) => ({ ...o, items: again(o.items) })) })
+    set({
+      ...patch,
+      items: repriceItems(q.items, openFile, fl),
+      // cada quadro usa os próprios pavimentos (se tiver)
+      options: q.options.map((o) => ({ ...o, items: repriceItems(o.items, openFile, o.floors ?? fl) })),
+    })
   }
+  const repriceItems = (items: QuoteItem[], openFile: boolean, fl: number, area?: { from: number; to: number }) =>
+    items.map((it) => {
+      const sv = settings.services.find((x) => x.id === it.service)
+      if (!sv) return it
+      // área nova: serviços por m² que estavam com a área antiga (ou sem área) acompanham
+      const follow = area && sv.pricing === 'm2' && area.to > 0 && (it.quantity === area.from || !it.quantity || (!area.from && it.quantity === 50))
+      const quantity = follow ? area.to : it.quantity
+      if (!it.auto || it.joined || sv.pricing === 'livre') return follow ? { ...it, quantity } : it
+      const price = Math.max(0, suggestPrice(sv, quantity, it.complexity, student, settings, it.description.split('\n'), openFile, fl) - (it.unitDiscount ?? 0) * quantity)
+      return { ...it, quantity, price }
+    })
+  const syncArea = (items: QuoteItem[], from: number, to: number, openFile: boolean, fl: number) => repriceItems(items, openFile, fl, { from, to })
   const setOpenFile = (openFile: boolean) => reprice({ openFile })
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
@@ -288,25 +300,11 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field group label="Área (m²) e pavimentos" hint="Área em branco = não aparece no PDF · ≈ para área média · cada pavimento a mais encarece.">
-                <div className="area-field">
-                  <input id="q-area" type="number" min={0} inputMode="decimal" value={q.area || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
-                  <div className="area-extras">
-                    <label className={`area-approx ${q.areaApprox ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
-                      <input type="checkbox" checked={!!q.areaApprox} onChange={(e) => set({ areaApprox: e.target.checked })} />≈ estimada
-                    </label>
-                    <span className={`floors ${floors > 1 ? 'on' : ''}`} title={`Cada pavimento a mais soma ${settings.floorFee ?? 50}% nos serviços que encarecem (configurações → preços)`}>
-                      <button type="button" onClick={() => reprice({ floors: Math.max(1, floors - 1) })} disabled={floors <= 1} aria-label="Menos um pavimento">
-                        −
-                      </button>
-                      <b id="q-floors">{floors}</b> pav.
-                      <button type="button" onClick={() => reprice({ floors: Math.min(20, floors + 1) })} aria-label="Mais um pavimento">
-                        +
-                      </button>
-                    </span>
-                  </div>
-                </div>
-              </Field>
+              {!two && (
+                <Field group label="Área (m²) e pavimentos" hint="Área em branco = não aparece no PDF · ≈ para área média · cada pavimento a mais encarece.">
+                  <AreaFloors id="q" area={q.area} approx={!!q.areaApprox} floors={floors} fee={settings.floorFee ?? 50} onArea={(area) => set({ area, items: syncArea(q.items, q.area, area, !!q.openFile, floors) })} onApprox={(areaApprox) => set({ areaApprox })} onFloors={(f) => reprice({ floors: f })} />
+                </Field>
+              )}
               <Field group label="Modelo" span={2}>
                 <Segmented<'escopo' | 'opcoes' | 'combo'>
                   value={isCombo(q) ? 'combo' : q.mode}
@@ -359,7 +357,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           {!two ? (
             <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
-              <ItemsEditor items={q.items} student={student} openFile={!!q.openFile} floors={floors} settings={settings} onChange={(items) => set({ items })} />
+              <ItemsEditor items={q.items} student={student} openFile={!!q.openFile} floors={floors} area={q.area} settings={settings} onChange={(items) => set({ items })} />
               <div className="quote-totals">
                 <div>
                   <span>subtotal</span>
@@ -409,10 +407,24 @@ export default function QuoteEditor({ id }: { id: string }) {
                   </span>
                 }
               >
-                <Field label="Título do quadro" hint="Em branco, usa o título do projeto.">
-                  <input value={o.name} onChange={(e) => setOption(o.id, { name: e.target.value })} placeholder={q.title || 'Ex.: renderização V-Ray'} />
-                </Field>
-                <ItemsEditor items={o.items} student={student} openFile={!!q.openFile} floors={floors} settings={settings} onChange={(items) => setOption(o.id, { items })} />
+                <div className="form-grid option-head">
+                  <Field label="Título do quadro" span={2} hint="Em branco, usa o título do projeto.">
+                    <input value={o.name} onChange={(e) => setOption(o.id, { name: e.target.value })} placeholder={q.title || 'Ex.: renderização V-Ray'} />
+                  </Field>
+                  <Field group label="Área (m²) e pavimentos" hint="Deste quadro · em branco = não aparece no PDF.">
+                    <AreaFloors
+                      id={`q-opt${n + 1}`}
+                      area={oa(o).area}
+                      approx={oa(o).approx}
+                      floors={oa(o).floors}
+                      fee={settings.floorFee ?? 50}
+                      onArea={(area) => setOption(o.id, { area, items: syncArea(o.items, oa(o).area, area, !!q.openFile, oa(o).floors) })}
+                      onApprox={(areaApprox) => setOption(o.id, { areaApprox })}
+                      onFloors={(f) => setOption(o.id, { floors: f, items: repriceItems(o.items, !!q.openFile, f) })}
+                    />
+                  </Field>
+                </div>
+                <ItemsEditor items={o.items} student={student} openFile={!!q.openFile} floors={oa(o).floors} area={oa(o).area} settings={settings} onChange={(items) => setOption(o.id, { items })} />
                 <div className="quote-totals">
                   <div className="discount-row">
                     <span>desconto</span>
@@ -764,7 +776,7 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 }
 
 /** Lista de serviços com preço pela tabela, desconto por unidade e valor editável. */
-function ItemsEditor({ items, student, openFile, floors, settings, onChange }: { items: QuoteItem[]; student: boolean; openFile: boolean; floors: number; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
+function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onChange }: { items: QuoteItem[]; student: boolean; openFile: boolean; floors: number; area?: number; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
   const service = (sid: string) => settings.services.find((s) => s.id === sid)
 
   const recompute = (it: QuoteItem): QuoteItem => {
@@ -800,7 +812,7 @@ function ItemsEditor({ items, student, openFile, floors, settings, onChange }: {
                   setItem(it.id, {
                     service: e.target.value,
                     title: ns?.name ?? it.title,
-                    quantity: ns?.pricing === 'm2' ? Math.max(it.quantity, 50) : ns?.pricing === 'livre' ? 1 : it.quantity > 40 ? 1 : it.quantity,
+                    quantity: ns?.pricing === 'm2' ? (area > 0 ? area : Math.max(it.quantity, 50)) : ns?.pricing === 'livre' ? 1 : it.quantity > 40 ? 1 : it.quantity,
                     auto: true,
                     detail: '',
                   })
@@ -921,6 +933,29 @@ function ItemsEditor({ items, student, openFile, floors, settings, onChange }: {
       <button className="btn small ghost add-item" onClick={() => onChange([...items, newItem()])}>
         <Icon name="plus" size={14} /> serviço
       </button>
+    </div>
+  )
+}
+
+/** Área (m²), "≈ estimada" e pavimentos: do orçamento ou de cada quadro. */
+function AreaFloors({ id, area, approx, floors, fee, onArea, onApprox, onFloors }: { id: string; area: number; approx: boolean; floors: number; fee: number; onArea: (n: number) => void; onApprox: (v: boolean) => void; onFloors: (n: number) => void }) {
+  return (
+    <div className="area-field">
+      <input id={`${id}-area`} type="number" min={0} inputMode="decimal" value={area || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => onArea(Number(e.target.value) || 0)} />
+      <div className="area-extras">
+        <label className={`area-approx ${approx ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
+          <input type="checkbox" checked={approx} onChange={(e) => onApprox(e.target.checked)} />≈ estimada
+        </label>
+        <span className={`floors ${floors > 1 ? 'on' : ''}`} title={`Cada pavimento a mais soma ${fee}% nos serviços que encarecem (configurações → preços)`}>
+          <button type="button" onClick={() => onFloors(Math.max(1, floors - 1))} disabled={floors <= 1} aria-label="Menos um pavimento">
+            −
+          </button>
+          <b id={`${id}-floors`}>{floors}</b> pav.
+          <button type="button" onClick={() => onFloors(Math.min(20, floors + 1))} aria-label="Mais um pavimento">
+            +
+          </button>
+        </span>
+      </div>
     </div>
   )
 }

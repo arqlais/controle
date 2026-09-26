@@ -28,7 +28,7 @@ function quoteLine(q: Quote, d: Data, names = true, max = 8) {
     q.mode === 'opcoes'
       ? q.options
           .slice(0, 3)
-          .map((o, i) => `${q.combo ? 'proposta' : 'opção'} ${i + 1}${o.name ? ` "${o.name}"` : ''}: ${o.items.map((it) => itemText(it, max)).join(' + ')}`)
+          .map((o, i) => `${q.combo ? 'proposta' : 'opção'} ${i + 1}${o.name ? ` "${o.name}"` : ''}${o.area ? ` (${o.areaApprox ? '≈' : ''}${o.area} m²${(o.floors ?? 1) > 1 ? `, ${o.floors} pav.` : ''})` : ''}: ${o.items.map((it) => itemText(it, max)).join(' + ')}`)
           .join(' | ') + (q.combo && q.comboDiscount ? ` | juntas com desconto de ${money(q.comboDiscount)}` : '')
       : q.items.map((it) => itemText(it, max)).join(' + ')
   const note = q.notes.trim() && max ? ` · obs: ${lines(q.notes, Math.min(3, max))}` : ''

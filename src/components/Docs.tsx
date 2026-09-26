@@ -1,8 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
-import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
-import { allLabel, atHandle, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings } from '../types'
+import { allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -233,7 +233,11 @@ const discountText = (value: number) => (value > 0 ? `com ${money(value)} de des
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
   const clientName = client?.name || '[nome do cliente]'
-  const heading = (name: string) => [name || quote.title || 'serviços', quote.area > 0 ? `${quote.areaApprox ? '≈ ' : ''}${quote.area.toLocaleString('pt-BR')} m²` : '', (quote.floors ?? 1) > 1 ? `${quote.floors} pavimentos` : ''].filter(Boolean).join(' • ')
+  // cada quadro com a própria área e pavimentos (opções/propostas de projetos diferentes)
+  const heading = (name: string, o?: QuoteOption) => {
+    const { area, approx, floors } = optionArea(quote, o)
+    return [name || quote.title || 'serviços', area > 0 ? `${approx ? '≈ ' : ''}${area.toLocaleString('pt-BR')} m²` : '', floors > 1 ? `${floors} pavimentos` : ''].filter(Boolean).join(' • ')
+  }
   const infos = [
     { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms.trim() || PAYMENT_TERMS },
     { icon: 'calendar' as const, label: 'Prazos e cronograma', text: quote.schedule },
@@ -247,7 +251,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
 
   // escopo grande (muitos serviços / tópicos): aproxima o título e o quadro para caber sem espremer
   return (
-    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, s.proposal])}>
+    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, quote.floors, s.proposal])}>
       <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
       <Title s={s} />
       {quote.mode === 'opcoes' ? (
@@ -258,7 +262,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
               <div key={o.id} className="p-option">
                 <span className="p-option-label">{quote.combo ? 'proposta' : 'opção'} {n + 1}</span>
                 <div className="p-card">
-                  <h3 className="p-card-title">{heading(o.name)}</h3>
+                  <h3 className="p-card-title">{heading(o.name, o)}</h3>
                   <Rows items={o.items} priceFirst />
                   {o.note && <p className="p-note">{o.note}</p>}
                 </div>

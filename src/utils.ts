@@ -16,6 +16,7 @@ import type {
   Project,
   ProjectItem,
   Quote,
+  QuoteOption,
   QuoteStatus,
 } from './types'
 
@@ -411,6 +412,13 @@ export const lowerKeepRS = (t: string) =>
     .split(/(https?:\/\/\S+)/g)
     .map((part, i) => (i % 2 ? part : part.toLowerCase().replace(/r\$/g, 'R$')))
     .join('')
+
+/** Área e pavimentos de um quadro: cada opção/proposta pode ter os seus. */
+export const optionArea = (q: Quote, o?: QuoteOption) => ({
+  area: o?.area ?? q.area,
+  approx: o?.areaApprox ?? !!q.areaApprox,
+  floors: Math.max(1, o?.floors ?? q.floors ?? 1),
+})
 
 export const BOTH = 'ambas'
 /** até 3 opções/propostas lado a lado */

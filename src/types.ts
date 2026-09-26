@@ -182,6 +182,10 @@ export interface QuoteOption {
   discount: number // desconto desta opção (R$)
   discountNote: string // texto abaixo do total
   deadlineDays: number
+  // área e pavimentos deste quadro (opções/propostas de projetos diferentes); em branco = os do orçamento
+  area?: number
+  areaApprox?: boolean
+  floors?: number
   // campos antigos (propostas criadas antes do modelo novo)
   summary?: string
   included?: string[]
