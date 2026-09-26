@@ -34,7 +34,9 @@ export function Modal({
       <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
         <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal aria-label={title}>
           <header className="modal-head">
-            <h2>{title}</h2>
+            <h2>
+              <KeepRS text={title} />
+            </h2>
             <button className="icon-btn" onClick={onClose} aria-label="Fechar">
               <Icon name="x" />
             </button>
@@ -48,18 +50,20 @@ export function Modal({
   )
 }
 
-/** Títulos ficam em minúsculas, mas "R$" continua sempre maiúsculo. */
+/** Títulos ficam em minúsculas, mas "R$" e "IA" continuam sempre maiúsculos. */
 export function KeepRS({ text }: { text: string }) {
-  if (!text.includes('R$')) return <>{text}</>
-  const parts = text.split('R$')
+  if (!/R\$|\bIA\b/.test(text)) return <>{text}</>
   return (
     <>
-      {parts.map((p, i) => (
-        <span key={i}>
-          {i > 0 && <span className="keep-case">R$</span>}
-          {p}
-        </span>
-      ))}
+      {text.split(/(R\$|\bIA\b)/).map((p, i) =>
+        i % 2 ? (
+          <span key={i} className="keep-case">
+            {p}
+          </span>
+        ) : (
+          <span key={i}>{p}</span>
+        ),
+      )}
     </>
   )
 }

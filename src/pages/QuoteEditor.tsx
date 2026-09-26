@@ -10,6 +10,7 @@ import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
+import { AskAIButton } from '../components/AskAI'
 import {
   BOTH,
   comboSeparate,
@@ -171,6 +172,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           <h1>{q.title || 'novo orçamento'}</h1>
         </div>
         <div className="row gap-s wrap">
+          <AskAIButton quote={q} />
           {q.pdf && (
             <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}

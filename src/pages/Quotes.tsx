@@ -6,6 +6,7 @@ import { Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
 import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
+import { AskAIButton } from '../components/AskAI'
 import { ask, toast } from '../components/dialog'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
@@ -91,9 +92,12 @@ export default function Quotes() {
             orçamentos <em>&amp; propostas</em>
           </h1>
         </div>
-        <button className="btn primary" onClick={() => go('orcamentos', 'novo')}>
+<div className="row gap-s wrap">
+          <AskAIButton />
+                  <button className="btn primary" onClick={() => go('orcamentos', 'novo')}>
           <Icon name="plus" size={16} /> Novo orçamento
         </button>
+        </div>
       </div>
 
       <div className="stats">

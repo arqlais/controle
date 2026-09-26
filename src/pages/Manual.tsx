@@ -154,6 +154,10 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
     page: 'config',
   },
   {
+    q: 'Pedir ajuda à IA para montar um orçamento',
+    a: <>Em <b>orçamentos</b> (ou dentro de um orçamento), toque em <b>perguntar à IA</b> e cole o que o cliente pediu. O sistema junta sua tabela de preços e seus orçamentos anteriores, copia tudo e abre o Claude: é só colar e enviar. Ele sugere escopo, valor (comparando com orçamentos parecidos), perguntas para o cliente, o "não inclui" e uma mensagem pronta. Sem custo, usando a sua conta do Claude.</>,
+  },
+  {
     q: 'Passar orçamentos antigos para o sistema',
     a: <>Em <b>configurações → dados → importar (backup ou orçamentos)</b>, escolha o arquivo de orçamentos (.json). Eles entram como <b>rascunho</b>, sem apagar nada; os clientes que faltam são criados e os que já existem são pulados. Depois é só marcar aprovado ou recusado em cada um. Para mudar vários de uma vez (rascunho, enviado, aprovado, recusado ou excluir), marque a caixinha ao lado do número e use a barra que aparece. Aprovado em lote só registra o resultado (não cria demanda). No topo da lista, a barra colorida mostra quantos estão em cada status e a porcentagem.</>,
   },
