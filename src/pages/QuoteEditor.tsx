@@ -13,6 +13,7 @@ import {
   COMPLEXITY,
   QUOTE_STATUS,
   addDays,
+  cleanDetail,
   fmtDateLong,
   isStudent,
   itemDetail,
@@ -106,7 +107,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     return next
   }
 
-  const line = (i: QuoteItem) => `• ${i.title || 'serviço'}${i.detail ? ` · ${i.detail}` : ''} — ${money(i.price)}`
+  const line = (i: QuoteItem) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` · ${cleanDetail(i.detail)}` : ''} — ${money(i.price)}`
   const text = () => {
     const first = client?.name.split(' ')[0] ?? ''
     const head = [`*Proposta ${quoteNumber(q)}${q.title ? ` — ${q.title}` : ''}*`, `Olá, ${first}! Segue o orçamento:`, '']

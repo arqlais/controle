@@ -241,9 +241,10 @@ export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity:
 }
 
 /** Texto curto que aparece na proposta ao lado do serviço. */
-export function itemDetail(s: ServiceDef | undefined, qty: number, complexity: Complexity) {
+export function itemDetail(s: ServiceDef | undefined, qty: number, _complexity?: Complexity) {
   if (!s || s.pricing === 'livre') return ''
-  if (s.pricing === 'm2') return `${qty.toLocaleString('pt-BR')} m² · complexidade ${COMPLEXITY[complexity]}`
+  // a complexidade entra no preço, mas não aparece para o cliente
+  if (s.pricing === 'm2') return `${qty.toLocaleString('pt-BR')} m²`
   const unit = qty === 1 ? s.unit : s.unit.endsWith('m') ? s.unit.slice(0, -1) + 'ns' : s.unit + 's'
   return `${qty} ${unit}`
 }
@@ -359,3 +360,6 @@ export function titleCase(name: string) {
     .map((w, i) => (i > 0 && small.has(w.toLowerCase()) ? w.toLowerCase() : w.charAt(0).toLocaleUpperCase('pt-BR') + w.slice(1)))
     .join(' ')
 }
+
+/** Detalhe do serviço sem a complexidade — o cliente não vê (vale para orçamentos antigos também). */
+export const cleanDetail = (d: string) => d.replace(/\s*·?\s*complexidade\s+\S+/gi, '').trim()

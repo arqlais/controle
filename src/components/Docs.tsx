@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { DEFAULT_SETTINGS, PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
-import { itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { cleanDetail, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -171,7 +171,7 @@ function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boo
           <div className="p-row-main">
             <span className="p-row-title">
               {it.title || 'serviço'}
-              {it.detail ? ` · ${it.detail}` : ''}
+              {cleanDetail(it.detail) ? ` · ${cleanDetail(it.detail)}` : ''}
             </span>
             {it.description && <span className="p-row-desc">{it.description}</span>}
           </div>
