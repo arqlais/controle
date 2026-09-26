@@ -169,7 +169,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'O que fica só no computador?',
-    a: <>Para o celular ficar enxuto, algumas coisas aparecem só no computador: gráficos (início e financeiro), <b>mensagens padrão</b>, <b>metas</b>, <b>preços</b>, <b>tabela de preços</b>, <b>modelo da proposta</b>, identidade visual e o <b>olho</b> do exemplo. No celular fica o dia a dia: para fazer, demandas, clientes, pagamentos e agenda.</>,
+    a: <>Para o celular ficar enxuto, algumas coisas aparecem só no computador: os gráficos (início e financeiro), as abas <b>preços</b>, <b>propostas</b>, <b>mensagens</b> e <b>metas</b> das configurações, as cores e fontes da aba <b>aparência</b> e o <b>olho</b> do exemplo. No celular fica o dia a dia: para fazer, demandas, clientes, pagamentos e agenda, além do tema claro/escuro e do backup.</>,
   },
   {
     q: 'Não acho uma cliente, demanda ou orçamento',
