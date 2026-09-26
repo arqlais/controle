@@ -1354,3 +1354,9 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .ai-files img { width: 96px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,.3); }
 .ai-file { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,.15); font-size: 12px; }
 .secret-input { -webkit-text-security: disc; font-family: var(--font-body); letter-spacing: 0.08em; }
+.ai-past { gap: 6px; }
+.ai-past-item { display: flex; align-items: center; gap: 4px; border: 1px solid var(--border); border-radius: 14px; padding: 4px 4px 4px 0; }
+.ai-past-item > button:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; border: 0; background: none; padding: 8px 12px; cursor: pointer; font: inherit; color: var(--text); }
+.ai-past-item b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-past-item small { font-size: 11px; color: var(--muted); }
+.ai-past-item:hover { border-color: var(--accent-soft); background: var(--accent-tint); }

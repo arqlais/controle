@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import type { Data, Quote, QuoteItem } from '../types'
-import { QUOTE_STATUS, money, quoteDeal, quoteFiles, quoteNumber } from '../utils'
+import { QUOTE_STATUS, money, nextQuoteNumber, quoteDeal, quoteFiles, quoteNumber } from '../utils'
 import { Icon } from './Icon'
 import { Modal } from './ui'
 import { toast } from './dialog'
@@ -48,7 +48,11 @@ export function processBriefing(d: Data) {
 - Executivo e detalhamento: valor base do projeto + soma das plantas/itens escolhidos × m² × complexidade. Os valores não crescem na proporção da área: projetos pequenos ficam perto do valor base.
 - Cada pavimento a mais encarece (+${s.floorFee ?? 50}% por pavimento nos serviços marcados). Arquivo aberto (editável) soma +${s.openFileFee ?? 30}% embutido, sem citar na proposta — a proposta só diz como será entregue.
 - Modelagem de áreas muito grandes (loteamentos, complexos) não segue o m²: é por escopo.
-- Números de orçamento contínuos (começaram em ${s.quoteStart ?? 1}).${s.aiNotes?.trim() ? `
+- Numeração contínua: o próximo orçamento é o #${String(nextQuoteNumber(d)).padStart(3, '0')}.
+- Uma mesma cliente pode pedir várias demandas de uma vez (ex.: 3 projetos diferentes): viram UM orçamento com cada projeto como um serviço separado (título do projeto + escopo em tópicos + valor) e o total no fim; se fizer sentido, um desconto por fechar tudo junto.
+- Renderização: por IA é mais barata e rápida; V-Ray é a de maior qualidade. Imagens em pacotes (5, 10, 15).
+- O +${s.openFileFee ?? 30}% de arquivo aberto só vale para executivo e detalhamento (entregues em PDF). Modelagem já é entregue com o SketchUp aberto: não soma nada.
+- Nunca invente números de orçamentos: cite apenas os que estão na lista de orçamentos anteriores abaixo.${s.aiNotes?.trim() ? `
 
 ## Minhas regras (escritas por mim)
 ${s.aiNotes.trim()}` : ''}`
@@ -115,10 +119,19 @@ ${wants}`
 
 /** Link que abre o Claude já com a pergunta escrita (o histórico é resumido para caber no link). */
 export function claudeLink(d: Data, request: string, current?: Quote, names = true, extra = '') {
+  // o link tem limite de tamanho: os orçamentos anteriores nunca saem (no mínimo 20 resumidos);
+  // se a conversa for longa, vão só as mensagens mais recentes (o texto completo fica copiado)
   const LIMIT = 14000
-  for (const [limit, max] of [[80, 8], [60, 4], [40, 2], [30, 0], [20, 0], [12, 0], [6, 0], [0, 0]] as const) {
-    const q = encodeURIComponent(buildAIPrompt(d, request, current, names, 'copiar', limit, max) + extra)
-    if (q.length <= LIMIT || limit === 0) return `https://claude.ai/new?q=${q.slice(0, 60000)}`
+  const enc = (t: string) => encodeURIComponent(t).length
+  for (const [limit, max] of [[80, 8], [60, 4], [40, 2], [30, 0], [20, 0]] as const) {
+    const base = buildAIPrompt(d, request, current, names, 'copiar', limit, max)
+    if (enc(base + extra) <= LIMIT) return `https://claude.ai/new?q=${encodeURIComponent(base + extra)}`
+    if (limit === 20) {
+      let convo = extra
+      while (convo && enc(base + convo) > LIMIT) convo = convo.slice(Math.ceil(convo.length * 0.2))
+      const cut = convo && convo !== extra ? `\n\n## Nossa conversa (só o final; o resto eu colo se precisar)\n…${convo}` : convo
+      return `https://claude.ai/new?q=${encodeURIComponent(base + cut)}`
+    }
   }
   return 'https://claude.ai/new'
 }

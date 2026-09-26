@@ -46,7 +46,10 @@ async function askGemini(key: string, system: string, history: Msg[]) {
         systemInstruction: { parts: [{ text: system }] },
         contents: history.map((m) => ({
           role: m.role,
-          parts: [...(m.files ?? []).map((f) => ({ inlineData: { mimeType: f.mime, data: f.data } })), { text: m.text || 'Veja o anexo.' }],
+          parts: [
+            ...(m.files ?? []).filter((f) => f.data).map((f) => ({ inlineData: { mimeType: f.mime, data: f.data } })),
+            { text: (m.text || 'Veja o anexo.') + ((m.files ?? []).some((f) => !f.data) ? ` (anexos enviados antes: ${(m.files ?? []).map((f) => f.name).join(', ')})` : '') },
+          ],
         })),
         generationConfig: { temperature: 0.6 },
       }),
@@ -65,6 +68,32 @@ async function askGemini(key: string, system: string, history: Msg[]) {
   }
   throw new Error('Nenhum modelo do Gemini disponível para esta chave.')
 }
+
+/* conversas ficam salvas neste aparelho (a atual e as 15 anteriores); anexos não, só o nome */
+interface Saved {
+  id: string
+  date: string
+  title: string
+  msgs: Msg[]
+}
+const STORE_KEY = 'assistente-conversas-v1'
+const loadChats = (): { current: Msg[]; past: Saved[] } => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null')
+    return raw && Array.isArray(raw.current) ? raw : { current: [], past: [] }
+  } catch {
+    return { current: [], past: [] }
+  }
+}
+const light = (msgs: Msg[]) => msgs.map((m) => (m.files ? { ...m, files: m.files.map((f) => ({ name: f.name, mime: f.mime, data: '' })) } : m))
+const saveChats = (current: Msg[], past: Saved[]) => {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ current: light(current), past: past.slice(0, 15) }))
+  } catch {
+    /* sem espaço: segue só na memória */
+  }
+}
+const titleOf = (msgs: Msg[]) => (msgs.find((m) => m.role === 'user')?.text || msgs.find((m) => m.role === 'user')?.files?.[0]?.name || 'conversa').replace(/\s+/g, ' ').slice(0, 70)
 
 /** Texto da IA com negrito, títulos e tópicos simples. */
 function Rich({ text }: { text: string }) {
@@ -96,7 +125,23 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
   const { data } = useStore()
   const s = data.settings
   const [open, setOpen] = useState(false)
-  const [msgs, setMsgs] = useState<Msg[]>([])
+  const [msgs, setMsgs] = useState<Msg[]>(() => loadChats().current)
+  const [past, setPast] = useState<Saved[]>(() => loadChats().past)
+  const [showPast, setShowPast] = useState(false)
+  useEffect(() => saveChats(msgs, past), [msgs, past])
+  const newChat = () => {
+    if (msgs.length) setPast((p) => [{ id: String(Date.now()), date: new Date().toISOString(), title: titleOf(msgs), msgs: light(msgs) }, ...p].slice(0, 15))
+    setMsgs([])
+    setShowPast(false)
+  }
+  const openPast = (c: Saved) => {
+    setPast((p) => {
+      const rest = p.filter((x) => x.id !== c.id)
+      return msgs.length ? [{ id: String(Date.now()), date: new Date().toISOString(), title: titleOf(msgs), msgs: light(msgs) }, ...rest].slice(0, 15) : rest
+    })
+    setMsgs(c.msgs)
+    setShowPast(false)
+  }
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [files, setFiles] = useState<Attachment[]>([])
@@ -138,10 +183,16 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
 
   // leva a pergunta (ou a conversa) para o Claude: copia o briefing completo e abre o site
   const toClaude = () => {
-    const convo = msgs.length ? `\n\n## Nossa conversa até aqui\n${msgs.map((m) => `${m.role === 'user' ? 'Eu' : 'Assistente'}: ${m.text}`).join('\n\n')}` : ''
-    window.open(claudeLink(data, text.trim() || (convo ? 'Continue a conversa abaixo.' : ''), current, !!s.aiShareNames, convo), '_blank', 'noopener')
+    // o 1º pedido vira "o que o cliente pediu"; o resto segue como conversa
+    const first = msgs.findIndex((m) => m.role === 'user')
+    const request = text.trim() || (first >= 0 ? msgs[first].text : '')
+    const rest = text.trim() ? msgs : msgs.slice(first + 1)
+    const convo = rest.length ? `\n\n## Nossa conversa até aqui (continue a partir dela)\n${rest.map((m) => `${m.role === 'user' ? 'Eu' : 'Assistente'}: ${m.text}`).join('\n\n')}` : ''
+    const full = buildAIPrompt(data, request, current, !!s.aiShareNames) + convo
+    void navigator.clipboard?.writeText(full).catch(() => undefined)
+    window.open(claudeLink(data, request, current, !!s.aiShareNames, convo), '_blank', 'noopener')
     const anyFiles = files.length || msgs.some((m) => m.files?.length)
-    toast(anyFiles ? 'Abrindo o Claude com a pergunta escrita. Anexe lá os arquivos (clipe ou arraste) e envie.' : 'Abrindo o Claude com a pergunta escrita: é só enviar.')
+    toast(anyFiles ? 'Abrindo o Claude com tudo escrito. Anexe lá os arquivos (clipe ou arraste) e envie.' : 'Abrindo o Claude com tudo escrito: é só enviar.')
   }
 
   const copy = (t: string) =>
@@ -167,9 +218,14 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
               {current && <small>· orçamento {`#${String(current.number).padStart(3, '0')}`}</small>}
             </span>
             <span className="row gap-s">
-              {msgs.length > 0 && (
-                <button className="link small" onClick={() => setMsgs([])}>
-                  nova conversa
+              {past.length > 0 && (
+                <button className="link small" onClick={() => setShowPast((v) => !v)}>
+                  {showPast ? 'voltar' : `conversas (${past.length})`}
+                </button>
+              )}
+              {msgs.length > 0 && !showPast && (
+                <button className="link small" onClick={newChat}>
+                  nova
                 </button>
               )}
               <a className="icon-btn subtle" href={href('config')} onClick={() => localStorage.setItem('config-aba', 'ia')} title="Chave e regras da IA">
@@ -210,6 +266,22 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
                   <Icon name="sparkle" size={16} /> abrir no <span className="keep-case">Claude</span>
                 </button>
               </div>
+            </div>
+          ) : showPast ? (
+            <div className="ai-chat-body ai-past">
+              {past.map((c) => (
+                <div key={c.id} className="ai-past-item">
+                  <button onClick={() => openPast(c)}>
+                    <b>{c.title}</b>
+                    <small>
+                      {new Date(c.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} · {c.msgs.length} mensagens
+                    </small>
+                  </button>
+                  <button className="icon-btn subtle" onClick={() => setPast((p) => p.filter((x) => x.id !== c.id))} aria-label="Apagar conversa" title="Apagar">
+                    <Icon name="trash" size={14} />
+                  </button>
+                </div>
+              ))}
             </div>
           ) : (
             <>
