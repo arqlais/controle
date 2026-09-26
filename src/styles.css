@@ -835,3 +835,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .board-nav .icon-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
 .board-nav .icon-btn:disabled { opacity: 0.3; cursor: default; }
 @media (max-width: 820px) { .board { grid-auto-columns: 82vw; } .board-nav { display: none; } }
+/* início: quadros lado a lado com a mesma largura e a mesma altura */
+.grid-2.is-even { align-items: stretch; }
+.grid-2.is-even > * { height: 100%; }
+.list-item .status-select { width: 190px; }

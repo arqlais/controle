@@ -160,7 +160,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         />
       </div>
 
-      <div className="grid-2">
+      <div className="grid-2 is-even">
         <Section title="Prioridades agora" action={<a href={href('projetos')} className="link">Ver quadro →</a>}>
           {priorities.length === 0 ? (
             <Empty title="Nada em aberto" text="Sem demandas ativas no momento." />
@@ -221,7 +221,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         </Section>
       </div>
 
-      <div className="grid-2 wide-left">
+      <div className="grid-2 is-even">
         <Section title="Receitas × despesas · 6 meses" action={<a href={href('financeiro')} className="link">Financeiro →</a>}>
           <BarChart
             labels={months.map((k) => MONTHS[Number(k.slice(5)) - 1].slice(0, 3))}
