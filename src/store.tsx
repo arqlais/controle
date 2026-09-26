@@ -123,6 +123,7 @@ export function normalize(d: Partial<Data>): Data {
       area: q.area ?? 0,
       clientLabel: q.clientLabel ?? '',
       schedule: q.schedule ?? DEFAULT_PROPOSAL.schedule,
+      paymentTerms: !q.paymentTerms || /^50% (no aceite|de entrada|de sinal)/.test(q.paymentTerms) ? PAYMENT_TERMS : q.paymentTerms,
       options: (q.options ?? []).map((o) =>
         o.items
           ? o
@@ -164,8 +165,11 @@ export function normalize(d: Partial<Data>): Data {
         email: d.settings?.email || 'arq.laisav@gmail.com',
         // antes desta versão o teto do MEI vinha ligado por padrão; ela trabalha como pessoa física
         meiLimit: d.settings?.proposal ? (d.settings.meiLimit ?? 0) : 0,
-        defaultPaymentTerms:
-          !d.settings?.defaultPaymentTerms || /^50% (no aceite|de entrada|de sinal)/.test(d.settings.defaultPaymentTerms) ? PAYMENT_TERMS : d.settings.defaultPaymentTerms,
+        // pagamento padrão do modelo (textos antigos são trocados)
+        defaultPaymentTerms: !d.settings?.defaultPaymentTerms || /^50% (no aceite|de entrada|de sinal)/.test(d.settings.defaultPaymentTerms) ? PAYMENT_TERMS : d.settings.defaultPaymentTerms,
+        phone: d.settings?.phone || DEFAULT_SETTINGS.phone,
+        instagram: d.settings?.instagram || DEFAULT_SETTINGS.instagram,
+        website: d.settings?.website || DEFAULT_SETTINGS.website,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
         services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? DEFAULT_SERVICES : d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })),
       },

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { DEFAULT_SETTINGS, PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
 import { itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
@@ -140,12 +141,14 @@ function InfoRow({ items, color }: { items: { icon: keyof typeof ICONS; label: s
 }
 
 function Contacts({ s }: { s: Settings }) {
+  // rodapé fixo do modelo: campo vazio usa o contato padrão
+  const d = DEFAULT_SETTINGS
   const items: [string, string][] = [
-    ['cell', s.phone],
-    ['instagram', s.instagram],
-    ['site', s.website.replace(/^https?:\/\/(www\.)?/, '')],
-    ['e-mail', s.email],
-  ].filter(([, v]) => v) as [string, string][]
+    ['cell', s.phone || d.phone],
+    ['instagram', s.instagram || d.instagram],
+    ['site', (s.website || d.website).replace(/^https?:\/\/(www\.)?/, '')],
+    ['e-mail', s.email || d.email],
+  ]
   return (
     <footer className="p-contacts">
       {items.map(([k, v]) => (
@@ -195,7 +198,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const clientName = client?.name || '[nome do cliente]'
   const heading = (name: string) => [name || quote.title || 'serviços', quote.area > 0 ? `${quote.area.toLocaleString('pt-BR')} m²` : ''].filter(Boolean).join(' • ')
   const infos = [
-    { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms },
+    { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms.trim() || PAYMENT_TERMS },
     { icon: 'calendar' as const, label: 'Prazos e cronograma', text: quote.schedule },
     { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: quote.files },
   ].filter((x) => x.text?.trim())
