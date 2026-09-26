@@ -162,7 +162,7 @@ function Rows({ items, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean 
     <div className="p-rows">
       {items.map((it, i) => (
         <div key={it.id} className={`p-row ${priceFirst ? 'is-price-first' : ''}`}>
-          {priceFirst ? <b className="p-row-price">{money(it.price)}</b> : <b className="p-row-n">{String(i + 1).padStart(2, '0')}</b>}
+          {priceFirst ? <b className="p-row-price">{money(it.price)}</b> : <b className="p-row-n">{items.length === 1 ? '—' : String(i + 1).padStart(2, '0')}</b>}
           <div className="p-row-main">
             <span className="p-row-title">
               {it.title || 'serviço'}
