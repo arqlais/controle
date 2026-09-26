@@ -38,6 +38,7 @@ export interface PackQuote {
   files?: string
   schedule?: string
   paymentTerms?: string
+  distinct?: boolean // orçamento diferente mesmo com cliente, data e valor iguais a outro
 }
 export interface QuotePack {
   kind: 'orcamentos'
@@ -115,7 +116,7 @@ export function mergeQuotePack(data: Data, pack: QuotePack, urgencyFee: number) 
     // já existe: mesmo nº para o mesmo cliente, ou mesmo cliente + data + valor
     // (o mesmo nº em clientes diferentes acontece nos orçamentos antigos, então entra)
     const dup = c
-      ? quotes.find((x) => x.clientId === c!.id && (x.number === pq.number || (x.createdAt === pq.date && Math.abs(quoteTotal(x, urgencyFee) - total) < 0.01)))
+      ? quotes.find((x) => x.clientId === c!.id && (x.number === pq.number || (!pq.distinct && x.createdAt === pq.date && Math.abs(quoteTotal(x, urgencyFee) - total) < 0.01)))
       : undefined
     if (dup) {
       skipped.push(`#${pq.number} ${pq.client}${dup.number !== pq.number ? ` (igual ao #${dup.number})` : ''}`)
