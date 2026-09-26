@@ -80,7 +80,9 @@ export function applyTheme(s: Settings, dark = false) {
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
-  document.title = `${s.brandName} · gestão`
+  // aba do navegador: "nome do estúdio · meu estúdio" (sem nome ainda, só "meu estúdio")
+  const brand = s.brandName.replace(/\.$/, '').trim()
+  document.title = brand && brand !== 'meu estúdio' ? `${brand} · meu estúdio` : 'meu estúdio'
   applyCustomFont(s)
 }
 
