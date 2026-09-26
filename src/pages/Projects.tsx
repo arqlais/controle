@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
@@ -34,6 +34,7 @@ export default function Projects() {
   const { data, upsert, setSettings, replaceAll } = useStore()
   const custom = data.settings.customColumns
   const panHandlers = useDragScroll()
+  const boardRef = useScrollFade()
   const [newCol, setNewCol] = useState('')
   const removeColumn = async (col: string) => {
     const count = data.projects.filter((p) => p.status === col).length
@@ -141,7 +142,7 @@ export default function Projects() {
       {data.projects.length === 0 ? (
         <Empty icon="folder" title="Nenhuma demanda ainda" text="Cadastre seu primeiro projeto para acompanhar prazos e pagamentos." action={<button className="btn primary" onClick={() => setForm(true)}>Nova demanda</button>} />
       ) : view === 'quadro' ? (
-        <div className="board" {...panHandlers}>
+        <div className="board" ref={boardRef} {...panHandlers}>
           {boardColumns().map((col) => {
             let items = filtered.filter((p) => p.status === col)
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
@@ -332,6 +333,28 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
 }
 
 /** Arrastar o quadro para os lados com o mouse (no celular o dedo já desliza). */
+/** Esmaece a borda do quadro quando há mais colunas para os lados (em vez de parecer cortado). */
+function useScrollFade() {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const update = () => {
+      el.classList.toggle('fade-right', el.scrollLeft + el.clientWidth < el.scrollWidth - 4)
+      el.classList.toggle('fade-left', el.scrollLeft > 4)
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => {
+      el.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
+  })
+  return ref
+}
+
 function useDragScroll() {
   const state = useRef<{ x: number; left: number; el: HTMLElement } | null>(null)
   return {

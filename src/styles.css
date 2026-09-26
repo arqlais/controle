@@ -126,7 +126,7 @@ input[type='range'] { padding: 0; accent-color: var(--accent); border: 0; }
   padding: 14px 36px; background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(12px);
 }
-.content { padding: 6px 36px 72px; max-width: 1420px; }
+.content { padding: 6px clamp(20px, 2.4vw, 44px) 72px; width: 100%; max-width: 2400px; min-width: 0; }
 .page { display: flex; flex-direction: column; gap: 22px; animation: fade 0.3s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 10px; }
@@ -370,7 +370,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 26px; border-top: 1px solid var(--border); }
 
 /* ---------- kanban ---------- */
-.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 8px; align-items: start; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 8px; align-items: start; }
 .column { background: var(--surface-2); border: 1.5px dashed transparent; border-radius: var(--radius); padding: 10px; min-height: 200px; transition: border-color 0.15s, background 0.15s; }
 .column.drop { border-color: var(--accent-soft); background: var(--accent-tint); }
 .column header { display: flex; align-items: center; gap: 8px; padding: 6px 6px 12px; }
@@ -826,3 +826,8 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 /* R$ sempre com R maiúsculo, mesmo dentro de textos em minúsculas */
 .money { text-transform: none; }
 .list-item.clickable { cursor: pointer; }
+
+/* quadro: borda esmaecida indica que dá para arrastar para o lado */
+.board.fade-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
+.board.fade-left { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent); }
+.board.fade-left.fade-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent); }
