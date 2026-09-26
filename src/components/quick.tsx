@@ -86,13 +86,13 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
             ? [
                 ...q.options.slice(0, 2).map((o, i) => (
                   <option key={o.id} value={`aprovado:${o.id}`}>
-                    Aprovado · {q.combo ? 'proposta' : 'opção'} {i + 1}
+                    Aprovado · {i + 1}
                   </option>
                 )),
                 ...(q.combo
                   ? [
                       <option key="ambas" value="aprovado:ambas">
-                        Aprovado · as duas juntas
+                        Aprovado · juntas
                       </option>,
                     ]
                   : []),

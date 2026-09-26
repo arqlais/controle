@@ -48,13 +48,28 @@ export default function Quotes() {
       else next.add(id)
       return next
     })
-  const allVisible = visible.length > 0 && visible.every((x) => picked.has(x.id))
-  const toggleAll = () => setPicked(allVisible ? new Set() : new Set(visible.map((x) => x.id)))
+  // "todos" = todos os do filtro atual, inclusive os que ainda não apareceram na tela
+  const allVisible = rows.length > 0 && rows.every((x) => picked.has(x.id))
+  const toggleAll = () => setPicked(allVisible ? new Set() : new Set(rows.map((x) => x.id)))
   const chosen = data.quotes.filter((x) => picked.has(x.id))
-  const bulkStatus = (status: QuoteStatus) => {
+  const bulkStatus = async (status: QuoteStatus) => {
+    // os que já viraram demanda continuam aprovados (a demanda depende deles)
+    const locked = chosen.filter((x) => x.projectId && x.status === 'aprovado')
+    const list = chosen.filter((x) => !locked.includes(x))
+    if (
+      status === 'aprovado' &&
+      !(await ask(`Marcar ${list.length} orçamento(s) como aprovados? Serve para registrar orçamentos antigos: não cria demanda nem pagamentos (para isso, aprove um por um).`, { confirmLabel: 'Aprovar' }))
+    )
+      return
     // enviado: conta a partir da data do orçamento (antigos não viram "cobrar resposta" de uma vez)
-    for (const x of chosen) upsert('quotes', { ...x, status, sentAt: status === 'rascunho' ? x.sentAt : x.sentAt || x.createdAt })
-    toast(`${chosen.length} orçamento(s) → ${QUOTE_STATUS[status].label.toLowerCase()}`)
+    for (const x of list)
+      upsert('quotes', {
+        ...x,
+        status,
+        sentAt: status === 'rascunho' ? x.sentAt : x.sentAt || x.createdAt,
+        closedAt: status === 'aprovado' ? x.closedAt || x.createdAt : x.closedAt,
+      })
+    toast(`${list.length} orçamento(s) → ${QUOTE_STATUS[status].label.toLowerCase()}${locked.length ? ` · ${locked.length} já com demanda continuam aprovados` : ''}`)
     setPicked(new Set())
   }
   const bulkDelete = async () => {
@@ -95,6 +110,32 @@ export default function Quotes() {
         <Stat label="Valor aprovado" value={money(sum(approved, (x) => quoteDeal(x, fee)))} sub={approved.length ? `ticket médio ${money(sum(approved, (x) => quoteDeal(x, fee)) / approved.length)}` : undefined} icon="check" tone="good" />
       </div>
 
+      {data.quotes.length > 0 && (
+        <section className="card status-mix" aria-label="Orçamentos por status">
+          <div className="mix-bar">
+            {(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => {
+              const n = data.quotes.filter((x) => x.status === k).length
+              return n ? <span key={k} style={{ flexGrow: n, background: QUOTE_STATUS[k].color }} title={`${QUOTE_STATUS[k].label}: ${n}`} /> : null
+            })}
+          </div>
+          <div className="mix-legend">
+            {(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => {
+              const n = data.quotes.filter((x) => x.status === k).length
+              return (
+                <button key={k} className={`mix-item ${filter === k ? 'on' : ''}`} onClick={() => setFilter(filter === k ? 'todos' : k)}>
+                  <i style={{ background: QUOTE_STATUS[k].color }} />
+                  <b>{n}</b> {QUOTE_STATUS[k].label.toLowerCase()}
+                  <span className="muted">{Math.round((n / data.quotes.length) * 100)}%</span>
+                </button>
+              )
+            })}
+            <span className="mix-total muted small">
+              {data.quotes.length} no total{decided.length ? ` · dos respondidos, ${Math.round((approved.length / decided.length) * 100)}% aprovados` : ''}
+            </span>
+          </div>
+        </section>
+      )}
+
       <div className="toolbar">
         <Segmented<Filter>
           value={filter}
@@ -133,11 +174,11 @@ export default function Quotes() {
               <b>{picked.size} selecionado(s)</b>
               {!allVisible && (
                 <button className="link small" onClick={toggleAll}>
-                  selecionar todos ({visible.length})
+                  selecionar todos ({rows.length})
                 </button>
               )}
               <span className="muted small">mudar para</span>
-              {(['rascunho', 'enviado', 'recusado'] as QuoteStatus[]).map((st) => (
+              {(['rascunho', 'enviado', 'aprovado', 'recusado'] as QuoteStatus[]).map((st) => (
                 <button key={st} className="btn small ghost" onClick={() => bulkStatus(st)}>
                   {QUOTE_STATUS[st].label.toLowerCase()}
                 </button>
@@ -179,7 +220,10 @@ export default function Quotes() {
                       {quoteNumber(x)}
                     </td>
                     <td className="q-main">
-                      <div className="list-title">{x.title || 'Sem título'}</div>
+                      <div className="list-title">
+                        {x.title || 'Sem título'}
+                        {x.mode === 'opcoes' && <span className="mini-tag">{x.combo ? '2 propostas' : '2 opções'}</span>}
+                      </div>
                       <div className="list-sub">
                         {c?.name ?? '—'} · {fmtDate(x.createdAt)}
                         {x.closedAt && x.closedAt !== x.createdAt ? ` · fechou ${fmtDate(x.closedAt)}` : ''}

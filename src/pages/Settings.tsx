@@ -469,7 +469,7 @@ export default function SettingsPage() {
                 <Icon name="download" size={16} /> Baixar backup
               </button>
               <button className="btn" onClick={() => fileRef.current?.click()}>
-                <Icon name="upload" size={16} /> Restaurar backup / importar orçamentos
+                <Icon name="upload" size={16} /> Importar (backup ou orçamentos)
               </button>
               <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => {
                   onImport(e.target.files?.[0])

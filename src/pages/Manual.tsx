@@ -155,7 +155,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Passar orçamentos antigos para o sistema',
-    a: <>Em <b>configurações → dados → restaurar backup / importar orçamentos</b>, escolha o arquivo de orçamentos (.json). Eles entram como <b>rascunho</b>, sem apagar nada; os clientes que faltam são criados e os que já existem são pulados. Depois é só marcar aprovado ou recusado em cada um. Para mudar vários de uma vez (rascunho, enviado, recusado ou excluir), marque a caixinha ao lado do número e use a barra que aparece.</>,
+    a: <>Em <b>configurações → dados → importar (backup ou orçamentos)</b>, escolha o arquivo de orçamentos (.json). Eles entram como <b>rascunho</b>, sem apagar nada; os clientes que faltam são criados e os que já existem são pulados. Depois é só marcar aprovado ou recusado em cada um. Para mudar vários de uma vez (rascunho, enviado, aprovado, recusado ou excluir), marque a caixinha ao lado do número e use a barra que aparece. Aprovado em lote só registra o resultado (não cria demanda). No topo da lista, a barra colorida mostra quantos estão em cada status e a porcentagem.</>,
   },
   {
     q: 'Ver os compromissos no calendário do celular',
