@@ -7,11 +7,10 @@ import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
 import type { Client } from '../types'
 import { askDelete } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
-import { PayNext, StatusSelect } from '../components/quick'
+import { PayNext, QuoteStatusSelect, StatusSelect } from '../components/quick'
 import {
   CLIENT_COLORS,
   CLIENT_TYPES,
-  QUOTE_STATUS,
   statusInfo,
   fmtDate,
   fmtDateLong,
@@ -188,7 +187,7 @@ export default function ClientDetail({ id }: { id: string }) {
                     <a href={href('orcamentos', q.id)} className="grow">
                       #{q.number} {q.title}
                     </a>
-                    <Badge color={QUOTE_STATUS[q.status].color}>{QUOTE_STATUS[q.status].label}</Badge>
+                    <QuoteStatusSelect q={q} />
                     <span className="nowrap">{money(quoteTotal(q, data.settings.urgencyFee))}</span>
                   </li>
                 ))}

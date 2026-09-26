@@ -825,3 +825,4 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 
 /* R$ sempre com R maiúsculo, mesmo dentro de textos em minúsculas */
 .money { text-transform: none; }
+.list-item.clickable { cursor: pointer; }

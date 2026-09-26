@@ -2,11 +2,10 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
-import { Badge, Empty, Segmented, Stat, usePaged } from '../components/ui'
+import { Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteNumber, quoteTotal, sum, templateText, today, whatsappLink } from '../utils'
-import { projectFromQuote } from '../quoteActions'
-import { toast } from '../components/dialog'
+import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
+import { QuoteStatusSelect } from '../components/quick'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
 const FOLLOW_UP_DAYS = 3
@@ -16,19 +15,8 @@ export const waitingDays = (q: Quote) => (q.status === 'enviado' && q.sentAt ? -
 export const needsFollowUp = (q: Quote) => q.status === 'enviado' && waitingDays(q) >= FOLLOW_UP_DAYS
 
 export default function Quotes() {
-  const { data, upsert } = useStore()
+  const { data } = useStore()
 
-  const setStatus = (x: Quote, status: QuoteStatus) => {
-    upsert('quotes', { ...x, status, sentAt: x.sentAt || today() })
-    toast(status === 'recusado' ? `Nº ${quoteNumber(x)} marcado como recusado.` : `Nº ${quoteNumber(x)} reaberto.`)
-  }
-  const approve = (x: Quote, optionId?: string) => {
-    const approved: Quote = { ...x, status: 'aprovado', chosenOption: optionId ?? x.chosenOption, sentAt: x.sentAt || today() }
-    const project = projectFromQuote(approved, data.settings.urgencyFee)
-    upsert('projects', project)
-    upsert('quotes', { ...approved, projectId: project.id })
-    toast(`Aprovado! Demanda "${project.title}" criada, aguardando sinal.`)
-  }
   const [filter, setFilter] = useState<Filter>('todos')
   const [q, setQ] = useState('')
   const [clientId, setClientId] = useState('')
@@ -140,7 +128,7 @@ export default function Quotes() {
                       </div>
                     </td>
                     <td>
-                      <Badge color={QUOTE_STATUS[x.status].color}>{QUOTE_STATUS[x.status].label}</Badge>
+                      <QuoteStatusSelect q={x} />
                     </td>
                     <td className="hide-mobile">
                       {x.status === 'enviado' ? (
@@ -161,32 +149,9 @@ export default function Quotes() {
                             <Icon name="whatsapp" size={16} />
                           </a>
                         )}
-                        {(x.status === 'rascunho' || x.status === 'enviado') && (
-                          <>
-                            {x.mode === 'opcoes' && x.options.length > 1 ? (
-                              x.options.slice(0, 2).map((o, i) => (
-                                <button key={o.id} className="btn small approve" onClick={() => approve(x, o.id)} title={`Aprovou a opção ${i + 1} (${o.name})`}>
-                                  <Icon name="check" size={14} /> opção {i + 1}
-                                </button>
-                              ))
-                            ) : (
-                              <button className="btn small approve" onClick={() => approve(x)} title="Aprovado: cria a demanda">
-                                <Icon name="check" size={14} /> aprovado
-                              </button>
-                            )}
-                            <button className="btn small refuse" onClick={() => setStatus(x, 'recusado')} title="Recusado">
-                              <Icon name="x" size={14} />
-                            </button>
-                          </>
-                        )}
                         {x.status === 'aprovado' && x.projectId && (
                           <button className="btn small ghost" onClick={() => go('projetos', x.projectId)}>
                             ver demanda
-                          </button>
-                        )}
-                        {x.status === 'recusado' && (
-                          <button className="btn small ghost" onClick={() => setStatus(x, 'enviado')} title="Voltar para enviado">
-                            reabrir
                           </button>
                         )}
                       </div>

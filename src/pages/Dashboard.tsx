@@ -5,11 +5,11 @@ import { Icon } from '../components/Icon'
 import { Badge, Empty, Progress, Section, Stat, usePaged } from '../components/ui'
 import { needsFollowUp, waitingDays } from './Quotes'
 import { BarChart, Donut } from '../components/Charts'
+import { StatusSelect } from '../components/quick'
 import {
   EVENT_TYPES,
   MONTHS,
   PRIORITY,
-  statusInfo,
   allPayments,
   daysUntil,
   fmtDate,
@@ -172,20 +172,23 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
                 const done = p.tasks.filter((x) => x.done).length
                 return (
                   <li key={p.id}>
-                    <a href={href('projetos', p.id)} className="list-item">
+                    <div className="list-item clickable" onClick={() => go('projetos', p.id)}>
                       <span className="prio-bar" style={{ background: PRIORITY[u.level].color }} />
                       <div className="grow">
                         <div className="list-title">{p.title}</div>
                         <div className="list-sub">
-                          {client?.name} · {statusInfo(p.status).label}
+                          {client?.name}
                           {p.tasks.length > 0 && ` · ${done}/${p.tasks.length} etapas`}
                         </div>
                       </div>
                       <div className="right">
-                        <Badge color={PRIORITY[u.level].color}>{u.reason || PRIORITY[u.level].label}</Badge>
+                        <div className="row gap-s">
+                          <StatusSelect p={p} />
+                          <Badge color={PRIORITY[u.level].color}>{u.reason || PRIORITY[u.level].label}</Badge>
+                        </div>
                         <div className="list-sub">{p.dueDate ? `${fmtDate(p.dueDate)} · ${relativeDays(p.dueDate)}` : 'sem prazo'}</div>
                       </div>
-                    </a>
+                    </div>
                   </li>
                 )
               })}

@@ -1,6 +1,7 @@
 import { useStore } from '../store'
-import type { Project } from '../types'
-import { allStatuses, money, paymentState, statusInfo, today } from '../utils'
+import type { Project, Quote, QuoteStatus } from '../types'
+import { QUOTE_STATUS, allStatuses, money, paymentState, quoteNumber, statusInfo, today } from '../utils'
+import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
 
@@ -52,5 +53,50 @@ export function PayNext({ p, compact }: { p: Project; compact?: boolean }) {
       <Icon name="check" size={13} />
       {compact ? money(next.amount) : `${next.description.toLowerCase()} · ${money(next.amount)}`}
     </button>
+  )
+}
+
+/** Status do orçamento direto na lista. Aprovar cria a demanda (uma única vez). */
+export function QuoteStatusSelect({ q }: { q: Quote }) {
+  const { data, upsert } = useStore()
+  const info = QUOTE_STATUS[q.status]
+  const multi = q.mode === 'opcoes' && q.options.length > 1
+  const value = q.status === 'aprovado' && multi && q.chosenOption ? `aprovado:${q.chosenOption}` : q.status
+  const change = (v: string) => {
+    const [status, optionId] = v.split(':') as [QuoteStatus, string | undefined]
+    const next: Quote = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || today() }
+    if (status === 'aprovado' && !q.projectId) {
+      const project = projectFromQuote(next, data.settings.urgencyFee)
+      upsert('projects', project)
+      upsert('quotes', { ...next, projectId: project.id })
+      toast(`Aprovado! Demanda “${project.title}” criada, aguardando sinal.`)
+      return
+    }
+    upsert('quotes', next)
+    toast(`Orçamento ${quoteNumber(q)} → ${QUOTE_STATUS[status].label.toLowerCase()}`)
+  }
+  return (
+    <select
+      className="status-select"
+      value={value}
+      style={{ color: info.color, borderColor: `${info.color}66`, background: `${info.color}14` }}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => change(e.target.value)}
+      aria-label="Status do orçamento"
+    >
+      {(Object.keys(QUOTE_STATUS) as QuoteStatus[]).flatMap((k) =>
+        k === 'aprovado' && multi
+          ? q.options.slice(0, 2).map((o, i) => (
+              <option key={o.id} value={`aprovado:${o.id}`}>
+                Aprovado · opção {i + 1}
+              </option>
+            ))
+          : [
+              <option key={k} value={k}>
+                {QUOTE_STATUS[k].label}
+              </option>,
+            ],
+      )}
+    </select>
   )
 }
