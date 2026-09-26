@@ -281,181 +281,84 @@ function QuoteDocArch({ s, client, quote }: { s: Settings; client?: Client; quot
   )
 }
 
-/* ---------- modelo minimalista: muito respiro, arco só em traço
-   e um carimbo de prancha de arquitetura no lugar do rodapé ---------- */
-
-function OutlineArch({ n }: { n: string }) {
-  return (
-    <div className="m-arch">
-      <svg viewBox="0 0 160 220" fill="none" aria-hidden>
-        <path d="M6 219V80a74 74 0 0 1 148 0v139" stroke="var(--p-ink)" strokeWidth="1.3" />
-        <path d="M22 219V84a58 58 0 0 1 116 0v135" stroke="var(--p-rose)" strokeWidth="0.8" strokeDasharray="2 4" />
-        <circle cx="80" cy="62" r="6" fill="var(--p-rose)" />
-      </svg>
-      <span className="m-arch-label">nº</span>
-      <b className="m-arch-num">{n}</b>
-    </div>
-  )
-}
-
-function Stamp({ cells, brand, sign }: { cells: [string, string][]; brand: ReactNode; sign: ReactNode }) {
-  return (
-    <div className="m-stamp">
-      <div className="m-stamp-brand">{brand}</div>
-      {cells.map(([k, v], i) => (
-        <div key={k} className={`m-cell ${i < 2 ? 'is-top' : ''}`}>
-          <span>{k}</span>
-          <b>{v}</b>
-        </div>
-      ))}
-      <div className="m-stamp-sign">{sign}</div>
-    </div>
-  )
-}
+/* ---------- modelo minimalista: só o essencial, muito respiro
+   e um arco em traço fino como único enfeite ---------- */
 
 function QuoteDocMinimal({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
   const p = s.proposal
   const clientName = quote.clientLabel.trim() || client?.name || '[nome do cliente]'
   const total = quoteTotal(quote, s.urgencyFee)
-  const sub = quoteSubtotal(quote)
-  const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
   const two = quote.mode === 'opcoes'
-  const totalDiscount = two ? 0 : quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
-  const discountLine =
-    quote.discountNote ||
-    [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', totalDiscount ? `com ${money(totalDiscount)} de desconto` : ''].filter(Boolean).join(' · ')
   const options = quote.options.slice(0, 2)
-  const who = s.legalName || s.ownerName
-  const contact = [s.phone, s.instagram, s.website.replace(/^https?:\/\/(www\.)?/, '')].filter(Boolean)
+  const contact = [s.pixKey && `pix ${s.pixKey}`, s.phone, s.instagram].filter(Boolean).join('   ·   ')
+  const deadline = two
+    ? plural(quote.revisions, 'rodada de ajuste', 'rodadas de ajuste')
+    : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} · ${plural(quote.revisions, 'ajuste', 'ajustes')}`
 
   return (
     <Paper s={s}>
       <div className="m-sheet">
         <header className="m-top">
           {s.logo ? <img src={s.logo} alt="" className="p-logo-img" /> : <span className="m-brand">{s.brandName.replace(/\.$/, '')}<i>.</i></span>}
-          <span className="m-top-right">{[s.tagline, quote.createdAt.slice(0, 4)].filter(Boolean).join(' · ')}</span>
+          <span className="m-meta">
+            {fmt(quote.createdAt)} · nº {String(quote.number).padStart(3, '0')}
+          </span>
         </header>
 
         <section className="m-hero">
           <div>
-            <p className="m-eyebrow">{p.eyebrow}</p>
             <h1 className="m-title">{p.title}</h1>
             <p className="m-for">
               <span>para</span> {clientName}
             </p>
-            <p className="m-project">
-              {quote.title || '[nome do projeto]'}
-              {quote.area > 0 && <> · {quote.area.toLocaleString('pt-BR')} m²</>}
-            </p>
           </div>
-          <OutlineArch n={String(quote.number).padStart(3, '0')} />
+          <svg className="m-arch" viewBox="0 0 90 130" fill="none" aria-hidden>
+            <path d="M1 130V45a44 44 0 0 1 88 0v85" stroke="var(--p-rose)" strokeWidth="1.2" />
+            <circle cx="45" cy="40" r="4" fill="var(--p-rose)" />
+          </svg>
         </section>
 
         {two ? (
           <section className="m-options">
             {options.map((o, i) => (
               <div key={o.id} className="m-option">
-                <span className="m-mini-arch">{i + 1}</span>
-                <span className="p-label">opção {i + 1}</span>
-                <h3>{o.name || '[nome do escopo]'}</h3>
-                {o.summary && <p className="p-muted">{o.summary}</p>}
+                <span className="m-n">{String(i + 1).padStart(2, '0')}</span>
+                <h3>{o.name || '[opção]'}</h3>
                 <ul className="m-list">
                   {o.included.filter(Boolean).map((it, k) => (
                     <li key={k}>{it}</li>
                   ))}
                 </ul>
-                <p className="p-muted">prazo · {plural(o.deadlineDays, 'dia útil', 'dias úteis')}</p>
                 <b className="m-option-price">{money(o.price)}</b>
               </div>
             ))}
           </section>
         ) : (
           <section className="m-scope">
-            <span className="p-label">escopo</span>
-            {quote.items.map((it, i) => (
+            {quote.items.map((it) => (
               <div key={it.id} className="m-row">
-                <span className="m-n">{String(i + 1).padStart(2, '0')}</span>
-                <div className="m-row-main">
-                  <b>{it.title || 'serviço'}</b>
-                  {it.detail && <span className="m-detail">{it.detail}</span>}
-                  {it.description && <p className="p-muted">{it.description}</p>}
-                </div>
-                <span className="m-leader" />
+                <span>
+                  {it.title || 'serviço'}
+                  {it.detail && <em> · {it.detail}</em>}
+                </span>
                 <span className="m-price">{money(it.price)}</span>
               </div>
             ))}
             <div className="m-total">
-              <div>
-                <span className="p-label">investimento total</span>
-                {discountLine && <span className="m-total-note">{discountLine}</span>}
-              </div>
+              <span className="p-label">total</span>
               <b>{money(total)}</b>
             </div>
           </section>
         )}
 
         <section className="m-terms">
-          <div>
-            <span className="p-label">pagamento</span>
-            <p>{quote.paymentTerms}</p>
-          </div>
-          <div>
-            <span className="p-label">entrega</span>
-            <p>{quote.files}</p>
-          </div>
-          <div>
-            <span className="p-label">{two ? 'ajustes' : 'prazo'}</span>
-            <p>
-              {two
-                ? `${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'} em qualquer opção.`
-                : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal · ${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste.`}
-            </p>
-          </div>
+          <p>{quote.paymentTerms}</p>
+          <p>{deadline}</p>
         </section>
-        {quote.notes && <p className="p-notes">{quote.notes}</p>}
 
         <footer className="m-foot">
-          <Stamp
-            brand={
-              <>
-                <span className="m-stamp-name">{who || s.brandName}</span>
-                {s.pixKey && (
-                  <span>
-                    pix <b>{s.pixKey}</b>
-                  </span>
-                )}
-                {contact.map((c) => (
-                  <span key={c}>{c}</span>
-                ))}
-              </>
-            }
-            cells={[
-              ['cliente', clientName],
-              ['data', fmt(quote.createdAt)],
-              ['projeto', quote.title || '—'],
-              ['validade', plural(quote.validityDays, 'dia', 'dias')],
-            ]}
-            sign={
-              <>
-                <span className="m-cell-k">de acordo</span>
-                {two && (
-                  <div className="p-choice">
-                    {options.map((o, i) => (
-                      <span key={o.id}>
-                        <i className={quote.chosenOption === o.id ? 'on' : ''} /> opção {i + 1}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <span className="p-sign-line" />
-                <span>{clientName}</span>
-              </>
-            }
-          />
-          <div className="m-bottom">
-            <span>folha 01/01 · nº {quoteNumber(quote)}</span>
-            <span className="m-thanks">obrigada!</span>
-          </div>
+          <span>{contact}</span>
+          <span className="m-thanks">obrigada!</span>
         </footer>
       </div>
     </Paper>
