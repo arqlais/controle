@@ -139,9 +139,9 @@ export default function App() {
             <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
               {organizing ? 'pronto' : 'organizar menu'}
             </button>
-            {!data.demo && hasDemoData(data) && (
-              <button type="button" className="link" onClick={() => { replaceAll({ ...data, demo: true }); setMenuOpen(false) }}>
-                aviso do exemplo
+            {(data.demo || hasDemoData(data)) && (
+              <button type="button" className="link desktop-only" onClick={() => replaceAll({ ...data, demo: !data.demo })}>
+                {data.demo ? 'ocultar aviso do exemplo' : 'mostrar aviso do exemplo'}
               </button>
             )}
           </div>
