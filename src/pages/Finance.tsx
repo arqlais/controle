@@ -167,7 +167,7 @@ export default function Finance() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'receber', label: `Recebimentos · ${money(openTotal)} em aberto` },
+            { value: 'receber', label: <>Recebimentos · <span className="money">{money(openTotal)}</span> em aberto</> },
             { value: 'despesas', label: 'Despesas' },
             { value: 'relatorios', label: 'Relatórios' },
           ]}

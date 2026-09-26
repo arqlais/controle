@@ -88,7 +88,7 @@ export default function Projects() {
       <div className="page-head">
         <div>
           <p className="eyebrow">
-            {data.projects.filter(isOpen).length} ativas · {money(sum(data.projects.filter(isOpen), projectTotal))} em produção
+            {data.projects.filter(isOpen).length} ativas · <span className="money">{money(sum(data.projects.filter(isOpen), projectTotal))}</span> em produção
           </p>
           <h1>
             minhas <em>demandas</em>
