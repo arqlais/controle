@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
@@ -33,6 +33,7 @@ type Scope = 'ativos' | 'todos' | 'atrasados' | 'arquivo'
 export default function Projects() {
   const { data, upsert, setSettings, replaceAll } = useStore()
   const custom = data.settings.customColumns
+  const panHandlers = useDragScroll()
   const [newCol, setNewCol] = useState('')
   const removeColumn = async (col: string) => {
     const count = data.projects.filter((p) => p.status === col).length
@@ -140,7 +141,7 @@ export default function Projects() {
       {data.projects.length === 0 ? (
         <Empty icon="folder" title="Nenhuma demanda ainda" text="Cadastre seu primeiro projeto para acompanhar prazos e pagamentos." action={<button className="btn primary" onClick={() => setForm(true)}>Nova demanda</button>} />
       ) : view === 'quadro' ? (
-        <div className="board">
+        <div className="board" {...panHandlers}>
           {boardColumns().map((col) => {
             let items = filtered.filter((p) => p.status === col)
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
@@ -328,4 +329,31 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
       {more && <div className="table-more">{more}</div>}
     </div>
   )
+}
+
+/** Arrastar o quadro para os lados com o mouse (no celular o dedo já desliza). */
+function useDragScroll() {
+  const state = useRef<{ x: number; left: number; el: HTMLElement } | null>(null)
+  return {
+    onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return
+      // cards, campos e botões mantêm o comportamento normal
+      if ((e.target as HTMLElement).closest('.kcard, input, select, button, form, a')) return
+      state.current = { x: e.clientX, left: e.currentTarget.scrollLeft, el: e.currentTarget }
+      e.currentTarget.classList.add('is-panning')
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => {
+      const s = state.current
+      if (!s) return
+      s.el.scrollLeft = s.left - (e.clientX - s.x)
+    },
+    onPointerUp: () => {
+      state.current?.el.classList.remove('is-panning')
+      state.current = null
+    },
+    onPointerLeave: () => {
+      state.current?.el.classList.remove('is-panning')
+      state.current = null
+    },
+  }
 }

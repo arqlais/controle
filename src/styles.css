@@ -800,3 +800,11 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
   .toolbar select { flex: 1 1 45%; }
   .toolbar .segmented { flex: 1 1 100%; }
 }
+
+/* quadro desliza sem barra de rolagem: arrastar com o mouse, dedo no celular */
+.board { scrollbar-width: none; cursor: grab; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.board::-webkit-scrollbar { display: none; }
+.board.is-panning { cursor: grabbing; user-select: none; }
+.board .kcard, .board input, .board button, .board select { cursor: auto; }
+.board .kcard { cursor: pointer; }
+@media (max-width: 820px) { .board { scroll-snap-type: none; } .column { scroll-snap-align: none; } }
