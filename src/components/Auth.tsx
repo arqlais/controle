@@ -39,10 +39,7 @@ export const signOut = () => supabase?.auth.signOut()
 const PRODUCT = { name: 'laís', line1: 'você projeta,', line2: 'eu cuido da produção' }
 
 function AuthLayout({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    applyTheme(DEFAULT_SETTINGS)
-    document.title = `${PRODUCT.name} · gestão`
-  }, [])
+  useEffect(() => applyTheme(DEFAULT_SETTINGS), [])
   return (
     <div className="auth">
       <aside className="auth-art">
