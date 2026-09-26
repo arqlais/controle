@@ -3,6 +3,8 @@ import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
 import type { SyncStatus } from './store'
 import { applyTheme, useDeviceDark } from './theme'
+import { signOut } from './components/Auth'
+import { CLOUD } from './cloud'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
@@ -184,6 +186,16 @@ export default function App() {
             <Icon name={exampleOn ? 'eye' : 'eye-off'} />
           </button>
           <SyncBadge sync={sync} lastSaved={lastSaved} />
+          {CLOUD && (
+            <button
+              className="icon-btn nav-logout"
+              title={`Sair da conta${userEmail ? ` (${userEmail})` : ''}`}
+              aria-label="Sair da conta"
+              onClick={async () => (await ask('Sair da conta neste aparelho? Seus dados continuam salvos na nuvem.', { confirmLabel: 'Sair' })) && signOut()}
+            >
+              <Icon name="logout" />
+            </button>
+          )}
         </div>
       </aside>
       <div className="scrim" onClick={() => setMenuOpen(false)} />

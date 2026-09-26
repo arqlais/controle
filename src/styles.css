@@ -1034,3 +1034,5 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
   .table.cards-mobile.pay-table tbody tr { padding: 12px 0; column-gap: 12px; }
 }
 @media (max-width: 960px) and (min-height: 900px) { .auth-form { justify-content: center; padding-bottom: 120px; } }
+.sidebar-foot .nav-logout { margin-left: auto; }
+.sidebar-foot .nav-logout:hover { color: var(--bad); }
