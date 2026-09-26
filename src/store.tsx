@@ -11,7 +11,7 @@ const KEY = 'lais3d-controle-v1'
 // Preços da tabela do site (render V-Ray e IA). Os por m² são ponto de partida — ajuste em Configurações.
 export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'render-vray', name: 'renderização V-Ray', unit: 'imagem', pricing: 'pacote', price: 80, min: 0, hours: 4, tiers: [ { qty: 5, price: 370 }, { qty: 10, price: 710 }, { qty: 15, price: 975 } ] },
-  { id: 'render-ia', name: 'renderização por IA', unit: 'imagem', pricing: 'pacote', price: 49, min: 0, hours: 1.5, tiers: [ { qty: 5, price: 175 }, { qty: 10, price: 350 }, { qty: 15, price: 630 } ] },
+  { id: 'render-ia', name: 'renderização por IA', unit: 'imagem', pricing: 'pacote', price: 50, min: 0, hours: 1.5, tiers: [ { qty: 5, price: 240 }, { qty: 10, price: 460 }, { qty: 15, price: 630 } ] },
   { id: 'modelagem', name: 'modelagem 3d', unit: 'm²', pricing: 'm2', price: 2.7, base: 100, min: 250, hours: 0.08, tiers: [] },
   { id: 'detalhamento', name: 'detalhamento', unit: 'm²', pricing: 'm2', price: 1, base: 520, min: 0, hours: 0.1, tiers: [] },
   { id: 'executivo', name: 'executivo', unit: 'm²', pricing: 'm2', price: 5, base: 620, min: 0, hours: 0.12, tiers: [] },
@@ -110,7 +110,8 @@ const OLD_CHECKLISTS: Record<string, string[]> = {
 function recalibrate(x: ServiceDef): ServiceDef {
   const tiers = (t: ServiceDef['tiers']) => t.map((y) => `${y.qty}:${y.price}`).join('|')
   if (x.id === 'modelagem' && x.price === 6 && x.min === 350 && x.base === undefined) return { ...x, price: 2.7, base: 100, min: 250 }
-  if (x.id === 'render-ia' && tiers(x.tiers) === '5:240|10:460|15:630') return { ...x, price: 49, tiers: [ { qty: 5, price: 175 }, { qty: 10, price: 350 }, { qty: 15, price: 630 } ] }
+  // imagens seguem a tabela padrão do site (a recalibração tinha baixado a IA por engano)
+  if (x.id === 'render-ia' && x.price === 49 && tiers(x.tiers) === '5:175|10:350|15:630') return { ...x, price: 50, tiers: [ { qty: 5, price: 240 }, { qty: 10, price: 460 }, { qty: 15, price: 630 } ] }
   if (x.id === 'executivo' && x.base === 570) return { ...x, base: 620 }
   if (x.id === 'detalhamento' && x.base === 480) return { ...x, base: 520 }
   return x
@@ -128,8 +129,8 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   return out.map((w) => {
     const y = recalibrate(w)
     const z = y.delivery === undefined && DEFAULT_DELIVERY[y.id] ? { ...y, ...DEFAULT_DELIVERY[y.id] } : y
-    // pavimentos a mais encarecem: executivo, detalhamento, modelagem e renders (ajustável por serviço)
-    const x = z.perFloor === undefined ? { ...z, perFloor: ['executivo', 'detalhamento', 'modelagem', 'render-vray', 'render-ia'].includes(z.id) } : z
+    // pavimentos a mais encarecem: executivo, detalhamento e modelagem (imagem é preço por imagem; ajustável por serviço)
+    const x = z.perFloor === undefined ? { ...z, perFloor: ['executivo', 'detalhamento', 'modelagem'].includes(z.id) } : z
     const d = DEFAULT_CHECKLISTS[x.id]
     if (!d) return x
     const untouched = x.checklist === undefined || (!x.checklistPrices && x.checklist.join('|') === OLD_CHECKLISTS[x.id]?.join('|'))
@@ -245,6 +246,7 @@ export const DEFAULT_SETTINGS: Settings = {
   floorFee: 50,
   defaultRevisions: 1,
   revisionsV1: true,
+  imagesV1: true,
   defaultPaymentTerms: PAYMENT_TERMS,
   services: migrateServices(DEFAULT_SERVICES),
   customColumns: [],
@@ -344,7 +346,11 @@ export function normalize(d: Partial<Data>): Data {
         defaultRevisions: d.settings?.revisionsV1 ? d.settings.defaultRevisions : 1,
         revisionsV1: true,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
-        services: !d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 }))),
+        services: (!d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })))).map((x) =>
+          // imagens não encarecem por pavimento (uma vez só; depois vale o que ela marcar)
+          !d.settings?.imagesV1 && (x.id === 'render-vray' || x.id === 'render-ia') ? { ...x, perFloor: false } : x,
+        ),
+        imagesV1: true,
       },
       d.settings,
     ),

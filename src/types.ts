@@ -315,6 +315,7 @@ export interface Settings {
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
+  imagesV1?: boolean // migração: imagens deixaram de encarecer por pavimento
   aiLowercase?: boolean // respostas da IA em minúsculas (R$ sempre maiúsculo); padrão ligado
   aiNotes?: string // regras e jeito de trabalhar, escritas por você, para a IA seguir
   notDuplicates?: string[] // pares de clientes marcados como pessoas diferentes (ids "a|b")
