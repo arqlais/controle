@@ -97,6 +97,11 @@ try {
     const filesText = await page.locator('.field', { hasText: 'formatos de arquivos entregues' }).locator('input').inputValue()
     ok((await priceOf()) > closedPrice && /aberto/.test(filesText), `${vp.name}: arquivo aberto soma a taxa e muda a entrega`)
     await page.getByRole('button', { name: 'fechado (PDF)' }).click(); await page.waitForTimeout(150)
+    // pavimentos: cada um a mais encarece
+    const onePrice = await priceOf()
+    await page.getByRole('button', { name: 'Mais um pavimento' }).click(); await page.waitForTimeout(150)
+    ok((await priceOf()) > onePrice, `${vp.name}: 2 pavimentos encarecem o executivo`)
+    await page.getByRole('button', { name: 'Menos um pavimento' }).click(); await page.waitForTimeout(150)
     await page.locator('.q-item').nth(1).getByText('cobrar junto com o serviço de cima').click(); await page.waitForTimeout(200)
     ok((await page.getByText('Somado ao valor do serviço 01').count()) === 1, `${vp.name}: cobrar dois serviços juntos`)
 

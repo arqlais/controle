@@ -284,6 +284,9 @@ export default function SettingsPage() {
                         </Field>
                       </div>
                     )}
+                    <label className="check toggle service-floor">
+                      <input type="checkbox" checked={!!x.perFloor} onChange={(e) => setService(x.id, { perFloor: e.target.checked })} /> encarece por pavimento a mais
+                    </label>
                     <div className="service-delivery">
                       <Field label="Como é entregue" hint="Vai no PDF em “formatos de arquivos entregues”.">
                         <input value={x.delivery ?? ''} onChange={(e) => setService(x.id, { delivery: e.target.value })} placeholder="Ex.: PDF fechado, pronto para execução" />
@@ -367,6 +370,9 @@ export default function SettingsPage() {
                 <div className="form-grid">
                   <Field label="Taxa de urgência (%)">
                     <input type="number" min={0} value={s.urgencyFee} onChange={(e) => setSettings({ urgencyFee: Number(e.target.value) || 0 })} />
+                  </Field>
+                  <Field label="Por pavimento a mais (%)" hint="Ex.: 50% → 2 pavimentos = +50%, 3 = +100%. Só nos serviços marcados “encarece por pavimento”.">
+                    <input type="number" min={0} value={s.floorFee ?? 50} onFocus={(e) => e.target.select()} onChange={(e) => setSettings({ floorFee: Number(e.target.value) || 0 })} />
                   </Field>
                   <Field label="Arquivo aberto (%)" hint="Interno: somado ao valor quando o cliente quer o arquivo editável. Não aparece no PDF.">
                     <input type="number" min={0} value={s.openFileFee ?? 30} onFocus={(e) => e.target.select()} onChange={(e) => setSettings({ openFileFee: Number(e.target.value) || 0 })} />

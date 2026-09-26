@@ -1230,3 +1230,10 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .p-combo .p-total-label, .p-combo .p-total-value b { color: #f5f1ee; }
 .p-combo .p-total-value i { color: #e7cfc8; }
 .card-head .check.small { white-space: nowrap; }
+.area-extras { display: flex; flex-wrap: wrap; gap: 6px; }
+.floors { display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px; border-radius: var(--pill); border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.floors b { color: var(--text); }
+.floors.on { border-color: var(--accent-soft); background: var(--accent-tint); color: var(--accent-ink); }
+.floors button { width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--text); font: inherit; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; }
+.floors button:disabled { opacity: 0.35; cursor: default; }
+.service-floor { margin-top: 10px; font-size: 13px; }

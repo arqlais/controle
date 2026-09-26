@@ -197,6 +197,7 @@ export interface Quote {
   pdf: boolean // gera a proposta em PDF (nem todo orçamento precisa)
   area: number // m² do projeto, mostrado na legenda da proposta (0 = não mostrar)
   areaApprox?: boolean // área estimada: aparece como "≈ 45.000 m²"
+  floors?: number // nº de pavimentos (1 = térreo só); cada um a mais encarece
   clientLabel: string // nome em "para …" (vazio = nome do cliente)
   items: QuoteItem[]
   options: QuoteOption[]
@@ -246,6 +247,7 @@ export interface ServiceDef {
   customRate?: number // valor de um item personalizado (escrito à mão), na mesma unidade
   delivery?: string // como é entregue (ex.: "PDF fechado, pronto para execução")
   deliveryOpen?: string // como é entregue quando o cliente quer o arquivo aberto ('' = não se aplica)
+  perFloor?: boolean // encarece a cada pavimento a mais (pranchas, arquivos e modelos em dobro, triplo…)
 }
 
 export interface MessageTemplate {
@@ -305,6 +307,7 @@ export interface Settings {
   hourlyTarget: number
   urgencyFee: number // %
   openFileFee?: number // % a mais quando o cliente quer o arquivo aberto (interno)
+  floorFee?: number // % a mais por pavimento adicional
   defaultRevisions: number
   quoteStart?: number // numeração dos orçamentos começa aqui (ex.: 100); depois segue o maior + 1
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1

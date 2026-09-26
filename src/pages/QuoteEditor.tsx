@@ -103,17 +103,21 @@ export default function QuoteEditor({ id }: { id: string }) {
   const sub = quoteSubtotal(q)
   const total = quoteTotal(q, settings.urgencyFee)
 
-  // arquivo aberto: recalcula os serviços que seguem a tabela com (ou sem) a taxa interna
-  const setOpenFile = (openFile: boolean) => {
-    const reprice = (items: QuoteItem[]) =>
+  // arquivo aberto / pavimentos: recalcula os serviços que seguem a tabela
+  const floors = Math.max(1, q.floors ?? 1)
+  const reprice = (patch: { openFile?: boolean; floors?: number }) => {
+    const openFile = patch.openFile ?? !!q.openFile
+    const fl = patch.floors ?? floors
+    const again = (items: QuoteItem[]) =>
       items.map((it) => {
         const sv = settings.services.find((x) => x.id === it.service)
-        if (!it.auto || it.joined || !sv || sv.pricing === 'livre' || !sv.deliveryOpen) return it
-        const price = Math.max(0, suggestPrice(sv, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile) - (it.unitDiscount ?? 0) * it.quantity)
+        if (!it.auto || it.joined || !sv || sv.pricing === 'livre') return it
+        const price = Math.max(0, suggestPrice(sv, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile, fl) - (it.unitDiscount ?? 0) * it.quantity)
         return { ...it, price }
       })
-    set({ openFile, items: reprice(q.items), options: q.options.map((o) => ({ ...o, items: reprice(o.items) })) })
+    set({ ...patch, items: again(q.items), options: q.options.map((o) => ({ ...o, items: again(o.items) })) })
   }
+  const setOpenFile = (openFile: boolean) => reprice({ openFile })
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
     if (next.status !== 'rascunho' && !next.sentAt) next.sentAt = today()
@@ -279,12 +283,23 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field label="Área (m²) · opcional" hint="Em branco = não aparece no PDF · ≈ para área média.">
+              <Field group label="Área (m²) e pavimentos" hint="Área em branco = não aparece no PDF · ≈ para área média · cada pavimento a mais encarece.">
                 <div className="area-field">
                   <input id="q-area" type="number" min={0} inputMode="decimal" value={q.area || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
-                  <label className={`area-approx ${q.areaApprox ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
-                    <input type="checkbox" checked={!!q.areaApprox} onChange={(e) => set({ areaApprox: e.target.checked })} />≈ estimada
-                  </label>
+                  <div className="area-extras">
+                    <label className={`area-approx ${q.areaApprox ? 'on' : ''}`} title="Área estimada / em média: aparece como ≈ na proposta">
+                      <input type="checkbox" checked={!!q.areaApprox} onChange={(e) => set({ areaApprox: e.target.checked })} />≈ estimada
+                    </label>
+                    <span className={`floors ${floors > 1 ? 'on' : ''}`} title={`Cada pavimento a mais soma ${settings.floorFee ?? 50}% nos serviços que encarecem (configurações → preços)`}>
+                      <button type="button" onClick={() => reprice({ floors: Math.max(1, floors - 1) })} disabled={floors <= 1} aria-label="Menos um pavimento">
+                        −
+                      </button>
+                      <b id="q-floors">{floors}</b> {floors === 1 ? 'pavimento' : 'pavimentos'}
+                      <button type="button" onClick={() => reprice({ floors: Math.min(20, floors + 1) })} aria-label="Mais um pavimento">
+                        +
+                      </button>
+                    </span>
+                  </div>
                 </div>
               </Field>
               <Field group label="Modelo" span={2}>
@@ -339,7 +354,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           {!two ? (
             <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
-              <ItemsEditor items={q.items} student={student} openFile={!!q.openFile} settings={settings} onChange={(items) => set({ items })} />
+              <ItemsEditor items={q.items} student={student} openFile={!!q.openFile} floors={floors} settings={settings} onChange={(items) => set({ items })} />
               <div className="quote-totals">
                 <div>
                   <span>subtotal</span>
@@ -384,7 +399,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <Field label="Título do quadro" hint="Em branco, usa o título do projeto.">
                   <input value={o.name} onChange={(e) => setOption(o.id, { name: e.target.value })} placeholder={q.title || 'Ex.: renderização V-Ray'} />
                 </Field>
-                <ItemsEditor items={o.items} student={student} openFile={!!q.openFile} settings={settings} onChange={(items) => setOption(o.id, { items })} />
+                <ItemsEditor items={o.items} student={student} openFile={!!q.openFile} floors={floors} settings={settings} onChange={(items) => setOption(o.id, { items })} />
                 <div className="quote-totals">
                   <div className="discount-row">
                     <span>desconto</span>
@@ -638,11 +653,11 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
         // o que foi escrito à mão (fora da lista) continua
         const own = cur.description.split('\n').filter((l) => l.trim() && !checklistMatch(s, l) && !picked.some((x) => x.toLowerCase() === l.trim().toLowerCase()))
         const lines = [...picked, ...own]
-        const price = cur.auto && s.pricing !== 'livre' ? suggestPrice(s, cur.quantity, cur.complexity, student, settings, lines, !!q.openFile) : cur.price
+        const price = cur.auto && s.pricing !== 'livre' ? suggestPrice(s, cur.quantity, cur.complexity, student, settings, lines, !!q.openFile, q.floors ?? 1) : cur.price
         items = items.map((i) => (i === cur ? { ...i, description: lines.join('\n'), price } : i))
       } else {
         const quantity = s.pricing === 'm2' ? q.area || 50 : s.pricing === 'livre' ? 1 : picked.length
-        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings, picked, !!q.openFile)
+        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings, picked, !!q.openFile, q.floors ?? 1)
         items = [...items, { ...newItem(), service: sid, title: s.name, quantity, price, detail: itemDetail(s, quantity, 'media'), description: picked.join('\n') }]
       }
     }
@@ -730,7 +745,7 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 }
 
 /** Lista de serviços com preço pela tabela, desconto por unidade e valor editável. */
-function ItemsEditor({ items, student, openFile, settings, onChange }: { items: QuoteItem[]; student: boolean; openFile: boolean; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
+function ItemsEditor({ items, student, openFile, floors, settings, onChange }: { items: QuoteItem[]; student: boolean; openFile: boolean; floors: number; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
   const service = (sid: string) => settings.services.find((s) => s.id === sid)
 
   const recompute = (it: QuoteItem): QuoteItem => {
@@ -739,7 +754,7 @@ function ItemsEditor({ items, student, openFile, settings, onChange }: { items: 
     return {
       ...it,
       detail: it.auto || !it.detail ? itemDetail(s, it.quantity, it.complexity) : it.detail,
-      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
+      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile, floors) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
     }
   }
   const setItem = (iid: string, patch: Partial<QuoteItem>) => onChange(items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i)))
@@ -750,8 +765,10 @@ function ItemsEditor({ items, student, openFile, settings, onChange }: { items: 
         const s = service(it.service)
         const lines = it.description.split('\n')
         const byList = pricedByList(s, lines)
-        const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings, lines, openFile)
-        const openNote = openFile && s?.deliveryOpen ? ` · inclui arquivo aberto +${settings.openFileFee ?? 30}% (não aparece no PDF)` : ''
+        const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings, lines, openFile, floors)
+        const openNote =
+          (s?.perFloor && floors > 1 ? ` · ${floors} pavimentos +${(floors - 1) * (settings.floorFee ?? 50)}%` : '') +
+          (openFile && s?.deliveryOpen ? ` · inclui arquivo aberto +${settings.openFileFee ?? 30}% (não aparece no PDF)` : '')
         const rate = s && (s.pricing === 'pacote' || s.pricing === 'unidade') ? unitRate(s, it.quantity) : 0
         return (
           <div key={it.id} className="q-item">

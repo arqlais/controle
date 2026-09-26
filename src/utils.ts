@@ -348,7 +348,7 @@ export const pricedByList = (s: ServiceDef | undefined, lines: string[]) =>
   !!s && hasList(s) && !!s.checklistPrices && Object.keys(s.checklistPrices).length > 0 && lines.some((l) => l.trim()) && s.pricing !== 'livre'
 
 /** Sugestão de valor pela tabela (0 quando o serviço é de valor livre). */
-export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = [], openFile = false) {
+export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = [], openFile = false, floors = 1) {
   if (!s || s.pricing === 'livre') return 0
   const cx = st.complexity[complexity] ?? 1
   let v: number
@@ -358,6 +358,8 @@ export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity:
     v = s.pricing === 'm2' ? rate * qty * cx : rate * cx
   } else v = s.pricing === 'm2' ? s.price * qty * cx : unitRate(s, qty) * qty
   v = Math.max(v, s.min || 0)
+  // cada pavimento a mais: pranchas, arquivos e modelos a mais
+  if (s.perFloor && floors > 1) v *= 1 + ((floors - 1) * (st.floorFee ?? 50)) / 100
   // arquivo aberto: taxa interna embutida no valor (a proposta só diz como será entregue)
   if (openFile && s.deliveryOpen) v *= 1 + (st.openFileFee ?? 30) / 100
   if (student && st.studentDiscount) v *= 1 - st.studentDiscount / 100

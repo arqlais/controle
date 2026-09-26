@@ -104,7 +104,9 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const out = list.map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
   return out.map((y) => {
-    const x = y.delivery === undefined && DEFAULT_DELIVERY[y.id] ? { ...y, ...DEFAULT_DELIVERY[y.id] } : y
+    const z = y.delivery === undefined && DEFAULT_DELIVERY[y.id] ? { ...y, ...DEFAULT_DELIVERY[y.id] } : y
+    // pavimentos a mais encarecem: executivo, detalhamento, modelagem e renders (ajustável por serviço)
+    const x = z.perFloor === undefined ? { ...z, perFloor: ['executivo', 'detalhamento', 'modelagem', 'render-vray', 'render-ia'].includes(z.id) } : z
     const d = DEFAULT_CHECKLISTS[x.id]
     if (!d) return x
     const untouched = x.checklist === undefined || (!x.checklistPrices && x.checklist.join('|') === OLD_CHECKLISTS[x.id]?.join('|'))
@@ -206,6 +208,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hourlyTarget: 60,
   urgencyFee: 30,
   openFileFee: 30,
+  floorFee: 50,
   defaultRevisions: 1,
   revisionsV1: true,
   defaultPaymentTerms: PAYMENT_TERMS,
