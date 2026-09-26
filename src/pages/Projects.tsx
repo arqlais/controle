@@ -305,6 +305,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
                   <a href={href('projetos', p.id)} className="list-title">
                     {p.title}
                   </a>
+                  <div className="list-sub mobile-only">{clientName(p.clientId)}</div>
                 </td>
                 <td className="hide-mobile">{clientName(p.clientId)}</td>
                 <td onClick={(e) => e.stopPropagation()}>
@@ -313,7 +314,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
                 <td>
                   <Badge color={PRIORITY[u.level].color}>{PRIORITY[u.level].label}</Badge>
                 </td>
-                <td className={`nowrap ${isLate(p) ? 'text-bad' : ''}`}>
+                <td className={`nowrap ${isLate(p) ? 'text-bad' : ''}`} data-label="prazo">
                   {fmtDate(p.dueDate)}
                   {isOpen(p) && p.dueDate && <div className="small muted">{daysUntil(p.dueDate) === 0 ? 'hoje' : relativeDays(p.dueDate)}</div>}
                 </td>
