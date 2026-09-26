@@ -191,7 +191,6 @@ export default function Agenda() {
                 <div className="cal-items">
                   {list.slice(0, 3).map((i) => (
                     <span key={i.id} className={`cal-chip ${i.done ? 'done' : ''}`} style={{ borderLeftColor: i.color }}>
-                      {i.kind === 'pagamento' ? '$ ' : ''}
                       {i.title}
                     </span>
                   ))}
@@ -264,10 +263,10 @@ function AgendaRow({ i, showDate, onEdit, onToggle }: { i: Item; showDate?: bool
     const ev = i.event
     return (
       <li>
-        <input type="checkbox" checked={ev.done} onChange={() => onToggle(ev)} aria-label="Concluído" />
         <button className="agenda-btn" onClick={() => onEdit(ev)}>
           {body}
         </button>
+        <input type="checkbox" className="agenda-done" checked={ev.done} onChange={() => onToggle(ev)} aria-label="Concluído" title="Marcar como feito" />
       </li>
     )
   }

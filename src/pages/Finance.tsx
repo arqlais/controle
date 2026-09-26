@@ -66,7 +66,6 @@ export default function Finance() {
   const { visible, more } = usePaged(rows)
   const expenses = expensesInMonth(data, month).sort((a, b) => a.date.localeCompare(b.date))
   const lateTotal = sum(pays.filter((x) => paymentState(x.pay, x.project) === 'cobrar'), (x) => x.pay.amount)
-  const openTotal = sum(pays.filter((x) => !x.pay.paidDate), (x) => x.pay.amount)
 
   const markPaid = (projectId: string, payId: string, paid: boolean) => {
     const p = data.projects.find((x) => x.id === projectId)
@@ -168,7 +167,7 @@ export default function Finance() {
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'receber', label: <>Recebimentos · <span className="money">{money(openTotal)}</span> em aberto</> },
+            { value: 'receber', label: 'Recebimentos' },
             { value: 'despesas', label: 'Despesas' },
             { value: 'relatorios', label: 'Relatórios' },
           ]}
@@ -196,7 +195,7 @@ export default function Finance() {
             <Empty icon="wallet" title="Nenhuma parcela" text="Nada com esse filtro." />
           ) : (
             <div className="table-wrap">
-              <table className="table cards-mobile">
+              <table className="table cards-mobile parcel-table">
                 <thead>
                   <tr>
                     <th>Cliente / projeto</th>
@@ -217,8 +216,8 @@ export default function Finance() {
                             {project.title}
                           </a>
                         </td>
-                        <td>{pay.description}</td>
-                        <td className={`nowrap ${st === 'cobrar' ? 'text-warn' : ''}`}>
+                        <td data-label="parcela">{pay.description}</td>
+                        <td data-label="quando" className={`nowrap ${st === 'cobrar' ? 'text-warn' : ''}`}>
                           {PAY_WHEN[payWhen(pay)]}
                           {!pay.paidDate && (
                             <div className="small muted">
@@ -227,7 +226,7 @@ export default function Finance() {
                           )}
                         </td>
                         <td className="num" data-label="valor">{money(pay.amount)}</td>
-                        <td>
+                        <td className="parcel-action">
                           {pay.paidDate ? (
                             <button className="pill pill-pago" title="Clique para desfazer" onClick={() => markPaid(project.id, pay.id, false)}>
                               pago {fmtDate(pay.paidDate)}

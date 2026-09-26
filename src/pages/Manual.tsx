@@ -108,7 +108,7 @@ const STEPS: Step[] = [
     when: 'Prévia pronta / arquivos finais.',
     where: { path: ['demandas', 'pílula de fase'], page: 'projetos' },
     todo: [
-      <>Mandou a prévia? Mude a fase para <b>aguardando aprovação</b>. A partir daqui o saldo vira <b>a cobrar</b>.</>,
+      <>Mandou a prévia? Mude a fase para <b>em aprovação</b>. A partir daqui o saldo vira <b>a cobrar</b>.</>,
       <>Pediu ajustes? Fase <b>em ajustes</b> e some +1 em revisões.</>,
       <>Aprovou: receba o saldo e clique em <b>Marcar pago</b>. Para enviar recibo, use o ícone de <b>impressora</b> na parcela paga.</>,
       <>Por fim, <b>marcar como entregue</b> no topo da demanda.</>,
@@ -185,7 +185,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'O que quer dizer “no fechamento”, “na conclusão” e “a cobrar”?',
-    a: <>Não existe vencimento por data. Cada parcela diz <b>quando</b> é paga: o sinal <b>no fechamento</b> e o saldo <b>na conclusão</b> (dá para trocar na tabela de pagamentos da demanda). Ela vira <b>a cobrar</b> quando já pode ser cobrada: sinal ainda não pago, ou saldo com a demanda em “aguardando aprovação” ou “entregue”. Aparece no início, no financeiro e no número do menu.</>,
+    a: <>Não existe vencimento por data. Cada parcela diz <b>quando</b> é paga: o sinal <b>no fechamento</b> e o saldo <b>na conclusão</b> (dá para trocar na tabela de pagamentos da demanda). Ela vira <b>a cobrar</b> quando já pode ser cobrada: sinal ainda não pago, ou saldo com a demanda em “em aprovação” ou “entregue”. Aparece no início, no financeiro e no número do menu.</>,
     page: 'financeiro',
   },
   {
@@ -224,7 +224,7 @@ const ROUTINE: [string, string[]][] = [
   ['todo mês', ['Ver o financeiro: recebido, a receber e lucro', 'Baixar um backup em configurações']],
 ]
 
-const PHASES = ['em alinhamento', 'em execução', 'em ajustes', 'aguardando aprovação', 'entregue']
+const PHASES = ['em alinhamento', 'em execução', 'em ajustes', 'em aprovação', 'entregue']
 
 export default function Manual() {
   const [open, setOpen] = useState<string | null>('01')

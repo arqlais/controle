@@ -110,7 +110,7 @@ export default function ProjectDetail({ id }: { id: string }) {
             {p.quantity > 0 && service ? ` · ${p.quantity} ${service.unit}${p.quantity > 1 ? 's' : ''}` : ''}
           </p>
           <h1>{p.title}</h1>
-          <div className="row gap-s wrap">
+          <div className="row gap-s wrap detail-pills">
             <select className="pill-select" value={p.status} onChange={(e) => requestStatus(p, e.target.value as ProjectStatus, (next) => save(next))} style={{ color: statusInfo(p.status).color }}>
               {allStatuses().map((k) => (
               <option key={k} value={k}>
@@ -255,7 +255,7 @@ export default function ProjectDetail({ id }: { id: string }) {
               <p className="muted small">Nenhuma parcela. Adicione ou edite o projeto para gerar automaticamente.</p>
             ) : (
               <div className="table-wrap">
-                <table className="table compact cards-mobile pay-table">
+                <table className="table compact pay-table">
                   <thead>
                     <tr>
                       <th>Descrição</th>
@@ -274,13 +274,13 @@ export default function ProjectDetail({ id }: { id: string }) {
                           <td>
                             <input className="cell-input" value={x.description} onChange={(e) => setPayment(x.id, { description: e.target.value })} />
                           </td>
-                          <td style={{ minWidth: 120 }} data-label="valor">
+                          <td data-label="valor">
                             <MoneyInput value={x.amount} onChange={(n) => setPayment(x.id, { amount: n })} />
                           </td>
                           <td data-label="quando">
                             <select className="cell-input" value={payWhen(x)} onChange={(e) => setPayment(x.id, { on: e.target.value as Payment['on'], dueDate: e.target.value === 'conclusao' ? p.dueDate || '' : x.dueDate || today() })}>
-                              <option value="fechamento">no fechamento</option>
-                              <option value="conclusao">na conclusão</option>
+                              <option value="fechamento">fechamento</option>
+                              <option value="conclusao">conclusão</option>
                             </select>
                           </td>
                           <td data-label="forma">
@@ -290,15 +290,12 @@ export default function ProjectDetail({ id }: { id: string }) {
                               ))}
                             </select>
                           </td>
-                          <td>
+                          <td data-label={x.paidDate ? 'pago em' : st === 'cobrar' ? 'já pode cobrar' : 'situação'} className={x.paidDate ? 'is-paid' : st === 'cobrar' ? 'is-due' : ''}>
                             {x.paidDate ? (
-                              <div className="row gap-s nowrap">
-                                <span className="pill pill-pago">pago</span>
-                                <DateInput className="cell-input small" value={x.paidDate} onChange={(e) => setPayment(x.id, { paidDate: e.target.value || null })} />
-                              </div>
+                              <DateInput className="cell-input small" value={x.paidDate} onChange={(e) => setPayment(x.id, { paidDate: e.target.value || null })} />
                             ) : (
-                              <button className={`btn small ${st === 'cobrar' ? 'warn' : ''}`} onClick={() => setPayment(x.id, { paidDate: today() })}>
-                                {st === 'cobrar' ? 'A cobrar · ' : ''}Marcar pago
+                              <button className={`btn small ${st === 'cobrar' ? 'warn' : ''}`} title={st === 'cobrar' ? 'Já pode cobrar' : undefined} onClick={() => setPayment(x.id, { paidDate: today() })}>
+                                Marcar pago
                               </button>
                             )}
                           </td>

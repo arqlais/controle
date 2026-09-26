@@ -54,7 +54,7 @@ export const STATUS: Record<string, { label: string; color: string }> = {
   briefing: { label: 'Em alinhamento', color: '#9aa3ab' },
   producao: { label: 'Em execução', color: '#5b7a99' },
   revisao: { label: 'Em ajustes', color: '#c29a55' },
-  aguardando: { label: 'Aguardando aprovação', color: '#a888a8' },
+  aguardando: { label: 'Em aprovação', color: '#a888a8' },
   entregue: { label: 'Entregue', color: '#6f9a7c' },
   pausado: { label: 'Pausado', color: '#b8b0aa' },
   cancelado: { label: 'Cancelado', color: '#b5524c' },
