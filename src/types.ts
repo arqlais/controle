@@ -314,6 +314,9 @@ export interface Settings {
   quoteStart?: number // numeração dos orçamentos começa aqui (ex.: 100); depois segue o maior + 1
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
+  aiKey?: string // chave do Gemini (Google AI Studio) para o chat
+  aiNotes?: string // regras e jeito de trabalhar, escritas por você, para a IA seguir
+  aiShareNames?: boolean // mandar nomes de clientes para a IA (padrão: não)
   services: ServiceDef[]
   customColumns: BoardColumn[] // colunas extras do quadro de demandas
   navOrder: string[] // ordem do menu lateral

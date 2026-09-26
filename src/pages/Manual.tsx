@@ -154,8 +154,12 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
     page: 'config',
   },
   {
+    q: 'Conversar com a IA (chat)',
+    a: <>O botão <b>✦</b> no canto da tela abre o <b>assistente</b>: um chat que conhece sua tabela, plantas com valores, seu processo e seus orçamentos. Ele usa o Gemini com uma chave gratuita sua (<b>configurações → assistente</b>, onde também dá para escrever suas regras). A qualquer momento, <b>levar a conversa para o Claude</b> abre o Claude com tudo escrito.</>,
+  },
+  {
     q: 'Pedir ajuda à IA para montar um orçamento',
-    a: <>Em <b>orçamentos</b> (ou dentro de um orçamento), toque em <b>perguntar à IA</b> e cole o que o cliente pediu. O sistema junta sua tabela de preços e seus orçamentos anteriores, copia tudo e abre o Claude: é só colar e enviar. Ele sugere escopo, valor (comparando com orçamentos parecidos), perguntas para o cliente, o "não inclui" e uma mensagem pronta. Sem custo, usando a sua conta do Claude.</>,
+    a: <>Em <b>orçamentos</b> (ou dentro de um orçamento), toque em <b>perguntar à IA</b> e cole o que o cliente pediu. O sistema junta sua tabela de preços e seus orçamentos anteriores e abre o Claude com a pergunta já escrita: é só enviar. Ele sugere escopo, valor (comparando com orçamentos parecidos), perguntas para o cliente, o "não inclui" e uma mensagem pronta. Sem custo, usando a sua conta do Claude.</>,
   },
   {
     q: 'Passar orçamentos antigos para o sistema',

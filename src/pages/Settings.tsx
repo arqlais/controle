@@ -25,13 +25,14 @@ const PRESETS: { name: string; s: Partial<Settings> }[] = [
 const DISPLAY_FONTS = ['The Seasons', 'Cormorant Garamond']
 const BODY_FONTS = ['Poppins']
 
-type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'dados'
+type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
   { id: 'aparencia', label: 'aparência', hint: 'cores, fontes e tema', icon: 'star' },
   { id: 'precos', label: 'preços', hint: 'tabela e regras', icon: 'wallet', desktop: true },
   { id: 'propostas', label: 'propostas', hint: 'modelo do PDF e padrões', icon: 'file', desktop: true },
   { id: 'mensagens', label: 'mensagens', hint: 'textos para a cliente', icon: 'whatsapp', desktop: true },
   { id: 'metas', label: 'metas', hint: 'faturamento e MEI', icon: 'target', desktop: true },
+  { id: 'ia', label: 'assistente', hint: 'chat com IA sobre orçamentos', icon: 'sparkle' },
   { id: 'dados', label: 'dados', hint: 'perfil e backup', icon: 'download' },
 ]
 const TAB_KEY = 'config-aba'
@@ -440,6 +441,52 @@ export default function SettingsPage() {
                 </Field>
               </div>
             </Section>
+          )}
+
+          {tab === 'ia' && (
+            <>
+              <Section title="assistente de orçamentos">
+                <p className="muted small" style={{ marginTop: 0 }}>
+                  O botão <b>✦</b> no canto da tela abre um chat que conhece sua tabela de preços, as plantas com valores, seu processo e seus orçamentos anteriores. Ele usa o
+                  Gemini, do Google, com uma chave gratuita sua. Sem chave, o chat leva a pergunta para o Claude (também grátis, copiando e colando).
+                </p>
+                <div className="form-grid">
+                  <Field
+                    label="Chave do Gemini"
+                    span={3}
+                    hint={
+                      <>
+                        Crie em{' '}
+                        <a className="link" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+                          aistudio.google.com/apikey
+                        </a>{' '}
+                        (entre com sua conta Google → “Create API key”) e cole aqui. Fica guardada só na sua conta.
+                      </>
+                    }
+                  >
+                    <input
+                      type="password"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={s.aiKey ?? ''}
+                      onChange={(e) => setSettings({ aiKey: e.target.value.trim() })}
+                      placeholder="AIza…"
+                    />
+                  </Field>
+                  <Field
+                    label="Minhas regras para a IA"
+                    span={3}
+                    hint="Escreva como você trabalha e cobra, do seu jeito: a IA segue isso em todas as respostas. Ex.: “detalhamento de marcenaria cobro por quantidade de móveis”, “para arquitetos dou 10% de desconto”."
+                  >
+                    <textarea rows={6} value={s.aiNotes ?? ''} onChange={(e) => setSettings({ aiNotes: e.target.value })} spellCheck lang="pt-BR" />
+                  </Field>
+                </div>
+                <label className="check toggle">
+                  <input type="checkbox" checked={!!s.aiShareNames} onChange={(e) => setSettings({ aiShareNames: e.target.checked })} /> enviar os nomes dos clientes para a IA
+                </label>
+                <p className="muted small">Desligado, a IA vê escopos e valores dos orçamentos, mas não os nomes dos clientes.</p>
+              </Section>
+            </>
           )}
 
           {tab === 'dados' && (
