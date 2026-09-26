@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Client, Payment, Project, Quote, Settings } from '../types'
+import { Icon } from './Icon'
 import { fmtDateLong, itemDiscount, money, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
@@ -143,7 +144,14 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
     quote.discountNote ||
     [urgencyValue ? `inclui taxa de urgência de ${money(urgencyValue)}` : '', totalDiscount ? `com ${money(totalDiscount)} de desconto` : ''].filter(Boolean).join(' · ')
   const revisions = `${plural(quote.revisions, 'rodada', 'rodadas')} de ajuste inclusa${quote.revisions === 1 ? '' : 's'}`
-  const contact = [s.pixKey && `pix ${s.pixKey}`, s.legalName || s.ownerName, s.phone, s.instagram].filter(Boolean).join(' · ')
+  const contacts = (
+    [
+      ['whatsapp', s.phone],
+      ['instagram', s.instagram],
+      ['globe', s.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')],
+      ['mail', s.email],
+    ] as [string, string][]
+  ).filter(([, v]) => v)
 
   return (
     <Paper s={s}>
@@ -195,6 +203,14 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
               </div>
             </div>
           ))}
+          <div className="p-choice q-choice">
+            opção escolhida:
+            {options.map((o, i) => (
+              <span key={o.id}>
+                <i className={quote.chosenOption === o.id ? 'on' : ''} /> {i + 1}
+              </span>
+            ))}
+          </div>
         </section>
       ) : (
         <section>
@@ -225,33 +241,42 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
       )}
 
       <section className="q-terms">
-        <div>
-          <span className="p-label">pagamento</span>
-          <p>{quote.paymentTerms}</p>
-        </div>
-        <div>
-          <span className="p-label">prazo</span>
-          <p>{two ? `conforme a opção escolhida · ${revisions}.` : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal · ${revisions}.`}</p>
-        </div>
-        <div>
-          <span className="p-label">arquivos</span>
-          <p>{quote.files}</p>
-        </div>
+        {(
+          [
+            ['wallet', 'pagamento', quote.paymentTerms],
+            ['calendar', 'prazo', two ? `conforme a opção escolhida · ${revisions}.` : `${plural(quote.deadlineDays, 'dia útil', 'dias úteis')} após o sinal · ${revisions}.`],
+            ['folder', 'arquivos', quote.files],
+          ] as [string, string, string][]
+        ).map(([icon, label, text]) => (
+          <div key={label} className="q-term">
+            <span className="q-icon">
+              <Icon name={icon} size={17} />
+            </span>
+            <div>
+              <span className="p-label">{label}</span>
+              <p>{text}</p>
+            </div>
+          </div>
+        ))}
       </section>
       {quote.notes && <p className="p-notes">{quote.notes}</p>}
 
       <footer className="q-foot">
-        <span>{contact}</span>
-        {two && (
-          <div className="p-choice">
-            opção escolhida:
-            {options.map((o, i) => (
-              <span key={o.id}>
-                <i className={quote.chosenOption === o.id ? 'on' : ''} /> {i + 1}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="q-pay">
+          {s.pixKey && (
+            <span>
+              <b>pix</b> {s.pixKey}
+            </span>
+          )}
+          <span>{s.legalName || s.ownerName}</span>
+        </div>
+        <div className="q-contacts">
+          {contacts.map(([icon, v]) => (
+            <span key={icon}>
+              <Icon name={icon} size={13} /> {v}
+            </span>
+          ))}
+        </div>
       </footer>
     </Paper>
   )
