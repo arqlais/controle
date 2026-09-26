@@ -84,12 +84,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     setQ((x) => ({ ...x, ...patch }))
     setDirty(true)
   }
-  /** Primeira metragem digitada num serviço por m² vira a área da proposta (se vazia). */
-  const withArea = (items: QuoteItem[]) => {
-    const m2 = items.find((i) => settings.services.find((s) => s.id === i.service)?.pricing === 'm2')
-    return !q.area && m2 ? { area: m2.quantity } : {}
-  }
-  const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)), ...(patch.items ? withArea(patch.items) : {}) })
+  const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)) })
 
   const sub = quoteSubtotal(q)
   const total = quoteTotal(q, settings.urgencyFee)
@@ -220,8 +215,8 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
               </Field>
-              <Field label="Área (m²) · opcional" hint="Só para modelagem, executivo, detalhamento… Vazio = não aparece no PDF.">
-                <input id="q-area" type="number" min={0} value={q.area || ''} onChange={(e) => set({ area: Number(e.target.value) || 0 })} placeholder="—" />
+              <Field label="Área (m²) · opcional" hint="Só para modelagem, executivo, detalhamento… 0 = não aparece no PDF.">
+                <input id="q-area" type="number" min={0} value={q.area} onFocus={(e) => e.target.select()} onChange={(e) => set({ area: Number(e.target.value) || 0 })} />
               </Field>
               <Field label="Modelo" span={2}>
                 <Segmented
@@ -244,7 +239,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           {!two ? (
             <Section title="serviços">
-              <ItemsEditor items={q.items} student={student} settings={settings} onChange={(items) => set({ items, ...withArea(items) })} />
+              <ItemsEditor items={q.items} student={student} settings={settings} onChange={(items) => set({ items })} />
               <div className="quote-totals">
                 <div>
                   <span>subtotal</span>
