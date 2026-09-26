@@ -1,4 +1,5 @@
 import { ask, askDelete, toast } from './dialog'
+import { DateInput } from './DateInput'
 import { useState } from 'react'
 import { useStore } from '../store'
 import type { CalendarEvent, Client, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
@@ -281,10 +282,10 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         </Field>
 
         <Field label="Início">
-          <input type="date" value={p.startDate} onChange={(e) => set('startDate', e.target.value)} />
+          <DateInput value={p.startDate} onChange={(e) => set('startDate', e.target.value)} />
         </Field>
         <Field label="Prazo de entrega">
-          <input type="date" value={p.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+          <DateInput value={p.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
         </Field>
         <Field group label="Prioridade">
           <Segmented
@@ -392,7 +393,7 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
           </select>
         </Field>
         <Field label={e.recurring ? 'Início da cobrança' : 'Data'}>
-          <input type="date" value={e.date} onChange={(ev) => set('date', ev.target.value)} />
+          <DateInput value={e.date} onChange={(ev) => set('date', ev.target.value)} />
         </Field>
         <Field group label="Recorrência">
           <Segmented
@@ -464,7 +465,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
           <input autoFocus value={ev.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex.: Reunião de briefing, prova, orientação do TCC" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
         </Field>
         <Field label="Data">
-          <input type="date" value={ev.date} onChange={(e) => set('date', e.target.value)} />
+          <DateInput value={ev.date} onChange={(e) => set('date', e.target.value)} />
         </Field>
         <Field label="Horário">
           <input type="time" value={ev.time} onChange={(e) => set('time', e.target.value)} />

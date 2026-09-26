@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -167,8 +168,8 @@ export default function ProjectDetail({ id }: { id: string }) {
         <Stat
           label="Prazo combinado"
           value={
-            <input
-              type="date"
+            <DateInput
+             
               className={`stat-date ${p.dueDate ? '' : 'is-empty'}`}
               value={p.dueDate}
               onChange={(e) => save({ dueDate: e.target.value })}
@@ -295,7 +296,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                             {x.paidDate ? (
                               <div className="row gap-s nowrap">
                                 <span className="pill pill-pago">pago</span>
-                                <input className="cell-input small" type="date" value={x.paidDate} onChange={(e) => setPayment(x.id, { paidDate: e.target.value || null })} />
+                                <DateInput className="cell-input small" value={x.paidDate} onChange={(e) => setPayment(x.id, { paidDate: e.target.value || null })} />
                               </div>
                             ) : (
                               <button className={`btn small ${st === 'cobrar' ? 'warn' : ''}`} onClick={() => setPayment(x.id, { paidDate: today() })}>

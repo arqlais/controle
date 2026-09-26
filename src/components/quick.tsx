@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
@@ -163,7 +164,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
           <MoneyInput value={value} onChange={setValue} />
         </Field>
         <Field label="Fechou em" hint="Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.">
-          <input type="date" value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
+          <DateInput value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
         </Field>
         <label className="check">
           <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})
@@ -188,7 +189,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
               ]}
             />
             {dayMode === 'data' ? (
-              <input type="date" value={exactDate} min={closedOn} onChange={(e) => setExactDate(e.target.value)} />
+              <DateInput value={exactDate} min={closedOn} onChange={(e) => setExactDate(e.target.value)} />
             ) : (
               <input type="number" min={0} value={workDays || ''} placeholder="nº de dias" onFocus={(e) => e.target.select()} onChange={(e) => setWorkDays(Math.max(0, Math.round(Number(e.target.value) || 0)))} />
             )}

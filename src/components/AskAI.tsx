@@ -152,7 +152,10 @@ export function AskAIButton({ quote, compact }: { quote?: Quote; compact?: boole
   return (
     <>
       <button className={`btn ${compact ? 'small ' : ''}ghost`} onClick={() => setOpen(true)} title="Sugestões de escopo e valor com base no seu histórico">
-        <Icon name="sparkle" size={compact ? 14 : 16} /> perguntar à <span className="keep-case">IA</span>
+        <Icon name="sparkle" size={compact ? 14 : 16} />
+        <span>
+          perguntar à <span className="keep-case">IA</span>
+        </span>
       </button>
       {open && (
         <Modal
@@ -165,7 +168,10 @@ export function AskAIButton({ quote, compact }: { quote?: Quote; compact?: boole
                 fechar
               </button>
               <button className="btn primary" onClick={send}>
-                <Icon name="sparkle" size={16} /> abrir no <span className="keep-case">Claude</span>
+                <Icon name="sparkle" size={16} />
+                <span>
+                  abrir no <span className="keep-case">Claude</span>
+                </span>
               </button>
             </>
           }

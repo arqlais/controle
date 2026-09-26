@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -238,7 +239,7 @@ function ClientHistory({ client }: { client: Client }) {
           setDate(today())
         }}
       >
-        <input id="history-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Data" />
+        <DateInput id="history-date" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Data" />
         <input id="history-text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ex.: enviei a prévia; pediu troca do piso da sala" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
         <button className="btn small">anotar</button>
       </form>

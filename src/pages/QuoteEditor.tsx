@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -269,9 +270,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                     aria-label="Número do orçamento"
                     title="Número do orçamento (ex.: 170)"
                   />
-                  <input
+                  <DateInput
                     id="q-date"
-                    type="date"
+                   
                     value={q.createdAt}
                     max={today()}
                     onChange={(e) => {
@@ -333,9 +334,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <label htmlFor="q-closed">
                   <Icon name="check" size={14} /> fechou em
                 </label>
-                <input
+                <DateInput
                   id="q-closed"
-                  type="date"
+                 
                   value={q.closedAt || (q.projectId ? data.projects.find((x) => x.id === q.projectId)?.startDate : '') || ''}
                   min={q.createdAt}
                   max={today()}

@@ -263,7 +263,10 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
                 <span>ou pergunte ao Claude, também grátis</span>
                 <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva ou cole o pedido do cliente…" />
                 <button className="btn" onClick={toClaude}>
-                  <Icon name="sparkle" size={16} /> abrir no <span className="keep-case">Claude</span>
+                  <Icon name="sparkle" size={16} />
+                  <span>
+                    abrir no <span className="keep-case">Claude</span>
+                  </span>
                 </button>
               </div>
             </div>

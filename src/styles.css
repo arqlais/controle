@@ -1360,3 +1360,33 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .ai-past-item b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ai-past-item small { font-size: 11px; color: var(--muted); }
 .ai-past-item:hover { border-color: var(--accent-soft); background: var(--accent-tint); }
+
+/* campo de data + calendário na identidade visual */
+.date-input { position: relative; display: flex; align-items: center; min-width: 0; width: 100%; }
+.date-input > input { width: 100%; padding-right: 38px; }
+.date-input-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); border-radius: 50%; cursor: pointer; }
+.date-input-btn:hover { color: var(--accent-ink); background: var(--accent-tint); }
+.date-input.has-stat-date > input { padding-right: 0; }
+.date-input.has-stat-date .date-input-btn { display: none; }
+.date-input.has-cell-input { width: auto; }
+.date-input.has-cell-input > input { padding-right: 30px; }
+.date-pop { position: fixed; z-index: 1000; width: 296px; padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; box-shadow: 0 22px 50px -18px rgba(62, 75, 87, 0.45); animation: date-pop-in 0.14s ease-out; }
+@keyframes date-pop-in { from { opacity: 0; transform: translateY(-4px); } }
+.date-pop.is-up { animation-name: date-pop-up; }
+@keyframes date-pop-up { from { opacity: 0; transform: translateY(4px); } }
+.date-pop-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.date-pop-title { font-weight: 700; font-size: 15px; color: var(--text); text-transform: lowercase; letter-spacing: -0.01em; }
+.date-pop-title em { font-family: var(--font-display); font-style: italic; font-weight: 400; color: var(--accent-ink); font-size: 17px; margin-left: 2px; }
+.date-pop-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.date-pop-wd { text-align: center; font-size: 10.5px; font-weight: 600; color: var(--muted); padding: 4px 0 6px; text-transform: lowercase; }
+.date-pop-wd.is-we { color: var(--accent-ink); }
+.date-pop-day { position: relative; aspect-ratio: 1; border: 0; border-radius: 50%; background: none; color: var(--text); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; display: grid; place-items: center; transition: background 0.12s, color 0.12s; }
+.date-pop-day:hover:not(:disabled) { background: var(--accent-tint); color: var(--accent-ink); }
+.date-pop-day.is-we { color: var(--accent-ink); }
+.date-pop-day.is-hol::after { content: ''; position: absolute; bottom: 4px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--accent-soft); }
+.date-pop-day.is-today { box-shadow: inset 0 0 0 1.5px var(--accent-soft); font-weight: 700; }
+.date-pop-day.is-sel, .date-pop-day.is-sel:hover { background: var(--accent); color: var(--accent-contrast); font-weight: 700; box-shadow: none; }
+.date-pop-day.is-sel.is-hol::after { background: var(--accent-contrast); }
+.date-pop-day.is-off { color: var(--muted); opacity: 0.35; cursor: default; }
+.date-pop-foot { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.date-pop-foot .muted-link { color: var(--muted); }
