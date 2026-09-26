@@ -1133,3 +1133,5 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 /* orçamento: nº + data lado a lado */
 .num-date { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
 .field-warn .field-hint { color: var(--warn); font-weight: 600; }
+.field-check { justify-content: flex-end; padding-bottom: 1px; }
+.field-check .check { min-height: 40px; }
