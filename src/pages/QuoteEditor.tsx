@@ -11,6 +11,7 @@ import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import {
+  nextQuoteNumber,
   COMPLEXITY,
   QUOTE_STATUS,
   cleanDetail,
@@ -40,7 +41,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     () =>
       existing ?? {
         id: uid(),
-        number: Math.max(0, ...data.quotes.filter((x) => x.createdAt.slice(0, 4) === today().slice(0, 4)).map((x) => x.number)) + 1,
+        number: nextQuoteNumber(data),
         clientId: '',
         title: '',
         mode: 'escopo',
@@ -122,6 +123,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
   const [closing, setClosing] = useState<Quote | null>(null)
 
+  const dupNumber = data.quotes.some((x) => x.id !== q.id && x.number === q.number)
   const preview = <QuoteDoc s={settings} client={client} quote={q} />
 
   return (
@@ -211,18 +213,40 @@ export default function QuoteEditor({ id }: { id: string }) {
                   </button>
                 </div>
               </Field>
-              <Field label="Data da proposta" hint={q.createdAt === today() ? 'Hoje · orçamento antigo? coloque a data real.' : 'Vai no PDF e na lista.'}>
-                <input
-                  id="q-date"
-                  type="date"
-                  value={q.createdAt}
-                  max={today()}
-                  onChange={(e) => {
-                    const d = e.target.value || today()
-                    // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
-                    set({ createdAt: d, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
-                  }}
-                />
+              <Field
+                className={dupNumber ? 'field-warn' : undefined}
+                label="Nº e data"
+                hint={
+                  dupNumber
+                    ? `⚠ já existe outro orçamento ${quoteNumber(q)}`
+                    : q.createdAt === today()
+                      ? 'Orçamento antigo? coloque o nº e a data reais.'
+                      : 'Vão no PDF e na lista.'
+                }
+              >
+                <div className="num-date">
+                  <input
+                    id="q-number"
+                    type="number"
+                    min={1}
+                    value={q.number}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => set({ number: Math.max(1, Math.round(Number(e.target.value) || 1)) })}
+                    aria-label="Número do orçamento"
+                    title="Número do orçamento (ex.: 170)"
+                  />
+                  <input
+                    id="q-date"
+                    type="date"
+                    value={q.createdAt}
+                    max={today()}
+                    onChange={(e) => {
+                      const d = e.target.value || today()
+                      // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
+                      set({ createdAt: d, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
+                    }}
+                  />
+                </div>
               </Field>
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
@@ -361,7 +385,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                     const copy: Quote = {
                       ...q,
                       id: uid(),
-                      number: Math.max(0, ...data.quotes.filter((x) => x.createdAt.slice(0, 4) === today().slice(0, 4)).map((x) => x.number)) + 1,
+                      number: nextQuoteNumber(data),
                       title: `${q.title} (cópia)`,
                       items: q.items.map((i) => ({ ...i, id: uid() })),
                       options: q.options.map((o) => ({ ...o, id: uid(), items: o.items.map((i) => ({ ...i, id: uid() })) })),

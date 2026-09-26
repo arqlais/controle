@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, MESSAGE_VARS, PRICING, download, money, today, uid } from '../utils'
+import { COMPLEXITY, MESSAGE_VARS, PRICING, download, money, nextQuoteNumber, today, uid } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
@@ -332,8 +332,11 @@ export default function SettingsPage() {
           {tab === 'propostas' && (
             <>
               <ProposalSettings />
-              <Section title="padrões da demanda" className="desktop-only">
+              <Section title="numeração e padrões" className="desktop-only">
                 <div className="form-grid">
+                  <Field label="Começar a contagem em" hint={`Os orçamentos seguem em ordem a partir daqui. Próximo: #${String(nextQuoteNumber(data)).padStart(3, '0')}.`}>
+                    <input type="number" min={1} value={s.quoteStart ?? 1} onChange={(e) => setSettings({ quoteStart: Math.max(1, Number(e.target.value) || 1) })} />
+                  </Field>
                   <Field label="Rodadas de ajuste incluídas">
                     <input type="number" min={0} value={s.defaultRevisions} onChange={(e) => setSettings({ defaultRevisions: Number(e.target.value) || 0 })} />
                   </Field>

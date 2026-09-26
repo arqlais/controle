@@ -125,7 +125,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Quero lançar orçamentos antigos (do ano todo)',
-    a: <>No orçamento, troque a <b>data da proposta</b> (em dados) para a data real. Ao aprovar, coloque em <b>fechou em</b> o dia em que a cliente aprovou e marque <b>o sinal já foi pago</b>, se for o caso. Assim a demanda e o financeiro de cada mês ficam certos. Pagamentos seguintes: na demanda, marque pago e ajuste a data ao lado.</>,
+    a: <>No orçamento, em <b>nº e data</b> (em dados), coloque o número e a data reais. A contagem é contínua: o próximo novo pega o maior número já usado + 1 (dá para escolher o início em configurações → propostas). Ao aprovar, coloque em <b>fechou em</b> o dia em que a cliente aprovou e marque <b>o sinal já foi pago</b>, se for o caso. Assim a demanda e o financeiro de cada mês ficam certos. Pagamentos seguintes: na demanda, marque pago e ajuste a data ao lado.</>,
     page: 'orcamentos',
   },
   {

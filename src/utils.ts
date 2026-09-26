@@ -264,6 +264,8 @@ export function itemDetail(s: ServiceDef | undefined, qty: number, _complexity?:
 export const itemDiscount = (i: { auto: boolean; unitDiscount?: number; quantity: number }) => (i.auto ? (i.unitDiscount ?? 0) * i.quantity : 0)
 
 export const quoteSubtotal = (q: Quote) => (q.mode === 'opcoes' ? 0 : q.items.reduce((s, i) => s + (i.price || 0), 0))
+/** Próximo nº de orçamento: contagem contínua (maior já usado + 1), nunca abaixo do início escolhido. */
+export const nextQuoteNumber = (d: Data) => Math.max((d.settings.quoteStart ?? 1) - 1, 0, ...d.quotes.map((x) => x.number || 0)) + 1
 export const quoteNumber = (q: Quote) => `#${String(q.number).padStart(3, '0')}`
 
 /** Total de uma opção: soma dos serviços menos o desconto da opção. */

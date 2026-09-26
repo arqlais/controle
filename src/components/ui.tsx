@@ -48,9 +48,9 @@ export function Modal({
   )
 }
 
-export function Field({ label, children, hint, span }: { label: string; children: ReactNode; hint?: string; span?: 1 | 2 | 3 }) {
+export function Field({ label, children, hint, span, className = '' }: { label: string; children: ReactNode; hint?: string; span?: 1 | 2 | 3; className?: string }) {
   return (
-    <label className={`field ${span ? `span-${span}` : ''}`}>
+    <label className={`field ${span ? `span-${span}` : ''} ${className}`}>
       <span className="field-label">{label}</span>
       {children}
       {hint && <span className="field-hint">{hint}</span>}

@@ -289,6 +289,7 @@ export interface Settings {
   hourlyTarget: number
   urgencyFee: number // %
   defaultRevisions: number
+  quoteStart?: number // numeração dos orçamentos começa aqui (ex.: 100); depois segue o maior + 1
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
   services: ServiceDef[]

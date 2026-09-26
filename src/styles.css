@@ -1130,3 +1130,6 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .proposal .p-row-list { list-style: none; margin: 3px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; white-space: normal; }
 .proposal .p-row-list li { position: relative; padding-left: 11px; }
 .proposal .p-row-list li::before { content: ''; position: absolute; left: 1px; top: 0.62em; width: 4px; height: 4px; border-radius: 50%; background: var(--p-rose); }
+/* orçamento: nº + data lado a lado */
+.num-date { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
+.field-warn .field-hint { color: var(--warn); font-weight: 600; }
