@@ -1353,3 +1353,4 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .ai-files { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .ai-files img { width: 96px; height: 72px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,255,255,.3); }
 .ai-file { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 8px; background: rgba(255,255,255,.15); font-size: 12px; }
+.secret-input { -webkit-text-security: disc; font-family: var(--font-body); letter-spacing: 0.08em; }

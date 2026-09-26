@@ -25,6 +25,15 @@ const CHECK: [keyof Settings, string][] = [
 // foto ou símbolo escolhido contam como preenchido
 export const profileMissing = (s: Settings) => CHECK.filter(([k]) => !(k === 'logo' && s.avatarIcon) && !String(s[k] ?? '').trim()).map(([, l]) => l)
 
+/** Só o essencial (bolinha no menu): nome, como te chamo, um contato e o pix. */
+export const profileImportant = (s: Settings) =>
+  [
+    !s.brandName.trim() && 'nome da marca',
+    !(s.ownerName.trim() || s.legalName.trim()) && 'seu nome',
+    !(s.phone.trim() || s.email.trim()) && 'whatsapp ou e-mail',
+    !s.pixKey.trim() && 'chave pix',
+  ].filter(Boolean) as string[]
+
 export function initials(s: Settings) {
   const base = (s.ownerName || s.legalName || s.brandName || '?').trim()
   const parts = base.split(/\s+/)
@@ -241,6 +250,8 @@ function AccountSection({ email }: { email: string }) {
           </div>
           <form className="stack" onSubmit={change}>
             <span className="field-label">trocar senha</span>
+            {/* o navegador precisa do usuário junto da senha; senão preenche a busca com o e-mail */}
+            <input type="text" name="username" autoComplete="username" value={email} readOnly hidden />
             <input type="password" autoComplete="new-password" placeholder="nova senha (mín. 8 caracteres)" value={pw} onChange={(e) => setPw(e.target.value)} />
             <input type="password" autoComplete="new-password" placeholder="repita a nova senha" value={pw2} onChange={(e) => setPw2(e.target.value)} />
             <button className="btn small" disabled={busy || !pw}>

@@ -22,7 +22,7 @@ import Quotes from './pages/Quotes'
 import QuoteEditor from './pages/QuoteEditor'
 import SettingsPage from './pages/Settings'
 import Manual from './pages/Manual'
-import Profile, { profileMissing } from './pages/Profile'
+import Profile, { profileImportant } from './pages/Profile'
 
 const NAV = [
   { page: 'inicio', label: 'início', icon: 'home' },
@@ -175,7 +175,7 @@ export default function App() {
             <b>{settings.ownerName || settings.brandName || 'meu perfil'}</b>
             <small>{userEmail || 'perfil do estúdio'}</small>
           </span>
-          {profileMissing(settings).length > 0 && <em className="profile-chip-dot" title="Perfil incompleto" />}
+          {profileImportant(settings).length > 0 && <em className="profile-chip-dot" title={`Falta no perfil: ${profileImportant(settings).join(', ')}`} />}
         </a>
         <div className="sidebar-foot">
           <button className="icon-btn" onClick={() => setDark(!dark)} title="Tema claro/escuro (só neste aparelho)">
@@ -347,6 +347,11 @@ function GlobalSearch() {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder="Buscar cliente, projeto, orçamento…"
+        type="search"
+        name="busca-sistema"
+        autoComplete="off"
+        data-lpignore="true"
+        data-1p-ignore
       />
       <kbd className="hide-mobile">Ctrl K</kbd>
       {open && results.length > 0 && (

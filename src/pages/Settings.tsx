@@ -465,7 +465,11 @@ export default function SettingsPage() {
                     }
                   >
                     <input
-                      type="password"
+                      type="text"
+                      className="secret-input"
+                      name="gemini-api-key"
+                      data-lpignore="true"
+                      data-1p-ignore
                       autoComplete="off"
                       spellCheck={false}
                       value={s.aiKey ?? ''}
