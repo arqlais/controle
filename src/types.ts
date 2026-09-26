@@ -102,6 +102,7 @@ export interface Project {
   priority: Priority
   startDate: string
   dueDate: string
+  noPhone?: boolean // true = prazo e parcelas desta demanda não vão para a agenda do celular
   deliveredDate: string | null
   value: number
   discount: number
@@ -149,6 +150,7 @@ export interface CalendarEvent {
   time: string
   type: EventType
   customType?: string // quando o tipo é "outro": nome digitado (ex.: "curso", "médico")
+  noPhone?: boolean // true = não vai para a agenda do celular
   projectId: string
   notes: string
   done: boolean
@@ -269,7 +271,8 @@ export interface Settings {
   website: string
   document: string
   pixKey: string
-  calendarToken: string // chave secreta do link de agenda para o celular
+  calendarToken: string // chave secreta do link de agenda para o celular ('' = desligada)
+  calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean } // o que vai para o celular
   city: string
   logo: string // data URL
   customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons

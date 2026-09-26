@@ -1193,3 +1193,14 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .scope-text { width: 100%; font-size: 13.5px; line-height: 1.5; resize: vertical; }
 .scope-found { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--surface-2); font-size: 13px; }
 .service-checklist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px 14px; margin-top: 10px; align-items: start; } .service-checklist .link { grid-column: 1 / -1; justify-self: start; } @media (max-width: 820px) { .service-checklist { grid-template-columns: 1fr; } }
+.phone-toggle { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--accent-ink); cursor: pointer; }
+.phone-toggle.off { color: var(--muted); }
+.phone-toggle:hover { text-decoration: underline; }
+/* agenda no celular */
+.sync-options { display: grid; gap: 8px; margin: 14px 0; padding: 14px; border-radius: 14px; background: var(--surface-2); }
+.sync-options p { margin: 2px 0 0; }
+.sync-on { display: flex; align-items: center; gap: 8px; color: var(--good); font-weight: 600; }
+.sync-device { margin: 4px 0 12px; }
+.sync-steps { display: grid; gap: 10px; padding-left: 20px; margin: 0 0 14px; }
+.sync-steps .btn { margin-left: 4px; vertical-align: middle; }
+.sync-device button, .sync-steps .btn { text-transform: none; }

@@ -45,11 +45,13 @@ function calendarEntries(data: Data): Entry[] {
   const out: Entry[] = []
   const client = (id: string) => data.clients.find((c) => c.id === id)
   const open = ['briefing', 'producao', 'revisao', 'aguardando', 'pausado']
+  // o que vai para o celular (configurado em agenda → celular) e o que foi tirado item por item
+  const sync = { entregas: true, pagamentos: true, compromissos: true, ...(data.settings?.calendarSync ?? {}) }
 
   for (const p of data.projects) {
-    if (p.status === 'cancelado') continue
+    if (p.status === 'cancelado' || p.noPhone) continue
     const c = client(p.clientId)
-    if (p.dueDate && open.includes(p.status)) {
+    if (sync.entregas && p.dueDate && open.includes(p.status)) {
       out.push({
         uid: `entrega-${p.id}`,
         date: p.dueDate,
@@ -59,7 +61,7 @@ function calendarEntries(data: Data): Entry[] {
       })
     }
     for (const pay of p.payments) {
-      if (pay.paidDate) continue
+      if (!sync.pagamentos || pay.paidDate || !pay.dueDate) continue // saldo sem prazo definido não vira evento
       out.push({
         uid: `pagamento-${pay.id}`,
         date: pay.dueDate,
@@ -70,7 +72,7 @@ function calendarEntries(data: Data): Entry[] {
     }
   }
   for (const e of data.events) {
-    if (e.done) continue
+    if (!sync.compromissos || e.done || e.noPhone) continue
     out.push({
       uid: `evento-${e.id}`,
       date: e.date,
@@ -110,7 +112,7 @@ Deno.serve(async (req) => {
   const { data, error } = await sb.from('workspace').select('data').eq('data->settings->>calendarToken', token).maybeSingle()
   if (error || !data) return new Response('Link inválido', { status: 404 })
   const ws = data.data as Data
-  const name = `${ws.settings?.brandName ?? 'estúdio'} · controle`
+  const name = `${(ws.settings?.brandName || 'meu estúdio').replace(/\.$/, '')} · agenda`
   return new Response(buildICS(ws, name), {
     headers: { 'content-type': 'text/calendar; charset=utf-8', 'cache-control': 'no-store' },
   })

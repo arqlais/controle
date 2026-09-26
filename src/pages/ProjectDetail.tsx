@@ -179,11 +179,25 @@ export default function ProjectDetail({ id }: { id: string }) {
           icon="clock"
           tone={isLate(p) ? 'bad' : isOpen(p) && p.dueDate && daysUntil(p.dueDate) <= 2 ? 'warn' : undefined}
           sub={
-            p.status === 'entregue'
-              ? `entregue em ${fmtDate(p.deliveredDate)}`
-              : p.dueDate
-                ? `${relativeDays(p.dueDate)}${p.dueDate > today() ? ` · ${businessDaysUntil(p.dueDate)} dias úteis` : ''}`
-                : 'sem prazo · clique na data para definir, se houver'
+            <>
+              <span>
+                {p.status === 'entregue'
+                  ? `entregue em ${fmtDate(p.deliveredDate)}`
+                  : p.dueDate
+                    ? `${relativeDays(p.dueDate)}${p.dueDate > today() ? ` · ${businessDaysUntil(p.dueDate)} dias úteis` : ''}`
+                    : 'sem prazo · clique na data para definir, se houver'}
+              </span>
+              {data.settings.calendarToken && isOpen(p) && (
+                <button
+                  type="button"
+                  className={`phone-toggle ${p.noPhone ? 'off' : ''}`}
+                  onClick={() => save({ noPhone: !p.noPhone })}
+                  title={p.noPhone ? 'Mandar prazo e parcelas desta demanda para a agenda do celular' : 'Tirar esta demanda da agenda do celular'}
+                >
+                  <Icon name="phone" size={12} /> {p.noPhone ? 'fora da agenda do celular · incluir' : 'na agenda do celular · tirar'}
+                </button>
+              )}
+            </>
           }
         />
         <Stat

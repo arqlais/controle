@@ -519,6 +519,13 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
         <Field label="Notas" span={3}>
           <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={ev.notes} onChange={(e) => set('notes', e.target.value)} />
         </Field>
+        {data.settings.calendarToken && data.settings.calendarSync?.compromissos !== false && (
+          <div className="field span-3">
+            <label className="check toggle">
+              <input type="checkbox" checked={!ev.noPhone} onChange={(e) => set('noPhone', !e.target.checked)} /> mandar para a agenda do celular
+            </label>
+          </div>
+        )}
       </div>
     </Modal>
   )

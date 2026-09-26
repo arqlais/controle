@@ -42,11 +42,13 @@ export function calendarEntries(data: Data): Entry[] {
   const out: Entry[] = []
   const client = (id: string) => data.clients.find((c) => c.id === id)
   const open = ['briefing', 'producao', 'revisao', 'aguardando', 'pausado']
+  // o que vai para o celular (configurado em agenda → celular) e o que foi tirado item por item
+  const sync = { entregas: true, pagamentos: true, compromissos: true, ...(data.settings?.calendarSync ?? {}) }
 
   for (const p of data.projects) {
-    if (p.status === 'cancelado') continue
+    if (p.status === 'cancelado' || p.noPhone) continue
     const c = client(p.clientId)
-    if (p.dueDate && open.includes(p.status)) {
+    if (sync.entregas && p.dueDate && open.includes(p.status)) {
       out.push({
         uid: `entrega-${p.id}`,
         date: p.dueDate,
@@ -56,7 +58,7 @@ export function calendarEntries(data: Data): Entry[] {
       })
     }
     for (const pay of p.payments) {
-      if (pay.paidDate || !pay.dueDate) continue // saldo sem prazo definido não vira evento
+      if (!sync.pagamentos || pay.paidDate || !pay.dueDate) continue // saldo sem prazo definido não vira evento
       out.push({
         uid: `pagamento-${pay.id}`,
         date: pay.dueDate,
@@ -67,7 +69,7 @@ export function calendarEntries(data: Data): Entry[] {
     }
   }
   for (const e of data.events) {
-    if (e.done) continue
+    if (!sync.compromissos || e.done || e.noPhone) continue
     out.push({
       uid: `evento-${e.id}`,
       date: e.date,

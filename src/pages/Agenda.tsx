@@ -4,7 +4,7 @@ import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { EventForm } from '../components/forms'
 import { Modal, MonthPicker, Section } from '../components/ui'
-import { toast } from '../components/dialog'
+import { ask, toast } from '../components/dialog'
 import { CLOUD, SUPABASE_URL } from '../cloud'
 import { buildICS } from '../ics'
 import type { CalendarEvent } from '../types'
@@ -144,7 +144,7 @@ export default function Agenda() {
         </div>
         <div className="row gap-s wrap">
           <button className="btn ghost" onClick={() => setConnect(true)}>
-            <Icon name="phone" size={16} /> Conectar ao celular
+            <Icon name="phone" size={16} /> {data.settings.calendarToken ? 'agenda no celular ✓' : 'conectar ao celular'}
           </button>
           <button className="btn primary" onClick={() => setForm({ date: selected })}>
             <Icon name="plus" size={16} /> Compromisso
@@ -282,8 +282,10 @@ function AgendaRow({ i, showDate, onEdit, onToggle }: { i: Item; showDate?: bool
 function ConnectCalendar({ onClose }: { onClose: () => void }) {
   const { data, setSettings } = useStore()
   const token = data.settings.calendarToken
+  const sync = { entregas: true, pagamentos: true, compromissos: true, ...(data.settings.calendarSync ?? {}) }
   const url = token ? `${SUPABASE_URL}/functions/v1/agenda?token=${token}` : ''
   const webcal = url.replace(/^https:/, 'webcal:')
+  const [device, setDevice] = useState<'iphone' | 'android' | 'outro'>(() => (/iphone|ipad|mac/i.test(navigator.userAgent) ? 'iphone' : /android/i.test(navigator.userAgent) ? 'android' : 'iphone'))
 
   const newToken = () => {
     const bytes = crypto.getRandomValues(new Uint8Array(24))
@@ -294,75 +296,123 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
       ?.writeText(url)
       .then(() => toast('Link copiado.'))
       .catch(() => toast('Selecione o link e copie manualmente.'))
+  const turnOff = async () => {
+    if (!(await ask('Desligar a agenda do celular? O link para de funcionar e nada mais é enviado. Depois apague a agenda assinada no celular.', { confirmLabel: 'desligar', danger: true }))) return
+    setSettings({ calendarToken: '' })
+  }
 
-  return (
-    <Modal title="agenda no celular" onClose={onClose} wide>
-      {CLOUD ? (
+  const options = (
+    <div className="sync-options">
+      <span className="field-label">o que vai para o celular</span>
+      {(
+        [
+          ['entregas', 'prazos de entrega das demandas'],
+          ['pagamentos', 'parcelas a receber'],
+          ['compromissos', 'compromissos da agenda'],
+        ] as const
+      ).map(([k, label]) => (
+        <label key={k} className="check toggle">
+          <input type="checkbox" checked={sync[k]} onChange={(e) => setSettings({ calendarSync: { ...sync, [k]: e.target.checked } })} /> {label}
+        </label>
+      ))}
+      <p className="muted small">Quer deixar algo de fora? Em cada compromisso desmarque “mandar para a agenda do celular”; em cada demanda, toque em “tirar” embaixo do prazo.</p>
+    </div>
+  )
+
+  if (!CLOUD)
+    return (
+      <Modal title="agenda no celular" onClose={onClose} wide>
         <div className="connect">
-          <p>
-            Assine sua agenda do estúdio no celular: <b>entregas, parcelas a receber e compromissos</b> aparecem sozinhos no calendário do iPhone ou do Google, com lembrete
-            na véspera. Tudo que você mudar aqui atualiza lá automaticamente.
-          </p>
-          {!token ? (
-            <button className="btn primary" onClick={newToken}>
-              <Icon name="link" size={16} /> gerar meu link de agenda
-            </button>
-          ) : (
-            <>
-              <div className="connect-link">
-                <input id="calendar-url" readOnly value={url} onFocus={(e) => e.target.select()} />
-                <button className="btn small" onClick={copy}>
-                  <Icon name="copy" size={14} /> copiar
-                </button>
-              </div>
-              <div className="connect-steps">
-                <section>
-                  <h3>iPhone</h3>
-                  <ol>
-                    <li>
-                      Abra este sistema no iPhone e toque em{' '}
-                      <a className="link" href={webcal}>
-                        adicionar ao calendário
-                      </a>
-                      , ou:
-                    </li>
-                    <li>Ajustes → Calendário → Contas → Adicionar conta → Outra → Adicionar calendário assinado.</li>
-                    <li>Cole o link e salve.</li>
-                  </ol>
-                </section>
-                <section>
-                  <h3>Android / Google Agenda</h3>
-                  <a className="btn small primary" href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">
-                    <Icon name="calendar" size={14} /> adicionar ao meu Google Agenda
-                  </a>
-                  <p className="muted small">Entre com a sua conta Google e confirme. Se não abrir, faça à mão:</p>
-                  <ol>
-                    <li>No computador, abra calendar.google.com.</li>
-                    <li>Em “Outras agendas”, clique em + → “Do URL”.</li>
-                    <li>Cole o link e clique em “Adicionar agenda”. Ela aparece no celular sozinha.</li>
-                  </ol>
-                </section>
-              </div>
-              <p className="muted small">
-                O iPhone atualiza de hora em hora; o Google Agenda pode levar algumas horas. O link é secreto: se alguém tiver acesso a ele, gere um novo.{' '}
-                <button className="link" onClick={newToken}>
-                  gerar novo link
-                </button>
-              </p>
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="connect">
-          <p>
-            A sincronização automática funciona quando o login na nuvem está ligado (veja o README). Por enquanto, você pode baixar a agenda e importar uma vez no calendário do
-            celular.
-          </p>
+          <p>A agenda automática funciona na versão com login. Aqui dá para baixar a agenda e importar uma vez no calendário do celular.</p>
           <button className="btn" onClick={() => download(`agenda-${today()}.ics`, buildICS(data, data.settings.brandName), 'text/calendar')}>
             <Icon name="download" size={16} /> baixar agenda (.ics)
           </button>
         </div>
-      )}
+      </Modal>
+    )
+
+  return (
+    <Modal title="agenda no celular" onClose={onClose} wide>
+      <div className="connect">
+        {!token ? (
+          <>
+            <p>
+              <b>Opcional.</b> Ligando, os prazos de entrega, as parcelas a receber e os compromissos aparecem <b>sozinhos</b> no calendário do celular (iPhone, Android ou
+              outro), com lembrete na véspera. Tudo que você criar ou mudar aqui atualiza lá, sem precisar fazer nada.
+            </p>
+            {options}
+            <button className="btn primary" onClick={newToken}>
+              <Icon name="phone" size={16} /> ligar agenda no celular
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="sync-on">
+              <Icon name="check" size={16} /> Agenda do celular ligada. Falta só adicionar no seu celular (uma vez):
+            </p>
+            <div className="segmented sync-device">
+              {(
+                [
+                  ['iphone', 'iPhone'],
+                  ['android', 'Android / Google'],
+                  ['outro', 'outro'],
+                ] as const
+              ).map(([k, l]) => (
+                <button key={k} className={device === k ? 'active' : ''} onClick={() => setDevice(k)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {device === 'iphone' && (
+              <ol className="sync-steps">
+                <li>
+                  Abra este sistema <b>no iPhone</b> e toque em{' '}
+                  <a className="btn small primary" href={webcal}>
+                    <Icon name="calendar" size={14} /> adicionar ao iPhone
+                  </a>
+                </li>
+                <li>Toque em “Assinar” e depois em “Adicionar”. Pronto.</li>
+                <li className="muted small">Se o botão não abrir: Ajustes → Calendário → Contas → Adicionar conta → Outra → Adicionar calendário assinado → cole o link abaixo.</li>
+              </ol>
+            )}
+            {device === 'android' && (
+              <ol className="sync-steps">
+                <li>
+                  Toque em{' '}
+                  <a className="btn small primary" href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcal)}`} target="_blank" rel="noreferrer">
+                    <Icon name="calendar" size={14} /> adicionar ao Google Agenda
+                  </a>
+                </li>
+                <li>Entre com a sua conta Google e confirme “Adicionar”. A agenda aparece no app Google Agenda do celular.</li>
+                <li className="muted small">Se não abrir: no computador, calendar.google.com → “Outras agendas” → + → “Do URL” → cole o link abaixo.</li>
+              </ol>
+            )}
+            {device === 'outro' && (
+              <ol className="sync-steps">
+                <li>No app de calendário (Outlook, Samsung…), procure “assinar calendário” ou “adicionar por URL”.</li>
+                <li>Cole o link abaixo.</li>
+              </ol>
+            )}
+            <div className="connect-link">
+              <input id="calendar-url" readOnly value={url} onFocus={(e) => e.target.select()} />
+              <button className="btn small" onClick={copy}>
+                <Icon name="copy" size={14} /> copiar
+              </button>
+            </div>
+            {options}
+            <p className="muted small">
+              O iPhone busca novidades a cada hora (ou ao abrir o Calendário); o Google pode levar algumas horas. O link é secreto: se alguém tiver acesso a ele,{' '}
+              <button className="link" onClick={newToken}>
+                gere um novo
+              </button>{' '}
+              ·{' '}
+              <button className="link" onClick={turnOff}>
+                desligar
+              </button>
+            </p>
+          </>
+        )}
+      </div>
     </Modal>
   )
 }
