@@ -13,8 +13,8 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'render-vray', name: 'renderização V-Ray', unit: 'imagem', pricing: 'pacote', price: 80, min: 0, hours: 4, tiers: [ { qty: 5, price: 370 }, { qty: 10, price: 710 }, { qty: 15, price: 975 } ] },
   { id: 'render-ia', name: 'renderização por IA', unit: 'imagem', pricing: 'pacote', price: 50, min: 0, hours: 1.5, tiers: [ { qty: 5, price: 240 }, { qty: 10, price: 460 }, { qty: 15, price: 630 } ] },
   { id: 'modelagem', name: 'modelagem 3d', unit: 'm²', pricing: 'm2', price: 6, min: 350, hours: 0.08, tiers: [] },
-  { id: 'detalhamento', name: 'detalhamento', unit: 'm²', pricing: 'm2', price: 12, min: 400, hours: 0.1, tiers: [] },
-  { id: 'executivo', name: 'executivo', unit: 'm²', pricing: 'm2', price: 15, min: 600, hours: 0.12, tiers: [] },
+  { id: 'detalhamento', name: 'detalhamento', unit: 'm²', pricing: 'm2', price: 1, base: 480, min: 0, hours: 0.1, tiers: [] },
+  { id: 'executivo', name: 'executivo', unit: 'm²', pricing: 'm2', price: 5, base: 570, min: 0, hours: 0.12, tiers: [] },
   { id: 'pranchas', name: 'prancha', unit: 'prancha', pricing: 'unidade', price: 200, min: 0, hours: 3, tiers: [] },
   { id: 'mapas', name: 'mapa urbano', unit: 'mapa', pricing: 'unidade', price: 150, min: 0, hours: 2.5, tiers: [] },
   { id: 'diagramas', name: 'diagramas', unit: 'diagrama', pricing: 'unidade', price: 80, min: 0, hours: 1, tiers: [] },
@@ -34,45 +34,56 @@ const list = (title: string, items: [string, number][], customRate: number): Che
 /** Listas que o cliente escolhe (quais plantas / quais detalhamentos), com o valor de cada uma por m².
     São pontos de partida: ajuste nomes e valores em Configurações → preços. */
 export const DEFAULT_CHECKLISTS: Record<string, ChecklistDefaults> = {
+  // calibrado pelos orçamentos reais (ex.: executivo completo 57 m² = R$ 990; 34 m² = R$ 820):
+  // valor base do projeto + soma das plantas × m² × complexidade
   executivo: list(
     'plantas executivas',
     [
-      ['planta de layout (mobiliário)', 1.5],
-      ['planta de demolição', 1],
-      ['planta de construção', 1.5],
-      ['planta elétrica', 1.5],
-      ['planta de iluminação', 1.5],
-      ['planta de forro', 1.2],
-      ['planta hidráulica', 1.2],
-      ['planta de ar-condicionado', 0.8],
-      ['paginação de piso/revestimentos', 1.2],
-      ['planta de acabamentos', 1],
-      ['planta de cobertura', 0.8],
-      ['planta de situação/implantação', 0.6],
-      ['cortes', 1.2],
-      ['elevações', 1.2],
-      ['fachadas', 1],
-      ['quadro de esquadrias', 0.6],
+      ['planta de layout (mobiliário)', 0.6],
+      ['planta de demolição', 0.4],
+      ['planta de construção', 0.5],
+      ['planta elétrica', 0.5],
+      ['planta de iluminação', 0.5],
+      ['planta de forro', 0.4],
+      ['planta hidráulica', 0.5],
+      ['planta de ar-condicionado', 0.3],
+      ['paginação de piso/revestimentos', 0.5],
+      ['planta de acabamentos', 0.4],
+      ['planta de cobertura', 0.4],
+      ['planta de situação/implantação', 0.3],
+      ['cortes', 0.5],
+      ['elevações', 0.5],
+      ['fachadas', 0.4],
+      ['quadro de esquadrias', 0.3],
     ],
-    1,
+    0.4,
   ),
   detalhamento: list(
     'detalhamentos (caso precise)',
     [
-      ['marcenaria', 4],
-      ['marmoraria (pedras)', 2.5],
-      ['serralheria', 2],
-      ['vidraçaria', 1.5],
-      ['banheiros (áreas molhadas)', 2.5],
-      ['cozinha', 2.5],
-      ['forro e sancas', 1.5],
-      ['painéis e revestimentos', 1.5],
-      ['escadas e guarda-corpos', 2],
-      ['portas e esquadrias', 1.5],
-      ['paisagismo', 1.5],
+      ['marcenaria', 0.3],
+      ['marmoraria (pedras)', 0.25],
+      ['serralheria', 0.2],
+      ['vidraçaria', 0.15],
+      ['banheiros (áreas molhadas)', 0.25],
+      ['cozinha', 0.25],
+      ['forro e sancas', 0.15],
+      ['painéis e revestimentos', 0.15],
+      ['escadas e guarda-corpos', 0.25],
+      ['portas e esquadrias', 0.2],
+      ['paisagismo', 0.15],
     ],
-    1.5,
+    0.2,
   ),
+}
+/** Valor base de cada projeto (antes do m²), pelos orçamentos reais. */
+export const DEFAULT_BASE: Record<string, number> = { executivo: 570, detalhamento: 480 }
+/** R$/m² quando nenhuma planta é marcada (projeto completo típico). */
+const NO_LIST_RATE: Record<string, number> = { executivo: 5, detalhamento: 1 }
+/** Valores da versão anterior (estimados, acima do que é cobrado): quem ainda está com eles recebe os novos. */
+const PRICES_V1: Record<string, Record<string, number>> = {
+  executivo: { 'planta de layout (mobiliário)': 1.5, 'planta de demolição': 1, 'planta de construção': 1.5, 'planta elétrica': 1.5, 'planta de iluminação': 1.5, 'planta de forro': 1.2, 'planta hidráulica': 1.2, 'planta de ar-condicionado': 0.8, 'paginação de piso/revestimentos': 1.2, 'planta de acabamentos': 1, 'planta de cobertura': 0.8, 'planta de situação/implantação': 0.6, cortes: 1.2, elevações: 1.2, fachadas: 1, 'quadro de esquadrias': 0.6 },
+  detalhamento: { marcenaria: 4, 'marmoraria (pedras)': 2.5, serralheria: 2, vidraçaria: 1.5, 'banheiros (áreas molhadas)': 2.5, cozinha: 2.5, 'forro e sancas': 1.5, 'painéis e revestimentos': 1.5, 'escadas e guarda-corpos': 2, 'portas e esquadrias': 1.5, paisagismo: 1.5 },
 }
 /** Como cada serviço é entregue (vai no PDF em "formatos de arquivos entregues"). */
 export const DEFAULT_DELIVERY: Record<string, Pick<ServiceDef, 'delivery' | 'deliveryOpen'>> = {
@@ -110,7 +121,18 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
     const d = DEFAULT_CHECKLISTS[x.id]
     if (!d) return x
     const untouched = x.checklist === undefined || (!x.checklistPrices && x.checklist.join('|') === OLD_CHECKLISTS[x.id]?.join('|'))
-    if (untouched) return { ...x, ...d, checklistTitle: x.checklistTitle || d.checklistTitle }
+    const rebase = x.base === undefined ? { base: DEFAULT_BASE[x.id], min: 0, price: NO_LIST_RATE[x.id] ?? x.price } : {}
+    if (untouched) return { ...x, ...d, checklistTitle: x.checklistTitle || d.checklistTitle, ...rebase }
+    // valores da primeira estimativa (acima do real) → valores calibrados pelos orçamentos
+    const v1 = PRICES_V1[x.id]
+    const isV1 = v1 && x.checklistPrices && Object.entries(x.checklistPrices).every(([k, v]) => v1[k] === undefined || v1[k] === v)
+    if (isV1 && x.base === undefined)
+      return {
+        ...x,
+        ...rebase,
+        customRate: d.customRate,
+        checklistPrices: Object.fromEntries(Object.entries(x.checklistPrices!).map(([k, v]) => [k, d.checklistPrices?.[k] ?? (v1[k] !== undefined ? d.customRate ?? v : v)])),
+      }
     // lista já editada: só completa os valores que faltam
     return x.checklistPrices ? x : { ...x, checklistPrices: Object.fromEntries((x.checklist ?? []).map((c) => [c, d.checklistPrices?.[c] ?? d.customRate ?? 0])), customRate: x.customRate ?? d.customRate }
   })

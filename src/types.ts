@@ -239,6 +239,7 @@ export interface ServiceDef {
   price: number // R$ por unidade (ou por m²)
   tiers: PriceTier[] // pacotes com desconto por quantidade
   min: number // valor mínimo do item
+  base?: number // valor base do projeto, somado ao m² (serviços por m²)
   hours: number // horas estimadas por unidade
   studentPrice?: number // (antigo) substituído pelo desconto de estudante
   checklistTitle?: string // ex.: "plantas executivas" (título da lista que o cliente escolhe)

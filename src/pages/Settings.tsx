@@ -1,3 +1,4 @@
+import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
 import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
@@ -78,10 +79,20 @@ export default function SettingsPage() {
     r.onload = async () => {
       try {
         const parsed = JSON.parse(String(r.result))
+        // arquivo de orçamentos antigos: adiciona, sem apagar nada
+        if (isQuotePack(parsed)) {
+          if (!(await ask(`Adicionar ${parsed.quotes.length} orçamentos como rascunho? Nada do que já existe é apagado; os clientes que faltam são criados.`, { confirmLabel: 'Adicionar' }))) return
+          const res = mergeQuotePack(data, parsed, s.urgencyFee)
+          replaceAll(res.data)
+          toast(
+            `${res.added.length} orçamento(s) adicionados${res.newClients ? ` e ${res.newClients} cliente(s) novos` : ''}.${res.skipped.length ? ` Já existiam: ${res.skipped.join(', ')}.` : ''}`,
+          )
+          return
+        }
         if (!parsed.clients || !parsed.projects) throw new Error()
         if (await ask(`Importar backup com ${parsed.clients.length} clientes e ${parsed.projects.length} projetos? Os dados atuais serão substituídos.`, { confirmLabel: 'Importar' })) replaceAll(normalize(parsed))
       } catch {
-        toast('Arquivo inválido: escolha um backup .json gerado por este sistema.')
+        toast('Arquivo inválido: escolha um backup ou um arquivo de orçamentos (.json).')
       }
     }
     r.readAsText(f)
@@ -279,6 +290,11 @@ export default function SettingsPage() {
                         <Field label={x.pricing === 'm2' ? 'R$ por m²' : x.pricing === 'pacote' ? `Avulso (1 ${x.unit})` : `R$ por ${x.unit}`}>
                           <MoneyInput value={x.price} onChange={(n) => setService(x.id, { price: n })} />
                         </Field>
+                        {x.pricing === 'm2' && (
+                          <Field label="Valor base do projeto" hint="Somado ao valor por m².">
+                            <MoneyInput value={x.base ?? 0} onChange={(n) => setService(x.id, { base: n })} />
+                          </Field>
+                        )}
                         <Field label="Valor mínimo">
                           <MoneyInput value={x.min} onChange={(n) => setService(x.id, { min: n })} />
                         </Field>
@@ -453,9 +469,13 @@ export default function SettingsPage() {
                 <Icon name="download" size={16} /> Baixar backup
               </button>
               <button className="btn" onClick={() => fileRef.current?.click()}>
-                <Icon name="upload" size={16} /> Restaurar backup
+                <Icon name="upload" size={16} /> Restaurar backup / importar orçamentos
               </button>
-              <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => onImport(e.target.files?.[0])} />
+              <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={(e) => {
+                  onImport(e.target.files?.[0])
+                  e.target.value = '' // permite escolher o mesmo arquivo de novo
+                }}
+              />
               <button className="btn ghost" onClick={async () => (await ask('Substituir tudo por dados de exemplo?', { confirmLabel: 'Carregar exemplo', danger: true })) && replaceAll(demoData(s))}>
                 Carregar exemplo
               </button>

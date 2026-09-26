@@ -355,8 +355,8 @@ export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity:
   if (pricedByList(s, lines)) {
     // cada planta/detalhamento marcado soma: R$/m² × área × complexidade, ou R$ cada × complexidade
     const { rate } = checklistRate(s, lines)
-    v = s.pricing === 'm2' ? rate * qty * cx : rate * cx
-  } else v = s.pricing === 'm2' ? s.price * qty * cx : unitRate(s, qty) * qty
+    v = s.pricing === 'm2' ? (s.base || 0) + rate * qty * cx : rate * cx
+  } else v = s.pricing === 'm2' ? (s.base || 0) + s.price * qty * cx : unitRate(s, qty) * qty
   v = Math.max(v, s.min || 0)
   // cada pavimento a mais: pranchas, arquivos e modelos a mais
   if (s.perFloor && floors > 1) v *= 1 + ((floors - 1) * (st.floorFee ?? 50)) / 100

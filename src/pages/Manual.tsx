@@ -154,6 +154,10 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
     page: 'config',
   },
   {
+    q: 'Passar orçamentos antigos para o sistema',
+    a: <>Em <b>configurações → dados → restaurar backup / importar orçamentos</b>, escolha o arquivo de orçamentos (.json). Eles entram como <b>rascunho</b>, sem apagar nada; os clientes que faltam são criados e os que já existem são pulados. Depois é só marcar aprovado ou recusado em cada um.</>,
+  },
+  {
     q: 'Ver os compromissos no calendário do celular',
     a: <>É opcional. Em <b>agenda → conectar ao celular</b>, escolha o que vai (prazos de entrega, parcelas a receber, compromissos), toque em <b>ligar</b> e adicione no celular uma vez (iPhone, Android/Google ou outro). Daí em diante tudo que você cria ou muda aqui aparece sozinho lá, com lembrete na véspera. Para deixar algo de fora: no compromisso, desmarque <b>mandar para a agenda do celular</b>; na demanda, toque em <b>tirar</b> embaixo do prazo.</>,
     page: 'agenda',

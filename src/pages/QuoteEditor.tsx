@@ -294,7 +294,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                       <button type="button" onClick={() => reprice({ floors: Math.max(1, floors - 1) })} disabled={floors <= 1} aria-label="Menos um pavimento">
                         −
                       </button>
-                      <b id="q-floors">{floors}</b> {floors === 1 ? 'pavimento' : 'pavimentos'}
+                      <b id="q-floors">{floors}</b> pav.
                       <button type="button" onClick={() => reprice({ floors: Math.min(20, floors + 1) })} aria-label="Mais um pavimento">
                         +
                       </button>
@@ -877,11 +877,11 @@ function ItemsEditor({ items, student, openFile, floors, settings, onChange }: {
                   s && byList
                     ? (() => {
                         const { rate: r, count } = checklistRate(s, lines)
-                        const base = `${count} ${count === 1 ? 'item' : 'itens'} = ${money(r)}${s.pricing === 'm2' ? `/m² × ${it.quantity} m²` : ''} × ${settings.complexity[it.complexity]}`
+                        const base = `${s.base && s.pricing === 'm2' ? `base ${money(s.base)} + ` : ''}${count} ${count === 1 ? 'item' : 'itens'} = ${money(r)}${s.pricing === 'm2' ? `/m² × ${it.quantity} m²` : ''} × ${settings.complexity[it.complexity]}`
                         return `tabela: ${money(suggestion)} · ${base}${s.min && suggestion <= s.min ? ` (valor mínimo ${money(s.min)})` : ''}${openNote}`
                       })()
                     : s && s.pricing !== 'livre'
-                    ? `tabela: ${money(suggestion)}${rate ? ` · ${money(rate)}/${s.unit}` : ''}${s.pricing === 'm2' ? ` · ${money(s.price)}/m² × ${settings.complexity[it.complexity]}` : ''}${openNote}`
+                    ? `tabela: ${money(suggestion)}${rate ? ` · ${money(rate)}/${s.unit}` : ''}${s.pricing === 'm2' ? ` · ${s.base ? `base ${money(s.base)} + ` : ''}${money(s.price)}/m² × ${settings.complexity[it.complexity]}` : ''}${openNote}`
                     : 'digite o valor'
                 }
               >

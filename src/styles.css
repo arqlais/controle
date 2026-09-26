@@ -1237,3 +1237,4 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .floors button { width: 22px; height: 22px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--text); font: inherit; font-weight: 700; line-height: 1; cursor: pointer; padding: 0; }
 .floors button:disabled { opacity: 0.35; cursor: default; }
 .service-floor { margin-top: 10px; font-size: 13px; }
+.area-extras { flex-wrap: nowrap; } .area-extras > * { flex: none; }
