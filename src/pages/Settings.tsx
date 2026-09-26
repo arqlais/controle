@@ -410,7 +410,7 @@ function ProposalSettings() {
     clientLabel: '',
     items: [
       { id: 'a', service: 'render-vray', title: 'renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media', price: 370, auto: true },
-      { id: 'b', service: 'modelagem', title: 'modelagem 3d', detail: '140 m²', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
+      { id: 'b', service: 'modelagem', title: 'modelagem 3d', detail: '', description: 'a partir do DWG, com mobiliário', quantity: 140, complexity: 'media', price: 1092, auto: true },
     ],
     options: [
       {

@@ -530,7 +530,7 @@ export function demoData(settings: Settings): Data {
       schedule: DEFAULT_PROPOSAL.schedule,
       items: [
         { id: uid(), service: 'render-vray', title: 'renderização V-Ray', detail: '5 imagens', description: 'living, jantar, cozinha e 2 vistas da fachada', quantity: 5, complexity: 'media' as const, price: 370, auto: true },
-        { id: uid(), service: 'modelagem', title: 'modelagem 3d', detail: '140 m²', description: 'modelagem completa a partir do DWG, com mobiliário', quantity: 140, complexity: 'media' as const, price: 1092, auto: true },
+        { id: uid(), service: 'modelagem', title: 'modelagem 3d', detail: '', description: 'modelagem completa a partir do DWG, com mobiliário', quantity: 140, complexity: 'media' as const, price: 1092, auto: true },
       ],
       discount: 62,
       urgency: false,
