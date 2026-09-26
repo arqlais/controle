@@ -107,6 +107,8 @@ export const EVENT_TYPES: Record<EventType, { label: string; color: string }> = 
   pessoal: { label: 'Pessoal', color: '#d19a8f' },
   outro: { label: 'Outro', color: '#9aa3ab' },
 }
+/** Nome do tipo do compromisso: o digitado, quando é "outro". */
+export const eventLabel = (e: { type: EventType; customType?: string }) => (e.type === 'outro' && e.customType?.trim() ? e.customType.trim() : EVENT_TYPES[e.type].label)
 
 export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }> = {
   rascunho: { label: 'Rascunho', color: '#9aa3ab' },

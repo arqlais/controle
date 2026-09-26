@@ -148,6 +148,7 @@ export interface CalendarEvent {
   date: string
   time: string
   type: EventType
+  customType?: string // quando o tipo é "outro": nome digitado (ex.: "curso", "médico")
   projectId: string
   notes: string
   done: boolean

@@ -7,7 +7,7 @@ import { needsFollowUp, waitingDays } from './Quotes'
 import { BarChart, Donut } from '../components/Charts'
 import { StatusSelect } from '../components/quick'
 import {
-  EVENT_TYPES,
+  EVENT_TYPES, eventLabel,
   MONTHS,
   PRIORITY,
   allPayments,
@@ -57,7 +57,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
     })
     data.events.forEach((e) => {
       if (!e.done && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7)
-        items.push({ date: e.date, label: e.title, sub: `${EVENT_TYPES[e.type].label}${e.time ? ` · ${e.time}` : ''}`, color: EVENT_TYPES[e.type].color, link: href('agenda'), kind: 'evento' })
+        items.push({ date: e.date, label: e.title, sub: `${eventLabel(e)}${e.time ? ` · ${e.time}` : ''}`, color: EVENT_TYPES[e.type].color, link: href('agenda'), kind: 'evento' })
     })
     return items.sort((a, b) => a.date.localeCompare(b.date))
   }, [data, pays])

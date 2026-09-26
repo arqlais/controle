@@ -9,7 +9,7 @@ import { CLOUD, SUPABASE_URL } from '../cloud'
 import { buildICS } from '../ics'
 import type { CalendarEvent } from '../types'
 import {
-  EVENT_TYPES,
+  EVENT_TYPES, eventLabel,
   PRIORITY,
   WEEKDAYS,
   allPayments,
@@ -82,7 +82,7 @@ export default function Agenda() {
         date: e.date,
         time: e.time,
         title: e.title,
-        sub: EVENT_TYPES[e.type].label,
+        sub: eventLabel(e),
         color: EVENT_TYPES[e.type].color,
         kind: 'evento',
         event: e,

@@ -478,6 +478,22 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
             ))}
           </select>
         </Field>
+        {ev.type === 'outro' && (
+          <Field label="Qual tipo?" span={3} hint="Opcional. Ex.: curso, médico, visita de obra.">
+            <input
+              value={ev.customType ?? ''}
+              onChange={(e) => set('customType', e.target.value)}
+              list="event-custom-types"
+              placeholder="Digite o tipo"
+              autoCapitalize="sentences"
+            />
+            <datalist id="event-custom-types">
+              {[...new Set(data.events.map((x) => x.customType?.trim()).filter(Boolean))].map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          </Field>
+        )}
         {!editing && (
           <Field label="Repetir toda semana" span={3} hint="Útil para aulas, orientação do TCC ou reuniões fixas.">
             <select id="event-repeat" value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}>

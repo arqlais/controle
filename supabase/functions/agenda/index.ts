@@ -76,7 +76,7 @@ function calendarEntries(data: Data): Entry[] {
       date: e.date,
       time: e.time || undefined,
       title: e.title,
-      description: [EVENT_LABEL[e.type] ?? '', e.notes].filter(Boolean).join('\n'),
+      description: [(e.type === 'outro' && e.customType?.trim()) || EVENT_LABEL[e.type] || '', e.notes].filter(Boolean).join('\n'),
       alarm: e.time ? '-PT30M' : '-PT15H',
     })
   }
