@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { Field, Modal, MoneyInput } from './ui'
+import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, fmtWeekday } from '../utils'
+import { QUOTE_STATUS, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -111,10 +111,12 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const fee = data.settings.urgencyFee
   const proposed = quoteTotal({ ...q, closedValue: 0 }, fee)
   const [value, setValue] = useState(q.closedValue && q.closedValue > 0 ? q.closedValue : proposed)
-  const [workDays, setWorkDays] = useState(0) // prazo em dias úteis (0 = sem prazo)
+  const [workDays, setWorkDays] = useState(0) // quantidade de dias (0 = sem prazo)
+  const [dayMode, setDayMode] = useState<'uteis' | 'corridos' | 'data'>('uteis')
+  const [exactDate, setExactDate] = useState('')
   const [closedOn, setClosedOn] = useState(today())
   const [signalPaid, setSignalPaid] = useState(false)
-  const due = workDays > 0 ? addBusinessDays(closedOn, workDays) : ''
+  const due = dayMode === 'data' ? exactDate : workDays > 0 ? (dayMode === 'uteis' ? addBusinessDays(closedOn, workDays) : addDays(closedOn, workDays)) : ''
   const diff = Math.round((proposed - value) * 100) / 100
   const confirm = () => {
     if (value <= 0) return toast('Informe o valor fechado.')
@@ -158,14 +160,30 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
           <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})
         </label>
         <Field
-          label="Prazo combinado · dias úteis"
+          group
+          label="Prazo combinado · se houver"
           hint={
             due
-              ? `Entrega em ${fmtWeekday(due)}, ${due.split('-').reverse().join('/')} · sem contar fins de semana e feriados.`
-              : 'Deixe 0 se não combinaram prazo. Dá para definir depois, no card “prazo combinado” da demanda.'
+              ? `Entrega em ${fmtWeekday(due)}, ${due.split('-').reverse().join('/')}${dayMode === 'uteis' ? ' · sem contar fins de semana e feriados' : dayMode === 'corridos' ? ' · contando todos os dias' : ''}.`
+              : 'Sem prazo? Deixe em branco. Dá para definir depois, no card “prazo combinado” da demanda.'
           }
         >
-          <input type="number" min={0} value={workDays} onFocus={(e) => e.target.select()} onChange={(e) => setWorkDays(Math.max(0, Math.round(Number(e.target.value) || 0)))} />
+          <div className="deadline-field">
+            <Segmented<'uteis' | 'corridos' | 'data'>
+              value={dayMode}
+              onChange={setDayMode}
+              options={[
+                { value: 'uteis', label: 'dias úteis' },
+                { value: 'corridos', label: 'dias corridos' },
+                { value: 'data', label: 'data exata' },
+              ]}
+            />
+            {dayMode === 'data' ? (
+              <input type="date" value={exactDate} min={closedOn} onChange={(e) => setExactDate(e.target.value)} />
+            ) : (
+              <input type="number" min={0} value={workDays || ''} placeholder="nº de dias" onFocus={(e) => e.target.select()} onChange={(e) => setWorkDays(Math.max(0, Math.round(Number(e.target.value) || 0)))} />
+            )}
+          </div>
         </Field>
         <p className="small muted">A proposta em PDF continua com o valor original. A demanda, as parcelas e o financeiro usam o valor fechado.</p>
       </form>

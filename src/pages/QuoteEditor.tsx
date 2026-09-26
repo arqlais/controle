@@ -259,7 +259,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                   </label>
                 </div>
               </Field>
-              <Field label="Modelo" span={2}>
+              <Field group label="Modelo" span={2}>
                 <Segmented
                   value={q.mode}
                   onChange={(mode) => set({ mode, options: q.options.length >= 2 ? q.options : [newOption(), newOption()] })}
@@ -499,7 +499,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                 </Field>
               )}
               {s?.pricing === 'm2' && (
-                <Field label="Complexidade">
+                <Field group label="Complexidade">
                   <Segmented<Complexity>
                     value={it.complexity}
                     onChange={(c) => setItem(it.id, { complexity: c })}

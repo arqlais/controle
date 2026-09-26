@@ -48,13 +48,15 @@ export function Modal({
   )
 }
 
-export function Field({ label, children, hint, span, className = '' }: { label: string; children: ReactNode; hint?: string; span?: 1 | 2 | 3; className?: string }) {
+export function Field({ label, children, hint, span, className = '', group }: { label: string; children: ReactNode; hint?: string; span?: 1 | 2 | 3; className?: string; group?: boolean }) {
+  // group: campo com vários botões (ex.: escolhas) — não pode ser <label>, senão clicar no título aciona o 1º botão
+  const Tag = group ? 'div' : 'label'
   return (
-    <label className={`field ${span ? `span-${span}` : ''} ${className}`}>
+    <Tag className={`field ${span ? `span-${span}` : ''} ${className}`}>
       <span className="field-label">{label}</span>
       {children}
       {hint && <span className="field-hint">{hint}</span>}
-    </label>
+    </Tag>
   )
 }
 

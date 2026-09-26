@@ -568,7 +568,7 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
         <label className="check" style={{ gridColumn: '1 / -1' }}>
           <input type="checkbox" checked={byUnit} onChange={(e) => setByUnit(e.target.checked)} /> calcular por quantidade (ex.: 15 imagens × R$ 35,00)
         </label>
-        <Field label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + (byUnit ? qty * unit : amount))}.` : 'Vira uma parcela nova, cobrada na conclusão.'}>
+        <Field group label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + (byUnit ? qty * unit : amount))}.` : 'Vira uma parcela nova, cobrada na conclusão.'}>
           <Segmented<Extra['mode']>
             value={open ? mode : 'separado'}
             onChange={setMode}

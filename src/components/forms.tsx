@@ -113,7 +113,7 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
             ))}
           </datalist>
         </Field>
-        <Field label="Favorito">
+        <Field group label="Favorito">
           <Segmented
             value={c.favorite ? 's' : 'n'}
             options={[
@@ -286,7 +286,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         <Field label="Prazo de entrega">
           <input type="date" value={p.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
         </Field>
-        <Field label="Prioridade">
+        <Field group label="Prioridade">
           <Segmented
             value={p.priority}
             options={(Object.keys(PRIORITY) as Priority[]).map((k) => ({ value: k, label: PRIORITY[k].label }))}
@@ -314,7 +314,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
           <div className="readonly">{money(total)}</div>
         </Field>
 
-        <Field label="Forma de pagamento" span={3} hint="Gera as parcelas automaticamente. Você pode ajustar cada uma depois, na página do projeto.">
+        <Field group label="Forma de pagamento" span={3} hint="Gera as parcelas automaticamente. Você pode ajustar cada uma depois, na página do projeto.">
           <Segmented<PayChoice>
             value={payMode}
             options={[
@@ -394,7 +394,7 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
         <Field label={e.recurring ? 'Início da cobrança' : 'Data'}>
           <input type="date" value={e.date} onChange={(ev) => set('date', ev.target.value)} />
         </Field>
-        <Field label="Recorrência">
+        <Field group label="Recorrência">
           <Segmented
             value={e.recurring ? 'm' : 'u'}
             options={[

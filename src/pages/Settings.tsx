@@ -220,7 +220,7 @@ export default function SettingsPage() {
               </Section>
               <Section title="tema deste aparelho">
                 <div className="form-grid">
-                  <Field label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
+                  <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
                     <Segmented
                       value={dark ? 'd' : 'l'}
                       options={[
@@ -314,7 +314,7 @@ export default function SettingsPage() {
                   <Field label="Desconto para estudantes (%)" hint="Aplicado nas sugestões de valor.">
                     <input type="number" min={0} max={90} value={s.studentDiscount} onChange={(e) => setSettings({ studentDiscount: Number(e.target.value) || 0 })} />
                   </Field>
-                  <Field label="Complexidade (multiplica o m²)" span={3}>
+                  <Field group label="Complexidade (multiplica o m²)" span={3}>
                     <div className="row gap-s">
                       {(Object.keys(COMPLEXITY) as Complexity[]).map((k) => (
                         <label key={k} className="cx-field">
