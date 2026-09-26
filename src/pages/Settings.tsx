@@ -307,21 +307,48 @@ export default function SettingsPage() {
                         <Field label="Título da lista" hint="Vai na pergunta ao cliente.">
                           <input value={x.checklistTitle ?? ''} onChange={(e) => setService(x.id, { checklistTitle: e.target.value })} placeholder="Ex.: plantas executivas" />
                         </Field>
-                        <Field label="O que o cliente pode escolher" hint="Uma por linha. No orçamento viram botões para marcar.">
-                          <textarea
-                            rows={Math.max(3, x.checklist.length)}
-                            value={x.checklist.join('\n')}
-                            onChange={(e) => setService(x.id, { checklist: e.target.value.split('\n') })}
-                            onBlur={() => setService(x.id, { checklist: x.checklist!.map((l) => l.trim()).filter(Boolean) })}
-                          />
-                        </Field>
-                        <button className="link small" onClick={() => setService(x.id, { checklist: [], checklistTitle: '' })}>
-                          remover lista
-                        </button>
+                        <div className="checklist-rows">
+                          <span className="field-label">
+                            opções e valor de cada uma {x.pricing === 'm2' ? '(por m², × complexidade)' : '(cada, × complexidade)'}
+                          </span>
+                          {x.checklist.map((c, i) => (
+                            <div key={i} className="checklist-row">
+                              <input
+                                value={c}
+                                onChange={(e) => {
+                                  const name = e.target.value
+                                  const prices = { ...(x.checklistPrices ?? {}) }
+                                  prices[name] = prices[c] ?? x.customRate ?? 0
+                                  if (!x.checklist!.some((y, j) => j !== i && y === c)) delete prices[c]
+                                  setService(x.id, { checklist: x.checklist!.map((y, j) => (j === i ? name : y)), checklistPrices: prices })
+                                }}
+                                placeholder="Ex.: planta de forro"
+                                aria-label="Nome da opção"
+                              />
+                              <MoneyInput value={x.checklistPrices?.[c] ?? 0} onChange={(n) => setService(x.id, { checklistPrices: { ...(x.checklistPrices ?? {}), [c]: n } })} />
+                              <button className="icon-btn subtle" onClick={() => setService(x.id, { checklist: x.checklist!.filter((_, j) => j !== i) })} aria-label="Remover opção">
+                                <Icon name="x" size={14} />
+                              </button>
+                            </div>
+                          ))}
+                          <div className="checklist-row">
+                            <span className="muted small">item personalizado (escrito no orçamento)</span>
+                            <MoneyInput value={x.customRate ?? 0} onChange={(n) => setService(x.id, { customRate: n })} />
+                            <span />
+                          </div>
+                          <div className="row gap-s">
+                            <button className="btn small ghost" onClick={() => setService(x.id, { checklist: [...x.checklist!, ''] })}>
+                              <Icon name="plus" size={14} /> opção
+                            </button>
+                            <button className="link small" onClick={() => setService(x.id, { checklist: [], checklistTitle: '' })}>
+                              remover lista
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <button className="link small" onClick={() => setService(x.id, { checklist: [''], checklistTitle: x.name })}>
-                        + lista para o cliente escolher (ex.: quais plantas)
+                      <button className="link small" onClick={() => setService(x.id, { checklist: [''], checklistTitle: x.name, checklistPrices: {} })}>
+                        + lista para o cliente escolher (ex.: quais plantas), com valor por item
                       </button>
                     )}
                   </div>

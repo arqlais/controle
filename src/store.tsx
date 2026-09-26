@@ -23,12 +23,60 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
 ]
 
 /** Listas que o cliente escolhe (quais plantas / quais detalhamentos) — editáveis em Configurações → preços. */
-export const DEFAULT_CHECKLISTS: Record<string, Pick<ServiceDef, 'checklistTitle' | 'checklist'>> = {
-  executivo: {
-    checklistTitle: 'plantas executivas',
-    checklist: ['planta de layout (mobiliário)', 'planta de demolição', 'planta de construção', 'planta elétrica', 'planta de iluminação', 'planta de forro', 'planta hidráulica', 'paginação de piso/revestimentos', 'cortes', 'elevações'],
-  },
-  detalhamento: { checklistTitle: 'detalhamentos (caso precise)', checklist: ['marcenaria', 'marmoraria (pedras)', 'serralheria'] },
+type ChecklistDefaults = Pick<ServiceDef, 'checklistTitle' | 'checklist' | 'checklistPrices' | 'customRate'>
+const list = (title: string, items: [string, number][], customRate: number): ChecklistDefaults => ({
+  checklistTitle: title,
+  checklist: items.map(([n]) => n),
+  checklistPrices: Object.fromEntries(items),
+  customRate,
+})
+/** Listas que o cliente escolhe (quais plantas / quais detalhamentos), com o valor de cada uma por m².
+    São pontos de partida: ajuste nomes e valores em Configurações → preços. */
+export const DEFAULT_CHECKLISTS: Record<string, ChecklistDefaults> = {
+  executivo: list(
+    'plantas executivas',
+    [
+      ['planta de layout (mobiliário)', 1.5],
+      ['planta de demolição', 1],
+      ['planta de construção', 1.5],
+      ['planta elétrica', 1.5],
+      ['planta de iluminação', 1.5],
+      ['planta de forro', 1.2],
+      ['planta hidráulica', 1.2],
+      ['planta de ar-condicionado', 0.8],
+      ['paginação de piso/revestimentos', 1.2],
+      ['planta de acabamentos', 1],
+      ['planta de cobertura', 0.8],
+      ['planta de situação/implantação', 0.6],
+      ['cortes', 1.2],
+      ['elevações', 1.2],
+      ['fachadas', 1],
+      ['quadro de esquadrias', 0.6],
+    ],
+    1,
+  ),
+  detalhamento: list(
+    'detalhamentos (caso precise)',
+    [
+      ['marcenaria', 4],
+      ['marmoraria (pedras)', 2.5],
+      ['serralheria', 2],
+      ['vidraçaria', 1.5],
+      ['banheiros (áreas molhadas)', 2.5],
+      ['cozinha', 2.5],
+      ['forro e sancas', 1.5],
+      ['painéis e revestimentos', 1.5],
+      ['escadas e guarda-corpos', 2],
+      ['portas e esquadrias', 1.5],
+      ['paisagismo', 1.5],
+    ],
+    1.5,
+  ),
+}
+/** Primeira versão das listas (sem valores): quem ainda está com ela recebe a lista completa. */
+const OLD_CHECKLISTS: Record<string, string[]> = {
+  executivo: ['planta de layout (mobiliário)', 'planta de demolição', 'planta de construção', 'planta elétrica', 'planta de iluminação', 'planta de forro', 'planta hidráulica', 'paginação de piso/revestimentos', 'cortes', 'elevações'],
+  detalhamento: ['marcenaria', 'marmoraria (pedras)', 'serralheria'],
 }
 
 /** Nomes antigos (com maiúscula / plural) → nomes atuais, sem perder os preços já ajustados. */
@@ -40,7 +88,14 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Planta humanizada', 'Serviço personalizado'])
   const out = list.map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
-  return out.map((x) => (DEFAULT_CHECKLISTS[x.id] && x.checklist === undefined ? { ...x, ...DEFAULT_CHECKLISTS[x.id] } : x))
+  return out.map((x) => {
+    const d = DEFAULT_CHECKLISTS[x.id]
+    if (!d) return x
+    const untouched = x.checklist === undefined || (!x.checklistPrices && x.checklist.join('|') === OLD_CHECKLISTS[x.id]?.join('|'))
+    if (untouched) return { ...x, ...d, checklistTitle: x.checklistTitle || d.checklistTitle }
+    // lista já editada: só completa os valores que faltam
+    return x.checklistPrices ? x : { ...x, checklistPrices: Object.fromEntries((x.checklist ?? []).map((c) => [c, d.checklistPrices?.[c] ?? d.customRate ?? 0])), customRate: x.customRate ?? d.customRate }
+  })
 }
 
 /** Mensagens padrão — editáveis em Configurações. {variáveis} são preenchidas com os dados do caso. */

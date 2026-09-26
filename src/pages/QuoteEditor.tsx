@@ -8,9 +8,13 @@ import { DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
-import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, Settings } from '../types'
+import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import {
+  checklistMatch,
+  checklistPrice,
+  checklistRate,
+  pricedByList,
   parseScopeReply,
   scopeQuestion,
   daysBetween,
@@ -467,6 +471,69 @@ export default function QuoteEditor({ id }: { id: string }) {
   )
 }
 
+/** Botões das opções da lista (plantas, detalhamentos) + itens personalizados. Cada um marcado soma no valor. */
+function ScopeChips({ s, text, onChange }: { s: ServiceDef; text: string; onChange: (text: string) => void }) {
+  const [custom, setCustom] = useState('')
+  const options = s.checklist!.filter((c) => c.trim())
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
+  const unit = s.pricing === 'm2' ? '/m²' : ''
+  const priceTag = (v: number) => (v ? `${money(v)}${unit}` : '')
+  const own = lines.filter((l) => !checklistMatch(s, l))
+  // remonta na ordem da lista, mantendo o jeito que você escreveu cada item
+  const rebuild = (on: (c: string) => boolean, extra: string[]) =>
+    onChange([...options.filter(on).map((c) => lines.find((l) => checklistMatch(s, l) === c) ?? c), ...extra].join('\n'))
+  const isOn = (c: string) => lines.some((l) => checklistMatch(s, l) === c)
+  const add = () => {
+    const v = custom.trim()
+    if (!v) return
+    const match = checklistMatch(s, v)
+    if (match) rebuild((c) => c === match || isOn(c), own)
+    else if (!own.some((l) => l.toLowerCase() === v.toLowerCase())) rebuild(isOn, [...own, v])
+    setCustom('')
+  }
+  return (
+    <div className="scope-chips">
+      {options.map((c) => {
+        const on = isOn(c)
+        return (
+          <button
+            key={c}
+            type="button"
+            className={`scope-chip ${on ? 'on' : ''}`}
+            aria-pressed={on}
+            title={priceTag(checklistPrice(s, c)) || undefined}
+            onClick={() => rebuild((x) => (x === c ? !on : isOn(x)), own)}
+          >
+            {on && <Icon name="check" size={12} />}
+            {c}
+          </button>
+        )
+      })}
+      {own.map((l) => (
+        <button key={l} type="button" className="scope-chip on is-own" title={`item personalizado · ${priceTag(s.customRate ?? 0) || 'sem valor'} · toque para tirar`} onClick={() => rebuild(isOn, own.filter((x) => x !== l))}>
+          {l}
+          <Icon name="x" size={12} />
+        </button>
+      ))}
+      <span className="scope-add">
+        <input
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              add()
+            }
+          }}
+          onBlur={add}
+          placeholder="+ outro (escreva e Enter)"
+          aria-label="Adicionar item personalizado"
+        />
+      </span>
+    </div>
+  )
+}
+
 /** Perguntar ao cliente quais plantas/detalhamentos ele quer e marcar tudo colando a resposta. */
 function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settings: Settings; phone: string; student: boolean; onApply: (items: QuoteItem[]) => void }) {
   const [open, setOpen] = useState<'' | 'perguntar' | 'resposta'>('')
@@ -484,11 +551,13 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
       const cur = items.find((i) => i.service === sid)
       if (cur) {
         // o que foi escrito à mão (fora da lista) continua
-        const own = cur.description.split('\n').filter((l) => l.trim() && !s.checklist!.some((c) => c.toLowerCase() === l.trim().toLowerCase()) && !picked.includes(l.trim()))
-        items = items.map((i) => (i === cur ? { ...i, description: [...picked, ...own].join('\n') } : i))
+        const own = cur.description.split('\n').filter((l) => l.trim() && !checklistMatch(s, l) && !picked.some((x) => x.toLowerCase() === l.trim().toLowerCase()))
+        const lines = [...picked, ...own]
+        const price = cur.auto && s.pricing !== 'livre' ? suggestPrice(s, cur.quantity, cur.complexity, student, settings, lines) : cur.price
+        items = items.map((i) => (i === cur ? { ...i, description: lines.join('\n'), price } : i))
       } else {
         const quantity = s.pricing === 'm2' ? q.area || 50 : s.pricing === 'livre' ? 1 : picked.length
-        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings)
+        const price = s.pricing === 'livre' ? 0 : suggestPrice(s, quantity, 'media', student, settings, picked)
         items = [...items, { ...newItem(), service: sid, title: s.name, quantity, price, detail: itemDetail(s, quantity, 'media'), description: picked.join('\n') }]
       }
     }
@@ -585,7 +654,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
     return {
       ...it,
       detail: it.auto || !it.detail ? itemDetail(s, it.quantity, it.complexity) : it.detail,
-      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
+      price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings, it.description.split('\n')) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
     }
   }
   const setItem = (iid: string, patch: Partial<QuoteItem>) => onChange(items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i)))
@@ -594,7 +663,9 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
     <div className="q-items">
       {items.map((it, n) => {
         const s = service(it.service)
-        const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings)
+        const lines = it.description.split('\n')
+        const byList = pricedByList(s, lines)
+        const suggestion = suggestPrice(s, it.quantity, it.complexity, student, settings, lines)
         const rate = s && (s.pricing === 'pacote' || s.pricing === 'unidade') ? unitRate(s, it.quantity) : 0
         return (
           <div key={it.id} className="q-item">
@@ -628,12 +699,12 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
               <Field label="Serviço (na proposta)">
                 <input value={it.title} onChange={(e) => setItem(it.id, { title: e.target.value })} placeholder="Ex.: renderização V-Ray" />
               </Field>
-              {s && s.pricing !== 'livre' && (
+              {s && s.pricing !== 'livre' && !(byList && s.pricing !== 'm2') && (
                 <Field label={s.pricing === 'm2' ? 'Área (m²)' : `Quantidade (${s.unit})`}>
                   <input type="number" min={0} inputMode="decimal" value={it.quantity || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => setItem(it.id, { quantity: Number(e.target.value) || 0 })} />
                 </Field>
               )}
-              {s?.pricing === 'm2' && (
+              {(s?.pricing === 'm2' || byList) && (
                 <Field group label="Complexidade">
                   <Segmented<Complexity>
                     value={it.complexity}
@@ -645,35 +716,12 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
               <Field label="Detalhe (ao lado do serviço)">
                 <input value={it.detail} onChange={(e) => onChange(items.map((i) => (i.id === it.id ? { ...i, detail: e.target.value } : i)))} placeholder="Ex.: 5 imagens" />
               </Field>
-              {s?.checklist?.length ? (
+              {s?.checklist?.some((c) => c.trim()) ? (
                 <Field group span={2} label={`${s.checklistTitle || 'o que o cliente quer'} · toque para marcar`}>
-                  <div className="scope-chips">
-                    {s.checklist.filter((c) => c.trim()).map((c) => {
-                      const lines = it.description.split('\n').map((l) => l.trim())
-                      const on = lines.some((l) => l.toLowerCase() === c.toLowerCase())
-                      return (
-                        <button
-                          key={c}
-                          type="button"
-                          className={`scope-chip ${on ? 'on' : ''}`}
-                          aria-pressed={on}
-                          onClick={() => {
-                            const rest = it.description.split('\n').filter((l) => l.trim() && l.trim().toLowerCase() !== c.toLowerCase())
-                            // mantém a ordem da lista: os marcados primeiro, depois o que foi escrito à mão
-                            const picked = s.checklist!.filter((x) => (x === c ? !on : rest.some((l) => l.trim().toLowerCase() === x.toLowerCase())))
-                            const own = rest.filter((l) => !s.checklist!.some((x) => x.toLowerCase() === l.trim().toLowerCase()))
-                            setItem(it.id, { description: [...picked, ...own].join('\n') })
-                          }}
-                        >
-                          {on && <Icon name="check" size={12} />}
-                          {c}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  <ScopeChips s={s} text={it.description} onChange={(description) => setItem(it.id, { description })} />
                 </Field>
               ) : null}
-              <Field label="O que está incluso" span={2} hint={s?.checklist?.length ? 'Os marcados acima entram aqui. Algo diferente (ex.: serralheria com vidraçaria)? escreva numa linha nova.' : 'Enter para uma nova linha: cada linha aparece embaixo da outra na proposta.'}>
+              <Field label="O que está incluso" span={2} hint={s?.checklist?.length ? 'Os marcados acima entram aqui e somam no valor. Algo específico? use “+ outro” ou escreva numa linha nova.' : 'Enter para uma nova linha: cada linha aparece embaixo da outra na proposta.'}>
                 <textarea
                   className="auto-grow"
                   rows={Math.max(1, it.description.split('\n').length)}
@@ -712,7 +760,7 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
                   </label>
                 </div>
               )}
-              {!it.joined && s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
+              {!it.joined && !byList && s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
                 <Field label={`Desconto por ${s.unit}`} hint={it.unitDiscount ? `fica ${money(Math.max(0, rate - it.unitDiscount))}/${s.unit}` : 'opcional'}>
                   <MoneyInput value={it.unitDiscount ?? 0} onChange={(v) => setItem(it.id, { unitDiscount: v, auto: true })} />
                 </Field>
@@ -723,7 +771,13 @@ function ItemsEditor({ items, student, settings, onChange }: { items: QuoteItem[
               <Field
                 label="Valor"
                 hint={
-                  s && s.pricing !== 'livre'
+                  s && byList
+                    ? (() => {
+                        const { rate: r, count } = checklistRate(s, lines)
+                        const base = `${count} ${count === 1 ? 'item' : 'itens'} = ${money(r)}${s.pricing === 'm2' ? `/m² × ${it.quantity} m²` : ''} × ${settings.complexity[it.complexity]}`
+                        return `tabela: ${money(suggestion)} · ${base}${s.min && suggestion <= s.min ? ` (valor mínimo ${money(s.min)})` : ''}`
+                      })()
+                    : s && s.pricing !== 'livre'
                     ? `tabela: ${money(suggestion)}${rate ? ` · ${money(rate)}/${s.unit}` : ''}${s.pricing === 'm2' ? ` · ${money(s.price)}/m² × ${settings.complexity[it.complexity]}` : ''}`
                     : 'digite o valor'
                 }

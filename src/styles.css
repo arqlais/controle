@@ -1192,7 +1192,10 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .scope-chip.on { background: var(--accent-tint); border-color: var(--accent-soft); color: var(--text); font-weight: 600; }
 .scope-text { width: 100%; font-size: 13.5px; line-height: 1.5; resize: vertical; }
 .scope-found { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--surface-2); font-size: 13px; }
-.service-checklist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px 14px; margin-top: 10px; align-items: start; } .service-checklist .link { grid-column: 1 / -1; justify-self: start; } @media (max-width: 820px) { .service-checklist { grid-template-columns: 1fr; } }
+.service-checklist { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 10px 18px; margin-top: 12px; align-items: start; } @media (max-width: 820px) { .service-checklist { grid-template-columns: 1fr; } }
+.checklist-rows { display: grid; gap: 6px; }
+.checklist-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 28px; gap: 8px; align-items: center; }
+.checklist-row input { padding-top: 7px; padding-bottom: 7px; }
 .phone-toggle { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; color: var(--accent-ink); cursor: pointer; }
 .phone-toggle.off { color: var(--muted); }
 .phone-toggle:hover { text-decoration: underline; }
@@ -1204,3 +1207,6 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .sync-steps { display: grid; gap: 10px; padding-left: 20px; margin: 0 0 14px; }
 .sync-steps .btn { margin-left: 4px; vertical-align: middle; }
 .sync-device button, .sync-steps .btn { text-transform: none; }
+.scope-chip.is-own { border-style: dashed; }
+.scope-chip.is-own svg { opacity: 0.6; }
+.scope-add input { width: 190px; max-width: 100%; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; min-height: 0; border-style: dashed; }

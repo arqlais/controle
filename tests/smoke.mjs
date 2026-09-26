@@ -85,6 +85,12 @@ try {
     const qty = page.locator('.q-item').first().locator('input[type=number]').first()
     await qty.fill(''); await qty.type('34')
     ok((await qty.inputValue()) === '34', `${vp.name}: área do serviço aceita 34 sem sobrar o 0`)
+    // cada planta marcada soma no valor (área grande para não cair no valor mínimo)
+    await qty.fill('300'); await page.waitForTimeout(100)
+    const priceOf = () => page.locator('.q-item').first().locator('.money-input input').last().inputValue().then(Number)
+    const priceBefore = await priceOf()
+    await page.locator('.q-item').first().getByRole('button', { name: 'planta de forro' }).click(); await page.waitForTimeout(150)
+    ok((await priceOf()) > priceBefore, `${vp.name}: marcar uma planta aumenta o valor pelo m²`)
     await page.locator('.q-item').nth(1).getByText('cobrar junto com o serviço de cima').click(); await page.waitForTimeout(200)
     ok((await page.getByText('Somado ao valor do serviço 01').count()) === 1, `${vp.name}: cobrar dois serviços juntos`)
 

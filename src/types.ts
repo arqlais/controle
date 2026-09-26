@@ -238,6 +238,8 @@ export interface ServiceDef {
   studentPrice?: number // (antigo) substituído pelo desconto de estudante
   checklistTitle?: string // ex.: "plantas executivas" (título da lista que o cliente escolhe)
   checklist?: string[] // o que o cliente pode escolher (plantas, tipos de detalhamento…)
+  checklistPrices?: Record<string, number> // valor de cada opção: R$/m² (serviço por m²) ou R$ cada (por unidade)
+  customRate?: number // valor de um item personalizado (escrito à mão), na mesma unidade
 }
 
 export interface MessageTemplate {

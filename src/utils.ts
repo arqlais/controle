@@ -301,10 +301,62 @@ export function unitRate(s: ServiceDef, qty: number) {
   return rate
 }
 
+/* ---------- serviços com lista (plantas executivas, detalhamentos): preço por item marcado ---------- */
+
+const STOP = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'com', 'para', 'em', 'no', 'na'])
+/** Chave para comparar nomes parecidos: "planta de layout (mobiliário)" = "planta de layout/mobiliário". */
+export const scopeKey = (s: string) =>
+  [
+    ...new Set(
+      s
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w && !STOP.has(w))
+        .map((w) => (w.length > 3 && w.endsWith('s') ? w.slice(0, -1) : w)),
+    ),
+  ]
+    .sort()
+    .join(' ')
+
+const hasList = (s?: ServiceDef) => !!s?.checklist?.some((c) => c.trim())
+/** Opção da lista que corresponde a uma linha escrita (ou undefined se for um item personalizado). */
+export const checklistMatch = (s: ServiceDef, line: string) => {
+  const k = scopeKey(line)
+  if (!k) return undefined
+  const opts = (s.checklist ?? []).filter((c) => c.trim())
+  const exact = opts.find((c) => scopeKey(c) === k)
+  if (exact) return exact
+  // "elevações internas" → "elevações": todas as palavras da opção aparecem na linha (vence a mais específica)
+  const words = new Set(k.split(' '))
+  return opts
+    .map((c) => ({ c, w: scopeKey(c).split(' ') }))
+    .filter(({ w }) => w.length && w.every((x) => words.has(x)))
+    .sort((a, b) => b.w.length - a.w.length)[0]?.c
+}
+/** Valor de uma opção (ou de um item personalizado). */
+export const checklistPrice = (s: ServiceDef, option?: string) => (option ? s.checklistPrices?.[option] ?? s.customRate ?? 0 : s.customRate ?? 0)
+/** Soma dos itens marcados (linhas de "o que está incluso"): R$/m² ou R$ por item, antes da complexidade. */
+export function checklistRate(s: ServiceDef, lines: string[]) {
+  const picked = lines.map((l) => l.trim()).filter(Boolean)
+  const rate = picked.reduce((acc, l) => acc + checklistPrice(s, checklistMatch(s, l)), 0)
+  return { rate: round2(rate), count: picked.length }
+}
+/** O serviço é calculado pelos itens marcados? (tem lista com valores e há itens marcados) */
+export const pricedByList = (s: ServiceDef | undefined, lines: string[]) =>
+  !!s && hasList(s) && !!s.checklistPrices && Object.keys(s.checklistPrices).length > 0 && lines.some((l) => l.trim()) && s.pricing !== 'livre'
+
 /** Sugestão de valor pela tabela (0 quando o serviço é de valor livre). */
-export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings) {
+export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = []) {
   if (!s || s.pricing === 'livre') return 0
-  let v = s.pricing === 'm2' ? s.price * qty * (st.complexity[complexity] ?? 1) : unitRate(s, qty) * qty
+  const cx = st.complexity[complexity] ?? 1
+  let v: number
+  if (pricedByList(s, lines)) {
+    // cada planta/detalhamento marcado soma: R$/m² × área × complexidade, ou R$ cada × complexidade
+    const { rate } = checklistRate(s, lines)
+    v = s.pricing === 'm2' ? rate * qty * cx : rate * cx
+  } else v = s.pricing === 'm2' ? s.price * qty * cx : unitRate(s, qty) * qty
   v = Math.max(v, s.min || 0)
   if (student && st.studentDiscount) v *= 1 - st.studentDiscount / 100
   return round2(v)
@@ -604,10 +656,12 @@ export function parseScopeReply(text: string, services: ServiceDef[]) {
     if (other) item = item.slice(other[0].length).trim()
     if (!item || /^_+$/.test(item)) continue
     // item igual ao da lista → usa o nome da lista; senão mantém como o cliente escreveu
-    const exact = (s: ServiceDef) => s.checklist!.find((c) => scopeNorm(c) === scopeNorm(item) || scopeCore(c) === scopeCore(item))
+    const exact = (s: ServiceDef) => s.checklist!.find((c) => scopeNorm(c) === scopeNorm(item) || scopeCore(c) === scopeCore(item)) ?? checklistMatch(s, item)
     const owner = (current && (exact(current) || !lists.some((s) => s !== current && exact(s))) ? current : lists.find((s) => exact(s))) ?? current
     if (!owner) continue
-    const name = exact(owner) ?? item
+    // só troca pelo nome da lista quando é o mesmo item; "serralheria com vidraçaria" fica como o cliente escreveu
+    const same = exact(owner)
+    const name = same && scopeKey(same) === scopeKey(item) ? same : item
     out[owner.id] = [...(out[owner.id] ?? []), ...(out[owner.id]?.includes(name) ? [] : [name])]
   }
   return out
