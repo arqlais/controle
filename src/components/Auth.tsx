@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { CLOUD, supabase } from '../cloud'
 import { DEFAULT_SETTINGS, StoreProvider } from '../store'
 import { applyTheme } from '../theme'
-import { Field } from './ui'
+import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
 import { Icon } from './Icon'
 
@@ -106,7 +106,7 @@ function Login() {
       </div>
       <form onSubmit={submit}>
         <Field label="E-mail">
-          <input id="login-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <EmailInput id="login-email" value={email} onChange={setEmail} />
         </Field>
         {!forgot && (
           <Field label="Senha">

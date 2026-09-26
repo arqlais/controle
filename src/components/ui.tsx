@@ -48,12 +48,30 @@ export function Modal({
   )
 }
 
+/** Títulos ficam em minúsculas, mas "R$" continua sempre maiúsculo. */
+export function KeepRS({ text }: { text: string }) {
+  if (!text.includes('R$')) return <>{text}</>
+  const parts = text.split('R$')
+  return (
+    <>
+      {parts.map((p, i) => (
+        <span key={i}>
+          {i > 0 && <span className="keep-case">R$</span>}
+          {p}
+        </span>
+      ))}
+    </>
+  )
+}
+
 export function Field({ label, children, hint, span, className = '', group }: { label: string; children: ReactNode; hint?: ReactNode; span?: 1 | 2 | 3; className?: string; group?: boolean }) {
   // group: campo com vários botões (ex.: escolhas) — não pode ser <label>, senão clicar no título aciona o 1º botão
   const Tag = group ? 'div' : 'label'
   return (
     <Tag className={`field ${span ? `span-${span}` : ''} ${className}`}>
-      <span className="field-label">{label}</span>
+      <span className="field-label">
+        <KeepRS text={label} />
+      </span>
       {children}
       {hint && <span className="field-hint">{hint}</span>}
     </Tag>
@@ -93,7 +111,9 @@ export function Stat({
   return (
     <div className={`stat ${tone ? `tone-${tone}` : ''} ${onClick ? 'clickable' : ''}`} onClick={onClick}>
       <div className="stat-top">
-        <span className="stat-label">{label}</span>
+        <span className="stat-label">
+          <KeepRS text={label} />
+        </span>
         {icon && <Icon name={icon} size={16} />}
       </div>
       <div className="stat-value">{value}</div>
@@ -126,7 +146,9 @@ export function Section({ title, action, children, className = '' }: { title: st
   return (
     <section className={`card ${className}`}>
       <header className="card-head">
-        <h3>{title}</h3>
+        <h3>
+          <KeepRS text={title} />
+        </h3>
         {action}
       </header>
       {children}
@@ -183,23 +205,45 @@ export function usePaged<T>(items: T[], size = 30) {
 
 /** Celular com DDD e espaçamento automáticos. */
 export function PhoneInput({ value, onChange, id, placeholder = '(11) 99999-9999' }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string }) {
-  return <input id={id} type="tel" inputMode="tel" autoComplete="tel" value={value} placeholder={placeholder} onChange={(e) => onChange(formatPhone(e.target.value))} />
+  return (
+    <input
+      id={id}
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      value={value}
+      placeholder={placeholder}
+      title="Brasil: DDD + número. Outro país: comece com + e o código (ex.: +351)."
+      onChange={(e) => onChange(formatPhone(e.target.value))}
+    />
+  )
 }
 
 /** E-mail com sugestões de domínio depois do @. */
 export function EmailInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }) {
   const listId = `${id ?? 'email'}-dominios`
   const [local, domain = ''] = value.split('@')
-  const suggestions = value.includes('@') && local ? EMAIL_DOMAINS.filter((d) => d.startsWith(domain) && d !== domain).map((d) => `${local}@${d}`) : []
+  // sugere o @ desde a primeira letra; some quando o domínio já está completo
+  const done = value.includes('@') && EMAIL_DOMAINS.includes(domain)
+  const options = local && !done && !/\.[a-z]{2,}$/i.test(domain) ? EMAIL_DOMAINS.filter((d) => d.startsWith(domain)) : []
   return (
-    <>
+    <span className="email-field">
       <input id={id} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={value} list={listId} placeholder="nome@gmail.com" onChange={(e) => onChange(e.target.value.trim())} />
       <datalist id={listId}>
-        {suggestions.map((s) => (
-          <option key={s} value={s} />
+        {options.map((d) => (
+          <option key={d} value={`${local}@${d}`} />
         ))}
       </datalist>
-    </>
+      {options.length > 0 && (
+        <span className="email-chips">
+          {options.slice(0, 5).map((d) => (
+            <button key={d} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onChange(`${local}@${d}`)}>
+              @{d}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
   )
 }
 

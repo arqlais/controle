@@ -286,6 +286,7 @@ export interface Settings {
   calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean } // o que vai para o celular
   city: string
   logo: string // data URL
+  avatarIcon?: string // símbolo no lugar da foto (quando não há logo)
   customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons
   themeVersion: number
   accent: string

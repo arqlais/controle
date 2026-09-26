@@ -1271,3 +1271,21 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .mix-total { margin-left: auto; }
 @media (max-width: 820px) { .status-mix { padding: 14px 16px; } .mix-legend { gap: 6px 14px; } .mix-total { margin-left: 0; flex-basis: 100%; } }
 @media (max-width: 440px) { .toolbar select { flex-basis: 100%; } }
+
+/* perfil: símbolos e dados da conta */
+.avatar-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.avatar-pick { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.avatar-pick:hover { border-color: var(--accent-soft); color: var(--accent-ink); }
+.avatar-pick.on { background: var(--accent-tint); border-color: var(--accent-soft); color: var(--accent-ink); box-shadow: 0 0 0 3px var(--accent-tint); }
+.profile-meta { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.profile-meta li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 70%, transparent); border: 1px solid var(--border); font-size: 12px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-meta li .icon { color: var(--accent-ink); flex: none; }
+.profile-tag { margin: 2px 0 2px; }
+
+.keep-case { text-transform: none; }
+/* e-mail: atalhos do @ */
+.email-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.email-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.email-chips button { padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--accent-ink); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
+.email-chips button:hover { border-color: var(--accent-soft); background: var(--accent-tint); }
+.email-field input::-webkit-calendar-picker-indicator { display: none !important; }

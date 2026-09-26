@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { CLOUD, supabase } from '../cloud'
 import { signOut } from '../components/Auth'
 import { Icon } from '../components/Icon'
+import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
 import { EmailInput, Field, PhoneInput, Section } from '../components/ui'
 import { toast } from '../components/dialog'
 import type { Settings } from '../types'
@@ -18,10 +19,11 @@ const CHECK: [keyof Settings, string][] = [
   ['email', 'e-mail'],
   ['pixKey', 'chave pix'],
   ['instagram', 'instagram'],
-  ['logo', 'foto ou logo'],
+  ['logo', 'foto, logo ou símbolo'],
 ]
 
-export const profileMissing = (s: Settings) => CHECK.filter(([k]) => !String(s[k] ?? '').trim()).map(([, l]) => l)
+// foto ou símbolo escolhido contam como preenchido
+export const profileMissing = (s: Settings) => CHECK.filter(([k]) => !(k === 'logo' && s.avatarIcon) && !String(s[k] ?? '').trim()).map(([, l]) => l)
 
 export function initials(s: Settings) {
   const base = (s.ownerName || s.legalName || s.brandName || '?').trim()
@@ -62,8 +64,8 @@ export default function Profile() {
       <section className="card profile-hero">
         <div className="profile-avatar-col">
           <div className="profile-avatar-wrap">
-            <div className="profile-avatar" onClick={() => logoRef.current?.click()} title="Trocar foto">
-              {s.logo ? <img src={s.logo} alt="" /> : <Icon name="user" size={38} />}
+            <div className="profile-avatar" onClick={() => logoRef.current?.click()}>
+              <AvatarGlyph s={s} size={38} />
             </div>
             <button type="button" className="profile-avatar-badge" onClick={() => logoRef.current?.click()} aria-label={s.logo ? 'Trocar foto' : 'Enviar foto'} title={s.logo ? 'Trocar foto' : 'Enviar foto'}>
               <Icon name={s.logo ? 'edit' : 'plus'} size={15} />
@@ -82,11 +84,21 @@ export default function Profile() {
             <i>.</i>
           </h2>
           {s.tagline && <p className="profile-tag">{s.tagline}</p>}
-          <p className="muted small">
-            {s.legalName || 'Nome completo não preenchido'}
-            {s.city ? ` · ${s.city}` : ''}
-            {userEmail ? ` · entra com ${userEmail}` : ''}
-          </p>
+          <ul className="profile-meta">
+            <li>
+              <Icon name="user" size={14} /> {s.legalName || 'nome completo não preenchido'}
+            </li>
+            {s.city && (
+              <li>
+                <Icon name="home" size={14} /> {s.city}
+              </li>
+            )}
+            {userEmail && (
+              <li title="E-mail de login">
+                <Icon name="mail" size={14} /> {userEmail}
+              </li>
+            )}
+          </ul>
         </div>
         <div className="profile-progress">
           <div className="profile-ring" style={{ ['--pct' as string]: `${pct}%` }}>
@@ -116,6 +128,23 @@ export default function Profile() {
             </Field>
             <Field label="Cidade">
               <input value={s.city} onChange={(e) => set({ city: e.target.value })} />
+            </Field>
+            <Field group label="Sem foto? escolha um símbolo" span={2} hint={s.logo ? 'Aparece quando você remover a foto.' : 'Aparece redondo no canto do menu e no perfil.'}>
+              <div className="avatar-picker">
+                {AVATAR_ICONS.map(([name, label]) => (
+                  <button
+                    key={name}
+                    type="button"
+                    className={`avatar-pick ${(s.avatarIcon || 'user') === name ? 'on' : ''}`}
+                    onClick={() => set({ avatarIcon: name })}
+                    title={label}
+                    aria-label={label}
+                    aria-pressed={(s.avatarIcon || 'user') === name}
+                  >
+                    <Icon name={name} size={20} />
+                  </button>
+                ))}
+              </div>
             </Field>
             <Field label="Foto ou logo" span={2} hint="Aparece redonda no canto do menu. JPG ou PNG, até 600 KB.">
               <div className="row gap-s">

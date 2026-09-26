@@ -442,7 +442,8 @@ export const sum = <T,>(arr: T[], f: (x: T) => number) => arr.reduce((s, x) => s
 
 export const whatsappLink = (phone: string, text = '') => {
   const digits = phone.replace(/\D/g, '')
-  const full = digits.length <= 11 ? `55${digits}` : digits
+  // número com + já tem o código do país (ex.: +351); sem +, é do Brasil
+  const full = phone.trim().startsWith('+') || digits.length > 11 ? digits : `55${digits}`
   return `https://wa.me/${full}${text ? `?text=${encodeURIComponent(text)}` : ''}`
 }
 
@@ -467,11 +468,26 @@ export function download(filename: string, content: string, type = 'application/
 }
 
 /** Formata telefone enquanto digita: (11) 96928-8192 — com +55 fica +55 11 96928-8192. */
+/** Códigos de país mais comuns (o maior que combinar vence). */
+const COUNTRY_CODES = ['1', '7', '20', '27', '30', '31', '32', '33', '34', '36', '39', '40', '41', '43', '44', '45', '46', '47', '48', '49', '51', '52', '53', '54', '55', '56', '57', '58', '60', '61', '62', '63', '64', '65', '66', '81', '82', '84', '86', '90', '91', '351', '352', '353', '354', '356', '358', '370', '371', '372', '380', '385', '386', '420', '421', '591', '593', '595', '598', '971', '972', '974']
+
+/** Telefone formatado: Brasil "(11) 99999-9999" ou "+55 11 99999-9999"; outro país "+351 912 345 678". */
 export function formatPhone(value: string) {
-  let d = value.replace(/\D/g, '')
-  const intl = value.trim().startsWith('+') || (d.startsWith('55') && d.length > 11)
+  const raw = value.trim()
+  let d = raw.replace(/\D/g, '')
+  const intl = raw.startsWith('+') || (d.startsWith('55') && d.length > 11)
+  if (intl && !d.startsWith('55')) {
+    // outro país: +código e o resto em grupos de 3 (EUA/Canadá: 3 3 4)
+    if (!d) return '+'
+    const cc = [...COUNTRY_CODES].sort((a, b) => b.length - a.length).find((c) => d.startsWith(c)) ?? d.slice(0, Math.min(3, d.length))
+    const rest = d.slice(cc.length, cc.length + 12)
+    const groups = cc === '1' ? [rest.slice(0, 3), rest.slice(3, 6), rest.slice(6, 10)] : (rest.match(/.{1,3}/g) ?? [])
+    // não deixa um dígito sozinho no fim: "345 6" vira "3456"
+    if (groups.length > 1 && groups[groups.length - 1].length === 1) groups.splice(-2, 2, groups[groups.length - 2] + groups[groups.length - 1])
+    return `+${cc}${rest ? ' ' + groups.filter(Boolean).join(' ') : ''}`
+  }
   let prefix = ''
-  if (intl && d.startsWith('55')) {
+  if (intl) {
     prefix = '+55 '
     d = d.slice(2)
   }

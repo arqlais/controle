@@ -5,6 +5,7 @@ import type { SyncStatus } from './store'
 import { applyTheme, useDeviceDark } from './theme'
 import { signOut } from './components/Auth'
 import { CLOUD } from './cloud'
+import { AvatarGlyph } from './components/Avatar'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
@@ -106,7 +107,7 @@ export default function App() {
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
         <a className="brand" href={href('inicio')}>
-          <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}>{settings.logo ? <img src={settings.logo} alt="" /> : <Icon name="user" size={24} />}</span>
+          <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}><AvatarGlyph s={settings} size={24} /></span>
           <span className="brand-text">
             <span className="brand-kicker">meu estúdio</span>
             <span className="brand-name">
@@ -166,7 +167,9 @@ export default function App() {
           </div>
         </nav>
         <a href={href('perfil')} className={`profile-chip ${route.page === 'perfil' ? 'active' : ''}`} title="Perfil do estúdio e conta">
-          <span className="profile-chip-avatar">{settings.logo ? <img src={settings.logo} alt="" /> : <Icon name="user" size={18} />}</span>
+          <span className="profile-chip-avatar">
+            <AvatarGlyph s={settings} size={18} />
+          </span>
           <span className="grow">
             <b>{settings.ownerName || settings.brandName || 'meu perfil'}</b>
             <small>{userEmail || 'perfil do estúdio'}</small>
