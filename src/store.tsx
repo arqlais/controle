@@ -246,8 +246,6 @@ interface Store {
   lastSaved: Date | null
   sync: SyncStatus
   userEmail: string
-  isSample: boolean // mostrando o exemplo (não salva)
-  showSample: (on: boolean) => void
 }
 
 const Ctx = createContext<Store | null>(null)
@@ -258,11 +256,6 @@ const hasContent = (d: Data) => !d.demo && (d.clients.length > 0 || d.projects.l
 export function StoreProvider({ children, userId, userEmail = '' }: { children: ReactNode; userId?: string; userEmail?: string }) {
   const cloud = CLOUD && !!userId
   const [data, setData] = useState<Data>(() => load(userId))
-  // modo exemplo: dados fictícios só em memória — nada é salvo nem enviado para a nuvem
-  const [sample, setSample] = useState<Data | null>(null)
-  const sampleOn = useRef(false)
-  sampleOn.current = !!sample
-  const setActive = useCallback((fn: (d: Data) => Data) => (sampleOn.current ? setSample((d) => (d ? fn(d) : d)) : setData(fn)), [])
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [sync, setSync] = useState<SyncStatus>(cloud ? 'loading' : 'local')
   const first = useRef(true)
@@ -380,7 +373,7 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
 
   const upsert = useCallback(<C extends Collection>(c: C, raw: Item<C>) => {
     const item = (c === 'projects' ? autoStatus(raw as Project) : raw) as Item<C>
-    setActive((d) => {
+    setData((d) => {
       const list = d[c] as Item<C>[]
       const exists = list.some((x) => x.id === item.id)
       const next = exists ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item]
@@ -389,7 +382,7 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
   }, [])
 
   const remove = useCallback((c: Collection, id: string) => {
-    setActive((d) => {
+    setData((d) => {
       const next: Data = { ...d, [c]: (d[c] as { id: string }[]).filter((x) => x.id !== id) }
       // limpeza em cascata
       if (c === 'clients') {
@@ -407,19 +400,14 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
   }, [])
 
   const setSettings = useCallback((patch: Partial<Settings>) => {
-    setActive((d) => ({ ...d, settings: { ...d.settings, ...patch } }))
+    setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }))
   }, [])
 
-  const replaceAll = useCallback((d: Data) => setActive(() => normalize(d)), [setActive])
+  const replaceAll = useCallback((d: Data) => setData(normalize(d)), [])
 
-  const view = sample ?? data
-  const showSample = useCallback(
-    (on: boolean) => setSample(on ? { ...demoData(data.settings), demo: false } : null),
-    [data.settings],
-  )
   const value = useMemo(
-    () => ({ data: view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, isSample: !!sample, showSample }),
-    [view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, sample, showSample],
+    () => ({ data, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail }),
+    [data, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail],
   )
   if (sync === 'loading') return <div className="loading-screen"><span className="brand-name">{data.settings.brandName}<i>.</i></span><p className="muted small">carregando seus dados…</p></div>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
@@ -432,6 +420,9 @@ export function useStore() {
 }
 
 /* ---------- dados de exemplo ---------- */
+
+/** Os dados de exemplo ainda estão no sistema (mesmo com o aviso oculto)? */
+export const hasDemoData = (d: Data) => d.clients.some((c) => c.name === 'Mariana Costa' && c.company === 'Costa Arquitetura')
 
 export function demoData(settings: Settings): Data {
   const t = today()

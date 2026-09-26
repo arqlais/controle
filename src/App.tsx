@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { emptyData, useStore } from './store'
+import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
 import { signOut } from './components/Auth'
 import { CLOUD } from './cloud'
@@ -33,7 +33,7 @@ const NAV = [
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 
 export default function App() {
-  const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample } = useStore()
+  const { data, setSettings, lastSaved, replaceAll, sync, userEmail } = useStore()
   const { settings } = data
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
@@ -139,9 +139,11 @@ export default function App() {
             <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
               {organizing ? 'pronto' : 'organizar menu'}
             </button>
-            <button type="button" className="link" onClick={() => { showSample(!isSample); setMenuOpen(false) }}>
-              {isSample ? 'sair do exemplo' : 'ver exemplo'}
-            </button>
+            {!data.demo && hasDemoData(data) && (
+              <button type="button" className="link" onClick={() => { replaceAll({ ...data, demo: true }); setMenuOpen(false) }}>
+                aviso do exemplo
+              </button>
+            )}
           </div>
         </nav>
         <div className="sidebar-foot">
@@ -204,16 +206,6 @@ export default function App() {
           </div>
         </header>
         <main className="content">
-          {isSample && (
-            <div className="sample-banner">
-              <span>
-                <b>modo exemplo</b> · dados fictícios para ver o sistema preenchido. Nada aqui é salvo.
-              </span>
-              <button className="btn small" onClick={() => showSample(false)}>
-                voltar para meus dados
-              </button>
-            </div>
-          )}
           {data.demo && (
             <div className="demo-banner">
               <span>
