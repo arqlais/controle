@@ -6,15 +6,16 @@ import { ClientForm, ProjectForm } from '../components/forms'
 import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
 import type { Client } from '../types'
 import { askDelete } from '../components/dialog'
+import { PayNext, StatusSelect } from '../components/quick'
 import {
+  CLIENT_COLORS,
   CLIENT_TYPES,
   QUOTE_STATUS,
-  STATUS,
+  statusInfo,
   fmtDate,
   fmtDateLong,
   instagramLink,
   isOpen,
-  isStudent,
   money,
   paymentState,
   projectOpen,
@@ -51,7 +52,7 @@ export default function ClientDetail({ id }: { id: string }) {
       </a>
       <div className="page-head">
         <div className="client-cell big">
-          <span className="avatar lg">{c.name.slice(0, 1).toUpperCase()}</span>
+          <span className="avatar lg" style={{ background: `${CLIENT_COLORS[c.type]}1f`, color: CLIENT_COLORS[c.type] }}>{c.name.slice(0, 1).toUpperCase()}</span>
           <div>
             <h1>
               {c.name}{' '}
@@ -60,7 +61,7 @@ export default function ClientDetail({ id }: { id: string }) {
               </button>
             </h1>
             <div className="row gap-s wrap">
-              <Badge color={isStudent(c) ? '#8b5cf6' : '#4a5a78'}>{CLIENT_TYPES[c.type]}</Badge>
+              <Badge color={CLIENT_COLORS[c.type]}>{CLIENT_TYPES[c.type]}</Badge>
               {c.company && <span className="muted">{c.company}</span>}
               {c.city && <span className="muted">· {c.city}</span>}
               {c.archived && <Badge color="#8a8f98">Arquivado</Badge>}
@@ -113,11 +114,11 @@ export default function ClientDetail({ id }: { id: string }) {
               {pagedProjects.visible.map((p) => (
                 <li key={p.id}>
                   <a className="list-item" href={href('projetos', p.id)}>
-                    <span className="prio-bar" style={{ background: STATUS[p.status].color }} />
+                    <span className="prio-bar" style={{ background: statusInfo(p.status).color }} />
                     <div className="grow">
                       <div className="list-title">{p.title}</div>
                       <div className="list-sub">
-                        {STATUS[p.status].label} · {fmtDate(p.startDate)} → {fmtDate(p.dueDate)}
+                        {fmtDate(p.startDate)} → {fmtDate(p.dueDate)}
                       </div>
                     </div>
                     <div className="right">
@@ -125,6 +126,10 @@ export default function ClientDetail({ id }: { id: string }) {
                       <div className="list-sub">{projectOpen(p) > 0 ? `falta ${money(projectOpen(p))}` : 'quitado'}</div>
                     </div>
                   </a>
+                  <div className="quick-row">
+                    <StatusSelect p={p} />
+                    <PayNext p={p} />
+                  </div>
                 </li>
               ))}
             </ul>

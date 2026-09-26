@@ -8,7 +8,7 @@ import { applyTheme } from './theme'
 import { go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, paymentLate } from './utils'
+import { allPayments, isLate, paymentLate, setCustomColumns } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -35,10 +35,27 @@ type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 export default function App() {
   const { data, setSettings, lastSaved, replaceAll, sync, userEmail } = useStore()
   const { settings } = data
+  setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
   const [quick, setQuick] = useState<Quick>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  const [organizing, setOrganizing] = useState(false)
+  const [dragNav, setDragNav] = useState<string | null>(null)
+  // ordem do menu escolhida pela usuária (itens novos entram no fim)
+  const nav = useMemo(() => {
+    const order = settings.navOrder
+    return [...NAV].sort((a, b) => {
+      const ia = order.indexOf(a.page)
+      const ib = order.indexOf(b.page)
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
+    })
+  }, [settings.navOrder])
+  const moveNav = (page: string, to: number) => {
+    const pages = nav.map((n) => n.page).filter((p) => p !== page)
+    pages.splice(Math.max(0, Math.min(to, pages.length)), 0, page)
+    setSettings({ navOrder: pages })
+  }
 
   useEffect(() => applyTheme(settings), [settings])
   useEffect(() => setMenuOpen(false), [route.page, route.id])
@@ -83,17 +100,42 @@ export default function App() {
           )}
           {settings.tagline && <span className="brand-tag">{settings.tagline}</span>}
         </a>
-        <nav>
-          {NAV.map((n) => {
+        <nav className={organizing ? 'organizing' : ''}>
+          {nav.map((n, i) => {
             const count = alerts[n.page as keyof typeof alerts]
             return (
-              <a key={n.page} href={href(n.page)} className={route.page === n.page ? 'active' : ''}>
+              <a
+                key={n.page}
+                href={href(n.page)}
+                className={`${route.page === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''}`}
+                draggable
+                onDragStart={() => setDragNav(n.page)}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  if (dragNav && dragNav !== n.page) moveNav(dragNav, i)
+                }}
+                onDragEnd={() => setDragNav(null)}
+                onClick={(e) => organizing && e.preventDefault()}
+              >
                 <Icon name={n.icon} />
                 <span>{n.label}</span>
-                {count ? <em className="nav-alert" title="Itens atrasados">{count}</em> : null}
+                {count && !organizing ? <em className="nav-alert" title="Itens atrasados">{count}</em> : null}
+                {organizing && (
+                  <span className="nav-arrows">
+                    <button type="button" className="icon-btn subtle" disabled={i === 0} onClick={() => moveNav(n.page, i - 1)} aria-label="Subir">
+                      <Icon name="chevronL" size={14} className="rot-up" />
+                    </button>
+                    <button type="button" className="icon-btn subtle" disabled={i === nav.length - 1} onClick={() => moveNav(n.page, i + 1)} aria-label="Descer">
+                      <Icon name="chevronL" size={14} className="rot-down" />
+                    </button>
+                  </span>
+                )}
               </a>
             )
           })}
+          <button type="button" className="link nav-organize" onClick={() => setOrganizing((v) => !v)}>
+            {organizing ? 'pronto' : 'organizar menu'}
+          </button>
         </nav>
         <div className="sidebar-foot">
           <button className="icon-btn" onClick={() => setSettings({ dark: !settings.dark })} title="Alternar tema claro/escuro">
@@ -181,12 +223,16 @@ export default function App() {
       </div>
 
       <nav className="bottom-nav">
-        {NAV.slice(0, 5).map((n) => (
+        {nav.slice(0, 4).map((n) => (
           <a key={n.page} href={href(n.page)} className={route.page === n.page ? 'active' : ''}>
             <Icon name={n.icon} />
             <span>{n.label}</span>
           </a>
         ))}
+        <button type="button" className={nav.slice(4).some((n) => n.page === route.page) ? 'active' : ''} onClick={() => setMenuOpen(true)}>
+          <Icon name="menu" />
+          <span>mais</span>
+        </button>
       </nav>
 
       {quick === 'projeto' && <ProjectForm onClose={() => setQuick(null)} onSaved={(p) => go('projetos', p.id)} />}

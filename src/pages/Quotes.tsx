@@ -114,7 +114,7 @@ export default function Quotes() {
         />
       ) : (
         <div className="table-wrap card">
-          <table className="table">
+          <table className="table cards-mobile">
             <thead>
               <tr>
                 <th>nº</th>
@@ -154,7 +154,7 @@ export default function Quotes() {
                         <span className="muted">—</span>
                       )}
                     </td>
-                    <td className="num">{money(quoteTotal(x, fee))}</td>
+                    <td className="num" data-label="total">{money(quoteTotal(x, fee))}</td>
                     <td className="actions" onClick={(e) => e.stopPropagation()}>
                       <div className="quick-actions">
                         {needsFollowUp(x) && c?.phone && (

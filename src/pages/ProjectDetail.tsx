@@ -12,7 +12,8 @@ import {
   EVENT_TYPES,
   PAYMENT_METHODS,
   PRIORITY,
-  STATUS,
+  statusInfo,
+  allStatuses,
   daysUntil,
   fmtDate,
   fmtDateLong,
@@ -105,12 +106,12 @@ export default function ProjectDetail({ id }: { id: string }) {
             <select className="pill-select" value={p.status} onChange={(e) => {
               const status = e.target.value as ProjectStatus
               save({ status, deliveredDate: status === 'entregue' ? p.deliveredDate ?? today() : null })
-            }} style={{ color: STATUS[p.status].color }}>
-              {Object.entries(STATUS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v.label}
-                </option>
-              ))}
+            }} style={{ color: statusInfo(p.status).color }}>
+              {allStatuses().map((k) => (
+              <option key={k} value={k}>
+                {statusInfo(k).label}
+              </option>
+            ))}
             </select>
             <select className="pill-select" value={p.priority} onChange={(e) => save({ priority: e.target.value as Priority })} style={{ color: PRIORITY[p.priority].color }}>
               {(Object.keys(PRIORITY) as Priority[]).map((k) => (

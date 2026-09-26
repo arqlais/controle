@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Icon } from './Icon'
+import { EMAIL_DOMAINS, formatPhone } from '../utils'
 
 let openModals = 0
 
@@ -169,3 +170,52 @@ export function usePaged<T>(items: T[], size = 30) {
     ) : null
   return { visible, more }
 }
+
+/** Celular com DDD e espaçamento automáticos. */
+export function PhoneInput({ value, onChange, id, placeholder = '(11) 99999-9999' }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string }) {
+  return <input id={id} type="tel" inputMode="tel" autoComplete="tel" value={value} placeholder={placeholder} onChange={(e) => onChange(formatPhone(e.target.value))} />
+}
+
+/** E-mail com sugestões de domínio depois do @. */
+export function EmailInput({ value, onChange, id }: { value: string; onChange: (v: string) => void; id?: string }) {
+  const listId = `${id ?? 'email'}-dominios`
+  const [local, domain = ''] = value.split('@')
+  const suggestions = value.includes('@') && local ? EMAIL_DOMAINS.filter((d) => d.startsWith(domain) && d !== domain).map((d) => `${local}@${d}`) : []
+  return (
+    <>
+      <input id={id} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} value={value} list={listId} placeholder="nome@gmail.com" onChange={(e) => onChange(e.target.value.trim())} />
+      <datalist id={listId}>
+        {suggestions.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+    </>
+  )
+}
+
+/** Título do mês que abre a lista de meses (jan/2026 até dez/2027) ao tocar. */
+export function MonthPicker({ value, onChange, from }: { value: string; onChange: (key: string) => void; from?: string }) {
+  const [y, m] = value.split('-').map(Number)
+  const base = from && from < '2026-01' ? from : '2026-01'
+  const start = value < base ? value : base
+  const end = value > '2027-12' ? value : '2027-12'
+  const keys: string[] = []
+  for (let yy = Number(start.slice(0, 4)), mm = Number(start.slice(5)); `${yy}-${String(mm).padStart(2, '0')}` <= end; mm === 12 ? ((mm = 1), yy++) : mm++)
+    keys.push(`${yy}-${String(mm).padStart(2, '0')}`)
+  return (
+    <label className="month-picker" title="Escolher mês">
+      <h1>
+        {MONTH_NAMES[m - 1]} <em>{y}</em>
+      </h1>
+      <Icon name="chevronR" size={14} className="rot-down" />
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Escolher mês">
+        {keys.map((k) => (
+          <option key={k} value={k}>
+            {MONTH_NAMES[Number(k.slice(5)) - 1]} {k.slice(0, 4)}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']

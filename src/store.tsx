@@ -81,6 +81,8 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultRevisions: 2,
   defaultPaymentTerms: PAYMENT_TERMS,
   services: DEFAULT_SERVICES,
+  customColumns: [],
+  navOrder: [],
 }
 
 export function emptyData(): Data {
@@ -105,7 +107,7 @@ export function normalize(d: Partial<Data>): Data {
   return {
     version: 1,
     demo: d.demo,
-    clients: (d.clients ?? []).map((c) => ({ ...c, history: c.history ?? [] })),
+    clients: (d.clients ?? []).map((c) => ({ ...c, type: (c.type as string) === 'incorporadora' ? 'construtora' : c.type, history: c.history ?? [] })),
     projects: (d.projects ?? []).map((p) => ({
       ...p,
       timerStart: p.timerStart ?? null,
@@ -462,7 +464,7 @@ export function demoData(settings: Settings): Data {
         id: uid(),
         text,
         // quantas etapas já foram feitas em cada status
-        done: i < ({ briefing: 0, producao: 2, revisao: 4, aguardando: 4, entregue: 6, pausado: 1, cancelado: 0 } as const)[status],
+        done: i < (({ briefing: 0, producao: 2, revisao: 4, aguardando: 4, entregue: 6, pausado: 1, cancelado: 0 } as Record<string, number>)[status] ?? 0),
       })),
       filesLink: '',
       timerStart: null,

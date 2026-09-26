@@ -9,7 +9,7 @@ import {
   EVENT_TYPES,
   MONTHS,
   PRIORITY,
-  STATUS,
+  statusInfo,
   allPayments,
   daysUntil,
   fmtDate,
@@ -176,7 +176,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
                       <div className="grow">
                         <div className="list-title">{p.title}</div>
                         <div className="list-sub">
-                          {client?.name} · {STATUS[p.status].label}
+                          {client?.name} · {statusInfo(p.status).label}
                           {p.tasks.length > 0 && ` · ${done}/${p.tasks.length} etapas`}
                         </div>
                       </div>

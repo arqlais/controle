@@ -3,14 +3,13 @@ import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { EventForm } from '../components/forms'
-import { Modal, Section } from '../components/ui'
+import { Modal, MonthPicker, Section } from '../components/ui'
 import { toast } from '../components/dialog'
 import { CLOUD, SUPABASE_URL } from '../cloud'
 import { buildICS } from '../ics'
 import type { CalendarEvent } from '../types'
 import {
   EVENT_TYPES,
-  MONTHS,
   PRIORITY,
   WEEKDAYS,
   allPayments,
@@ -123,9 +122,11 @@ export default function Agenda() {
             <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior">
               <Icon name="chevronL" />
             </button>
-            <h1>
-              {MONTHS[cursor.getMonth()].toLowerCase()} <em>{cursor.getFullYear()}</em>
-            </h1>
+            <MonthPicker
+              value={`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`}
+              from="2026-01"
+              onChange={(k) => setCursor(new Date(Number(k.slice(0, 4)), Number(k.slice(5)) - 1, 1))}
+            />
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês">
               <Icon name="chevronR" />
             </button>

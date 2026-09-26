@@ -3,7 +3,6 @@ export type ClientType =
   | 'designer'
   | 'escritorio'
   | 'construtora'
-  | 'incorporadora'
   | 'estudante'
   | 'outro'
 
@@ -39,6 +38,13 @@ export type ProjectStatus =
   | 'entregue'
   | 'pausado'
   | 'cancelado'
+  | (string & {}) // colunas criadas pela usuária (ex.: "col-ab12")
+
+export interface BoardColumn {
+  id: string
+  label: string
+  color: string
+}
 
 export type Priority = 'baixa' | 'media' | 'alta' | 'urgente'
 
@@ -253,6 +259,8 @@ export interface Settings {
   defaultRevisions: number
   defaultPaymentTerms: string
   services: ServiceDef[]
+  customColumns: BoardColumn[] // colunas extras do quadro de demandas
+  navOrder: string[] // ordem do menu lateral
 }
 
 export interface Data {

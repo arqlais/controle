@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
-import { Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { EmailInput, Field, MoneyInput, PhoneInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
 import { COMPLEXITY, PRICING, download, money, today, uid } from '../utils'
@@ -79,7 +79,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid-2">
-        <Section title="Identidade visual">
+        <Section title="Identidade visual" className="desktop-only">
           <p className="muted small">Ajuste para ficar igual ao seu site: envie o logo e use as mesmas cores (código hex) e fontes.</p>
           <div className="form-grid">
             <Field label="Nome da marca">
@@ -226,10 +226,10 @@ export default function SettingsPage() {
                 <input value={s.pixKey} onChange={(e) => setSettings({ pixKey: e.target.value })} />
               </Field>
               <Field label="WhatsApp">
-                <input value={s.phone} onChange={(e) => setSettings({ phone: e.target.value })} />
+                <PhoneInput id="my-phone" value={s.phone} onChange={(v) => setSettings({ phone: v })} placeholder="+55 11 99999-9999" />
               </Field>
               <Field label="E-mail">
-                <input value={s.email} onChange={(e) => setSettings({ email: e.target.value })} />
+                <EmailInput id="my-email" value={s.email} onChange={(v) => setSettings({ email: v })} />
               </Field>
               <Field label="Instagram">
                 <input value={s.instagram} onChange={(e) => setSettings({ instagram: e.target.value })} />
@@ -278,7 +278,12 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      <p className="mobile-only desktop-note">
+        <Icon name="settings" size={16} /> Identidade visual, tabela de preços e modelo da proposta são editados no computador.
+      </p>
+
       <Section
+        className="desktop-only"
         title="tabela de preços"
         action={
           <button
@@ -434,7 +439,7 @@ function ProposalSettings() {
     projectId: '',
   }
   return (
-    <Section title="modelo da proposta (PDF)">
+    <Section title="modelo da proposta (PDF)" className="desktop-only">
       <div className="proposal-settings">
         <div className="stack">
           <div className="form-grid">

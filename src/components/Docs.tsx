@@ -160,7 +160,9 @@ function Contacts({ s }: { s: Settings }) {
   )
 }
 
-function Rows({ items, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean }) {
+function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean }) {
+  // serviço em branco (sem nome e sem valor) não vai para a proposta
+  const items = all.filter((it) => it.title.trim() || it.price > 0)
   return (
     <div className="p-rows">
       {items.map((it, i) => (

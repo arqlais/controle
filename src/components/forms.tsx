@@ -8,7 +8,8 @@ import {
   EVENT_TYPES,
   EXPENSE_CATEGORIES,
   PRIORITY,
-  STATUS,
+  statusInfo,
+  allStatuses,
   isStudent,
   suggestPrice,
   PAY_MODES,
@@ -19,7 +20,7 @@ import {
   addDays,
   uid,
 } from '../utils'
-import { Field, Modal, MoneyInput, Segmented } from './ui'
+import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented } from './ui'
 import { Icon } from './Icon'
 
 /* ---------------- Cliente ---------------- */
@@ -89,10 +90,10 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
           <input value={c.document} onChange={(e) => set('document', e.target.value)} />
         </Field>
         <Field label="WhatsApp">
-          <input value={c.phone} onChange={(e) => set('phone', e.target.value)} placeholder="(31) 99999-0000" inputMode="tel" />
+          <PhoneInput id="client-phone" value={c.phone} onChange={(v) => set('phone', v)} />
         </Field>
         <Field label="E-mail">
-          <input type="email" value={c.email} onChange={(e) => set('email', e.target.value)} />
+          <EmailInput id="client-email" value={c.email} onChange={(v) => set('email', v)} />
         </Field>
         <Field label="Instagram">
           <input value={c.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="@perfil" />
@@ -266,9 +267,9 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         </Field>
         <Field label="Status">
           <select value={p.status} onChange={(e) => set('status', e.target.value as ProjectStatus)}>
-            {Object.entries(STATUS).map(([k, v]) => (
+            {allStatuses().map((k) => (
               <option key={k} value={k}>
-                {v.label}
+                {statusInfo(k).label}
               </option>
             ))}
           </select>

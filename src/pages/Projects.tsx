@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
+import { askDelete } from '../components/dialog'
+import { PayNext, StatusSelect } from '../components/quick'
 import { Icon } from '../components/Icon'
 import { ProjectForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
 import type { Priority, Project, ProjectStatus } from '../types'
 import {
-  BOARD_COLUMNS,
+  boardColumns,
   PRIORITY,
-  STATUS,
+  statusInfo,
+  COLUMN_COLORS,
+  uid,
   daysUntil,
   fmtDate,
   isLate,
@@ -27,7 +31,18 @@ type View = 'quadro' | 'lista'
 type Scope = 'ativos' | 'todos' | 'atrasados' | 'arquivo'
 
 export default function Projects() {
-  const { data, upsert } = useStore()
+  const { data, upsert, setSettings, replaceAll } = useStore()
+  const custom = data.settings.customColumns
+  const [newCol, setNewCol] = useState('')
+  const removeColumn = async (col: string) => {
+    const count = data.projects.filter((p) => p.status === col).length
+    if (!(await askDelete(`a coluna "${statusInfo(col).label}"${count ? ` (as ${count} demanda(s) dela voltam para "em alinhamento")` : ''}`))) return
+    replaceAll({
+      ...data,
+      projects: data.projects.map((p) => (p.status === col ? { ...p, status: 'briefing' } : p)),
+      settings: { ...data.settings, customColumns: custom.filter((c) => c.id !== col) },
+    })
+  }
   const [view, setView] = useState<View>(() => {
     try {
       return (localStorage.getItem('proj-view') as View) || 'quadro'
@@ -126,7 +141,7 @@ export default function Projects() {
         <Empty icon="folder" title="Nenhuma demanda ainda" text="Cadastre seu primeiro projeto para acompanhar prazos e pagamentos." action={<button className="btn primary" onClick={() => setForm(true)}>Nova demanda</button>} />
       ) : view === 'quadro' ? (
         <div className="board">
-          {BOARD_COLUMNS.map((col) => {
+          {boardColumns().map((col) => {
             let items = filtered.filter((p) => p.status === col)
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
             else items = items.sort((a, b) => urgencyScore(b) - urgencyScore(a))
@@ -147,19 +162,50 @@ export default function Projects() {
                 }}
               >
                 <header>
-                  <span className="dot" style={{ background: STATUS[col].color }} />
-                  <h4>{STATUS[col].label}</h4>
+                  <span className="dot" style={{ background: statusInfo(col).color }} />
+                  {custom.some((c) => c.id === col) ? (
+                    <input
+                      className="column-title-input"
+                      value={statusInfo(col).label}
+                      onChange={(e) => setSettings({ customColumns: custom.map((c) => (c.id === col ? { ...c, label: e.target.value } : c)) })}
+                      aria-label="Nome da coluna"
+                    />
+                  ) : (
+                    <h4>{statusInfo(col).label}</h4>
+                  )}
                   <span className="count">{items.length}</span>
+                  {custom.some((c) => c.id === col) && (
+                    <button className="icon-btn subtle" title="Excluir coluna" onClick={() => removeColumn(col)}>
+                      <Icon name="trash" size={14} />
+                    </button>
+                  )}
                 </header>
                 <div className="column-body">
                   {items.map((p) => (
-                    <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onDragStart={() => setDragId(p.id)} onMove={(s) => move(p, s)} />
+                    <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onDragStart={() => setDragId(p.id)} />
                   ))}
                   {col === 'entregue' && <p className="muted small center">Últimas entregas · veja todas na lista</p>}
                 </div>
               </div>
             )
           })}
+          <div className="column add-column">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                const label = newCol.trim()
+                if (!label) return
+                setSettings({ customColumns: [...custom, { id: `col-${uid()}`, label, color: COLUMN_COLORS[custom.length % COLUMN_COLORS.length] }] })
+                setNewCol('')
+              }}
+            >
+              <input value={newCol} onChange={(e) => setNewCol(e.target.value)} placeholder="nova coluna…" aria-label="Nome da nova coluna" />
+              <button className="btn small" disabled={!newCol.trim()}>
+                <Icon name="plus" size={14} /> adicionar
+              </button>
+            </form>
+            <p className="muted small">Ex.: “aguardando arquivos”, “pós-produção”. Aparece antes de “entregue”.</p>
+          </div>
         </div>
       ) : (
         <ProjectTable
@@ -175,10 +221,9 @@ export default function Projects() {
   )
 }
 
-function ProjectCard({ p, client, onDragStart, onMove }: { p: Project; client: string; onDragStart: () => void; onMove: (s: ProjectStatus) => void }) {
+function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; onDragStart: () => void }) {
   const u = urgency(p)
   const done = p.tasks.filter((t) => t.done).length
-  const open = projectOpen(p)
   return (
     <div className="kcard" draggable onDragStart={onDragStart} onClick={() => go('projetos', p.id)}>
       <div className="kcard-top">
@@ -199,21 +244,11 @@ function ProjectCard({ p, client, onDragStart, onMove }: { p: Project; client: s
       )}
       <div className="kcard-foot">
         <span className="small">{money(projectTotal(p))}</span>
-        {open > 0 ? <span className="small text-warn">falta {money(open)}</span> : <span className="small text-good">quitado</span>}
+        <PayNext p={p} compact />
       </div>
-      <select
-        className="kcard-move only-touch"
-        value={p.status}
-        onClick={(e) => e.stopPropagation()}
-        onChange={(e) => onMove(e.target.value as ProjectStatus)}
-        aria-label="Mover para"
-      >
-        {Object.entries(STATUS).map(([k, v]) => (
-          <option key={k} value={k}>
-            {v.label}
-          </option>
-        ))}
-      </select>
+      <div className="kcard-status" onClick={(e) => e.stopPropagation()}>
+        <StatusSelect p={p} />
+      </div>
     </div>
   )
 }
@@ -237,7 +272,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
   if (!rows.length) return <Empty title="Nada por aqui" text="Nenhuma demanda com esses filtros." />
   return (
     <div className="table-wrap card">
-      <table className="table">
+      <table className="table cards-mobile">
         <thead>
           <tr>
             <th>Projeto</th>
@@ -260,11 +295,8 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
                   </a>
                 </td>
                 <td className="hide-mobile">{clientName(p.clientId)}</td>
-                <td>
-                  <span className="row gap-s nowrap">
-                    <span className="dot" style={{ background: STATUS[p.status].color }} />
-                    {STATUS[p.status].label}
-                  </span>
+                <td onClick={(e) => e.stopPropagation()}>
+                  <StatusSelect p={p} />
                 </td>
                 <td>
                   <Badge color={PRIORITY[u.level].color}>{PRIORITY[u.level].label}</Badge>
@@ -273,8 +305,8 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
                   {fmtDate(p.dueDate)}
                   {isOpen(p) && p.dueDate && <div className="small muted">{daysUntil(p.dueDate) === 0 ? 'hoje' : relativeDays(p.dueDate)}</div>}
                 </td>
-                <td className="num">{money(projectTotal(p))}</td>
-                <td className={`num ${projectOpen(p) > 0 ? 'text-warn' : 'muted'}`}>{money(projectOpen(p))}</td>
+                <td className="num" data-label="valor">{money(projectTotal(p))}</td>
+                <td className={`num ${projectOpen(p) > 0 ? 'text-warn' : 'muted'}`} data-label="em aberto">{money(projectOpen(p))}</td>
               </tr>
             )
           })}

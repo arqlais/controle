@@ -4,7 +4,7 @@ import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
-import { Badge, Empty, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
+import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
 import type { Expense } from '../types'
 import {
@@ -94,9 +94,7 @@ export default function Finance() {
             <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior">
               <Icon name="chevronL" />
             </button>
-            <h1>
-              {monthLabel(month).split(' ')[0].toLowerCase()} <em>{month.slice(0, 4)}</em>
-            </h1>
+            <MonthPicker value={month} onChange={setMonth} from="2026-01" />
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês">
               <Icon name="chevronR" />
             </button>
@@ -197,7 +195,7 @@ export default function Finance() {
             <Empty icon="wallet" title="Nenhuma parcela" text="Nada com esse filtro." />
           ) : (
             <div className="table-wrap">
-              <table className="table">
+              <table className="table cards-mobile">
                 <thead>
                   <tr>
                     <th>Cliente / projeto</th>
@@ -223,7 +221,7 @@ export default function Finance() {
                           {fmtDate(pay.dueDate)}
                           {!pay.paidDate && <div className="small muted">{relativeDays(pay.dueDate)}</div>}
                         </td>
-                        <td className="num">{money(pay.amount)}</td>
+                        <td className="num" data-label="valor">{money(pay.amount)}</td>
                         <td>
                           {pay.paidDate ? (
                             <button className="pill pill-pago" title="Clique para desfazer" onClick={() => markPaid(project.id, pay.id, false)}>
@@ -270,7 +268,7 @@ export default function Finance() {
             <Empty icon="wallet" title="Sem despesas neste mês" text="Cadastre licenças (V-Ray, D5, Lumion, SketchUp), DAS do MEI, internet… Marque como mensal para repetir automaticamente." />
           ) : (
             <div className="table-wrap">
-              <table className="table">
+              <table className="table cards-mobile">
                 <thead>
                   <tr>
                     <th>Descrição</th>

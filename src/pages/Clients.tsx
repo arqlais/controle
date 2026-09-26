@@ -4,7 +4,7 @@ import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
-import { CLIENT_TYPES, daysUntil, relativeDays, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink } from '../utils'
+import { CLIENT_COLORS, CLIENT_TYPES, daysUntil, relativeDays, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink } from '../utils'
 import type { ClientType } from '../types'
 
 type Profile = 'todos' | 'profissionais' | 'estudantes'
@@ -101,7 +101,7 @@ export default function Clients() {
         <Empty icon="users" title="Nenhum cliente encontrado" action={<button className="btn primary" onClick={() => setForm(true)}>Cadastrar cliente</button>} />
       ) : (
         <div className="table-wrap card">
-          <table className="table">
+          <table className="table cards-mobile">
             <thead>
               <tr>
                 <th>Cliente</th>
@@ -118,7 +118,7 @@ export default function Clients() {
                 <tr key={c.id} onClick={() => go('clientes', c.id)} className="clickable">
                   <td>
                     <div className="client-cell">
-                      <span className="avatar">{c.name.slice(0, 1).toUpperCase()}</span>
+                      <span className="avatar" style={{ background: `${CLIENT_COLORS[c.type]}1f`, color: CLIENT_COLORS[c.type] }}>{c.name.slice(0, 1).toUpperCase()}</span>
                       <div>
                         <div className="list-title">
                           {c.favorite && <span className="star">★</span>} {c.name}
@@ -128,7 +128,7 @@ export default function Clients() {
                     </div>
                   </td>
                   <td>
-                    <Badge color={isStudent(c) ? '#8b5cf6' : '#4a5a78'}>{CLIENT_TYPES[c.type]}</Badge>
+                    <Badge color={CLIENT_COLORS[c.type]}>{CLIENT_TYPES[c.type]}</Badge>
                   </td>
                   <td className="hide-mobile">
                     {count ? (
@@ -137,12 +137,12 @@ export default function Clients() {
                       <span className="muted">nenhum ainda</span>
                     )}
                   </td>
-                  <td className="num">
+                  <td className="num" data-label="projetos">
                     {count}
                     {active > 0 && <span className="muted small"> ({active} ativos)</span>}
                   </td>
-                  <td className="num">{money(paid)}</td>
-                  <td className={`num ${open > 0 ? 'text-warn' : 'muted'}`}>{money(open)}</td>
+                  <td className="num" data-label="faturado">{money(paid)}</td>
+                  <td className={`num ${open > 0 ? 'text-warn' : 'muted'}`} data-label="em aberto">{money(open)}</td>
                   <td className="actions" onClick={(e) => e.stopPropagation()}>
                     {c.phone && (
                       <a className="icon-btn" href={whatsappLink(c.phone)} target="_blank" rel="noreferrer" title="WhatsApp">

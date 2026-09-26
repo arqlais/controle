@@ -1,6 +1,7 @@
 import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
 import type {
+  BoardColumn,
   Client,
   Complexity,
   Pricing,
@@ -13,7 +14,6 @@ import type {
   Payment,
   Priority,
   Project,
-  ProjectStatus,
   Quote,
   QuoteStatus,
 } from './types'
@@ -27,15 +27,24 @@ export const CLIENT_TYPES: Record<ClientType, string> = {
   designer: 'Designer de interiores',
   escritorio: 'Escritório',
   construtora: 'Construtora',
-  incorporadora: 'Incorporadora',
   estudante: 'Estudante',
   outro: 'Outro',
 }
 
 export const isStudent = (c?: Client) => c?.type === 'estudante'
 
-export const STATUS: Record<ProjectStatus, { label: string; color: string }> = {
-  briefing: { label: 'Aguardando sinal', color: '#9aa3ab' },
+/** Cor de cada tipo de cliente — tons da paleta, diferentes entre si. */
+export const CLIENT_COLORS: Record<ClientType, string> = {
+  arquiteto: '#5b7a99',
+  designer: '#c07f73',
+  escritorio: '#3e4b57',
+  construtora: '#8f7a52',
+  estudante: '#9a7aa6',
+  outro: '#8e979e',
+}
+
+export const STATUS: Record<string, { label: string; color: string }> = {
+  briefing: { label: 'Em alinhamento', color: '#9aa3ab' },
   producao: { label: 'Em execução', color: '#5b7a99' },
   revisao: { label: 'Em ajustes', color: '#c29a55' },
   aguardando: { label: 'Aguardando aprovação', color: '#a888a8' },
@@ -54,8 +63,18 @@ export const DEFAULT_TASKS = [
   'Ajustes pedidos',
   'Entrega final',
 ]
-export const BOARD_COLUMNS: ProjectStatus[] = ['briefing', 'producao', 'revisao', 'aguardando', 'entregue']
-export const OPEN_STATUSES: ProjectStatus[] = ['briefing', 'producao', 'revisao', 'aguardando', 'pausado']
+/* Colunas criadas pela usuária (Configurações → customColumns), registradas pelo App. */
+let customColumns: BoardColumn[] = []
+export const setCustomColumns = (cols: BoardColumn[]) => {
+  customColumns = cols
+}
+/** Nome e cor de um status, padrão ou criado pela usuária. */
+export const statusInfo = (id: string) => STATUS[id] ?? customColumns.find((c) => c.id === id) ?? { label: 'Sem coluna', color: '#9aa3ab' }
+/** Colunas do quadro: padrão + as criadas (antes de "entregue"). */
+export const boardColumns = (): string[] => ['briefing', 'producao', 'revisao', 'aguardando', ...customColumns.map((c) => c.id), 'entregue']
+/** Todos os status para seleção (inclui pausado e cancelado). */
+export const allStatuses = (): string[] => [...boardColumns(), 'pausado', 'cancelado']
+export const COLUMN_COLORS = ['#5b7a99', '#c29a55', '#a888a8', '#6f9a7c', '#c98a7a', '#8a7a5c', '#6b8f94', '#9aa3ab']
 
 export const PRIORITY: Record<Priority, { label: string; color: string; weight: number }> = {
   baixa: { label: 'Baixa', color: '#9aa3ab', weight: 0 },
@@ -142,7 +161,7 @@ export const projectTotal = (p: Project) => Math.max(0, p.value - p.discount)
 export const projectPaid = (p: Project) => p.payments.filter((x) => x.paidDate).reduce((s, x) => s + x.amount, 0)
 export const projectOpen = (p: Project) => projectTotal(p) - projectPaid(p)
 export const projectHours = (p: Project) => p.timeLogs.reduce((s, t) => s + t.hours, 0)
-export const isOpen = (p: Project) => OPEN_STATUSES.includes(p.status)
+export const isOpen = (p: Project) => p.status !== 'entregue' && p.status !== 'cancelado'
 export const isLate = (p: Project) => isOpen(p) && !!p.dueDate && daysUntil(p.dueDate) < 0
 export const paymentLate = (x: Payment) => !x.paidDate && !!x.dueDate && daysUntil(x.dueDate) < 0
 
@@ -307,3 +326,25 @@ export function download(filename: string, content: string, type = 'application/
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+/** Formata telefone enquanto digita: (11) 96928-8192 — com +55 fica +55 11 96928-8192. */
+export function formatPhone(value: string) {
+  let d = value.replace(/\D/g, '')
+  const intl = value.trim().startsWith('+') || (d.startsWith('55') && d.length > 11)
+  let prefix = ''
+  if (intl && d.startsWith('55')) {
+    prefix = '+55 '
+    d = d.slice(2)
+  }
+  d = d.slice(0, 11)
+  if (!d) return prefix.trim()
+  const dd = d.slice(0, 2)
+  const n = d.slice(2)
+  const ddPart = prefix ? `${dd}` : `(${dd}${d.length > 2 ? ')' : ''}`
+  if (!n) return prefix + ddPart
+  const split = n.length > 8 ? 5 : 4 // celular 9 dígitos, fixo 8
+  const body = n.length > split ? `${n.slice(0, split)}-${n.slice(split)}` : n
+  return `${prefix}${ddPart} ${body}`
+}
+
+export const EMAIL_DOMAINS = ['gmail.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'yahoo.com.br', 'live.com', 'uol.com.br', 'bol.com.br']
