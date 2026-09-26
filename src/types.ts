@@ -70,6 +70,16 @@ export interface TimeLog {
   note: string
 }
 
+/** Serviço pedido depois do fechamento (opcional). Entra no total e no financeiro. */
+export interface Extra {
+  id: string
+  date: string
+  title: string
+  value: number
+  mode: 'saldo' | 'separado' // somado à próxima parcela em aberto ou cobrado à parte
+  paymentId: string // parcela que recebeu o valor
+}
+
 export interface Project {
   id: string
   clientId: string
@@ -85,6 +95,7 @@ export interface Project {
   value: number
   discount: number
   payments: Payment[]
+  extras?: Extra[]
   revisionsIncluded: number
   revisionsUsed: number
   estimatedHours: number
@@ -186,6 +197,7 @@ export interface Quote {
   sentAt: string // quando foi enviado ao cliente (para lembrar de cobrar resposta)
   createdAt: string
   projectId: string
+  closedValue?: number // valor fechado depois da negociação (0 = o da proposta)
 }
 
 export type Pricing = 'unidade' | 'pacote' | 'm2' | 'livre'

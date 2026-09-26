@@ -5,10 +5,10 @@ import { Icon } from '../components/Icon'
 import { ProjectForm, EventForm } from '../components/forms'
 import { ReceiptDoc } from '../components/Docs'
 import { usePdf } from '../components/Print'
-import { Badge, Empty, MoneyInput, Progress, Section, Stat } from '../components/ui'
+import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
-import type { Payment, Priority, Project, ProjectStatus } from '../types'
+import type { Extra, Payment, Priority, Project, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
   PAYMENT_METHODS,
@@ -41,6 +41,7 @@ export default function ProjectDetail({ id }: { id: string }) {
   const p = data.projects.find((x) => x.id === id)
   const [edit, setEdit] = useState(false)
   const [newEvent, setNewEvent] = useState(false)
+  const [newExtra, setNewExtra] = useState(false)
   const [task, setTask] = useState('')
   const pdf = usePdf()
 
@@ -188,6 +189,9 @@ export default function ProjectDetail({ id }: { id: string }) {
                     <Icon name="whatsapp" size={14} /> Cobrar
                   </a>
                 )}
+                <button className="btn small ghost" onClick={() => setNewExtra(true)} title="Cliente pediu algo a mais depois de fechar">
+                  <Icon name="plus" size={14} /> Adicional
+                </button>
                 <button
                   className="btn small"
                   onClick={() =>
@@ -280,6 +284,31 @@ export default function ProjectDetail({ id }: { id: string }) {
               </p>
             )}
           </Section>
+
+          {(p.extras ?? []).length > 0 && (
+            <Section title="Serviços adicionais">
+              <ul className="mini-list">
+                {(p.extras ?? []).map((x) => {
+                  const pay = p.payments.find((y) => y.id === x.paymentId)
+                  return (
+                    <li key={x.id}>
+                      <div className="grow">
+                        <div>{x.title}</div>
+                        <div className="small muted">
+                          {fmtDate(x.date)} · {x.mode === 'saldo' ? `somado a “${pay?.description ?? 'parcela'}”` : 'cobrado à parte'}
+                          {pay?.paidDate ? ' · pago' : ''}
+                        </div>
+                      </div>
+                      <b className="nowrap">+ {money(x.value)}</b>
+                      <button className="icon-btn" title="Remover adicional" onClick={async () => (await askDelete(`o adicional "${x.title}" (o valor sai do total e da parcela)`)) && save(removeExtra(p, x))}>
+                        <Icon name="trash" size={16} />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </Section>
+          )}
 
           <Section title={`Etapas · ${done}/${p.tasks.length}`}>
             {p.tasks.length > 0 && <Progress value={done} max={p.tasks.length} />}
@@ -415,6 +444,7 @@ export default function ProjectDetail({ id }: { id: string }) {
 
       {edit && <ProjectForm initial={p} onClose={() => setEdit(false)} />}
       {newEvent && <EventFormForProject projectId={p.id} onClose={() => setNewEvent(false)} />}
+      {newExtra && <ExtraForm p={p} onClose={() => setNewExtra(false)} onSave={(patch) => save(patch)} />}
       {pdf.portal}
     </div>
   )
@@ -427,5 +457,78 @@ function EventFormForProject({ projectId, onClose }: { projectId: string; onClos
       isNew
       onClose={onClose}
     />
+  )
+}
+
+/** Tira o adicional e desfaz o valor na parcela (remove a parcela se ela era só dele). */
+function removeExtra(p: Project, x: Extra): Partial<Project> {
+  const payments =
+    x.mode === 'separado'
+      ? p.payments.filter((y) => y.id !== x.paymentId || !!y.paidDate)
+      : p.payments.map((y) => (y.id === x.paymentId && !y.paidDate ? { ...y, amount: Math.max(0, Math.round((y.amount - x.value) * 100) / 100) } : y))
+  return { extras: (p.extras ?? []).filter((y) => y.id !== x.id), payments }
+}
+
+function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; onSave: (patch: Partial<Project>) => void }) {
+  const open = p.payments.find((y) => !y.paidDate)
+  const [title, setTitle] = useState('')
+  const [value, setValue] = useState(0)
+  const [mode, setMode] = useState<Extra['mode']>(open ? 'saldo' : 'separado')
+  const [due, setDue] = useState(p.dueDate || today())
+
+  const submit = () => {
+    if (!title.trim()) return toast('Descreva o que foi pedido a mais.')
+    if (value <= 0) return toast('Informe o valor do adicional.')
+    let payments = p.payments
+    let paymentId: string
+    if (mode === 'saldo' && open) {
+      paymentId = open.id
+      payments = p.payments.map((y) => (y.id === open.id ? { ...y, amount: Math.round((y.amount + value) * 100) / 100 } : y))
+    } else {
+      paymentId = uid()
+      payments = [...p.payments, { id: paymentId, description: `Adicional · ${title.trim()}`, amount: value, dueDate: due, paidDate: null, method: 'Pix' }]
+    }
+    const extra: Extra = { id: uid(), date: today(), title: title.trim(), value, mode: mode === 'saldo' && open ? 'saldo' : 'separado', paymentId }
+    onSave({ extras: [...(p.extras ?? []), extra], payments })
+    toast(`Adicional de ${money(value)} incluído${extra.mode === 'saldo' ? ` em “${open?.description}”` : ' como nova parcela'}.`)
+    onClose()
+  }
+
+  return (
+    <Modal
+      title="Serviço adicional"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn primary" onClick={submit}>Incluir adicional</button>
+        </>
+      }
+    >
+      <p className="small muted" style={{ marginBottom: 12 }}>Para quando o cliente pede algo a mais depois de fechado. O valor entra no total da demanda e no financeiro.</p>
+      <div className="form-grid two">
+        <Field label="O que foi pedido" span={2}>
+          <input autoFocus spellCheck lang="pt-BR" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: +2 imagens da varanda" />
+        </Field>
+        <Field label="Valor">
+          <MoneyInput value={value} onChange={setValue} />
+        </Field>
+        {mode === 'separado' && (
+          <Field label="Vencimento">
+            <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          </Field>
+        )}
+        <Field label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + value)}.` : 'Vira uma parcela nova, separada das outras.'}>
+          <Segmented<Extra['mode']>
+            value={open ? mode : 'separado'}
+            onChange={setMode}
+            options={[
+              ...(open ? [{ value: 'saldo' as const, label: `Somar em ${open.description.toLowerCase()}` }] : []),
+              { value: 'separado' as const, label: 'Cobrar à parte' },
+            ]}
+          />
+        </Field>
+      </div>
+    </Modal>
   )
 }

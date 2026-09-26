@@ -9,7 +9,7 @@ export function projectFromQuote(q: Quote, urgencyFee: number): Project {
   const start = today()
   const deadline = useOption ? chosen.deadlineDays : q.deadlineDays
   const due = addDays(start, Math.round(deadline * 1.4)) // dias úteis → corridos
-  const value = useOption ? optionTotal(chosen) : quoteTotal(q, urgencyFee)
+  const value = q.closedValue && q.closedValue > 0 ? q.closedValue : useOption ? optionTotal(chosen) : quoteTotal(q, urgencyFee)
   return {
     id: uid(),
     clientId: q.clientId,

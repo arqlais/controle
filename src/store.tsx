@@ -141,6 +141,7 @@ export function normalize(d: Partial<Data>): Data {
       ...p,
       timerStart: p.timerStart ?? null,
       payments: p.payments ?? [],
+      extras: p.extras ?? [],
       tasks: p.tasks ?? [],
       timeLogs: p.timeLogs ?? [],
     })),

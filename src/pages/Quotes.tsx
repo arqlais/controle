@@ -4,7 +4,7 @@ import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
+import { QUOTE_STATUS, addDays, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
@@ -65,7 +65,7 @@ export default function Quotes() {
           onClick={() => setFilter('cobrar')}
         />
         <Stat label="Taxa de aprovação" value={decided.length ? `${Math.round((approved.length / decided.length) * 100)}%` : '—'} sub={`${approved.length} de ${decided.length} respondidos`} icon="target" />
-        <Stat label="Valor aprovado" value={money(sum(approved, (x) => quoteTotal(x, fee)))} sub={approved.length ? `ticket médio ${money(sum(approved, (x) => quoteTotal(x, fee)) / approved.length)}` : undefined} icon="check" tone="good" />
+        <Stat label="Valor aprovado" value={money(sum(approved, (x) => quoteDeal(x, fee)))} sub={approved.length ? `ticket médio ${money(sum(approved, (x) => quoteDeal(x, fee)) / approved.length)}` : undefined} icon="check" tone="good" />
       </div>
 
       <div className="toolbar">
@@ -141,7 +141,10 @@ export default function Quotes() {
                         <span className="muted">—</span>
                       )}
                     </td>
-                    <td className="num" data-label="total">{money(quoteTotal(x, fee))}</td>
+                    <td className="num" data-label="total">
+                      {money(quoteDeal(x, fee))}
+                      {quoteDeal(x, fee) !== quoteTotal(x, fee) && <div className="small muted"><s>{money(quoteTotal(x, fee))}</s> negociado</div>}
+                    </td>
                     <td className="actions" onClick={(e) => e.stopPropagation()}>
                       <div className="quick-actions">
                         {needsFollowUp(x) && c?.phone && (
@@ -166,7 +169,7 @@ export default function Quotes() {
                   {rows.length} orçamento(s)
                 </td>
                 <td className="num">
-                  <b>{money(sum(rows, (x) => quoteTotal(x, fee)))}</b>
+                  <b>{money(sum(rows, (x) => quoteDeal(x, fee)))}</b>
                 </td>
                 <td />
               </tr>

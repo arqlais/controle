@@ -9,7 +9,7 @@ import { Badge, Empty, Field, MoneyInput, Section, Segmented } from '../componen
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, Settings } from '../types'
-import { projectFromQuote } from '../quoteActions'
+import { CloseDeal } from '../components/quick'
 import {
   COMPLEXITY,
   QUOTE_STATUS,
@@ -122,14 +122,11 @@ export default function QuoteEditor({ id }: { id: string }) {
 
   const approve = () => {
     if (two && !q.chosenOption) return toast('Marque qual opção o cliente escolheu.')
-    const saved = save({ status: 'aprovado' })
-    if (!saved) return
-    if (saved.projectId && data.projects.some((p) => p.id === saved.projectId)) return go('projetos', saved.projectId)
-    const project = projectFromQuote(saved, settings.urgencyFee)
-    upsert('projects', project)
-    upsert('quotes', { ...saved, projectId: project.id })
-    go('projetos', project.id)
+    if (q.projectId && data.projects.some((p) => p.id === q.projectId)) return go('projetos', q.projectId)
+    if (!q.clientId) return toast('Escolha o cliente.')
+    setClosing(q) // a janela salva o orçamento aprovado junto com a demanda
   }
+  const [closing, setClosing] = useState<Quote | null>(null)
 
   const preview = <QuoteDoc s={settings} client={client} quote={q} />
 
@@ -349,6 +346,11 @@ export default function QuoteEditor({ id }: { id: string }) {
               onChange={(s) => (existing ? save({ status: s }) : set({ status: s }))}
               options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
             />
+            {q.closedValue ? (
+              <p className="small muted">
+                Fechado por <b>{money(q.closedValue)}</b> · proposta de <s>{money(total)}</s>
+              </p>
+            ) : null}
             <button className="btn primary block" onClick={approve}>
               <Icon name="check" size={16} /> {q.projectId ? 'abrir demanda criada' : 'aprovado → criar demanda'}
             </button>
@@ -411,6 +413,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       {newClient && <ClientForm onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
       {editClient && client && <ClientForm initial={client} onClose={() => setEditClient(false)} />}
       {pdf.portal}
+      {closing && <CloseDeal q={closing} onClose={() => setClosing(null)} onDone={(id) => go('projetos', id)} />}
     </div>
   )
 }

@@ -21,7 +21,7 @@ import {
   projectOpen,
   projectPaid,
   projectTotal,
-  quoteTotal,
+  quoteDeal,
   sum,
   today,
   uid,
@@ -188,7 +188,7 @@ export default function ClientDetail({ id }: { id: string }) {
                       #{q.number} {q.title}
                     </a>
                     <QuoteStatusSelect q={q} />
-                    <span className="nowrap">{money(quoteTotal(q, data.settings.urgencyFee))}</span>
+                    <span className="nowrap">{money(quoteDeal(q, data.settings.urgencyFee))}</span>
                   </li>
                 ))}
               </ul>

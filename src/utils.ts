@@ -157,7 +157,8 @@ export const relativeDays = (s: string) => {
 
 /* ---------- cálculos de projeto ---------- */
 
-export const projectTotal = (p: Project) => Math.max(0, p.value - p.discount)
+export const projectExtras = (p: Project) => (p.extras ?? []).reduce((s, x) => s + x.value, 0)
+export const projectTotal = (p: Project) => Math.max(0, p.value - p.discount) + projectExtras(p)
 export const projectPaid = (p: Project) => p.payments.filter((x) => x.paidDate).reduce((s, x) => s + x.amount, 0)
 export const projectOpen = (p: Project) => projectTotal(p) - projectPaid(p)
 export const projectHours = (p: Project) => p.timeLogs.reduce((s, t) => s + t.hours, 0)
@@ -269,6 +270,9 @@ export const quoteTotal = (q: Quote, urgencyFee: number) => {
   const withUrg = q.urgency ? sub * (1 + urgencyFee / 100) : sub
   return Math.max(0, withUrg - q.discount)
 }
+
+/** Valor que vale para o financeiro: o fechado na negociação, ou o da proposta. */
+export const quoteDeal = (q: Quote, urgencyFee: number) => (q.closedValue && q.closedValue > 0 ? q.closedValue : quoteTotal(q, urgencyFee))
 
 /** Divide um valor em parcelas (ex.: 50% entrada + 50% na entrega). */
 export type PayMode = '50-50' | 'inicio' | 'cartao'

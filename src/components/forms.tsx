@@ -4,6 +4,8 @@ import { useStore } from '../store'
 import type { CalendarEvent, Client, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
 import {
   CLIENT_TYPES,
+  projectExtras,
+  projectTotal,
   DEFAULT_TASKS,
   EVENT_TYPES,
   EXPENSE_CATEGORIES,
@@ -173,7 +175,8 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = settings.services.find((s) => s.id === p.service)
   const suggested = suggestPrice(service, p.quantity, 'media', isStudent(client), settings)
-  const total = Math.max(0, p.value - p.discount)
+  const total = projectTotal(p)
+  const extrasTotal = projectExtras(p)
 
   const applyService = (id: string, qty = p.quantity) => {
     const s = settings.services.find((x) => x.id === id)
@@ -297,7 +300,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
         <Field label="Desconto">
           <MoneyInput value={p.discount} onChange={(n) => set('discount', n)} />
         </Field>
-        <Field label="Total">
+        <Field label="Total" hint={extrasTotal ? `inclui ${money(extrasTotal)} de adicionais` : undefined}>
           <div className="readonly">{money(total)}</div>
         </Field>
 
