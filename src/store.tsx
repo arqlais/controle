@@ -30,6 +30,7 @@ function autoStatus(p: Project): Project {
 }
 
 export const DEFAULT_PROPOSAL: ProposalStyle = {
+  layout: 'minimal',
   eyebrow: 'proposta de',
   title: 'orçamento',
   serif: 'Cormorant Garamond',

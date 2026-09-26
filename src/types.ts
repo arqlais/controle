@@ -196,6 +196,7 @@ export interface ServiceDef {
 }
 
 export interface ProposalStyle {
+  layout: 'minimal' | 'arco' // minimalista (carimbo de prancha) ou arco rosé do Canva
   eyebrow: string // "proposta de"
   title: string // "orçamento"
   serif: string // fonte dos títulos da proposta

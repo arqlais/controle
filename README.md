@@ -57,7 +57,7 @@ Sem essas variáveis, o sistema funciona só no navegador (localStorage) — use
 
 ## Identidade visual
 
-Segue o site www.lais3d.com.br: **Poppins** + **The Seasons Italic** (embutida em `src/fonts`, recorte com os caracteres do português), areia `#F5F1EE`, grafite `#3E4B57`, rosé `#D6B3AB` e rosé terroso `#A88A80`. Tudo ajustável em **Configurações → Identidade visual**. Recibos e propostas usam o mesmo visual.
+Segue o site www.lais3d.com.br: **Poppins** + **The Seasons Italic** (embutida em `src/fonts`, recorte com os caracteres do português), areia `#F5F1EE`, grafite `#3E4B57`, rosé `#D6B3AB` e rosé terroso `#A88A80`. Tudo ajustável em **Configurações → Identidade visual**. Recibos e propostas usam o mesmo visual; a proposta tem dois modelos (Configurações → Modelo da proposta): **minimalista** (arco só em traço com o nº do orçamento e carimbo de prancha no rodapé) e **arco rosé**.
 
 ## Stack
 
