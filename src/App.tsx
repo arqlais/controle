@@ -28,8 +28,11 @@ const NAV = [
   { page: 'financeiro', label: 'financeiro', icon: 'wallet' },
   { page: 'agenda', label: 'agenda', icon: 'calendar' },
   { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
-  { page: 'config', label: 'configurações', icon: 'settings' },
+]
+// ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
+const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
+  { page: 'config', label: 'configurações', icon: 'settings' },
 ]
 
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
@@ -143,6 +146,15 @@ export default function App() {
               </a>
             )
           })}
+          <div className="nav-group">
+            <span className="nav-group-label">ajustes e dicas</span>
+            {TOOLS.map((n) => (
+              <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} onClick={(e) => organizing && e.preventDefault()}>
+                <Icon name={n.icon} />
+                <span>{n.label}</span>
+              </a>
+            ))}
+          </div>
           <div className="nav-links">
             <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
               {organizing ? 'pronto' : 'organizar menu'}
@@ -259,7 +271,7 @@ export default function App() {
             <span>{n.label}</span>
           </a>
         ))}
-        <button type="button" className={nav.slice(4).some((n) => n.page === route.page) ? 'active' : ''} onClick={() => setMenuOpen(true)}>
+        <button type="button" className={[...nav.slice(4), ...TOOLS].some((n) => n.page === route.page) ? 'active' : ''} onClick={() => setMenuOpen(true)}>
           <Icon name="menu" />
           <span>mais</span>
         </button>

@@ -892,3 +892,10 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
   .manual-where-list li { flex-direction: column; gap: 2px; }
   .manual-where-list .link { text-align: left; }
 }
+
+/* menu: grupo "ajustes e dicas" (manual e configurações) em tom rosé, separado das telas de trabalho */
+.nav-group { display: flex; flex-direction: column; gap: 4px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+.nav-group-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--accent-ink); padding: 0 14px 4px; text-transform: lowercase; }
+.sidebar nav a.is-tool { color: var(--accent-ink); }
+.sidebar nav a.is-tool:hover { background: var(--accent-tint); }
+.sidebar nav a.is-tool.active { background: var(--accent-tint); color: var(--accent-ink); box-shadow: none; border: 1px solid var(--accent-soft); }
