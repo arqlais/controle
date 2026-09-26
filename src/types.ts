@@ -77,7 +77,17 @@ export interface Extra {
   title: string
   value: number
   mode: 'saldo' | 'separado' // somado à próxima parcela em aberto ou cobrado à parte
+  quantity?: number // opcional: quantidade × valor unitário (ex.: 15 imagens × R$ 35)
+  unitPrice?: number
   paymentId: string // parcela que recebeu o valor
+}
+
+/** Item de um pacote fechado (ex.: 3 projetos com desconto). Retirado = cancelado, fica no histórico. */
+export interface ProjectItem {
+  id: string
+  title: string
+  price: number
+  removed?: boolean
 }
 
 export interface Project {
@@ -96,6 +106,8 @@ export interface Project {
   discount: number
   payments: Payment[]
   extras?: Extra[]
+  items?: ProjectItem[] // opcional: pacote com vários projetos
+  pkgDiscount?: number // desconto original do pacote (redistribuído se um item sair)
   revisionsIncluded: number
   revisionsUsed: number
   estimatedHours: number

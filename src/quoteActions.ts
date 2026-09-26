@@ -1,5 +1,5 @@
 import type { Project, Quote } from './types'
-import { DEFAULT_TASKS, addDays, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
+import { DEFAULT_TASKS, addDays, cleanDetail, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 export function projectFromQuote(q: Quote, urgencyFee: number): Project {
@@ -10,7 +10,14 @@ export function projectFromQuote(q: Quote, urgencyFee: number): Project {
   const deadline = useOption ? chosen.deadlineDays : q.deadlineDays
   const due = addDays(start, Math.round(deadline * 1.4)) // dias úteis → corridos
   const value = q.closedValue && q.closedValue > 0 ? q.closedValue : useOption ? optionTotal(chosen) : quoteTotal(q, urgencyFee)
+  // vários serviços com valor → vira pacote (dá para retirar um depois e o desconto se ajusta)
+  const lines = (useOption ? chosen.items : q.items).filter((i) => i.price > 0)
+  const full = lines.reduce((s, i) => s + i.price, 0)
+  const asPackage = lines.length > 1 && value <= full
   return {
+    ...(asPackage
+      ? { items: lines.map((i) => ({ id: uid(), title: [i.title, cleanDetail(i.detail)].filter(Boolean).join(' · '), price: i.price })), pkgDiscount: Math.round((full - value) * 100) / 100 }
+      : {}),
     id: uid(),
     clientId: q.clientId,
     title: q.title || 'Projeto',
@@ -24,8 +31,8 @@ export function projectFromQuote(q: Quote, urgencyFee: number): Project {
     startDate: start,
     dueDate: due,
     deliveredDate: null,
-    value,
-    discount: 0,
+    value: asPackage ? full : value,
+    discount: asPackage ? Math.round((full - value) * 100) / 100 : 0,
     payments: splitPayments(value, '50-50', start, due),
     revisionsIncluded: q.revisions,
     revisionsUsed: 0,

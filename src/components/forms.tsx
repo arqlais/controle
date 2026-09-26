@@ -294,12 +294,22 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
           />
         </Field>
 
-        <Field label="Valor" hint={suggested ? `Tabela ${isStudent(client) ? 'estudante' : 'profissional'}: ${money(suggested)}` : undefined}>
-          <MoneyInput value={p.value} onChange={(n) => set('value', n)} />
-        </Field>
-        <Field label="Desconto">
-          <MoneyInput value={p.discount} onChange={(n) => set('discount', n)} />
-        </Field>
+        {(p.items ?? []).length > 0 ? (
+          <Field label="Valor e desconto" span={2} hint="Definidos pelo pacote, na página da demanda.">
+            <div className="readonly">
+              {money(p.value)} − {money(p.discount)}
+            </div>
+          </Field>
+        ) : (
+          <>
+            <Field label="Valor" hint={suggested ? `Tabela ${isStudent(client) ? 'estudante' : 'profissional'}: ${money(suggested)}` : undefined}>
+              <MoneyInput value={p.value} onChange={(n) => set('value', n)} />
+            </Field>
+            <Field label="Desconto">
+              <MoneyInput value={p.discount} onChange={(n) => set('discount', n)} />
+            </Field>
+          </>
+        )}
         <Field label="Total" hint={extrasTotal ? `inclui ${money(extrasTotal)} de adicionais` : undefined}>
           <div className="readonly">{money(total)}</div>
         </Field>

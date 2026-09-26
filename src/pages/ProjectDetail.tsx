@@ -8,7 +8,7 @@ import { usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
-import type { Extra, Payment, Priority, Project, ProjectStatus } from '../types'
+import type { Client, Extra, Payment, Priority, Project, ProjectItem, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
   PAYMENT_METHODS,
@@ -34,6 +34,10 @@ import {
   splitPayments,
   urgency,
   whatsappLink,
+  packageSummary,
+  pkgActive,
+  pkgFull,
+  withPackage,
 } from '../utils'
 
 export default function ProjectDetail({ id }: { id: string }) {
@@ -42,6 +46,7 @@ export default function ProjectDetail({ id }: { id: string }) {
   const [edit, setEdit] = useState(false)
   const [newEvent, setNewEvent] = useState(false)
   const [newExtra, setNewExtra] = useState(false)
+  const hasPackage = (p?.items ?? []).length > 0
   const [task, setTask] = useState('')
   const pdf = usePdf()
 
@@ -189,6 +194,15 @@ export default function ProjectDetail({ id }: { id: string }) {
                     <Icon name="whatsapp" size={14} /> Cobrar
                   </a>
                 )}
+                {!hasPackage && (
+                  <button
+                    className="btn small ghost"
+                    title="Vários projetos fechados juntos, com desconto"
+                    onClick={() => save(withPackage(p, [{ id: uid(), title: p.title, price: p.value }], p.discount))}
+                  >
+                    <Icon name="box" size={14} /> Pacote
+                  </button>
+                )}
                 <button className="btn small ghost" onClick={() => setNewExtra(true)} title="Cliente pediu algo a mais depois de fechar">
                   <Icon name="plus" size={14} /> Adicional
                 </button>
@@ -285,6 +299,8 @@ export default function ProjectDetail({ id }: { id: string }) {
             )}
           </Section>
 
+          {hasPackage && <PackageSection p={p} client={client} save={(next) => upsert('projects', next)} />}
+
           {(p.extras ?? []).length > 0 && (
             <Section title="Serviços adicionais">
               <ul className="mini-list">
@@ -293,7 +309,10 @@ export default function ProjectDetail({ id }: { id: string }) {
                   return (
                     <li key={x.id}>
                       <div className="grow">
-                        <div>{x.title}</div>
+                        <div>
+                          {x.title}
+                          {x.quantity && x.unitPrice ? <span className="muted"> · {x.quantity} × {money(x.unitPrice)}</span> : null}
+                        </div>
                         <div className="small muted">
                           {fmtDate(x.date)} · {x.mode === 'saldo' ? `somado a “${pay?.description ?? 'parcela'}”` : 'cobrado à parte'}
                           {pay?.paidDate ? ' · pago' : ''}
@@ -472,11 +491,15 @@ function removeExtra(p: Project, x: Extra): Partial<Project> {
 function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; onSave: (patch: Partial<Project>) => void }) {
   const open = p.payments.find((y) => !y.paidDate)
   const [title, setTitle] = useState('')
-  const [value, setValue] = useState(0)
+  const [amount, setValue] = useState(0)
+  const [byUnit, setByUnit] = useState(false)
+  const [qty, setQty] = useState(1)
+  const [unit, setUnit] = useState(0)
   const [mode, setMode] = useState<Extra['mode']>(open ? 'saldo' : 'separado')
   const [due, setDue] = useState(p.dueDate || today())
 
   const submit = () => {
+    const value = byUnit ? Math.round(qty * unit * 100) / 100 : amount
     if (!title.trim()) return toast('Descreva o que foi pedido a mais.')
     if (value <= 0) return toast('Informe o valor do adicional.')
     let payments = p.payments
@@ -488,7 +511,7 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
       paymentId = uid()
       payments = [...p.payments, { id: paymentId, description: `Adicional · ${title.trim()}`, amount: value, dueDate: due, paidDate: null, method: 'Pix' }]
     }
-    const extra: Extra = { id: uid(), date: today(), title: title.trim(), value, mode: mode === 'saldo' && open ? 'saldo' : 'separado', paymentId }
+    const extra: Extra = { id: uid(), date: today(), title: title.trim(), value, mode: mode === 'saldo' && open ? 'saldo' : 'separado', paymentId, ...(byUnit ? { quantity: qty, unitPrice: unit } : {}) }
     onSave({ extras: [...(p.extras ?? []), extra], payments })
     toast(`Adicional de ${money(value)} incluído${extra.mode === 'saldo' ? ` em “${open?.description}”` : ' como nova parcela'}.`)
     onClose()
@@ -510,15 +533,29 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
         <Field label="O que foi pedido" span={2}>
           <input autoFocus spellCheck lang="pt-BR" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: +2 imagens da varanda" />
         </Field>
-        <Field label="Valor">
-          <MoneyInput value={value} onChange={setValue} />
-        </Field>
+        {byUnit ? (
+          <>
+            <Field label="Quantidade">
+              <input type="number" min={1} value={qty} onFocus={(e) => e.target.select()} onChange={(e) => setQty(Number(e.target.value) || 0)} />
+            </Field>
+            <Field label="Valor por unidade" hint={`${qty} × ${money(unit)} = ${money(qty * unit)}`}>
+              <MoneyInput value={unit} onChange={setUnit} />
+            </Field>
+          </>
+        ) : (
+          <Field label="Valor">
+            <MoneyInput value={amount} onChange={setValue} />
+          </Field>
+        )}
+        <label className="check" style={{ gridColumn: '1 / -1' }}>
+          <input type="checkbox" checked={byUnit} onChange={(e) => setByUnit(e.target.checked)} /> calcular por quantidade (ex.: 15 imagens × R$ 35,00)
+        </label>
         {mode === 'separado' && (
           <Field label="Vencimento">
             <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
           </Field>
         )}
-        <Field label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + value)}.` : 'Vira uma parcela nova, separada das outras.'}>
+        <Field label="Como cobrar" span={2} hint={mode === 'saldo' && open ? `“${open.description}” passa de ${money(open.amount)} para ${money(open.amount + (byUnit ? qty * unit : amount))}.` : 'Vira uma parcela nova, separada das outras.'}>
           <Segmented<Extra['mode']>
             value={open ? mode : 'separado'}
             onChange={setMode}
@@ -530,5 +567,87 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
         </Field>
       </div>
     </Modal>
+  )
+}
+
+/** Pacote: vários projetos com um desconto. Retirar um item redistribui o desconto e recalcula o saldo. */
+function PackageSection({ p, client, save }: { p: Project; client?: Client; save: (next: Project) => void }) {
+  const items = p.items ?? []
+  const disc = p.pkgDiscount ?? 0
+  const full = pkgFull(p)
+  const active = pkgActive(p)
+  const apply = (next: ProjectItem[], d = disc) => save(withPackage(p, next, d))
+  const setItem = (id: string, patch: Partial<ProjectItem>) => apply(items.map((i) => (i.id === id ? { ...i, ...patch } : i)))
+  const pkgTotal = Math.max(0, p.value - p.discount)
+  const paid = projectPaid(p)
+  const summary = packageSummary(p)
+  return (
+    <Section
+      title="Pacote"
+      action={
+        <div className="row gap-s">
+          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(summary).then(() => toast('Resumo copiado. É só colar no WhatsApp.'), () => toast('Não consegui copiar.'))} title="Copiar resumo para enviar à cliente">
+            <Icon name="copy" size={14} /> Copiar resumo
+          </button>
+          {client?.phone && (
+            <a className="btn small ghost" href={whatsappLink(client.phone, summary)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={14} /> Enviar
+            </a>
+          )}
+        </div>
+      }
+    >
+      <div className="pkg-list">
+        {items.map((i) => (
+          <div key={i.id} className={`pkg-row ${i.removed ? 'is-removed' : ''}`}>
+            <input className="cell-input" value={i.title} onChange={(e) => setItem(i.id, { title: e.target.value })} placeholder="Projeto" disabled={i.removed} />
+            <div style={{ width: 140 }}>
+              <MoneyInput value={i.price} onChange={(n) => setItem(i.id, { price: n })} />
+            </div>
+            <button className={`btn small ${i.removed ? '' : 'ghost'}`} onClick={() => setItem(i.id, { removed: !i.removed })} title={i.removed ? 'Voltar para o pacote' : 'Cliente cancelou este projeto'}>
+              {i.removed ? 'voltar' : 'retirar'}
+            </button>
+            <button className="icon-btn" title="Apagar item (lançado por engano)" onClick={async () => (await askDelete(`o item "${i.title || 'sem nome'}"`)) && apply(items.filter((x) => x.id !== i.id))}>
+              <Icon name="trash" size={15} />
+            </button>
+          </div>
+        ))}
+        <button className="btn small ghost" onClick={() => apply([...items, { id: uid(), title: '', price: 0 }])}>
+          <Icon name="plus" size={14} /> Projeto no pacote
+        </button>
+      </div>
+      <div className="pkg-sum">
+        <div>
+          <span>soma dos projetos</span>
+          <span>
+            {active !== full && <s className="muted">{money(full)}</s>} {money(active)}
+          </span>
+        </div>
+        <div>
+          <span>desconto do pacote</span>
+          <span className="row gap-s">
+            <div style={{ width: 130 }}>
+              <MoneyInput value={disc} onChange={(n) => apply(items, n)} />
+            </div>
+          </span>
+        </div>
+        {active !== full && (
+          <div className="small muted">
+            <span>desconto ajustado proporcionalmente</span>
+            <span>− {money(p.discount)}</span>
+          </div>
+        )}
+        <div className="pkg-total">
+          <span>total do pacote</span>
+          <b>{money(pkgTotal)}</b>
+        </div>
+        {paid > 0 && (
+          <div className="small">
+            <span>já pago {money(paid)} · saldo dos projetos</span>
+            <b>{money(Math.max(0, pkgTotal - paid))}</b>
+          </div>
+        )}
+      </div>
+    </Section>
   )
 }

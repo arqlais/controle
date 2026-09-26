@@ -14,6 +14,7 @@ import type {
   Payment,
   Priority,
   Project,
+  ProjectItem,
   Quote,
   QuoteStatus,
 } from './types'
@@ -416,4 +417,71 @@ export const fillMessage = (text: string, vars: Record<string, string>) =>
 export function templateText(st: Settings, id: string, fallback: string, client?: Client, project?: Project, quote?: Quote) {
   const t = st.messages.find((m) => m.id === id)?.text ?? fallback
   return fillMessage(t, messageVars(st, client, project, quote))
+}
+
+/* ---------- pacote (vários projetos numa demanda, com desconto) ---------- */
+
+const r2 = (n: number) => Math.round(n * 100) / 100
+export const pkgFull = (p: Project) => (p.items ?? []).reduce((s, i) => s + (i.price || 0), 0)
+export const pkgActive = (p: Project) => (p.items ?? []).filter((i) => !i.removed).reduce((s, i) => s + (i.price || 0), 0)
+
+/** Ajusta as parcelas em aberto para fechar com o total (sem mexer nas pagas nem nos adicionais cobrados à parte). */
+export function rebalancePayments(p: Project): Payment[] {
+  const fixed = new Set((p.extras ?? []).filter((x) => x.mode === 'separado').map((x) => x.paymentId))
+  const paid = projectPaid(p)
+  const fixedOpen = p.payments.filter((x) => !x.paidDate && fixed.has(x.id)).reduce((s, x) => s + x.amount, 0)
+  const target = Math.max(0, r2(projectTotal(p) - paid - fixedOpen))
+  const open = p.payments.filter((x) => !x.paidDate && !fixed.has(x.id))
+  if (!open.length) {
+    return target > 0.004 ? [...p.payments, { id: uid(), description: 'Saldo', amount: target, dueDate: p.dueDate || today(), paidDate: null, method: 'Pix' }] : p.payments
+  }
+  const cur = open.reduce((s, x) => s + x.amount, 0)
+  let left = target
+  const amounts = new Map<string, number>()
+  open.forEach((x, i) => {
+    const v = i === open.length - 1 ? r2(left) : cur > 0 ? r2((target * x.amount) / cur) : i === 0 ? target : 0
+    amounts.set(x.id, v)
+    left = r2(left - v)
+  })
+  return p.payments.map((x) => (amounts.has(x.id) ? { ...x, amount: amounts.get(x.id)! } : x))
+}
+
+/** Aplica itens + desconto do pacote: desconto proporcional aos itens que ficaram, e saldo recalculado. */
+export function withPackage(p: Project, items: ProjectItem[], pkgDiscount: number): Project {
+  const next: Project = { ...p, items, pkgDiscount }
+  const full = pkgFull(next)
+  const active = pkgActive(next)
+  const done: Project = { ...next, value: r2(active), discount: full > 0 ? r2((pkgDiscount * active) / full) : 0 }
+  return { ...done, payments: rebalancePayments(done) }
+}
+
+/** Texto de resumo para a cliente, no estilo das mensagens da Laís. */
+export function packageSummary(p: Project): string {
+  const items = p.items ?? []
+  const removed = items.filter((i) => i.removed)
+  const kept = items.filter((i) => !i.removed)
+  const full = pkgFull(p)
+  const disc = p.pkgDiscount ?? 0
+  const pkgTotal = r2(projectTotal({ ...p, extras: [] }))
+  const paid = projectPaid(p)
+  const lines: string[] = []
+  lines.push(`➡️ o pacote ${removed.length ? 'inicial ' : ''}dos ${items.length} projetos ${removed.length ? 'era' : 'é'} ${money(full)}${disc ? `, com ${money(disc)} de desconto, ficando em ${money(full - disc)}` : ''}`)
+  if (removed.length) {
+    lines.push('')
+    lines.push(`como ${removed.map((i) => `${i.title} (${money(i.price)})`).join(' e ')} ${removed.length > 1 ? 'foram retirados' : 'foi retirado'}, o desconto foi ajustado proporcionalmente ${kept.length > 1 ? `aos ${kept.length} projetos restantes` : 'ao projeto restante'}:`)
+    lines.push('')
+    kept.forEach((i) => lines.push(`* ${i.title} — ${money(i.price)}`))
+    lines.push(`novo total com desconto: ${money(pkgTotal)}`)
+  }
+  if (paid > 0) lines.push('', `como já foi pago ${money(paid)}, o saldo dos projetos fica em ${money(Math.max(0, pkgTotal - paid))}`)
+  const extras = p.extras ?? []
+  if (extras.length) {
+    lines.push('', '➡️ adicionais:')
+    extras.forEach((x) => lines.push(`* ${x.title}${x.quantity && x.unitPrice ? ` — ${x.quantity} × ${money(x.unitPrice)}` : ''} — ${money(x.value)}`))
+    lines.push('', '➡️ resumo:')
+    lines.push(`* saldo dos projetos: ${money(Math.max(0, pkgTotal - paid))}`)
+    lines.push(`* adicionais: ${money(extras.reduce((s, x) => s + x.value, 0))}`)
+  }
+  lines.push(`💵 total restante: ${money(Math.max(0, projectOpen(p)))}`)
+  return lines.join('\n')
 }
