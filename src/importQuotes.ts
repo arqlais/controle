@@ -3,7 +3,7 @@ import { quoteTotal, uid } from './utils'
 
 /* Importa orçamentos antigos (feitos fora do sistema) a partir de um arquivo .json.
    Não apaga nada: cria os clientes que faltam (pelo nome) e adiciona os orçamentos
-   como rascunho. Nº já existente, ou mesmo cliente + data + valor, é pulado. */
+   como rascunho. Mesmo nº para o mesmo cliente, ou mesmo cliente + data + valor, é pulado. */
 
 interface PackItem {
   service?: string // id do serviço (executivo, detalhamento, modelagem, render-ia…)
@@ -112,9 +112,11 @@ export function mergeQuotePack(data: Data, pack: QuotePack, urgencyFee: number) 
       projectId: '',
     }
     const total = quoteTotal(q, urgencyFee)
-    const dup =
-      quotes.find((x) => x.number === pq.number) ??
-      (c ? quotes.find((x) => x.clientId === c!.id && x.createdAt === pq.date && Math.abs(quoteTotal(x, urgencyFee) - total) < 0.01) : undefined)
+    // já existe: mesmo nº para o mesmo cliente, ou mesmo cliente + data + valor
+    // (o mesmo nº em clientes diferentes acontece nos orçamentos antigos, então entra)
+    const dup = c
+      ? quotes.find((x) => x.clientId === c!.id && (x.number === pq.number || (x.createdAt === pq.date && Math.abs(quoteTotal(x, urgencyFee) - total) < 0.01)))
+      : undefined
     if (dup) {
       skipped.push(`#${pq.number} ${pq.client}${dup.number !== pq.number ? ` (igual ao #${dup.number})` : ''}`)
       continue

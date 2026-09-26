@@ -85,7 +85,7 @@ export default function SettingsPage() {
           const res = mergeQuotePack(data, parsed, s.urgencyFee)
           replaceAll(res.data)
           toast(
-            `${res.added.length} orçamento(s) adicionados${res.newClients ? ` e ${res.newClients} cliente(s) novos` : ''}.${res.skipped.length ? ` Já existiam: ${res.skipped.join(', ')}.` : ''}`,
+            `${res.added.length} orçamento(s) adicionados${res.newClients ? ` e ${res.newClients} cliente(s) novos` : ''}.${res.skipped.length ? ` ${res.skipped.length} já existia(m)${res.skipped.length <= 3 ? `: ${res.skipped.join(', ')}` : ''}.` : ''}`,
           )
           return
         }
