@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today } from '../utils'
+import { QUOTE_STATUS, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, fmtWeekday } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -111,9 +111,10 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const fee = data.settings.urgencyFee
   const proposed = quoteTotal({ ...q, closedValue: 0 }, fee)
   const [value, setValue] = useState(q.closedValue && q.closedValue > 0 ? q.closedValue : proposed)
-  const [due, setDue] = useState('')
+  const [workDays, setWorkDays] = useState(0) // prazo em dias úteis (0 = sem prazo)
   const [closedOn, setClosedOn] = useState(today())
   const [signalPaid, setSignalPaid] = useState(false)
+  const due = workDays > 0 ? addBusinessDays(closedOn, workDays) : ''
   const diff = Math.round((proposed - value) * 100) / 100
   const confirm = () => {
     if (value <= 0) return toast('Informe o valor fechado.')
@@ -156,8 +157,15 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
         <label className="check">
           <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})
         </label>
-        <Field label="Prazo combinado · se houver" hint="Só se vocês alinharam um prazo. Dá para definir ou mudar depois, no card “prazo combinado” da demanda.">
-          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+        <Field
+          label="Prazo combinado · dias úteis"
+          hint={
+            due
+              ? `Entrega em ${fmtWeekday(due)}, ${due.split('-').reverse().join('/')} · sem contar fins de semana e feriados.`
+              : 'Deixe 0 se não combinaram prazo. Dá para definir depois, no card “prazo combinado” da demanda.'
+          }
+        >
+          <input type="number" min={0} value={workDays} onFocus={(e) => e.target.select()} onChange={(e) => setWorkDays(Math.max(0, Math.round(Number(e.target.value) || 0)))} />
         </Field>
         <p className="small muted">A proposta em PDF continua com o valor original. A demanda, as parcelas e o financeiro usam o valor fechado.</p>
       </form>

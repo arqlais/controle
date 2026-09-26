@@ -20,8 +20,7 @@ import {
   parseISO,
   toISO,
   today,
-  urgency,
-} from '../utils'
+  urgency, holidayName, isWeekend } from '../utils'
 
 interface Item {
   id: string
@@ -177,14 +176,17 @@ export default function Agenda() {
           {days.map((d) => {
             const inMonth = parseISO(d).getMonth() === cursor.getMonth()
             const list = byDay.get(d) ?? []
+            const holiday = holidayName(d)
             return (
               <button
                 key={d}
-                className={`cal-day ${inMonth ? '' : 'out'} ${d === t ? 'today' : ''} ${d === selected ? 'selected' : ''}`}
+                title={holiday}
+                className={`cal-day ${inMonth ? '' : 'out'} ${d === t ? 'today' : ''} ${d === selected ? 'selected' : ''} ${isWeekend(d) ? 'weekend' : ''} ${holiday ? 'holiday' : ''}`}
                 onClick={() => setSelected(d)}
                 onDoubleClick={() => setForm({ date: d })}
               >
                 <span className="cal-num">{Number(d.slice(8))}</span>
+                {holiday && <span className="cal-holiday">{holiday}</span>}
                 <div className="cal-items">
                   {list.slice(0, 3).map((i) => (
                     <span key={i.id} className={`cal-chip ${i.done ? 'done' : ''}`} style={{ borderLeftColor: i.color }}>
@@ -206,7 +208,7 @@ export default function Agenda() {
 
         <div className="stack">
           <Section
-            title={fmtDateLong(selected) + (selected === t ? ' · hoje' : '')}
+            title={fmtDateLong(selected) + (selected === t ? ' · hoje' : '') + (holidayName(selected) ? ` · ${holidayName(selected)}` : isWeekend(selected) ? ' · fim de semana' : '')}
             action={
               <button className="btn small ghost" onClick={() => setForm({ date: selected })}>
                 <Icon name="plus" size={14} />

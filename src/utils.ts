@@ -142,6 +142,63 @@ export const addDays = (s: string, n: number) => {
 export const daysBetween = (a: string, b: string) =>
   Math.round((parseISO(b).getTime() - parseISO(a).getTime()) / 86400000)
 export const daysUntil = (s: string) => daysBetween(today(), s)
+
+/* ---------- feriados nacionais e dias úteis ---------- */
+
+/** Domingo de Páscoa (algoritmo gregoriano anônimo). */
+function easter(y: number): string {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451)
+  const month = Math.floor((h + l - 7 * m + 114) / 31), day = ((h + l - 7 * m + 114) % 31) + 1
+  return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+const holidayCache = new Map<number, Map<string, string>>()
+/** Feriados nacionais (e Carnaval / Corpus Christi, que param quase tudo) de um ano. */
+export function holidaysOf(y: number): Map<string, string> {
+  const hit = holidayCache.get(y)
+  if (hit) return hit
+  const p = easter(y)
+  const m = new Map<string, string>([
+    [`${y}-01-01`, 'Confraternização Universal'],
+    [addDays(p, -48), 'Carnaval'],
+    [addDays(p, -47), 'Carnaval'],
+    [addDays(p, -2), 'Sexta-feira Santa'],
+    [`${y}-04-21`, 'Tiradentes'],
+    [`${y}-05-01`, 'Dia do Trabalho'],
+    [addDays(p, 60), 'Corpus Christi'],
+    [`${y}-09-07`, 'Independência'],
+    [`${y}-10-12`, 'Nossa Senhora Aparecida'],
+    [`${y}-11-02`, 'Finados'],
+    [`${y}-11-15`, 'Proclamação da República'],
+    [`${y}-11-20`, 'Consciência Negra'],
+    [`${y}-12-25`, 'Natal'],
+  ])
+  holidayCache.set(y, m)
+  return m
+}
+/** Dia da semana curto, ex.: "sex". */
+export const fmtWeekday = (iso: string) => ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][parseISO(iso).getDay()]
+export const holidayName = (iso: string) => holidaysOf(Number(iso.slice(0, 4))).get(iso)
+export const isWeekend = (iso: string) => [0, 6].includes(parseISO(iso).getDay())
+export const isBusinessDay = (iso: string) => !isWeekend(iso) && !holidayName(iso)
+/** Data de entrega contando só dias úteis a partir do dia seguinte ao início. */
+export function addBusinessDays(start: string, n: number): string {
+  let d = start
+  let left = Math.max(0, Math.round(n))
+  while (left > 0) {
+    d = addDays(d, 1)
+    if (isBusinessDay(d)) left--
+  }
+  return d
+}
+/** Quantos dias úteis faltam até a data (sem contar hoje). */
+export function businessDaysUntil(iso: string, from = today()): number {
+  if (!iso || iso <= from) return 0
+  let n = 0
+  for (let d = addDays(from, 1); d <= iso; d = addDays(d, 1)) if (isBusinessDay(d)) n++
+  return n
+}
 export const monthKey = (s: string) => s.slice(0, 7)
 export const fmtDate = (s?: string | null) => {
   if (!s) return '—'

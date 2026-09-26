@@ -73,7 +73,7 @@ const STEPS: Step[] = [
     todo: [
       <>Na lista de <b>orçamentos</b>, clique na pílula de status e escolha <b>Aprovado</b> (ou, dentro do orçamento, <b>aprovado → criar demanda</b>).</>,
       <>Na janela <b>Fechou por quanto?</b>: se negociou, troque o valor. O PDF continua com o valor original; o financeiro usa o fechado.</>,
-      <>Se vocês alinharam um prazo, coloque em <b>Prazo combinado · se houver</b>, na mesma janela. Sem pressa? Deixe em branco.</>,
+      <>Se vocês alinharam um prazo, coloque em <b>prazo combinado · dias úteis</b>, na mesma janela: o sistema calcula a data pulando fins de semana e feriados. Sem pressa? Deixe 0.</>,
       <>A demanda é criada sozinha em <b>demandas</b>, na coluna <b>em alinhamento</b>, com as parcelas “sinal 50%” e “saldo 50%”.</>,
     ],
     tip: <>Orçamento com vários serviços vira um <b>pacote</b> automaticamente, para você poder retirar um projeto depois sem refazer a conta.</>,

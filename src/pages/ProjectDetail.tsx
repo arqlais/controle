@@ -34,6 +34,7 @@ import {
   splitPayments,
   urgency,
   whatsappLink,
+  businessDaysUntil,
   packageSummary,
   pkgActive,
   pkgFull,
@@ -181,7 +182,7 @@ export default function ProjectDetail({ id }: { id: string }) {
             p.status === 'entregue'
               ? `entregue em ${fmtDate(p.deliveredDate)}`
               : p.dueDate
-                ? relativeDays(p.dueDate)
+                ? `${relativeDays(p.dueDate)}${p.dueDate > today() ? ` · ${businessDaysUntil(p.dueDate)} dias úteis` : ''}`
                 : 'sem prazo · clique na data para definir, se houver'
           }
         />
