@@ -167,22 +167,17 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
             </span>
           </div>
         )}
-        <h1 className="q-title">{s.proposal.title}</h1>
       </header>
 
-      <section className="q-info">
-        <div>
-          <span className="p-label">cliente</span>
-          <b>{clientName}</b>
-        </div>
-        <div>
-          <span className="p-label">data</span>
-          <b>{fmt(quote.createdAt)}</b>
-        </div>
-        <div>
-          <span className="p-label">orçamento nº</span>
-          <b>{quoteNumber(quote)}</b>
-        </div>
+      <section className="q-hero">
+        <h1 className="q-title">{s.proposal.title}</h1>
+        <Info
+          rows={[
+            ['cliente', clientName],
+            ['data', fmt(quote.createdAt)],
+            ['orçamento nº', quoteNumber(quote)],
+          ]}
+        />
       </section>
 
       {two ? (
@@ -218,9 +213,10 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
             <span className="p-label">escopo{quote.title ? ` · ${quote.title}` : ''}</span>
             <span className="p-label">valor</span>
           </div>
-          {quote.items.map((it) => (
+          {quote.items.map((it, i) => (
             <div key={it.id} className="q-row">
-              <div>
+              <span className="q-n">{String(i + 1).padStart(2, '0')}</span>
+              <div className="q-row-main">
                 <b>
                   {it.title || 'serviço'}
                   {it.detail && <span> · {it.detail}</span>}
