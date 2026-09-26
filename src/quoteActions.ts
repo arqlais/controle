@@ -1,5 +1,5 @@
 import type { Project, Quote } from './types'
-import { DEFAULT_TASKS, cleanDetail, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
+import { BOTH, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 /** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
@@ -7,7 +7,10 @@ const sub = (d: string) => (d.trim() ? '\n' + d.split('\n').filter((l) => l.trim
 
 /** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
 export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = ''): Project {
-  const chosen = q.options.find((o) => o.id === q.chosenOption)
+  // 2 propostas fechadas juntas: vira uma demanda só, com os serviços das duas (pacote com o desconto)
+  const both = isCombo(q) && q.chosenOption === BOTH
+  const pair = q.options.slice(0, 2)
+  const chosen = both ? { ...pair[0], name: pair.map((o) => o.name).filter(Boolean).join(' + '), items: pair.flatMap((o) => o.items), discount: pair.flatMap((o) => o.items).reduce((n, i) => n + (i.price || 0), 0) - comboTotal(q) } : q.options.find((o) => o.id === q.chosenOption)
   const useOption = q.mode === 'opcoes' && chosen
   const firstItem = q.items[0]
   const start = closedOn || today() // dia em que fechou (orçamentos antigos: a data real)
@@ -33,7 +36,7 @@ export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedO
     service: (useOption ? chosen.items[0] : firstItem)?.service ?? '',
     quantity: (useOption ? chosen.items[0] : firstItem)?.quantity ?? 1,
     description: useOption
-      ? [`Opção ${q.options.indexOf(chosen) + 1}${chosen.name ? ` · ${chosen.name}` : ''}`, ...chosen.items.map((i) => `— ${i.title}${i.detail ? ` · ${i.detail}` : ''}${sub(i.description)}`)].join('\n')
+      ? [both ? 'Propostas 1 e 2 (fechadas juntas)' : `${q.combo ? 'Proposta' : 'Opção'} ${q.options.indexOf(chosen) + 1}${chosen.name ? ` · ${chosen.name}` : ''}`, ...chosen.items.map((i) => `— ${i.title}${i.detail ? ` · ${i.detail}` : ''}${sub(i.description)}`)].join('\n')
       : q.items.map((i) => `${i.title}${i.detail ? ` · ${i.detail}` : ''}${sub(i.description)}`).join('\n'),
     status: 'briefing',
     priority: q.urgency ? 'urgente' : 'media',

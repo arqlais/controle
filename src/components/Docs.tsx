@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, Settings } from '../types'
-import { atHandle, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { atHandle, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -239,7 +239,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
             const disc = (o.discount || 0) + o.items.reduce((acc, i) => acc + itemDiscount(i), 0)
             return (
               <div key={o.id} className="p-option">
-                <span className="p-option-label">opção {n + 1}</span>
+                <span className="p-option-label">{quote.combo ? 'proposta' : 'opção'} {n + 1}</span>
                 <div className="p-card">
                   <h3 className="p-card-title">{heading(o.name)}</h3>
                   <Rows items={o.items} priceFirst />
@@ -262,6 +262,11 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
           </div>
           <TotalBar label="investimento total" value={quoteTotal(quote, s.urgencyFee)} note={scopeNote} />
         </>
+      )}
+      {isCombo(quote) && (quote.comboDiscount ?? 0) > 0 && (
+        <div className="p-combo">
+          <TotalBar label="fechando as duas juntas" value={comboTotal(quote)} note={`em vez de ${money(comboSeparate(quote))} · economia de ${money(comboSeparate(quote) - comboTotal(quote))}`} />
+        </div>
       )}
       {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}
       {infos.length > 0 && <InfoRow items={infos} color={s.proposal.bar} />}

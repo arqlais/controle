@@ -383,7 +383,13 @@ export const quoteNumber = (q: Quote) => `#${String(q.number).padStart(3, '0')}`
 
 /** Total de uma opção: soma dos serviços menos o desconto da opção. */
 export const optionTotal = (o: { items: { price: number }[]; discount: number }) => Math.max(0, o.items.reduce((s, i) => s + (i.price || 0), 0) - (o.discount || 0))
+/** "2 propostas": o cliente pode fechar uma, a outra, ou as duas juntas com desconto. */
+export const BOTH = 'ambas'
+export const isCombo = (q: Quote) => q.mode === 'opcoes' && !!q.combo
+export const comboSeparate = (q: Quote) => q.options.slice(0, 2).reduce((s, o) => s + optionTotal(o), 0)
+export const comboTotal = (q: Quote) => Math.max(0, comboSeparate(q) - (q.comboDiscount || 0))
 export const quoteTotal = (q: Quote, urgencyFee: number) => {
+  if (isCombo(q) && q.chosenOption === BOTH) return comboTotal(q)
   if (q.mode === 'opcoes') {
     // opção escolhida; sem escolha ainda, considera a de menor valor
     const chosen = q.options.find((o) => o.id === q.chosenOption)

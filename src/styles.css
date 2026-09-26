@@ -1225,3 +1225,8 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .proposal.is-xlong .p-infos { margin-top: 18px; }
 .proposal.is-xlong .p-total { margin-top: 18px; }
 .service-delivery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 10px; } @media (max-width: 820px) { .service-delivery { grid-template-columns: 1fr; } }
+.p-combo { margin-top: 16px; } .p-combo .p-total { margin-top: 0; }
+.p-combo .p-total { background: var(--p-bar); }
+.p-combo .p-total-label, .p-combo .p-total-value b { color: #f5f1ee; }
+.p-combo .p-total-value i { color: #e7cfc8; }
+.card-head .check.small { white-space: nowrap; }

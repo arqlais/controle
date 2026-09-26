@@ -100,6 +100,17 @@ try {
     await page.locator('.q-item').nth(1).getByText('cobrar junto com o serviço de cima').click(); await page.waitForTimeout(200)
     ok((await page.getByText('Somado ao valor do serviço 01').count()) === 1, `${vp.name}: cobrar dois serviços juntos`)
 
+    // 3c. duas propostas: fechando as duas juntas sai mais barato
+    await go('#/orcamentos/novo'); await page.waitForTimeout(500)
+    await page.getByRole('button', { name: '2 propostas + juntas' }).click(); await page.waitForTimeout(150)
+    await page.locator('.q-item-head select').nth(0).selectOption('render-vray')
+    await page.locator('.q-item-head select').nth(1).selectOption('render-ia'); await page.waitForTimeout(150)
+    const comboSec = page.locator('section.card', { has: page.locator('h3', { hasText: 'fechando as duas juntas' }) })
+    await comboSec.getByRole('button', { name: '10%' }).click(); await page.waitForTimeout(150)
+    const [sep, joint] = await comboSec.locator('.quote-totals b').allInnerTexts()
+    const num = (t) => Number(t.replace(/[^\d,]/g, '').replace(',', '.'))
+    ok(num(joint) > 0 && num(joint) < num(sep), `${vp.name}: duas propostas com desconto para fechar juntas`)
+
     // 4. todas as páginas abrem sem erro e sem passar da largura da tela
     for (const r of ['inicio', 'projetos', 'clientes', 'financeiro', 'agenda', 'orcamentos', 'config', 'manual', 'perfil', 'orcamentos/novo']) {
       await go(`#/${r}`); await page.waitForTimeout(300)

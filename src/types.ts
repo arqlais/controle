@@ -200,7 +200,9 @@ export interface Quote {
   clientLabel: string // nome em "para …" (vazio = nome do cliente)
   items: QuoteItem[]
   options: QuoteOption[]
-  chosenOption: string
+  chosenOption: string // id da opção escolhida, ou 'ambas' (2 propostas fechadas juntas)
+  combo?: boolean // 2 propostas independentes: fechar as duas juntas dá desconto
+  comboDiscount?: number // desconto em R$ para fechar as duas juntas
   discount: number
   discountNote: string
   files: string // formatos de arquivos entregues

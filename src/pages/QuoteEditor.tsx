@@ -11,6 +11,10 @@ import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import {
+  BOTH,
+  comboSeparate,
+  comboTotal,
+  isCombo,
   canOpenFile,
   quoteFiles,
   checklistMatch,
@@ -129,7 +133,10 @@ export default function QuoteEditor({ id }: { id: string }) {
     const first = client?.name.split(' ')[0] ?? ''
     const head = [`*Proposta ${quoteNumber(q)}${q.title ? ` — ${q.title}` : ''}*`, `Olá, ${first}! Segue o orçamento:`, '']
     const body = two
-      ? q.options.slice(0, 2).flatMap((o, i) => [`*Opção ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `Total: ${money(optionTotal(o))}`, ''])
+      ? [
+          ...q.options.slice(0, 2).flatMap((o, i) => [`*${q.combo ? 'Proposta' : 'Opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `Total: ${money(optionTotal(o))}`, '']),
+          ...(isCombo(q) && q.comboDiscount ? [`*Fechando as duas juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
+        ]
       : [...q.items.map(line), q.urgency ? `• Taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• Desconto — −${money(q.discount)}` : '', '', `*Investimento total: ${money(total)}*`]
     return [...head, ...body, q.paymentTerms ? `Pagamento: ${q.paymentTerms}` : '', q.schedule ? `Prazos: ${q.schedule}` : '']
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
@@ -137,7 +144,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
 
   const approve = () => {
-    if (two && !q.chosenOption) return toast('Marque qual opção o cliente escolheu.')
+    if (two && !q.chosenOption) return toast(q.combo ? 'Marque o que o cliente fechou: uma proposta ou as duas.' : 'Marque qual opção o cliente escolheu.')
     if (q.projectId && data.projects.some((p) => p.id === q.projectId)) return go('projetos', q.projectId)
     if (!q.clientId) return toast('Escolha o cliente.')
     setClosing(q) // a janela salva o orçamento aprovado junto com a demanda
@@ -281,12 +288,20 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </div>
               </Field>
               <Field group label="Modelo" span={2}>
-                <Segmented
-                  value={q.mode}
-                  onChange={(mode) => set({ mode, options: q.options.length >= 2 ? q.options : [newOption(), newOption()] })}
+                <Segmented<'escopo' | 'opcoes' | 'combo'>
+                  value={isCombo(q) ? 'combo' : q.mode}
+                  onChange={(m) =>
+                    set({
+                      mode: m === 'escopo' ? 'escopo' : 'opcoes',
+                      combo: m === 'combo',
+                      chosenOption: m !== 'combo' && q.chosenOption === BOTH ? '' : q.chosenOption,
+                      options: q.options.length >= 2 ? q.options : [newOption(), newOption()],
+                    })
+                  }
                   options={[
                     { value: 'escopo', label: 'valor único' },
                     { value: 'opcoes', label: '2 opções' },
+                    { value: 'combo', label: '2 propostas + juntas' },
                   ]}
                 />
               </Field>
@@ -359,10 +374,10 @@ export default function QuoteEditor({ id }: { id: string }) {
             q.options.slice(0, 2).map((o, n) => (
               <Section
                 key={o.id}
-                title={`opção ${n + 1}`}
+                title={`${q.combo ? 'proposta' : 'opção'} ${n + 1}`}
                 action={
                   <label className="check small">
-                    <input type="radio" name="chosen" checked={q.chosenOption === o.id} onChange={() => set({ chosenOption: o.id })} /> cliente escolheu esta
+                    <input type="radio" name="chosen" checked={q.chosenOption === o.id} onChange={() => set({ chosenOption: o.id })} /> {q.combo ? 'cliente fechou só esta' : 'cliente escolheu esta'}
                   </label>
                 }
               >
@@ -388,6 +403,38 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </Field>
               </Section>
             ))
+          )}
+
+          {isCombo(q) && (
+            <Section
+              title="fechando as duas juntas"
+              action={
+                <label className="check small">
+                  <input type="radio" name="chosen" checked={q.chosenOption === BOTH} onChange={() => set({ chosenOption: BOTH })} /> cliente fechou as duas
+                </label>
+              }
+            >
+              <div className="quote-totals">
+                <div>
+                  <span>separadas</span>
+                  <b>{money(comboSeparate(q))}</b>
+                </div>
+                <div className="discount-row">
+                  <span>desconto</span>
+                  {[5, 10, 15].map((pct) => (
+                    <button key={pct} className="btn small ghost" onClick={() => set({ comboDiscount: Math.round(comboSeparate(q) * pct) / 100 })}>
+                      {pct}%
+                    </button>
+                  ))}
+                  <MoneyInput value={q.comboDiscount ?? 0} onChange={(n) => set({ comboDiscount: n })} />
+                </div>
+                <div className="grand">
+                  <span>juntas</span>
+                  <b>{money(comboTotal(q))}</b>
+                </div>
+              </div>
+              <p className="muted small">Na proposta aparece o valor de cada uma e, embaixo, quanto fica fechando as duas juntas.</p>
+            </Section>
           )}
 
           <Section title="informações da proposta">
