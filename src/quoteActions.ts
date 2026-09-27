@@ -1,5 +1,5 @@
-import type { Project, Quote } from './types'
-import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid } from './utils'
+import type { Data, Project, Quote } from './types'
+import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 /** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
@@ -55,5 +55,23 @@ export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedO
     timerStart: null,
     notes: `Criado a partir do orçamento Nº ${quoteNumber(q)}.`,
     createdAt: start,
+  }
+}
+
+/** Cópia do orçamento para outro cliente/projeto: data de hoje, próximo número, rascunho, sem dados do fechamento. */
+export function duplicateQuote(q: Quote, d: Data, offset = 0): Quote {
+  return {
+    ...q,
+    id: uid(),
+    number: nextQuoteNumber(d) + offset,
+    items: q.items.map((i) => ({ ...i, id: uid() })),
+    options: q.options.map((o) => ({ ...o, id: uid(), items: o.items.map((i) => ({ ...i, id: uid() })) })),
+    chosenOption: '',
+    status: 'rascunho',
+    sentAt: '',
+    createdAt: today(),
+    closedAt: undefined,
+    closedValue: 0,
+    projectId: '',
   }
 }

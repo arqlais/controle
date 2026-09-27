@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
+import { renumberPlan } from '../numbering'
+import { duplicateQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
-import { Empty, Segmented, Stat, usePaged } from '../components/ui'
+import { Empty, Modal, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
 import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink, matches } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
@@ -19,6 +21,7 @@ export const needsFollowUp = (q: Quote) => q.status === 'enviado' && waitingDays
 
 export default function Quotes() {
   const { data, upsert, remove } = useStore()
+  const [numbering, setNumbering] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set())
 
   const [filter, setFilter] = useKeep<Filter>('orc-filtro', 'todos')
@@ -52,6 +55,14 @@ export default function Quotes() {
     })
   // "todos" = todos os do filtro atual, inclusive os que ainda não apareceram na tela
   const allVisible = rows.length > 0 && rows.every((x) => picked.has(x.id))
+  const bulkDuplicate = () => {
+    const list = data.quotes.filter((x) => picked.has(x.id)).sort((a, b) => a.number - b.number)
+    const copies = list.map((x, i) => duplicateQuote(x, data, i))
+    copies.forEach((c) => upsert('quotes', c))
+    setPicked(new Set())
+    if (copies.length === 1) go('orcamentos', copies[0].id)
+    toast(copies.length === 1 ? `Duplicado como ${quoteNumber(copies[0])} (rascunho).` : `${copies.length} orçamentos duplicados como rascunho (${copies.map(quoteNumber).join(', ')}).`)
+  }
   const toggleAll = () => setPicked(allVisible ? new Set() : new Set(rows.map((x) => x.id)))
   const chosen = data.quotes.filter((x) => picked.has(x.id))
   const bulkStatus = async (status: QuoteStatus) => {
@@ -95,6 +106,9 @@ export default function Quotes() {
         </div>
 <div className="row gap-s wrap">
           <AskAIButton />
+          <button className="btn ghost" onClick={() => setNumbering(true)} title="Números vagos para os enviados sem PDF e rascunhos em sequência">
+            <Icon name="list" size={16} /> organizar nº
+          </button>
                   <button className="btn primary" onClick={() => go('orcamentos', 'novo')}>
           <Icon name="plus" size={16} /> Novo orçamento
         </button>
@@ -188,6 +202,9 @@ export default function Quotes() {
                   {QUOTE_STATUS[st].label.toLowerCase()}
                 </button>
               ))}
+              <button className="btn small ghost" onClick={bulkDuplicate} title="Cópias com a data de hoje e os próximos números">
+                <Icon name="copy" size={14} /> duplicar
+              </button>
               <button className="btn small ghost danger" onClick={bulkDelete}>
                 <Icon name="trash" size={14} /> excluir
               </button>
@@ -285,6 +302,70 @@ export default function Quotes() {
           {more && <div className="table-more">{more}</div>}
         </div>
       )}
+      {numbering && <NumberingModal onClose={() => setNumbering(false)} />}
     </div>
+  )
+}
+
+function NumberingModal({ onClose }: { onClose: () => void }) {
+  const { data, replaceAll } = useStore()
+  const plan = renumberPlan(data.quotes)
+  const q = (id: string) => data.quotes.find((x) => x.id === id)!
+  const WHY = { vago: 'sem PDF → número vago pela data', rascunho: 'rascunho → em sequência', fim: 'sem PDF → depois do último' }
+  const apply = () => {
+    const to = new Map(plan.map((r) => [r.id, r.to]))
+    replaceAll({ ...data, quotes: data.quotes.map((x) => (to.has(x.id) ? { ...x, number: to.get(x.id)! } : x)) })
+    toast(`${plan.length} orçamento(s) renumerado(s).`)
+    onClose()
+  }
+  return (
+    <Modal
+      wide
+      title="organizar numeração"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>
+            {plan.length ? 'Cancelar' : 'Fechar'}
+          </button>
+          {plan.length > 0 && (
+            <button className="btn primary" onClick={apply}>
+              <Icon name="check" size={15} /> Aplicar ({plan.length})
+            </button>
+          )}
+        </>
+      }
+    >
+      <div className="stack">
+        <p className="muted small">
+          Os enviados <b>com proposta em PDF</b> ficam com o número que o cliente recebeu. Os enviados <b>sem PDF</b> (desmarque “gerar proposta em PDF” no orçamento) ganham um número vago que caiba pela data, e os <b>rascunhos</b> seguem em ordem depois do último enviado.
+        </p>
+        {plan.length === 0 ? (
+          <p className="numbering-ok">
+            <Icon name="check" size={16} /> A numeração já está em ordem.
+          </p>
+        ) : (
+          <ul className="numbering-list">
+            {plan
+              .slice()
+              .sort((a, b) => a.to - b.to)
+              .map((r) => {
+                const x = q(r.id)
+                return (
+                  <li key={r.id}>
+                    <span className="numbering-from">#{String(r.from).padStart(3, '0')}</span>
+                    <Icon name="arrowRight" size={14} />
+                    <b className="numbering-to">#{String(r.to).padStart(3, '0')}</b>
+                    <span className="grow">
+                      {x.title || 'sem título'} · {data.clients.find((c) => c.id === x.clientId)?.name ?? 'sem cliente'} · {fmtDate(x.createdAt)}
+                    </span>
+                    <span className="muted small">{WHY[r.why]}</span>
+                  </li>
+                )
+              })}
+          </ul>
+        )}
+      </div>
+    </Modal>
   )
 }

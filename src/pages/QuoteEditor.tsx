@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
+import { duplicateQuote } from '../quoteActions'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -243,6 +244,14 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
 
   saveRef.current = () => save()
+  const duplicate = () => {
+    if (unsaved && q.clientId) save() // guarda o que foi mexido neste antes de copiar
+    const copy = duplicateQuote(q, data)
+    upsert('quotes', copy)
+    setTouched(false)
+    go('orcamentos', copy.id)
+    toast(`Duplicado como ${quoteNumber(copy)} · ${fmtDateLong(copy.createdAt)} (rascunho).`)
+  }
 
   const line = (i: QuoteItem) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` · ${cleanDetail(i.detail)}` : ''} — ${money(i.price)}`
   const text = () => {
@@ -317,6 +326,11 @@ export default function QuoteEditor({ id }: { id: string }) {
         </div>
         <div className="row gap-s wrap">
           <AskAIButton quote={q} />
+          {existing && id !== 'novo' && (
+            <button className="btn ghost" onClick={duplicate} title="Cópia com a data de hoje e o próximo número">
+              <Icon name="copy" size={16} /> duplicar
+            </button>
+          )}
           {q.pdf && (
             <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
@@ -667,24 +681,7 @@ export default function QuoteEditor({ id }: { id: string }) {
               {existing && (
                 <button
                   className="btn ghost small"
-                  onClick={() => {
-                    const copy: Quote = {
-                      ...q,
-                      id: uid(),
-                      number: nextQuoteNumber(data),
-                      title: `${q.title} (cópia)`,
-                      items: q.items.map((i) => ({ ...i, id: uid() })),
-                      options: q.options.map((o) => ({ ...o, id: uid(), items: o.items.map((i) => ({ ...i, id: uid() })) })),
-                      chosenOption: '',
-                      status: 'rascunho',
-                      sentAt: '',
-                      createdAt: today(),
-                      projectId: '',
-                    }
-                    upsert('quotes', copy)
-                    go('orcamentos', copy.id)
-                    toast('Orçamento duplicado como rascunho.')
-                  }}
+                  onClick={duplicate}
                 >
                   <Icon name="copy" size={14} /> duplicar
                 </button>
