@@ -335,18 +335,18 @@ function IdeaBank({ used, onUse }: { used: Set<string | undefined>; onUse: (i: I
               )}
               <div className="ig-idea-actions">
                 <button className="link small" onClick={() => setOpen(isOpen ? null : i.id)}>
-                  {isOpen ? 'fechar' : 'ver conteúdo completo'}
+                  {isOpen ? 'fechar' : 'ver completo'}
                 </button>
                 {i.caption && (
-                  <button className="btn small ghost" onClick={() => copy([personal(i.caption, data.settings), `→ ${i.cta}`, STRATEGY.hashtags[i.tags]].join('\n\n'), 'Legenda')}>
-                    <Icon name="copy" size={13} /> legenda
+                  <button className="icon-btn ig-act" title="Copiar legenda" aria-label="Copiar legenda" onClick={() => copy([personal(i.caption, data.settings), `→ ${i.cta}`, STRATEGY.hashtags[i.tags]].join('\n\n'), 'Legenda')}>
+                    <Icon name="copy" size={15} />
                   </button>
                 )}
-                <button className="btn small ghost" onClick={() => setArt(i)} title="Arte pronta: PNG, PDF ou para o Canva">
-                  <Icon name="sparkle" size={13} /> arte
+                <button className="icon-btn ig-act" title="Arte pronta (PNG, PDF ou Canva)" aria-label="Arte pronta" onClick={() => setArt(i)}>
+                  <Icon name="sparkle" size={15} />
                 </button>
                 <button className="btn small primary" onClick={() => onUse(i)}>
-                  <Icon name="calendar" size={13} /> agendar
+                  agendar
                 </button>
               </div>
             </article>

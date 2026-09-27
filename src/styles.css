@@ -1667,3 +1667,15 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .task-quick.is-compact .task-quick-count { font-size: 11.5px; }
 .kcard-foot { padding-top: 9px; }
 .kcard-status .status-select { font-size: 12px; padding: 5px 26px 5px 10px; background-color: transparent !important; }
+
+/* ideias prontas: cards alinhados e limpos */
+.ig-ideas { align-items: stretch; }
+.ig-idea { gap: 10px; }
+.ig-idea h3 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em; }
+.ig-idea:not(.is-open) .ig-hook { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 16px; line-height: 1.3; }
+.ig-idea-actions { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); flex-wrap: nowrap; gap: 6px; }
+.ig-idea-actions .link { margin-right: auto; white-space: nowrap; }
+.ig-act { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 50%; color: var(--accent-ink); }
+.ig-act:hover { border-color: var(--accent-soft); background: var(--accent-tint, var(--surface-2)); }
+.ig-idea-top .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ig-idea:not(.is-open) .ig-hook { min-height: 2.6em; }
