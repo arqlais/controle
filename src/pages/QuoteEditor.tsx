@@ -7,7 +7,7 @@ import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented } from '../components/ui'
-import { askDelete, toast } from '../components/dialog'
+import { ask, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
@@ -118,6 +118,58 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   const pdf = usePdf()
 
+  // ---- não perder o que foi digitado ----
+  const [touched, setTouched] = useState(false)
+  const unsaved = dirty && touched
+  const draftKey = `orcamento-em-edicao:${id}`
+  // cópia de segurança no aparelho enquanto edita (fechou/travou/recarregou: dá para recuperar)
+  const [recover, setRecover] = useState<{ q: Quote; at: string } | null>(() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(draftKey) || 'null') as { q: Quote; at: string } | null
+      return d && JSON.stringify(d.q) !== JSON.stringify(existing) ? d : null
+    } catch {
+      return null
+    }
+  })
+  useEffect(() => {
+    try {
+      if (unsaved) localStorage.setItem(draftKey, JSON.stringify({ q, at: new Date().toISOString() }))
+      else if (!recover) localStorage.removeItem(draftKey)
+    } catch {
+      /* sem armazenamento: segue sem a cópia */
+    }
+  }, [q, unsaved, draftKey, recover])
+  // recarregar / fechar a aba com alterações: o navegador pergunta antes
+  useEffect(() => {
+    if (!unsaved) return
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    // sair pelo menu ou por um link sem salvar: pergunta
+    const leave = async (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest?.('a[href^="#"]') as HTMLAnchorElement | null
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (await ask('Este orçamento tem alterações que não foram salvas. Sair sem salvar?', { confirmLabel: 'Sair sem salvar', danger: true })) {
+        try {
+          localStorage.removeItem(draftKey)
+        } catch {
+          /* ok */
+        }
+        setTouched(false)
+        location.hash = a.getAttribute('href')!
+      }
+    }
+    document.addEventListener('click', leave, true)
+    return () => {
+      window.removeEventListener('beforeunload', warn)
+      document.removeEventListener('click', leave, true)
+    }
+  }, [unsaved, draftKey])
+
   if (id !== 'novo' && !existing) return <Empty title="Orçamento não encontrado" action={<a className="btn" href={href('orcamentos')}>Voltar</a>} />
 
   const client = data.clients.find((c) => c.id === q.clientId)
@@ -128,6 +180,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const set = (patch: Partial<Quote>) => {
     setQ((x) => ({ ...x, ...patch }))
     setDirty(true)
+    setTouched(true)
   }
   const oa = (o: QuoteOption) => optionArea(q, o)
   const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)) })
@@ -170,6 +223,12 @@ export default function QuoteEditor({ id }: { id: string }) {
     upsert('quotes', next)
     setQ(next)
     setDirty(false)
+    setTouched(false)
+    try {
+      localStorage.removeItem(draftKey)
+    } catch {
+      /* ok */
+    }
     if (id === 'novo') go('orcamentos', next.id)
     return next
   }
@@ -205,6 +264,39 @@ export default function QuoteEditor({ id }: { id: string }) {
       <a href={href('orcamentos')} className="back">
         <Icon name="chevronL" size={16} /> orçamentos
       </a>
+      {recover && (
+        <div className="recover-note">
+          <Icon name="alert" size={16} />
+          <span className="grow">
+            Há alterações deste orçamento que não foram salvas ({new Date(recover.at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}).
+          </span>
+          <button
+            className="btn small primary"
+            onClick={() => {
+              setQ(recover.q)
+              setDirty(true)
+              setTouched(true)
+              setRecover(null)
+              toast('Alterações recuperadas. Lembre de salvar.')
+            }}
+          >
+            recuperar
+          </button>
+          <button
+            className="link small muted-link"
+            onClick={() => {
+              try {
+                localStorage.removeItem(draftKey)
+              } catch {
+                /* ok */
+              }
+              setRecover(null)
+            }}
+          >
+            descartar
+          </button>
+        </div>
+      )}
       <div className="page-head">
         <div>
           <p className="eyebrow">
