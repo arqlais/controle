@@ -1625,3 +1625,23 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .date-input.has-stat-date-small .date-input-btn { position: static; width: 22px; height: 22px; }
 .stat .delivered-edit .date-input { display: inline-flex; align-items: center; width: auto; flex: none; }
 .stat .delivered-edit .date-input input.stat-date-small { width: 11ch; flex: none; padding: 0 !important; font-size: 13px; }
+
+/* recibo: cores exatas do modelo do estúdio (não seguem as cores da proposta) */
+.proposal:has(.bill) { background: #fafaf7 !important; }
+.proposal:has(.bill) .p-bar { background: #4a5d6b !important; color: #f0ebe1 !important; }
+.bill { --b-slate: #4a5d6b; --b-rose: #d0aca3; --b-text: #584f4a; --b-card: #f5f1ed; --b-line: #e7e2d9; --b-dots: #e3cfc9; }
+.bill-title span { color: var(--b-slate); }
+.bill-title em { color: var(--b-rose); }
+.bill-sub { color: var(--b-slate); }
+.bill-card { background: var(--b-card); border-color: var(--b-line); }
+.bill-card-head { color: var(--b-slate); }
+.bill-card-head svg { color: var(--b-rose); }
+.bill-card p { color: var(--b-text); }
+.bill-card p b { color: var(--b-rose); }
+.bill-money { background: #ffffff; border-color: var(--b-line); }
+.bill-coin { background: var(--b-rose); color: #ffffff; }
+.bill-row { color: var(--b-slate); }
+.bill-row i { border-bottom-color: var(--b-dots); }
+.bill-due { background: var(--b-slate); color: #ffffff; }
+.bill-thanks { color: var(--b-slate); }
+.bill-heart { color: var(--b-rose); }
