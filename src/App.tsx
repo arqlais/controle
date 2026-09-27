@@ -23,6 +23,7 @@ import Quotes from './pages/Quotes'
 import QuoteEditor from './pages/QuoteEditor'
 import SettingsPage from './pages/Settings'
 import Manual from './pages/Manual'
+import Instagram from './pages/Instagram'
 import Profile, { profileImportant } from './pages/Profile'
 
 const NAV = [
@@ -32,6 +33,7 @@ const NAV = [
   { page: 'financeiro', label: 'financeiro', icon: 'wallet' },
   { page: 'agenda', label: 'agenda', icon: 'calendar' },
   { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
+  { page: 'instagram', label: 'instagram', icon: 'instagram' },
 ]
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
@@ -103,6 +105,8 @@ export default function App() {
         return route.id ? <QuoteEditor key={route.id} id={route.id} /> : <Quotes />
       case 'config':
         return <SettingsPage />
+      case 'instagram':
+        return <Instagram />
       case 'manual':
         return <Manual />
       case 'perfil':

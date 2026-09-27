@@ -28,8 +28,7 @@ import {
   urgency,
   urgencyScore,
   templateText,
-  whatsappLink,
-} from '../utils'
+  whatsappLink, addDays } from '../utils'
 
 export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'cliente') => void }) {
   const { data, replaceAll } = useStore()
@@ -290,6 +289,18 @@ function TodoList() {
         action: c?.phone
           ? { label: 'cobrar', href: whatsappLink(c.phone, text), icon: 'whatsapp' }
           : { label: 'marcar pago', onClick: () => upsert('projects', { ...project, payments: project.payments.map((x) => (x.id === pay.id ? { ...x, paidDate: today() } : x)) }) },
+      })
+    }
+    // instagram: postagens de hoje (ou atrasadas) ainda não postadas
+    for (const post of (data.posts ?? []).filter((x) => x.date && x.date <= today() && x.date >= addDays(today(), -3) && x.status !== 'postado')) {
+      out.push({
+        key: `ig-${post.id}`,
+        tone: post.date < today() ? 'warn' : 'info',
+        icon: 'instagram',
+        title: `${post.date < today() ? 'Postagem atrasada' : 'Postar hoje'}: ${post.title}`,
+        sub: `${post.format}${post.time ? ` · ${post.time}` : ''} · ${post.status}`,
+        link: href('instagram'),
+        action: { label: 'postado', onClick: () => upsert('posts', { ...post, status: 'postado' }) },
       })
     }
     for (const q of data.quotes.filter(needsFollowUp)) {

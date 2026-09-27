@@ -293,7 +293,7 @@ export const DEFAULT_SETTINGS: Settings = {
 }
 
 export function emptyData(): Data {
-  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], settings: DEFAULT_SETTINGS }
+  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], settings: DEFAULT_SETTINGS }
 }
 
 const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
@@ -325,6 +325,7 @@ export function normalize(d: Partial<Data>): Data {
     })),
     expenses: d.expenses ?? [],
     events: d.events ?? [],
+    posts: d.posts ?? [],
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
@@ -418,8 +419,8 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes'
-type Item<C extends Collection> = Data[C][number]
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts'
+type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
 
@@ -600,7 +601,7 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
 
   const upsert = useCallback(<C extends Collection>(c: C, raw: Item<C>) => {
     setActive((d) => {
-      const list = d[c] as Item<C>[]
+      const list = (d[c] ?? []) as Item<C>[]
       const prev = list.find((x) => x.id === raw.id)
       const item = (c === 'projects' ? autoStatus(raw as Project, prev as Project | undefined) : raw) as Item<C>
       const exists = list.some((x) => x.id === item.id)
@@ -611,7 +612,7 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
 
   const remove = useCallback((c: Collection, id: string) => {
     setActive((d) => {
-      const next: Data = { ...d, [c]: (d[c] as { id: string }[]).filter((x) => x.id !== id) }
+      const next: Data = { ...d, [c]: ((d[c] ?? []) as { id: string }[]).filter((x) => x.id !== id) }
       // limpeza em cascata
       if (c === 'clients') {
         const pids = new Set(d.projects.filter((p) => p.clientId === id).map((p) => p.id))

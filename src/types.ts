@@ -339,5 +339,26 @@ export interface Data {
   expenses: Expense[]
   events: CalendarEvent[]
   quotes: Quote[]
+  posts?: SocialPost[] // planejamento do instagram
   settings: Settings
+}
+
+export type PostFormat = 'carrossel' | 'reels' | 'story' | 'post'
+export type PostStatus = 'ideia' | 'produzindo' | 'pronto' | 'postado'
+/** Postagem planejada do instagram (conteúdo pronto e editável). */
+export interface SocialPost {
+  id: string
+  date: string // aaaa-mm-dd ('' = sem data, fica no banco de ideias do mês)
+  time: string
+  format: PostFormat
+  pillar: string
+  title: string
+  hook: string // primeira frase / capa
+  script: string // slides do carrossel, cenas do reels ou telas do story (uma por linha)
+  caption: string
+  art: string // ideia de arte
+  cta: string
+  hashtags: string
+  status: PostStatus
+  ideaId?: string // de qual ideia pronta veio
 }
