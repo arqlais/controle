@@ -1656,3 +1656,14 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .modal-wide:has(.art-strip) { width: min(900px, 100%); }
 .modal-wide:has(.art-strip) .modal-body { min-width: 0; overflow-x: hidden; }
 .modal-backdrop:has(.art-strip) { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+
+/* cartão da demanda mais limpo */
+.kcard { gap: 9px; }
+.kcard .kcard-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kcard-deadline .task-quick.is-compact { margin: 0 0 0 auto; flex: 0 1 auto; }
+.kcard-deadline .task-quick.is-compact.is-open { flex-basis: 100%; margin-left: 0; }
+.task-quick.is-compact .task-quick-head { width: auto; gap: 6px; padding: 2px 0; }
+.task-quick.is-compact:not(.is-open) .progress { width: 40px; flex: none; }
+.task-quick.is-compact .task-quick-count { font-size: 11.5px; }
+.kcard-foot { padding-top: 9px; }
+.kcard-status .status-select { font-size: 12px; padding: 5px 26px 5px 10px; background-color: transparent !important; }

@@ -300,7 +300,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
 }
 
 /** Etapas da demanda sem abrir a demanda: toque em "1/7" e marque ali mesmo. */
-export function TaskQuick({ p }: { p: Project }) {
+export function TaskQuick({ p, compact }: { p: Project; compact?: boolean }) {
   const { upsert } = useStore()
   const [open, setOpen] = useState(false)
   if (!p.tasks.length) return null
@@ -308,8 +308,8 @@ export function TaskQuick({ p }: { p: Project }) {
   const next = p.tasks.find((t) => !t.done)
   const toggle = (id: string) => upsert('projects', { ...p, tasks: p.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)) })
   return (
-    <div className="task-quick" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
-      <button type="button" className="task-quick-head" onClick={() => setOpen((v) => !v)} aria-expanded={open} title={open ? 'Fechar etapas' : 'Ver e marcar etapas'}>
+    <div className={`task-quick ${compact ? 'is-compact' : ''} ${open ? 'is-open' : ''}`} onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+      <button type="button" className="task-quick-head" onClick={() => setOpen((v) => !v)} aria-expanded={open} title={open ? 'Fechar etapas' : next ? `Próxima: ${next.text} · toque para marcar` : 'Ver e marcar etapas'}>
         <div className="progress thin">
           <div className="progress-bar" style={{ width: `${(done / p.tasks.length) * 100}%` }} />
         </div>
@@ -318,7 +318,7 @@ export function TaskQuick({ p }: { p: Project }) {
         </span>
         <Icon name="chevronR" size={13} className={open ? 'rot-down' : 'rot-up'} />
       </button>
-      {!open && next && <div className="task-quick-next">próxima: {next.text}</div>}
+      {!open && next && !compact && <div className="task-quick-next">próxima: {next.text}</div>}
       {open && (
         <ul className="task-quick-list">
           {p.tasks.map((t) => (

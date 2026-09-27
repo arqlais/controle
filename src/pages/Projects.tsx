@@ -245,10 +245,11 @@ function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; o
       <div className="kcard-title">{p.title}</div>
       <div className="kcard-deadline">
         {p.priority === 'urgente' && isOpen(p) && <span className="dl-chip tone-bad solid">urgente</span>}
-        <span className={`dl-chip tone-${dl.tone}`}>{dl.text}</span>
-        {p.dueDate && isOpen(p) && <span className="muted small">{fmtDate(p.dueDate)}</span>}
+        <span className={`dl-chip tone-${dl.tone}`} title={p.dueDate ? `prazo: ${fmtDate(p.dueDate)}` : undefined}>
+          {dl.text}
+        </span>
+        <TaskQuick p={p} compact />
       </div>
-      <TaskQuick p={p} />
       <div className="kcard-foot">
         <span className="small">{money(projectTotal(p))}</span>
         <PayNext p={p} compact />
