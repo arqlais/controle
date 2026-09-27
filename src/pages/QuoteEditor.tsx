@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
 import { go, href } from '../router'
@@ -49,12 +49,33 @@ import {
 } from '../utils'
 
 const newItem = (): QuoteItem => ({ id: uid(), service: '', title: '', detail: '', description: '', quantity: 1, complexity: 'media', price: 0, auto: true })
+/** Rascunho: recalcula os serviços que seguem a tabela (a tabela pode ter mudado desde que o orçamento foi montado). */
+function freshPrices(q: Quote, st: Settings, student: boolean): Quote {
+  if (q.status !== 'rascunho') return q
+  let changed = false
+  const again = (items: QuoteItem[], floors: number) =>
+    items.map((it) => {
+      const sv = st.services.find((x) => x.id === it.service)
+      if (!it.auto || it.joined || !sv || sv.pricing === 'livre') return it
+      const price = Math.round(Math.max(0, suggestPrice(sv, it.quantity, it.complexity, student, st, it.description.split('\n'), !!q.openFile, floors) - (it.unitDiscount ?? 0) * it.quantity) * 100) / 100
+      if (Math.abs(price - it.price) < 0.01) return it
+      changed = true
+      return { ...it, price }
+    })
+  const items = again(q.items, q.floors ?? 1)
+  const options = q.options.map((o) => ({ ...o, items: again(o.items, o.floors ?? q.floors ?? 1) }))
+  return changed ? { ...q, items, options } : q
+}
+
 const newOption = (): QuoteOption => ({ id: uid(), name: '', items: [newItem()], note: '', discount: 0, discountNote: '', deadlineDays: 10 })
 
 export default function QuoteEditor({ id }: { id: string }) {
   const { data, upsert, remove } = useStore()
   const { settings } = data
-  const existing = data.quotes.find((q) => q.id === id)
+  const found = data.quotes.find((q) => q.id === id)
+  // rascunho: serviços que seguem a tabela abrem com o valor atual da tabela (enviados ficam como foram mandados)
+  const [fresh] = useState(() => (found ? freshPrices(found, data.settings, isStudent(data.clients.find((c) => c.id === found.clientId))) : undefined))
+  const existing = fresh ?? found
   const [q, setQ] = useState<Quote>(
     () =>
       existing ?? {
@@ -89,6 +110,11 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [newClient, setNewClient] = useState(false)
   const [editClient, setEditClient] = useState(false)
   const [dirty, setDirty] = useState(!existing)
+  // valores atualizados pela tabela já ficam salvos (a lista mostra o total certo)
+  useEffect(() => {
+    if (fresh && fresh !== found) upsert('quotes', fresh)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   const pdf = usePdf()
 
@@ -918,8 +944,8 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onC
               >
                 <div className="row gap-s">
                   <MoneyInput value={it.price} onChange={(v) => setItem(it.id, { price: v, auto: false })} />
-                  {!it.auto && s && s.pricing !== 'livre' && (
-                    <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Voltar ao valor da tabela">
+                  {s && s.pricing !== 'livre' && (!it.auto || Math.abs(Math.max(0, suggestion - (it.unitDiscount ?? 0) * it.quantity) - it.price) >= 0.01) && (
+                    <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Usar o valor da tabela">
                       tabela
                     </button>
                   )}
