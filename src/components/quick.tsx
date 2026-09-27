@@ -43,7 +43,8 @@ export function StatusDialogHost() {
 
 function StatusDialog({ p, status, onClose }: { p: Project; status: string; onClose: () => void }) {
   const unpaid = p.payments.filter((x) => !x.paidDate && x.amount > 0)
-  const [date, setDate] = useState(today())
+  // entregue: já vem com a data do prazo (se já passou); sem prazo, hoje — dá para corrigir
+  const [date, setDate] = useState(() => (status === 'entregue' && p.dueDate && p.dueDate <= today() ? p.dueDate : today()))
   const [paid, setPaid] = useState<Record<string, boolean>>({})
   const [tasks, setTasks] = useState(true)
   const openTasks = p.tasks.filter((t) => !t.done).length

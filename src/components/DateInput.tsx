@@ -44,7 +44,11 @@ export function DateInput({ value, onChange, min, max, id, className = '', title
   const pop = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ top: number; left: number; up: boolean }>({ top: 0, left: 0, up: false })
 
-  useEffect(() => setText(toBR(value)), [value])
+  useEffect(() => {
+    setText(toBR(value))
+    // o calendário abre sempre no mês da data escolhida
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) setView({ y: Number(value.slice(0, 4)), m: Number(value.slice(5, 7)) - 1 })
+  }, [value])
 
   const emit = (v: string) => onChange({ target: { value: v } })
   const allowed = (v: string) => (!min || v >= min) && (!max || v <= max)
