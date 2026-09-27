@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { Empty, Field, Modal, MonthPicker, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import { DateInput } from '../components/DateInput'
+import { ArtModal } from '../components/PostArt'
 import { FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
 import type { PostFormat, PostStatus, Settings, SocialPost } from '../types'
 import { fmtDate, today, uid } from '../utils'
@@ -267,6 +268,7 @@ function IdeaBank({ used, onUse }: { used: Set<string | undefined>; onUse: (i: I
   const [format, setFormat] = useKeep<PostFormat | 'todos'>('ig-ideias-formato', 'todos')
   const [pillar, setPillar] = useKeep<string>('ig-ideias-pilar', '')
   const [open, setOpen] = useState<string | null>(null)
+  const [art, setArt] = useState<Idea | null>(null)
   const list = IDEAS.filter((i) => (format === 'todos' || i.format === format) && (!pillar || i.pillar === pillar))
   return (
     <>
@@ -286,6 +288,13 @@ function IdeaBank({ used, onUse }: { used: Set<string | undefined>; onUse: (i: I
         </select>
       </div>
       {format !== 'todos' && <p className="muted small">{FORMATS[format].hint}</p>}
+      {art && (
+        <ArtModal
+          settings={data.settings}
+          source={{ format: art.format, title: personal(art.title, data.settings), hook: personal(art.hook, data.settings), script: personal(art.script, data.settings), cta: art.cta, pillar: pillarLabel(art.pillar) }}
+          onClose={() => setArt(null)}
+        />
+      )}
       <div className="ig-ideas">
         {list.map((i) => {
           const isOpen = open === i.id
@@ -333,6 +342,9 @@ function IdeaBank({ used, onUse }: { used: Set<string | undefined>; onUse: (i: I
                     <Icon name="copy" size={13} /> legenda
                   </button>
                 )}
+                <button className="btn small ghost" onClick={() => setArt(i)} title="Arte pronta: PNG, PDF ou para o Canva">
+                  <Icon name="sparkle" size={13} /> arte
+                </button>
                 <button className="btn small primary" onClick={() => onUse(i)}>
                   <Icon name="calendar" size={13} /> agendar
                 </button>
@@ -435,6 +447,8 @@ function StrategyView() {
 function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boolean; onClose: () => void }) {
   const { upsert, remove } = useStore()
   const [p, setP] = useState(post)
+  const [art, setArt] = useState(false)
+  const { data } = useStore()
   const set = (patch: Partial<SocialPost>) => setP((x) => ({ ...x, ...patch }))
   const save = () => {
     if (!p.title.trim()) return toast('Dê um título para a postagem.')
@@ -463,6 +477,9 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
               <Icon name="trash" size={15} /> excluir
             </button>
           )}
+          <button className="btn ghost" onClick={() => setArt(true)}>
+            <Icon name="sparkle" size={15} /> arte
+          </button>
           <button className="btn ghost" onClick={() => copy(fullCaption(p), 'Legenda')}>
             <Icon name="copy" size={15} /> copiar legenda
           </button>
@@ -472,6 +489,7 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
         </>
       }
     >
+      {art && <ArtModal settings={data.settings} source={{ format: p.format, title: p.title, hook: p.hook, script: p.script, cta: p.cta, pillar: pillarLabel(p.pillar) }} onClose={() => setArt(false)} />}
       <div className="form-grid">
         <Field label="Título" span={3}>
           <input value={p.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: antes × depois da cozinha" />
