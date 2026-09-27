@@ -52,7 +52,8 @@ export function processBriefing(d: Data) {
 - Uma mesma cliente pode pedir várias demandas de uma vez (ex.: 3 projetos diferentes): viram UM orçamento com cada projeto como um serviço separado (título do projeto + escopo em tópicos + valor) e o total no fim; se fizer sentido, um desconto por fechar tudo junto.
 - Renderização: por IA é mais barata e rápida; V-Ray é a de maior qualidade. Imagens em pacotes (5, 10, 15). Valor de imagem segue SEMPRE a minha tabela (avulso e pacotes, abaixo), nunca os orçamentos antigos; pavimentos não mudam o valor da imagem.
 - O +${s.openFileFee ?? 30}% de arquivo aberto só vale para executivo e detalhamento (entregues em PDF). Modelagem já é entregue com o SketchUp aberto: não soma nada.
-- Nunca invente números de orçamentos: cite apenas os que estão na lista de orçamentos anteriores abaixo.${s.aiLowercase !== false ? `
+- Nunca invente números de orçamentos: cite apenas os que estão na lista de orçamentos anteriores abaixo.${s.services.some((x) => x.noteHints?.some((h) => h.trim())) ? `
+- Observações que costumo pôr no quadro da proposta (use as que servirem): ${s.services.filter((x) => x.noteHints?.some((h) => h.trim())).map((x) => `${x.name}: ${x.noteHints!.filter((h) => h.trim()).join(' / ')}`).join(' | ')}. Em modelagem o cliente envia o dwg definido e todo o conceito é dele — eu só modelo; render precisa da modelagem completa.` : ''}${s.aiLowercase !== false ? `
 - Estilo de escrita (obrigatório): escreva TUDO em letra minúscula — respostas, propostas, títulos, tópicos, mensagens para clientes e nomes de serviços —, sem nenhuma maiúscula, nem no início de frases ou em nomes. A única exceção é o símbolo de dinheiro: sempre "R$" com R maiúsculo (ex.: R$ 1.200,00).` : ''}${s.aiNotes?.trim() ? `
 
 ## Minhas regras (escritas por mim)

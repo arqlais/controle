@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DateInput } from '../components/DateInput'
-import { useStore } from '../store'
+import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -410,9 +410,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <input value={q.discountNote} onChange={(e) => set({ discountNote: e.target.value })} placeholder="Ex.: valor especial para pacote fechado" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
                 </Field>
               </div>
-              <Field label="Observação (dentro do quadro)">
-                <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={q.notes} onChange={(e) => set({ notes: e.target.value })} placeholder="Opcional" />
-              </Field>
+              <NoteField value={q.notes} items={q.items} settings={settings} onChange={(notes) => set({ notes })} />
             </Section>
           ) : (
             <>
@@ -464,9 +462,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                     <input value={o.discountNote} onChange={(e) => setOption(o.id, { discountNote: e.target.value })} />
                   </Field>
                 </div>
-                <Field label="Observação (dentro do quadro)">
-                  <input value={o.note} onChange={(e) => setOption(o.id, { note: e.target.value })} placeholder="Opcional" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
-                </Field>
+                <NoteField value={o.note} items={o.items} settings={settings} onChange={(note) => setOption(o.id, { note })} />
               </Section>
             ))}
             {q.options.length < MAX_OPTIONS && (
@@ -983,5 +979,33 @@ function AreaFloors({ id, area, approx, floors, fee, onArea, onApprox, onFloors 
         </span>
       </div>
     </div>
+  )
+}
+
+/** Observação do quadro: texto livre + sugestões prontas dos serviços que estão nele (um toque coloca ou tira). */
+function NoteField({ value, items, settings, onChange }: { value: string; items: QuoteItem[]; settings: Settings; onChange: (v: string) => void }) {
+  const ids = [...new Set(items.map((i) => i.service).filter(Boolean))]
+  const hints = [
+    ...new Set(
+      [...ids.flatMap((sid) => settings.services.find((x) => x.id === sid)?.noteHints ?? []), ...GENERAL_NOTE_HINTS].map((h) => h.trim()).filter(Boolean),
+    ),
+  ]
+  const lines = value.split('\n').map((l) => l.trim()).filter(Boolean)
+  const has = (h: string) => lines.some((l) => l.toLowerCase() === h.toLowerCase())
+  const toggle = (h: string) => onChange((has(h) ? lines.filter((l) => l.toLowerCase() !== h.toLowerCase()) : [...lines, h]).join('\n'))
+  return (
+    <Field label="Observação (dentro do quadro)" hint={hints.length ? 'Opcional · toque numa sugestão para colocar ou tirar; dá para editar o texto à vontade.' : 'Opcional.'}>
+      <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={Math.min(6, Math.max(2, lines.length + 1))} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Opcional" />
+      {hints.length > 0 && (
+        <div className="note-hints">
+          {hints.map((h) => (
+            <button key={h} type="button" className={`note-hint ${has(h) ? 'is-on' : ''}`} onClick={() => toggle(h)} title={h}>
+              <Icon name={has(h) ? 'check' : 'plus'} size={12} />
+              <span>{h}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </Field>
   )
 }

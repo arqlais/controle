@@ -312,6 +312,9 @@ export default function SettingsPage() {
                       <Field label="Se o cliente quiser o arquivo aberto" hint="Em branco = não se aplica. Soma a taxa interna de arquivo aberto.">
                         <input value={x.deliveryOpen ?? ''} onChange={(e) => setService(x.id, { deliveryOpen: e.target.value })} placeholder="Ex.: PDF + arquivo aberto (editável) do layout" />
                       </Field>
+                      <Field label="Observações prontas" hint="Uma por linha. Aparecem como sugestão na observação do orçamento (um toque coloca ou tira).">
+                        <textarea rows={3} value={(x.noteHints ?? []).join('\n')} onChange={(e) => setService(x.id, { noteHints: e.target.value.split('\n') })} placeholder="Ex.: necessário planta baixa em dwg com medidas reais." spellCheck lang="pt-BR" />
+                      </Field>
                     </div>
                     {x.pricing === 'pacote' && (
                       <div className="tiers">

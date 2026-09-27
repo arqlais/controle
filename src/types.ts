@@ -251,6 +251,7 @@ export interface ServiceDef {
   checklistPrices?: Record<string, number> // valor de cada opção: R$/m² (serviço por m²) ou R$ cada (por unidade)
   customRate?: number // valor de um item personalizado (escrito à mão), na mesma unidade
   delivery?: string // como é entregue (ex.: "PDF fechado, pronto para execução")
+  noteHints?: string[] // observações prontas para este serviço (aparecem como sugestão no orçamento)
   deliveryOpen?: string // como é entregue quando o cliente quer o arquivo aberto ('' = não se aplica)
   perFloor?: boolean // encarece a cada pavimento a mais (pranchas, arquivos e modelos em dobro, triplo…)
 }

@@ -86,6 +86,43 @@ const PRICES_V1: Record<string, Record<string, number>> = {
   detalhamento: { marcenaria: 4, 'marmoraria (pedras)': 2.5, serralheria: 2, vidraçaria: 1.5, 'banheiros (áreas molhadas)': 2.5, cozinha: 2.5, 'forro e sancas': 1.5, 'painéis e revestimentos': 1.5, 'escadas e guarda-corpos': 2, 'portas e esquadrias': 1.5, paisagismo: 1.5 },
 }
 /** Como cada serviço é entregue (vai no PDF em "formatos de arquivos entregues"). */
+/** Observações prontas por serviço (tiradas das propostas reais): aparecem como sugestão no orçamento. */
+export const DEFAULT_NOTE_HINTS: Record<string, string[]> = {
+  modelagem: [
+    'a modelagem parte fielmente de uma planta baixa definida (dwg), com o conceito já definido pelo cliente.',
+    'necessário planta baixa em dwg com medidas reais.',
+    'necessário envio de referências e conceito.',
+    'não inclui: desenvolvimento de conceito, alterações de layout ou de projeto, renderizações.',
+  ],
+  'render-vray': [
+    'necessário modelagem 3d completa e definida (arquivo sketchup).',
+    'desenvolvimento com base no arquivo sketchup e informações fornecidas.',
+    'necessário envio de referências de materiais, iluminação e ângulos.',
+    'não inclui: modelagem 3d ou alterações de projeto.',
+  ],
+  'render-ia': [
+    'necessário modelagem 3d completa e definida (arquivo sketchup).',
+    'desenvolvimento com base no arquivo sketchup e informações fornecidas.',
+    'necessário envio de referências de materiais e estilo.',
+    'não inclui: modelagem 3d ou alterações de projeto.',
+  ],
+  executivo: [
+    'desenvolvimento a partir da planta baixa definida e referências fornecidas.',
+    'necessário planta baixa com medidas reais (dwg ou pdf).',
+    'arquivo precisa vir pronto para desenvolvimento do executivo.',
+    'não inclui: alterações de layout, modelagem 3d, revisões decorrentes de mudanças no projeto após o início dos serviços.',
+  ],
+  detalhamento: [
+    'detalhamento com base na modelagem e planta baixa já definidas.',
+    'necessário planta baixa com medidas reais.',
+    'não inclui: alterações de projeto ou modelagem 3d.',
+  ],
+}
+/** Vale para qualquer serviço. */
+export const GENERAL_NOTE_HINTS = [
+  'orçamento baseado no material fornecido. alterações ou complementações de projeto após o início dos trabalhos poderão gerar revisão de prazo e orçamento.',
+]
+
 export const DEFAULT_DELIVERY: Record<string, Pick<ServiceDef, 'delivery' | 'deliveryOpen'>> = {
   'render-vray': { delivery: 'imagens em PNG/JPG em alta resolução', deliveryOpen: '' },
   'render-ia': { delivery: 'imagens em PNG/JPG em alta resolução', deliveryOpen: '' },
@@ -128,7 +165,8 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
   return out.map((w) => {
     const y = recalibrate(w)
-    const z = y.delivery === undefined && DEFAULT_DELIVERY[y.id] ? { ...y, ...DEFAULT_DELIVERY[y.id] } : y
+    const y2 = y.noteHints === undefined && DEFAULT_NOTE_HINTS[y.id] ? { ...y, noteHints: DEFAULT_NOTE_HINTS[y.id] } : y
+    const z = y2.delivery === undefined && DEFAULT_DELIVERY[y2.id] ? { ...y2, ...DEFAULT_DELIVERY[y2.id] } : y2
     // pavimentos a mais encarecem: executivo, detalhamento e modelagem (imagem é preço por imagem; ajustável por serviço)
     const x = z.perFloor === undefined ? { ...z, perFloor: ['executivo', 'detalhamento', 'modelagem'].includes(z.id) } : z
     const d = DEFAULT_CHECKLISTS[x.id]
