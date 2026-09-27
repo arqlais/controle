@@ -350,7 +350,7 @@ const BILL_ICONS: Record<BillCard['icon'], ReactNode> = {
 const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith('**') ? <b key={i}>{part.slice(2, -2)}</b> : part))
 
 export function BillDoc({ s, info, year }: { s: Settings; info: BillInfo; year: string }) {
-  const [a, b] = info.kind === 'imagens' ? ['imagens', 'aprovadas!'] : ['recibo', 'serviço']
+  const [a, b] = ['recibo', 'serviço']
   const pct = info.total > 0 ? Math.round((info.paid / info.total) * 100) : 0
   const rest = Math.max(0, info.total - info.paid)
   return (

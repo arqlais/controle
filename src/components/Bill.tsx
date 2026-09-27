@@ -1,41 +1,67 @@
 import { useState } from 'react'
 import { useStore } from '../store'
-import { Field, Modal, MoneyInput, Segmented } from './ui'
+import { Field, Modal, MoneyInput } from './ui'
 import { Icon } from './Icon'
 import { toast } from './dialog'
 import { DocScale, usePdf } from './Print'
 import { BillDoc, type BillCard, type BillInfo } from './Docs'
-import type { Project } from '../types'
-import { money, projectPaid, projectTotal, today, whatsappLink } from '../utils'
+import type { Data, Project } from '../types'
+import { money, projectPaid, projectTotal, quoteFiles, today, whatsappLink } from '../utils'
 
-/* Recibo de cobrança no modelo do estúdio ("recibo serviço" / "imagens aprovadas!"):
+/* Recibo de cobrança no modelo do estúdio ("recibo serviço"), igual para qualquer serviço:
    mostra o total, o que já foi pago e o que falta, com as condições de entrega.
    Sai em PDF ou PNG (para mandar direto no WhatsApp). */
 
 // formatos de arquivo ganham destaque rosé: "arquivo final em **PNG**"
 const highlight = (t: string) => t.replace(/\b(PNG|JPG|JPEG|PDF|DWG|SKP|SketchUp|sketchup)\b/g, '**$1**').replace(/\*\*\*\*/g, '')
 
-export function defaultBill(p: Project, deliveryText: string, serviceName: string): BillInfo {
-  const images = p.service.startsWith('render')
-  const delivery = deliveryText.trim() ? `arquivo final: ${deliveryText.trim()}` : images ? 'arquivo final em PNG' : 'arquivo final em PDF, pronto para execução'
-  const cards: BillCard[] = [
-    { icon: 'folder', title: 'entrega final', text: highlight(delivery), on: true },
-    { icon: 'edit', title: 'alterações futuras', text: 'não inclusas após a aprovação, feitas mediante **valor de reajuste.**', on: true },
-    { icon: 'laptop', title: 'arquivo editável', text: 'não incluso. somente se combinado previamente, mediante **valor de acréscimo.**', on: true },
-    images
-      ? { icon: 'sparkle', title: 'pós-produção', text: 'arquivos finais já com tratamento e ajustes definitivos de cor, brilho e contraste.', on: true }
-      : { icon: 'ruler', title: 'execução', text: 'as medidas devem ser **conferidas no local** pelo fornecedor responsável.', on: true },
-  ]
-  const label = images && p.quantity > 0 ? `${p.quantity} ${p.quantity === 1 ? 'imagem' : 'imagens'} · ${serviceName}` : p.title || serviceName
-  return { kind: images ? 'imagens' : 'servico', label, total: projectTotal(p), paid: projectPaid(p), cards }
+/** "Arquivo em PDF…" → "arquivo em PDF…"; sem "arquivo" no começo, ganha "arquivo final: ". */
+const deliveryLine = (files: string) => {
+  const t = files.trim()
+  if (!t) return 'arquivo final conforme combinado no orçamento'
+  return /^arquivo/i.test(t) ? t[0].toLowerCase() + t.slice(1) : `arquivo final: ${t[0].toLowerCase()}${t.slice(1)}`
+}
+
+/** Monta o recibo a partir da demanda e do orçamento dela: serviços, forma de entrega e arquivo aberto. */
+export function defaultBill(p: Project, d: Data): BillInfo {
+  const quote = d.quotes.find((q) => q.projectId === p.id)
+  const chosen = quote?.mode === 'opcoes' ? quote.options.find((o) => o.id === quote.chosenOption) : undefined
+  const items = quote ? (chosen ? chosen.items : quote.mode === 'opcoes' ? quote.options.flatMap((o) => o.items) : quote.items) : []
+  const ids = [...new Set([...items.map((i) => i.service), p.service].filter(Boolean))]
+  const svc = (id: string) => d.settings.services.find((x) => x.id === id)
+  const isRender = (id: string) => id.startsWith('render')
+  const onlyModel = ids.length > 0 && ids.every((id) => id === 'modelagem')
+
+  // entrega final: o que o orçamento diz (já considera arquivo aberto), senão o padrão de cada serviço
+  const files = (quote ? quoteFiles(quote, d.settings.services) : '') || ids.map((id) => (quote?.openFile && svc(id)?.deliveryOpen) || svc(id)?.delivery).filter(Boolean).join(' · ')
+  const cards: BillCard[] = [{ icon: 'folder', title: 'entrega final', text: highlight(deliveryLine(files)), on: true }]
+  cards.push({ icon: 'edit', title: 'alterações futuras', text: 'não inclusas após a aprovação, feitas mediante **valor de reajuste.**', on: true })
+  cards.push(
+    onlyModel
+      ? { icon: 'laptop', title: 'arquivo editável', text: 'incluso: modelo entregue em **arquivo aberto** (SketchUp).', on: true }
+      : quote?.openFile
+        ? { icon: 'laptop', title: 'arquivo editável', text: 'incluso: **arquivo aberto (editável)**, conforme combinado.', on: true }
+        : { icon: 'laptop', title: 'arquivo editável', text: 'não incluso. somente se combinado previamente, mediante **valor de acréscimo.**', on: true },
+  )
+  // um quadro para cada tipo de serviço prestado
+  if (ids.some(isRender)) cards.push({ icon: 'sparkle', title: 'pós-produção', text: 'arquivos finais já com tratamento e ajustes definitivos de cor, brilho e contraste.', on: true })
+  if (ids.includes('modelagem')) cards.push({ icon: 'check', title: 'modelagem', text: 'modelo desenvolvido **fielmente** a partir da planta, do conceito e das referências enviadas.', on: true })
+  if (ids.some((id) => id === 'executivo' || id === 'detalhamento')) cards.push({ icon: 'ruler', title: 'execução', text: 'as medidas devem ser **conferidas no local** pelo fornecedor responsável.', on: true })
+  if (ids.some((id) => ['pranchas', 'diagramacao', 'mapas', 'diagramas', 'planta-hum'].includes(id)))
+    cards.push({ icon: 'sparkle', title: 'finalização', text: 'arquivos finais em **alta resolução**, prontos para apresentação e impressão.', on: true })
+
+  // título do quadro de valores: serviços do orçamento (ou o nome da demanda)
+  const names = [...new Set(items.filter((i) => !i.joined).map((i) => [i.title || svc(i.service)?.name, i.detail].filter(Boolean).join(' · ')))].filter(Boolean)
+  const single = ids.length === 1 && isRender(ids[0]) && p.quantity > 0 ? `${p.quantity} ${p.quantity === 1 ? 'imagem' : 'imagens'} · ${svc(ids[0])?.name ?? ''}` : ''
+  const label = single || (names.length && names.length <= 2 ? names.join(' + ') : p.title) || svc(p.service)?.name || 'serviço'
+  return { kind: 'servico', label, total: projectTotal(p), paid: projectPaid(p), cards }
 }
 
 export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
   const { data } = useStore()
   const s = data.settings
-  const service = s.services.find((x) => x.id === p.service)
   const client = data.clients.find((c) => c.id === p.clientId)
-  const [info, setInfo] = useState<BillInfo>(() => defaultBill(p, service?.delivery ?? '', service?.name ?? 'serviço'))
+  const [info, setInfo] = useState<BillInfo>(() => defaultBill(p, data))
   const pdf = usePdf()
   const set = (patch: Partial<BillInfo>) => setInfo((x) => ({ ...x, ...patch }))
   const setCard = (i: number, patch: Partial<BillCard>) => set({ cards: info.cards.map((c, j) => (j === i ? { ...c, ...patch } : c)) })
@@ -71,16 +97,6 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
     >
       <div className="bill-editor">
         <div className="bill-form">
-          <Field group label="Modelo">
-            <Segmented<BillInfo['kind']>
-              value={info.kind}
-              onChange={(kind) => set({ kind })}
-              options={[
-                { value: 'servico', label: 'recibo serviço' },
-                { value: 'imagens', label: 'imagens aprovadas!' },
-              ]}
-            />
-          </Field>
           <Field label="Título do quadro de valores">
             <input value={info.label} onChange={(e) => set({ label: e.target.value })} />
           </Field>
