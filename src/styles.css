@@ -1496,3 +1496,8 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .dialog.has-alt .modal-foot { gap: 6px; padding-left: 16px; padding-right: 16px; }
   .dialog.has-alt .modal-foot .btn { font-size: 12.5px; padding-left: 6px; padding-right: 6px; }
 }
+
+/* setinha de voltar no topo */
+.back-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 40px; padding: 0 14px 0 10px; border: 1px solid var(--border); border-radius: var(--pill); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; }
+.back-btn:hover { border-color: var(--accent-soft); color: var(--accent-ink); }
+@media (max-width: 820px) { .back-btn { width: 40px; padding: 0; justify-content: center; } }

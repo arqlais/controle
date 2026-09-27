@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
@@ -26,7 +27,7 @@ import {
   sum,
   urgency,
   urgencyScore,
-} from '../utils'
+ matches } from '../utils'
 
 type View = 'quadro' | 'lista'
 type Scope = 'ativos' | 'todos' | 'atrasados' | 'arquivo'
@@ -53,10 +54,10 @@ export default function Projects() {
       return 'quadro'
     }
   })
-  const [q, setQ] = useState('')
-  const [clientId, setClientId] = useState('')
-  const [prio, setPrio] = useState<Priority | ''>('')
-  const [scope, setScope] = useState<Scope>('ativos')
+  const [q, setQ] = useKeep('dem-busca', '')
+  const [clientId, setClientId] = useKeep('dem-cliente', '')
+  const [prio, setPrio] = useKeep<Priority | ''>('dem-prio', '')
+  const [scope, setScope] = useKeep<Scope>('dem-escopo', 'ativos')
   const [form, setForm] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const [overCol, setOverCol] = useState<ProjectStatus | null>(null)
@@ -77,7 +78,7 @@ export default function Projects() {
     return data.projects
       .filter((p) => !clientId || p.clientId === clientId)
       .filter((p) => !prio || urgency(p).level === prio)
-      .filter((p) => !term || p.title.toLowerCase().includes(term) || clientName(p.clientId).toLowerCase().includes(term))
+      .filter((p) => matches(term, p.title, clientName(p.clientId), ...data.quotes.filter((x) => x.projectId === p.id).map((x) => `#${x.number}`)))
   }, [data, q, clientId, prio])
 
   const move = (p: Project, status: ProjectStatus) => requestStatus(p, status, (next) => upsert('projects', next))
@@ -272,7 +273,7 @@ function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; o
 type SortKey = 'prazo' | 'valor' | 'urgencia' | 'cliente'
 
 function ProjectTable({ projects, clientName }: { projects: Project[]; clientName: (id: string) => string }) {
-  const [sort, setSort] = useState<SortKey>('urgencia')
+  const [sort, setSort] = useKeep<SortKey>('dem-ordem', 'urgencia')
   const rows = [...projects].sort((a, b) => {
     if (sort === 'prazo') return (a.dueDate || '9').localeCompare(b.dueDate || '9')
     if (sort === 'valor') return projectTotal(b) - projectTotal(a)
@@ -284,7 +285,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
       {label}
     </th>
   )
-  const { visible, more } = usePaged(rows)
+  const { visible, more } = usePaged(rows, 30, 'demandas')
   if (!rows.length) return <Empty title="Nada por aqui" text="Nenhuma demanda com esses filtros." />
   return (
     <div className="table-wrap card">

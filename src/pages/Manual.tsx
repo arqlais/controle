@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import { useKeep } from '../keep'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 
@@ -227,7 +228,7 @@ const ROUTINE: [string, string[]][] = [
 const PHASES = ['em alinhamento', 'em execução', 'em ajustes', 'em aprovação', 'entregue']
 
 export default function Manual() {
-  const [open, setOpen] = useState<string | null>('01')
+  const [open, setOpen] = useKeep<string | null>('manual-aberto', '01')
   const goTo = (w?: { page?: string; id?: string }) => w?.page && go(w.page, w.id)
 
   return (

@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import { useKeep } from '../keep'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
 import { EMAIL_DOMAINS, formatPhone } from '../utils'
@@ -194,8 +195,9 @@ export function MoneyInput({ value, onChange, ...rest }: { value: number; onChan
 
 
 /** Mostra listas longas aos poucos (evita telas gigantes com muitos clientes). */
-export function usePaged<T>(items: T[], size = 30) {
-  const [limit, setLimit] = useState(size)
+export function usePaged<T>(items: T[], size = 30, key = '') {
+  // com key: lembra quantos itens estavam abertos ao voltar para a tela
+  const [limit, setLimit] = useKeep(`paginas:${key || 'sem-chave'}`, size)
   const visible = items.slice(0, limit)
   const rest = items.length - visible.length
   const more =

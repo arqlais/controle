@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
@@ -39,12 +40,11 @@ type Layer = 'entrega' | 'pagamento' | 'evento'
 
 export default function Agenda() {
   const { data, upsert } = useStore()
-  const [cursor, setCursor] = useState(() => {
-    const d = new Date()
-    return new Date(d.getFullYear(), d.getMonth(), 1)
-  })
-  const [selected, setSelected] = useState(today())
-  const [layers, setLayers] = useState<Record<Layer, boolean>>({ entrega: true, pagamento: true, evento: true })
+  const [month, setMonth] = useKeep('ag-mes', today().slice(0, 7))
+  const cursor = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1)
+  const setCursor = (d: Date) => setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  const [selected, setSelected] = useKeep('ag-dia', today())
+  const [layers, setLayers] = useKeep<Record<Layer, boolean>>('ag-camadas', { entrega: true, pagamento: true, evento: true })
   const [form, setForm] = useState<{ ev?: CalendarEvent; date?: string } | null>(null)
 
   const items = useMemo(() => {

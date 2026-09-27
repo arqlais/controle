@@ -37,7 +37,7 @@ export default function ClientDetail({ id }: { id: string }) {
   const [merge, setMerge] = useState(false)
   const [newProject, setNewProject] = useState(false)
   const projects = data.projects.filter((p) => p.clientId === id).sort((a, b) => b.startDate.localeCompare(a.startDate))
-  const pagedProjects = usePaged(projects, 10)
+  const pagedProjects = usePaged(projects, 10, 'cliente-projetos')
 
   if (!c) return <Empty title="Cliente não encontrado" action={<a className="btn" href={href('clientes')}>Voltar</a>} />
 
@@ -232,7 +232,7 @@ function ClientHistory({ client }: { client: Client }) {
   const [text, setText] = useState('')
   const [date, setDate] = useState(today())
   const notes = [...client.history].sort((a, b) => b.date.localeCompare(a.date))
-  const { visible, more } = usePaged(notes, 8)
+  const { visible, more } = usePaged(notes, 8, 'cliente-notas')
   return (
     <Section title="histórico de conversas">
       <form

@@ -8,10 +8,10 @@ import { CLOUD } from './cloud'
 import { AvatarGlyph } from './components/Avatar'
 import { AIChat } from './components/AIChat'
 import { StatusDialogHost } from './components/quick'
-import { go, href, useRoute } from './router'
+import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, paymentDue, setCustomColumns } from './utils'
+import { allPayments, isLate, matches, paymentDue, setCustomColumns } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -210,6 +210,12 @@ export default function App() {
           <button className="icon-btn only-mobile" onClick={() => setMenuOpen(true)} aria-label="Menu">
             <Icon name="menu" />
           </button>
+          {(route.page !== 'inicio' || route.id) && (
+            <button className="back-btn" onClick={() => void back()} aria-label="Voltar" title="Voltar para a tela anterior">
+              <Icon name="chevronL" size={18} />
+              <span className="hide-mobile">voltar</span>
+            </button>
+          )}
           <GlobalSearch />
           <div className="add-menu">
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
@@ -324,15 +330,15 @@ function GlobalSearch() {
   }, [])
 
   const results = useMemo(() => {
-    const term = q.trim().toLowerCase()
+    const term = q.trim()
     if (term.length < 2) return []
-    const has = (...s: string[]) => s.some((x) => x?.toLowerCase().includes(term))
+    const has = (...s: (string | undefined)[]) => matches(term, ...s)
     return [
       ...data.clients.filter((c) => has(c.name, c.company, c.email, c.instagram, c.city)).map((c) => ({ kind: 'Cliente', label: c.name, sub: c.company, page: 'clientes', id: c.id })),
       ...data.projects
         .filter((p) => has(p.title, p.description, p.notes))
         .map((p) => ({ kind: 'Demanda', label: p.title, sub: data.clients.find((c) => c.id === p.clientId)?.name ?? '', page: 'projetos', id: p.id })),
-      ...data.quotes.filter((x) => has(x.title, String(x.number))).map((x) => ({ kind: 'Orçamento', label: `#${x.number} ${x.title}`, sub: '', page: 'orcamentos', id: x.id })),
+      ...data.quotes.filter((x) => has(x.title, String(x.number), `#${x.number}`, data.clients.find((c) => c.id === x.clientId)?.name)).map((x) => ({ kind: 'Orçamento', label: `#${x.number} ${x.title}`, sub: data.clients.find((c) => c.id === x.clientId)?.name ?? '', page: 'orcamentos', id: x.id })),
     ].slice(0, 10)
   }, [q, data])
 

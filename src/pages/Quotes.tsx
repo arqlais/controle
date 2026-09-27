@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink } from '../utils'
+import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink, matches } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
 import { ask, toast } from '../components/dialog'
@@ -20,9 +21,9 @@ export default function Quotes() {
   const { data, upsert, remove } = useStore()
   const [picked, setPicked] = useState<Set<string>>(new Set())
 
-  const [filter, setFilter] = useState<Filter>('todos')
-  const [q, setQ] = useState('')
-  const [clientId, setClientId] = useState('')
+  const [filter, setFilter] = useKeep<Filter>('orc-filtro', 'todos')
+  const [q, setQ] = useKeep('orc-busca', '')
+  const [clientId, setClientId] = useKeep('orc-cliente', '')
   const fee = data.settings.urgencyFee
   const client = (id: string) => data.clients.find((c) => c.id === id)
 
@@ -31,10 +32,10 @@ export default function Quotes() {
     return [...data.quotes]
       .filter((x) => (filter === 'todos' ? true : filter === 'cobrar' ? needsFollowUp(x) : x.status === filter))
       .filter((x) => !clientId || x.clientId === clientId)
-      .filter((x) => !term || `${x.number} ${x.title} ${client(x.clientId)?.name ?? ''}`.toLowerCase().includes(term))
+      .filter((x) => matches(term, x.number, `#${x.number}`, quoteNumber(x), x.title, client(x.clientId)?.name, client(x.clientId)?.company))
       .sort((a, b) => b.number - a.number)
   }, [data.quotes, data.clients, filter, q, clientId])
-  const { visible, more } = usePaged(rows)
+  const { visible, more } = usePaged(rows, 30, 'orcamentos')
 
   const decided = data.quotes.filter((x) => x.status === 'aprovado' || x.status === 'recusado')
   const approved = data.quotes.filter((x) => x.status === 'aprovado')

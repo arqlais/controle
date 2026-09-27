@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
-import { go, href } from '../router'
+import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
@@ -148,27 +148,34 @@ export default function QuoteEditor({ id }: { id: string }) {
       e.returnValue = ''
     }
     window.addEventListener('beforeunload', warn)
-    // sair pelo menu ou por um link sem salvar: pergunta
-    const leave = async (e: MouseEvent) => {
-      const a = (e.target as HTMLElement).closest?.('a[href^="#"]') as HTMLAnchorElement | null
-      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return
-      e.preventDefault()
-      e.stopPropagation()
+    // sair pelo menu, por um link ou pela setinha sem salvar: pergunta
+    const confirmLeave = async () => {
       const choice = await askChoice('Este orçamento tem alterações que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
-      if (choice === 'cancel') return
-      if (choice === 'confirm' && !saveRef.current()) return // sem cliente: fica para completar
+      if (choice === 'cancel') return false
+      if (choice === 'confirm' && !saveRef.current()) return false // sem cliente: fica para completar
       try {
         localStorage.removeItem(draftKey)
       } catch {
         /* ok */
       }
       setTouched(false)
-      location.hash = a.getAttribute('href')!
+      return true
+    }
+    const leave = async (e: MouseEvent) => {
+      const a = (e.target as HTMLElement).closest?.('a[href^="#"]') as HTMLAnchorElement | null
+      if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (!(await confirmLeave())) return
+      const r = a.getAttribute('href')!.replace(/^#\/?/, '').split('/')
+      go(r[0] || 'inicio', r[1])
     }
     document.addEventListener('click', leave, true)
+    setLeaveGuard(confirmLeave)
     return () => {
       window.removeEventListener('beforeunload', warn)
       document.removeEventListener('click', leave, true)
+      setLeaveGuard(null)
     }
   }, [unsaved, draftKey])
 

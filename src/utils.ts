@@ -420,6 +420,16 @@ export const optionArea = (q: Quote, o?: QuoteOption) => ({
   floors: Math.max(1, o?.floors ?? q.floors ?? 1),
 })
 
+/** Para pesquisar sem se importar com acento ou maiúscula: "Araújo" = "araujo". */
+export const fold = (s: string | undefined | null) => (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+/** Todas as palavras digitadas aparecem em algum dos textos (em qualquer ordem, sem acento). */
+export const matches = (term: string, ...texts: (string | number | undefined | null)[]) => {
+  const words = fold(term).split(/\s+/).filter(Boolean)
+  if (!words.length) return true
+  const hay = fold(texts.filter((t) => t !== undefined && t !== null).join(' '))
+  return words.every((w) => hay.includes(w))
+}
+
 export const BOTH = 'ambas'
 /** até 3 opções/propostas lado a lado */
 export const MAX_OPTIONS = 3

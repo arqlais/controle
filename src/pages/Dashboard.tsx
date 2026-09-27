@@ -312,7 +312,7 @@ function TodoList() {
     return out.sort((a, b) => order[a.tone] - order[b.tone])
   }, [data, upsert])
 
-  const { visible, more } = usePaged(todos, 6)
+  const { visible, more } = usePaged(todos, 6, 'inicio-afazer')
   if (!todos.length) return null
   return (
     <Section title={`para fazer · ${todos.length}`}>

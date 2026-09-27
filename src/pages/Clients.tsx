@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
-import { CLIENT_COLORS, CLIENT_TYPES, daysUntil, relativeDays, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink } from '../utils'
+import { CLIENT_COLORS, CLIENT_TYPES, daysUntil, relativeDays, isOpen, isStudent, money, projectOpen, projectPaid, sum, whatsappLink, matches } from '../utils'
 import type { Client, ClientType } from '../types'
 import { MergeClients } from '../components/MergeClients'
 import { duplicatePairs } from '../mergeClients'
@@ -14,11 +15,11 @@ type Sort = 'faturamento' | 'nome' | 'recentes' | 'aberto'
 
 export default function Clients() {
   const { data, setSettings } = useStore()
-  const [q, setQ] = useState('')
-  const [profile, setProfile] = useState<Profile>('todos')
-  const [type, setType] = useState<ClientType | ''>('')
-  const [sort, setSort] = useState<Sort>('faturamento')
-  const [archived, setArchived] = useState(false)
+  const [q, setQ] = useKeep('cli-busca', '')
+  const [profile, setProfile] = useKeep<Profile>('cli-perfil', 'todos')
+  const [type, setType] = useKeep<ClientType | ''>('cli-tipo', '')
+  const [sort, setSort] = useKeep<Sort>('cli-ordem', 'faturamento')
+  const [archived, setArchived] = useKeep('cli-arquivados', false)
   const [form, setForm] = useState(false)
   const [merging, setMerging] = useState<[Client, Client] | null>(null)
   const pairKey = (a: Client, b: Client) => [a.id, b.id].sort().join('|')
@@ -32,7 +33,7 @@ export default function Clients() {
       .filter((c) => c.archived === archived)
       .filter((c) => (profile === 'todos' ? true : profile === 'estudantes' ? isStudent(c) : !isStudent(c)))
       .filter((c) => !type || c.type === type)
-      .filter((c) => !term || [c.name, c.company, c.city, c.instagram, c.email].some((s) => s.toLowerCase().includes(term)))
+      .filter((c) => matches(term, c.name, c.company, c.city, c.instagram, c.email, c.phone))
       .map((c) => {
         const ps = data.projects.filter((p) => p.clientId === c.id && p.status !== 'cancelado')
         const last = [...ps].sort((a, b) => b.startDate.localeCompare(a.startDate))[0]
@@ -55,7 +56,7 @@ export default function Clients() {
   }, [data, q, profile, type, sort, archived])
 
   const total = sum(rows, (r) => r.paid)
-  const { visible, more } = usePaged(rows)
+  const { visible, more } = usePaged(rows, 30, 'clientes')
 
   return (
     <div className="page">

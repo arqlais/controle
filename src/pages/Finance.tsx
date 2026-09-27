@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
@@ -35,10 +36,10 @@ type PayFilter = 'abertos' | 'cobrar' | 'pagos' | 'todos'
 export default function Finance() {
   const { data, upsert, remove } = useStore()
   const { settings } = data
-  const [month, setMonth] = useState(monthKey(today()))
-  const [tab, setTab] = useState<Tab>('receber')
-  const [filter, setFilter] = useState<PayFilter>('abertos')
-  const [onlyMonth, setOnlyMonth] = useState(false)
+  const [month, setMonth] = useKeep('fin-mes', monthKey(today()))
+  const [tab, setTab] = useKeep<Tab>('fin-aba', 'receber')
+  const [filter, setFilter] = useKeep<PayFilter>('fin-filtro', 'abertos')
+  const [onlyMonth, setOnlyMonth] = useKeep('fin-so-mes', false)
   const [expForm, setExpForm] = useState<Expense | 'new' | null>(null)
 
   const shift = (n: number) => {
@@ -63,7 +64,7 @@ export default function Finance() {
     })
     .sort((a, b) => (filter === 'pagos' ? (b.pay.paidDate ?? '').localeCompare(a.pay.paidDate ?? '') : (a.pay.dueDate || '9').localeCompare(b.pay.dueDate || '9')))
 
-  const { visible, more } = usePaged(rows)
+  const { visible, more } = usePaged(rows, 30, 'financeiro')
   const expenses = expensesInMonth(data, month).sort((a, b) => a.date.localeCompare(b.date))
   const lateTotal = sum(pays.filter((x) => paymentState(x.pay, x.project) === 'cobrar'), (x) => x.pay.amount)
 
