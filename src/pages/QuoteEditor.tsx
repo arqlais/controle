@@ -1089,10 +1089,18 @@ function NoteField({ value, items, settings, onChange }: { value: string; items:
   const lines = value.split('\n').map((l) => l.trim()).filter(Boolean)
   const has = (h: string) => lines.some((l) => l.toLowerCase() === h.toLowerCase())
   const toggle = (h: string) => onChange((has(h) ? lines.filter((l) => l.toLowerCase() !== h.toLowerCase()) : [...lines, h]).join('\n'))
+  const [open, setOpen] = useState(false)
+  const used = hints.filter(has).length
   return (
-    <Field label="Observação (dentro do quadro)" hint={hints.length ? 'Opcional · toque numa sugestão para colocar ou tirar; dá para editar o texto à vontade.' : 'Opcional.'}>
+    <Field label="Observação (dentro do quadro)" hint={open ? 'Toque para colocar ou tirar · dá para editar o texto à vontade.' : undefined}>
       <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={Math.min(6, Math.max(2, lines.length + 1))} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Opcional" />
       {hints.length > 0 && (
+        <button type="button" className="note-hints-toggle" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+          <Icon name="sparkle" size={13} /> observações prontas ({hints.length}){used ? ` · ${used} em uso` : ''}
+          <Icon name="chevronR" size={13} className={open ? 'rot-down' : 'rot-up'} />
+        </button>
+      )}
+      {open && hints.length > 0 && (
         <div className="note-hints">
           {hints.map((h) => (
             <button key={h} type="button" className={`note-hint ${has(h) ? 'is-on' : ''}`} onClick={() => toggle(h)} title={h}>
