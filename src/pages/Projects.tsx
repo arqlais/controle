@@ -248,8 +248,8 @@ function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; o
         <span className={`dl-chip tone-${dl.tone}`} title={p.dueDate ? `prazo: ${fmtDate(p.dueDate)}` : undefined}>
           {dl.text}
         </span>
-        <TaskQuick p={p} compact />
       </div>
+      <TaskQuick p={p} compact />
       <div className="kcard-foot">
         <span className="small">{money(projectTotal(p))}</span>
         <PayNext p={p} compact />

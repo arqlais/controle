@@ -1679,3 +1679,7 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .ig-act:hover { border-color: var(--accent-soft); background: var(--accent-tint, var(--surface-2)); }
 .ig-idea-top .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ig-idea:not(.is-open) .ig-hook { min-height: 2.6em; }
+/* etapas no cartão: sempre uma linha própria, largura toda */
+.kcard > .task-quick.is-compact { margin: 0; }
+.kcard > .task-quick.is-compact .task-quick-head { width: 100%; }
+.kcard > .task-quick.is-compact:not(.is-open) .progress { width: auto; flex: 1; }
