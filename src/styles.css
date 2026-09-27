@@ -370,7 +370,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 20px 26px; border-bottom: 1px solid var(--border); }
 .modal-head h2 { text-transform: lowercase; }
 .modal-body { padding: 24px 26px; overflow-y: auto; }
-.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 26px; border-top: 1px solid var(--border); }
+.modal-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 16px 26px; border-top: 1px solid var(--border); }
 
 /* ---------- kanban ---------- */
 .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 8px; align-items: start; }

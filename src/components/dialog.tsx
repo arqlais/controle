@@ -7,7 +7,9 @@ interface Ask {
   message: string
   confirmLabel: string
   danger: boolean
-  resolve: (ok: boolean) => void
+  // terceira opção (ex.: "sair sem salvar" ao lado de "salvar e sair")
+  altLabel?: string
+  resolve: (ok: boolean | 'alt') => void
 }
 
 let pushAsk: ((a: Ask) => void) | null = null
@@ -16,7 +18,15 @@ let pushToast: ((msg: string) => void) | null = null
 export function ask(message: string, opts: { confirmLabel?: string; danger?: boolean } = {}) {
   return new Promise<boolean>((resolve) => {
     if (!pushAsk) return resolve(false)
-    pushAsk({ message, confirmLabel: opts.confirmLabel ?? 'Confirmar', danger: opts.danger ?? false, resolve })
+    pushAsk({ message, confirmLabel: opts.confirmLabel ?? 'Confirmar', danger: opts.danger ?? false, resolve: (r) => resolve(r === true) })
+  })
+}
+
+/** Três saídas: a principal (confirm), uma alternativa (alt) e cancelar. */
+export function askChoice(message: string, opts: { confirmLabel: string; altLabel: string }) {
+  return new Promise<'confirm' | 'alt' | 'cancel'>((resolve) => {
+    if (!pushAsk) return resolve('cancel')
+    pushAsk({ message, confirmLabel: opts.confirmLabel, altLabel: opts.altLabel, danger: false, resolve: (r) => resolve(r === 'alt' ? 'alt' : r ? 'confirm' : 'cancel') })
   })
 }
 
@@ -44,7 +54,7 @@ export function DialogHost() {
   }, [])
 
   const current = queue[0]
-  const close = (ok: boolean) => {
+  const close = (ok: boolean | 'alt') => {
     current?.resolve(ok)
     setQueue((q) => q.slice(1))
   }
@@ -71,6 +81,11 @@ export function DialogHost() {
               <button className="btn ghost" onClick={() => close(false)}>
                 Cancelar
               </button>
+              {current.altLabel && (
+                <button className="btn ghost danger" onClick={() => close('alt')}>
+                  {current.altLabel}
+                </button>
+              )}
               <button autoFocus className={`btn ${current.danger ? 'danger' : 'primary'}`} onClick={() => close(true)}>
                 {current.confirmLabel}
               </button>

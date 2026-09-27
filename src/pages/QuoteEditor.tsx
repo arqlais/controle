@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { go, href } from '../router'
@@ -7,7 +7,7 @@ import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented } from '../components/ui'
-import { ask, askDelete, toast } from '../components/dialog'
+import { askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
@@ -121,6 +121,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   // ---- não perder o que foi digitado ----
   const [touched, setTouched] = useState(false)
   const unsaved = dirty && touched
+  const saveRef = useRef<() => Quote | null>(() => null)
   const draftKey = `orcamento-em-edicao:${id}`
   // cópia de segurança no aparelho enquanto edita (fechou/travou/recarregou: dá para recuperar)
   const [recover, setRecover] = useState<{ q: Quote; at: string } | null>(() => {
@@ -153,15 +154,16 @@ export default function QuoteEditor({ id }: { id: string }) {
       if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey) return
       e.preventDefault()
       e.stopPropagation()
-      if (await ask('Este orçamento tem alterações que não foram salvas. Sair sem salvar?', { confirmLabel: 'Sair sem salvar', danger: true })) {
-        try {
-          localStorage.removeItem(draftKey)
-        } catch {
-          /* ok */
-        }
-        setTouched(false)
-        location.hash = a.getAttribute('href')!
+      const choice = await askChoice('Este orçamento tem alterações que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
+      if (choice === 'cancel') return
+      if (choice === 'confirm' && !saveRef.current()) return // sem cliente: fica para completar
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {
+        /* ok */
       }
+      setTouched(false)
+      location.hash = a.getAttribute('href')!
     }
     document.addEventListener('click', leave, true)
     return () => {
@@ -232,6 +234,8 @@ export default function QuoteEditor({ id }: { id: string }) {
     if (id === 'novo') go('orcamentos', next.id)
     return next
   }
+
+  saveRef.current = () => save()
 
   const line = (i: QuoteItem) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` · ${cleanDetail(i.detail)}` : ''} — ${money(i.price)}`
   const text = () => {
