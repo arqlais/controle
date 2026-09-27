@@ -181,10 +181,13 @@ export default function ProjectDetail({ id }: { id: string }) {
           tone={isLate(p) ? 'bad' : isOpen(p) && p.dueDate && daysUntil(p.dueDate) <= 2 ? 'warn' : undefined}
           sub={
             <>
-              <span>
-                {p.status === 'entregue'
-                  ? `entregue em ${fmtDate(p.deliveredDate)}`
-                  : p.dueDate
+              <span className={p.status === 'entregue' ? 'delivered-edit' : undefined}>
+                {p.status === 'entregue' ? (
+                  <>
+                    entregue em{' '}
+                    <DateInput className="stat-date-small" value={p.deliveredDate ?? ''} max={today()} onChange={(e) => e.target.value && save({ deliveredDate: e.target.value })} aria-label="Data em que foi entregue" title="Clique para corrigir a data de entrega" />
+                  </>
+                ) : p.dueDate
                     ? `${relativeDays(p.dueDate)}${p.dueDate > today() ? ` · ${businessDaysUntil(p.dueDate)} dias úteis` : ''}`
                     : 'sem prazo · clique na data para definir, se houver'}
               </span>
