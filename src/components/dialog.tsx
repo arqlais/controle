@@ -73,7 +73,7 @@ export function DialogHost() {
     <>
       {current && (
         <div className="modal-backdrop dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close(false)}>
-          <div className="modal dialog" role="alertdialog" aria-modal>
+          <div className={`modal dialog ${current.altLabel ? 'has-alt' : ''}`} role="alertdialog" aria-modal>
             <div className="modal-body">
               <p>{current.message}</p>
             </div>

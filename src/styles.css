@@ -1488,3 +1488,11 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .recover-note .grow { flex: 1 1 220px; }
 .note-hints-toggle { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 2px; border: 0; background: none; color: var(--accent-ink); font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .note-hints-toggle:hover { color: var(--text); }
+/* confirmação com 3 opções: botões lado a lado, mesma largura */
+.dialog.has-alt { width: min(520px, 100%); }
+.dialog.has-alt .modal-foot { flex-wrap: nowrap; }
+.dialog.has-alt .modal-foot .btn { flex: 1 1 0; min-width: 0; justify-content: center; white-space: nowrap; padding-left: 10px; padding-right: 10px; }
+@media (max-width: 480px) {
+  .dialog.has-alt .modal-foot { gap: 6px; padding-left: 16px; padding-right: 16px; }
+  .dialog.has-alt .modal-foot .btn { font-size: 12.5px; padding-left: 6px; padding-right: 6px; }
+}
