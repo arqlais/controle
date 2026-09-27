@@ -60,7 +60,7 @@ const MIN_GAP = 84
 
 /** Folha da proposta. Com `fit`, mede o espaço de verdade: começa com o espaçamento normal e
     só aproxima o título e compacta o quadro quando o escopo não deixa respiro antes do rodapé. */
-function Sheet({ s, year, children, fit }: { s: Settings; year: string; children: ReactNode; fit?: string }) {
+function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string; children: ReactNode; fit?: string; barName?: string }) {
   const p = s.proposal
   const ref = useRef<HTMLElement>(null)
   const [level, setLevel] = useState(0)
@@ -87,7 +87,7 @@ function Sheet({ s, year, children, fit }: { s: Settings; year: string; children
   return (
     <article ref={ref} className={`proposal ${LEVELS[level]}`} style={style}>
       <div className="p-bar">
-        <span>{(s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
+        <span>{(barName || s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
         <span>{year}</span>
       </div>
       <div className="p-body">{children}</div>
@@ -318,6 +318,90 @@ export function ReceiptDoc({ s, client, project, payment }: { s: Settings; clien
       </div>
       <TotalBar label="valor recebido" value={payment.amount} />
       <Contacts s={s} />
+    </Sheet>
+  )
+}
+
+/* ---------- recibo de cobrança (modelo "recibo serviço" / "imagens aprovadas!") ---------- */
+
+export interface BillCard {
+  icon: 'folder' | 'edit' | 'laptop' | 'ruler' | 'sparkle' | 'check'
+  title: string
+  text: string // **palavra** fica em destaque rosé
+  on: boolean
+}
+export interface BillInfo {
+  kind: 'servico' | 'imagens'
+  label: string // título do quadro de valores (ex.: "5 imagens renderizadas por IA")
+  total: number
+  paid: number
+  cards: BillCard[]
+}
+
+const BILL_ICONS: Record<BillCard['icon'], ReactNode> = {
+  folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />,
+  edit: <path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" />,
+  laptop: <path d="M5 5h14v10H5zM3 19h18" />,
+  ruler: <path d="M3 17 17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2" />,
+  sparkle: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />,
+  check: <path d="M5 12l5 5L20 7" />,
+}
+
+const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith('**') ? <b key={i}>{part.slice(2, -2)}</b> : part))
+
+export function BillDoc({ s, info, year }: { s: Settings; info: BillInfo; year: string }) {
+  const [a, b] = info.kind === 'imagens' ? ['imagens', 'aprovadas!'] : ['recibo', 'serviço']
+  const pct = info.total > 0 ? Math.round((info.paid / info.total) * 100) : 0
+  const rest = Math.max(0, info.total - info.paid)
+  return (
+    <Sheet s={s} year={year} barName={s.brandName || s.legalName}>
+      <div className="bill">
+        <h1 className="bill-title">
+          <span>{a}</span>
+          <em>{b}</em>
+        </h1>
+        <p className="bill-sub">comprovante de aprovação e finalização do serviço, com as principais informações sobre a entrega e encerramento do serviço contratado.</p>
+        <div className="bill-cards">
+          {info.cards
+            .filter((c) => c.on && c.text.trim())
+            .map((c, i) => (
+              <div key={i} className="bill-card">
+                <div className="bill-card-head">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    {BILL_ICONS[c.icon]}
+                  </svg>
+                  <span>{c.title}</span>
+                </div>
+                <p>{rich(c.text)}</p>
+              </div>
+            ))}
+        </div>
+        <div className="bill-money">
+          <div className="bill-card-head">
+            <span className="bill-coin">$</span>
+            <span>{info.label}</span>
+          </div>
+          <div className="bill-row">
+            <span>valor total</span>
+            <i />
+            <span>{money(info.total)}</span>
+          </div>
+          {info.paid > 0 && (
+            <div className="bill-row">
+              <span>já pago{pct ? ` (${pct}%)` : ''}</span>
+              <i />
+              <span>{money(info.paid)}</span>
+            </div>
+          )}
+          <div className="bill-due">
+            <span>{rest > 0 ? 'restante a pagar' : 'pago'}</span>
+            <b>{money(rest > 0 ? rest : info.total)}</b>
+          </div>
+        </div>
+        <p className="bill-thanks">
+          obrigada pela confiança <span className="bill-heart">♥</span> fico à disposição para futuros projetos!
+        </p>
+      </div>
     </Sheet>
   )
 }

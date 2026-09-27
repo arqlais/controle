@@ -1501,3 +1501,49 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .back-btn { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 40px; padding: 0 14px 0 10px; border: 1px solid var(--border); border-radius: var(--pill); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; }
 .back-btn:hover { border-color: var(--accent-soft); color: var(--accent-ink); }
 @media (max-width: 820px) { .back-btn { width: 40px; padding: 0; justify-content: center; } }
+
+/* etapas direto no cartão da demanda */
+.task-quick { margin-top: 2px; }
+.task-quick-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; border: 0; background: none; cursor: pointer; color: var(--muted); }
+.task-quick-head .progress { flex: 1; }
+.task-quick-head:hover { color: var(--accent-ink); }
+.task-quick-count { font-size: 12px; font-weight: 600; }
+.task-quick-next { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+.task-quick-list { list-style: none; margin: 6px 0 2px; padding: 8px 10px; border-radius: 12px; background: var(--bg); display: grid; gap: 2px; }
+.task-quick-list label { display: flex; align-items: flex-start; gap: 8px; padding: 4px 0; font-size: 12.5px; line-height: 1.35; cursor: pointer; }
+.task-quick-list input { width: 15px; height: 15px; min-height: 0; margin: 1px 0 0; padding: 0; flex: none; accent-color: var(--accent); }
+.task-quick-list .is-done span { text-decoration: line-through; color: var(--muted); }
+.list-item .task-quick { max-width: 320px; }
+
+/* ---------- recibo de cobrança (A4) ---------- */
+.bill { display: flex; flex-direction: column; flex: 1; }
+.bill-title { margin: 30px 0 0; display: flex; justify-content: center; align-items: baseline; gap: 2px; font-weight: 400; line-height: 1; }
+.bill-title span { font-family: 'Poppins', sans-serif; font-size: 62px; letter-spacing: 0.08em; color: var(--p-strong); font-weight: 400; }
+.bill-title em { font-family: var(--p-serif); font-style: italic; font-size: 72px; color: var(--p-rose); }
+.bill-sub { margin: 34px auto 42px; max-width: 590px; text-align: center; font-size: 14.5px; font-style: italic; line-height: 1.65; color: var(--p-strong); }
+.bill-cards { display: flex; flex-direction: column; gap: 15px; }
+.bill-card { padding: 20px 24px 18px; border: 1px solid var(--p-line); border-radius: 8px; background: color-mix(in srgb, var(--p-line) 22%, var(--p-paper)); }
+.bill-card-head { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--p-strong); }
+.bill-card-head svg { color: var(--p-rose); flex: none; }
+.bill-card p { margin: 10px 0 0; font-size: 14.5px; color: var(--p-strong); }
+.bill-card p b { color: var(--p-rose); font-weight: 600; }
+.bill-money { margin-top: 15px; padding: 22px 12px 14px 24px; border: 1px solid var(--p-line); border-radius: 8px; background: #fff; }
+.bill-coin { width: 24px; height: 24px; border-radius: 50%; background: var(--p-rose); color: #fff; display: inline-grid; place-items: center; font-size: 13px; letter-spacing: 0; flex: none; }
+.bill-row { display: flex; align-items: baseline; gap: 4px; margin-top: 12px; padding-right: 12px; font-size: 17px; color: var(--p-strong); }
+.bill-row i { flex: 1; border-bottom: 1.5px dotted color-mix(in srgb, var(--p-rose) 60%, transparent); transform: translateY(-4px); }
+.bill-due { display: flex; justify-content: space-between; align-items: center; margin: 18px 0 0 -12px; padding: 10px 24px 10px 14px; border-radius: 6px; background: var(--p-bar); color: #fff; font-size: 17.5px; }
+.bill-due b { font-size: 17.5px; letter-spacing: 0.02em; }
+.bill-thanks { margin: auto 0 10px; padding-top: 44px; text-align: center; font-style: italic; font-size: 15px; color: var(--p-strong); letter-spacing: 0.02em; }
+.bill-heart { color: var(--p-rose); font-style: normal; }
+.bill-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.bill-form { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.bill-form-cards { display: flex; flex-direction: column; gap: 10px; }
+.bill-form-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; }
+.bill-form-card.is-off { opacity: 0.55; }
+.bill-form-card .check { display: flex; align-items: center; gap: 8px; }
+.bill-form-title { border: 0; padding: 2px 4px; min-height: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12px; background: transparent; }
+.bill-form-card textarea { font-size: 13px; }
+.bill-preview { position: sticky; top: 0; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+@media (max-width: 820px) { .bill-editor { grid-template-columns: 1fr; } .bill-preview { position: static; order: -1; } }
+.modal-wide:has(.bill-editor) { width: min(1100px, 100%); }
+.parcel-action { white-space: nowrap; } .parcel-action .icon-btn { display: inline-grid; vertical-align: middle; margin-right: 6px; }

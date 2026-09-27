@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { Badge, Empty, Progress, Section, Stat, usePaged } from '../components/ui'
 import { needsFollowUp, waitingDays } from './Quotes'
 import { BarChart, Donut } from '../components/Charts'
-import { StatusSelect } from '../components/quick'
+import { StatusSelect, TaskQuick } from '../components/quick'
 import {
   EVENT_TYPES, eventLabel,
   MONTHS,
@@ -170,17 +170,14 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
               {priorities.map((p) => {
                 const u = urgency(p)
                 const client = data.clients.find((c) => c.id === p.clientId)
-                const done = p.tasks.filter((x) => x.done).length
                 return (
                   <li key={p.id}>
                     <div className="list-item clickable" onClick={() => go('projetos', p.id)}>
                       <span className="prio-bar" style={{ background: PRIORITY[u.level].color }} />
                       <div className="grow">
                         <div className="list-title">{p.title}</div>
-                        <div className="list-sub">
-                          {client?.name}
-                          {p.tasks.length > 0 && ` · ${done}/${p.tasks.length} etapas`}
-                        </div>
+                        <div className="list-sub">{client?.name}</div>
+                        <TaskQuick p={p} />
                       </div>
                       <div className="right">
                         <div className="row gap-s">

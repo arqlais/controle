@@ -3,7 +3,7 @@ import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
-import { PayNext, StatusSelect, requestStatus } from '../components/quick'
+import { PayNext, StatusSelect, requestStatus, TaskQuick } from '../components/quick'
 import { Icon } from '../components/Icon'
 import { ProjectForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
@@ -234,7 +234,6 @@ export default function Projects() {
 
 function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; onDragStart: () => void }) {
   const { data } = useStore()
-  const done = p.tasks.filter((t) => t.done).length
   const quote = data.quotes.find((q) => q.projectId === p.id)
   const dl = deadlineInfo(p)
   return (
@@ -249,16 +248,7 @@ function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; o
         <span className={`dl-chip tone-${dl.tone}`}>{dl.text}</span>
         {p.dueDate && isOpen(p) && <span className="muted small">{fmtDate(p.dueDate)}</span>}
       </div>
-      {p.tasks.length > 0 && (
-        <div className="kcard-progress">
-          <div className="progress thin">
-            <div className="progress-bar" style={{ width: `${(done / p.tasks.length) * 100}%` }} />
-          </div>
-          <span className="small muted">
-            {done}/{p.tasks.length}
-          </span>
-        </div>
-      )}
+      <TaskQuick p={p} />
       <div className="kcard-foot">
         <span className="small">{money(projectTotal(p))}</span>
         <PayNext p={p} compact />

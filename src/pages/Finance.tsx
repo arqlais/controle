@@ -7,7 +7,8 @@ import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
 import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
-import type { Expense } from '../types'
+import type { Expense, Project } from '../types'
+import { BillModal } from '../components/Bill'
 import {
   CLIENT_TYPES,
   EXPENSE_CATEGORIES,
@@ -41,6 +42,7 @@ export default function Finance() {
   const [filter, setFilter] = useKeep<PayFilter>('fin-filtro', 'abertos')
   const [onlyMonth, setOnlyMonth] = useKeep('fin-so-mes', false)
   const [expForm, setExpForm] = useState<Expense | 'new' | null>(null)
+  const [bill, setBill] = useState<Project | null>(null)
 
   const shift = (n: number) => {
     const [y, m] = month.split('-').map(Number)
@@ -228,6 +230,9 @@ export default function Finance() {
                         </td>
                         <td className="num" data-label="valor">{money(pay.amount)}</td>
                         <td className="parcel-action">
+                          <button className="icon-btn subtle" title="Recibo de cobrança (PDF ou PNG)" onClick={() => setBill(project)}>
+                            <Icon name="file" size={16} />
+                          </button>
                           {pay.paidDate ? (
                             <button className="pill pill-pago" title="Clique para desfazer" onClick={() => markPaid(project.id, pay.id, false)}>
                               pago {fmtDate(pay.paidDate)}
@@ -319,6 +324,7 @@ export default function Finance() {
 
       {tab === 'relatorios' && <Reports month={month} />}
 
+      {bill && <BillModal p={bill} onClose={() => setBill(null)} />}
       {expForm && <ExpenseForm initial={expForm === 'new' ? undefined : expForm} onClose={() => setExpForm(null)} />}
     </div>
   )

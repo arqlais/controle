@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BillModal } from '../components/Bill'
 import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
 import { go, href } from '../router'
@@ -49,6 +50,7 @@ export default function ProjectDetail({ id }: { id: string }) {
   const [edit, setEdit] = useState(false)
   const [newEvent, setNewEvent] = useState(false)
   const [newExtra, setNewExtra] = useState(false)
+  const [bill, setBill] = useState(false)
   const hasPackage = (p?.items ?? []).length > 0
   const [task, setTask] = useState('')
   const pdf = usePdf()
@@ -223,6 +225,9 @@ export default function ProjectDetail({ id }: { id: string }) {
                     <Icon name="whatsapp" size={14} /> Cobrar
                   </a>
                 )}
+                <button className="btn small ghost" onClick={() => setBill(true)} title="Recibo com o total, o que já foi pago e o que falta (PDF ou PNG)">
+                  <Icon name="file" size={14} /> Recibo
+                </button>
                 {!hasPackage && (
                   <button
                     className="btn small ghost"
@@ -490,6 +495,7 @@ export default function ProjectDetail({ id }: { id: string }) {
         </div>
       </div>
 
+      {bill && <BillModal p={p} onClose={() => setBill(false)} />}
       {edit && <ProjectForm initial={p} onClose={() => setEdit(false)} />}
       {newEvent && <EventFormForProject projectId={p.id} onClose={() => setNewEvent(false)} />}
       {newExtra && <ExtraForm p={p} onClose={() => setNewExtra(false)} onSave={(patch) => save(patch)} />}

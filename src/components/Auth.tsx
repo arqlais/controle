@@ -37,6 +37,15 @@ export const signOut = () => supabase?.auth.signOut()
 
 /** Marca exibida no login (antes de saber quem está entrando). Troque aqui ao comercializar. */
 const PRODUCT = { name: 'laís', line1: 'você projeta,', line2: 'eu cuido da produção' }
+/** Neste aparelho, o login mostra o nome do último estúdio que entrou (ex.: amvi). */
+export const BRAND_KEY = 'ultima-marca'
+const lastBrand = () => {
+  try {
+    return localStorage.getItem(BRAND_KEY)?.trim() || ''
+  } catch {
+    return ''
+  }
+}
 
 function AuthLayout({ children }: { children: ReactNode }) {
   useEffect(() => applyTheme(DEFAULT_SETTINGS), [])
@@ -45,7 +54,7 @@ function AuthLayout({ children }: { children: ReactNode }) {
       <aside className="auth-art">
         <div className="auth-art-inner">
           <span className="brand-name">
-            {PRODUCT.name}
+            {lastBrand() || PRODUCT.name}
             <i>.</i>
           </span>
           <h2>

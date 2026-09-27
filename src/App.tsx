@@ -3,7 +3,7 @@ import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
 import type { SyncStatus } from './store'
 import { applyTheme, useDeviceDark } from './theme'
-import { signOut } from './components/Auth'
+import { BRAND_KEY, signOut } from './components/Auth'
 import { CLOUD } from './cloud'
 import { AvatarGlyph } from './components/Avatar'
 import { AIChat } from './components/AIChat'
@@ -50,6 +50,13 @@ export default function App() {
   const { settings } = data
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
+  useEffect(() => {
+    try {
+      if (settings.brandName?.trim()) localStorage.setItem(BRAND_KEY, settings.brandName.trim())
+    } catch {
+      /* ok */
+    }
+  }, [settings.brandName])
   const [quick, setQuick] = useState<Quick>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)

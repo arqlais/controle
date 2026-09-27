@@ -297,3 +297,39 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
     </Modal>
   )
 }
+
+/** Etapas da demanda sem abrir a demanda: toque em "1/7" e marque ali mesmo. */
+export function TaskQuick({ p }: { p: Project }) {
+  const { upsert } = useStore()
+  const [open, setOpen] = useState(false)
+  if (!p.tasks.length) return null
+  const done = p.tasks.filter((t) => t.done).length
+  const next = p.tasks.find((t) => !t.done)
+  const toggle = (id: string) => upsert('projects', { ...p, tasks: p.tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)) })
+  return (
+    <div className="task-quick" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+      <button type="button" className="task-quick-head" onClick={() => setOpen((v) => !v)} aria-expanded={open} title={open ? 'Fechar etapas' : 'Ver e marcar etapas'}>
+        <div className="progress thin">
+          <div className="progress-bar" style={{ width: `${(done / p.tasks.length) * 100}%` }} />
+        </div>
+        <span className="task-quick-count">
+          {done}/{p.tasks.length}
+        </span>
+        <Icon name="chevronR" size={13} className={open ? 'rot-down' : 'rot-up'} />
+      </button>
+      {!open && next && <div className="task-quick-next">próxima: {next.text}</div>}
+      {open && (
+        <ul className="task-quick-list">
+          {p.tasks.map((t) => (
+            <li key={t.id}>
+              <label className={t.done ? 'is-done' : ''}>
+                <input type="checkbox" checked={t.done} onChange={() => toggle(t.id)} />
+                <span>{t.text}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}

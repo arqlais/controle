@@ -36,7 +36,7 @@ export function DocScale({ children }: { children: ReactNode }) {
  *  A folha é desenhada fora da tela, convertida em imagem de alta resolução
  *  e colocada em páginas A4. */
 export function usePdf() {
-  const [job, setJob] = useState<{ doc: ReactNode; filename: string } | null>(null)
+  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -49,6 +49,17 @@ export function usePdf() {
         await new Promise((r) => setTimeout(r, 150))
         const el = ref.current?.firstElementChild as HTMLElement | null
         if (!el || cancelled) return
+        if (job.png) {
+          // imagem para mandar no WhatsApp
+          const { toPng } = await import('html-to-image')
+          const url = await toPng(el, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' })
+          const link = document.createElement('a')
+          link.href = url
+          link.download = job.filename
+          link.click()
+          toast('Imagem baixada.')
+          return
+        }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
         const canvas = await toCanvas(el, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#ffffff' })
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true })
@@ -82,6 +93,11 @@ export function usePdf() {
     toast('Gerando PDF…')
     setJob({ doc, filename: filename.replace(/[\\/:*?"<>|]+/g, '-') })
   }
+  const downloadPng = (doc: ReactNode, filename: string) => {
+    if (ARTIFACT) return setPreview(doc)
+    toast('Gerando imagem…')
+    setJob({ doc, filename: filename.replace(/[\\/:*?"<>|]+/g, '-'), png: true })
+  }
 
   const portal = (
     <>
@@ -102,5 +118,5 @@ export function usePdf() {
       )}
     </>
   )
-  return { download, busy: !!job, portal }
+  return { download, downloadPng, busy: !!job, portal }
 }
