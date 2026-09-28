@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthGate } from './components/Auth'
 import { DialogHost } from './components/dialog'
+import { FileReadyHost } from './components/saveFile'
 import App from './App'
 // fontes embutidas (mesma origem): garantem a tipografia certa no app e no PDF
 import '@fontsource/poppins/latin-300.css'
@@ -21,5 +22,6 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </AuthGate>
     <DialogHost />
+    <FileReadyHost />
   </StrictMode>,
 )
