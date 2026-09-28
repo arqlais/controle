@@ -27,7 +27,7 @@ import {
   sum,
   urgency,
   urgencyScore,
- matches } from '../utils'
+ matches, quoteTotal, fmtDateLong } from '../utils'
 
 type View = 'quadro' | 'lista'
 type Scope = 'ativos' | 'todos' | 'atrasados' | 'arquivo'
@@ -80,6 +80,16 @@ export default function Projects() {
       .filter((p) => !prio || urgency(p).level === prio)
       .filter((p) => matches(term, p.title, clientName(p.clientId), ...data.quotes.filter((x) => x.projectId === p.id).map((x) => `#${x.number}`)))
   }, [data, q, clientId, prio])
+
+  // rascunhos de orçamento: primeira coluna do quadro (o que ainda nem foi enviado)
+  const drafts = useMemo(() => {
+    const term = q.toLowerCase()
+    return data.quotes
+      .filter((x) => x.status === 'rascunho' && !x.projectId)
+      .filter((x) => !clientId || x.clientId === clientId)
+      .filter((x) => matches(term, x.title, clientName(x.clientId), `#${x.number}`))
+      .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+  }, [data, q, clientId])
 
   const move = (p: Project, status: ProjectStatus) => requestStatus(p, status, (next) => upsert('projects', next))
 
@@ -152,6 +162,36 @@ export default function Projects() {
         <Empty icon="folder" title="Nenhuma demanda ainda" text="Cadastre seu primeiro projeto para acompanhar prazos e pagamentos." action={<button className="btn primary" onClick={() => setForm(true)}>Nova demanda</button>} />
       ) : view === 'quadro' ? (
         <div className="board" ref={board.ref} {...panHandlers}>
+          {!prio && (
+            <div className="column column-drafts">
+              <header>
+                <span className="dot" style={{ background: '#b9aba6' }} />
+                <h4>rascunhos</h4>
+                <span className="count">{drafts.length}</span>
+              </header>
+              <div className="column-body">
+                {drafts.slice(0, 8).map((x) => (
+                  <a key={x.id} className="kcard kcard-draft" href={href('orcamentos', x.id)}>
+                    <div className="kcard-top">
+                      <span className="kcard-client">{x.clientId ? clientName(x.clientId) : 'sem cliente'}</span>
+                      {x.number ? <span className="kcard-num">{quoteNumber(x)}</span> : null}
+                    </div>
+                    <div className="kcard-title">{x.title || 'orçamento sem título'}</div>
+                    <div className="kcard-foot">
+                      <span className="small">{money(quoteTotal(x, data.settings.urgencyFee))}</span>
+                      <span className="muted small">{fmtDateLong(x.createdAt)}</span>
+                    </div>
+                  </a>
+                ))}
+                {!drafts.length && <p className="muted small center">Nenhum rascunho de orçamento.</p>}
+                {drafts.length > 8 && (
+                  <a className="muted small center" href={href('orcamentos')}>
+                    +{drafts.length - 8} rascunhos · ver todos em orçamentos
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
           {boardColumns().map((col) => {
             let items = filtered.filter((p) => p.status === col)
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
