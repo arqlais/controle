@@ -500,11 +500,20 @@ let memDB: LocalDB | null = null
    sugestões e depoimentos fictícios, só na memória (nada vai para a nuvem). */
 let sampleMode = false
 let sampleDB: LocalDB | null = null
-export function setPlatformSample(on: boolean) {
+const modeListeners = new Set<() => void>()
+/** Avisa quem mostra dados da plataforma que o exemplo foi ligado/desligado (recarregar). */
+export function onPlatformMode(f: () => void) {
+  modeListeners.add(f)
+  return () => {
+    modeListeners.delete(f)
+  }
+}
+export const notifyPlatformMode = () => modeListeners.forEach((f) => f())
+export function setPlatformSample(on: boolean, silent = false) {
   if (on === sampleMode) return
   sampleMode = on
   sampleDB = on ? seed() : null
-  listeners.forEach((l) => l())
+  if (!silent) listeners.forEach((l) => l())
 }
 const role = () => (sampleMode ? 'dona' : getPreviewRole())
 const roleNow = role
