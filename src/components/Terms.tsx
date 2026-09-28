@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
 import { Modal } from './ui'
 import { platform } from '../platform'
-import { DEFAULT_TERMS } from '../siteContent'
+import { DEFAULT_TERMS, EMPTY_COMPANY, fillTerms, type Company } from '../siteContent'
 
 /* Termos de uso + contrato de assinatura (texto que a dona edita no painel).
-   Mostrados por inteiro antes do aceite, no cadastro e na assinatura. */
+   Mostrados por inteiro antes do aceite, no cadastro e na assinatura, já preenchidos
+   com os dados da plataforma e de quem está assinando. */
 
-export function useTerms() {
+export type TermsWho = { name?: string; doc?: string; email?: string; plan?: string }
+
+export function useTerms(who: TermsWho = {}) {
   const [terms, setTerms] = useState(DEFAULT_TERMS)
+  const [company, setCompany] = useState<Company>(EMPTY_COMPANY)
   useEffect(() => {
     platform.terms().then(setTerms).catch(() => undefined)
+    platform.company().then(setCompany).catch(() => undefined)
   }, [])
-  return terms
+  return fillTerms(terms, company, who)
 }
 
 export function TermsText({ text }: { text: string }) {
@@ -27,8 +32,8 @@ export function TermsText({ text }: { text: string }) {
   )
 }
 
-export function TermsModal({ onClose, onAccept }: { onClose: () => void; onAccept?: () => void }) {
-  const terms = useTerms()
+export function TermsModal({ onClose, onAccept, who }: { onClose: () => void; onAccept?: () => void; who?: TermsWho }) {
+  const terms = useTerms(who)
   return (
     <Modal
       wide

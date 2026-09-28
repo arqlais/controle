@@ -1,3 +1,4 @@
+import { useRoute } from '../router'
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { useStore } from '../store'
@@ -26,6 +27,9 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
   useEffect(() => {
     if (openSignal) setOpen(true)
   }, [openSignal])
+  // trocou de tela: o chat fecha (no celular ele cobre a tela toda)
+  const route = useRoute()
+  useEffect(() => setOpen(false), [route.page, route.id])
   useEffect(() => {
     if (open && unread) void markRead()
   }, [open, unread, markRead])

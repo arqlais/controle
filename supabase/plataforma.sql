@@ -56,9 +56,11 @@ create or replace function public.garantir_assinatura(plano text) returns setof 
 language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null then return; end if;
-  insert into public.subscriptions (user_id, email, name, studio, plan)
+  insert into public.subscriptions (user_id, email, name, studio, plan, trial_ends)
   select u.id, coalesce(u.email, ''), coalesce(u.raw_user_meta_data ->> 'name', ''), coalesce(u.raw_user_meta_data ->> 'studio', ''),
-         'completo' -- o teste grátis é sempre do plano Completo (o parâmetro fica só por compatibilidade)
+         'completo', -- o teste grátis é sempre do plano Completo (o parâmetro fica só por compatibilidade)
+         -- dias de teste: os escolhidos no painel (planos), ou 7; entre 1 e 365
+         now() + make_interval(days => least(365, greatest(1, coalesce((select (s.data ->> 'trialDays')::int from public.platform_settings s where s.id = 1), 7))))
   from auth.users u where u.id = auth.uid()
   on conflict (user_id) do nothing;
   return query select * from public.subscriptions where user_id = auth.uid();

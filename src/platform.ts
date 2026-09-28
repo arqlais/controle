@@ -1,7 +1,8 @@
+import { PREVIEW_KEY, type PlanConfig } from './planConfig'
 import { ARTIFACT } from './env'
 import { CLOUD, supabase } from './cloud'
 import { TRIAL_DAYS, type PlanId, type SubStatus } from './plans'
-import { DEFAULT_SITE, DEFAULT_TERMS, type SiteContent } from './siteContent'
+import { DEFAULT_SITE, DEFAULT_TERMS, EMPTY_COMPANY, type Company, type SiteContent } from './siteContent'
 
 /* ============================================================
    Plataforma: assinaturas, chat com a dona e horários online.
@@ -323,6 +324,15 @@ const cloud = {
   async saveTerms(terms: string) {
     await patchCloudSettings({ terms })
   },
+  async savePlanConfig(c: PlanConfig) {
+    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays })
+  },
+  async company(): Promise<Company> {
+    return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
+  },
+  async saveCompany(company: Company) {
+    await patchCloudSettings({ company })
+  },
 }
 
 /* ajustes da plataforma: uma linha só (id 1), com horários, página de vendas e termos */
@@ -330,6 +340,9 @@ interface PlatformData {
   hours?: OnlineHours
   site?: Partial<SiteContent>
   terms?: string
+  plans?: PlanConfig['plans']
+  trialDays?: number
+  company?: Company
 }
 async function cloudSettings(): Promise<PlatformData> {
   const { data } = await supabase!.from('platform_settings').select('data').eq('id', 1).maybeSingle()
@@ -355,6 +368,7 @@ interface LocalDB {
   suggestions?: Suggestion[]
   site?: Partial<SiteContent>
   terms?: string
+  company?: Company
 }
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000).toISOString()
 
@@ -557,6 +571,15 @@ const local = {
   },
   async saveTerms(terms: string) {
     writeDB({ ...readDB(), terms })
+  },
+  async savePlanConfig(c: PlanConfig) {
+    localStorage.setItem(PREVIEW_KEY, JSON.stringify(c))
+  },
+  async company(): Promise<Company> {
+    return { ...EMPTY_COMPANY, ...(readDB().company ?? {}) }
+  },
+  async saveCompany(company: Company) {
+    writeDB({ ...readDB(), company })
   },
 }
 

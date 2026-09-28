@@ -6,7 +6,7 @@ import { QuoteDoc } from '../components/Docs'
 import { ContractDoc } from '../components/ContractDoc'
 import { DocScale } from '../components/Print'
 import { BarChart } from '../components/Charts'
-import { COMPARE, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform } from '../platform'
 import { DEFAULT_SITE, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -362,7 +362,7 @@ export default function Landing() {
                 </tr>
               </thead>
               <tbody>
-                {COMPARE.map(([label, a, b]) => (
+                {compareRows().map(([label, a, b]) => (
                   <tr key={label}>
                     <td>{label}</td>
                     {[a, b].map((v, i) => (

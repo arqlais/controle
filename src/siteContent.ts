@@ -1,4 +1,4 @@
-import { PLATFORM, TRIAL_DAYS } from './plans'
+import { PLANS, PLATFORM, TRIAL_DAYS } from './plans'
 
 /* Conteúdo que a dona edita no painel (sem mexer no código):
    a seção "quem criou" da página de vendas, os contatos do rodapé e os termos de uso. */
@@ -36,8 +36,13 @@ export const DEFAULT_TERMS = `TERMOS DE USO E CONTRATO DE ASSINATURA — ${PLATF
 
 Ao criar uma conta ou assinar um plano, você (USUÁRIO) concorda com estes termos. Leia com atenção.
 
+PARTES
+PLATAFORMA: {empresa_nome}, {empresa_doc}, e-mail {empresa_email}, {empresa_cidade}.
+USUÁRIO: {assinante_nome}, {assinante_doc}, e-mail {assinante_email}.
+Plano: {plano}. Data: {data}.
+
 1. QUEM SOMOS
-O ${PLATFORM.name} é uma plataforma on-line de gestão para freelancers, oferecida por [nome completo ou razão social], [CPF/CNPJ], contato: [e-mail de contato] (PLATAFORMA).
+O ${PLATFORM.name} é uma plataforma on-line de gestão para freelancers, oferecida por {empresa_nome}, {empresa_doc}, contato: {empresa_email} (PLATAFORMA).
 
 2. O QUE A PLATAFORMA OFERECE
 2.1 Ferramentas para organizar clientes, demandas, prazos, orçamentos, propostas, contratos, recibos, agenda e financeiro, conforme o plano escolhido.
@@ -49,7 +54,7 @@ O ${PLATFORM.name} é uma plataforma on-line de gestão para freelancers, oferec
 3.3 Cada conta é de uma pessoa (uso individual do freelancer).
 
 4. TESTE GRÁTIS
-4.1 Todo cadastro novo recebe ${TRIAL_DAYS} dias grátis com o plano Completo, sem cartão e sem cobrança.
+4.1 Todo cadastro novo recebe {dias_teste} dias grátis com o plano Completo, sem cartão e sem cobrança.
 4.2 Ao fim do teste, para continuar usando, o USUÁRIO escolhe e assina um plano. Sem assinatura, a conta fica pausada: os dados continuam guardados e podem ser baixados.
 
 5. PLANOS, VALORES E PAGAMENTO
@@ -84,7 +89,7 @@ O sistema, a marca e o visual da PLATAFORMA pertencem à PLATAFORMA. O USUÁRIO 
 Mudanças importantes são avisadas dentro da plataforma. Continuar usando depois do aviso significa concordar com a nova versão.
 
 12. FORO
-Fica eleito o foro da comarca de [cidade/UF] para resolver qualquer questão sobre estes termos.`
+Fica eleito o foro da comarca de {empresa_cidade} para resolver qualquer questão sobre estes termos.`
 
 /** Reduz a foto enviada para no máximo 640 px (JPEG), para guardar leve. */
 export function shrinkPhoto(file: File, max = 640): Promise<string> {
@@ -103,4 +108,44 @@ export function shrinkPhoto(file: File, max = 640): Promise<string> {
     img.onerror = reject
     img.src = url
   })
+}
+
+/** Dados da plataforma (de quem oferece) que preenchem os termos sozinhos. */
+export interface Company {
+  name: string
+  doc: string
+  email: string
+  city: string
+}
+export const EMPTY_COMPANY: Company = { name: '', doc: '', email: '', city: '' }
+
+/** Variáveis dos termos: {empresa_…} vêm do painel; {assinante_…} de quem está se cadastrando/assinando. */
+export const TERMS_VARS: [string, string][] = [
+  ['empresa_nome', 'seu nome completo ou razão social'],
+  ['empresa_doc', 'seu CPF/CNPJ'],
+  ['empresa_email', 'seu e-mail de contato'],
+  ['empresa_cidade', 'sua cidade/UF (foro)'],
+  ['assinante_nome', 'nome de quem assina'],
+  ['assinante_doc', 'CPF/CNPJ de quem assina'],
+  ['assinante_email', 'e-mail de quem assina'],
+  ['plano', 'plano escolhido e valor'],
+  ['dias_teste', 'dias de teste grátis'],
+  ['data', 'data de hoje'],
+]
+
+export function fillTerms(text: string, company: Company, who: { name?: string; doc?: string; email?: string; plan?: string } = {}) {
+  const later = '(informado na assinatura)'
+  const vars: Record<string, string> = {
+    empresa_nome: company.name.trim() || '[seu nome ou razão social]',
+    empresa_doc: company.doc.trim() ? company.doc.trim() : '[seu CPF/CNPJ]',
+    empresa_email: company.email.trim() || '[seu e-mail]',
+    empresa_cidade: company.city.trim() || '[sua cidade/UF]',
+    assinante_nome: who.name?.trim() || later,
+    assinante_doc: who.doc?.trim() || later,
+    assinante_email: who.email?.trim() || later,
+    plano: who.plan || `teste grátis do plano ${PLANS.completo.name}`,
+    dias_teste: String(TRIAL_DAYS),
+    data: new Date().toLocaleDateString('pt-BR'),
+  }
+  return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
 }

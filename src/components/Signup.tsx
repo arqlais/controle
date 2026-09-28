@@ -123,7 +123,7 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
           já tenho conta → entrar
         </button>
       </form>
-      {terms && <TermsModal onClose={() => setTerms(false)} onAccept={() => setAgree(true)} />}
+      {terms && <TermsModal who={{ name, email }} onClose={() => setTerms(false)} onAccept={() => setAgree(true)} />}
       <p className="muted small">
         Ao criar a conta, seus dados ficam só na sua conta: ninguém mais vê seus clientes e valores. Dúvidas? Tem chat direto com {PLATFORM.supportWith} lá dentro.
       </p>

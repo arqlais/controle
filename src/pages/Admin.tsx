@@ -1,15 +1,17 @@
+import { TermsText } from '../components/Terms'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Badge, Empty, Field, Section, Segmented, Stat } from '../components/ui'
+import { Badge, Empty, Field, MoneyInput, Section, Segmented, Stat } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
+import { PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
+import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type Billing, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
-import { DEFAULT_TERMS, shrinkPhoto, type SiteContent } from '../siteContent'
-import { matches, money } from '../utils'
+import { DEFAULT_TERMS, EMPTY_COMPANY, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
+import { formatDoc, matches, money } from '../utils'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
@@ -256,6 +258,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subs
                 </div>
               </dl>
               {billing[s.userId] && <BillingDetails b={billing[s.userId]} />}
+              <TrialControl s={s} update={update} />
               <div className="pf-sub-actions">
                 <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
                   {PLAN_LIST.map((p) => (
@@ -295,11 +298,6 @@ function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subs
                     onClick={async () => (await ask(`Bloquear ${s.name || s.email}? A pessoa não consegue usar o sistema até você liberar. Os dados dela não são apagados.`, { confirmLabel: 'Bloquear', danger: true })) && update(s, { blocked: true }, 'Acesso bloqueado.')}
                   >
                     <Icon name="lock" size={14} /> bloquear
-                  </button>
-                )}
-                {s.status === 'trial' && (
-                  <button className="btn small ghost" onClick={() => void update(s, { trialEnds: new Date(Math.max(Date.now(), new Date(s.trialEnds).getTime()) + 7 * 86_400_000).toISOString() }, 'Teste estendido por mais 7 dias.')}>
-                    +7 dias de teste
                   </button>
                 )}
                 <button className="btn small ghost" onClick={() => openChat(s.userId)}>
@@ -479,25 +477,7 @@ function HoursEditor() {
 function PlansInfo() {
   return (
     <>
-      <div className="pf-grid-2">
-        {PLAN_LIST.map((p) => (
-          <Section key={p.id} title={`${p.name} · ${money0(p.price)}/mês`}>
-            <ul className="pf-checks">
-              {p.highlights.map((h) => (
-                <li key={h}>
-                  <Icon name="check" size={14} /> {h}
-                </li>
-              ))}
-            </ul>
-          </Section>
-        ))}
-      </div>
-      <Section title="como trocar nome, preços e planos">
-        <p className="muted small">
-          O nome da plataforma (<b>{PLATFORM.name}</b>, provisório), os preços, os {TRIAL_DAYS} dias de teste e o que cada plano libera ficam num lugar só: o arquivo <code>src/plans.ts</code>. Me diga os novos valores
-          que eu troco para você. Você (a dona) tem tudo liberado, inclusive o assistente de IA e o seu modelo exclusivo de proposta; os clientes não têm o assistente de IA e, no lugar dele, conversam com você.
-        </p>
-      </Section>
+      <PlansEditor />
       {ARTIFACT && (
         <Section title="prévia">
           <p className="muted small">Os assinantes e conversas desta prévia são fictícios e ficam só neste aparelho.</p>
@@ -718,45 +698,298 @@ function SiteEditor() {
 function TermsEditor() {
   const [text, setText] = useState<string | null>(null)
   const [saved, setSaved] = useState('')
+  const [mode, setMode] = useState<'editar' | 'ver'>('editar')
+  const [fill, setFill] = useState<Record<string, string>>({})
+  const [company, setCompany] = useState<Company>(EMPTY_COMPANY)
+  const [savedCompany, setSavedCompany] = useState(JSON.stringify(EMPTY_COMPANY))
+  const area = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
     platform.terms().then((t) => {
       setText(t)
       setSaved(t)
     })
+    platform.company().then((c) => {
+      setCompany(c)
+      setSavedCompany(JSON.stringify(c))
+    })
   }, [])
   if (text === null) return <p className="muted small">carregando…</p>
+  const companyDirty = JSON.stringify(company) !== savedCompany
+  const dirty = text !== saved || companyDirty
   const save = async () => {
     try {
       await platform.saveTerms(text)
+      if (companyDirty) await platform.saveCompany(company)
       setSaved(text)
+      setSavedCompany(JSON.stringify(company))
       toast('Termos salvos. Quem se cadastrar ou assinar a partir de agora aceita esta versão.')
     } catch {
       toast('Não foi possível salvar agora.')
     }
   }
   const missing = [...new Set(text.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
+  const lines = text.split('\n')
+  const sections = lines.map((l, i) => ({ l: l.trim(), i })).filter((x) => /^\d+\.\s+[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(x.l) && x.l === x.l.toUpperCase())
+  const words = text.split(/\s+/).filter(Boolean).length
+  // os termos falam em outro número de dias de teste?
+  const trialInText = text.match(/(\d+)\s+dias grátis/)?.[1]
+  const trialMismatch = trialInText && Number(trialInText) !== TRIAL_DAYS
+  const applyFill = () => {
+    let t = text
+    for (const [k, v] of Object.entries(fill)) if (v.trim()) t = t.split(k).join(v.trim())
+    setText(t)
+    setFill({})
+    toast('Dados colocados no texto. Confira e salve.')
+  }
+  const goTo = (line: number) => {
+    setMode('editar')
+    requestAnimationFrame(() => {
+      const el = area.current
+      if (!el) return
+      const pos = lines.slice(0, line).join('\n').length + (line ? 1 : 0)
+      el.focus()
+      el.setSelectionRange(pos, pos + lines[line].length)
+      el.scrollTop = Math.max(0, (line / lines.length) * el.scrollHeight - 40)
+    })
+  }
   return (
     <Section
       title="termos de uso e contrato de assinatura"
       action={
-        <button className="btn primary small" disabled={text === saved} onClick={() => void save()}>
-          {text === saved ? 'salvo' : 'salvar'}
+        <button className={`btn small ${dirty ? 'primary' : 'ghost'}`} disabled={!dirty} onClick={() => void save()}>
+          {dirty ? 'salvar' : 'salvo'}
         </button>
       }
     >
       <p className="muted small">
         Aparecem no cadastro (teste grátis) e na assinatura: a pessoa só continua se aceitar. Revise com calma, de preferência com um advogado. Linhas em MAIÚSCULAS viram títulos.
       </p>
+      <div className="tm-stats">
+        <span>
+          <b>{sections.length}</b> seções
+        </span>
+        <span>
+          <b>{words.toLocaleString('pt-BR')}</b> palavras
+        </span>
+        <span className={missing.length ? 'is-warn' : 'is-ok'}>
+          <b>{missing.length}</b> {missing.length === 1 ? 'dado a completar' : 'dados a completar'}
+        </span>
+        <span className={dirty ? 'is-warn' : 'is-ok'}>{dirty ? 'alterações não salvas' : 'tudo salvo'}</span>
+      </div>
+      <div className="tm-fill">
+        <p className="tm-fill-title">
+          <Icon name="pen" size={15} /> seus dados (preenchem os termos sozinhos)
+        </p>
+        <div className="tm-fill-grid">
+          <Field label="Nome completo ou razão social">
+            <input value={company.name} onChange={(e) => setCompany({ ...company, name: e.target.value })} />
+          </Field>
+          <Field label="CPF ou CNPJ">
+            <input value={company.doc} onChange={(e) => setCompany({ ...company, doc: formatDoc(e.target.value) })} inputMode="numeric" />
+          </Field>
+          <Field label="E-mail de contato">
+            <input type="email" value={company.email} onChange={(e) => setCompany({ ...company, email: e.target.value })} />
+          </Field>
+          <Field label="Cidade/UF (foro)">
+            <input value={company.city} onChange={(e) => setCompany({ ...company, city: e.target.value })} placeholder="São Paulo/SP" />
+          </Field>
+        </div>
+        <p className="muted small">
+          Os dados de quem assina (nome, CPF/CNPJ, e-mail e plano) entram sozinhos no cadastro e na assinatura. Para usar no texto:{' '}
+          {TERMS_VARS.map(([k, label]) => (
+            <code key={k} title={label} className="tm-var">{`{${k}}`}</code>
+          ))}
+        </p>
+      </div>
       {missing.length > 0 && (
+        <div className="tm-fill">
+          <p className="tm-fill-title">
+            <Icon name="alert" size={15} /> ainda há campos entre colchetes no texto
+          </p>
+          <div className="tm-fill-grid">
+            {missing.map((m) => (
+              <Field key={m} label={m.slice(1, -1)}>
+                <input value={fill[m] ?? ''} onChange={(e) => setFill({ ...fill, [m]: e.target.value })} placeholder={m} />
+              </Field>
+            ))}
+          </div>
+          <button className="btn small primary" disabled={!Object.values(fill).some((v) => v.trim())} onClick={applyFill}>
+            colocar no texto
+          </button>
+        </div>
+      )}
+      {trialMismatch && (
         <p className="pf-note is-warn">
           <Icon name="alert" size={16} />
-          <span>Falta completar: {missing.join(', ')}.</span>
+          <span>
+            O texto fala em {trialInText} dias grátis, mas o teste está com {TRIAL_DAYS} dias (em “planos”).{' '}
+            <button className="link" onClick={() => setText(text.replace(/(\d+)(\s+dias grátis)/g, `${TRIAL_DAYS}$2`))}>
+              corrigir no texto
+            </button>
+          </span>
         </p>
       )}
-      <textarea className="pf-contract-text" rows={26} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" />
-      <button className="link small" onClick={async () => (await ask('Voltar para o texto padrão dos termos? O que você editou será substituído.', { confirmLabel: 'Restaurar' })) && setText(DEFAULT_TERMS)}>
-        restaurar texto padrão
-      </button>
+      <div className="tm-layout">
+        <nav className="tm-index" aria-label="Seções">
+          <b>seções</b>
+          {sections.map((x) => (
+            <button key={x.i} type="button" onClick={() => goTo(x.i)}>
+              {x.l.toLowerCase()}
+            </button>
+          ))}
+        </nav>
+        <div className="tm-body">
+          <Segmented
+            value={mode}
+            options={[
+              { value: 'editar', label: 'editar' },
+              { value: 'ver', label: 'como o cliente vê' },
+            ]}
+            onChange={setMode}
+          />
+          {mode === 'editar' ? (
+            <textarea ref={area} className="pf-contract-text" rows={26} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" />
+          ) : (
+            <div className="tm-preview">
+              <TermsText text={fillTerms(text, company, { name: 'Ana Ribeiro (exemplo)', doc: '123.456.789-09', email: 'ana@exemplo.com', plan: `${PLANS.completo.name} · ${money0(PLANS.completo.price)}/mês` })} />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="row gap-s wrap">
+        {text !== saved && (
+          <button className="link small" onClick={() => setText(saved)}>
+            desfazer alterações
+          </button>
+        )}
+        <button className="link small" onClick={async () => (await ask('Voltar para o texto padrão dos termos? O que você editou será substituído.', { confirmLabel: 'Restaurar' })) && setText(DEFAULT_TERMS)}>
+          restaurar texto padrão
+        </button>
+      </div>
     </Section>
+  )
+}
+
+/** Teste grátis de cada pessoa: aumentar, escolher a data, encerrar agora ou dar um teste novo. */
+function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void> }) {
+  const DAY = 86_400_000
+  const inTrial = s.status === 'trial'
+  const left = trialDaysLeft(s)
+  const from = Math.max(Date.now(), new Date(s.trialEnds).getTime())
+  const extend = (days: number) =>
+    void update(s, inTrial ? { trialEnds: new Date(from + days * DAY).toISOString() } : { status: 'trial', trialEnds: new Date(Date.now() + days * DAY).toISOString(), canceledAt: null }, inTrial ? `Teste aumentado em ${days} dias.` : `Teste de ${days} dias liberado.`)
+  const who = s.name || s.email
+  return (
+    <div className="pf-trial">
+      <div className="pf-trial-head">
+        <b>teste grátis</b>
+        <span className="muted small">{inTrial ? (left > 0 ? `termina em ${dateBR(s.trialEnds)} · faltam ${left} dia(s)` : `terminou em ${dateBR(s.trialEnds)}`) : 'sem teste agora'}</span>
+      </div>
+      <div className="pf-trial-actions">
+        {[7, 15, 30].map((d) => (
+          <button key={d} type="button" className="btn small ghost" onClick={() => extend(d)}>
+            +{d} dias
+          </button>
+        ))}
+        {inTrial && (
+          <label className="pf-trial-date">
+            <span className="muted small">até</span>
+            <input
+              type="date"
+              value={s.trialEnds.slice(0, 10)}
+              onChange={(e) => e.target.value && void update(s, { trialEnds: new Date(`${e.target.value}T23:59:00`).toISOString() }, `Teste vai até ${dateBR(e.target.value)}.`)}
+              aria-label="Data em que o teste termina"
+            />
+          </label>
+        )}
+        {inTrial && left > 0 && (
+          <button
+            type="button"
+            className="btn small ghost danger"
+            onClick={async () => (await ask(`Encerrar agora o teste de ${who}? A conta fica pausada (os dados continuam guardados) até assinar ou você liberar de novo.`, { confirmLabel: 'Encerrar teste', danger: true })) && update(s, { trialEnds: new Date(Date.now() - 60_000).toISOString() }, 'Teste encerrado.')}
+          >
+            encerrar teste
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Nome, preço, frase, lista e o que cada plano libera + dias de teste: tudo editável pela dona. */
+function PlansEditor() {
+  const snap = (): PlanConfig => ({
+    trialDays: TRIAL_DAYS,
+    plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features] }])) as PlanConfig['plans'],
+  })
+  const [cfg, setCfg] = useState<PlanConfig>(snap)
+  const [saved, setSaved] = useState(() => JSON.stringify(snap()))
+  const dirty = JSON.stringify(cfg) !== saved
+  const setPlan = (id: PlanId, patch: PlanOverride) => setCfg((c) => ({ ...c, plans: { ...c.plans, [id]: { ...c.plans?.[id], ...patch } } }))
+  const save = async () => {
+    try {
+      await platform.savePlanConfig(cfg)
+      applyPlanConfig(cfg)
+      setSaved(JSON.stringify(cfg))
+      toast('Planos salvos. A página de vendas e o cadastro já usam os novos valores.')
+    } catch {
+      toast('Não foi possível salvar agora. Confira a conexão (e se o arquivo do Supabase foi rodado).')
+    }
+  }
+  return (
+    <>
+      <Section
+        title="teste grátis"
+        action={
+          <button className={`btn small ${dirty ? 'primary' : 'ghost'}`} disabled={!dirty} onClick={() => void save()}>
+            {dirty ? 'salvar planos' : 'salvo'}
+          </button>
+        }
+      >
+        <div className="form-grid">
+          <Field label="Dias de teste para quem se cadastra" hint="Vale para os próximos cadastros. Para alguém específico, aumente ou encerre o teste em “assinantes”.">
+            <input type="number" min={1} max={365} value={cfg.trialDays ?? 7} onChange={(e) => setCfg({ ...cfg, trialDays: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
+          </Field>
+        </div>
+      </Section>
+      <div className="pf-grid-2">
+        {PLAN_LIST.map((p) => {
+          const o = cfg.plans?.[p.id] ?? {}
+          const feats = o.features ?? p.features
+          return (
+            <Section key={p.id} title={`plano ${o.name || p.name}`}>
+              <div className="form-grid">
+                <Field label="Nome">
+                  <input value={o.name ?? ''} onChange={(e) => setPlan(p.id, { name: e.target.value })} />
+                </Field>
+                <Field label="Preço por mês" hint={`Anual: ${money0(annualPrice(o.price ?? p.price))}`}>
+                  <MoneyInput value={o.price ?? p.price} onChange={(n) => setPlan(p.id, { price: n })} />
+                </Field>
+                <Field label="Frase curta" span={3}>
+                  <input value={o.pitch ?? ''} onChange={(e) => setPlan(p.id, { pitch: e.target.value })} />
+                </Field>
+                <Field label="O que aparece no cartão" span={3} hint="Uma linha para cada item.">
+                  <textarea rows={6} value={(o.highlights ?? []).join('\n')} onChange={(e) => setPlan(p.id, { highlights: e.target.value.split('\n') })} />
+                </Field>
+              </div>
+              <p className="pf-toggles-title">o que este plano libera</p>
+              <div className="pf-toggles">
+                {PLAN_TOGGLES.map(([f, label]) => (
+                  <label key={f} className="check toggle">
+                    <input type="checkbox" checked={feats.includes(f)} onChange={(e) => setPlan(p.id, { features: e.target.checked ? [...feats, f] : feats.filter((x) => x !== f) })} /> {label}
+                  </label>
+                ))}
+                <label className="check toggle is-fixed">
+                  <input type="checkbox" checked disabled /> chat com o assistente online (sempre)
+                </label>
+              </div>
+            </Section>
+          )
+        })}
+      </div>
+      <p className="muted small">
+        Você (a dona) tem tudo liberado, inclusive o assistente de IA e o seu modelo exclusivo. Mudanças de preço valem para novos pedidos; quem já assina continua no valor combinado até você mudar.
+      </p>
+    </>
   )
 }

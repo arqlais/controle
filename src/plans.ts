@@ -10,8 +10,8 @@ export const PLATFORM = {
   tagline: 'o sistema do freelancer que projeta',
   owner: 'Laís', // só aparece para você (painel, prévia)
   // como os clientes chamam quem responde o chat (troque por 'CEO', 'desenvolvedora'…)
-  support: 'administração',
-  supportWith: 'a administração', // "conversar com a administração"
+  support: 'assistente online',
+  supportWith: 'o assistente online', // "conversar com o assistente online"
   whatsapp: '', // opcional: número para "falar no WhatsApp" na página de vendas
 }
 
@@ -19,8 +19,11 @@ export const PLATFORM = {
 export const ANNUAL_MONTHS_PAID = 10
 export const annualPrice = (monthly: number) => Math.round(monthly * ANNUAL_MONTHS_PAID * 100) / 100
 
-/** Dias de teste grátis. */
-export const TRIAL_DAYS = 7
+/** Dias de teste grátis (a dona pode mudar no painel → planos). */
+export let TRIAL_DAYS = 7
+export const setTrialDays = (n: number) => {
+  TRIAL_DAYS = n
+}
 
 /** Tudo o que um plano pode ligar ou desligar. */
 export type Feature =
@@ -55,7 +58,7 @@ export const BASE_FEATURES = [
   'financeiro: parcelas, despesas e metas',
   'agenda com prazos, pagamentos e compromissos',
   'funciona no celular, tablet e computador',
-  'chat direto com a administração',
+  'chat direto com o assistente online',
 ]
 
 export const PLANS: Record<PlanId, Plan> = {
@@ -83,20 +86,33 @@ export const PLAN_LIST = [PLANS.essencial, PLANS.completo]
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
 export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade']
 
-/** Tabela de comparação da página de vendas (linha → [essencial, completo]). */
-export const COMPARE: [string, boolean | string, boolean | string][] = [
-  ['clientes, demandas e quadro de prazos', true, true],
-  ['orçamentos com tabela de preços própria', true, true],
-  ['financeiro, parcelas e metas', true, true],
-  ['agenda do estúdio', true, true],
-  ['orçamento em texto pronto para o WhatsApp', true, true],
-  ['logo, cores e fontes do seu estúdio', false, true],
-  ['proposta e recibos em PDF', false, 'todos os modelos'],
-  ['contratos com os dados do orçamento', false, true],
-  ['agenda sincronizada no celular', false, true],
-  ['planejamento do instagram', false, true],
-  ['chat direto com a administração', true, true],
+/** O que a dona pode ligar/desligar em cada plano (painel → planos). */
+export const PLAN_TOGGLES: [Feature, string][] = [
+  ['propostaPdf', 'proposta e recibos em PDF'],
+  ['identidade', 'logo, cores e fontes próprias'],
+  ['contratos', 'contratos'],
+  ['agendaCelular', 'agenda no celular'],
+  ['instagram', 'planejamento do instagram'],
 ]
+
+/** Tabela de comparação da página de vendas (linha → [essencial, completo]); segue o que cada plano libera. */
+export function compareRows(): [string, boolean | string, boolean | string][] {
+  const has = (id: PlanId, f: Feature, yes: string | true = true) => (PLANS[id].features.includes(f) ? yes : false)
+  const row = (label: string, f: Feature, yes: string | true = true): [string, boolean | string, boolean | string] => [label, has('essencial', f, yes), has('completo', f, yes)]
+  return [
+    ['clientes, demandas e quadro de prazos', true, true],
+    ['orçamentos com tabela de preços própria', true, true],
+    ['financeiro, parcelas e metas', true, true],
+    ['agenda do estúdio', true, true],
+    ['orçamento em texto pronto para o WhatsApp', true, true],
+    row('logo, cores e fontes do seu estúdio', 'identidade'),
+    row('proposta e recibos em PDF', 'propostaPdf', 'todos os modelos'),
+    row('contratos com os dados do orçamento', 'contratos'),
+    row('agenda sincronizada no celular', 'agendaCelular'),
+    row('planejamento do instagram', 'instagram'),
+    ['chat direto com o assistente online', true, true],
+  ]
+}
 
 export type SubStatus = 'trial' | 'ativa' | 'atrasada' | 'cancelada'
 export const STATUS_LABEL: Record<SubStatus, string> = { trial: 'teste grátis', ativa: 'ativa', atrasada: 'pagamento atrasado', cancelada: 'cancelada' }

@@ -285,7 +285,7 @@ export default function Checkout({ planId }: { planId: string }) {
             <p className="muted small co-rights">
               <Icon name="check" size={13} /> Se se arrepender, você tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (art. 49 do Código de Defesa do Consumidor). Depois disso, cancela quando quiser, sem multa.
             </p>
-            {showTerms && <TermsModal onClose={() => setShowTerms(false)} onAccept={() => setAgree(true)} />}
+            {showTerms && <TermsModal who={{ name: b.fullName, doc: b.doc, email: b.email, plan: `${p.name} · ${b.cycle === 'anual' ? `${money0(annualPrice(p.price))}/ano` : `${money0(p.price)}/mês`}` }} onClose={() => setShowTerms(false)} onAccept={() => setAgree(true)} />}
             {error && <p className="auth-error">{error}</p>}
             <button className="btn primary co-submit" disabled={busy}>
               {busy ? (

@@ -55,7 +55,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
       <p className="pf-note">
         <Icon name="alert" size={16} />
         <span>
-          <b>Como assinar:</b> toque em “assinar”, preencha seus dados e a forma de pagamento. A {PLATFORM.support} confirma o pagamento com você e libera a sua conta. Nada é cobrado automaticamente.
+          <b>Como assinar:</b> toque em “assinar”, preencha seus dados e a forma de pagamento. O {PLATFORM.support} confirma o pagamento com você e libera a sua conta. Nada é cobrado automaticamente.
         </span>
       </p>
       {sub && (
@@ -71,7 +71,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
             <p className="pf-note is-warn">
               <Icon name="clock" size={16} />
               <span>
-                Pedido de assinatura do plano <b>{PLANS[sub.requestedPlan].name}</b> enviado{sub.requestedAt ? ` em ${new Date(sub.requestedAt).toLocaleDateString('pt-BR')}` : ''}. Aguardando a liberação da {PLATFORM.support}.
+                Pedido de assinatura do plano <b>{PLANS[sub.requestedPlan].name}</b> enviado{sub.requestedAt ? ` em ${new Date(sub.requestedAt).toLocaleDateString('pt-BR')}` : ''}. Aguardando a liberação do {PLATFORM.support}.
               </span>
             </p>
           )}
