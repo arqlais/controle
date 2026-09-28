@@ -14,7 +14,7 @@ export const PLATFORM = {
 }
 
 /** Dias de teste grátis. */
-export const TRIAL_DAYS = 14
+export const TRIAL_DAYS = 7
 
 /** Tudo o que um plano pode ligar ou desligar. */
 export type Feature =
@@ -22,7 +22,8 @@ export type Feature =
   | 'chatDona' // chat de suporte com a dona
   | 'painelDona' // painel da plataforma (assinantes, vendas, conversas)
   | 'modeloExclusivo' // modelo de proposta da Laís ("Proposta #001")
-  | 'modelosExtras' // todos os modelos de proposta (o Essencial tem 2)
+  | 'fonteExclusiva' // fonte The Seasons (identidade da Laís)
+  | 'propostaPdf' // gerar PDF (proposta e recibos); sem isso, só o texto pronto
   | 'contratos' // contratos a partir do orçamento
   | 'instagram' // planejamento do instagram
   | 'agendaCelular' // agenda sincronizada no celular
@@ -43,10 +44,11 @@ export interface Plan {
 export const BASE_FEATURES = [
   'clientes, demandas e prazos com urgência automática',
   'orçamentos com a sua tabela de preços',
-  'proposta em PDF (ou só o resumo no WhatsApp)',
-  'financeiro: parcelas, recibos, despesas e metas',
+  'orçamento pronto em texto para o WhatsApp',
+  'financeiro: parcelas, despesas e metas',
   'agenda com prazos, pagamentos e compromissos',
   'funciona no celular, tablet e computador',
+  'sua identidade visual: logo, cores e fontes',
   'chat com a Laís para tirar dúvidas',
 ]
 
@@ -57,15 +59,15 @@ export const PLANS: Record<PlanId, Plan> = {
     price: 39,
     pitch: 'para organizar clientes, orçamentos e o financeiro',
     features: ['chatDona'],
-    highlights: [...BASE_FEATURES, '2 modelos de proposta'],
+    highlights: BASE_FEATURES,
   },
   completo: {
     id: 'completo',
     name: 'Completo',
     price: 69,
-    pitch: 'tudo do Essencial + contratos e ferramentas extras',
-    features: ['chatDona', 'modelosExtras', 'contratos', 'instagram', 'agendaCelular'],
-    highlights: ['tudo do Essencial', 'todos os modelos de proposta', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
+    pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
+    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular'],
+    highlights: ['tudo do Essencial', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
     featured: true,
   },
 }
@@ -73,15 +75,17 @@ export const PLANS: Record<PlanId, Plan> = {
 export const PLAN_LIST = [PLANS.essencial, PLANS.completo]
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
-export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'modelosExtras', 'contratos', 'instagram', 'agendaCelular']
+export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular']
 
 /** Tabela de comparação da página de vendas (linha → [essencial, completo]). */
 export const COMPARE: [string, boolean | string, boolean | string][] = [
   ['clientes, demandas e quadro de prazos', true, true],
   ['orçamentos com tabela de preços própria', true, true],
-  ['financeiro, recibos e metas', true, true],
+  ['financeiro, parcelas e metas', true, true],
   ['agenda do estúdio', true, true],
-  ['modelos de proposta em PDF', '2 modelos', 'todos'],
+  ['orçamento em texto pronto para o WhatsApp', true, true],
+  ['logo, cores e fontes do seu estúdio', true, true],
+  ['proposta e recibos em PDF', false, 'todos os modelos'],
   ['contratos com os dados do orçamento', false, true],
   ['agenda sincronizada no celular', false, true],
   ['planejamento do instagram', false, true],

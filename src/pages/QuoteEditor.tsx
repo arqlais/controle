@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAccess } from '../access'
 import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
@@ -133,7 +134,9 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
   // quem desligou o PDF (configurações → propostas) manda só o resumo no WhatsApp
-  const pdfOn = !settings.proposal.pdfOff
+  const { has } = useAccess()
+  // plano Essencial: sem PDF, o orçamento vai como texto pronto
+  const pdfOn = has('propostaPdf') && !settings.proposal.pdfOff
   const showPdf = q.pdf && pdfOn
 
   // ---- não perder o que foi digitado ----

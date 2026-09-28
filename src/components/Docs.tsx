@@ -92,6 +92,7 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
     '--p-paper': p.paper,
     '--p-bar': p.bar,
     '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
+    '--p-sans': `'${p.sans}', 'Poppins', system-ui, sans-serif`,
   } as CSSProperties
   return (
     <article ref={ref} className={`proposal tpl-${tpl.id} ${LEVELS[level]}`} style={style}>
@@ -99,7 +100,11 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
         <span>{(barName || s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
         <span>{year}</span>
       </div>
-      <div className="p-body">{children}</div>
+      <div className="p-body">
+        {/* logo do estúdio no canto (opção em configurações → aparência) */}
+        {s.proposal.showLogo && s.logo && tpl.id !== 'lais' && <img className="p-logo" src={s.logo} alt="" />}
+        {children}
+      </div>
     </article>
   )
 }

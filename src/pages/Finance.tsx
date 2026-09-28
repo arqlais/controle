@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useAccess } from '../access'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { href } from '../router'
@@ -43,6 +44,7 @@ export default function Finance() {
   const [onlyMonth, setOnlyMonth] = useKeep('fin-so-mes', false)
   const [expForm, setExpForm] = useState<Expense | 'new' | null>(null)
   const [bill, setBill] = useState<Project | null>(null)
+  const canPdf = useAccess().has('propostaPdf') // recibos em PDF: plano Completo
 
   const shift = (n: number) => {
     const [y, m] = month.split('-').map(Number)
@@ -235,9 +237,11 @@ export default function Finance() {
                         </td>
                         <td className="num" data-label="valor">{money(pay.amount)}</td>
                         <td className="parcel-action">
-                          <button className="icon-btn subtle" title="Recibo de cobrança (PDF ou PNG)" onClick={() => setBill(project)}>
-                            <Icon name="file" size={16} />
-                          </button>
+                          {canPdf && (
+                            <button className="icon-btn subtle" title="Recibo de cobrança (PDF ou PNG)" onClick={() => setBill(project)}>
+                              <Icon name="file" size={16} />
+                            </button>
+                          )}
                           {pay.paidDate ? (
                             <button className="pill pill-pago" title="Clique para desfazer" onClick={() => markPaid(project.id, pay.id, false)}>
                               pago {fmtDate(pay.paidDate)}

@@ -57,7 +57,7 @@ export function ContractDoc({ s, body, clientName }: { s: Settings; body: string
     setPages(out)
   })
 
-  const style = { '--p-ink': colors.ink, '--p-rose': colors.rose, '--p-bar': colors.bar, '--p-paper': colors.paper, '--p-serif': `'${colors.serif}', 'Cormorant Garamond', Georgia, serif` } as CSSProperties
+  const style = { '--p-ink': colors.ink, '--p-rose': colors.rose, '--p-bar': colors.bar, '--p-paper': colors.paper, '--p-serif': `'${colors.serif}', 'Cormorant Garamond', Georgia, serif`, '--p-sans': `'${colors.sans}', 'Poppins', system-ui, sans-serif` } as CSSProperties
   const who = (s.legalName || s.ownerName || s.brandName).toUpperCase()
   const render = (i: number) => {
     const b = blocks[i]
@@ -102,6 +102,7 @@ export function ContractDoc({ s, body, clientName }: { s: Settings; body: string
           </div>
           {n === 0 && (
             <header className="c-head">
+              {s.proposal.showLogo && s.logo && <img className="c-logo" src={s.logo} alt="" />}
               <span className="p-eyebrow">documento</span>
               <h1 className="p-title">contrato</h1>
             </header>

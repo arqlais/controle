@@ -77,7 +77,7 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
               <button type="button" key={p.id} className={`pf-plan-opt ${plan === p.id ? 'active' : ''}`} onClick={() => setPlan(p.id)} aria-pressed={plan === p.id}>
                 <b>{p.name}</b>
                 <span>{money0(p.price)}/mês</span>
-                <small>{p.id === 'completo' ? 'com contratos' : 'o essencial'}</small>
+                <small>{p.id === 'completo' ? 'com PDF e contratos' : 'orçamento em texto'}</small>
               </button>
             ))}
           </div>

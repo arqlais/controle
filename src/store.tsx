@@ -1,6 +1,7 @@
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
 import { buildICS } from './ics'
+import { CLIENT_DISPLAY, PALETTES } from './brand'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings } from './types'
@@ -347,7 +348,21 @@ function firstRunData(settings: Settings): Data {
   } catch {
     /* ok */
   }
-  const st = { ...settings, ...(info.studio ? { brandName: info.studio } : {}), ...(info.name ? { ownerName: info.name } : {}) }
+  // conta nova de cliente: visual próprio (a fonte e a paleta da Laís são exclusivas dela)
+  const kit = PALETTES.find((p) => p.name === 'areia & carvão')!
+  const st: Settings = {
+    ...settings,
+    accent: kit.accent,
+    accentSoft: kit.accentSoft,
+    accentInk: kit.accentInk,
+    background: kit.background,
+    surface: kit.surface,
+    text: kit.text,
+    displayFont: CLIENT_DISPLAY,
+    customFont: '',
+    ...(info.studio ? { brandName: info.studio } : {}),
+    ...(info.name ? { ownerName: info.name } : {}),
+  }
   return info.demo ? demoData(st) : { ...emptyData(), settings: st }
 }
 

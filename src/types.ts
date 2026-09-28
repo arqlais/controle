@@ -292,6 +292,8 @@ export interface ProposalStyle {
   showArch: boolean
   template?: string // modelo escolhido (src/proposalTemplates.ts); vazio = padrão do plano
   pdfOff?: boolean // não usa PDF: orçamento vai só como resumo no WhatsApp
+  sans?: string // fonte dos textos da proposta (padrão Poppins)
+  showLogo?: boolean // logo do perfil no topo da proposta
 }
 
 /** Modelo de contrato com {variáveis} preenchidas pelo orçamento. */

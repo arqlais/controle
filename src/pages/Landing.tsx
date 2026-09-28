@@ -19,6 +19,8 @@ import { go } from '../router'
 // estúdio fictício das telas de exemplo
 const SAMPLE: Settings = {
   ...DEFAULT_SETTINGS,
+  displayFont: 'Playfair Display',
+  proposal: { ...DEFAULT_SETTINGS.proposal, ...TEMPLATES[1].colors, template: TEMPLATES[1].id },
   brandName: 'estúdio exemplo',
   ownerName: 'Ana',
   legalName: 'Ana Ribeiro',
@@ -33,12 +35,12 @@ const SAMPLE: Settings = {
 const FEATURES: { icon: string; title: string; text: string }[] = [
   { icon: 'folder', title: 'demandas e prazos', text: 'quadro com as fases de cada projeto e urgência automática: o que vence primeiro aparece primeiro.' },
   { icon: 'file', title: 'orçamentos com a sua tabela', text: 'preço por imagem, por m² ou por pacote. o valor sai certo e a proposta fica pronta em minutos.' },
-  { icon: 'pen', title: 'proposta em PDF', text: 'modelos bonitos com as suas cores e logo. prefere sem PDF? manda só o resumo no WhatsApp.' },
+  { icon: 'pen', title: 'proposta pronta', text: 'orçamento em texto pronto para o WhatsApp e, no Completo, proposta em PDF com modelos, suas cores e seu logo.' },
   { icon: 'briefcase', title: 'contratos prontos', text: 'o contrato já sai preenchido com cliente, CPF/CNPJ, serviços, valor, prazo e pagamento.' },
   { icon: 'wallet', title: 'financeiro sem planilha', text: 'parcelas, sinal e saldo, recibos em PDF, despesas fixas, lucro do mês e metas.' },
   { icon: 'whatsapp', title: 'cobrança no WhatsApp', text: 'um toque e a mensagem de cobrança sai pronta, com valor e chave pix.' },
   { icon: 'calendar', title: 'agenda', text: 'entregas, pagamentos e reuniões num calendário só, que sincroniza com o celular.' },
-  { icon: 'users', title: 'clientes', text: 'histórico de conversas, quanto cada cliente já fechou, origem e atalhos de contato.' },
+  { icon: 'star', title: 'a sua identidade', text: 'seu logo, paletas de cores prontas e uma cartela de fontes para o sistema ficar com a cara do seu estúdio.' },
 ]
 
 const AUDIENCE = [
@@ -60,7 +62,8 @@ const FAQ: [string, ReactNode][] = [
   ['funciona no celular?', 'Sim. Funciona no celular, tablet e computador, e dá para instalar como aplicativo na tela inicial. Os dados aparecem iguais em todos os aparelhos.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes, valores ou propostas. Você também pode baixar um backup quando quiser.'],
   ['consigo usar a minha tabela de preços?', 'Sim. Você cadastra seus serviços (por imagem, por m², por pacote ou valor livre) e o orçamento calcula sozinho, com desconto para estudante e taxa de urgência se quiser.'],
-  ['a proposta fica com a minha cara?', 'Sim. Você escolhe o modelo, as cores, os textos e coloca seu logo. As mudanças valem só para a sua conta.'],
+  ['o sistema fica com a cara do meu estúdio?', 'Sim. Você coloca seu logo e escolhe entre paletas de cores e combinações de fontes prontas, ou monta as suas. No plano Completo isso vale também para a proposta e o contrato em PDF. As mudanças valem só para a sua conta.'],
+  ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para colar no WhatsApp. O Completo gera proposta, recibos e contratos em PDF, com modelos prontos e a sua identidade, além da agenda sincronizada no celular e do planejamento do instagram.'],
   ['os contratos têm validade jurídica?', 'São modelos de referência que já saem preenchidos com os dados do orçamento. Revise o texto com um advogado antes de usar; você pode editar tudo.'],
   ['posso trocar de plano ou cancelar?', 'Pode, quando quiser, direto na sua conta. Não tem fidelidade.'],
   ['e se eu tiver dúvida?', `Tem um chat dentro do sistema direto com a ${PLATFORM.owner}, que criou o sistema e usa todos os dias no próprio estúdio.`],
@@ -495,7 +498,7 @@ function PropostaScreen() {
     <div className="lp-screen lp-split">
       <div className="lp-split-side">
         <b>modelos de proposta</b>
-        <p className="muted small">Escolha um modelo e personalize as cores e os textos. Não usa PDF? Desligue e mande só o resumo no WhatsApp.</p>
+        <p className="muted small">No plano Completo: escolha um modelo e personalize com o seu logo, cores e fontes. No Essencial, o orçamento vai como texto pronto para o WhatsApp.</p>
         <div className="lp-tpl-list">
           {choices.map((x) => (
             <button key={x.id} className={`lp-tpl ${tpl === x.id ? 'active' : ''}`} onClick={() => setTpl(x.id)}>

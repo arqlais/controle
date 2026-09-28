@@ -15,7 +15,7 @@ Objetivo: transformar o sistema da Laís ("controle", React + Vite + Supabase, p
 ## Provisórios (para a prévia; ela troca depois)
 
 - Nome da plataforma: **a definir** (usar um nome provisório bem visível, fácil de trocar num lugar só).
-- Planos: **Essencial** (R$ 39/mês) e **Completo** (R$ 69/mês), com 14 dias de teste grátis. Valores só de exemplo.
+- Planos: **Essencial** (R$ 39/mês) e **Completo** (R$ 69/mês), com 7 dias de teste grátis. Valores só de exemplo.
 - O modelo de proposta da Laís ("Proposta #001", Canva) fica **exclusivo dela**; clientes escolhem entre modelos novos.
 
 ## Fase 1 — prévia completa (sem cobrança real)

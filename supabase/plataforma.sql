@@ -32,7 +32,7 @@ create table if not exists public.subscriptions (
   studio      text not null default '',
   plan        text not null default 'essencial' check (plan in ('essencial', 'completo')),
   status      text not null default 'trial' check (status in ('trial', 'ativa', 'atrasada', 'cancelada')),
-  trial_ends  timestamptz not null default now() + interval '14 days',
+  trial_ends  timestamptz not null default now() + interval '7 days',
   blocked     boolean not null default false,
   test_mode   boolean not null default true,
   created_at  timestamptz not null default now(),

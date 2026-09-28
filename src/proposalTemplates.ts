@@ -1,4 +1,5 @@
 import type { Feature } from './plans'
+import { proposalSerif } from './brand'
 import type { ProposalStyle } from './types'
 
 /* Modelos de proposta em PDF. O "Proposta #001" é exclusivo da Laís (dona);
@@ -31,21 +32,19 @@ export const TEMPLATES: ProposalTemplate[] = [
     id: 'linha',
     name: 'linha',
     description: 'minimalista: só linhas finas e respiro',
-    colors: { ink: '#1f1f1f', rose: '#8a8a8a', arch: '#f2f2f2', paper: '#ffffff', bar: '#1f1f1f', serif: 'Cormorant Garamond' },
+    colors: { ink: '#1f1f1f', rose: '#8a8a8a', arch: '#f2f2f2', paper: '#ffffff', bar: '#1f1f1f', serif: 'Playfair Display' },
   },
   {
     id: 'bloco',
     name: 'bloco',
     description: 'cabeçalho em bloco de cor e total em destaque',
-    needs: 'modelosExtras',
-    colors: { ink: '#23313f', rose: '#6f8aa3', arch: '#23313f', paper: '#f7f8fa', bar: '#23313f', serif: 'Cormorant Garamond' },
+    colors: { ink: '#23313f', rose: '#6f8aa3', arch: '#23313f', paper: '#f7f8fa', bar: '#23313f', serif: 'DM Serif Display' },
   },
   {
     id: 'editorial',
     name: 'editorial',
     description: 'título grande, com cara de revista',
-    needs: 'modelosExtras',
-    colors: { ink: '#3a2e28', rose: '#a4553a', arch: '#f1e4d8', paper: '#fbf7f2', bar: '#a4553a', serif: 'Cormorant Garamond' },
+    colors: { ink: '#3a2e28', rose: '#a4553a', arch: '#f1e4d8', paper: '#fbf7f2', bar: '#a4553a', serif: 'Bodoni Moda' },
   },
 ]
 
@@ -60,8 +59,10 @@ export function resolveTemplate(p: ProposalStyle, has: Has): ProposalTemplate {
   return TEMPLATES.find((t) => t.id === (has('modeloExclusivo') ? 'lais' : 'classico'))!
 }
 
-/** Cores que a folha usa: as da conta; quem nunca escolheu modelo usa as do modelo padrão do plano. */
+/** Cores e fontes que a folha usa: as da conta; quem nunca escolheu modelo usa as do modelo padrão do plano.
+ *  A fonte exclusiva da dona (The Seasons) nunca aparece no PDF dos clientes. */
 export function sheetColors(p: ProposalStyle, has: Has) {
   const t = resolveTemplate(p, has)
-  return !p.template && t.id !== 'lais' ? { ...p, ...t.colors } : p
+  const base = !p.template && t.id !== 'lais' ? { ...p, ...t.colors } : p
+  return { ...base, serif: proposalSerif(base.serif, has), sans: base.sans || 'Poppins' }
 }

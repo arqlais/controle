@@ -34,6 +34,7 @@ import { useAccess } from './access'
 import { useInbox } from './chat'
 import { trialOver } from './platform'
 import { PLATFORM, type Feature } from './plans'
+import { effectiveSettings } from './brand'
 
 const NAV = [
   { page: 'inicio', label: 'início', icon: 'home' },
@@ -133,7 +134,8 @@ export default function App() {
   }
 
   const [dark, setDark] = useDeviceDark()
-  useEffect(() => applyTheme(settings, dark), [settings, dark])
+  // The Seasons é só da dona: nas contas de clientes vira a fonte padrão deles
+  useEffect(() => applyTheme(effectiveSettings(settings, access.has), dark), [settings, dark, access])
   useEffect(() => setMenuOpen(false), [route.page, route.id])
 
   const alerts = useMemo(

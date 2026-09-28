@@ -2,7 +2,7 @@ import { MsgTools, WaPreview } from '../components/MsgTools'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
-import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
+import { demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
@@ -12,23 +12,12 @@ import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
 import { CLOUD } from '../cloud'
+import { BrandKit } from '../components/BrandKit'
+import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
 import { useAccess } from '../access'
 import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { defaultContractSettings } from '../contracts'
 import { PLANS } from '../plans'
-
-const PRESETS: { name: string; s: Partial<Settings> }[] = [
-  { name: 'laís (site)', s: { accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57' } },
-  { name: 'Preto & areia', s: { accent: '#1c1c1c', accentSoft: '#b89b7a', accentInk: '#8f7458', background: '#f4f1ec', surface: '#ffffff', text: '#1c1c1c' } },
-  { name: 'Branco galeria', s: { accent: '#111111', accentSoft: '#9a9a9a', background: '#fafafa', surface: '#ffffff', text: '#111111' } },
-  { name: 'Terracota', s: { accent: '#a4553a', accentSoft: '#d9b99b', background: '#f6f0ea', surface: '#fffdfb', text: '#2b211c' } },
-  { name: 'Oliva', s: { accent: '#4f5b3a', accentSoft: '#c2b79a', background: '#f2f1ea', surface: '#ffffff', text: '#1f2419' } },
-  { name: 'Azul concreto', s: { accent: '#2f4a6b', accentSoft: '#a9b4bf', background: '#eef0f2', surface: '#ffffff', text: '#1a2230' } },
-  { name: 'Rosé', s: { accent: '#8a4b5a', accentSoft: '#e0bfc3', background: '#f8f1f0', surface: '#ffffff', text: '#2a1d20' } },
-]
-
-const DISPLAY_FONTS = ['The Seasons', 'Cormorant Garamond']
-const BODY_FONTS = ['Poppins']
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
@@ -70,18 +59,6 @@ export default function SettingsPage() {
   const s = data.settings
   const [dark, setDark] = useDeviceDark()
   const fileRef = useRef<HTMLInputElement>(null)
-  const fontRef = useRef<HTMLInputElement>(null)
-
-  const onFont = (f?: File) => {
-    if (!f) return
-    if (f.size > 900_000) return toast('Arquivo de fonte muito grande (máx. 900 KB). Prefira .woff2 ou .woff.')
-    const r = new FileReader()
-    r.onload = () => {
-      setSettings({ customFont: String(r.result), displayFont: 'The Seasons' })
-      toast('Fonte The Seasons aplicada.')
-    }
-    r.readAsDataURL(f)
-  }
 
   const onImport = (f?: File) => {
     if (!f) return
@@ -139,106 +116,7 @@ export default function SettingsPage() {
         <div className="settings-panel">
           {tab === 'aparencia' && (
             <>
-              <Section title="identidade visual" className="desktop-only">
-                <p className="muted small">Cores e fontes iguais às do seu site. Logo, nome e contatos ficam no <a href="#/perfil" className="link">perfil</a>.</p>
-                <div className="form-grid">
-                </div>
-
-                <div className="presets">
-                  {PRESETS.map((p) => (
-                    <button key={p.name} className="preset" onClick={() => setSettings(p.s)} title={p.name}>
-                      <span style={{ background: p.s.background }}>
-                        <i style={{ background: p.s.accent }} />
-                        <i style={{ background: p.s.accentSoft }} />
-                      </span>
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="form-grid">
-                  {(
-                    [
-                      ['accent', 'Cor principal'],
-                      ['accentSoft', 'Rosé'],
-                      ['accentInk', 'Rosé dos itálicos'],
-                      ['background', 'Fundo'],
-                      ['surface', 'Cartões'],
-                      ['text', 'Texto'],
-                    ] as [keyof Settings, string][]
-                  ).map(([k, label]) => (
-                    <Field key={k} label={label}>
-                      <div className="color-input">
-                        <input type="color" value={s[k] as string} onChange={(e) => setSettings({ [k]: e.target.value })} />
-                        <input value={s[k] as string} onChange={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value) && setSettings({ [k]: e.target.value })} maxLength={7} />
-                      </div>
-                    </Field>
-                  ))}
-                  <Field label="Fonte dos títulos">
-                    <select value={s.displayFont} onChange={(e) => setSettings({ displayFont: e.target.value })}>
-                      {DISPLAY_FONTS.map((f) => (
-                        <option key={f} style={{ fontFamily: f }}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field
-                    label="Fonte dos itálicos"
-                    span={3}
-                    hint={
-                      s.customFont
-                        ? 'Usando o arquivo enviado.'
-                        : 'A The Seasons já vem embutida no sistema. Envie outro arquivo só se quiser trocar a fonte dos títulos.'
-                    }
-                  >
-                    <div className="row gap-s">
-                      <button className="btn small" onClick={() => fontRef.current?.click()}>
-                        <Icon name="upload" size={14} /> {s.customFont ? 'Trocar arquivo' : 'Enviar outra fonte'}
-                      </button>
-                      {s.customFont && (
-                        <button className="btn small ghost" onClick={() => setSettings({ customFont: '' })}>
-                          Remover
-                        </button>
-                      )}
-                      <span className="font-sample">
-                        <em>você projeta</em>
-                      </span>
-                      <input ref={fontRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" hidden onChange={(e) => onFont(e.target.files?.[0])} />
-                    </div>
-                  </Field>
-                  <Field label="Fonte do texto">
-                    <select value={s.bodyFont} onChange={(e) => setSettings({ bodyFont: e.target.value })}>
-                      {BODY_FONTS.map((f) => (
-                        <option key={f}>{f}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label={`Cantos arredondados · ${s.radius}px`}>
-                    <input type="range" min={0} max={20} value={s.radius} onChange={(e) => setSettings({ radius: Number(e.target.value) })} />
-                  </Field>
-                </div>
-                <div className="row gap-s">
-                  <button
-                    className="btn small ghost"
-                    onClick={() =>
-                      setSettings({
-                        accent: DEFAULT_SETTINGS.accent,
-                        accentSoft: DEFAULT_SETTINGS.accentSoft,
-                        accentInk: DEFAULT_SETTINGS.accentInk,
-                        background: DEFAULT_SETTINGS.background,
-                        surface: DEFAULT_SETTINGS.surface,
-                        text: DEFAULT_SETTINGS.text,
-                        displayFont: DEFAULT_SETTINGS.displayFont,
-                        bodyFont: DEFAULT_SETTINGS.bodyFont,
-                        radius: DEFAULT_SETTINGS.radius,
-                      })
-                    }
-                  >
-                    Restaurar padrão
-                  </button>
-                </div>
-              </Section>
+              <BrandKit />
               <Section title="tema deste aparelho">
                 <div className="form-grid">
                   <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
@@ -427,7 +305,7 @@ export default function SettingsPage() {
           {tab === 'propostas' && (
             <>
               <ProposalChooser />
-              <ProposalSettings />
+              {has('propostaPdf') && <ProposalSettings />}
               <Section title="numeração e padrões" className="desktop-only">
                 <div className="form-grid">
                   <Field label="Começar a contagem em" hint={`Os orçamentos seguem em ordem a partir daqui. Próximo: #${String(nextQuoteNumber(data)).padStart(3, '0')}.`}>
@@ -639,8 +517,15 @@ function ProposalSettings() {
             </Field>
             <Field label="Fonte dos títulos">
               <select value={p.serif} onChange={(e) => setP({ serif: e.target.value })}>
-                {['Cormorant Garamond', 'The Seasons'].map((f) => (
+                {[...(has('fonteExclusiva') ? [EXCLUSIVE_FONT] : []), ...DISPLAY_FONTS.map((f) => f.name)].map((f) => (
                   <option key={f}>{f}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Fonte dos textos">
+              <select value={p.sans} onChange={(e) => setP({ sans: e.target.value })}>
+                {BODY_FONTS.map((f) => (
+                  <option key={f.name}>{f.name}</option>
                 ))}
               </select>
             </Field>
@@ -655,8 +540,8 @@ function ProposalSettings() {
             </Field>
             {(
               [
-                ['ink', 'Azul (textos)'],
-                ['rose', 'Rosé (rótulos)'],
+                ['ink', 'Textos'],
+                ['rose', 'Rótulos e detalhes'],
                 ['arch', 'Faixa do total'],
                 ['bar', 'Faixa do topo e ícones'],
                 ['paper', 'Fundo'],
@@ -765,18 +650,32 @@ function ProposalChooser() {
   const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
   return (
     <Section title="modelo da proposta">
-      <label className="check toggle">
-        <input type="checkbox" checked={!s.proposal.pdfOff} onChange={(e) => setSettings({ proposal: { ...s.proposal, pdfOff: !e.target.checked } })} /> usar proposta em PDF
-      </label>
-      <p className="muted small" style={{ marginTop: 4 }}>
+      {!has('propostaPdf') && (
+        <p className="pf-note">
+          <Icon name="lock" size={16} />
+          <span>
+            No plano {PLANS.essencial.name} o orçamento sai como <b>texto pronto</b> para colar no WhatsApp. Proposta e recibos em PDF, com modelos e a sua identidade, fazem parte do plano{' '}
+            <a className="link" href="#/assinatura">
+              {PLANS.completo.name}
+            </a>
+            .
+          </span>
+        </p>
+      )}
+      {has('propostaPdf') && (
+        <label className="check toggle">
+          <input type="checkbox" checked={!s.proposal.pdfOff} onChange={(e) => setSettings({ proposal: { ...s.proposal, pdfOff: !e.target.checked } })} /> usar proposta em PDF
+        </label>
+      )}
+      {has('propostaPdf') && <p className="muted small" style={{ marginTop: 4 }}>
         {s.proposal.pdfOff ? 'Desligado: o orçamento vai só como resumo no WhatsApp (com os valores de cada serviço).' : 'Ligado: cada orçamento pode gerar o PDF no modelo escolhido abaixo.'}
-      </p>
-      {!s.proposal.pdfOff && (
+      </p>}
+      {has('propostaPdf') && !s.proposal.pdfOff && (
         <div className="pf-tpl-grid">
           {visible.map((t) => {
             const allowed = templateAllowed(t, has)
             return (
-              <button key={t.id} className={`pf-tpl ${current.id === t.id ? 'active' : ''} ${allowed ? '' : 'is-locked'}`} disabled={!allowed} onClick={() => pick(t.id)} title={allowed ? t.description : `Disponível no plano ${PLANS.completo.name}`}>
+              <button key={t.id} className={`pf-tpl ${current.id === t.id ? 'active' : ''} ${allowed ? '' : 'is-locked'}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
                 <span className={`pf-tpl-thumb tpl-thumb-${t.id}`} style={{ '--t-bar': t.colors.bar, '--t-arch': t.colors.arch, '--t-paper': t.colors.paper, '--t-ink': t.colors.ink } as React.CSSProperties}>
                   <i />
                   <b />
@@ -785,7 +684,7 @@ function ProposalChooser() {
                 </span>
                 <span className="pf-tpl-name">
                   <b>{t.name}</b>
-                  <small className="muted">{allowed ? t.description : `plano ${PLANS.completo.name}`}</small>
+                  <small className="muted">{allowed ? t.description : 'exclusivo'}</small>
                 </span>
                 {current.id === t.id && <Icon name="check" size={16} className="pf-tpl-check" />}
                 {!allowed && <Icon name="lock" size={14} className="pf-tpl-check" />}
