@@ -368,6 +368,7 @@ export interface Settings {
   defaultPaymentTerms: string
   paymentMethods?: string[] // formas de receber (lista editável)
   signature?: string // imagem da assinatura (data URL), vai no contrato
+  firstStepsHidden?: boolean // cartão "primeiros passos" escondido
   tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
   messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)

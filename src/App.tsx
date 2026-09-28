@@ -160,6 +160,11 @@ export default function App() {
     go('inicio')
   }
   const asClient = CLOUD && viewingAsClient()
+  const backToOwner = () => {
+    setMenuOpen(false)
+    setViewAsClient(false)
+    go('plataforma')
+  }
   // passo a passo do primeiro acesso: aparece para quem assina até concluir/pular ("ver depois" = volta no dia seguinte)
   const [tourOpen, setTourOpen] = useState(false)
   useEffect(() => {
@@ -267,7 +272,7 @@ export default function App() {
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
-        <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 11 ? 'is-long' : ''}`} href={href('inicio')}>
+        <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('inicio')}>
           <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}><AvatarGlyph s={settings} size={24} /></span>
           <span className="brand-text">
             <span className="brand-kicker">meu estúdio</span>
@@ -277,6 +282,11 @@ export default function App() {
             </span>
           </span>
         </a>
+        {asClient && (
+          <button type="button" className="btn small primary view-as-back" onClick={backToOwner}>
+            <Icon name="chevronL" size={14} /> voltar para a minha conta
+          </button>
+        )}
         <nav className={organizing ? 'organizing' : ''}>
           {nav.map((n, i) => {
             const count = alerts[n.page as keyof typeof alerts]
@@ -337,12 +347,6 @@ export default function App() {
                   <span>{access.isOwner ? 'meu portfólio' : 'meu site'} ↗</span>
                 </a>
               )}
-              {g.key === 'ajustes' && !access.isOwner && (
-                <button type="button" className="is-tool nav-tour" onClick={() => (setMenuOpen(false), go('inicio'), setTourOpen(true))}>
-                  <Icon name="sparkle" />
-                  <span>passo a passo</span>
-                </button>
-              )}
             </div>
           ))}
           <div className="nav-links">
@@ -390,6 +394,16 @@ export default function App() {
       <div className="scrim" onClick={() => setMenuOpen(false)} />
 
       <div className="main">
+        {asClient && (
+          <div className="view-as-banner" role="region" aria-label="Modo ver como cliente">
+            <span>
+              <Icon name="eye" size={15} /> <b>modo visualização:</b> você está vendo como um cliente novo · nada aqui é salvo
+            </span>
+            <button className="btn small primary" onClick={backToOwner}>
+              <Icon name="chevronL" size={14} /> voltar para a minha conta
+            </button>
+          </div>
+        )}
         <header className="topbar">
           <button className="icon-btn only-mobile" onClick={() => setMenuOpen(true)} aria-label="Menu">
             <Icon name="menu" />
@@ -401,7 +415,7 @@ export default function App() {
             </button>
           )}
           <GlobalSearch />
-          <ScreenHelp />
+          <ScreenHelp onTour={!access.isOwner ? () => (go('inicio'), setTourOpen(true)) : undefined} />
           <div className="add-menu">
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
               <Icon name="plus" size={16} /> <span className="hide-mobile">Novo</span>
@@ -442,22 +456,6 @@ export default function App() {
           </div>
         </header>
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
-        {asClient && (
-          <div className="owner-sales-bar" role="region" aria-label="Você está vendo como cliente">
-            <span>
-              <Icon name="user" size={15} /> você está vendo como <b>um cliente novo</b> · nada aqui é salvo
-            </span>
-            <button
-              className="btn small primary"
-              onClick={() => {
-                setViewAsClient(false)
-                go('plataforma')
-              }}
-            >
-              voltar para a minha conta
-            </button>
-          </div>
-        )}
         <main className="content">
           {isSample && (
             <div className="demo-banner">

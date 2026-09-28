@@ -1,5 +1,6 @@
+import { FirstSteps } from '../components/FirstSteps'
 import { useMemo } from 'react'
-import { demoData, useStore } from '../store'
+import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Progress, Section, Stat, usePaged } from '../components/ui'
@@ -32,7 +33,7 @@ import {
   whatsappLink, addDays } from '../utils'
 
 export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'cliente') => void }) {
-  const { data, replaceAll } = useStore()
+  const { data, showSample } = useStore()
   const { settings } = data
   const t = today()
   const key = monthKey(t)
@@ -94,6 +95,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
   if (!data.clients.length && !data.projects.length) {
     return (
       <div className="page">
+        <FirstSteps />
         <div className="hero">
           <p className="eyebrow">{settings.tagline || settings.brandName}</p>
           <h1>
@@ -104,7 +106,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
             <button className="btn primary" onClick={() => onQuick('cliente')}>
               <Icon name="plus" size={16} /> Cadastrar primeiro cliente
             </button>
-            <button className="btn ghost" onClick={() => replaceAll(demoData(settings))}>
+            <button className="btn ghost" onClick={() => showSample(true)}>
               Ver com dados de exemplo
             </button>
           </div>
@@ -116,6 +118,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
 
   return (
     <div className="page">
+      <FirstSteps />
       <section className="welcome">
         <div className="welcome-text">
           <p className="welcome-date">{d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
