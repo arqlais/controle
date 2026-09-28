@@ -616,10 +616,10 @@
 .nowrap { white-space: nowrap; }
 
 /* faixa rosé, letras firmes, passando sem parar */
-.lp-marquee { background: var(--accent-soft); border: 0; padding: 16px 0; -webkit-mask-image: none; mask-image: none; }
+.lp-marquee { background: #e1cac4; border: 0; border-block: 1px solid #d1ada4; padding: 16px 0; -webkit-mask-image: none; mask-image: none; }
 .lp-marquee-track { gap: 0; animation-duration: 42s; }
 .lp-marquee-track span { font-family: var(--font-body); font-style: normal; font-size: 15px; font-weight: 600; letter-spacing: 0.06em; color: var(--text); gap: 0; padding-right: 0; }
-.lp-marquee-track i { color: var(--accent-ink); font-size: 13px; margin: 0 34px; }
+.lp-marquee-track i { color: #ab8e86; font-size: 13px; margin: 0 34px; }
 
 /* aparecer ao rolar: usa "translate" (não briga com o efeito de passar o mouse) — sem pulinhos */
 .lp-anim [data-reveal] { transform: none; translate: 0 22px; transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), translate 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s, box-shadow 0.3s; }
