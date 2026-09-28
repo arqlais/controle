@@ -1,3 +1,4 @@
+import { MsgTools } from '../components/MsgTools'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
@@ -699,7 +700,7 @@ function MessagesSettings() {
       }
     >
       <p className="muted small">
-        Aparecem no botão <b>mensagens</b> da cliente, da demanda e do orçamento, já com os dados preenchidos. Use as variáveis:{' '}
+        Aparecem no botão <b>mensagens</b> da cliente, da demanda e do orçamento, já com os dados preenchidos. No WhatsApp, *palavra* fica em <b>negrito</b> e _palavra_ em <i>itálico</i>: selecione e toque em N ou I. Use as variáveis:{' '}
         {MESSAGE_VARS.map(([k, d]) => (
           <code key={k} className="var-chip" title={d}>
             {`{${k}}`}
@@ -715,7 +716,7 @@ function MessagesSettings() {
                 <Icon name="trash" size={16} />
               </button>
             </div>
-            <textarea rows={3} value={m.text} onChange={(e) => update(m.id, { text: e.target.value })} spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
+            <MsgEditor value={m.text} onChange={(text) => update(m.id, { text })} />
           </div>
         ))}
       </div>
@@ -723,5 +724,15 @@ function MessagesSettings() {
         restaurar mensagens originais
       </button>
     </Section>
+  )
+}
+
+function MsgEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  return (
+    <>
+      <MsgTools taRef={ref} value={value} onChange={onChange} />
+      <textarea ref={ref} rows={Math.min(12, Math.max(3, value.split('\n').length + 1))} value={value} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="none" autoCorrect="on" />
+    </>
   )
 }

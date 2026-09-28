@@ -189,19 +189,46 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   })
 }
 
-/** Mensagens padrão — editáveis em Configurações. {variáveis} são preenchidas com os dados do caso. */
+/** Mensagens padrão — editáveis em Configurações. {variáveis} são preenchidas com os dados do caso.
+ *  No jeito dela: tudo em minúsculas, leve e acolhedor; *negrito* e _itálico_ do WhatsApp nas palavras-chave. */
 export const DEFAULT_MESSAGES: MessageTemplate[] = [
-  { id: 'primeiro-contato', name: 'primeiro contato', text: 'Oi, {cliente}! Tudo bem? Aqui é a {meu_nome}. Obrigada pelo contato! Me conta um pouquinho do projeto: o que você precisa (renders, modelagem, detalhamento…), quantas imagens ou a metragem, e para quando você precisa? Assim já te passo um orçamento certinho.' },
-  { id: 'envio-orcamento', name: 'envio do orçamento', text: 'Oi, {cliente}! Segue a proposta {proposta} do projeto {projeto}, no valor de {valor}. Qualquer dúvida ou ajuste é só me chamar!' },
-  { id: 'retorno', name: 'cobrar resposta do orçamento', text: 'Oi, {cliente}! Tudo bem? Passando para saber se conseguiu ver a proposta {proposta} ({projeto}). Qualquer ajuste é só me falar. 😊' },
-  { id: 'aprovado', name: 'orçamento aprovado · pedir sinal', text: 'Que ótimo, {cliente}! Fico muito feliz 🤍 Para darmos início, o sinal é de {valor_parcela} via pix (chave: {pix}). Assim que confirmar, me envia por favor os arquivos do projeto (DWG/SKP) e as referências.' },
-  { id: 'sinal-recebido', name: 'sinal recebido · início', text: 'Oi, {cliente}! Sinal recebido, obrigada! Já comecei o projeto {projeto} e a previsão de entrega é {prazo}. Qualquer novidade te aviso por aqui.' },
-  { id: 'previa', name: 'envio de prévia para aprovação', text: 'Oi, {cliente}! Segue a prévia do projeto {projeto}. Dá uma olhada com calma e me diz se está tudo de acordo ou se prefere algum ajuste. 😊' },
-  { id: 'cobranca', name: 'lembrete de pagamento', text: 'Oi, {cliente}! Tudo bem? Passando para lembrar da parcela "{parcela}" do projeto {projeto}, de {valor_parcela}, com vencimento em {vencimento}. Chave pix: {pix}. Obrigada!' },
-  { id: 'cobranca-atraso', name: 'pagamento em atraso', text: 'Oi, {cliente}! Tudo bem? A parcela "{parcela}" do projeto {projeto}, de {valor_parcela}, venceu em {vencimento}. Consegue verificar para mim? Chave pix: {pix}. Obrigada!' },
-  { id: 'entrega', name: 'entrega final', text: 'Oi, {cliente}! Projeto {projeto} finalizado 🎉 Os arquivos finais estão aqui: {arquivos}. Foi um prazer trabalhar com você! Se puder, me conta o que achou do resultado.' },
-  { id: 'depoimento', name: 'pedir depoimento / indicação', text: 'Oi, {cliente}! Espero que o projeto tenha ficado do jeitinho que você queria. Se puder deixar um depoimento rápido ou me indicar para alguém, me ajuda muito! 🤍' },
+  { id: 'apresentacao', name: 'apresentação · prospectar escritório', text: 'oii, tudo bem? ✨\n\nmeu nome é {meu_nome}, atuo como freelancer para arquitetos e designers que buscam ganhar tempo terceirizando suas demandas!\n\ntrabalho com *_detalhamento, executivo, modelagem 3d e renders (vray ou ia, ia tem um ótimo custo benefício e um resultado incrível)_*, sempre com bastante cuidado nos detalhes e pensando em facilitar a execução na obra.\n\nse em algum momento você precisar de apoio para a demanda do escritório, vou amar conversar 💗\n\n_posso te enviar meu portfólio?_' },
+  { id: 'parceria', name: 'parceria · portfólio', text: 'estou à disposição para parcerias. será um prazer trabalhar juntas!\n\nofereço serviços de *detalhamento, executivo, modelagem e renderização*\n(vray ou ia, _ia tem ótimo custo benefício com resultados incríveis_, no site você consegue comparar print x ia) ✨\n\nsite portfólio:\n{site}\n\ninstagram:\n{instagram}' },
+  { id: 'primeiro-contato', name: 'primeiro contato', text: 'oii, {cliente}, tudo bem? ✨ aqui é a {meu_nome}, obrigada pelo contato 💗\n\nme conta um pouquinho do projeto: o que você precisa (*renders, modelagem, detalhamento ou executivo*), quantas imagens ou a metragem, e para quando precisa? assim já te passo um orçamento certinho ☺️' },
+  { id: 'envio-orcamento', name: 'envio do orçamento (pdf)', text: 'oii, {cliente}! te encaminhei o pdf com a proposta, _é negociável_ ☺️ fico à disposição caso queira ajustar ou conversar sobre' },
+  { id: 'retorno', name: 'cobrar resposta do orçamento', text: 'oii, {cliente}, tudo bem? ✨ passando para saber se conseguiu ver a proposta {proposta} ({projeto}). se quiser ajustar alguma coisa é só me falar, fico à disposição ☺️' },
+  { id: 'aprovado', name: 'orçamento aprovado · pedir sinal', text: 'que ótimo, {cliente}! fico muito feliz 💗\n\npara darmos início, o sinal é de *{valor_parcela}* via pix (chave: {pix}). assim que confirmar, me envia por favor os arquivos do projeto (dwg/skp) e as referências ✨' },
+  { id: 'sinal-recebido', name: 'sinal recebido · início', text: 'oii, {cliente}! sinal recebido, obrigada 💗 já comecei o projeto {projeto} e a previsão de entrega é *{prazo}*. qualquer novidade te aviso por aqui ✨' },
+  { id: 'previa', name: 'envio de prévia para aprovação', text: 'oii, {cliente}! segue a prévia do projeto {projeto} ✨ dá uma olhada com calma e me diz se está tudo de acordo ou se prefere algum ajuste ☺️' },
+  { id: 'cobranca', name: 'lembrete de pagamento', text: 'oii, {cliente}, tudo bem? ✨ passando para lembrar da parcela "{parcela}" do projeto {projeto}, de *{valor_parcela}*, com vencimento em {vencimento}. chave pix: {pix}\n\nobrigada 💗' },
+  { id: 'cobranca-atraso', name: 'pagamento em atraso', text: 'oii, {cliente}, tudo bem? a parcela "{parcela}" do projeto {projeto}, de *{valor_parcela}*, venceu em {vencimento}. consegue verificar pra mim? chave pix: {pix}\n\nqualquer coisa me avisa, obrigada 💗' },
+  { id: 'entrega', name: 'entrega final', text: 'oii, {cliente}! projeto {projeto} finalizado 🎉 os arquivos finais estão aqui: {arquivos}\n\nfoi um prazer trabalhar com você 💗 se puder, me conta o que achou do resultado ✨' },
+  { id: 'depoimento', name: 'pedir depoimento / indicação', text: 'oii, {cliente}! espero que o projeto tenha ficado do jeitinho que você queria ✨ se puder deixar um depoimento rápido ou me indicar para alguém, me ajuda muito 💗' },
 ]
+
+// textos padrão antigos: quem não editou recebe os novos (as editadas ficam como ela deixou)
+const OLD_MESSAGE_TEXTS: Record<string, string> = Object.fromEntries(
+  ([
+    ['primeiro-contato', 'Oi, {cliente}! Tudo bem? Aqui é a {meu_nome}. Obrigada pelo contato! Me conta um pouquinho do projeto: o que você precisa (renders, modelagem, detalhamento…), quantas imagens ou a metragem, e para quando você precisa? Assim já te passo um orçamento certinho.'],
+    ['envio-orcamento', 'Oi, {cliente}! Segue a proposta {proposta} do projeto {projeto}, no valor de {valor}. Qualquer dúvida ou ajuste é só me chamar!'],
+    ['retorno', 'Oi, {cliente}! Tudo bem? Passando para saber se conseguiu ver a proposta {proposta} ({projeto}). Qualquer ajuste é só me falar. 😊'],
+    ['aprovado', 'Que ótimo, {cliente}! Fico muito feliz 🤍 Para darmos início, o sinal é de {valor_parcela} via pix (chave: {pix}). Assim que confirmar, me envia por favor os arquivos do projeto (DWG/SKP) e as referências.'],
+    ['sinal-recebido', 'Oi, {cliente}! Sinal recebido, obrigada! Já comecei o projeto {projeto} e a previsão de entrega é {prazo}. Qualquer novidade te aviso por aqui.'],
+    ['previa', 'Oi, {cliente}! Segue a prévia do projeto {projeto}. Dá uma olhada com calma e me diz se está tudo de acordo ou se prefere algum ajuste. 😊'],
+    ['cobranca', 'Oi, {cliente}! Tudo bem? Passando para lembrar da parcela "{parcela}" do projeto {projeto}, de {valor_parcela}, com vencimento em {vencimento}. Chave pix: {pix}. Obrigada!'],
+    ['cobranca-atraso', 'Oi, {cliente}! Tudo bem? A parcela "{parcela}" do projeto {projeto}, de {valor_parcela}, venceu em {vencimento}. Consegue verificar para mim? Chave pix: {pix}. Obrigada!'],
+    ['entrega', 'Oi, {cliente}! Projeto {projeto} finalizado 🎉 Os arquivos finais estão aqui: {arquivos}. Foi um prazer trabalhar com você! Se puder, me conta o que achou do resultado.'],
+    ['depoimento', 'Oi, {cliente}! Espero que o projeto tenha ficado do jeitinho que você queria. Se puder deixar um depoimento rápido ou me indicar para alguém, me ajuda muito! 🤍'],
+  ] as [string, string][]),
+)
+
+export function migrateMessages(list: MessageTemplate[] | undefined): MessageTemplate[] {
+  if (!list?.length) return DEFAULT_MESSAGES
+  const fresh = new Map(DEFAULT_MESSAGES.map((m) => [m.id, m]))
+  const kept = list.map((m) => (OLD_MESSAGE_TEXTS[m.id] === m.text && fresh.has(m.id) ? { ...fresh.get(m.id)! } : m))
+  const missing = DEFAULT_MESSAGES.filter((m) => (m.id === 'apresentacao' || m.id === 'parceria') && !kept.some((k) => k.id === m.id))
+  return [...missing, ...kept]
+}
 
 export const PAYMENT_TERMS = 'Pix — 50% de entrada + 50% na aprovação final | Crédito — 100%'
 
@@ -290,6 +317,7 @@ export const DEFAULT_SETTINGS: Settings = {
   customColumns: [],
   navOrder: [],
   messages: DEFAULT_MESSAGES,
+  messagesV2: true,
 }
 
 export function emptyData(): Data {
@@ -390,6 +418,9 @@ export function normalize(d: Partial<Data>): Data {
           !d.settings?.imagesV1 && (x.id === 'render-vray' || x.id === 'render-ia') ? { ...x, perFloor: false } : x,
         ),
         imagesV1: true,
+        // mensagens no jeito dela (uma vez só; as que ela editou ficam como estão)
+        messages: d.settings?.messagesV2 ? (d.settings.messages ?? DEFAULT_MESSAGES) : migrateMessages(d.settings?.messages),
+        messagesV2: true,
       },
       d.settings,
     ),

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { MsgTools } from './MsgTools'
 import { useStore } from '../store'
 import type { Client, Project, Quote } from '../types'
 import { fillMessage, messageVars, whatsappLink } from '../utils'
@@ -25,6 +26,7 @@ function MessagesModal({ client, project, quote, onClose }: { client?: Client; p
   const vars = messageVars(data.settings, client, project, quote)
   const [pick, setPick] = useState<string | null>(null)
   const [text, setText] = useState('')
+  const ta = useRef<HTMLTextAreaElement>(null)
   const choose = (id: string) => {
     const t = data.settings.messages.find((m) => m.id === id)
     setPick(id)
@@ -52,7 +54,8 @@ function MessagesModal({ client, project, quote, onClose }: { client?: Client; p
         </div>
       ) : (
         <div className="stack-s">
-          <textarea id="msg-text" rows={7} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
+          <MsgTools taRef={ta} value={text} onChange={setText} />
+          <textarea ref={ta} id="msg-text" rows={9} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="none" autoCorrect="on" />
           <p className="muted small">Ajuste o texto se quiser — a mudança vale só para este envio.</p>
           <div className="row gap-s wrap">
             <button className="btn ghost small" onClick={() => setPick(null)}>

@@ -606,6 +606,8 @@ export const MESSAGE_VARS: [string, string][] = [
   ['arquivos', 'link dos arquivos'],
   ['pix', 'sua chave pix'],
   ['meu_nome', 'seu nome'],
+  ['site', 'seu site (perfil)'],
+  ['instagram', 'link do seu instagram (perfil)'],
 ]
 
 export function messageVars(st: Settings, client?: Client, project?: Project, quote?: Quote): Record<string, string> {
@@ -623,6 +625,8 @@ export function messageVars(st: Settings, client?: Client, project?: Project, qu
     arquivos: project?.filesLink ?? '',
     pix: st.pixKey,
     meu_nome: st.ownerName || st.legalName,
+    site: st.website ? 'www.' + cleanSite(st.website) : '',
+    instagram: st.instagram ? `www.instagram.com/${st.instagram.trim().replace(/^@+/, '')}` : '',
   }
 }
 
@@ -632,6 +636,7 @@ export const fillMessage = (text: string, vars: Record<string, string>) =>
     .replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
     .replace(/ {2,}/g, ' ')
     .replace(/ ([,.!?)])/g, '$1')
+    .replace(/,([,!?])/g, '$1') // sem nome da cliente: "oii, , tudo bem" → "oii, tudo bem"
 
 /** Texto de uma mensagem padrão pelo id, já preenchido (com um texto de reserva se ela foi apagada). */
 export function templateText(st: Settings, id: string, fallback: string, client?: Client, project?: Project, quote?: Quote) {

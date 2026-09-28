@@ -50,6 +50,7 @@ import {
   uid,
   unitRate,
   whatsappLink,
+  templateText,
 } from '../utils'
 
 const newItem = (): QuoteItem => ({ id: uid(), service: '', title: '', detail: '', description: '', quantity: 1, complexity: 'media', price: 0, auto: true })
@@ -266,16 +267,19 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
 
   const line = (i: QuoteItem) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` · ${cleanDetail(i.detail)}` : ''} — ${money(i.price)}`
-  const text = () => {
+  // enviar: com PDF vai a mensagem curta dela; copiar resumo: sempre o resumo com os valores
+  const text = (short = true) => {
+    // com PDF: a mensagem curta dela ("te encaminhei o pdf com a proposta…"), editável em configurações → mensagens
+    if (q.pdf && short) return templateText(settings, 'envio-orcamento', 'oii, {cliente}! te encaminhei o pdf com a proposta, é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre', client, undefined, q)
     const first = client?.name.split(' ')[0] ?? ''
-    const head = [`*Proposta ${quoteNumber(q)}${q.title ? ` — ${q.title}` : ''}*`, `Olá, ${first}! Segue o orçamento:`, '']
+    const head = [`*proposta ${quoteNumber(q)}${q.title ? ` — ${q.title}` : ''}*`, `oii${first ? `, ${first}` : ''}! segue o orçamento ✨`, '']
     const body = two
       ? [
-          ...q.options.slice(0, MAX_OPTIONS).flatMap((o, i) => [`*${q.combo ? 'Proposta' : 'Opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `Total: ${money(optionTotal(o))}`, '']),
-          ...(isCombo(q) && q.comboDiscount ? [`*Fechando ${allLabel(q)} juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
+          ...q.options.slice(0, MAX_OPTIONS).flatMap((o, i) => [`*${q.combo ? 'proposta' : 'opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `total: ${money(optionTotal(o))}`, '']),
+          ...(isCombo(q) && q.comboDiscount ? [`*fechando ${allLabel(q).toLowerCase()} juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
         ]
-      : [...q.items.map(line), q.urgency ? `• Taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• Desconto — −${money(q.discount)}` : '', '', `*Investimento total: ${money(total)}*`]
-    return [...head, ...body, q.paymentTerms ? `Pagamento: ${q.paymentTerms}` : '', q.schedule ? `Prazos: ${q.schedule}` : '']
+      : [...q.items.map(line), q.urgency ? `• taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• desconto — −${money(q.discount)}` : '', '', `*investimento total: ${money(total)}*`]
+    return [...head, ...body, q.paymentTerms ? `pagamento: ${q.paymentTerms}` : '', q.schedule ? `prazos: ${q.schedule}` : '', '', 'é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre']
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
       .join('\n')
   }
@@ -364,7 +368,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             className="btn ghost"
             onClick={() =>
               navigator.clipboard
-                ?.writeText(text())
+                ?.writeText(text(false))
                 .then(() => toast('Resumo copiado.'))
                 .catch(() => toast('Não deu para copiar aqui.'))
             }
