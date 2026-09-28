@@ -294,6 +294,9 @@ function ContractEditor({ id }: { id: string }) {
               <Icon name="whatsapp" size={16} /> enviar
             </a>
           )}
+          <button className="btn ghost" onClick={() => pdf.downloadVector(doc, file)} title="Imprimir em folhas A4 (ou salvar como PDF pela impressão)">
+            <Icon name="printer" size={16} /> imprimir
+          </button>
           <button className="btn ghost" onClick={() => setZoom(true)} title="Ver o contrato em tamanho grande">
             <Icon name="eye" size={16} /> ver maior
           </button>
@@ -434,6 +437,7 @@ function TemplatesEditor() {
           restaurar modelos originais
         </button>
       </Section>
+      <SignatureField />
       {cur && (
         <Section
           title="editar modelo"
@@ -479,5 +483,38 @@ function TemplatesEditor() {
         </Section>
       )}
     </div>
+  )
+}
+
+/** Assinatura (imagem) que vai no quadro do contrato. PNG com fundo transparente fica melhor. */
+function SignatureField() {
+  const { data, setSettings } = useStore()
+  const sig = data.settings.signature
+  const pick = (f?: File) => {
+    if (!f) return
+    if (f.size > 1_500_000) return toast('Imagem muito grande: use uma de até 1,5 MB.')
+    const r = new FileReader()
+    r.onload = () => {
+      setSettings({ signature: String(r.result) })
+      toast('Assinatura salva. Ela aparece no quadro de assinatura dos contratos.')
+    }
+    r.readAsDataURL(f)
+  }
+  return (
+    <Section title="sua assinatura">
+      <p className="muted small">Envie uma foto ou imagem da sua assinatura (de preferência PNG com fundo transparente). Ela entra sozinha no quadro de assinatura de todos os contratos. Sem imagem, vai o seu nome.</p>
+      <div className="row gap-s wrap">
+        {sig && <img className="pf-sig-preview" src={sig} alt="Sua assinatura" />}
+        <label className="btn small ghost">
+          <Icon name="upload" size={14} /> {sig ? 'trocar imagem' : 'enviar imagem'}
+          <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
+        </label>
+        {sig && (
+          <button className="link small" onClick={() => setSettings({ signature: '' })}>
+            tirar assinatura
+          </button>
+        )}
+      </div>
+    </Section>
   )
 }

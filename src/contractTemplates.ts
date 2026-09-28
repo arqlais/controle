@@ -56,7 +56,7 @@ ${entrega.join('\n')}
 CLÁUSULA 6 – DAS REVISÕES E LIMITAÇÕES DE ALTERAÇÃO
 6.1 Estão incluídas até {revisoes} revisões no escopo contratado.
 6.2 Após aprovação, alterações somente mediante acréscimo de valor.
-6.3 As revisões contemplam apenas ajustes pontuais, não incluindo mudanças conceituais, que serão consideradas alteração de escopo e orçadas à parte.
+6.3 As revisões contemplam apenas ajustes pontuais, não incluindo mudanças conceituais, serão consideradas alteração de escopo e orçadas à parte.
 ${limites.join('\n')}
 
 CLÁUSULA 7 – DO VALOR E PAGAMENTO
@@ -90,7 +90,7 @@ E, por estarem de pleno acordo, as partes assinam o presente contrato por meio d
 {cidade}, {data}.`
 
 const executivoLimites = [
-  '6.4 Nos serviços de executivo e/ou detalhamento:',
+  '6.4 Nos serviços de executivo e detalhamento:',
   '• Não estão incluídas alterações no projeto arquitetônico, layout ou medidas estruturais após o início do detalhamento.',
   '• As revisões se limitam a ajustes de anotações técnicas, especificações de materiais de acabamento e representação gráfica.',
   '• Qualquer alteração que implique em refazer pranchas já finalizadas devido a mudanças de conceito será cobrada como novo escopo.',
