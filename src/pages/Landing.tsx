@@ -46,8 +46,8 @@ const FEATURES: { icon: string; title: string; text: string }[] = [
 const AUDIENCE = [
   { icon: 'building', title: 'arquitetos', text: 'do estudo ao executivo, com etapas, prazos e contratos por projeto.' },
   { icon: 'layers', title: 'designers de interiores', text: 'orçamentos por ambiente, propostas caprichadas e financeiro em dia.' },
-  { icon: 'camera', title: 'visualização 3D', text: 'preço por imagem e pacotes, rodadas de ajuste e prazos apertados sob controle.' },
-  { icon: 'ruler', title: 'freelancers e estúdios pequenos', text: 'quem faz tudo sozinho e quer parar de se perder em planilhas e conversas.' },
+  { icon: 'camera', title: 'artistas 3D', text: 'preço por imagem e pacotes, rodadas de ajuste e prazos apertados sob controle.' },
+  { icon: 'book', title: 'estudantes', text: 'freelas, faculdade e TCC na mesma agenda, com prazos e pagamentos sob controle.' },
 ]
 
 const TESTIMONIALS = [
@@ -57,6 +57,9 @@ const TESTIMONIALS = [
 ]
 
 const FAQ: [string, ReactNode][] = [
+  ['é para escritórios ou equipes?', 'Não: o sistema foi feito para freelancers, quem trabalha por conta própria. Cada conta é de uma pessoa, com os seus clientes, orçamentos e financeiro.'],
+  ['sou estudante, serve para mim?', 'Serve muito: ele nasceu justamente com uma estudante. A agenda junta faculdade, TCC e entregas dos freelas, e o financeiro mostra quanto você ganhou no mês.'],
+  ['por que não usar Trello ou Notion?', 'Eles são ótimos para listas, mas não calculam orçamento com a sua tabela, não controlam sinal e saldo, não geram proposta nem lembram de cobrar. Aqui tudo isso já vem pronto, sem montar nada.'],
   ['preciso de cartão de crédito para testar?', `Não. Você usa ${TRIAL_DAYS} dias grátis, com tudo do plano que escolher, sem cadastrar cartão.`],
   ['o que acontece quando o teste termina?', 'Você escolhe um plano para continuar. Se não quiser, seus dados ficam guardados e você pode baixar tudo quando quiser.'],
   ['funciona no celular?', 'Sim. Funciona no celular, tablet e computador, e dá para instalar como aplicativo na tela inicial. Os dados aparecem iguais em todos os aparelhos.'],
@@ -121,11 +124,11 @@ export default function Landing() {
       <section className="lp-hero">
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
-            <p className="eyebrow">para arquitetos, designers e estúdios de 3D</p>
+            <p className="eyebrow">feito para freelancers criativos</p>
             <h1>
-              seu estúdio <em>organizado</em>, do orçamento ao recibo
+              sua vida de freelancer <em>organizada</em>, do orçamento ao recibo
             </h1>
-            <p className="lp-lead">Clientes, demandas, prazos, orçamentos com a sua tabela, propostas em PDF, contratos e financeiro — num lugar só, no celular e no computador.</p>
+            <p className="lp-lead">Clientes, prazos, orçamentos com a sua tabela, propostas, contratos e financeiro num lugar só, no celular e no computador. Sem precisar juntar Trello, Notion e planilha.</p>
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />
@@ -155,20 +158,44 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="lp-strip">
-        <div className="lp-wrap lp-strip-in">
-          <span className="pf-avatar lp-strip-avatar">
-            <Icon name="building" size={20} />
-          </span>
-          <p>
-            <b>Feito por quem usa todos os dias.</b> O {PLATFORM.name} nasceu dentro de um estúdio de arquitetura e visualização 3D, para resolver a rotina de verdade: prazo apertado, cliente que some, saldo esquecido. Agora está aberto para você.
-          </p>
+      <section className="lp-section lp-story-sec" id="historia">
+        <div className="lp-wrap lp-story">
+          <figure className="card lp-story-quote">
+            <p className="eyebrow">como nasceu</p>
+            <blockquote>
+              Sou estudante de arquitetura e, quando saí do estágio para trabalhar como freelancer, senti muita falta de organização. Testei Trello, Notion, planilhas… mas nada era completo do jeito que eu precisava. Então criei o meu
+              próprio sistema. Funcionou tão bem que resolvi abrir para outros freelancers, com uma assinatura de valor baixo e tudo o que a gente usa no dia a dia.
+            </blockquote>
+            <figcaption className="muted small">criadora do {PLATFORM.name} · estudante de arquitetura e freelancer</figcaption>
+          </figure>
+          <div className="lp-compare-lists">
+            <div className="card lp-before">
+              <b>antes</b>
+              <ul>
+                <li>prazos no Trello</li>
+                <li>clientes no Notion</li>
+                <li>financeiro numa planilha</li>
+                <li>orçamento no bloco de notas</li>
+                <li>combinados perdidos no WhatsApp</li>
+              </ul>
+            </div>
+            <div className="card lp-after">
+              <b>com o {PLATFORM.name}</b>
+              <ul className="pf-checks">
+                {['tudo num lugar só', 'orçamento com a sua tabela, em minutos', 'lembrete para cobrar e para responder', 'faculdade e trabalhos na mesma agenda', 'feito para quem trabalha sozinho(a)'].map((t) => (
+                  <li key={t}>
+                    <Icon name="check" size={14} /> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="lp-section" id="recursos">
         <div className="lp-wrap">
-          <SectionHead eyebrow="o que faz" title={<>tudo o que o estúdio <em>precisa</em></>} text="Sem instalar nada e sem planilha. Você abre, cadastra o primeiro cliente e já sai usando." />
+          <SectionHead eyebrow="o que faz" title={<>tudo o que um freelancer <em>precisa</em></>} text="Sem instalar nada e sem planilha. Você abre, cadastra o primeiro cliente e já sai usando." />
           <div className="lp-features">
             {FEATURES.map((f) => (
               <article key={f.title} className="lp-feature">
@@ -185,14 +212,14 @@ export default function Landing() {
 
       <section className="lp-section lp-alt" id="telas">
         <div className="lp-wrap">
-          <SectionHead eyebrow="telas de exemplo" title={<>veja <em>por dentro</em></>} text="Dados fictícios, telas de verdade: é exatamente assim que fica no seu estúdio." />
+          <SectionHead eyebrow="telas de exemplo" title={<>veja <em>por dentro</em></>} text="Dados fictícios, telas de verdade: é exatamente assim que fica para você." />
           <Screens />
         </div>
       </section>
 
       <section className="lp-section">
         <div className="lp-wrap">
-          <SectionHead eyebrow="para quem é" title={<>feito para quem <em>projeta</em></>} />
+          <SectionHead eyebrow="para quem é" title={<>feito para <em>freelancers</em></>} text="Para quem trabalha por conta própria, sozinho(a), e quer cuidar do trabalho em vez de se perder na organização." />
           <div className="lp-audience">
             {AUDIENCE.map((a) => (
               <article key={a.title} className="card lp-aud">
@@ -222,7 +249,7 @@ export default function Landing() {
 
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
-          <SectionHead eyebrow="planos e preços" title={<>simples, <em>sem fidelidade</em></>} text={`Teste grátis por ${TRIAL_DAYS} dias com tudo do plano escolhido. Depois, é só escolher como continuar.`} />
+          <SectionHead eyebrow="planos e preços" title={<>preço de freelancer, <em>sem fidelidade</em></>} text={`Uma assinatura de valor baixo, pensada para quem está começando. Teste grátis por ${TRIAL_DAYS} dias com tudo do plano escolhido.`} />
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p) => (
               <article key={p.id} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`}>
@@ -278,7 +305,7 @@ export default function Landing() {
 
       <section className="lp-section">
         <div className="lp-wrap">
-          <SectionHead eyebrow="depoimentos" title={<>quem já <em>organizou</em> o estúdio</>} />
+          <SectionHead eyebrow="depoimentos" title={<>freelancers mais <em>organizados</em></>} />
           <div className="lp-testimonials">
             {TESTIMONIALS.map((t) => (
               <figure key={t.name} className="card lp-quote">

@@ -7,7 +7,7 @@
 export const PLATFORM = {
   name: 'traço', // nome provisório
   provisional: true, // mostra o aviso "nome provisório" na prévia e no painel
-  tagline: 'o sistema do seu estúdio',
+  tagline: 'o sistema do freelancer que projeta',
   owner: 'Laís', // só aparece para você (painel, prévia)
   // como os clientes chamam quem responde o chat (troque por 'CEO', 'desenvolvedora'…)
   support: 'administração',
