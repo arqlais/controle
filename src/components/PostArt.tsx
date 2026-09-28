@@ -1,3 +1,4 @@
+import { renderSheet } from './Print'
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Modal } from './ui'
@@ -228,7 +229,7 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
       const { toPng } = await import('html-to-image')
       const list = nodes()
       for (let i = 0; i < list.length; i++) {
-        const url = await toPng(list[i], { pixelRatio: 1, cacheBust: true, width: w, height: h })
+        const url = await renderSheet(list[i], toPng, { pixelRatio: 1, width: w, height: h })
         const a = document.createElement('a')
         a.href = url
         a.download = `${fileBase(source.title)} - ${String(i + 1).padStart(2, '0')}.png`
@@ -243,7 +244,7 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
       const doc = new jsPDF({ unit: 'px', format: [w, h], orientation: 'portrait', hotfixes: ['px_scaling'] })
       const list = nodes()
       for (let i = 0; i < list.length; i++) {
-        const canvas = await toCanvas(list[i], { pixelRatio: 1, cacheBust: true, width: w, height: h })
+        const canvas = await renderSheet(list[i], toCanvas, { pixelRatio: 1, width: w, height: h })
         if (i) doc.addPage([w, h], 'portrait')
         doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, w, h)
       }

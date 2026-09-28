@@ -35,6 +35,30 @@ export function DocScale({ children }: { children: ReactNode }) {
 /** Gera e baixa o PDF direto (sem a janela de impressão).
  *  A folha é desenhada fora da tela, convertida em imagem de alta resolução
  *  e colocada em páginas A4. */
+// imagem que falhar vira um pixel transparente (não derruba a geração)
+const BLANK = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+
+/** Desenha a folha em imagem; se algo falhar (fonte ou imagem de fora), tenta de novo de jeitos mais simples. */
+export async function renderSheet<T>(el: HTMLElement, fn: (el: HTMLElement, o: Record<string, unknown>) => Promise<T>, base: Record<string, unknown>): Promise<T> {
+  const tries: Record<string, unknown>[] = [
+    { cacheBust: true, imagePlaceholder: BLANK },
+    { cacheBust: false, imagePlaceholder: BLANK },
+    { cacheBust: false, imagePlaceholder: BLANK, skipFonts: true },
+  ]
+  let last: unknown
+  for (const t of tries) {
+    try {
+      return await fn(el, { ...base, ...t })
+    } catch (e) {
+      last = e
+      console.error('PDF: nova tentativa', e)
+    }
+  }
+  throw last
+}
+
+export const errText = (e: unknown) => (e instanceof Event ? 'uma imagem não carregou' : e instanceof Error ? e.message : String(e)).slice(0, 80)
+
 export function usePdf() {
   const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
@@ -52,7 +76,7 @@ export function usePdf() {
         if (job.png) {
           // imagem para mandar no WhatsApp
           const { toPng } = await import('html-to-image')
-          const url = await toPng(el, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' })
+          const url = await renderSheet(el, toPng, { pixelRatio: 2, backgroundColor: '#ffffff' })
           const link = document.createElement('a')
           link.href = url
           link.download = job.filename
@@ -61,7 +85,7 @@ export function usePdf() {
           return
         }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
-        const canvas = await toCanvas(el, { pixelRatio: 2.5, cacheBust: true, backgroundColor: '#ffffff' })
+        const canvas = await renderSheet(el, toCanvas, { pixelRatio: 2.5, backgroundColor: '#ffffff' })
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true })
         const pageW = 210
         const pageH = 297
@@ -77,8 +101,9 @@ export function usePdf() {
         }
         pdf.save(job.filename)
         toast('PDF baixado.')
-      } catch {
-        toast('Não foi possível gerar o PDF. Tente de novo.')
+      } catch (err) {
+        console.error('PDF', err)
+        toast(`Não foi possível gerar o ${job.png ? 'arquivo' : 'PDF'} (${errText(err)}). Tente de novo ou me mande um print desta mensagem.`)
       } finally {
         if (!cancelled) setJob(null)
       }
