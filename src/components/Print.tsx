@@ -76,7 +76,7 @@ export function usePdf() {
         if (job.png) {
           // imagem para mandar no WhatsApp
           const { toPng } = await import('html-to-image')
-          const url = await renderSheet(el, toPng, { pixelRatio: 2, backgroundColor: '#ffffff' })
+          const url = await renderSheet(el, toPng, { pixelRatio: 2 }) // sem backgroundColor: ele pintava a folha de branco por cima do fundo do modelo
           const link = document.createElement('a')
           link.href = url
           link.download = job.filename
@@ -85,7 +85,7 @@ export function usePdf() {
           return
         }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
-        const canvas = await renderSheet(el, toCanvas, { pixelRatio: 2.5, backgroundColor: '#ffffff' })
+        const canvas = await renderSheet(el, toCanvas, { pixelRatio: 2.5 })
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true })
         const pageW = 210
         const pageH = 297
@@ -97,7 +97,8 @@ export function usePdf() {
           slice.height = Math.min(pxPerPage, canvas.height - i * pxPerPage)
           slice.getContext('2d')!.drawImage(canvas, 0, -i * pxPerPage)
           if (i) pdf.addPage()
-          pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pageW, (slice.height * pageW) / canvas.width)
+          // PNG (sem perda): o JPEG desbotava as cores chapadas do modelo
+          pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, 0, pageW, (slice.height * pageW) / canvas.width, undefined, 'FAST')
         }
         pdf.save(job.filename)
         toast('PDF baixado.')

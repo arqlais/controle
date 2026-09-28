@@ -246,7 +246,7 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
       for (let i = 0; i < list.length; i++) {
         const canvas = await renderSheet(list[i], toCanvas, { pixelRatio: 1, width: w, height: h })
         if (i) doc.addPage([w, h], 'portrait')
-        doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, w, h)
+        doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h, undefined, 'FAST')
       }
       doc.save(`${fileBase(source.title)}.pdf`)
       toast('PDF baixado.')
