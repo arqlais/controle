@@ -88,7 +88,8 @@ export interface ProjectItem {
   id: string
   title: string
   price: number
-  removed?: boolean
+  removed?: boolean // cliente cancelou depois de fechado (fica no histórico, não é apagado)
+  removedAt?: string
 }
 
 export interface Project {

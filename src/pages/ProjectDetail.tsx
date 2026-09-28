@@ -632,12 +632,15 @@ function PackageSection({ p, client, save }: { p: Project; client?: Client; save
       <div className="pkg-list">
         {items.map((i) => (
           <div key={i.id} className={`pkg-row ${i.removed ? 'is-removed' : ''}`}>
-            <input className="cell-input" value={i.title} onChange={(e) => setItem(i.id, { title: e.target.value })} placeholder="Projeto" disabled={i.removed} />
+            <div className="pkg-title">
+              <input className="cell-input" value={i.title} onChange={(e) => setItem(i.id, { title: e.target.value })} placeholder="Projeto" disabled={i.removed} />
+              {i.removed && <span className="pkg-cancel">cancelado pelo cliente{i.removedAt ? ` em ${fmtDate(i.removedAt)}` : ''} · continua no histórico e no orçamento</span>}
+            </div>
             <div style={{ width: 140 }}>
               <MoneyInput value={i.price} onChange={(n) => setItem(i.id, { price: n })} />
             </div>
-            <button className={`btn small ${i.removed ? '' : 'ghost'}`} onClick={() => setItem(i.id, { removed: !i.removed })} title={i.removed ? 'Voltar para o pacote' : 'Cliente cancelou este projeto'}>
-              {i.removed ? 'voltar' : 'retirar'}
+            <button className={`btn small ${i.removed ? '' : 'ghost'}`} onClick={() => setItem(i.id, { removed: !i.removed, removedAt: i.removed ? undefined : today() })} title={i.removed ? 'Voltar para o pacote (desfaz o cancelamento)' : 'Cliente cancelou este projeto: sai do valor, mas fica registrado'}>
+              {i.removed ? 'voltar' : 'cliente cancelou'}
             </button>
             <button className="icon-btn" title="Apagar item (lançado por engano)" onClick={async () => (await askDelete(`o item "${i.title || 'sem nome'}"`)) && apply(items.filter((x) => x.id !== i.id))}>
               <Icon name="trash" size={15} />

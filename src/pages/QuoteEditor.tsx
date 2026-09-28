@@ -35,6 +35,7 @@ import {
   COMPLEXITY,
   QUOTE_STATUS,
   cleanDetail,
+  fmtDate,
   fmtDateLong,
   isStudent,
   itemDetail,
@@ -695,6 +696,15 @@ export default function QuoteEditor({ id }: { id: string }) {
                 options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
               />
             )}
+            {(() => {
+              // projetos que a cliente cancelou depois de fechado: a proposta fica como foi enviada
+              const gone = (data.projects.find((x) => x.id === q.projectId)?.items ?? []).filter((i) => i.removed)
+              return gone.length ? (
+                <p className="small cancel-note">
+                  Depois do fechamento, a cliente cancelou: {gone.map((i) => `${i.title} (${money(i.price)}${i.removedAt ? ` · ${fmtDate(i.removedAt)}` : ''})`).join(', ')}. A proposta continua como foi enviada; o valor foi ajustado na demanda.
+                </p>
+              ) : null
+            })()}
             {q.closedValue || q.closedNote ? (
               <p className="small muted">
                 {q.closedValue ? (
