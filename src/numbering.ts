@@ -15,7 +15,7 @@ export interface Renumber {
 export function renumberPlan(quotes: Quote[]): Renumber[] {
   const fixed = quotes.filter((q) => q.status !== 'rascunho' && q.pdf && q.number > 0)
   const noPdf = quotes.filter((q) => q.status !== 'rascunho' && !q.pdf).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number)
-  const drafts = quotes.filter((q) => q.status === 'rascunho').sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number)
+  const drafts = quotes.filter((q) => q.status === 'rascunho' && !q.imported).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number)
   const used = new Set(fixed.map((q) => q.number))
   const byNumber = [...fixed].sort((a, b) => a.number - b.number)
   const plan: Renumber[] = []
@@ -56,10 +56,11 @@ export function renumberPlan(quotes: Quote[]): Renumber[] {
   return plan
 }
 
-/** Depois de um orçamento voltar para rascunho: os rascunhos vão para depois do último número
- *  (em ordem de data). Enviados e aprovados não mudam. Devolve só os rascunhos que mudam de número. */
+/** Rascunhos sempre depois do último número enviado/aprovado, em ordem de data (e pelo número atual no mesmo dia).
+ *  Enviados e aprovados nunca mudam. Devolve só os rascunhos que mudam de número. */
 export function draftRenumber(quotes: Quote[]): { id: string; number: number }[] {
-  return renumberPlan(quotes)
-    .filter((r) => r.why === 'rascunho')
-    .map((r) => ({ id: r.id, number: r.to }))
+  // antigos importados contam como número usado (mesmo em rascunho)
+  const max = Math.max(0, ...quotes.filter((q) => q.status !== 'rascunho' || q.imported).map((q) => q.number || 0))
+  const drafts = quotes.filter((q) => q.status === 'rascunho' && !q.imported).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || (a.number || 0) - (b.number || 0))
+  return drafts.map((q, i) => ({ id: q.id, number: max + 1 + i })).filter((r, i) => r.number !== drafts[i].number)
 }

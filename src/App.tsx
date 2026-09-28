@@ -5,6 +5,7 @@ import type { SyncStatus } from './store'
 import { applyTheme, useDeviceDark } from './theme'
 import { BRAND_KEY, signOut } from './components/Auth'
 import { CLOUD } from './cloud'
+import { draftRenumber } from './numbering'
 import { AvatarGlyph } from './components/Avatar'
 import { AIChat } from './components/AIChat'
 import { StatusDialogHost } from './components/quick'
@@ -44,7 +45,15 @@ const TOOLS = [
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 
 export default function App() {
-  const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample } = useStore()
+  const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample, upsert } = useStore()
+  // rascunhos de orçamento sempre depois do último número enviado/aprovado, em ordem de data
+  useEffect(() => {
+    if (sync === 'loading' || isSample) return
+    for (const r of draftRenumber(data.quotes)) {
+      const q = data.quotes.find((x) => x.id === r.id)
+      if (q) upsert('quotes', { ...q, number: r.number })
+    }
+  }, [data.quotes, sync, isSample, upsert])
   // olho: com dados de exemplo salvos, liga/desliga o aviso; com dados reais, mostra o exemplo só na tela
   const ownDemo = !isSample && (data.demo || hasDemoData(data))
   const exampleOn = isSample || (ownDemo && data.demo)

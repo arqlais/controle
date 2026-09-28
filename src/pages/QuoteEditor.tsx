@@ -115,6 +115,12 @@ export default function QuoteEditor({ id }: { id: string }) {
         projectId: '',
       },
   )
+  // rascunho renumerado automaticamente (ex.: outro orçamento foi enviado): mostra o número novo
+  const storedNumber = data.quotes.find((x) => x.id === q.id)?.number
+  useEffect(() => {
+    if (storedNumber && q.status === 'rascunho' && storedNumber !== q.number) setQ((x) => ({ ...x, number: storedNumber }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedNumber])
   const [newClient, setNewClient] = useState(false)
   const [editClient, setEditClient] = useState(false)
   const [dirty, setDirty] = useState(!existing)

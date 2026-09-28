@@ -86,6 +86,7 @@ export function mergeQuotePack(data: Data, pack: QuotePack, urgencyFee: number) 
     const q: Quote = {
       id: uid(),
       number: pq.number,
+      imported: true, // número real de um orçamento antigo: não entra na reorganização dos rascunhos
       clientId: c?.id ?? '',
       title: pq.title,
       mode: two ? 'opcoes' : 'escopo',

@@ -234,6 +234,7 @@ export interface Quote {
   status: QuoteStatus
   sentAt: string // quando foi enviado ao cliente (para lembrar de cobrar resposta)
   closedAt?: string // quando a cliente fechou (pode ser dias depois do orçamento)
+  imported?: boolean // veio da importação de orçamentos antigos (mantém o número real)
   dateFixed?: boolean // rascunho com data escolhida por ela (senão a data vai para hoje ao abrir)
   createdAt: string
   projectId: string
