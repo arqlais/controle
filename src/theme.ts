@@ -79,6 +79,8 @@ export function applyTheme(s: Settings, dark = false) {
   }
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
+  // cantos em 0: deixa tudo reto, não só os cartões
+  root.dataset.square = s.radius <= 1 ? '1' : ''
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
   // aba do navegador: "nome do estúdio · meu estúdio" (sem nome ainda, só "meu estúdio")
   const brand = s.brandName.replace(/\.$/, '').trim()

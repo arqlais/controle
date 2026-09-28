@@ -2,35 +2,28 @@ import { MsgTools, WaPreview } from '../components/MsgTools'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
-import { DEFAULT_SETTINGS, demoData, emptyData, normalize, useStore } from '../store'
+import { demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, MESSAGE_VARS, PRICING, download, money, nextQuoteNumber, today, uid } from '../utils'
+import { COMPLEXITY, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
 import { CLOUD } from '../cloud'
-
-const PRESETS: { name: string; s: Partial<Settings> }[] = [
-  { name: 'laís (site)', s: { accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57' } },
-  { name: 'Preto & areia', s: { accent: '#1c1c1c', accentSoft: '#b89b7a', accentInk: '#8f7458', background: '#f4f1ec', surface: '#ffffff', text: '#1c1c1c' } },
-  { name: 'Branco galeria', s: { accent: '#111111', accentSoft: '#9a9a9a', background: '#fafafa', surface: '#ffffff', text: '#111111' } },
-  { name: 'Terracota', s: { accent: '#a4553a', accentSoft: '#d9b99b', background: '#f6f0ea', surface: '#fffdfb', text: '#2b211c' } },
-  { name: 'Oliva', s: { accent: '#4f5b3a', accentSoft: '#c2b79a', background: '#f2f1ea', surface: '#ffffff', text: '#1f2419' } },
-  { name: 'Azul concreto', s: { accent: '#2f4a6b', accentSoft: '#a9b4bf', background: '#eef0f2', surface: '#ffffff', text: '#1a2230' } },
-  { name: 'Rosé', s: { accent: '#8a4b5a', accentSoft: '#e0bfc3', background: '#f8f1f0', surface: '#ffffff', text: '#2a1d20' } },
-]
-
-const DISPLAY_FONTS = ['The Seasons', 'Cormorant Garamond']
-const BODY_FONTS = ['Poppins']
+import { BrandKit } from '../components/BrandKit'
+import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
+import { useAccess } from '../access'
+import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
+import { contractSettings } from '../contracts'
+import { PLANS } from '../plans'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
   { id: 'aparencia', label: 'aparência', hint: 'cores, fontes e tema', icon: 'star' },
   { id: 'precos', label: 'preços', hint: 'tabela e regras', icon: 'wallet', desktop: true },
-  { id: 'propostas', label: 'propostas', hint: 'modelo do PDF e padrões', icon: 'file', desktop: true },
+  { id: 'propostas', label: 'propostas', hint: 'modelo do PDF, contratos e padrões', icon: 'file' },
   { id: 'mensagens', label: 'mensagens', hint: 'textos para a cliente', icon: 'whatsapp', desktop: true },
   { id: 'metas', label: 'metas', hint: 'faturamento e MEI', icon: 'target', desktop: true },
   { id: 'ia', label: 'assistente', hint: 'chat com IA sobre orçamentos', icon: 'sparkle' },
@@ -40,6 +33,9 @@ const TAB_KEY = 'config-aba'
 
 export default function SettingsPage() {
   const narrow = typeof window !== 'undefined' && window.matchMedia('(max-width: 820px)').matches
+  const { has } = useAccess()
+  // assistente de IA: só no plano da dona (clientes conversam com ela pelo chat)
+  const tabs = TABS.filter((t) => t.id !== 'ia' || has('assistenteIA'))
   const [tab, setTab] = useState<TabId>(() => {
     let saved: TabId | null = null
     try {
@@ -47,7 +43,7 @@ export default function SettingsPage() {
     } catch {
       /* sem armazenamento */
     }
-    const ok = TABS.find((t) => t.id === saved && (!narrow || !t.desktop))
+    const ok = tabs.find((t) => t.id === saved && (!narrow || !t.desktop))
     return ok ? ok.id : 'aparencia'
   })
   const [showKey, setShowKey] = useState(false)
@@ -63,18 +59,6 @@ export default function SettingsPage() {
   const s = data.settings
   const [dark, setDark] = useDeviceDark()
   const fileRef = useRef<HTMLInputElement>(null)
-  const fontRef = useRef<HTMLInputElement>(null)
-
-  const onFont = (f?: File) => {
-    if (!f) return
-    if (f.size > 900_000) return toast('Arquivo de fonte muito grande (máx. 900 KB). Prefira .woff2 ou .woff.')
-    const r = new FileReader()
-    r.onload = () => {
-      setSettings({ customFont: String(r.result), displayFont: 'The Seasons' })
-      toast('Fonte The Seasons aplicada.')
-    }
-    r.readAsDataURL(f)
-  }
 
   const onImport = (f?: File) => {
     if (!f) return
@@ -117,7 +101,7 @@ export default function SettingsPage() {
 
       <div className="settings-layout">
         <nav className="settings-tabs" aria-label="Seções das configurações">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t.id} className={`settings-tab ${tab === t.id ? 'active' : ''} ${t.desktop ? 'desktop-only' : ''}`} onClick={() => pickTab(t.id)}>
               <Icon name={t.icon} size={17} />
               <span>
@@ -126,112 +110,24 @@ export default function SettingsPage() {
               </span>
             </button>
           ))}
-          <p className="settings-note mobile-only">Preços, propostas, mensagens e metas são editados no computador.</p>
+          <p className="settings-note mobile-only">Preços, cores da proposta, mensagens e metas são editados no computador.</p>
         </nav>
 
         <div className="settings-panel">
           {tab === 'aparencia' && (
             <>
-              <Section title="identidade visual" className="desktop-only">
-                <p className="muted small">Cores e fontes iguais às do seu site. Logo, nome e contatos ficam no <a href="#/perfil" className="link">perfil</a>.</p>
-                <div className="form-grid">
-                </div>
-
-                <div className="presets">
-                  {PRESETS.map((p) => (
-                    <button key={p.name} className="preset" onClick={() => setSettings(p.s)} title={p.name}>
-                      <span style={{ background: p.s.background }}>
-                        <i style={{ background: p.s.accent }} />
-                        <i style={{ background: p.s.accentSoft }} />
-                      </span>
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="form-grid">
-                  {(
-                    [
-                      ['accent', 'Cor principal'],
-                      ['accentSoft', 'Rosé'],
-                      ['accentInk', 'Rosé dos itálicos'],
-                      ['background', 'Fundo'],
-                      ['surface', 'Cartões'],
-                      ['text', 'Texto'],
-                    ] as [keyof Settings, string][]
-                  ).map(([k, label]) => (
-                    <Field key={k} label={label}>
-                      <div className="color-input">
-                        <input type="color" value={s[k] as string} onChange={(e) => setSettings({ [k]: e.target.value })} />
-                        <input value={s[k] as string} onChange={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value) && setSettings({ [k]: e.target.value })} maxLength={7} />
-                      </div>
-                    </Field>
-                  ))}
-                  <Field label="Fonte dos títulos">
-                    <select value={s.displayFont} onChange={(e) => setSettings({ displayFont: e.target.value })}>
-                      {DISPLAY_FONTS.map((f) => (
-                        <option key={f} style={{ fontFamily: f }}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field
-                    label="Fonte dos itálicos"
-                    span={3}
-                    hint={
-                      s.customFont
-                        ? 'Usando o arquivo enviado.'
-                        : 'A The Seasons já vem embutida no sistema. Envie outro arquivo só se quiser trocar a fonte dos títulos.'
-                    }
-                  >
-                    <div className="row gap-s">
-                      <button className="btn small" onClick={() => fontRef.current?.click()}>
-                        <Icon name="upload" size={14} /> {s.customFont ? 'Trocar arquivo' : 'Enviar outra fonte'}
-                      </button>
-                      {s.customFont && (
-                        <button className="btn small ghost" onClick={() => setSettings({ customFont: '' })}>
-                          Remover
-                        </button>
-                      )}
-                      <span className="font-sample">
-                        <em>você projeta</em>
-                      </span>
-                      <input ref={fontRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" hidden onChange={(e) => onFont(e.target.files?.[0])} />
-                    </div>
-                  </Field>
-                  <Field label="Fonte do texto">
-                    <select value={s.bodyFont} onChange={(e) => setSettings({ bodyFont: e.target.value })}>
-                      {BODY_FONTS.map((f) => (
-                        <option key={f}>{f}</option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label={`Cantos arredondados · ${s.radius}px`}>
-                    <input type="range" min={0} max={20} value={s.radius} onChange={(e) => setSettings({ radius: Number(e.target.value) })} />
-                  </Field>
-                </div>
-                <div className="row gap-s">
-                  <button
-                    className="btn small ghost"
-                    onClick={() =>
-                      setSettings({
-                        accent: DEFAULT_SETTINGS.accent,
-                        accentSoft: DEFAULT_SETTINGS.accentSoft,
-                        accentInk: DEFAULT_SETTINGS.accentInk,
-                        background: DEFAULT_SETTINGS.background,
-                        surface: DEFAULT_SETTINGS.surface,
-                        text: DEFAULT_SETTINGS.text,
-                        displayFont: DEFAULT_SETTINGS.displayFont,
-                        bodyFont: DEFAULT_SETTINGS.bodyFont,
-                        radius: DEFAULT_SETTINGS.radius,
-                      })
-                    }
-                  >
-                    Restaurar padrão
-                  </button>
-                </div>
-              </Section>
+              {has('identidade') ? (
+                <BrandKit />
+              ) : (
+                <Section title="identidade visual">
+                  <p className="muted small">
+                    Logo, cores e fontes do seu estúdio fazem parte do plano <b>{PLANS.completo.name}</b>. No {PLANS.essencial.name}, o sistema usa o visual padrão da plataforma.{' '}
+                    <a className="link" href="#/assinatura">
+                      ver planos
+                    </a>
+                  </p>
+                </Section>
+              )}
               <Section title="tema deste aparelho">
                 <div className="form-grid">
                   <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
@@ -264,7 +160,7 @@ export default function SettingsPage() {
               }
             >
               <p className="muted small">
-                Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b> ou <b>valor livre</b>{' '}
+                Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b>, <b>por hora</b> (no orçamento você coloca quantas horas) ou <b>valor livre</b>{' '}
                 (você digita no orçamento). Estudantes recebem {s.studentDiscount}% de desconto na sugestão. No orçamento você sempre pode digitar outro valor.
               </p>
               <div className="services">
@@ -272,7 +168,7 @@ export default function SettingsPage() {
                   <div key={x.id} className="service-row">
                     <div className="service-main">
                       <input className="service-name" value={x.name} onChange={(e) => setService(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
-                      <select value={x.pricing} onChange={(e) => setService(x.id, { pricing: e.target.value as Pricing, unit: e.target.value === 'm2' ? 'm²' : x.unit === 'm²' ? 'unidade' : x.unit })} aria-label="Forma de preço">
+                      <select value={x.pricing} onChange={(e) => setService(x.id, { pricing: e.target.value as Pricing, unit: e.target.value === 'm2' ? 'm²' : e.target.value === 'hora' ? 'hora' : x.unit === 'm²' || x.unit === 'hora' ? 'unidade' : x.unit })} aria-label="Forma de preço">
                         {(Object.keys(PRICING) as Pricing[]).map((k) => (
                           <option key={k} value={k}>
                             {PRICING[k]}
@@ -419,7 +315,8 @@ export default function SettingsPage() {
 
           {tab === 'propostas' && (
             <>
-              <ProposalSettings />
+              <ProposalChooser />
+              {has('propostaPdf') && <ProposalSettings />}
               <Section title="numeração e padrões" className="desktop-only">
                 <div className="form-grid">
                   <Field label="Começar a contagem em" hint={`Os orçamentos seguem em ordem a partir daqui. Próximo: #${String(nextQuoteNumber(data)).padStart(3, '0')}.`}>
@@ -448,7 +345,7 @@ export default function SettingsPage() {
             </Section>
           )}
 
-          {tab === 'ia' && (
+          {tab === 'ia' && has('assistenteIA') && (
             <>
               <Section title="assistente de orçamentos">
                 <p className="muted small" style={{ marginTop: 0 }}>
@@ -572,9 +469,12 @@ export default function SettingsPage() {
 /** Textos, fontes e cores da proposta em PDF, com pré-visualização. */
 function ProposalSettings() {
   const { data, setSettings } = useStore()
+  const { has } = useAccess()
   const s = data.settings
-  const p = s.proposal
-  const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch } })
+  const tpl = resolveTemplate(s.proposal, has)
+  // cores que a folha usa de verdade; ao editar, o modelo fica fixado nesta conta
+  const p = sheetColors(s.proposal, has)
+  const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch, template: tpl.id } })
   const [mode, setMode] = useState<'escopo' | 'opcoes'>('escopo')
   const sample: Quote = {
     id: 'amostra',
@@ -616,7 +516,7 @@ function ProposalSettings() {
     projectId: '',
   }
   return (
-    <Section title="modelo da proposta (PDF)" className="desktop-only">
+    <Section title="cores e textos da proposta" className={`desktop-only ${s.proposal.pdfOff ? 'is-dimmed' : ''}`}>
       <div className="proposal-settings">
         <div className="stack">
           <div className="form-grid">
@@ -628,8 +528,15 @@ function ProposalSettings() {
             </Field>
             <Field label="Fonte dos títulos">
               <select value={p.serif} onChange={(e) => setP({ serif: e.target.value })}>
-                {['Cormorant Garamond', 'The Seasons'].map((f) => (
+                {[...(has('fonteExclusiva') ? [EXCLUSIVE_FONT] : []), ...DISPLAY_FONTS.map((f) => f.name)].map((f) => (
                   <option key={f}>{f}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Fonte dos textos">
+              <select value={p.sans} onChange={(e) => setP({ sans: e.target.value })}>
+                {BODY_FONTS.map((f) => (
+                  <option key={f.name}>{f.name}</option>
                 ))}
               </select>
             </Field>
@@ -642,10 +549,13 @@ function ProposalSettings() {
             <Field label="Pagamento (padrão)" span={3} hint="Usado em todo orçamento novo; dá para mudar em cada um.">
               <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
             </Field>
+            <Field label="Formas de receber" span={3} hint="Aparecem ao marcar como o cliente pagou cada parcela. Toque no × para tirar uma.">
+              <PayMethods list={paymentMethods(s)} onChange={(paymentMethods) => setSettings({ paymentMethods })} />
+            </Field>
             {(
               [
-                ['ink', 'Azul (textos)'],
-                ['rose', 'Rosé (rótulos)'],
+                ['ink', 'Textos'],
+                ['rose', 'Rótulos e detalhes'],
                 ['arch', 'Faixa do total'],
                 ['bar', 'Faixa do topo e ícones'],
                 ['paper', 'Fundo'],
@@ -661,8 +571,8 @@ function ProposalSettings() {
           </div>
           <p className="muted small">
             A faixa do topo usa seu nome completo; o rodapé usa WhatsApp, Instagram, site e e-mail (em Seus dados).{' '}
-            <button className="link" onClick={() => setSettings({ proposal: DEFAULT_PROPOSAL })}>
-              restaurar modelo original
+            <button className="link" onClick={() => setSettings({ proposal: { ...DEFAULT_PROPOSAL, ...tpl.colors, template: tpl.id, pdfOff: s.proposal.pdfOff, schedule: s.proposal.schedule, files: s.proposal.files } })}>
+              restaurar cores e textos do modelo
             </button>
           </p>
         </div>
@@ -735,5 +645,103 @@ function MsgEditor({ value, onChange }: { value: string; onChange: (v: string) =
       <textarea ref={ref} rows={Math.min(12, Math.max(3, value.split('\n').length + 1))} value={value} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="none" autoCorrect="on" />
       <WaPreview text={value} />
     </>
+  )
+}
+
+/** Escolha do modelo da proposta, PDF ligado/desligado e contratos (vale em qualquer aparelho). */
+function ProposalChooser() {
+  const { data, setSettings } = useStore()
+  const { has } = useAccess()
+  const s = data.settings
+  const current = resolveTemplate(s.proposal, has)
+  const cs = contractSettings(s, has('modeloExclusivo'))
+  const pick = (id: string) => {
+    const t = TEMPLATES.find((x) => x.id === id)!
+    // cada modelo vem com as cores dele; textos e padrões da conta continuam
+    setSettings({ proposal: { ...s.proposal, ...t.colors, template: id } })
+    toast(`Modelo “${t.name}” aplicado.`)
+  }
+  const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
+  return (
+    <Section title="modelo da proposta">
+      {!has('propostaPdf') && (
+        <p className="pf-note">
+          <Icon name="lock" size={16} />
+          <span>
+            No plano {PLANS.essencial.name} o orçamento sai como <b>texto pronto</b> para colar no WhatsApp. Proposta e recibos em PDF, com modelos e a sua identidade, fazem parte do plano{' '}
+            <a className="link" href="#/assinatura">
+              {PLANS.completo.name}
+            </a>
+            .
+          </span>
+        </p>
+      )}
+      {has('propostaPdf') && (
+        <label className="check toggle">
+          <input type="checkbox" checked={!s.proposal.pdfOff} onChange={(e) => setSettings({ proposal: { ...s.proposal, pdfOff: !e.target.checked } })} /> usar proposta em PDF
+        </label>
+      )}
+      {has('propostaPdf') && <p className="muted small" style={{ marginTop: 4 }}>
+        {s.proposal.pdfOff ? 'Desligado: o orçamento vai só como resumo no WhatsApp (com os valores de cada serviço).' : 'Ligado: cada orçamento pode gerar o PDF no modelo escolhido abaixo.'}
+      </p>}
+      {has('propostaPdf') && !s.proposal.pdfOff && (
+        <div className="pf-tpl-grid">
+          {visible.map((t) => {
+            const allowed = templateAllowed(t, has)
+            return (
+              <button key={t.id} className={`pf-tpl ${current.id === t.id ? 'active' : ''} ${allowed ? '' : 'is-locked'}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
+                <span className={`pf-tpl-thumb tpl-thumb-${t.id}`} style={{ '--t-bar': t.colors.bar, '--t-arch': t.colors.arch, '--t-paper': t.colors.paper, '--t-ink': t.colors.ink } as React.CSSProperties}>
+                  <i />
+                  <b />
+                  <u />
+                  <s />
+                </span>
+                <span className="pf-tpl-name">
+                  <b>{t.name}</b>
+                  <small className="muted">{allowed ? t.description : 'exclusivo'}</small>
+                </span>
+                {current.id === t.id && <Icon name="check" size={16} className="pf-tpl-check" />}
+                {!allowed && <Icon name="lock" size={14} className="pf-tpl-check" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {has('contratos') && (
+        <>
+          <label className="check toggle">
+            <input type="checkbox" checked={!cs.off} onChange={(e) => setSettings({ contracts: { ...cs, off: !e.target.checked } })} /> usar contratos
+          </label>
+          <p className="muted small" style={{ marginTop: 4 }}>
+            {cs.off ? 'Desligado: os contratos somem do menu (nada é apagado).' : 'Contratos a partir do orçamento, com modelos editáveis, no menu “contratos”.'}
+          </p>
+        </>
+      )}
+    </Section>
+  )
+}
+
+/** Lista editável das formas de receber (Pix, transferência…). */
+function PayMethods({ list, onChange }: { list: string[]; onChange: (l: string[]) => void }) {
+  const [add, setAdd] = useState('')
+  const push = () => {
+    const v = add.trim()
+    if (v && !list.some((m) => m.toLowerCase() === v.toLowerCase())) onChange([...list, v])
+    setAdd('')
+  }
+  return (
+    <div className="pay-methods">
+      {list.map((m) => (
+        <span key={m} className="chip">
+          {m}
+          {list.length > 1 && (
+            <button type="button" className="chip-x" onClick={() => onChange(list.filter((x) => x !== m))} aria-label={`Tirar ${m}`}>
+              ×
+            </button>
+          )}
+        </span>
+      ))}
+      <input id="pay-method-add" value={add} placeholder="+ outra forma (ex.: boleto)" onChange={(e) => setAdd(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), push())} onBlur={push} />
+    </div>
   )
 }

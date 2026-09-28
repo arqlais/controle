@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAccess } from '../access'
 import { BillModal } from '../components/Bill'
 import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
@@ -14,7 +15,7 @@ import { requestStatus } from '../components/quick'
 import type { Client, Extra, Payment, Priority, Project, ProjectItem, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
-  PAYMENT_METHODS,
+  paymentMethods,
   PRIORITY,
   statusInfo,
   allStatuses,
@@ -54,6 +55,7 @@ export default function ProjectDetail({ id }: { id: string }) {
   const hasPackage = (p?.items ?? []).length > 0
   const [task, setTask] = useState('')
   const pdf = usePdf()
+  const canPdf = useAccess().has('propostaPdf') // recibos em PDF: plano Completo
 
   const duplicate = () => {
     if (!p) return
@@ -228,9 +230,11 @@ export default function ProjectDetail({ id }: { id: string }) {
                     <Icon name="whatsapp" size={14} /> Cobrar
                   </a>
                 )}
-                <button className="btn small ghost" onClick={() => setBill(true)} title="Recibo com o total, o que já foi pago e o que falta (PDF ou PNG)">
-                  <Icon name="file" size={14} /> Recibo
-                </button>
+                {canPdf && (
+                  <button className="btn small ghost" onClick={() => setBill(true)} title="Recibo com o total, o que já foi pago e o que falta (PDF ou PNG)">
+                    <Icon name="file" size={14} /> Recibo
+                  </button>
+                )}
                 {!hasPackage && (
                   <button
                     className="btn small ghost"
@@ -293,7 +297,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                           </td>
                           <td data-label="forma">
                             <select className="cell-input" value={x.method} onChange={(e) => setPayment(x.id, { method: e.target.value })}>
-                              {PAYMENT_METHODS.map((m) => (
+                              {[...paymentMethods(data.settings), ...(paymentMethods(data.settings).includes(x.method) || !x.method ? [] : [x.method])].map((m) => (
                                 <option key={m}>{m}</option>
                               ))}
                             </select>
@@ -308,7 +312,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                             )}
                           </td>
                           <td className="actions nowrap">
-                            {x.paidDate && (
+                            {x.paidDate && canPdf && (
                               <button className="icon-btn" title="Gerar recibo" onClick={() => pdf.download(<ReceiptDoc s={data.settings} client={client} project={p} payment={x} />, `Recibo - ${p.title} - ${x.description}.pdf`)}>
                                 <Icon name="printer" size={16} />
                               </button>

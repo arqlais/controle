@@ -135,6 +135,50 @@ try {
     ok(errors.length === 0, `${vp.name}: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()
   }
+  // 5. plataforma (prévia): página de vendas → cadastro → chat com a dona → painel da dona
+  {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    const errors = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await page.goto(`http://localhost:${PORT}/`)
+    await page.waitForTimeout(900)
+    ok(await page.locator('.lp-hero h1').count() === 1, 'plataforma: página de vendas abre sem login')
+    ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), 'plataforma: página de vendas cabe no celular')
+    await page.locator('.lp-top .btn.primary').click(); await page.waitForTimeout(300)
+    await page.fill('#signup-name', 'Cliente Teste')
+    await page.locator('button.auth-submit').click(); await page.waitForTimeout(300)
+    ok(await page.locator('.pf-signup .auth-error').count() === 1, 'plataforma: sem aceitar os termos não cria a conta')
+    await page.locator('#signup-terms').check()
+    await page.locator('button.auth-submit').click(); await page.waitForTimeout(900)
+    ok(await page.locator('.pf-trial-banner', { hasText: 'Completo' }).count() === 1, 'plataforma: cadastro entra no teste grátis do Completo')
+    ok(await page.locator('.tour').count() === 1, 'plataforma: passo a passo aparece no primeiro acesso')
+    await page.locator('#tour-next').click(); await page.waitForTimeout(200)
+    ok(await page.evaluate(() => location.hash.includes('config')), 'plataforma: passo a passo leva até a tela explicada')
+    await page.locator('.tour .icon-btn').click(); await page.waitForTimeout(300)
+    ok(await page.locator('.tour').count() === 0, 'plataforma: passo a passo fecha com "ver depois"')
+    ok(await page.locator('.ai-fab.pf-chat-fab').count() === 1, 'plataforma: cliente tem chat com a dona (sem IA)')
+    await page.locator('.pf-chat-fab').click(); await page.waitForTimeout(200)
+    await page.locator('.pf-chat textarea').fill('mensagem de teste')
+    await page.locator('.pf-chat .btn.primary').click(); await page.waitForTimeout(400)
+    ok(await page.locator('.pf-chat .ai-msg', { hasText: 'mensagem de teste' }).count() === 1, 'plataforma: mensagem enviada no chat')
+    // testando o Essencial: contratos ficam bloqueados
+    await page.evaluate(() => (location.hash = '#/assinatura')); await page.waitForTimeout(400)
+    await page.locator('.pf-plan', { hasText: 'Essencial' }).getByRole('button', { name: /testar este plano/ }).click(); await page.waitForTimeout(200)
+    await page.locator('.modal-foot .btn').last().click(); await page.waitForTimeout(500)
+    await page.evaluate(() => (location.hash = '#/contratos')); await page.waitForTimeout(300)
+    ok(await page.getByText('disponível no plano').count() === 1, 'plataforma: Essencial não tem contratos')
+    await page.locator('.pf-preview-btn').click()
+    await page.locator('.pf-preview-menu button', { hasText: 'dona' }).click(); await page.waitForTimeout(700)
+    await page.evaluate(() => (location.hash = '#/plataforma')); await page.waitForTimeout(500)
+    await page.locator('.pf-tabs .segmented button', { hasText: 'conversas' }).click(); await page.waitForTimeout(300)
+    ok(await page.locator('.pf-thread', { hasText: 'mensagem de teste' }).count() === 1, 'plataforma: dona recebe a conversa')
+    for (const r of ['plataforma', 'contratos', 'contratos/modelos', 'config']) {
+      await page.evaluate((h) => (location.hash = h), `#/${r}`); await page.waitForTimeout(300)
+      ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `plataforma: página ${r} cabe no celular`)
+    }
+    ok(errors.length === 0, `plataforma: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
+    await page.close()
+  }
 } finally {
   await browser.close()
   server.kill()

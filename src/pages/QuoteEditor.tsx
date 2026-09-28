@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAccess } from '../access'
 import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
-import { GENERAL_NOTE_HINTS, useStore } from '../store'
+import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
+import { CLIENT_SCHEDULE } from '../clientDefaults'
 import { duplicateQuote } from '../quoteActions'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
@@ -132,6 +134,11 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
+  // quem desligou o PDF (configurações → propostas) manda só o resumo no WhatsApp
+  const { has } = useAccess()
+  // plano Essencial: sem PDF, o orçamento vai como texto pronto
+  const pdfOn = has('propostaPdf') && !settings.proposal.pdfOff
+  const showPdf = q.pdf && pdfOn
 
   // ---- não perder o que foi digitado ----
   const [touched, setTouched] = useState(false)
@@ -324,7 +331,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   // enviar: com PDF vai a mensagem curta dela; copiar resumo: sempre o resumo com os valores
   const text = (short = true) => {
     // com PDF: a mensagem curta dela ("te encaminhei o pdf com a proposta…"), editável em configurações → mensagens
-    if (q.pdf && short) return templateText(settings, 'envio-orcamento', 'oii, {cliente}! te encaminhei o pdf com a proposta, é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre', client, undefined, q)
+    if (showPdf && short) return templateText(settings, 'envio-orcamento', 'oii, {cliente}! te encaminhei o pdf com a proposta, é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre', client, undefined, q)
     const first = client?.name.split(' ')[0] ?? ''
     const head = [`*proposta ${quoteNumber(q)}${q.title ? ` — ${q.title}` : ''}*`, `oii${first ? `, ${first}` : ''}! segue o orçamento ✨`, '']
     const body = two
@@ -395,7 +402,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           <h1>{q.title || 'novo orçamento'}</h1>
         </div>
         <div className="row gap-s wrap">
-          {q.pdf && (
+          {showPdf && (
             <button className="btn primary" disabled={pdf.busy} onClick={() => downloadPdf(false)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
             </button>
@@ -413,7 +420,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             </a>
           )}
           <MoreMenu>
-            {q.pdf && (
+            {showPdf && (
               <button className="btn ghost" disabled={pdf.busy} onClick={() => downloadPdf(true)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
                 <Icon name="download" size={16} /> PDF em vetor
               </button>
@@ -455,7 +462,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         )}
       </div>
 
-      <div className={`mobile-switch ${q.pdf ? '' : 'is-hidden'}`}>
+      <div className={`mobile-switch ${showPdf ? '' : 'is-hidden'}`}>
         <Segmented
           value={view}
           onChange={setView}
@@ -466,7 +473,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         />
       </div>
 
-      <div className={`quote-layout view-${q.pdf ? view : 'editar'} ${q.pdf ? '' : 'no-preview'}`}>
+      <div className={`quote-layout view-${showPdf ? view : 'editar'} ${showPdf ? '' : 'no-preview'}`}>
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
@@ -550,11 +557,13 @@ export default function QuoteEditor({ id }: { id: string }) {
                   ]}
                 />
               </Field>
-              <div className="field field-check">
-                <label className="check toggle">
-                  <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar proposta em PDF
-                </label>
-              </div>
+              {pdfOn && (
+                <div className="field field-check">
+                  <label className="check toggle">
+                    <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar proposta em PDF
+                  </label>
+                </div>
+              )}
               <Field
                 group
                 label="Arquivo final"
@@ -735,7 +744,12 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <input value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} />
               </Field>
               <Field label="Prazos e cronograma" span={3}>
-                <input value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
+                <input list="schedule-opts" value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
+                <datalist id="schedule-opts">
+                  {[settings.proposal.schedule, CLIENT_SCHEDULE, DEFAULT_PROPOSAL.schedule, q.deadlineDays ? `${q.deadlineDays} dias úteis após a aprovação.` : ''].filter((x, i, a) => x && a.indexOf(x) === i).map((x) => (
+                    <option key={x} value={x} />
+                  ))}
+                </datalist>
               </Field>
               <Field
                 label="Formatos de arquivos entregues"
@@ -827,7 +841,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           </FootWrap>
         </div>
 
-        {q.pdf && (
+        {showPdf && (
           <aside className="quote-preview">
             <div className="doc-zoomable" onClick={() => setZoom(true)} title="Ver maior">
               <DocScale>{preview}</DocScale>

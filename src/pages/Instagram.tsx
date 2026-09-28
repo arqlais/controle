@@ -1,3 +1,4 @@
+import { useAccess } from '../access'
 import { useState } from 'react'
 import { useStore } from '../store'
 import { useKeep } from '../keep'
@@ -6,7 +7,7 @@ import { Empty, Field, Modal, MonthPicker, Section, Segmented } from '../compone
 import { ask, askDelete, toast } from '../components/dialog'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
-import { FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
+import { CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
 import type { PostFormat, PostStatus, Settings, SocialPost } from '../types'
 import { fmtDate, today, uid } from '../utils'
 
@@ -60,7 +61,10 @@ export default function Instagram() {
   const { data, upsert } = useStore()
   const s = data.settings
   const posts = data.posts ?? []
-  const [tab, setTab] = useKeep<Tab>('ig-aba', 'plano')
+  // ideias prontas e estratégia são do conteúdo da Laís: quem assina monta o próprio plano
+  const mine = useAccess().has('modeloExclusivo')
+  const [savedTab, setTab] = useKeep<Tab>('ig-aba', 'plano')
+  const tab: Tab = mine || savedTab !== 'ideias' ? savedTab : 'plano'
   const [month, setMonth] = useKeep('ig-mes', today().slice(0, 7))
   const [edit, setEdit] = useState<SocialPost | null>(null)
 
@@ -96,13 +100,31 @@ export default function Instagram() {
     toast(`${created.length} postagens planejadas.`)
   }
 
+  // quem assina: a grade segue a estratégia própria, com o tema de cada dia (sem textos prontos)
+  const planClientMonth = async () => {
+    const [y, m] = month.split('-').map(Number)
+    const days = new Date(y, m, 0).getDate()
+    const created: SocialPost[] = []
+    for (let d = 1; d <= days; d++) {
+      const date = `${month}-${String(d).padStart(2, '0')}`
+      if (date < today()) continue
+      const slot = CLIENT_WEEK_PLAN.find((w) => w.weekday === new Date(y, m - 1, d).getDay())
+      if (!slot || posts.some((p) => p.date === date && p.format === slot.format)) continue
+      created.push({ ...blank(date), time: slot.time, format: slot.format, pillar: slot.pillar, title: slot.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })
+    }
+    if (!created.length) return toast('O mês já está planejado (ou já passou).')
+    if (!(await ask(`Planejar ${created.length} postagens em ${monthLabel(month)} seguindo a sua estratégia? Cada dia vem com o tema; o conteúdo é você que escreve.`, { confirmLabel: 'Planejar' }))) return
+    created.forEach((p) => upsert('posts', p))
+    toast(`${created.length} postagens planejadas.`)
+  }
+
   const counts = (Object.keys(STATUS) as PostStatus[]).map((k) => ({ k, n: inMonth.filter((p) => p.status === k).length }))
 
   return (
     <div className="page ig">
       <div className="page-head">
         <div>
-          <p className="eyebrow">conteúdo · foco em arquitetos</p>
+          <p className="eyebrow">{mine ? 'conteúdo · foco em arquitetos' : 'conteúdo'}</p>
           <h1>
             planejamento <em>instagram</em>
           </h1>
@@ -111,7 +133,7 @@ export default function Instagram() {
           <button className="btn ghost" onClick={() => setEdit(blank(month === today().slice(0, 7) ? today() : `${month}-01`))}>
             <Icon name="plus" size={16} /> postagem
           </button>
-          <button className="btn primary" onClick={planMonth}>
+          <button className="btn primary" onClick={mine ? planMonth : planClientMonth}>
             <Icon name="sparkle" size={16} /> planejar mês
           </button>
         </div>
@@ -122,7 +144,7 @@ export default function Instagram() {
         onChange={setTab}
         options={[
           { value: 'plano', label: 'plano do mês' },
-          { value: 'ideias', label: `ideias prontas (${IDEAS.length})` },
+          ...(mine ? [{ value: 'ideias' as Tab, label: `ideias prontas (${IDEAS.length})` }] : []),
           { value: 'estrategia', label: 'estratégia' },
         ]}
       />
@@ -149,9 +171,9 @@ export default function Instagram() {
             <Empty
               icon="calendar"
               title="Nada planejado neste mês"
-              text="Use “planejar mês” para montar a grade com as ideias prontas (carrossel na segunda, reels na quarta, post na sexta e stories na terça e quinta) — depois é só editar."
+              text={mine ? 'Use “planejar mês” para montar a grade com as ideias prontas (carrossel na segunda, reels na quarta, post na sexta e stories na terça e quinta) — depois é só editar.' : 'Use “planejar mês”: o calendário ganha os dias da sua estratégia (ensinar na segunda, mostrar na quarta, aproximar na quinta, como é contratar você no sábado), cada um com o tema. Depois é só escrever o seu conteúdo.'}
               action={
-                <button className="btn primary" onClick={planMonth}>
+                <button className="btn primary" onClick={mine ? planMonth : planClientMonth}>
                   <Icon name="sparkle" size={16} /> planejar mês
                 </button>
               }
@@ -159,13 +181,13 @@ export default function Instagram() {
           ) : (
             <MonthGrid month={month} posts={inMonth} onOpen={setEdit} onAdd={(date) => setEdit(blank(date))} />
           )}
-          <p className="muted small">{STRATEGY.times}</p>
+          <p className="muted small">{mine ? STRATEGY.times : CLIENT_STRATEGY.times}</p>
         </>
       )}
 
       {tab === 'ideias' && <IdeaBank used={used} onUse={(i) => setEdit(fromIdea(i, s, nextFree(posts, i.format, month), WEEK_PLAN.find((w) => w.format === i.format)?.time ?? '12:00'))} />}
 
-      {tab === 'estrategia' && <StrategyView />}
+      {tab === 'estrategia' && (mine ? <StrategyView /> : <ClientStrategyView />)}
 
       {edit && <PostEditor post={edit} exists={posts.some((p) => p.id === edit.id)} onClose={() => setEdit(null)} />}
     </div>
@@ -541,5 +563,93 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
         </Field>
       </div>
     </Modal>
+  )
+}
+
+/** Estratégia de quem assina: própria, diferente da da Laís. */
+function ClientStrategyView() {
+  const st = CLIENT_STRATEGY
+  return (
+    <div className="ig-strategy">
+      <Section title="objetivo">
+        <p className="ig-goal">{st.goal}</p>
+        <h4 className="ig-h">para quem você fala</h4>
+        <ul className="ig-bullets">
+          {st.audience.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+      </Section>
+      <Section title="o método: mostrar · ensinar · aproximar">
+        <div className="ig-pillars">
+          {CLIENT_PILLARS.map((p) => (
+            <div key={p.id} className="ig-pillar">
+              <div className="ig-pillar-head">
+                <b>{p.label}</b>
+                <span>{p.share}%</span>
+              </div>
+              <div className="progress thin">
+                <div className="progress-bar" style={{ width: `${p.share}%` }} />
+              </div>
+              <p className="muted small">{p.text}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+      <Section title="semana (4 publicações)">
+        <ul className="ig-week">
+          {st.frequency.map((f) => (
+            <li key={f.day}>
+              <b>{f.day}</b>
+              <span>{f.what}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="muted small">{st.times}</p>
+      </Section>
+      <Section title="perfil">
+        <h4 className="ig-h">modelo de bio</h4>
+        <div className="ig-bio">
+          {st.bio.map((l) => (
+            <div key={l}>{l}</div>
+          ))}
+          <button className="btn small ghost" onClick={() => copy(st.bio.join('\n'), 'Bio')}>
+            <Icon name="copy" size={13} /> copiar modelo
+          </button>
+        </div>
+        <h4 className="ig-h">destaques</h4>
+        <div className="ig-highlights">
+          {st.highlights.map((h) => (
+            <span key={h} className="ig-highlight">
+              {h}
+            </span>
+          ))}
+        </div>
+        <h4 className="ig-h">checklist do perfil</h4>
+        <ul className="ig-bullets">
+          {st.profile.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+      </Section>
+      <Section title="hashtags (escolha 5 a 8 por post)">
+        {st.hashtags.map(([label, tags]) => (
+          <div key={label} className="ig-tags">
+            <b>{label}</b>
+            <p className="muted small">{tags}</p>
+            <button className="btn small ghost" onClick={() => copy(tags, 'Hashtags')}>
+              <Icon name="copy" size={13} /> copiar
+            </button>
+          </div>
+        ))}
+      </Section>
+      <Section title="o que acompanhar todo mês">
+        <ul className="ig-bullets">
+          {st.metrics.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+      </Section>
+    </div>
   )
 }

@@ -243,7 +243,7 @@ export interface Quote {
   closedNote?: string // o que mudou no fechamento (escopo, valor…)
 }
 
-export type Pricing = 'unidade' | 'pacote' | 'm2' | 'livre'
+export type Pricing = 'unidade' | 'pacote' | 'm2' | 'hora' | 'livre'
 
 export interface PriceTier {
   qty: number // a partir desta quantidade
@@ -290,6 +290,35 @@ export interface ProposalStyle {
   files: string // formatos de arquivos entregues (padrão)
   schedule: string // prazos e cronograma (padrão)
   showArch: boolean
+  template?: string // modelo escolhido (src/proposalTemplates.ts); vazio = padrão do plano
+  pdfOff?: boolean // não usa PDF: orçamento vai só como resumo no WhatsApp
+  sans?: string // fonte dos textos da proposta (padrão Poppins)
+  showLogo?: boolean // logo do perfil no topo da proposta
+}
+
+/** Modelo de contrato com {variáveis} preenchidas pelo orçamento. */
+export interface ContractTemplate {
+  id: string
+  name: string
+  body: string
+}
+
+export interface ContractSettings {
+  off?: boolean // não usa contratos (some do menu)
+  templates: ContractTemplate[]
+}
+
+export type ContractStatus = 'rascunho' | 'enviado' | 'assinado'
+
+export interface Contract {
+  id: string
+  title: string
+  quoteId: string
+  clientId: string
+  templateId: string
+  body: string // texto final (já preenchido e editável)
+  status: ContractStatus
+  createdAt: string
 }
 
 export interface Settings {
@@ -337,6 +366,9 @@ export interface Settings {
   quoteStart?: number // numeração dos orçamentos começa aqui (ex.: 100); depois segue o maior + 1
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
+  paymentMethods?: string[] // formas de receber (lista editável)
+  signature?: string // imagem da assinatura (data URL), vai no contrato
+  tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
   messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)
   messagesV2?: boolean // migração: mensagens padrão reescritas em minúsculas, com emojis
@@ -350,6 +382,7 @@ export interface Settings {
   customColumns: BoardColumn[] // colunas extras do quadro de demandas
   navOrder: string[] // ordem do menu lateral
   messages: MessageTemplate[] // mensagens padrão para o cliente
+  contracts?: ContractSettings // modelos de contrato (plano Completo)
 }
 
 export interface Data {
@@ -361,6 +394,7 @@ export interface Data {
   events: CalendarEvent[]
   quotes: Quote[]
   posts?: SocialPost[] // planejamento do instagram
+  contracts?: Contract[] // contratos gerados a partir dos orçamentos
   settings: Settings
 }
 

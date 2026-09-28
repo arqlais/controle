@@ -15,7 +15,7 @@ Objetivo: transformar o sistema da Laís ("controle", React + Vite + Supabase, p
 ## Provisórios (para a prévia; ela troca depois)
 
 - Nome da plataforma: **a definir** (usar um nome provisório bem visível, fácil de trocar num lugar só).
-- Planos: **Essencial** (R$ 39/mês) e **Completo** (R$ 69/mês), com 14 dias de teste grátis. Valores só de exemplo.
+- Planos: **Essencial** (R$ 39/mês) e **Completo** (R$ 69/mês), com 7 dias de teste grátis. Valores só de exemplo.
 - O modelo de proposta da Laís ("Proposta #001", Canva) fica **exclusivo dela**; clientes escolhem entre modelos novos.
 
 ## Fase 1 — prévia completa (sem cobrança real)
@@ -52,3 +52,19 @@ Mesmo endereço e mesmo login de hoje. Na conta dela aparece o item **painel da 
 - Tudo em português, tom leve, textos em minúsculas onde o site já usa.
 - Testar sempre em celular (360/390), tablet (820) e computador (1280–1920): nada saindo da tela, nada desalinhado.
 - `npm run test:smoke` antes de cada envio; publicar a prévia como Artifact; explicar para a Laís em linguagem simples, sem termos técnicos.
+
+## Andamento
+
+**Fase 1 feita no branch `plataforma`** (prévia, sem cobrança):
+
+- página de vendas (`src/pages/Landing.tsx`) com telas de exemplo usando os componentes reais;
+- cadastro com teste grátis (`src/components/Signup.tsx`) e assinatura em modo teste (`src/pages/Subscription.tsx`);
+- nome, preços e o que cada plano libera num lugar só: `src/plans.ts`; acesso da conta em `src/access.tsx`;
+- chat com a dona com horários online (`src/components/OwnerChat.tsx`, `src/chat.ts`);
+- modelos de proposta (`src/proposalTemplates.ts` + `.tpl-…` em `src/platform.css`) e opção de desligar o PDF;
+- contratos com modelos editáveis e variáveis do orçamento (`src/contracts.ts`, `src/pages/Contracts.tsx`);
+- painel da dona (`src/pages/Admin.tsx`);
+- SQL do Supabase em `supabase/plataforma.sql`, passo a passo em `docs/PLATAFORMA-SUPABASE.md`.
+
+Enquanto o SQL da plataforma não for rodado, a conta da Laís continua exatamente como hoje (tudo liberado).
+Na prévia (Artifact), o botão "prévia · ver como" troca entre página de vendas, cliente e dona; assinantes e conversas são fictícios.

@@ -1,6 +1,8 @@
+import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS } from './clientDefaults'
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
 import { buildICS } from './ics'
+import { CLIENT_DISPLAY, PALETTES } from './brand'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings } from './types'
@@ -344,10 +346,62 @@ export const DEFAULT_SETTINGS: Settings = {
 }
 
 export function emptyData(): Data {
-  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], settings: DEFAULT_SETTINGS }
+  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], contracts: [], settings: DEFAULT_SETTINGS }
 }
 
 const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
+
+/** Escolhas do cadastro (nome, estúdio, começar com exemplo), guardadas até a primeira entrada. */
+export const SIGNUP_KEY = 'cadastro-inicio'
+function firstRunData(settings: Settings): Data {
+  let info: { name?: string; studio?: string; demo?: boolean } = {}
+  try {
+    info = JSON.parse(localStorage.getItem(SIGNUP_KEY) || '{}')
+    localStorage.removeItem(SIGNUP_KEY)
+  } catch {
+    /* ok */
+  }
+  // conta nova de cliente: visual próprio (a fonte e a paleta da Laís são exclusivas dela)
+  const kit = PALETTES.find((p) => p.name === 'areia & carvão')!
+  const st: Settings = {
+    ...settings,
+    accent: kit.accent,
+    accentSoft: kit.accentSoft,
+    accentInk: kit.accentInk,
+    background: kit.background,
+    surface: kit.surface,
+    text: kit.text,
+    displayFont: CLIENT_DISPLAY,
+    customFont: '',
+    services: CLIENT_SERVICES,
+    messages: CLIENT_MESSAGES,
+    messagesV2: true,
+    messagesV3: true,
+    defaultPaymentTerms: CLIENT_PAYMENT_TERMS,
+    paymentMethods: DEFAULT_PAYMENT_METHODS,
+    proposal: { ...settings.proposal, schedule: CLIENT_SCHEDULE },
+    ...(info.studio ? { brandName: info.studio } : {}),
+    ...(info.name ? { ownerName: info.name } : {}),
+  }
+  return info.demo ? demoData(st) : { ...emptyData(), settings: st }
+}
+
+export const hasLocalAccount = (userId: string) => {
+  try {
+    return !!localStorage.getItem(cacheKey(userId))
+  } catch {
+    return false
+  }
+}
+
+/** Prévia: a conta de cliente criada no cadastro começa com o que foi escolhido lá. */
+export function seedPreviewAccount(userId: string) {
+  try {
+    localStorage.setItem(cacheKey(userId), JSON.stringify(firstRunData(DEFAULT_SETTINGS)))
+  } catch {
+    /* ok */
+  }
+}
 
 function load(userId?: string): Data {
   try {
@@ -377,6 +431,7 @@ export function normalize(d: Partial<Data>): Data {
     expenses: d.expenses ?? [],
     events: d.events ?? [],
     posts: d.posts ?? [],
+    contracts: d.contracts ?? [],
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
@@ -475,7 +530,7 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts'
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts'
 type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
@@ -565,7 +620,8 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
           // primeira vez: sobe o que já existia neste navegador (se for real)
           const local = load(userId)
           const legacy = load()
-          const start = hasContent(local) ? local : hasContent(legacy) ? legacy : { ...emptyData(), settings: local.settings }
+          const fresh = firstRunData(local.settings)
+          const start = hasContent(local) ? local : hasContent(legacy) ? legacy : fresh
           remoteAt.current = await pushRemote(userId!, start)
           fromRemote.current = true
           setData(start)

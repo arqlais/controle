@@ -12,7 +12,7 @@ import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, matches, paymentDue, setCustomColumns } from './utils'
+import { allPayments, isLate, matches, paymentDue, setCustomColumns, today } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -26,6 +26,18 @@ import SettingsPage from './pages/Settings'
 import Manual from './pages/Manual'
 import Instagram from './pages/Instagram'
 import Profile, { profileImportant } from './pages/Profile'
+import Contracts from './pages/Contracts'
+import Admin from './pages/Admin'
+import Checkout from './pages/Checkout'
+import Suggestions from './pages/Suggestions'
+import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
+import { OwnerChat } from './components/OwnerChat'
+import { useAccess } from './access'
+import { ScreenHelp, Tour } from './components/Tour'
+import { useInbox } from './chat'
+import { trialOver } from './platform'
+import { PLATFORM, type Feature } from './plans'
+import { effectiveSettings } from './brand'
 
 const NAV = [
   { page: 'inicio', label: 'início', icon: 'home' },
@@ -34,8 +46,11 @@ const NAV = [
   { page: 'financeiro', label: 'financeiro', icon: 'wallet' },
   { page: 'agenda', label: 'agenda', icon: 'calendar' },
   { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
+  { page: 'contratos', label: 'contratos', icon: 'briefcase' },
   { page: 'instagram', label: 'instagram', icon: 'instagram' },
 ]
+// telas que dependem do plano (src/plans.ts)
+const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -59,6 +74,11 @@ export default function App() {
   const exampleOn = isSample || (ownDemo && data.demo)
   const toggleExample = () => (isSample ? showSample(false) : ownDemo ? replaceAll({ ...data, demo: !data.demo }) : showSample(true))
   const { settings } = data
+  const access = useAccess()
+  // dona: caixa de entrada do chat (aviso de mensagem nova em qualquer tela)
+  const inbox = useInbox(access.isOwner && !access.legacy, true)
+  const [chatSignal, setChatSignal] = useState(0)
+  const openChat = () => setChatSignal((n) => n + 1)
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
   // topo das páginas de item fixo: mede a barra de busca e marca quando o topo "grudou" (fica mais compacto)
@@ -95,12 +115,33 @@ export default function App() {
   // ordem do menu escolhida pela usuária (itens novos entram no fim)
   const nav = useMemo(() => {
     const order = settings.navOrder
-    return [...NAV].sort((a, b) => {
+    return NAV.filter((n) => (!NEEDS[n.page] || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off)).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
     })
-  }, [settings.navOrder])
+  }, [settings.navOrder, settings.contracts?.off, access])
+  // grupos à parte, no fim do menu: plataforma (só a dona), sua conta (clientes) e ajustes e dicas
+  const groups = useMemo(
+    () =>
+      [
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }] : [] },
+        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }] : [] },
+        { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
+      ].filter((g) => g.items.length),
+    [access],
+  )
+  // passo a passo do primeiro acesso: aparece para quem assina até concluir/pular ("ver depois" = volta no dia seguinte)
+  const [tourOpen, setTourOpen] = useState(false)
+  useEffect(() => {
+    if (sync !== 'loading' && !access.isOwner && !access.legacy && settings.tour !== 'feito' && settings.tour !== today()) setTourOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sync === 'loading', access.isOwner])
+  const closeTour = (how: 'feito' | 'depois') => {
+    setTourOpen(false)
+    setSettings({ tour: how === 'feito' ? 'feito' : today() })
+    if (how === 'feito') go('inicio')
+  }
   const moveNav = (page: string, to: number) => {
     const pages = nav.map((n) => n.page).filter((p) => p !== page)
     pages.splice(Math.max(0, Math.min(to, pages.length)), 0, page)
@@ -108,19 +149,34 @@ export default function App() {
   }
 
   const [dark, setDark] = useDeviceDark()
-  useEffect(() => applyTheme(settings, dark), [settings, dark])
+  // The Seasons é só da dona: nas contas de clientes vira a fonte padrão deles
+  useEffect(() => applyTheme(effectiveSettings(settings, access.has), dark), [settings, dark, access])
   useEffect(() => setMenuOpen(false), [route.page, route.id])
 
   const alerts = useMemo(
     () => ({
       projetos: data.projects.filter(isLate).length,
       financeiro: allPayments(data).filter((x) => paymentDue(x.pay, x.project)).length,
+      plataforma: inbox.unread,
     }),
-    [data],
+    [data, inbox.unread],
   )
+  // conta de cliente pausada, teste encerrado ou cancelada: dados guardados, só assinatura/chat/backup
+  const locked = !access.isOwner && !!access.sub && (access.sub.blocked || trialOver(access.sub) || access.sub.status === 'cancelada')
 
   const page = (() => {
+    if (locked && (route.page !== 'assinatura' || access.sub?.blocked)) return <BlockedScreen onChat={openChat} />
+    const need = NEEDS[route.page]
+    if (need && !access.has(need)) return <Upgrade onChat={openChat} />
     switch (route.page) {
+      case 'contratos':
+        return <Contracts id={route.id} />
+      case 'plataforma':
+        return <Admin />
+      case 'assinatura':
+        return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
+      case 'sugestoes':
+        return <Suggestions />
       case 'clientes':
         return route.id ? <ClientDetail key={route.id} id={route.id} /> : <Clients />
       case 'projetos':
@@ -192,15 +248,27 @@ export default function App() {
               </a>
             )
           })}
-          <div className="nav-group">
-            <span className="nav-group-label">ajustes e dicas</span>
-            {TOOLS.map((n) => (
-              <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} onClick={(e) => organizing && e.preventDefault()}>
-                <Icon name={n.icon} />
-                <span>{n.label}</span>
-              </a>
-            ))}
-          </div>
+          {groups.map((g) => (
+            <div key={g.key} className={`nav-group is-${g.key}`}>
+              <span className="nav-group-label">{g.label}</span>
+              {g.items.map((n) => {
+                const count = alerts[n.page as keyof typeof alerts]
+                return (
+                  <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} onClick={(e) => organizing && e.preventDefault()}>
+                    <Icon name={n.icon} />
+                    <span>{n.label}</span>
+                    {count && !organizing ? <em className="nav-alert" title="Mensagens novas no chat">{count}</em> : null}
+                  </a>
+                )
+              })}
+              {g.key === 'ajustes' && (
+                <button type="button" className="is-tool nav-tour" onClick={() => (setMenuOpen(false), go('inicio'), setTourOpen(true))}>
+                  <Icon name="sparkle" />
+                  <span>passo a passo</span>
+                </button>
+              )}
+            </div>
+          ))}
           <div className="nav-links">
             <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
               {organizing ? 'pronto' : 'organizar menu'}
@@ -256,6 +324,7 @@ export default function App() {
             </button>
           )}
           <GlobalSearch />
+          <ScreenHelp />
           <div className="add-menu">
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
               <Icon name="plus" size={16} /> <span className="hide-mobile">Novo</span>
@@ -295,6 +364,7 @@ export default function App() {
             )}
           </div>
         </header>
+        {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
         <main className="content">
           {isSample && (
             <div className="demo-banner">
@@ -306,6 +376,7 @@ export default function App() {
               </button>
             </div>
           )}
+          <TrialBanner />
           {data.demo && (
             <div className="demo-banner">
               <span>
@@ -330,7 +401,11 @@ export default function App() {
           {page}
         </main>
         <StatusDialogHost />
-        <AIChat quoteId={route.page === 'orcamentos' && route.id && route.id !== 'novo' ? route.id : undefined} />
+        {access.has('assistenteIA') ? (
+          <AIChat quoteId={route.page === 'orcamentos' && route.id && route.id !== 'novo' ? route.id : undefined} />
+        ) : access.has('chatDona') ? (
+          <OwnerChat openSignal={chatSignal} />
+        ) : null}
       </div>
 
       <nav className="bottom-nav">
@@ -430,5 +505,28 @@ function SyncBadge({ sync, lastSaved }: { sync: SyncStatus; lastSaved: Date | nu
     <span className={`sync-status grow ${sync === 'saving' ? 'saving' : sync === 'offline' ? 'error' : ''}`}>
       <i /> {label}
     </span>
+  )
+}
+
+/** Tela de um recurso que o plano atual não tem. */
+function Upgrade({ onChat }: { onChat: () => void }) {
+  return (
+    <div className="page">
+      <section className="card pf-blocked">
+        <Icon name="star" size={28} />
+        <h1>
+          disponível no plano <em>Completo</em>
+        </h1>
+        <p className="muted">Este recurso faz parte do plano Completo do {PLATFORM.name}. Durante o teste grátis dá para trocar de plano quando quiser.</p>
+        <div className="row gap-s wrap center">
+          <a className="btn primary" href={href('assinatura')}>
+            ver planos
+          </a>
+          <button className="btn" onClick={onChat}>
+            <Icon name="chat" size={16} /> tirar dúvida
+          </button>
+        </div>
+      </section>
+    </div>
   )
 }

@@ -568,3 +568,58 @@ export const WEEK_PLAN: { weekday: number; format: PostFormat; time: string }[] 
   { weekday: 4, format: 'story', time: '12:00' },
   { weekday: 5, format: 'post', time: '12:00' },
 ]
+
+/* ============================================================
+   Estratégia de quem assina a plataforma (diferente da da Laís):
+   método "mostrar · ensinar · aproximar", pensado para qualquer
+   freelancer de arquitetura, interiores e 3D.
+   ============================================================ */
+export const CLIENT_PILLARS = [
+  { id: 'portfolio', label: 'mostrar (trabalho pronto)', share: 35, text: 'projetos finalizados, detalhes, comparação ideia × resultado. é o que faz alguém pensar “quero isso”.' },
+  { id: 'dicas', label: 'ensinar (o que você sabe)', share: 30, text: 'uma dúvida que seus clientes sempre têm, respondida em poucos slides. mostra que você domina o assunto.' },
+  { id: 'processo', label: 'como é contratar você', share: 20, text: 'etapas, prazos, o que você precisa receber, como é a entrega. quem entende o processo contrata sem medo.' },
+  { id: 'bastidores', label: 'aproximar (quem é você)', share: 15, text: 'sua mesa, sua rotina, um projeto em andamento, o que te inspira. as pessoas contratam quem elas conhecem.' },
+] as const
+
+export const CLIENT_STRATEGY = {
+  goal: 'fazer quem vê o seu perfil entender em 5 segundos o que você faz, para quem, e como pedir um orçamento.',
+  audience: [
+    'escreva aqui quem mais te contrata (ex.: escritórios pequenos, clientes finais, lojas, construtoras)',
+    'pense em um cliente real: o que ele precisa ver para confiar em você?',
+    'conteúdo bom responde uma pergunta que esse cliente faria',
+  ],
+  frequency: [
+    { day: 'segunda', what: 'carrossel: ensinar (uma dúvida comum respondida)' },
+    { day: 'quarta', what: 'reels: mostrar (um trabalho pronto em movimento)' },
+    { day: 'quinta', what: 'stories: aproximar (bastidor + enquete ou caixinha)' },
+    { day: 'sábado', what: 'post: mostrar ou como é contratar você' },
+  ],
+  times: 'melhor ter constância do que volume: 3 a 4 publicações por semana já funcionam. poste no horário em que seus clientes têm pausa (almoço ou início da noite) e repita o que der certo.',
+  bio: ['{serviços} para {quem você atende}', 'ex.: projetos, imagens 3D e detalhamento ✦ atendo todo o Brasil', '↓ peça seu orçamento'],
+  highlights: ['trabalhos', 'como funciona', 'depoimentos', 'sobre mim', 'orçamento'],
+  profile: [
+    'foto com o seu rosto ou um logo simples e legível',
+    'nome do perfil com o que você faz (ex.: “ana · projetos de interiores”)',
+    'bio em 3 linhas: o que faz, para quem, como pedir orçamento',
+    'link direto para o seu WhatsApp',
+    'fixe 3 posts: quem é você, um trabalho que você ama, como é contratar você',
+  ],
+  metrics: [
+    'quantas pessoas pediram orçamento pelo instagram (marque “origem: instagram” no cliente)',
+    'salvamentos: mostram qual conteúdo é útil — faça mais parecidos',
+    'visitas ao perfil depois de um reels: mostram que chegou gente nova',
+  ],
+  hashtags: [
+    ['geral', '#freelancer #arquitetura #designdeinteriores #projetos #decoracao'],
+    ['imagens e 3D', '#render3d #modelagem3d #visualizacao3d #3dartist #renderizacao'],
+    ['técnico', '#projetoexecutivo #detalhamento #plantabaixa #layout'],
+  ] as [string, string][],
+}
+
+/** Semana da estratégia de quem assina: tema sugerido em cada dia (vira rascunho de postagem). */
+export const CLIENT_WEEK_PLAN: { weekday: number; format: PostFormat; time: string; pillar: 'portfolio' | 'dicas' | 'processo' | 'bastidores'; title: string }[] = [
+  { weekday: 1, format: 'carrossel', time: '12:00', pillar: 'dicas', title: 'ensinar: responda uma dúvida que seus clientes sempre têm' },
+  { weekday: 3, format: 'reels', time: '19:00', pillar: 'portfolio', title: 'mostrar: um trabalho pronto em movimento' },
+  { weekday: 4, format: 'story', time: '12:00', pillar: 'bastidores', title: 'aproximar: bastidor do dia + enquete' },
+  { weekday: 6, format: 'post', time: '11:00', pillar: 'processo', title: 'como é contratar você: etapas, prazo e entrega' },
+]
