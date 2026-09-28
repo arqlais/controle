@@ -35,6 +35,7 @@ export const SCREEN_HELP: Record<string, { title: string; text: string }> = {
   manual: { title: 'manual', text: 'Explicações de cada parte do sistema, com calma.' },
   assinatura: { title: 'minha assinatura', text: 'Seu plano, o teste grátis e os pagamentos. Cancelar é quando quiser, sem multa.' },
   sugestoes: { title: 'sugestões', text: `Sentiu falta de algo? Mande sua ideia; ${PLATFORM.supportWith} lê todas e responde por aqui.` },
+  avaliar: { title: 'depoimento', text: 'Conte o que achou. Se autorizar, seu depoimento pode aparecer na página do sistema, só com nome e profissão.' },
   perfil: { title: 'perfil', text: 'Os dados do seu estúdio que aparecem nos PDFs e contratos.' },
 }
 

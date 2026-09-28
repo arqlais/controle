@@ -49,7 +49,7 @@ export default function Suggestions() {
       <p className="pf-note">
         <Icon name="flag" size={16} />
         <span>
-          O {PLATFORM.name} é feito por quem também é freelancer e melhora com as ideias de quem usa. Conte o que faria diferença no seu dia a dia: toda sugestão é lida pela {PLATFORM.support}.
+          O {PLATFORM.name} é feito por quem também é freelancer e melhora com as ideias de quem usa. Conte o que faria diferença no seu dia a dia: toda sugestão é lida pelo {PLATFORM.support}.
         </span>
       </p>
       <Section title="nova sugestão">
