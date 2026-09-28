@@ -7,7 +7,7 @@ import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
 import { EmailInput, Field, PhoneInput, Section } from '../components/ui'
 import { toast } from '../components/dialog'
 import type { Settings } from '../types'
-import { atHandle, cleanSite } from '../utils'
+import { atHandle, cleanSite, typeHandle } from '../utils'
 
 /* Perfil do estúdio: quem você é, como aparece nas propostas e recibos, e a sua conta. */
 
@@ -184,7 +184,7 @@ export default function Profile() {
                 <EmailInput id="profile-email" value={s.email} onChange={(v) => set({ email: v })} />
               </Field>
               <Field label="Instagram">
-                <input value={s.instagram} onChange={(e) => set({ instagram: e.target.value })} onBlur={() => s.instagram.trim() && set({ instagram: atHandle(s.instagram) })} placeholder="@seuperfil" />
+                <input value={s.instagram} onChange={(e) => set({ instagram: typeHandle(e.target.value) })} placeholder="@seuperfil" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
               </Field>
               <Field label="Site">
                 <input value={s.website} onChange={(e) => set({ website: e.target.value })} placeholder="seusite.com.br" />

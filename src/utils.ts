@@ -22,6 +22,28 @@ import type {
 
 /** Instagram sempre com @ na frente (a pessoa pode digitar com ou sem). */
 export const atHandle = (v: string) => (v.trim() ? '@' + v.trim().replace(/^@+/, '') : '')
+/** Enquanto digita: sempre com @ na frente; link do perfil vira só o @ (instagram.com/perfil → @perfil). */
+export const typeHandle = (v: string) => {
+  const h = v
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
+    .replace(/^(www\.)?instagram\.com\//i, '')
+    .replace(/[/?].*$/, '')
+    .replace(/^@+/, '')
+    .replace(/\s+/g, '')
+  return h ? '@' + h : ''
+}
+/** CPF (11 dígitos) ou CNPJ (14) com a pontuação, conforme vai digitando. */
+export const formatDoc = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 14)
+  if (d.length <= 11)
+    return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/, (_, a, b, c, e, f) => `${a}.${b}.${c}/${e}${f ? '-' + f : ''}`)
+}
+export const docKind = (v: string) => {
+  const n = v.replace(/\D/g, '').length
+  return n === 11 ? 'CPF' : n === 14 ? 'CNPJ' : ''
+}
 /** Site sem https:// nem www., do jeito que fica bonito impresso. */
 export const cleanSite = (v: string) => v.trim().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
 

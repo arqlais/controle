@@ -23,6 +23,9 @@ import {
   today,
   addDays,
   uid,
+  formatDoc,
+  docKind,
+  typeHandle,
 } from '../utils'
 import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented } from './ui'
 import { Icon } from './Icon'
@@ -91,8 +94,8 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
         <Field label="Empresa / escritório / faculdade" span={2}>
           <input value={c.company} onChange={(e) => set('company', e.target.value)} />
         </Field>
-        <Field label="CPF / CNPJ" hint="Usado nos recibos">
-          <input value={c.document} onChange={(e) => set('document', e.target.value)} />
+        <Field label="CPF / CNPJ" hint={docKind(c.document) ? `${docKind(c.document)} · usado nos recibos` : 'Usado nos recibos'}>
+          <input value={c.document} inputMode="numeric" onChange={(e) => set('document', formatDoc(e.target.value))} placeholder="só os números" />
         </Field>
         <Field label="WhatsApp">
           <PhoneInput id="client-phone" value={c.phone} onChange={(v) => set('phone', v)} />
@@ -101,7 +104,7 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
           <EmailInput id="client-email" value={c.email} onChange={(v) => set('email', v)} />
         </Field>
         <Field label="Instagram">
-          <input value={c.instagram} onChange={(e) => set('instagram', e.target.value)} placeholder="@perfil" />
+          <input value={c.instagram} onChange={(e) => set('instagram', typeHandle(e.target.value))} placeholder="@perfil" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
         </Field>
         <Field label="Cidade">
           <input value={c.city} onChange={(e) => set('city', e.target.value)} />
