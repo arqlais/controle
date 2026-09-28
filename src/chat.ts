@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_HOURS, platform, type ChatMessage, type OnlineHours, type Subscription } from './platform'
+import { onPlatformMode } from './platform'
 import { toast } from './components/dialog'
 
 /* Ganchos do chat com a dona: conversa de um cliente, caixa de entrada da dona e horários. */
@@ -69,9 +70,15 @@ export function useInbox(enabled: boolean, notify = false) {
     if (!enabled) return
     void load()
     const off = platform.subscribe(() => void load())
+    // exemplo ligado/desligado: recarrega sem avisar "mensagem nova"
+    const offMode = onPlatformMode(() => {
+      seen.current = null
+      void load()
+    })
     const iv = setInterval(() => void load(), 60_000)
     return () => {
       off()
+      offMode()
       clearInterval(iv)
     }
   }, [enabled, load])

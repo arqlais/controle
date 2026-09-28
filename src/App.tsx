@@ -36,7 +36,7 @@ import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
 import { setViewAsClient, viewingAsClient } from './viewAs'
-import { PREVIEW_CLIENT, setPlatformSample, setPreviewRole } from './platform'
+import { PREVIEW_CLIENT, notifyPlatformMode, setPlatformSample, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { useInbox } from './chat'
@@ -161,9 +161,12 @@ export default function App() {
   }
   const asClient = CLOUD && viewingAsClient()
   // olhinho da dona: o painel da plataforma também mostra o exemplo (assinantes, conversas, depoimentos…)
+  // liga antes de as telas buscarem os dados (senão o painel carregaria o real, vazio)
+  const platformSample = CLOUD && isSample && access.isOwner
+  setPlatformSample(platformSample, true)
   useEffect(() => {
-    setPlatformSample(CLOUD && isSample && access.isOwner)
-  }, [isSample, access.isOwner])
+    notifyPlatformMode()
+  }, [platformSample])
   const backToOwner = () => {
     setMenuOpen(false)
     setViewAsClient(false)
