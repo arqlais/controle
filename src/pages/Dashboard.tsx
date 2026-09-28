@@ -123,9 +123,12 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
             <em>{hello.toLowerCase()},</em> {(settings.ownerName || settings.brandName).toLowerCase()}
           </h1>
           <p className="welcome-sub">
-            {weekDeliveries === 0 ? 'nenhuma entrega nesta semana' : weekDeliveries === 1 ? '1 entrega nesta semana' : `${weekDeliveries} entregas nesta semana`} ·{' '}
-            {waiting.length ? `${waiting.length} esperando retorno da cliente · ` : ''}
-            {money(receivable)} a receber
+            {/* uma frase só: o mais importante da semana (os valores ficam nos cards logo abaixo) */}
+            {weekDeliveries > 0
+              ? `${weekDeliveries} ${weekDeliveries === 1 ? 'entrega' : 'entregas'} nesta semana`
+              : waiting.length
+                ? `${waiting.length === 1 ? '1 demanda esperando' : `${waiting.length} demandas esperando`} retorno da cliente`
+                : 'semana tranquila, sem entregas'}
           </p>
         </div>
         <div className="welcome-actions">
