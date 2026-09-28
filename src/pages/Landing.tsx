@@ -263,33 +263,24 @@ export default function Landing() {
       </div>
 
       <section className="lp-section lp-story-sec">
-        <div className="lp-wrap lp-origin" data-reveal>
-          <div className="lp-origin-head">
-            <span className="lp-me-wrap" aria-hidden={!site.photo}>
-              <span className="lp-me-ring" />
-              <span className="lp-me-orbit">
-                <i>✦</i>
-              </span>
-              <span className="lp-me">{site.photo ? <img src={site.photo} alt={site.name} /> : site.name[0]}</span>
+        <div className="lp-wrap lp-story lp-me-story" data-reveal>
+          <span className="lp-me-wrap" aria-hidden={!site.photo}>
+            <span className="lp-me-ring" />
+            <span className="lp-me-orbit">
+              <i>✦</i>
             </span>
-            <span className="lp-origin-who">
-              <span className="eyebrow">quem criou</span>
-              <b>{site.name}</b>
-              {site.facts.filter(Boolean).length > 0 && <small>{site.facts.filter(Boolean).join(' · ')}</small>}
-            </span>
-          </div>
-          <h2 className="lp-origin-title">{site.title}</h2>
-          <ol className="lp-origin-steps">
-            {site.text
-              .split(/\n\s*\n/)
-              .filter((t) => t.trim())
-              .map((t, i) => (
-                <li key={i}>
-                  <span className="lp-origin-n">{String(i + 1).padStart(2, '0')}</span>
-                  <p>{t.trim()}</p>
-                </li>
-              ))}
-          </ol>
+            <span className="lp-me">{site.photo ? <img src={site.photo} alt={site.name} /> : site.name[0]}</span>
+          </span>
+          <p className="eyebrow">quem criou</p>
+          <h2>{site.title}</h2>
+          {site.text
+            .split(/\n\s*\n/)
+            .filter((t) => t.trim())
+            .map((t, i) => (
+              <p key={i} className="lp-story-text">
+                {t.trim()}
+              </p>
+            ))}
           {site.signature && <p className="lp-sign">— {site.signature}</p>}
         </div>
       </section>

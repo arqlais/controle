@@ -116,7 +116,18 @@ export default function SettingsPage() {
         <div className="settings-panel">
           {tab === 'aparencia' && (
             <>
-              <BrandKit />
+              {has('identidade') ? (
+                <BrandKit />
+              ) : (
+                <Section title="identidade visual">
+                  <p className="muted small">
+                    Logo, cores e fontes do seu estúdio fazem parte do plano <b>{PLANS.completo.name}</b>. No {PLANS.essencial.name}, o sistema usa o visual padrão da plataforma.{' '}
+                    <a className="link" href="#/assinatura">
+                      ver planos
+                    </a>
+                  </p>
+                </Section>
+              )}
               <Section title="tema deste aparelho">
                 <div className="form-grid">
                   <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">

@@ -33,6 +33,7 @@ export type Feature =
   | 'contratos' // contratos a partir do orçamento
   | 'instagram' // planejamento do instagram
   | 'agendaCelular' // agenda sincronizada no celular
+  | 'identidade' // logo, cores e fontes próprias
 
 export type PlanId = 'essencial' | 'completo'
 
@@ -54,7 +55,6 @@ export const BASE_FEATURES = [
   'financeiro: parcelas, despesas e metas',
   'agenda com prazos, pagamentos e compromissos',
   'funciona no celular, tablet e computador',
-  'sua identidade visual: logo, cores e fontes',
   'chat direto com a administração',
 ]
 
@@ -72,8 +72,8 @@ export const PLANS: Record<PlanId, Plan> = {
     name: 'Completo',
     price: 59.9,
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
-    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular'],
-    highlights: ['tudo do Essencial', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
+    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade'],
+    highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
     featured: true,
   },
 }
@@ -81,7 +81,7 @@ export const PLANS: Record<PlanId, Plan> = {
 export const PLAN_LIST = [PLANS.essencial, PLANS.completo]
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
-export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular']
+export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade']
 
 /** Tabela de comparação da página de vendas (linha → [essencial, completo]). */
 export const COMPARE: [string, boolean | string, boolean | string][] = [
@@ -90,7 +90,7 @@ export const COMPARE: [string, boolean | string, boolean | string][] = [
   ['financeiro, parcelas e metas', true, true],
   ['agenda do estúdio', true, true],
   ['orçamento em texto pronto para o WhatsApp', true, true],
-  ['logo, cores e fontes do seu estúdio', true, true],
+  ['logo, cores e fontes do seu estúdio', false, true],
   ['proposta e recibos em PDF', false, 'todos os modelos'],
   ['contratos com os dados do orçamento', false, true],
   ['agenda sincronizada no celular', false, true],

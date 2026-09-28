@@ -19,14 +19,10 @@ export interface SiteContent {
 export const DEFAULT_SITE: SiteContent = {
   photo: '',
   name: PLATFORM.owner,
-  title: 'nasceu de uma necessidade real',
-  text: `Ainda na faculdade de arquitetura, comecei a trabalhar como freelancer com renderização, modelagem e detalhamento para outros escritórios.
+  title: `oi, eu sou a ${PLATFORM.owner}`,
+  text: `Sou estudante de arquitetura e trabalho como freelancer com renderização, modelagem e detalhamento. Com os clientes chegando, tudo foi ficando espalhado: orçamento numa planilha, prazo no bloco de notas, pagamento na memória, contrato em outro arquivo e a agenda da faculdade no meio disso tudo.
 
-Os clientes foram chegando e tudo ficou espalhado: orçamento numa planilha, prazo no bloco de notas, pagamento na memória, contrato em outro arquivo e a agenda da faculdade no meio disso tudo.
-
-Procurei um sistema pensado para o freelancer, que fizesse o orçamento, lembrasse do prazo, avisasse da parcela e já gerasse o contrato. Não encontrei. Então criei o meu.
-
-Deu tão certo que resolvi abrir para outros freelancers, com uma assinatura que cabe no bolso de quem está começando.`,
+Procurei um sistema pensado para o freelancer e não encontrei. Então criei o meu, do jeito que a rotina pede. Deu tão certo que resolvi abrir para outros freelancers, com uma assinatura que cabe no bolso de quem está começando.`,
   facts: ['estudante de arquitetura', 'freelancer em visualização 3D', `criadora do ${PLATFORM.name}`],
   signature: `${PLATFORM.owner} · criadora do ${PLATFORM.name}`,
   instagram: '',

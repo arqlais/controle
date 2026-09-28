@@ -583,7 +583,7 @@
 /* aparecer ao rolar */
 .lp-anim [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .lp-anim [data-reveal].is-in { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .lp-anim [data-reveal] { opacity: 1; transform: none; } .lp-marquee-track { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .lp-anim [data-reveal] { opacity: 1; transform: none; } }
 
 @media (max-width: 1024px) {
   .lp-float-1 { right: 0; }
@@ -882,5 +882,13 @@
 .lp-origin-steps li:last-child { background: var(--accent-tint); border-color: var(--accent-soft); }
 .lp-origin-n { display: inline-block; font-family: var(--font-body); font-weight: 700; font-size: 13px; letter-spacing: 0.1em; color: var(--accent-ink); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--accent-soft); }
 .lp-origin-steps p { margin: 0; font-size: 15px; line-height: 1.6; opacity: 0.88; }
-@media (prefers-reduced-motion: reduce) { .lp-me-ring, .lp-me-orbit { animation: none; } }
+
 @media (max-width: 560px) { .lp-me-wrap { width: 84px; height: 84px; } .lp-me-wrap .lp-me { width: 62px; height: 62px; font-size: 30px; } .lp-origin-steps { grid-template-columns: 1fr; } }
+
+/* a faixa e o anel do "quem criou" giram sempre, mesmo com "efeitos de animação" desligados no computador */
+@media (prefers-reduced-motion: reduce) {
+  .lp-marquee .lp-marquee-track { animation: lp-marquee 42s linear infinite !important; }
+  .lp-me-wrap .lp-me-ring { animation: lp-spin 24s linear infinite !important; }
+  .lp-me-wrap .lp-me-orbit { animation: lp-spin 9s linear infinite !important; }
+}
+.lp-me-story .eyebrow { margin: 0; } .lp-me-story .lp-me-wrap { margin-bottom: 4px; }
