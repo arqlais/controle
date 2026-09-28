@@ -39,7 +39,7 @@ interface Item {
 type Layer = 'entrega' | 'pagamento' | 'evento'
 
 export default function Agenda() {
-  const { data, upsert } = useStore()
+  const { data, upsert, agenda } = useStore()
   const [month, setMonth] = useKeep('ag-mes', today().slice(0, 7))
   const cursor = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1)
   const setCursor = (d: Date) => setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
@@ -145,7 +145,7 @@ export default function Agenda() {
         <div className="row gap-s wrap">
           <button className="btn ghost" onClick={() => setConnect(true)}>
             <Icon name="smartphone" size={16} /> {data.settings.calendarToken ? 'agenda no celular' : 'conectar ao celular'}
-            {data.settings.calendarToken && <span className="sync-dot" title="ligada" />}
+            {data.settings.calendarToken && <span className={`sync-dot${agenda.state === 'erro' ? ' is-error' : ''}`} title={agenda.state === 'erro' ? 'a agenda não está sendo publicada — toque para ver' : 'ligada'} />}
           </button>
           <button className="btn primary" onClick={() => setForm({ date: selected })}>
             <Icon name="plus" size={16} /> Compromisso
@@ -293,7 +293,7 @@ create policy "agenda: dona apaga" on storage.objects for delete to authenticate
 function ConnectCalendar({ onClose }: { onClose: () => void }) {
   const { data, setSettings, userId, agenda, publishAgendaNow } = useStore()
   const token = data.settings.calendarToken
-  const sync = { entregas: true, pagamentos: true, compromissos: true, ...(data.settings.calendarSync ?? {}) }
+  const sync = { entregas: true, pagamentos: true, compromissos: true, periodos: true, ...(data.settings.calendarSync ?? {}) }
   const url = token && userId ? agendaUrl(userId, token) : ''
   // ao abrir (e depois de ligar), publica na hora para já dar para adicionar no celular
   useEffect(() => {
@@ -324,6 +324,7 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
         [
           ['entregas', 'prazos de entrega das demandas'],
           ['pagamentos', 'parcelas a receber'],
+          ['periodos', 'dias de produção pintados (do início até a entrega)'],
           ['compromissos', 'compromissos da agenda'],
         ] as const
       ).map(([k, label]) => (
@@ -353,8 +354,8 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
         {!token ? (
           <>
             <p>
-              <b>Opcional.</b> Ligando, os prazos de entrega, as parcelas a receber e os compromissos aparecem <b>sozinhos</b> no calendário do celular (iPhone, Android ou
-              outro), com lembrete na véspera. Tudo que você criar ou mudar aqui atualiza lá, sem precisar fazer nada.
+              <b>Opcional.</b> Ligando, os prazos de entrega, os dias de produção, as parcelas a receber e os compromissos aparecem <b>sozinhos</b> no calendário do celular (iPhone, Android ou
+              outro), com lembrete 2 dias antes, na véspera e no dia. Tudo que você criar ou mudar aqui atualiza lá, sem precisar fazer nada.
             </p>
             {options}
             <button className="btn primary" onClick={newToken}>
@@ -408,7 +409,12 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
                     <Icon name="calendar" size={14} /> adicionar ao iPhone
                   </a>
                 </li>
-                <li>Toque em “Assinar” e depois em “Adicionar”. Pronto.</li>
+                <li>Toque em “Assinar”. Na tela seguinte, <b>desligue “Remover alertas”</b> (senão o iPhone apaga os lembretes) e toque em “Adicionar”.</li>
+                <li>
+                  Para atualizar sozinho: Ajustes → Calendário → Contas → <b>Buscar dados</b> → escolha <b>a cada 15 minutos</b> ou <b>de hora em hora</b> (em “Manual” ele nunca
+                  atualiza).
+                </li>
+                <li className="muted small">Já tinha assinado e os lembretes não chegam? Ajustes → Calendário → Contas → Calendários assinados → toque na agenda → desligue “Remover alertas”.</li>
                 <li className="muted small">A agenda vem na cor da sua marca. Se já tinha assinado antes e ficou de outra cor: Calendário → Calendários → ⓘ ao lado da agenda → Cor → Personalizada.</li>
                 <li className="muted small">Se o botão não abrir: Ajustes → Calendário → Contas → Adicionar conta → Outra → Adicionar calendário assinado → cole o link abaixo.</li>
               </ol>

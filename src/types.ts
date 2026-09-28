@@ -290,7 +290,7 @@ export interface Settings {
   document: string
   pixKey: string
   calendarToken: string // chave secreta do link de agenda para o celular ('' = desligada)
-  calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean } // o que vai para o celular
+  calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean; periodos?: boolean } // o que vai para o celular
   city: string
   logo: string // data URL
   avatarIcon?: string // símbolo no lugar da foto (quando não há logo)

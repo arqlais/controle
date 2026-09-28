@@ -172,7 +172,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Ver os compromissos no calendário do celular',
-    a: <>É opcional. Em <b>agenda → conectar ao celular</b>, escolha o que vai (prazos de entrega, parcelas a receber, compromissos), toque em <b>ligar</b> e adicione no celular uma vez (iPhone, Android/Google ou outro). Daí em diante tudo que você cria ou muda aqui aparece sozinho lá, com lembrete na véspera. Para deixar algo de fora: no compromisso, desmarque <b>mandar para a agenda do celular</b>; na demanda, toque em <b>tirar</b> embaixo do prazo.</>,
+    a: <>É opcional. Em <b>agenda → conectar ao celular</b>, escolha o que vai (prazos de entrega, dias de produção pintados, parcelas a receber, compromissos), toque em <b>ligar</b> e adicione no celular uma vez. No iPhone, deixe <b>“Remover alertas” desligado</b> e em Ajustes → Calendário → Contas → <b>Buscar dados</b> escolha a cada 15 minutos ou de hora em hora. Daí em diante tudo que você cria ou muda aqui aparece sozinho lá, com lembrete 2 dias antes, na véspera e no dia. Para deixar algo de fora: no compromisso, desmarque <b>mandar para a agenda do celular</b>; na demanda, toque em <b>tirar</b> embaixo do prazo.</>,
     page: 'agenda',
   },
   {

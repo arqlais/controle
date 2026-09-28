@@ -501,7 +501,10 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
         if (remote) {
           remoteAt.current = remote.updatedAt
           fromRemote.current = true
-          setData(normalize(remote.data))
+          const d = normalize(remote.data)
+          setData(d)
+          // ao entrar, garante que a agenda do celular está em dia (ex.: se a última publicação falhou)
+          if (d.settings.calendarToken) void publishAgendaFor(d)
         } else {
           // primeira vez: sobe o que já existia neste navegador (se for real)
           const local = load(userId)

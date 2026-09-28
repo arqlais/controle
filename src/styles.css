@@ -1189,6 +1189,7 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .scope-chip.is-own svg { opacity: 0.6; }
 .scope-add input { width: 190px; max-width: 100%; padding: 6px 12px; border-radius: 999px; font-size: 12.5px; min-height: 0; border-style: dashed; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent); }
+.sync-dot.is-error { background: var(--bad, #c0564b); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad, #c0564b) 20%, transparent); }
 
 /* proposta com escopo grande: título mais perto e quadro mais compacto, sem espremer */
 .proposal.is-long .p-body { padding-top: 46px; }
