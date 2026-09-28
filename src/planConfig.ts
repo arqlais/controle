@@ -1,6 +1,6 @@
 import { supabase } from './cloud'
 import { ARTIFACT } from './env'
-import { PLANS, setTrialDays, type Feature, type PlanId } from './plans'
+import { PLANS, setAnnualDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
    e os dias de teste. Carregados antes de abrir o site, para a página de vendas já
@@ -15,6 +15,7 @@ export interface PlanOverride {
 }
 export interface PlanConfig {
   trialDays?: number
+  annualDiscount?: number // % de desconto no anual
   plans?: Partial<Record<PlanId, PlanOverride>>
 }
 
@@ -23,6 +24,7 @@ export const PREVIEW_KEY = 'previa-config-planos'
 
 export function applyPlanConfig(c: PlanConfig) {
   if (c.trialDays && c.trialDays > 0) setTrialDays(Math.round(c.trialDays))
+  if (typeof c.annualDiscount === 'number' && c.annualDiscount >= 0 && c.annualDiscount <= 50) setAnnualDiscount(c.annualDiscount)
   for (const id of Object.keys(PLANS) as PlanId[]) {
     const o = c.plans?.[id]
     if (!o) continue
@@ -60,7 +62,7 @@ export async function loadPlanConfig() {
       return
     }
     const d = (res.data?.data ?? {}) as PlanConfig
-    const c: PlanConfig = { trialDays: d.trialDays, plans: d.plans }
+    const c: PlanConfig = { trialDays: d.trialDays, annualDiscount: d.annualDiscount, plans: d.plans }
     applyPlanConfig(c)
     try {
       localStorage.setItem(CACHE, JSON.stringify(c))

@@ -30,6 +30,7 @@ import Contracts from './pages/Contracts'
 import Admin from './pages/Admin'
 import Checkout from './pages/Checkout'
 import Suggestions from './pages/Suggestions'
+import Feedback from './pages/Feedback'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
@@ -127,7 +128,7 @@ export default function App() {
     () =>
       [
         { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
-        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }] : [] },
+        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),
     [access],
@@ -182,6 +183,8 @@ export default function App() {
         return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
       case 'sugestoes':
         return <Suggestions />
+      case 'avaliar':
+        return <Feedback />
       case 'clientes':
         return route.id ? <ClientDetail key={route.id} id={route.id} /> : <Clients />
       case 'projetos':

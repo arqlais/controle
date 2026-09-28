@@ -2,20 +2,20 @@ import { TermsText } from '../components/Terms'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, MoneyInput, Section, Segmented, Stat } from '../components/ui'
-import { ask, toast } from '../components/dialog'
+import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type Billing, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { formatDoc, matches, money } from '../utils'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
-type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'site' | 'termos' | 'horarios' | 'ajustes'
+type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'depoimentos' | 'site' | 'termos' | 'horarios' | 'ajustes'
 const STATUS_COLOR: Record<SubStatus, string> = { trial: '#6b8f94', ativa: '#5e8c6a', atrasada: '#b98246', cancelada: '#9aa3ab' }
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
@@ -86,6 +86,7 @@ export default function Admin() {
             { value: 'assinantes', label: `assinantes (${subs.length})` },
             { value: 'conversas', label: <>conversas{unread ? <em className="pf-dot-count">{unread}</em> : null}</> },
             { value: 'sugestoes', label: <>sugestões{newSugs ? <em className="pf-dot-count">{newSugs}</em> : null}</> },
+            { value: 'depoimentos', label: 'depoimentos' },
             { value: 'site', label: 'página de vendas' },
             { value: 'termos', label: 'termos' },
             { value: 'horarios', label: 'horários' },
@@ -97,6 +98,7 @@ export default function Admin() {
       {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
+      {tab === 'depoimentos' && <FeedbackAdmin />}
       {tab === 'site' && (
         <>
           <p className="pf-note">
@@ -935,6 +937,7 @@ function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription
 function PlansEditor() {
   const snap = (): PlanConfig => ({
     trialDays: TRIAL_DAYS,
+    annualDiscount: ANNUAL_DISCOUNT,
     plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features] }])) as PlanConfig['plans'],
   })
   const [cfg, setCfg] = useState<PlanConfig>(snap)
@@ -954,7 +957,7 @@ function PlansEditor() {
   return (
     <>
       <Section
-        title="teste grátis"
+        title="teste grátis e plano anual"
         action={
           <button className={`btn small ${dirty ? 'primary' : 'ghost'}`} disabled={!dirty} onClick={() => void save()}>
             {dirty ? 'salvar planos' : 'salvo'}
@@ -964,6 +967,9 @@ function PlansEditor() {
         <div className="form-grid">
           <Field label="Dias de teste para quem se cadastra" hint="Vale para os próximos cadastros. Para alguém específico, aumente ou encerre o teste em “assinantes”.">
             <input type="number" min={1} max={365} value={cfg.trialDays ?? 7} onChange={(e) => setCfg({ ...cfg, trialDays: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
+          </Field>
+          <Field label="Desconto no plano anual (%)" hint="Um desconto leve (5% a 15%) já incentiva sem pesar no seu caixa.">
+            <input type="number" min={0} max={50} value={cfg.annualDiscount ?? 10} onChange={(e) => setCfg({ ...cfg, annualDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
           </Field>
         </div>
       </Section>
@@ -977,7 +983,7 @@ function PlansEditor() {
                 <Field label="Nome">
                   <input value={o.name ?? ''} onChange={(e) => setPlan(p.id, { name: e.target.value })} />
                 </Field>
-                <Field label="Preço por mês" hint={`Anual: ${money0(annualPrice(o.price ?? p.price))}`}>
+                <Field label="Preço por mês" hint={`Anual: ${money0(Math.round((o.price ?? p.price) * 12 * (1 - (cfg.annualDiscount ?? 10) / 100) * 100) / 100)}`}>
                   <MoneyInput value={o.price ?? p.price} onChange={(n) => setPlan(p.id, { price: n })} />
                 </Field>
                 <Field label="Frase curta" span={3}>
@@ -1005,6 +1011,87 @@ function PlansEditor() {
       <p className="muted small">
         Você (a dona) tem tudo liberado, inclusive o assistente de IA e o seu modelo exclusivo. Mudanças de preço valem para novos pedidos; quem já assina continua no valor combinado até você mudar.
       </p>
+    </>
+  )
+}
+
+/** Depoimentos: a dona escolhe quais vão para a página de vendas (só os autorizados pela pessoa). */
+function FeedbackAdmin() {
+  const [list, setList] = useState<Feedback[] | null>(null)
+  const [filter, setFilter] = useState<'todos' | 'publicados' | 'autorizados'>('todos')
+  const load = useCallback(() => platform.feedbacks().then(setList).catch(() => setList([])), [])
+  useEffect(() => {
+    void load()
+  }, [load])
+  if (!list) return <p className="muted small">carregando…</p>
+  if (!list.length) return <Empty icon="heart" title="nenhum depoimento ainda" text="Quem usa o sistema pode deixar um depoimento em “deixar depoimento”. Eles aparecem aqui para você escolher quais vão para a página de vendas." />
+  const toggle = async (f: Feedback) => {
+    try {
+      await platform.setFeedbackPublished(f.id, !f.published)
+      toast(f.published ? 'Saiu da página de vendas.' : 'Agora aparece na página de vendas.')
+      await load()
+    } catch {
+      toast('Não foi possível salvar agora.')
+    }
+  }
+  const remove = async (f: Feedback) => {
+    if (!(await askDelete('este depoimento'))) return
+    await platform.deleteFeedback(f.id).catch(() => toast('Não foi possível apagar agora.'))
+    await load()
+  }
+  const rows = list.filter((f) => (filter === 'publicados' ? f.published : filter === 'autorizados' ? f.allowPublish : true))
+  const onPage = list.filter((f) => f.published).length
+  return (
+    <>
+      <p className="pf-note">
+        <Icon name="star" size={16} />
+        <span>
+          <b>{onPage}</b> na página de vendas agora. Só dá para mostrar os depoimentos que a pessoa autorizou; aparecem só o nome, a profissão, as estrelas e o texto. Sem nenhum escolhido, a seção de depoimentos some da página.{' '}
+          <a className="link" href="#/vendas">
+            ver a página de vendas
+          </a>
+        </span>
+      </p>
+      <div className="sg-filters">
+        {(
+          [
+            ['todos', `todos ${list.length}`],
+            ['autorizados', `autorizados ${list.filter((f) => f.allowPublish).length}`],
+            ['publicados', `na página ${onPage}`],
+          ] as [typeof filter, string][]
+        ).map(([k, label]) => (
+          <button key={k} className={`sg-filter ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="fb-admin">
+        {rows.map((f) => (
+          <article key={f.id} className={`card fb-card ${f.published ? 'is-on' : ''}`}>
+            <header>
+              <b className="fb-mini-stars">{'★'.repeat(f.stars)}<span className="muted">{'★'.repeat(5 - f.stars)}</span></b>
+              <small className="muted">{timeLabel(f.createdAt)}</small>
+            </header>
+            <blockquote>{f.text}</blockquote>
+            <footer>
+              <span>
+                <b>{f.name || 'sem nome'}</b>
+                <small className="muted">{f.role || '—'}</small>
+              </span>
+              {f.allowPublish ? (
+                <label className="check toggle">
+                  <input type="checkbox" checked={f.published} onChange={() => void toggle(f)} /> na página de vendas
+                </label>
+              ) : (
+                <small className="muted">não autorizou aparecer</small>
+              )}
+              <button className="icon-btn subtle" onClick={() => void remove(f)} aria-label="Apagar depoimento" title="Apagar">
+                <Icon name="trash" size={15} />
+              </button>
+            </footer>
+          </article>
+        ))}
+      </div>
     </>
   )
 }

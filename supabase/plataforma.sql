@@ -184,6 +184,44 @@ create policy "sugestões: envia" on public.suggestions for insert with check (a
 create policy "sugestões: dona vê todas" on public.suggestions for select using (public.sou_dona());
 create policy "sugestões: dona responde" on public.suggestions for update using (public.sou_dona()) with check (public.sou_dona());
 
+-- 4c) Depoimentos: quem usa avalia; a dona escolhe quais aparecem na página de vendas.
+--     Só aparecem os que a pessoa autorizou. A página de vendas lê por uma função que devolve
+--     apenas nome, profissão, texto e estrelas (nunca e-mail ou id).
+create table if not exists public.feedbacks (
+  id            uuid primary key default gen_random_uuid(),
+  user_id       uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  name          text not null default '' check (length(name) <= 80),
+  role          text not null default '' check (length(role) <= 80),
+  text          text not null check (length(text) between 1 and 600),
+  stars         int  not null default 5 check (stars between 1 and 5),
+  allow_publish boolean not null default false,
+  published     boolean not null default false,
+  created_at    timestamptz not null default now()
+);
+alter table public.feedbacks enable row level security;
+drop policy if exists "depoimentos: vê os seus" on public.feedbacks;
+drop policy if exists "depoimentos: envia" on public.feedbacks;
+drop policy if exists "depoimentos: apaga os seus" on public.feedbacks;
+drop policy if exists "depoimentos: dona vê todos" on public.feedbacks;
+drop policy if exists "depoimentos: dona publica" on public.feedbacks;
+drop policy if exists "depoimentos: dona apaga" on public.feedbacks;
+create policy "depoimentos: vê os seus" on public.feedbacks for select using (auth.uid() = user_id);
+create policy "depoimentos: envia" on public.feedbacks for insert with check (auth.uid() = user_id and published = false);
+create policy "depoimentos: apaga os seus" on public.feedbacks for delete using (auth.uid() = user_id);
+create policy "depoimentos: dona vê todos" on public.feedbacks for select using (public.sou_dona());
+create policy "depoimentos: dona publica" on public.feedbacks for update using (public.sou_dona()) with check (public.sou_dona() and (not published or allow_publish));
+create policy "depoimentos: dona apaga" on public.feedbacks for delete using (public.sou_dona());
+
+create or replace function public.depoimentos_publicados()
+returns table (name text, role text, text text, stars int)
+language sql stable security definer set search_path = public as $$
+  select f.name, f.role, f.text, f.stars from public.feedbacks f
+   where f.published and f.allow_publish
+   order by f.created_at desc limit 12;
+$$;
+revoke execute on function public.depoimentos_publicados() from public;
+grant execute on function public.depoimentos_publicados() to anon, authenticated;
+
 -- 5) Trava no próprio banco: conta bloqueada, cancelada ou com teste vencido
 --    continua VENDO os dados (e pode baixar tudo), mas não consegue salvar alterações.
 create or replace function public.pode_editar() returns boolean

@@ -70,6 +70,31 @@ export const SUGGESTION_STATUS: Record<SuggestionStatus, { label: string; color:
   feita: { label: 'feita ✓', color: '#5e8c6a' },
   nao_agora: { label: 'não por agora', color: '#9aa3ab' },
 }
+/** Depoimento de quem usa: a pessoa autoriza, a dona escolhe se vai para a página de vendas. */
+export interface Feedback {
+  id: string
+  userId: string
+  name: string
+  role: string
+  text: string
+  stars: number
+  allowPublish: boolean
+  published: boolean
+  createdAt: string
+}
+export type PublicFeedback = Pick<Feedback, 'name' | 'role' | 'text' | 'stars'>
+const fbFromRow = (r: Row): Feedback => ({
+  id: String(r.id),
+  userId: String(r.user_id),
+  name: String(r.name ?? ''),
+  role: String(r.role ?? ''),
+  text: String(r.text ?? ''),
+  stars: Number(r.stars ?? 5),
+  allowPublish: !!r.allow_publish,
+  published: !!r.published,
+  createdAt: String(r.created_at),
+})
+
 export const SUGGESTION_CATEGORY: Record<SuggestionCategory, string> = { nova: 'função nova', melhoria: 'melhoria', problema: 'algo não funciona', outro: 'outra ideia' }
 
 export interface ChatMessage {
@@ -259,6 +284,28 @@ const cloud = {
     const { error } = await supabase!.from('suggestions').insert({ category: s.category, title: s.title, body: s.body })
     if (error) throw error
   },
+  async feedbacks(): Promise<Feedback[]> {
+    const { data, error } = await supabase!.from('feedbacks').select('*').order('created_at', { ascending: false }).limit(500)
+    if (error) throw error
+    return (data ?? []).map(fbFromRow)
+  },
+  async sendFeedback(f: Pick<Feedback, 'name' | 'role' | 'text' | 'stars' | 'allowPublish'>) {
+    const { error } = await supabase!.from('feedbacks').insert({ name: f.name, role: f.role, text: f.text, stars: f.stars, allow_publish: f.allowPublish })
+    if (error) throw error
+  },
+  async setFeedbackPublished(id: string, published: boolean) {
+    const { error } = await supabase!.from('feedbacks').update({ published }).eq('id', id)
+    if (error) throw error
+  },
+  async deleteFeedback(id: string) {
+    const { error } = await supabase!.from('feedbacks').delete().eq('id', id)
+    if (error) throw error
+  },
+  async publishedFeedbacks(): Promise<PublicFeedback[]> {
+    const { data, error } = await supabase!.rpc('depoimentos_publicados')
+    if (error) throw error
+    return (data ?? []) as PublicFeedback[]
+  },
   async answerSuggestion(id: string, patch: Pick<Suggestion, 'status' | 'reply'>) {
     const { error } = await supabase!.from('suggestions').update({ status: patch.status, reply: patch.reply, updated_at: new Date().toISOString() }).eq('id', id)
     if (error) throw error
@@ -325,7 +372,7 @@ const cloud = {
     await patchCloudSettings({ terms })
   },
   async savePlanConfig(c: PlanConfig) {
-    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays })
+    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, annualDiscount: c.annualDiscount })
   },
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
@@ -342,6 +389,7 @@ interface PlatformData {
   terms?: string
   plans?: PlanConfig['plans']
   trialDays?: number
+  annualDiscount?: number
   company?: Company
 }
 async function cloudSettings(): Promise<PlatformData> {
@@ -366,6 +414,7 @@ interface LocalDB {
   hours: OnlineHours
   billing?: Record<string, Billing>
   suggestions?: Suggestion[]
+  feedbacks?: Feedback[]
   site?: Partial<SiteContent>
   terms?: string
   company?: Company
@@ -432,7 +481,16 @@ function seed(): LocalDB {
   const billing: Record<string, Billing> = {
     'ex-4': { fullName: 'Júlia Prado', doc: '123.456.789-09', phone: '(31) 99999-0000', email: 'julia@exemplo.com', cep: '30130-000', address: 'Rua Exemplo, Centro', number: '100', complement: '', city: 'Belo Horizonte - MG', profession: 'arquiteta', source: 'Instagram', payMethod: 'pix', cycle: 'anual', acceptedAt: ago(0, 5) },
   }
-  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing }
+  // depoimentos de exemplo (fictícios, só na prévia)
+  const fb = (userId: string, name: string, role: string, text: string, allow: boolean, published: boolean, days: number): Feedback => ({ id: `fb-${userId}`, userId, name, role, text, stars: 5, allowPublish: allow, published, createdAt: ago(days) })
+  const feedbacks = [
+    fb('ex-1', 'Carolina M.', 'arquiteta', 'parei de esquecer de cobrar o saldo. a mensagem já sai pronta.', true, true, 9),
+    fb('ex-2', 'Diego R.', 'artista 3D', 'meu orçamento levava uma hora. agora, dez minutos.', true, true, 7),
+    fb('ex-3', 'Lívia S.', 'designer de interiores', 'finalmente sei quanto eu lucro por mês.', true, true, 5),
+    fb('ex-4', 'Júlia P.', 'arquiteta', 'o contrato sair preenchido me economiza uma tarde inteira.', true, false, 1),
+    fb('ex-5', 'Thiago L.', 'arquiteto', 'gostei, mas queria mais modelos de proposta.', false, false, 0),
+  ]
+  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks }
 }
 
 const listeners = new Set<() => void>()
@@ -523,6 +581,25 @@ const local = {
     const db = readDB()
     const now = new Date().toISOString()
     writeDB({ ...db, suggestions: [...(db.suggestions ?? []), { ...x, id: Math.random().toString(36).slice(2), userId: PREVIEW_CLIENT, status: 'recebida', reply: '', createdAt: now, updatedAt: now }] })
+  },
+  async feedbacks(): Promise<Feedback[]> {
+    const all = readDB().feedbacks ?? []
+    return getPreviewRole() === 'cliente' ? all.filter((x) => x.userId === PREVIEW_CLIENT) : all
+  },
+  async sendFeedback(f: Pick<Feedback, 'name' | 'role' | 'text' | 'stars' | 'allowPublish'>) {
+    const db = readDB()
+    writeDB({ ...db, feedbacks: [{ ...f, id: Math.random().toString(36).slice(2), userId: PREVIEW_CLIENT, published: false, createdAt: new Date().toISOString() }, ...(db.feedbacks ?? [])] })
+  },
+  async setFeedbackPublished(id: string, published: boolean) {
+    const db = readDB()
+    writeDB({ ...db, feedbacks: (db.feedbacks ?? []).map((x) => (x.id === id ? { ...x, published: published && x.allowPublish } : x)) })
+  },
+  async deleteFeedback(id: string) {
+    const db = readDB()
+    writeDB({ ...db, feedbacks: (db.feedbacks ?? []).filter((x) => x.id !== id) })
+  },
+  async publishedFeedbacks(): Promise<PublicFeedback[]> {
+    return (readDB().feedbacks ?? []).filter((x) => x.published && x.allowPublish).map(({ name, role, text, stars }) => ({ name, role, text, stars }))
   },
   async answerSuggestion(id: string, patch: Pick<Suggestion, 'status' | 'reply'>) {
     const db = readDB()

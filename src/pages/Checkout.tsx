@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../components/ui'
 import { toast } from '../components/dialog'
 import { TermsModal } from '../components/Terms'
-import { ANNUAL_MONTHS_PAID, PLANS, PLAN_LIST, PLATFORM, annualPrice, money0, type PlanId } from '../plans'
+import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLATFORM, annualPrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
 import { formatDoc, lookupCnpj, money } from '../utils'
@@ -41,10 +41,10 @@ export function validDoc(v: string) {
 
 const PROFESSIONS = ['arquiteto(a)', 'designer de interiores', 'artista 3D / visualização', 'estudante', 'paisagista', 'outro']
 const SOURCES = ['Instagram', 'indicação de amigo(a)', 'Google', 'faculdade', 'TikTok', 'outro']
-const PAY: { id: PayMethod; label: string; hint: string; icon: string }[] = [
-  { id: 'pix', label: 'Pix', hint: 'mais rápido', icon: 'wallet' },
-  { id: 'cartao', label: 'cartão de crédito', hint: 'recorrente', icon: 'file' },
-  { id: 'boleto', label: 'boleto', hint: 'até 3 dias úteis', icon: 'list' },
+// só Pix e cartão de crédito; o que cada um significa muda com o ciclo (mensal ou anual)
+const PAY: { id: PayMethod; label: string; hint: Record<Cycle, string>; icon: string }[] = [
+  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', anual: 'um Pix só, pelo ano todo' }, icon: 'wallet' },
+  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', anual: 'uma cobrança pelo ano todo' }, icon: 'file' },
 ]
 
 export default function Checkout({ planId }: { planId: string }) {
@@ -136,7 +136,7 @@ export default function Checkout({ planId }: { planId: string }) {
             </li>
             <li>
               <b>pagamento</b>
-              <span>a {PLATFORM.support} te manda os dados de pagamento pelo chat</span>
+              <span>o {PLATFORM.support} te manda o Pix ou o link do cartão pelo chat</span>
             </li>
             <li>
               <b>conta liberada</b>
@@ -187,7 +187,7 @@ export default function Checkout({ planId }: { planId: string }) {
               onChange={(cycle) => set({ cycle })}
               options={[
                 { value: 'mensal', label: 'mensal' },
-                { value: 'anual', label: <>anual · {12 - ANNUAL_MONTHS_PAID} meses grátis</> },
+                { value: 'anual', label: <>anual · {ANNUAL_DISCOUNT}% de desconto</> },
               ]}
             />
           </Step>
@@ -264,11 +264,11 @@ export default function Checkout({ planId }: { planId: string }) {
                 <button type="button" key={x.id} className={`pf-plan-opt ${b.payMethod === x.id ? 'active' : ''}`} onClick={() => set({ payMethod: x.id })} aria-pressed={b.payMethod === x.id}>
                   <Icon name={x.icon} size={18} />
                   <b>{x.label}</b>
-                  <small>{x.hint}</small>
+                  <small>{x.hint[b.cycle]}</small>
                 </button>
               ))}
             </div>
-            <p className="muted small">Nada é cobrado automaticamente agora: a {PLATFORM.support} confirma o pedido e te envia os dados de pagamento pelo chat. Seus dados de cartão nunca são pedidos por aqui.</p>
+            <p className="muted small">Nada é cobrado agora: o {PLATFORM.support} confirma o pedido e te envia o Pix ou o link seguro do cartão pelo chat. Os dados do seu cartão nunca são digitados aqui.</p>
           </Step>
 
           <Step n={5} title="confirmar">
@@ -324,7 +324,7 @@ export default function Checkout({ planId }: { planId: string }) {
           )}
           {b.cycle === 'anual' && (
             <div className="co-line small text-good">
-              <span>{12 - ANNUAL_MONTHS_PAID} meses grátis</span>
+              <span>{ANNUAL_DISCOUNT}% de desconto no anual</span>
               <span>− {money(p.price * 12 - total)}</span>
             </div>
           )}
@@ -365,7 +365,7 @@ function Blocked() {
         <h1>
           conta <em>pausada</em>
         </h1>
-        <p className="muted">Fale com a {PLATFORM.support} pelo chat para resolver.</p>
+        <p className="muted">Fale com o {PLATFORM.support} pelo chat para resolver.</p>
       </section>
     </div>
   )

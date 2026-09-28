@@ -4,7 +4,7 @@ import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
 import { compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
-import { platform } from '../platform'
+import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
@@ -90,11 +90,6 @@ const AUDIENCE = [
   { icon: 'cap', title: 'estudantes' },
 ]
 
-const TESTIMONIALS = [
-  { name: 'Carolina M.', role: 'arquiteta', text: 'parei de esquecer de cobrar o saldo. a mensagem já sai pronta.' },
-  { name: 'Diego R.', role: 'artista 3D', text: 'meu orçamento levava uma hora. agora, dez minutos.' },
-  { name: 'Lívia S.', role: 'designer de interiores', text: 'finalmente sei quanto eu lucro por mês.' },
-]
 
 const FAQ: [string, ReactNode][] = [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
@@ -116,7 +111,7 @@ const SCREENS: { id: Screen; label: string; icon: string }[] = [
 ]
 
 /** Elementos com data-reveal aparecem suavemente ao entrar na tela. */
-function useReveal(root: React.RefObject<HTMLDivElement | null>) {
+function useReveal(root: React.RefObject<HTMLDivElement | null>, key = 0) {
   useEffect(() => {
     const el = root.current
     if (!el || typeof IntersectionObserver === 'undefined') return
@@ -131,19 +126,23 @@ function useReveal(root: React.RefObject<HTMLDivElement | null>) {
         }),
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
     )
-    el.querySelectorAll('[data-reveal]').forEach((x) => io.observe(x))
+    // key muda quando entra conteúdo novo (ex.: depoimentos): observa só o que ainda não apareceu
+    el.querySelectorAll('[data-reveal]:not(.is-in)').forEach((x) => io.observe(x))
     return () => io.disconnect()
-  }, [root])
+  }, [root, key])
 }
 
 export default function Landing() {
   const root = useRef<HTMLDivElement>(null)
   // "quem criou", contatos e redes: a dona edita no painel da plataforma
   const [site, setSite] = useState<SiteContent>(DEFAULT_SITE)
+  // depoimentos escolhidos pela dona no painel (sem nenhum, a seção não aparece)
+  const [quotes, setQuotes] = useState<PublicFeedback[]>([])
   useEffect(() => {
     platform.site().then(setSite).catch(() => undefined)
+    platform.publishedFeedbacks().then(setQuotes).catch(() => undefined)
   }, [])
-  useReveal(root)
+  useReveal(root, quotes.length)
   useEffect(() => {
     applyTheme(DEFAULT_SETTINGS)
     document.title = `${PLATFORM.name} · ${PLATFORM.tagline}`
@@ -385,18 +384,19 @@ export default function Landing() {
         </div>
       </section>
 
+      {quotes.length > 0 && (
       <section className="lp-section">
         <div className="lp-wrap">
           <SectionHead eyebrow="depoimentos" title={<>freelancers mais <em>tranquilos</em></>} />
           <div className="lp-testimonials">
-            {TESTIMONIALS.map((t, i) => (
-              <figure key={t.name} className="card lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
-                <span className="lp-stars" aria-label="5 estrelas">
-                  ★★★★★
+            {quotes.map((t, i) => (
+              <figure key={i} className="card lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
+                <span className="lp-stars" aria-label={`${t.stars} estrelas`}>
+                  {'★'.repeat(t.stars)}
                 </span>
                 <blockquote>{t.text}</blockquote>
                 <figcaption>
-                  <span className="lp-quote-avatar">{t.name[0]}</span>
+                  <span className="lp-quote-avatar">{(t.name || '?')[0]}</span>
                   <span>
                     <b>{t.name}</b>
                     <small className="muted">{t.role}</small>
@@ -405,9 +405,9 @@ export default function Landing() {
               </figure>
             ))}
           </div>
-          <p className="muted small center">depoimentos ilustrativos (exemplo)</p>
         </div>
       </section>
+      )}
 
       <section className="lp-section lp-alt" id="duvidas">
         <div className="lp-wrap lp-faq-wrap">
