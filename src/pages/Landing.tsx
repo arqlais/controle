@@ -91,6 +91,13 @@ const AUDIENCE = [
 ]
 
 
+// frases do que o sistema resolve, enquanto não há depoimentos reais escolhidos no painel
+const BENEFITS = [
+  { icon: 'wallet', title: 'cobrança', hint: 'lembrete e mensagem prontos', text: 'parar de esquecer de cobrar o saldo: a mensagem já sai pronta.' },
+  { icon: 'file', title: 'orçamento', hint: 'pela sua tabela de preços', text: 'o orçamento que levava uma hora sai em dez minutos.' },
+  { icon: 'trend', title: 'financeiro', hint: 'recebido, a receber e despesas', text: 'saber, de verdade, quanto você lucra por mês.' },
+]
+
 const FAQ: [string, ReactNode][] = [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['serve para quem está começando?', 'Serve, e foi pensado para isso: estudantes e freelancers em começo de carreira, que precisam de organização sem pagar caro.'],
@@ -384,30 +391,44 @@ export default function Landing() {
         </div>
       </section>
 
-      {quotes.length > 0 && (
       <section className="lp-section">
         <div className="lp-wrap">
-          <SectionHead eyebrow="depoimentos" title={<>freelancers mais <em>tranquilos</em></>} />
+          <SectionHead eyebrow={quotes.length ? 'depoimentos' : 'na prática'} title={<>freelancers mais <em>tranquilos</em></>} />
           <div className="lp-testimonials">
-            {quotes.map((t, i) => (
-              <figure key={i} className="card lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
-                <span className="lp-stars" aria-label={`${t.stars} estrelas`}>
-                  {'★'.repeat(t.stars)}
-                </span>
-                <blockquote>{t.text}</blockquote>
-                <figcaption>
-                  <span className="lp-quote-avatar">{(t.name || '?')[0]}</span>
-                  <span>
-                    <b>{t.name}</b>
-                    <small className="muted">{t.role}</small>
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
+            {quotes.length
+              ? quotes.map((t, i) => (
+                  <figure key={i} className="card lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
+                    <span className="lp-stars" aria-label={`${t.stars} estrelas`}>
+                      {'★'.repeat(t.stars)}
+                    </span>
+                    <blockquote>{t.text}</blockquote>
+                    <figcaption>
+                      <span className="lp-quote-avatar">{(t.name || '?')[0]}</span>
+                      <span>
+                        <b>{t.name}</b>
+                        <small className="muted">{t.role}</small>
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))
+              : // sem depoimentos reais escolhidos ainda: o que o sistema resolve (sem nomes inventados)
+                BENEFITS.map((t, i) => (
+                  <figure key={i} className="card lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
+                    <blockquote>{t.text}</blockquote>
+                    <figcaption>
+                      <span className="lp-quote-avatar">
+                        <Icon name={t.icon} size={16} />
+                      </span>
+                      <span>
+                        <b>{t.title}</b>
+                        <small className="muted">{t.hint}</small>
+                      </span>
+                    </figcaption>
+                  </figure>
+                ))}
           </div>
         </div>
       </section>
-      )}
 
       <section className="lp-section lp-alt" id="duvidas">
         <div className="lp-wrap lp-faq-wrap">
