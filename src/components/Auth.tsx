@@ -62,7 +62,7 @@ function PreviewGate({ children }: { children: ReactNode }) {
   useEffect(() => onPreviewRole(setRole), [])
   const route = useRoute()
   // abrir a página de vendas pelo menu da prévia
-  const visitor = role === 'visitante' || route.page === 'vendas'
+  const visitor = role === 'visitante' || (route.page === 'vendas' && role !== 'dona')
   return (
     <>
       {visitor ? (
