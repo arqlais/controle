@@ -3,7 +3,7 @@ import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
+import { QUOTE_STATUS, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -47,11 +47,24 @@ function StatusDialog({ p, status, onClose }: { p: Project; status: string; onCl
   const [date, setDate] = useState(() => (status === 'entregue' && p.dueDate && p.dueDate <= today() ? p.dueDate : today()))
   const [paid, setPaid] = useState<Record<string, boolean>>({})
   const [tasks, setTasks] = useState(true)
+  const [waive, setWaive] = useState(false) // cliente cancelou: o restante não vai ser pago
   const openTasks = p.tasks.filter((t) => !t.done).length
   const label = statusInfo(status).label.toLowerCase()
   const confirm = () => {
     let next: Project = { ...p, status, deliveredDate: status === 'entregue' ? date : null }
     next = { ...next, payments: next.payments.map((x) => (paid[x.id] ? { ...x, paidDate: date } : x)) }
+    if (waive) {
+      // o que não foi pago sai das parcelas e vira desconto (a demanda fecha com o valor recebido)
+      const left = next.payments.filter((x) => !x.paidDate && x.amount > 0)
+      const lost = left.reduce((n, x) => n + x.amount, 0)
+      if (lost > 0)
+        next = {
+          ...next,
+          payments: next.payments.filter((x) => x.paidDate || x.amount <= 0),
+          discount: (next.discount || 0) + lost,
+          notes: [`Cliente cancelou: ${money(lost)} não será pago (${fmtDate(date)}).`, next.notes].filter(Boolean).join('\n\n'),
+        }
+    }
     if (status === 'entregue' && tasks) next = { ...next, tasks: next.tasks.map((t) => ({ ...t, done: true })) }
     applyRef?.(next)
     const n = Object.values(paid).filter(Boolean).length
@@ -99,8 +112,17 @@ function StatusDialog({ p, status, onClose }: { p: Project; status: string; onCl
             </label>
           ))}
           <span className="muted small">
-            {status === 'producao' ? 'Se marcar, entra como recebido hoje.' : `Os marcados entram como recebidos em ${date.split('-').reverse().join('/')}. Os outros continuam em “a receber”.`}
+            {status === 'producao'
+              ? 'Se marcar, entra como recebido hoje.'
+              : waive
+                ? 'Os marcados entram como recebidos; o que ficar desmarcado deixa de ser cobrado.'
+                : `Os marcados entram como recebidos em ${date.split('-').reverse().join('/')}. Os outros continuam em “a receber”.`}
           </span>
+          {status === 'entregue' && (
+            <label className="check toggle waive">
+              <input type="checkbox" checked={waive} onChange={(e) => setWaive(e.target.checked)} /> o cliente cancelou — o restante não vai ser pago
+            </label>
+          )}
         </div>
       )}
       {status === 'entregue' && openTasks > 0 && (
@@ -224,12 +246,16 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const [exactDate, setExactDate] = useState('')
   const [closedOn, setClosedOn] = useState(today())
   const [signalPaid, setSignalPaid] = useState(false)
+  const [note, setNote] = useState(q.closedNote ?? '')
   const due = dayMode === 'data' ? exactDate : workDays > 0 ? (dayMode === 'uteis' ? addBusinessDays(closedOn, workDays) : addDays(closedOn, workDays)) : ''
   const diff = Math.round((proposed - value) * 100) / 100
   const confirm = () => {
     if (value <= 0) return toast('Informe o valor fechado.')
-    const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, sentAt: q.sentAt || closedOn, closedAt: closedOn }
-    const base = projectFromQuote(approved, fee, due, closedOn)
+    const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, closedNote: note.trim(), sentAt: q.sentAt || closedOn, closedAt: closedOn }
+    const built = projectFromQuote(approved, fee, due, closedOn)
+    // o que mudou no fechamento fica anotado na demanda
+    const change = note.trim()
+    const base = change ? { ...built, notes: [`Fechado com mudança: ${change}${value !== proposed ? ` (proposta ${money(proposed)} → fechado ${money(value)})` : ''}`, built.notes].filter(Boolean).join('\n\n') } : built
     // lançando orçamentos antigos: o sinal já entra pago na data do fechamento
     const project = signalPaid && base.payments[0] ? { ...base, payments: base.payments.map((x, i) => (i === 0 ? { ...x, paidDate: closedOn } : x)) } : base
     upsert('projects', project)
@@ -260,6 +286,9 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
       >
         <Field label="Fechou por quanto?" hint={diff > 0 ? `Negociado: ${money(diff)} a menos que a proposta (${money(proposed)}).` : diff < 0 ? `${money(-diff)} a mais que a proposta (${money(proposed)}).` : `Mesmo valor da proposta. Se negociou, é só mudar aqui.`}>
           <MoneyInput value={value} onChange={setValue} />
+        </Field>
+        <Field label="Mudou algo? (opcional)" hint="Ex.: tirou a planta de forro; incluiu 2 imagens. Fica anotado no orçamento e na demanda.">
+          <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={value !== proposed ? 'O que mudou no escopo ou no valor?' : 'Opcional'} spellCheck lang="pt-BR" />
         </Field>
         <Field label="Fechou em" hint="Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.">
           <DateInput value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />

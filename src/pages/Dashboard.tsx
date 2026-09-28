@@ -176,7 +176,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
                       <div className="grow">
                         <div className="list-title">{p.title}</div>
                         <div className="list-sub">{client?.name}</div>
-                        <TaskQuick p={p} />
+                        <TaskQuick p={p} compact />
                       </div>
                       <div className="right">
                         <div className="row gap-s">

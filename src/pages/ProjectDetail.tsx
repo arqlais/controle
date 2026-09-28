@@ -105,7 +105,7 @@ export default function ProjectDetail({ id }: { id: string }) {
       <a href={client ? href('clientes', client.id) : href('projetos')} className="back">
         <Icon name="chevronL" size={16} /> {client?.name ?? 'Demandas'}
       </a>
-      <div className="page-head">
+      <div className="page-head sticky-head">
         <div>
           <p className="eyebrow">
             {service?.name ?? 'Projeto'}

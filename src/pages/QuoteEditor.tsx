@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { duplicateQuote } from '../quoteActions'
+import { renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -230,6 +231,15 @@ export default function QuoteEditor({ id }: { id: string }) {
       toast('Escolha o cliente.')
       return null
     }
+    if (!next.number) {
+      // nº 0: escolhe pela data — enviado sem PDF ocupa o número vago; rascunhos se reorganizam em ordem de data
+      const others = data.quotes.filter((x) => x.id !== next.id)
+      const plan = renumberPlan([...others.map((x) => (x.status !== 'rascunho' ? { ...x, pdf: true } : x)), { ...next, pdf: next.status === 'rascunho' ? next.pdf : false }])
+      const to = new Map(plan.map((r) => [r.id, r.to]))
+      next.number = to.get(next.id) ?? nextQuoteNumber(data)
+      for (const x of others) if (x.status === 'rascunho' && to.has(x.id) && to.get(x.id) !== x.number) upsert('quotes', { ...x, number: to.get(x.id)! })
+      toast(`Número definido pela data: ${quoteNumber(next)}.`)
+    }
     upsert('quotes', next)
     setQ(next)
     setDirty(false)
@@ -317,8 +327,8 @@ export default function QuoteEditor({ id }: { id: string }) {
           </button>
         </div>
       )}
-      <div className="page-head">
-        <div>
+      <div className="page-head sticky-head">
+        <div className="sticky-title">
           <p className="eyebrow">
             proposta {quoteNumber(q)} · {fmtDateLong(q.createdAt)} <Badge color={QUOTE_STATUS[q.status].color}>{QUOTE_STATUS[q.status].label}</Badge>
           </p>
@@ -364,6 +374,18 @@ export default function QuoteEditor({ id }: { id: string }) {
             {dirty ? 'salvar' : 'salvo'}
           </button>
         </div>
+        {existing && (
+          <div className="head-status">
+            <Segmented<QuoteStatus>
+              value={q.status}
+              onChange={(st) => save({ status: st })}
+              options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
+            />
+            <button className="btn small primary" onClick={approve}>
+              <Icon name="check" size={14} /> {q.projectId ? 'abrir demanda' : 'aprovado → criar demanda'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className={`mobile-switch ${q.pdf ? '' : 'is-hidden'}`}>
@@ -410,7 +432,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                 label="Nº e data"
                 hint={
                   dupNumber
-                    ? `⚠ já existe outro orçamento ${quoteNumber(q)}`
+                    ? `⚠ já existe outro orçamento ${quoteNumber(q)} · coloque 0 para o sistema escolher pela data`
+                    : !q.number
+                      ? '0 = ao salvar, o sistema escolhe o nº pela data (rascunhos se reorganizam; enviados não mudam).'
                     : q.createdAt === today()
                       ? 'Orçamento antigo? coloque o nº e a data reais.'
                       : 'Vão no PDF e na lista.'
@@ -420,12 +444,12 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <input
                     id="q-number"
                     type="number"
-                    min={1}
-                    value={q.number}
+                    min={0}
+                    value={q.number || 0}
                     onFocus={(e) => e.target.select()}
-                    onChange={(e) => set({ number: Math.max(1, Math.round(Number(e.target.value) || 1)) })}
+                    onChange={(e) => set({ number: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
                     aria-label="Número do orçamento"
-                    title="Número do orçamento (ex.: 170)"
+                    title="Número do orçamento (0 = o sistema escolhe pela data)"
                   />
                   <DateInput
                     id="q-date"
@@ -663,20 +687,34 @@ export default function QuoteEditor({ id }: { id: string }) {
             </div>
           </Section>
 
-          <Section title="status">
-            <Segmented<QuoteStatus>
-              value={q.status}
-              onChange={(s) => (existing ? save({ status: s }) : set({ status: s }))}
-              options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
-            />
-            {q.closedValue ? (
+          <Section title={existing ? 'mais' : 'status'}>
+            {!existing && (
+              <Segmented<QuoteStatus>
+                value={q.status}
+                onChange={(s) => set({ status: s })}
+                options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
+              />
+            )}
+            {q.closedValue || q.closedNote ? (
               <p className="small muted">
-                Fechado por <b>{money(q.closedValue)}</b> · proposta de <s>{money(total)}</s>
+                {q.closedValue ? (
+                  <>
+                    Fechado por <b>{money(q.closedValue)}</b> · proposta de <s>{money(total)}</s>
+                  </>
+                ) : null}
+                {q.closedNote ? (
+                  <>
+                    {q.closedValue ? <br /> : null}
+                    Mudou no fechamento: {q.closedNote}
+                  </>
+                ) : null}
               </p>
             ) : null}
-            <button className="btn primary block" onClick={approve}>
-              <Icon name="check" size={16} /> {q.projectId ? 'abrir demanda criada' : 'aprovado → criar demanda'}
-            </button>
+            {!existing && (
+              <button className="btn primary block" onClick={approve}>
+                <Icon name="check" size={16} /> aprovado → criar demanda
+              </button>
+            )}
             <div className="row gap-s wrap">
               {existing && (
                 <button

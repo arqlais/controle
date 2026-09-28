@@ -1683,3 +1683,58 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .kcard > .task-quick.is-compact { margin: 0; }
 .kcard > .task-quick.is-compact .task-quick-head { width: 100%; }
 .kcard > .task-quick.is-compact:not(.is-open) .progress { width: auto; flex: 1; }
+
+/* estratégia: cards alinhados e espaçamentos iguais */
+.ig-strategy { align-items: stretch; }
+.ig-strategy > .card { display: flex; flex-direction: column; gap: 0; }
+.ig-strategy > .card > .card-head { margin-bottom: 16px; }
+.ig-strategy > .card > .card-head + * { margin-top: 0 !important; }
+.ig-strategy .ig-goal { margin: 0; }
+.ig-strategy .ig-h { margin: 22px 0 10px; }
+.ig-strategy .card-head + .ig-h { margin-top: 0; }
+.ig-strategy .ig-week { margin: 0; gap: 12px; }
+.ig-strategy .ig-week + p { margin: 16px 0 0; }
+.ig-strategy .ig-bullets { gap: 8px; }
+.ig-strategy .ig-pillars { gap: 18px; }
+.ig-strategy .ig-tags { padding: 14px 0; }
+.ig-strategy .ig-tags:first-of-type { padding-top: 0; }
+.ig-strategy .ig-tags b { display: block; margin-bottom: 6px; }
+.ig-strategy .ig-tags p { margin: 0 0 10px; }
+/* todo card: mesmo espaço entre o título e o conteúdo */
+.card > .card-head { margin-bottom: 16px; }
+.card > .card-head + * { margin-top: 0 !important; }
+.list-item .task-quick.is-compact { width: 100%; max-width: 280px; margin-top: 4px; }
+.list-item .task-quick.is-compact .task-quick-head { width: 100%; }
+.list-item .task-quick.is-compact:not(.is-open) .progress { width: auto; flex: 1; }
+
+/* propostas lado a lado: TOTAL e valor na mesma linha em todos os quadros (o desconto fica embaixo) */
+.p-options .p-total { align-items: flex-start; min-height: 76px; padding-top: 12px; padding-bottom: 10px; }
+.p-options .p-total-label { line-height: 24px; }
+.p-options .p-total-value b { line-height: 24px; }
+.p-options .p-total-value i { text-align: right; line-height: 1.35; margin-top: 2px; }
+
+/* topo das páginas de item (orçamento, demanda, cliente) fica fixo ao rolar, logo abaixo da barra de busca */
+.sticky-head { position: sticky; top: var(--topbar-h, 70px); z-index: 25; background: var(--bg); margin: 0 -14px; padding: 12px 14px 12px; border-radius: 0 0 18px 18px; transition: box-shadow 0.2s; }
+.sticky-head.is-stuck { box-shadow: 0 14px 22px -18px rgba(62, 75, 87, 0.35); }
+.sticky-head.is-stuck .eyebrow { display: none; }
+.sticky-head.is-stuck h1 { font-size: 26px; }
+.head-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-basis: 100%; }
+.head-status .segmented { flex: none; }
+@media (max-width: 820px) {
+  .sticky-head { margin: 0 -16px; padding: 10px 16px; }
+  .sticky-head > .row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; padding-bottom: 2px; }
+  .sticky-head > .row::-webkit-scrollbar { display: none; }
+  .sticky-head > .row .btn { flex: none; }
+  .sticky-head.is-stuck h1 { font-size: 20px; }
+  .head-status { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .head-status .btn { flex: none; }
+}
+.status-q .waive { margin-top: 6px; padding-top: 10px; border-top: 1px dashed color-mix(in srgb, var(--accent-soft) 60%, transparent); color: var(--bad); }
+@media (max-width: 820px) {
+  .sticky-head > * { min-width: 0; max-width: 100%; }
+  .sticky-head > .row, .head-status { width: 100%; }
+}
+@media (min-width: 561px) and (max-width: 820px) {
+  .sticky-head > .row { flex-wrap: wrap; overflow-x: visible; }
+  .head-status { flex-wrap: wrap; overflow-x: visible; }
+}

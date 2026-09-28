@@ -52,6 +52,23 @@ export default function App() {
   const { settings } = data
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
+  // topo das páginas de item fixo: mede a barra de busca e marca quando o topo "grudou" (fica mais compacto)
+  useEffect(() => {
+    const onScroll = () => {
+      const bar = document.querySelector<HTMLElement>('.topbar')
+      const h = bar?.offsetHeight ?? 70
+      document.documentElement.style.setProperty('--topbar-h', `${h}px`)
+      const head = document.querySelector<HTMLElement>('.sticky-head')
+      if (head) head.classList.toggle('is-stuck', window.scrollY > 40 && head.getBoundingClientRect().top <= h + 1)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
   useEffect(() => {
     try {
       if (settings.brandName?.trim()) localStorage.setItem(BRAND_KEY, settings.brandName.trim())

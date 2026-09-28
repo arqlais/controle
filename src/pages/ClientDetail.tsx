@@ -53,7 +53,7 @@ export default function ClientDetail({ id }: { id: string }) {
       <a href={href('clientes')} className="back">
         <Icon name="chevronL" size={16} /> Clientes
       </a>
-      <div className="page-head">
+      <div className="page-head sticky-head">
         <div className="client-cell big">
           <span className="avatar lg" style={{ background: `${CLIENT_COLORS[c.type]}1f`, color: CLIENT_COLORS[c.type] }}>{c.name.slice(0, 1).toUpperCase()}</span>
           <div>

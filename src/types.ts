@@ -226,6 +226,7 @@ export interface Quote {
   createdAt: string
   projectId: string
   closedValue?: number // valor fechado depois da negociação (0 = o da proposta)
+  closedNote?: string // o que mudou no fechamento (escopo, valor…)
 }
 
 export type Pricing = 'unidade' | 'pacote' | 'm2' | 'livre'
