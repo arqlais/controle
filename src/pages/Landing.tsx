@@ -265,10 +265,6 @@ export default function Landing() {
       <section className="lp-section lp-story-sec">
         <div className="lp-wrap lp-story lp-me-story" data-reveal>
           <span className="lp-me-wrap" aria-hidden={!site.photo}>
-            <span className="lp-me-ring" />
-            <span className="lp-me-orbit">
-              <i>✦</i>
-            </span>
             <span className="lp-me">{site.photo ? <img src={site.photo} alt={site.name} /> : site.name[0]}</span>
           </span>
           <p className="eyebrow">quem criou</p>

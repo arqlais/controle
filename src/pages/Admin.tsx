@@ -651,7 +651,7 @@ function SiteEditor() {
                 if (f) set({ photo: await shrinkPhoto(f) })
               }}
             />
-            <p className="muted small">Foto vertical fica melhor. Ela é reduzida sozinha para carregar rápido.</p>
+            <p className="muted small">A foto aparece no círculo do “quem criou”. Prefira uma com o rosto no centro; ela é reduzida sozinha para carregar rápido.</p>
           </div>
         </div>
         <div className="form-grid">
