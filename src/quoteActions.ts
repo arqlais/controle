@@ -70,6 +70,7 @@ export function duplicateQuote(q: Quote, d: Data, offset = 0): Quote {
     status: 'rascunho',
     sentAt: '',
     createdAt: today(),
+    dateFixed: undefined,
     closedAt: undefined,
     closedValue: 0,
     projectId: '',

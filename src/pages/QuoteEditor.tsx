@@ -69,7 +69,9 @@ function freshPrices(q: Quote, st: Settings, student: boolean): Quote {
     })
   const items = again(q.items, q.floors ?? 1)
   const options = q.options.map((o) => ({ ...o, items: again(o.items, o.floors ?? q.floors ?? 1) }))
-  return changed ? { ...q, items, options } : q
+  // ainda não foi enviado: a data acompanha o dia de hoje (a não ser que ela tenha escolhido uma data)
+  const dated = !q.dateFixed && q.createdAt !== today()
+  return changed || dated ? { ...q, items, options, ...(dated ? { createdAt: today() } : {}) } : q
 }
 
 const newOption = (): QuoteOption => ({ id: uid(), name: '', items: [newItem()], note: '', discount: 0, discountNote: '', deadlineDays: 10 })
@@ -441,6 +443,8 @@ export default function QuoteEditor({ id }: { id: string }) {
                     ? `⚠ já existe outro orçamento ${quoteNumber(q)} · coloque 0 para o sistema escolher pela data`
                     : !q.number
                       ? '0 = ao salvar, o sistema escolhe o nº pela data (rascunhos se reorganizam; enviados não mudam).'
+                    : q.status === 'rascunho' && !q.dateFixed
+                      ? 'Rascunho: a data vai para o dia de hoje sempre que você abrir. Escolhendo outra data, ela fica.'
                     : q.createdAt === today()
                       ? 'Orçamento antigo? coloque o nº e a data reais.'
                       : 'Vão no PDF e na lista.'
@@ -465,7 +469,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                     onChange={(e) => {
                       const d = e.target.value || today()
                       // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
-                      set({ createdAt: d, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
+                      set({ createdAt: d, dateFixed: d !== today() || undefined, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
                     }}
                   />
                 </div>
