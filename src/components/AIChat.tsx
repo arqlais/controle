@@ -129,7 +129,9 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
   const [msgs, setMsgs] = useState<Msg[]>(() => loadChats().current)
   const [past, setPast] = useState<Saved[]>(() => loadChats().past)
   const [showPast, setShowPast] = useState(false)
-  useEffect(() => saveChats(msgs, past), [msgs, past])
+  useEffect(() => {
+    saveChats(msgs, past)
+  }, [msgs, past])
   const newChat = () => {
     if (msgs.length) setPast((p) => [{ id: String(Date.now()), date: new Date().toISOString(), title: titleOf(msgs), msgs: light(msgs) }, ...p].slice(0, 15))
     setMsgs([])
@@ -161,7 +163,9 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
   }
   const current = quoteId ? data.quotes.find((q) => q.id === quoteId) : undefined
 
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [msgs, busy, open])
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [msgs, busy, open])
 
   const send = async (content?: string) => {
     const q = (content ?? text).trim()

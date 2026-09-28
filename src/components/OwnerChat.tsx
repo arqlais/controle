@@ -29,11 +29,15 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
   }, [openSignal])
   // trocou de tela: o chat fecha (no celular ele cobre a tela toda)
   const route = useRoute()
-  useEffect(() => setOpen(false), [route.page, route.id])
+  useEffect(() => {
+    setOpen(false)
+  }, [route.page, route.id])
   useEffect(() => {
     if (open && unread) void markRead()
   }, [open, unread, markRead])
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [msgs, open])
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [msgs, open])
 
   const submit = async () => {
     if (sending || !text.trim()) return
