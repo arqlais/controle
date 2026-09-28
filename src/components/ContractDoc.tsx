@@ -42,7 +42,9 @@ function ClientContract({ s, body, clientName, has }: { s: Settings; body: strin
   const [pages, setPages] = useState<number[][] | null>(null)
   const key = body + clientName
 
-  useLayoutEffect(() => setPages(null), [key])
+  useLayoutEffect(() => {
+    setPages(null)
+  }, [key])
   useLayoutEffect(() => {
     if (pages || !measure.current) return
     const els = [...measure.current.children] as HTMLElement[]
@@ -191,7 +193,9 @@ function LaisContract({ s, body, clientName }: { s: Settings; body: string; clie
   const measure = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
   const key = body + clientName + (s.signature ?? '')
-  useLayoutEffect(() => setPages(null), [key])
+  useLayoutEffect(() => {
+    setPages(null)
+  }, [key])
   useLayoutEffect(() => {
     if (pages || !measure.current) return
     const els = [...measure.current.children] as HTMLElement[]

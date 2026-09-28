@@ -150,8 +150,12 @@ export default function App() {
 
   const [dark, setDark] = useDeviceDark()
   // The Seasons é só da dona: nas contas de clientes vira a fonte padrão deles
-  useEffect(() => applyTheme(effectiveSettings(settings, access.has), dark), [settings, dark, access])
-  useEffect(() => setMenuOpen(false), [route.page, route.id])
+  useEffect(() => {
+    applyTheme(effectiveSettings(settings, access.has), dark)
+  }, [settings, dark, access])
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [route.page, route.id])
 
   const alerts = useMemo(
     () => ({

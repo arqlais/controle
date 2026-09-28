@@ -67,7 +67,9 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
   const { tpl, p } = useSheet(s)
   const ref = useRef<HTMLElement>(null)
   const [level, setLevel] = useState(0)
-  useLayoutEffect(() => setLevel(0), [fit])
+  useLayoutEffect(() => {
+    setLevel(0)
+  }, [fit])
   useLayoutEffect(() => {
     if (fit === undefined || !ref.current) return
     const infos = ref.current.querySelector<HTMLElement>('.p-infos, .p-total, .p-options, .p-card')

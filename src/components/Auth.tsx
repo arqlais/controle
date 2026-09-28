@@ -147,7 +147,9 @@ const lastBrand = () => {
 }
 
 function AuthLayout({ children }: { children: ReactNode }) {
-  useEffect(() => applyTheme(DEFAULT_SETTINGS), [])
+  useEffect(() => {
+    applyTheme(DEFAULT_SETTINGS)
+  }, [])
   return (
     <div className="auth">
       <aside className="auth-art">

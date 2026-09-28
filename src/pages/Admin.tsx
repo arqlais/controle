@@ -366,7 +366,9 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
   useEffect(() => {
     if (unread) void markRead().then(onChange)
   }, [unread, markRead, onChange])
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [msgs])
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' })
+  }, [msgs])
   const submit = async () => {
     if (await send(text, true)) {
       setText('')
