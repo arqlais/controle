@@ -1,19 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
-import { ARTIFACT } from './env'
+import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
 import type { Data } from './types'
 
 /* Nuvem (Supabase): login com e-mail e senha + os dados guardados numa
    única linha por usuária, protegida por RLS (só a dona lê e escreve).
    Sem as variáveis de ambiente, o sistema funciona só no navegador. */
 
-// Projeto da Laís. A chave "publishable" é pública por natureza (vai no navegador);
-// quem protege os dados é o login + as regras de acesso (RLS) do supabase/schema.sql.
-// As variáveis de ambiente, se existirem, têm prioridade.
-const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://lbggvjebkhdcybpkxzxs.supabase.co'
-const key = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || 'sb_publishable_uqo6nAVMS7iZsidCPNQRhg_YA9RNaYA'
+const url = SUPA_URL
+const key = SUPA_KEY
 
-export const SUPABASE_URL = (url ?? '').replace(/\/$/, '')
-export const CLOUD = !ARTIFACT && !!url && !!key
+export const SUPABASE_URL = url
+export const CLOUD = HAS_CLOUD
 export const supabase = CLOUD ? createClient(url!, key!, { auth: { persistSession: true, autoRefreshToken: true } }) : null
 
 const TABLE = 'workspace'

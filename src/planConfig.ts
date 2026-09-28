@@ -1,5 +1,4 @@
-import { supabase } from './cloud'
-import { ARTIFACT } from './env'
+import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
 import { PLANS, setAnnualDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
@@ -46,30 +45,47 @@ const read = (k: string): PlanConfig | null => {
   }
 }
 
+async function fetchConfig(timeoutMs: number): Promise<PlanConfig | null> {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const r = await fetch(`${SUPA_URL}/rest/v1/platform_settings?id=eq.1&select=data`, { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }, signal: ctrl.signal })
+    if (!r.ok) return null
+    const rows = (await r.json()) as { data?: PlanConfig }[]
+    const d = rows[0]?.data ?? {}
+    return { trialDays: d.trialDays, annualDiscount: d.annualDiscount, plans: d.plans }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+/** Já visitou antes: abre na hora com a última versão salva e atualiza em segundo plano.
+ *  Primeira visita: espera no máximo 1,5 s pelos planos (preço certo na página de vendas). */
 export async function loadPlanConfig() {
-  if (ARTIFACT || !supabase) {
+  if (!HAS_CLOUD) {
     const c = read(PREVIEW_KEY)
     if (c) applyPlanConfig(c)
     return
   }
   const cached = read(CACHE)
-  try {
-    const q = supabase.from('platform_settings').select('data').eq('id', 1).maybeSingle()
-    const timeout = new Promise<null>((r) => setTimeout(() => r(null), 2500))
-    const res = await Promise.race([q, timeout])
-    if (!res) {
-      if (cached) applyPlanConfig(cached)
-      return
-    }
-    const d = (res.data?.data ?? {}) as PlanConfig
-    const c: PlanConfig = { trialDays: d.trialDays, annualDiscount: d.annualDiscount, plans: d.plans }
-    applyPlanConfig(c)
+  const save = (c: PlanConfig | null) => {
+    if (!c) return
     try {
       localStorage.setItem(CACHE, JSON.stringify(c))
     } catch {
       /* ok */
     }
-  } catch {
-    if (cached) applyPlanConfig(cached)
+  }
+  if (cached) {
+    applyPlanConfig(cached)
+    void fetchConfig(8000).then(save)
+    return
+  }
+  const c = await fetchConfig(1500)
+  if (c) {
+    applyPlanConfig(c)
+    save(c)
   }
 }

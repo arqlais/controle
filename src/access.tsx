@@ -28,7 +28,15 @@ export const useAccess = () => useContext(Ctx)
 const cacheKey = (userId: string) => `acesso:${userId}`
 
 export function AccessProvider({ userId, plan, children, override }: { userId: string; plan?: string; children: ReactNode; override?: AccessInfo }) {
-  const [info, setInfo] = useState<AccessInfo | null>(override ?? null)
+  // já entrou antes neste aparelho: abre na hora com o último acesso conhecido e confere em segundo plano
+  const [info, setInfo] = useState<AccessInfo | null>(() => {
+    if (override) return override
+    try {
+      return JSON.parse(localStorage.getItem(cacheKey(userId)) || 'null')
+    } catch {
+      return null
+    }
+  })
   const load = useCallback(async () => {
     if (override) return setInfo(override)
     try {
