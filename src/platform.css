@@ -606,3 +606,6 @@
   .lp-hero-art { padding-bottom: 20px; }
   .lp-blobs i:nth-child(1) { width: 260px; height: 260px; }
 }
+
+.lp-me { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-style: italic; font-size: 36px; color: #fff; background: linear-gradient(135deg, var(--accent-soft), var(--accent-ink)); box-shadow: 0 0 0 6px var(--surface), 0 18px 40px -16px rgba(40, 50, 60, 0.5); }
+.lp-story .lp-story-text + .lp-story-text { margin-top: -6px; }

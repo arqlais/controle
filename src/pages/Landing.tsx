@@ -256,15 +256,21 @@ export default function Landing() {
 
       <section className="lp-section lp-story-sec">
         <div className="lp-wrap lp-story" data-reveal>
-          <p className="eyebrow">como nasceu</p>
+          <span className="lp-me" aria-hidden>
+            {PLATFORM.owner[0]}
+          </span>
+          <p className="eyebrow">quem criou</p>
           <h2>
-            nasceu de uma <em>rotina de verdade</em>
+            oi, eu sou a <em>{PLATFORM.owner}</em>
           </h2>
           <p className="lp-story-text">
-            Entre a faculdade, as entregas e os clientes, faltava um lugar que juntasse tudo o que um freelancer precisa. Então eu criei o meu: um sistema pensado a partir do dia a dia de quem projeta, orça, entrega e cobra
-            sozinho. Ele deu tão certo na minha rotina que agora está aberto para você também, com uma assinatura que cabe no bolso.
+            Sou estudante de arquitetura e trabalho como freelancer com renderização, modelagem e detalhamento. Quando saí do estágio e comecei a atender meus próprios clientes, senti falta de um lugar que juntasse tudo: orçamentos, prazos,
+            pagamentos, contratos e a agenda da faculdade. Então criei o meu próprio sistema, do jeito que a rotina de freelancer pede.
           </p>
-          <p className="lp-sign">— criadora do {PLATFORM.name}, estudante de arquitetura e freelancer</p>
+          <p className="lp-story-text">Ele organizou tanto o meu trabalho que resolvi abrir para outros freelancers, com uma assinatura que cabe no bolso de quem está começando.</p>
+          <p className="lp-sign">
+            {PLATFORM.owner} · criadora do {PLATFORM.name}
+          </p>
         </div>
       </section>
 
