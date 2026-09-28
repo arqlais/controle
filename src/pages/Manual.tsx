@@ -66,7 +66,7 @@ const STEPS: Step[] = [
     when: 'Proposta enviada, cliente ainda não respondeu.',
     where: { path: ['início', 'para fazer'], page: 'inicio' },
     todo: [
-      <>Depois de 3 dias sem resposta, aparece em <b>início → para fazer</b> um “Pedir retorno” com botão de <b>mensagem</b>.</>,
+      <>Depois de 1 dia útil sem resposta, aparece em <b>início → para fazer</b> um “Pedir retorno” com botão de <b>mensagem</b>.</>,
       <>Em <b>orçamentos</b>, o filtro <b>cobrar resposta</b> mostra todos que estão esperando.</>,
       <>Se recusou: na lista de orçamentos, clique na pílula de status e escolha <b>não fechou</b>.</>,
     ],
@@ -127,7 +127,7 @@ const STEPS: Step[] = [
 const CASES: { q: string; a: ReactNode; page?: string }[] = [
   {
     q: 'A cliente pediu algo a mais depois de fechar',
-    a: <>Na demanda, em <b>pagamentos → + adicional</b>. Escolha somar na parcela em aberto (ex.: saldo) ou cobrar à parte. Para imagens, marque <b>calcular por quantidade</b> (ex.: 15 × R$ 35,00).</>,
+    a: <>Na demanda, em <b>pagamentos → + adicional</b>. Escolha somar na parcela em aberto (ex.: saldo) ou cobrar à parte. Vale para qualquer serviço; quando for por unidade (o mais comum: imagens), marque <b>calcular por quantidade</b> (ex.: 15 × R$ 35,00).</>,
     page: 'projetos',
   },
   {

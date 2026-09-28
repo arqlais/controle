@@ -1,3 +1,4 @@
+import { draftRenumber } from '../numbering'
 import { useState } from 'react'
 import { DateInput } from './DateInput'
 import { useStore } from '../store'
@@ -181,7 +182,7 @@ export function PayNext({ p, compact }: { p: Project; compact?: boolean }) {
 
 /** Status do orçamento direto na lista. Aprovar pergunta o valor fechado e cria a demanda (uma única vez). */
 export function QuoteStatusSelect({ q }: { q: Quote }) {
-  const { upsert } = useStore()
+  const { data, upsert } = useStore()
   const [closing, setClosing] = useState<string | null>(null) // opção escolhida ('' = sem opções)
   const info = QUOTE_STATUS[q.status]
   const multi = q.mode === 'opcoes' && q.options.length > 1
@@ -189,8 +190,15 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
   const change = (v: string) => {
     const [status, optionId] = v.split(':') as [QuoteStatus, string | undefined]
     if (status === 'aprovado' && !q.projectId) return setClosing(optionId ?? '')
-    upsert('quotes', { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || today() })
-    toast(`Orçamento ${quoteNumber(q)} → ${QUOTE_STATUS[status].label.toLowerCase()}`)
+    const next = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || today() }
+    if (status === 'rascunho' && q.status !== 'rascunho') {
+      // voltou para rascunho: vai para depois do último número (os rascunhos se reorganizam pela data)
+      const moves = new Map(draftRenumber([...data.quotes.filter((x) => x.id !== q.id), next]).map((r) => [r.id, r.number]))
+      if (moves.has(q.id)) next.number = moves.get(q.id)!
+      for (const x of data.quotes) if (x.id !== q.id && moves.has(x.id)) upsert('quotes', { ...x, number: moves.get(x.id)! })
+    }
+    upsert('quotes', next)
+    toast(`Orçamento ${quoteNumber(q)} → ${QUOTE_STATUS[status].label.toLowerCase()}${next.number !== q.number ? ` (agora ${quoteNumber(next)})` : ''}`)
   }
   return (
     <>

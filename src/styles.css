@@ -1804,6 +1804,27 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 /* quadro de demandas em tela larga: título, filtros e "nova demanda" acompanham a largura do quadro */
 .page.page-board > * { max-width: none; }
 .content:has(.page-board) > .demo-banner { max-width: none; }
+
+/* topo fixo: ocupa a largura toda (antes ficava mais curto à direita) */
+.page > .sticky-head { width: auto; max-width: calc(1348px + 28px); }
+@media (max-width: 820px) { .page > .sticky-head { max-width: none; } }
+/* celular: botões do topo fixo mais compactos, numa linha só; "salvo" some (volta como "salvar" quando há mudança) */
+@media (max-width: 560px) {
+  .sticky-head > .row .btn { padding: 9px 14px; font-size: 14px; gap: 6px; }
+  .sticky-head > .row .btn.is-saved { display: none; }
+}
+/* janelas no celular: altura pela área visível de verdade (a barra do Safari não esconde os botões) */
+@media (max-width: 720px) {
+  .modal { max-height: 92vh; max-height: 92dvh; }
+  .modal-foot .btn { flex: 1 1 calc(50% - 4px); justify-content: center; }
+}
+/* configurações no celular: as abas numa linha só */
+@media (max-width: 820px) {
+  .settings-tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 4px; }
+  .settings-tabs .desktop-only { display: none; }
+  .settings-tab { gap: 6px; padding: 10px 6px; min-width: 0; }
+  .settings-note { grid-column: 1 / -1; }
+}
 /* PDF em vetor: na impressão só a folha aparece, em A4 sem margem, com as cores do modelo */
 @media print {
   @page { size: A4; margin: 0; }

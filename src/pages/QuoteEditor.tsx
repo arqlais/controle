@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { duplicateQuote } from '../quoteActions'
-import { renumberPlan } from '../numbering'
+import { draftRenumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -264,6 +264,14 @@ export default function QuoteEditor({ id }: { id: string }) {
       next.number = to.get(next.id) ?? nextQuoteNumber(data)
       for (const x of others) if (x.status === 'rascunho' && to.has(x.id) && to.get(x.id) !== x.number) upsert('quotes', { ...x, number: to.get(x.id)! })
       toast(`Número definido pela data: ${quoteNumber(next)}.`)
+    } else if (next.status === 'rascunho' && data.quotes.find((x) => x.id === next.id)?.status !== 'rascunho') {
+      // voltou para rascunho: vai para depois do último número (os rascunhos se reorganizam pela data)
+      const moves = new Map(draftRenumber([...data.quotes.filter((x) => x.id !== next.id), next]).map((r) => [r.id, r.number]))
+      if (moves.has(next.id)) {
+        next.number = moves.get(next.id)!
+        toast(`Voltou para rascunho: agora é ${quoteNumber(next)}.`)
+      }
+      for (const x of data.quotes) if (x.id !== next.id && moves.has(x.id)) upsert('quotes', { ...x, number: moves.get(x.id)! })
     }
     upsert('quotes', next)
     setQ(next)
@@ -405,7 +413,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             )}
             <AskAIButton quote={q} />
           </MoreMenu>
-          <button className={`btn ${dirty ? 'primary' : 'ghost'}`} onClick={() => save()} disabled={!dirty}>
+          <button className={`btn ${dirty ? 'primary' : 'ghost is-saved'}`} onClick={() => save()} disabled={!dirty}>
             {dirty ? 'salvar' : 'salvo'}
           </button>
         </div>

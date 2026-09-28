@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { renumberPlan } from '../numbering'
+import { draftRenumber, renumberPlan } from '../numbering'
 import { duplicateQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -7,17 +7,17 @@ import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Modal, Segmented, Stat, usePaged } from '../components/ui'
 import type { Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink, matches } from '../utils'
+import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink, matches, businessDaysUntil, today } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
 import { ask, toast } from '../components/dialog'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
-const FOLLOW_UP_DAYS = 3
 
 /** Dias desde o envio (orçamentos enviados e ainda sem resposta). */
 export const waitingDays = (q: Quote) => (q.status === 'enviado' && q.sentAt ? -daysUntil(q.sentAt) : 0)
-export const needsFollowUp = (q: Quote) => q.status === 'enviado' && waitingDays(q) >= FOLLOW_UP_DAYS
+/** Cobrar resposta: já passou 1 dia útil desde o envio (fim de semana e feriado não contam). */
+export const needsFollowUp = (q: Quote) => q.status === 'enviado' && !!q.sentAt && businessDaysUntil(today(), q.sentAt) >= 1
 
 export default function Quotes() {
   const { data, upsert, remove } = useStore()
@@ -75,13 +75,17 @@ export default function Quotes() {
     )
       return
     // enviado: conta a partir da data do orçamento (antigos não viram "cobrar resposta" de uma vez)
-    for (const x of list)
-      upsert('quotes', {
-        ...x,
-        status,
-        sentAt: status === 'rascunho' ? x.sentAt : x.sentAt || x.createdAt,
-        closedAt: status === 'aprovado' ? x.closedAt || x.createdAt : x.closedAt,
-      })
+    const updated = list.map((x) => ({
+      ...x,
+      status,
+      sentAt: status === 'rascunho' ? x.sentAt : x.sentAt || x.createdAt,
+      closedAt: status === 'aprovado' ? x.closedAt || x.createdAt : x.closedAt,
+    }))
+    // voltaram para rascunho: vão para depois do último número (os rascunhos se reorganizam pela data)
+    const ids = new Set(updated.map((x) => x.id))
+    const moves = status === 'rascunho' ? new Map(draftRenumber([...data.quotes.filter((x) => !ids.has(x.id)), ...updated]).map((r) => [r.id, r.number])) : new Map<string, number>()
+    for (const x of updated) upsert('quotes', moves.has(x.id) ? { ...x, number: moves.get(x.id)! } : x)
+    for (const x of data.quotes) if (!ids.has(x.id) && moves.has(x.id)) upsert('quotes', { ...x, number: moves.get(x.id)! })
     toast(`${list.length} orçamento(s) → ${QUOTE_STATUS[status].label.toLowerCase()}${locked.length ? ` · ${locked.length} já com demanda continuam aprovados` : ''}`)
     setPicked(new Set())
   }
@@ -120,7 +124,7 @@ export default function Quotes() {
         <Stat
           label="Cobrar resposta"
           value={followUps.length}
-          sub={`sem retorno há ${FOLLOW_UP_DAYS}+ dias`}
+          sub="sem retorno há 1+ dia útil"
           icon="alert"
           tone={followUps.length ? 'warn' : undefined}
           onClick={() => setFilter('cobrar')}
@@ -256,7 +260,7 @@ export default function Quotes() {
                     </td>
                     <td className="hide-mobile">
                       {x.status === 'enviado' ? (
-                        <span className={wait >= FOLLOW_UP_DAYS ? 'text-warn' : 'muted'}>
+                        <span className={needsFollowUp(x) ? 'text-warn' : 'muted'}>
                           {wait === 0 ? 'enviado hoje' : `aguardando há ${wait} dia${wait > 1 ? 's' : ''}`}
                         </span>
                       ) : x.status === 'aprovado' && x.projectId ? (

@@ -55,3 +55,11 @@ export function renumberPlan(quotes: Quote[]): Renumber[] {
   }
   return plan
 }
+
+/** Depois de um orçamento voltar para rascunho: os rascunhos vão para depois do último número
+ *  (em ordem de data). Enviados e aprovados não mudam. Devolve só os rascunhos que mudam de número. */
+export function draftRenumber(quotes: Quote[]): { id: string; number: number }[] {
+  return renumberPlan(quotes)
+    .filter((r) => r.why === 'rascunho')
+    .map((r) => ({ id: r.id, number: r.to }))
+}
