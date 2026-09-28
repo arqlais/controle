@@ -69,11 +69,15 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
     if (fit === undefined || !ref.current) return
     const infos = ref.current.querySelector<HTMLElement>('.p-infos, .p-total, .p-options, .p-card')
     const foot = ref.current.querySelector<HTMLElement>('.p-contacts')
-    if (!foot) return
     const blocks = [...ref.current.querySelectorAll<HTMLElement>('.p-body > *')].filter((el) => el !== foot)
     const last = blocks[blocks.length - 1] ?? infos
     if (!last) return
-    const gap = foot.offsetTop - (last.offsetTop + last.offsetHeight)
+    // sem rodapé de contatos, o limite é o fim da folha A4 (1123 px)
+    const box = ref.current.getBoundingClientRect()
+    const k = box.width / 794 || 1 // a prévia fica em escala reduzida
+    const y = (v: number) => (v - box.top) / k
+    const limit = foot ? y(foot.getBoundingClientRect().top) : 1123 - 24
+    const gap = limit - y(last.getBoundingClientRect().bottom)
     if (gap < MIN_GAP && level < LEVELS.length - 1) setLevel(level + 1)
   })
   const style = {

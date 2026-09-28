@@ -381,6 +381,11 @@ export default function QuoteEditor({ id }: { id: string }) {
             </a>
           )}
           <MoreMenu>
+            {q.pdf && (
+              <button className="btn ghost" disabled={pdf.busy} onClick={() => pdf.downloadImage(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)} title="Baixa direto, sem a janela de impressão (o texto vira imagem)">
+                <Icon name="download" size={16} /> PDF em imagem
+              </button>
+            )}
             <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
             <button
               className="btn ghost"
@@ -1172,13 +1177,17 @@ function AreaFloors({ id, area, approx, floors, fee, hidden, onArea, onApprox, o
           <button type="button" onClick={() => onFloors(Math.min(20, floors + 1))} aria-label="Mais um pavimento">
             +
           </button>
+          {floors > 1 && (
+            <input
+              type="checkbox"
+              className="floors-pdf"
+              checked={!hidden}
+              onChange={(e) => onHidden(!e.target.checked)}
+              title={hidden ? 'Não aparece no PDF (marque para mostrar)' : 'Aparece no PDF (desmarque para esconder)'}
+              aria-label="Mostrar pavimentos no PDF"
+            />
+          )}
         </span>
-        {floors > 1 && (
-          <label className={`area-approx ${hidden ? '' : 'on'}`} title="Mostrar a quantidade de pavimentos no PDF (o valor continua considerando os pavimentos)">
-            <input type="checkbox" checked={!hidden} onChange={(e) => onHidden(!e.target.checked)} />
-            pav. no PDF
-          </label>
-        )}
       </div>
     </div>
   )

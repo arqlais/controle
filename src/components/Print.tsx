@@ -60,19 +60,35 @@ export async function renderSheet<T>(el: HTMLElement, fn: (el: HTMLElement, o: R
 export const errText = (e: unknown) => (e instanceof Event ? 'uma imagem não carregou' : e instanceof Error ? e.message : String(e)).slice(0, 80)
 
 export function usePdf() {
-  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean } | null>(null)
+  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!job) return
     let cancelled = false
+    let keep = false
     ;(async () => {
       try {
         await document.fonts.ready
         await new Promise((r) => setTimeout(r, 150))
         const el = ref.current?.firstElementChild as HTMLElement | null
         if (!el || cancelled) return
+        if (job.vector) {
+          // PDF em vetor: o próprio navegador desenha a folha (textos continuam texto, nítidos e selecionáveis).
+          // O nome do arquivo sai do título da página.
+          const title = document.title
+          document.title = job.filename.replace(/\.pdf$/i, '')
+          keep = true // no iPhone a impressão é assíncrona: a folha só sai da tela depois de imprimir
+          const restore = () => {
+            document.title = title
+            window.removeEventListener('afterprint', restore)
+            setJob(null)
+          }
+          window.addEventListener('afterprint', restore)
+          window.print()
+          return
+        }
         if (job.png) {
           // imagem para mandar no WhatsApp
           const { toPng } = await import('html-to-image')
@@ -106,7 +122,7 @@ export function usePdf() {
         console.error('PDF', err)
         toast(`Não foi possível gerar o ${job.png ? 'arquivo' : 'PDF'} (${errText(err)}). Tente de novo ou me mande um print desta mensagem.`)
       } finally {
-        if (!cancelled) setJob(null)
+        if (!cancelled && !keep) setJob(null)
       }
     })()
     return () => {
@@ -114,10 +130,18 @@ export function usePdf() {
     }
   }, [job])
 
+  const clean = (f: string) => f.replace(/[\\/:*?"<>|]+/g, '-')
+  /** PDF em vetor (pela janela de impressão do navegador → "Salvar como PDF"). */
   const download = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc) // o visualizador do Claude bloqueia downloads
+    toast('Na janela que abrir, escolha “Salvar como PDF”.')
+    setJob({ doc, filename: clean(filename), vector: true })
+  }
+  /** PDF em imagem: baixa direto, sem janela (texto vira imagem). */
+  const downloadImage = (doc: ReactNode, filename: string) => {
+    if (ARTIFACT) return setPreview(doc)
     toast('Gerando PDF…')
-    setJob({ doc, filename: filename.replace(/[\\/:*?"<>|]+/g, '-') })
+    setJob({ doc, filename: clean(filename) })
   }
   const downloadPng = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc)
@@ -129,7 +153,7 @@ export function usePdf() {
     <>
       {job &&
         createPortal(
-          <div ref={ref} className="pdf-stage" aria-hidden>
+          <div ref={ref} className={job.vector ? 'pdf-stage print-stage' : 'pdf-stage'} aria-hidden>
             {job.doc}
           </div>,
           document.body,
@@ -144,7 +168,7 @@ export function usePdf() {
       )}
     </>
   )
-  return { download, downloadPng, busy: !!job, portal }
+  return { download, downloadImage, downloadPng, busy: !!job && !job.vector, portal }
 }
 
 /** Prévia do documento em tamanho grande, por cima da tela (fecha no X, no Esc ou clicando fora). */

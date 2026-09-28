@@ -1804,3 +1804,13 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 /* quadro de demandas em tela larga: título, filtros e "nova demanda" acompanham a largura do quadro */
 .page.page-board > * { max-width: none; }
 .content:has(.page-board) > .demo-banner { max-width: none; }
+/* PDF em vetor: na impressão só a folha aparece, em A4 sem margem, com as cores do modelo */
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: none !important; margin: 0 !important; padding: 0 !important; }
+  body > *:not(.print-stage) { display: none !important; }
+  .print-stage { position: static !important; left: auto !important; width: 210mm !important; }
+  .print-stage .proposal { width: 210mm; min-height: 296.5mm; box-shadow: none; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-stage * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+.floors .floors-pdf { width: 15px; height: 15px; margin: 0 2px 0 4px; accent-color: var(--accent); cursor: pointer; flex: none; }

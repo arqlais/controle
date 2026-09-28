@@ -43,7 +43,7 @@ const STEPS: Step[] = [
       <>Em <b>serviços</b>, adicione cada item da tabela. Para dar desconto numa imagem, use o desconto por unidade; para serviço sem preço fixo, digite o valor livre.</>,
       <>Deixe marcado <b>gerar proposta em PDF</b> só se for mandar o PDF.</>,
       <><b>Arquivo final</b> (logo abaixo do modelo): <b>aberto (editável)</b> soma a sua % no valor de todos os serviços (menos o que já vai aberto, como a modelagem), em cada opção ou proposta, e os descontos acompanham. Não aparece no PDF; só muda o texto de entrega.</>,
-      <>Mais de um pavimento: use o <b>+</b> em <b>pav.</b>. O valor considera os pavimentos; desmarque <b>pav. no PDF</b> se não quiser mostrar no PDF.</>,
+      <>Mais de um pavimento: use o <b>+</b> em <b>pav.</b>. O valor considera os pavimentos; desmarque o <b>check ao lado do pav.</b> se não quiser mostrar no PDF.</>,
       <><b>Nº 0</b> = o sistema escolhe o número pela data ao salvar. Enquanto for <b>rascunho</b>, a data vai para o dia de hoje sozinha (se escolher outra data, ela fica).</>,
       <>Confira <b>informações da proposta</b>: pagamento, prazos e cronograma e formatos de arquivo (já vêm preenchidos). <b>Rodadas de ajuste</b> vêm com 1.</>,
     ],
@@ -222,8 +222,8 @@ CASES.push(
     page: 'instagram',
   },
   {
-    q: 'O PDF não baixou',
-    a: <>Toque de novo em <b>baixar PDF</b>: se algo não carregar, o sistema tenta de outro jeito sozinho. Se ainda der erro, a mensagem diz o motivo; mande um print dela.</>,
+    q: 'Baixar o PDF',
+    a: <><b>baixar PDF</b> abre a janela do navegador: escolha <b>Salvar como PDF</b> (no iPhone: compartilhar → Salvar em Arquivos). Assim os textos ficam em vetor, nítidos e selecionáveis, com as cores do modelo. Quer baixar direto, sem janela? <b>mais ⋯ → PDF em imagem</b>.</>,
   },
 )
 
