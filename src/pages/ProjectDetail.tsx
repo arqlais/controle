@@ -610,6 +610,9 @@ function PackageSection({ p, client, save }: { p: Project; client?: Client; save
   const active = pkgActive(p)
   const apply = (next: ProjectItem[], d = disc) => save(withPackage(p, next, d))
   const setItem = (id: string, patch: Partial<ProjectItem>) => apply(items.map((i) => (i.id === id ? { ...i, ...patch } : i)))
+  // "cliente cancelou": pergunta a data (padrão hoje; ao corrigir, a data já registrada)
+  const [cancel, setCancel] = useState<{ id: string; date: string; edit?: boolean } | null>(null)
+  const cancelItem = cancel && items.find((i) => i.id === cancel.id)
   const pkgTotal = Math.max(0, p.value - p.discount)
   const paid = projectPaid(p)
   const summary = packageSummary(p)
@@ -634,12 +637,16 @@ function PackageSection({ p, client, save }: { p: Project; client?: Client; save
           <div key={i.id} className={`pkg-row ${i.removed ? 'is-removed' : ''}`}>
             <div className="pkg-title">
               <input className="cell-input" value={i.title} onChange={(e) => setItem(i.id, { title: e.target.value })} placeholder="Projeto" disabled={i.removed} />
-              {i.removed && <span className="pkg-cancel">cancelado pelo cliente{i.removedAt ? ` em ${fmtDate(i.removedAt)}` : ''} · continua no histórico e no orçamento</span>}
+              {i.removed && (
+                <button className="pkg-cancel link" title="Cancelado pelo cliente: continua no histórico e no orçamento. Toque para mudar a data." onClick={() => setCancel({ id: i.id, date: i.removedAt || today(), edit: true })}>
+                  cancelado{i.removedAt ? ` em ${fmtDate(i.removedAt)}` : ''}
+                </button>
+              )}
             </div>
             <div style={{ width: 140 }}>
               <MoneyInput value={i.price} onChange={(n) => setItem(i.id, { price: n })} />
             </div>
-            <button className={`btn small ${i.removed ? '' : 'ghost'}`} onClick={() => setItem(i.id, { removed: !i.removed, removedAt: i.removed ? undefined : today() })} title={i.removed ? 'Voltar para o pacote (desfaz o cancelamento)' : 'Cliente cancelou este projeto: sai do valor, mas fica registrado'}>
+            <button className={`btn small ${i.removed ? '' : 'ghost'}`} onClick={() => (i.removed ? setItem(i.id, { removed: false, removedAt: undefined }) : setCancel({ id: i.id, date: today() }))} title={i.removed ? 'Voltar para o pacote (desfaz o cancelamento)' : 'Cliente cancelou este projeto: sai do valor, mas fica registrado'}>
               {i.removed ? 'voltar' : 'cliente cancelou'}
             </button>
             <button className="icon-btn" title="Apagar item (lançado por engano)" onClick={async () => (await askDelete(`o item "${i.title || 'sem nome'}"`)) && apply(items.filter((x) => x.id !== i.id))}>
@@ -683,6 +690,35 @@ function PackageSection({ p, client, save }: { p: Project; client?: Client; save
           </div>
         )}
       </div>
+      {cancelItem && cancel && (
+        <Modal
+          title={cancel.edit ? 'data do cancelamento' : 'cliente cancelou'}
+          onClose={() => setCancel(null)}
+          footer={
+            <>
+              <button className="btn ghost" onClick={() => setCancel(null)}>Voltar</button>
+              <button
+                className="btn primary"
+                onClick={() => {
+                  setItem(cancelItem.id, { removed: true, removedAt: cancel.date || today() })
+                  setCancel(null)
+                }}
+              >
+                {cancel.edit ? 'Salvar data' : 'Confirmar cancelamento'}
+              </button>
+            </>
+          }
+        >
+          {!cancel.edit && (
+            <p className="small muted" style={{ marginBottom: 12 }}>
+              <b>{cancelItem.title || 'Este projeto'}</b> sai do valor do pacote, mas continua registrado no histórico e no orçamento. Dá para desfazer em “voltar”.
+            </p>
+          )}
+          <Field label="Quando foi cancelado?">
+            <DateInput value={cancel.date} max={today()} onChange={(e) => setCancel({ ...cancel, date: e.target.value })} />
+          </Field>
+        </Modal>
+      )}
     </Section>
   )
 }
