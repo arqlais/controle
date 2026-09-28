@@ -192,6 +192,8 @@ export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }>
 }
 
 export const PAYMENT_METHODS = ['Pix', 'Cartão de crédito']
+/** Formas de receber desta conta (a lista editada em Configurações, ou a padrão). */
+export const paymentMethods = (s: { paymentMethods?: string[] }) => (s.paymentMethods?.filter((m) => m.trim()).length ? s.paymentMethods.filter((m) => m.trim()) : PAYMENT_METHODS)
 
 /* ---------- formatação ---------- */
 
@@ -382,7 +384,7 @@ export function lastMonths(n: number, from = today()) {
 /* ---------- preços e orçamentos ---------- */
 
 export const COMPLEXITY: Record<Complexity, string> = { simples: 'simples', media: 'média', alta: 'alta' }
-export const PRICING: Record<Pricing, string> = { unidade: 'por unidade', pacote: 'pacotes', m2: 'por m² × complexidade', livre: 'valor livre' }
+export const PRICING: Record<Pricing, string> = { unidade: 'por unidade', pacote: 'pacotes', m2: 'por m² × complexidade', hora: 'por hora', livre: 'valor livre' }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 

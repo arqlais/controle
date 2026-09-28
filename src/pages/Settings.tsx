@@ -7,7 +7,7 @@ import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, MESSAGE_VARS, PRICING, download, money, nextQuoteNumber, today, uid } from '../utils'
+import { COMPLEXITY, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
@@ -149,7 +149,7 @@ export default function SettingsPage() {
               }
             >
               <p className="muted small">
-                Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b> ou <b>valor livre</b>{' '}
+                Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b>, <b>por hora</b> (no orçamento você coloca quantas horas) ou <b>valor livre</b>{' '}
                 (você digita no orçamento). Estudantes recebem {s.studentDiscount}% de desconto na sugestão. No orçamento você sempre pode digitar outro valor.
               </p>
               <div className="services">
@@ -157,7 +157,7 @@ export default function SettingsPage() {
                   <div key={x.id} className="service-row">
                     <div className="service-main">
                       <input className="service-name" value={x.name} onChange={(e) => setService(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
-                      <select value={x.pricing} onChange={(e) => setService(x.id, { pricing: e.target.value as Pricing, unit: e.target.value === 'm2' ? 'm²' : x.unit === 'm²' ? 'unidade' : x.unit })} aria-label="Forma de preço">
+                      <select value={x.pricing} onChange={(e) => setService(x.id, { pricing: e.target.value as Pricing, unit: e.target.value === 'm2' ? 'm²' : e.target.value === 'hora' ? 'hora' : x.unit === 'm²' || x.unit === 'hora' ? 'unidade' : x.unit })} aria-label="Forma de preço">
                         {(Object.keys(PRICING) as Pricing[]).map((k) => (
                           <option key={k} value={k}>
                             {PRICING[k]}
@@ -538,6 +538,9 @@ function ProposalSettings() {
             <Field label="Pagamento (padrão)" span={3} hint="Usado em todo orçamento novo; dá para mudar em cada um.">
               <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />
             </Field>
+            <Field label="Formas de receber" span={3} hint="Aparecem ao marcar como o cliente pagou cada parcela. Toque no × para tirar uma.">
+              <PayMethods list={paymentMethods(s)} onChange={(paymentMethods) => setSettings({ paymentMethods })} />
+            </Field>
             {(
               [
                 ['ink', 'Textos'],
@@ -557,7 +560,7 @@ function ProposalSettings() {
           </div>
           <p className="muted small">
             A faixa do topo usa seu nome completo; o rodapé usa WhatsApp, Instagram, site e e-mail (em Seus dados).{' '}
-            <button className="link" onClick={() => setSettings({ proposal: { ...DEFAULT_PROPOSAL, ...tpl.colors, template: tpl.id, pdfOff: s.proposal.pdfOff } })}>
+            <button className="link" onClick={() => setSettings({ proposal: { ...DEFAULT_PROPOSAL, ...tpl.colors, template: tpl.id, pdfOff: s.proposal.pdfOff, schedule: s.proposal.schedule, files: s.proposal.files } })}>
               restaurar cores e textos do modelo
             </button>
           </p>
@@ -704,5 +707,30 @@ function ProposalChooser() {
         </>
       )}
     </Section>
+  )
+}
+
+/** Lista editável das formas de receber (Pix, transferência…). */
+function PayMethods({ list, onChange }: { list: string[]; onChange: (l: string[]) => void }) {
+  const [add, setAdd] = useState('')
+  const push = () => {
+    const v = add.trim()
+    if (v && !list.some((m) => m.toLowerCase() === v.toLowerCase())) onChange([...list, v])
+    setAdd('')
+  }
+  return (
+    <div className="pay-methods">
+      {list.map((m) => (
+        <span key={m} className="chip">
+          {m}
+          {list.length > 1 && (
+            <button type="button" className="chip-x" onClick={() => onChange(list.filter((x) => x !== m))} aria-label={`Tirar ${m}`}>
+              ×
+            </button>
+          )}
+        </span>
+      ))}
+      <input id="pay-method-add" value={add} placeholder="+ outra forma (ex.: boleto)" onChange={(e) => setAdd(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), push())} onBlur={push} />
+    </div>
   )
 }

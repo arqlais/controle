@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAccess } from '../access'
 import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
-import { GENERAL_NOTE_HINTS, useStore } from '../store'
+import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
+import { CLIENT_SCHEDULE } from '../clientDefaults'
 import { duplicateQuote } from '../quoteActions'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
@@ -743,7 +744,12 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <input value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} />
               </Field>
               <Field label="Prazos e cronograma" span={3}>
-                <input value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
+                <input list="schedule-opts" value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
+                <datalist id="schedule-opts">
+                  {[settings.proposal.schedule, CLIENT_SCHEDULE, DEFAULT_PROPOSAL.schedule, q.deadlineDays ? `${q.deadlineDays} dias úteis após a aprovação.` : ''].filter((x, i, a) => x && a.indexOf(x) === i).map((x) => (
+                    <option key={x} value={x} />
+                  ))}
+                </datalist>
               </Field>
               <Field
                 label="Formatos de arquivos entregues"

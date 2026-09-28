@@ -243,7 +243,7 @@ export interface Quote {
   closedNote?: string // o que mudou no fechamento (escopo, valor…)
 }
 
-export type Pricing = 'unidade' | 'pacote' | 'm2' | 'livre'
+export type Pricing = 'unidade' | 'pacote' | 'm2' | 'hora' | 'livre'
 
 export interface PriceTier {
   qty: number // a partir desta quantidade
@@ -366,6 +366,7 @@ export interface Settings {
   quoteStart?: number // numeração dos orçamentos começa aqui (ex.: 100); depois segue o maior + 1
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
+  paymentMethods?: string[] // formas de receber (lista editável)
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
   messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)
   messagesV2?: boolean // migração: mensagens padrão reescritas em minúsculas, com emojis

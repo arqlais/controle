@@ -15,7 +15,7 @@ import { requestStatus } from '../components/quick'
 import type { Client, Extra, Payment, Priority, Project, ProjectItem, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
-  PAYMENT_METHODS,
+  paymentMethods,
   PRIORITY,
   statusInfo,
   allStatuses,
@@ -297,7 +297,7 @@ export default function ProjectDetail({ id }: { id: string }) {
                           </td>
                           <td data-label="forma">
                             <select className="cell-input" value={x.method} onChange={(e) => setPayment(x.id, { method: e.target.value })}>
-                              {PAYMENT_METHODS.map((m) => (
+                              {[...paymentMethods(data.settings), ...(paymentMethods(data.settings).includes(x.method) || !x.method ? [] : [x.method])].map((m) => (
                                 <option key={m}>{m}</option>
                               ))}
                             </select>

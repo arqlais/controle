@@ -1,3 +1,4 @@
+import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS } from './clientDefaults'
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
 import { buildICS } from './ics'
@@ -360,6 +361,13 @@ function firstRunData(settings: Settings): Data {
     text: kit.text,
     displayFont: CLIENT_DISPLAY,
     customFont: '',
+    services: CLIENT_SERVICES,
+    messages: CLIENT_MESSAGES,
+    messagesV2: true,
+    messagesV3: true,
+    defaultPaymentTerms: CLIENT_PAYMENT_TERMS,
+    paymentMethods: DEFAULT_PAYMENT_METHODS,
+    proposal: { ...settings.proposal, schedule: CLIENT_SCHEDULE },
     ...(info.studio ? { brandName: info.studio } : {}),
     ...(info.name ? { ownerName: info.name } : {}),
   }

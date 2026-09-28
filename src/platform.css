@@ -703,3 +703,109 @@
 .co-agree .link { display: inline; padding: 0; font: inherit; text-decoration: underline; }
 .co-rights { display: flex; gap: 6px; align-items: flex-start; }
 .co-rights svg { flex: none; margin-top: 3px; color: var(--good); }
+
+/* ============================================================
+   Modelos de documento dos clientes (coluna, faixa, planilha, editorial)
+   Diagramações próprias, cantos retos. O "Proposta #001" (lais) não usa nada daqui.
+   ============================================================ */
+.cdoc, .cdoc * { border-radius: 0 !important; }
+.cdoc { font-family: var(--p-sans); color: var(--p-ink); background: var(--p-paper); line-height: 1.45; }
+.cd-brand span { font-weight: 700; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
+.cd-brand img { display: block; max-height: 46px; max-width: 170px; object-fit: contain; }
+.cd-eyebrow { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.28em; text-transform: uppercase; color: var(--p-rose); }
+.cd-title { margin: 4px 0 0; font-family: var(--p-serif); font-weight: 400; font-size: 56px; line-height: 1; letter-spacing: -0.01em; color: var(--p-ink); text-transform: lowercase; }
+.cd-number { display: none; }
+.cd-meta { margin: 0; display: grid; gap: 12px; }
+.cd-meta dt { font-size: 9.5px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: var(--p-rose); }
+.cd-meta dd { margin: 3px 0 0; font-size: 13.5px; }
+.cd-main { display: flex; flex-direction: column; gap: 18px; }
+.cd-infos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; font-size: 10.5px; line-height: 1.55; }
+.cd-infos p { margin: 0; }
+.cd-infos b { display: block; margin-bottom: 4px; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--p-rose); }
+.cd-foot { font-size: 10.5px; letter-spacing: 0.04em; color: var(--p-rose); }
+/* peças do conteúdo, no estilo dos modelos dos clientes */
+.cdoc .p-card { border: 0; border-top: 2px solid var(--p-ink); padding: 14px 0 0; background: transparent; box-shadow: none; }
+.cdoc .p-card-title { color: var(--p-ink); font-size: 15px; letter-spacing: 0.02em; }
+.cdoc .p-row { border-bottom: 1px solid color-mix(in srgb, var(--p-ink) 14%, transparent); }
+.cdoc .p-row-list li::before { background: var(--p-ink); }
+.cdoc .p-total { margin-top: 0; background: var(--p-total); }
+.cdoc .p-total-label, .cdoc .p-total-value b { color: var(--p-ink); }
+.cdoc .p-options { margin-top: 0; }
+.cdoc .p-note { color: var(--p-rose); }
+
+/* coluna: faixa lateral de cor com a marca, o título e os dados */
+.cdoc-coluna { display: grid; grid-template-columns: 250px minmax(0, 1fr); grid-template-rows: 1fr auto auto; background: linear-gradient(90deg, var(--p-bar) 250px, var(--p-paper) 250px); }
+.cdoc-coluna .cd-head { grid-column: 1; grid-row: 1 / span 3; display: flex; flex-direction: column; gap: 46px; padding: 56px 30px 44px; color: #fff; }
+.cdoc-coluna .cd-brand span { color: #fff; }
+.cdoc-coluna .cd-title { color: #fff; font-style: italic; font-size: 50px; }
+.cdoc-coluna .cd-eyebrow, .cdoc-coluna .cd-meta dt { color: rgba(255, 255, 255, 0.62); }
+.cdoc-coluna .cd-meta { gap: 18px; }
+.cdoc-coluna .cd-meta dd { color: #fff; font-size: 14px; }
+.cdoc-coluna .cd-main { grid-column: 2; grid-row: 1; padding: 64px 46px 24px; }
+.cdoc-coluna .cd-infos { grid-column: 2; grid-row: 2; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 0 46px 24px; }
+.cdoc-coluna .cd-foot { grid-column: 2; grid-row: 3; padding: 16px 46px 36px; border-top: 1px solid color-mix(in srgb, var(--p-ink) 14%, transparent); }
+
+/* faixa: cabeçalho largo de cor, dados ao lado do título */
+.cdoc-faixa .cd-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'brand brand' 'kind meta'; gap: 40px 30px; align-items: end; padding: 42px 56px 40px; background: var(--p-bar); color: #fff; }
+.cdoc-faixa .cd-brand { grid-area: brand; }
+.cdoc-faixa .cd-brand span { color: #fff; }
+.cdoc-faixa .cd-kind { grid-area: kind; }
+.cdoc-faixa .cd-meta { grid-area: meta; grid-template-columns: repeat(3, auto); gap: 26px; }
+.cdoc-faixa .cd-title { color: #fff; font-size: 60px; }
+.cdoc-faixa .cd-eyebrow, .cdoc-faixa .cd-meta dt { color: rgba(255, 255, 255, 0.66); }
+.cdoc-faixa .cd-meta dd { color: #fff; }
+.cdoc-faixa .cd-main { padding: 44px 56px 20px; }
+.cdoc-faixa .cd-infos { padding: 22px 56px; border-top: 1px solid color-mix(in srgb, var(--p-ink) 14%, transparent); }
+.cdoc-faixa .cd-foot { margin-top: auto; padding: 18px 56px 30px; background: var(--p-total); color: var(--p-ink); }
+
+/* planilha: linhas retas, tudo em sans, número em destaque */
+.cdoc-planilha { padding: 56px 60px 40px; gap: 28px; }
+.cdoc-planilha .cd-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'brand meta' 'kind kind'; gap: 30px 24px; }
+.cdoc-planilha .cd-brand { grid-area: brand; }
+.cdoc-planilha .cd-meta { grid-area: meta; grid-template-columns: repeat(3, auto); gap: 22px; text-align: right; }
+.cdoc-planilha .cd-kind { grid-area: kind; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 18px 0 14px; border-top: 4px solid var(--p-ink); border-bottom: 1px solid var(--p-ink); }
+.cdoc-planilha .cd-eyebrow { display: none; }
+.cdoc-planilha .cd-title { font-family: var(--p-sans); font-weight: 800; font-size: 34px; text-transform: uppercase; letter-spacing: 0.08em; }
+.cdoc-planilha .cd-number { display: block; font-size: 34px; font-weight: 300; letter-spacing: -0.02em; }
+.cdoc-planilha .p-card { border-top: 0; padding-top: 0; }
+.cdoc-planilha .p-card-head { padding-bottom: 8px; border-bottom: 2px solid var(--p-ink); }
+.cdoc-planilha .p-total { background: transparent; border-top: 3px solid var(--p-ink); border-bottom: 1px solid var(--p-ink); padding-left: 0; padding-right: 0; }
+.cdoc-planilha .cd-infos { padding-top: 16px; border-top: 1px solid var(--p-ink); }
+.cdoc-planilha .cd-foot { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--p-ink); color: var(--p-ink); }
+
+/* editorial: número enorme e título de revista */
+.cdoc-editorial { padding: 60px 64px 44px; gap: 32px; }
+.cdoc-editorial .cd-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'brand number' 'kind kind' 'meta meta'; gap: 20px; }
+.cdoc-editorial .cd-brand { grid-area: brand; }
+.cdoc-editorial .cd-number { grid-area: number; display: block; font-family: var(--p-serif); font-style: italic; font-size: 60px; line-height: 0.9; color: var(--p-rose); }
+.cdoc-editorial .cd-kind { grid-area: kind; }
+.cdoc-editorial .cd-title { font-style: italic; font-size: 104px; line-height: 0.88; }
+.cdoc-editorial .cd-meta { grid-area: meta; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px 0; border-top: 3px double var(--p-ink); border-bottom: 1px solid var(--p-ink); }
+.cdoc-editorial .p-card { border-top: 0; padding-top: 0; }
+.cdoc-editorial .p-row-n { font-family: var(--p-serif); font-style: italic; font-weight: 400; font-size: 24px; line-height: 1; color: var(--p-rose); }
+.cdoc-editorial .p-total { background: transparent; border-top: 1px solid var(--p-ink); padding-left: 0; padding-right: 0; }
+.cdoc-editorial .p-total-value b { font-family: var(--p-serif); font-size: 32px; font-weight: 400; }
+.cdoc-editorial .cd-foot { margin-top: auto; text-align: center; }
+
+/* miniaturas na escolha do modelo */
+.tpl-thumb-coluna i { top: 0; bottom: 0; right: auto; width: 30%; height: auto; }
+.tpl-thumb-coluna b, .tpl-thumb-coluna u, .tpl-thumb-coluna s { left: 38%; right: 8%; }
+.tpl-thumb-coluna b { top: 10%; }
+.tpl-thumb-faixa i { height: 24%; }
+.tpl-thumb-faixa b { top: 32%; }
+.tpl-thumb-planilha i { top: 16%; left: 10%; right: 10%; height: 2.5%; }
+.tpl-thumb-planilha u { border-radius: 0; border-width: 1px 0; }
+.tpl-thumb-planilha s { background: transparent; border-top: 2px solid var(--t-ink); border-radius: 0; }
+.tpl-thumb-editorial i { background: transparent; }
+.tpl-thumb-editorial b { top: 12%; height: 16%; right: 30%; background: var(--t-bar); }
+
+/* cantos arredondados em 0: TUDO fica reto (botões, campos, etiquetas, cartões) */
+:root[data-square='1'] *, :root[data-square='1'] *::before, :root[data-square='1'] *::after { border-radius: 0 !important; }
+
+/* formas de receber (Configurações) */
+.pay-methods { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pay-methods .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px 6px 12px; border: 1px solid var(--line, #ddd); border-radius: 999px; background: var(--surface); font-size: 13px; }
+.pay-methods .chip-x { border: 0; background: none; color: inherit; opacity: .6; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
+.pay-methods .chip-x:hover { opacity: 1; }
+.pay-methods input { flex: 1 1 180px; min-width: 0; }
+.cdoc-editorial .cd-kind .cd-number { margin-top: 18px; }

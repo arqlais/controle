@@ -23,28 +23,28 @@ export const TEMPLATES: ProposalTemplate[] = [
     colors: { ink: '#2a4352', rose: '#af8c86', arch: '#e7d5cf', paper: '#f7f5f1', bar: '#4a5d6b', serif: 'The Seasons' },
   },
   {
-    id: 'classico',
-    name: 'clássico',
-    description: 'moldura fina e título centralizado',
-    colors: { ink: '#2d2a26', rose: '#9c7b5b', arch: '#efe6da', paper: '#ffffff', bar: '#2d2a26', serif: 'Cormorant Garamond' },
+    id: 'coluna',
+    name: 'coluna',
+    description: 'coluna lateral de cor com seus dados',
+    colors: { ink: '#26303a', rose: '#8c6f5a', arch: '#efe8df', paper: '#ffffff', bar: '#26303a', serif: 'Playfair Display' },
   },
   {
-    id: 'linha',
-    name: 'linha',
-    description: 'minimalista: só linhas finas e respiro',
-    colors: { ink: '#1f1f1f', rose: '#8a8a8a', arch: '#f2f2f2', paper: '#ffffff', bar: '#1f1f1f', serif: 'Playfair Display' },
+    id: 'faixa',
+    name: 'faixa',
+    description: 'cabeçalho em faixa larga, moderno',
+    colors: { ink: '#1f2a24', rose: '#5f7563', arch: '#e3ebe2', paper: '#fbfcfa', bar: '#3f5446', serif: 'DM Serif Display' },
   },
   {
-    id: 'bloco',
-    name: 'bloco',
-    description: 'cabeçalho em bloco de cor e total em destaque',
-    colors: { ink: '#23313f', rose: '#6f8aa3', arch: '#23313f', paper: '#f7f8fa', bar: '#23313f', serif: 'DM Serif Display' },
+    id: 'planilha',
+    name: 'planilha',
+    description: 'limpo, em linhas retas, direto ao ponto',
+    colors: { ink: '#111111', rose: '#6f6f6f', arch: '#f1f1f1', paper: '#ffffff', bar: '#111111', serif: 'Libre Baskerville' },
   },
   {
     id: 'editorial',
     name: 'editorial',
-    description: 'título grande, com cara de revista',
-    colors: { ink: '#3a2e28', rose: '#a4553a', arch: '#f1e4d8', paper: '#fbf7f2', bar: '#a4553a', serif: 'Bodoni Moda' },
+    description: 'número grande e título de revista',
+    colors: { ink: '#3a2e28', rose: '#a4553a', arch: '#f3e6da', paper: '#fbf7f2', bar: '#a4553a', serif: 'Bodoni Moda' },
   },
 ]
 
@@ -56,7 +56,7 @@ export const templateAllowed = (t: ProposalTemplate, has: Has) => !t.needs || ha
 export function resolveTemplate(p: ProposalStyle, has: Has): ProposalTemplate {
   const chosen = TEMPLATES.find((t) => t.id === p.template)
   if (chosen && templateAllowed(chosen, has)) return chosen
-  return TEMPLATES.find((t) => t.id === (has('modeloExclusivo') ? 'lais' : 'classico'))!
+  return TEMPLATES.find((t) => t.id === (has('modeloExclusivo') ? 'lais' : 'coluna'))!
 }
 
 /** Cores e fontes que a folha usa: as da conta; quem nunca escolheu modelo usa as do modelo padrão do plano.

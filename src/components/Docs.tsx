@@ -64,9 +64,7 @@ const MIN_GAP = 84
     só aproxima o título e compacta o quadro quando o escopo não deixa respiro antes do rodapé. */
 function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string; children: ReactNode; fit?: string; barName?: string }) {
   // modelo e cores conforme o plano (o "Proposta #001" é só da dona)
-  const { has } = useAccess()
-  const tpl = resolveTemplate(s.proposal, has)
-  const p = sheetColors(s.proposal, has)
+  const { tpl, p } = useSheet(s)
   const ref = useRef<HTMLElement>(null)
   const [level, setLevel] = useState(0)
   useLayoutEffect(() => setLevel(0), [fit])
@@ -105,6 +103,62 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
         {s.proposal.showLogo && s.logo && tpl.id !== 'lais' && <img className="p-logo" src={s.logo} alt="" />}
         {children}
       </div>
+    </article>
+  )
+}
+
+/** Modelo e cores que valem para esta conta. */
+function useSheet(s: Settings) {
+  const { has } = useAccess()
+  return { tpl: resolveTemplate(s.proposal, has), p: sheetColors(s.proposal, has) }
+}
+
+/* ============================================================
+   Modelos dos clientes (coluna, faixa, planilha, editorial):
+   diagramação própria, cantos retos, com as cores e fontes de cada conta.
+   ============================================================ */
+function ClientSheet({ s, tpl, p, eyebrow, title, number, meta, infos, children }: { s: Settings; tpl: string; p: ReturnType<typeof sheetColors>; eyebrow: string; title: string; number: string; meta: [string, string][]; infos: { label: string; text: string }[]; children: ReactNode }) {
+  const style = {
+    '--p-ink': p.ink,
+    '--p-rose': p.rose,
+    '--p-total': p.arch,
+    '--p-paper': p.paper,
+    '--p-bar': p.bar,
+    '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
+    '--p-sans': `'${p.sans}', 'Poppins', system-ui, sans-serif`,
+  } as CSSProperties
+  const brand = (s.brandName || s.legalName || s.ownerName || '').replace(/\.$/, '')
+  const contacts = [s.phone, atHandle(s.instagram), cleanSite(s.website), s.email].filter((x) => x && x.trim())
+  return (
+    <article className={`proposal cdoc cdoc-${tpl}`} style={style}>
+      <header className="cd-head">
+        <div className="cd-brand">{s.proposal.showLogo && s.logo ? <img src={s.logo} alt="" /> : <span>{brand}</span>}</div>
+        <div className="cd-kind">
+          <span className="cd-eyebrow">{eyebrow}</span>
+          <h1 className="cd-title">{title}</h1>
+          <span className="cd-number">{number}</span>
+        </div>
+        <dl className="cd-meta">
+          {meta.map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      </header>
+      <div className="cd-main">{children}</div>
+      {infos.length > 0 && (
+        <section className="cd-infos">
+          {infos.map((i) => (
+            <div key={i.label}>
+              <b>{i.label}</b>
+              <p>{i.text}</p>
+            </div>
+          ))}
+        </section>
+      )}
+      {contacts.length > 0 && <footer className="cd-foot">{contacts.join('   ·   ')}</footer>}
     </article>
   )
 }
@@ -216,7 +270,7 @@ function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boo
     <div className="p-rows">
       {items.map((it, i) => (
         <div key={it.id} className={`p-row ${priceFirst ? 'is-price-first' : ''}`}>
-          {priceFirst ? <b className="p-row-price">{it.joined ? '+ incluso' : money(it.price)}</b> : <b className="p-row-n">{items.length === 1 ? '—' : String(i + 1).padStart(2, '0')}</b>}
+          {priceFirst ? <b className="p-row-price">{it.joined ? '' : money(it.price)}</b> : <b className="p-row-n">{items.length === 1 ? '—' : String(i + 1).padStart(2, '0')}</b>}
           <div className="p-row-main">
             <span className="p-row-title">
               {it.title || 'serviço'}
@@ -224,7 +278,8 @@ function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boo
             </span>
             <Desc text={it.description} />
           </div>
-          {!priceFirst && <span className={`p-row-price ${it.joined ? 'is-joined' : ''}`}>{it.joined ? 'incluso acima' : money(it.price)}</span>}
+          {/* cobrado junto com o de cima: sem valor na linha, já está somado no total */}
+          {!priceFirst && <span className="p-row-price">{it.joined ? '' : money(it.price)}</span>}
         </div>
       ))}
     </div>
@@ -246,6 +301,7 @@ function TotalBar({ label, value, note, compact }: { label: string; value: numbe
 const discountText = (value: number) => (value > 0 ? `com ${money(value)} de desconto` : '')
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
+  const { tpl, p } = useSheet(s)
   const clientName = client?.name || '[nome do cliente]'
   // cada quadro com a própria área e pavimentos (opções/propostas de projetos diferentes)
   const heading = (name: string, o?: QuoteOption) => {
@@ -263,11 +319,8 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const scopeDiscount = quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
   const scopeNote = quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · ')
 
-  // escopo grande (muitos serviços / tópicos): aproxima o título e o quadro para caber sem espremer
-  return (
-    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, quote.floors, quote.floorsHidden, s.proposal])}>
-      <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
-      <Title s={s} />
+  const main = (
+    <>
       {quote.mode === 'opcoes' ? (
         <section
           className={`p-options ${quote.options.length > 2 ? 'is-3' : ''} ${
@@ -309,6 +362,34 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
         </div>
       )}
       {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}
+    </>
+  )
+  // modelos dos clientes: diagramação própria (o "Proposta #001" é só da dona)
+  if (tpl.id !== 'lais')
+    return (
+      <ClientSheet
+        s={s}
+        tpl={tpl.id}
+        p={p}
+        eyebrow={s.proposal.eyebrow}
+        title={s.proposal.title}
+        number={quoteNumber(quote)}
+        meta={[
+          ['cliente', clientName],
+          ['data', fmt(quote.createdAt)],
+          ['orçamento nº', quoteNumber(quote)],
+        ]}
+        infos={infos}
+      >
+        {main}
+      </ClientSheet>
+    )
+  // escopo grande (muitos serviços / tópicos): aproxima o título e o quadro para caber sem espremer
+  return (
+    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, quote.floors, quote.floorsHidden, s.proposal])}>
+      <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
+      <Title s={s} />
+      {main}
       {infos.length > 0 && <InfoRow items={infos} color="var(--p-bar)" />}
       <Contacts s={s} />
     </Sheet>
@@ -316,12 +397,11 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
 }
 
 export function ReceiptDoc({ s, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
+  const { tpl, p } = useSheet(s)
   const { name: payer, doc: payerDoc } = payerOf(client)
   const date = payment.paidDate ?? today()
-  return (
-    <Sheet s={s} year={date.slice(0, 4)}>
-      <Fields name={payer} date={date} label="forma" value={payment.method || '—'} />
-      <Title s={s} eyebrow="comprovante de" title="recibo" />
+  const main = (
+    <>
       <div className="p-card">
         <h3 className="p-card-title">{project.title}</h3>
         <p className="p-receipt">
@@ -336,6 +416,19 @@ export function ReceiptDoc({ s, client, project, payment }: { s: Settings; clien
         </p>
       </div>
       <TotalBar label="valor recebido" value={payment.amount} />
+    </>
+  )
+  if (tpl.id !== 'lais')
+    return (
+      <ClientSheet s={s} tpl={tpl.id} p={p} eyebrow="comprovante de" title="recibo" number={money(payment.amount)} meta={[['recebido de', payer], ['data', fmt(date)], ['forma', payment.method || '—']]} infos={[]}>
+        {main}
+      </ClientSheet>
+    )
+  return (
+    <Sheet s={s} year={date.slice(0, 4)}>
+      <Fields name={payer} date={date} label="forma" value={payment.method || '—'} />
+      <Title s={s} eyebrow="comprovante de" title="recibo" />
+      {main}
       <Contacts s={s} />
     </Sheet>
   )
@@ -372,6 +465,33 @@ export function BillDoc({ s, info, year }: { s: Settings; info: BillInfo; year: 
   const [a, b] = ['recibo', 'serviço']
   const pct = info.total > 0 ? Math.round((info.paid / info.total) * 100) : 0
   const rest = Math.max(0, info.total - info.paid)
+  const { tpl, p } = useSheet(s)
+  // clientes: mesmo conteúdo, na diagramação do modelo escolhido (o "recibo serviço" do Canva é só da dona)
+  if (tpl.id !== 'lais')
+    return (
+      <ClientSheet s={s} tpl={tpl.id} p={p} eyebrow="recibo de" title="serviço" number={money(info.total)} meta={[['data', fmt(today())], ['situação', rest > 0 ? 'pagamento parcial' : 'quitado']]} infos={[]}>
+        <div className="p-card">
+          <h3 className="p-card-title">{info.label}</h3>
+          <div className="p-rows">
+            {info.cards
+              .filter((c) => c.on && c.text.trim())
+              .map((c, i) => (
+                <div key={i} className="p-row">
+                  <b className="p-row-n">{String(i + 1).padStart(2, '0')}</b>
+                  <div className="p-row-main">
+                    <span className="p-row-title">{c.title}</span>
+                    <span className="p-row-desc">{c.text.replace(/\*\*/g, '')}</span>
+                  </div>
+                  <span />
+                </div>
+              ))}
+          </div>
+        </div>
+        <TotalBar label="valor total" value={info.total} note={info.paid > 0 ? `já pago ${money(info.paid)}${pct ? ` (${pct}%)` : ''}` : ''} />
+        {rest > 0 && <TotalBar compact label="restante a pagar" value={rest} />}
+        <p className="p-note">obrigado(a) pela confiança! fico à disposição para os próximos projetos.</p>
+      </ClientSheet>
+    )
   return (
     <Sheet s={s} year={year} barName={s.brandName || s.legalName}>
       <div className="bill">
