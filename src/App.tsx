@@ -394,16 +394,6 @@ export default function App() {
       <div className="scrim" onClick={() => setMenuOpen(false)} />
 
       <div className="main">
-        {asClient && (
-          <div className="view-as-banner" role="region" aria-label="Modo ver como cliente">
-            <span>
-              <Icon name="eye" size={15} /> <b>modo visualização:</b> você está vendo como um cliente novo · nada aqui é salvo
-            </span>
-            <button className="btn small primary" onClick={backToOwner}>
-              <Icon name="chevronL" size={14} /> voltar para a minha conta
-            </button>
-          </div>
-        )}
         <header className="topbar">
           <button className="icon-btn only-mobile" onClick={() => setMenuOpen(true)} aria-label="Menu">
             <Icon name="menu" />
@@ -456,6 +446,16 @@ export default function App() {
           </div>
         </header>
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
+        {asClient && (
+          <div className="owner-sales-bar" role="region" aria-label="Você está vendo como cliente">
+            <span>
+              <Icon name="eye" size={15} /> você está vendo como <b>um cliente novo</b>, nada aqui é salvo
+            </span>
+            <button className="btn small primary" onClick={backToOwner}>
+              voltar para a minha conta
+            </button>
+          </div>
+        )}
         <main className="content">
           {isSample && (
             <div className="demo-banner">
