@@ -510,16 +510,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 }
               >
                 <div className="num-date">
-                  <input
-                    id="q-number"
-                    type="number"
-                    min={0}
-                    value={q.number || 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => set({ number: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
-                    aria-label="Número do orçamento"
-                    title="Número do orçamento (0 = o sistema escolhe pela data)"
-                  />
+                  <NumberInput id="q-number" value={q.number} onChange={(number) => set({ number })} />
                   <DateInput
                     id="q-date"
                    
@@ -1264,4 +1255,41 @@ function NoteField({ value, items, settings, onChange }: { value: string; items:
 /** Fim do orçamento: na proposta nova é o card "status"; depois de salva, só os avisos e os botões (duplicar/excluir), sem card. */
 function FootWrap({ card, children }: { card: boolean; children: ReactNode }) {
   return card ? <Section title="status">{children}</Section> : <div className="quote-foot">{children}</div>
+}
+
+/** Nº do orçamento: campo de texto só com números (o campo "number" do iPhone não deixava apagar/trocar direito).
+ *  Dá para apagar tudo e digitar de novo; vazio = 0 (o sistema escolhe pela data ao salvar). */
+function NumberInput({ id, value, onChange }: { id: string; value: number; onChange: (n: number) => void }) {
+  const [txt, setTxt] = useState(value ? String(value) : '')
+  const focused = useRef(false)
+  useEffect(() => {
+    if (!focused.current) setTxt(value ? String(value) : '')
+  }, [value])
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="off"
+      value={txt}
+      placeholder="0"
+      onFocus={(e) => {
+        focused.current = true
+        const el = e.target
+        setTimeout(() => el.setSelectionRange(0, el.value.length), 0)
+      }}
+      onBlur={() => {
+        focused.current = false
+        setTxt(value ? String(value) : '')
+      }}
+      onChange={(e) => {
+        const t = e.target.value.replace(/\D/g, '').slice(0, 6)
+        setTxt(t)
+        onChange(Number(t) || 0)
+      }}
+      aria-label="Número do orçamento"
+      title="Número do orçamento (vazio ou 0 = o sistema escolhe pela data)"
+    />
+  )
 }
