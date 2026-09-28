@@ -25,6 +25,8 @@ const STEPS: Step[] = [
     todo: [
       <>Vá em <b>clientes</b> e clique em <b>novo cliente</b> (ou use o botão <b>+ novo</b> no topo → <b>Cliente</b>).</>,
       <>Preencha nome, telefone e o <b>tipo</b> (arquiteto, designer, escritório, construtora ou estudante). O tipo muda a cor e o desconto de estudante.</>,
+      <>Digite só os números: telefone, CPF e CEP ganham a pontuação sozinhos, e o Instagram ganha o <b>@</b>. Com o <b>CEP</b>, a rua e a cidade vêm sozinhas; o <b>número</b> fica num campo à parte.</>,
+      <>Cliente com empresa? <b>+ dados da empresa (CNPJ, MEI)</b>: com o CNPJ, a razão social e o endereço vêm sozinhos, e você escolhe se o recibo sai em nome da pessoa ou da empresa.</>,
       <>Se a cliente já existe, pule este passo: ela aparece na lista ao montar o orçamento.</>,
     ],
     tip: <>Dá para cadastrar a cliente direto no orçamento, no botão <b>+</b> ao lado do campo cliente. O <b>lápis</b> ao lado edita os dados dela.</>,
@@ -40,9 +42,12 @@ const STEPS: Step[] = [
       <><b>Modelo</b>: “valor único” ou “opções” (2 ou 3 propostas lado a lado para o cliente escolher) ou “propostas + juntas” (2 ou 3 projetos com desconto fechando todos).</>,
       <>Em <b>serviços</b>, adicione cada item da tabela. Para dar desconto numa imagem, use o desconto por unidade; para serviço sem preço fixo, digite o valor livre.</>,
       <>Deixe marcado <b>gerar proposta em PDF</b> só se for mandar o PDF.</>,
+      <><b>Arquivo final</b> (logo abaixo do modelo): <b>aberto (editável)</b> soma a sua % no valor de todos os serviços (menos o que já vai aberto, como a modelagem), em cada opção ou proposta, e os descontos acompanham. Não aparece no PDF; só muda o texto de entrega.</>,
+      <>Mais de um pavimento: use o <b>+</b> em <b>pav.</b>. O valor considera os pavimentos; desmarque <b>pav. no PDF</b> se não quiser mostrar no PDF.</>,
+      <><b>Nº 0</b> = o sistema escolhe o número pela data ao salvar. Enquanto for <b>rascunho</b>, a data vai para o dia de hoje sozinha (se escolher outra data, ela fica).</>,
       <>Confira <b>informações da proposta</b>: pagamento, prazos e cronograma e formatos de arquivo (já vêm preenchidos). <b>Rodadas de ajuste</b> vêm com 1.</>,
     ],
-    tip: <>No PDF fica só “Prazos e cronograma: serão definidos conforme a necessidade do cliente.” O prazo de verdade você alinha com a cliente antes de fechar e registra no sistema (passo 05).</>,
+    tip: <>No PDF fica só “Prazos e cronograma: serão definidos conforme a necessidade do cliente.” O prazo de verdade você alinha com a cliente antes de fechar e registra no sistema (passo 05). A prévia do PDF fica ao lado; <b>ver maior</b> abre em tela cheia. Os orçamentos em rascunho também aparecem na primeira coluna do quadro de <b>demandas</b>.</>,
   },
   {
     n: '03',
@@ -51,8 +56,8 @@ const STEPS: Step[] = [
     where: { path: ['orçamentos', 'abrir o orçamento', 'baixar PDF / enviar'], page: 'orcamentos' },
     todo: [
       <><b>baixar PDF</b> salva “Proposta #001 - Nome da cliente.pdf”.</>,
-      <><b>enviar</b> abre o WhatsApp com o resumo pronto; anexe o PDF na conversa. O status muda sozinho para <b>enviado</b>.</>,
-      <>Prefere escrever do seu jeito? <b>mensagens</b> mostra os textos padrão para copiar.</>,
+      <><b>enviar</b> abre o WhatsApp com a sua mensagem (“te encaminhei o pdf com a proposta, é negociável ☺️…”); anexe o PDF na conversa. Sem PDF, vai o resumo com os valores. O status muda sozinho para <b>enviado</b>.</>,
+      <>No botão <b>mais ⋯</b> ficam <b>mensagens</b> (textos prontos), <b>copiar resumo</b>, <b>duplicar</b> (cópia com a data de hoje e o próximo número) e <b>perguntar à IA</b>.</>,
     ],
   },
   {
@@ -63,7 +68,7 @@ const STEPS: Step[] = [
     todo: [
       <>Depois de 3 dias sem resposta, aparece em <b>início → para fazer</b> um “Pedir retorno” com botão de <b>mensagem</b>.</>,
       <>Em <b>orçamentos</b>, o filtro <b>cobrar resposta</b> mostra todos que estão esperando.</>,
-      <>Se recusou: na lista de orçamentos, clique na pílula de status e escolha <b>Recusado</b>.</>,
+      <>Se recusou: na lista de orçamentos, clique na pílula de status e escolha <b>não fechou</b>.</>,
     ],
   },
   {
@@ -112,9 +117,10 @@ const STEPS: Step[] = [
       <>Mandou a prévia? Mude a fase para <b>em aprovação</b>. A partir daqui o saldo vira <b>a cobrar</b>.</>,
       <>Pediu ajustes? Fase <b>em ajustes</b> e some +1 em revisões.</>,
       <>Aprovou: receba o saldo e clique em <b>Marcar pago</b>. Para enviar recibo, use o ícone de <b>impressora</b> na parcela paga.</>,
-      <>Por fim, <b>marcar como entregue</b> no topo da demanda.</>,
+      <>Enquanto estiver <b>em ajustes</b> ou <b>em aprovação</b>, a demanda aparece no início em <b>próximos 7 dias → esperando a cliente</b>, com o botão <b>cobrar</b> (mensagem pronta no WhatsApp).</>,
+      <>Por fim, <b>marcar como entregue</b> no topo da demanda. A data já vem com o prazo (ou hoje). Se a cliente cancelou o restante, marque <b>o cliente cancelou</b> na mesma janela.</>,
     ],
-    tip: <>Os textos de cobrança, aprovação e entrega ficam no botão <b>mensagens</b> da demanda, já com o nome da cliente e os valores.</>,
+    tip: <>Os textos de cobrança, aprovação e entrega ficam no botão <b>mensagens</b> da demanda, já com o nome da cliente e os valores. O <b>Recibo</b>, no topo dos pagamentos, mostra o total, o que já foi pago e o que falta, em PDF ou imagem para o WhatsApp.</>,
   },
 ]
 
@@ -136,7 +142,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Pacote com vários projetos e ela cancelou um',
-    a: <>Na demanda, seção <b>pacote → retirar</b> no projeto cancelado. O desconto se ajusta proporcionalmente e o saldo é recalculado. <b>copiar resumo</b> monta a mensagem explicando a conta.</>,
+    a: <>Na demanda, seção <b>pacote → cliente cancelou</b> no projeto cancelado e escolha a data. Nada é apagado: o projeto fica riscado com a data, o orçamento continua como foi enviado (com um aviso) e o desconto e o saldo são recalculados. <b>voltar</b> desfaz. <b>copiar resumo</b> monta a mensagem explicando a conta.</>,
     page: 'projetos',
   },
   {
@@ -146,7 +152,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Quero mudar o texto das mensagens',
-    a: <><b>configurações → aba mensagens</b> (no computador). As palavras entre chaves, como {'{cliente}'} e {'{valor}'}, são preenchidas sozinhas.</>,
+    a: <><b>configurações → aba mensagens</b> (no computador). As palavras entre chaves, como {'{cliente}'} e {'{valor}'}, são preenchidas sozinhas. Na barrinha em cima de cada texto: <b>N</b> (negrito), <b>I</b> (itálico), <b>S</b> (riscado) e emojis; embaixo aparece como vai ficar no WhatsApp.</>,
     page: 'config',
   },
   {
@@ -199,6 +205,28 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
 ]
 
+CASES.push(
+  {
+    q: 'Numeração dos orçamentos (e os que mandei só pelo WhatsApp)',
+    a: <>Deixe o nº em <b>0</b>: ao salvar, o sistema escolhe pela data. Enviado ocupa o número vago daquela época, rascunhos se reorganizam e os já enviados nunca mudam. Para arrumar tudo de uma vez: <b>orçamentos → organizar nº</b>.</>,
+    page: 'orcamentos',
+  },
+  {
+    q: 'Ver outro mês no financeiro',
+    a: <>Clique no mês no <b>gráfico dos últimos 12 meses</b> (ou use as setas ao lado do nome do mês): a página toda mostra aquele mês.</>,
+    page: 'financeiro',
+  },
+  {
+    q: 'Planejar os posts do Instagram',
+    a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com ideias prontas (carrossel, reels, story, post). Cada post tem a arte pronta para baixar em PNG, PDF ou .pptx (abre no Canva para editar). O que é para postar hoje aparece no início.</>,
+    page: 'instagram',
+  },
+  {
+    q: 'O PDF não baixou',
+    a: <>Toque de novo em <b>baixar PDF</b>: se algo não carregar, o sistema tenta de outro jeito sozinho. Se ainda der erro, a mensagem diz o motivo; mande um print dela.</>,
+  },
+)
+
 const WHERE: [string, string, string][] = [
   ['o que fazer hoje', 'início → para fazer', 'inicio'],
   ['definir ou mudar o prazo', 'demanda → card “prazo combinado” (clique na data)', 'projetos'],
@@ -207,6 +235,10 @@ const WHERE: [string, string, string][] = [
   ['marcar pagamento', 'botão no cartão da demanda ou financeiro → Marcar pago', 'financeiro'],
   ['quanto tenho para receber', 'financeiro → recebimentos (filtro “A cobrar”)', 'financeiro'],
   ['recibo em PDF', 'demanda → pagamentos → ícone de impressora', 'projetos'],
+  ['recibo de cobrança (o que falta pagar)', 'demanda → pagamentos → Recibo', 'projetos'],
+  ['duplicar / mensagens / copiar resumo', 'orçamento → mais ⋯', 'orcamentos'],
+  ['rascunhos de orçamento', 'demandas → quadro → primeira coluna', 'projetos'],
+  ['dados da empresa (CNPJ) da cliente', 'cliente → editar → + dados da empresa', 'clientes'],
   ['histórico de uma cliente', 'clientes → abrir a cliente', 'clientes'],
   ['criar coluna no quadro', 'demandas → quadro → nova coluna (no fim)', 'projetos'],
   ['mudar ordem do menu', 'organizar menu (abaixo do menu)', ''],
