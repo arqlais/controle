@@ -1256,7 +1256,8 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 @media (max-width: 440px) { .toolbar select { flex-basis: 100%; } }
 
 /* perfil: símbolos e dados da conta */
-.avatar-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.avatar-picker { display: grid; grid-template-columns: repeat(7, 44px); gap: 10px; } /* 14 símbolos: duas linhas de 7 */
+@media (max-width: 480px) { .avatar-picker { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; } .avatar-picker .avatar-pick { width: 100%; height: auto; aspect-ratio: 1; } }
 .avatar-pick { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
 .avatar-pick:hover { border-color: var(--accent-soft); color: var(--accent-ink); }
 .avatar-pick.on { background: var(--accent-tint); border-color: var(--accent-soft); color: var(--accent-ink); box-shadow: 0 0 0 3px var(--accent-tint); }

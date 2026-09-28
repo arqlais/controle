@@ -15,6 +15,8 @@ export const AVATAR_ICONS: [string, string][] = [
   ['camera', 'imagem'],
   ['sparkle', 'brilho'],
   ['leaf', 'natureza'],
+  ['layers', 'camadas'],
+  ['star', 'estrela'],
 ]
 
 /** Foto/logo do estúdio, ou o símbolo escolhido. */
