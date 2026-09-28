@@ -8,7 +8,7 @@ export interface BarSeries {
 }
 
 /** Barras agrupadas em SVG (sem dependências). */
-export function BarChart({ labels, series, goal, height = 220 }: { labels: string[]; series: BarSeries[]; goal?: number; height?: number }) {
+export function BarChart({ labels, series, goal, height = 220, selected, onSelect, selectTitle }: { labels: string[]; series: BarSeries[]; goal?: number; height?: number; selected?: number; onSelect?: (i: number) => void; selectTitle?: (i: number) => string }) {
   const [hover, setHover] = useState<number | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const [W, setW] = useState(640)
@@ -53,8 +53,9 @@ export function BarChart({ labels, series, goal, height = 220 }: { labels: strin
         {labels.map((l, i) => {
           const gx = padL + group * i + (group - barW * series.length - 4 * (series.length - 1)) / 2
           return (
-            <g key={l + i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-              <rect x={padL + group * i} y={padT} width={group} height={innerH} fill="transparent" className={hover === i ? 'hover-col' : ''} />
+            <g key={l + i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={onSelect ? () => onSelect(i) : undefined} className={onSelect ? 'chart-col is-clickable' : 'chart-col'}>
+              {onSelect && <title>{selectTitle ? selectTitle(i) : l}</title>}
+              <rect x={padL + group * i} y={padT} width={group} height={innerH} fill="transparent" className={selected === i ? 'selected-col' : hover === i ? 'hover-col' : ''} />
               {series.map((s, si) => {
                 const v = s.values[i] ?? 0
                 return (
@@ -69,7 +70,7 @@ export function BarChart({ labels, series, goal, height = 220 }: { labels: strin
                   />
                 )
               })}
-              <text x={padL + group * i + group / 2} y={H - 8} textAnchor="middle" className="axis-label">
+              <text x={padL + group * i + group / 2} y={H - 8} textAnchor="middle" className={`axis-label${selected === i ? ' is-selected' : ''}`}>
                 {l}
               </text>
             </g>

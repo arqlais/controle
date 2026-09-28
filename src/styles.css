@@ -309,7 +309,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .notes { white-space: pre-wrap; background: var(--bg); padding: 12px 14px; border-radius: 12px; font-size: 13px; }
 
 .bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-.bars li { display: grid; grid-template-columns: minmax(0, 150px) 1fr auto; gap: 12px; align-items: center; font-size: 13px; }
+.bars li { display: grid; grid-template-columns: 150px minmax(0, 1fr) 7.5em; gap: 12px; align-items: center; font-size: 13px; }
 .bars li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- tabelas ---------- */
@@ -452,6 +452,9 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .goal-text { fill: var(--accent-ink) !important; font-weight: 600; }
 .axis-label { fill: var(--muted); font-size: 11px; font-family: var(--font-body); }
 .hover-col { fill: var(--bg) !important; }
+.selected-col { fill: color-mix(in srgb, var(--accent-soft) 28%, transparent) !important; }
+.chart-col.is-clickable { cursor: pointer; }
+.axis-label.is-selected { fill: var(--text); font-weight: 700; }
 .chart-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .chart-legend i { width: 10px; height: 10px; border-radius: 3px; }
@@ -630,7 +633,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
   .stats { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-top .icon { display: none; }
   .form-grid { grid-template-columns: 1fr; }
-  .bars li { grid-template-columns: 90px 1fr auto; }
+  .bars li { grid-template-columns: 90px minmax(0, 1fr) 7em; }
   .welcome-actions .btn { flex: 1; padding-inline: 12px; }
 }
 @media (hover: none) {
@@ -1752,3 +1755,4 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 /* fim do orçamento salvo: avisos + duplicar/excluir, sem card */
 .quote-foot { display: flex; flex-direction: column; gap: 10px; padding: 2px 4px 8px; }
 .quote-foot > .row { justify-content: flex-end; }
+.bars li b { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

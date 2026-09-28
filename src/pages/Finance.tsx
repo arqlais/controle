@@ -52,7 +52,9 @@ export default function Finance() {
 
   const s = useMemo(() => monthSummary(data, month), [data, month])
   const pays = useMemo(() => allPayments(data), [data])
-  const months12 = lastMonths(12, `${month}-01`)
+  // o gráfico fica parado nos 12 meses até hoje; só anda se o mês escolhido estiver fora dele
+  const nowKey = monthKey(today())
+  const months12 = lastMonths(12, `${month > nowKey || !lastMonths(12, `${nowKey}-01`).includes(month) ? month : nowKey}-01`)
   const series = months12.map((k) => monthSummary(data, k))
 
   const rows = pays
@@ -158,6 +160,9 @@ export default function Finance() {
         <BarChart
           labels={months12.map((k) => MONTHS[Number(k.slice(5)) - 1].slice(0, 3))}
           goal={settings.monthlyGoal || undefined}
+          selected={months12.indexOf(month)}
+          onSelect={(i) => setMonth(months12[i])}
+          selectTitle={(i) => `ver ${monthLabel(months12[i]).toLowerCase()}`}
           series={[
             { label: 'Recebido', color: 'var(--accent)', values: series.map((x) => x.received) },
             { label: 'Despesas', color: 'var(--accent-soft)', values: series.map((x) => x.expenses) },
@@ -362,23 +367,15 @@ function Reports({ month }: { month: string }) {
       <p className="muted">
         Últimos 12 meses até {monthLabel(month).toLowerCase()} · {money(total)} recebidos · {Math.round(studentShare * 100)}% vindo de estudantes
       </p>
-      <div className="grid-2">
+      <div className="grid-2 is-even">
         <Section title="Por tipo de serviço">
           <Donut data={toDonut(byService)} />
         </Section>
         <Section title="Por tipo de cliente">
           <Donut data={toDonut(byType)} />
         </Section>
-        <Section title="Melhores clientes">
-          <ul className="bars">
-            {byClient.map(([name, v]) => (
-              <li key={name}>
-                <span>{name}</span>
-                <Progress value={v} max={byClient[0][1]} />
-                <b>{money(v)}</b>
-              </li>
-            ))}
-          </ul>
+        <Section title="Despesas por categoria">
+          <Donut data={toDonut([...expByCat.entries()].sort((a, b) => b[1] - a[1]))} />
         </Section>
         <Section title="Como os clientes chegaram">
           <ul className="bars">
@@ -391,10 +388,18 @@ function Reports({ month }: { month: string }) {
             ))}
           </ul>
         </Section>
-        <Section title="Despesas por categoria">
-          <Donut data={toDonut([...expByCat.entries()].sort((a, b) => b[1] - a[1]))} />
-        </Section>
       </div>
+      <Section title="Melhores clientes">
+        <ul className="bars">
+          {byClient.map(([name, v]) => (
+            <li key={name}>
+              <span>{name}</span>
+              <Progress value={v} max={byClient[0][1]} />
+              <b>{money(v)}</b>
+            </li>
+          ))}
+        </ul>
+      </Section>
     </div>
   )
 }
