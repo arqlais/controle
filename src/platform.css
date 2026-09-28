@@ -1039,3 +1039,32 @@
 .sidebar-foot .sample-toggle.is-on { background: var(--accent-tint); color: var(--accent-ink); }
 /* nome do estúdio comprido: letra menor e até 2 linhas (não corta com "...") */
 .brand.is-long .brand-name { font-size: 20px; white-space: normal; overflow: visible; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.1; }
+
+/* "ver como cliente" (só a dona vê): faixa fixa no topo + botão no menu */
+.view-as-banner { position: sticky; top: 0; z-index: 60; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: #2f3a44; color: #fff; font-size: 13px; box-shadow: 0 12px 30px -18px rgba(20, 28, 36, 0.6); }
+.view-as-banner span { display: inline-flex; align-items: center; gap: 6px; }
+.view-as-banner .btn.primary { background: #fff; color: #2f3a44; }
+.view-as-back { width: 100%; justify-content: center; margin: 4px 0 10px; }
+
+/* primeiros passos */
+.first-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+.first-steps header { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.first-steps header > div:first-child { display: flex; flex-direction: column; }
+.first-steps-bar { height: 5px; border-radius: 5px; background: var(--surface-2); overflow: hidden; }
+.first-steps-bar i { display: block; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.4s; }
+.first-steps ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.first-steps li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.first-steps li .grow { display: flex; flex-direction: column; min-width: 0; }
+.first-steps li.is-done b { text-decoration: line-through; opacity: 0.55; }
+.first-steps-n { width: 26px; height: 26px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--surface-2); }
+.first-steps li.is-done .first-steps-n { background: #e3eee6; color: #3f6e4d; }
+
+/* passo a passo: destaca o item do menu na própria tela, com o cartão ao lado */
+.tour-layer { position: fixed; inset: 0; z-index: 120; pointer-events: none; }
+.tour-dim { position: fixed; inset: 0; background: rgba(28, 34, 40, 0.45); pointer-events: auto; }
+.tour-spot { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(28, 34, 40, 0.45); outline: 2px solid #fff; transition: left 0.3s, top 0.3s, width 0.3s, height 0.3s; animation: tour-pulse 1.8s ease-in-out infinite; }
+@keyframes tour-pulse { 50% { outline-offset: 4px; outline-color: rgba(255, 255, 255, 0.55); } }
+.tour-layer .tour { position: fixed; right: auto; bottom: auto; width: min(360px, calc(100vw - 32px)); pointer-events: auto; transition: left 0.3s, top 0.3s, bottom 0.3s; }
+.tour-layer .tour.has-arrow::before { content: ''; position: absolute; left: -7px; top: 40px; width: 14px; height: 14px; background: var(--surface); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: rotate(45deg); }
+@media (max-width: 720px) { .tour-layer .tour { width: auto; } }
+@media (prefers-reduced-motion: reduce) { .tour-spot { animation: none; } }

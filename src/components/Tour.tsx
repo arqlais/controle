@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react'
 import { Icon } from './Icon'
 import { go, useRoute } from '../router'
 import { PLATFORM } from '../plans'
@@ -18,7 +18,7 @@ export const TOUR_STEPS: Step[] = [
   { page: 'financeiro', title: 'financeiro', text: 'Parcelas a receber, recebidas e despesas. Ao marcar uma parcela como paga, escolha como o cliente pagou (pix, cartão…).' },
   { page: 'contratos', title: 'contratos', needs: 'contratos', text: 'Escolha o cliente e o orçamento: o contrato já sai preenchido. Se faltar algum dado, aparece um aviso antes.' },
   { page: 'agenda', title: 'agenda', text: 'Entregas, pagamentos e compromissos num calendário só. Dá para ver também na agenda do celular.' },
-  { page: 'manual', title: 'pronto!', text: `O manual explica tudo com calma. Ficou com dúvida? Fale com ${PLATFORM.supportWith} pelo balão no canto da tela. Este passo a passo fica em “ajustes e dicas” para rever quando quiser.` },
+  { page: 'manual', title: 'pronto!', text: `O manual explica tudo com calma. Ficou com dúvida? Fale com ${PLATFORM.supportWith} pelo balão no canto da tela. Para rever este passo a passo, toque no “?” no alto da tela.` },
 ]
 
 /** Explicação curta de cada tela (botão "?" do topo). */
@@ -39,58 +39,108 @@ export const SCREEN_HELP: Record<string, { title: string; text: string }> = {
   perfil: { title: 'perfil', text: 'Os dados do seu estúdio que aparecem nos PDFs e contratos.' },
 }
 
+/** Encontra o item do menu que o passo explica (menu lateral no computador, barra de baixo no celular). */
+function findTarget(page: string): HTMLElement | null {
+  const sel = [`.bottom-nav a[href="#/${page}"]`, `.sidebar nav a[href="#/${page}"]`]
+  for (const q of sel) {
+    const el = document.querySelector<HTMLElement>(q)
+    if (el && el.offsetParent !== null) {
+      const r = el.getBoundingClientRect()
+      if (r.width > 0 && r.right > 0 && r.left < innerWidth) return el
+    }
+  }
+  return null
+}
+
 export function Tour({ has, onClose }: { has: (f: 'contratos') => boolean; onClose: (how: 'feito' | 'depois') => void }) {
   const steps = TOUR_STEPS.filter((s) => !s.needs || has(s.needs))
   const [i, setI] = useState(0)
+  const [rect, setRect] = useState<DOMRect | null>(null)
   const step = steps[i]
   const to = (n: number) => {
     setI(n)
     go(steps[n].page)
   }
+  // acompanha o item do menu destacado (mudou de passo, rolou ou redimensionou a tela)
+  useLayoutEffect(() => {
+    const update = () => {
+      const el = findTarget(step.page)
+      setRect(el ? el.getBoundingClientRect() : null)
+    }
+    update()
+    const t = window.setTimeout(update, 120)
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.clearTimeout(t)
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [step.page])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose('depois')
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
   const last = i === steps.length - 1
+  const mobile = innerWidth <= 720
+  // cartão ao lado do item destacado (computador) ou logo acima da barra de baixo (celular)
+  const cardStyle: CSSProperties =
+    rect && !mobile
+      ? { left: Math.min(rect.right + 18, innerWidth - 380), top: Math.max(16, Math.min(rect.top - 24, innerHeight - 300)) }
+      : rect && mobile
+        ? { left: 16, right: 16, bottom: innerHeight - rect.top + 14 }
+        : { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }
   return (
-    <div className="tour" role="dialog" aria-label="Passo a passo">
-      <div className="tour-top">
-        <span className="tour-count">
-          {i + 1} de {steps.length}
-        </span>
-        <button className="icon-btn subtle" onClick={() => onClose('depois')} aria-label="Fechar e ver depois" title="Fechar e ver depois">
-          <Icon name="x" size={16} />
-        </button>
-      </div>
-      <div className="tour-dots" aria-hidden>
-        {steps.map((s, n) => (
-          <i key={s.page} className={n <= i ? 'on' : ''} />
-        ))}
-      </div>
-      <h3>{step.title}</h3>
-      <p>{step.text}</p>
-      <div className="tour-actions">
-        {i === 0 ? (
-          <>
-            <button className="link" id="tour-skip" onClick={() => onClose('feito')}>
-              pular
-            </button>
-            <button className="link" id="tour-later" onClick={() => onClose('depois')}>
-              ver depois
-            </button>
-          </>
-        ) : (
-          <button className="btn ghost small" onClick={() => to(i - 1)}>
-            voltar
+    <div className="tour-layer" role="dialog" aria-label="Passo a passo">
+      {rect ? (
+        <div className="tour-spot" style={{ left: rect.left - 6, top: rect.top - 6, width: rect.width + 12, height: rect.height + 12 }} />
+      ) : (
+        <div className="tour-dim" />
+      )}
+      <div className={`tour ${rect && !mobile ? 'has-arrow' : ''}`} style={cardStyle}>
+        <div className="tour-top">
+          <span className="tour-count">
+            passo a passo · {i + 1} de {steps.length}
+          </span>
+          <button className="icon-btn subtle" onClick={() => onClose('depois')} aria-label="Fechar e ver depois" title="Fechar e ver depois">
+            <Icon name="x" size={16} />
           </button>
-        )}
-        <button className="btn primary small" id="tour-next" onClick={() => (last ? onClose('feito') : to(i + 1))}>
-          {last ? 'concluir' : i === 0 ? 'começar' : 'próximo'}
-          {!last && <Icon name="chevronR" size={14} />}
-        </button>
+        </div>
+        <div className="tour-dots" aria-hidden>
+          {steps.map((s, n) => (
+            <i key={s.page} className={n <= i ? 'on' : ''} />
+          ))}
+        </div>
+        <h3>{step.title}</h3>
+        <p>{step.text}</p>
+        <div className="tour-actions">
+          {i === 0 ? (
+            <>
+              <button className="link" id="tour-skip" onClick={() => onClose('feito')}>
+                pular
+              </button>
+              <button className="link" id="tour-later" onClick={() => onClose('depois')}>
+                ver depois
+              </button>
+            </>
+          ) : (
+            <button className="btn ghost small" onClick={() => to(i - 1)}>
+              voltar
+            </button>
+          )}
+          <button className="btn primary small" id="tour-next" onClick={() => (last ? onClose('feito') : to(i + 1))}>
+            {last ? 'concluir' : i === 0 ? 'começar' : 'próximo'}
+            {!last && <Icon name="chevronR" size={14} />}
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
 /** Botão "?" do topo: explica a tela atual em duas linhas (só quando a pessoa quer). */
-export function ScreenHelp() {
+export function ScreenHelp({ onTour }: { onTour?: () => void }) {
   const route = useRoute()
   const [open, setOpen] = useState(false)
   const help = SCREEN_HELP[route.page]
@@ -106,6 +156,17 @@ export function ScreenHelp() {
           <div className="dropdown screen-help-pop">
             <b>{help.title}</b>
             <p>{help.text}</p>
+            {onTour && (
+              <button
+                className="link small"
+                onClick={() => {
+                  setOpen(false)
+                  onTour()
+                }}
+              >
+                rever o passo a passo
+              </button>
+            )}
           </div>
         </>
       )}
