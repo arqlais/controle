@@ -1012,3 +1012,4 @@
 .mk-q-editorial .mk-q-row b { font-family: var(--mk-serif); font-style: italic; font-weight: 400; font-size: 13px; color: var(--mk-rose); }
 .mk-q-editorial .mk-q-total { background: none; border-top: 1px solid var(--mk-ink); padding-inline: 0; }
 @media (max-width: 720px) { .mk-stage { padding-inline: 8px; } .mk-tag { font-size: 11px; } .mk-tag-1 { right: 0; } .mk-tag-2 { left: 0; } }
+.lp-me-story .lp-me-wrap .lp-me { background: #e1cac4; border: 1px solid #d1ada4; color: #ab8e86; box-shadow: none; }
