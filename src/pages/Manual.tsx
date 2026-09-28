@@ -223,7 +223,7 @@ CASES.push(
   },
   {
     q: 'Baixar o PDF',
-    a: <><b>baixar PDF</b> abre a janela do navegador: escolha <b>Salvar como PDF</b> (no iPhone: compartilhar → Salvar em Arquivos). Assim os textos ficam em vetor, nítidos e selecionáveis, com as cores do modelo. Quer baixar direto, sem janela? <b>mais ⋯ → PDF em imagem</b>.</>,
+    a: <><b>baixar PDF</b> baixa direto, com as cores do modelo. Precisa do texto em vetor (selecionável)? <b>mais ⋯ → PDF em vetor</b> abre a janela do navegador: escolha <b>Salvar como PDF</b> (no iPhone: compartilhar → Salvar em Arquivos).</>,
   },
 )
 

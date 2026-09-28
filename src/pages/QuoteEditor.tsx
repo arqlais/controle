@@ -382,8 +382,8 @@ export default function QuoteEditor({ id }: { id: string }) {
           )}
           <MoreMenu>
             {q.pdf && (
-              <button className="btn ghost" disabled={pdf.busy} onClick={() => pdf.downloadImage(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)} title="Baixa direto, sem a janela de impressão (o texto vira imagem)">
-                <Icon name="download" size={16} /> PDF em imagem
+              <button className="btn ghost" disabled={pdf.busy} onClick={() => pdf.downloadVector(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
+                <Icon name="download" size={16} /> PDF em vetor
               </button>
             )}
             <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />

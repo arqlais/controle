@@ -101,7 +101,7 @@ export function usePdf() {
           return
         }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
-        const canvas = await renderSheet(el, toCanvas, { pixelRatio: 2.5 })
+        const canvas = await renderSheet(el, toCanvas, { pixelRatio: 3 })
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true })
         const pageW = 210
         const pageH = 297
@@ -131,17 +131,17 @@ export function usePdf() {
   }, [job])
 
   const clean = (f: string) => f.replace(/[\\/:*?"<>|]+/g, '-')
-  /** PDF em vetor (pela janela de impressão do navegador → "Salvar como PDF"). */
+  /** PDF baixado direto, sem janela (a folha vira imagem em alta resolução, com as cores do modelo). */
   const download = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc) // o visualizador do Claude bloqueia downloads
-    toast('Na janela que abrir, escolha “Salvar como PDF”.')
-    setJob({ doc, filename: clean(filename), vector: true })
-  }
-  /** PDF em imagem: baixa direto, sem janela (texto vira imagem). */
-  const downloadImage = (doc: ReactNode, filename: string) => {
-    if (ARTIFACT) return setPreview(doc)
     toast('Gerando PDF…')
     setJob({ doc, filename: clean(filename) })
+  }
+  /** PDF em vetor: pela janela de impressão do navegador → "Salvar como PDF" (textos continuam texto). */
+  const downloadVector = (doc: ReactNode, filename: string) => {
+    if (ARTIFACT) return setPreview(doc)
+    toast('Na janela que abrir, escolha “Salvar como PDF”.')
+    setJob({ doc, filename: clean(filename), vector: true })
   }
   const downloadPng = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc)
@@ -168,7 +168,7 @@ export function usePdf() {
       )}
     </>
   )
-  return { download, downloadImage, downloadPng, busy: !!job && !job.vector, portal }
+  return { download, downloadVector, downloadPng, busy: !!job && !job.vector, portal }
 }
 
 /** Prévia do documento em tamanho grande, por cima da tela (fecha no X, no Esc ou clicando fora). */
