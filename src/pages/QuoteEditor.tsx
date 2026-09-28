@@ -223,11 +223,17 @@ export default function QuoteEditor({ id }: { id: string }) {
             if (!openFile && it.openFee) return { ...it, price: Math.round((it.price / fee) * 100) / 100, openFee: undefined }
             return it
           })
+    // descontos em R$ acompanham a taxa: o total final sobe na mesma proporção (cada opção separada; nas propostas + juntas, o desconto de fechar juntas também)
+    const toggled = patch.openFile !== undefined && patch.openFile !== !!q.openFile
+    const k = !toggled ? 1 : openFile ? fee : 1 / fee
+    const scale = (n?: number) => (n && k !== 1 ? Math.round(n * k * 100) / 100 : n)
     set({
       ...patch,
       items: manual(repriceItems(q.items, openFile, fl)),
+      discount: scale(q.discount) ?? 0,
+      comboDiscount: scale(q.comboDiscount),
       // cada quadro usa os próprios pavimentos (se tiver)
-      options: q.options.map((o) => ({ ...o, items: manual(repriceItems(o.items, openFile, o.floors ?? fl)) })),
+      options: q.options.map((o) => ({ ...o, discount: scale(o.discount) ?? 0, items: manual(repriceItems(o.items, openFile, o.floors ?? fl)) })),
     })
   }
   const repriceItems = (items: QuoteItem[], openFile: boolean, fl: number, area?: { from: number; to: number }) =>
