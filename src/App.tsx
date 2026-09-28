@@ -60,6 +60,8 @@ export default function App() {
       document.documentElement.style.setProperty('--topbar-h', `${h}px`)
       const head = document.querySelector<HTMLElement>('.sticky-head')
       if (head) head.classList.toggle('is-stuck', window.scrollY > 40 && head.getBoundingClientRect().top <= h + 1)
+      // altura do topo fixo: a prévia do PDF para logo abaixo dele (não fica escondida atrás)
+      document.documentElement.style.setProperty('--head-h', `${head?.offsetHeight ?? 0}px`)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })

@@ -120,3 +120,28 @@ export function usePdf() {
   )
   return { download, downloadPng, busy: !!job, portal }
 }
+
+/** Prévia do documento em tamanho grande, por cima da tela (fecha no X, no Esc ou clicando fora). */
+export function DocZoom({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', key)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', key)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+  return createPortal(
+    <div className="doc-zoom" onClick={onClose} role="dialog" aria-label="Prévia do PDF">
+      <button className="doc-zoom-close" onClick={onClose} aria-label="Fechar">
+        ✕
+      </button>
+      <div className="doc-zoom-sheet" onClick={(e) => e.stopPropagation()}>
+        <DocScale>{children}</DocScale>
+      </div>
+    </div>,
+    document.body,
+  )
+}

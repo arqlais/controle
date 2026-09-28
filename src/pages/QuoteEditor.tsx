@@ -8,8 +8,8 @@ import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
-import { DocScale, usePdf } from '../components/Print'
-import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented } from '../components/ui'
+import { DocZoom, DocScale, usePdf } from '../components/Print'
+import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented } from '../components/ui'
 import { askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
@@ -123,6 +123,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const [view, setView] = useState<'editar' | 'ver'>('editar')
+  const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
 
   // ---- não perder o que foi digitado ----
@@ -343,12 +344,6 @@ export default function QuoteEditor({ id }: { id: string }) {
           <h1>{q.title || 'novo orçamento'}</h1>
         </div>
         <div className="row gap-s wrap">
-          <AskAIButton quote={q} />
-          {existing && id !== 'novo' && (
-            <button className="btn ghost" onClick={duplicate} title="Cópia com a data de hoje e o próximo número">
-              <Icon name="copy" size={16} /> duplicar
-            </button>
-          )}
           {q.pdf && (
             <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
@@ -366,18 +361,26 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Icon name="whatsapp" size={16} /> enviar
             </a>
           )}
-          <button
-            className="btn ghost"
-            onClick={() =>
-              navigator.clipboard
-                ?.writeText(text(false))
-                .then(() => toast('Resumo copiado.'))
-                .catch(() => toast('Não deu para copiar aqui.'))
-            }
-          >
-            <Icon name="copy" size={16} /> copiar resumo
-          </button>
-          <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
+          <MoreMenu>
+            <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
+            <button
+              className="btn ghost"
+              onClick={() =>
+                navigator.clipboard
+                  ?.writeText(text(false))
+                  .then(() => toast('Resumo copiado.'))
+                  .catch(() => toast('Não deu para copiar aqui.'))
+              }
+            >
+              <Icon name="copy" size={16} /> copiar resumo
+            </button>
+            {existing && id !== 'novo' && (
+              <button className="btn ghost" onClick={duplicate} title="Cópia com a data de hoje e o próximo número">
+                <Icon name="copy" size={16} /> duplicar
+              </button>
+            )}
+            <AskAIButton quote={q} />
+          </MoreMenu>
           <button className={`btn ${dirty ? 'primary' : 'ghost'}`} onClick={() => save()} disabled={!dirty}>
             {dirty ? 'salvar' : 'salvo'}
           </button>
@@ -762,7 +765,13 @@ export default function QuoteEditor({ id }: { id: string }) {
 
         {q.pdf && (
           <aside className="quote-preview">
-            <DocScale>{preview}</DocScale>
+            <div className="doc-zoomable" onClick={() => setZoom(true)} title="Ver maior">
+              <DocScale>{preview}</DocScale>
+              <span className="doc-zoom-btn">
+                <Icon name="eye" size={14} /> ver maior
+              </span>
+            </div>
+            {zoom && <DocZoom onClose={() => setZoom(false)}>{preview}</DocZoom>}
             <p className="muted small center">
               Pré-visualização do PDF · cores e textos padrão em{' '}
               <a className="link" href={href('config')}>

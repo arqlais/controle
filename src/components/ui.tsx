@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeep } from '../keep'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
@@ -279,3 +279,31 @@ export function MonthPicker({ value, onChange, from }: { value: string; onChange
   )
 }
 const MONTH_NAMES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+
+/** Botão "mais ⋯": ações secundárias num menu. O conteúdo fica montado (só escondido),
+ *  assim as janelas que as ações abrem continuam abertas depois que o menu fecha. */
+export function MoreMenu({ children, label = 'mais' }: { children: ReactNode; label?: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const out = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false)
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', out)
+    document.addEventListener('keydown', key)
+    return () => {
+      document.removeEventListener('mousedown', out)
+      document.removeEventListener('keydown', key)
+    }
+  }, [open])
+  return (
+    <div className="more-menu" ref={ref}>
+      <button className={`btn ghost ${open ? 'is-open' : ''}`} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        {label} <span aria-hidden>⋯</span>
+      </button>
+      <div className={`more-pop ${open ? 'is-open' : ''}`} onClick={() => setTimeout(() => setOpen(false), 0)}>
+        {children}
+      </div>
+    </div>
+  )
+}
