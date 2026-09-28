@@ -1839,3 +1839,7 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .print-stage * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 .floors .floors-pdf { width: 15px; height: 15px; margin: 0 2px 0 4px; accent-color: var(--accent); cursor: pointer; flex: none; }
+
+/* ordenar a lista de demandas (no computador também dá pelo título da coluna) */
+.sort-select { align-self: flex-end; width: auto; max-width: 100%; }
+@media (max-width: 820px) { .sort-select { align-self: stretch; } }

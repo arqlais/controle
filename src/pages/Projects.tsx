@@ -301,14 +301,17 @@ function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; o
   )
 }
 
-type SortKey = 'prazo' | 'valor' | 'urgencia' | 'cliente'
+type SortKey = 'prazo' | 'valor' | 'urgencia' | 'cliente' | 'nome' | 'data'
+const SORT_LABEL: Record<SortKey, string> = { urgencia: 'urgência', prazo: 'prazo (mais perto)', data: 'início (mais recente)', nome: 'nome (A–Z)', cliente: 'cliente (A–Z)', valor: 'valor (maior)' }
 
 function ProjectTable({ projects, clientName }: { projects: Project[]; clientName: (id: string) => string }) {
   const [sort, setSort] = useKeep<SortKey>('dem-ordem', 'urgencia')
   const rows = [...projects].sort((a, b) => {
     if (sort === 'prazo') return (a.dueDate || '9').localeCompare(b.dueDate || '9')
     if (sort === 'valor') return projectTotal(b) - projectTotal(a)
-    if (sort === 'cliente') return clientName(a.clientId).localeCompare(clientName(b.clientId))
+    if (sort === 'cliente') return clientName(a.clientId).localeCompare(clientName(b.clientId), 'pt-BR', { sensitivity: 'base' })
+    if (sort === 'nome') return a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' })
+    if (sort === 'data') return (b.startDate || '').localeCompare(a.startDate || '')
     return urgencyScore(b) - urgencyScore(a)
   })
   const th = (k: SortKey, label: string, cls = '') => (
@@ -319,6 +322,14 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
   const { visible, more } = usePaged(rows, 30, 'demandas')
   if (!rows.length) return <Empty title="Nada por aqui" text="Nenhuma demanda com esses filtros." />
   return (
+    <>
+    <select className="sort-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Ordenar por">
+      {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+        <option key={k} value={k}>
+          ordenar: {SORT_LABEL[k]}
+        </option>
+      ))}
+    </select>
     <div className="table-wrap card">
       <table className="table cards-mobile">
         <thead>
@@ -376,6 +387,7 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
       </table>
       {more && <div className="table-more">{more}</div>}
     </div>
+    </>
   )
 }
 

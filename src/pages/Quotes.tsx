@@ -14,6 +14,18 @@ import { ask, toast } from '../components/dialog'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
 
+// ordem da lista (fica guardada ao voltar para a página)
+type QuoteOrder = 'numero' | 'numero-asc' | 'data' | 'data-asc' | 'cliente' | 'valor'
+const byNumber = (a: Quote, b: Quote) => b.number - a.number
+const QUOTE_ORDERS: Record<QuoteOrder, { label: string; fn: (name: (id: string) => string, fee: number) => (a: Quote, b: Quote) => number }> = {
+  numero: { label: 'nº (mais recente)', fn: () => byNumber },
+  'numero-asc': { label: 'nº (mais antigo)', fn: () => (a, b) => a.number - b.number },
+  data: { label: 'data (mais recente)', fn: () => (a, b) => b.createdAt.localeCompare(a.createdAt) || byNumber(a, b) },
+  'data-asc': { label: 'data (mais antiga)', fn: () => (a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number },
+  cliente: { label: 'cliente (A–Z)', fn: (name) => (a, b) => name(a.clientId).localeCompare(name(b.clientId), 'pt-BR', { sensitivity: 'base' }) || byNumber(a, b) },
+  valor: { label: 'valor (maior)', fn: (_n, fee) => (a, b) => quoteTotal(b, fee) - quoteTotal(a, fee) || byNumber(a, b) },
+}
+
 /** Dias desde o envio (orçamentos enviados e ainda sem resposta). */
 export const waitingDays = (q: Quote) => (q.status === 'enviado' && q.sentAt ? -daysUntil(q.sentAt) : 0)
 /** Cobrar resposta: já passou 1 dia útil desde o envio (fim de semana e feriado não contam). */
@@ -27,6 +39,7 @@ export default function Quotes() {
   const [filter, setFilter] = useKeep<Filter>('orc-filtro', 'todos')
   const [q, setQ] = useKeep('orc-busca', '')
   const [clientId, setClientId] = useKeep('orc-cliente', '')
+  const [order, setOrder] = useKeep<QuoteOrder>('orc-ordem', 'numero')
   const fee = data.settings.urgencyFee
   const client = (id: string) => data.clients.find((c) => c.id === id)
 
@@ -36,8 +49,8 @@ export default function Quotes() {
       .filter((x) => (filter === 'todos' ? true : filter === 'cobrar' ? needsFollowUp(x) : x.status === filter))
       .filter((x) => !clientId || x.clientId === clientId)
       .filter((x) => matches(term, x.number, `#${x.number}`, quoteNumber(x), x.title, client(x.clientId)?.name, client(x.clientId)?.company))
-      .sort((a, b) => b.number - a.number)
-  }, [data.quotes, data.clients, filter, q, clientId])
+      .sort(QUOTE_ORDERS[order].fn((id) => client(id)?.name ?? '', fee))
+  }, [data.quotes, data.clients, filter, q, clientId, order])
   const { visible, more } = usePaged(rows, 30, 'orcamentos')
 
   const decided = data.quotes.filter((x) => x.status === 'aprovado' || x.status === 'recusado')
@@ -182,6 +195,13 @@ export default function Quotes() {
           <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nº, título ou cliente…" />
         </div>
+        <select value={order} onChange={(e) => setOrder(e.target.value as QuoteOrder)} aria-label="Ordenar por" title="Ordenar por">
+          {(Object.keys(QUOTE_ORDERS) as QuoteOrder[]).map((k) => (
+            <option key={k} value={k}>
+              ordenar: {QUOTE_ORDERS[k].label}
+            </option>
+          ))}
+        </select>
         <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
           <option value="">Todos os clientes</option>
           {[...data.clients].sort((a, b) => a.name.localeCompare(b.name)).map((c) => (
