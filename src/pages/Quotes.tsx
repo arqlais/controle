@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
+import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { duplicateQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -114,8 +114,14 @@ export default function Quotes() {
   const bulkDelete = async () => {
     const linked = chosen.filter((x) => x.projectId).length
     if (!(await ask(`Excluir ${chosen.length} orçamento(s)?${linked ? ` ${linked} já viraram demanda: as demandas continuam.` : ''}`, { confirmLabel: 'Excluir', danger: true }))) return
+    // rascunhos seguintes descem para ocupar os números que ficaram vagos
+    const moves = afterDeleteDrafts(data.quotes, new Set(chosen.map((x) => x.id)))
     for (const x of chosen) remove('quotes', x.id)
-    toast(`${chosen.length} orçamento(s) excluídos.`)
+    for (const m of moves) {
+      const x = data.quotes.find((o) => o.id === m.id)
+      if (x) upsert('quotes', { ...x, number: m.number })
+    }
+    toast(`${chosen.length} orçamento(s) excluídos.${moves.length ? ` ${moves.length} rascunho(s) renumerado(s).` : ''}`)
     setPicked(new Set())
   }
 

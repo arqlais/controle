@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { duplicateQuote } from '../quoteActions'
-import { draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
+import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -809,7 +809,13 @@ export default function QuoteEditor({ id }: { id: string }) {
                   className="btn ghost danger small"
                   onClick={async () => {
                     if (await askDelete(`a proposta ${quoteNumber(q)}`)) {
+                      // rascunhos seguintes descem para ocupar o número que ficou vago
+                      const moves = afterDeleteDrafts(data.quotes, new Set([q.id]))
                       remove('quotes', q.id)
+                      for (const m of moves) {
+                        const x = data.quotes.find((o) => o.id === m.id)
+                        if (x) upsert('quotes', { ...x, number: m.number })
+                      }
                       go('orcamentos')
                     }
                   }}
@@ -1162,8 +1168,19 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onC
                     : 'digite o valor'
                 }
               >
-                <div className="row gap-s">
+                <div className="row gap-s wrap">
                   <MoneyInput value={it.price} onChange={(v) => setItem(it.id, { price: v, auto: false })} />
+                  {/* arredondar para a dezena de baixo ou de cima (ex.: 402,40 → 400 ou 410) */}
+                  {it.price > 0 && it.price % 10 !== 0 && (
+                    <span className="round-btns">
+                      <button className="btn small ghost" onClick={() => setItem(it.id, { price: Math.floor(it.price / 10) * 10, auto: false })} title="Arredondar para baixo">
+                        ↓ {(Math.floor(it.price / 10) * 10).toLocaleString('pt-BR')}
+                      </button>
+                      <button className="btn small ghost" onClick={() => setItem(it.id, { price: Math.ceil(it.price / 10) * 10, auto: false })} title="Arredondar para cima">
+                        ↑ {(Math.ceil(it.price / 10) * 10).toLocaleString('pt-BR')}
+                      </button>
+                    </span>
+                  )}
                   {s && s.pricing !== 'livre' && (!it.auto || Math.abs(Math.max(0, suggestion - (it.unitDiscount ?? 0) * it.quantity) - it.price) >= 0.01) && (
                     <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Usar o valor da tabela">
                       tabela
