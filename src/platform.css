@@ -1068,3 +1068,8 @@
 .tour-layer .tour.has-arrow::before { content: ''; position: absolute; left: -7px; top: 40px; width: 14px; height: 14px; background: var(--surface); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); transform: rotate(45deg); }
 @media (max-width: 720px) { .tour-layer .tour { width: auto; } }
 @media (prefers-reduced-motion: reduce) { .tour-spot { animation: none; } }
+
+/* menu lateral rola quando a tela é baixa (o rodapé com "exemplo", tema e sair nunca some) */
+.sidebar { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.sidebar nav { flex: 1 0 auto; }
+@media (max-height: 900px) and (min-width: 721px) { .sidebar nav a, .sidebar nav .nav-tour { padding-top: 8px; padding-bottom: 8px; } .brand { padding-bottom: 18px; } }

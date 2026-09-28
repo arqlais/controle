@@ -496,7 +496,21 @@ function seed(): LocalDB {
 
 const listeners = new Set<() => void>()
 let memDB: LocalDB | null = null
+/* Exemplo (olhinho) da dona no site de verdade: o painel mostra assinantes, conversas,
+   sugestões e depoimentos fictícios, só na memória (nada vai para a nuvem). */
+let sampleMode = false
+let sampleDB: LocalDB | null = null
+export function setPlatformSample(on: boolean) {
+  if (on === sampleMode) return
+  sampleMode = on
+  sampleDB = on ? seed() : null
+  listeners.forEach((l) => l())
+}
+const role = () => (sampleMode ? 'dona' : getPreviewRole())
+const roleNow = role
+
 function readDB(): LocalDB {
+  if (sampleMode) return (sampleDB ??= seed())
   if (memDB) return memDB
   try {
     const raw = localStorage.getItem(LKEY)
@@ -507,6 +521,11 @@ function readDB(): LocalDB {
   return memDB
 }
 function writeDB(db: LocalDB) {
+  if (sampleMode) {
+    sampleDB = db
+    listeners.forEach((l) => l())
+    return
+  }
   memDB = db
   try {
     localStorage.setItem(LKEY, JSON.stringify(db))
@@ -540,7 +559,7 @@ export function previewSignup(name: string, studio: string, email: string, plan:
 
 const local = {
   async access(_plan?: string): Promise<AccessInfo> {
-    const role = getPreviewRole()
+    const role = roleNow()
     if (role !== 'cliente') return { role: 'dona', sub: null, legacy: false }
     let sub = readDB().subs.find((x) => x.userId === PREVIEW_CLIENT)
     if (!sub) {
@@ -576,7 +595,7 @@ const local = {
   async suggestions() {
     const all = readDB().suggestions ?? []
     // na nuvem, o cliente só recebe as dele (regra do banco); aqui imita isso
-    return (getPreviewRole() === 'dona' ? all : all.filter((x) => x.userId === PREVIEW_CLIENT)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return (role() === 'dona' ? all : all.filter((x) => x.userId === PREVIEW_CLIENT)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   },
   async suggest(x: Pick<Suggestion, 'category' | 'title' | 'body'>) {
     const db = readDB()
@@ -585,7 +604,7 @@ const local = {
   },
   async feedbacks(): Promise<Feedback[]> {
     const all = readDB().feedbacks ?? []
-    return getPreviewRole() === 'cliente' ? all.filter((x) => x.userId === PREVIEW_CLIENT) : all
+    return role() === 'cliente' ? all.filter((x) => x.userId === PREVIEW_CLIENT) : all
   },
   async sendFeedback(f: Pick<Feedback, 'name' | 'role' | 'text' | 'stars' | 'allowPublish'>) {
     const db = readDB()
@@ -618,7 +637,7 @@ const local = {
   },
   async markRead(clientId: string) {
     const db = readDB()
-    const ownerSide = getPreviewRole() === 'dona'
+    const ownerSide = role() === 'dona'
     writeDB({ ...db, messages: db.messages.map((x) => (x.clientId === clientId && x.fromOwner !== ownerSide && !x.readAt ? { ...x, readAt: new Date().toISOString() } : x)) })
   },
   subscribe(onChange: () => void) {
@@ -690,7 +709,11 @@ const asClientGuard = (b: typeof cloud): typeof cloud => ({
     return viewingAsClient() ? null : b.myBilling()
   },
 })
-export const platform = CLOUD ? asClientGuard(cloud) : local
+const cloudGuarded = CLOUD ? asClientGuard(cloud) : null
+// no site de verdade, com o exemplo ligado pela dona, tudo do painel vem do exemplo em memória
+export const platform: typeof cloud = CLOUD
+  ? (new Proxy(cloudGuarded!, { get: (t, k) => (sampleMode ? (local as unknown as Record<PropertyKey, unknown>)[k] : (t as unknown as Record<PropertyKey, unknown>)[k]) }) as typeof cloud)
+  : (local as unknown as typeof cloud)
 
 /* ---------------- perfil da prévia ("ver como") ---------------- */
 
