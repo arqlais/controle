@@ -28,6 +28,8 @@ import {
   today,
   uid,
   whatsappLink,
+  formatPhone,
+  showDoc,
 } from '../utils'
 
 export default function ClientDetail({ id }: { id: string }) {
@@ -147,13 +149,25 @@ export default function ClientDetail({ id }: { id: string }) {
           <Section title="Contato">
             <dl className="info">
               <dt>WhatsApp</dt>
-              <dd>{c.phone || '—'}</dd>
+              <dd>{c.phone ? formatPhone(c.phone) : '—'}</dd>
               <dt>E-mail</dt>
               <dd>{c.email || '—'}</dd>
               <dt>Instagram</dt>
               <dd>{c.instagram || '—'}</dd>
-              <dt>CPF/CNPJ</dt>
-              <dd>{c.document || '—'}</dd>
+              <dt>CPF</dt>
+              <dd>{c.document ? showDoc(c.document) : '—'}</dd>
+              {(c.companyDoc || c.companyLegal) && (
+                <>
+                  <dt>Empresa</dt>
+                  <dd>{[c.companyLegal, c.companyKind && c.companyKind !== 'outra' ? c.companyKind : '', c.companyDoc ? `CNPJ ${showDoc(c.companyDoc)}` : ''].filter(Boolean).join(' · ')}</dd>
+                </>
+              )}
+              {(c.address || c.cep || c.city) && (
+                <>
+                  <dt>Endereço</dt>
+                  <dd>{[c.address, c.city, c.cep].filter(Boolean).join(' · ')}</dd>
+                </>
+              )}
               <dt>Origem</dt>
               <dd>{c.origin || '—'}</dd>
             </dl>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeep } from '../keep'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
-import { EMAIL_DOMAINS, formatPhone } from '../utils'
+import { EMAIL_DOMAINS, formatCep, formatPhone, lookupCep } from '../utils'
 
 let openModals = 0
 
@@ -217,7 +217,7 @@ export function PhoneInput({ value, onChange, id, placeholder = '(11) 99999-9999
       type="tel"
       inputMode="tel"
       autoComplete="tel"
-      value={value}
+      value={value ? formatPhone(value) : ''}
       placeholder={placeholder}
       title="Brasil: DDD + número. Outro país: comece com + e o código (ex.: +351)."
       onChange={(e) => onChange(formatPhone(e.target.value))}
@@ -305,5 +305,30 @@ export function MoreMenu({ children, label = 'mais' }: { children: ReactNode; la
         {children}
       </div>
     </div>
+  )
+}
+
+/** CEP com a pontuação; ao completar os 8 números, busca rua, bairro e cidade e preenche sozinho. */
+export function CepInput({ value, onChange, onFound, id }: { value: string; onChange: (v: string) => void; onFound: (a: { address: string; city: string }) => void; id?: string }) {
+  const [state, setState] = useState<'' | 'buscando' | 'erro' | 'ok'>('')
+  const change = async (raw: string) => {
+    const v = formatCep(raw)
+    onChange(v)
+    if (v.replace(/\D/g, '').length !== 8) return setState('')
+    setState('buscando')
+    const r = await lookupCep(v)
+    if (!r) return setState('erro')
+    setState('ok')
+    onFound({ address: [r.street, r.district].filter(Boolean).join(', '), city: [r.city, r.uf].filter(Boolean).join(' - ') })
+  }
+  return (
+    <>
+      <input id={id} value={value} inputMode="numeric" placeholder="00000-000" onChange={(e) => void change(e.target.value)} autoComplete="postal-code" />
+      {state && (
+        <span className={`cep-state ${state === 'erro' ? 'text-bad' : 'muted'}`}>
+          {state === 'buscando' ? 'buscando o endereço…' : state === 'erro' ? 'não achei esse CEP · preencha à mão' : 'endereço preenchido · complete o número'}
+        </span>
+      )}
+    </>
   )
 }

@@ -40,6 +40,57 @@ export const formatDoc = (v: string) => {
     return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2')
   return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/, (_, a, b, c, e, f) => `${a}.${b}.${c}/${e}${f ? '-' + f : ''}`)
 }
+/** Mostra CPF/CNPJ já guardado com a pontuação (texto com letras fica como está). */
+export const showDoc = (v: string) => (/^[\d.\-/\s]+$/.test(v || '') ? formatDoc(v) : v || '')
+export const formatCep = (v: string) => v.replace(/\D/g, '').slice(0, 8).replace(/^(\d{5})(\d)/, '$1-$2')
+
+/** Endereço pelo CEP (ViaCEP, gratuito). null = CEP não encontrado ou sem internet. */
+export async function lookupCep(cep: string): Promise<{ street: string; district: string; city: string; uf: string } | null> {
+  const d = cep.replace(/\D/g, '')
+  if (d.length !== 8) return null
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${d}/json/`)
+    if (!r.ok) return null
+    const j = await r.json()
+    if (j.erro) return null
+    return { street: j.logradouro ?? '', district: j.bairro ?? '', city: j.localidade ?? '', uf: j.uf ?? '' }
+  } catch {
+    return null
+  }
+}
+
+/** Dados públicos da empresa pelo CNPJ (BrasilAPI, gratuito). null = não achou ou sem internet. */
+export async function lookupCnpj(cnpj: string): Promise<{ legal: string; trade: string; kind: string; cep: string; address: string; city: string } | null> {
+  const d = cnpj.replace(/\D/g, '')
+  if (d.length !== 14) return null
+  try {
+    const r = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${d}`)
+    if (!r.ok) return null
+    const j = await r.json()
+    const cap = (t: string) => (t || '').toLowerCase().replace(/(^|\s)(\S+)/g, (_m, sp, w) => sp + (/^(da|das|de|do|dos|e)$/.test(w) && sp ? w : w.charAt(0).toUpperCase() + w.slice(1)))
+    const kind = j.opcao_pelo_mei ? 'MEI' : /micro/i.test(j.porte ?? '') ? 'ME' : /pequeno/i.test(j.porte ?? '') ? 'EPP' : /limitada|ltda/i.test(j.natureza_juridica ?? '') ? 'LTDA' : ''
+    return {
+      legal: j.razao_social ?? '',
+      trade: cap(j.nome_fantasia ?? ''),
+      kind,
+      cep: formatCep(j.cep ?? ''),
+      address: [[cap(j.descricao_tipo_de_logradouro ? `${j.descricao_tipo_de_logradouro} ${j.logradouro}` : j.logradouro), j.numero].filter(Boolean).join(', '), cap(j.bairro)].filter(Boolean).join(', '),
+      city: [cap(j.municipio), j.uf].filter(Boolean).join(' - '),
+    }
+  } catch {
+    return null
+  }
+}
+
+/** Em nome de quem sai o recibo: a pessoa (CPF) ou a empresa (CNPJ). */
+export function payerOf(c?: Client) {
+  if (!c) return { name: '—', doc: '' }
+  const company = c.billTo === 'empresa' || (!c.billTo && !!c.companyDoc)
+  if (company) return { name: c.companyLegal || c.company || c.name, doc: c.companyDoc || '' }
+  if (c.billTo === 'pessoa') return { name: c.name, doc: c.document }
+  return { name: c.company || c.name, doc: c.document } // cadastros antigos: como era
+}
+
 export const docKind = (v: string) => {
   const n = v.replace(/\D/g, '').length
   return n === 11 ? 'CPF' : n === 14 ? 'CNPJ' : ''

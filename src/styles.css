@@ -1794,3 +1794,4 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 /* quadro · coluna de rascunhos de orçamento */
 .kcard-draft { display: flex; flex-direction: column; gap: 8px; color: inherit; text-decoration: none; border-style: dashed; }
 .kcard-draft .kcard-foot { align-items: center; }
+.cep-state { display: block; font-size: 12px; margin-top: 6px; }

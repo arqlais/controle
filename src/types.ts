@@ -21,7 +21,13 @@ export interface Client {
   phone: string
   instagram: string
   city: string
+  cep?: string
+  address?: string // rua, nº, complemento, bairro
   document: string // CPF/CNPJ para recibos
+  companyDoc?: string // CNPJ do escritório/empresa
+  companyLegal?: string // razão social
+  companyKind?: string // MEI, ME, EPP, LTDA…
+  billTo?: 'pessoa' | 'empresa' // em nome de quem sai o recibo
   origin: string // indicação, instagram, site...
   notes: string
   favorite: boolean
@@ -296,6 +302,8 @@ export interface Settings {
   calendarToken: string // chave secreta do link de agenda para o celular ('' = desligada)
   calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean; periodos?: boolean } // o que vai para o celular
   city: string
+  cep?: string
+  address?: string // rua, nº, complemento, bairro
   logo: string // data URL
   avatarIcon?: string // símbolo no lugar da foto (quando não há logo)
   customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons

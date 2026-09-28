@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings } from '../types'
-import { allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today } from '../utils'
+import { allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -297,7 +297,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
 }
 
 export function ReceiptDoc({ s, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
-  const payer = client?.company || client?.name || '—'
+  const { name: payer, doc: payerDoc } = payerOf(client)
   const date = payment.paidDate ?? today()
   return (
     <Sheet s={s} year={date.slice(0, 4)}>
@@ -307,13 +307,13 @@ export function ReceiptDoc({ s, client, project, payment }: { s: Settings; clien
         <h3 className="p-card-title">{project.title}</h3>
         <p className="p-receipt">
           Recebi de <b>{payer}</b>
-          {client?.document && <>, CPF/CNPJ {client.document}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
+          {payerDoc && <>, {docKind(payerDoc) || 'CPF/CNPJ'} {showDoc(payerDoc)}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
           {payment.description.toLowerCase()} do projeto <b>{project.title}</b>, dando plena quitação deste valor.
         </p>
         <p className="p-note">
           {s.city ? `${s.city}, ` : ''}
           {fmt(date)} · {s.legalName || s.ownerName}
-          {s.document ? ` · CPF ${s.document}` : ''}
+          {s.document ? ` · ${docKind(s.document) || 'CPF/CNPJ'} ${showDoc(s.document)}` : ''}
         </p>
       </div>
       <TotalBar label="valor recebido" value={payment.amount} />

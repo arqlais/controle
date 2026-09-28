@@ -25,9 +25,11 @@ import {
   uid,
   formatDoc,
   docKind,
+  showDoc,
+  lookupCnpj,
   typeHandle,
 } from '../utils'
-import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented } from './ui'
+import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented, CepInput } from './ui'
 import { Icon } from './Icon'
 
 /* ---------------- Cliente ---------------- */
@@ -56,6 +58,27 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
   const { upsert } = useStore()
   const [c, setC] = useState<Client>(initial ?? newClient())
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }))
+  // dados da empresa (CNPJ): fechados até precisar; abrem sozinhos se já tiver algo
+  const [showCompany, setShowCompany] = useState(!!(c.companyDoc || c.companyLegal || c.companyKind || docKind(c.document) === 'CNPJ'))
+  const [cnpjState, setCnpjState] = useState('')
+  const changeCnpj = async (raw: string) => {
+    const v = formatDoc(raw)
+    set('companyDoc', v)
+    if (v.replace(/\D/g, '').length !== 14) return setCnpjState('')
+    setCnpjState('buscando a empresa…')
+    const r = await lookupCnpj(v)
+    if (!r) return setCnpjState('Não achei esse CNPJ · preencha à mão.')
+    setCnpjState('Dados da empresa preenchidos.')
+    setC((x) => ({
+      ...x,
+      companyLegal: r.legal || x.companyLegal,
+      companyKind: r.kind || x.companyKind,
+      company: x.company || r.trade || r.legal,
+      cep: x.cep || r.cep,
+      address: x.address || r.address,
+      city: x.city || r.city,
+    }))
+  }
   const save = () => {
     if (!c.name.trim()) return toast('Informe o nome do cliente.')
     const saved = { ...c, name: titleCase(c.name) }
@@ -94,8 +117,8 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
         <Field label="Empresa / escritório / faculdade" span={2}>
           <input value={c.company} onChange={(e) => set('company', e.target.value)} />
         </Field>
-        <Field label="CPF / CNPJ" hint={docKind(c.document) ? `${docKind(c.document)} · usado nos recibos` : 'Usado nos recibos'}>
-          <input value={c.document} inputMode="numeric" onChange={(e) => set('document', formatDoc(e.target.value))} placeholder="só os números" />
+        <Field label="CPF" hint={docKind(c.document) === 'CNPJ' ? 'Isso é um CNPJ: coloque em “dados da empresa” abaixo.' : 'Da pessoa · usado nos recibos'}>
+          <input value={showDoc(c.document)} inputMode="numeric" onChange={(e) => set('document', formatDoc(e.target.value))} placeholder="só os números" />
         </Field>
         <Field label="WhatsApp">
           <PhoneInput id="client-phone" value={c.phone} onChange={(v) => set('phone', v)} />
@@ -105,6 +128,12 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
         </Field>
         <Field label="Instagram">
           <input value={c.instagram} onChange={(e) => set('instagram', typeHandle(e.target.value))} placeholder="@perfil" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+        </Field>
+        <Field label="CEP">
+          <CepInput id="client-cep" value={c.cep ?? ''} onChange={(v) => set('cep', v)} onFound={({ address, city }) => setC((x) => ({ ...x, address, city }))} />
+        </Field>
+        <Field label="Endereço" span={2}>
+          <input value={c.address ?? ''} onChange={(e) => set('address', e.target.value)} placeholder="Rua, nº, bairro" />
         </Field>
         <Field label="Cidade">
           <input value={c.city} onChange={(e) => set('city', e.target.value)} />
@@ -127,6 +156,42 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
             onChange={(v) => set('favorite', v === 's')}
           />
         </Field>
+        <div className="company-block" style={{ gridColumn: '1 / -1' }}>
+          {!showCompany ? (
+            <button type="button" className="link" onClick={() => setShowCompany(true)}>
+              + dados da empresa (CNPJ, MEI) · opcional
+            </button>
+          ) : (
+            <div className="form-grid">
+              <Field label="CNPJ da empresa" hint={cnpjState || 'Com o CNPJ, a razão social e o endereço vêm sozinhos.'}>
+                <input value={showDoc(c.companyDoc ?? '')} inputMode="numeric" placeholder="00.000.000/0000-00" onChange={(e) => void changeCnpj(e.target.value)} />
+              </Field>
+              <Field label="Razão social" span={2}>
+                <input value={c.companyLegal ?? ''} onChange={(e) => set('companyLegal', e.target.value)} placeholder="Nome registrado da empresa" />
+              </Field>
+              <Field label="Tipo de empresa">
+                <select value={c.companyKind ?? ''} onChange={(e) => set('companyKind', e.target.value)}>
+                  <option value="">—</option>
+                  <option value="MEI">MEI</option>
+                  <option value="ME">ME (microempresa)</option>
+                  <option value="EPP">EPP</option>
+                  <option value="LTDA">LTDA</option>
+                  <option value="outra">outra</option>
+                </select>
+              </Field>
+              <Field group label="Recibo em nome de" span={2}>
+                <Segmented<'pessoa' | 'empresa'>
+                  value={c.billTo ?? (c.companyDoc ? 'empresa' : 'pessoa')}
+                  onChange={(v) => set('billTo', v)}
+                  options={[
+                    { value: 'pessoa', label: 'da pessoa (CPF)' },
+                    { value: 'empresa', label: 'da empresa (CNPJ)' },
+                  ]}
+                />
+              </Field>
+            </div>
+          )}
+        </div>
         <Field label="Observações" span={3} hint="Preferências de estilo, softwares que usa, forma de enviar arquivos...">
           <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={3} value={c.notes} onChange={(e) => set('notes', e.target.value)} />
         </Field>

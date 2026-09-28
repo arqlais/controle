@@ -4,10 +4,10 @@ import { CLOUD, supabase } from '../cloud'
 import { signOut } from '../components/Auth'
 import { Icon } from '../components/Icon'
 import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
-import { EmailInput, Field, PhoneInput, Section } from '../components/ui'
+import { EmailInput, Field, PhoneInput, Section, CepInput } from '../components/ui'
 import { toast } from '../components/dialog'
 import type { Settings } from '../types'
-import { atHandle, cleanSite, typeHandle } from '../utils'
+import { atHandle, cleanSite, docKind, formatDoc, showDoc, typeHandle } from '../utils'
 
 /* Perfil do estúdio: quem você é, como aparece nas propostas e recibos, e a sua conta. */
 
@@ -132,8 +132,14 @@ export default function Profile() {
             <Field label="Como te chamo" hint="Usado no “bom dia” e nas mensagens.">
               <input value={s.ownerName} onChange={(e) => set({ ownerName: e.target.value })} />
             </Field>
-            <Field label="CPF / CNPJ" hint="Só aparece no recibo.">
-              <input value={s.document} onChange={(e) => set({ document: e.target.value })} inputMode="numeric" />
+            <Field label="CPF / CNPJ" hint={docKind(s.document) ? `${docKind(s.document)} · só aparece no recibo.` : 'Só aparece no recibo.'}>
+              <input value={showDoc(s.document)} onChange={(e) => set({ document: formatDoc(e.target.value) })} inputMode="numeric" placeholder="só os números" />
+            </Field>
+            <Field label="CEP">
+              <CepInput id="profile-cep" value={s.cep ?? ''} onChange={(cep) => set({ cep })} onFound={({ address, city }) => set({ address, city })} />
+            </Field>
+            <Field label="Endereço" hint="Rua, número e bairro.">
+              <input value={s.address ?? ''} onChange={(e) => set({ address: e.target.value })} placeholder="Rua, nº, bairro" />
             </Field>
             <Field label="Cidade">
               <input value={s.city} onChange={(e) => set({ city: e.target.value })} />
