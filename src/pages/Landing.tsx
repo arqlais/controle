@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
-import { QuoteDoc } from '../components/Docs'
-import { ContractDoc } from '../components/ContractDoc'
-import { DocScale } from '../components/Print'
 import { BarChart } from '../components/Charts'
 import { compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform } from '../platform'
 import { DEFAULT_SITE, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
-import { DEFAULT_CONTRACTS, contractVars, fillContract } from '../contracts'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
 import { go } from '../router'
@@ -733,7 +729,6 @@ function PropostaScreen() {
   const choices = TEMPLATES.filter((t) => t.id !== 'lais')
   const [tpl, setTpl] = useState(choices[0].id)
   const t = choices.find((x) => x.id === tpl)!
-  const s: Settings = { ...SAMPLE, proposal: { ...SAMPLE.proposal, ...t.colors, template: tpl } }
   const quote = d.quotes[0]
   return (
     <div className="lp-screen lp-split">
@@ -759,43 +754,121 @@ function PropostaScreen() {
           total: <b>{money(quoteTotal(quote, SAMPLE.urgencyFee))}</b>
         </p>
       </div>
-      <div className="lp-doc">
-        <DocScale>
-          <QuoteDoc s={s} quote={quote} client={d.clients.find((c) => c.id === quote.clientId)} />
-        </DocScale>
-      </div>
+      <QuoteMock tpl={tpl} c={t.colors} total={money(quoteTotal(quote, SAMPLE.urgencyFee))} />
     </div>
   )
 }
 
 function ContratoScreen() {
-  const d = useDemo()
-  const quote = d.quotes[0]
-  const client = d.clients.find((c) => c.id === quote.clientId)
-  const body = fillContract(DEFAULT_CONTRACTS[2].body, contractVars(SAMPLE, quote, client))
   return (
     <div className="lp-screen lp-split">
       <div className="lp-split-side">
         <b>contrato em 1 clique</b>
-        <p className="muted small">Escolha o orçamento e o modelo: cliente, CPF/CNPJ, serviços, valor por extenso, prazo e pagamento já vêm preenchidos. Dá para editar tudo.</p>
+        <p className="muted small">Escolha o cliente e o orçamento: nome, CPF/CNPJ, serviços, valor por extenso, prazo e pagamento já vêm preenchidos. Dá para editar tudo.</p>
         <ul className="pf-checks">
           <li>
             <Icon name="check" size={14} /> modelos editáveis
           </li>
           <li>
-            <Icon name="check" size={14} /> PDF com assinatura das duas partes
+            <Icon name="check" size={14} /> folhas A4, prontas para imprimir ou mandar em PDF
           </li>
           <li>
-            <Icon name="check" size={14} /> quem não usa, desliga
+            <Icon name="check" size={14} /> avisa se faltar algum dado
           </li>
         </ul>
         <p className="muted small">Modelos de referência: revise com um advogado.</p>
       </div>
-      <div className="lp-doc">
-        <DocScale>
-          <ContractDoc s={SAMPLE} body={body} clientName={client?.name ?? ''} />
-        </DocScale>
+      <ContractMock />
+    </div>
+  )
+}
+
+/** Linhas "de mentira" no lugar do texto: mostram o desenho da folha sem expor conteúdo. */
+const Lines = ({ w }: { w: number[] }) => (
+  <>
+    {w.map((x, i) => (
+      <i key={i} className="mk-line" style={{ width: `${x}%` }} />
+    ))}
+  </>
+)
+
+function ContractMock() {
+  return (
+    <div className="mk-stage" aria-label="Prévia ilustrativa de um contrato">
+      <div className="mk-sheet mk-contract">
+        <div className="mk-c-bar">
+          <i className="mk-line" style={{ width: '28%' }} />
+          <small>1/3</small>
+        </div>
+        <span className="mk-c-eyebrow">documento</span>
+        <span className="mk-c-title">contrato</span>
+        <div className="mk-c-block">
+          <b>partes</b>
+          <Lines w={[94, 70, 88, 52]} />
+        </div>
+        {['1. objeto', '2. prazo', '3. valor e pagamento'].map((c, n) => (
+          <div key={c} className="mk-c-block">
+            <b>{c}</b>
+            <Lines w={n === 2 ? [84, 46] : [96, 90, 62]} />
+          </div>
+        ))}
+        <div className="mk-c-signs">
+          <span />
+          <span />
+        </div>
       </div>
+      <span className="mk-tag mk-tag-1">
+        <Icon name="check" size={12} /> cliente e CPF/CNPJ
+      </span>
+      <span className="mk-tag mk-tag-2">
+        <Icon name="check" size={12} /> serviços do orçamento
+      </span>
+      <span className="mk-tag mk-tag-3">
+        <Icon name="check" size={12} /> valor por extenso
+      </span>
+    </div>
+  )
+}
+
+/** Orçamento ilustrativo, com as cores e o desenho do modelo escolhido. */
+function QuoteMock({ tpl, c, total }: { tpl: string; c: { ink: string; rose: string; arch: string; paper: string; bar: string; serif: string }; total: string }) {
+  const style = { '--mk-ink': c.ink, '--mk-rose': c.rose, '--mk-arch': c.arch, '--mk-paper': c.paper, '--mk-bar': c.bar, '--mk-serif': `'${c.serif}', 'Playfair Display', Georgia, serif` } as CSSProperties
+  return (
+    <div className="mk-stage" aria-label="Prévia ilustrativa de um orçamento">
+      <div className={`mk-sheet mk-quote mk-q-${tpl}`} style={style}>
+        <div className="mk-q-head">
+          <i className="mk-q-logo" />
+          <span className="mk-q-eyebrow">proposta de</span>
+          <span className="mk-q-title">orçamento</span>
+          <span className="mk-q-meta">
+            <Lines w={[60, 40]} />
+          </span>
+        </div>
+        <div className="mk-q-body">
+          {[0, 1, 2].map((n) => (
+            <div key={n} className="mk-q-row">
+              <b>0{n + 1}</b>
+              <span>
+                <Lines w={[[70, 48], [58, 40], [64, 30]][n]} />
+              </span>
+              <em />
+            </div>
+          ))}
+          <div className="mk-q-total">
+            <span>investimento total</span>
+            <b>{total}</b>
+          </div>
+          <div className="mk-q-foot">
+            <Lines w={[40, 55, 30]} />
+          </div>
+        </div>
+      </div>
+      <span className="mk-tag mk-tag-1">
+        <Icon name="check" size={12} /> seu logo e suas cores
+      </span>
+      <span className="mk-tag mk-tag-3">
+        <Icon name="check" size={12} /> valor pela sua tabela
+      </span>
     </div>
   )
 }

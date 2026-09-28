@@ -954,3 +954,61 @@
 .c-sign-img { display: block; height: 44px; max-width: 80%; object-fit: contain; margin-bottom: 4px; }
 .pf-sig-preview { max-height: 56px; max-width: 220px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
 .lp-me-story .lp-me-wrap { width: auto; height: auto; } .lp-me-story .lp-me-wrap .lp-me { width: 84px; height: 84px; font-size: 40px; box-shadow: 0 0 0 6px var(--surface), 0 18px 40px -16px rgba(40, 50, 60, 0.5); }
+
+/* página de vendas: folhas ilustrativas (sem texto real) do orçamento e do contrato */
+.mk-stage { position: relative; justify-self: center; width: 100%; max-width: 420px; padding: 18px 28px 26px; }
+.mk-sheet { position: relative; aspect-ratio: 210 / 250; overflow: hidden; background: var(--mk-paper, #fff); border-radius: 4px; box-shadow: 0 22px 50px -24px rgba(40, 50, 60, 0.45); -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+.mk-line { display: block; height: 6px; border-radius: 6px; background: color-mix(in srgb, var(--mk-ink, #4b5d6b) 16%, transparent); margin: 0 0 7px; }
+.mk-tag { position: absolute; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 10px 24px -14px rgba(40, 50, 60, 0.45); font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; animation: mk-float 5s ease-in-out infinite; }
+.mk-tag svg { color: #5e8c6a; }
+.mk-tag-1 { top: 22%; right: -6px; }
+.mk-tag-2 { top: 52%; left: -10px; animation-delay: -1.6s; }
+.mk-tag-3 { bottom: 16%; right: 0; animation-delay: -3.2s; }
+@keyframes mk-float { 50% { translate: 0 -5px; } }
+
+/* contrato (desenho dos modelos de quem assina, não o da Laís) */
+.mk-contract { --mk-ink: #3e4b57; padding: 18px 26px 0; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+.mk-c-bar { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid #d9dde1; }
+.mk-c-bar .mk-line { margin: 0; }
+.mk-c-bar small { font-size: 8px; color: #6b7682; }
+.mk-c-eyebrow { font-size: 8px; letter-spacing: 0.3em; text-transform: uppercase; color: #8c6f5a; margin-top: 8px; }
+.mk-c-title { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1; color: #26303a; margin-top: -6px; }
+.mk-c-block b { display: block; font-size: 8.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #8c6f5a; margin-bottom: 7px; }
+.mk-c-signs { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+.mk-c-signs span { border-top: 1px solid #3e4b57; }
+
+/* orçamento: base + variação de cada modelo */
+.mk-quote { display: flex; flex-direction: column; font-family: 'Poppins', sans-serif; color: var(--mk-ink); }
+.mk-q-head { position: relative; padding: 22px 22px 16px; display: flex; flex-direction: column; gap: 2px; }
+.mk-q-logo { width: 46px; height: 8px; border-radius: 4px; background: currentColor; opacity: 0.8; margin-bottom: 12px; }
+.mk-q-eyebrow { font-size: 7.5px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--mk-rose); }
+.mk-q-title { font-family: var(--mk-serif); font-style: italic; font-size: 32px; line-height: 1; }
+.mk-q-meta { display: block; width: 44%; margin-top: 10px; }
+.mk-q-body { flex: 1; padding: 6px 22px 0; display: flex; flex-direction: column; }
+.mk-q-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) 40px; gap: 8px; align-items: start; padding: 9px 0 3px; border-bottom: 1px solid color-mix(in srgb, var(--mk-ink) 12%, transparent); }
+.mk-q-row b { font-size: 9px; }
+.mk-q-row em { height: 7px; border-radius: 6px; background: color-mix(in srgb, var(--mk-ink) 35%, transparent); margin-top: 1px; }
+.mk-q-total { display: flex; justify-content: space-between; align-items: center; margin: 14px 0; padding: 12px 14px; background: var(--mk-arch); }
+.mk-q-total span { font-size: 7.5px; letter-spacing: 0.25em; text-transform: uppercase; }
+.mk-q-total b { font-size: 15px; }
+.mk-q-foot { width: 70%; }
+/* coluna: faixa lateral escura com os dados */
+.mk-q-coluna { display: grid; grid-template-columns: 34% 1fr; }
+.mk-q-coluna .mk-q-head { background: var(--mk-bar); color: #fff; padding-top: 26px; }
+.mk-q-coluna .mk-q-head .mk-line { background: rgba(255, 255, 255, 0.35); }
+.mk-q-coluna .mk-q-title { font-size: 22px; }
+.mk-q-coluna .mk-q-meta { width: 90%; }
+.mk-q-coluna .mk-q-body { padding-top: 26px; }
+/* faixa: cabeçalho cheio de cor */
+.mk-q-faixa .mk-q-head { background: var(--mk-bar); color: #fff; }
+.mk-q-faixa .mk-q-head .mk-line { background: rgba(255, 255, 255, 0.35); }
+.mk-q-faixa .mk-q-title { font-style: normal; }
+/* planilha: tudo em linhas, título em maiúsculas */
+.mk-q-planilha .mk-q-head { border-bottom: 3px solid var(--mk-ink); margin: 0 22px; padding: 22px 0 12px; }
+.mk-q-planilha .mk-q-title { font-family: 'Poppins', sans-serif; font-style: normal; font-weight: 700; font-size: 22px; letter-spacing: 0.08em; text-transform: uppercase; }
+.mk-q-planilha .mk-q-total { background: none; border-top: 3px solid var(--mk-ink); border-bottom: 1px solid var(--mk-ink); }
+/* editorial: título enorme e número em destaque */
+.mk-q-editorial .mk-q-title { font-size: 46px; }
+.mk-q-editorial .mk-q-row b { font-family: var(--mk-serif); font-style: italic; font-weight: 400; font-size: 13px; color: var(--mk-rose); }
+.mk-q-editorial .mk-q-total { background: none; border-top: 1px solid var(--mk-ink); padding-inline: 0; }
+@media (max-width: 720px) { .mk-stage { padding-inline: 8px; } .mk-tag { font-size: 11px; } .mk-tag-1 { right: 0; } .mk-tag-2 { left: 0; } }
