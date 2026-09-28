@@ -1800,3 +1800,6 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .page > .board { max-width: none; width: auto; margin-right: -36px; padding-right: 36px; grid-auto-columns: 296px; scroll-padding-left: 0; }
 }
 .grid-2.is-even > .stack > :last-child { flex: 1; } /* coluna com vários cards: o último estica e as duas colunas terminam juntas */
+/* quadro de demandas em tela larga: título, filtros e "nova demanda" acompanham a largura do quadro */
+.page.page-board > * { max-width: none; }
+.content:has(.page-board) > .demo-banner { max-width: none; }

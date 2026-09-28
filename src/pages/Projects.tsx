@@ -94,7 +94,7 @@ export default function Projects() {
   const move = (p: Project, status: ProjectStatus) => requestStatus(p, status, (next) => upsert('projects', next))
 
   return (
-    <div className="page">
+    <div className={`page ${view === 'quadro' ? 'page-board' : ''}`}>
       <div className="page-head">
         <div>
           <p className="eyebrow">
