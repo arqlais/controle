@@ -570,7 +570,8 @@ export const whatsappLink = (phone: string, text = '') => {
   const digits = phone.replace(/\D/g, '')
   // número com + já tem o código do país (ex.: +351); sem +, é do Brasil
   const full = phone.trim().startsWith('+') || digits.length > 11 ? digits : `55${digits}`
-  return `https://wa.me/${full}${text ? `?text=${encodeURIComponent(text)}` : ''}`
+  // api.whatsapp.com (e não wa.me): o redirecionamento do wa.me estraga os emojis no WhatsApp do computador
+  return `https://api.whatsapp.com/send?phone=${full}${text ? `&text=${encodeURIComponent(text)}` : ''}`
 }
 
 export const instagramLink = (handle: string) => `https://instagram.com/${handle.replace(/^@/, '').trim()}`
