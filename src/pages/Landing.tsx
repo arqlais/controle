@@ -6,7 +6,9 @@ import { QuoteDoc } from '../components/Docs'
 import { ContractDoc } from '../components/ContractDoc'
 import { DocScale } from '../components/Print'
 import { BarChart } from '../components/Charts'
-import { COMPARE, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { COMPARE, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { platform } from '../platform'
+import { DEFAULT_SITE, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
 import { DEFAULT_CONTRACTS, contractVars, fillContract } from '../contracts'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
@@ -86,10 +88,10 @@ const JOURNEY: { icon: string; step: string; title: string; text: string; card: 
 const FEATURES = ['clientes', 'orçamentos', 'propostas', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'metas', 'sua identidade visual', 'celular e computador']
 
 const AUDIENCE = [
-  { icon: 'building', title: 'arquitetos' },
-  { icon: 'layers', title: 'designers de interiores' },
-  { icon: 'camera', title: 'artistas 3D' },
-  { icon: 'book', title: 'estudantes' },
+  { icon: 'compass', title: 'arquitetos' },
+  { icon: 'sofa', title: 'designers de interiores' },
+  { icon: 'cube', title: 'artistas 3D' },
+  { icon: 'cap', title: 'estudantes' },
 ]
 
 const TESTIMONIALS = [
@@ -104,7 +106,8 @@ const FAQ: [string, ReactNode][] = [
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
   ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para o WhatsApp. O Completo gera proposta, recibos e contratos em PDF com a sua identidade, e ainda tem agenda no celular e planejamento do instagram.'],
-  ['posso cancelar quando quiser?', 'Pode. Não tem fidelidade nem multa.'],
+  ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
+  ['o teste grátis é de qual plano?', `Do Completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
 
 type Screen = 'painel' | 'demandas' | 'proposta' | 'contrato' | 'financeiro'
@@ -139,6 +142,11 @@ function useReveal(root: React.RefObject<HTMLDivElement | null>) {
 
 export default function Landing() {
   const root = useRef<HTMLDivElement>(null)
+  // "quem criou", contatos e redes: a dona edita no painel da plataforma
+  const [site, setSite] = useState<SiteContent>(DEFAULT_SITE)
+  useEffect(() => {
+    platform.site().then(setSite).catch(() => undefined)
+  }, [])
   useReveal(root)
   useEffect(() => {
     applyTheme(DEFAULT_SETTINGS)
@@ -255,22 +263,31 @@ export default function Landing() {
       </div>
 
       <section className="lp-section lp-story-sec">
-        <div className="lp-wrap lp-story" data-reveal>
-          <span className="lp-me" aria-hidden>
-            {PLATFORM.owner[0]}
-          </span>
-          <p className="eyebrow">quem criou</p>
-          <h2>
-            oi, eu sou a <em>{PLATFORM.owner}</em>
-          </h2>
-          <p className="lp-story-text">
-            Sou estudante de arquitetura e trabalho como freelancer com renderização, modelagem e detalhamento. Quando saí do estágio e comecei a atender meus próprios clientes, senti falta de um lugar que juntasse tudo: orçamentos, prazos,
-            pagamentos, contratos e a agenda da faculdade. Então criei o meu próprio sistema, do jeito que a rotina de freelancer pede.
-          </p>
-          <p className="lp-story-text">Ele organizou tanto o meu trabalho que resolvi abrir para outros freelancers, com uma assinatura que cabe no bolso de quem está começando.</p>
-          <p className="lp-sign">
-            {PLATFORM.owner} · criadora do {PLATFORM.name}
-          </p>
+        <div className="lp-wrap lp-about" data-reveal>
+          <div className="lp-about-photo">
+            <span className="lp-about-deco" aria-hidden />
+            {site.photo ? <img src={site.photo} alt={site.name} /> : <span className="lp-about-initial">{site.name[0]}</span>}
+          </div>
+          <div className="lp-about-text">
+            <p className="eyebrow">quem criou</p>
+            <h2>{site.title}</h2>
+            {site.text
+              .split(/\n\s*\n/)
+              .filter((t) => t.trim())
+              .map((t, i) => (
+                <p key={i} className="lp-story-text">
+                  {t.trim()}
+                </p>
+              ))}
+            {site.facts.filter(Boolean).length > 0 && (
+              <div className="lp-facts">
+                {site.facts.filter(Boolean).map((f) => (
+                  <span key={f}>{f}</span>
+                ))}
+              </div>
+            )}
+            {site.signature && <p className="lp-sign">— {site.signature}</p>}
+          </div>
         </div>
       </section>
 
@@ -307,7 +324,7 @@ export default function Landing() {
 
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
-          <SectionHead eyebrow="planos" title={<>preço de freelancer, <em>sem fidelidade</em></>} text={`Comece com ${TRIAL_DAYS} dias grátis. Depois, escolha o que faz sentido para você.`} />
+          <SectionHead eyebrow="planos" title={<>preço de freelancer, <em className="nowrap">sem fidelidade</em></>} text={`Comece com ${TRIAL_DAYS} dias grátis. Depois, escolha o que faz sentido para você.`} />
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
@@ -342,7 +359,11 @@ export default function Landing() {
                 <tr>
                   <th />
                   {PLAN_LIST.map((p) => (
-                    <th key={p.id}>{p.name}</th>
+                    <th key={p.id} className={p.featured ? 'is-best' : ''}>
+                      {p.featured && <span className="lp-best-tag">recomendado</span>}
+                      {p.name}
+                      <small>{money0(p.price)}/mês</small>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -351,26 +372,49 @@ export default function Landing() {
                   <tr key={label}>
                     <td>{label}</td>
                     {[a, b].map((v, i) => (
-                      <td key={i} className="center">
+                      <td key={i} className={`center ${PLAN_LIST[i].featured ? 'is-best' : ''}`}>
                         {v === true ? <Icon name="check" size={16} className="text-good" /> : v === false ? <span className="muted">—</span> : <span className="small">{v}</span>}
                       </td>
                     ))}
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td />
+                  {PLAN_LIST.map((p) => (
+                    <td key={p.id} className={`center ${p.featured ? 'is-best' : ''}`}>
+                      <button className={`btn small ${p.featured ? 'primary' : 'ghost'}`} onClick={() => signup(p.id)}>
+                        {p.featured ? 'quero o completo' : 'começar'}
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
             </table>
+            <p className="lp-compare-note">
+              <Icon name="star" size={14} /> no Completo você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês.
+            </p>
           </details>
         </div>
       </section>
 
       <section className="lp-section">
         <div className="lp-wrap">
+          <SectionHead eyebrow="depoimentos" title={<>freelancers mais <em>tranquilos</em></>} />
           <div className="lp-testimonials">
             {TESTIMONIALS.map((t, i) => (
-              <figure key={t.name} className="lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
-                <blockquote>“{t.text}”</blockquote>
+              <figure key={t.name} className="card lp-quote" data-reveal style={{ transitionDelay: `${i * 0.12}s` }}>
+                <span className="lp-stars" aria-label="5 estrelas">
+                  ★★★★★
+                </span>
+                <blockquote>{t.text}</blockquote>
                 <figcaption>
-                  <b>{t.name}</b> <span className="muted">· {t.role}</span>
+                  <span className="lp-quote-avatar">{t.name[0]}</span>
+                  <span>
+                    <b>{t.name}</b>
+                    <small className="muted">{t.role}</small>
+                  </span>
                 </figcaption>
               </figure>
             ))}
@@ -413,18 +457,64 @@ export default function Landing() {
       </section>
 
       <footer className="lp-foot">
-        <div className="lp-wrap lp-foot-in">
-          <span className="brand-name">
-            {PLATFORM.name}
-            <i>.</i>
-          </span>
-          <span className="muted small">
-            feito por quem projeta · {new Date().getFullYear()}
-            {PLATFORM.provisional ? ' · nome provisório' : ''}
-          </span>
-          <button className="link small" onClick={() => go('entrar')}>
-            já tenho conta → entrar
-          </button>
+        <div className="lp-wrap">
+          <div className="lp-foot-grid">
+            <div className="lp-foot-brand">
+              <span className="brand-name">
+                {PLATFORM.name}
+                <i>.</i>
+              </span>
+              <p className="muted">{site.about}</p>
+              <div className="lp-social">
+                {site.instagram && (
+                  <a href={`https://instagram.com/${site.instagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="Instagram">
+                    <Icon name="instagram" size={18} />
+                  </a>
+                )}
+                {site.whatsapp && (
+                  <a href={`https://wa.me/${site.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
+                    <Icon name="whatsapp" size={18} />
+                  </a>
+                )}
+                {site.email && (
+                  <a href={`mailto:${site.email}`} aria-label="E-mail">
+                    <Icon name="mail" size={18} />
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="lp-foot-col">
+              <b>navegação</b>
+              {[
+                ['jornada', 'como funciona'],
+                ['telas', 'telas'],
+                ['planos', 'planos'],
+                ['duvidas', 'dúvidas'],
+              ].map(([id, label]) => (
+                <button key={id} className="link" onClick={() => scrollTo(id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="lp-foot-col">
+              <b>conta</b>
+              <button className="link" onClick={() => signup()}>
+                testar grátis
+              </button>
+              <button className="link" onClick={() => go('entrar')}>
+                entrar
+              </button>
+              {site.email && <a href={`mailto:${site.email}`}>{site.email}</a>}
+              {site.instagram && <span>{site.instagram.startsWith('@') ? site.instagram : `@${site.instagram}`}</span>}
+            </div>
+          </div>
+          <div className="lp-foot-bottom">
+            <span>
+              © {new Date().getFullYear()} {PLATFORM.name}. todos os direitos reservados.
+              {PLATFORM.provisional ? ' (nome provisório)' : ''}
+            </span>
+            <span>orçamentos · prazos · contratos · financeiro</span>
+          </div>
         </div>
       </footer>
     </div>
@@ -456,7 +546,6 @@ function Journey() {
     const t = setInterval(() => setStep((n) => (n + 1) % JOURNEY.length), 4200)
     return () => clearInterval(t)
   }, [paused])
-  const j = JOURNEY[step]
   return (
     <div className="lp-journey" data-reveal>
       <ol className="lp-steps-nav">
@@ -478,20 +567,25 @@ function Journey() {
           </li>
         ))}
       </ol>
-      <div className="lp-journey-body" key={step}>
-        <div className="lp-journey-text">
-          <span className="lp-journey-n">0{step + 1}</span>
-          <h3>{j.title}</h3>
-          <p className="muted">{j.text}</p>
-        </div>
-        <div className="lp-journey-card">
-          {j.card.map((c, i) => (
-            <div key={c.k} className={`lp-jc-row ${c.tone ? `is-${c.tone}` : ''}`} style={{ animationDelay: `${0.1 + i * 0.12}s` }}>
-              <span>{c.k}</span>
-              <b>{c.v}</b>
+      {/* todas as etapas ocupam o mesmo lugar: a altura não muda e a página não "pula" */}
+      <div className="lp-journey-stage">
+        {JOURNEY.map((j, n) => (
+          <div key={j.step} className={`lp-journey-body ${n === step ? 'is-active' : ''}`} aria-hidden={n !== step}>
+            <div className="lp-journey-text">
+              <span className="lp-journey-n">{n + 1}.</span>
+              <h3>{j.title}</h3>
+              <p className="muted">{j.text}</p>
             </div>
-          ))}
-        </div>
+            <div className="lp-journey-card">
+              {j.card.map((c, i) => (
+                <div key={c.k} className={`lp-jc-row ${c.tone ? `is-${c.tone}` : ''}`} style={{ animationDelay: `${0.1 + i * 0.12}s` }}>
+                  <span>{c.k}</span>
+                  <b>{c.v}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

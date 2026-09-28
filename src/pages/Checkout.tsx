@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../components/ui'
 import { toast } from '../components/dialog'
+import { TermsModal } from '../components/Terms'
 import { ANNUAL_MONTHS_PAID, PLANS, PLAN_LIST, PLATFORM, annualPrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
@@ -68,6 +69,7 @@ export default function Checkout({ planId }: { planId: string }) {
     acceptedAt: '',
   })
   const [agree, setAgree] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
@@ -271,9 +273,19 @@ export default function Checkout({ planId }: { planId: string }) {
 
           <Step n={5} title="confirmar">
             <label className="check co-agree">
-              <input id="co-agree" type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> li e aceito os termos de uso e a política de privacidade do {PLATFORM.name}. Posso cancelar quando quiser, sem multa, e meus dados continuam
-              disponíveis para baixar.
+              <input id="co-agree" type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+              <span>
+                li e aceito os{' '}
+                <button type="button" className="link" onClick={(e) => (e.preventDefault(), setShowTerms(true))}>
+                  termos de uso e o contrato de assinatura
+                </button>{' '}
+                do {PLATFORM.name}.
+              </span>
             </label>
+            <p className="muted small co-rights">
+              <Icon name="check" size={13} /> Se se arrepender, você tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (art. 49 do Código de Defesa do Consumidor). Depois disso, cancela quando quiser, sem multa.
+            </p>
+            {showTerms && <TermsModal onClose={() => setShowTerms(false)} onAccept={() => setAgree(true)} />}
             {error && <p className="auth-error">{error}</p>}
             <button className="btn primary co-submit" disabled={busy}>
               {busy ? (

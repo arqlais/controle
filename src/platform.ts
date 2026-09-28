@@ -1,6 +1,7 @@
 import { ARTIFACT } from './env'
 import { CLOUD, supabase } from './cloud'
 import { TRIAL_DAYS, type PlanId, type SubStatus } from './plans'
+import { DEFAULT_SITE, DEFAULT_TERMS, type SiteContent } from './siteContent'
 
 /* ============================================================
    Plataforma: assinaturas, chat com a dona e horários online.
@@ -304,14 +305,40 @@ const cloud = {
     if (error) throw error
   },
   async hours(): Promise<OnlineHours> {
-    const { data } = await supabase!.from('platform_settings').select('data').eq('id', 1).maybeSingle()
-    const h = (data?.data as { hours?: OnlineHours } | undefined)?.hours
+    const h = (await cloudSettings()).hours
     return h?.days?.length === 7 ? h : DEFAULT_HOURS
   },
   async saveHours(h: OnlineHours) {
-    const { error } = await supabase!.from('platform_settings').upsert({ id: 1, data: { hours: h } })
-    if (error) throw error
+    await patchCloudSettings({ hours: h })
   },
+  async site(): Promise<SiteContent> {
+    return { ...DEFAULT_SITE, ...((await cloudSettings()).site ?? {}) }
+  },
+  async saveSite(site: SiteContent) {
+    await patchCloudSettings({ site })
+  },
+  async terms(): Promise<string> {
+    return (await cloudSettings()).terms || DEFAULT_TERMS
+  },
+  async saveTerms(terms: string) {
+    await patchCloudSettings({ terms })
+  },
+}
+
+/* ajustes da plataforma: uma linha só (id 1), com horários, página de vendas e termos */
+interface PlatformData {
+  hours?: OnlineHours
+  site?: Partial<SiteContent>
+  terms?: string
+}
+async function cloudSettings(): Promise<PlatformData> {
+  const { data } = await supabase!.from('platform_settings').select('data').eq('id', 1).maybeSingle()
+  return (data?.data as PlatformData | undefined) ?? {}
+}
+async function patchCloudSettings(patch: PlatformData) {
+  const cur = await cloudSettings()
+  const { error } = await supabase!.from('platform_settings').upsert({ id: 1, data: { ...cur, ...patch } })
+  if (error) throw error
 }
 
 /* ============================================================
@@ -326,6 +353,8 @@ interface LocalDB {
   hours: OnlineHours
   billing?: Record<string, Billing>
   suggestions?: Suggestion[]
+  site?: Partial<SiteContent>
+  terms?: string
 }
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000).toISOString()
 
@@ -516,6 +545,18 @@ const local = {
   },
   async saveHours(h: OnlineHours) {
     writeDB({ ...readDB(), hours: h })
+  },
+  async site(): Promise<SiteContent> {
+    return { ...DEFAULT_SITE, ...(readDB().site ?? {}) }
+  },
+  async saveSite(site: SiteContent) {
+    writeDB({ ...readDB(), site })
+  },
+  async terms() {
+    return readDB().terms || DEFAULT_TERMS
+  },
+  async saveTerms(terms: string) {
+    writeDB({ ...readDB(), terms })
   },
 }
 

@@ -155,7 +155,8 @@ alter table public.platform_settings enable row level security;
 drop policy if exists "ajustes: todos leem" on public.platform_settings;
 drop policy if exists "ajustes: dona cria" on public.platform_settings;
 drop policy if exists "ajustes: dona altera" on public.platform_settings;
-create policy "ajustes: todos leem" on public.platform_settings for select to authenticated using (true);
+-- a página de vendas (sem login) lê a seção "quem criou", os contatos e os termos daqui
+create policy "ajustes: todos leem" on public.platform_settings for select using (true);
 create policy "ajustes: dona cria" on public.platform_settings for insert with check (public.sou_dona());
 create policy "ajustes: dona altera" on public.platform_settings for update using (public.sou_dona()) with check (public.sou_dona());
 

@@ -8,11 +8,12 @@ import { ARTIFACT } from '../env'
 import { PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type Billing, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
+import { DEFAULT_TERMS, shrinkPhoto, type SiteContent } from '../siteContent'
 import { matches, money } from '../utils'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
-type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'horarios' | 'ajustes'
+type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'site' | 'termos' | 'horarios' | 'ajustes'
 const STATUS_COLOR: Record<SubStatus, string> = { trial: '#6b8f94', ativa: '#5e8c6a', atrasada: '#b98246', cancelada: '#9aa3ab' }
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
@@ -83,6 +84,8 @@ export default function Admin() {
             { value: 'assinantes', label: `assinantes (${subs.length})` },
             { value: 'conversas', label: <>conversas{unread ? <em className="pf-dot-count">{unread}</em> : null}</> },
             { value: 'sugestoes', label: <>sugestões{newSugs ? <em className="pf-dot-count">{newSugs}</em> : null}</> },
+            { value: 'site', label: 'página de vendas' },
+            { value: 'termos', label: 'termos' },
             { value: 'horarios', label: 'horários' },
             { value: 'ajustes', label: 'planos' },
           ]}
@@ -92,6 +95,8 @@ export default function Admin() {
       {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
+      {tab === 'site' && <SiteEditor />}
+      {tab === 'termos' && <TermsEditor />}
       {tab === 'horarios' && <HoursEditor />}
       {tab === 'ajustes' && <PlansInfo />}
     </div>
@@ -598,5 +603,150 @@ function SuggestionsAdmin({ sugs, subs, reload }: { sugs: Suggestion[]; subs: Su
         {!rows.length && <p className="muted">Nada com esse filtro.</p>}
       </div>
     </>
+  )
+}
+
+/** "Quem criou", redes e contatos da página de vendas: a dona edita aqui, sem mexer no código. */
+function SiteEditor() {
+  const [site, setSite] = useState<SiteContent | null>(null)
+  const [saved, setSaved] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    platform.site().then((x) => {
+      setSite(x)
+      setSaved(JSON.stringify(x))
+    })
+  }, [])
+  if (!site) return <p className="muted small">carregando…</p>
+  const set = (patch: Partial<SiteContent>) => setSite({ ...site, ...patch })
+  const dirty = JSON.stringify(site) !== saved
+  const save = async () => {
+    try {
+      await platform.saveSite(site)
+      setSaved(JSON.stringify(site))
+      toast('Página de vendas atualizada.')
+    } catch {
+      toast('Não foi possível salvar agora. Confira a internet e se o SQL da plataforma foi rodado de novo.')
+    }
+  }
+  return (
+    <>
+      <Section
+        title="quem criou"
+        action={
+          <button className="btn primary small" disabled={!dirty} onClick={() => void save()}>
+            {dirty ? 'salvar' : 'salvo'}
+          </button>
+        }
+      >
+        <div className="se-photo">
+          {site.photo ? <img src={site.photo} alt="" /> : <span className="se-photo-empty">{site.name[0]}</span>}
+          <div className="stack-s">
+            <button className="btn small" onClick={() => fileRef.current?.click()}>
+              <Icon name="upload" size={14} /> {site.photo ? 'trocar foto' : 'enviar foto'}
+            </button>
+            {site.photo && (
+              <button className="btn small ghost" onClick={() => set({ photo: '' })}>
+                tirar foto
+              </button>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (f) set({ photo: await shrinkPhoto(f) })
+              }}
+            />
+            <p className="muted small">Foto vertical fica melhor. Ela é reduzida sozinha para carregar rápido.</p>
+          </div>
+        </div>
+        <div className="form-grid">
+          <Field label="Título" span={3}>
+            <input value={site.title} onChange={(e) => set({ title: e.target.value })} />
+          </Field>
+          <Field label="Texto" span={3} hint="Deixe uma linha em branco para começar outro parágrafo.">
+            <textarea rows={8} value={site.text} onChange={(e) => set({ text: e.target.value })} spellCheck lang="pt-BR" />
+          </Field>
+          {[0, 1, 2].map((i) => (
+            <Field key={i} label={`Etiqueta ${i + 1}`}>
+              <input value={site.facts[i] ?? ''} onChange={(e) => set({ facts: [0, 1, 2].map((j) => (j === i ? e.target.value : site.facts[j] ?? '')) })} />
+            </Field>
+          ))}
+          <Field label="Assinatura" span={3}>
+            <input value={site.signature} onChange={(e) => set({ signature: e.target.value })} />
+          </Field>
+        </div>
+      </Section>
+      <Section title="rodapé e redes da plataforma">
+        <div className="form-grid">
+          <Field label="Frase do rodapé" span={3}>
+            <input value={site.about} onChange={(e) => set({ about: e.target.value })} />
+          </Field>
+          <Field label="Instagram da plataforma" hint="Ex.: @traco.app (vazio = não aparece)">
+            <input value={site.instagram} onChange={(e) => set({ instagram: e.target.value.trim() })} placeholder="@" />
+          </Field>
+          <Field label="WhatsApp">
+            <input value={site.whatsapp} onChange={(e) => set({ whatsapp: e.target.value })} placeholder="+55 11 90000-0000" />
+          </Field>
+          <Field label="E-mail">
+            <input value={site.email} onChange={(e) => set({ email: e.target.value.trim() })} placeholder="contato@…" />
+          </Field>
+        </div>
+        <button className="btn primary" disabled={!dirty} onClick={() => void save()}>
+          {dirty ? 'salvar alterações' : 'salvo'}
+        </button>
+      </Section>
+    </>
+  )
+}
+
+/** Termos de uso + contrato de assinatura: aparecem no cadastro e na assinatura (aceite obrigatório). */
+function TermsEditor() {
+  const [text, setText] = useState<string | null>(null)
+  const [saved, setSaved] = useState('')
+  useEffect(() => {
+    platform.terms().then((t) => {
+      setText(t)
+      setSaved(t)
+    })
+  }, [])
+  if (text === null) return <p className="muted small">carregando…</p>
+  const save = async () => {
+    try {
+      await platform.saveTerms(text)
+      setSaved(text)
+      toast('Termos salvos. Quem se cadastrar ou assinar a partir de agora aceita esta versão.')
+    } catch {
+      toast('Não foi possível salvar agora.')
+    }
+  }
+  const missing = [...new Set(text.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
+  return (
+    <Section
+      title="termos de uso e contrato de assinatura"
+      action={
+        <button className="btn primary small" disabled={text === saved} onClick={() => void save()}>
+          {text === saved ? 'salvo' : 'salvar'}
+        </button>
+      }
+    >
+      <p className="muted small">
+        Aparecem no cadastro (teste grátis) e na assinatura: a pessoa só continua se aceitar. Revise com calma, de preferência com um advogado. Linhas em MAIÚSCULAS viram títulos.
+      </p>
+      {missing.length > 0 && (
+        <p className="pf-note is-warn">
+          <Icon name="alert" size={16} />
+          <span>Falta completar: {missing.join(', ')}.</span>
+        </p>
+      )}
+      <textarea className="pf-contract-text" rows={26} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" />
+      <button className="link small" onClick={async () => (await ask('Voltar para o texto padrão dos termos? O que você editou será substituído.', { confirmLabel: 'Restaurar' })) && setText(DEFAULT_TERMS)}>
+        restaurar texto padrão
+      </button>
+    </Section>
   )
 }

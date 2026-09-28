@@ -1,16 +1,19 @@
 import { useState, type FormEvent } from 'react'
 import { Icon } from './Icon'
 import { EmailInput, Field } from './ui'
-import { PLAN_LIST, PLANS, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { PLANS, PLATFORM, TRIAL_DAYS, type PlanId } from '../plans'
+import { TermsModal } from './Terms'
 import { signUp } from '../platform'
 import { SIGNUP_KEY } from '../store'
 import { go } from '../router'
 import { CLOUD } from '../cloud'
 
-/* Cadastro: escolher plano → criar conta → entra no sistema em teste grátis. */
+/* Cadastro: criar conta → entra no sistema com o teste grátis do plano Completo.
+   Só continua quem aceita os termos de uso e o contrato de assinatura. */
 
-export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (plan: PlanId) => void }) {
-  const [plan, setPlan] = useState<PlanId>(initial === 'completo' || initial === 'essencial' ? initial : 'completo')
+export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => void }) {
+  const plan: PlanId = 'completo' // o teste é sempre do Completo; o plano é escolhido na assinatura
+  const [terms, setTerms] = useState(false)
   const [name, setName] = useState('')
   const [studio, setStudio] = useState('')
   const [email, setEmail] = useState('')
@@ -27,7 +30,7 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
     setError('')
     if (!name.trim()) return setError('Coloque seu nome.')
     if (CLOUD && password.length < 8) return setError('A senha precisa ter pelo menos 8 caracteres.')
-    if (!agree) return setError('Marque que você entendeu que esta é uma versão de teste.')
+    if (!agree) return setError('Para continuar, leia e aceite os termos de uso e o contrato de assinatura.')
     setBusy(true)
     try {
       localStorage.setItem(SIGNUP_KEY, JSON.stringify({ name: name.trim(), studio: studio.trim(), demo }))
@@ -63,6 +66,9 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
 
   return (
     <div className="auth-box pf-signup">
+      <button type="button" className="link su-back" onClick={() => go('vendas')}>
+        <Icon name="chevronL" size={14} /> voltar para a página inicial
+      </button>
       <div>
         <p className="eyebrow">{TRIAL_DAYS} dias grátis · sem cartão</p>
         <h1>
@@ -70,18 +76,14 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
         </h1>
       </div>
       <form onSubmit={submit}>
-        <div className="field">
-          <span className="field-label">plano para testar</span>
-          <div className="pf-plan-pick">
-            {PLAN_LIST.map((p) => (
-              <button type="button" key={p.id} className={`pf-plan-opt ${plan === p.id ? 'active' : ''}`} onClick={() => setPlan(p.id)} aria-pressed={plan === p.id}>
-                <b>{p.name}</b>
-                <span>{money0(p.price)}/mês</span>
-                <small>{p.id === 'completo' ? 'com PDF e contratos' : 'orçamento em texto'}</small>
-              </button>
-            ))}
-          </div>
-          <span className="field-hint">Durante o teste você usa tudo do {PLANS[plan].name}. Dá para trocar depois.</span>
+        <div className="su-trial">
+          <Icon name="star" size={18} />
+          <span>
+            <b>
+              {TRIAL_DAYS} dias do plano {PLANS.completo.name} grátis
+            </b>
+            <small>tudo liberado, sem cartão. No fim, você escolhe o plano.</small>
+          </span>
         </div>
         <Field label="Seu nome">
           <input id="signup-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ana Ribeiro" />
@@ -104,7 +106,13 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
           <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} /> começar com dados de exemplo para explorar (dá para apagar depois)
         </label>
         <label className="check">
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> entendo que esta é uma versão de teste da plataforma, sem cobrança
+          <input id="signup-terms" type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+          <span>
+            li e aceito os{' '}
+            <button type="button" className="link" onClick={(e) => (e.preventDefault(), setTerms(true))}>
+              termos de uso e o contrato de assinatura
+            </button>
+          </span>
         </label>
         {error && <p className="auth-error">{error}</p>}
         <button className="btn primary auth-submit" disabled={busy}>
@@ -115,6 +123,7 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
           já tenho conta → entrar
         </button>
       </form>
+      {terms && <TermsModal onClose={() => setTerms(false)} onAccept={() => setAgree(true)} />}
       <p className="muted small">
         Ao criar a conta, seus dados ficam só na sua conta: ninguém mais vê seus clientes e valores. Dúvidas? Tem chat direto com {PLATFORM.supportWith} lá dentro.
       </p>

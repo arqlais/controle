@@ -62,7 +62,7 @@ export const PLANS: Record<PlanId, Plan> = {
   essencial: {
     id: 'essencial',
     name: 'Essencial',
-    price: 39,
+    price: 29.9,
     pitch: 'para organizar clientes, orçamentos e o financeiro',
     features: ['chatDona'],
     highlights: BASE_FEATURES,
@@ -70,7 +70,7 @@ export const PLANS: Record<PlanId, Plan> = {
   completo: {
     id: 'completo',
     name: 'Completo',
-    price: 69,
+    price: 59.9,
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular'],
     highlights: ['tudo do Essencial', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
@@ -101,4 +101,4 @@ export const COMPARE: [string, boolean | string, boolean | string][] = [
 export type SubStatus = 'trial' | 'ativa' | 'atrasada' | 'cancelada'
 export const STATUS_LABEL: Record<SubStatus, string> = { trial: 'teste grátis', ativa: 'ativa', atrasada: 'pagamento atrasado', cancelada: 'cancelada' }
 
-export const money0 = (n: number) => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+export const money0 = (n: number) => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`

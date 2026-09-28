@@ -136,9 +136,7 @@ function PreviewSwitcher({ role }: { role: PreviewRole }) {
 
 export const signOut = () => supabase?.auth.signOut()
 
-/** Marca exibida no login (antes de saber quem está entrando). Troque aqui ao comercializar. */
-const PRODUCT = { name: 'laís', line1: 'você projeta,', line2: 'eu cuido da produção' }
-/** Neste aparelho, o login mostra o nome do último estúdio que entrou (ex.: amvi). */
+/** Neste aparelho, guarda o nome do último estúdio que entrou (quem já entrou vai direto para o login). */
 export const BRAND_KEY = 'ultima-marca'
 const lastBrand = () => {
   try {
@@ -155,15 +153,15 @@ function AuthLayout({ children }: { children: ReactNode }) {
       <aside className="auth-art">
         <div className="auth-art-inner">
           <span className="brand-name">
-            {lastBrand() || PRODUCT.name}
+            {PLATFORM.name}
             <i>.</i>
           </span>
           <h2>
-            <em>{PRODUCT.line1}</em>
+            sua vida de freelancer,
             <br />
-            {PRODUCT.line2}
+            <em>mais leve</em>
           </h2>
-          <p>Clientes, demandas, prazos, orçamentos e financeiro do estúdio — num só lugar, em qualquer aparelho.</p>
+          <p>Clientes, orçamentos, prazos, contratos e pagamentos num lugar só, no celular e no computador.</p>
         </div>
       </aside>
       <main className="auth-form">
