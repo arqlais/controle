@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
 import type { SyncStatus } from './store'
@@ -36,7 +36,7 @@ import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
 import { setViewAsClient, viewingAsClient } from './viewAs'
-import { PREVIEW_CLIENT, setPreviewRole } from './platform'
+import { PREVIEW_CLIENT, setPlatformSample, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { useInbox } from './chat'
@@ -160,6 +160,10 @@ export default function App() {
     go('inicio')
   }
   const asClient = CLOUD && viewingAsClient()
+  // olhinho da dona: o painel da plataforma também mostra o exemplo (assinantes, conversas, depoimentos…)
+  useEffect(() => {
+    setPlatformSample(CLOUD && isSample && access.isOwner)
+  }, [isSample, access.isOwner])
   const backToOwner = () => {
     setMenuOpen(false)
     setViewAsClient(false)
@@ -489,7 +493,7 @@ export default function App() {
               </div>
             </div>
           )}
-          {page}
+          <Fragment key={isSample ? 'exemplo' : 'real'}>{page}</Fragment>
         </main>
         <StatusDialogHost />
         {access.has('assistenteIA') ? (

@@ -5,7 +5,8 @@ import { buildICS } from './ics'
 import { CLIENT_DISPLAY, PALETTES } from './brand'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings } from './types'
+import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings, SocialPost } from './types'
+import { CLIENT_CONTRACTS } from './contractTemplates'
 import { DEFAULT_TASKS, addDays, payWhen, splitPayments, titleCase, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
@@ -926,5 +927,61 @@ export function demoData(settings: Settings): Data {
     },
   ]
 
-  return { version: 1, demo: true, clients, projects, expenses, events, quotes, settings }
+  // instagram: algumas postagens do mês (exemplo)
+  const post = (days: number, time: string, format: SocialPost['format'], pillar: string, title: string, status: SocialPost['status']): SocialPost => ({
+    id: uid(),
+    date: addDays(t, days),
+    time,
+    format,
+    pillar,
+    title,
+    hook: title,
+    script: '',
+    caption: '',
+    art: '',
+    cta: 'orçamento pelo link da bio',
+    hashtags: '#arquitetura #render3d #designdeinteriores',
+    status,
+  })
+  const posts: SocialPost[] = [
+    post(-6, '12:00', 'carrossel', 'dicas', 'como escolher a iluminação da sala', 'postado'),
+    post(-2, '19:00', 'reels', 'portfolio', 'antes × depois: Casa Pampulha', 'postado'),
+    post(1, '12:00', 'post', 'processo', 'como é contratar um projeto comigo', 'pronto'),
+    post(3, '19:00', 'reels', 'portfolio', 'tour pelo living do Apartamento Savassi', 'produzindo'),
+    post(6, '12:00', 'carrossel', 'dicas', '5 erros comuns na planta do apartamento', 'ideia'),
+  ]
+  // contrato de exemplo, já preenchido com os dados do orçamento enviado
+  const q0 = quotes[0]
+  const vars: Record<string, string> = {
+    contratante: bia.name,
+    doc_contratante: 'CPF 123.456.789-09',
+    endereco_contratante: 'Rua das Flores, 120, Belo Horizonte',
+    email_contratante: bia.email,
+    telefone_contratante: bia.phone,
+    contratada: settings.legalName || settings.ownerName || 'Ana Ribeiro',
+    doc_contratada: 'CPF 987.654.321-00',
+    endereco_contratada: 'Av. Afonso Pena, 1000, Belo Horizonte',
+    email_contratada: settings.email || 'ana@exemplo.com',
+    telefone_contratada: settings.phone || '(31) 99999-0000',
+    projeto: q0.title,
+    servicos: '• renderização V-Ray (5 imagens)\n• modelagem 3d',
+    valor: 'R$ 1.400,00',
+    valor_extenso: 'mil e quatrocentos reais',
+    pagamento: settings.defaultPaymentTerms,
+    prazo: '10 dias úteis',
+    prazo_dias: '10',
+    quantidade: '5',
+    entrada: 'R$ 700,00',
+    saldo: 'R$ 700,00',
+    foro: 'Belo Horizonte/MG',
+    revisoes: '2',
+    arquivos: q0.files,
+    orcamento: '#001',
+    cidade: 'Belo Horizonte - MG',
+    data: new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }),
+  }
+  const tpl = CLIENT_CONTRACTS[0]
+  const contracts = [{ id: uid(), title: `Contrato — ${q0.title}`, quoteId: q0.id, clientId: bia.id, templateId: tpl.id, body: tpl.body.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m), status: 'enviado' as const, createdAt: addDays(t, -3) }]
+
+  return { version: 1, demo: true, clients, projects, expenses, events, quotes, posts, contracts, settings }
 }
