@@ -1748,3 +1748,7 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .pkg-row { grid-template-columns: minmax(0, 1fr) 140px 132px 36px; }
   .pkg-row > .btn { justify-content: center; }
 }
+
+/* fim do orçamento salvo: avisos + duplicar/excluir, sem card */
+.quote-foot { display: flex; flex-direction: column; gap: 10px; padding: 2px 4px 8px; }
+.quote-foot > .row { justify-content: flex-end; }

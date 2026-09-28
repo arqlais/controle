@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { duplicateQuote } from '../quoteActions'
@@ -688,7 +689,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             </div>
           </Section>
 
-          <Section title={existing ? 'mais' : 'status'}>
+          <FootWrap card={!existing}>
             {!existing && (
               <Segmented<QuoteStatus>
                 value={q.status}
@@ -748,7 +749,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </button>
               )}
             </div>
-          </Section>
+          </FootWrap>
         </div>
 
         {q.pdf && (
@@ -1164,4 +1165,9 @@ function NoteField({ value, items, settings, onChange }: { value: string; items:
       )}
     </Field>
   )
+}
+
+/** Fim do orçamento: na proposta nova é o card "status"; depois de salva, só os avisos e os botões (duplicar/excluir), sem card. */
+function FootWrap({ card, children }: { card: boolean; children: ReactNode }) {
+  return card ? <Section title="status">{children}</Section> : <div className="quote-foot">{children}</div>
 }
