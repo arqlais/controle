@@ -1713,7 +1713,8 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .list-item .task-quick.is-compact:not(.is-open) .progress { width: auto; flex: 1; }
 
 /* propostas lado a lado: TOTAL e valor na mesma linha em todos os quadros (o desconto fica embaixo) */
-.p-options .p-total { align-items: flex-start; min-height: 76px; padding-top: 12px; padding-bottom: 10px; }
+.p-options.has-notes .p-total { align-items: flex-start; min-height: 76px; padding-top: 12px; padding-bottom: 10px; }
+.p-options:not(.has-notes) .p-total { min-height: 0; padding-top: 12px; padding-bottom: 12px; }
 .p-options .p-total-label { line-height: 24px; }
 .p-options .p-total-value b { line-height: 24px; }
 .p-options .p-total-value i { text-align: right; line-height: 1.35; margin-top: 2px; }

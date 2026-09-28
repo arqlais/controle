@@ -255,7 +255,12 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
       <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
       <Title s={s} />
       {quote.mode === 'opcoes' ? (
-        <section className={`p-options ${quote.options.length > 2 ? 'is-3' : ''}`}>
+        <section
+          className={`p-options ${quote.options.length > 2 ? 'is-3' : ''} ${
+            // só reserva a linha do desconto/observação quando alguma opção tem
+            quote.options.slice(0, 3).some((o) => o.discountNote || (o.discount || 0) + o.items.reduce((acc, i) => acc + itemDiscount(i), 0) > 0) ? 'has-notes' : ''
+          }`}
+        >
           {quote.options.slice(0, 3).map((o, n) => {
             const disc = (o.discount || 0) + o.items.reduce((acc, i) => acc + itemDiscount(i), 0)
             return (
