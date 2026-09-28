@@ -12,7 +12,7 @@ import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, matches, paymentDue, setCustomColumns } from './utils'
+import { allPayments, isLate, matches, paymentDue, setCustomColumns, today } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -33,6 +33,7 @@ import Suggestions from './pages/Suggestions'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
+import { ScreenHelp, Tour } from './components/Tour'
 import { useInbox } from './chat'
 import { trialOver } from './platform'
 import { PLATFORM, type Feature } from './plans'
@@ -120,15 +121,27 @@ export default function App() {
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
     })
   }, [settings.navOrder, settings.contracts?.off, access])
-  // ajustes e dicas: painel da plataforma (dona) ou minha assinatura (clientes)
-  const tools = useMemo(
-    () => [
-      ...(access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel da plataforma', icon: 'crown' }] : []),
-      ...(!access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }] : []),
-      ...TOOLS,
-    ],
+  // grupos à parte, no fim do menu: plataforma (só a dona), sua conta (clientes) e ajustes e dicas
+  const groups = useMemo(
+    () =>
+      [
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }] : [] },
+        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }] : [] },
+        { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
+      ].filter((g) => g.items.length),
     [access],
   )
+  // passo a passo do primeiro acesso: aparece para quem assina até concluir/pular ("ver depois" = volta no dia seguinte)
+  const [tourOpen, setTourOpen] = useState(false)
+  useEffect(() => {
+    if (sync !== 'loading' && !access.isOwner && !access.legacy && settings.tour !== 'feito' && settings.tour !== today()) setTourOpen(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sync === 'loading', access.isOwner])
+  const closeTour = (how: 'feito' | 'depois') => {
+    setTourOpen(false)
+    setSettings({ tour: how === 'feito' ? 'feito' : today() })
+    if (how === 'feito') go('inicio')
+  }
   const moveNav = (page: string, to: number) => {
     const pages = nav.map((n) => n.page).filter((p) => p !== page)
     pages.splice(Math.max(0, Math.min(to, pages.length)), 0, page)
@@ -235,19 +248,27 @@ export default function App() {
               </a>
             )
           })}
-          <div className="nav-group">
-            <span className="nav-group-label">ajustes e dicas</span>
-            {tools.map((n) => {
-              const count = alerts[n.page as keyof typeof alerts]
-              return (
-                <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} onClick={(e) => organizing && e.preventDefault()}>
-                  <Icon name={n.icon} />
-                  <span>{n.label}</span>
-                  {count && !organizing ? <em className="nav-alert" title="Mensagens novas no chat">{count}</em> : null}
-                </a>
-              )
-            })}
-          </div>
+          {groups.map((g) => (
+            <div key={g.key} className={`nav-group is-${g.key}`}>
+              <span className="nav-group-label">{g.label}</span>
+              {g.items.map((n) => {
+                const count = alerts[n.page as keyof typeof alerts]
+                return (
+                  <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} onClick={(e) => organizing && e.preventDefault()}>
+                    <Icon name={n.icon} />
+                    <span>{n.label}</span>
+                    {count && !organizing ? <em className="nav-alert" title="Mensagens novas no chat">{count}</em> : null}
+                  </a>
+                )
+              })}
+              {g.key === 'ajustes' && (
+                <button type="button" className="is-tool nav-tour" onClick={() => (setMenuOpen(false), go('inicio'), setTourOpen(true))}>
+                  <Icon name="sparkle" />
+                  <span>passo a passo</span>
+                </button>
+              )}
+            </div>
+          ))}
           <div className="nav-links">
             <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
               {organizing ? 'pronto' : 'organizar menu'}
@@ -303,6 +324,7 @@ export default function App() {
             </button>
           )}
           <GlobalSearch />
+          <ScreenHelp />
           <div className="add-menu">
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
               <Icon name="plus" size={16} /> <span className="hide-mobile">Novo</span>
@@ -342,6 +364,7 @@ export default function App() {
             )}
           </div>
         </header>
+        {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
         <main className="content">
           {isSample && (
             <div className="demo-banner">

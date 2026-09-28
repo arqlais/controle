@@ -58,7 +58,7 @@ begin
   if auth.uid() is null then return; end if;
   insert into public.subscriptions (user_id, email, name, studio, plan)
   select u.id, coalesce(u.email, ''), coalesce(u.raw_user_meta_data ->> 'name', ''), coalesce(u.raw_user_meta_data ->> 'studio', ''),
-         case when plano = 'completo' then 'completo' else 'essencial' end
+         'completo' -- o teste grátis é sempre do plano Completo (o parâmetro fica só por compatibilidade)
   from auth.users u where u.id = auth.uid()
   on conflict (user_id) do nothing;
   return query select * from public.subscriptions where user_id = auth.uid();

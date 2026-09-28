@@ -809,3 +809,54 @@
 .pay-methods .chip-x:hover { opacity: 1; }
 .pay-methods input { flex: 1 1 180px; min-width: 0; }
 .cdoc-editorial .cd-kind .cd-number { margin-top: 18px; }
+
+/* menu lateral: grupos separados (plataforma isolada, sua conta, ajustes e dicas) */
+.sidebar nav .nav-tour { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 0; background: none; font: inherit; font-size: 14px; color: var(--accent-ink); cursor: pointer; border-radius: 12px; text-align: left; width: 100%; }
+.sidebar nav .nav-tour:hover { background: var(--accent-tint); }
+.nav-group.is-plataforma { margin-top: 16px; padding: 10px 8px 8px; border: 1px solid var(--accent-soft); border-radius: 16px; background: var(--accent-tint); }
+.nav-group.is-plataforma .nav-group-label { display: flex; align-items: center; gap: 6px; padding-left: 6px; }
+.nav-group.is-plataforma .nav-group-label::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-ink); }
+.nav-group.is-plataforma + .nav-group { border-top: 0; }
+
+/* passo a passo do primeiro acesso */
+.tour { position: fixed; z-index: 90; right: 24px; bottom: 24px; width: min(360px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--border); border-radius: 22px; padding: 18px 20px 16px; box-shadow: 0 30px 70px -24px rgba(40, 48, 56, 0.45); animation: tour-in 0.25s ease-out; }
+@keyframes tour-in { from { opacity: 0; translate: 0 12px; } }
+.tour-top { display: flex; align-items: center; justify-content: space-between; }
+.tour-count { font-size: 11px; letter-spacing: 0.12em; color: var(--accent-ink); font-weight: 600; }
+.tour-dots { display: flex; gap: 4px; margin: 8px 0 12px; }
+.tour-dots i { flex: 1; height: 3px; border-radius: 3px; background: var(--border); transition: background 0.25s; }
+.tour-dots i.on { background: var(--accent); }
+.tour h3 { margin: 0 0 6px; font-size: 20px; }
+.tour p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text-soft, inherit); }
+.tour-actions { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+.tour-actions .btn.primary { margin-left: auto; }
+@media (max-width: 720px) { .tour { right: 16px; left: 16px; width: auto; bottom: calc(84px + env(safe-area-inset-bottom)); } }
+
+/* "?" do topo: explicação curta da tela */
+.screen-help { position: relative; }
+.screen-help-pop { right: 0; left: auto; width: min(300px, calc(100vw - 32px)); padding: 14px 16px; }
+.screen-help-pop b { display: block; margin-bottom: 4px; }
+.screen-help-pop p { margin: 0; font-size: 13px; line-height: 1.5; }
+
+/* sugestões no painel da dona: filtros com contagem e lista alinhada em colunas */
+.sg-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.sg-filter { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); font: inherit; font-size: 13px; color: var(--text); cursor: pointer; }
+.sg-filter em { font-style: normal; font-size: 11px; min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--surface-2); text-align: center; }
+.sg-filter.active { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+.sg-filter.active em { background: rgba(255, 255, 255, 0.25); }
+.sg-table { border: 1px solid var(--border); border-radius: 16px; background: var(--surface); overflow: hidden; }
+.sg-row { display: grid; grid-template-columns: 170px minmax(0, 1.3fr) minmax(0, 1fr); gap: 18px; align-items: start; padding: 16px 18px; border-top: 1px solid var(--border); }
+.sg-row:first-child { border-top: 0; }
+.sg-row-head { padding-block: 10px; background: var(--surface-2); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--accent-ink); }
+.sg-col-status { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.sg-col-status select { width: 100%; }
+.sg-col-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sg-col-body p { margin: 4px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+.sg-col-reply { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.sg-col-reply textarea { width: 100%; }
+@media (max-width: 860px) {
+  .sg-row { grid-template-columns: 1fr; gap: 10px; }
+  .sg-row-head { display: none; }
+  .sg-col-status { flex-direction: row; align-items: center; }
+  .sg-col-status select { width: auto; margin-left: auto; }
+}

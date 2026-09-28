@@ -367,6 +367,7 @@ export interface Settings {
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
   paymentMethods?: string[] // formas de receber (lista editável)
+  tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
   messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)
   messagesV2?: boolean // migração: mensagens padrão reescritas em minúsculas, com emojis

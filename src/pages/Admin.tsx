@@ -560,43 +560,53 @@ function SuggestionsAdmin({ sugs, subs, reload }: { sugs: Suggestion[]; subs: Su
   if (!sugs.length) return <Empty icon="flag" title="nenhuma sugestão ainda" text="Quando alguém mandar uma ideia em “sugestões”, ela aparece aqui para você responder e planejar as próximas atualizações." />
   return (
     <>
-      <div className="pf-toolbar">
-        <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar sugestões">
-          <option value="abertas">abertas</option>
-          <option value="todas">todas ({sugs.length})</option>
-          {(Object.keys(SUGGESTION_STATUS) as SuggestionStatus[]).map((k) => (
-            <option key={k} value={k}>
-              {SUGGESTION_STATUS[k].label} ({sugs.filter((x) => x.status === k).length})
-            </option>
-          ))}
-        </select>
+      <div className="sg-filters" role="tablist" aria-label="Filtrar sugestões">
+        {(
+          [
+            ['abertas', 'abertas', sugs.filter((x) => ['recebida', 'analisando', 'planejada'].includes(x.status)).length],
+            ...(Object.keys(SUGGESTION_STATUS) as SuggestionStatus[]).map((k) => [k, SUGGESTION_STATUS[k].label, sugs.filter((x) => x.status === k).length]),
+            ['todas', 'todas', sugs.length],
+          ] as [typeof filter, string, number][]
+        ).map(([k, label, n]) => (
+          <button key={k} role="tab" aria-selected={filter === k} className={`sg-filter ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>
+            {label} <em>{n}</em>
+          </button>
+        ))}
       </div>
-      <div className="pf-subs">
+      <div className="sg-table">
+        <div className="sg-row sg-row-head" aria-hidden>
+          <span>situação</span>
+          <span>sugestão</span>
+          <span>resposta</span>
+        </div>
         {rows.map((x) => {
           const draft = drafts[x.id] ?? x.reply
           return (
-            <article key={x.id} className="card sg-admin">
-              <header className="sg-admin-head">
+            <article key={x.id} className="sg-row">
+              <div className="sg-col-status">
+                <select style={{ borderLeft: `4px solid ${SUGGESTION_STATUS[x.status].color}` }} value={x.status} onChange={(e) => void save(x, { status: e.target.value as SuggestionStatus }, 'Situação atualizada.')} aria-label="Mudar a situação">
+                  {(Object.keys(SUGGESTION_STATUS) as SuggestionStatus[]).map((k) => (
+                    <option key={k} value={k}>
+                      {SUGGESTION_STATUS[k].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="sg-col-body">
                 <b>{x.title}</b>
-                <Badge color={SUGGESTION_STATUS[x.status].color}>{SUGGESTION_STATUS[x.status].label}</Badge>
-              </header>
-              <small className="muted">
-                {SUGGESTION_CATEGORY[x.category]} · {who(x.userId)?.name || 'cliente'} · {timeLabel(x.createdAt)}
-              </small>
-              {x.body && <p className="small">{x.body}</p>}
-              <select value={x.status} onChange={(e) => void save(x, { status: e.target.value as SuggestionStatus }, 'Situação atualizada.')} aria-label="Situação da sugestão">
-                {(Object.keys(SUGGESTION_STATUS) as SuggestionStatus[]).map((k) => (
-                  <option key={k} value={k}>
-                    {SUGGESTION_STATUS[k].label}
-                  </option>
-                ))}
-              </select>
-              <textarea rows={2} value={draft} placeholder="Resposta (aparece na tela de sugestões de quem enviou)" onChange={(e) => setDrafts((d) => ({ ...d, [x.id]: e.target.value }))} />
-              {draft !== x.reply && (
-                <button className="btn small primary" onClick={() => void save(x, { reply: draft.trim() }, 'Resposta enviada.')}>
-                  responder
-                </button>
-              )}
+                <small className="muted">
+                  {SUGGESTION_CATEGORY[x.category]} · {who(x.userId)?.name || 'cliente'} · {timeLabel(x.createdAt)}
+                </small>
+                {x.body && <p className="small">{x.body}</p>}
+              </div>
+              <div className="sg-col-reply">
+                <textarea rows={2} value={draft} placeholder="Resposta (quem enviou vê na tela de sugestões)" onChange={(e) => setDrafts((d) => ({ ...d, [x.id]: e.target.value }))} />
+                {draft !== x.reply && (
+                  <button className="btn small primary" onClick={() => void save(x, { reply: draft.trim() }, 'Resposta enviada.')}>
+                    responder
+                  </button>
+                )}
+              </div>
             </article>
           )
         })}

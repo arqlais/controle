@@ -211,7 +211,7 @@ const msgFromRow = (r: Row): ChatMessage => ({
 })
 
 const cloud = {
-  async access(plan?: string): Promise<AccessInfo> {
+  async access(_plan?: string): Promise<AccessInfo> {
     const sb = supabase!
     const admin = await sb.rpc('sou_dona')
     if (admin.error) {
@@ -220,7 +220,7 @@ const cloud = {
     }
     if (admin.data === true) return { role: 'dona', sub: null, legacy: false }
     // cria a assinatura em teste grátis na primeira entrada (o plano vem do cadastro)
-    const { data, error } = await sb.rpc('garantir_assinatura', { plano: plan === 'completo' ? 'completo' : 'essencial' })
+    const { data, error } = await sb.rpc('garantir_assinatura', { plano: 'completo' })
     if (error) throw error
     const row = (Array.isArray(data) ? data[0] : data) as Row | null
     return { role: 'cliente', sub: row ? subFromRow(row) : null, legacy: false }
@@ -466,12 +466,12 @@ export function previewSignup(name: string, studio: string, email: string, plan:
 }
 
 const local = {
-  async access(plan?: string): Promise<AccessInfo> {
+  async access(_plan?: string): Promise<AccessInfo> {
     const role = getPreviewRole()
     if (role !== 'cliente') return { role: 'dona', sub: null, legacy: false }
     let sub = readDB().subs.find((x) => x.userId === PREVIEW_CLIENT)
     if (!sub) {
-      previewSignup('', '', '', plan === 'completo' ? 'completo' : 'essencial')
+      previewSignup('', '', '', 'completo')
       sub = readDB().subs.find((x) => x.userId === PREVIEW_CLIENT)!
     }
     return { role: 'cliente', sub, legacy: false }
