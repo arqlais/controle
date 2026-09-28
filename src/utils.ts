@@ -655,7 +655,7 @@ export const cleanDetail = (d: string) =>
 
 /** Variáveis disponíveis nas mensagens padrão. */
 export const MESSAGE_VARS: [string, string][] = [
-  ['cliente', 'primeiro nome da cliente'],
+  ['cliente', 'primeiro nome do cliente'],
   ['projeto', 'nome do projeto / orçamento'],
   ['valor', 'valor total'],
   ['proposta', 'número da proposta (#001)'],
@@ -696,7 +696,7 @@ export const fillMessage = (text: string, vars: Record<string, string>) =>
     .replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
     .replace(/ {2,}/g, ' ')
     .replace(/ ([,.!?)])/g, '$1')
-    .replace(/,([,!?])/g, '$1') // sem nome da cliente: "oii, , tudo bem" → "oii, tudo bem"
+    .replace(/,([,!?])/g, '$1') // sem nome do cliente: "oii, , tudo bem" → "oii, tudo bem"
 
 /** Texto de uma mensagem padrão pelo id, já preenchido (com um texto de reserva se ela foi apagada). */
 export function templateText(st: Settings, id: string, fallback: string, client?: Client, project?: Project, quote?: Quote) {

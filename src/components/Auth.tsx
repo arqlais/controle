@@ -3,6 +3,9 @@ import type { Session } from '@supabase/supabase-js'
 import { CLOUD, supabase } from '../cloud'
 import { DEFAULT_SETTINGS, SIGNUP_KEY, StoreProvider, hasLocalAccount, seedPreviewAccount } from '../store'
 import { AccessProvider } from '../access'
+import { onViewAsClient, viewingAsClient } from '../viewAs'
+import { TRIAL_DAYS } from '../plans'
+import type { AccessInfo } from '../platform'
 import { PREVIEW_CLIENT, getPreviewRole, onPreviewRole, setPreviewRole, type PreviewRole } from '../platform'
 import { PLATFORM, type PlanId } from '../plans'
 import { go, useRoute } from '../router'
@@ -18,6 +21,9 @@ import { Icon } from './Icon'
 export function AuthGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(CLOUD ? undefined : null)
   const [recovery, setRecovery] = useState(false)
+  // "ver como cliente" (só a dona usa): conta nova de cliente, só em memória
+  const [asClient, setAsClient] = useState(viewingAsClient)
+  useEffect(() => onViewAsClient(setAsClient), [])
 
   useEffect(() => {
     if (!supabase) return
@@ -33,6 +39,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (session === undefined) return <div className="loading-screen" />
   if (recovery && session) return <NewPassword onDone={() => setRecovery(false)} />
   if (!session) return <PublicScreens />
+  if (asClient)
+    return (
+      <AccessProvider key="ver-como-cliente" userId={session.user.id} override={CLIENT_VIEW}>
+        <StoreProvider key="ver-como-cliente" preview userEmail="voce@exemplo.com">
+          {children}
+        </StoreProvider>
+      </AccessProvider>
+    )
   return (
     <AccessProvider userId={session.user.id} plan={session.user.user_metadata?.plan as string | undefined}>
       <StoreProvider key={session.user.id} userId={session.user.id} userEmail={session.user.email ?? ''}>
@@ -132,6 +146,29 @@ function PreviewSwitcher({ role }: { role: PreviewRole }) {
       </button>
     </div>
   )
+}
+
+/** Acesso de uma conta nova de cliente em teste grátis (plano Completo), para o "ver como cliente". */
+const CLIENT_VIEW: AccessInfo = {
+  role: 'cliente',
+  legacy: false,
+  sub: {
+    userId: 'ver-como-cliente',
+    email: 'voce@exemplo.com',
+    name: 'Ana',
+    studio: 'estúdio exemplo',
+    plan: 'completo',
+    status: 'trial',
+    trialEnds: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
+    blocked: false,
+    canceledAt: null,
+    createdAt: new Date().toISOString(),
+    lastSeen: new Date().toISOString(),
+    requestedPlan: null,
+    requestedAt: null,
+    requestedCycle: null,
+    testMode: true,
+  },
 }
 
 export const signOut = () => supabase?.auth.signOut()

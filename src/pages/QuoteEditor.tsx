@@ -477,7 +477,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
-              <Field label="Cliente" span={2} hint="O nome da cliente vai no campo “nome” da proposta.">
+              <Field label="Cliente" span={2} hint="O nome do cliente vai no campo “nome” da proposta.">
                 <div className="row gap-s">
                   <select id="q-client" value={q.clientId} onChange={(e) => set({ clientId: e.target.value })}>
                     <option value="">Selecione…</option>
@@ -492,7 +492,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                       ))}
                   </select>
                   {client && (
-                    <button className="btn ghost small" onClick={() => setEditClient(true)} title="Editar dados da cliente">
+                    <button className="btn ghost small" onClick={() => setEditClient(true)} title="Editar dados do cliente">
                       <Icon name="edit" size={14} />
                     </button>
                   )}

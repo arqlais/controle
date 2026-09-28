@@ -10,7 +10,7 @@ import { PLATFORM } from '../plans'
 type Step = { page: string; title: string; text: string; needs?: 'contratos' }
 
 export const TOUR_STEPS: Step[] = [
-  { page: 'inicio', title: 'boas-vindas!', text: `Em poucos passos você conhece o ${PLATFORM.name}. Aqui no início aparece o que vence hoje, o que está atrasado e quanto entrou no mês.` },
+  { page: 'inicio', title: 'boas-vindas!', text: `Em poucos passos você conhece o ${PLATFORM.name}. Aqui no início aparece o que vence hoje, o que está atrasado e quanto entrou no mês. Quer ver tudo preenchido com um exemplo? Toque em “exemplo” (o olhinho) no fim do menu.` },
   { page: 'config', title: 'comece pelas configurações', text: 'Coloque seus dados, logotipo e cores. Em “preços” fica sua tabela: por hora, por m², por unidade ou valor livre.' },
   { page: 'clientes', title: 'seus clientes', text: 'Cadastre quem contrata você. Nome, CPF/CNPJ e endereço vão sozinhos para orçamentos, recibos e contratos.' },
   { page: 'orcamentos', title: 'orçamentos', text: 'Escolha os serviços e o valor é sugerido pela sua tabela (você sempre pode mudar). No fim, gere o PDF ou copie o texto para o WhatsApp.' },

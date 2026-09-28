@@ -610,7 +610,7 @@ function MessagesSettings() {
       }
     >
       <p className="muted small">
-        Aparecem no botão <b>mensagens</b> da cliente, da demanda e do orçamento, já com os dados preenchidos. No WhatsApp, *palavra* fica em <b>negrito</b> e _palavra_ em <i>itálico</i>: selecione e toque em N ou I. Use as variáveis:{' '}
+        Aparecem no botão <b>mensagens</b> do cliente, da demanda e do orçamento, já com os dados preenchidos. No WhatsApp, *palavra* fica em <b>negrito</b> e _palavra_ em <i>itálico</i>: selecione e toque em N ou I. Use as variáveis:{' '}
         {MESSAGE_VARS.map(([k, d]) => (
           <code key={k} className="var-chip" title={d}>
             {`{${k}}`}

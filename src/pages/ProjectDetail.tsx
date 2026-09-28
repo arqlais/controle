@@ -625,7 +625,7 @@ function PackageSection({ p, client, save }: { p: Project; client?: Client; save
       title="Pacote"
       action={
         <div className="row gap-s">
-          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(summary).then(() => toast('Resumo copiado. É só colar no WhatsApp.'), () => toast('Não consegui copiar.'))} title="Copiar resumo para enviar à cliente">
+          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(summary).then(() => toast('Resumo copiado. É só colar no WhatsApp.'), () => toast('Não consegui copiar.'))} title="Copiar resumo para enviar ao cliente">
             <Icon name="copy" size={14} /> Copiar resumo
           </button>
           {client?.phone && (

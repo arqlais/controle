@@ -127,7 +127,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
             {weekDeliveries > 0
               ? `${weekDeliveries} ${weekDeliveries === 1 ? 'entrega' : 'entregas'} nesta semana`
               : waiting.length
-                ? `${waiting.length === 1 ? '1 demanda esperando' : `${waiting.length} demandas esperando`} retorno da cliente`
+                ? `${waiting.length === 1 ? '1 demanda esperando' : `${waiting.length} demandas esperando`} retorno do cliente`
                 : 'semana tranquila, sem entregas'}
           </p>
         </div>

@@ -353,17 +353,11 @@ const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
 
 /** Escolhas do cadastro (nome, estúdio, começar com exemplo), guardadas até a primeira entrada. */
 export const SIGNUP_KEY = 'cadastro-inicio'
-function firstRunData(settings: Settings): Data {
-  let info: { name?: string; studio?: string; demo?: boolean } = {}
-  try {
-    info = JSON.parse(localStorage.getItem(SIGNUP_KEY) || '{}')
-    localStorage.removeItem(SIGNUP_KEY)
-  } catch {
-    /* ok */
-  }
-  // conta nova de cliente: visual próprio (a fonte e a paleta da Laís são exclusivas dela)
+/** Padrões de uma conta nova de cliente: visual próprio (a fonte e a paleta da Laís são exclusivas dela)
+ *  e serviços, mensagens e pagamento genéricos. */
+export function clientSettings(settings: Settings): Settings {
   const kit = PALETTES.find((p) => p.name === 'areia & carvão')!
-  const st: Settings = {
+  return {
     ...settings,
     accent: kit.accent,
     accentSoft: kit.accentSoft,
@@ -380,6 +374,19 @@ function firstRunData(settings: Settings): Data {
     defaultPaymentTerms: CLIENT_PAYMENT_TERMS,
     paymentMethods: DEFAULT_PAYMENT_METHODS,
     proposal: { ...settings.proposal, schedule: CLIENT_SCHEDULE },
+  }
+}
+
+function firstRunData(settings: Settings): Data {
+  let info: { name?: string; studio?: string; demo?: boolean } = {}
+  try {
+    info = JSON.parse(localStorage.getItem(SIGNUP_KEY) || '{}')
+    localStorage.removeItem(SIGNUP_KEY)
+  } catch {
+    /* ok */
+  }
+  const st: Settings = {
+    ...clientSettings(settings),
     ...(info.studio ? { brandName: info.studio } : {}),
     ...(info.name ? { ownerName: info.name } : {}),
   }
@@ -565,9 +572,10 @@ const Ctx = createContext<Store | null>(null)
 const hasContent = (d: Data) => !d.demo && (d.clients.length > 0 || d.projects.length > 0 || d.quotes.length > 0 || d.expenses.length > 0)
 
 /** Com `userId`, os dados vivem na nuvem; o navegador guarda só uma cópia de trabalho. */
-export function StoreProvider({ children, userId, userEmail = '' }: { children: ReactNode; userId?: string; userEmail?: string }) {
-  const cloud = CLOUD && !!userId
-  const [data, setData] = useState<Data>(() => load(userId))
+export function StoreProvider({ children, userId, userEmail = '', preview = false }: { children: ReactNode; userId?: string; userEmail?: string; preview?: boolean }) {
+  // preview: "ver como cliente" da dona — conta nova de cliente só em memória (nada é salvo)
+  const cloud = CLOUD && !!userId && !preview
+  const [data, setData] = useState<Data>(() => (preview ? { ...emptyData(), settings: { ...clientSettings(DEFAULT_SETTINGS), brandName: 'estúdio exemplo', ownerName: 'Ana' } } : load(userId)))
   const [agenda, setAgenda] = useState<AgendaStatus>({ state: 'idle' })
   const agendaSent = useRef('')
   const publishAgendaFor = useCallback(
@@ -641,6 +649,10 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
   useEffect(() => {
     if (first.current) {
       first.current = false
+      return
+    }
+    if (preview) {
+      setLastSaved(new Date())
       return
     }
     try {

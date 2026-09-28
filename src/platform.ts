@@ -1,3 +1,4 @@
+import { viewingAsClient } from './viewAs'
 import { PREVIEW_KEY, type PlanConfig } from './planConfig'
 import { ARTIFACT } from './env'
 import { CLOUD, supabase } from './cloud'
@@ -661,7 +662,35 @@ const local = {
 }
 
 /** Backend em uso: nuvem de verdade ou simulação da prévia. */
-export const platform = CLOUD ? cloud : local
+/* "Ver como cliente" (dona): nada é enviado e nada da conta dela aparece como se fosse do cliente. */
+const asClientGuard = (b: typeof cloud): typeof cloud => ({
+  ...b,
+  async choosePlan(...a: Parameters<typeof cloud.choosePlan>) {
+    if (!viewingAsClient()) return b.choosePlan(...a)
+  },
+  async requestPlan(...a: Parameters<typeof cloud.requestPlan>) {
+    if (!viewingAsClient()) return b.requestPlan(...a)
+  },
+  async send(...a: Parameters<typeof cloud.send>) {
+    if (!viewingAsClient()) return b.send(...a)
+  },
+  async suggest(...a: Parameters<typeof cloud.suggest>) {
+    if (!viewingAsClient()) return b.suggest(...a)
+  },
+  async sendFeedback(...a: Parameters<typeof cloud.sendFeedback>) {
+    if (!viewingAsClient()) return b.sendFeedback(...a)
+  },
+  async suggestions() {
+    return viewingAsClient() ? [] : b.suggestions()
+  },
+  async feedbacks() {
+    return viewingAsClient() ? [] : b.feedbacks()
+  },
+  async myBilling() {
+    return viewingAsClient() ? null : b.myBilling()
+  },
+})
+export const platform = CLOUD ? asClientGuard(cloud) : local
 
 /* ---------------- perfil da prévia ("ver como") ---------------- */
 
