@@ -508,6 +508,27 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <input id="q-pdf" type="checkbox" checked={q.pdf} onChange={(e) => set({ pdf: e.target.checked })} /> gerar proposta em PDF
                 </label>
               </div>
+              <Field
+                group
+                label="Arquivo final"
+                span={2}
+                hint={
+                  !canOpenFile(q, settings.services)
+                    ? 'Os serviços deste orçamento não têm opção de arquivo aberto (ex.: modelagem já vai aberta). Para liberar num serviço: configurações → preços → “se o cliente quiser o arquivo aberto”.'
+                    : q.openFile
+                      ? `+${settings.openFileFee ?? 30}% já somado nos serviços que têm arquivo aberto (não aparece no PDF; a proposta só diz como será entregue).`
+                      : `Pergunte ao cliente no início. Aberto soma +${settings.openFileFee ?? 30}% nos serviços que têm essa opção.`
+                }
+              >
+                <Segmented<'fechado' | 'aberto'>
+                  value={q.openFile ? 'aberto' : 'fechado'}
+                  onChange={(v) => canOpenFile(q, settings.services) && setOpenFile(v === 'aberto')}
+                  options={[
+                    { value: 'fechado', label: 'fechado (PDF)' },
+                    { value: 'aberto', label: `aberto (editável) · +${settings.openFileFee ?? 30}%` },
+                  ]}
+                />
+              </Field>
             </div>
             {q.status === 'aprovado' && (
               <div className="closed-row">
@@ -667,18 +688,6 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Field label="Prazos e cronograma" span={3}>
                 <input value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
               </Field>
-              {canOpenFile(q, settings.services) && (
-                <Field group label="Arquivo final" span={3} hint={q.openFile ? `Valor com +${settings.openFileFee ?? 30}% embutido (não aparece no PDF). A proposta só diz como será entregue.` : 'Pergunte ao cliente no início. Aberto soma uma taxa interna no valor.'}>
-                  <Segmented<'fechado' | 'aberto'>
-                    value={q.openFile ? 'aberto' : 'fechado'}
-                    onChange={(v) => setOpenFile(v === 'aberto')}
-                    options={[
-                      { value: 'fechado', label: 'fechado (PDF)' },
-                      { value: 'aberto', label: 'aberto (editável)' },
-                    ]}
-                  />
-                </Field>
-              )}
               <Field
                 label="Formatos de arquivos entregues"
                 span={3}
