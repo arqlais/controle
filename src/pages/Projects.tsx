@@ -397,10 +397,27 @@ function useBoardFit() {
     }
     update()
     el.addEventListener('scroll', update, { passive: true })
+    // rodinha do mouse anda pelas colunas (sem precisar da seta); dentro de uma coluna comprida, rola a coluna primeiro
+    const wheel = (e: WheelEvent) => {
+      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      const body = (e.target as HTMLElement).closest<HTMLElement>('.column-body')
+      if (body && body.scrollHeight > body.clientHeight + 2) {
+        const canDown = body.scrollTop + body.clientHeight < body.scrollHeight - 1
+        const canUp = body.scrollTop > 0
+        if ((e.deltaY > 0 && canDown) || (e.deltaY < 0 && canUp)) return
+      }
+      const max = el.scrollWidth - el.clientWidth
+      if (max <= 2) return
+      if ((e.deltaY > 0 && el.scrollLeft >= max - 1) || (e.deltaY < 0 && el.scrollLeft <= 0)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+    el.addEventListener('wheel', wheel, { passive: false })
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => {
       el.removeEventListener('scroll', update)
+      el.removeEventListener('wheel', wheel)
       ro.disconnect()
     }
   })
