@@ -56,11 +56,22 @@ export function renumberPlan(quotes: Quote[]): Renumber[] {
   return plan
 }
 
-/** Rascunhos sempre depois do último número enviado/aprovado, em ordem de data (e pelo número atual no mesmo dia).
- *  Enviados e aprovados nunca mudam. Devolve só os rascunhos que mudam de número. */
+/** Rascunhos sempre depois do último número usado, em ordem de data (e pelo número atual no mesmo dia).
+ *  Não mudam: enviados/aprovados, antigos importados e rascunhos com o PDF já baixado (o número já está no PDF).
+ *  Devolve só os rascunhos que mudam de número. */
+const fixedNumber = (q: Quote) => q.status !== 'rascunho' || !!q.imported || !!q.pdfAt
 export function draftRenumber(quotes: Quote[]): { id: string; number: number }[] {
-  // antigos importados contam como número usado (mesmo em rascunho)
-  const max = Math.max(0, ...quotes.filter((q) => q.status !== 'rascunho' || q.imported).map((q) => q.number || 0))
-  const drafts = quotes.filter((q) => q.status === 'rascunho' && !q.imported).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || (a.number || 0) - (b.number || 0))
+  const max = Math.max(0, ...quotes.filter(fixedNumber).map((q) => q.number || 0))
+  const drafts = quotes.filter((q) => !fixedNumber(q)).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || (a.number || 0) - (b.number || 0))
   return drafts.map((q, i) => ({ id: q.id, number: max + 1 + i })).filter((r, i) => r.number !== drafts[i].number)
+}
+
+/** Número de um orçamento que está saindo do rascunho (enviado/aprovado) ou cujo PDF vai ser baixado:
+ *  o próximo depois do último enviado — assim não sobra número vago. Número já acertado fica. */
+export function nextSentNumber(quotes: Quote[], q: Quote): number {
+  if (q.imported) return q.number
+  const others = quotes.filter((x) => x.id !== q.id && fixedNumber(x))
+  const max = Math.max(0, ...others.map((x) => x.number || 0))
+  const taken = new Set(others.map((x) => x.number))
+  return q.number && q.number <= max + 1 && !taken.has(q.number) ? q.number : max + 1
 }

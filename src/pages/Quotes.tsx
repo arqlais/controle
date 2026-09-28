@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { draftRenumber, renumberPlan } from '../numbering'
+import { draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { duplicateQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -81,6 +81,15 @@ export default function Quotes() {
       sentAt: status === 'rascunho' ? x.sentAt : x.sentAt || x.createdAt,
       closedAt: status === 'aprovado' ? x.closedAt || x.createdAt : x.closedAt,
     }))
+    // rascunhos que saem agora: um depois do outro, logo após o último enviado (em ordem de data)
+    if (status !== 'rascunho') {
+      let pool = [...data.quotes]
+      for (const x of [...updated].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+        if (list.find((o) => o.id === x.id)?.status !== 'rascunho') continue
+        x.number = nextSentNumber(pool, x)
+        pool = [...pool.filter((o) => o.id !== x.id), x]
+      }
+    }
     // voltaram para rascunho: vão para depois do último número (os rascunhos se reorganizam pela data)
     const ids = new Set(updated.map((x) => x.id))
     const moves = status === 'rascunho' ? new Map(draftRenumber([...data.quotes.filter((x) => !ids.has(x.id)), ...updated]).map((r) => [r.id, r.number])) : new Map<string, number>()

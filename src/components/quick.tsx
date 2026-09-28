@@ -1,4 +1,4 @@
-import { draftRenumber } from '../numbering'
+import { draftRenumber, nextSentNumber } from '../numbering'
 import { useState } from 'react'
 import { DateInput } from './DateInput'
 import { useStore } from '../store'
@@ -191,6 +191,7 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
     const [status, optionId] = v.split(':') as [QuoteStatus, string | undefined]
     if (status === 'aprovado' && !q.projectId) return setClosing(optionId ?? '')
     const next = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || today() }
+    if (status !== 'rascunho' && q.status === 'rascunho') next.number = nextSentNumber(data.quotes, next) // sem número vago
     if (status === 'rascunho' && q.status !== 'rascunho') {
       // voltou para rascunho: vai para depois do último número (os rascunhos se reorganizam pela data)
       const moves = new Map(draftRenumber([...data.quotes.filter((x) => x.id !== q.id), next]).map((r) => [r.id, r.number]))

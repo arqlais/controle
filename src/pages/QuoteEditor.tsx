@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { duplicateQuote } from '../quoteActions'
-import { draftRenumber, renumberPlan } from '../numbering'
+import { draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -270,6 +270,13 @@ export default function QuoteEditor({ id }: { id: string }) {
       next.number = to.get(next.id) ?? nextQuoteNumber(data)
       for (const x of others) if (x.status === 'rascunho' && to.has(x.id) && to.get(x.id) !== x.number) upsert('quotes', { ...x, number: to.get(x.id)! })
       toast(`Número definido pela data: ${quoteNumber(next)}.`)
+    } else if (next.status !== 'rascunho' && (data.quotes.find((x) => x.id === next.id)?.status ?? 'rascunho') === 'rascunho') {
+      // saiu do rascunho (enviado/aprovado): pega o próximo número depois do último enviado — não sobra número vago
+      const n = nextSentNumber(data.quotes, next)
+      if (n !== next.number) {
+        next.number = n
+        toast(`Enviado como ${quoteNumber(next)} (próximo número livre).`)
+      }
     } else if (next.status === 'rascunho' && data.quotes.find((x) => x.id === next.id)?.status !== 'rascunho') {
       // voltou para rascunho: vai para depois do último número (os rascunhos se reorganizam pela data)
       const moves = new Map(draftRenumber([...data.quotes.filter((x) => x.id !== next.id), next]).map((r) => [r.id, r.number]))
@@ -293,6 +300,17 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
 
   saveRef.current = () => save()
+  // baixar o PDF de um rascunho reserva o próximo número depois do último enviado (o PDF já sai com o número certo)
+  const downloadPdf = (vector: boolean) => {
+    let cur = q
+    if (q.status === 'rascunho' && q.clientId && !q.imported) {
+      const n = nextSentNumber(data.quotes, q)
+      const saved = n !== q.number || !q.pdfAt ? save({ number: n, pdfAt: q.pdfAt || new Date().toISOString() }) : null
+      if (saved) cur = saved
+    }
+    const doc = <QuoteDoc s={settings} client={client} quote={cur} />
+    ;(vector ? pdf.downloadVector : pdf.download)(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
+  }
   const duplicate = () => {
     if (unsaved && q.clientId) save() // guarda o que foi mexido neste antes de copiar
     const copy = duplicateQuote(q, data)
@@ -378,7 +396,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         </div>
         <div className="row gap-s wrap">
           {q.pdf && (
-            <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)}>
+            <button className="btn primary" disabled={pdf.busy} onClick={() => downloadPdf(false)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
             </button>
           )}
@@ -396,7 +414,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           )}
           <MoreMenu>
             {q.pdf && (
-              <button className="btn ghost" disabled={pdf.busy} onClick={() => pdf.downloadVector(preview, `Proposta ${quoteNumber(q)} - ${displayName}.pdf`)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
+              <button className="btn ghost" disabled={pdf.busy} onClick={() => downloadPdf(true)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
                 <Icon name="download" size={16} /> PDF em vetor
               </button>
             )}
