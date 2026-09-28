@@ -1,4 +1,5 @@
 import type { Client, ContractSettings, ContractTemplate, Quote, Settings } from './types'
+import { CLIENT_CONTRACTS, LAIS_CONTRACTS } from './contractTemplates'
 import { porExtenso } from './components/Docs'
 import { PAYMENT_TERMS } from './store'
 import { cleanDetail, docKind, money, optionTotal, payerOf, quoteDeal, quoteNumber, shownOptions, showDoc, today, BOTH } from './utils'
@@ -11,15 +12,24 @@ export const CONTRACT_VARS: [string, string][] = [
   ['contratante', 'nome ou razão social do cliente'],
   ['doc_contratante', 'CPF/CNPJ do cliente'],
   ['endereco_contratante', 'endereço do cliente'],
+  ['email_contratante', 'e-mail do cliente'],
+  ['telefone_contratante', 'telefone do cliente'],
   ['contratada', 'seu nome completo'],
   ['doc_contratada', 'seu CPF/CNPJ'],
   ['endereco_contratada', 'seu endereço'],
+  ['email_contratada', 'seu e-mail'],
+  ['telefone_contratada', 'seu telefone'],
   ['projeto', 'nome do projeto'],
   ['servicos', 'lista de serviços do orçamento'],
   ['valor', 'valor total'],
   ['valor_extenso', 'valor por extenso'],
   ['pagamento', 'forma de pagamento'],
-  ['prazo', 'prazo de entrega'],
+  ['prazo', 'prazo de entrega (texto)'],
+  ['prazo_dias', 'prazo em dias úteis (número)'],
+  ['quantidade', 'quantidade de imagens/itens'],
+  ['entrada', 'entrada (50% do valor)'],
+  ['saldo', 'saldo (50% do valor)'],
+  ['foro', 'cidade do foro'],
   ['revisoes', 'rodadas de ajuste incluídas'],
   ['arquivos', 'formatos entregues'],
   ['orcamento', 'número do orçamento'],
@@ -27,76 +37,22 @@ export const CONTRACT_VARS: [string, string][] = [
   ['data', 'data de hoje, por extenso'],
 ]
 
-const CLAUSULAS_BASE = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS
+/** Modelos padrão: a dona tem o dela (exclusivo); cada freelancer começa com os modelos da plataforma. */
+export const DEFAULT_CONTRACTS = CLIENT_CONTRACTS
+export const defaultTemplates = (owner: boolean) => (owner ? LAIS_CONTRACTS : CLIENT_CONTRACTS)
+export const defaultContractSettings = (owner = false): ContractSettings => ({ templates: defaultTemplates(owner) })
+/** Modelos em uso nesta conta (os editados por ela ou os padrões do perfil). */
+export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
+  const cs = s.contracts
+  return cs?.templates?.length ? cs : { ...(cs ?? {}), templates: defaultTemplates(owner) }
+}
 
-CONTRATANTE: {contratante}, {doc_contratante}, com endereço em {endereco_contratante}.
-CONTRATADA: {contratada}, {doc_contratada}, com endereço em {endereco_contratada}.
-
-As partes acima identificadas têm entre si justo e contratado o seguinte:
-
-CLÁUSULA 1 — DO OBJETO
-O presente contrato tem por objeto a prestação dos serviços abaixo, referentes ao projeto "{projeto}", conforme o orçamento {orcamento}:
-{servicos}
-
-CLÁUSULA 2 — DO VALOR E DA FORMA DE PAGAMENTO
-Pelos serviços, a CONTRATANTE pagará à CONTRATADA o valor total de {valor} ({valor_extenso}), da seguinte forma: {pagamento}.
-
-CLÁUSULA 3 — DO PRAZO
-Os serviços serão entregues em {prazo}, contados a partir do recebimento de todas as informações necessárias e do pagamento da entrada. Atrasos no envio de informações ou aprovações pela CONTRATANTE prorrogam o prazo pelo mesmo período.
-
-CLÁUSULA 4 — DOS AJUSTES
-Estão incluídas {revisoes} rodada(s) de ajuste. Alterações além dessas, ou mudanças de escopo depois da aprovação, serão orçadas à parte.
-
-CLÁUSULA 5 — DA ENTREGA
-Os arquivos serão entregues em: {arquivos}.
-
-CLÁUSULA 6 — DO DIREITO DE USO
-A CONTRATADA poderá divulgar as imagens produzidas em seu portfólio e redes sociais, salvo pedido de sigilo feito por escrito pela CONTRATANTE.
-
-CLÁUSULA 7 — DA RESCISÃO
-Em caso de desistência depois do início dos trabalhos, os valores já pagos correspondem ao trabalho realizado até a data e não serão devolvidos.
-
-CLÁUSULA 8 — DO FORO
-Fica eleito o foro da comarca de {cidade} para dirimir quaisquer dúvidas sobre este contrato.
-
-E, por estarem de acordo, as partes assinam o presente contrato.
-
-{cidade}, {data}.`
-
-export const DEFAULT_CONTRACTS: ContractTemplate[] = [
-  { id: 'servicos', name: 'prestação de serviços (completo)', body: CLAUSULAS_BASE },
-  {
-    id: 'projeto',
-    name: 'projeto de arquitetura / interiores',
-    body: CLAUSULAS_BASE.replace(
-      'CLÁUSULA 6 — DO DIREITO DE USO',
-      `CLÁUSULA 6 — DAS ETAPAS
-O projeto será desenvolvido em etapas (estudo preliminar, anteprojeto e projeto executivo), e cada etapa depende da aprovação da anterior pela CONTRATANTE. Visitas técnicas e acompanhamento de obra não estão incluídos, salvo se descritos no objeto.
-
-CLÁUSULA 6-A — DO DIREITO DE USO`,
-    ),
-  },
-  {
-    id: 'simples',
-    name: 'acordo simples (1 página)',
-    body: `ACORDO DE PRESTAÇÃO DE SERVIÇOS
-
-Eu, {contratada} ({doc_contratada}), e {contratante} ({doc_contratante}) combinamos o seguinte, conforme o orçamento {orcamento}:
-
-• serviços: {servicos}
-• valor total: {valor} ({valor_extenso})
-• pagamento: {pagamento}
-• prazo: {prazo}
-• ajustes incluídos: {revisoes}
-• entrega: {arquivos}
-
-Alterações fora do combinado são orçadas à parte. Em caso de desistência depois do início, os valores pagos correspondem ao trabalho já feito.
-
-{cidade}, {data}.`,
-  },
-]
-
-export const defaultContractSettings = (): ContractSettings => ({ templates: DEFAULT_CONTRACTS })
+/** Modelo sugerido pelo serviço do orçamento (renderização, modelagem, executivo, por hora). */
+export function suggestTemplate(templates: ContractTemplate[], q?: Quote) {
+  const text = (q ? [q.title, ...q.items.map((i) => `${i.service} ${i.title}`), ...q.options.flatMap((o) => o.items.map((i) => `${i.service} ${i.title}`))].join(' ') : '').toLowerCase()
+  const want = /render|imagem|visualiza/.test(text) ? /render|visualiza/ : /modelag/.test(text) ? /modelag/ : /execut|detalh|planta/.test(text) ? /execut|detalh|apoio/ : /hora/.test(text) ? /hora/ : null
+  return (want && templates.find((t) => want.test(t.name.toLowerCase()))) || templates[0]
+}
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 const longDate = (iso: string) => {
@@ -113,6 +69,15 @@ function servicesText(q: Quote) {
 }
 
 const blank = (label: string) => `[${label}]`
+
+/** Quantidade de imagens (ou de itens) do orçamento, para "___ imagens renderizadas". */
+function quantityOf(q: Quote) {
+  const opts = shownOptions(q)
+  const items = q.mode === 'opcoes' ? (q.chosenOption === BOTH ? opts.flatMap((o) => o.items) : (opts.find((o) => o.id === q.chosenOption) ?? opts[0])?.items ?? []) : q.items
+  const images = items.filter((i) => /render|imagem|ia\b/i.test(`${i.service} ${i.title}`))
+  const n = (images.length ? images : items).reduce((acc, i) => acc + (i.quantity || 0), 0)
+  return n ? String(n) : blank('quantidade')
+}
 
 export function contractVars(s: Settings, q?: Quote, client?: Client): Record<string, string> {
   const payer = payerOf(client)
@@ -136,6 +101,15 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
     orcamento: q ? quoteNumber(q) : blank('nº do orçamento'),
     cidade: s.city || blank('cidade'),
     data: longDate(today()),
+    email_contratante: client?.email || blank('e-mail do cliente'),
+    telefone_contratante: client?.phone || blank('telefone do cliente'),
+    email_contratada: s.email || blank('seu e-mail'),
+    telefone_contratada: s.phone || blank('seu telefone'),
+    prazo_dias: q?.deadlineDays ? String(q.deadlineDays) : blank('prazo'),
+    quantidade: q ? quantityOf(q) : blank('quantidade'),
+    entrada: total ? money(Math.round((total / 2) * 100) / 100) : blank('entrada'),
+    saldo: total ? money(total - Math.round((total / 2) * 100) / 100) : blank('saldo'),
+    foro: (s.city || '').replace(/\s*-\s*/, '/') || blank('cidade/UF do foro'),
   }
 }
 

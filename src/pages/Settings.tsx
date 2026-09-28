@@ -16,7 +16,7 @@ import { BrandKit } from '../components/BrandKit'
 import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
 import { useAccess } from '../access'
 import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
-import { defaultContractSettings } from '../contracts'
+import { contractSettings } from '../contracts'
 import { PLANS } from '../plans'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
@@ -640,7 +640,7 @@ function ProposalChooser() {
   const { has } = useAccess()
   const s = data.settings
   const current = resolveTemplate(s.proposal, has)
-  const cs = s.contracts ?? defaultContractSettings()
+  const cs = contractSettings(s, has('modeloExclusivo'))
   const pick = (id: string) => {
     const t = TEMPLATES.find((x) => x.id === id)!
     // cada modelo vem com as cores dele; textos e padrões da conta continuam

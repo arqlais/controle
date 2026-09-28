@@ -6,7 +6,8 @@ import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui
 import { ask, askDelete, toast } from '../components/dialog'
 import { ContractDoc } from '../components/ContractDoc'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
-import { CONTRACT_VARS, contractVars, defaultContractSettings, DEFAULT_CONTRACTS, fillContract } from '../contracts'
+import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate } from '../contracts'
+import { useAccess } from '../access'
 import type { Contract, ContractStatus, ContractTemplate } from '../types'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
 
@@ -21,7 +22,8 @@ const STATUS: Record<ContractStatus, { label: string; color: string }> = {
 
 export default function Contracts({ id }: { id?: string }) {
   const { data, setSettings } = useStore()
-  const cs = data.settings.contracts ?? defaultContractSettings()
+  const { isOwner } = useAccess()
+  const cs = contractSettings(data.settings, isOwner)
   if (cs.off)
     return (
       <div className="page">
@@ -65,7 +67,8 @@ function Disclaimer() {
 
 function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   const { data, setSettings } = useStore()
-  const cs = data.settings.contracts ?? defaultContractSettings()
+  const { isOwner } = useAccess()
+  const cs = contractSettings(data.settings, isOwner)
   const [tab, setTab] = useState<'lista' | 'modelos'>(startTab)
   const [creating, setCreating] = useState(false)
   const [q, setQ] = useState('')
@@ -131,22 +134,40 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
 
 function NewContract({ onClose }: { onClose: () => void }) {
   const { data, upsert } = useStore()
-  const cs = data.settings.contracts ?? defaultContractSettings()
-  const quotes = [...data.quotes].sort((a, b) => (a.status === 'aprovado' ? -1 : 0) - (b.status === 'aprovado' ? -1 : 0) || b.number - a.number)
-  const [quoteId, setQuoteId] = useState(quotes.find((x) => x.status === 'aprovado')?.id ?? quotes[0]?.id ?? '')
-  const [tplId, setTplId] = useState(cs.templates[0]?.id ?? '')
+  const { isOwner } = useAccess()
+  const cs = contractSettings(data.settings, isOwner)
+  // 1) cliente → 2) orçamento dele (o aprovado mais recente já vem escolhido) → 3) modelo sugerido pelo serviço
+  const withQuotes = [...data.clients].filter((c) => !c.archived).sort((a, b) => a.name.localeCompare(b.name))
+  const lastApproved = [...data.quotes].filter((x) => x.status === 'aprovado').sort((a, b) => (b.closedAt ?? b.createdAt).localeCompare(a.closedAt ?? a.createdAt))[0]
+  const [clientId, setClientId] = useState(lastApproved?.clientId ?? '')
+  const quotesOf = (id: string) => data.quotes.filter((x) => x.clientId === id).sort((a, b) => (a.status === 'aprovado' ? 0 : 1) - (b.status === 'aprovado' ? 0 : 1) || b.number - a.number)
+  const [quoteId, setQuoteId] = useState(lastApproved?.id ?? '')
+  const quote = data.quotes.find((x) => x.id === quoteId)
+  const [tplId, setTplId] = useState(suggestTemplate(cs.templates, lastApproved)?.id ?? '')
+  const client = data.clients.find((c) => c.id === clientId)
+  const pickClient = (id: string) => {
+    setClientId(id)
+    const q = quotesOf(id)[0]
+    setQuoteId(q?.id ?? '')
+    setTplId(suggestTemplate(cs.templates, q)?.id ?? tplId)
+  }
+  const pickQuote = (id: string) => {
+    setQuoteId(id)
+    setTplId(suggestTemplate(cs.templates, data.quotes.find((x) => x.id === id))?.id ?? tplId)
+  }
+  // o que falta preencher (aparece antes de criar)
+  const vars = contractVars(data.settings, quote, client)
+  const tpl = cs.templates.find((t) => t.id === tplId) ?? cs.templates[0]
+  const missing = tpl ? [...new Set((fillContract(tpl.body, vars).match(/\[[^\]\n]{3,40}\]/g) ?? []).map((x) => x.slice(1, -1)))] : []
   const create = () => {
-    const quote = data.quotes.find((x) => x.id === quoteId)
-    const client = data.clients.find((c) => c.id === quote?.clientId)
-    const tpl = cs.templates.find((t) => t.id === tplId) ?? cs.templates[0]
     if (!tpl) return toast('Crie um modelo primeiro.')
     const c: Contract = {
       id: uid(),
       title: `contrato · ${quote?.title || client?.name || 'sem título'}`,
       quoteId,
-      clientId: quote?.clientId ?? '',
+      clientId,
       templateId: tpl.id,
-      body: fillContract(tpl.body, contractVars(data.settings, quote, client)),
+      body: fillContract(tpl.body, vars),
       status: 'rascunho',
       createdAt: today(),
     }
@@ -163,33 +184,64 @@ function NewContract({ onClose }: { onClose: () => void }) {
           <button className="btn ghost" onClick={onClose}>
             cancelar
           </button>
-          <button className="btn primary" onClick={create}>
+          <button className="btn primary" onClick={create} disabled={!clientId}>
             criar contrato
           </button>
         </>
       }
     >
       <div className="stack">
-        <Field label="Orçamento" hint="Os dados do cliente e do orçamento preenchem o contrato. Sem orçamento, os campos ficam [entre colchetes] para você completar.">
-          <select value={quoteId} onChange={(e) => setQuoteId(e.target.value)}>
-            <option value="">sem orçamento (em branco)</option>
-            {quotes.map((x) => (
-              <option key={x.id} value={x.id}>
-                {quoteNumber(x)} · {x.title || 'sem título'} · {data.clients.find((c) => c.id === x.clientId)?.name ?? '—'}
-                {x.status === 'aprovado' ? ' ✓' : ''}
+        <Field label="1. Cliente">
+          <select id="nc-client" value={clientId} onChange={(e) => pickClient(e.target.value)}>
+            <option value="">escolha o cliente…</option>
+            {withQuotes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {c.company ? ` · ${c.company}` : ''}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Modelo">
-          <select value={tplId} onChange={(e) => setTplId(e.target.value)}>
-            {cs.templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {clientId && (
+          <Field label="2. Orçamento" hint={quotesOf(clientId).length ? 'O número, os serviços, o valor e o prazo vêm dele.' : 'Este cliente ainda não tem orçamento: o contrato sai com os dados dele e o resto [entre colchetes].'}>
+            <select value={quoteId} onChange={(e) => pickQuote(e.target.value)}>
+              <option value="">sem orçamento</option>
+              {quotesOf(clientId).map((x) => (
+                <option key={x.id} value={x.id}>
+                  {quoteNumber(x)} · {x.title || 'sem título'}
+                  {x.status === 'aprovado' ? ' ✓ aprovado' : ` · ${x.status}`}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {clientId && (
+          <Field label="3. Modelo" hint="Sugerido pelo serviço do orçamento; dá para trocar.">
+            <select value={tplId} onChange={(e) => setTplId(e.target.value)}>
+              {cs.templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {clientId && missing.length > 0 && (
+          <p className="pf-note is-warn">
+            <Icon name="alert" size={16} />
+            <span>
+              Falta: <b>{missing.join(', ')}</b>. Dá para completar no texto do contrato, ou no cadastro do{' '}
+              <a className="link" href={href('clientes', clientId)} onClick={onClose}>
+                cliente
+              </a>{' '}
+              e no seu{' '}
+              <a className="link" href={href('perfil')} onClick={onClose}>
+                perfil
+              </a>
+              .
+            </span>
+          </p>
+        )}
       </div>
     </Modal>
   )
@@ -197,6 +249,7 @@ function NewContract({ onClose }: { onClose: () => void }) {
 
 function ContractEditor({ id }: { id: string }) {
   const { data, upsert, remove } = useStore()
+  const { isOwner } = useAccess()
   const found = data.contracts?.find((c) => c.id === id)
   const [c, setC] = useState<Contract | undefined>(found)
   const [zoom, setZoom] = useState(false)
@@ -204,7 +257,7 @@ function ContractEditor({ id }: { id: string }) {
   if (!c) return <Empty icon="file" title="contrato não encontrado" action={<a className="btn" href={href('contratos')}>ver contratos</a>} />
   const client = data.clients.find((x) => x.id === c.clientId)
   const quote = data.quotes.find((x) => x.id === c.quoteId)
-  const cs = data.settings.contracts ?? defaultContractSettings()
+  const cs = contractSettings(data.settings, isOwner)
   const dirty = JSON.stringify(c) !== JSON.stringify(found)
   const set = (patch: Partial<Contract>) => setC({ ...c, ...patch })
   const save = (patch: Partial<Contract> = {}) => {
@@ -241,6 +294,9 @@ function ContractEditor({ id }: { id: string }) {
               <Icon name="whatsapp" size={16} /> enviar
             </a>
           )}
+          <button className="btn ghost" onClick={() => setZoom(true)} title="Ver o contrato em tamanho grande">
+            <Icon name="eye" size={16} /> ver maior
+          </button>
           <button className="btn ghost" onClick={() => navigator.clipboard?.writeText(c.body).then(() => toast('Texto copiado.')).catch(() => toast('Selecione o texto e copie.'))}>
             <Icon name="copy" size={16} /> copiar texto
           </button>
@@ -331,7 +387,8 @@ function ContractEditor({ id }: { id: string }) {
 
 function TemplatesEditor() {
   const { data, setSettings } = useStore()
-  const cs = data.settings.contracts ?? defaultContractSettings()
+  const { isOwner } = useAccess()
+  const cs = contractSettings(data.settings, isOwner)
   const [openId, setOpenId] = useState(cs.templates[0]?.id ?? '')
   const ref = useRef<HTMLTextAreaElement>(null)
   const setTemplates = (templates: ContractTemplate[]) => setSettings({ contracts: { ...cs, templates } })
@@ -373,7 +430,7 @@ function TemplatesEditor() {
             </button>
           ))}
         </div>
-        <button className="link small" onClick={async () => (await ask('Voltar os modelos para os originais? Os modelos que você criou ou editou serão substituídos.', { confirmLabel: 'Restaurar' })) && setTemplates(DEFAULT_CONTRACTS)}>
+        <button className="link small" onClick={async () => (await ask('Voltar os modelos para os originais? Os modelos que você criou ou editou serão substituídos.', { confirmLabel: 'Restaurar' })) && setTemplates(defaultTemplates(isOwner))}>
           restaurar modelos originais
         </button>
       </Section>
