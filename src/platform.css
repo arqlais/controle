@@ -1073,3 +1073,5 @@
 .sidebar { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
 .sidebar nav { flex: 1 0 auto; }
 @media (max-height: 900px) and (min-width: 721px) { .sidebar nav a, .sidebar nav .nav-tour { padding-top: 8px; padding-bottom: 8px; } .brand { padding-bottom: 18px; } }
+.page-loading { min-height: 40vh; border-radius: 20px; background: linear-gradient(90deg, var(--surface-2), var(--surface), var(--surface-2)); background-size: 200% 100%; animation: page-shimmer 1.2s linear infinite; opacity: 0.6; }
+@keyframes page-shimmer { to { background-position: -200% 0; } }

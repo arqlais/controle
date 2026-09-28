@@ -98,7 +98,7 @@ const BENEFITS = [
   { icon: 'trend', title: 'financeiro', hint: 'recebido, a receber e despesas', text: 'saber, de verdade, quanto você lucra por mês.' },
 ]
 
-const FAQ: [string, ReactNode][] = [
+const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['serve para quem está começando?', 'Serve, e foi pensado para isso: estudantes e freelancers em começo de carreira, que precisam de organização sem pagar caro.'],
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
@@ -434,7 +434,7 @@ export default function Landing() {
         <div className="lp-wrap lp-faq-wrap">
           <SectionHead eyebrow="dúvidas" title={<>perguntas <em>frequentes</em></>} />
           <div className="lp-faq">
-            {FAQ.map(([q, a]) => (
+            {faq().map(([q, a]) => (
               <details key={q} className="card lp-faq-item">
                 <summary>
                   {q}

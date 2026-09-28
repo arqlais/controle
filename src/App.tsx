@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, hasDemoData, useStore } from './store'
 import { ask } from './components/dialog'
 import type { SyncStatus } from './store'
@@ -21,14 +21,14 @@ import ProjectDetail from './pages/ProjectDetail'
 import Finance from './pages/Finance'
 import Agenda from './pages/Agenda'
 import Quotes from './pages/Quotes'
-import QuoteEditor from './pages/QuoteEditor'
-import SettingsPage from './pages/Settings'
-import Manual from './pages/Manual'
-import Instagram from './pages/Instagram'
+const QuoteEditor = lazy(() => import('./pages/QuoteEditor'))
+const SettingsPage = lazy(() => import('./pages/Settings'))
+const Manual = lazy(() => import('./pages/Manual'))
+const Instagram = lazy(() => import('./pages/Instagram'))
 import Profile, { profileImportant } from './pages/Profile'
-import Contracts from './pages/Contracts'
-import Admin from './pages/Admin'
-import Checkout from './pages/Checkout'
+const Contracts = lazy(() => import('./pages/Contracts'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Checkout = lazy(() => import('./pages/Checkout'))
 import Suggestions from './pages/Suggestions'
 import Feedback from './pages/Feedback'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
@@ -496,7 +496,10 @@ export default function App() {
               </div>
             </div>
           )}
-          <Fragment key={isSample ? 'exemplo' : 'real'}>{page}</Fragment>
+          <Fragment key={isSample ? 'exemplo' : 'real'}>
+            {/* telas mais pesadas chegam só quando abertas */}
+            <Suspense fallback={<div className="page-loading" aria-busy="true" />}>{page}</Suspense>
+          </Fragment>
         </main>
         <StatusDialogHost />
         {access.has('assistenteIA') ? (
