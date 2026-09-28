@@ -18,6 +18,7 @@ export const CLIENT_SERVICES: ServiceDef[] = [
   { id: 'executivo', name: 'desenho técnico / executivo', unit: 'm²', pricing: 'm2', price: 6, base: 400, min: 0, hours: 0.12, tiers: [] },
   { id: 'planta-hum', name: 'planta humanizada', unit: 'planta', pricing: 'unidade', price: 250, min: 0, hours: 4, tiers: [] },
   { id: 'prancha', name: 'prancha de apresentação', unit: 'prancha', pricing: 'unidade', price: 150, min: 0, hours: 3, tiers: [] },
+  { id: 'slides', name: 'apresentação em slides', unit: 'slide', pricing: 'unidade', price: 30, min: 150, hours: 0.75, tiers: [] },
   { id: 'personalizado', name: 'serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
 
