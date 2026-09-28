@@ -35,6 +35,9 @@ import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscripti
 import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
+import { setViewAsClient, viewingAsClient } from './viewAs'
+import { PREVIEW_CLIENT, setPreviewRole } from './platform'
+import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { useInbox } from './chat'
 import { trialOver } from './platform'
@@ -133,6 +136,30 @@ export default function App() {
       ].filter((g) => g.items.length),
     [access],
   )
+  // portfólio / site (do perfil): abre em outra aba
+  const siteUrl = (() => {
+    const w = (settings.website || (access.isOwner ? 'www.lais3d.com.br' : '')).trim()
+    return w ? (/^https?:\/\//.test(w) ? w : `https://${w}`) : ''
+  })()
+  // dona: abrir o sistema como um cliente novo (na prévia, troca o "ver como")
+  const openClientView = () => {
+    setMenuOpen(false)
+    if (CLOUD) setViewAsClient(true)
+    else {
+      // prévia: conta de cliente fictícia (nunca com o perfil da dona)
+      if (!hasLocalAccount(PREVIEW_CLIENT)) {
+        try {
+          localStorage.setItem(SIGNUP_KEY, JSON.stringify({ name: 'Ana', studio: 'estúdio exemplo', demo: true }))
+        } catch {
+          /* ok */
+        }
+        seedPreviewAccount(PREVIEW_CLIENT)
+      }
+      setPreviewRole('cliente')
+    }
+    go('inicio')
+  }
+  const asClient = CLOUD && viewingAsClient()
   // passo a passo do primeiro acesso: aparece para quem assina até concluir/pular ("ver depois" = volta no dia seguinte)
   const [tourOpen, setTourOpen] = useState(false)
   useEffect(() => {
@@ -240,7 +267,7 @@ export default function App() {
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
-        <a className="brand" href={href('inicio')}>
+        <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 11 ? 'is-long' : ''}`} href={href('inicio')}>
           <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}><AvatarGlyph s={settings} size={24} /></span>
           <span className="brand-text">
             <span className="brand-kicker">meu estúdio</span>
@@ -298,7 +325,19 @@ export default function App() {
                   </a>
                 )
               })}
-              {g.key === 'ajustes' && (
+              {g.key === 'plataforma' && (
+                <button type="button" className="is-tool nav-tour" onClick={() => openClientView()} title="Abrir o sistema como um cliente novo em teste grátis (nada é salvo)">
+                  <Icon name="user" />
+                  <span>ver como cliente</span>
+                </button>
+              )}
+              {g.key === 'ajustes' && siteUrl && (
+                <a className="is-tool" href={siteUrl} target="_blank" rel="noreferrer" title="Abre em outra aba">
+                  <Icon name="link" />
+                  <span>{access.isOwner ? 'meu portfólio' : 'meu site'} ↗</span>
+                </a>
+              )}
+              {g.key === 'ajustes' && !access.isOwner && (
                 <button type="button" className="is-tool nav-tour" onClick={() => (setMenuOpen(false), go('inicio'), setTourOpen(true))}>
                   <Icon name="sparkle" />
                   <span>passo a passo</span>
@@ -327,12 +366,13 @@ export default function App() {
             <Icon name={dark ? 'sun' : 'moon'} />
           </button>
           <button
-            className="icon-btn desktop-only"
+            className={`icon-btn sample-toggle ${exampleOn ? 'is-on' : ''}`}
             onClick={toggleExample}
             title={exampleOn ? 'Ocultar exemplo' : 'Ver exemplo preenchido'}
             aria-label={exampleOn ? 'Ocultar exemplo' : 'Ver exemplo preenchido'}
           >
-            <Icon name={exampleOn ? 'eye' : 'eye-off'} />
+            <Icon name={exampleOn ? 'eye' : 'eye-off'} size={16} />
+            <span>exemplo</span>
           </button>
           <SyncBadge sync={sync} lastSaved={lastSaved} />
           {CLOUD && (
@@ -402,6 +442,22 @@ export default function App() {
           </div>
         </header>
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
+        {asClient && (
+          <div className="owner-sales-bar" role="region" aria-label="Você está vendo como cliente">
+            <span>
+              <Icon name="user" size={15} /> você está vendo como <b>um cliente novo</b> · nada aqui é salvo
+            </span>
+            <button
+              className="btn small primary"
+              onClick={() => {
+                setViewAsClient(false)
+                go('plataforma')
+              }}
+            >
+              voltar para a minha conta
+            </button>
+          </div>
+        )}
         <main className="content">
           {isSample && (
             <div className="demo-banner">

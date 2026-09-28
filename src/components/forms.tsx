@@ -245,6 +245,8 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
   const [payMode, setPayMode] = useState<PayChoice>(initial?.payments.length ? 'manter' : '50-50')
   const [showNewClient, setShowNewClient] = useState(false)
   const [showEditClient, setShowEditClient] = useState(false)
+  // trabalho antigo (feito antes do sistema): entra já entregue e pago, sem orçamento e sem número
+  const [past, setPast] = useState(false)
   const set = <K extends keyof Project>(k: K, v: Project[K]) => setP((x) => ({ ...x, [k]: v }))
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = settings.services.find((s) => s.id === p.service)
@@ -270,6 +272,10 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
       const paidSum = p.payments.filter((x) => x.paidDate).reduce((s, x) => s + x.amount, 0)
       if (paidSum > 0 && !(await ask('Recriar as parcelas vai apagar os pagamentos já registrados deste projeto. Continuar?', { confirmLabel: 'Recriar parcelas', danger: true }))) return
       final = { ...p, payments: total > 0 ? splitPayments(total, payMode, p.startDate, p.dueDate) : [] }
+    }
+    if (past && !initial) {
+      const when = final.dueDate || final.startDate || today()
+      final = { ...final, status: 'entregue', deliveredDate: when, payments: final.payments.map((x) => ({ ...x, dueDate: x.dueDate || when, paidDate: x.dueDate || when })), tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: true })) }
     }
     if (final.status === 'entregue' && !final.deliveredDate) final = { ...final, deliveredDate: today() }
     if (!final.tasks.length && !initial) {
@@ -306,6 +312,11 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
       }
     >
       <div className="form-grid">
+        {!initial && (
+          <label className="check toggle past-job" style={{ gridColumn: '1 / -1' }}>
+            <input type="checkbox" checked={past} onChange={(e) => setPast(e.target.checked)} /> trabalho antigo, já entregue e pago (entra no financeiro sem orçamento e sem número)
+          </label>
+        )}
         <Field label="Nome do projeto *" span={2}>
           <input autoFocus value={p.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex.: Apartamento Savassi — living" />
         </Field>

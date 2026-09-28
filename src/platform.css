@@ -1033,3 +1033,9 @@
 .fb-card footer > span { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
 .fb-card footer .check { font-size: 12.5px; white-space: nowrap; }
 .fb-card footer { flex-wrap: wrap; } .fb-card footer > span { flex: 1 1 100%; } .fb-card footer .icon-btn { margin-left: auto; }
+
+/* olhinho do exemplo: com nome, visível também no celular */
+.sidebar-foot .sample-toggle { width: auto; padding: 0 10px; gap: 6px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+.sidebar-foot .sample-toggle.is-on { background: var(--accent-tint); color: var(--accent-ink); }
+/* nome do estúdio comprido: letra menor e até 2 linhas (não corta com "...") */
+.brand.is-long .brand-name { font-size: 20px; white-space: normal; overflow: visible; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.1; }

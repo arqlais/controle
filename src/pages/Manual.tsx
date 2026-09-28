@@ -55,7 +55,7 @@ const STEPS: Step[] = [
     when: 'O orçamento está pronto.',
     where: { path: ['orçamentos', 'abrir o orçamento', 'baixar PDF / enviar'], page: 'orcamentos' },
     todo: [
-      <><b>baixar PDF</b> salva “Proposta #001 - Nome da cliente.pdf”.</>,
+      <><b>baixar PDF</b> salva “Proposta #001 - Nome do cliente.pdf”.</>,
       <><b>enviar</b> abre o WhatsApp com a sua mensagem (“te encaminhei o pdf com a proposta, é negociável ☺️…”); anexe o PDF na conversa. Sem PDF, vai o resumo com os valores. O status muda sozinho para <b>enviado</b>.</>,
       <>No botão <b>mais ⋯</b> ficam <b>mensagens</b> (textos prontos), <b>copiar resumo</b>, <b>duplicar</b> (cópia com a data de hoje e o próximo número) e <b>perguntar à IA</b>.</>,
     ],
@@ -120,7 +120,7 @@ const STEPS: Step[] = [
       <>Enquanto estiver <b>em ajustes</b> ou <b>em aprovação</b>, a demanda aparece no início em <b>próximos 7 dias → esperando a cliente</b>, com o botão <b>cobrar</b> (mensagem pronta no WhatsApp).</>,
       <>Por fim, <b>marcar como entregue</b> no topo da demanda. A data já vem com o prazo (ou hoje). Se a cliente cancelou o restante, marque <b>o cliente cancelou</b> na mesma janela.</>,
     ],
-    tip: <>Os textos de cobrança, aprovação e entrega ficam no botão <b>mensagens</b> da demanda, já com o nome da cliente e os valores. O <b>Recibo</b>, no topo dos pagamentos, mostra o total, o que já foi pago e o que falta, em PDF ou imagem para o WhatsApp.</>,
+    tip: <>Os textos de cobrança, aprovação e entrega ficam no botão <b>mensagens</b> da demanda, já com o nome do cliente e os valores. O <b>Recibo</b>, no topo dos pagamentos, mostra o total, o que já foi pago e o que falta, em PDF ou imagem para o WhatsApp.</>,
   },
 ]
 
@@ -238,7 +238,7 @@ const WHERE: [string, string, string][] = [
   ['recibo de cobrança (o que falta pagar)', 'demanda → pagamentos → Recibo', 'projetos'],
   ['duplicar / mensagens / copiar resumo', 'orçamento → mais ⋯', 'orcamentos'],
   ['rascunhos de orçamento', 'demandas → quadro → primeira coluna', 'projetos'],
-  ['dados da empresa (CNPJ) da cliente', 'cliente → editar → + dados da empresa', 'clientes'],
+  ['dados da empresa (CNPJ) do cliente', 'cliente → editar → + dados da empresa', 'clientes'],
   ['histórico de uma cliente', 'clientes → abrir a cliente', 'clientes'],
   ['criar coluna no quadro', 'demandas → quadro → nova coluna (no fim)', 'projetos'],
   ['mudar ordem do menu', 'organizar menu (abaixo do menu)', ''],

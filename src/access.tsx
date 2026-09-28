@@ -27,9 +27,10 @@ export const useAccess = () => useContext(Ctx)
 
 const cacheKey = (userId: string) => `acesso:${userId}`
 
-export function AccessProvider({ userId, plan, children }: { userId: string; plan?: string; children: ReactNode }) {
-  const [info, setInfo] = useState<AccessInfo | null>(null)
+export function AccessProvider({ userId, plan, children, override }: { userId: string; plan?: string; children: ReactNode; override?: AccessInfo }) {
+  const [info, setInfo] = useState<AccessInfo | null>(override ?? null)
   const load = useCallback(async () => {
+    if (override) return setInfo(override)
     try {
       const i = await platform.access(plan)
       setInfo(i)
@@ -57,7 +58,7 @@ export function AccessProvider({ userId, plan, children }: { userId: string; pla
         setInfo({ role: 'cliente', sub: null, legacy: false })
       }
     }
-  }, [plan, userId])
+  }, [plan, userId, override])
 
   useEffect(() => {
     void load()
