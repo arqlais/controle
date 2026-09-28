@@ -28,6 +28,7 @@ import {
   urgency,
   urgencyScore,
   templateText,
+  STATUS,
   whatsappLink, addDays } from '../utils'
 
 export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'cliente') => void }) {
@@ -74,6 +75,18 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
 
 
   const weekDeliveries = upcoming.filter((u) => u.kind === 'entrega').length
+  // a bola está com a cliente (ajustes / aprovação): aparece na semana para lembrar de cobrar o retorno
+  const waiting = open.filter((p) => p.status === 'revisao' || p.status === 'aguardando')
+  const waitText = (p: (typeof open)[number]) =>
+    templateText(
+      settings,
+      p.status === 'aguardando' ? 'retorno-aprovacao' : 'retorno-ajustes',
+      p.status === 'aguardando'
+        ? 'oii, {cliente}, tudo bem? ✨ passando para saber se conseguiu ver o projeto {projeto} e se está tudo de acordo. fico no aguardo para seguirmos ☺️'
+        : 'oii, {cliente}, tudo bem? ✨ passando para saber se já conseguiu ver os ajustes do projeto {projeto}. fico no aguardo do seu retorno para seguirmos ☺️',
+      data.clients.find((c) => c.id === p.clientId),
+      p,
+    )
   const hour = new Date().getHours()
   const hello = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
   const d = new Date()
@@ -111,6 +124,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
           </h1>
           <p className="welcome-sub">
             {weekDeliveries === 0 ? 'nenhuma entrega nesta semana' : weekDeliveries === 1 ? '1 entrega nesta semana' : `${weekDeliveries} entregas nesta semana`} ·{' '}
+            {waiting.length ? `${waiting.length} esperando retorno da cliente · ` : ''}
             {money(receivable)} a receber
           </p>
         </div>
@@ -194,8 +208,36 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         </Section>
 
         <Section title="Próximos 7 dias" action={<a href={href('agenda')} className="link">Agenda →</a>}>
+          {waiting.length > 0 && (
+            <div className="waiting-list">
+              <span className="field-label">esperando a cliente · cobrar retorno</span>
+              <ul className="timeline">
+                {waiting.map((p) => {
+                  const c = data.clients.find((x) => x.id === p.clientId)
+                  return (
+                    <li key={p.id}>
+                      <a href={href('projetos', p.id)}>
+                        <span className="dot" style={{ background: STATUS[p.status].color }} />
+                        <div className="grow">
+                          <div className="list-title">{p.title}</div>
+                          <div className="list-sub">
+                            {STATUS[p.status].label.toLowerCase()} · {c?.name ?? ''}
+                          </div>
+                        </div>
+                      </a>
+                      {c?.phone && (
+                        <a className="btn small ghost" href={whatsappLink(c.phone, waitText(p))} target="_blank" rel="noreferrer" title="Mensagem pedindo o retorno">
+                          <Icon name="whatsapp" size={14} /> cobrar
+                        </a>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )}
           {upcoming.length === 0 ? (
-            <Empty icon="calendar" title="Semana livre" text="Nenhuma entrega, pagamento ou compromisso." />
+            waiting.length ? null : <Empty icon="calendar" title="Semana livre" text="Nenhuma entrega, pagamento ou compromisso." />
           ) : (
             <ul className="timeline">
               {upcoming.map((u, i) => (

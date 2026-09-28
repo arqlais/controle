@@ -310,7 +310,7 @@ export default function SettingsPage() {
                       <Field label="Como é entregue" hint="Vai no PDF em “formatos de arquivos entregues”.">
                         <input value={x.delivery ?? ''} onChange={(e) => setService(x.id, { delivery: e.target.value })} placeholder="Ex.: PDF fechado, pronto para execução" />
                       </Field>
-                      <Field label="Se o cliente quiser o arquivo aberto" hint="Em branco = não se aplica. Soma a taxa interna de arquivo aberto.">
+                      <Field label="Se o cliente quiser o arquivo aberto" hint="Em branco = usa a entrega normal + “arquivo aberto (editável)”. O valor soma a taxa interna de arquivo aberto.">
                         <input value={x.deliveryOpen ?? ''} onChange={(e) => setService(x.id, { deliveryOpen: e.target.value })} placeholder="Ex.: PDF + arquivo aberto (editável) do layout" />
                       </Field>
                       <Field label="Observações prontas" hint="Uma por linha. Aparecem como sugestão na observação do orçamento (um toque coloca ou tira).">

@@ -199,6 +199,8 @@ export const DEFAULT_MESSAGES: MessageTemplate[] = [
   { id: 'retorno', name: 'cobrar resposta do orçamento', text: 'oii, {cliente}, tudo bem? ✨ passando para saber se conseguiu ver a proposta {proposta} ({projeto}). se quiser ajustar alguma coisa é só me falar, fico à disposição ☺️' },
   { id: 'aprovado', name: 'orçamento aprovado · pedir sinal', text: 'que ótimo, {cliente}! fico muito feliz 💗\n\npara darmos início, o sinal é de *{valor_parcela}* via pix (chave: {pix}). assim que confirmar, me envia por favor os arquivos do projeto (dwg/skp) e as referências ✨' },
   { id: 'sinal-recebido', name: 'sinal recebido · início', text: 'oii, {cliente}! sinal recebido, obrigada 💗 já comecei o projeto {projeto} e a previsão de entrega é *{prazo}*. qualquer novidade te aviso por aqui ✨' },
+  { id: 'retorno-ajustes', name: 'cobrar retorno dos ajustes', text: 'oii, {cliente}, tudo bem? ✨ passando para saber se já conseguiu ver os ajustes do projeto {projeto}. fico no aguardo do seu retorno para seguirmos ☺️' },
+  { id: 'retorno-aprovacao', name: 'cobrar aprovação do projeto', text: 'oii, {cliente}, tudo bem? ✨ passando para saber se conseguiu ver o projeto {projeto} e se está tudo de acordo. fico no aguardo para seguirmos ☺️' },
   { id: 'previa', name: 'envio de prévia para aprovação', text: 'oii, {cliente}! segue a prévia do projeto {projeto} ✨ dá uma olhada com calma e me diz se está tudo de acordo ou se prefere algum ajuste ☺️' },
   { id: 'cobranca', name: 'lembrete de pagamento', text: 'oii, {cliente}, tudo bem? ✨ passando para lembrar da parcela "{parcela}" do projeto {projeto}, de *{valor_parcela}*, com vencimento em {vencimento}. chave pix: {pix}\n\nobrigada 💗' },
   { id: 'cobranca-atraso', name: 'pagamento em atraso', text: 'oii, {cliente}, tudo bem? a parcela "{parcela}" do projeto {projeto}, de *{valor_parcela}*, venceu em {vencimento}. consegue verificar pra mim? chave pix: {pix}\n\nqualquer coisa me avisa, obrigada 💗' },
@@ -222,11 +224,19 @@ const OLD_MESSAGE_TEXTS: Record<string, string> = Object.fromEntries(
   ] as [string, string][]),
 )
 
+// mensagens novas que entraram depois (uma vez só: se ela apagar, não volta)
+const LATER_MESSAGES = ['retorno-ajustes', 'retorno-aprovacao']
+function addNewMessages(list: MessageTemplate[]): MessageTemplate[] {
+  const seen = new Set(list.map((m) => m.id))
+  const add = DEFAULT_MESSAGES.filter((m) => LATER_MESSAGES.includes(m.id) && !seen.has(m.id))
+  return add.length ? [...list, ...add] : list
+}
+
 export function migrateMessages(list: MessageTemplate[] | undefined): MessageTemplate[] {
   if (!list?.length) return DEFAULT_MESSAGES
   const fresh = new Map(DEFAULT_MESSAGES.map((m) => [m.id, m]))
   const kept = list.map((m) => (OLD_MESSAGE_TEXTS[m.id] === m.text && fresh.has(m.id) ? { ...fresh.get(m.id)! } : m))
-  const missing = DEFAULT_MESSAGES.filter((m) => (m.id === 'apresentacao' || m.id === 'parceria') && !kept.some((k) => k.id === m.id))
+  const missing = DEFAULT_MESSAGES.filter((m) => ['apresentacao', 'parceria', 'retorno-ajustes', 'retorno-aprovacao'].includes(m.id) && !kept.some((k) => k.id === m.id))
   return [...missing, ...kept]
 }
 
@@ -318,6 +328,7 @@ export const DEFAULT_SETTINGS: Settings = {
   navOrder: [],
   messages: DEFAULT_MESSAGES,
   messagesV2: true,
+  messagesV3: true,
 }
 
 export function emptyData(): Data {
@@ -419,8 +430,9 @@ export function normalize(d: Partial<Data>): Data {
         ),
         imagesV1: true,
         // mensagens no jeito dela (uma vez só; as que ela editou ficam como estão)
-        messages: d.settings?.messagesV2 ? (d.settings.messages ?? DEFAULT_MESSAGES) : migrateMessages(d.settings?.messages),
+        messages: !d.settings?.messagesV2 ? migrateMessages(d.settings?.messages) : d.settings.messagesV3 ? (d.settings.messages ?? DEFAULT_MESSAGES) : addNewMessages(d.settings.messages ?? DEFAULT_MESSAGES),
         messagesV2: true,
+        messagesV3: true,
       },
       d.settings,
     ),

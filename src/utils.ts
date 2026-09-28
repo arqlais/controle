@@ -390,6 +390,9 @@ export const pricedByList = (s: ServiceDef | undefined, lines: string[]) =>
   !!s && hasList(s) && !!s.checklistPrices && Object.keys(s.checklistPrices).length > 0 && lines.some((l) => l.trim()) && s.pricing !== 'livre'
 
 /** Sugestão de valor pela tabela (0 quando o serviço é de valor livre). */
+/** Serviço que já é entregue aberto (ex.: modelagem em SketchUp): a taxa de arquivo aberto não se aplica. */
+export const alreadyOpen = (s?: ServiceDef) => !!s && !s.deliveryOpen && /aberto|sketchup|\bskp\b/i.test(s.delivery ?? '')
+
 export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = [], openFile = false, floors = 1) {
   if (!s || s.pricing === 'livre') return 0
   const cx = st.complexity[complexity] ?? 1
@@ -403,7 +406,7 @@ export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity:
   // cada pavimento a mais: pranchas, arquivos e modelos a mais
   if (s.perFloor && floors > 1) v *= 1 + ((floors - 1) * (st.floorFee ?? 50)) / 100
   // arquivo aberto: taxa interna embutida no valor (a proposta só diz como será entregue)
-  if (openFile && s.deliveryOpen) v *= 1 + (st.openFileFee ?? 30) / 100
+  if (openFile && !alreadyOpen(s)) v *= 1 + (st.openFileFee ?? 30) / 100
   if (student && st.studentDiscount) v *= 1 - st.studentDiscount / 100
   return round2(v)
 }
@@ -440,6 +443,7 @@ export const optionArea = (q: Quote, o?: QuoteOption) => ({
   area: o?.area ?? q.area,
   approx: o?.areaApprox ?? !!q.areaApprox,
   floors: Math.max(1, o?.floors ?? q.floors ?? 1),
+  floorsHidden: o?.floorsHidden ?? !!q.floorsHidden,
 })
 
 /** Para pesquisar sem se importar com acento ou maiúscula: "Araújo" = "araujo". */
@@ -778,12 +782,14 @@ export const quoteServices = (q: Quote, services: ServiceDef[]) => {
   const ids = [...new Set(items.map((i) => i.service).filter(Boolean))]
   return ids.map((id) => services.find((s) => s.id === id)).filter((s): s is ServiceDef => !!s)
 }
-export const canOpenFile = (q: Quote, services: ServiceDef[]) => quoteServices(q, services).some((s) => !!s.deliveryOpen)
+/** Tem algum serviço no orçamento em que o arquivo aberto faz sentido (tudo menos o que já vai aberto). */
+export const canOpenFile = (q: Quote, services: ServiceDef[]) =>
+  [...q.items, ...(q.mode === 'opcoes' ? q.options.flatMap((o) => o.items) : [])].some((it) => !it.joined && (it.price > 0 || it.service) && !alreadyOpen(services.find((x) => x.id === it.service)))
 
 /** Texto de "formatos de arquivos entregues" montado pelos serviços do orçamento. */
 export function autoFiles(q: Quote, services: ServiceDef[]) {
   const parts = quoteServices(q, services)
-    .map((s) => ({ name: s.name, text: ((q.openFile && s.deliveryOpen) || s.delivery || '').trim() }))
+    .map((s) => ({ name: s.name, text: ((q.openFile && (s.deliveryOpen || (!alreadyOpen(s) && s.delivery ? `${s.delivery} + arquivo aberto (editável)` : ''))) || s.delivery || '').trim() }))
     .filter((x) => x.text)
   const texts = [...new Set(parts.map((x) => x.text))]
   if (!texts.length) return ''

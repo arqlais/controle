@@ -173,6 +173,7 @@ export interface QuoteItem {
   unitDiscount?: number // desconto em R$ por unidade (ex.: por imagem) sobre a tabela
   auto: boolean // true = valor segue a tabela; false = digitado à mão
   joined?: boolean // cobrado junto com o serviço de cima (um valor só para os dois)
+  openFee?: boolean // valor digitado à mão já com a taxa de arquivo aberto somada
 }
 
 export interface QuoteOption {
@@ -187,6 +188,7 @@ export interface QuoteOption {
   area?: number
   areaApprox?: boolean
   floors?: number
+  floorsHidden?: boolean // não mostra os pavimentos no PDF (só servem para o valor)
   // campos antigos (propostas criadas antes do modelo novo)
   summary?: string
   included?: string[]
@@ -203,6 +205,7 @@ export interface Quote {
   area: number // m² do projeto, mostrado na legenda da proposta (0 = não mostrar)
   areaApprox?: boolean // área estimada: aparece como "≈ 45.000 m²"
   floors?: number // nº de pavimentos (1 = térreo só); cada um a mais encarece
+  floorsHidden?: boolean // não mostra os pavimentos no PDF (só servem para o valor)
   clientLabel: string // nome em "para …" (vazio = nome do cliente)
   items: QuoteItem[]
   options: QuoteOption[]
@@ -323,6 +326,7 @@ export interface Settings {
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
+  messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)
   messagesV2?: boolean // migração: mensagens padrão reescritas em minúsculas, com emojis
   imagesV1?: boolean // migração: imagens deixaram de encarecer por pavimento
   aiLowercase?: boolean // respostas da IA em minúsculas (R$ sempre maiúsculo); padrão ligado

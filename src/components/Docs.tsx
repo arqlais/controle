@@ -235,8 +235,8 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const clientName = client?.name || '[nome do cliente]'
   // cada quadro com a própria área e pavimentos (opções/propostas de projetos diferentes)
   const heading = (name: string, o?: QuoteOption) => {
-    const { area, approx, floors } = optionArea(quote, o)
-    return [name || quote.title || 'serviços', area > 0 ? `${approx ? '≈ ' : ''}${area.toLocaleString('pt-BR')} m²` : '', floors > 1 ? `${floors} pavimentos` : ''].filter(Boolean).join(' • ')
+    const { area, approx, floors, floorsHidden } = optionArea(quote, o)
+    return [name || quote.title || 'serviços', area > 0 ? `${approx ? '≈ ' : ''}${area.toLocaleString('pt-BR')} m²` : '', floors > 1 && !floorsHidden ? `${floors} pavimentos` : ''].filter(Boolean).join(' • ')
   }
   const infos = [
     { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms.trim() || PAYMENT_TERMS },
@@ -251,7 +251,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
 
   // escopo grande (muitos serviços / tópicos): aproxima o título e o quadro para caber sem espremer
   return (
-    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, quote.floors, s.proposal])}>
+    <Sheet s={s} year={quote.createdAt.slice(0, 4)} fit={JSON.stringify([quote.items, quote.options, quote.notes, quote.mode, quote.combo, quote.comboDiscount, quote.title, quote.area, quote.floors, quote.floorsHidden, s.proposal])}>
       <Fields name={clientName} date={quote.createdAt} label="orçamento nº" value={quoteNumber(quote)} />
       <Title s={s} />
       {quote.mode === 'opcoes' ? (

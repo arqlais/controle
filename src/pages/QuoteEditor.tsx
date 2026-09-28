@@ -24,6 +24,7 @@ import {
   comboTotal,
   isCombo,
   canOpenFile,
+  alreadyOpen,
   quoteFiles,
   checklistMatch,
   checklistPrice,
@@ -210,11 +211,23 @@ export default function QuoteEditor({ id }: { id: string }) {
   const reprice = (patch: { openFile?: boolean; floors?: number }) => {
     const openFile = patch.openFile ?? !!q.openFile
     const fl = patch.floors ?? floors
+    // valores digitados à mão: a taxa de arquivo aberto entra (ou sai) uma vez só
+    const fee = 1 + (settings.openFileFee ?? 30) / 100
+    const manual = (items: QuoteItem[]) =>
+      patch.openFile === undefined
+        ? items
+        : items.map((it) => {
+            const sv = settings.services.find((x) => x.id === it.service)
+            if ((it.auto && sv && sv.pricing !== 'livre') || it.joined || alreadyOpen(sv) || !it.price) return it
+            if (openFile && !it.openFee) return { ...it, price: Math.round(it.price * fee * 100) / 100, openFee: true }
+            if (!openFile && it.openFee) return { ...it, price: Math.round((it.price / fee) * 100) / 100, openFee: undefined }
+            return it
+          })
     set({
       ...patch,
-      items: repriceItems(q.items, openFile, fl),
+      items: manual(repriceItems(q.items, openFile, fl)),
       // cada quadro usa os próprios pavimentos (se tiver)
-      options: q.options.map((o) => ({ ...o, items: repriceItems(o.items, openFile, o.floors ?? fl) })),
+      options: q.options.map((o) => ({ ...o, items: manual(repriceItems(o.items, openFile, o.floors ?? fl)) })),
     })
   }
   const repriceItems = (items: QuoteItem[], openFile: boolean, fl: number, area?: { from: number; to: number }) =>
@@ -482,7 +495,7 @@ export default function QuoteEditor({ id }: { id: string }) {
               </Field>
               {!two && (
                 <Field group label="Área (m²) e pavimentos" hint="Área em branco = não aparece no PDF · ≈ para área média · cada pavimento a mais encarece.">
-                  <AreaFloors id="q" area={q.area} approx={!!q.areaApprox} floors={floors} fee={settings.floorFee ?? 50} onArea={(area) => set({ area, items: syncArea(q.items, q.area, area, !!q.openFile, floors) })} onApprox={(areaApprox) => set({ areaApprox })} onFloors={(f) => reprice({ floors: f })} />
+                  <AreaFloors id="q" area={q.area} approx={!!q.areaApprox} floors={floors} fee={settings.floorFee ?? 50} hidden={!!q.floorsHidden} onHidden={(floorsHidden) => set({ floorsHidden })} onArea={(area) => set({ area, items: syncArea(q.items, q.area, area, !!q.openFile, floors) })} onApprox={(areaApprox) => set({ areaApprox })} onFloors={(f) => reprice({ floors: f })} />
                 </Field>
               )}
               <Field group label="Modelo" span={2}>
@@ -514,15 +527,15 @@ export default function QuoteEditor({ id }: { id: string }) {
                 span={2}
                 hint={
                   !canOpenFile(q, settings.services)
-                    ? 'Os serviços deste orçamento não têm opção de arquivo aberto (ex.: modelagem já vai aberta). Para liberar num serviço: configurações → preços → “se o cliente quiser o arquivo aberto”.'
+                    ? 'Os serviços deste orçamento já vão abertos (ex.: modelagem em SketchUp): não soma nada.'
                     : q.openFile
-                      ? `+${settings.openFileFee ?? 30}% já somado nos serviços que têm arquivo aberto (não aparece no PDF; a proposta só diz como será entregue).`
-                      : `Pergunte ao cliente no início. Aberto soma +${settings.openFileFee ?? 30}% nos serviços que têm essa opção.`
+                      ? `+${settings.openFileFee ?? 30}% já somado no valor dos serviços (menos os que já vão abertos, como a modelagem). Não aparece no PDF; a proposta só diz como será entregue.`
+                      : `Pergunte ao cliente no início. Aberto soma +${settings.openFileFee ?? 30}% no valor dos serviços (menos os que já vão abertos).`
                 }
               >
                 <Segmented<'fechado' | 'aberto'>
                   value={q.openFile ? 'aberto' : 'fechado'}
-                  onChange={(v) => canOpenFile(q, settings.services) && setOpenFile(v === 'aberto')}
+                  onChange={(v) => setOpenFile(v === 'aberto')}
                   options={[
                     { value: 'fechado', label: 'fechado (PDF)' },
                     { value: 'aberto', label: `aberto (editável) · +${settings.openFileFee ?? 30}%` },
@@ -617,6 +630,8 @@ export default function QuoteEditor({ id }: { id: string }) {
                       approx={oa(o).approx}
                       floors={oa(o).floors}
                       fee={settings.floorFee ?? 50}
+                      hidden={oa(o).floorsHidden}
+                      onHidden={(floorsHidden) => setOption(o.id, { floorsHidden })}
                       onArea={(area) => setOption(o.id, { area, items: syncArea(o.items, oa(o).area, area, !!q.openFile, oa(o).floors) })}
                       onApprox={(areaApprox) => setOption(o.id, { areaApprox })}
                       onFloors={(f) => setOption(o.id, { floors: f, items: repriceItems(o.items, !!q.openFile, f) })}
@@ -1135,7 +1150,7 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onC
 }
 
 /** Área (m²), "≈ estimada" e pavimentos: do orçamento ou de cada quadro. */
-function AreaFloors({ id, area, approx, floors, fee, onArea, onApprox, onFloors }: { id: string; area: number; approx: boolean; floors: number; fee: number; onArea: (n: number) => void; onApprox: (v: boolean) => void; onFloors: (n: number) => void }) {
+function AreaFloors({ id, area, approx, floors, fee, hidden, onArea, onApprox, onFloors, onHidden }: { id: string; area: number; approx: boolean; floors: number; fee: number; hidden: boolean; onArea: (n: number) => void; onApprox: (v: boolean) => void; onFloors: (n: number) => void; onHidden: (v: boolean) => void }) {
   return (
     <div className="area-field">
       <input id={`${id}-area`} type="number" min={0} inputMode="decimal" value={area || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => onArea(Number(e.target.value) || 0)} />
@@ -1152,6 +1167,12 @@ function AreaFloors({ id, area, approx, floors, fee, onArea, onApprox, onFloors 
             +
           </button>
         </span>
+        {floors > 1 && (
+          <label className={`area-approx ${hidden ? '' : 'on'}`} title="Mostrar a quantidade de pavimentos no PDF (o valor continua considerando os pavimentos)">
+            <input type="checkbox" checked={!hidden} onChange={(e) => onHidden(!e.target.checked)} />
+            pav. no PDF
+          </label>
+        )}
       </div>
     </div>
   )
