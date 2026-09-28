@@ -61,6 +61,7 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
   // dados da empresa (CNPJ): fechados até precisar; abrem sozinhos se já tiver algo
   const [showCompany, setShowCompany] = useState(!!(c.companyDoc || c.companyLegal || c.companyKind || docKind(c.document) === 'CNPJ'))
   const [cnpjState, setCnpjState] = useState('')
+  const [cepState, setCepState] = useState('')
   const changeCnpj = async (raw: string) => {
     const v = formatDoc(raw)
     set('companyDoc', v)
@@ -75,7 +76,8 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
       companyKind: r.kind || x.companyKind,
       company: x.company || r.trade || r.legal,
       cep: x.cep || r.cep,
-      address: x.address || r.address,
+      address: x.address || r.address.replace(/, (\d+[^,]*)(?=,)/, ''),
+      addressNumber: x.addressNumber || (r.address.match(/, (\d+[^,]*)(?=,)/)?.[1] ?? ''),
       city: x.city || r.city,
     }))
   }
@@ -129,16 +131,19 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
         <Field label="Instagram">
           <input value={c.instagram} onChange={(e) => set('instagram', typeHandle(e.target.value))} placeholder="@perfil" autoCapitalize="none" autoCorrect="off" spellCheck={false} />
         </Field>
-        <Field label="CEP">
-          <CepInput id="client-cep" value={c.cep ?? ''} onChange={(v) => set('cep', v)} onFound={({ address, city }) => setC((x) => ({ ...x, address, city }))} />
+        <Field label="CEP" hint={cepState || undefined}>
+          <CepInput id="client-cep" value={c.cep ?? ''} onChange={(v) => set('cep', v)} onState={setCepState} onFound={({ address, city }) => setC((x) => ({ ...x, address, city }))} />
         </Field>
-        <Field label="Endereço" span={2}>
-          <input value={c.address ?? ''} onChange={(e) => set('address', e.target.value)} placeholder="Rua, nº, bairro" />
+        <Field label="Número e complemento">
+          <input value={c.addressNumber ?? ''} onChange={(e) => set('addressNumber', e.target.value)} placeholder="Ex.: 120, sala 4" />
         </Field>
         <Field label="Cidade">
           <input value={c.city} onChange={(e) => set('city', e.target.value)} />
         </Field>
-        <Field label="Como chegou até você">
+        <Field label="Endereço" span={3}>
+          <input value={c.address ?? ''} onChange={(e) => set('address', e.target.value)} placeholder="Rua, bairro" />
+        </Field>
+        <Field label="Como chegou até você" span={2}>
           <input list="origins" value={c.origin} onChange={(e) => set('origin', e.target.value)} />
           <datalist id="origins">
             {['Indicação', 'Instagram', 'Site', 'Faculdade', 'LinkedIn', 'Behance', 'Cliente recorrente'].map((o) => (

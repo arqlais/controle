@@ -309,8 +309,13 @@ export function MoreMenu({ children, label = 'mais' }: { children: ReactNode; la
 }
 
 /** CEP com a pontuação; ao completar os 8 números, busca rua, bairro e cidade e preenche sozinho. */
-export function CepInput({ value, onChange, onFound, id }: { value: string; onChange: (v: string) => void; onFound: (a: { address: string; city: string }) => void; id?: string }) {
-  const [state, setState] = useState<'' | 'buscando' | 'erro' | 'ok'>('')
+export const CEP_STATE = { buscando: 'buscando o endereço…', erro: 'CEP não encontrado · preencha à mão', ok: 'endereço encontrado ✓' } as const
+export function CepInput({ value, onChange, onFound, onState, id }: { value: string; onChange: (v: string) => void; onFound: (a: { address: string; city: string }) => void; onState?: (s: string) => void; id?: string }) {
+  const [state, setStateRaw] = useState<'' | 'buscando' | 'erro' | 'ok'>('')
+  const setState = (st: '' | 'buscando' | 'erro' | 'ok') => {
+    setStateRaw(st)
+    onState?.(st ? CEP_STATE[st] : '')
+  }
   const change = async (raw: string) => {
     const v = formatCep(raw)
     onChange(v)
@@ -324,9 +329,9 @@ export function CepInput({ value, onChange, onFound, id }: { value: string; onCh
   return (
     <>
       <input id={id} value={value} inputMode="numeric" placeholder="00000-000" onChange={(e) => void change(e.target.value)} autoComplete="postal-code" />
-      {state && (
+      {state && !onState && (
         <span className={`cep-state ${state === 'erro' ? 'text-bad' : 'muted'}`}>
-          {state === 'buscando' ? 'buscando o endereço…' : state === 'erro' ? 'não achei esse CEP · preencha à mão' : 'endereço preenchido · complete o número'}
+          {CEP_STATE[state]}
         </span>
       )}
     </>

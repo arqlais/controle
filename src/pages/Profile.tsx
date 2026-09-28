@@ -44,6 +44,7 @@ export default function Profile() {
   const { data, setSettings, userEmail } = useStore()
   const s = data.settings
   const set = (patch: Partial<Settings>) => setSettings(patch)
+  const [cepState, setCepState] = useState('')
   const logoRef = useRef<HTMLInputElement>(null)
   const missing = profileMissing(s)
   const done = CHECK.length - missing.length
@@ -135,14 +136,17 @@ export default function Profile() {
             <Field label="CPF / CNPJ" hint={docKind(s.document) ? `${docKind(s.document)} · só aparece no recibo.` : 'Só aparece no recibo.'}>
               <input value={showDoc(s.document)} onChange={(e) => set({ document: formatDoc(e.target.value) })} inputMode="numeric" placeholder="só os números" />
             </Field>
-            <Field label="CEP">
-              <CepInput id="profile-cep" value={s.cep ?? ''} onChange={(cep) => set({ cep })} onFound={({ address, city }) => set({ address, city })} />
-            </Field>
-            <Field label="Endereço" hint="Rua, número e bairro.">
-              <input value={s.address ?? ''} onChange={(e) => set({ address: e.target.value })} placeholder="Rua, nº, bairro" />
-            </Field>
             <Field label="Cidade">
               <input value={s.city} onChange={(e) => set({ city: e.target.value })} />
+            </Field>
+            <Field label="CEP" hint={cepState || 'Com o CEP, a rua e a cidade vêm sozinhas.'}>
+              <CepInput id="profile-cep" value={s.cep ?? ''} onChange={(cep) => set({ cep })} onState={setCepState} onFound={({ address, city }) => set({ address, city })} />
+            </Field>
+            <Field label="Número e complemento">
+              <input value={s.addressNumber ?? ''} onChange={(e) => set({ addressNumber: e.target.value })} placeholder="Ex.: 120, apto 32" />
+            </Field>
+            <Field label="Endereço" span={2} hint="Rua e bairro.">
+              <input value={s.address ?? ''} onChange={(e) => set({ address: e.target.value })} placeholder="Rua, bairro" />
             </Field>
             <Field group label="Sem foto? escolha um símbolo" span={2} hint={s.logo ? 'Aparece quando você remover a foto.' : 'Aparece redondo no canto do menu e no perfil.'}>
               <div className="avatar-picker">

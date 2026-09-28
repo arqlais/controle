@@ -165,7 +165,7 @@ export default function ClientDetail({ id }: { id: string }) {
               {(c.address || c.cep || c.city) && (
                 <>
                   <dt>Endereço</dt>
-                  <dd>{[c.address, c.city, c.cep].filter(Boolean).join(' · ')}</dd>
+                  <dd>{[[c.address, c.addressNumber].filter(Boolean).join(', '), c.city, c.cep].filter(Boolean).join(' · ')}</dd>
                 </>
               )}
               <dt>Origem</dt>

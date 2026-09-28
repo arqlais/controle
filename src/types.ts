@@ -22,7 +22,8 @@ export interface Client {
   instagram: string
   city: string
   cep?: string
-  address?: string // rua, nº, complemento, bairro
+  address?: string // rua e bairro
+  addressNumber?: string // nº e complemento
   document: string // CPF/CNPJ para recibos
   companyDoc?: string // CNPJ do escritório/empresa
   companyLegal?: string // razão social
@@ -303,7 +304,8 @@ export interface Settings {
   calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean; periodos?: boolean } // o que vai para o celular
   city: string
   cep?: string
-  address?: string // rua, nº, complemento, bairro
+  address?: string // rua e bairro
+  addressNumber?: string // nº e complemento
   logo: string // data URL
   avatarIcon?: string // símbolo no lugar da foto (quando não há logo)
   customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons
