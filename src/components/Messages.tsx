@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { MsgTools } from './MsgTools'
+import { MsgTools, WaPreview } from './MsgTools'
 import { useStore } from '../store'
 import type { Client, Project, Quote } from '../types'
 import { fillMessage, messageVars, whatsappLink } from '../utils'
@@ -45,7 +45,7 @@ function MessagesModal({ client, project, quote, onClose }: { client?: Client; p
           {data.settings.messages.map((m) => (
             <button key={m.id} className="msg-item" onClick={() => choose(m.id)}>
               <b>{m.name}</b>
-              <span>{fillMessage(m.text, vars)}</span>
+              <WaPreview text={fillMessage(m.text, vars)} className="is-clamp" />
             </button>
           ))}
           <a className="link" href={href('config')} onClick={onClose}>
@@ -56,6 +56,8 @@ function MessagesModal({ client, project, quote, onClose }: { client?: Client; p
         <div className="stack-s">
           <MsgTools taRef={ta} value={text} onChange={setText} />
           <textarea ref={ta} id="msg-text" rows={9} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="none" autoCorrect="on" />
+          <span className="field-label">como vai aparecer no whatsapp</span>
+          <WaPreview text={text} />
           <p className="muted small">Ajuste o texto se quiser — a mudança vale só para este envio.</p>
           <div className="row gap-s wrap">
             <button className="btn ghost small" onClick={() => setPick(null)}>

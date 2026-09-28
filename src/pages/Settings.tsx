@@ -1,4 +1,4 @@
-import { MsgTools } from '../components/MsgTools'
+import { MsgTools, WaPreview } from '../components/MsgTools'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
@@ -733,6 +733,7 @@ function MsgEditor({ value, onChange }: { value: string; onChange: (v: string) =
     <>
       <MsgTools taRef={ref} value={value} onChange={onChange} />
       <textarea ref={ref} rows={Math.min(12, Math.max(3, value.split('\n').length + 1))} value={value} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="none" autoCorrect="on" />
+      <WaPreview text={value} />
     </>
   )
 }
