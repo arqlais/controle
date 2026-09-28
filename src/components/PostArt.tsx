@@ -1,3 +1,4 @@
+import { dataUrlBlob, saveFile } from './saveFile'
 import { renderSheet } from './Print'
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -230,13 +231,9 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
       const list = nodes()
       for (let i = 0; i < list.length; i++) {
         const url = await renderSheet(list[i], toPng, { pixelRatio: 1, width: w, height: h })
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${fileBase(source.title)} - ${String(i + 1).padStart(2, '0')}.png`
-        a.click()
+        saveFile(await dataUrlBlob(url), `${fileBase(source.title)} - ${String(i + 1).padStart(2, '0')}.png`, `${list.length} imagem(ns) baixada(s).`)
         await new Promise((r) => setTimeout(r, 250))
       }
-      toast(`${list.length} imagem(ns) baixada(s).`)
     })
   const pdf = () =>
     run(async () => {
@@ -248,8 +245,7 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
         if (i) doc.addPage([w, h], 'portrait')
         doc.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h, undefined, 'FAST')
       }
-      doc.save(`${fileBase(source.title)}.pdf`)
-      toast('PDF baixado.')
+      saveFile(doc.output('blob'), `${fileBase(source.title)}.pdf`, 'PDF baixado.')
     })
   const pptx = () =>
     run(async () => {
@@ -291,8 +287,7 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
           }
         }
       }
-      await deck.writeFile({ fileName: `${fileBase(source.title)} (canva).pptx` })
-      toast('Arquivo para o Canva baixado. No Canva: Criar design → Importar arquivo.')
+      saveFile((await deck.write({ outputType: 'blob' })) as Blob, `${fileBase(source.title)} (canva).pptx`, 'Arquivo para o Canva baixado. No Canva: Criar design → Importar arquivo.')
     })
 
   return (

@@ -75,3 +75,14 @@ export function nextSentNumber(quotes: Quote[], q: Quote): number {
   const taken = new Set(others.map((x) => x.number))
   return q.number && q.number <= max + 1 && !taken.has(q.number) ? q.number : max + 1
 }
+
+/** Excluir rascunho: os rascunhos com número maior descem para ocupar o lugar dele (nenhum número fica vago).
+ *  Enviados, aprovados e importados nunca mudam. */
+export function afterDeleteDrafts(quotes: Quote[], removedIds: Set<string>): { id: string; number: number }[] {
+  const removed = quotes.filter((q) => removedIds.has(q.id) && q.status === 'rascunho' && !q.imported && q.number > 0)
+  if (!removed.length) return []
+  return quotes
+    .filter((q) => !removedIds.has(q.id) && q.status === 'rascunho' && !q.imported)
+    .map((q) => ({ id: q.id, number: q.number - removed.filter((r) => r.number < q.number).length }))
+    .filter((r) => r.number !== quotes.find((q) => q.id === r.id)!.number)
+}

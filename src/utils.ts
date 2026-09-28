@@ -590,8 +590,10 @@ export function download(filename: string, content: string, type = 'application/
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  document.body.appendChild(a)
   a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 60_000) // revogar cedo cancelava o download no Safari
 }
 
 /** Formata telefone enquanto digita: (11) 96928-8192 — com +55 fica +55 11 96928-8192. */

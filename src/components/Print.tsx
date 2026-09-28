@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { ARTIFACT } from '../env'
 import { Modal } from './ui'
 import { toast } from './dialog'
+import { dataUrlBlob, saveFile } from './saveFile'
 
 /** Mostra uma folha A4 (794px) reduzida para caber na largura disponível. */
 export function DocScale({ children }: { children: ReactNode }) {
@@ -93,11 +94,7 @@ export function usePdf() {
           // imagem para mandar no WhatsApp
           const { toPng } = await import('html-to-image')
           const url = await renderSheet(el, toPng, { pixelRatio: 2 }) // sem backgroundColor: ele pintava a folha de branco por cima do fundo do modelo
-          const link = document.createElement('a')
-          link.href = url
-          link.download = job.filename
-          link.click()
-          toast('Imagem baixada.')
+          saveFile(await dataUrlBlob(url), job.filename, 'Imagem baixada.')
           return
         }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
@@ -116,8 +113,7 @@ export function usePdf() {
           // PNG (sem perda): o JPEG desbotava as cores chapadas do modelo
           pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, 0, pageW, (slice.height * pageW) / canvas.width, undefined, 'FAST')
         }
-        pdf.save(job.filename)
-        toast('PDF baixado.')
+        saveFile(pdf.output('blob'), job.filename, 'PDF baixado.')
       } catch (err) {
         console.error('PDF', err)
         toast(`Não foi possível gerar o ${job.png ? 'arquivo' : 'PDF'} (${errText(err)}). Tente de novo ou me mande um print desta mensagem.`)

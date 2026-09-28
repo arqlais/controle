@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { GENERAL_NOTE_HINTS, useStore } from '../store'
 import { duplicateQuote } from '../quoteActions'
-import { draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
+import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
@@ -516,16 +516,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 }
               >
                 <div className="num-date">
-                  <input
-                    id="q-number"
-                    type="number"
-                    min={0}
-                    value={q.number || 0}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => set({ number: Math.max(0, Math.round(Number(e.target.value) || 0)) })}
-                    aria-label="Número do orçamento"
-                    title="Número do orçamento (0 = o sistema escolhe pela data)"
-                  />
+                  <NumberInput id="q-number" value={q.number} onChange={(number) => set({ number })} />
                   <DateInput
                     id="q-date"
                    
@@ -826,7 +817,13 @@ export default function QuoteEditor({ id }: { id: string }) {
                   className="btn ghost danger small"
                   onClick={async () => {
                     if (await askDelete(`a proposta ${quoteNumber(q)}`)) {
+                      // rascunhos seguintes descem para ocupar o número que ficou vago
+                      const moves = afterDeleteDrafts(data.quotes, new Set([q.id]))
                       remove('quotes', q.id)
+                      for (const m of moves) {
+                        const x = data.quotes.find((o) => o.id === m.id)
+                        if (x) upsert('quotes', { ...x, number: m.number })
+                      }
                       go('orcamentos')
                     }
                   }}
@@ -1179,8 +1176,19 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onC
                     : 'digite o valor'
                 }
               >
-                <div className="row gap-s">
+                <div className="row gap-s wrap">
                   <MoneyInput value={it.price} onChange={(v) => setItem(it.id, { price: v, auto: false })} />
+                  {/* arredondar para a dezena de baixo ou de cima (ex.: 402,40 → 400 ou 410) */}
+                  {it.price > 0 && it.price % 10 !== 0 && (
+                    <span className="round-btns">
+                      <button className="btn small ghost" onClick={() => setItem(it.id, { price: Math.floor(it.price / 10) * 10, auto: false })} title="Arredondar para baixo">
+                        ↓ {(Math.floor(it.price / 10) * 10).toLocaleString('pt-BR')}
+                      </button>
+                      <button className="btn small ghost" onClick={() => setItem(it.id, { price: Math.ceil(it.price / 10) * 10, auto: false })} title="Arredondar para cima">
+                        ↑ {(Math.ceil(it.price / 10) * 10).toLocaleString('pt-BR')}
+                      </button>
+                    </span>
+                  )}
                   {s && s.pricing !== 'livre' && (!it.auto || Math.abs(Math.max(0, suggestion - (it.unitDiscount ?? 0) * it.quantity) - it.price) >= 0.01) && (
                     <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Usar o valor da tabela">
                       tabela
@@ -1272,4 +1280,41 @@ function NoteField({ value, items, settings, onChange }: { value: string; items:
 /** Fim do orçamento: na proposta nova é o card "status"; depois de salva, só os avisos e os botões (duplicar/excluir), sem card. */
 function FootWrap({ card, children }: { card: boolean; children: ReactNode }) {
   return card ? <Section title="status">{children}</Section> : <div className="quote-foot">{children}</div>
+}
+
+/** Nº do orçamento: campo de texto só com números (o campo "number" do iPhone não deixava apagar/trocar direito).
+ *  Dá para apagar tudo e digitar de novo; vazio = 0 (o sistema escolhe pela data ao salvar). */
+function NumberInput({ id, value, onChange }: { id: string; value: number; onChange: (n: number) => void }) {
+  const [txt, setTxt] = useState(value ? String(value) : '')
+  const focused = useRef(false)
+  useEffect(() => {
+    if (!focused.current) setTxt(value ? String(value) : '')
+  }, [value])
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="off"
+      value={txt}
+      placeholder="0"
+      onFocus={(e) => {
+        focused.current = true
+        const el = e.target
+        setTimeout(() => el.setSelectionRange(0, el.value.length), 0)
+      }}
+      onBlur={() => {
+        focused.current = false
+        setTxt(value ? String(value) : '')
+      }}
+      onChange={(e) => {
+        const t = e.target.value.replace(/\D/g, '').slice(0, 6)
+        setTxt(t)
+        onChange(Number(t) || 0)
+      }}
+      aria-label="Número do orçamento"
+      title="Número do orçamento (vazio ou 0 = o sistema escolhe pela data)"
+    />
+  )
 }

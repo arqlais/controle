@@ -1839,3 +1839,14 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .print-stage * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 .floors .floors-pdf { width: 15px; height: 15px; margin: 0 2px 0 4px; accent-color: var(--accent); cursor: pointer; flex: none; }
+
+/* ordenar a lista de demandas (no computador também dá pelo título da coluna) */
+.sort-select { align-self: flex-end; width: auto; max-width: 100%; }
+@media (max-width: 820px) { .sort-select { align-self: stretch; } }
+
+/* campo tocado nunca fica embaixo do topo fixo (a página rola até ele aparecer inteiro) */
+.page input, .page textarea, .page select { scroll-margin-top: calc(var(--topbar-h, 70px) + var(--head-h, 0px) + 16px); scroll-margin-bottom: 90px; }
+
+/* arredondar o valor do serviço */
+.round-btns { display: inline-flex; gap: 4px; flex: none; }
+.round-btns .btn { padding-inline: 10px; white-space: nowrap; }
