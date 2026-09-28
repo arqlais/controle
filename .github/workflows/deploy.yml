@@ -32,6 +32,16 @@ jobs:
           # Settings → Secrets and variables → Actions → Variables
           VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      # prévia da plataforma (branch "plataforma") em /controle/previa/, no modo exemplo:
+      # dados fictícios, não usa a nuvem nem os seus dados. Se falhar, o sistema publica normalmente.
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: plataforma
+          path: previa-src
+      - run: npm ci && VITE_ARTIFACT=1 npx vite build --outDir ../dist/previa --emptyOutDir
+        continue-on-error: true
+        working-directory: previa-src
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
