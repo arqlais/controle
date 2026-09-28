@@ -46,7 +46,16 @@ export function AccessProvider({ userId, plan, children }: { userId: string; pla
       } catch {
         /* ok */
       }
-      setInfo(cached ?? { role: 'cliente', sub: null, legacy: false })
+      if (cached) return setInfo(cached)
+      // primeira vez neste aparelho e sem resposta: tenta de novo antes de abrir com o plano mais simples
+      await new Promise((r) => setTimeout(r, 2500))
+      try {
+        const i = await platform.access(plan)
+        setInfo(i)
+        localStorage.setItem(cacheKey(userId), JSON.stringify(i))
+      } catch {
+        setInfo({ role: 'cliente', sub: null, legacy: false })
+      }
     }
   }, [plan, userId])
 
