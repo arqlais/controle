@@ -20,6 +20,7 @@ export const DEFAULT_SERVICES: ServiceDef[] = [
   { id: 'diagramas', name: 'diagramas', unit: 'diagrama', pricing: 'unidade', price: 80, min: 0, hours: 1, tiers: [] },
   { id: 'diagramacao', name: 'diagramação', unit: 'prancha', pricing: 'unidade', price: 120, min: 0, hours: 2, tiers: [] },
   { id: 'planta-hum', name: 'planta humanizada', unit: 'planta', pricing: 'unidade', price: 300, min: 0, hours: 4, tiers: [] },
+  { id: 'slides', name: 'apresentação em slides', unit: 'slide', pricing: 'unidade', price: 30, min: 150, hours: 0.75, tiers: [] },
   { id: 'personalizado', name: 'serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
 
@@ -134,6 +135,7 @@ export const DEFAULT_DELIVERY: Record<string, Pick<ServiceDef, 'delivery' | 'del
   mapas: { delivery: 'PNG/JPG em alta resolução', deliveryOpen: '' },
   diagramas: { delivery: 'PNG/JPG em alta resolução', deliveryOpen: '' },
   'planta-hum': { delivery: 'PNG/JPG em alta resolução', deliveryOpen: '' },
+  slides: { delivery: 'apresentação em PDF', deliveryOpen: 'PDF + arquivo aberto (editável) da apresentação' },
 }
 
 /** Primeira versão das listas (sem valores): quem ainda está com ela recebe a lista completa. */
@@ -155,6 +157,15 @@ function recalibrate(x: ServiceDef): ServiceDef {
 }
 
 /** Nomes antigos (com maiúscula / plural) → nomes atuais, sem perder os preços já ajustados. */
+/** Serviço de slides entrou depois: aparece uma vez só (se ela apagar, não volta). */
+function addSlides(done: boolean | undefined, list: ServiceDef[]): ServiceDef[] {
+  if (done || list.some((x) => x.id === 'slides')) return list
+  const slides = DEFAULT_SERVICES.find((x) => x.id === 'slides')!
+  const at = list.findIndex((x) => x.id === 'personalizado')
+  const item = { ...slides, ...DEFAULT_DELIVERY.slides }
+  return at < 0 ? [...list, item] : [...list.slice(0, at), item, ...list.slice(at)]
+}
+
 function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const renamed: Record<string, string> = {
     'render-vray': 'renderização V-Ray', 'render-ia': 'renderização por IA', modelagem: 'modelagem 3d', detalhamento: 'detalhamento',
@@ -322,6 +333,7 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultRevisions: 1,
   revisionsV1: true,
   imagesV1: true,
+  slidesV1: true,
   defaultPaymentTerms: PAYMENT_TERMS,
   services: migrateServices(DEFAULT_SERVICES),
   customColumns: [],
@@ -424,11 +436,12 @@ export function normalize(d: Partial<Data>): Data {
         defaultRevisions: d.settings?.revisionsV1 ? d.settings.defaultRevisions : 1,
         revisionsV1: true,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
-        services: (!d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })))).map((x) =>
+        services: addSlides(d.settings?.slidesV1, (!d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })))).map((x) =>
           // imagens não encarecem por pavimento (uma vez só; depois vale o que ela marcar)
           !d.settings?.imagesV1 && (x.id === 'render-vray' || x.id === 'render-ia') ? { ...x, perFloor: false } : x,
-        ),
+        )),
         imagesV1: true,
+        slidesV1: true,
         // mensagens no jeito dela (uma vez só; as que ela editou ficam como estão)
         messages: !d.settings?.messagesV2 ? migrateMessages(d.settings?.messages) : d.settings.messagesV3 ? (d.settings.messages ?? DEFAULT_MESSAGES) : addNewMessages(d.settings.messages ?? DEFAULT_MESSAGES),
         messagesV2: true,
