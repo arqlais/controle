@@ -42,20 +42,22 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
 
   return (
     <>
-      <button className={`ai-fab pf-chat-fab ${open ? 'is-open' : ''}`} onClick={() => setOpen((v) => !v)} aria-label={`Conversar com a ${PLATFORM.owner}`} title={`Conversar com a ${PLATFORM.owner}`}>
+      <button className={`ai-fab pf-chat-fab ${open ? 'is-open' : ''}`} onClick={() => setOpen((v) => !v)} aria-label={`Conversar com ${PLATFORM.supportWith}`} title={`Conversar com ${PLATFORM.supportWith}`}>
         <Icon name={open ? 'x' : 'chat'} size={22} />
         {!open && unread > 0 && <em className="pf-fab-badge">{unread}</em>}
         {!open && online && !unread && <i className="pf-fab-online" aria-hidden />}
       </button>
       {open && (
-        <section className="ai-chat pf-chat" role="dialog" aria-label={`Conversa com a ${PLATFORM.owner}`}>
+        <section className="ai-chat pf-chat" role="dialog" aria-label={`Conversa com ${PLATFORM.supportWith}`}>
           <header className="ai-chat-head">
             <span className="pf-chat-who">
-              <span className="pf-avatar">{PLATFORM.owner[0]}</span>
+              <span className="pf-avatar">
+                <Icon name="chat" size={16} />
+              </span>
               <span>
-                <b>{PLATFORM.owner}</b>
+                <b>{PLATFORM.support}</b>
                 <small className={online ? 'is-online' : ''}>
-                  <i /> {online ? 'online agora' : 'respondo assim que possível'}
+                  <i /> {online ? 'online agora' : 'respondemos assim que possível'}
                 </small>
               </span>
             </span>
@@ -68,7 +70,7 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
               <Icon name="clock" size={14} />
               <span>
                 horários: {hoursSummary(hours)}
-                {!online && next ? ` · volto ${next}` : ''}
+                {!online && next ? ` · voltamos ${next}` : ''}
               </span>
             </div>
             {msgs === null ? (
@@ -76,9 +78,9 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
             ) : msgs.length === 0 ? (
               <div className="ai-empty">
                 <p className="muted small">
-                  oi! aqui você fala direto comigo, {PLATFORM.owner}: dúvidas sobre o sistema, sugestões ou qualquer problema. {online ? 'estou online agora ☺️' : 'respondo assim que possível ☺️'}
+                  oi! aqui você fala direto com {PLATFORM.supportWith} do {PLATFORM.name}: dúvidas sobre o sistema, sugestões ou qualquer problema. {online ? 'estamos online agora ☺️' : 'respondemos assim que possível ☺️'}
                 </p>
-                {['como faço meu primeiro orçamento?', 'como coloco meu logo na proposta?', 'como troco de plano?'].map((st) => (
+                {['como faço meu primeiro orçamento?', 'como coloco meu logo na proposta?', 'como faço para assinar?'].map((st) => (
                   <button key={st} className="ai-starter" onClick={() => setText(st)}>
                     {st}
                   </button>
@@ -94,8 +96,8 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
             )}
             {waiting && !online && (
               <p className="pf-chat-away">
-                {hours.away || 'respondo assim que possível ☺️'}
-                {next ? ` (volto ${next})` : ''}
+                {hours.away || 'respondemos assim que possível ☺️'}
+                {next ? ` (voltamos ${next})` : ''}
               </p>
             )}
             {error && <p className="auth-error small">Sem conexão com o chat agora. Tente de novo em instantes.</p>}

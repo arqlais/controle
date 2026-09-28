@@ -36,11 +36,19 @@ Hoje os cadastros estão fechados (só você entra). Para clientes conseguirem c
 
 ## Segurança (o que já está garantido)
 
+Testado num banco igual ao do Supabase, tentando burlar cada regra:
+
+- **Ninguém se ativa sozinho.** "Assinar" no sistema é só um **pedido**: chega para você no painel (e no chat). Você confirma o pagamento com a pessoa e toca em **ativar**. Tentar mudar a própria assinatura direto no banco não funciona.
+- **Teste vencido, conta bloqueada ou cancelada:** a pessoa continua vendo e pode baixar os dados dela, mas o banco **recusa salvar** qualquer alteração até você liberar. Nada é apagado.
+- **Só você é dona.** Quem é dona está na tabela `admins`, que nenhum cliente consegue alterar.
+- **Cada conta só vê a própria conta:** dados do estúdio, assinatura e conversa. Ninguém manda mensagem em nome de outra pessoa nem finge ser você no chat.
+- **Visitante sem login** não consegue chamar nenhuma função nem ler nada.
 - No site vai só a chave **publishable** (pública por natureza). A chave secreta (`service_role` / `sb_secret_...`) **nunca** vai para o site.
-- Quem é dona é decidido pela tabela `admins`, que nenhum cliente consegue alterar.
-- O cliente não consegue mudar a própria situação para "ativa" nem se desbloquear direto na tabela; só pelas funções, com regras.
-- Os dados de cada estúdio (clientes, orçamentos, preços, cores, modelos) continuam na tabela `workspace`, uma linha por conta: mudar num cliente nunca muda nos outros nem no seu.
+
+Se um dia você rodar o `schema.sql` de novo, rode o `plataforma.sql` logo depois (ele recoloca a trava de "teste vencido não salva").
+
+O que acontece no aparelho de cada cliente (por exemplo, o Essencial não mostrar o botão de PDF) é organização da tela: uma pessoa com conhecimento técnico poderia forçar o próprio navegador a gerar um PDF, mas só para ela mesma, sem acesso a nada de ninguém e sem mudar a assinatura. O que vale dinheiro (assinatura ativa, bloqueio, dados) é protegido no banco.
 
 ## Fase 2 (cobrança de verdade)
 
-A função `escolher_plano` hoje ativa a assinatura sem cobrar (modo teste). Na Fase 2 ela é trocada pelo pagamento (Asaas, Mercado Pago ou Stripe) com uma Edge Function; os segredos do pagamento ficam no painel do Supabase, nunca no site.
+Hoje você ativa cada assinatura à mão, depois de confirmar o pagamento. Na Fase 2 isso passa a ser automático pelo pagamento (Asaas, Mercado Pago ou Stripe) com uma Edge Function; os segredos do pagamento ficam no painel do Supabase, nunca no site.

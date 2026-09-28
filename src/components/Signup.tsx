@@ -116,7 +116,7 @@ export function Signup({ plan: initial, onDone }: { plan?: string; onDone?: (pla
         </button>
       </form>
       <p className="muted small">
-        Ao criar a conta, seus dados ficam só na sua conta: ninguém mais vê seus clientes e valores. Dúvidas? Tem chat com a {PLATFORM.owner} lá dentro.
+        Ao criar a conta, seus dados ficam só na sua conta: ninguém mais vê seus clientes e valores. Dúvidas? Tem chat direto com {PLATFORM.supportWith} lá dentro.
       </p>
     </div>
   )

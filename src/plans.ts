@@ -8,8 +8,10 @@ export const PLATFORM = {
   name: 'traço', // nome provisório
   provisional: true, // mostra o aviso "nome provisório" na prévia e no painel
   tagline: 'o sistema do seu estúdio',
-  owner: 'Laís', // quem responde no chat
-  ownerRole: 'arquiteta e criadora do sistema',
+  owner: 'Laís', // só aparece para você (painel, prévia)
+  // como os clientes chamam quem responde o chat (troque por 'CEO', 'desenvolvedora'…)
+  support: 'administração',
+  supportWith: 'a administração', // "conversar com a administração"
   whatsapp: '', // opcional: número para "falar no WhatsApp" na página de vendas
 }
 
@@ -49,7 +51,7 @@ export const BASE_FEATURES = [
   'agenda com prazos, pagamentos e compromissos',
   'funciona no celular, tablet e computador',
   'sua identidade visual: logo, cores e fontes',
-  'chat com a Laís para tirar dúvidas',
+  'chat direto com a administração',
 ]
 
 export const PLANS: Record<PlanId, Plan> = {
@@ -89,7 +91,7 @@ export const COMPARE: [string, boolean | string, boolean | string][] = [
   ['contratos com os dados do orçamento', false, true],
   ['agenda sincronizada no celular', false, true],
   ['planejamento do instagram', false, true],
-  ['chat com a Laís', true, true],
+  ['chat direto com a administração', true, true],
 ]
 
 export type SubStatus = 'trial' | 'ativa' | 'atrasada' | 'cancelada'

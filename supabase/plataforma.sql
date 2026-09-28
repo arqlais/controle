@@ -39,6 +39,9 @@ create table if not exists public.subscriptions (
   last_seen   timestamptz not null default now(),
   canceled_at timestamptz
 );
+alter table public.subscriptions add column if not exists requested_plan text check (requested_plan in ('essencial', 'completo'));
+alter table public.subscriptions add column if not exists requested_at timestamptz;
+alter table public.subscriptions alter column trial_ends set default now() + interval '7 days';
 alter table public.subscriptions enable row level security;
 drop policy if exists "assinatura: cliente vê a sua" on public.subscriptions;
 drop policy if exists "assinatura: dona vê todas" on public.subscriptions;
@@ -66,18 +69,24 @@ language sql security definer set search_path = public as $$
   update public.subscriptions set last_seen = now() where user_id = auth.uid();
 $$;
 
--- Fase 1 (modo teste, SEM cobrança): o cliente troca de plano e pode "assinar".
--- Não desbloqueia conta bloqueada pela dona. Na Fase 2 isso passa a ser feito pelo pagamento.
-create or replace function public.escolher_plano(plano text, assinar boolean) returns void
+-- Durante o teste grátis o cliente pode trocar o plano que está testando. NÃO ativa nada.
+drop function if exists public.escolher_plano(text, boolean);
+create or replace function public.escolher_plano(plano text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
   if plano not in ('essencial', 'completo') then raise exception 'plano inválido'; end if;
-  update public.subscriptions
-     set plan = plano,
-         status = case when assinar then 'ativa' else status end,
-         canceled_at = case when assinar then null else canceled_at end,
-         test_mode = true
-   where user_id = auth.uid();
+  update public.subscriptions set plan = plano
+   where user_id = auth.uid() and status = 'trial' and not blocked and trial_ends > now();
+end $$;
+
+-- Assinar = PEDIR. Só a dona ativa (depois de confirmar o pagamento); na Fase 2, o pagamento ativa sozinho.
+create or replace function public.pedir_assinatura(plano text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if plano not in ('essencial', 'completo') then raise exception 'plano inválido'; end if;
+  update public.subscriptions set requested_plan = plano, requested_at = now() where user_id = auth.uid();
+  insert into public.support_messages (client_id, from_owner, body)
+  values (auth.uid(), false, 'quero assinar o plano ' || case when plano = 'completo' then 'Completo' else 'Essencial' end || ' ✨');
 end $$;
 
 -- 3) Chat com a dona: mensagens por cliente.
@@ -128,6 +137,25 @@ drop policy if exists "ajustes: dona altera" on public.platform_settings;
 create policy "ajustes: todos leem" on public.platform_settings for select to authenticated using (true);
 create policy "ajustes: dona cria" on public.platform_settings for insert with check (public.sou_dona());
 create policy "ajustes: dona altera" on public.platform_settings for update using (public.sou_dona()) with check (public.sou_dona());
+
+-- 5) Trava no próprio banco: conta bloqueada, cancelada ou com teste vencido
+--    continua VENDO os dados (e pode baixar tudo), mas não consegue salvar alterações.
+create or replace function public.pode_editar() returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.sou_dona() or exists (
+    select 1 from public.subscriptions s
+     where s.user_id = auth.uid() and not s.blocked
+       and (s.status in ('ativa', 'atrasada') or (s.status = 'trial' and s.trial_ends > now()))
+  );
+$$;
+drop policy if exists "dona cria"    on public.workspace;
+drop policy if exists "dona altera"  on public.workspace;
+create policy "dona cria"   on public.workspace for insert with check (auth.uid() = user_id and public.pode_editar());
+create policy "dona altera" on public.workspace for update using (auth.uid() = user_id) with check (auth.uid() = user_id and public.pode_editar());
+
+-- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
+revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;
+grant execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text), public.marcar_lidas(uuid), public.pode_editar() to authenticated;
 
 -- Conferência: deve mostrar 1 linha com o seu e-mail.
 select u.email as dona from public.admins a join auth.users u on u.id = a.user_id;

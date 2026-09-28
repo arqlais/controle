@@ -27,19 +27,29 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
       </div>
     )
   const left = trialDaysLeft(sub)
-  const choose = async (plan: PlanId, subscribe: boolean) => {
-    const p = PLANS[plan]
-    const msg = subscribe
-      ? `Assinar o plano ${p.name} (${money0(p.price)}/mês)? Nesta versão de teste não há cobrança: a assinatura fica ativa em modo teste.`
-      : `Trocar para o plano ${p.name}? Você continua no teste grátis até o fim do prazo.`
-    if (!(await ask(msg, { confirmLabel: subscribe ? 'Assinar (modo teste)' : 'Trocar plano' }))) return
+  // teste: troca o plano testado · assinar: vira um pedido, e quem libera é a administração
+  const tryPlan = async (plan: PlanId) => {
+    if (!(await ask(`Testar o plano ${PLANS[plan].name}? Você continua no teste grátis até o fim do prazo.`, { confirmLabel: 'Trocar plano' }))) return
     setBusy(true)
     try {
-      await platform.choosePlan(plan, subscribe)
+      await platform.choosePlan(plan)
       await access.refresh()
-      toast(subscribe ? `Plano ${p.name} ativo (modo teste, sem cobrança).` : `Agora você está no plano ${p.name}.`)
+      toast(`Agora você está testando o plano ${PLANS[plan].name}.`)
     } catch {
-      toast('Não foi possível trocar agora. Tente de novo ou fale comigo no chat.')
+      toast('Não foi possível trocar agora. Tente de novo ou fale com a gente no chat.')
+    }
+    setBusy(false)
+  }
+  const request = async (plan: PlanId) => {
+    const p = PLANS[plan]
+    if (!(await ask(`Pedir a assinatura do plano ${p.name} (${money0(p.price)}/mês)? A ${PLATFORM.support} recebe o pedido e libera a sua conta. Nada é cobrado automaticamente nesta versão.`, { confirmLabel: 'Pedir assinatura' }))) return
+    setBusy(true)
+    try {
+      await platform.requestPlan(plan)
+      await access.refresh()
+      toast('Pedido enviado! Você recebe a resposta pelo chat.')
+    } catch {
+      toast('Não foi possível enviar o pedido agora. Tente de novo ou fale com a gente no chat.')
     }
     setBusy(false)
   }
@@ -56,7 +66,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
       <p className="pf-note">
         <Icon name="alert" size={16} />
         <span>
-          <b>Versão de teste da plataforma.</b> Nenhuma cobrança é feita por enquanto: escolher ou assinar um plano só muda o que fica liberado na sua conta.
+          <b>Como assinar:</b> escolha o plano e toque em “pedir assinatura”. A {PLATFORM.support} confirma o pagamento com você e libera a sua conta. Nada é cobrado automaticamente.
         </span>
       </p>
       {sub && (
@@ -68,6 +78,14 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
             </div>
             <Badge color={sub.status === 'ativa' ? '#5e8c6a' : sub.status === 'trial' ? '#6b8f94' : '#b98246'}>{STATUS_LABEL[sub.status]}</Badge>
           </div>
+          {sub.requestedPlan && (
+            <p className="pf-note is-warn">
+              <Icon name="clock" size={16} />
+              <span>
+                Pedido de assinatura do plano <b>{PLANS[sub.requestedPlan].name}</b> enviado{sub.requestedAt ? ` em ${new Date(sub.requestedAt).toLocaleDateString('pt-BR')}` : ''}. Aguardando a liberação da {PLATFORM.support}.
+              </span>
+            </p>
+          )}
           {sub.status === 'trial' && (
             <>
               <div className="pf-trial-bar" aria-label={`${Math.max(0, left)} de ${TRIAL_DAYS} dias`}>
@@ -100,15 +118,17 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
                 ))}
               </ul>
               <div className="stack-s">
-                {sub?.status !== 'ativa' || !current ? (
-                  <button className="btn primary block" disabled={busy} onClick={() => void choose(p.id, true)}>
-                    assinar {p.name} <small>(modo teste)</small>
-                  </button>
-                ) : (
+                {sub?.status === 'ativa' && current ? (
                   <p className="muted small center">plano ativo ✓</p>
+                ) : sub?.requestedPlan === p.id ? (
+                  <p className="muted small center">pedido enviado · aguardando liberação</p>
+                ) : (
+                  <button className="btn primary block" disabled={busy || sub?.blocked} onClick={() => void request(p.id)}>
+                    {sub?.status === 'ativa' ? `pedir troca para o ${p.name}` : `pedir assinatura do ${p.name}`}
+                  </button>
                 )}
-                {!current && sub?.status === 'trial' && (
-                  <button className="btn ghost block" disabled={busy} onClick={() => void choose(p.id, false)}>
+                {!current && sub?.status === 'trial' && !trialOver(sub) && (
+                  <button className="btn ghost block" disabled={busy} onClick={() => void tryPlan(p.id)}>
                     testar este plano
                   </button>
                 )}
@@ -118,9 +138,9 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
         })}
       </div>
       <Section title="precisa de ajuda?">
-        <p className="muted small">Dúvidas sobre o sistema, sugestões ou problemas: fale direto comigo pelo chat.</p>
+        <p className="muted small">Dúvidas sobre o sistema, sugestões ou problemas: fale direto com a gente pelo chat.</p>
         <button className="btn" onClick={onChat}>
-          <Icon name="chat" size={16} /> conversar com a {PLATFORM.owner}
+          <Icon name="chat" size={16} /> conversar com {PLATFORM.supportWith}
         </button>
       </Section>
     </div>
@@ -141,7 +161,7 @@ export function TrialBanner() {
           </>
         ) : (
           <>
-            <b>Seu teste grátis terminou.</b> Assine para continuar (nesta versão, sem cobrança).
+            <b>Seu teste grátis terminou.</b> Peça a assinatura para continuar.
           </>
         )}
       </span>
@@ -174,17 +194,17 @@ export function BlockedScreen({ onChat }: { onChat: () => void }) {
         </h1>
         <p className="muted">
           {expired
-            ? 'Para continuar usando, escolha um plano. Seus dados estão guardados e nada foi apagado.'
-            : `Seu acesso está pausado no momento. Seus dados estão guardados e nada foi apagado. Fale com a ${PLATFORM.owner} pelo chat para resolver.`}
+            ? 'Para continuar usando, peça a assinatura de um plano. Seus dados estão guardados e nada foi apagado.'
+            : `Seu acesso está pausado no momento. Seus dados estão guardados e nada foi apagado. Fale com ${PLATFORM.supportWith} pelo chat para resolver.`}
         </p>
         <div className="row gap-s wrap center">
           {expired && (
             <a className="btn primary" href={href('assinatura')}>
-              ver planos
+              pedir assinatura
             </a>
           )}
           <button className="btn" onClick={onChat}>
-            <Icon name="chat" size={16} /> conversar com a {PLATFORM.owner}
+            <Icon name="chat" size={16} /> conversar com {PLATFORM.supportWith}
           </button>
           <button className="btn ghost" onClick={() => download(`backup-${today()}.json`, JSON.stringify(data, null, 2))}>
             <Icon name="download" size={16} /> baixar meus dados

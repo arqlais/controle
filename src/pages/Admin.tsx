@@ -71,7 +71,7 @@ export default function Admin() {
           ]}
         />
       </div>
-      {tab === 'resumo' && <Summary subs={subs} />}
+      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} />}
       {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'horarios' && <HoursEditor />}
@@ -80,7 +80,11 @@ export default function Admin() {
   )
 }
 
-function Summary({ subs }: { subs: Subscription[] }) {
+// ativar: pagamento confirmado por você (na fase 2, pelo sistema de pagamento)
+const activate = (s: Subscription): Partial<Subscription> => ({ status: 'ativa', plan: s.requestedPlan ?? s.plan, requestedPlan: null, requestedAt: null, canceledAt: null, blocked: false })
+
+function Summary({ subs, update, openChat }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void }) {
+  const requests = subs.filter((x) => x.requestedPlan)
   const now = new Date()
   const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
   const thisMonth = monthKey(now)
@@ -106,11 +110,31 @@ function Summary({ subs }: { subs: Subscription[] }) {
   return (
     <>
       <div className="stats">
-        <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s) · modo teste`} icon="wallet" tone="good" />
+        <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s)${requests.length ? ` · ${requests.length} pedido(s)` : ''}`} icon="wallet" tone="good" />
         <Stat label="Em teste grátis" value={trials.length} sub={expired.length ? `${expired.length} teste(s) já terminaram` : `${TRIAL_DAYS} dias de teste`} icon="clock" />
         <Stat label="Novos este mês" value={newOnes.length} sub={`conversão do teste: ${conversion}%`} icon="trend" />
         <Stat label="Cancelamentos no mês" value={canceled.length} sub={late.length ? `${late.length} com pagamento atrasado` : 'nenhum atraso'} icon="alert" tone={canceled.length || late.length ? 'warn' : undefined} />
       </div>
+      {requests.length > 0 && (
+        <Section title={`pedidos de assinatura (${requests.length})`}>
+          <p className="muted small">Confirme o pagamento com a pessoa (Pix, por exemplo) e toque em “ativar”. Na fase 2 isso acontece sozinho quando o pagamento cai.</p>
+          {requests.map((s) => (
+            <div key={s.userId} className="pf-plan-line">
+              <b>{s.name || s.email}</b>
+              <span className="muted small">
+                quer o {PLANS[s.requestedPlan!].name} · {money0(PLANS[s.requestedPlan!].price)}/mês
+              </span>
+              <span className="grow" />
+              <button className="btn small ghost" onClick={() => openChat(s.userId)}>
+                <Icon name="chat" size={14} /> conversar
+              </button>
+              <button className="btn small approve" onClick={async () => (await ask(`Ativar a assinatura do ${PLANS[s.requestedPlan!].name} para ${s.name || s.email}? Faça isso depois de confirmar o pagamento.`, { confirmLabel: 'Ativar' })) && update(s, activate(s), 'Assinatura ativada.')}>
+                <Icon name="check" size={14} /> ativar
+              </button>
+            </div>
+          ))}
+        </Section>
+      )}
       <Section title="receita estimada (últimos 6 meses)">
         <BarChart labels={months.map((m) => MONTHS[m.getMonth()])} series={[{ label: 'receita', color: 'var(--accent)', values: revenue }]} height={200} />
         <p className="muted small">Por enquanto é uma simulação: a cobrança de verdade (Pix e cartão) entra na fase 2.</p>
@@ -191,7 +215,7 @@ function Subscribers({ subs, update, openChat, unreadOf }: { subs: Subscription[
                 <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
                 <Badge color="#3e4b57">{PLANS[s.plan].name}</Badge>
                 {s.blocked && <Badge color="#b5524c">bloqueado</Badge>}
-                {s.testMode && <Badge color="#8b939a">modo teste</Badge>}
+                {s.requestedPlan && <Badge color="#b98246">pediu o {PLANS[s.requestedPlan].name}</Badge>}
               </div>
               <dl className="pf-facts">
                 <div>
@@ -231,6 +255,11 @@ function Subscribers({ subs, update, openChat, unreadOf }: { subs: Subscription[
                 </select>
               </div>
               <div className="row gap-s wrap">
+                {s.requestedPlan && (
+                  <button className="btn small approve" onClick={async () => (await ask(`Ativar a assinatura do ${PLANS[s.requestedPlan!].name}? Faça isso depois de confirmar o pagamento.`, { confirmLabel: 'Ativar' })) && update(s, activate(s), 'Assinatura ativada.')}>
+                    <Icon name="check" size={14} /> ativar assinatura
+                  </button>
+                )}
                 {s.blocked ? (
                   <button className="btn small approve" onClick={() => void update(s, { blocked: false }, 'Acesso liberado.')}>
                     <Icon name="check" size={14} /> liberar

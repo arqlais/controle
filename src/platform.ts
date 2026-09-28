@@ -22,6 +22,8 @@ export interface Subscription {
   createdAt: string
   lastSeen: string
   canceledAt?: string | null
+  requestedPlan?: PlanId | null // pediu para assinar (a dona libera)
+  requestedAt?: string | null
 }
 
 export interface ChatMessage {
@@ -48,7 +50,7 @@ export const DEFAULT_HOURS: OnlineHours = {
     { on: true, from: '09:00', to: '17:00' },
     { on: false, from: '09:00', to: '13:00' },
   ],
-  away: 'agora estou fora do horário, mas respondo assim que possível ☺️',
+  away: 'agora estamos fora do horário, mas respondemos assim que possível ☺️',
 }
 
 /** Quem está usando o sistema e o que o plano libera. */
@@ -139,6 +141,8 @@ const subFromRow = (r: Row): Subscription => ({
   createdAt: String(r.created_at ?? ''),
   lastSeen: String(r.last_seen ?? r.created_at ?? ''),
   canceledAt: (r.canceled_at as string | null) ?? null,
+  requestedPlan: (r.requested_plan as PlanId | null) ?? null,
+  requestedAt: (r.requested_at as string | null) ?? null,
 })
 const msgFromRow = (r: Row): ChatMessage => ({
   id: String(r.id),
@@ -167,8 +171,14 @@ const cloud = {
   async touch() {
     await supabase!.rpc('marcar_acesso')
   },
-  async choosePlan(plan: PlanId, subscribe: boolean) {
-    const { error } = await supabase!.rpc('escolher_plano', { plano: plan, assinar: subscribe })
+  // durante o teste: troca o plano testado (não ativa nada)
+  async choosePlan(plan: PlanId) {
+    const { error } = await supabase!.rpc('escolher_plano', { plano: plan })
+    if (error) throw error
+  },
+  // pedir para assinar: quem ativa é a dona (na fase 2, o pagamento)
+  async requestPlan(plan: PlanId) {
+    const { error } = await supabase!.rpc('pedir_assinatura', { plano: plan })
     if (error) throw error
   },
   async messages(clientId: string) {
@@ -207,6 +217,8 @@ const cloud = {
     if (patch.blocked !== undefined) row.blocked = patch.blocked
     if (patch.trialEnds) row.trial_ends = patch.trialEnds
     if (patch.canceledAt !== undefined) row.canceled_at = patch.canceledAt
+    if (patch.requestedPlan !== undefined) row.requested_plan = patch.requestedPlan
+    if (patch.requestedAt !== undefined) row.requested_at = patch.requestedAt
     const { error } = await supabase!.from('subscriptions').update(row).eq('user_id', userId)
     if (error) throw error
   },
@@ -254,7 +266,7 @@ function seed(): LocalDB {
     s('ex-1', 'Beatriz Nogueira', 'Nogueira Interiores', 'completo', 'ativa', 58, 0),
     s('ex-2', 'Rafael Menezes', 'RM Visualização 3D', 'essencial', 'ativa', 44, 1),
     s('ex-3', 'Camila Duarte', 'Studio Duarte', 'completo', 'trial', 5, 0),
-    s('ex-4', 'Júlia Prado', 'Prado Arquitetura', 'essencial', 'trial', 11, 2),
+    s('ex-4', 'Júlia Prado', 'Prado Arquitetura', 'essencial', 'trial', 6, 2, { requestedPlan: 'completo', requestedAt: ago(0, 5) }),
     s('ex-5', 'Thiago Lemos', 'Lemos Arq', 'essencial', 'atrasada', 71, 9),
     s('ex-6', 'Marina Faria', 'Faria & Co.', 'completo', 'cancelada', 90, 20, { canceledAt: ago(6) }),
   ]
@@ -267,7 +279,7 @@ function seed(): LocalDB {
     readAt: read ? ago(daysAgo, hoursAgo - 1) : null,
   })
   const messages = [
-    m('ex-1', false, 'oi, Laís! consigo colocar meu logo na proposta?', 3, 5),
+    m('ex-1', false, 'oi! consigo colocar meu logo na proposta?', 3, 5),
     m('ex-1', true, 'oii, Beatriz! consegue sim: perfil do estúdio → foto/logo. ele aparece no topo do sistema e nos documentos ☺️', 3, 4),
     m('ex-1', false, 'deu certo, obrigada!!', 3, 3),
     m('ex-3', false, 'como faço para o orçamento virar demanda depois que a cliente aprova?', 0, 2, false),
@@ -336,9 +348,18 @@ const local = {
     const db = readDB()
     writeDB({ ...db, subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, lastSeen: new Date().toISOString() } : x)) })
   },
-  async choosePlan(plan: PlanId, subscribe: boolean) {
+  async choosePlan(plan: PlanId) {
     const db = readDB()
-    writeDB({ ...db, subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, plan, status: subscribe ? 'ativa' : x.status, testMode: true } : x)) })
+    writeDB({ ...db, subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT && x.status === 'trial' ? { ...x, plan } : x)) })
+  },
+  async requestPlan(plan: PlanId) {
+    const db = readDB()
+    const now = new Date().toISOString()
+    writeDB({
+      ...db,
+      subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, requestedPlan: plan, requestedAt: now } : x)),
+      messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId: PREVIEW_CLIENT, fromOwner: false, body: `quero assinar o plano ${plan === 'completo' ? 'Completo' : 'Essencial'} ✨`, createdAt: now, readAt: null }],
+    })
   },
   async messages(clientId: string) {
     return readDB().messages.filter((x) => x.clientId === clientId)

@@ -66,7 +66,7 @@ const FAQ: [string, ReactNode][] = [
   ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para colar no WhatsApp. O Completo gera proposta, recibos e contratos em PDF, com modelos prontos e a sua identidade, além da agenda sincronizada no celular e do planejamento do instagram.'],
   ['os contratos têm validade jurídica?', 'São modelos de referência que já saem preenchidos com os dados do orçamento. Revise o texto com um advogado antes de usar; você pode editar tudo.'],
   ['posso trocar de plano ou cancelar?', 'Pode, quando quiser, direto na sua conta. Não tem fidelidade.'],
-  ['e se eu tiver dúvida?', `Tem um chat dentro do sistema direto com a ${PLATFORM.owner}, que criou o sistema e usa todos os dias no próprio estúdio.`],
+  ['e se eu tiver dúvida?', `Tem um chat dentro do sistema direto com ${PLATFORM.supportWith} do ${PLATFORM.name}, com resposta de gente de verdade.`],
 ]
 
 type Screen = 'painel' | 'demandas' | 'proposta' | 'contrato' | 'financeiro'
@@ -157,9 +157,11 @@ export default function Landing() {
 
       <section className="lp-strip">
         <div className="lp-wrap lp-strip-in">
-          <span className="pf-avatar lp-strip-avatar">{PLATFORM.owner[0]}</span>
+          <span className="pf-avatar lp-strip-avatar">
+            <Icon name="building" size={20} />
+          </span>
           <p>
-            <b>Feito por quem usa todos os dias.</b> O {PLATFORM.name} nasceu no estúdio da {PLATFORM.owner}, {PLATFORM.ownerRole}, para resolver a rotina de verdade: prazo apertado, cliente que some, saldo esquecido. Agora está aberto para você.
+            <b>Feito por quem usa todos os dias.</b> O {PLATFORM.name} nasceu dentro de um estúdio de arquitetura e visualização 3D, para resolver a rotina de verdade: prazo apertado, cliente que some, saldo esquecido. Agora está aberto para você.
           </p>
         </div>
       </section>
@@ -328,7 +330,7 @@ export default function Landing() {
             <i>.</i>
           </span>
           <span className="muted small">
-            feito com carinho pela {PLATFORM.owner} · {new Date().getFullYear()}
+            feito por quem projeta · {new Date().getFullYear()}
             {PLATFORM.provisional ? ' · nome provisório' : ''}
           </span>
           <button className="link small" onClick={() => go('entrar')}>
