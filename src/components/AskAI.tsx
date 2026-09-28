@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAccess } from '../access'
 import { useStore } from '../store'
 import type { Data, Quote, QuoteItem } from '../types'
 import { QUOTE_STATUS, money, nextQuoteNumber, quoteDeal, quoteFiles, quoteNumber } from '../utils'
@@ -138,7 +139,13 @@ export function claudeLink(d: Data, request: string, current?: Quote, names = tr
   return 'https://claude.ai/new'
 }
 
-export function AskAIButton({ quote, compact }: { quote?: Quote; compact?: boolean }) {
+/** Só aparece para quem tem o assistente de IA no plano (a dona); clientes usam o chat com ela. */
+export function AskAIButton(props: { quote?: Quote; compact?: boolean }) {
+  const { has } = useAccess()
+  return has('assistenteIA') ? <AskAIButtonInner {...props} /> : null
+}
+
+function AskAIButtonInner({ quote, compact }: { quote?: Quote; compact?: boolean }) {
   const { data } = useStore()
   const [open, setOpen] = useState(false)
   const [request, setRequest] = useState('')

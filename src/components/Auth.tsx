@@ -1,13 +1,20 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { CLOUD, supabase } from '../cloud'
-import { DEFAULT_SETTINGS, StoreProvider } from '../store'
+import { DEFAULT_SETTINGS, SIGNUP_KEY, StoreProvider, hasLocalAccount, seedPreviewAccount } from '../store'
+import { AccessProvider } from '../access'
+import { PREVIEW_CLIENT, getPreviewRole, onPreviewRole, setPreviewRole, type PreviewRole } from '../platform'
+import { PLATFORM, type PlanId } from '../plans'
+import { go, useRoute } from '../router'
+import { Signup } from './Signup'
+import Landing from '../pages/Landing'
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
 import { Icon } from './Icon'
 
-/** Sem nuvem configurada: sistema local. Com nuvem: exige login (e-mail + senha). */
+/** Sem nuvem configurada: prévia local. Com nuvem: exige login (e-mail + senha).
+ *  Sem login, mostra a página de vendas, o cadastro ou o login. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(CLOUD ? undefined : null)
   const [recovery, setRecovery] = useState(false)
@@ -22,14 +29,108 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe()
   }, [])
 
-  if (!CLOUD) return <StoreProvider>{children}</StoreProvider>
+  if (!CLOUD) return <PreviewGate>{children}</PreviewGate>
   if (session === undefined) return <div className="loading-screen" />
   if (recovery && session) return <NewPassword onDone={() => setRecovery(false)} />
-  if (!session) return <Login />
+  if (!session) return <PublicScreens />
   return (
-    <StoreProvider key={session.user.id} userId={session.user.id} userEmail={session.user.email ?? ''}>
-      {children}
-    </StoreProvider>
+    <AccessProvider userId={session.user.id} plan={session.user.user_metadata?.plan as string | undefined}>
+      <StoreProvider key={session.user.id} userId={session.user.id} userEmail={session.user.email ?? ''}>
+        {children}
+      </StoreProvider>
+    </AccessProvider>
+  )
+}
+
+/** Telas sem login: vendas (padrão para quem nunca entrou neste aparelho), cadastro e login. */
+function PublicScreens({ onEnter, onSignup }: { onEnter?: () => void; onSignup?: (plan: PlanId) => void }) {
+  const route = useRoute()
+  if (route.page === 'cadastro')
+    return (
+      <AuthLayout>
+        <Signup plan={route.id} onDone={onSignup} />
+      </AuthLayout>
+    )
+  if (route.page === 'entrar') return <Login onEnter={onEnter} />
+  if (route.page === 'vendas' || !lastBrand() || !CLOUD) return <Landing />
+  return <Login onEnter={onEnter} />
+}
+
+/** Prévia (Artifact): "ver como" visitante (página de vendas), cliente ou dona. */
+function PreviewGate({ children }: { children: ReactNode }) {
+  const [role, setRole] = useState<PreviewRole>(getPreviewRole)
+  useEffect(() => onPreviewRole(setRole), [])
+  const route = useRoute()
+  // abrir a página de vendas pelo menu da prévia
+  const visitor = role === 'visitante' || route.page === 'vendas'
+  return (
+    <>
+      {visitor ? (
+        <PublicScreens
+          onEnter={() => {
+            setPreviewRole('dona')
+            go('inicio')
+          }}
+          onSignup={() => {
+            seedPreviewAccount(PREVIEW_CLIENT)
+            setPreviewRole('cliente')
+            go('inicio')
+          }}
+        />
+      ) : (
+        <AccessProvider key={role} userId={role === 'cliente' ? PREVIEW_CLIENT : 'previa-dona'}>
+          {role === 'cliente' ? (
+            <StoreProvider key="cliente" userId={PREVIEW_CLIENT} userEmail="voce@exemplo.com">
+              {children}
+            </StoreProvider>
+          ) : (
+            <StoreProvider key="dona">{children}</StoreProvider>
+          )}
+        </AccessProvider>
+      )}
+      <PreviewSwitcher role={visitor ? 'visitante' : role} />
+    </>
+  )
+}
+
+function PreviewSwitcher({ role }: { role: PreviewRole }) {
+  const [open, setOpen] = useState(false)
+  const pick = (r: PreviewRole) => {
+    setOpen(false)
+    if (r === 'visitante') {
+      setPreviewRole('visitante')
+      go('vendas')
+      return
+    }
+    if (r === 'cliente' && !hasLocalAccount(PREVIEW_CLIENT)) {
+      // conta de cliente fictícia, já com dados de exemplo
+      try {
+        localStorage.setItem(SIGNUP_KEY, JSON.stringify({ name: 'Ana', studio: 'estúdio exemplo', demo: true }))
+      } catch {
+        /* ok */
+      }
+      seedPreviewAccount(PREVIEW_CLIENT)
+    }
+    setPreviewRole(r)
+    go('inicio')
+  }
+  const labels: Record<PreviewRole, string> = { visitante: 'página de vendas', cliente: 'cliente (teste grátis)', dona: 'dona (Laís)' }
+  return (
+    <div className={`pf-preview ${open ? 'is-open' : ''}`}>
+      {open && (
+        <div className="pf-preview-menu" role="menu">
+          <small className="muted">prévia · ver como</small>
+          {(Object.keys(labels) as PreviewRole[]).map((r) => (
+            <button key={r} role="menuitemradio" aria-checked={role === r} className={role === r ? 'active' : ''} onClick={() => pick(r)}>
+              <Icon name={r === 'visitante' ? 'star' : r === 'cliente' ? 'user' : 'crown'} size={15} /> {labels[r]}
+            </button>
+          ))}
+        </div>
+      )}
+      <button className="pf-preview-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} title="Trocar o que a prévia mostra">
+        <Icon name="eye" size={15} /> <span>prévia · {labels[role]}</span>
+      </button>
+    </div>
   )
 }
 
@@ -72,7 +173,7 @@ function AuthLayout({ children }: { children: ReactNode }) {
   )
 }
 
-function Login() {
+function Login({ onEnter }: { onEnter?: () => void }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -83,6 +184,8 @@ function Login() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+    // prévia: não há login de verdade; entra como a dona
+    if (!CLOUD) return onEnter?.()
     setBusy(true)
     if (forgot) {
       const { error } = await supabase!.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + window.location.pathname })
@@ -120,7 +223,7 @@ function Login() {
         {!forgot && (
           <Field label="Senha">
             <div className="pw-field">
-              <input id="login-password" type={show ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input id="login-password" type={show ? 'text' : 'password'} autoComplete="current-password" required={CLOUD} value={password} onChange={(e) => setPassword(e.target.value)} />
               <button type="button" className="icon-btn subtle" onClick={() => setShow(!show)} aria-label={show ? 'Esconder senha' : 'Mostrar senha'}>
                 <Icon name={show ? 'eye-off' : 'eye'} size={17} />
               </button>
@@ -137,6 +240,17 @@ function Login() {
         </button>
       </form>
       <p className="muted small">Você continua conectada neste aparelho até sair pelo perfil.</p>
+      {!CLOUD && <p className="pf-note">Prévia: não precisa de senha, “entrar” abre o sistema como a dona.</p>}
+      <p className="small">
+        ainda não tem conta?{' '}
+        <button type="button" className="link" onClick={() => go('cadastro')}>
+          testar grátis
+        </button>{' '}
+        ·{' '}
+        <button type="button" className="link" onClick={() => go('vendas')}>
+          conhecer o {PLATFORM.name}
+        </button>
+      </p>
     </AuthLayout>
   )
 }

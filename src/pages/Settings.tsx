@@ -12,6 +12,10 @@ import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
 import { CLOUD } from '../cloud'
+import { useAccess } from '../access'
+import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
+import { defaultContractSettings } from '../contracts'
+import { PLANS } from '../plans'
 
 const PRESETS: { name: string; s: Partial<Settings> }[] = [
   { name: 'laís (site)', s: { accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57' } },
@@ -30,7 +34,7 @@ type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
   { id: 'aparencia', label: 'aparência', hint: 'cores, fontes e tema', icon: 'star' },
   { id: 'precos', label: 'preços', hint: 'tabela e regras', icon: 'wallet', desktop: true },
-  { id: 'propostas', label: 'propostas', hint: 'modelo do PDF e padrões', icon: 'file', desktop: true },
+  { id: 'propostas', label: 'propostas', hint: 'modelo do PDF, contratos e padrões', icon: 'file' },
   { id: 'mensagens', label: 'mensagens', hint: 'textos para a cliente', icon: 'whatsapp', desktop: true },
   { id: 'metas', label: 'metas', hint: 'faturamento e MEI', icon: 'target', desktop: true },
   { id: 'ia', label: 'assistente', hint: 'chat com IA sobre orçamentos', icon: 'sparkle' },
@@ -40,6 +44,9 @@ const TAB_KEY = 'config-aba'
 
 export default function SettingsPage() {
   const narrow = typeof window !== 'undefined' && window.matchMedia('(max-width: 820px)').matches
+  const { has } = useAccess()
+  // assistente de IA: só no plano da dona (clientes conversam com ela pelo chat)
+  const tabs = TABS.filter((t) => t.id !== 'ia' || has('assistenteIA'))
   const [tab, setTab] = useState<TabId>(() => {
     let saved: TabId | null = null
     try {
@@ -47,7 +54,7 @@ export default function SettingsPage() {
     } catch {
       /* sem armazenamento */
     }
-    const ok = TABS.find((t) => t.id === saved && (!narrow || !t.desktop))
+    const ok = tabs.find((t) => t.id === saved && (!narrow || !t.desktop))
     return ok ? ok.id : 'aparencia'
   })
   const [showKey, setShowKey] = useState(false)
@@ -117,7 +124,7 @@ export default function SettingsPage() {
 
       <div className="settings-layout">
         <nav className="settings-tabs" aria-label="Seções das configurações">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t.id} className={`settings-tab ${tab === t.id ? 'active' : ''} ${t.desktop ? 'desktop-only' : ''}`} onClick={() => pickTab(t.id)}>
               <Icon name={t.icon} size={17} />
               <span>
@@ -126,7 +133,7 @@ export default function SettingsPage() {
               </span>
             </button>
           ))}
-          <p className="settings-note mobile-only">Preços, propostas, mensagens e metas são editados no computador.</p>
+          <p className="settings-note mobile-only">Preços, cores da proposta, mensagens e metas são editados no computador.</p>
         </nav>
 
         <div className="settings-panel">
@@ -419,6 +426,7 @@ export default function SettingsPage() {
 
           {tab === 'propostas' && (
             <>
+              <ProposalChooser />
               <ProposalSettings />
               <Section title="numeração e padrões" className="desktop-only">
                 <div className="form-grid">
@@ -448,7 +456,7 @@ export default function SettingsPage() {
             </Section>
           )}
 
-          {tab === 'ia' && (
+          {tab === 'ia' && has('assistenteIA') && (
             <>
               <Section title="assistente de orçamentos">
                 <p className="muted small" style={{ marginTop: 0 }}>
@@ -572,9 +580,12 @@ export default function SettingsPage() {
 /** Textos, fontes e cores da proposta em PDF, com pré-visualização. */
 function ProposalSettings() {
   const { data, setSettings } = useStore()
+  const { has } = useAccess()
   const s = data.settings
-  const p = s.proposal
-  const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch } })
+  const tpl = resolveTemplate(s.proposal, has)
+  // cores que a folha usa de verdade; ao editar, o modelo fica fixado nesta conta
+  const p = sheetColors(s.proposal, has)
+  const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch, template: tpl.id } })
   const [mode, setMode] = useState<'escopo' | 'opcoes'>('escopo')
   const sample: Quote = {
     id: 'amostra',
@@ -616,7 +627,7 @@ function ProposalSettings() {
     projectId: '',
   }
   return (
-    <Section title="modelo da proposta (PDF)" className="desktop-only">
+    <Section title="cores e textos da proposta" className={`desktop-only ${s.proposal.pdfOff ? 'is-dimmed' : ''}`}>
       <div className="proposal-settings">
         <div className="stack">
           <div className="form-grid">
@@ -661,8 +672,8 @@ function ProposalSettings() {
           </div>
           <p className="muted small">
             A faixa do topo usa seu nome completo; o rodapé usa WhatsApp, Instagram, site e e-mail (em Seus dados).{' '}
-            <button className="link" onClick={() => setSettings({ proposal: DEFAULT_PROPOSAL })}>
-              restaurar modelo original
+            <button className="link" onClick={() => setSettings({ proposal: { ...DEFAULT_PROPOSAL, ...tpl.colors, template: tpl.id, pdfOff: s.proposal.pdfOff } })}>
+              restaurar cores e textos do modelo
             </button>
           </p>
         </div>
@@ -735,5 +746,64 @@ function MsgEditor({ value, onChange }: { value: string; onChange: (v: string) =
       <textarea ref={ref} rows={Math.min(12, Math.max(3, value.split('\n').length + 1))} value={value} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" autoCapitalize="none" autoCorrect="on" />
       <WaPreview text={value} />
     </>
+  )
+}
+
+/** Escolha do modelo da proposta, PDF ligado/desligado e contratos (vale em qualquer aparelho). */
+function ProposalChooser() {
+  const { data, setSettings } = useStore()
+  const { has } = useAccess()
+  const s = data.settings
+  const current = resolveTemplate(s.proposal, has)
+  const cs = s.contracts ?? defaultContractSettings()
+  const pick = (id: string) => {
+    const t = TEMPLATES.find((x) => x.id === id)!
+    // cada modelo vem com as cores dele; textos e padrões da conta continuam
+    setSettings({ proposal: { ...s.proposal, ...t.colors, template: id } })
+    toast(`Modelo “${t.name}” aplicado.`)
+  }
+  const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
+  return (
+    <Section title="modelo da proposta">
+      <label className="check toggle">
+        <input type="checkbox" checked={!s.proposal.pdfOff} onChange={(e) => setSettings({ proposal: { ...s.proposal, pdfOff: !e.target.checked } })} /> usar proposta em PDF
+      </label>
+      <p className="muted small" style={{ marginTop: 4 }}>
+        {s.proposal.pdfOff ? 'Desligado: o orçamento vai só como resumo no WhatsApp (com os valores de cada serviço).' : 'Ligado: cada orçamento pode gerar o PDF no modelo escolhido abaixo.'}
+      </p>
+      {!s.proposal.pdfOff && (
+        <div className="pf-tpl-grid">
+          {visible.map((t) => {
+            const allowed = templateAllowed(t, has)
+            return (
+              <button key={t.id} className={`pf-tpl ${current.id === t.id ? 'active' : ''} ${allowed ? '' : 'is-locked'}`} disabled={!allowed} onClick={() => pick(t.id)} title={allowed ? t.description : `Disponível no plano ${PLANS.completo.name}`}>
+                <span className={`pf-tpl-thumb tpl-thumb-${t.id}`} style={{ '--t-bar': t.colors.bar, '--t-arch': t.colors.arch, '--t-paper': t.colors.paper, '--t-ink': t.colors.ink } as React.CSSProperties}>
+                  <i />
+                  <b />
+                  <u />
+                  <s />
+                </span>
+                <span className="pf-tpl-name">
+                  <b>{t.name}</b>
+                  <small className="muted">{allowed ? t.description : `plano ${PLANS.completo.name}`}</small>
+                </span>
+                {current.id === t.id && <Icon name="check" size={16} className="pf-tpl-check" />}
+                {!allowed && <Icon name="lock" size={14} className="pf-tpl-check" />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {has('contratos') && (
+        <>
+          <label className="check toggle">
+            <input type="checkbox" checked={!cs.off} onChange={(e) => setSettings({ contracts: { ...cs, off: !e.target.checked } })} /> usar contratos
+          </label>
+          <p className="muted small" style={{ marginTop: 4 }}>
+            {cs.off ? 'Desligado: os contratos somem do menu (nada é apagado).' : 'Contratos a partir do orçamento, com modelos editáveis, no menu “contratos”.'}
+          </p>
+        </>
+      )}
+    </Section>
   )
 }

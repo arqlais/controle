@@ -1,0 +1,457 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Icon } from '../components/Icon'
+import { Badge, Empty, Field, Section, Segmented, Stat } from '../components/ui'
+import { ask, toast } from '../components/dialog'
+import { BarChart } from '../components/Charts'
+import { useKeep } from '../keep'
+import { ARTIFACT } from '../env'
+import { PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId, type SubStatus } from '../plans'
+import { DAY_NAMES, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type OnlineHours, type Subscription } from '../platform'
+import { timeLabel, useConversation, useHours, useInbox } from '../chat'
+import { matches, money } from '../utils'
+
+/* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
+
+type Tab = 'resumo' | 'assinantes' | 'conversas' | 'horarios' | 'ajustes'
+const STATUS_COLOR: Record<SubStatus, string> = { trial: '#6b8f94', ativa: '#5e8c6a', atrasada: '#b98246', cancelada: '#9aa3ab' }
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
+const ago = (iso: string) => {
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  return d <= 0 ? 'hoje' : d === 1 ? 'ontem' : `há ${d} dias`
+}
+const paying = (s: Subscription) => (s.status === 'ativa' || s.status === 'atrasada') && !s.blocked
+
+export default function Admin() {
+  const [tab, setTab] = useKeep<Tab>('painel-aba', 'resumo')
+  const { msgs, subs, unread, reload, setSubs } = useInbox(true)
+  const [chatWith, setChatWith] = useState('')
+
+  const update = async (s: Subscription, patch: Partial<Subscription>, msg: string) => {
+    try {
+      await platform.updateSubscriber(s.userId, patch)
+      setSubs((list) => list.map((x) => (x.userId === s.userId ? { ...x, ...patch } : x)))
+      toast(msg)
+    } catch {
+      toast('Não foi possível salvar. Confira a internet e se o SQL da plataforma foi rodado no Supabase.')
+    }
+  }
+  const openChat = (id: string) => {
+    setChatWith(id)
+    setTab('conversas')
+  }
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">
+            <Icon name="crown" size={14} /> só você vê
+          </p>
+          <h1>
+            painel <em>da plataforma</em>
+          </h1>
+        </div>
+        {PLATFORM.provisional && (
+          <span className="pf-provisional">
+            nome e preços provisórios · <b>{PLATFORM.name}</b>
+          </span>
+        )}
+      </div>
+      <div className="pf-tabs">
+        <Segmented<Tab>
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'resumo', label: 'vendas' },
+            { value: 'assinantes', label: `assinantes (${subs.length})` },
+            { value: 'conversas', label: <>conversas{unread ? <em className="pf-dot-count">{unread}</em> : null}</> },
+            { value: 'horarios', label: 'horários' },
+            { value: 'ajustes', label: 'planos' },
+          ]}
+        />
+      </div>
+      {tab === 'resumo' && <Summary subs={subs} />}
+      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
+      {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
+      {tab === 'horarios' && <HoursEditor />}
+      {tab === 'ajustes' && <PlansInfo />}
+    </div>
+  )
+}
+
+function Summary({ subs }: { subs: Subscription[] }) {
+  const now = new Date()
+  const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
+  const thisMonth = monthKey(now)
+  const active = subs.filter(paying)
+  const mrr = active.reduce((s, x) => s + PLANS[x.plan].price, 0)
+  const trials = subs.filter((x) => x.status === 'trial' && trialDaysLeft(x) > 0)
+  const expired = subs.filter((x) => x.status === 'trial' && trialDaysLeft(x) <= 0)
+  const late = subs.filter((x) => x.status === 'atrasada')
+  const newOnes = subs.filter((x) => x.createdAt && monthKey(new Date(x.createdAt)) === thisMonth)
+  const canceled = subs.filter((x) => x.canceledAt && monthKey(new Date(x.canceledAt)) === thisMonth)
+  const everPaid = subs.filter((x) => x.status !== 'trial').length
+  const conversion = subs.length ? Math.round((everPaid / Math.max(1, subs.length - trials.length)) * 100) : 0
+
+  // receita estimada de cada mês: quem já tinha passado do teste e ainda não tinha cancelado
+  const months = [...Array(6)].map((_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1))
+  const revenue = months.map((m) => {
+    const end = new Date(m.getFullYear(), m.getMonth() + 1, 0)
+    return subs
+      .filter((x) => x.status !== 'trial' && new Date(x.createdAt).getTime() + TRIAL_DAYS * 86_400_000 <= end.getTime() && (!x.canceledAt || new Date(x.canceledAt) >= m))
+      .reduce((s, x) => s + PLANS[x.plan].price, 0)
+  })
+
+  return (
+    <>
+      <div className="stats">
+        <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s) · modo teste`} icon="wallet" tone="good" />
+        <Stat label="Em teste grátis" value={trials.length} sub={expired.length ? `${expired.length} teste(s) já terminaram` : `${TRIAL_DAYS} dias de teste`} icon="clock" />
+        <Stat label="Novos este mês" value={newOnes.length} sub={`conversão do teste: ${conversion}%`} icon="trend" />
+        <Stat label="Cancelamentos no mês" value={canceled.length} sub={late.length ? `${late.length} com pagamento atrasado` : 'nenhum atraso'} icon="alert" tone={canceled.length || late.length ? 'warn' : undefined} />
+      </div>
+      <Section title="receita estimada (últimos 6 meses)">
+        <BarChart labels={months.map((m) => MONTHS[m.getMonth()])} series={[{ label: 'receita', color: 'var(--accent)', values: revenue }]} height={200} />
+        <p className="muted small">Por enquanto é uma simulação: a cobrança de verdade (Pix e cartão) entra na fase 2.</p>
+      </Section>
+      <div className="pf-grid-2">
+        <Section title="por plano">
+          {PLAN_LIST.map((p) => {
+            const n = active.filter((x) => x.plan === p.id).length
+            const t = trials.filter((x) => x.plan === p.id).length
+            return (
+              <div key={p.id} className="pf-plan-line">
+                <b>{p.name}</b>
+                <span className="muted">{money0(p.price)}/mês</span>
+                <span className="grow" />
+                <span>
+                  {n} ativo(s) · {t} em teste
+                </span>
+              </div>
+            )
+          })}
+        </Section>
+        <Section title="últimos cadastros">
+          {subs.length === 0 ? (
+            <p className="muted small">Ninguém se cadastrou ainda.</p>
+          ) : (
+            [...subs]
+              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+              .slice(0, 5)
+              .map((s) => (
+                <div key={s.userId} className="pf-plan-line">
+                  <b>{s.name || s.email}</b>
+                  <span className="muted small">{s.studio}</span>
+                  <span className="grow" />
+                  <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
+                </div>
+              ))
+          )}
+        </Section>
+      </div>
+    </>
+  )
+}
+
+function Subscribers({ subs, update, openChat, unreadOf }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number }) {
+  const [q, setQ] = useState('')
+  const [filter, setFilter] = useState<'todos' | SubStatus | 'bloqueados'>('todos')
+  const rows = subs.filter((s) => matches(q, s.name, s.email, s.studio)).filter((s) => (filter === 'todos' ? true : filter === 'bloqueados' ? s.blocked : s.status === filter))
+  if (!subs.length) return <Empty icon="users" title="nenhum assinante ainda" text="Quando alguém se cadastrar pela página de vendas, aparece aqui com o plano, o teste grátis e o último acesso." />
+  return (
+    <>
+      <div className="pf-toolbar">
+        <input type="search" className="pf-search" placeholder="buscar por nome, e-mail ou estúdio…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar">
+          <option value="todos">todos</option>
+          {(Object.keys(STATUS_LABEL) as SubStatus[]).map((k) => (
+            <option key={k} value={k}>
+              {STATUS_LABEL[k]}
+            </option>
+          ))}
+          <option value="bloqueados">bloqueados</option>
+        </select>
+      </div>
+      <div className="pf-subs">
+        {rows.map((s) => {
+          const left = trialDaysLeft(s)
+          const unread = unreadOf(s.userId)
+          return (
+            <article key={s.userId} className={`card pf-sub ${s.blocked ? 'is-blocked' : ''}`}>
+              <header className="pf-sub-head">
+                <span className="pf-avatar">{(s.name || s.email || '?')[0].toUpperCase()}</span>
+                <span className="grow">
+                  <b>{s.name || 'sem nome'}</b>
+                  <small className="muted">{s.studio || '—'}</small>
+                  <small className="muted pf-email">{s.email}</small>
+                </span>
+              </header>
+              <div className="pf-badges">
+                <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
+                <Badge color="#3e4b57">{PLANS[s.plan].name}</Badge>
+                {s.blocked && <Badge color="#b5524c">bloqueado</Badge>}
+                {s.testMode && <Badge color="#8b939a">modo teste</Badge>}
+              </div>
+              <dl className="pf-facts">
+                <div>
+                  <dt>desde</dt>
+                  <dd>{dateBR(s.createdAt)}</dd>
+                </div>
+                <div>
+                  <dt>último acesso</dt>
+                  <dd>{s.lastSeen ? ago(s.lastSeen) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>{s.status === 'trial' ? 'teste' : 'valor'}</dt>
+                  <dd>{s.status === 'trial' ? (left > 0 ? `faltam ${left} dia(s)` : 'terminou') : `${money0(PLANS[s.plan].price)}/mês`}</dd>
+                </div>
+              </dl>
+              <div className="pf-sub-actions">
+                <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
+                  {PLAN_LIST.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={s.status}
+                  onChange={(e) => {
+                    const status = e.target.value as SubStatus
+                    void update(s, { status, canceledAt: status === 'cancelada' ? new Date().toISOString() : null }, `Situação → ${STATUS_LABEL[status]}.`)
+                  }}
+                  aria-label="Situação"
+                >
+                  {(Object.keys(STATUS_LABEL) as SubStatus[]).map((k) => (
+                    <option key={k} value={k}>
+                      {STATUS_LABEL[k]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="row gap-s wrap">
+                {s.blocked ? (
+                  <button className="btn small approve" onClick={() => void update(s, { blocked: false }, 'Acesso liberado.')}>
+                    <Icon name="check" size={14} /> liberar
+                  </button>
+                ) : (
+                  <button
+                    className="btn small ghost danger"
+                    onClick={async () => (await ask(`Bloquear ${s.name || s.email}? A pessoa não consegue usar o sistema até você liberar. Os dados dela não são apagados.`, { confirmLabel: 'Bloquear', danger: true })) && update(s, { blocked: true }, 'Acesso bloqueado.')}
+                  >
+                    <Icon name="lock" size={14} /> bloquear
+                  </button>
+                )}
+                {s.status === 'trial' && (
+                  <button className="btn small ghost" onClick={() => void update(s, { trialEnds: new Date(Math.max(Date.now(), new Date(s.trialEnds).getTime()) + 7 * 86_400_000).toISOString() }, 'Teste estendido por mais 7 dias.')}>
+                    +7 dias de teste
+                  </button>
+                )}
+                <button className="btn small ghost" onClick={() => openChat(s.userId)}>
+                  <Icon name="chat" size={14} /> conversar{unread ? ` (${unread})` : ''}
+                </button>
+              </div>
+            </article>
+          )
+        })}
+        {!rows.length && <p className="muted">Ninguém com esse filtro.</p>}
+      </div>
+    </>
+  )
+}
+
+function Inbox({ subs, msgs, current, setCurrent, reload }: { subs: Subscription[]; msgs: ReturnType<typeof useInbox>['msgs']; current: string; setCurrent: (id: string) => void; reload: () => Promise<void> }) {
+  const threads = useMemo(() => {
+    const by = new Map<string, typeof msgs>()
+    for (const m of msgs) by.set(m.clientId, [...(by.get(m.clientId) ?? []), m])
+    return [...by.entries()]
+      .map(([id, list]) => ({ id, list, last: list[list.length - 1], unread: list.filter((m) => !m.fromOwner && !m.readAt).length, sub: subs.find((s) => s.userId === id) }))
+      .sort((a, b) => b.last.createdAt.localeCompare(a.last.createdAt))
+  }, [msgs, subs])
+  // quem ainda não conversou também pode receber mensagem (vindo de "conversar" nos assinantes)
+  const currentSub = subs.find((s) => s.userId === current)
+  if (!threads.length && !current) return <Empty icon="chat" title="nenhuma conversa ainda" text="Quando um cliente escrever no chat, a conversa aparece aqui e você recebe um aviso no menu." />
+  return (
+    <div className={`pf-inbox ${current ? 'has-open' : ''}`}>
+      <div className="card pf-threads">
+        {threads.map((t) => (
+          <button key={t.id} className={`pf-thread ${t.id === current ? 'is-active' : ''}`} onClick={() => setCurrent(t.id)}>
+            <span className="pf-avatar">{(t.sub?.name || '?')[0].toUpperCase()}</span>
+            <span className="grow">
+              <b>{t.sub?.name || 'cliente'}</b>
+              <small className="muted">
+                {t.last.fromOwner ? 'você: ' : ''}
+                {t.last.body.slice(0, 60)}
+              </small>
+            </span>
+            <span className="pf-thread-meta">
+              <small className="muted">{timeLabel(t.last.createdAt)}</small>
+              {t.unread > 0 && <em className="pf-dot-count">{t.unread}</em>}
+            </span>
+          </button>
+        ))}
+        {current && !threads.some((t) => t.id === current) && currentSub && (
+          <button className="pf-thread is-active">
+            <span className="pf-avatar">{(currentSub.name || '?')[0].toUpperCase()}</span>
+            <span className="grow">
+              <b>{currentSub.name}</b>
+              <small className="muted">nova conversa</small>
+            </span>
+          </button>
+        )}
+      </div>
+      {current ? <Thread key={current} clientId={current} sub={currentSub} onBack={() => setCurrent('')} onChange={reload} /> : <div className="card pf-thread-empty muted">escolha uma conversa</div>}
+    </div>
+  )
+}
+
+function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: Subscription; onBack: () => void; onChange: () => Promise<void> }) {
+  const { msgs, send, markRead } = useConversation(clientId)
+  const [text, setText] = useState('')
+  const endRef = useRef<HTMLDivElement>(null)
+  const unread = (msgs ?? []).some((m) => !m.fromOwner && !m.readAt)
+  useEffect(() => {
+    if (unread) void markRead().then(onChange)
+  }, [unread, markRead, onChange])
+  useEffect(() => endRef.current?.scrollIntoView({ block: 'end' }), [msgs])
+  const submit = async () => {
+    if (await send(text, true)) {
+      setText('')
+      void onChange()
+    }
+  }
+  return (
+    <section className="card pf-thread-view">
+      <header className="pf-thread-head">
+        <button className="icon-btn only-mobile" onClick={onBack} aria-label="Voltar para as conversas">
+          <Icon name="chevronL" />
+        </button>
+        <span className="pf-avatar">{(sub?.name || '?')[0].toUpperCase()}</span>
+        <span className="grow">
+          <b>{sub?.name || 'cliente'}</b>
+          <small className="muted">
+            {sub ? `${sub.studio || sub.email} · ${PLANS[sub.plan].name} · ${STATUS_LABEL[sub.status]}` : ''}
+          </small>
+        </span>
+      </header>
+      <div className="pf-thread-body">
+        {(msgs ?? []).map((m) => (
+          <div key={m.id} className={`ai-msg ${m.fromOwner ? 'is-user' : 'is-ai'}`}>
+            <p>{m.body}</p>
+            <small className="pf-msg-time">
+              {timeLabel(m.createdAt)}
+              {m.fromOwner && m.readAt ? ' · lida' : ''}
+            </small>
+          </div>
+        ))}
+        {msgs?.length === 0 && <p className="muted small center">comece a conversa ☺️</p>}
+        <div ref={endRef} />
+      </div>
+      <form
+        className="ai-chat-input"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void submit()
+        }}
+      >
+        <textarea
+          rows={Math.min(4, Math.max(1, text.split('\n').length))}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              void submit()
+            }
+          }}
+          placeholder="Responder…"
+        />
+        <button className="btn primary icon-only" disabled={!text.trim()} aria-label="Enviar">
+          <Icon name="arrowRight" size={18} />
+        </button>
+      </form>
+    </section>
+  )
+}
+
+function HoursEditor() {
+  const [hours, setHours] = useHours()
+  const [draft, setDraft] = useState<OnlineHours | null>(null)
+  const h = draft ?? hours
+  const setDay = (i: number, patch: Partial<OnlineHours['days'][number]>) => setDraft({ ...h, days: h.days.map((d, j) => (j === i ? { ...d, ...patch } : d)) })
+  const save = async () => {
+    try {
+      await platform.saveHours(h)
+      setHours(h)
+      setDraft(null)
+      toast('Horários salvos. Os clientes já veem os novos horários no chat.')
+    } catch {
+      toast('Não foi possível salvar os horários agora.')
+    }
+  }
+  return (
+    <Section
+      title="quando você está online"
+      action={
+        <button className="btn primary small" disabled={!draft} onClick={() => void save()}>
+          salvar
+        </button>
+      }
+    >
+      <p className="muted small">
+        Os clientes veem no chat se você está <b>online agora</b>. Fora desses horários aparece “respondo assim que possível”. Sempre no horário de Brasília. Agora: <b>{isOnline(h) ? 'online' : 'fora do horário'}</b>.
+      </p>
+      <div className="pf-hours">
+        {[1, 2, 3, 4, 5, 6, 0].map((i) => (
+          <div key={i} className={`pf-hour ${h.days[i].on ? '' : 'is-off'}`}>
+            <label className="check">
+              <input type="checkbox" checked={h.days[i].on} onChange={(e) => setDay(i, { on: e.target.checked })} /> {DAY_NAMES[i]}
+            </label>
+            <input type="time" value={h.days[i].from} disabled={!h.days[i].on} onChange={(e) => setDay(i, { from: e.target.value })} aria-label={`${DAY_NAMES[i]}: das`} />
+            <span className="muted">às</span>
+            <input type="time" value={h.days[i].to} disabled={!h.days[i].on} onChange={(e) => setDay(i, { to: e.target.value })} aria-label={`${DAY_NAMES[i]}: até`} />
+          </div>
+        ))}
+      </div>
+      <p className="muted small">Resumo que aparece no chat: {hoursSummary(h)}</p>
+      <Field label="Mensagem fora do horário" hint="Aparece para o cliente depois que ele escreve e você está fora do horário.">
+        <input value={h.away} onChange={(e) => setDraft({ ...h, away: e.target.value })} />
+      </Field>
+    </Section>
+  )
+}
+
+function PlansInfo() {
+  return (
+    <>
+      <div className="pf-grid-2">
+        {PLAN_LIST.map((p) => (
+          <Section key={p.id} title={`${p.name} · ${money0(p.price)}/mês`}>
+            <ul className="pf-checks">
+              {p.highlights.map((h) => (
+                <li key={h}>
+                  <Icon name="check" size={14} /> {h}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ))}
+      </div>
+      <Section title="como trocar nome, preços e planos">
+        <p className="muted small">
+          O nome da plataforma (<b>{PLATFORM.name}</b>, provisório), os preços, os {TRIAL_DAYS} dias de teste e o que cada plano libera ficam num lugar só: o arquivo <code>src/plans.ts</code>. Me diga os novos valores
+          que eu troco para você. Você (a dona) tem tudo liberado, inclusive o assistente de IA e o seu modelo exclusivo de proposta; os clientes não têm o assistente de IA e, no lugar dele, conversam com você.
+        </p>
+      </Section>
+      {ARTIFACT && (
+        <Section title="prévia">
+          <p className="muted small">Os assinantes e conversas desta prévia são fictícios e ficam só neste aparelho.</p>
+          <button className="btn ghost" onClick={async () => (await ask('Voltar os assinantes e conversas de exemplo para o começo?', { confirmLabel: 'Recomeçar' })) && resetPreviewData()}>
+            recomeçar exemplo
+          </button>
+        </Section>
+      )}
+    </>
+  )
+}

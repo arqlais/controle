@@ -14,6 +14,7 @@ import '@fontsource/cormorant-garamond/latin-500.css'
 import '@fontsource/cormorant-garamond/latin-400-italic.css'
 import '@fontsource/cormorant-garamond/latin-500-italic.css'
 import './styles.css'
+import './platform.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

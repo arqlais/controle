@@ -332,10 +332,41 @@ export const DEFAULT_SETTINGS: Settings = {
 }
 
 export function emptyData(): Data {
-  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], settings: DEFAULT_SETTINGS }
+  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], contracts: [], settings: DEFAULT_SETTINGS }
 }
 
 const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
+
+/** Escolhas do cadastro (nome, estúdio, começar com exemplo), guardadas até a primeira entrada. */
+export const SIGNUP_KEY = 'cadastro-inicio'
+function firstRunData(settings: Settings): Data {
+  let info: { name?: string; studio?: string; demo?: boolean } = {}
+  try {
+    info = JSON.parse(localStorage.getItem(SIGNUP_KEY) || '{}')
+    localStorage.removeItem(SIGNUP_KEY)
+  } catch {
+    /* ok */
+  }
+  const st = { ...settings, ...(info.studio ? { brandName: info.studio } : {}), ...(info.name ? { ownerName: info.name } : {}) }
+  return info.demo ? demoData(st) : { ...emptyData(), settings: st }
+}
+
+export const hasLocalAccount = (userId: string) => {
+  try {
+    return !!localStorage.getItem(cacheKey(userId))
+  } catch {
+    return false
+  }
+}
+
+/** Prévia: a conta de cliente criada no cadastro começa com o que foi escolhido lá. */
+export function seedPreviewAccount(userId: string) {
+  try {
+    localStorage.setItem(cacheKey(userId), JSON.stringify(firstRunData(DEFAULT_SETTINGS)))
+  } catch {
+    /* ok */
+  }
+}
 
 function load(userId?: string): Data {
   try {
@@ -365,6 +396,7 @@ export function normalize(d: Partial<Data>): Data {
     expenses: d.expenses ?? [],
     events: d.events ?? [],
     posts: d.posts ?? [],
+    contracts: d.contracts ?? [],
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
@@ -462,7 +494,7 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts'
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts'
 type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
@@ -552,7 +584,8 @@ export function StoreProvider({ children, userId, userEmail = '' }: { children: 
           // primeira vez: sobe o que já existia neste navegador (se for real)
           const local = load(userId)
           const legacy = load()
-          const start = hasContent(local) ? local : hasContent(legacy) ? legacy : { ...emptyData(), settings: local.settings }
+          const fresh = firstRunData(local.settings)
+          const start = hasContent(local) ? local : hasContent(legacy) ? legacy : fresh
           remoteAt.current = await pushRemote(userId!, start)
           fromRemote.current = true
           setData(start)

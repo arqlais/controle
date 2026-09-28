@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
+import { useAccess } from '../access'
+import { resolveTemplate, sheetColors } from '../proposalTemplates'
 import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings } from '../types'
 import { allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
@@ -61,7 +63,10 @@ const MIN_GAP = 84
 /** Folha da proposta. Com `fit`, mede o espaço de verdade: começa com o espaçamento normal e
     só aproxima o título e compacta o quadro quando o escopo não deixa respiro antes do rodapé. */
 function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string; children: ReactNode; fit?: string; barName?: string }) {
-  const p = s.proposal
+  // modelo e cores conforme o plano (o "Proposta #001" é só da dona)
+  const { has } = useAccess()
+  const tpl = resolveTemplate(s.proposal, has)
+  const p = sheetColors(s.proposal, has)
   const ref = useRef<HTMLElement>(null)
   const [level, setLevel] = useState(0)
   useLayoutEffect(() => setLevel(0), [fit])
@@ -89,7 +94,7 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
     '--p-serif': `'${p.serif}', 'Cormorant Garamond', Georgia, serif`,
   } as CSSProperties
   return (
-    <article ref={ref} className={`proposal ${LEVELS[level]}`} style={style}>
+    <article ref={ref} className={`proposal tpl-${tpl.id} ${LEVELS[level]}`} style={style}>
       <div className="p-bar">
         <span>{(barName || s.legalName || s.ownerName || s.brandName).toUpperCase()}</span>
         <span>{year}</span>
@@ -151,7 +156,7 @@ function InfoRow({ items, color }: { items: { icon: keyof typeof ICONS; label: s
       {items.map((it) => (
         <div key={it.label} className="p-info-item">
           <svg viewBox="0 0 24 24" className="p-info-icon" aria-hidden>
-            <circle cx="12" cy="12" r="12" fill={color} />
+            <circle cx="12" cy="12" r="12" style={{ fill: color }} />
             <g fill="none" stroke="#e1cac4" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
               {ICONS[it.icon]}
             </g>
@@ -299,7 +304,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
         </div>
       )}
       {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}
-      {infos.length > 0 && <InfoRow items={infos} color={s.proposal.bar} />}
+      {infos.length > 0 && <InfoRow items={infos} color="var(--p-bar)" />}
       <Contacts s={s} />
     </Sheet>
   )

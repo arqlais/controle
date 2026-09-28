@@ -290,6 +290,33 @@ export interface ProposalStyle {
   files: string // formatos de arquivos entregues (padrão)
   schedule: string // prazos e cronograma (padrão)
   showArch: boolean
+  template?: string // modelo escolhido (src/proposalTemplates.ts); vazio = padrão do plano
+  pdfOff?: boolean // não usa PDF: orçamento vai só como resumo no WhatsApp
+}
+
+/** Modelo de contrato com {variáveis} preenchidas pelo orçamento. */
+export interface ContractTemplate {
+  id: string
+  name: string
+  body: string
+}
+
+export interface ContractSettings {
+  off?: boolean // não usa contratos (some do menu)
+  templates: ContractTemplate[]
+}
+
+export type ContractStatus = 'rascunho' | 'enviado' | 'assinado'
+
+export interface Contract {
+  id: string
+  title: string
+  quoteId: string
+  clientId: string
+  templateId: string
+  body: string // texto final (já preenchido e editável)
+  status: ContractStatus
+  createdAt: string
 }
 
 export interface Settings {
@@ -349,6 +376,7 @@ export interface Settings {
   customColumns: BoardColumn[] // colunas extras do quadro de demandas
   navOrder: string[] // ordem do menu lateral
   messages: MessageTemplate[] // mensagens padrão para o cliente
+  contracts?: ContractSettings // modelos de contrato (plano Completo)
 }
 
 export interface Data {
@@ -360,6 +388,7 @@ export interface Data {
   events: CalendarEvent[]
   quotes: Quote[]
   posts?: SocialPost[] // planejamento do instagram
+  contracts?: Contract[] // contratos gerados a partir dos orçamentos
   settings: Settings
 }
 
