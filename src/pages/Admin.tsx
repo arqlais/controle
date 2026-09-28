@@ -97,7 +97,20 @@ export default function Admin() {
       {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
-      {tab === 'site' && <SiteEditor />}
+      {tab === 'site' && (
+        <>
+          <p className="pf-note">
+            <Icon name="eye" size={16} />
+            <span>
+              Aqui você muda a sua foto, o texto do “quem criou”, os contatos e o rodapé da página de vendas.{' '}
+              <a className="link" href="#/vendas">
+                ver a página de vendas
+              </a>
+            </span>
+          </p>
+          <SiteEditor />
+        </>
+      )}
       {tab === 'termos' && <TermsEditor />}
       {tab === 'horarios' && <HoursEditor />}
       {tab === 'ajustes' && <PlansInfo />}

@@ -1013,3 +1013,8 @@
 .mk-q-editorial .mk-q-total { background: none; border-top: 1px solid var(--mk-ink); padding-inline: 0; }
 @media (max-width: 720px) { .mk-stage { padding-inline: 8px; } .mk-tag { font-size: 11px; } .mk-tag-1 { right: 0; } .mk-tag-2 { left: 0; } }
 .lp-me-story .lp-me-wrap .lp-me { background: #e1cac4; border: 1px solid #d1ada4; color: #ab8e86; box-shadow: none; }
+
+/* dona vendo a página de vendas: barra fixa para editar ou voltar */
+.owner-sales-bar { position: fixed; z-index: 95; left: 50%; bottom: 18px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; width: max-content; max-width: calc(100vw - 32px); padding: 10px 12px 10px 18px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 18px 44px -18px rgba(40, 48, 56, 0.5); font-size: 13px; }
+.owner-sales-bar span { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 560px) { .owner-sales-bar { bottom: 12px; padding: 10px 12px; } }

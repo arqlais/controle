@@ -33,6 +33,7 @@ import Suggestions from './pages/Suggestions'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
+import Landing from './pages/Landing'
 import { ScreenHelp, Tour } from './components/Tour'
 import { useInbox } from './chat'
 import { trialOver } from './platform'
@@ -125,7 +126,7 @@ export default function App() {
   const groups = useMemo(
     () =>
       [
-        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }] : [] },
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
         { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),
@@ -152,7 +153,7 @@ export default function App() {
   // The Seasons é só da dona: nas contas de clientes vira a fonte padrão deles
   useEffect(() => {
     applyTheme(effectiveSettings(settings, access.has), dark)
-  }, [settings, dark, access])
+  }, [settings, dark, access, route.page === 'vendas'])
   useEffect(() => {
     setMenuOpen(false)
   }, [route.page, route.id])
@@ -203,6 +204,35 @@ export default function App() {
         return <Dashboard onQuick={setQuick} />
     }
   })()
+
+  // a dona vê a página de vendas como um visitante, com uma barra para editar ou voltar
+  if (route.page === 'vendas' && access.isOwner)
+    return (
+      <>
+        <Landing />
+        <div className="owner-sales-bar" role="region" aria-label="Você está vendo a página de vendas">
+          <span>
+            <Icon name="eye" size={15} /> você está vendo a <b>página de vendas</b>, como os visitantes
+          </span>
+          <button
+            className="btn small ghost"
+            onClick={() => {
+              try {
+                sessionStorage.setItem('tela:painel-aba', JSON.stringify('site'))
+              } catch {
+                /* ok */
+              }
+              go('plataforma')
+            }}
+          >
+            <Icon name="edit" size={14} /> editar textos e foto
+          </button>
+          <button className="btn small primary" onClick={() => go('inicio')}>
+            voltar ao sistema
+          </button>
+        </div>
+      </>
+    )
 
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
