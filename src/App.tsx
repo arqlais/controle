@@ -28,6 +28,8 @@ import Instagram from './pages/Instagram'
 import Profile, { profileImportant } from './pages/Profile'
 import Contracts from './pages/Contracts'
 import Admin from './pages/Admin'
+import Checkout from './pages/Checkout'
+import Suggestions from './pages/Suggestions'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
@@ -122,7 +124,7 @@ export default function App() {
   const tools = useMemo(
     () => [
       ...(access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel da plataforma', icon: 'crown' }] : []),
-      ...(!access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }] : []),
+      ...(!access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }] : []),
       ...TOOLS,
     ],
     [access],
@@ -159,7 +161,9 @@ export default function App() {
       case 'plataforma':
         return <Admin />
       case 'assinatura':
-        return <SubscriptionPage onChat={openChat} />
+        return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
+      case 'sugestoes':
+        return <Suggestions />
       case 'clientes':
         return route.id ? <ClientDetail key={route.id} id={route.id} /> : <Clients />
       case 'projetos':

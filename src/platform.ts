@@ -24,7 +24,51 @@ export interface Subscription {
   canceledAt?: string | null
   requestedPlan?: PlanId | null // pediu para assinar (a dona libera)
   requestedAt?: string | null
+  requestedCycle?: Cycle | null
 }
+
+/** Dados de cobrança preenchidos na assinatura (como numa compra). */
+export type Cycle = 'mensal' | 'anual'
+export type PayMethod = 'pix' | 'cartao' | 'boleto'
+export interface Billing {
+  fullName: string
+  doc: string // CPF ou CNPJ
+  phone: string
+  email: string
+  cep: string
+  address: string
+  number: string
+  complement: string
+  city: string
+  profession: string
+  source: string // como conheceu
+  payMethod: PayMethod
+  cycle: Cycle
+  acceptedAt: string // quando aceitou os termos
+}
+
+/** Sugestão de melhoria enviada por quem usa. */
+export type SuggestionStatus = 'recebida' | 'analisando' | 'planejada' | 'feita' | 'nao_agora'
+export type SuggestionCategory = 'nova' | 'melhoria' | 'problema' | 'outro'
+export interface Suggestion {
+  id: string
+  userId: string
+  category: SuggestionCategory
+  title: string
+  body: string
+  status: SuggestionStatus
+  reply: string
+  createdAt: string
+  updatedAt: string
+}
+export const SUGGESTION_STATUS: Record<SuggestionStatus, { label: string; color: string }> = {
+  recebida: { label: 'recebida', color: '#6b8f94' },
+  analisando: { label: 'em análise', color: '#c29a55' },
+  planejada: { label: 'planejada', color: '#5b7a99' },
+  feita: { label: 'feita ✓', color: '#5e8c6a' },
+  nao_agora: { label: 'não por agora', color: '#9aa3ab' },
+}
+export const SUGGESTION_CATEGORY: Record<SuggestionCategory, string> = { nova: 'função nova', melhoria: 'melhoria', problema: 'algo não funciona', outro: 'outra ideia' }
 
 export interface ChatMessage {
   id: string
@@ -143,6 +187,18 @@ const subFromRow = (r: Row): Subscription => ({
   canceledAt: (r.canceled_at as string | null) ?? null,
   requestedPlan: (r.requested_plan as PlanId | null) ?? null,
   requestedAt: (r.requested_at as string | null) ?? null,
+  requestedCycle: (r.requested_cycle as Cycle | null) ?? null,
+})
+const sugFromRow = (r: Row): Suggestion => ({
+  id: String(r.id),
+  userId: String(r.user_id),
+  category: (r.category as SuggestionCategory) ?? 'outro',
+  title: String(r.title ?? ''),
+  body: String(r.body ?? ''),
+  status: (r.status as SuggestionStatus) ?? 'recebida',
+  reply: String(r.reply ?? ''),
+  createdAt: String(r.created_at),
+  updatedAt: String(r.updated_at ?? r.created_at),
 })
 const msgFromRow = (r: Row): ChatMessage => ({
   id: String(r.id),
@@ -177,8 +233,32 @@ const cloud = {
     if (error) throw error
   },
   // pedir para assinar: quem ativa é a dona (na fase 2, o pagamento)
-  async requestPlan(plan: PlanId) {
-    const { error } = await supabase!.rpc('pedir_assinatura', { plano: plan })
+  async requestPlan(plan: PlanId, billing: Billing) {
+    const { error: e1 } = await supabase!.from('billing_info').upsert({ user_id: (await supabase!.auth.getUser()).data.user?.id, data: billing, updated_at: new Date().toISOString() })
+    if (e1) throw e1
+    const { error } = await supabase!.rpc('pedir_assinatura', { plano: plan, ciclo: billing.cycle })
+    if (error) throw error
+  },
+  async myBilling(): Promise<Billing | null> {
+    const { data } = await supabase!.from('billing_info').select('data').maybeSingle()
+    return (data?.data as Billing | undefined) ?? null
+  },
+  async allBilling(): Promise<Record<string, Billing>> {
+    const { data, error } = await supabase!.from('billing_info').select('user_id, data')
+    if (error) throw error
+    return Object.fromEntries((data ?? []).map((r) => [String(r.user_id), r.data as Billing]))
+  },
+  async suggestions(): Promise<Suggestion[]> {
+    const { data, error } = await supabase!.from('suggestions').select('*').order('created_at', { ascending: false }).limit(1000)
+    if (error) throw error
+    return (data ?? []).map(sugFromRow)
+  },
+  async suggest(s: Pick<Suggestion, 'category' | 'title' | 'body'>) {
+    const { error } = await supabase!.from('suggestions').insert({ category: s.category, title: s.title, body: s.body })
+    if (error) throw error
+  },
+  async answerSuggestion(id: string, patch: Pick<Suggestion, 'status' | 'reply'>) {
+    const { error } = await supabase!.from('suggestions').update({ status: patch.status, reply: patch.reply, updated_at: new Date().toISOString() }).eq('id', id)
     if (error) throw error
   },
   async messages(clientId: string) {
@@ -219,6 +299,7 @@ const cloud = {
     if (patch.canceledAt !== undefined) row.canceled_at = patch.canceledAt
     if (patch.requestedPlan !== undefined) row.requested_plan = patch.requestedPlan
     if (patch.requestedAt !== undefined) row.requested_at = patch.requestedAt
+    if (patch.requestedCycle !== undefined) row.requested_cycle = patch.requestedCycle
     const { error } = await supabase!.from('subscriptions').update(row).eq('user_id', userId)
     if (error) throw error
   },
@@ -243,6 +324,8 @@ interface LocalDB {
   subs: Subscription[]
   messages: ChatMessage[]
   hours: OnlineHours
+  billing?: Record<string, Billing>
+  suggestions?: Suggestion[]
 }
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000).toISOString()
 
@@ -286,7 +369,27 @@ function seed(): LocalDB {
     m('ex-4', false, 'o teste grátis tem todas as funções?', 1, 6),
     m('ex-4', true, 'tem sim! durante o teste você usa tudo do plano que escolheu. dá para trocar de plano quando quiser em “minha assinatura”.', 1, 5),
   ]
-  return { subs, messages, hours: DEFAULT_HOURS }
+  const sg = (userId: string, category: SuggestionCategory, title: string, body: string, status: SuggestionStatus, reply: string, days: number): Suggestion => ({
+    id: Math.random().toString(36).slice(2),
+    userId,
+    category,
+    title,
+    body,
+    status,
+    reply,
+    createdAt: ago(days),
+    updatedAt: ago(Math.max(0, days - 1)),
+  })
+  const suggestions = [
+    sg('ex-1', 'nova', 'modelo de orçamento por ambiente', 'seria ótimo montar o orçamento por cômodo (sala, cozinha…) e somar no final.', 'planejada', 'amei a ideia! entra numa das próximas atualizações ☺️', 12),
+    sg('ex-2', 'melhoria', 'exportar o financeiro em PDF', 'para mandar para o contador junto com o CSV.', 'analisando', '', 4),
+    sg('ex-3', 'problema', 'prazo não aparece no celular', 'a data de entrega some quando o nome do projeto é muito grande.', 'recebida', '', 1),
+    sg('ex-4', 'nova', 'lembrete de aniversário do cliente', '', 'feita', 'pronto! já está em clientes → aniversário.', 20),
+  ]
+  const billing: Record<string, Billing> = {
+    'ex-4': { fullName: 'Júlia Prado', doc: '123.456.789-09', phone: '(31) 99999-0000', email: 'julia@exemplo.com', cep: '30130-000', address: 'Rua Exemplo, Centro', number: '100', complement: '', city: 'Belo Horizonte - MG', profession: 'arquiteta', source: 'Instagram', payMethod: 'pix', cycle: 'anual', acceptedAt: ago(0, 5) },
+  }
+  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing }
 }
 
 const listeners = new Set<() => void>()
@@ -352,14 +455,35 @@ const local = {
     const db = readDB()
     writeDB({ ...db, subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT && x.status === 'trial' ? { ...x, plan } : x)) })
   },
-  async requestPlan(plan: PlanId) {
+  async requestPlan(plan: PlanId, billing: Billing) {
     const db = readDB()
     const now = new Date().toISOString()
     writeDB({
       ...db,
-      subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, requestedPlan: plan, requestedAt: now } : x)),
-      messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId: PREVIEW_CLIENT, fromOwner: false, body: `quero assinar o plano ${plan === 'completo' ? 'Completo' : 'Essencial'} ✨`, createdAt: now, readAt: null }],
+      billing: { ...(db.billing ?? {}), [PREVIEW_CLIENT]: billing },
+      subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, requestedPlan: plan, requestedAt: now, requestedCycle: billing.cycle } : x)),
+      messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId: PREVIEW_CLIENT, fromOwner: false, body: `quero assinar o plano ${plan === 'completo' ? 'Completo' : 'Essencial'} (${billing.cycle}) ✨`, createdAt: now, readAt: null }],
     })
+  },
+  async myBilling() {
+    return readDB().billing?.[PREVIEW_CLIENT] ?? null
+  },
+  async allBilling() {
+    return readDB().billing ?? {}
+  },
+  async suggestions() {
+    const all = readDB().suggestions ?? []
+    // na nuvem, o cliente só recebe as dele (regra do banco); aqui imita isso
+    return (getPreviewRole() === 'dona' ? all : all.filter((x) => x.userId === PREVIEW_CLIENT)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  },
+  async suggest(x: Pick<Suggestion, 'category' | 'title' | 'body'>) {
+    const db = readDB()
+    const now = new Date().toISOString()
+    writeDB({ ...db, suggestions: [...(db.suggestions ?? []), { ...x, id: Math.random().toString(36).slice(2), userId: PREVIEW_CLIENT, status: 'recebida', reply: '', createdAt: now, updatedAt: now }] })
+  },
+  async answerSuggestion(id: string, patch: Pick<Suggestion, 'status' | 'reply'>) {
+    const db = readDB()
+    writeDB({ ...db, suggestions: (db.suggestions ?? []).map((x) => (x.id === id ? { ...x, ...patch, updatedAt: new Date().toISOString() } : x)) })
   },
   async messages(clientId: string) {
     return readDB().messages.filter((x) => x.clientId === clientId)

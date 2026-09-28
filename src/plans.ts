@@ -15,6 +15,10 @@ export const PLATFORM = {
   whatsapp: '', // opcional: número para "falar no WhatsApp" na página de vendas
 }
 
+/** Assinatura anual: paga só estes meses (os outros saem de graça). */
+export const ANNUAL_MONTHS_PAID = 10
+export const annualPrice = (monthly: number) => Math.round(monthly * ANNUAL_MONTHS_PAID * 100) / 100
+
 /** Dias de teste grátis. */
 export const TRIAL_DAYS = 7
 

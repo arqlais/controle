@@ -5,7 +5,7 @@ import { Badge, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, trialDaysLeft, trialOver } from '../platform'
-import { href } from '../router'
+import { go, href } from '../router'
 import { download, today } from '../utils'
 import { useStore } from '../store'
 
@@ -40,19 +40,8 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
     }
     setBusy(false)
   }
-  const request = async (plan: PlanId) => {
-    const p = PLANS[plan]
-    if (!(await ask(`Pedir a assinatura do plano ${p.name} (${money0(p.price)}/mês)? A ${PLATFORM.support} recebe o pedido e libera a sua conta. Nada é cobrado automaticamente nesta versão.`, { confirmLabel: 'Pedir assinatura' }))) return
-    setBusy(true)
-    try {
-      await platform.requestPlan(plan)
-      await access.refresh()
-      toast('Pedido enviado! Você recebe a resposta pelo chat.')
-    } catch {
-      toast('Não foi possível enviar o pedido agora. Tente de novo ou fale com a gente no chat.')
-    }
-    setBusy(false)
-  }
+  // assinar: tela de compra (dados, endereço, pagamento) → vira pedido que a administração libera
+  const request = (plan: PlanId) => go('assinatura', plan)
   return (
     <div className="page">
       <div className="page-head">
@@ -66,7 +55,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
       <p className="pf-note">
         <Icon name="alert" size={16} />
         <span>
-          <b>Como assinar:</b> escolha o plano e toque em “pedir assinatura”. A {PLATFORM.support} confirma o pagamento com você e libera a sua conta. Nada é cobrado automaticamente.
+          <b>Como assinar:</b> toque em “assinar”, preencha seus dados e a forma de pagamento. A {PLATFORM.support} confirma o pagamento com você e libera a sua conta. Nada é cobrado automaticamente.
         </span>
       </p>
       {sub && (
@@ -123,8 +112,8 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
                 ) : sub?.requestedPlan === p.id ? (
                   <p className="muted small center">pedido enviado · aguardando liberação</p>
                 ) : (
-                  <button className="btn primary block" disabled={busy || sub?.blocked} onClick={() => void request(p.id)}>
-                    {sub?.status === 'ativa' ? `pedir troca para o ${p.name}` : `pedir assinatura do ${p.name}`}
+                  <button className="btn primary block" disabled={busy || sub?.blocked} onClick={() => request(p.id)}>
+                    {sub?.status === 'ativa' ? `trocar para o ${p.name}` : `assinar o ${p.name}`}
                   </button>
                 )}
                 {!current && sub?.status === 'trial' && !trialOver(sub) && (

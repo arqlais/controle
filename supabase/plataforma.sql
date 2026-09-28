@@ -41,6 +41,7 @@ create table if not exists public.subscriptions (
 );
 alter table public.subscriptions add column if not exists requested_plan text check (requested_plan in ('essencial', 'completo'));
 alter table public.subscriptions add column if not exists requested_at timestamptz;
+alter table public.subscriptions add column if not exists requested_cycle text check (requested_cycle in ('mensal', 'anual'));
 alter table public.subscriptions alter column trial_ends set default now() + interval '7 days';
 alter table public.subscriptions enable row level security;
 drop policy if exists "assinatura: cliente vê a sua" on public.subscriptions;
@@ -79,15 +80,35 @@ begin
    where user_id = auth.uid() and status = 'trial' and not blocked and trial_ends > now();
 end $$;
 
--- Assinar = PEDIR. Só a dona ativa (depois de confirmar o pagamento); na Fase 2, o pagamento ativa sozinho.
-create or replace function public.pedir_assinatura(plano text) returns void
+-- Assinar = PEDIR (depois de preencher os dados de cobrança). Só a dona ativa, depois de confirmar o pagamento;
+-- na Fase 2, o pagamento ativa sozinho.
+drop function if exists public.pedir_assinatura(text);
+create or replace function public.pedir_assinatura(plano text, ciclo text default 'mensal') returns void
 language plpgsql security definer set search_path = public as $$
 begin
   if plano not in ('essencial', 'completo') then raise exception 'plano inválido'; end if;
-  update public.subscriptions set requested_plan = plano, requested_at = now() where user_id = auth.uid();
+  if ciclo not in ('mensal', 'anual') then raise exception 'período inválido'; end if;
+  update public.subscriptions set requested_plan = plano, requested_cycle = ciclo, requested_at = now() where user_id = auth.uid();
   insert into public.support_messages (client_id, from_owner, body)
-  values (auth.uid(), false, 'quero assinar o plano ' || case when plano = 'completo' then 'Completo' else 'Essencial' end || ' ✨');
+  values (auth.uid(), false, 'quero assinar o plano ' || case when plano = 'completo' then 'Completo' else 'Essencial' end || ' (' || ciclo || ') ✨');
 end $$;
+
+-- Dados de cobrança preenchidos na assinatura (nome, CPF/CNPJ, endereço, forma de pagamento).
+-- Cada cliente vê e altera só os dele; a dona vê todos. Nunca guarda número de cartão.
+create table if not exists public.billing_info (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  data       jsonb not null default '{}'::jsonb check (pg_column_size(data) < 20000),
+  updated_at timestamptz not null default now()
+);
+alter table public.billing_info enable row level security;
+drop policy if exists "cobrança: cliente vê a sua" on public.billing_info;
+drop policy if exists "cobrança: cliente cria a sua" on public.billing_info;
+drop policy if exists "cobrança: cliente altera a sua" on public.billing_info;
+drop policy if exists "cobrança: dona vê todas" on public.billing_info;
+create policy "cobrança: cliente vê a sua" on public.billing_info for select using (auth.uid() = user_id);
+create policy "cobrança: cliente cria a sua" on public.billing_info for insert with check (auth.uid() = user_id);
+create policy "cobrança: cliente altera a sua" on public.billing_info for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "cobrança: dona vê todas" on public.billing_info for select using (public.sou_dona());
 
 -- 3) Chat com a dona: mensagens por cliente.
 create table if not exists public.support_messages (
@@ -138,6 +159,28 @@ create policy "ajustes: todos leem" on public.platform_settings for select to au
 create policy "ajustes: dona cria" on public.platform_settings for insert with check (public.sou_dona());
 create policy "ajustes: dona altera" on public.platform_settings for update using (public.sou_dona()) with check (public.sou_dona());
 
+-- 4b) Sugestões de melhoria: cada pessoa vê as dela; a dona vê todas, muda a situação e responde.
+create table if not exists public.suggestions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  category   text not null default 'outro' check (category in ('nova', 'melhoria', 'problema', 'outro')),
+  title      text not null check (length(title) between 1 and 140),
+  body       text not null default '' check (length(body) <= 4000),
+  status     text not null default 'recebida' check (status in ('recebida', 'analisando', 'planejada', 'feita', 'nao_agora')),
+  reply      text not null default '' check (length(reply) <= 4000),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.suggestions enable row level security;
+drop policy if exists "sugestões: vê as suas" on public.suggestions;
+drop policy if exists "sugestões: envia" on public.suggestions;
+drop policy if exists "sugestões: dona vê todas" on public.suggestions;
+drop policy if exists "sugestões: dona responde" on public.suggestions;
+create policy "sugestões: vê as suas" on public.suggestions for select using (auth.uid() = user_id);
+create policy "sugestões: envia" on public.suggestions for insert with check (auth.uid() = user_id and status = 'recebida' and reply = '');
+create policy "sugestões: dona vê todas" on public.suggestions for select using (public.sou_dona());
+create policy "sugestões: dona responde" on public.suggestions for update using (public.sou_dona()) with check (public.sou_dona());
+
 -- 5) Trava no próprio banco: conta bloqueada, cancelada ou com teste vencido
 --    continua VENDO os dados (e pode baixar tudo), mas não consegue salvar alterações.
 create or replace function public.pode_editar() returns boolean
@@ -154,8 +197,8 @@ create policy "dona cria"   on public.workspace for insert with check (auth.uid(
 create policy "dona altera" on public.workspace for update using (auth.uid() = user_id) with check (auth.uid() = user_id and public.pode_editar());
 
 -- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
-revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;
-grant execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text), public.marcar_lidas(uuid), public.pode_editar() to authenticated;
+revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;
+grant execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() to authenticated;
 
 -- Conferência: deve mostrar 1 linha com o seu e-mail.
 select u.email as dona from public.admins a join auth.users u on u.id = a.user_id;

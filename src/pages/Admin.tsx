@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Section, Segmented, Stat } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId, type SubStatus } from '../plans'
-import { DAY_NAMES, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type OnlineHours, type Subscription } from '../platform'
+import { PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
+import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type Billing, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { matches, money } from '../utils'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
-type Tab = 'resumo' | 'assinantes' | 'conversas' | 'horarios' | 'ajustes'
+type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'horarios' | 'ajustes'
 const STATUS_COLOR: Record<SubStatus, string> = { trial: '#6b8f94', ativa: '#5e8c6a', atrasada: '#b98246', cancelada: '#9aa3ab' }
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
@@ -25,6 +25,22 @@ const paying = (s: Subscription) => (s.status === 'ativa' || s.status === 'atras
 export default function Admin() {
   const [tab, setTab] = useKeep<Tab>('painel-aba', 'resumo')
   const { msgs, subs, unread, reload, setSubs } = useInbox(true)
+  // dados de cobrança (vindos da tela de assinatura) e sugestões de melhoria
+  const [billing, setBilling] = useState<Record<string, Billing>>({})
+  const [sugs, setSugs] = useState<Suggestion[]>([])
+  const loadExtra = useCallback(async () => {
+    try {
+      const [b, sg] = await Promise.all([platform.allBilling(), platform.suggestions()])
+      setBilling(b)
+      setSugs(sg)
+    } catch {
+      /* tabelas ainda não criadas ou sem conexão */
+    }
+  }, [])
+  useEffect(() => {
+    void loadExtra()
+  }, [loadExtra, subs])
+  const newSugs = sugs.filter((x) => x.status === 'recebida').length
   const [chatWith, setChatWith] = useState('')
 
   const update = async (s: Subscription, patch: Partial<Subscription>, msg: string) => {
@@ -66,14 +82,16 @@ export default function Admin() {
             { value: 'resumo', label: 'vendas' },
             { value: 'assinantes', label: `assinantes (${subs.length})` },
             { value: 'conversas', label: <>conversas{unread ? <em className="pf-dot-count">{unread}</em> : null}</> },
+            { value: 'sugestoes', label: <>sugestões{newSugs ? <em className="pf-dot-count">{newSugs}</em> : null}</> },
             { value: 'horarios', label: 'horários' },
             { value: 'ajustes', label: 'planos' },
           ]}
         />
       </div>
-      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} />}
-      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
+      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} />}
+      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
+      {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
       {tab === 'horarios' && <HoursEditor />}
       {tab === 'ajustes' && <PlansInfo />}
     </div>
@@ -83,7 +101,7 @@ export default function Admin() {
 // ativar: pagamento confirmado por você (na fase 2, pelo sistema de pagamento)
 const activate = (s: Subscription): Partial<Subscription> => ({ status: 'ativa', plan: s.requestedPlan ?? s.plan, requestedPlan: null, requestedAt: null, canceledAt: null, blocked: false })
 
-function Summary({ subs, update, openChat }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void }) {
+function Summary({ subs, update, openChat, billing }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; billing: Record<string, Billing> }) {
   const requests = subs.filter((x) => x.requestedPlan)
   const now = new Date()
   const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
@@ -122,7 +140,8 @@ function Summary({ subs, update, openChat }: { subs: Subscription[]; update: (s:
             <div key={s.userId} className="pf-plan-line">
               <b>{s.name || s.email}</b>
               <span className="muted small">
-                quer o {PLANS[s.requestedPlan!].name} · {money0(PLANS[s.requestedPlan!].price)}/mês
+                quer o {PLANS[s.requestedPlan!].name} · {s.requestedCycle === 'anual' || billing[s.userId]?.cycle === 'anual' ? `${money(annualPrice(PLANS[s.requestedPlan!].price))}/ano` : `${money0(PLANS[s.requestedPlan!].price)}/mês`}
+                {billing[s.userId] ? ` · ${PAY_LABEL[billing[s.userId].payMethod]}` : ''}
               </span>
               <span className="grow" />
               <button className="btn small ghost" onClick={() => openChat(s.userId)}>
@@ -178,7 +197,7 @@ function Summary({ subs, update, openChat }: { subs: Subscription[]; update: (s:
   )
 }
 
-function Subscribers({ subs, update, openChat, unreadOf }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number }) {
+function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing> }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<'todos' | SubStatus | 'bloqueados'>('todos')
   const rows = subs.filter((s) => matches(q, s.name, s.email, s.studio)).filter((s) => (filter === 'todos' ? true : filter === 'bloqueados' ? s.blocked : s.status === filter))
@@ -231,6 +250,7 @@ function Subscribers({ subs, update, openChat, unreadOf }: { subs: Subscription[
                   <dd>{s.status === 'trial' ? (left > 0 ? `faltam ${left} dia(s)` : 'terminou') : `${money0(PLANS[s.plan].price)}/mês`}</dd>
                 </div>
               </dl>
+              {billing[s.userId] && <BillingDetails b={billing[s.userId]} />}
               <div className="pf-sub-actions">
                 <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
                   {PLAN_LIST.map((p) => (
@@ -481,6 +501,102 @@ function PlansInfo() {
           </button>
         </Section>
       )}
+    </>
+  )
+}
+
+const PAY_LABEL: Record<Billing['payMethod'], string> = { pix: 'Pix', cartao: 'cartão', boleto: 'boleto' }
+
+/** Dados de cobrança que a pessoa preencheu ao pedir a assinatura. */
+function BillingDetails({ b }: { b: Billing }) {
+  return (
+    <details className="sg-billing">
+      <summary>dados de cobrança</summary>
+      <dl className="pf-facts sg-facts">
+        {(
+          [
+            ['nome', b.fullName],
+            ['CPF/CNPJ', b.doc],
+            ['WhatsApp', b.phone],
+            ['e-mail', b.email],
+            ['endereço', [b.address, b.number, b.complement].filter(Boolean).join(', ')],
+            ['cidade', `${b.city}${b.cep ? ` · ${b.cep}` : ''}`],
+            ['atuação', b.profession],
+            ['conheceu por', b.source || '—'],
+            ['pagamento', `${PAY_LABEL[b.payMethod]} · ${b.cycle}`],
+            ['aceitou os termos', b.acceptedAt ? new Date(b.acceptedAt).toLocaleString('pt-BR') : '—'],
+          ] as [string, string][]
+        ).map(([k, v]) => (
+          <div key={k}>
+            <dt>{k}</dt>
+            <dd>{v || '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  )
+}
+
+/** Sugestões de melhoria de quem usa: mudar a situação e responder. */
+function SuggestionsAdmin({ sugs, subs, reload }: { sugs: Suggestion[]; subs: Subscription[]; reload: () => Promise<void> }) {
+  const [filter, setFilter] = useState<'abertas' | 'todas' | SuggestionStatus>('abertas')
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const rows = sugs.filter((x) => (filter === 'todas' ? true : filter === 'abertas' ? ['recebida', 'analisando', 'planejada'].includes(x.status) : x.status === filter))
+  const who = (id: string) => subs.find((s) => s.userId === id)
+  const save = async (x: Suggestion, patch: Partial<Pick<Suggestion, 'status' | 'reply'>>, msg: string) => {
+    try {
+      await platform.answerSuggestion(x.id, { status: patch.status ?? x.status, reply: patch.reply ?? x.reply })
+      await reload()
+      toast(msg)
+    } catch {
+      toast('Não foi possível salvar agora.')
+    }
+  }
+  if (!sugs.length) return <Empty icon="flag" title="nenhuma sugestão ainda" text="Quando alguém mandar uma ideia em “sugestões”, ela aparece aqui para você responder e planejar as próximas atualizações." />
+  return (
+    <>
+      <div className="pf-toolbar">
+        <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar sugestões">
+          <option value="abertas">abertas</option>
+          <option value="todas">todas ({sugs.length})</option>
+          {(Object.keys(SUGGESTION_STATUS) as SuggestionStatus[]).map((k) => (
+            <option key={k} value={k}>
+              {SUGGESTION_STATUS[k].label} ({sugs.filter((x) => x.status === k).length})
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="pf-subs">
+        {rows.map((x) => {
+          const draft = drafts[x.id] ?? x.reply
+          return (
+            <article key={x.id} className="card sg-admin">
+              <header className="sg-admin-head">
+                <b>{x.title}</b>
+                <Badge color={SUGGESTION_STATUS[x.status].color}>{SUGGESTION_STATUS[x.status].label}</Badge>
+              </header>
+              <small className="muted">
+                {SUGGESTION_CATEGORY[x.category]} · {who(x.userId)?.name || 'cliente'} · {timeLabel(x.createdAt)}
+              </small>
+              {x.body && <p className="small">{x.body}</p>}
+              <select value={x.status} onChange={(e) => void save(x, { status: e.target.value as SuggestionStatus }, 'Situação atualizada.')} aria-label="Situação da sugestão">
+                {(Object.keys(SUGGESTION_STATUS) as SuggestionStatus[]).map((k) => (
+                  <option key={k} value={k}>
+                    {SUGGESTION_STATUS[k].label}
+                  </option>
+                ))}
+              </select>
+              <textarea rows={2} value={draft} placeholder="Resposta (aparece na tela de sugestões de quem enviou)" onChange={(e) => setDrafts((d) => ({ ...d, [x.id]: e.target.value }))} />
+              {draft !== x.reply && (
+                <button className="btn small primary" onClick={() => void save(x, { reply: draft.trim() }, 'Resposta enviada.')}>
+                  responder
+                </button>
+              )}
+            </article>
+          )
+        })}
+        {!rows.length && <p className="muted">Nada com esse filtro.</p>}
+      </div>
     </>
   )
 }
