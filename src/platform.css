@@ -1245,7 +1245,6 @@
 @media (max-width: 720px) { .lp-foot-grid > :not(.lp-foot-brand) { display: flex; } .lp-foot-grid { grid-template-columns: 1fr; gap: 26px; } }
 .ig-review { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; } .ig-review-row { display: grid; grid-template-columns: auto 150px 130px minmax(0, 1fr); gap: 8px; align-items: center; } .ig-review-row.is-off { opacity: 0.45; } @media (max-width: 720px) { .ig-review-row { grid-template-columns: auto 1fr 1fr; } .ig-review-row > :last-child { grid-column: 2 / -1; } }
 .close-account { display: grid; gap: 14px; } .close-opt { display: grid; gap: 8px; justify-items: start; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); } .close-opt.is-danger { border-color: color-mix(in srgb, var(--bad) 35%, var(--border)); } .close-opt .field { width: 100%; max-width: 280px; }
-/* avisos rápidos: sempre visíveis, mesmo em cima de áreas escuras (ex.: tela de entrar) */
-.toast { position: relative; padding: 12px 20px 12px 42px; border: 1px solid color-mix(in srgb, #fff 22%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bg) 70%, transparent), 0 20px 44px -14px rgba(20, 26, 32, 0.6); line-height: 1.45; text-wrap: balance; }
-.toast::before { content: ''; position: absolute; left: 18px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--accent-soft); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-soft) 30%, transparent); }
-:root[data-square='1'] .toast::before { border-radius: 50% !important; }
+/* avisos rápidos: rosa escuro do traço, legível em cima de qualquer fundo (claro ou escuro) */
+.toast { background: #94736a; color: #fff; box-shadow: 0 16px 36px -14px rgba(90, 60, 52, 0.55); }
+.toast { text-wrap: balance; }

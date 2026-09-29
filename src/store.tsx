@@ -1,3 +1,4 @@
+import { PLATFORM } from './plans'
 import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS } from './clientDefaults'
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
@@ -772,7 +773,8 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
     () => ({ data: view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId: userId ?? '', agenda, publishAgendaNow, isSample: !!sample, showSample }),
     [view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId, agenda, publishAgendaNow, sample, showSample],
   )
-  if (sync === 'loading') return <div className="loading-screen"><span className="brand-name">{data.settings.brandName}<i>.</i></span><p className="muted small">carregando seus dados…</p></div>
+  // tela de entrada: sempre com a marca da plataforma (o estúdio de quem usa aparece depois, dentro do sistema)
+  if (sync === 'loading') return <div className="loading-screen"><span className="brand-name">{PLATFORM.name}<i>.</i></span><p className="muted small">carregando seus dados…</p></div>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
