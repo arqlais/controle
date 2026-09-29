@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { signOut } from '../components/Auth'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
 import type { Billing } from '../platform'
 import { useAccess } from '../access'
@@ -129,6 +130,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
         })}
       </div>
       <MyBilling />
+      <CloseAccount />
       <Section title="precisa de ajuda?">
         <p className="muted small">Dúvidas sobre o sistema, sugestões ou problemas: fale direto com a gente pelo chat.</p>
         <button className="btn" onClick={onChat}>
@@ -169,6 +171,26 @@ export function BlockedScreen({ onChat }: { onChat: () => void }) {
   const { data } = useStore()
   const { sub } = useAccess()
   const expired = trialOver(sub)
+  if (sub?.deletedAt)
+    return (
+      <div className="page">
+        <section className="card pf-blocked">
+          <Icon name="lock" size={30} />
+          <h1>
+            conta <em>apagada</em>
+          </h1>
+          <p className="muted">Você apagou esta conta e os dados do sistema foram removidos. Se quiser voltar, crie uma conta nova com outro e-mail ou fale com a gente.</p>
+          <div className="row gap-s wrap center">
+            <button className="btn" onClick={onChat}>
+              <Icon name="chat" size={16} /> conversar com {PLATFORM.supportWith}
+            </button>
+            <button className="btn ghost" onClick={() => signOut()}>
+              sair
+            </button>
+          </div>
+        </section>
+      </div>
+    )
   return (
     <div className="page">
       <section className="card pf-blocked">
@@ -263,6 +285,70 @@ function MyBilling() {
           <br />
           {[b.address, b.number, b.complement].filter(Boolean).join(', ')} · {b.city}
         </p>
+      )}
+    </Section>
+  )
+}
+
+/** Encerrar a conta: desativar (tudo guardado, dá para voltar) ou apagar de vez. */
+function CloseAccount() {
+  const access = useAccess()
+  const { data } = useStore()
+  const [open, setOpen] = useState(false)
+  const [typed, setTyped] = useState('')
+  const [busy, setBusy] = useState(false)
+  const run = async (apagar: boolean) => {
+    setBusy(true)
+    try {
+      await platform.closeAccount(apagar)
+      if (apagar) {
+        toast('Conta apagada.')
+        await signOut()
+      } else {
+        toast('Conta desativada. Seus dados continuam guardados.')
+        await access.refresh()
+      }
+    } catch {
+      toast('Não foi possível agora. Tente de novo ou fale com a gente no chat.')
+    }
+    setBusy(false)
+  }
+  return (
+    <Section title="encerrar conta">
+      {!open ? (
+        <>
+          <p className="muted small">Quer dar uma pausa ou sair do {PLATFORM.name}? Você pode desativar (tudo fica guardado) ou apagar a conta.</p>
+          <button className="btn ghost small" onClick={() => setOpen(true)}>
+            ver opções
+          </button>
+        </>
+      ) : (
+        <div className="close-account">
+          <div className="close-opt">
+            <b>desativar minha conta</b>
+            <p className="muted small">A assinatura para e ninguém cobra nada. Seus clientes, orçamentos e o financeiro ficam guardados: é só pedir para voltar quando quiser.</p>
+            <button className="btn small" disabled={busy} onClick={async () => (await ask('Desativar sua conta? Seus dados continuam guardados e dá para voltar quando quiser.', { confirmLabel: 'Desativar' })) && run(false)}>
+              desativar
+            </button>
+          </div>
+          <div className="close-opt is-danger">
+            <b>apagar minha conta</b>
+            <p className="muted small">Apaga de vez os dados do sistema (clientes, orçamentos, demandas, financeiro). Não dá para desfazer. Antes, se quiser, baixe uma cópia.</p>
+            <button className="btn ghost small" onClick={() => download(`backup-${today()}.json`, JSON.stringify(data, null, 2))}>
+              <Icon name="download" size={14} /> baixar meus dados
+            </button>
+            <label className="field">
+              <span className="field-label">para confirmar, escreva APAGAR</span>
+              <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="APAGAR" autoCapitalize="characters" />
+            </label>
+            <button className="btn danger small" disabled={busy || typed.trim().toUpperCase() !== 'APAGAR'} onClick={() => void run(true)}>
+              apagar minha conta
+            </button>
+          </div>
+          <button className="link small" onClick={() => (setOpen(false), setTyped(''))}>
+            deixa para lá
+          </button>
+        </div>
       )}
     </Section>
   )

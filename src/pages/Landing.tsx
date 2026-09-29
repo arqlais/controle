@@ -486,53 +486,52 @@ export default function Landing() {
                 <i>.</i>
               </span>
               <p className="muted">{site.about}</p>
-              <div className="lp-social">
-                {site.instagram && (
-                  <a href={`https://instagram.com/${site.instagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="Instagram">
-                    <Icon name="instagram" size={18} />
-                  </a>
-                )}
-                {site.whatsapp && (
-                  <a href={`https://wa.me/${site.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
-                    <Icon name="whatsapp" size={18} />
-                  </a>
-                )}
-                {site.email && (
-                  <a href={`mailto:${site.email}`} aria-label="E-mail">
-                    <Icon name="mail" size={18} />
-                  </a>
-                )}
-              </div>
+              <button className="btn primary small" onClick={() => signup()}>
+                testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={14} />
+              </button>
             </div>
-            <div className="lp-foot-col">
+            <nav className="lp-foot-col" aria-label="Navegação">
               <b>navegação</b>
               {[
                 ['jornada', 'como funciona'],
                 ['telas', 'telas'],
                 ['planos', 'planos'],
                 ['duvidas', 'dúvidas'],
-              ].map(([id, label]) => (
-                <button key={id} className="link" onClick={() => scrollTo(id)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="lp-foot-col">
-              <b>conta</b>
-              <button className="link" onClick={() => signup()}>
-                testar grátis
+              ]
+                .filter(([id]) => !off(id))
+                .map(([id, label]) => (
+                  <button key={id} className="lp-foot-link" onClick={() => scrollTo(id)}>
+                    {label}
+                  </button>
+                ))}
+              <button className="lp-foot-link" onClick={() => go('entrar')}>
+                entrar na minha conta
               </button>
-              <button className="link" onClick={() => go('entrar')}>
-                entrar
-              </button>
-              {site.email && <a href={`mailto:${site.email}`}>{site.email}</a>}
-              {site.instagram && <span>{site.instagram.startsWith('@') ? site.instagram : `@${site.instagram}`}</span>}
-            </div>
+            </nav>
+            {(site.email || site.instagram || site.whatsapp) && (
+              <div className="lp-foot-col">
+                <b>fale com a gente</b>
+                {site.email && (
+                  <a className="lp-foot-link" href={`mailto:${site.email}`}>
+                    <Icon name="mail" size={16} /> {site.email}
+                  </a>
+                )}
+                {site.instagram && (
+                  <a className="lp-foot-link" href={`https://instagram.com/${site.instagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer">
+                    <Icon name="instagram" size={16} /> {site.instagram.startsWith('@') ? site.instagram : `@${site.instagram}`}
+                  </a>
+                )}
+                {site.whatsapp && (
+                  <a className="lp-foot-link" href={`https://wa.me/${site.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer">
+                    <Icon name="whatsapp" size={16} /> WhatsApp
+                  </a>
+                )}
+              </div>
+            )}
           </div>
           <div className="lp-foot-bottom">
             <span>
-              © {new Date().getFullYear()} {PLATFORM.name}. todos os direitos reservados.
-              {PLATFORM.provisional ? ' (nome provisório)' : ''}
+              © {new Date().getFullYear()} {PLATFORM.name} · todos os direitos reservados
             </span>
             <span>orçamentos · prazos · contratos · financeiro</span>
           </div>

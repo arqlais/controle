@@ -42,6 +42,7 @@ create table if not exists public.subscriptions (
 alter table public.subscriptions add column if not exists requested_plan text check (requested_plan in ('essencial', 'completo'));
 alter table public.subscriptions add column if not exists requested_at timestamptz;
 alter table public.subscriptions add column if not exists requested_cycle text check (requested_cycle in ('mensal', 'anual'));
+alter table public.subscriptions add column if not exists deleted_at timestamptz; -- conta apagada pela própria pessoa
 alter table public.subscriptions alter column trial_ends set default now() + interval '7 days';
 alter table public.subscriptions enable row level security;
 drop policy if exists "assinatura: cliente vê a sua" on public.subscriptions;
@@ -264,6 +265,26 @@ drop policy if exists "dona cria"    on public.workspace;
 drop policy if exists "dona altera"  on public.workspace;
 create policy "dona cria"   on public.workspace for insert with check (auth.uid() = user_id and public.pode_editar());
 create policy "dona altera" on public.workspace for update using (auth.uid() = user_id) with check (auth.uid() = user_id and public.pode_editar());
+
+-- 5b) A própria pessoa encerra a conta:
+--     desativar = fica cancelada, tudo guardado (a dona reativa se ela pedir);
+--     apagar    = apaga os dados do sistema dela (clientes, orçamentos…) e bloqueia o acesso;
+--                 o cadastro continua no painel da dona como "conta apagada".
+create or replace function public.encerrar_minha_conta(apagar boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  update public.subscriptions
+     set status = 'cancelada', canceled_at = now(), requested_plan = null, requested_at = null,
+         blocked = apagar, deleted_at = case when apagar then now() else deleted_at end
+   where user_id = auth.uid();
+  if apagar then
+    delete from public.workspace where user_id = auth.uid();
+  end if;
+end;
+$$;
+revoke execute on function public.encerrar_minha_conta(boolean) from public, anon;
+grant execute on function public.encerrar_minha_conta(boolean) to authenticated;
 
 -- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
 revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;

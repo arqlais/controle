@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import { useKeep } from '../keep'
 import { Icon } from '../components/Icon'
 import { Empty, Field, Modal, MonthPicker, Section, Segmented } from '../components/ui'
-import { ask, askDelete, toast } from '../components/dialog'
+import { askDelete, toast } from '../components/dialog'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
 import { CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
@@ -67,6 +67,8 @@ export default function Instagram() {
   const tab: Tab = mine || savedTab !== 'ideias' ? savedTab : 'plano'
   const [month, setMonth] = useKeep('ig-mes', today().slice(0, 7))
   const [edit, setEdit] = useState<SocialPost | null>(null)
+  // sugestão do mês: abre para escolher e ajustar cada postagem antes de entrar no calendário
+  const [review, setReview] = useState<SocialPost[] | null>(null)
 
   const inMonth = posts.filter((p) => p.date.startsWith(month)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
   const used = new Set(posts.map((p) => p.ideaId).filter(Boolean))
@@ -95,9 +97,7 @@ export default function Instagram() {
       if (idea) created.push(fromIdea(idea, s, date, slot.time))
     }
     if (!created.length) return toast('O mês já está planejado (ou já passou).')
-    if (!(await ask(`Planejar ${created.length} postagens em ${monthLabel(month)} com as ideias prontas? Dá para editar ou trocar cada uma depois.`, { confirmLabel: 'Planejar' }))) return
-    created.forEach((p) => upsert('posts', p))
-    toast(`${created.length} postagens planejadas.`)
+    setReview(created)
   }
 
   // quem assina: a grade segue a estratégia própria, com o tema de cada dia (sem textos prontos)
@@ -113,9 +113,7 @@ export default function Instagram() {
       created.push({ ...blank(date), time: slot.time, format: slot.format, pillar: slot.pillar, title: slot.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })
     }
     if (!created.length) return toast('O mês já está planejado (ou já passou).')
-    if (!(await ask(`Planejar ${created.length} postagens em ${monthLabel(month)} seguindo a sua estratégia? Cada dia vem com o tema; o conteúdo é você que escreve.`, { confirmLabel: 'Planejar' }))) return
-    created.forEach((p) => upsert('posts', p))
-    toast(`${created.length} postagens planejadas.`)
+    setReview(created)
   }
 
   const counts = (Object.keys(STATUS) as PostStatus[]).map((k) => ({ k, n: inMonth.filter((p) => p.status === k).length }))
@@ -189,6 +187,20 @@ export default function Instagram() {
 
       {tab === 'estrategia' && (mine ? <StrategyView /> : <ClientStrategyView />)}
 
+      {review && (
+        <PlanReview
+          month={monthLabel(month)}
+          items={review}
+          ideas={mine ? IDEAS : []}
+          settings={s}
+          onClose={() => setReview(null)}
+          onSave={(list) => {
+            list.forEach((p) => upsert('posts', p))
+            toast(`${list.length} postagem(ns) no calendário.`)
+            setReview(null)
+          }}
+        />
+      )}
       {edit && <PostEditor post={edit} exists={posts.some((p) => p.id === edit.id)} onClose={() => setEdit(null)} />}
     </div>
   )
@@ -651,5 +663,73 @@ function ClientStrategyView() {
         </ul>
       </Section>
     </div>
+  )
+}
+
+/** Sugestão do mês para escolher: marca as que quer, troca dia, formato, tema ou ideia antes de salvar. */
+function PlanReview({ month, items, ideas, settings, onClose, onSave }: { month: string; items: SocialPost[]; ideas: Idea[]; settings: Settings; onClose: () => void; onSave: (list: SocialPost[]) => void }) {
+  const [list, setList] = useState(items.map((p) => ({ p, on: true })))
+  const set = (i: number, patch: Partial<SocialPost>) => setList((l) => l.map((x, k) => (k === i ? { ...x, p: { ...x.p, ...patch } } : x)))
+  const chosen = list.filter((x) => x.on)
+  return (
+    <Modal
+      wide
+      title={`sugestão para ${month}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>
+            cancelar
+          </button>
+          <button className="btn primary" disabled={!chosen.length} onClick={() => onSave(chosen.map((x) => x.p))}>
+            adicionar {chosen.length} ao calendário
+          </button>
+        </>
+      }
+    >
+      <p className="muted small">Escolha quais postagens você quer e ajuste o que precisar. Nada entra no calendário até você confirmar, e depois ainda dá para editar cada uma.</p>
+      <div className="row gap-s">
+        <button className="link small" onClick={() => setList((l) => l.map((x) => ({ ...x, on: true })))}>marcar todas</button>
+        <button className="link small" onClick={() => setList((l) => l.map((x) => ({ ...x, on: false })))}>desmarcar todas</button>
+      </div>
+      <div className="ig-review">
+        {list.map(({ p, on }, i) => (
+          <div key={p.id} className={`ig-review-row ${on ? '' : 'is-off'}`}>
+            <label className="check">
+              <input type="checkbox" checked={on} onChange={(e) => setList((l) => l.map((x, k) => (k === i ? { ...x, on: e.target.checked } : x)))} aria-label="Incluir esta postagem" />
+            </label>
+            <DateInput value={p.date} onChange={(e) => e.target.value && set(i, { date: e.target.value })} />
+            <select value={p.format} onChange={(e) => set(i, { format: e.target.value as PostFormat })} aria-label="Formato">
+              {(Object.keys(FORMATS) as PostFormat[]).map((f) => (
+                <option key={f} value={f}>
+                  {FORMATS[f].label}
+                </option>
+              ))}
+            </select>
+            {ideas.length ? (
+              <select
+                value={p.ideaId ?? ''}
+                onChange={(e) => {
+                  const idea = ideas.find((x) => x.id === e.target.value)
+                  if (idea) set(i, { ...fromIdea(idea, settings, p.date, p.time), id: p.id })
+                }}
+                aria-label="Ideia"
+              >
+                {!p.ideaId && <option value="">{p.title}</option>}
+                {ideas
+                  .filter((x) => x.format === p.format)
+                  .map((x) => (
+                    <option key={x.id} value={x.id}>
+                      {x.title}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <input value={p.title} onChange={(e) => set(i, { title: e.target.value })} placeholder="tema da postagem" aria-label="Tema" />
+            )}
+          </div>
+        ))}
+      </div>
+    </Modal>
   )
 }

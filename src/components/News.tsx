@@ -9,7 +9,6 @@ import { NEWS, NEWS_KIND, unseenNews, type News, type NewsStep } from '../news'
 /* Novidades: abre sozinha quando há algo novo e fica no sininho do topo para rever.
    "me mostra" leva até a tela e destaca onde tocar, passo a passo. */
 
-const fmt = (iso: string) => iso.split('-').reverse().slice(0, 2).join('/')
 
 export function useNews(enabled: boolean) {
   const { data, setSettings, sync } = useStore()
@@ -109,7 +108,7 @@ export function NewsModal({ unseen, onClose, onLater }: { unseen: News[]; onClos
             <p className="nw-eyebrow">
               <Badge color={NEWS_KIND[n.kind].color}>{NEWS_KIND[n.kind].label}</Badge>
               <span>
-                {i + 1} de {list.length} · {fmt(n.date)}
+                novidade {i + 1} de {list.length}
               </span>
             </p>
             <h2 className="nw-title is-item">{n.title}</h2>

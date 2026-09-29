@@ -425,7 +425,8 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
               <div className="pf-badges">
                 <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
                 <Badge color="#3e4b57">{PLANS[s.plan].name}</Badge>
-                {s.blocked && <Badge color="#b5524c">bloqueado</Badge>}
+                {s.deletedAt ? <Badge color="#9aa3ab">conta apagada em {dateBR(s.deletedAt)}</Badge> : s.blocked && <Badge color="#b5524c">bloqueado</Badge>}
+                {!s.deletedAt && s.status === 'cancelada' && s.canceledAt && <Badge color="#9aa3ab">desativou em {dateBR(s.canceledAt)}</Badge>}
                 {s.requestedPlan && <Badge color="#b98246">pediu o {PLANS[s.requestedPlan].name}</Badge>}
               </div>
               <dl className="pf-facts">
@@ -443,8 +444,12 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
                 </div>
               </dl>
               {billing[s.userId] && <BillingDetails s={s} b={billing[s.userId]} save={(b) => saveBilling(s.userId, b)} />}
-              <TrialControl s={s} update={update} />
-              {(s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
+              {!s.deletedAt && <TrialControl s={s} update={update} />}
+              {!s.deletedAt && (s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
+              {s.deletedAt ? (
+                <p className="muted small">A pessoa apagou a conta: os dados do sistema dela foram removidos. O cadastro fica aqui só para consulta.</p>
+              ) : (
+              <>
               <div className="pf-sub-actions">
                 <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
                   {PLAN_LIST.map((p) => (
@@ -490,6 +495,8 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
                   <Icon name="chat" size={14} /> conversar{unread ? ` (${unread})` : ''}
                 </button>
               </div>
+              </>
+              )}
             </article>
           )
         })}

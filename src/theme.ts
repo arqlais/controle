@@ -74,6 +74,8 @@ export function applyTheme(s: Settings, dark = false) {
     '--accent-tint': mix(surface, s.accentSoft, dark ? 0.18 : 0.26),
     '--slate': dark ? '#141a20' : s.text,
     '--radius': `${s.radius}px`,
+    // botões, etiquetas e campos arredondam junto com a régua (no máximo ficam em pílula)
+    '--pill': s.radius >= 18 ? '999px' : `${Math.round(s.radius * 1.4)}px`,
     '--font-display': `'${s.displayFont}', 'Cormorant Garamond', Georgia, serif`,
     '--font-body': `'${s.bodyFont}', 'Poppins', system-ui, -apple-system, sans-serif`,
     '--label-transform': s.uppercaseLabels ? 'uppercase' : 'lowercase',
@@ -81,7 +83,7 @@ export function applyTheme(s: Settings, dark = false) {
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
   // cantos em 0: deixa tudo reto, não só os cartões
-  root.dataset.square = s.radius <= 1 ? '1' : ''
+  root.dataset.square = s.radius <= 0 ? '1' : ''
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
   // aba do navegador: a plataforma primeiro, depois o estúdio de quem usa
   const brand = s.brandName.replace(/\.$/, '').trim()

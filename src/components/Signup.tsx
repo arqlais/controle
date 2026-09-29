@@ -18,7 +18,8 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
   const [studio, setStudio] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [demo, setDemo] = useState(true)
+  // conta nova começa vazia (o exemplo continua disponível no "ver exemplo" dos primeiros passos)
+  const demo = false
   const [agree, setAgree] = useState(false)
   const [show, setShow] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -102,9 +103,6 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
             </button>
           </div>
         </Field>
-        <label className="check">
-          <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} /> começar com dados de exemplo para explorar (dá para apagar depois)
-        </label>
         <label className="check">
           <input id="signup-terms" type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
           <span>

@@ -25,6 +25,7 @@ export interface Subscription {
   createdAt: string
   lastSeen: string
   canceledAt?: string | null
+  deletedAt?: string | null // a própria pessoa apagou a conta (não dá mais para reativar)
   requestedPlan?: PlanId | null // pediu para assinar (a dona libera)
   requestedAt?: string | null
   requestedCycle?: Cycle | null
@@ -229,6 +230,7 @@ const subFromRow = (r: Row): Subscription => ({
   createdAt: String(r.created_at ?? ''),
   lastSeen: String(r.last_seen ?? r.created_at ?? ''),
   canceledAt: (r.canceled_at as string | null) ?? null,
+  deletedAt: (r.deleted_at as string | null) ?? null,
   requestedPlan: (r.requested_plan as PlanId | null) ?? null,
   requestedAt: (r.requested_at as string | null) ?? null,
   requestedCycle: (r.requested_cycle as Cycle | null) ?? null,
@@ -298,6 +300,11 @@ const cloud = {
   async saveBilling(userId: string | null, billing: Billing) {
     const id = userId || (await supabase!.auth.getUser()).data.user?.id
     const { error } = await supabase!.from('billing_info').upsert({ user_id: id, data: billing, updated_at: new Date().toISOString() })
+    if (error) throw error
+  },
+  /** A própria pessoa desativa (tudo guardado) ou apaga a conta (apaga os dados do sistema). */
+  async closeAccount(apagar: boolean) {
+    const { error } = await supabase!.rpc('encerrar_minha_conta', { apagar })
     if (error) throw error
   },
   async myBilling(): Promise<Billing | null> {
@@ -657,6 +664,11 @@ const local = {
     const db = readDB()
     writeDB({ ...db, billing: { ...(db.billing ?? {}), [userId || PREVIEW_CLIENT]: billing } })
   },
+  async closeAccount(apagar: boolean) {
+    const db = readDB()
+    const now = new Date().toISOString()
+    writeDB({ ...db, subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, status: 'cancelada' as const, canceledAt: now, requestedPlan: null, blocked: apagar, deletedAt: apagar ? now : x.deletedAt } : x)) })
+  },
   async myBilling() {
     return readDB().billing?.[PREVIEW_CLIENT] ?? null
   },
@@ -767,6 +779,9 @@ const asClientGuard = (b: typeof cloud): typeof cloud => ({
   },
   async requestPlan(...a: Parameters<typeof cloud.requestPlan>) {
     if (!viewingAsClient()) return b.requestPlan(...a)
+  },
+  async closeAccount(...a: Parameters<typeof cloud.closeAccount>) {
+    if (!viewingAsClient()) return b.closeAccount(...a)
   },
   async saveBilling(...a: Parameters<typeof cloud.saveBilling>) {
     if (!viewingAsClient()) return b.saveBilling(...a)
