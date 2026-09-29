@@ -27,6 +27,41 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-29-cliente-final',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'para quem atende cliente final',
+    text: 'Agora o sistema se adapta a como você trabalha: freelancer, quem atende cliente final ou os dois. O cliente final ganha uma ficha completa (profissão, estado civil, família, pets, rotina e o imóvel).',
+    steps: [
+      { page: 'config', configTab: 'dados', target: '.wp-options', text: 'Em configurações → dados, escolha “como você trabalha”.' },
+      { page: 'clientes', text: 'Ao cadastrar um cliente, escolha o tipo “cliente final”: aparecem os campos da família e do imóvel.' },
+    ],
+  },
+  {
+    id: '2026-09-29-briefing',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'briefing online por link',
+    text: 'Mande um link com as perguntas do briefing: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha dele. Você recebe um aviso quando chegar. No plano Completo.',
+    steps: [{ page: 'clientes', text: 'Abra um cliente final e toque em “criar briefing”: escolha as perguntas e mande no WhatsApp.' }],
+  },
+  {
+    id: '2026-09-29-tabela-grupos',
+    date: '2026-09-29',
+    kind: 'melhoria',
+    title: 'tabela de preços organizada em grupos',
+    text: 'Os serviços podem ter grupo (ex.: projeto, projetos complementares, regularização, obra). A tabela e a lista do orçamento aparecem separadas por grupo. Quem atende cliente final ganha uma tabela pronta de arquitetura: complementares (estrutural, elétrico, hidrossanitário…) com valor por item, regularização, projeto completo e acompanhamento de obra.',
+    steps: [{ page: 'config', configTab: 'precos', text: 'Em configurações → preços, cada serviço tem o campo “grupo”.' }],
+  },
+  {
+    id: '2026-09-29-instagram-formatos',
+    date: '2026-09-29',
+    kind: 'melhoria',
+    title: 'instagram: escolha story, reels ou post',
+    text: 'Ao tocar num dia do calendário, escolha o formato primeiro: story, reels ou post. Aí aparecem as ideias daquele formato.',
+    steps: [{ page: 'instagram', text: 'Toque num dia do calendário e escolha um dos três cartões.' }],
+  },
+  {
     id: '2026-09-29-chat-formatacao',
     date: '2026-09-29',
     kind: 'novo',

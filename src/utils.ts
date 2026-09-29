@@ -8,6 +8,7 @@ import type {
   ServiceDef,
   Settings,
   ClientType,
+  WorkProfile,
   Data,
   EventType,
   ExpenseCategory,
@@ -103,6 +104,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().to
 /* ---------- rótulos ---------- */
 
 export const CLIENT_TYPES: Record<ClientType, string> = {
+  final: 'Cliente final',
   arquiteto: 'Arquiteto(a)',
   designer: 'Designer de interiores',
   escritorio: 'Escritório',
@@ -112,9 +114,22 @@ export const CLIENT_TYPES: Record<ClientType, string> = {
 }
 
 export const isStudent = (c?: Client) => c?.type === 'estudante'
+export const isFinalClient = (c?: Client) => c?.type === 'final'
+
+/** Tipos de cliente na ordem de quem usa: quem atende cliente final vê "cliente final" primeiro;
+ *  quem é só freelancer não vê essa opção (a não ser que o cliente já seja desse tipo). */
+export function clientTypeOptions(profile: WorkProfile | undefined, current?: ClientType): [ClientType, string][] {
+  const all = Object.entries(CLIENT_TYPES) as [ClientType, string][]
+  if (profile === 'final') return all
+  if (profile === 'ambos') return all
+  return all.filter(([k]) => k !== 'final' || current === 'final')
+}
+/** Tipo de cliente novo, conforme o jeito de trabalhar. */
+export const defaultClientType = (profile?: WorkProfile): ClientType => (profile === 'final' ? 'final' : 'arquiteto')
 
 /** Cor de cada tipo de cliente — tons da paleta, diferentes entre si. */
 export const CLIENT_COLORS: Record<ClientType, string> = {
+  final: '#6f8f72',
   arquiteto: '#5b7a99',
   designer: '#c07f73',
   escritorio: '#3e4b57',
@@ -448,6 +463,18 @@ export const checklistMatch = (s: ServiceDef, line: string) => {
     .filter(({ w }) => w.length && w.every((x) => words.has(x)))
     .sort((a, b) => b.w.length - a.w.length)[0]?.c
 }
+/** Serviços agrupados na ordem em que os grupos aparecem (sem grupo: um bloco só, sem título). */
+export function groupServices(list: ServiceDef[]): [string, ServiceDef[]][] {
+  const out: [string, ServiceDef[]][] = []
+  for (const x of list) {
+    const g = x.group?.trim() || ''
+    const hit = out.find(([k]) => k === g)
+    if (hit) hit[1].push(x)
+    else out.push([g, [x]])
+  }
+  return out
+}
+
 /** Valor de uma opção (ou de um item personalizado). */
 export const checklistPrice = (s: ServiceDef, option?: string) => (option ? s.checklistPrices?.[option] ?? s.customRate ?? 0 : s.customRate ?? 0)
 /** Soma dos itens marcados (linhas de "o que está incluso"): R$/m² ou R$ por item, antes da complexidade. */

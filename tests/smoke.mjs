@@ -146,6 +146,7 @@ try {
     ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), 'plataforma: página de vendas cabe no celular')
     await page.locator('.lp-top .btn.primary').click(); await page.waitForTimeout(300)
     await page.fill('#signup-name', 'Cliente Teste')
+    await page.locator('.wp-option[data-profile="ambos"]').click()
     await page.locator('button.auth-submit').click(); await page.waitForTimeout(300)
     ok(await page.locator('.pf-signup .auth-error').count() === 1, 'plataforma: sem aceitar os termos não cria a conta')
     await page.locator('#signup-terms').check()

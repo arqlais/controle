@@ -11,6 +11,7 @@ import { PLATFORM, type PlanId } from '../plans'
 import { go, useRoute } from '../router'
 import { Signup } from './Signup'
 import Landing from '../pages/Landing'
+import { BriefingPublic } from './Briefing'
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
@@ -19,6 +20,13 @@ import { Icon } from './Icon'
 /** Sem nuvem configurada: prévia local. Com nuvem: exige login (e-mail + senha).
  *  Sem login, mostra a página de vendas, o cadastro ou o login. */
 export function AuthGate({ children }: { children: ReactNode }) {
+  // briefing do cliente final: página pública, sem login e sem nada do sistema
+  const route = useRoute()
+  if (route.page === 'briefing' && route.id) return <BriefingPublic id={route.id} />
+  return <Gate>{children}</Gate>
+}
+
+function Gate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null | undefined>(CLOUD ? undefined : null)
   const [recovery, setRecovery] = useState(false)
   // "ver como cliente" (só a dona usa): conta nova de cliente, só em memória

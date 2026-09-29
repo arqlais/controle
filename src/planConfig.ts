@@ -11,6 +11,7 @@ export interface PlanOverride {
   pitch?: string
   highlights?: string[]
   features?: Feature[]
+  decided?: Feature[] // o que a dona já viu na lista (funções novas que ela ainda não viu seguem o padrão)
 }
 export interface PlanConfig {
   trialDays?: number
@@ -18,6 +19,7 @@ export interface PlanConfig {
   plans?: Partial<Record<PlanId, PlanOverride>>
 }
 
+const NEW_FEATURES: Feature[] = ['briefing']
 const CACHE = 'config-planos'
 export const PREVIEW_KEY = 'previa-config-planos'
 
@@ -33,7 +35,11 @@ export function applyPlanConfig(c: PlanConfig) {
     if (o.pitch !== undefined) p.pitch = o.pitch
     if (o.highlights?.length) p.highlights = o.highlights.filter((h) => h.trim())
     // o chat com a administração fica sempre ligado
-    if (o.features) p.features = [...new Set<Feature>(['chatDona', ...o.features])]
+    if (o.features) {
+      // função lançada depois que a dona salvou os planos: segue o padrão do plano até ela decidir
+      const fresh = p.features.filter((f) => !o.features!.includes(f) && !(o.decided ?? []).includes(f) && NEW_FEATURES.includes(f))
+      p.features = [...new Set<Feature>(['chatDona', ...o.features, ...fresh])]
+    }
   }
 }
 

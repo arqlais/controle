@@ -1,12 +1,12 @@
 import { PLATFORM } from './plans'
-import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS } from './clientDefaults'
+import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS, servicesFor } from './clientDefaults'
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
 import { buildICS } from './ics'
 import { CLIENT_DISPLAY, PALETTES } from './brand'
 import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { Data, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings, SocialPost } from './types'
+import type { Data, WorkProfile, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings, SocialPost } from './types'
 import { CLIENT_CONTRACTS } from './contractTemplates'
 import { DEFAULT_TASKS, addDays, payWhen, splitPayments, titleCase, today, uid } from './utils'
 
@@ -348,7 +348,7 @@ export const DEFAULT_SETTINGS: Settings = {
 }
 
 export function emptyData(): Data {
-  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], contracts: [], settings: DEFAULT_SETTINGS }
+  return { version: 1, clients: [], projects: [], expenses: [], events: [], quotes: [], posts: [], contracts: [], briefings: [], settings: DEFAULT_SETTINGS }
 }
 
 const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
@@ -380,7 +380,7 @@ export function clientSettings(settings: Settings): Settings {
 }
 
 function firstRunData(settings: Settings): Data {
-  let info: { name?: string; studio?: string; demo?: boolean } = {}
+  let info: { name?: string; studio?: string; demo?: boolean; profile?: WorkProfile } = {}
   try {
     info = JSON.parse(localStorage.getItem(SIGNUP_KEY) || '{}')
     localStorage.removeItem(SIGNUP_KEY)
@@ -391,6 +391,7 @@ function firstRunData(settings: Settings): Data {
     ...clientSettings(settings),
     ...(info.studio ? { brandName: info.studio } : {}),
     ...(info.name ? { ownerName: info.name } : {}),
+    ...(info.profile ? { workProfile: info.profile, services: servicesFor(info.profile) } : {}),
   }
   return info.demo ? demoData(st) : { ...emptyData(), settings: st }
 }
@@ -441,6 +442,7 @@ export function normalize(d: Partial<Data>): Data {
     events: d.events ?? [],
     posts: d.posts ?? [],
     contracts: d.contracts ?? [],
+    briefings: d.briefings ?? [],
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
@@ -539,7 +541,7 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts'
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings'
 type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
@@ -747,6 +749,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
         const pids = new Set(d.projects.filter((p) => p.clientId === id).map((p) => p.id))
         next.projects = d.projects.filter((p) => p.clientId !== id)
         next.quotes = d.quotes.filter((q) => q.clientId !== id)
+        next.briefings = (d.briefings ?? []).filter((b) => b.clientId !== id)
         next.events = d.events.map((e) => (pids.has(e.projectId) ? { ...e, projectId: '' } : e))
       }
       if (c === 'projects') {

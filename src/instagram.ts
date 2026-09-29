@@ -623,3 +623,30 @@ export const CLIENT_WEEK_PLAN: { weekday: number; format: PostFormat; time: stri
   { weekday: 4, format: 'story', time: '12:00', pillar: 'bastidores', title: 'aproximar: bastidor do dia + enquete' },
   { weekday: 6, format: 'post', time: '11:00', pillar: 'processo', title: 'como é contratar você: etapas, prazo e entrega' },
 ]
+
+/** Ideias por formato para quem assina (a tela do dia mostra as do formato escolhido). */
+export const CLIENT_FORMAT_IDEAS: Record<'story' | 'reels' | 'post', { title: string; pillar: 'portfolio' | 'dicas' | 'processo' | 'bastidores' }[]> = {
+  story: [
+    { title: 'bastidor do dia + enquete', pillar: 'bastidores' },
+    { title: 'caixinha de perguntas: tire dúvidas dos seus clientes', pillar: 'dicas' },
+    { title: 'antes × depois com o controle deslizante', pillar: 'portfolio' },
+    { title: 'agenda aberta: vagas do mês', pillar: 'processo' },
+    { title: 'um dia de trabalho em 5 stories', pillar: 'bastidores' },
+    { title: 'depoimento de cliente (print da conversa, com autorização)', pillar: 'portfolio' },
+  ],
+  reels: [
+    { title: 'um trabalho pronto em movimento', pillar: 'portfolio' },
+    { title: 'do rascunho ao resultado em 15 segundos', pillar: 'processo' },
+    { title: '3 erros comuns e como evitar', pillar: 'dicas' },
+    { title: 'tour pelo projeto com música em alta', pillar: 'portfolio' },
+    { title: 'responda uma dúvida em vídeo curto', pillar: 'dicas' },
+  ],
+  post: [
+    { title: 'como é contratar você: etapas, prazo e entrega', pillar: 'processo' },
+    { title: 'carrossel: responda uma dúvida que seus clientes sempre têm', pillar: 'dicas' },
+    { title: 'projeto destaque com ficha técnica', pillar: 'portfolio' },
+    { title: 'apresente-se: quem é você e como trabalha', pillar: 'bastidores' },
+    { title: 'carrossel: antes e depois de um projeto', pillar: 'portfolio' },
+    { title: 'depoimento de cliente em arte', pillar: 'portfolio' },
+  ],
+}

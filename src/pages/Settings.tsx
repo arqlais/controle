@@ -1,14 +1,14 @@
 import { MsgTools, WaPreview } from '../components/MsgTools'
 import { ColorPicker } from '../components/ColorPicker'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
-import { useRef, useState } from 'react'
+import { Fragment, useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
 import { demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid } from '../utils'
+import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid, groupServices } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
@@ -18,6 +18,7 @@ import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
 import { useAccess } from '../access'
 import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
+import { ARCH_SERVICES, WORK_PROFILES } from '../clientDefaults'
 import { PLANS } from '../plans'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
@@ -160,12 +161,20 @@ export default function SettingsPage() {
                 </button>
               }
             >
+              <MissingArchServices />
               <p className="muted small">
                 Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b>, <b>por hora</b> (no orçamento você coloca quantas horas) ou <b>valor livre</b>{' '}
                 (você digita no orçamento). Estudantes recebem {s.studentDiscount}% de desconto na sugestão. No orçamento você sempre pode digitar outro valor.
               </p>
               <div className="services">
-                {s.services.map((x) => (
+                {groupServices(s.services).map(([g, list]) => (
+                  <Fragment key={g || '-'}>
+                    {g && (
+                      <h4 className="service-group">
+                        {g} <small className="muted">{list.length}</small>
+                      </h4>
+                    )}
+                {list.map((x) => (
                   <div key={x.id} className="service-row">
                     <div className="service-main">
                       <input className="service-name" value={x.name} onChange={(e) => setService(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
@@ -176,6 +185,7 @@ export default function SettingsPage() {
                           </option>
                         ))}
                       </select>
+                      <input className="service-group-input" list="service-groups" value={x.group ?? ''} onChange={(e) => setService(x.id, { group: e.target.value })} placeholder="grupo" aria-label="Grupo do serviço" title="Grupo: organiza a tabela e a lista do orçamento (ex.: projetos complementares)" />
                       <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })} aria-label="Remover">
                         <Icon name="trash" size={16} />
                       </button>
@@ -283,6 +293,13 @@ export default function SettingsPage() {
                     )}
                   </div>
                 ))}
+                  </Fragment>
+                ))}
+                <datalist id="service-groups">
+                  {[...new Set([...s.services.map((x) => x.group ?? ''), ...ARCH_SERVICES.map((x) => x.group ?? '')].filter(Boolean))].map((g) => (
+                    <option key={g} value={g} />
+                  ))}
+                </datalist>
               </div>
             </Section>
               <Section title="regras de preço" className="desktop-only">
@@ -422,6 +439,7 @@ export default function SettingsPage() {
                   <Icon name="user" size={14} /> abrir perfil
                 </a>
               </Section>
+          <WorkProfileSection />
           <Section title="backup e dados">
             <p className="muted small">
               {CLOUD ? (
@@ -743,6 +761,45 @@ function PayMethods({ list, onChange }: { list: string[]; onChange: (l: string[]
         </span>
       ))}
       <input id="pay-method-add" value={add} placeholder="+ outra forma (ex.: boleto)" onChange={(e) => setAdd(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), push())} onBlur={push} />
+    </div>
+  )
+}
+
+/** Como a conta trabalha: muda o tipo de cliente que já vem marcado, a ficha e os serviços sugeridos. */
+function WorkProfileSection() {
+  const { data, setSettings } = useStore()
+  const cur = data.settings.workProfile ?? 'freelancer'
+  return (
+    <Section title="como você trabalha">
+      <p className="muted small">Muda o que já vem pronto: o tipo de cliente, a ficha do cliente final (com briefing) e os serviços sugeridos. Nada do que você já cadastrou é apagado.</p>
+      <div className="wp-options">
+        {WORK_PROFILES.map((w) => (
+          <button key={w.value} type="button" className={`wp-option ${cur === w.value ? 'is-on' : ''}`} onClick={() => setSettings({ workProfile: w.value })} aria-pressed={cur === w.value}>
+            <b>{w.label}</b>
+            <small>{w.hint}</small>
+          </button>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+/** Quem atende cliente final e ainda não tem os serviços de arquitetura: um toque adiciona os que faltam. */
+function MissingArchServices() {
+  const { data, setSettings } = useStore()
+  const p = data.settings.workProfile
+  if (p !== 'final' && p !== 'ambos') return null
+  const missing = ARCH_SERVICES.filter((x) => x.id !== 'personalizado' && !data.settings.services.some((y) => y.id === x.id))
+  if (!missing.length) return null
+  return (
+    <div className="pf-note wp-add">
+      <Icon name="sparkle" size={16} />
+      <span className="grow">
+        Tabela pronta para cliente final: {missing.length} serviço(s) de arquitetura (consultoria, projetos, complementares, regularização, obra) com valores de partida para você ajustar.
+      </span>
+      <button className="btn small" onClick={() => setSettings({ services: [...missing, ...data.settings.services] })}>
+        <Icon name="plus" size={14} /> adicionar
+      </button>
     </div>
   )
 }

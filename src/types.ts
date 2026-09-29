@@ -1,10 +1,32 @@
 export type ClientType =
+  | 'final' // cliente final: a pessoa dona da casa/obra (quem contrata arquiteto ou designer)
   | 'arquiteto'
   | 'designer'
   | 'escritorio'
   | 'construtora'
   | 'estudante'
   | 'outro'
+
+/** Como a conta trabalha: presta serviço para escritórios, atende cliente final ou os dois. */
+export type WorkProfile = 'freelancer' | 'final' | 'ambos'
+
+/** Ficha do cliente final (mais dados para conhecer a família e o imóvel). */
+export interface ClientProfile {
+  profession?: string
+  marital?: string
+  birthDate?: string
+  household?: string // quem mora / vai usar o espaço
+  kids?: string
+  pets?: string
+  routine?: string
+  style?: string
+  propertyType?: string
+  propertyOwnership?: string
+  propertyAddress?: string
+  propertyArea?: string
+  investment?: string
+  deadline?: string
+}
 
 export interface ClientNote {
   id: string
@@ -33,6 +55,7 @@ export interface Client {
   notes: string
   favorite: boolean
   history: ClientNote[] // conversas e combinados, com data
+  profile?: ClientProfile // só para cliente final
   archived: boolean
   createdAt: string
 }
@@ -258,6 +281,7 @@ export interface ServiceDef {
   id: string
   name: string
   unit: string // imagem, prancha, m², projeto
+  group?: string // grupo na tabela (ex.: "projetos complementares"), só para organizar
   pricing: Pricing // por unidade, pacotes, por m² × complexidade ou valor livre
   price: number // R$ por unidade (ou por m²)
   tiers: PriceTier[] // pacotes com desconto por quantidade
@@ -326,6 +350,7 @@ export interface Contract {
 }
 
 export interface Settings {
+  workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   brandName: string
   tagline: string
   ownerName: string
@@ -404,7 +429,29 @@ export interface Data {
   quotes: Quote[]
   posts?: SocialPost[] // planejamento do instagram
   contracts?: Contract[] // contratos gerados a partir dos orçamentos
+  briefings?: Briefing[] // briefings enviados para clientes finais
   settings: Settings
+}
+
+export type BriefingKind = 'text' | 'long' | 'choice' | 'multi'
+export interface BriefingQuestion {
+  id: string
+  section: string
+  label: string
+  kind: BriefingKind
+  options?: string[]
+  field?: keyof ClientProfile // a resposta também preenche a ficha do cliente
+}
+export type BriefingAnswers = Record<string, string | string[]>
+export interface Briefing {
+  id: string // também é o código do link
+  clientId: string
+  title: string
+  questions: BriefingQuestion[]
+  answers?: BriefingAnswers
+  status: 'enviado' | 'respondido'
+  createdAt: string
+  answeredAt?: string
 }
 
 export type PostFormat = 'carrossel' | 'reels' | 'story' | 'post'

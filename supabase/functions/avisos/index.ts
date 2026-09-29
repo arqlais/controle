@@ -11,6 +11,7 @@
 //   sugestao     → alguém mandou uma sugestão: avisa a dona
 //   resposta     → a dona respondeu no chat: avisa a pessoa (se ela não estiver usando o sistema agora)
 //   sugestao-atualizada → a dona mudou a situação ou respondeu uma sugestão: avisa quem sugeriu
+//   briefing     → o cliente final respondeu o briefing (página sem login): avisa quem mandou
 // Cada aviso vai no máximo uma vez para cada pessoa (tabela email_log).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -184,6 +185,17 @@ const CLIENT_MAILS = {
   }),
 }
 
+const briefingMail = (s: Sub, client: string, title: string): Mail => ({
+  subject: `📋 ${client || 'Seu cliente'} respondeu o briefing`,
+  html: layout({
+    eyebrow: 'briefing',
+    title: `${esc(client || 'Seu cliente')} respondeu!`,
+    text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! As respostas de <b>${esc(title)}</b> chegaram.</p><p style="margin:0;">Abra a ficha do cliente no traço: as respostas estão lá e o que era da ficha (profissão, família, imóvel…) já foi preenchido.</p>`,
+    button: 'ver as respostas',
+    url: `${SITE}#/clientes`,
+  }),
+})
+
 async function send(to: Sub, mail: Mail) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -289,6 +301,16 @@ Deno.serve(async (req) => {
     if (!s?.email) return json({ ok: false })
     // um e-mail por situação nova (se só editar o texto da resposta, não manda de novo)
     return json({ ok: await once(s, 'sugestao', `${sg.id}:${sg.status}:${String(sg.reply ?? '').length > 0}`, CLIENT_MAILS.sugestao(s, String(sg.title ?? ''), String(sg.status ?? ''), String(sg.reply ?? ''))) })
+  }
+
+  if (tipo === 'briefing') {
+    // chamado pela página pública (sem login): só avisa de um briefing respondido há pouco
+    const { data: b } = await db.from('briefing_links').select('*').eq('id', String(body.id ?? '')).maybeSingle()
+    if (!b?.answered_at || Date.now() - Date.parse(b.answered_at) > 2 * 3_600_000) return json({ ok: false })
+    const s = await subOf(String(b.user_id))
+    if (!s?.email) return json({ ok: false })
+    const p = (b.payload ?? {}) as { clientName?: string; title?: string }
+    return json({ ok: await once(s, 'briefing', String(b.id), briefingMail(s, String(p.clientName ?? ''), String(p.title ?? 'briefing'))) })
   }
 
   if (tipo === 'diario') {

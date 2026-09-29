@@ -10,6 +10,7 @@ import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
 import { go } from '../router'
+import { LANDING_PROFILE_KEY } from '../components/Signup'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
    As telas de exemplo usam os mesmos componentes do sistema, com dados fictícios. */
@@ -80,6 +81,63 @@ const JOURNEY: { icon: string; step: string; title: string; text: string; card: 
   },
 ]
 
+// a mesma jornada, para quem atende cliente final (arquiteto, designer, escritório)
+const JOURNEY_FINAL: typeof JOURNEY = [
+  {
+    icon: 'whatsapp',
+    step: 'o cliente chama',
+    title: 'a ficha completa do cliente',
+    text: 'profissão, estado civil, quem mora, pets, rotina e o imóvel: tudo o que importa para o projeto, num lugar só.',
+    card: [
+      { k: 'cliente', v: 'Família Souza' },
+      { k: 'imóvel', v: 'apartamento · 85 m²' },
+      { k: 'quem mora', v: 'casal, 2 filhos e 1 gato' },
+    ],
+  },
+  {
+    icon: 'link',
+    step: 'briefing',
+    title: 'o briefing responde sozinho',
+    text: 'mande um link: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha.',
+    card: [
+      { k: 'estilo', v: 'aconchegante, madeira clara' },
+      { k: 'ambientes', v: 'sala, cozinha, 2 quartos' },
+      { k: 'status', v: 'respondido ✓', tone: 'good' },
+    ],
+  },
+  {
+    icon: 'file',
+    step: 'proposta',
+    title: 'projeto, complementares e regularização',
+    text: 'a tabela vem organizada por grupos: consultoria, projeto, complementares, regularização e obra. marque o que entra e o valor se calcula.',
+    card: [
+      { k: 'projeto de interiores · 85 m²', v: 'R$ 7.650,00' },
+      { k: 'complementares: elétrico + hidro', v: 'R$ 1.700,00' },
+      { k: 'total', v: 'R$ 9.350,00', tone: 'strong' },
+    ],
+  },
+  {
+    icon: 'wallet',
+    step: 'obra e pagamentos',
+    title: 'contrato, obra e parcelas em dia',
+    text: 'contrato com os dados da proposta, visitas de obra na agenda e cada parcela no financeiro, com cobrança pronta.',
+    card: [
+      { k: 'contrato', v: 'assinado ✓', tone: 'good' },
+      { k: 'visita de obra', v: 'amanhã, 9h', tone: 'warn' },
+      { k: 'recebido no mês', v: 'R$ 12.400,00', tone: 'strong' },
+    ],
+  },
+]
+const FEATURES_FINAL = ['ficha do cliente', 'briefing por link', 'projeto arquitetônico', 'interiores', 'complementares', 'regularização', 'contratos', 'visitas de obra', 'financeiro', 'recibos', 'sua identidade visual', 'celular e computador']
+type Aud = 'freelancer' | 'final'
+const readAud = (): Aud => {
+  try {
+    return localStorage.getItem(LANDING_PROFILE_KEY) === 'final' ? 'final' : 'freelancer'
+  } catch {
+    return 'freelancer'
+  }
+}
+
 const FEATURES = ['clientes', 'orçamentos', 'propostas', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'metas', 'sua identidade visual', 'celular e computador']
 
 const AUDIENCE = [
@@ -100,9 +158,10 @@ const BENEFITS = [
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['serve para quem está começando?', 'Serve, e foi pensado para isso: estudantes e freelancers em começo de carreira, que precisam de organização sem pagar caro.'],
+  ['serve para escritório que atende cliente final?', 'Serve. No cadastro você diz como trabalha: quem atende cliente final ganha a ficha completa do cliente (profissão, família, imóvel), o briefing por link e uma tabela pronta de projetos (arquitetônico, interiores, complementares, regularização e obra). Quem faz os dois usa tudo na mesma conta: cada cliente tem o seu tipo.'],
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
-  ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para o WhatsApp. O Completo gera proposta, recibos e contratos em PDF com a sua identidade, e ainda tem agenda no celular e planejamento do instagram.'],
+  ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para o WhatsApp. O Completo gera proposta, recibos e contratos em PDF com a sua identidade, e ainda tem agenda no celular, planejamento do instagram e o briefing online para o cliente final.'],
   ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
   ['o teste grátis é de qual plano?', `Do Completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
@@ -143,7 +202,7 @@ export default function Landing() {
   // "quem criou", contatos e redes: a dona edita no painel da plataforma
   const [site, setSite] = useState<SiteContent>(DEFAULT_SITE)
   const off = (id: string) => (site.hidden ?? []).includes(id)
-  const heroWords = (site.heroWords || '').split(',').map((w) => w.trim()).filter(Boolean)
+  const siteWords = (site.heroWords || '').split(',').map((w) => w.trim()).filter(Boolean)
   // depoimentos escolhidos pela dona no painel (sem nenhum, a seção não aparece)
   const [quotes, setQuotes] = useState<PublicFeedback[]>([])
   useEffect(() => {
@@ -162,6 +221,19 @@ export default function Landing() {
     window.addEventListener('scroll', on, { passive: true })
     return () => window.removeEventListener('scroll', on)
   }, [])
+  // "sou freelancer" / "atendo cliente final": troca textos e exemplos, e já vem marcado no cadastro
+  const [aud, setAudState] = useState<Aud>(readAud)
+  const setAud = (a: Aud) => {
+    setAudState(a)
+    try {
+      localStorage.setItem(LANDING_PROFILE_KEY, a)
+    } catch {
+      /* ok */
+    }
+  }
+  const final = aud === 'final'
+  // "seu escritório," pede as palavras no masculino
+  const heroWords = final ? ['organizado', 'mais leve', 'no seu ritmo', 'lucrativo'] : siteWords
   const signup = (plan?: PlanId) => go('cadastro', plan)
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
@@ -204,15 +276,28 @@ export default function Landing() {
         </div>
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
+            <div className="lp-aud" role="tablist" aria-label="Como você trabalha">
+              {(
+                [
+                  ['freelancer', 'sou freelancer'],
+                  ['final', 'atendo cliente final'],
+                ] as [Aud, string][]
+              ).map(([id, label]) => (
+                <button key={id} role="tab" aria-selected={aud === id} className={aud === id ? 'is-on' : ''} onClick={() => setAud(id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
             {site.kicker && (
               <p className="lp-kicker">
-                <span className="lp-dot" /> {site.kicker}
+                <span className="lp-dot" /> {final ? 'feito para quem projeta para pessoas' : site.kicker}
               </p>
             )}
             <h1>
-              {site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
+              {final ? 'seu escritório,' : site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
             </h1>
-            <p className="lp-lead">{site.lead}</p>
+            <p className="lp-lead">{final ? 'Ficha completa do cliente, briefing por link, propostas de projeto, contratos e financeiro num lugar só. Do primeiro “oi” à entrega da obra.' : site.lead}</p>
+            <p className="lp-aud-note muted small">{final ? 'para arquitetos, designers e escritórios que projetam para o cliente final' : 'para quem presta serviço para escritórios: 3D, executivo, apresentação'} · faz os dois? tudo na mesma conta</p>
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta lp-shine" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />
@@ -232,8 +317,8 @@ export default function Landing() {
                 <Icon name="check" size={14} />
               </span>
               <span>
-                <b>orçamento aprovado</b>
-                <small>Casa Pampulha · R$ 1.620</small>
+                <b>{final ? 'briefing respondido' : 'orçamento aprovado'}</b>
+                <small>{final ? 'Família Souza · 26 respostas' : 'Casa Pampulha · R$ 1.620'}</small>
               </span>
             </div>
             <div className="lp-float lp-float-2">
@@ -241,8 +326,8 @@ export default function Landing() {
                 <Icon name="wallet" size={14} />
               </span>
               <span>
-                <b>sinal recebido</b>
-                <small>+ R$ 810,00</small>
+                <b>{final ? 'projeto aprovado' : 'sinal recebido'}</b>
+                <small>{final ? 'apto 85 m² · + R$ 4.675,00' : '+ R$ 810,00'}</small>
               </span>
             </div>
             <div className="lp-float lp-float-3">
@@ -250,8 +335,8 @@ export default function Landing() {
                 <Icon name="clock" size={14} />
               </span>
               <span>
-                <b>entrega amanhã</b>
-                <small>suíte master · 3 imagens</small>
+                <b>{final ? 'visita de obra amanhã' : 'entrega amanhã'}</b>
+                <small>{final ? 'marcenaria · 9h' : 'suíte master · 3 imagens'}</small>
               </span>
             </div>
           </div>
@@ -260,7 +345,7 @@ export default function Landing() {
 
       <div className="lp-marquee" aria-hidden>
         <div className="lp-marquee-track">
-          {[...FEATURES, ...FEATURES].map((f, i) => (
+          {(final ? [...FEATURES_FINAL, ...FEATURES_FINAL] : [...FEATURES, ...FEATURES]).map((f, i) => (
             <span key={i}>
               {f} <i>✦</i>
             </span>
@@ -291,7 +376,7 @@ export default function Landing() {
       <section className="lp-section lp-alt" id="jornada">
         <div className="lp-wrap">
           <SectionHead eyebrow="como funciona" title={<>do primeiro “oi” <em>ao recibo</em></>} />
-          <Journey />
+          <Journey key={aud} steps={final ? JOURNEY_FINAL : JOURNEY} />
         </div>
       </section>
 
@@ -326,7 +411,7 @@ export default function Landing() {
       )}
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
-          <SectionHead eyebrow="planos" title={<>preço de freelancer, <em className="nowrap">sem fidelidade</em></>} text={`Comece com ${TRIAL_DAYS} dias grátis. Depois, escolha o que faz sentido para você.`} />
+          <SectionHead eyebrow="planos" title={final ? <>preço justo, <em className="nowrap">sem fidelidade</em></> : <>preço de freelancer, <em className="nowrap">sem fidelidade</em></>} text={`Comece com ${TRIAL_DAYS} dias grátis. Depois, escolha o que faz sentido para você.`} />
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
@@ -561,7 +646,7 @@ function RotatingWord({ words }: { words: string[] }) {
 }
 
 /** Jornada em 4 passos: avança sozinha (pausa ao tocar) e mostra um cartão animado de cada etapa. */
-function Journey() {
+function Journey({ steps: JOURNEY }: { steps: typeof JOURNEY_FINAL }) {
   const [step, setStep] = useState(0)
   const [paused, setPaused] = useState(false)
   useEffect(() => {

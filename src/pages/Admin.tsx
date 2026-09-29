@@ -602,7 +602,7 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
   )
 }
 
-const MAIL_KIND: Record<string, string> = { 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade', 'dona-mensagem': 'mensagem nova (para você)', 'dona-sugestao': 'sugestão nova (para você)', resposta: 'resposta no chat', sugestao: 'sugestão respondida' }
+const MAIL_KIND: Record<string, string> = { 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade', 'dona-mensagem': 'mensagem nova (para você)', 'dona-sugestao': 'sugestão nova (para você)', resposta: 'resposta no chat', sugestao: 'sugestão respondida', briefing: 'briefing respondido' }
 /** E-mails automáticos: o que sai sozinho, o histórico e o envio de novidades para todos. */
 function EmailsAdmin({ subs }: { subs: Subscription[] }) {
   const [log, setLog] = useState<Awaited<ReturnType<typeof platform.emailLog>>>([])
@@ -1421,7 +1421,7 @@ function PlansEditor() {
   const snap = (): PlanConfig => ({
     trialDays: TRIAL_DAYS,
     annualDiscount: ANNUAL_DISCOUNT,
-    plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features] }])) as PlanConfig['plans'],
+    plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features], decided: PLAN_TOGGLES.map(([f]) => f) }])) as PlanConfig['plans'],
   })
   const [cfg, setCfg] = useState<PlanConfig>(snap)
   const [saved, setSaved] = useState(() => JSON.stringify(snap()))

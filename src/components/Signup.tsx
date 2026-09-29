@@ -7,6 +7,19 @@ import { signUp } from '../platform'
 import { SIGNUP_KEY } from '../store'
 import { go } from '../router'
 import { CLOUD } from '../cloud'
+import { WORK_PROFILES } from '../clientDefaults'
+import type { WorkProfile } from '../types'
+
+/** A escolha feita na página de vendas ("sou freelancer" / "atendo cliente final") já vem marcada. */
+export const LANDING_PROFILE_KEY = 'vendas-perfil'
+const landingProfile = (): WorkProfile | '' => {
+  try {
+    const v = localStorage.getItem(LANDING_PROFILE_KEY)
+    return v === 'final' || v === 'freelancer' || v === 'ambos' ? v : ''
+  } catch {
+    return ''
+  }
+}
 
 /* Cadastro: criar conta → entra no sistema com o teste grátis do plano Completo.
    Só continua quem aceita os termos de uso e o contrato de assinatura. */
@@ -16,6 +29,7 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
   const [terms, setTerms] = useState(false)
   const [name, setName] = useState('')
   const [studio, setStudio] = useState('')
+  const [profile, setProfile] = useState<WorkProfile | ''>(landingProfile)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   // conta nova começa vazia (o exemplo continua disponível no "ver exemplo" dos primeiros passos)
@@ -30,11 +44,12 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
     e.preventDefault()
     setError('')
     if (!name.trim()) return setError('Coloque seu nome.')
+    if (!profile) return setError('Conte como você trabalha: assim o sistema já vem pronto para você.')
     if (CLOUD && password.length < 8) return setError('A senha precisa ter pelo menos 8 caracteres.')
     if (!agree) return setError('Para continuar, leia e aceite os termos de uso e o contrato de assinatura.')
     setBusy(true)
     try {
-      localStorage.setItem(SIGNUP_KEY, JSON.stringify({ name: name.trim(), studio: studio.trim(), demo }))
+      localStorage.setItem(SIGNUP_KEY, JSON.stringify({ name: name.trim(), studio: studio.trim(), demo, profile }))
     } catch {
       /* ok */
     }
@@ -91,6 +106,16 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
         </Field>
         <Field label="Nome do estúdio (opcional)">
           <input id="signup-studio" autoComplete="organization" value={studio} onChange={(e) => setStudio(e.target.value)} placeholder="Ribeiro Arquitetura" />
+        </Field>
+        <Field group label="Como você trabalha?">
+          <div className="wp-options compact" role="radiogroup">
+            {WORK_PROFILES.map((w) => (
+              <button key={w.value} type="button" role="radio" aria-checked={profile === w.value} className={`wp-option ${profile === w.value ? 'is-on' : ''}`} onClick={() => setProfile(w.value)} data-profile={w.value}>
+                <b>{w.label}</b>
+                <small>{w.hint}</small>
+              </button>
+            ))}
+          </div>
         </Field>
         <Field label="E-mail">
           <EmailInput id="signup-email" value={email} onChange={setEmail} />

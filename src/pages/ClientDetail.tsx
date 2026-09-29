@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { DateInput } from '../components/DateInput'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm, ProjectForm } from '../components/forms'
 import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
-import type { Client } from '../types'
+import type { Client, ClientProfile } from '../types'
+import { BriefingSection } from '../components/Briefing'
 import { askDelete } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import { MergeClients } from '../components/MergeClients'
@@ -174,6 +175,9 @@ export default function ClientDetail({ id }: { id: string }) {
             {c.notes && <p className="notes">{c.notes}</p>}
           </Section>
 
+          {c.type === 'final' && <FinalProfileCard client={c} onEdit={() => setEdit(true)} />}
+          {c.type === 'final' && <BriefingSection client={c} />}
+
           <Section title="Pagamentos">
             {payments.length === 0 ? (
               <p className="muted small">Sem pagamentos.</p>
@@ -283,6 +287,53 @@ function ClientHistory({ client }: { client: Client }) {
         </ul>
       )}
       {more}
+    </Section>
+  )
+}
+
+const PROFILE_ROWS: [keyof ClientProfile, string][] = [
+  ['profession', 'Profissão'],
+  ['marital', 'Estado civil'],
+  ['birthDate', 'Nascimento'],
+  ['household', 'Quem mora'],
+  ['kids', 'Filhos'],
+  ['pets', 'Pets'],
+  ['routine', 'Rotina'],
+  ['style', 'Estilo'],
+  ['propertyType', 'Imóvel'],
+  ['propertyOwnership', 'Posse'],
+  ['propertyArea', 'Metragem'],
+  ['propertyAddress', 'Endereço da obra'],
+  ['investment', 'Investimento'],
+  ['deadline', 'Prazo desejado'],
+]
+
+/** Ficha do cliente final: só o que já foi preenchido (na mão ou pelo briefing). */
+function FinalProfileCard({ client, onEdit }: { client: Client; onEdit: () => void }) {
+  const p = client.profile ?? {}
+  const rows = PROFILE_ROWS.filter(([k]) => (p[k] ?? '').trim())
+  const show = (k: keyof ClientProfile, v: string) => (k === 'birthDate' ? fmtDate(v) : k === 'propertyArea' && /^\d+([.,]\d+)?$/.test(v) ? `${v} m²` : v)
+  return (
+    <Section
+      title="sobre o cliente"
+      action={
+        <button className="btn small ghost" onClick={onEdit}>
+          <Icon name="edit" size={14} /> completar
+        </button>
+      }
+    >
+      {rows.length === 0 ? (
+        <p className="muted small">Profissão, família, rotina, imóvel e investimento: preencha em “completar” ou mande o briefing para o cliente responder.</p>
+      ) : (
+        <dl className="info">
+          {rows.map(([k, label]) => (
+            <Fragment key={k}>
+              <dt>{label}</dt>
+              <dd>{show(k, p[k] ?? '')}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      )}
     </Section>
   )
 }

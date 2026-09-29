@@ -40,6 +40,7 @@ export type Feature =
   | 'instagram' // planejamento do instagram
   | 'agendaCelular' // agenda sincronizada no celular
   | 'identidade' // logo, cores e fontes próprias
+  | 'briefing' // briefing online para o cliente final responder por link
 
 export type PlanId = 'essencial' | 'completo'
 
@@ -78,8 +79,8 @@ export const PLANS: Record<PlanId, Plan> = {
     name: 'Completo',
     price: 59.9,
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
-    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade'],
-    highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
+    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing'],
+    highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram', 'briefing online para o cliente final'],
     featured: true,
   },
 }
@@ -87,7 +88,7 @@ export const PLANS: Record<PlanId, Plan> = {
 export const PLAN_LIST = [PLANS.essencial, PLANS.completo]
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
-export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade']
+export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing']
 
 /** O que a dona pode ligar/desligar em cada plano (painel → planos). */
 export const PLAN_TOGGLES: [Feature, string][] = [
@@ -96,6 +97,7 @@ export const PLAN_TOGGLES: [Feature, string][] = [
   ['contratos', 'contratos'],
   ['agendaCelular', 'agenda no celular'],
   ['instagram', 'planejamento do instagram'],
+  ['briefing', 'briefing online (cliente final)'],
 ]
 
 /** Tabela de comparação da página de vendas (linha → [essencial, completo]); segue o que cada plano libera. */
@@ -113,6 +115,7 @@ export function compareRows(): [string, boolean | string, boolean | string][] {
     row('contratos com os dados do orçamento', 'contratos'),
     row('agenda sincronizada no celular', 'agendaCelular'),
     row('planejamento do instagram', 'instagram'),
+    row('briefing online para o cliente final', 'briefing'),
     ['chat direto com o assistente online', true, true],
   ]
 }

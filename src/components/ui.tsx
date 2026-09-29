@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeep } from '../keep'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
-import { EMAIL_DOMAINS, formatCep, formatPhone, lookupCep } from '../utils'
+import { EMAIL_DOMAINS, formatCep, formatPhone, groupServices, lookupCep } from '../utils'
+import type { ServiceDef } from '../types'
 
 let openModals = 0
 
@@ -334,6 +335,34 @@ export function CepInput({ value, onChange, onFound, onState, id }: { value: str
           {CEP_STATE[state]}
         </span>
       )}
+    </>
+  )
+}
+
+/** Opções de serviço para um <select>, agrupadas quando a tabela tem grupos. */
+export function ServiceOptions({ services }: { services: ServiceDef[] }) {
+  const groups = groupServices(services)
+  if (groups.length === 1 && !groups[0][0])
+    return (
+      <>
+        {services.map((x) => (
+          <option key={x.id} value={x.id}>
+            {x.name}
+          </option>
+        ))}
+      </>
+    )
+  return (
+    <>
+      {groups.map(([g, list]) => (
+        <optgroup key={g || '-'} label={g || 'outros'}>
+          {list.map((x) => (
+            <option key={x.id} value={x.id}>
+              {x.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
     </>
   )
 }

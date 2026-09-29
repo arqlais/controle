@@ -11,7 +11,7 @@ import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { QuoteDoc } from '../components/Docs'
 import { DocZoom, DocScale, usePdf } from '../components/Print'
-import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented } from '../components/ui'
+import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
 import { askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
@@ -1125,11 +1125,7 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onC
                 }}
               >
                 <option value="">escolha o serviço…</option>
-                {settings.services.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.name}
-                  </option>
-                ))}
+                <ServiceOptions services={settings.services} />
               </select>
               <button className="icon-btn subtle" onClick={() => onChange(items.filter((x) => x.id !== it.id))} aria-label="Remover serviço">
                 <Icon name="x" size={14} />

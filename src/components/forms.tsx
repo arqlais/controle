@@ -3,9 +3,10 @@ import { DateInput } from './DateInput'
 import { useState } from 'react'
 import { useStore } from '../store'
 import { HowPaid } from './quick'
-import type { CalendarEvent, Client, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
+import type { CalendarEvent, Client, ClientProfile, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
 import {
-  CLIENT_TYPES,
+  clientTypeOptions,
+  defaultClientType,
   projectExtras,
   projectTotal,
   DEFAULT_TASKS,
@@ -31,17 +32,20 @@ import {
   lookupCnpj,
   typeHandle,
 } from '../utils'
-import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented, CepInput } from './ui'
+import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented, CepInput, ServiceOptions } from './ui'
 import { Icon } from './Icon'
 
 /* ---------------- Cliente ---------------- */
 
-export function newClient(): Client {
+export const MARITAL = ['solteira(o)', 'casada(o)', 'união estável', 'divorciada(o)', 'viúva(o)']
+export const PROPERTY_TYPES = ['apartamento', 'casa', 'casa em condomínio', 'sala / loja comercial', 'escritório', 'terreno', 'outro']
+
+export function newClient(type: ClientType = 'arquiteto'): Client {
   return {
     id: uid(),
     name: '',
     company: '',
-    type: 'arquiteto',
+    type,
     email: '',
     phone: '',
     instagram: '',
@@ -57,9 +61,13 @@ export function newClient(): Client {
 }
 
 export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; onClose: () => void; onSaved?: (c: Client) => void }) {
-  const { upsert } = useStore()
-  const [c, setC] = useState<Client>(initial ?? newClient())
+  const { data, upsert } = useStore()
+  const profile = data.settings.workProfile
+  const [c, setC] = useState<Client>(initial ?? newClient(defaultClientType(profile)))
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }))
+  const setP = (k: keyof ClientProfile, v: string) => setC((x) => ({ ...x, profile: { ...x.profile, [k]: v } }))
+  const final = c.type === 'final'
+  const pr = c.profile ?? {}
   // dados da empresa (CNPJ): fechados até precisar; abrem sozinhos se já tiver algo
   const [showCompany, setShowCompany] = useState(!!(c.companyDoc || c.companyLegal || c.companyKind || docKind(c.document) === 'CNPJ'))
   const [cnpjState, setCnpjState] = useState('')
@@ -111,14 +119,14 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
         </Field>
         <Field label="Tipo">
           <select value={c.type} onChange={(e) => set('type', e.target.value as ClientType)}>
-            {Object.entries(CLIENT_TYPES).map(([k, v]) => (
+            {clientTypeOptions(profile, c.type).map(([k, v]) => (
               <option key={k} value={k}>
                 {v}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Empresa / escritório / faculdade" span={2}>
+        <Field label={final ? 'Empresa (se for projeto comercial)' : 'Empresa / escritório / faculdade'} span={2}>
           <input value={c.company} onChange={(e) => set('company', e.target.value)} />
         </Field>
         <Field label="CPF" hint={docKind(c.document) === 'CNPJ' ? 'Isso é um CNPJ: coloque em “dados da empresa” abaixo.' : 'Da pessoa · usado nos recibos'}>
@@ -199,7 +207,84 @@ export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; on
             </div>
           )}
         </div>
-        <Field label="Observações" span={3} hint="Preferências de estilo, softwares que usa, forma de enviar arquivos...">
+        {final && (
+          <div className="final-block" style={{ gridColumn: '1 / -1' }}>
+            <p className="final-title">
+              <Icon name="users" size={15} /> sobre o cliente e a família
+            </p>
+            <div className="form-grid">
+              <Field label="Profissão">
+                <input value={pr.profession ?? ''} onChange={(e) => setP('profession', e.target.value)} placeholder="Ex.: médica" />
+              </Field>
+              <Field label="Estado civil">
+                <select value={pr.marital ?? ''} onChange={(e) => setP('marital', e.target.value)}>
+                  <option value="">—</option>
+                  {MARITAL.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Data de nascimento">
+                <DateInput value={pr.birthDate ?? ''} onChange={(e) => setP('birthDate', e.target.value)} />
+              </Field>
+              <Field label="Quem mora / vai usar o espaço" span={2}>
+                <input value={pr.household ?? ''} onChange={(e) => setP('household', e.target.value)} placeholder="Ex.: casal, 2 filhos e a avó" />
+              </Field>
+              <Field label="Filhos (idades)">
+                <input value={pr.kids ?? ''} onChange={(e) => setP('kids', e.target.value)} placeholder="Ex.: 4 e 9 anos" />
+              </Field>
+              <Field label="Pets">
+                <input value={pr.pets ?? ''} onChange={(e) => setP('pets', e.target.value)} placeholder="Ex.: 1 gato" />
+              </Field>
+              <Field label="Rotina e hábitos" span={2}>
+                <input value={pr.routine ?? ''} onChange={(e) => setP('routine', e.target.value)} placeholder="Trabalha em casa, recebe visitas, cozinha todo dia…" />
+              </Field>
+              <Field label="Estilo e referências" span={3}>
+                <input value={pr.style ?? ''} onChange={(e) => setP('style', e.target.value)} placeholder="Ex.: aconchegante, madeira clara, não gosta de cinza" />
+              </Field>
+            </div>
+            <p className="final-title">
+              <Icon name="home" size={15} /> o imóvel
+            </p>
+            <div className="form-grid">
+              <Field label="Tipo de imóvel">
+                <select value={pr.propertyType ?? ''} onChange={(e) => setP('propertyType', e.target.value)}>
+                  <option value="">—</option>
+                  {PROPERTY_TYPES.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Próprio ou alugado">
+                <select value={pr.propertyOwnership ?? ''} onChange={(e) => setP('propertyOwnership', e.target.value)}>
+                  <option value="">—</option>
+                  {['próprio', 'alugado', 'na planta', 'de família'].map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Metragem (m²)">
+                <input value={pr.propertyArea ?? ''} inputMode="decimal" onChange={(e) => setP('propertyArea', e.target.value)} placeholder="Ex.: 85" />
+              </Field>
+              <Field label="Endereço da obra" span={3} hint="Se for diferente do endereço do cliente.">
+                <input value={pr.propertyAddress ?? ''} onChange={(e) => setP('propertyAddress', e.target.value)} />
+              </Field>
+              <Field label="Investimento previsto" span={2}>
+                <input value={pr.investment ?? ''} onChange={(e) => setP('investment', e.target.value)} placeholder="Ex.: até R$ 80 mil na obra" />
+              </Field>
+              <Field label="Prazo desejado">
+                <input value={pr.deadline ?? ''} onChange={(e) => setP('deadline', e.target.value)} placeholder="Ex.: mudar em março" />
+              </Field>
+            </div>
+          </div>
+        )}
+        <Field label="Observações" span={3} hint={final ? 'O que mais for importante lembrar sobre o cliente e o projeto.' : 'Preferências de estilo, softwares que usa, forma de enviar arquivos...'}>
           <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={3} value={c.notes} onChange={(e) => set('notes', e.target.value)} />
         </Field>
       </div>
@@ -358,11 +443,7 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
         <Field label="Serviço">
           <select value={p.service} onChange={(e) => applyService(e.target.value)}>
             <option value="">—</option>
-            {settings.services.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
+            <ServiceOptions services={settings.services} />
           </select>
         </Field>
         <Field label={`Quantidade${service ? ` (${service.unit}s)` : ''}`}>

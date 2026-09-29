@@ -7,7 +7,7 @@ import { Field, Modal, MonthPicker, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
-import { CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
+import { CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
 import type { PostFormat, PostStatus, Settings, SocialPost } from '../types'
 import { fmtDate, today, uid } from '../utils'
 
@@ -765,19 +765,29 @@ function PlanReview({ month, items, ideas, settings, onClose, onSave }: { month:
 }
 
 /** Planejar um dia: sugestões para ele (pela sua semana), o que já existe nele e a opção em branco. */
+type DayFormat = 'story' | 'reels' | 'post'
+const DAY_CARDS: { id: DayFormat; label: string; hint: string; icon: string }[] = [
+  { id: 'story', label: 'story', hint: 'bastidores, enquetes e venda para quem já te segue', icon: 'smartphone' },
+  { id: 'reels', label: 'reels', hint: 'vídeo curto: leva o perfil para gente nova', icon: 'camera' },
+  { id: 'post', label: 'post', hint: 'feed: imagem ou carrossel que ensina e fica salvo', icon: 'grid' },
+]
+const asDay = (f?: PostFormat): DayFormat | null => (!f ? null : f === 'carrossel' ? 'post' : f)
+
 function DayPlanner({ date, mine, used, settings, existing, onClose, onPick }: { date: string; mine: boolean; used: Set<string | undefined>; settings: Settings; existing: SocialPost[]; onClose: () => void; onPick: (p: SocialPost) => void }) {
   const dt = new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)))
   const wd = dt.getDay()
   const [page, setPage] = useState(0)
+  const [fmt, setFmt] = useState<DayFormat | null>(null)
   const slot = mine ? WEEK_PLAN.find((w) => w.weekday === wd) : CLIENT_WEEK_PLAN.find((w) => w.weekday === wd)
-  const time = slot?.time ?? '12:00'
-  // quem é a Laís: ideias prontas (as do formato do dia primeiro, as ainda não usadas antes)
-  const ideas = mine
-    ? IDEAS.filter((i) => i.pillar !== 'estudantes').sort((a, b) => Number(b.format === slot?.format) - Number(a.format === slot?.format) || Number(used.has(a.id)) - Number(used.has(b.id)))
-    : []
+  const suggested = asDay(slot?.format)
+  const time = slot && asDay(slot.format) === fmt ? slot.time : fmt === 'reels' ? '19:00' : '12:00'
+  const inFmt = (f: PostFormat) => asDay(f) === fmt
+  // quem é a Laís: ideias prontas do formato escolhido (as ainda não usadas primeiro)
+  const ideas = mine && fmt ? IDEAS.filter((i) => i.pillar !== 'estudantes' && inFmt(i.format)).sort((a, b) => Number(used.has(a.id)) - Number(used.has(b.id))) : []
   const shown = ideas.slice(page * 5, page * 5 + 5)
-  // quem assina: os temas da própria estratégia (o do dia primeiro)
-  const themes = mine ? [] : [...CLIENT_WEEK_PLAN].sort((a, b) => Number(b.weekday === wd) - Number(a.weekday === wd))
+  // quem assina: tema da estratégia do dia (se for deste formato) + ideias do formato
+  const themes = !mine && fmt ? [...CLIENT_WEEK_PLAN.filter((t) => inFmt(t.format)).map((t) => ({ title: t.title, pillar: t.pillar, format: t.format })), ...CLIENT_FORMAT_IDEAS[fmt].map((t) => ({ ...t, format: (fmt === 'post' && /carrossel/.test(t.title) ? 'carrossel' : fmt) as PostFormat }))] : []
+  const count = (f: DayFormat) => (mine ? IDEAS.filter((i) => i.pillar !== 'estudantes' && asDay(i.format) === f).length : CLIENT_FORMAT_IDEAS[f].length + CLIENT_WEEK_PLAN.filter((t) => asDay(t.format) === f).length)
   return (
     <Modal title={dt.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} onClose={onClose}>
       {existing.length > 0 && (
@@ -792,30 +802,65 @@ function DayPlanner({ date, mine, used, settings, existing, onClose, onPick }: {
           ))}
         </div>
       )}
-      <div className="ig-day-block">
-        <span className="field-label">{slot ? `sugestão para este dia: ${FORMATS[slot.format].label.toLowerCase()} às ${slot.time}` : 'sugestões'}</span>
-        {mine
-          ? shown.map((i) => (
-              <button key={i.id} type="button" className={`ig-sug ${used.has(i.id) ? 'is-used' : ''}`} onClick={() => onPick(fromIdea(i, settings, date, time))}>
-                <span className="ig-format" style={{ background: FORMATS[i.format].color }}>{FORMATS[i.format].label}</span>
-                <span className="grow">{i.title}</span>
-                {used.has(i.id) && <span className="muted small">já usada</span>}
-              </button>
-            ))
-          : themes.map((t) => (
-              <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), time: t.time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
-                <span className="ig-format" style={{ background: FORMATS[t.format].color }}>{FORMATS[t.format].label}</span>
-                <span className="grow">{t.title}</span>
+      {!fmt ? (
+        <div className="ig-day-block">
+          <span className="field-label">o que você quer postar?</span>
+          <div className="ig-fmt-cards">
+            {DAY_CARDS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`ig-fmt-card ${suggested === c.id ? 'is-suggested' : ''}`}
+                style={{ ['--fmt' as string]: FORMATS[c.id].color }}
+                onClick={() => {
+                  setFmt(c.id)
+                  setPage(0)
+                }}
+              >
+                <span className="ig-fmt-icon">
+                  <Icon name={c.icon} size={20} />
+                </span>
+                <b>{c.label}</b>
+                <small>{c.hint}</small>
+                <em>
+                  {count(c.id)} ideias{suggested === c.id ? ' · sugerido hoje' : ''}
+                </em>
               </button>
             ))}
-        {mine && ideas.length > 5 && (
-          <button type="button" className="link small" onClick={() => setPage((n) => ((n + 1) * 5 >= ideas.length ? 0 : n + 1))}>
-            ver outras sugestões
+          </div>
+        </div>
+      ) : (
+        <div className="ig-day-block">
+          <button type="button" className="link small ig-back" onClick={() => setFmt(null)}>
+            <Icon name="chevronL" size={13} /> outros formatos
           </button>
-        )}
-      </div>
-      <button type="button" className="btn block" onClick={() => onPick({ ...blank(date), time })}>
-        <Icon name="plus" size={15} /> começar em branco
+          <span className="field-label">
+            ideias de {fmt}
+            {slot && suggested === fmt ? ` · sugerido às ${slot.time}` : ''}
+          </span>
+          {mine
+            ? shown.map((i) => (
+                <button key={i.id} type="button" className={`ig-sug ${used.has(i.id) ? 'is-used' : ''}`} onClick={() => onPick(fromIdea(i, settings, date, time))}>
+                  <span className="ig-format" style={{ background: FORMATS[i.format].color }}>{FORMATS[i.format].label}</span>
+                  <span className="grow">{i.title}</span>
+                  {used.has(i.id) && <span className="muted small">já usada</span>}
+                </button>
+              ))
+            : themes.map((t) => (
+                <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
+                  <span className="ig-format" style={{ background: FORMATS[t.format].color }}>{FORMATS[t.format].label}</span>
+                  <span className="grow">{t.title}</span>
+                </button>
+              ))}
+          {mine && ideas.length > 5 && (
+            <button type="button" className="link small" onClick={() => setPage((n) => ((n + 1) * 5 >= ideas.length ? 0 : n + 1))}>
+              ver outras sugestões
+            </button>
+          )}
+        </div>
+      )}
+      <button type="button" className="btn block" onClick={() => onPick({ ...blank(date), time, ...(fmt ? { format: fmt } : {}) })}>
+        <Icon name="plus" size={15} /> começar em branco{fmt ? ` (${fmt})` : ''}
       </button>
     </Modal>
   )
