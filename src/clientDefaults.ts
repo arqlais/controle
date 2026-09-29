@@ -29,8 +29,8 @@ export const ARCH_SERVICES: ServiceDef[] = [
   { id: 'arq-levantamento', group: 'consultoria e levantamento', name: 'levantamento e medição', unit: 'm²', pricing: 'm2', price: 5, base: 300, min: 400, hours: 0.05, tiers: [] },
   // projeto
   { id: 'arq-estudo', group: 'projeto', name: 'estudo preliminar (layout e conceito)', unit: 'm²', pricing: 'm2', price: 35, base: 0, min: 1500, hours: 0.3, tiers: [] },
-  { id: 'arq-arquitetonico', group: 'projeto', name: 'projeto arquitetônico', unit: 'm²', pricing: 'm2', price: 60, base: 0, min: 6000, hours: 0.6, tiers: [], checklistTitle: 'etapas incluídas', checklist: ['estudo preliminar', 'anteprojeto', 'projeto executivo', 'detalhamentos'] },
-  { id: 'arq-interiores', group: 'projeto', name: 'projeto de interiores', unit: 'm²', pricing: 'm2', price: 90, base: 0, min: 4000, hours: 0.8, tiers: [], checklistTitle: 'etapas incluídas', checklist: ['layout', 'marcenaria', 'iluminação', 'revestimentos', 'forro', 'detalhamentos'] },
+  { id: 'arq-arquitetonico', group: 'projeto', name: 'projeto arquitetônico', unit: 'm²', pricing: 'm2', price: 60, base: 0, min: 6000, hours: 0.6, tiers: [], askText: 'Quais etapas do projeto arquitetônico você precisa?', checklistTitle: 'etapas incluídas', checklist: ['estudo preliminar', 'anteprojeto', 'projeto executivo', 'detalhamentos'] },
+  { id: 'arq-interiores', group: 'projeto', name: 'projeto de interiores', unit: 'm²', pricing: 'm2', price: 90, base: 0, min: 4000, hours: 0.8, tiers: [], askText: 'Quais etapas do projeto de interiores você precisa?', checklistTitle: 'etapas incluídas', checklist: ['layout', 'marcenaria', 'iluminação', 'revestimentos', 'forro', 'detalhamentos'] },
   { id: 'arq-executivo', group: 'projeto', name: 'projeto executivo e detalhamento', unit: 'm²', pricing: 'm2', price: 40, base: 0, min: 2000, hours: 0.4, tiers: [] },
   {
     id: 'arq-completo',
@@ -43,7 +43,7 @@ export const ARCH_SERVICES: ServiceDef[] = [
     min: 12000,
     hours: 1,
     tiers: [],
-    checklistTitle: 'o que está incluído',
+    askText: 'O que deve entrar no projeto completo?', checklistTitle: 'o que está incluído',
     checklist: ['projeto arquitetônico', 'estrutural', 'elétrico', 'hidrossanitário', 'aprovação na prefeitura', 'acompanhamento de obra'],
   },
   // projetos complementares: marque quais entram; cada um soma o seu valor por m²
@@ -58,12 +58,12 @@ export const ARCH_SERVICES: ServiceDef[] = [
     min: 1500,
     hours: 0.3,
     tiers: [],
-    checklistTitle: 'quais projetos',
+    askText: 'Quais projetos complementares você precisa?', checklistTitle: 'quais projetos',
     checklist: ['estrutural', 'elétrico', 'hidrossanitário', 'climatização (ar-condicionado)', 'prevenção de incêndio (PPCI)', 'gás', 'SPDA (para-raios)', 'luminotécnico'],
     checklistPrices: { estrutural: 18, elétrico: 10, hidrossanitário: 10, 'climatização (ar-condicionado)': 8, 'prevenção de incêndio (PPCI)': 12, gás: 5, 'SPDA (para-raios)': 6, luminotécnico: 8 },
   },
   // regularização e aprovação
-  { id: 'arq-regularizacao', group: 'regularização e aprovação', name: 'regularização de imóvel', unit: 'm²', pricing: 'm2', price: 25, base: 1500, min: 2500, hours: 0.2, tiers: [], checklistTitle: 'o que inclui', checklist: ['levantamento do existente', 'projeto de regularização', 'protocolo na prefeitura', 'acompanhamento até o habite-se', 'averbação no cartório'] },
+  { id: 'arq-regularizacao', group: 'regularização e aprovação', name: 'regularização de imóvel', unit: 'm²', pricing: 'm2', price: 25, base: 1500, min: 2500, hours: 0.2, tiers: [], askText: 'O que você precisa na regularização do imóvel?', checklistTitle: 'o que inclui', checklist: ['levantamento do existente', 'projeto de regularização', 'protocolo na prefeitura', 'acompanhamento até o habite-se', 'averbação no cartório'] },
   { id: 'arq-legal', group: 'regularização e aprovação', name: 'projeto legal (aprovação na prefeitura)', unit: 'projeto', pricing: 'unidade', price: 2500, min: 0, hours: 20, tiers: [] },
   { id: 'arq-art', group: 'regularização e aprovação', name: 'ART / RRT e taxas', unit: 'documento', pricing: 'unidade', price: 150, min: 0, hours: 1, tiers: [] },
   // obra e apresentação

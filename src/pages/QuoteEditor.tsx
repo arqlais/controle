@@ -34,6 +34,7 @@ import {
   pricedByList,
   parseScopeReply,
   scopeQuestion,
+  serviceAsk,
   daysBetween,
   packageMonths,
   packageText,
@@ -975,7 +976,11 @@ function ScopeChips({ s, text, onChange }: { s: ServiceDef; text: string; onChan
 function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settings: Settings; phone: string; student: boolean; onApply: (items: QuoteItem[]) => void }) {
   const [open, setOpen] = useState<'' | 'perguntar' | 'resposta'>('')
   const [reply, setReply] = useState('')
-  const question = scopeQuestion(settings.services)
+  // só pergunta sobre os serviços deste orçamento que precisam de escolha (ex.: quais plantas);
+  // renderização e outros sem lista não entram
+  const inQuote = [...new Set([...q.items, ...q.options.flatMap((o) => o.items)].map((i) => i.service).filter(Boolean))]
+  const question = scopeQuestion(settings.services, inQuote)
+  const asking = settings.services.filter((s) => inQuote.includes(s.id) && s.checklist?.some((c) => c.trim()))
   if (!question) return null
   const found = reply.trim() ? parseScopeReply(reply, settings.services) : {}
   const count = Object.values(found).reduce((n, l) => n + l.length, 0)
@@ -1011,7 +1016,7 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 
   return (
     <div className="row gap-s">
-      <button className="btn small ghost" onClick={() => setOpen('perguntar')} title="Mandar a lista de plantas para o cliente escolher">
+      <button className="btn small ghost" onClick={() => setOpen('perguntar')} title={`Perguntar ao cliente: ${asking.map((s) => (s.checklistTitle || s.name).toLowerCase()).join(', ')}`}>
         <Icon name="whatsapp" size={14} /> perguntar
       </button>
       <button className="btn small" onClick={() => setOpen('resposta')} title="Colar o que o cliente respondeu e marcar tudo sozinho">
@@ -1019,7 +1024,7 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
       </button>
       {open === 'perguntar' && (
         <Modal
-          title="quais plantas o cliente quer?"
+          title={asking.length === 1 ? serviceAsk(asking[0]).replace(/\?$/, '').toLowerCase() + '?' : 'o que o cliente quer?'}
           onClose={() => setOpen('')}
           footer={
             <>

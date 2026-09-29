@@ -859,13 +859,21 @@ const scopeNorm = (s: string) =>
 const scopeCore = (s: string) => scopeNorm(s.replace(/\(.*?\)/g, ''))
 
 /** Mensagem "quais plantas você gostaria?" com as listas dos serviços (executivo, detalhamento…). */
-export function scopeQuestion(services: ServiceDef[]) {
+/** Pergunta de cada serviço com lista (a escrita em configurações, ou uma padrão pelo título). */
+export const serviceAsk = (s: ServiceDef) => s.askText?.trim() || (/planta/i.test(s.checklistTitle || s.name) ? 'Quais plantas você gostaria?' : `Sobre ${(s.checklistTitle || s.name).toLowerCase()}: o que você precisa?`)
+
+/** Pergunta para o cliente: só dos serviços que estão neste orçamento e que têm lista para escolher. */
+export function scopeQuestion(services: ServiceDef[], onlyIds?: string[]) {
   // a lista principal (a maior, ex.: plantas executivas) vem primeiro
-  const lists = services.filter((s) => s.checklist?.some((c) => c.trim())).sort((a, b) => b.checklist!.length - a.checklist!.length)
+  const lists = services
+    .filter((s) => s.checklist?.some((c) => c.trim()) && (!onlyIds || onlyIds.includes(s.id)))
+    .sort((a, b) => b.checklist!.length - a.checklist!.length)
   if (!lists.length) return ''
-  const blocks = lists.map((s) => [`${s.checklistTitle || s.name}:`, ...s.checklist!.filter((c) => c.trim()).map((c) => `- ${c.trim()}`), '- outros: ___'].join('\n'))
+  const block = (s: ServiceDef) => [`${s.checklistTitle || s.name}:`, ...s.checklist!.filter((c) => c.trim()).map((c) => `- ${c.trim()}`), '- outros: ___'].join('\n')
   const file = lists.some((s) => s.deliveryOpen) ? ['E o arquivo final: você precisa só do PDF pronto para execução ou também do arquivo aberto (editável)?'] : []
-  return ['Quais plantas você gostaria?', ...blocks, ...file, 'Com isso consigo te passar o valor certinho 😊'].join('\n\n')
+  // um serviço: a pergunta dele; vários: cada lista com a sua pergunta
+  const body = lists.length === 1 ? [serviceAsk(lists[0]), block(lists[0])] : ['Para eu te passar o valor certinho, me conta:', ...lists.map((s) => `${serviceAsk(s)}\n${block(s)}`)]
+  return [...body, ...file, 'Com isso consigo te passar o valor certinho 😊'].join('\n\n')
 }
 
 /** Lê a resposta do cliente (a mesma lista, só com o que ele quer) e separa por serviço. */

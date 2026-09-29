@@ -8,7 +8,7 @@ import { Icon } from '../components/Icon'
 import { Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid, groupServices } from '../utils'
+import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid, groupServices, serviceAsk } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
@@ -246,6 +246,9 @@ export default function SettingsPage() {
                       <div className="service-checklist">
                         <Field label="Título da lista" hint="Vai na pergunta ao cliente.">
                           <input value={x.checklistTitle ?? ''} onChange={(e) => setService(x.id, { checklistTitle: e.target.value })} placeholder="Ex.: plantas executivas" />
+                        </Field>
+                        <Field label="Pergunta ao cliente" hint="Aparece no “perguntar” do orçamento, só quando este serviço está nele.">
+                          <input value={x.askText ?? ''} onChange={(e) => setService(x.id, { askText: e.target.value })} placeholder={serviceAsk({ ...x, askText: '' })} />
                         </Field>
                         <div className="checklist-rows">
                           <span className="field-label">
