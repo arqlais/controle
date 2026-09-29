@@ -1,5 +1,6 @@
 import { isValidElement, type ReactNode } from 'react'
 import { useKeep } from '../keep'
+import { useAccess } from '../access'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 
@@ -124,7 +125,7 @@ const STEPS: Step[] = [
   },
 ]
 
-const CASES: { q: string; a: ReactNode; page?: string }[] = [
+const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean }[] = [ // owner: só aparece para a dona
   {
     q: 'A cliente pediu algo a mais depois de fechar',
     a: <>Na demanda, em <b>pagamentos → + adicional</b>. Escolha somar na parcela em aberto (ex.: saldo) ou cobrar à parte. Vale para qualquer serviço; quando for por unidade (o mais comum: imagens), marque <b>calcular por quantidade</b> (ex.: 15 × R$ 35,00).</>,
@@ -132,6 +133,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Quero lançar orçamentos antigos (do ano todo)',
+    owner: true,
     a: <>No orçamento, em <b>nº e data</b> (em dados), coloque o número e a data reais. A contagem é contínua: o próximo novo pega o maior número já usado + 1 (dá para escolher o início em configurações → propostas). Ao aprovar, coloque em <b>fechou em</b> o dia em que a cliente aprovou (pode ser dias depois do orçamento; dá para corrigir depois no próprio orçamento) e marque <b>o sinal já foi pago</b>, se for o caso. Assim a demanda e o financeiro de cada mês ficam certos. Pagamentos seguintes: na demanda, marque pago e ajuste a data ao lado.</>,
     page: 'orcamentos',
   },
@@ -174,6 +176,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
   },
   {
     q: 'Passar orçamentos antigos para o sistema',
+    owner: true,
     a: <>Em <b>configurações → dados → importar (backup ou orçamentos)</b>, escolha o arquivo de orçamentos (.json). Eles entram como <b>rascunho</b>, sem apagar nada; os clientes que faltam são criados e os que já existem são pulados. Depois é só marcar aprovado ou não fechou em cada um. Para mudar vários de uma vez (rascunho, enviado, aprovado, não fechou ou excluir), marque a caixinha ao lado do número e use a barra que aparece. Aprovado em lote só registra o resultado (não cria demanda). No topo da lista, a barra colorida mostra quantos estão em cada status e a porcentagem.</>,
   },
   {
@@ -208,6 +211,7 @@ const CASES: { q: string; a: ReactNode; page?: string }[] = [
 CASES.push(
   {
     q: 'Numeração dos orçamentos (e os que mandei só pelo WhatsApp)',
+    owner: true,
     a: <>Deixe o nº em <b>0</b>: ao salvar, o sistema escolhe pela data. Enviado ocupa o número vago daquela época, rascunhos se reorganizam e os já enviados nunca mudam. Para arrumar tudo de uma vez: <b>orçamentos → organizar nº</b>.</>,
     page: 'orcamentos',
   },
@@ -273,6 +277,7 @@ export function manualText() {
 }
 
 export default function Manual() {
+  const { isOwner } = useAccess()
   const [open, setOpen] = useKeep<string | null>('manual-aberto', '01')
   const goTo = (w?: { page?: string; id?: string }) => w?.page && go(w.page, w.id)
 
@@ -348,7 +353,7 @@ export default function Manual() {
       <section className="card">
         <h3>quando acontecer…</h3>
         <div className="manual-cases">
-          {CASES.map((c) => (
+          {CASES.filter((c) => isOwner || !c.owner).map((c) => (
             <details key={c.q} className="manual-case">
               <summary>{c.q}</summary>
               <p>{c.a}</p>

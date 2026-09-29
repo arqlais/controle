@@ -29,7 +29,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
-    beta: true,
+    id: '2026-09-29-tres-planos',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'agora são três planos',
+    text: 'Além do Essencial e do Completo, chegou o Estúdio: tudo do Completo e o briefing online para o cliente final. Ele é sob convite: se tiver interesse, peça acesso em “minha assinatura”.',
+    steps: [{ page: 'assinatura', text: 'Em minha assinatura, o Estúdio tem o botão “pedir acesso”.' }],
+  },
+  {
     id: '2026-09-29-cliente-final',
     date: '2026-09-29',
     kind: 'novo',
@@ -50,7 +57,6 @@ export const NEWS: News[] = [
     steps: [{ page: 'clientes', text: 'Abra um cliente final e toque em “criar briefing”: escolha as perguntas e mande no WhatsApp.' }],
   },
   {
-    beta: true,
     id: '2026-09-29-tabela-grupos',
     date: '2026-09-29',
     kind: 'melhoria',
@@ -59,7 +65,6 @@ export const NEWS: News[] = [
     steps: [{ page: 'config', configTab: 'precos', text: 'Em configurações → preços, cada serviço tem o campo “grupo”.' }],
   },
   {
-    beta: true,
     id: '2026-09-29-instagram-formatos',
     date: '2026-09-29',
     kind: 'melhoria',

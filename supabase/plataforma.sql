@@ -30,7 +30,7 @@ create table if not exists public.subscriptions (
   email       text not null default '',
   name        text not null default '',
   studio      text not null default '',
-  plan        text not null default 'essencial' check (plan in ('essencial', 'completo')),
+  plan        text not null default 'essencial' check (plan in ('essencial', 'completo', 'estudio')),
   status      text not null default 'trial' check (status in ('trial', 'ativa', 'atrasada', 'cancelada')),
   trial_ends  timestamptz not null default now() + interval '7 days',
   blocked     boolean not null default false,
@@ -39,7 +39,12 @@ create table if not exists public.subscriptions (
   last_seen   timestamptz not null default now(),
   canceled_at timestamptz
 );
-alter table public.subscriptions add column if not exists requested_plan text check (requested_plan in ('essencial', 'completo'));
+alter table public.subscriptions add column if not exists requested_plan text check (requested_plan in ('essencial', 'completo', 'estudio'));
+-- plano Estúdio (sob convite): as regras antigas só aceitavam essencial e completo
+alter table public.subscriptions drop constraint if exists subscriptions_plan_check;
+alter table public.subscriptions add constraint subscriptions_plan_check check (plan in ('essencial', 'completo', 'estudio'));
+alter table public.subscriptions drop constraint if exists subscriptions_requested_plan_check;
+alter table public.subscriptions add constraint subscriptions_requested_plan_check check (requested_plan in ('essencial', 'completo', 'estudio'));
 alter table public.subscriptions add column if not exists requested_at timestamptz;
 alter table public.subscriptions add column if not exists requested_cycle text check (requested_cycle in ('mensal', 'anual'));
 alter table public.subscriptions add column if not exists deleted_at timestamptz; -- conta apagada pela própria pessoa
@@ -89,11 +94,11 @@ drop function if exists public.pedir_assinatura(text);
 create or replace function public.pedir_assinatura(plano text, ciclo text default 'mensal') returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if plano not in ('essencial', 'completo') then raise exception 'plano inválido'; end if;
+  if plano not in ('essencial', 'completo', 'estudio') then raise exception 'plano inválido'; end if;
   if ciclo not in ('mensal', 'anual') then raise exception 'período inválido'; end if;
   update public.subscriptions set requested_plan = plano, requested_cycle = ciclo, requested_at = now() where user_id = auth.uid();
   insert into public.support_messages (client_id, from_owner, body)
-  values (auth.uid(), false, 'quero assinar o plano ' || case when plano = 'completo' then 'Completo' else 'Essencial' end || ' (' || ciclo || ') ✨');
+  values (auth.uid(), false, 'quero assinar o plano ' || case plano when 'completo' then 'Completo' when 'estudio' then 'Estúdio' else 'Essencial' end || ' (' || ciclo || ') ✨');
 end $$;
 
 -- Dados de cobrança preenchidos na assinatura (nome, CPF/CNPJ, endereço, forma de pagamento).

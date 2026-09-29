@@ -28,6 +28,7 @@ const SUG_CAT: Record<string, string> = { nova: 'função nova', melhoria: 'melh
 const PRICES: Record<string, { name: string; price: number }> = {
   essencial: { name: 'Essencial', price: 39.9 },
   completo: { name: 'Completo', price: 59.9 },
+  estudio: { name: 'Estúdio', price: 89.9 },
 }
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -67,7 +68,7 @@ function layout(o: { eyebrow: string; title: string; text: string; button?: stri
 ${btn}
 ${o.small ? `<p style="margin:26px 0 0;font-size:12px;line-height:1.6;color:#8b939a;">${o.small}</p>` : ''}
 </td></tr>
-<tr><td style="padding:18px 8px 0;font-size:12px;line-height:1.6;color:#a88a80;text-align:center;">traço · gestão leve para freelancers<br><span style="color:#8b939a;">Dúvidas? Fale com a gente pelo chat dentro do traço.</span></td></tr>
+<tr><td style="padding:18px 8px 0;font-size:12px;line-height:1.6;color:#a88a80;text-align:center;">traço · gestão leve para quem vive de projeto<br><span style="color:#8b939a;">Dúvidas? Fale com a gente pelo chat dentro do traço.</span></td></tr>
 </table></td></tr></table></body></html>`
 }
 

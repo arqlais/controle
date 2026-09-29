@@ -204,7 +204,7 @@ function AuthLayout({ children }: { children: ReactNode }) {
             <i>.</i>
           </span>
           <h2>
-            sua vida de freelancer,
+            seu estúdio,
             <br />
             <em>mais leve</em>
           </h2>

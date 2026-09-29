@@ -35,6 +35,7 @@ import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscripti
 import { OwnerChat } from './components/OwnerChat'
 import { useBriefingSync } from './components/Briefing'
 import { markBetaDevice } from './beta'
+import { INVITE_KEY } from './components/Signup'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
 import { setViewAsClient, viewingAsClient } from './viewAs'
@@ -44,7 +45,7 @@ import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
-import { PLATFORM, type Feature } from './plans'
+import { PLANS, PLATFORM, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 
 const NAV = [
@@ -87,6 +88,25 @@ export default function App() {
   useEffect(() => {
     if (access.isOwner) markBetaDevice()
   }, [access.isOwner])
+  // pediu convite do Estúdio na página de vendas: o pedido vai pelo chat assim que a conta existe
+  useEffect(() => {
+    if (access.isOwner || !access.sub) return
+    let plan = ''
+    try {
+      plan = localStorage.getItem(INVITE_KEY) || ''
+      localStorage.removeItem(INVITE_KEY)
+    } catch {
+      return
+    }
+    if (!plan || !(plan in PLANS)) return
+    const text = `oi! quero conhecer o plano ${PLANS[plan as PlanId].name} ✨`
+    void platform.send(access.sub.userId, text, false).then(() => platform.notice({ tipo: 'mensagem', text })).catch(() => undefined)
+    try {
+      localStorage.setItem(`convite-${plan}`, new Date().toISOString().slice(0, 10))
+    } catch {
+      /* ok */
+    }
+  }, [access.isOwner, access.sub])
   // dona: caixa de entrada do chat (aviso de mensagem nova em qualquer tela)
   const inbox = useInbox(access.isOwner && !access.legacy, true)
   const sugUpdates = useSuggestionUpdates(!access.isOwner && !access.legacy)

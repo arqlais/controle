@@ -2,7 +2,7 @@ import { viewingAsClient } from './viewAs'
 import { PREVIEW_KEY, type PlanConfig } from './planConfig'
 import { ARTIFACT } from './env'
 import { CLOUD, supabase } from './cloud'
-import { TRIAL_DAYS, type PlanId, type SubStatus } from './plans'
+import { PLANS, TRIAL_DAYS, type PlanId, type SubStatus } from './plans'
 import { DEFAULT_SITE, DEFAULT_TERMS, EMPTY_COMPANY, type Company, type SiteContent } from './siteContent'
 
 /* ============================================================
@@ -657,7 +657,7 @@ const local = {
       ...db,
       billing: { ...(db.billing ?? {}), [PREVIEW_CLIENT]: billing },
       subs: db.subs.map((x) => (x.userId === PREVIEW_CLIENT ? { ...x, requestedPlan: plan, requestedAt: now, requestedCycle: billing.cycle } : x)),
-      messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId: PREVIEW_CLIENT, fromOwner: false, body: `quero assinar o plano ${plan === 'completo' ? 'Completo' : 'Essencial'} (${billing.cycle}) ✨`, createdAt: now, readAt: null }],
+      messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId: PREVIEW_CLIENT, fromOwner: false, body: `quero assinar o plano ${PLANS[plan as PlanId]?.name ?? plan} (${billing.cycle}) ✨`, createdAt: now, readAt: null }],
     })
   },
   async saveBilling(userId: string | null, billing: Billing) {

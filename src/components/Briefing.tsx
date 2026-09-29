@@ -9,6 +9,7 @@ import { briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, pub
 import type { Briefing, BriefingAnswers, BriefingKind, BriefingQuestion, Client, ClientProfile, Data } from '../types'
 import { fmtDate, today, uid, whatsappLink } from '../utils'
 import { go } from '../router'
+import { PLANS } from '../plans'
 
 /* Briefing online do cliente final: o arquiteto escolhe os blocos de perguntas, manda o link
    (WhatsApp ou copiar) e as respostas voltam sozinhas para a ficha do cliente. */
@@ -88,9 +89,9 @@ export function BriefingSection({ client }: { client: Client }) {
     >
       {!allowed ? (
         <p className="muted small">
-          O briefing online (o cliente responde pelo celular e tudo cai aqui) faz parte do plano Completo.{' '}
+          O briefing online (o cliente responde pelo celular e tudo cai aqui) faz parte do plano {PLANS.estudio.name}, sob convite.{' '}
           <button className="link" onClick={() => go('assinatura')}>
-            ver planos
+            pedir acesso
           </button>
         </p>
       ) : list.length === 0 ? (

@@ -5,13 +5,12 @@ import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
 import { compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
-import { DEFAULT_SITE, extraFaq, type SiteContent } from '../siteContent'
+import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
 import { go } from '../router'
-import { LANDING_PROFILE_KEY } from '../components/Signup'
-import { isBeta } from '../beta'
+import { INVITE_KEY, LANDING_PROFILE_KEY } from '../components/Signup'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
    As telas de exemplo usam os mesmos componentes do sistema, com dados fictícios. */
@@ -99,7 +98,7 @@ const JOURNEY_FINAL: typeof JOURNEY = [
     icon: 'link',
     step: 'briefing',
     title: 'o briefing responde sozinho',
-    text: 'mande um link: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha.',
+    text: 'no plano Estúdio, mande um link: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha.',
     card: [
       { k: 'estilo', v: 'aconchegante, madeira clara' },
       { k: 'ambientes', v: 'sala, cozinha, 2 quartos' },
@@ -129,22 +128,28 @@ const JOURNEY_FINAL: typeof JOURNEY = [
     ],
   },
 ]
-const FEATURES_FINAL = ['ficha do cliente', 'briefing por link', 'projeto arquitetônico', 'interiores', 'complementares', 'regularização', 'contratos', 'visitas de obra', 'financeiro', 'recibos', 'sua identidade visual', 'celular e computador']
 type Aud = 'freelancer' | 'final'
+const PLAN_FOR: Record<PlanId, string> = {
+  essencial: 'para quem está começando ou trabalha sozinho',
+  completo: 'para quem manda proposta com a própria marca',
+  estudio: 'para escritórios que atendem cliente final',
+}
 const readAud = (): Aud => {
   try {
-    return localStorage.getItem(LANDING_PROFILE_KEY) === 'final' ? 'final' : 'freelancer'
+    return localStorage.getItem(LANDING_PROFILE_KEY) === 'freelancer' ? 'freelancer' : 'final'
   } catch {
-    return 'freelancer'
+    return 'final'
   }
 }
 
-const FEATURES = ['clientes', 'orçamentos', 'propostas', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'metas', 'sua identidade visual', 'celular e computador']
+const FEATURES = ['clientes', 'ficha do cliente final', 'orçamentos', 'propostas', 'projetos complementares', 'regularização', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'sua identidade visual', 'celular e computador']
 
 const AUDIENCE = [
   { icon: 'compass', title: 'arquitetos' },
   { icon: 'sofa', title: 'designers de interiores' },
-  { icon: 'cube', title: 'artistas 3D' },
+  { icon: 'building', title: 'escritórios' },
+  { icon: 'cube', title: 'visualização 3D' },
+  { icon: 'ruler', title: 'freelancers de projeto' },
   { icon: 'cap', title: 'estudantes' },
 ]
 
@@ -158,11 +163,13 @@ const BENEFITS = [
 
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
-  ['serve para quem está começando?', 'Serve, e foi pensado para isso: estudantes e freelancers em começo de carreira, que precisam de organização sem pagar caro.'],
-  ...(isBeta() ? [['serve para escritório que atende cliente final?', 'Serve. No cadastro você diz como trabalha: quem atende cliente final ganha a ficha completa do cliente (profissão, família, imóvel), o briefing por link e uma tabela pronta de projetos (arquitetônico, interiores, complementares, regularização e obra). Quem faz os dois usa tudo na mesma conta: cada cliente tem o seu tipo.'] as [string, ReactNode]] : []),
+  ['para quem é o sistema?', 'Para quem vive de projeto: arquitetos, designers de interiores e escritórios que atendem o cliente final, e freelancers que prestam serviço para escritórios (3D, executivo, apresentação). No cadastro você diz como trabalha e o sistema já vem pronto para isso. Quem faz os dois usa tudo na mesma conta.'],
+  ['serve para quem está começando?', 'Serve: estudantes e profissionais em começo de carreira, que precisam de organização sem pagar caro, começam bem no Essencial.'],
+  ['serve para escritório que atende cliente final?', 'Serve. O cliente final ganha uma ficha completa (profissão, família, rotina e o imóvel) e a tabela de preços já vem organizada: consultoria, projeto, projetos complementares (estrutural, elétrico, hidrossanitário…), regularização e obra. No plano Estúdio ainda tem o briefing online.'],
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
-  ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para o WhatsApp. O Completo gera proposta, recibos e contratos em PDF com a sua identidade, e ainda tem agenda no celular e planejamento do instagram.'],
+  ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para o WhatsApp), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e o briefing online para o cliente final.`],
+  [`como entro no plano ${PLANS.estudio.name}?`, `O ${PLANS.estudio.name} é sob convite. Crie sua conta (o teste grátis é do ${PLANS.completo.name}) e peça acesso em “minha assinatura” ou pelo chat: a gente libera e te avisa.`],
   ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
   ['o teste grátis é de qual plano?', `Do Completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
@@ -207,7 +214,7 @@ export default function Landing() {
   // depoimentos escolhidos pela dona no painel (sem nenhum, a seção não aparece)
   const [quotes, setQuotes] = useState<PublicFeedback[]>([])
   useEffect(() => {
-    platform.site().then(setSite).catch(() => undefined)
+    platform.site().then((c) => setSite(freshSite(c))).catch(() => undefined)
     platform.publishedFeedbacks().then(setQuotes).catch(() => undefined)
   }, [])
   useReveal(root, quotes.length)
@@ -232,11 +239,19 @@ export default function Landing() {
       /* ok */
     }
   }
-  const beta = isBeta() // "atendo cliente final" ainda em teste: só no aparelho da dona e na prévia
-  const final = beta && aud === 'final'
-  // "seu escritório," pede as palavras no masculino
-  const heroWords = final ? ['organizado', 'mais leve', 'no seu ritmo', 'lucrativo'] : siteWords
-  const signup = (plan?: PlanId) => go('cadastro', plan)
+  const final = aud === 'final'
+  const heroWords = siteWords
+  const signup = (plan?: PlanId) => {
+    // Estúdio é sob convite: faz o cadastro (teste do Completo) e o pedido vai pelo chat
+    if (plan && PLANS[plan].inviteOnly) {
+      try {
+        localStorage.setItem(INVITE_KEY, plan)
+      } catch {
+        /* ok */
+      }
+    }
+    go('cadastro', plan)
+  }
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   return (
@@ -278,30 +293,15 @@ export default function Landing() {
         </div>
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
-            {beta && (
-            <div className="lp-aud" role="tablist" aria-label="Como você trabalha">
-              {(
-                [
-                  ['freelancer', 'sou freelancer'],
-                  ['final', 'atendo cliente final'],
-                ] as [Aud, string][]
-              ).map(([id, label]) => (
-                <button key={id} role="tab" aria-selected={aud === id} className={aud === id ? 'is-on' : ''} onClick={() => setAud(id)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            )}
             {site.kicker && (
               <p className="lp-kicker">
-                <span className="lp-dot" /> {final ? 'feito para quem projeta para pessoas' : site.kicker}
+                <span className="lp-dot" /> {site.kicker}
               </p>
             )}
             <h1>
-              {final ? 'seu escritório,' : site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
+              {site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
             </h1>
-            <p className="lp-lead">{final ? 'Ficha completa do cliente, briefing por link, propostas de projeto, contratos e financeiro num lugar só. Do primeiro “oi” à entrega da obra.' : site.lead}</p>
-            {beta && <p className="lp-aud-note muted small">{final ? 'para arquitetos, designers e escritórios que projetam para o cliente final' : 'para quem presta serviço para escritórios: 3D, executivo, apresentação'} · faz os dois? tudo na mesma conta</p>}
+            <p className="lp-lead">{site.lead}</p>
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta lp-shine" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />
@@ -321,8 +321,8 @@ export default function Landing() {
                 <Icon name="check" size={14} />
               </span>
               <span>
-                <b>{final ? 'briefing respondido' : 'orçamento aprovado'}</b>
-                <small>{final ? 'Família Souza · 26 respostas' : 'Casa Pampulha · R$ 1.620'}</small>
+                <b>projeto aprovado</b>
+                <small>Família Souza · R$ 9.350</small>
               </span>
             </div>
             <div className="lp-float lp-float-2">
@@ -330,8 +330,8 @@ export default function Landing() {
                 <Icon name="wallet" size={14} />
               </span>
               <span>
-                <b>{final ? 'projeto aprovado' : 'sinal recebido'}</b>
-                <small>{final ? 'apto 85 m² · + R$ 4.675,00' : '+ R$ 810,00'}</small>
+                <b>sinal recebido</b>
+                <small>+ R$ 4.675,00</small>
               </span>
             </div>
             <div className="lp-float lp-float-3">
@@ -339,8 +339,8 @@ export default function Landing() {
                 <Icon name="clock" size={14} />
               </span>
               <span>
-                <b>{final ? 'visita de obra amanhã' : 'entrega amanhã'}</b>
-                <small>{final ? 'marcenaria · 9h' : 'suíte master · 3 imagens'}</small>
+                <b>entrega amanhã</b>
+                <small>renders da suíte · 3 imagens</small>
               </span>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function Landing() {
 
       <div className="lp-marquee" aria-hidden>
         <div className="lp-marquee-track">
-          {(final ? [...FEATURES_FINAL, ...FEATURES_FINAL] : [...FEATURES, ...FEATURES]).map((f, i) => (
+          {[...FEATURES, ...FEATURES].map((f, i) => (
             <span key={i}>
               {f} <i>✦</i>
             </span>
@@ -380,6 +380,21 @@ export default function Landing() {
       <section className="lp-section lp-alt" id="jornada">
         <div className="lp-wrap">
           <SectionHead eyebrow="como funciona" title={<>do primeiro “oi” <em>ao recibo</em></>} />
+          <div className="lp-aud-row">
+            <span className="muted small">veja como fica para quem</span>
+            <div className="lp-aud" role="tablist" aria-label="Como você trabalha">
+              {(
+                [
+                  ['final', 'atende cliente final'],
+                  ['freelancer', 'presta serviço para escritórios'],
+                ] as [Aud, string][]
+              ).map(([id, label]) => (
+                <button key={id} role="tab" aria-selected={aud === id} className={aud === id ? 'is-on' : ''} onClick={() => setAud(id)}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <Journey key={aud} steps={final ? JOURNEY_FINAL : JOURNEY} />
         </div>
       </section>
@@ -400,7 +415,7 @@ export default function Landing() {
       <section className="lp-section lp-for">
         <div className="lp-wrap lp-for-in" data-reveal>
           <h2>
-            feito para quem <em>trabalha por conta própria</em>
+            feito para quem <em>vive de projeto</em>
           </h2>
           <div className="lp-for-list">
             {AUDIENCE.map((a, i) => (
@@ -415,28 +430,30 @@ export default function Landing() {
       )}
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
-          <SectionHead eyebrow="planos" title={final ? <>preço justo, <em className="nowrap">sem fidelidade</em></> : <>preço de freelancer, <em className="nowrap">sem fidelidade</em></>} text={`Comece com ${TRIAL_DAYS} dias grátis. Depois, escolha o que faz sentido para você.`} />
+          <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.completo.name} grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
-                {p.featured && <span className="lp-ribbon">mais completo</span>}
+                {p.featured && <span className="lp-ribbon">mais escolhido</span>}
                 <header>
                   <h3>{p.name}</h3>
+                  {p.inviteOnly && <span className="lp-invite">sob convite</span>}
                 </header>
+                <p className="lp-plan-for">{PLAN_FOR[p.id]}</p>
                 <p className="pf-price">
                   {money0(p.price)}
                   <small>/mês</small>
                 </p>
                 <p className="muted small">{p.pitch}</p>
                 <ul className="pf-checks">
-                  {(p.id === 'completo' ? p.highlights : p.highlights.slice(0, 6)).map((h) => (
+                  {(p.featured ? p.highlights : p.highlights.slice(0, 6)).map((h) => (
                     <li key={h}>
                       <Icon name="check" size={14} /> {h}
                     </li>
                   ))}
                 </ul>
                 <button className={`btn ${p.featured ? 'primary' : ''} block`} onClick={() => signup(p.id)}>
-                  começar grátis
+                  {p.inviteOnly ? 'pedir convite' : 'começar grátis'}
                 </button>
               </article>
             ))}
@@ -459,10 +476,10 @@ export default function Landing() {
                 </tr>
               </thead>
               <tbody>
-                {compareRows().map(([label, a, b]) => (
+                {compareRows().map(([label, ...vals]) => (
                   <tr key={label}>
                     <td>{label}</td>
-                    {[a, b].map((v, i) => (
+                    {vals.map((v, i) => (
                       <td key={i} className={`center ${PLAN_LIST[i].featured ? 'is-best' : ''}`}>
                         {v === true ? <Icon name="check" size={16} className="text-good" /> : v === false ? <span className="muted">—</span> : <span className="small">{v}</span>}
                       </td>
@@ -476,7 +493,7 @@ export default function Landing() {
                   {PLAN_LIST.map((p) => (
                     <td key={p.id} className={`center ${p.featured ? 'is-best' : ''}`}>
                       <button className={`btn small ${p.featured ? 'primary' : 'ghost'}`} onClick={() => signup(p.id)}>
-                        {p.featured ? 'quero o completo' : 'começar'}
+                        {p.inviteOnly ? 'pedir convite' : p.featured ? `quero o ${p.name}` : 'começar'}
                       </button>
                     </td>
                   ))}
@@ -484,7 +501,7 @@ export default function Landing() {
               </tfoot>
             </table>
             <p className="lp-compare-note">
-              <Icon name="star" size={14} /> no Completo você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês.
+              <Icon name="star" size={14} /> no {PLANS.completo.name} você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês. O {PLANS.estudio.name} é para escritórios que atendem cliente final e querem o briefing online: as vagas são liberadas aos poucos.
             </p>
           </details>
         </div>
@@ -493,7 +510,7 @@ export default function Landing() {
       {!off('depoimentos') && (
       <section className="lp-section">
         <div className="lp-wrap">
-          <SectionHead eyebrow={quotes.length ? 'depoimentos' : 'na prática'} title={<>freelancers mais <em>tranquilos</em></>} />
+          <SectionHead eyebrow={quotes.length ? 'depoimentos' : 'na prática'} title={<>estúdios mais <em>tranquilos</em></>} />
           <div className="lp-testimonials">
             {quotes.length
               ? quotes.map((t, i) => (

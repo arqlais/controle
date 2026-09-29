@@ -51,7 +51,9 @@ export default function Checkout({ planId }: { planId: string }) {
   const { sub, refresh } = useAccess()
   const { data } = useStore()
   const s = data.settings
-  const [plan, setPlan] = useState<PlanId>(planId === 'essencial' ? 'essencial' : 'completo')
+  // o Estúdio é sob convite: só aparece aqui para quem a administração já liberou
+  const choices = PLAN_LIST.filter((x) => !x.inviteOnly || sub?.plan === x.id)
+  const [plan, setPlan] = useState<PlanId>(choices.find((x) => x.id === planId)?.id ?? (sub?.plan === 'estudio' ? 'estudio' : 'completo'))
   const [b, setB] = useState<Billing>({
     fullName: s.legalName || sub?.name || s.ownerName || '',
     doc: s.document ? formatDoc(s.document) : '',
@@ -163,7 +165,7 @@ export default function Checkout({ planId }: { planId: string }) {
         <div className="stack">
           <Step n={1} title="plano e período">
             <div className="co-plans">
-              {PLAN_LIST.map((x) => (
+              {choices.map((x) => (
                 <button type="button" key={x.id} className={`pf-plan-opt ${plan === x.id ? 'active' : ''}`} onClick={() => setPlan(x.id)} aria-pressed={plan === x.id}>
                   <b>{x.name}</b>
                   <span>{money0(x.price)}/mês</span>

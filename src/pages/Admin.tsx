@@ -10,7 +10,7 @@ import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, STATUS_LABEL
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
-import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
+import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
 import { DateInput } from '../components/DateInput'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
@@ -1064,7 +1064,8 @@ function SiteEditor() {
   const fileRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     platform.site().then((x) => {
-      setSite(x)
+      // textos antigos (só freelancer) já aparecem atualizados: é só salvar
+      setSite(freshSite(x))
       setSaved(JSON.stringify(x))
     })
   }, [])

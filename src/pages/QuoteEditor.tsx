@@ -139,7 +139,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
   // quem desligou o PDF (configurações → propostas) manda só o resumo no WhatsApp
-  const { has } = useAccess()
+  const { has, isOwner } = useAccess()
   // plano Essencial: sem PDF, o orçamento vai como texto pronto
   const pdfOn = has('propostaPdf') && !settings.proposal.pdfOff
   const showPdf = q.pdf && pdfOn
@@ -548,7 +548,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                       ? '0 = ao salvar, o sistema escolhe o nº pela data (rascunhos se reorganizam; enviados não mudam).'
                     : q.status === 'rascunho' && !q.dateFixed
                       ? 'Rascunho: a data vai para o dia de hoje sempre que você abrir. Escolhendo outra data, ela fica.'
-                    : q.createdAt === today()
+                    : q.createdAt === today() && isOwner
                       ? 'Orçamento antigo? coloque o nº e a data reais.'
                       : 'Vão no PDF e na lista.'
                 }
@@ -567,9 +567,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                     }}
                   />
                 </div>
+{isOwner && (
                 <label className="check small" title="Para lançar um trabalho antigo, feito antes do sistema, sem ocupar número na sequência">
                   <input type="checkbox" checked={!!q.noNumber} onChange={(e) => set(e.target.checked ? { noNumber: true, number: 0, dateFixed: true } : { noNumber: undefined, number: nextQuoteNumber(data) })} /> orçamento antigo, sem número
                 </label>
+                )}
               </Field>
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />

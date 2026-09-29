@@ -18,6 +18,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
   const access = useAccess()
   const sub = access.sub
   const [busy, setBusy] = useState(false)
+  const { userId } = useStore()
   if (access.isOwner)
     return (
       <div className="page">
@@ -45,6 +46,27 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
   }
   // assinar: tela de compra (dados, endereço, pagamento) → vira pedido que a administração libera
   const request = (plan: PlanId) => go('assinatura', plan)
+  // Estúdio: sob convite. O pedido vai pelo chat e a administração libera no painel.
+  const askInvite = async (plan: PlanId) => {
+    setBusy(true)
+    const text = `oi! quero conhecer o plano ${PLANS[plan].name} ✨`
+    try {
+      await platform.send(userId || '', text, false)
+      void platform.notice({ tipo: 'mensagem', text }).catch(() => undefined)
+      localStorage.setItem(`convite-${plan}`, today())
+      toast(`Pedido enviado! O ${PLATFORM.support} responde pelo chat e libera o ${PLANS[plan].name} para você.`)
+    } catch {
+      toast('Não foi possível enviar agora. Fale com a gente pelo chat.')
+    }
+    setBusy(false)
+  }
+  const invited = (plan: PlanId) => {
+    try {
+      return !!localStorage.getItem(`convite-${plan}`)
+    } catch {
+      return false
+    }
+  }
   return (
     <div className="page">
       <div className="page-head">
@@ -95,7 +117,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
             <article key={p.id} className={`card pf-plan ${current ? 'is-current' : ''} ${p.featured ? 'is-featured' : ''}`}>
               <header>
                 <h3>{p.name}</h3>
-                {current && <Badge color="#3e4b57">seu plano</Badge>}
+                {current ? <Badge color="#3e4b57">seu plano</Badge> : p.inviteOnly && <Badge color="#a88a80">sob convite</Badge>}
               </header>
               <p className="pf-price">
                 {money0(p.price)}
@@ -114,12 +136,20 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
                   <p className="muted small center">plano ativo ✓</p>
                 ) : sub?.requestedPlan === p.id ? (
                   <p className="muted small center">pedido enviado · aguardando liberação</p>
+                ) : p.inviteOnly && !current ? (
+                  invited(p.id) ? (
+                    <p className="muted small center">pedido enviado · a gente responde pelo chat</p>
+                  ) : (
+                    <button className="btn block" disabled={busy || sub?.blocked} onClick={() => void askInvite(p.id)}>
+                      <Icon name="star" size={15} /> pedir acesso
+                    </button>
+                  )
                 ) : (
                   <button className="btn primary block" disabled={busy || sub?.blocked} onClick={() => request(p.id)}>
                     {sub?.status === 'ativa' ? `trocar para o ${p.name}` : `assinar o ${p.name}`}
                   </button>
                 )}
-                {!current && sub?.status === 'trial' && !trialOver(sub) && (
+                {!current && !p.inviteOnly && sub?.status === 'trial' && !trialOver(sub) && (
                   <button className="btn ghost block" disabled={busy} onClick={() => void tryPlan(p.id)}>
                     testar este plano
                   </button>

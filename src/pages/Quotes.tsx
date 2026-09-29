@@ -3,6 +3,7 @@ import { afterDeleteDrafts, draftRenumber, nextSentNumber } from '../numbering'
 import { duplicateQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
+import { useAccess } from '../access'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Modal, Segmented, Stat, usePaged } from '../components/ui'
@@ -40,6 +41,7 @@ export const needsFollowUp = (q: Quote) => q.status === 'enviado' && !!q.sentAt 
 
 export default function Quotes() {
   const { data, upsert, remove } = useStore()
+  const { isOwner } = useAccess()
   const [numbering, setNumbering] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set())
 
@@ -145,12 +147,17 @@ export default function Quotes() {
         </div>
 <div className="row gap-s wrap">
           <AskAIButton />
-          <button className="btn ghost" onClick={() => setNumbering(true)} title="Coloca os rascunhos em sequência depois do último número (enviados não mudam)">
-            <Icon name="list" size={16} /> organizar nº
-          </button>
-          <button id="btn-orcamento-antigo" className="btn ghost" onClick={() => go('orcamentos', 'antigo')} title="Trabalho feito antes do sistema: orçamento completo, sem número, na data real">
-            <Icon name="clock" size={16} /> Orçamento antigo
-          </button>
+          {/* organizar nº e orçamento antigo: ferramentas só da dona */}
+          {isOwner && (
+            <>
+              <button className="btn ghost" onClick={() => setNumbering(true)} title="Coloca os rascunhos em sequência depois do último número (enviados não mudam)">
+                <Icon name="list" size={16} /> organizar nº
+              </button>
+              <button id="btn-orcamento-antigo" className="btn ghost" onClick={() => go('orcamentos', 'antigo')} title="Trabalho feito antes do sistema: orçamento completo, sem número, na data real">
+                <Icon name="clock" size={16} /> Orçamento antigo
+              </button>
+            </>
+          )}
                   <button className="btn primary" onClick={() => go('orcamentos', 'novo')}>
           <Icon name="plus" size={16} /> Novo orçamento
         </button>

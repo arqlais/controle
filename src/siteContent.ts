@@ -17,7 +17,7 @@ export interface SiteContent {
   // página de vendas (topo, seções e dúvidas)
   banner: string // faixa de aviso no alto (ex.: promoção de lançamento); vazio = não aparece
   kicker: string // etiqueta acima do título
-  heroTitle: string // começo do título ("sua vida de freelancer,")
+  heroTitle: string // começo do título ("seu estúdio,")
   heroWords: string // palavras que giram no título, separadas por vírgula
   lead: string // frase embaixo do título
   hidden: string[] // seções escondidas: jornada, telas, para, depoimentos, duvidas
@@ -36,12 +36,12 @@ Procurei um sistema pensado para o freelancer e não encontrei. Então criei o m
   instagram: '',
   whatsapp: '',
   email: '',
-  about: 'o sistema de gestão para freelancers de arquitetura, design de interiores e visualização 3D.',
+  about: 'o sistema de gestão para quem vive de projeto: arquitetos, designers de interiores, escritórios e freelancers de 3D.',
   banner: '',
-  kicker: 'feito para freelancers criativos',
-  heroTitle: 'sua vida de freelancer,',
-  heroWords: 'organizada, mais leve, no seu ritmo, lucrativa',
-  lead: 'Clientes, orçamentos, prazos e pagamentos num lugar só. Do primeiro “oi” ao recibo.',
+  kicker: 'para arquitetos, designers, escritórios e freelancers de projeto',
+  heroTitle: 'seu estúdio,',
+  heroWords: 'organizado, mais leve, no seu ritmo, lucrativo',
+  lead: 'Clientes, orçamentos, propostas, contratos, prazos e financeiro num lugar só. Do primeiro “oi” à entrega.',
   hidden: [],
   faqExtra: '',
 }
@@ -72,7 +72,7 @@ USUÁRIO: {assinante_nome}, {assinante_doc}, e-mail {assinante_email}.
 Plano: {plano}. Data: {data}.
 
 1. QUEM SOMOS
-O ${PLATFORM.name} é uma plataforma on-line de gestão para freelancers, oferecida por {empresa_nome}, {empresa_doc}, contato: {empresa_email} (PLATAFORMA).
+O ${PLATFORM.name} é uma plataforma on-line de gestão para profissionais de projeto (arquitetura, design de interiores e visualização 3D), oferecida por {empresa_nome}, {empresa_doc}, contato: {empresa_email} (PLATAFORMA).
 
 2. O QUE A PLATAFORMA OFERECE
 2.1 Ferramentas para organizar clientes, demandas, prazos, orçamentos, propostas, contratos, recibos, agenda e financeiro, conforme o plano escolhido.
@@ -81,7 +81,7 @@ O ${PLATFORM.name} é uma plataforma on-line de gestão para freelancers, oferec
 3. CADASTRO
 3.1 O USUÁRIO informa dados verdadeiros e mantém o cadastro atualizado.
 3.2 Login e senha são pessoais. O USUÁRIO é responsável pelo uso da própria conta.
-3.3 Cada conta é de uma pessoa (uso individual do freelancer).
+3.3 Cada conta é de uma pessoa (uso individual do assinante).
 
 4. TESTE GRÁTIS
 4.1 Todo cadastro novo recebe {dias_teste} dias grátis com o plano Completo, sem cartão e sem cobrança.
@@ -178,4 +178,19 @@ export function fillTerms(text: string, company: Company, who: { name?: string; 
     data: new Date().toLocaleDateString('pt-BR'),
   }
   return text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
+}
+
+/** Textos antigos da página de vendas (focados em freelancer) que viram os novos, para todos os públicos.
+ *  Só troca se a dona não tiver escrito outra coisa no painel. */
+const OLD_TEXTS: Partial<Record<keyof SiteContent, string>> = {
+  about: 'o sistema de gestão para freelancers de arquitetura, design de interiores e visualização 3D.',
+  kicker: 'feito para freelancers criativos',
+  heroTitle: 'sua vida de freelancer,',
+  heroWords: 'organizada, mais leve, no seu ritmo, lucrativa',
+  lead: 'Clientes, orçamentos, prazos e pagamentos num lugar só. Do primeiro “oi” ao recibo.',
+}
+export function freshSite(c: SiteContent): SiteContent {
+  const out = { ...c }
+  for (const [k, v] of Object.entries(OLD_TEXTS) as [keyof SiteContent, string][]) if (out[k] === v) (out as Record<string, unknown>)[k] = DEFAULT_SITE[k]
+  return out
 }

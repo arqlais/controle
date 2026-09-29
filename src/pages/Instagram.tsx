@@ -1,4 +1,3 @@
-import { isBeta } from '../beta'
 import { useAccess } from '../access'
 import { useState } from 'react'
 import { useStore } from '../store'
@@ -766,63 +765,6 @@ function PlanReview({ month, items, ideas, settings, onClose, onSave }: { month:
 }
 
 /** Planejar um dia: sugestões para ele (pela sua semana), o que já existe nele e a opção em branco. */
-/** Versão de antes (lista de sugestões do dia): quem assina vê esta até os cartões saírem do teste. */
-function DayPlannerList({ date, mine, used, settings, existing, onClose, onPick }: { date: string; mine: boolean; used: Set<string | undefined>; settings: Settings; existing: SocialPost[]; onClose: () => void; onPick: (p: SocialPost) => void }) {
-  const dt = new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)))
-  const wd = dt.getDay()
-  const [page, setPage] = useState(0)
-  const slot = mine ? WEEK_PLAN.find((w) => w.weekday === wd) : CLIENT_WEEK_PLAN.find((w) => w.weekday === wd)
-  const time = slot?.time ?? '12:00'
-  // quem é a Laís: ideias prontas (as do formato do dia primeiro, as ainda não usadas antes)
-  const ideas = mine
-    ? IDEAS.filter((i) => i.pillar !== 'estudantes').sort((a, b) => Number(b.format === slot?.format) - Number(a.format === slot?.format) || Number(used.has(a.id)) - Number(used.has(b.id)))
-    : []
-  const shown = ideas.slice(page * 5, page * 5 + 5)
-  // quem assina: os temas da própria estratégia (o do dia primeiro)
-  const themes = mine ? [] : [...CLIENT_WEEK_PLAN].sort((a, b) => Number(b.weekday === wd) - Number(a.weekday === wd))
-  return (
-    <Modal title={dt.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} onClose={onClose}>
-      {existing.length > 0 && (
-        <div className="ig-day-block">
-          <span className="field-label">já planejado neste dia</span>
-          {existing.map((p) => (
-            <button key={p.id} type="button" className="ig-sug" onClick={() => onPick(p)}>
-              <span className="ig-format" style={{ background: FORMATS[p.format].color }}>{FORMATS[p.format].label}</span>
-              <span className="grow">{p.title || 'sem título'}</span>
-              <span className="muted small">abrir</span>
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="ig-day-block">
-        <span className="field-label">{slot ? `sugestão para este dia: ${FORMATS[slot.format].label.toLowerCase()} às ${slot.time}` : 'sugestões'}</span>
-        {mine
-          ? shown.map((i) => (
-              <button key={i.id} type="button" className={`ig-sug ${used.has(i.id) ? 'is-used' : ''}`} onClick={() => onPick(fromIdea(i, settings, date, time))}>
-                <span className="ig-format" style={{ background: FORMATS[i.format].color }}>{FORMATS[i.format].label}</span>
-                <span className="grow">{i.title}</span>
-                {used.has(i.id) && <span className="muted small">já usada</span>}
-              </button>
-            ))
-          : themes.map((t) => (
-              <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), time: t.time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
-                <span className="ig-format" style={{ background: FORMATS[t.format].color }}>{FORMATS[t.format].label}</span>
-                <span className="grow">{t.title}</span>
-              </button>
-            ))}
-        {mine && ideas.length > 5 && (
-          <button type="button" className="link small" onClick={() => setPage((n) => ((n + 1) * 5 >= ideas.length ? 0 : n + 1))}>
-            ver outras sugestões
-          </button>
-        )}
-      </div>
-      <button type="button" className="btn block" onClick={() => onPick({ ...blank(date), time })}>
-        <Icon name="plus" size={15} /> começar em branco
-      </button>
-    </Modal>
-  )
-}
-
 type DayFormat = 'story' | 'reels' | 'post'
 const DAY_CARDS: { id: DayFormat; label: string; hint: string; icon: string }[] = [
   { id: 'story', label: 'story', hint: 'bastidores, enquetes e venda para quem já te segue', icon: 'smartphone' },
@@ -831,11 +773,7 @@ const DAY_CARDS: { id: DayFormat; label: string; hint: string; icon: string }[] 
 ]
 const asDay = (f?: PostFormat): DayFormat | null => (!f ? null : f === 'carrossel' ? 'post' : f)
 
-function DayPlanner(props: Parameters<typeof DayPlannerList>[0]) {
-  return isBeta() ? <DayPlannerCards {...props} /> : <DayPlannerList {...props} />
-}
-
-function DayPlannerCards({ date, mine, used, settings, existing, onClose, onPick }: { date: string; mine: boolean; used: Set<string | undefined>; settings: Settings; existing: SocialPost[]; onClose: () => void; onPick: (p: SocialPost) => void }) {
+function DayPlanner({ date, mine, used, settings, existing, onClose, onPick }: { date: string; mine: boolean; used: Set<string | undefined>; settings: Settings; existing: SocialPost[]; onClose: () => void; onPick: (p: SocialPost) => void }) {
   const dt = new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)))
   const wd = dt.getDay()
   const [page, setPage] = useState(0)
