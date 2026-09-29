@@ -25,11 +25,11 @@ try {
     // 1. demanda com sinal pago: passa por TODAS as fases, inclusive voltar para "em alinhamento"
     await go('#/projetos'); await page.waitForTimeout(400)
     if (vp.width > 800) {
-      const sel = page.locator('.kcard select.status-select').first()
+      const sel = page.locator('.kcard:not(.kcard-draft) select.status-select').first()
       const values = await sel.locator('option').evaluateAll((os) => os.map((o) => o.value))
       const id = await page.locator('.kcard').first().evaluate((el) => el.closest('[data-id]')?.getAttribute('data-id') ?? '')
       for (const v of [...values, 'briefing']) {
-        const card = page.locator('.kcard select.status-select').first()
+        const card = page.locator('.kcard:not(.kcard-draft) select.status-select').first()
         // o card muda de coluna: procura a demanda de novo pelo título
         await card.selectOption(v); await page.waitForTimeout(250)
         if (await page.locator('.modal').count()) { await page.locator('.modal-foot .btn').last().click(); await page.waitForTimeout(200) }
