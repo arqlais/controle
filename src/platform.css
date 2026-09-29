@@ -1384,3 +1384,11 @@
 .lp-aud-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin: -10px 0 26px; }
 .lp-aud-row .lp-aud { margin: 0; flex-wrap: wrap; justify-content: center; border-radius: 22px; }
 @media (max-width: 520px) { .lp-aud-row .lp-aud button { white-space: normal; } }
+
+/* ver o sistema em cada plano (dona): faixa no topo do conteúdo, sem cobrir nada */
+.plan-peek { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px 10px; margin: 0 0 16px; padding: 8px 12px; border-radius: 16px; background: var(--surface); border: 1px dashed var(--accent-soft); font-size: 13px; }
+.plan-peek-label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+.plan-peek-opts { display: inline-flex; gap: 3px; padding: 3px; border-radius: 999px; background: var(--surface-2, var(--bg)); border: 1px solid var(--border); flex-wrap: wrap; justify-content: center; }
+.plan-peek-opts button { border: 0; background: transparent; color: var(--muted); font: 600 12.5px var(--font-body, inherit); padding: 6px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.plan-peek-opts button.is-on { background: var(--text); color: var(--surface); }
+@media (max-width: 820px) { .plan-peek-opts button { padding: 6px 9px; font-size: 12px; } }

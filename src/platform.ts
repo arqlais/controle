@@ -606,6 +606,18 @@ export function resetPreviewData() {
 }
 
 // cliente da prévia: criado no "cadastro" (ou ao escolher ver como cliente)
+/** Prévia: a dona vê a conta de cliente em cada plano (teste grátis do Completo ou plano ativo). */
+export function setPreviewPlan(v: 'trial' | PlanId) {
+  const db = readDB()
+  const trialEnds = new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString()
+  writeDB({
+    ...db,
+    subs: db.subs.map((x) =>
+      x.userId === PREVIEW_CLIENT ? { ...x, plan: v === 'trial' ? 'completo' : v, status: v === 'trial' ? 'trial' : 'ativa', trialEnds, requestedPlan: null, requestedAt: null, blocked: false } : x,
+    ),
+  })
+}
+
 export function previewSignup(name: string, studio: string, email: string, plan: PlanId) {
   const db = readDB()
   const sub: Subscription = {

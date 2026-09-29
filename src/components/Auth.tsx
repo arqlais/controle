@@ -1,9 +1,9 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { CLOUD, supabase } from '../cloud'
 import { DEFAULT_SETTINGS, SIGNUP_KEY, StoreProvider, hasLocalAccount, seedPreviewAccount } from '../store'
 import { AccessProvider } from '../access'
-import { onViewAsClient, viewingAsClient } from '../viewAs'
+import { onViewAsClient, viewPlan, viewingAsClient, type ViewPlan } from '../viewAs'
 import { TRIAL_DAYS } from '../plans'
 import type { AccessInfo } from '../platform'
 import { PREVIEW_CLIENT, getPreviewRole, onPreviewRole, setPreviewRole, type PreviewRole } from '../platform'
@@ -31,7 +31,16 @@ function Gate({ children }: { children: ReactNode }) {
   const [recovery, setRecovery] = useState(false)
   // "ver como cliente" (só a dona usa): conta nova de cliente, só em memória
   const [asClient, setAsClient] = useState(viewingAsClient)
-  useEffect(() => onViewAsClient(setAsClient), [])
+  const [plan, setPlan] = useState<ViewPlan>(viewPlan)
+  useEffect(
+    () =>
+      onViewAsClient((on) => {
+        setAsClient(on)
+        setPlan(viewPlan())
+      }),
+    [],
+  )
+  const clientAccess = useMemo(() => clientView(plan), [plan])
 
   useEffect(() => {
     if (!supabase) return
@@ -49,7 +58,7 @@ function Gate({ children }: { children: ReactNode }) {
   if (!session) return <PublicScreens />
   if (asClient)
     return (
-      <AccessProvider key="ver-como-cliente" userId={session.user.id} override={CLIENT_VIEW}>
+      <AccessProvider key="ver-como-cliente" userId={session.user.id} override={clientAccess}>
         <StoreProvider key="ver-como-cliente" preview userEmail="voce@exemplo.com">
           {children}
         </StoreProvider>
@@ -156,8 +165,8 @@ function PreviewSwitcher({ role }: { role: PreviewRole }) {
   )
 }
 
-/** Acesso de uma conta nova de cliente em teste grátis (plano Completo), para o "ver como cliente". */
-const CLIENT_VIEW: AccessInfo = {
+/** Acesso de uma conta de cliente para o "ver como cliente": teste grátis do Completo ou um plano já ativo. */
+const clientView = (v: ViewPlan): AccessInfo => ({
   role: 'cliente',
   legacy: false,
   sub: {
@@ -165,8 +174,8 @@ const CLIENT_VIEW: AccessInfo = {
     email: 'voce@exemplo.com',
     name: 'Ana',
     studio: 'estúdio exemplo',
-    plan: 'completo',
-    status: 'trial',
+    plan: v === 'trial' ? 'completo' : v,
+    status: v === 'trial' ? 'trial' : 'ativa',
     trialEnds: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
     blocked: false,
     canceledAt: null,
@@ -177,7 +186,7 @@ const CLIENT_VIEW: AccessInfo = {
     requestedCycle: null,
     testMode: true,
   },
-}
+})
 
 export const signOut = () => supabase?.auth.signOut()
 

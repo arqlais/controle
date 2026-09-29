@@ -1,6 +1,7 @@
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, hasDemoData, useStore } from './store'
-import { ask } from './components/dialog'
+import { ask, toast } from './components/dialog'
+import { ARTIFACT } from './env'
 import type { SyncStatus } from './store'
 import { applyTheme, useDeviceDark } from './theme'
 import { BRAND_KEY, signOut } from './components/Auth'
@@ -38,8 +39,8 @@ import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
-import { setViewAsClient, viewingAsClient } from './viewAs'
-import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewRole } from './platform'
+import { setViewAsClient, setViewPlan, viewingAsClient, type ViewPlan } from './viewAs'
+import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewPlan, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsModal, WelcomeCard, useNews } from './components/News'
@@ -540,17 +541,50 @@ export default function App() {
             }}
           />
         )}
-        {asClient && (
-          <div className="owner-sales-bar" role="region" aria-label="Você está vendo como cliente">
-            <span>
-              <Icon name="eye" size={15} /> você está vendo como <b>um cliente novo</b>, nada aqui é salvo
+        <main className="content">
+        {(asClient || (ARTIFACT && !access.isOwner && !access.legacy)) && (
+          <div className="plan-peek" role="region" aria-label="Você está vendo como cliente">
+            <span className="plan-peek-label">
+              <Icon name="eye" size={15} /> {asClient ? 'vendo como cliente' : 'prévia'} · plano:
             </span>
-            <button className="btn small primary" onClick={backToOwner}>
-              voltar para a minha conta
-            </button>
+            <div className="plan-peek-opts" role="radiogroup" aria-label="Ver o sistema no plano">
+              {(
+                [
+                  ['trial', 'teste grátis'],
+                  ['essencial', PLANS.essencial.name],
+                  ['completo', PLANS.completo.name],
+                  ['estudio', PLANS.estudio.name],
+                ] as [ViewPlan, string][]
+              ).map(([v, label]) => {
+                const cur = access.sub ? (access.sub.status === 'trial' ? 'trial' : access.sub.plan) : 'trial'
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    role="radio"
+                    aria-checked={cur === v}
+                    className={cur === v ? 'is-on' : ''}
+                    onClick={async () => {
+                      if (asClient) setViewPlan(v)
+                      else {
+                        setPreviewPlan(v)
+                        await access.refresh()
+                      }
+                      toast(v === 'trial' ? 'Vendo como quem está no teste grátis (tudo do Completo).' : `Vendo como assinante do ${PLANS[v].name}.`)
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            {asClient && (
+              <button className="btn small primary" onClick={backToOwner}>
+                voltar para a minha conta
+              </button>
+            )}
           </div>
         )}
-        <main className="content">
           {isSample && (
             <div className="demo-banner">
               <span>
