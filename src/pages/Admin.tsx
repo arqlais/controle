@@ -512,12 +512,13 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
   const paid = (c?.payments ?? []).reduce((n, x) => n + x.amount, 0)
   const set = (patch: Partial<SubAdmin>, msg = '') => save(s.userId, { ...c, cycle, ...patch }, msg)
   return (
-    <div className="pf-ctrl">
-      <div className="pf-ctrl-head">
+    <details className="pf-fold pf-ctrl">
+      <summary className="pf-ctrl-head">
         <b>cobrança</b>
         {d !== null && <Badge color={dueColor(d)}>{dueLabel(d)}</Badge>}
         {paid > 0 && <span className="muted small">total pago {money(paid)}</span>}
-      </div>
+        {d === null && !paid && <span className="muted small">registrar pagamentos e vencimento</span>}
+      </summary>
       <div className="pf-ctrl-grid">
         <Segmented value={cycle} onChange={(v) => set({ cycle: v }, 'Ciclo atualizado.')} options={[{ value: 'mensal', label: 'mensal' }, { value: 'anual', label: 'anual' }]} />
         <Segmented value={c?.method ?? 'pix'} onChange={(v) => set({ method: v }, 'Forma de pagamento atualizada.')} options={[{ value: 'pix', label: 'Pix' }, { value: 'cartao', label: 'cartão' }]} />
@@ -585,7 +586,7 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
         </details>
       )}
       <textarea className="pf-ctrl-notes" rows={2} placeholder="anotações só suas (ex.: prefere pagar dia 15, indicou fulana…)" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== (c?.notes ?? '') && void set({ notes }, 'Anotação salva.')} spellCheck lang="pt-BR" />
-    </div>
+    </details>
   )
 }
 
@@ -1319,11 +1320,11 @@ function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription
     void update(s, inTrial ? { trialEnds: new Date(from + days * DAY).toISOString() } : { status: 'trial', trialEnds: new Date(Date.now() + days * DAY).toISOString(), canceledAt: null }, inTrial ? `Teste aumentado em ${days} dias.` : `Teste de ${days} dias liberado.`)
   const who = s.name || s.email
   return (
-    <div className="pf-trial">
-      <div className="pf-trial-head">
-        <b>teste grátis</b>
-        <span className="muted small">{inTrial ? (left > 0 ? `termina em ${dateBR(s.trialEnds)} · faltam ${left} dia(s)` : `terminou em ${dateBR(s.trialEnds)}`) : 'sem teste agora'}</span>
-      </div>
+    <details className="pf-fold">
+      <summary>
+        <b>{inTrial ? 'teste grátis' : 'liberar teste grátis'}</b>
+        {inTrial && <span className="muted small">{left > 0 ? `até ${dateBR(s.trialEnds)} · faltam ${left} dia(s)` : `terminou em ${dateBR(s.trialEnds)}`}</span>}
+      </summary>
       <div className="pf-trial-actions">
         {[7, 15, 30].map((d) => (
           <button key={d} type="button" className="btn small ghost" onClick={() => extend(d)}>
@@ -1351,7 +1352,7 @@ function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription
           </button>
         )}
       </div>
-    </div>
+    </details>
   )
 }
 

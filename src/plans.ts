@@ -68,7 +68,7 @@ export const PLANS: Record<PlanId, Plan> = {
   essencial: {
     id: 'essencial',
     name: 'Essencial',
-    price: 29.9,
+    price: 39.9,
     pitch: 'para organizar clientes, orçamentos e o financeiro',
     features: ['chatDona'],
     highlights: BASE_FEATURES,

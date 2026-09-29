@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from './types'
+import { PLATFORM } from './plans'
 
 const hexToRgb = (hex: string) => {
   const h = hex.replace('#', '')
@@ -82,9 +83,9 @@ export function applyTheme(s: Settings, dark = false) {
   // cantos em 0: deixa tudo reto, não só os cartões
   root.dataset.square = s.radius <= 1 ? '1' : ''
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
-  // aba do navegador: "nome do estúdio · meu estúdio" (sem nome ainda, só "meu estúdio")
+  // aba do navegador: a plataforma primeiro, depois o estúdio de quem usa
   const brand = s.brandName.replace(/\.$/, '').trim()
-  document.title = brand && brand !== 'meu estúdio' ? `${brand} · meu estúdio` : 'meu estúdio'
+  document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.name} · ${brand}` : PLATFORM.name
   applyCustomFont(s)
 }
 

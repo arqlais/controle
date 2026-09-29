@@ -550,10 +550,13 @@ function RotatingWord({ words }: { words: string[] }) {
     return () => clearInterval(t)
   }, [words.length])
   return (
+    // todas as palavras ocupam o mesmo lugar (largura da maior): o título não muda de linha e a página não pula
     <em className="lp-rotate" aria-label={words[0]}>
-      <span key={i} className="lp-rotate-word">
-        {words[i]}
-      </span>
+      {words.map((w, n) => (
+        <span key={n} className={`lp-rotate-word ${n === i ? 'is-on' : ''}`} aria-hidden={n !== i}>
+          {w}
+        </span>
+      ))}
     </em>
   )
 }

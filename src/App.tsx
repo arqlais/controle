@@ -309,6 +309,11 @@ export default function App() {
   return (
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
+        {/* a marca da plataforma fica sempre presente, discreta, acima do estúdio de quem usa */}
+        <a className="platform-mark" href={href('inicio')} aria-label={PLATFORM.name}>
+          {PLATFORM.name}
+          <i>.</i>
+        </a>
         <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('inicio')}>
           <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}><AvatarGlyph s={settings} size={24} /></span>
           <span className="brand-text">

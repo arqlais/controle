@@ -1146,3 +1146,26 @@
 .pf-templates .chip.is-suggested { border-color: var(--accent-soft); background: var(--accent-tint); font-weight: 500; }
 .event-rename { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--surface-2); } .event-rename-row { display: flex; align-items: center; gap: 10px; } .event-rename-row input { flex: 1; }
 .kcard-status { margin-top: 8px; } .kcard-status select { width: 100%; font-size: 12px; padding: 5px 8px; } .kcard-draft { cursor: pointer; }
+/* palavra que gira: todas empilhadas no mesmo lugar, só a da vez aparece (sem pulo) */
+.lp-rotate { display: inline-grid; vertical-align: bottom; }
+.lp-rotate-word { grid-area: 1 / 1; opacity: 0; translate: 0 0.25em; transition: opacity 0.5s ease, translate 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); animation: none; }
+.lp-rotate-word.is-on { opacity: 1; translate: 0 0; }
+@media (prefers-reduced-motion: reduce) { .lp-rotate-word { transition: none; } }
+/* marca da plataforma: pequena, sempre presente, nas cores do sistema */
+.platform-mark { display: inline-flex; align-items: baseline; padding: 2px 14px 14px; font-family: 'Poppins', var(--font-body); font-weight: 700; font-size: 19px; letter-spacing: -0.03em; color: var(--text); text-decoration: none; opacity: 0.92; }
+.platform-mark i { font-style: normal; color: #d6b3ab; }
+.platform-mark.is-top { padding: 0 4px; font-size: 17px; }
+@media (min-width: 721px) { .platform-mark.is-top { display: none; } }
+/* cartões de assinantes: em colunas, sem espaço vazio; teste e cobrança abrem com um toque */
+.pf-subs { display: block; columns: 3 300px; column-gap: 16px; }
+.pf-subs > .pf-sub { break-inside: avoid; margin-bottom: 16px; display: flex; }
+.pf-fold { border-radius: 12px; background: var(--surface-2); padding: 0; }
+.pf-fold > summary { list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 9px 12px; font-size: 13px; }
+.pf-fold > summary::-webkit-details-marker { display: none; }
+.pf-fold > summary::after { content: '+'; margin-left: auto; color: var(--accent-ink); font-weight: 600; }
+.pf-fold[open] > summary::after { content: '–'; }
+.pf-fold[open] { padding-bottom: 12px; }
+.pf-fold > :not(summary) { margin-inline: 12px; }
+.pf-ctrl.pf-fold { display: block; padding: 0; margin-top: 0; }
+.pf-fold[open] > :not(summary) + :not(summary) { margin-top: 10px; }
+.pf-fold .pf-trial-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
