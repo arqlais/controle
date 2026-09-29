@@ -56,13 +56,12 @@ export const NEWS: News[] = [
     ],
   },
   {
-    beta: true,
     id: '2026-09-29-briefing',
     date: '2026-09-29',
     kind: 'novo',
-    title: 'briefing online por link',
-    text: 'Mande um link com as perguntas do briefing: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha dele. Você recebe um aviso quando chegar. No plano Completo.',
-    steps: [{ page: 'clientes', text: 'Abra um cliente final e toque em “criar briefing”: escolha as perguntas e mande no WhatsApp.' }],
+    title: 'briefing online completo',
+    text: 'No plano Estúdio, o menu “briefings” tem modelos prontos (residencial, comercial, arquitetônico, cozinha, banheiro, quarto, sala, home office) que você edita como um formulário: perguntas de texto, de marcar, datas e fotos. O cliente responde pelo celular, anexa fotos, e você recebe um aviso.',
+    steps: [{ page: 'briefings', text: 'Em briefings, escolha um modelo e toque em “mandar”.' }],
   },
   {
     id: '2026-09-29-tabela-grupos',

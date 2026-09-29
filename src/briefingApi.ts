@@ -1,6 +1,6 @@
 import { CLOUD, supabase } from './cloud'
 import { viewingAsClient } from './viewAs'
-import type { BriefingAnswers, BriefingQuestion } from './types'
+import type { BriefingAnswers, BriefingQuestion, BriefingSection } from './types'
 
 /* Briefing online: o arquiteto gera um link, o cliente final responde sem precisar de conta.
    Na nuvem, o link fica numa tabela própria (briefing_links): quem responde só consegue ler
@@ -15,6 +15,7 @@ export interface BriefingPayload {
   logo?: string
   intro: string
   questions: BriefingQuestion[]
+  sections?: BriefingSection[]
 }
 export interface PublicBriefing {
   payload: BriefingPayload
@@ -101,4 +102,44 @@ export async function sendPublicAnswers(id: string, answers: BriefingAnswers) {
   // avisa quem mandou o briefing (por e-mail); se falhar, as respostas já estão salvas
   void supabase!.functions.invoke('avisos', { body: { tipo: 'briefing', id } }).catch(() => undefined)
   return !!data
+}
+
+/* ---------------- fotos que o cliente anexa no briefing ---------------- */
+
+const ATT = 'briefing-anexos'
+const toDataUrl = (b: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result))
+    r.onerror = () => reject(r.error)
+    r.readAsDataURL(b)
+  })
+
+/** Guarda uma foto enviada pelo cliente (diminuída) e devolve como ela fica na resposta. */
+export async function uploadAttachment(briefingId: string, file: File): Promise<string> {
+  const { compressImage } = await import('./studioApi')
+  if (!CLOUD) return toDataUrl(await compressImage(file, 900, 0.7))
+  const blob = await compressImage(file)
+  const path = `${briefingId}/${crypto.randomUUID()}.jpg`
+  const { error } = await supabase!.storage.from(ATT).upload(path, blob, { contentType: 'image/jpeg' })
+  if (error) throw error
+  return path
+}
+
+/** Endereços para ver as fotos anexadas (só quem mandou o briefing consegue). */
+export async function attachmentUrls(values: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {}
+  const paths = values.filter((v) => !v.startsWith('data:'))
+  values.filter((v) => v.startsWith('data:')).forEach((v) => (out[v] = v))
+  if (paths.length && CLOUD) {
+    const { data } = await supabase!.storage.from(ATT).createSignedUrls(paths, 6 * 3600)
+    for (const r of data ?? []) if (r.path && r.signedUrl) out[r.path] = r.signedUrl
+  }
+  return out
+}
+
+/** Imagem de referência do arquiteto (vai junto com as perguntas, pequena). */
+export async function referenceImage(file: File): Promise<string> {
+  const { compressImage } = await import('./studioApi')
+  return toDataUrl(await compressImage(file, 800, 0.72))
 }

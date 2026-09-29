@@ -142,6 +142,15 @@ const readAud = (): Aud => {
   }
 }
 
+// o que o plano Estúdio tem a mais (seção própria na página de vendas)
+const STUDIO_FEATURES: { icon: string; title: string; text: string; points: string[] }[] = [
+  { icon: 'link', title: 'página do projeto para o cliente', text: 'Um link que o cliente abre no celular e acompanha tudo, sempre atualizado.', points: ['etapas e prazos', 'o que já foi pago e o que falta', 'arquivos e visitas de obra'] },
+  { icon: 'calendar', title: 'cronograma das etapas', text: 'Levantamento, estudo, anteprojeto, executivo, aprovação e obra, cada uma com prazo.', points: ['etapas prontas de arquitetura e interiores', 'parcela ligada a cada etapa', 'aviso de etapa atrasada'] },
+  { icon: 'hardhat', title: 'acompanhamento de obra', text: 'Cada visita registrada pelo celular, com fotos e o que ficou para depois.', points: ['fotos direto da câmera', 'próximos passos e pendências', 'relatório em PDF com a sua marca'] },
+  { icon: 'trend', title: 'custos e lucro por projeto', text: 'Saiba se o projeto deu lucro de verdade, não só quanto entrou.', points: ['taxas, impressões, deslocamento', 'horas trabalhadas', 'quanto rendeu cada hora sua'] },
+  { icon: 'clip', title: 'briefing online completo', text: 'Modelos prontos e editáveis, no estilo formulário, que o cliente responde pelo celular.', points: ['residencial, comercial, arquitetônico e por ambiente', 'o cliente anexa fotos', 'as respostas preenchem a ficha'] },
+]
+
 const FEATURES = ['clientes', 'ficha do cliente final', 'orçamentos', 'propostas', 'projetos complementares', 'regularização', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'sua identidade visual', 'celular e computador']
 
 const AUDIENCE = [
@@ -165,10 +174,10 @@ const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['para quem é o sistema?', 'Para quem vive de projeto: arquitetos, designers de interiores e escritórios que atendem o cliente final, e freelancers que prestam serviço para escritórios (3D, executivo, apresentação). No cadastro você diz como trabalha e o sistema já vem pronto para isso. Quem faz os dois usa tudo na mesma conta.'],
   ['serve para quem está começando?', 'Serve: estudantes e profissionais em começo de carreira, que precisam de organização sem pagar caro, começam bem no Essencial.'],
-  ['serve para escritório que atende cliente final?', 'Serve. O cliente final ganha uma ficha completa (profissão, família, rotina e o imóvel) e a tabela de preços já vem organizada: consultoria, projeto, projetos complementares (estrutural, elétrico, hidrossanitário…), regularização e obra. No plano Estúdio ainda tem o briefing online.'],
+  ['serve para escritório que atende cliente final?', 'Serve. O cliente final ganha uma ficha completa (profissão, família, rotina e o imóvel) e a tabela de preços já vem organizada: consultoria, projeto, projetos complementares (estrutural, elétrico, hidrossanitário…), regularização e obra. No plano Estúdio ainda tem a página do projeto para o cliente, o cronograma das etapas, o acompanhamento de obra, o lucro de cada projeto e o briefing online.'],
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
-  ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para o WhatsApp), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e o briefing online para o cliente final.`],
+  ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para o WhatsApp), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: página do projeto para o cliente, cronograma das etapas, acompanhamento de obra com fotos, lucro de cada projeto e briefing online.`],
   [`como entro no plano ${PLANS.estudio.name}?`, `O ${PLANS.estudio.name} é sob convite. Crie sua conta (o teste grátis é do ${PLANS.completo.name}) e peça acesso em “minha assinatura” ou pelo chat: a gente libera e te avisa.`],
   ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
   ['o teste grátis é de qual plano?', `Do Completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
@@ -267,6 +276,7 @@ export default function Landing() {
             {[
               ['jornada', 'como funciona'],
               ['telas', 'telas'],
+              ['estudio', 'estúdio'],
               ['planos', 'planos'],
             ].filter(([id]) => !off(id)).map(([id, label]) => (
               <button key={id} className="link" onClick={() => scrollTo(id)}>
@@ -428,6 +438,38 @@ export default function Landing() {
       </section>
 
       )}
+      <section className="lp-section lp-studio" id="estudio">
+        <div className="lp-wrap">
+          <SectionHead eyebrow={`plano ${PLANS.estudio.name.toLowerCase()} · para escritórios`} title={<>o projeto inteiro, <em>do briefing à obra</em></>} text="Tudo do Completo e mais cinco ferramentas para quem atende o cliente final. Cada demanda ganha abas, uma para cada parte do trabalho." />
+          <div className="lp-studio-grid">
+            {STUDIO_FEATURES.map((f, i) => (
+              <article key={f.title} className="card lp-studio-card" data-reveal style={{ transitionDelay: `${i * 0.06}s` }}>
+                <span className="lp-studio-icon">
+                  <Icon name={f.icon} size={20} />
+                </span>
+                <h3>{f.title}</h3>
+                <p>{f.text}</p>
+                <ul>
+                  {f.points.map((x) => (
+                    <li key={x}>
+                      <Icon name="check" size={13} /> {x}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+          <div className="lp-studio-cta">
+            <button className="btn primary" onClick={() => signup('estudio')}>
+              <Icon name="star" size={15} /> pedir convite do {PLANS.estudio.name}
+            </button>
+            <span className="muted small">
+              {money0(PLANS.estudio.price)}/mês · vagas liberadas aos poucos
+            </span>
+          </div>
+        </div>
+      </section>
+
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
           <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.completo.name} grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />

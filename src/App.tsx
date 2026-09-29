@@ -26,6 +26,7 @@ const QuoteEditor = lazy(() => import('./pages/QuoteEditor'))
 const SettingsPage = lazy(() => import('./pages/Settings'))
 const Manual = lazy(() => import('./pages/Manual'))
 const Instagram = lazy(() => import('./pages/Instagram'))
+const Briefings = lazy(() => import('./pages/Briefings'))
 import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
 const Admin = lazy(() => import('./pages/Admin'))
@@ -58,9 +59,10 @@ const NAV = [
   { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
   { page: 'contratos', label: 'contratos', icon: 'briefcase' },
   { page: 'instagram', label: 'instagram', icon: 'instagram' },
+  { page: 'briefings', label: 'briefings', icon: 'clip' },
 ]
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona' }
+const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -286,6 +288,8 @@ export default function App() {
         return <Admin />
       case 'assinatura':
         return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
+      case 'briefings':
+        return <Briefings id={route.id} />
       case 'sugestoes':
         return <Suggestions unseen={sugUpdates.unseen} onSeen={sugUpdates.markSeen} />
       case 'avaliar':

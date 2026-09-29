@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
-import { Badge, Field, Modal, Section } from './ui'
+import { Badge, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
-import { BRIEFING_SECTIONS, DEFAULT_BRIEFING } from '../briefingQuestions'
-import { briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, publishBriefing, sendPublicAnswers, type PublicBriefing } from '../briefingApi'
-import type { Briefing, BriefingAnswers, BriefingKind, BriefingQuestion, Client, ClientProfile, Data } from '../types'
+import { BRIEFING_SECTIONS } from '../briefingQuestions'
+import { allTemplates } from '../briefingTemplates'
+import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type PublicBriefing } from '../briefingApi'
+import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data } from '../types'
 import { fmtDate, today, uid, whatsappLink } from '../utils'
 import { go } from '../router'
 import { PLANS } from '../plans'
@@ -23,7 +24,7 @@ function applyAnswers(client: Client, b: Briefing, answers: BriefingAnswers): Cl
   const profile: ClientProfile = { ...client.profile }
   for (const q of b.questions) {
     const v = answerText(answers[q.id])
-    if (q.field && v && !(profile[q.field] ?? '').trim()) profile[q.field] = v
+    if (q.field && q.kind !== 'photos' && v && !(profile[q.field] ?? '').trim()) profile[q.field] = v
   }
   return { ...client, profile, history: [...client.history, { id: uid(), date: today(), text: `briefing respondido: ${b.title}` }] }
 }
@@ -67,82 +68,102 @@ export function useBriefingSync(enabled: boolean) {
   return { check: () => check(pending, data) }
 }
 
+/** Seções de um briefing (os antigos usam as seções fixas). */
+const sectionsOf = (b: { sections?: BSection[]; questions: BriefingQuestion[] }): BSection[] => {
+  const base = b.sections?.length ? b.sections : BRIEFING_SECTIONS.map((x) => ({ id: x.id, title: x.label, description: x.hint }))
+  const extra = b.questions.some((q) => !base.some((x) => x.id === (q.section || 'extra'))) ? [{ id: 'extra', title: 'mais algumas perguntas' }] : []
+  return [...base, ...extra].filter((x) => b.questions.some((q) => (base.some((y) => y.id === q.section) ? q.section : 'extra') === x.id))
+}
+const inSection = (b: { sections?: BSection[]; questions: BriefingQuestion[] }, id: string) => {
+  const base = b.sections?.length ? b.sections : BRIEFING_SECTIONS.map((x) => ({ id: x.id }))
+  return b.questions.filter((q) => (base.some((y) => y.id === q.section) ? q.section : 'extra') === id)
+}
+
 export function BriefingSection({ client }: { client: Client }) {
-  const { data, remove } = useStore()
+  const { data } = useStore()
   const { has } = useAccess()
   const [creating, setCreating] = useState(false)
-  const [open, setOpen] = useState<string | null>(null)
   const list = (data.briefings ?? []).filter((b) => b.clientId === client.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const { check } = useBriefingSync(false)
   const allowed = has('briefing')
-
   return (
     <Section
       title="briefing"
       action={
         allowed && (
           <button className="btn small" onClick={() => setCreating(true)}>
-            <Icon name="plus" size={14} /> {list.length ? 'novo' : 'criar briefing'}
+            <Icon name="plus" size={14} /> {list.length ? 'novo' : 'mandar briefing'}
           </button>
         )
       }
     >
       {!allowed ? (
         <p className="muted small">
-          O briefing online (o cliente responde pelo celular e tudo cai aqui) faz parte do plano {PLANS.estudio.name}, sob convite.{' '}
+          O briefing online (o cliente responde pelo celular, com fotos, e tudo cai aqui) faz parte do plano {PLANS.estudio.name}.{' '}
           <button className="link" onClick={() => go('assinatura')}>
-            pedir acesso
+            conhecer
           </button>
         </p>
       ) : list.length === 0 ? (
-        <p className="muted small">Mande um link com as perguntas: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha dele.</p>
+        <p className="muted small">Escolha um modelo (residencial, comercial, cozinha…) e mande o link: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha.</p>
       ) : (
-        <ul className="bf-list">
-          {list.map((b) => (
-            <li key={b.id} className="bf-item">
-              <div className="bf-row">
-                <span className="grow">
-                  <b>{b.title}</b>
-                  <small className="muted">
-                    {' '}
-                    · enviado {fmtDate(b.createdAt)}
-                    {b.answeredAt ? ` · respondido ${fmtDate(b.answeredAt.slice(0, 10))}` : ''}
-                  </small>
-                </span>
-                <Badge color={b.status === 'respondido' ? '#5e8c6a' : '#b98246'}>{b.status === 'respondido' ? 'respondido' : 'aguardando'}</Badge>
-              </div>
-              <div className="row gap-s wrap">
-                {b.status === 'respondido' ? (
-                  <button className="btn small" onClick={() => setOpen(open === b.id ? null : b.id)}>
-                    <Icon name="file" size={14} /> {open === b.id ? 'fechar respostas' : 'ver respostas'}
-                  </button>
-                ) : (
-                  <>
-                    <ShareButtons client={client} b={b} />
-                    <button className="btn small ghost" onClick={() => void check()}>
-                      <Icon name="inbox" size={14} /> conferir respostas
-                    </button>
-                  </>
-                )}
-                <button
-                  className="icon-btn subtle"
-                  aria-label="Apagar briefing"
-                  onClick={async () => {
-                    if (!(await askDelete(`o briefing "${b.title}"`))) return
-                    void deleteBriefingLink(b.id).catch(() => undefined)
-                    remove('briefings', b.id)
-                  }}
-                >
-                  <Icon name="trash" size={15} />
-                </button>
-              </div>
-              {open === b.id && <Answers b={b} />}
-            </li>
-          ))}
-        </ul>
+        <BriefingList list={list} />
       )}
       {creating && <NewBriefing client={client} onClose={() => setCreating(false)} />}
     </Section>
+  )
+}
+
+/** Lista de briefings enviados (na ficha do cliente e na tela de briefings). */
+export function BriefingList({ list, showClient }: { list: Briefing[]; showClient?: boolean }) {
+  const { data, remove } = useStore()
+  const [open, setOpen] = useState<string | null>(null)
+  const { check } = useBriefingSync(false)
+  return (
+    <ul className="bf-list">
+      {list.map((b) => {
+        const client = data.clients.find((c) => c.id === b.clientId)
+        return (
+          <li key={b.id} className="bf-item">
+            <div className="bf-row">
+              <span className="grow">
+                <b>{b.title}</b>
+                <small className="muted">
+                  {showClient && client ? ` · ${client.name}` : ''} · enviado {fmtDate(b.createdAt)}
+                  {b.answeredAt ? ` · respondido ${fmtDate(b.answeredAt.slice(0, 10))}` : ''}
+                </small>
+              </span>
+              <Badge color={b.status === 'respondido' ? '#5e8c6a' : '#b98246'}>{b.status === 'respondido' ? 'respondido' : 'aguardando'}</Badge>
+            </div>
+            <div className="row gap-s wrap">
+              {b.status === 'respondido' ? (
+                <button className="btn small" onClick={() => setOpen(open === b.id ? null : b.id)}>
+                  <Icon name="file" size={14} /> {open === b.id ? 'fechar respostas' : 'ver respostas'}
+                </button>
+              ) : (
+                <>
+                  {client && <ShareButtons client={client} b={b} />}
+                  <button className="btn small ghost" onClick={() => void check()}>
+                    <Icon name="inbox" size={14} /> conferir respostas
+                  </button>
+                </>
+              )}
+              <button
+                className="icon-btn subtle"
+                aria-label="Apagar briefing"
+                onClick={async () => {
+                  if (!(await askDelete(`o briefing "${b.title}"`))) return
+                  void deleteBriefingLink(b.id).catch(() => undefined)
+                  remove('briefings', b.id)
+                }}
+              >
+                <Icon name="trash" size={15} />
+              </button>
+            </div>
+            {open === b.id && <Answers b={b} />}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -150,7 +171,7 @@ function ShareButtons({ client, b }: { client: Client; b: Briefing }) {
   const { data } = useStore()
   const link = briefingLink(b.id)
   const first = greetName(client.name)
-  const msg = `Olá, ${first}! Para eu entender direitinho o que vocês precisam, preparei algumas perguntas rápidas. Dá para responder pelo celular, com calma: ${link}\n\n${data.settings.ownerName || ''}`.trim()
+  const msg = `Olá, ${first}! Para eu entender direitinho o que vocês precisam, preparei algumas perguntas. Dá para responder pelo celular, com calma, e mandar fotos: ${link}\n\n${data.settings.ownerName || ''}`.trim()
   return (
     <>
       {client.phone && (
@@ -175,27 +196,47 @@ function ShareButtons({ client, b }: { client: Client; b: Briefing }) {
 
 function Answers({ b }: { b: Briefing }) {
   const a = b.answers ?? {}
+  const [urls, setUrls] = useState<Record<string, string>>({})
+  const photos = b.questions.filter((q) => q.kind === 'photos').flatMap((q) => (Array.isArray(a[q.id]) ? (a[q.id] as string[]) : []))
+  useEffect(() => {
+    if (photos.length) attachmentUrls(photos).then(setUrls).catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photos.join('|')])
   const skipped = b.questions.filter((q) => !answerText(a[q.id])).length
-  const text = BRIEFING_SECTIONS.concat([{ id: 'extra', label: 'outras perguntas', hint: '' }])
+  const text = sectionsOf(b)
     .map((s) => {
-      const qs = b.questions.filter((q) => (q.section || 'extra') === s.id && answerText(a[q.id]))
-      return qs.length ? `${s.label.toUpperCase()}\n${qs.map((q) => `${q.label}: ${answerText(a[q.id])}`).join('\n')}` : ''
+      const list = inSection(b, s.id).filter((q) => q.kind !== 'photos' && answerText(a[q.id]))
+      return list.length ? `${s.title.toUpperCase()}\n${list.map((q) => `${q.label}: ${answerText(a[q.id])}`).join('\n')}` : ''
     })
     .filter(Boolean)
     .join('\n\n')
   return (
     <div className="bf-answers">
-      {BRIEFING_SECTIONS.concat([{ id: 'extra', label: 'outras perguntas', hint: '' }]).map((s) => {
-        const qs = b.questions.filter((q) => (q.section || 'extra') === s.id && answerText(a[q.id]))
-        if (!qs.length) return null
+      {sectionsOf(b).map((s) => {
+        const list = inSection(b, s.id).filter((q) => answerText(a[q.id]))
+        if (!list.length) return null
         return (
           <div key={s.id}>
-            <p className="bf-sec">{s.label}</p>
+            <p className="bf-sec">{s.title}</p>
             <dl className="bf-qa-list">
-              {qs.map((q) => (
+              {list.map((q) => (
                 <div key={q.id} className="bf-qa">
                   <dt>{q.label}</dt>
-                  <dd>{answerText(a[q.id])}</dd>
+                  <dd>
+                    {q.kind === 'photos' ? (
+                      <span className="bf-thumbs">
+                        {(a[q.id] as string[]).map((v) => (
+                          <a key={v} href={urls[v]} target="_blank" rel="noreferrer">
+                            {urls[v] ? <img src={urls[v]} alt="" /> : <span />}
+                          </a>
+                        ))}
+                      </span>
+                    ) : q.kind === 'date' ? (
+                      fmtDate(answerText(a[q.id]))
+                    ) : (
+                      answerText(a[q.id])
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -218,31 +259,34 @@ function Answers({ b }: { b: Briefing }) {
   )
 }
 
-function NewBriefing({ client, onClose }: { client: Client; onClose: () => void }) {
+/** Mandar um briefing: escolhe o modelo e o link sai pronto. */
+export function NewBriefing({ client: fixed, templateId, onClose }: { client?: Client; templateId?: string; onClose: () => void }) {
   const { data, upsert } = useStore()
   const st = data.settings
-  const [title, setTitle] = useState(`briefing · ${client.name}`)
-  const [sections, setSections] = useState<string[]>(BRIEFING_SECTIONS.map((s) => s.id))
-  const [skip, setSkip] = useState<string[]>([])
-  const [extra, setExtra] = useState<BriefingQuestion[]>([])
+  const templates = allTemplates(st.briefingTemplates)
+  const [tplId, setTplId] = useState(templateId ?? '')
+  const [clientId, setClientId] = useState(fixed?.id ?? '')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<Briefing | null>(null)
-  const questions = [...DEFAULT_BRIEFING.filter((q) => sections.includes(q.section) && !skip.includes(q.id)), ...extra.filter((q) => q.label.trim())]
+  const tpl = templates.find((t) => t.id === tplId)
+  const client = fixed ?? data.clients.find((c) => c.id === clientId)
 
   const create = async () => {
-    if (!questions.length) return toast('Escolha pelo menos uma pergunta.')
+    if (!tpl || !client) return
+    if (!tpl.questions.length) return toast('Este modelo ainda não tem perguntas. Edite em “briefings”.')
     setBusy(true)
-    const b: Briefing = { id: crypto.randomUUID(), clientId: client.id, title: title.trim() || 'briefing', questions, status: 'enviado', createdAt: today() }
+    const b: Briefing = { id: crypto.randomUUID(), clientId: client.id, title: `${tpl.name} · ${client.name}`, questions: tpl.questions, sections: tpl.sections, templateId: tpl.id, status: 'enviado', createdAt: today() }
     try {
       await publishBriefing(b.id, {
-        title: b.title,
+        title: tpl.name,
         clientName: client.name,
         studio: st.brandName || st.ownerName || '',
         owner: st.ownerName || '',
         accent: st.accent,
         logo: st.logo && st.logo.length < 250_000 ? st.logo : undefined,
-        intro: `Oi, ${greetName(client.name)}! Estas perguntas me ajudam a entender como vocês vivem e o que esperam do projeto. Responda com calma: não existe resposta certa, e dá para pular o que não souber.`,
-        questions,
+        intro: `Oi, ${greetName(client.name)}! Estas perguntas me ajudam a entender o que vocês precisam e como vivem. Responda com calma: não existe resposta certa, e dá para pular o que não souber.`,
+        questions: tpl.questions,
+        sections: tpl.sections,
       })
       upsert('briefings', b)
       setDone(b)
@@ -252,10 +296,10 @@ function NewBriefing({ client, onClose }: { client: Client; onClose: () => void 
     setBusy(false)
   }
 
-  if (done)
+  if (done && client)
     return (
       <Modal title="briefing pronto ✨" onClose={onClose}>
-        <p>Agora é só mandar o link para {client.name.split(' ')[0]}. Quando responder, as respostas aparecem aqui e preenchem a ficha.</p>
+        <p>Agora é só mandar o link para {greetName(client.name)}. Quando responder, você recebe um aviso e as respostas preenchem a ficha.</p>
         <p className="bf-link">{briefingLink(done.id)}</p>
         <div className="row gap-s wrap">
           <ShareButtons client={client} b={done} />
@@ -265,68 +309,56 @@ function NewBriefing({ client, onClose }: { client: Client; onClose: () => void 
 
   return (
     <Modal
-      title="novo briefing"
+      title="mandar briefing"
       onClose={onClose}
       wide
       footer={
         <>
           <button className="btn ghost" onClick={onClose}>
-            Cancelar
+            cancelar
           </button>
-          <button className="btn primary" onClick={() => void create()} disabled={busy}>
-            {busy ? 'criando…' : `criar link (${questions.length} perguntas)`}
+          <button className="btn primary" onClick={() => void create()} disabled={busy || !tpl || !client}>
+            {busy ? 'criando…' : tpl ? `criar link (${tpl.questions.length} perguntas)` : 'escolha um modelo'}
           </button>
         </>
       }
     >
-      <Field label="Título">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} />
-      </Field>
-      <p className="muted small">Escolha os blocos e tire as perguntas que não fazem sentido para este cliente.</p>
-      <div className="bf-sections">
-        {BRIEFING_SECTIONS.map((s) => {
-          const on = sections.includes(s.id)
-          const qs = DEFAULT_BRIEFING.filter((q) => q.section === s.id)
-          return (
-            <div key={s.id} className={`bf-section ${on ? 'is-on' : ''}`}>
-              <label className="check">
-                <input type="checkbox" checked={on} onChange={(e) => setSections(e.target.checked ? [...sections, s.id] : sections.filter((x) => x !== s.id))} />
-                <span>
-                  <b>{s.label}</b> <small className="muted">· {s.hint}</small>
-                </span>
-              </label>
-              {on && (
-                <div className="bf-qs">
-                  {qs.map((q) => (
-                    <label key={q.id} className="check small">
-                      <input type="checkbox" checked={!skip.includes(q.id)} onChange={(e) => setSkip(e.target.checked ? skip.filter((x) => x !== q.id) : [...skip, q.id])} />
-                      <span>{q.label}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
-        <div className="bf-section is-on">
-          <b>perguntas suas</b>
-          {extra.map((q, i) => (
-            <div key={q.id} className="bf-extra">
-              <input value={q.label} onChange={(e) => setExtra(extra.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Escreva a pergunta" />
-              <select value={q.kind} onChange={(e) => setExtra(extra.map((x, j) => (j === i ? { ...x, kind: e.target.value as BriefingKind } : x)))} aria-label="Tipo de resposta">
-                <option value="text">resposta curta</option>
-                <option value="long">resposta longa</option>
-              </select>
-              <button className="icon-btn subtle" onClick={() => setExtra(extra.filter((_, j) => j !== i))} aria-label="Remover pergunta">
-                <Icon name="x" size={14} />
-              </button>
-            </div>
-          ))}
-          <button className="btn small ghost" onClick={() => setExtra([...extra, { id: `extra-${uid()}`, section: 'extra', label: '', kind: 'long' }])}>
-            <Icon name="plus" size={14} /> pergunta
+      {!fixed && (
+        <label className="bf-pick-client">
+          <span className="field-label">para quem</span>
+          <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+            <option value="">escolha o cliente…</option>
+            {data.clients
+              .filter((c) => !c.archived)
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+          </select>
+        </label>
+      )}
+      <span className="field-label">qual modelo</span>
+      <div className="bf-tpl-grid">
+        {templates.map((t) => (
+          <button key={t.id} type="button" className={`bf-tpl ${tplId === t.id ? 'is-on' : ''}`} onClick={() => setTplId(t.id)} aria-pressed={tplId === t.id}>
+            <span className="bf-tpl-icon">
+              <Icon name={t.icon || 'file'} size={18} />
+            </span>
+            <b>{t.name}</b>
+            <small>{t.description}</small>
+            <em>{t.questions.length} perguntas</em>
           </button>
-        </div>
+        ))}
       </div>
+      <p className="muted small">
+        Quer mudar alguma pergunta antes? Edite o modelo em{' '}
+        <button className="link" onClick={() => (onClose(), go('briefings', tplId || undefined))}>
+          briefings
+        </button>
+        : vale para os próximos envios.
+      </p>
     </Modal>
   )
 }
@@ -336,6 +368,9 @@ function NewBriefing({ client, onClose }: { client: Client; onClose: () => void 
 export function BriefingPublic({ id }: { id: string }) {
   const [b, setB] = useState<PublicBriefing | null | undefined>(undefined)
   const [answers, setAnswers] = useState<BriefingAnswers>({})
+  const [previews, setPreviews] = useState<Record<string, string>>({})
+  const [uploading, setUploading] = useState(0)
+  const [missing, setMissing] = useState<string[]>([])
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const draftKey = `briefing-rascunho:${id}`
@@ -359,7 +394,7 @@ export function BriefingPublic({ id }: { id: string }) {
     })
 
   const accent = b?.payload.accent || '#a88a80'
-  const wrap = (children: React.ReactNode) => (
+  const wrap = (children: ReactNode) => (
     <div className="bf-public" style={{ ['--bf-accent' as string]: accent }}>
       <div className="bf-card">{children}</div>
       <p className="bf-foot">feito com traço</p>
@@ -376,21 +411,49 @@ export function BriefingPublic({ id }: { id: string }) {
         <p>Suas respostas chegaram{p.owner ? ` para ${p.owner}` : ''}. Agora é com a gente: em breve entramos em contato.</p>
       </>,
     )
-  const secs = BRIEFING_SECTIONS.concat([{ id: 'extra', label: 'mais algumas perguntas', hint: '' }]).filter((s) => p.questions.some((q) => (q.section || 'extra') === s.id))
+  const secs = sectionsOf(p)
   const filled = p.questions.filter((q) => answerText(answers[q.id])).length
+  const addPhotos = async (q: BriefingQuestion, files: FileList | null) => {
+    const list = [...(files ?? [])].filter((f) => f.type.startsWith('image/')).slice(0, 12)
+    for (const f of list) {
+      setUploading((n) => n + 1)
+      try {
+        const v = await uploadAttachment(id, f)
+        setPreviews((m) => ({ ...m, [v]: URL.createObjectURL(f) }))
+        setAnswers((a) => {
+          const cur = Array.isArray(a[q.id]) ? (a[q.id] as string[]) : []
+          const next = { ...a, [q.id]: [...cur, v] }
+          try {
+            localStorage.setItem(draftKey, JSON.stringify(next))
+          } catch {
+            /* ok */
+          }
+          return next
+        })
+      } catch {
+        toast('Uma foto não foi enviada. Confira a internet e tente de novo.')
+      }
+      setUploading((n) => n - 1)
+    }
+  }
   const submit = async () => {
+    const need = p.questions.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
+    setMissing(need)
+    if (need.length) {
+      document.getElementById(`bfq-${need[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return toast(`Falta responder ${need.length} pergunta(s) obrigatória(s).`)
+    }
     if (!filled) return toast('Responda pelo menos uma pergunta.')
     setBusy(true)
     try {
-      const ok = await sendPublicAnswers(id, answers)
-      if (ok) {
-        try {
-          localStorage.removeItem(draftKey)
-        } catch {
-          /* ok */
-        }
+      await sendPublicAnswers(id, answers)
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {
+        /* ok */
       }
       setSent(true)
+      window.scrollTo(0, 0)
     } catch {
       toast('Não foi possível enviar agora. Confira a internet e tente de novo: suas respostas continuam aqui.')
     }
@@ -404,52 +467,107 @@ export function BriefingPublic({ id }: { id: string }) {
         <h1>{p.title}</h1>
         <p className="muted">{p.intro}</p>
         <div className="bf-progress" aria-label={`${filled} de ${p.questions.length} respondidas`}>
-          <i style={{ width: `${(filled / p.questions.length) * 100}%` }} />
+          <i style={{ width: `${(filled / Math.max(1, p.questions.length)) * 100}%` }} />
         </div>
+        <p className="bf-count">
+          {filled} de {p.questions.length} respondidas · <span className="bf-req">*</span> obrigatória
+        </p>
       </header>
-      {secs.map((s) => (
+      {secs.map((s, si) => (
         <section key={s.id} className="bf-block">
-          <h2>{s.label}</h2>
-          {p.questions
-            .filter((q) => (q.section || 'extra') === s.id)
-            .map((q) => (
-              <div key={q.id} className="bf-q">
-                <label className="bf-label" htmlFor={`bf-${q.id}`}>
-                  {q.label}
-                </label>
-                {q.kind === 'long' ? (
-                  <textarea id={`bf-${q.id}`} rows={3} value={answerText(answers[q.id])} onChange={(e) => set(q.id, e.target.value)} spellCheck lang="pt-BR" />
-                ) : q.kind === 'choice' ? (
-                  <div className="bf-chips" role="radiogroup">
-                    {(q.options ?? []).map((o) => (
-                      <button key={o} type="button" role="radio" aria-checked={answers[q.id] === o} className={`bf-chip ${answers[q.id] === o ? 'is-on' : ''}`} onClick={() => set(q.id, answers[q.id] === o ? '' : o)}>
-                        {o}
-                      </button>
-                    ))}
-                  </div>
-                ) : q.kind === 'multi' ? (
-                  <div className="bf-chips">
-                    {(q.options ?? []).map((o) => {
-                      const cur = Array.isArray(answers[q.id]) ? (answers[q.id] as string[]) : []
-                      const on = cur.includes(o)
-                      return (
-                        <button key={o} type="button" aria-pressed={on} className={`bf-chip ${on ? 'is-on' : ''}`} onClick={() => set(q.id, on ? cur.filter((x) => x !== o) : [...cur, o])}>
-                          {o}
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <input id={`bf-${q.id}`} value={answerText(answers[q.id])} onChange={(e) => set(q.id, e.target.value)} />
-                )}
-              </div>
-            ))}
+          <div className="bf-block-head">
+            <span className="bf-block-n">{si + 1}</span>
+            <div>
+              <h2>{s.title}</h2>
+              {s.description && <p className="muted small">{s.description}</p>}
+            </div>
+          </div>
+          {inSection(p, s.id).map((q) => (
+            <PublicQuestion key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} missing={missing.includes(q.id)} previews={previews} uploading={uploading} onPhotos={(f) => void addPhotos(q, f)} />
+          ))}
         </section>
       ))}
-      <button className="btn primary bf-send" onClick={() => void submit()} disabled={busy}>
-        {busy ? 'enviando…' : 'enviar respostas'}
+      <button className="btn primary bf-send" onClick={() => void submit()} disabled={busy || uploading > 0}>
+        {uploading ? 'enviando fotos…' : busy ? 'enviando…' : 'enviar respostas'}
       </button>
       <p className="muted small center">Suas respostas ficam salvas neste aparelho até você enviar.</p>
     </>,
   )
 }
+
+export function PublicQuestion({ q, value, onChange, missing, previews, uploading, onPhotos }: { q: BriefingQuestion; value?: string | string[]; onChange: (v: string | string[]) => void; missing: boolean; previews: Record<string, string>; uploading: number; onPhotos: (f: FileList | null) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const list = Array.isArray(value) ? value : []
+  const text = typeof value === 'string' ? value : ''
+  const opts = q.options ?? []
+  // "outro": o que a pessoa escreveu e não é uma das opções
+  const otherVal = q.kind === 'multi' ? list.find((v) => !opts.includes(v)) ?? '' : q.kind === 'choice' && text && !opts.includes(text) ? text : ''
+  return (
+    <div id={`bfq-${q.id}`} className={`bf-q ${missing ? 'is-missing' : ''}`}>
+      <label className="bf-label" htmlFor={`bf-${q.id}`}>
+        {q.label}
+        {q.required && <span className="bf-req"> *</span>}
+      </label>
+      {q.hint && <p className="bf-hint">{q.hint}</p>}
+      {q.images && q.images.length > 0 && (
+        <div className="bf-refs">
+          {q.images.map((src, i) => (
+            <img key={i} src={src} alt="" />
+          ))}
+        </div>
+      )}
+      {q.kind === 'long' ? (
+        <textarea id={`bf-${q.id}`} rows={3} value={text} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" />
+      ) : q.kind === 'date' ? (
+        <input id={`bf-${q.id}`} type="date" value={text} onChange={(e) => onChange(e.target.value)} />
+      ) : q.kind === 'choice' ? (
+        <div className="bf-chips" role="radiogroup">
+          {opts.map((o) => (
+            <button key={o} type="button" role="radio" aria-checked={text === o} className={`bf-chip ${text === o ? 'is-on' : ''}`} onClick={() => onChange(text === o ? '' : o)}>
+              {o}
+            </button>
+          ))}
+          {q.other && <input className="bf-other" value={otherVal} onChange={(e) => onChange(e.target.value)} placeholder="outro: escreva aqui" />}
+        </div>
+      ) : q.kind === 'multi' ? (
+        <div className="bf-chips">
+          {opts.map((o) => {
+            const on = list.includes(o)
+            return (
+              <button key={o} type="button" aria-pressed={on} className={`bf-chip ${on ? 'is-on' : ''}`} onClick={() => onChange(on ? list.filter((x) => x !== o) : [...list, o])}>
+                {on ? '✓ ' : ''}
+                {o}
+              </button>
+            )
+          })}
+          {q.other && <input className="bf-other" value={otherVal} onChange={(e) => onChange([...list.filter((v) => opts.includes(v)), ...(e.target.value ? [e.target.value] : [])])} placeholder="outro: escreva aqui" />}
+        </div>
+      ) : q.kind === 'photos' ? (
+        <div className="bf-upload">
+          {list.length > 0 && (
+            <div className="bf-thumbs">
+              {list.map((v) => (
+                <span key={v} className="bf-thumb">
+                  {previews[v] || v.startsWith('data:') ? <img src={previews[v] || v} alt="" /> : <span className="bf-thumb-ok">✓</span>}
+                  <button type="button" aria-label="Tirar foto" onClick={() => onChange(list.filter((x) => x !== v))}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <button type="button" className="btn bf-upload-btn" onClick={() => fileRef.current?.click()}>
+            📷 {list.length ? 'adicionar mais fotos' : 'adicionar fotos'}
+          </button>
+          {uploading > 0 && <small className="muted">enviando…</small>}
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => (onPhotos(e.target.files), (e.target.value = ''))} />
+        </div>
+      ) : (
+        <input id={`bf-${q.id}`} value={text} onChange={(e) => onChange(e.target.value)} />
+      )}
+      {missing && <p className="bf-missing">esta pergunta é obrigatória</p>}
+    </div>
+  )
+}
+
+export type { BriefingTemplate }

@@ -349,12 +349,36 @@ on conflict (id) do nothing;
 drop policy if exists "obra: dono vê" on storage.objects;
 drop policy if exists "obra: dono envia" on storage.objects;
 drop policy if exists "obra: dono apaga" on storage.objects;
-create policy "obra: dono vê" on storage.objects for select
+create policy "obra: dono vê" on storage.objects for select to authenticated
   using (bucket_id = 'obra' and (storage.foldername(name))[1] = auth.uid()::text);
-create policy "obra: dono envia" on storage.objects for insert
+create policy "obra: dono envia" on storage.objects for insert to authenticated
   with check (bucket_id = 'obra' and (storage.foldername(name))[1] = auth.uid()::text and public.pode_editar());
-create policy "obra: dono apaga" on storage.objects for delete
+create policy "obra: dono apaga" on storage.objects for delete to authenticated
   using (bucket_id = 'obra' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- 5f) Fotos que o cliente anexa no briefing: quem responde (sem login) só consegue ENVIAR,
+--     e só para um briefing que existe e ainda não foi respondido. Só quem mandou o briefing vê.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('briefing-anexos', 'briefing-anexos', false, 8388608, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
+drop policy if exists "anexos: quem responde envia" on storage.objects;
+drop policy if exists "anexos: dono vê" on storage.objects;
+drop policy if exists "anexos: dono apaga" on storage.objects;
+-- (quem responde não enxerga a tabela de briefings: esta função confere por ele)
+create or replace function public.briefing_aberto(pasta text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.briefing_links b where b.id::text = pasta and b.answered_at is null);
+$$;
+revoke execute on function public.briefing_aberto(text) from public;
+grant execute on function public.briefing_aberto(text) to anon, authenticated;
+create policy "anexos: quem responde envia" on storage.objects for insert to anon, authenticated
+  with check (bucket_id = 'briefing-anexos' and public.briefing_aberto((storage.foldername(name))[1]));
+create policy "anexos: dono vê" on storage.objects for select to authenticated
+  using (bucket_id = 'briefing-anexos' and exists (
+    select 1 from public.briefing_links b where b.id::text = (storage.foldername(name))[1] and b.user_id = auth.uid()));
+create policy "anexos: dono apaga" on storage.objects for delete to authenticated
+  using (bucket_id = 'briefing-anexos' and exists (
+    select 1 from public.briefing_links b where b.id::text = (storage.foldername(name))[1] and b.user_id = auth.uid()));
 
 -- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
 revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;

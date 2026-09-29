@@ -401,6 +401,7 @@ export interface Contract {
 export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
+  briefingTemplates?: BriefingTemplate[] // modelos de briefing criados ou editados pela pessoa
   brandName: string
   tagline: string
   ownerName: string
@@ -483,7 +484,7 @@ export interface Data {
   settings: Settings
 }
 
-export type BriefingKind = 'text' | 'long' | 'choice' | 'multi'
+export type BriefingKind = 'text' | 'long' | 'choice' | 'multi' | 'photos' | 'date'
 export interface BriefingQuestion {
   id: string
   section: string
@@ -491,6 +492,25 @@ export interface BriefingQuestion {
   kind: BriefingKind
   options?: string[]
   field?: keyof ClientProfile // a resposta também preenche a ficha do cliente
+  required?: boolean
+  hint?: string // explicação curta embaixo da pergunta
+  images?: string[] // imagens de referência que o arquiteto mostra (ex.: estilos)
+  other?: boolean // escolha com opção "outro" para escrever
+}
+export interface BriefingSection {
+  id: string
+  title: string
+  description?: string
+}
+/** Modelo de briefing (os prontos do sistema e os que a pessoa cria ou edita). */
+export interface BriefingTemplate {
+  id: string
+  name: string
+  description: string
+  icon?: string
+  sections: BriefingSection[]
+  questions: BriefingQuestion[]
+  updatedAt?: string
 }
 export type BriefingAnswers = Record<string, string | string[]>
 export interface Briefing {
@@ -498,6 +518,8 @@ export interface Briefing {
   clientId: string
   title: string
   questions: BriefingQuestion[]
+  sections?: BriefingSection[]
+  templateId?: string
   answers?: BriefingAnswers
   status: 'enviado' | 'respondido'
   createdAt: string
