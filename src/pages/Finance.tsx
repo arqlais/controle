@@ -4,7 +4,7 @@ import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
-import { ExpenseForm, ProjectForm } from '../components/forms'
+import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
 import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
@@ -44,7 +44,6 @@ export default function Finance() {
   const [onlyMonth, setOnlyMonth] = useKeep('fin-so-mes', false)
   const [expForm, setExpForm] = useState<Expense | 'new' | null>(null)
   const [bill, setBill] = useState<Project | null>(null)
-  const [pastJob, setPastJob] = useState(false)
   const canPdf = useAccess().has('propostaPdf') // recibos em PDF: plano Completo
 
   const shift = (n: number) => {
@@ -113,12 +112,9 @@ export default function Finance() {
             )}
           </div>
         </div>
-        <div className="row gap-s" style={{ flexWrap: 'wrap' }}>
+        <div className="row gap-s">
           <button className="btn ghost" onClick={exportCSV}>
             <Icon name="download" size={16} /> CSV
-          </button>
-          <button className="btn ghost" onClick={() => setPastJob(true)} title="Cliente ou trabalho de antes do sistema: entra já pago, nas datas que você escolher, sem orçamento e sem número">
-            <Icon name="plus" size={16} /> Trabalho antigo
           </button>
           <button className="btn primary" onClick={() => setExpForm('new')}>
             <Icon name="plus" size={16} /> Despesa
@@ -338,7 +334,6 @@ export default function Finance() {
       {tab === 'relatorios' && <Reports month={month} />}
 
       {bill && <BillModal p={bill} onClose={() => setBill(null)} />}
-      {pastJob && <ProjectForm past onClose={() => setPastJob(false)} />}
       {expForm && <ExpenseForm initial={expForm === 'new' ? undefined : expForm} onClose={() => setExpForm(null)} />}
     </div>
   )

@@ -12,7 +12,8 @@ export interface Renumber {
   why: 'vago' | 'rascunho' | 'fim'
 }
 
-export function renumberPlan(quotes: Quote[]): Renumber[] {
+export function renumberPlan(all: Quote[]): Renumber[] {
+  const quotes = all.filter((q) => !q.noNumber) // antigos sem número ficam fora da numeração
   const fixed = quotes.filter((q) => q.status !== 'rascunho' && q.pdf && q.number > 0)
   const noPdf = quotes.filter((q) => q.status !== 'rascunho' && !q.pdf).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number)
   const drafts = quotes.filter((q) => q.status === 'rascunho' && !q.imported).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number)
@@ -59,7 +60,7 @@ export function renumberPlan(quotes: Quote[]): Renumber[] {
 /** Rascunhos sempre depois do último número usado, em ordem de data (e pelo número atual no mesmo dia).
  *  Não mudam: enviados/aprovados, antigos importados e rascunhos com o PDF já baixado (o número já está no PDF).
  *  Devolve só os rascunhos que mudam de número. */
-const fixedNumber = (q: Quote) => q.status !== 'rascunho' || !!q.imported || !!q.pdfAt
+const fixedNumber = (q: Quote) => q.status !== 'rascunho' || !!q.imported || !!q.noNumber || !!q.pdfAt
 export function draftRenumber(quotes: Quote[]): { id: string; number: number }[] {
   const max = Math.max(0, ...quotes.filter(fixedNumber).map((q) => q.number || 0))
   const drafts = quotes.filter((q) => !fixedNumber(q)).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || (a.number || 0) - (b.number || 0))
@@ -69,7 +70,7 @@ export function draftRenumber(quotes: Quote[]): { id: string; number: number }[]
 /** Número de um orçamento que está saindo do rascunho (enviado/aprovado) ou cujo PDF vai ser baixado:
  *  o próximo depois do último enviado — assim não sobra número vago. Número já acertado fica. */
 export function nextSentNumber(quotes: Quote[], q: Quote): number {
-  if (q.imported) return q.number
+  if (q.imported || q.noNumber) return q.number
   const others = quotes.filter((x) => x.id !== q.id && fixedNumber(x))
   const max = Math.max(0, ...others.map((x) => x.number || 0))
   const taken = new Set(others.map((x) => x.number))
@@ -79,10 +80,10 @@ export function nextSentNumber(quotes: Quote[], q: Quote): number {
 /** Excluir rascunho: os rascunhos com número maior descem para ocupar o lugar dele (nenhum número fica vago).
  *  Enviados, aprovados e importados nunca mudam. */
 export function afterDeleteDrafts(quotes: Quote[], removedIds: Set<string>): { id: string; number: number }[] {
-  const removed = quotes.filter((q) => removedIds.has(q.id) && q.status === 'rascunho' && !q.imported && q.number > 0)
+  const removed = quotes.filter((q) => removedIds.has(q.id) && q.status === 'rascunho' && !q.imported && !q.noNumber && q.number > 0)
   if (!removed.length) return []
   return quotes
-    .filter((q) => !removedIds.has(q.id) && q.status === 'rascunho' && !q.imported)
+    .filter((q) => !removedIds.has(q.id) && q.status === 'rascunho' && !q.imported && !q.noNumber)
     .map((q) => ({ id: q.id, number: q.number - removed.filter((r) => r.number < q.number).length }))
     .filter((r) => r.number !== quotes.find((q) => q.id === r.id)!.number)
 }

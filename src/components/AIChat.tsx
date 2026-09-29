@@ -4,7 +4,7 @@ import { href } from '../router'
 import { Icon } from './Icon'
 import { buildAIPrompt, claudeLink } from './AskAI'
 import { toast } from './dialog'
-import { lowerKeepRS } from '../utils'
+import { lowerKeepRS, quoteNumber } from '../utils'
 
 /* Assistente de orçamentos (chat) com o Gemini do Google, usando a chave da própria usuária.
    A cada pergunta vai junto o "briefing" do estúdio: processo, regras, tabela e histórico. */
@@ -220,7 +220,7 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
           <header className="ai-chat-head">
             <span className="ai-chat-title">
               <Icon name="sparkle" size={16} /> assistente
-              {current && <small>· orçamento {`#${String(current.number).padStart(3, '0')}`}</small>}
+              {current && <small>· orçamento {quoteNumber(current)}</small>}
             </span>
             <span className="row gap-s">
               {past.length > 0 && (

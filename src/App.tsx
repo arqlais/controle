@@ -12,7 +12,7 @@ import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, matches, paymentDue, setCustomColumns, today } from './utils'
+import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, today } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -553,7 +553,7 @@ function GlobalSearch() {
       ...data.projects
         .filter((p) => has(p.title, p.description, p.notes))
         .map((p) => ({ kind: 'Demanda', label: p.title, sub: data.clients.find((c) => c.id === p.clientId)?.name ?? '', page: 'projetos', id: p.id })),
-      ...data.quotes.filter((x) => has(x.title, String(x.number), `#${x.number}`, data.clients.find((c) => c.id === x.clientId)?.name)).map((x) => ({ kind: 'Orçamento', label: `#${x.number} ${x.title}`, sub: data.clients.find((c) => c.id === x.clientId)?.name ?? '', page: 'orcamentos', id: x.id })),
+      ...data.quotes.filter((x) => has(x.title, String(x.number), `#${x.number}`, data.clients.find((c) => c.id === x.clientId)?.name)).map((x) => ({ kind: 'Orçamento', label: `${quoteNumber(x)} ${x.title}`, sub: data.clients.find((c) => c.id === x.clientId)?.name ?? '', page: 'orcamentos', id: x.id })),
     ].slice(0, 10)
   }, [q, data])
 

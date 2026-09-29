@@ -237,6 +237,7 @@ export interface Quote {
   closedAt?: string // quando a cliente fechou (pode ser dias depois do orçamento)
   pdfAt?: string // quando o PDF deste rascunho foi baixado (reserva o número)
   imported?: boolean // veio da importação de orçamentos antigos (mantém o número real)
+  noNumber?: boolean // orçamento antigo lançado sem número (não entra na numeração)
   dateFixed?: boolean // rascunho com data escolhida por ela (senão a data vai para hoje ao abrir)
   createdAt: string
   projectId: string

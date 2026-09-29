@@ -4,7 +4,7 @@ import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
+import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -218,8 +218,8 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
     const [status, optionId] = v.split(':') as [QuoteStatus, string | undefined]
     if (status === 'aprovado' && !q.projectId) return setClosing(optionId ?? '')
     const next = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || today() }
-    if (status !== 'rascunho' && q.status === 'rascunho') next.number = nextSentNumber(data.quotes, next) // sem número vago
-    if (status === 'rascunho' && q.status !== 'rascunho') {
+    if (status !== 'rascunho' && q.status === 'rascunho' && !q.noNumber) next.number = nextSentNumber(data.quotes, next) // sem número vago
+    if (status === 'rascunho' && q.status !== 'rascunho' && !q.noNumber) {
       // voltou para rascunho: vai para depois do último número (os rascunhos se reorganizam pela data)
       const moves = new Map(draftRenumber([...data.quotes.filter((x) => x.id !== q.id), next]).map((r) => [r.id, r.number]))
       if (moves.has(q.id)) next.number = moves.get(q.id)!
@@ -281,8 +281,11 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const [dayMode, setDayMode] = useState<'uteis' | 'corridos' | 'data'>('uteis')
   const [exactDate, setExactDate] = useState('')
   const [closedOn, setClosedOn] = useState(today())
-  const [signalPaid, setSignalPaid] = useState(false)
+  // o que já foi pago (orçamento antigo: tudo). No cartão é sempre 100% no início
+  const [paidPart, setPaidPart] = useState<'nada' | 'sinal' | 'tudo'>(q.noNumber ? 'tudo' : 'nada')
+  const [cardPaid, setCardPaid] = useState(true)
   const [method, setMethod] = useState('Pix')
+  const card = isCard(method)
   const [note, setNote] = useState(q.closedNote ?? '')
   const due = dayMode === 'data' ? exactDate : workDays > 0 ? (dayMode === 'uteis' ? addBusinessDays(closedOn, workDays) : addDays(closedOn, workDays)) : ''
   const diff = Math.round((proposed - value) * 100) / 100
@@ -294,13 +297,24 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
     const change = note.trim()
     const base = change ? { ...built, notes: [`Fechado com mudança: ${change}${value !== proposed ? ` (proposta ${money(proposed)} → fechado ${money(value)})` : ''}`, built.notes].filter(Boolean).join('\n\n') } : built
     // lançando orçamentos antigos: o sinal já entra pago na data do fechamento
-    const withMethod = { ...base, payments: base.payments.map((x) => ({ ...x, method })) }
-    const project = signalPaid && withMethod.payments[0] ? { ...withMethod, payments: withMethod.payments.map((x, i) => (i === 0 ? { ...x, paidDate: closedOn } : x)) } : withMethod
-    upsert('projects', project)
-    upsert('quotes', { ...approved, projectId: project.id })
-    toast(`Aprovado por ${money(value)}! Demanda “${project.title}” criada, aguardando sinal.`)
+    const project = card
+      ? { ...base, payments: splitPayments(value, 'cartao', closedOn, due).map((x) => ({ ...x, paidDate: cardPaid ? closedOn : null })) }
+      : {
+          ...base,
+          payments: base.payments.map((x, i) => ({
+            ...x,
+            method,
+            paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? (i === 0 ? closedOn : x.dueDate || closedOn) : x.paidDate,
+          })),
+        }
+    // orçamento antigo, tudo pago: a demanda já entra entregue
+    const allPaid = project.payments.every((x) => x.paidDate)
+    const done = q.noNumber && allPaid ? { ...project, status: 'entregue' as const, deliveredDate: due || closedOn, tasks: project.tasks.map((t) => ({ ...t, done: true })) } : project
+    upsert('projects', done)
+    upsert('quotes', { ...approved, projectId: done.id })
+    toast(`Aprovado por ${money(value)}! Demanda “${done.title}” criada${done.status === 'entregue' ? ', já entregue e paga' : allPaid ? ', já paga' : ', aguardando pagamento'}.`)
     onClose()
-    onDone?.(project.id)
+    onDone?.(done.id)
   }
   return (
     <Modal
@@ -332,9 +346,23 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
           <DateInput value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
         </Field>
         <HowPaid method={method} onChange={setMethod} amount={value} />
-        <label className="check">
-          <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})
-        </label>
+        {card ? (
+          <label className="check">
+            <input type="checkbox" checked={cardPaid} onChange={(e) => setCardPaid(e.target.checked)} /> já foi pago: 100% no cartão, no início (entra como recebido em {closedOn.split('-').reverse().join('/')})
+          </label>
+        ) : (
+          <Field group label="O que já foi pago?" hint={paidPart === 'tudo' ? `Sinal em ${closedOn.split('-').reverse().join('/')} e saldo no prazo de entrega${due ? ` (${due.split('-').reverse().join('/')})` : ' (ou na data do fechamento, sem prazo)'}. Dá para ajustar cada data na demanda.` : paidPart === 'sinal' ? `O sinal entra como recebido em ${closedOn.split('-').reverse().join('/')}.` : 'As parcelas ficam a receber.'}>
+            <Segmented
+              value={paidPart}
+              onChange={setPaidPart}
+              options={[
+                { value: 'nada', label: 'nada ainda' },
+                { value: 'sinal', label: 'só o sinal' },
+                { value: 'tudo', label: 'tudo (trabalho antigo)' },
+              ]}
+            />
+          </Field>
+        )}
         <Field
           group
           label="Prazo combinado · se houver"

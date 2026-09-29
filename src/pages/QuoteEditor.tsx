@@ -90,7 +90,8 @@ export default function QuoteEditor({ id }: { id: string }) {
     () =>
       existing ?? {
         id: uid(),
-        number: nextQuoteNumber(data),
+        number: id === 'antigo' ? 0 : nextQuoteNumber(data),
+        ...(id === 'antigo' ? { noNumber: true, dateFixed: true } : {}),
         clientId: '',
         title: '',
         mode: 'escopo',
@@ -201,7 +202,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     }
   }, [unsaved, draftKey])
 
-  if (id !== 'novo' && !existing) return <Empty title="Orçamento não encontrado" action={<a className="btn" href={href('orcamentos')}>Voltar</a>} />
+  if (id !== 'novo' && id !== 'antigo' && !existing) return <Empty title="Orçamento não encontrado" action={<a className="btn" href={href('orcamentos')}>Voltar</a>} />
 
   const client = data.clients.find((c) => c.id === q.clientId)
   const student = isStudent(client)
@@ -269,7 +270,10 @@ export default function QuoteEditor({ id }: { id: string }) {
       toast('Escolha o cliente.')
       return null
     }
-    if (!next.number) {
+    if (next.noNumber) {
+      // orçamento antigo sem número: fica fora da numeração
+      next.number = 0
+    } else if (!next.number) {
       // nº 0: escolhe pela data — enviado sem PDF ocupa o número vago; rascunhos se reorganizam em ordem de data
       const others = data.quotes.filter((x) => x.id !== next.id)
       const plan = renumberPlan([...others.map((x) => (x.status !== 'rascunho' ? { ...x, pdf: true } : x)), { ...next, pdf: next.status === 'rascunho' ? next.pdf : false }])
@@ -302,7 +306,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     } catch {
       /* ok */
     }
-    if (id === 'novo') go('orcamentos', next.id)
+    if (id === 'novo' || id === 'antigo') go('orcamentos', next.id)
     return next
   }
 
@@ -310,7 +314,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   // baixar o PDF de um rascunho reserva o próximo número depois do último enviado (o PDF já sai com o número certo)
   const downloadPdf = (vector: boolean) => {
     let cur = q
-    if (q.status === 'rascunho' && q.clientId && !q.imported) {
+    if (q.status === 'rascunho' && q.clientId && !q.imported && !q.noNumber) {
       const n = nextSentNumber(data.quotes, q)
       const saved = n !== q.number || !q.pdfAt ? save({ number: n, pdfAt: q.pdfAt || new Date().toISOString() }) : null
       if (saved) cur = saved
@@ -353,7 +357,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
   const [closing, setClosing] = useState<Quote | null>(null)
 
-  const dupNumber = data.quotes.some((x) => x.id !== q.id && x.number === q.number)
+  const dupNumber = !q.noNumber && data.quotes.some((x) => x.id !== q.id && !x.noNumber && x.number === q.number)
   const preview = <QuoteDoc s={settings} client={client} quote={q} />
 
   return (
@@ -505,7 +509,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                 className={dupNumber ? 'field-warn' : undefined}
                 label="Nº e data"
                 hint={
-                  dupNumber
+                  q.noNumber
+                    ? 'Orçamento antigo: não usa número. Coloque a data real; depois marque como aprovado para lançar o financeiro nas datas certas.'
+                    : dupNumber
                     ? `⚠ já existe outro orçamento ${quoteNumber(q)} · coloque 0 para o sistema escolher pela data`
                     : !q.number
                       ? '0 = ao salvar, o sistema escolhe o nº pela data (rascunhos se reorganizam; enviados não mudam).'
@@ -517,7 +523,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 }
               >
                 <div className="num-date">
-                  <NumberInput id="q-number" value={q.number} onChange={(number) => set({ number })} />
+                  {q.noNumber ? <div className="readonly">sem nº</div> : <NumberInput id="q-number" value={q.number} onChange={(number) => set({ number })} />}
                   <DateInput
                     id="q-date"
                    
@@ -530,6 +536,9 @@ export default function QuoteEditor({ id }: { id: string }) {
                     }}
                   />
                 </div>
+                <label className="check small" title="Para lançar um trabalho antigo, feito antes do sistema, sem ocupar número na sequência">
+                  <input type="checkbox" checked={!!q.noNumber} onChange={(e) => set(e.target.checked ? { noNumber: true, number: 0, dateFixed: true } : { noNumber: undefined, number: nextQuoteNumber(data) })} /> orçamento antigo, sem número
+                </label>
               </Field>
               <Field label="Projeto / título do quadro" span={2} hint="Aparece no topo do quadro de serviços.">
                 <input id="q-title" value={q.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: renderização Casa Pampulha" />
