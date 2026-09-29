@@ -27,6 +27,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-29-instagram-calendario',
+    date: '2026-09-29',
+    kind: 'melhoria',
+    title: 'instagram: toque no dia para planejar',
+    text: 'O calendário do instagram aparece sempre. Toque em qualquer dia para ver sugestões de postagem para ele e escolher uma, ou começar em branco.',
+    steps: [{ page: 'instagram', target: '.ig-cell, .ig-mini-day', text: 'Toque em um dia do calendário: aparecem as sugestões para aquele dia.' }],
+  },
+  {
     id: '2026-09-29-instagram-sugestao',
     date: '2026-09-29',
     kind: 'melhoria',

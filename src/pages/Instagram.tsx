@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import { useKeep } from '../keep'
 import { Icon } from '../components/Icon'
-import { Empty, Field, Modal, MonthPicker, Section, Segmented } from '../components/ui'
+import { Field, Modal, MonthPicker, Section, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
@@ -69,6 +69,8 @@ export default function Instagram() {
   const [edit, setEdit] = useState<SocialPost | null>(null)
   // sugestão do mês: abre para escolher e ajustar cada postagem antes de entrar no calendário
   const [review, setReview] = useState<SocialPost[] | null>(null)
+  // dia escolhido no calendário: abre o planejamento do dia com sugestões
+  const [day, setDay] = useState<string | null>(null)
 
   const inMonth = posts.filter((p) => p.date.startsWith(month)).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
   const used = new Set(posts.map((p) => p.ideaId).filter(Boolean))
@@ -165,20 +167,12 @@ export default function Instagram() {
               ))}
             </div>
           </div>
-          {inMonth.length === 0 ? (
-            <Empty
-              icon="calendar"
-              title="Nada planejado neste mês"
-              text={mine ? 'Use “planejar mês” para montar a grade com as ideias prontas (carrossel na segunda, reels na quarta, post na sexta e stories na terça e quinta) — depois é só editar.' : 'Use “planejar mês”: o calendário ganha os dias da sua estratégia (ensinar na segunda, mostrar na quarta, aproximar na quinta, como é contratar você no sábado), cada um com o tema. Depois é só escrever o seu conteúdo.'}
-              action={
-                <button className="btn primary" onClick={mine ? planMonth : planClientMonth}>
-                  <Icon name="sparkle" size={16} /> planejar mês
-                </button>
-              }
-            />
-          ) : (
-            <MonthGrid month={month} posts={inMonth} onOpen={setEdit} onAdd={(date) => setEdit(blank(date))} />
+          {inMonth.length === 0 && (
+            <p className="ig-hint">
+              <Icon name="sparkle" size={14} /> Toque num dia para planejar, com sugestões para ele. Quer o mês todo de uma vez? Use “planejar mês”.
+            </p>
           )}
+          <MonthGrid month={month} posts={inMonth} onOpen={setEdit} onAdd={setDay} />
           <p className="muted small">{mine ? STRATEGY.times : CLIENT_STRATEGY.times}</p>
         </>
       )}
@@ -198,6 +192,20 @@ export default function Instagram() {
             list.forEach((p) => upsert('posts', p))
             toast(`${list.length} postagem(ns) no calendário.`)
             setReview(null)
+          }}
+        />
+      )}
+      {day && (
+        <DayPlanner
+          date={day}
+          mine={mine}
+          used={used}
+          settings={s}
+          existing={posts.filter((p) => p.date === day)}
+          onClose={() => setDay(null)}
+          onPick={(p) => {
+            setDay(null)
+            setEdit(p)
           }}
         />
       )}
@@ -245,7 +253,7 @@ function MonthGrid({ month, posts, onOpen, onAdd }: { month: string; posts: Soci
           const date = `${month}-${String(d).padStart(2, '0')}`
           const list = posts.filter((p) => p.date === date)
           return (
-            <div key={date} className={`ig-cell ${date === now ? 'is-today' : ''} ${date < now ? 'is-past' : ''}`}>
+            <div key={date} className={`ig-cell ${date === now ? 'is-today' : ''} ${date < now ? 'is-past' : ''}`} onClick={(e) => e.target === e.currentTarget && onAdd(date)}>
               <div className="ig-cell-head">
                 <b>{d}</b>
                 <button className="ig-add" onClick={() => onAdd(date)} aria-label="Nova postagem neste dia">
@@ -262,7 +270,29 @@ function MonthGrid({ month, posts, onOpen, onAdd }: { month: string; posts: Soci
           )
         })}
       </div>
-      {/* celular: lista por dia */}
+      {/* celular: calendário pequeno (toque no dia para planejar) + lista */}
+      <div className="ig-mini only-mobile-block">
+        {WEEKDAYS.map((w) => (
+          <span key={w} className="ig-wd">
+            {w.slice(0, 1)}
+          </span>
+        ))}
+        {cells.map((d, i) => {
+          if (!d) return <span key={`m${i}`} />
+          const date = `${month}-${String(d).padStart(2, '0')}`
+          const list = posts.filter((p) => p.date === date)
+          return (
+            <button key={date} type="button" className={`ig-mini-day ${date === now ? 'is-today' : ''} ${date < now ? 'is-past' : ''}`} onClick={() => onAdd(date)} aria-label={`Planejar dia ${d}`}>
+              <b>{d}</b>
+              <span className="ig-mini-dots">
+                {list.slice(0, 3).map((p) => (
+                  <i key={p.id} style={{ background: FORMATS[p.format].color }} />
+                ))}
+              </span>
+            </button>
+          )
+        })}
+      </div>
       <ul className="ig-list only-mobile-block">
         {posts.map((p) => {
           const dt = new Date(Number(p.date.slice(0, 4)), Number(p.date.slice(5, 7)) - 1, Number(p.date.slice(8, 10)))
@@ -730,6 +760,63 @@ function PlanReview({ month, items, ideas, settings, onClose, onSave }: { month:
           </div>
         ))}
       </div>
+    </Modal>
+  )
+}
+
+/** Planejar um dia: sugestões para ele (pela sua semana), o que já existe nele e a opção em branco. */
+function DayPlanner({ date, mine, used, settings, existing, onClose, onPick }: { date: string; mine: boolean; used: Set<string | undefined>; settings: Settings; existing: SocialPost[]; onClose: () => void; onPick: (p: SocialPost) => void }) {
+  const dt = new Date(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10)))
+  const wd = dt.getDay()
+  const [page, setPage] = useState(0)
+  const slot = mine ? WEEK_PLAN.find((w) => w.weekday === wd) : CLIENT_WEEK_PLAN.find((w) => w.weekday === wd)
+  const time = slot?.time ?? '12:00'
+  // quem é a Laís: ideias prontas (as do formato do dia primeiro, as ainda não usadas antes)
+  const ideas = mine
+    ? IDEAS.filter((i) => i.pillar !== 'estudantes').sort((a, b) => Number(b.format === slot?.format) - Number(a.format === slot?.format) || Number(used.has(a.id)) - Number(used.has(b.id)))
+    : []
+  const shown = ideas.slice(page * 5, page * 5 + 5)
+  // quem assina: os temas da própria estratégia (o do dia primeiro)
+  const themes = mine ? [] : [...CLIENT_WEEK_PLAN].sort((a, b) => Number(b.weekday === wd) - Number(a.weekday === wd))
+  return (
+    <Modal title={dt.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })} onClose={onClose}>
+      {existing.length > 0 && (
+        <div className="ig-day-block">
+          <span className="field-label">já planejado neste dia</span>
+          {existing.map((p) => (
+            <button key={p.id} type="button" className="ig-sug" onClick={() => onPick(p)}>
+              <span className="ig-format" style={{ background: FORMATS[p.format].color }}>{FORMATS[p.format].label}</span>
+              <span className="grow">{p.title || 'sem título'}</span>
+              <span className="muted small">abrir</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="ig-day-block">
+        <span className="field-label">{slot ? `sugestão para este dia: ${FORMATS[slot.format].label.toLowerCase()} às ${slot.time}` : 'sugestões'}</span>
+        {mine
+          ? shown.map((i) => (
+              <button key={i.id} type="button" className={`ig-sug ${used.has(i.id) ? 'is-used' : ''}`} onClick={() => onPick(fromIdea(i, settings, date, time))}>
+                <span className="ig-format" style={{ background: FORMATS[i.format].color }}>{FORMATS[i.format].label}</span>
+                <span className="grow">{i.title}</span>
+                {used.has(i.id) && <span className="muted small">já usada</span>}
+              </button>
+            ))
+          : themes.map((t) => (
+              <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), time: t.time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
+                <span className="ig-format" style={{ background: FORMATS[t.format].color }}>{FORMATS[t.format].label}</span>
+                <span className="grow">{t.title}</span>
+              </button>
+            ))}
+        {mine && ideas.length > 5 && (
+          <button type="button" className="link small" onClick={() => setPage((n) => ((n + 1) * 5 >= ideas.length ? 0 : n + 1))}>
+            ver outras sugestões
+          </button>
+        )}
+      </div>
+      <button type="button" className="btn block" onClick={() => onPick({ ...blank(date), time })}>
+        <Icon name="plus" size={15} /> começar em branco
+      </button>
     </Modal>
   )
 }
