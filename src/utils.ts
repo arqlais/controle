@@ -363,12 +363,24 @@ export function expensesInMonth(data: Data, key: string) {
   })
 }
 
+/** Recebido no cartão de crédito? (a taxa da maquininha / Mercado Pago sai do valor) */
+export const isCard = (method?: string) => /cart[aã]o|cr[eé]dito/i.test(method || '')
+export const DEFAULT_CARD_FEE = 4.98
+/** Taxa retida num pagamento recebido no crédito: a digitada na parcela ou a % das configurações. */
+export function paymentFee(pay: { amount: number; method: string; fee?: number }, s: { cardFee?: number }) {
+  if (typeof pay.fee === 'number') return pay.fee
+  return isCard(pay.method) ? Math.round(pay.amount * (s.cardFee ?? DEFAULT_CARD_FEE)) / 100 : 0
+}
+
 export function monthSummary(data: Data, key: string) {
   const pays = allPayments(data)
-  const received = pays.filter((x) => x.pay.paidDate && monthKey(x.pay.paidDate) === key).reduce((s, x) => s + x.pay.amount, 0)
+  const paid = pays.filter((x) => x.pay.paidDate && monthKey(x.pay.paidDate) === key)
+  const received = paid.reduce((s, x) => s + x.pay.amount, 0)
   const toReceive = pays.filter((x) => !x.pay.paidDate && monthKey(x.pay.dueDate) === key).reduce((s, x) => s + x.pay.amount, 0)
-  const expenses = expensesInMonth(data, key).reduce((s, e) => s + e.amount, 0)
-  return { received, toReceive, expenses, profit: received - expenses }
+  // taxas do cartão entram como despesa do mês em que o dinheiro caiu
+  const fees = Math.round(paid.reduce((s, x) => s + paymentFee(x.pay, data.settings), 0) * 100) / 100
+  const expenses = expensesInMonth(data, key).reduce((s, e) => s + e.amount, 0) + fees
+  return { received, toReceive, expenses, fees, profit: received - expenses }
 }
 
 export function lastMonths(n: number, from = today()) {

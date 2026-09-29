@@ -16,6 +16,8 @@ import type { Client, Extra, Payment, Priority, Project, ProjectItem, ProjectSta
 import {
   EVENT_TYPES,
   paymentMethods,
+  isCard,
+  paymentFee,
   PRIORITY,
   statusInfo,
   allStatuses,
@@ -301,6 +303,11 @@ export default function ProjectDetail({ id }: { id: string }) {
                                 <option key={m}>{m}</option>
                               ))}
                             </select>
+                            {isCard(x.method) && x.amount > 0 && (
+                              <small className="muted pay-fee" title="Taxa do cartão (Mercado Pago / maquininha): entra como despesa no mês em que o dinheiro cai">
+                                taxa {money(paymentFee(x, data.settings))} · recebe {money(x.amount - paymentFee(x, data.settings))}
+                              </small>
+                            )}
                           </td>
                           <td data-label={x.paidDate ? 'pago em' : st === 'cobrar' ? 'já pode cobrar' : 'situação'} className={x.paidDate ? 'is-paid' : st === 'cobrar' ? 'is-due' : ''}>
                             {x.paidDate ? (

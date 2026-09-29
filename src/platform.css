@@ -1075,3 +1075,7 @@
 @media (max-height: 900px) and (min-width: 721px) { .sidebar nav a, .sidebar nav .nav-tour { padding-top: 8px; padding-bottom: 8px; } .brand { padding-bottom: 18px; } }
 .page-loading { min-height: 40vh; border-radius: 20px; background: linear-gradient(90deg, var(--surface-2), var(--surface), var(--surface-2)); background-size: 200% 100%; animation: page-shimmer 1.2s linear infinite; opacity: 0.6; }
 @keyframes page-shimmer { to { background-position: -200% 0; } }
+.pay-fee { display: block; margin-top: 3px; font-size: 11px; white-space: nowrap; } .how-paid { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; }
+.past-pays { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: 12px; }
+.past-pay-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.past-pay-row > :last-child { max-width: 180px; }

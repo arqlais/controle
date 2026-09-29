@@ -62,6 +62,7 @@ export interface Payment {
   dueDate: string // yyyy-mm-dd
   paidDate: string | null
   method: string
+  fee?: number // taxa da maquininha/Mercado Pago (em branco: calcula pela % das configurações)
   on?: 'fechamento' | 'conclusao' // quando é cobrada: sinal no fechamento, saldo na conclusão
 }
 
@@ -367,6 +368,7 @@ export interface Settings {
   revisionsV1?: boolean // já migrou o padrão de rodadas de ajuste para 1
   defaultPaymentTerms: string
   paymentMethods?: string[] // formas de receber (lista editável)
+  cardFee?: number // % de taxa no cartão de crédito (Mercado Pago, receber na hora)
   signature?: string // imagem da assinatura (data URL), vai no contrato
   firstStepsHidden?: boolean // cartão "primeiros passos" escondido
   tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"

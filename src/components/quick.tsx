@@ -4,7 +4,7 @@ import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { QUOTE_STATUS, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
+import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -42,18 +42,44 @@ export function StatusDialogHost() {
   return <StatusDialog key={pending.p.id + pending.status} p={pending.p} status={pending.status} onClose={() => setPending(null)} />
 }
 
+/** "Recebeu no Pix ou no crédito?" — no crédito, mostra a taxa que fica com a maquininha / Mercado Pago. */
+export function HowPaid({ method, onChange, amount }: { method: string; onChange: (m: string) => void; amount: number }) {
+  const { data } = useStore()
+  const rate = data.settings.cardFee ?? DEFAULT_CARD_FEE
+  const fee = Math.round(amount * rate) / 100
+  return (
+    <div className="how-paid">
+      <span className="field-label">como o cliente pagou?</span>
+      <Segmented
+        value={isCard(method) ? 'Cartão de crédito' : 'Pix'}
+        onChange={onChange}
+        options={[
+          { value: 'Pix', label: 'Pix' },
+          { value: 'Cartão de crédito', label: 'cartão de crédito' },
+        ]}
+      />
+      {isCard(method) && amount > 0 && (
+        <span className="muted small">
+          Taxa do cartão ({String(rate).replace('.', ',')}%): <b>{money(fee)}</b> entra como despesa no mês em que o dinheiro cair. Você recebe <b>{money(amount - fee)}</b>. A % fica em configurações → propostas.
+        </span>
+      )}
+    </div>
+  )
+}
+
 function StatusDialog({ p, status, onClose }: { p: Project; status: string; onClose: () => void }) {
   const unpaid = p.payments.filter((x) => !x.paidDate && x.amount > 0)
   // entregue: já vem com a data do prazo (se já passou); sem prazo, hoje — dá para corrigir
   const [date, setDate] = useState(() => (status === 'entregue' && p.dueDate && p.dueDate <= today() ? p.dueDate : today()))
   const [paid, setPaid] = useState<Record<string, boolean>>({})
+  const [method, setMethod] = useState(() => unpaid[0]?.method || 'Pix')
   const [tasks, setTasks] = useState(true)
   const [waive, setWaive] = useState(false) // cliente cancelou: o restante não vai ser pago
   const openTasks = p.tasks.filter((t) => !t.done).length
   const label = statusInfo(status).label.toLowerCase()
   const confirm = () => {
     let next: Project = { ...p, status, deliveredDate: status === 'entregue' ? date : null }
-    next = { ...next, payments: next.payments.map((x) => (paid[x.id] ? { ...x, paidDate: date } : x)) }
+    next = { ...next, payments: next.payments.map((x) => (paid[x.id] ? { ...x, paidDate: date, method } : x)) }
     if (waive) {
       // o que não foi pago sai das parcelas e vira desconto (a demanda fecha com o valor recebido)
       const left = next.payments.filter((x) => !x.paidDate && x.amount > 0)
@@ -119,6 +145,7 @@ function StatusDialog({ p, status, onClose }: { p: Project; status: string; onCl
                 ? 'Os marcados entram como recebidos; o que ficar desmarcado deixa de ser cobrado.'
                 : `Os marcados entram como recebidos em ${date.split('-').reverse().join('/')}. Os outros continuam em “a receber”.`}
           </span>
+          {unpaid.some((x) => paid[x.id]) && <HowPaid method={method} onChange={setMethod} amount={unpaid.filter((x) => paid[x.id]).reduce((n, x) => n + x.amount, 0)} />}
           {status === 'entregue' && (
             <label className="check toggle waive">
               <input type="checkbox" checked={waive} onChange={(e) => setWaive(e.target.checked)} /> o cliente cancelou — o restante não vai ser pago
@@ -255,6 +282,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const [exactDate, setExactDate] = useState('')
   const [closedOn, setClosedOn] = useState(today())
   const [signalPaid, setSignalPaid] = useState(false)
+  const [method, setMethod] = useState('Pix')
   const [note, setNote] = useState(q.closedNote ?? '')
   const due = dayMode === 'data' ? exactDate : workDays > 0 ? (dayMode === 'uteis' ? addBusinessDays(closedOn, workDays) : addDays(closedOn, workDays)) : ''
   const diff = Math.round((proposed - value) * 100) / 100
@@ -266,7 +294,8 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
     const change = note.trim()
     const base = change ? { ...built, notes: [`Fechado com mudança: ${change}${value !== proposed ? ` (proposta ${money(proposed)} → fechado ${money(value)})` : ''}`, built.notes].filter(Boolean).join('\n\n') } : built
     // lançando orçamentos antigos: o sinal já entra pago na data do fechamento
-    const project = signalPaid && base.payments[0] ? { ...base, payments: base.payments.map((x, i) => (i === 0 ? { ...x, paidDate: closedOn } : x)) } : base
+    const withMethod = { ...base, payments: base.payments.map((x) => ({ ...x, method })) }
+    const project = signalPaid && withMethod.payments[0] ? { ...withMethod, payments: withMethod.payments.map((x, i) => (i === 0 ? { ...x, paidDate: closedOn } : x)) } : withMethod
     upsert('projects', project)
     upsert('quotes', { ...approved, projectId: project.id })
     toast(`Aprovado por ${money(value)}! Demanda “${project.title}” criada, aguardando sinal.`)
@@ -302,6 +331,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
         <Field label="Fechou em" hint="Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.">
           <DateInput value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
         </Field>
+        <HowPaid method={method} onChange={setMethod} amount={value} />
         <label className="check">
           <input type="checkbox" checked={signalPaid} onChange={(e) => setSignalPaid(e.target.checked)} /> o sinal já foi pago (entra como recebido em {closedOn.split('-').reverse().join('/')})
         </label>

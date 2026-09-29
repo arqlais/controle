@@ -2,6 +2,7 @@ import { ask, askDelete, toast } from './dialog'
 import { DateInput } from './DateInput'
 import { useState } from 'react'
 import { useStore } from '../store'
+import { HowPaid } from './quick'
 import type { CalendarEvent, Client, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
 import {
   CLIENT_TYPES,
@@ -238,7 +239,7 @@ export function newProject(clientId = ''): Project {
 
 type PayChoice = PayMode | 'manter'
 
-export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?: Project; clientId?: string; onClose: () => void; onSaved?: (p: Project) => void }) {
+export function ProjectForm({ initial, clientId, past: startPast, onClose, onSaved }: { initial?: Project; clientId?: string; past?: boolean; onClose: () => void; onSaved?: (p: Project) => void }) {
   const { data, upsert } = useStore()
   const { settings } = data
   const [p, setP] = useState<Project>(() => initial ?? { ...newProject(clientId), revisionsIncluded: settings.defaultRevisions })
@@ -246,7 +247,9 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
   const [showNewClient, setShowNewClient] = useState(false)
   const [showEditClient, setShowEditClient] = useState(false)
   // trabalho antigo (feito antes do sistema): entra já entregue e pago, sem orçamento e sem número
-  const [past, setPast] = useState(false)
+  const [past, setPast] = useState(!!startPast)
+  const [pastDates, setPastDates] = useState<Record<number, string>>({})
+  const [pastMethod, setPastMethod] = useState('Pix')
   const set = <K extends keyof Project>(k: K, v: Project[K]) => setP((x) => ({ ...x, [k]: v }))
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = settings.services.find((s) => s.id === p.service)
@@ -275,7 +278,16 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
     }
     if (past && !initial) {
       const when = final.dueDate || final.startDate || today()
-      final = { ...final, status: 'entregue', deliveredDate: when, payments: final.payments.map((x) => ({ ...x, dueDate: x.dueDate || when, paidDate: x.dueDate || when })), tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: true })) }
+      final = {
+        ...final,
+        status: 'entregue',
+        deliveredDate: when,
+        payments: final.payments.map((x, i) => {
+          const d = pastDates[i] || x.dueDate || when
+          return { ...x, dueDate: d, paidDate: d, method: payMode === 'cartao' ? x.method : pastMethod }
+        }),
+        tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: true })),
+      }
     }
     if (final.status === 'entregue' && !final.deliveredDate) final = { ...final, deliveredDate: today() }
     if (!final.tasks.length && !initial) {
@@ -298,7 +310,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
   return (
     <Modal
       wide
-      title={initial ? 'Editar projeto' : 'Nova demanda'}
+      title={initial ? 'Editar projeto' : past ? 'Trabalho antigo' : 'Nova demanda'}
       onClose={onClose}
       footer={
         <>
@@ -314,7 +326,7 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
       <div className="form-grid">
         {!initial && (
           <label className="check toggle past-job" style={{ gridColumn: '1 / -1' }}>
-            <input type="checkbox" checked={past} onChange={(e) => setPast(e.target.checked)} /> trabalho antigo, já entregue e pago (entra no financeiro sem orçamento e sem número)
+            <input type="checkbox" checked={past} onChange={(e) => setPast(e.target.checked)} /> cliente / trabalho antigo, já entregue e pago: entra no financeiro nas datas que você escolher, sem orçamento e sem número
           </label>
         )}
         <Field label="Nome do projeto *" span={2}>
@@ -409,6 +421,21 @@ export function ProjectForm({ initial, clientId, onClose, onSaved }: { initial?:
             onChange={setPayMode}
           />
         </Field>
+
+        {past && !initial && total > 0 && payMode !== 'manter' && (
+          <div className="past-pays" style={{ gridColumn: '1 / -1' }}>
+            <span className="field-label">quando você recebeu? (o financeiro conta cada valor no mês desta data)</span>
+            {splitPayments(total, payMode, p.startDate || today(), p.dueDate || p.startDate || today()).map((x, i) => (
+              <div key={i} className="past-pay-row">
+                <span>
+                  {x.description} · <b>{money(x.amount)}</b>
+                </span>
+                <DateInput value={pastDates[i] || x.dueDate || today()} onChange={(e) => setPastDates((d) => ({ ...d, [i]: e.target.value }))} />
+              </div>
+            ))}
+            {payMode !== 'cartao' && <HowPaid method={pastMethod} onChange={setPastMethod} amount={total} />}
+          </div>
+        )}
 
         <Field label="Revisões incluídas">
           <input type="number" min={0} value={p.revisionsIncluded} onChange={(e) => set('revisionsIncluded', Number(e.target.value) || 0)} />
