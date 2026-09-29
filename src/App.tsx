@@ -34,6 +34,7 @@ import Feedback from './pages/Feedback'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useBriefingSync } from './components/Briefing'
+import { markBetaDevice } from './beta'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
 import { setViewAsClient, viewingAsClient } from './viewAs'
@@ -82,6 +83,10 @@ export default function App() {
   const toggleExample = () => (isSample ? showSample(false) : ownDemo ? replaceAll({ ...data, demo: !data.demo }) : showSample(true))
   const { settings } = data
   const access = useAccess()
+  // aparelho da dona: vê as novidades ainda em teste (inclusive em "ver como cliente")
+  useEffect(() => {
+    if (access.isOwner) markBetaDevice()
+  }, [access.isOwner])
   // dona: caixa de entrada do chat (aviso de mensagem nova em qualquer tela)
   const inbox = useInbox(access.isOwner && !access.legacy, true)
   const sugUpdates = useSuggestionUpdates(!access.isOwner && !access.legacy)

@@ -1,3 +1,4 @@
+import { isBeta } from './beta'
 /* Novidades da plataforma: aparecem para quem usa assim que abre o sistema depois de uma
    atualização. Cada uma pode ter um "me mostra" que leva até a tela e destaca onde tocar.
    A mais nova fica em cima. Ao lançar algo novo, é só acrescentar aqui. */
@@ -17,6 +18,7 @@ export interface News {
   title: string
   text: string
   steps?: NewsStep[]
+  beta?: boolean // ainda em teste: só a dona (e a prévia) veem; quem assina vê quando sair o "beta"
 }
 
 export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
@@ -27,6 +29,7 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    beta: true,
     id: '2026-09-29-cliente-final',
     date: '2026-09-29',
     kind: 'novo',
@@ -38,6 +41,7 @@ export const NEWS: News[] = [
     ],
   },
   {
+    beta: true,
     id: '2026-09-29-briefing',
     date: '2026-09-29',
     kind: 'novo',
@@ -46,6 +50,7 @@ export const NEWS: News[] = [
     steps: [{ page: 'clientes', text: 'Abra um cliente final e toque em “criar briefing”: escolha as perguntas e mande no WhatsApp.' }],
   },
   {
+    beta: true,
     id: '2026-09-29-tabela-grupos',
     date: '2026-09-29',
     kind: 'melhoria',
@@ -54,6 +59,7 @@ export const NEWS: News[] = [
     steps: [{ page: 'config', configTab: 'precos', text: 'Em configurações → preços, cada serviço tem o campo “grupo”.' }],
   },
   {
+    beta: true,
     id: '2026-09-29-instagram-formatos',
     date: '2026-09-29',
     kind: 'melhoria',
@@ -176,4 +182,6 @@ export const NEWS: News[] = [
 ]
 
 /** Novidades que a pessoa ainda não viu. */
-export const unseenNews = (seen?: string[]) => (seen ? NEWS.filter((n) => !seen.includes(n.id)) : [])
+/** As novidades que esta pessoa pode ver (as em teste só aparecem para a dona e na prévia). */
+export const visibleNews = () => NEWS.filter((n) => !n.beta || isBeta())
+export const unseenNews = (seen?: string[]) => (seen ? visibleNews().filter((n) => !seen.includes(n.id)) : [])

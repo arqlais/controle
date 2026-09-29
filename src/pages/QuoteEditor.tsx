@@ -979,9 +979,11 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
   // só pergunta sobre os serviços deste orçamento que precisam de escolha (ex.: quais plantas);
   // renderização e outros sem lista não entram
   const inQuote = [...new Set([...q.items, ...q.options.flatMap((o) => o.items)].map((i) => i.service).filter(Boolean))]
-  const question = scopeQuestion(settings.services, inQuote)
-  const asking = settings.services.filter((s) => inQuote.includes(s.id) && s.checklist?.some((c) => c.trim()))
-  if (!question) return null
+  // orçamento ainda sem serviço: pergunta tudo (como antes); com serviços: só os deles
+  const ids = inQuote.length ? inQuote : undefined
+  const question = scopeQuestion(settings.services, ids)
+  const asking = settings.services.filter((s) => (!ids || ids.includes(s.id)) && s.checklist?.some((c) => c.trim()))
+  if (!scopeQuestion(settings.services)) return null
   const found = reply.trim() ? parseScopeReply(reply, settings.services) : {}
   const count = Object.values(found).reduce((n, l) => n + l.length, 0)
 
@@ -1016,9 +1018,11 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 
   return (
     <div className="row gap-s">
+      {question && (
       <button className="btn small ghost" onClick={() => setOpen('perguntar')} title={`Perguntar ao cliente: ${asking.map((s) => (s.checklistTitle || s.name).toLowerCase()).join(', ')}`}>
         <Icon name="whatsapp" size={14} /> perguntar
       </button>
+      )}
       <button className="btn small" onClick={() => setOpen('resposta')} title="Colar o que o cliente respondeu e marcar tudo sozinho">
         <Icon name="check" size={14} /> colar resposta
       </button>

@@ -4,7 +4,7 @@ import { Badge } from './ui'
 import { go } from '../router'
 import { useStore } from '../store'
 import { PLATFORM } from '../plans'
-import { NEWS, NEWS_KIND, unseenNews, type News, type NewsStep } from '../news'
+import { NEWS_KIND, unseenNews, visibleNews, type News, type NewsStep } from '../news'
 
 /* Novidades: abre sozinha quando há algo novo e fica no sininho do topo para rever.
    "me mostra" leva até a tela e destaca onde tocar, passo a passo. */
@@ -19,11 +19,11 @@ export function useNews(enabled: boolean) {
     const t = data.settings.tour
     const veteran = t === 'feito' || (!!t && t < new Date().toISOString().slice(0, 10))
     const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
-    setSettings({ newsSeen: NEWS.filter((n) => !veteran || n.date < cutoff).map((n) => n.id) })
+    setSettings({ newsSeen: visibleNews().filter((n) => !veteran || n.date < cutoff).map((n) => n.id) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, sync === 'loading', !!seen])
   const unseen = enabled ? unseenNews(seen) : []
-  const markSeen = () => setSettings({ newsSeen: NEWS.map((n) => n.id) })
+  const markSeen = () => setSettings({ newsSeen: [...new Set([...(data.settings.newsSeen ?? []), ...visibleNews().map((n) => n.id)])] })
   return { unseen, markSeen }
 }
 
@@ -53,7 +53,7 @@ const IMPACT = [
 
 /** Card das novidades: desfoca a tela, mostra o resumo e depois passa por cada novidade. */
 export function NewsModal({ unseen, onClose, onLater }: { unseen: News[]; onClose: () => void; onLater?: () => void }) {
-  const all = unseen.length ? unseen : NEWS.slice(0, 6)
+  const all = unseen.length ? unseen : visibleNews().slice(0, 6)
   // resumo enxuto: novidades e melhorias uma a uma; correções viram um item só
   const fixes = all.filter((x) => x.kind === 'correcao')
   const list: News[] = [

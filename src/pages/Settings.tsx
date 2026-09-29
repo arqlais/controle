@@ -19,6 +19,7 @@ import { useAccess } from '../access'
 import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
 import { ARCH_SERVICES, WORK_PROFILES } from '../clientDefaults'
+import { isBeta } from '../beta'
 import { PLANS } from '../plans'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
@@ -185,7 +186,7 @@ export default function SettingsPage() {
                           </option>
                         ))}
                       </select>
-                      <input className="service-group-input" list="service-groups" value={x.group ?? ''} onChange={(e) => setService(x.id, { group: e.target.value })} placeholder="grupo" aria-label="Grupo do serviço" title="Grupo: organiza a tabela e a lista do orçamento (ex.: projetos complementares)" />
+                      {isBeta() && <input className="service-group-input" list="service-groups" value={x.group ?? ''} onChange={(e) => setService(x.id, { group: e.target.value })} placeholder="grupo" aria-label="Grupo do serviço" title="Grupo: organiza a tabela e a lista do orçamento (ex.: projetos complementares)" />}
                       <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })} aria-label="Remover">
                         <Icon name="trash" size={16} />
                       </button>
@@ -442,7 +443,7 @@ export default function SettingsPage() {
                   <Icon name="user" size={14} /> abrir perfil
                 </a>
               </Section>
-          <WorkProfileSection />
+          {isBeta() && <WorkProfileSection />}
           <Section title="backup e dados">
             <p className="muted small">
               {CLOUD ? (
@@ -791,7 +792,7 @@ function WorkProfileSection() {
 function MissingArchServices() {
   const { data, setSettings } = useStore()
   const p = data.settings.workProfile
-  if (p !== 'final' && p !== 'ambos') return null
+  if (!isBeta() || (p !== 'final' && p !== 'ambos')) return null
   const missing = ARCH_SERVICES.filter((x) => x.id !== 'personalizado' && !data.settings.services.some((y) => y.id === x.id))
   if (!missing.length) return null
   return (

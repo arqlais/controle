@@ -11,6 +11,7 @@ import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState
 import type { Settings } from '../types'
 import { go } from '../router'
 import { LANDING_PROFILE_KEY } from '../components/Signup'
+import { isBeta } from '../beta'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
    As telas de exemplo usam os mesmos componentes do sistema, com dados fictícios. */
@@ -158,10 +159,10 @@ const BENEFITS = [
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['serve para quem está começando?', 'Serve, e foi pensado para isso: estudantes e freelancers em começo de carreira, que precisam de organização sem pagar caro.'],
-  ['serve para escritório que atende cliente final?', 'Serve. No cadastro você diz como trabalha: quem atende cliente final ganha a ficha completa do cliente (profissão, família, imóvel), o briefing por link e uma tabela pronta de projetos (arquitetônico, interiores, complementares, regularização e obra). Quem faz os dois usa tudo na mesma conta: cada cliente tem o seu tipo.'],
+  ...(isBeta() ? [['serve para escritório que atende cliente final?', 'Serve. No cadastro você diz como trabalha: quem atende cliente final ganha a ficha completa do cliente (profissão, família, imóvel), o briefing por link e uma tabela pronta de projetos (arquitetônico, interiores, complementares, regularização e obra). Quem faz os dois usa tudo na mesma conta: cada cliente tem o seu tipo.'] as [string, ReactNode]] : []),
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
-  ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para o WhatsApp. O Completo gera proposta, recibos e contratos em PDF com a sua identidade, e ainda tem agenda no celular, planejamento do instagram e o briefing online para o cliente final.'],
+  ['qual a diferença entre os planos?', 'No Essencial o orçamento sai como texto pronto para o WhatsApp. O Completo gera proposta, recibos e contratos em PDF com a sua identidade, e ainda tem agenda no celular e planejamento do instagram.'],
   ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
   ['o teste grátis é de qual plano?', `Do Completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
@@ -231,7 +232,8 @@ export default function Landing() {
       /* ok */
     }
   }
-  const final = aud === 'final'
+  const beta = isBeta() // "atendo cliente final" ainda em teste: só no aparelho da dona e na prévia
+  const final = beta && aud === 'final'
   // "seu escritório," pede as palavras no masculino
   const heroWords = final ? ['organizado', 'mais leve', 'no seu ritmo', 'lucrativo'] : siteWords
   const signup = (plan?: PlanId) => go('cadastro', plan)
@@ -276,6 +278,7 @@ export default function Landing() {
         </div>
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
+            {beta && (
             <div className="lp-aud" role="tablist" aria-label="Como você trabalha">
               {(
                 [
@@ -288,6 +291,7 @@ export default function Landing() {
                 </button>
               ))}
             </div>
+            )}
             {site.kicker && (
               <p className="lp-kicker">
                 <span className="lp-dot" /> {final ? 'feito para quem projeta para pessoas' : site.kicker}
@@ -297,7 +301,7 @@ export default function Landing() {
               {final ? 'seu escritório,' : site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
             </h1>
             <p className="lp-lead">{final ? 'Ficha completa do cliente, briefing por link, propostas de projeto, contratos e financeiro num lugar só. Do primeiro “oi” à entrega da obra.' : site.lead}</p>
-            <p className="lp-aud-note muted small">{final ? 'para arquitetos, designers e escritórios que projetam para o cliente final' : 'para quem presta serviço para escritórios: 3D, executivo, apresentação'} · faz os dois? tudo na mesma conta</p>
+            {beta && <p className="lp-aud-note muted small">{final ? 'para arquitetos, designers e escritórios que projetam para o cliente final' : 'para quem presta serviço para escritórios: 3D, executivo, apresentação'} · faz os dois? tudo na mesma conta</p>}
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta lp-shine" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />

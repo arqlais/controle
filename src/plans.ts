@@ -1,3 +1,4 @@
+import { isBeta } from './beta'
 /* ============================================================
    Plataforma: nome, preços, planos e o que cada plano libera.
    TUDO que é "comercial" fica aqui — trocar nome ou preço é só neste arquivo.
@@ -80,7 +81,7 @@ export const PLANS: Record<PlanId, Plan> = {
     price: 59.9,
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing'],
-    highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram', 'briefing online para o cliente final'],
+    highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
     featured: true,
   },
 }
@@ -115,7 +116,7 @@ export function compareRows(): [string, boolean | string, boolean | string][] {
     row('contratos com os dados do orçamento', 'contratos'),
     row('agenda sincronizada no celular', 'agendaCelular'),
     row('planejamento do instagram', 'instagram'),
-    row('briefing online para o cliente final', 'briefing'),
+    ...(isBeta() ? [row('briefing online para o cliente final', 'briefing')] : []),
     ['chat direto com o assistente online', true, true],
   ]
 }
