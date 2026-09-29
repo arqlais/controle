@@ -291,11 +291,15 @@ export default function ProjectDetail({ id }: { id: string }) {
                           <td data-label="valor">
                             <MoneyInput value={x.amount} onChange={(n) => setPayment(x.id, { amount: n })} />
                           </td>
-                          <td data-label="quando">
+                          <td data-label={x.monthly ? 'vence em' : 'quando'}>
+                            {x.monthly ? (
+                              <DateInput className="cell-input" value={x.dueDate} onChange={(e) => setPayment(x.id, { dueDate: e.target.value || x.dueDate })} />
+                            ) : (
                             <select className="cell-input" value={payWhen(x)} onChange={(e) => setPayment(x.id, { on: e.target.value as Payment['on'], dueDate: e.target.value === 'conclusao' ? p.dueDate || '' : x.dueDate || today() })}>
                               <option value="fechamento">fechamento</option>
                               <option value="conclusao">conclusão</option>
                             </select>
+                            )}
                           </td>
                           <td data-label="forma">
                             <select className="cell-input" value={x.method} onChange={(e) => setPayment(x.id, { method: e.target.value })}>

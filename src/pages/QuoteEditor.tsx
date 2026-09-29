@@ -35,6 +35,8 @@ import {
   parseScopeReply,
   scopeQuestion,
   daysBetween,
+  packageMonths,
+  packageText,
   nextQuoteNumber,
   COMPLEXITY,
   QUOTE_STATUS,
@@ -221,6 +223,8 @@ export default function QuoteEditor({ id }: { id: string }) {
 
   const sub = quoteSubtotal(q)
   const total = quoteTotal(q, settings.urgencyFee)
+  const months = packageMonths(q)
+  const payText = months ? packageText(months, two ? undefined : total) : q.paymentTerms
 
   // arquivo aberto / pavimentos: recalcula os serviços que seguem a tabela
   const floors = Math.max(1, q.floors ?? 1)
@@ -364,8 +368,8 @@ export default function QuoteEditor({ id }: { id: string }) {
           ...q.options.slice(0, MAX_OPTIONS).flatMap((o, i) => [`*${q.combo ? 'proposta' : 'opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `total: ${money(optionTotal(o))}`, '']),
           ...(isCombo(q) && q.comboDiscount ? [`*fechando ${allLabel(q).toLowerCase()} juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
         ]
-      : [...q.items.map(line), q.urgency ? `• taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• desconto — −${money(q.discount)}` : '', '', `*investimento total: ${money(total)}*`]
-    return [...head, ...body, q.paymentTerms ? `pagamento: ${q.paymentTerms}` : '', q.schedule ? `prazos: ${q.schedule}` : '', '', 'é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre']
+      : [...q.items.map(line), q.urgency ? `• taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• desconto — −${money(q.discount)}` : '', '', `*investimento total: ${money(total)}*`, months ? `(pacote em ${months}× de ${money(Math.round((total / months) * 100) / 100)} por mês)` : '']
+    return [...head, ...body, payText ? `pagamento: ${payText}` : '', q.schedule ? `prazos: ${q.schedule}` : '', '', 'é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre']
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
       .join('\n')
   }
@@ -672,6 +676,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <span>investimento total</span>
                   <b>{money(total)}</b>
                 </div>
+                {months > 0 && (
+                  <p className="package-line">
+                    pacote em <b>{months}× de {money(Math.round((total / months) * 100) / 100)}</b> por mês{!q.discount ? ' · dica: pacote fechado costuma ter 5% a 10% de desconto (botões acima)' : ''}
+                  </p>
+                )}
                 <Field label="Texto abaixo do total" hint="Em branco, o sistema escreve o desconto sozinho.">
                   <input value={q.discountNote} onChange={(e) => set({ discountNote: e.target.value })} placeholder="Ex.: valor especial para pacote fechado" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
                 </Field>
@@ -775,8 +784,18 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           <Section title="informações da proposta">
             <div className="form-grid">
-              <Field label="Pagamento" span={3}>
-                <input value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} />
+              <Field group label="Pacote / parceria mensal" span={3} hint={months ? 'O total é dividido em parcelas mensais iguais. Ao aprovar, a demanda já sai com uma parcela por mês no financeiro.' : 'Cliente quer fechar vários serviços e pagar mês a mês? Escolha em quantos meses divide.'}>
+                <select value={months} onChange={(e) => set({ months: Number(e.target.value) || undefined, ...(Number(e.target.value) && !q.discountNote ? { discountNote: 'valor especial para pacote fechado' } : {}) })}>
+                  <option value={0}>não, pagamento normal</option>
+                  {[2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
+                    <option key={n} value={n}>
+                      {n} meses{!two ? ` · ${n}× de ${money(Math.round((total / n) * 100) / 100)}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Pagamento" span={3} hint={months ? 'Texto automático do pacote (muda sozinho com o valor e os meses).' : undefined}>
+                {months ? <div className="readonly">{payText}</div> : <input value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} />}
               </Field>
               <Field label="Prazos e cronograma" span={3}>
                 <input list="schedule-opts" value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />

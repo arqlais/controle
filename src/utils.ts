@@ -328,7 +328,7 @@ export function deadlineInfo(p: Project): { text: string; tone: 'good' | 'warn' 
 export const payWhen = (x: Payment): 'fechamento' | 'conclusao' => x.on ?? (/saldo|aprova|conclus|entrega/i.test(x.description) ? 'conclusao' : 'fechamento')
 export const PAY_WHEN = { fechamento: 'no fechamento', conclusao: 'na conclusão' } as const
 /** Já dá para cobrar: sinal em aberto, ou saldo em aberto com a demanda em aprovação/entregue. */
-export const paymentDue = (x: Payment, p?: Project) => !x.paidDate && (payWhen(x) === 'fechamento' || (!!p && (p.status === 'aguardando' || p.status === 'entregue')))
+export const paymentDue = (x: Payment, p?: Project) => !x.paidDate && (x.monthly ? !!x.dueDate && daysUntil(x.dueDate) <= 3 : payWhen(x) === 'fechamento' || (!!p && (p.status === 'aguardando' || p.status === 'entregue')))
 
 export type PaymentState = 'pago' | 'cobrar' | 'pendente'
 export const paymentState = (x: Payment, p?: Project): PaymentState => (x.paidDate ? 'pago' : paymentDue(x, p) ? 'cobrar' : 'pendente')
@@ -546,6 +546,34 @@ export const quoteTotal = (q: Quote, urgencyFee: number) => {
 
 /** Valor que vale para o financeiro: o fechado na negociação, ou o da proposta. */
 export const quoteDeal = (q: Quote, urgencyFee: number) => (q.closedValue && q.closedValue > 0 ? q.closedValue : quoteTotal(q, urgencyFee))
+
+/* ---- pacote / parceria mensal: o total dividido em parcelas mensais iguais ---- */
+export const packageMonths = (q: Pick<Quote, 'months'>) => (q.months && q.months >= 2 ? Math.min(24, Math.round(q.months)) : 0)
+/** Mesmo dia nos meses seguintes (31/jan + 1 mês = 28/fev). */
+export const addMonths = (iso: string, n: number) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  const last = new Date(y, m - 1 + n + 1, 0).getDate()
+  const dt = new Date(y, m - 1 + n, Math.min(d, last))
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+/** Parcelas mensais: centavos que sobram vão na primeira. */
+export function monthlyPayments(total: number, months: number, start: string, method = 'Pix'): Payment[] {
+  const each = Math.floor((total / months) * 100) / 100
+  const first = Math.round((total - each * (months - 1)) * 100) / 100
+  return Array.from({ length: months }, (_, i) => ({
+    id: uid(),
+    description: `Parcela ${i + 1}/${months} do pacote`,
+    amount: i === 0 ? first : each,
+    dueDate: addMonths(start, i),
+    paidDate: null,
+    method,
+    on: 'fechamento' as const,
+    monthly: true,
+  }))
+}
+/** Texto do pagamento de um pacote (vai na proposta e no WhatsApp). */
+export const packageText = (months: number, total?: number) =>
+  `pacote fechado em ${months} parcelas mensais${total ? ` de ${money(Math.round((total / months) * 100) / 100)}` : ' iguais'}: a primeira na aprovação e as outras no mesmo dia dos meses seguintes, por Pix.`
 
 /** Divide um valor em parcelas (ex.: 50% entrada + 50% na entrega). */
 export type PayMode = '50-50' | 'inicio' | 'cartao'

@@ -63,6 +63,7 @@ export interface Payment {
   paidDate: string | null
   method: string
   fee?: number // taxa da maquininha/Mercado Pago (em branco: calcula pela % das configurações)
+  monthly?: boolean // parcela mensal de um pacote: só vira "cobrar" perto do vencimento
   on?: 'fechamento' | 'conclusao' // quando é cobrada: sinal no fechamento, saldo na conclusão
 }
 
@@ -238,6 +239,7 @@ export interface Quote {
   pdfAt?: string // quando o PDF deste rascunho foi baixado (reserva o número)
   imported?: boolean // veio da importação de orçamentos antigos (mantém o número real)
   noNumber?: boolean // orçamento antigo lançado sem número (não entra na numeração)
+  months?: number // pacote / parceria: o total dividido em parcelas mensais (0 ou vazio = normal)
   dateFixed?: boolean // rascunho com data escolhida por ela (senão a data vai para hoje ao abrir)
   createdAt: string
   projectId: string

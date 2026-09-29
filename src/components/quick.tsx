@@ -4,7 +4,7 @@ import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Project, Quote, QuoteStatus } from '../types'
-import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
+import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -286,6 +286,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const [cardPaid, setCardPaid] = useState(true)
   const [method, setMethod] = useState('Pix')
   const card = isCard(method)
+  const pkg = packageMonths(q)
   const [note, setNote] = useState(q.closedNote ?? '')
   const due = dayMode === 'data' ? exactDate : workDays > 0 ? (dayMode === 'uteis' ? addBusinessDays(closedOn, workDays) : addDays(closedOn, workDays)) : ''
   const diff = Math.round((proposed - value) * 100) / 100
@@ -301,10 +302,11 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
       ? { ...base, payments: splitPayments(value, 'cartao', closedOn, due).map((x) => ({ ...x, paidDate: cardPaid ? closedOn : null })) }
       : {
           ...base,
-          payments: base.payments.map((x, i) => ({
+          // pacote: uma parcela por mês a partir do fechamento
+          payments: (pkg ? monthlyPayments(value, pkg, closedOn, method) : base.payments).map((x, i) => ({
             ...x,
             method,
-            paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? (i === 0 ? closedOn : x.dueDate || closedOn) : x.paidDate,
+            paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? (i === 0 ? closedOn : pkg ? x.dueDate : x.dueDate || closedOn) : x.paidDate,
           })),
         }
     // orçamento antigo, tudo pago: a demanda já entra entregue
@@ -351,13 +353,13 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
             <input type="checkbox" checked={cardPaid} onChange={(e) => setCardPaid(e.target.checked)} /> já foi pago: 100% no cartão, no início (entra como recebido em {closedOn.split('-').reverse().join('/')})
           </label>
         ) : (
-          <Field group label="O que já foi pago?" hint={paidPart === 'tudo' ? `Sinal em ${closedOn.split('-').reverse().join('/')} e saldo no prazo de entrega${due ? ` (${due.split('-').reverse().join('/')})` : ' (ou na data do fechamento, sem prazo)'}. Dá para ajustar cada data na demanda.` : paidPart === 'sinal' ? `O sinal entra como recebido em ${closedOn.split('-').reverse().join('/')}.` : 'As parcelas ficam a receber.'}>
+          <Field group label="O que já foi pago?" hint={pkg ? `Pacote: ${pkg} parcelas mensais de ${money(Math.round((value / pkg) * 100) / 100)}, a partir de ${closedOn.split('-').reverse().join('/')}. ${paidPart === 'tudo' ? 'Todas entram como recebidas, cada uma no seu mês.' : paidPart === 'sinal' ? 'A 1ª parcela entra como recebida.' : 'Cada parcela aparece para cobrar perto do vencimento.'}` : paidPart === 'tudo' ? `Sinal em ${closedOn.split('-').reverse().join('/')} e saldo no prazo de entrega${due ? ` (${due.split('-').reverse().join('/')})` : ' (ou na data do fechamento, sem prazo)'}. Dá para ajustar cada data na demanda.` : paidPart === 'sinal' ? `O sinal entra como recebido em ${closedOn.split('-').reverse().join('/')}.` : 'As parcelas ficam a receber.'}>
             <Segmented
               value={paidPart}
               onChange={setPaidPart}
               options={[
                 { value: 'nada', label: 'nada ainda' },
-                { value: 'sinal', label: 'só o sinal' },
+                { value: 'sinal', label: pkg ? 'só a 1ª parcela' : 'só o sinal' },
                 { value: 'tudo', label: 'tudo (trabalho antigo)' },
               ]}
             />

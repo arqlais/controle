@@ -227,7 +227,16 @@ function Login({ onEnter }: { onEnter?: () => void }) {
     if (forgot) {
       const { error } = await supabase!.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + window.location.pathname })
       setBusy(false)
-      if (error) return setError('Não foi possível enviar agora. Confira o e-mail e tente de novo.')
+      if (error) {
+        const m = error.message.toLowerCase()
+        return setError(
+          m.includes('rate') || m.includes('seconds') || m.includes('security purposes')
+            ? 'Você pediu há pouco. Espere 1 minuto e tente de novo.'
+            : m.includes('not authorized') || m.includes('smtp') || m.includes('sending')
+              ? 'O envio de e-mails ainda não foi configurado. Fale com o suporte pelo chat.'
+              : 'Não foi possível enviar agora. Confira o e-mail e tente de novo.',
+        )
+      }
       toast('Enviamos um link para criar uma nova senha. Confira seu e-mail.')
       setForgot(false)
       return

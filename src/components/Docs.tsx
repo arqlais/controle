@@ -4,7 +4,7 @@ import { PAYMENT_TERMS } from '../store'
 import { useAccess } from '../access'
 import { resolveTemplate, sheetColors } from '../proposalTemplates'
 import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings } from '../types'
-import { allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
+import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -311,7 +311,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
     return [name || quote.title || 'serviços', area > 0 ? `${approx ? '≈ ' : ''}${area.toLocaleString('pt-BR')} m²` : '', floors > 1 && !floorsHidden ? `${floors} pavimentos` : ''].filter(Boolean).join(' • ')
   }
   const infos = [
-    { icon: 'pay' as const, label: 'Pagamento', text: quote.paymentTerms.trim() || PAYMENT_TERMS },
+    { icon: 'pay' as const, label: 'Pagamento', text: packageMonths(quote) ? packageText(packageMonths(quote), quote.mode === 'opcoes' ? undefined : quoteTotal(quote, s.urgencyFee)) : quote.paymentTerms.trim() || PAYMENT_TERMS },
     { icon: 'calendar' as const, label: 'Prazos e cronograma', text: quote.schedule },
     { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: quoteFiles(quote, s.services) },
   ].filter((x) => x.text?.trim())
@@ -319,7 +319,8 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
   const sub = quoteSubtotal(quote)
   const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
   const scopeDiscount = quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
-  const scopeNote = quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · ')
+  const pkg = packageMonths(quote)
+  const scopeNote = [quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · '), pkg ? `em ${pkg}× de ${money(Math.round((quoteTotal(quote, s.urgencyFee) / pkg) * 100) / 100)} por mês` : ''].filter(Boolean).join(' · ')
 
   const main = (
     <>
