@@ -12,7 +12,7 @@ import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
-import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, today } from './utils'
+import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, setEventLabels, today } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -85,6 +85,7 @@ export default function App() {
   const inbox = useInbox(access.isOwner && !access.legacy, true)
   const [chatSignal, setChatSignal] = useState(0)
   const openChat = () => setChatSignal((n) => n + 1)
+  setEventLabels(settings.eventLabels)
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
   // topo das páginas de item fixo: mede a barra de busca e marca quando o topo "grudou" (fica mais compacto)

@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
 import { waitingDays } from './Quotes'
-import { PayNext, StatusSelect, requestStatus, TaskQuick } from '../components/quick'
+import { PayNext, QuoteStatusSelect, StatusSelect, requestStatus, TaskQuick } from '../components/quick'
 import { Icon } from '../components/Icon'
 import { ProjectForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
@@ -182,7 +182,7 @@ export default function Projects() {
                   </header>
                   <div className="column-body">
                     {list.slice(0, 8).map((x) => (
-                      <a key={x.id} className="kcard kcard-draft" href={href('orcamentos', x.id)}>
+                      <div key={x.id} className="kcard kcard-draft" role="link" tabIndex={0} onClick={() => go('orcamentos', x.id)} onKeyDown={(e) => e.key === 'Enter' && go('orcamentos', x.id)}>
                         <div className="kcard-top">
                           <span className="kcard-client">{x.clientId ? clientName(x.clientId) : 'sem cliente'}</span>
                           {x.number ? <span className="kcard-num">{quoteNumber(x)}</span> : null}
@@ -194,7 +194,10 @@ export default function Projects() {
                             {st === 'enviado' && x.sentAt ? (waitingDays(x) > 0 ? `aguardando há ${waitingDays(x)} dia(s)` : 'enviado hoje') : fmtDateLong(x.createdAt)}
                           </span>
                         </div>
-                      </a>
+                        <div className="kcard-status" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                          <QuoteStatusSelect q={x} />
+                        </div>
+                      </div>
                     ))}
                     {!list.length && <p className="muted small center">{empty}</p>}
                     {list.length > 8 && (

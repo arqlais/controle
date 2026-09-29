@@ -176,13 +176,19 @@ export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
 
 export const EVENT_TYPES: Record<EventType, { label: string; color: string }> = {
   reuniao: { label: 'Reunião com cliente', color: '#5b7a99' },
-  faculdade: { label: 'Faculdade / TCC', color: '#a888a8' },
+  faculdade: { label: 'Estudos / faculdade', color: '#a888a8' },
   entrega: { label: 'Entrega parcial', color: '#6f9a7c' },
   pessoal: { label: 'Pessoal', color: '#d19a8f' },
   outro: { label: 'Outro', color: '#9aa3ab' },
 }
+/** Nomes dos tipos de compromisso trocados pela pessoa (configurações → na própria agenda). */
+let eventNames: Partial<Record<EventType, string>> = {}
+export const setEventLabels = (m?: Partial<Record<EventType, string>>) => {
+  eventNames = m ?? {}
+}
+export const eventTypeLabel = (t: EventType) => eventNames[t]?.trim() || EVENT_TYPES[t].label
 /** Nome do tipo do compromisso: o digitado, quando é "outro". */
-export const eventLabel = (e: { type: EventType; customType?: string }) => (e.type === 'outro' && e.customType?.trim() ? e.customType.trim() : EVENT_TYPES[e.type].label)
+export const eventLabel = (e: { type: EventType; customType?: string }) => (e.type === 'outro' && e.customType?.trim() ? e.customType.trim() : eventTypeLabel(e.type))
 
 export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }> = {
   rascunho: { label: 'Rascunho', color: '#9aa3ab' },

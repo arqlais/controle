@@ -1144,3 +1144,5 @@
 .pf-templates { display: flex; gap: 6px; align-items: center; overflow-x: auto; padding: 8px 12px 0; scrollbar-width: none; }
 .pf-templates .chip { flex: none; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
 .pf-templates .chip.is-suggested { border-color: var(--accent-soft); background: var(--accent-tint); font-weight: 500; }
+.event-rename { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: var(--surface-2); } .event-rename-row { display: flex; align-items: center; gap: 10px; } .event-rename-row input { flex: 1; }
+.kcard-status { margin-top: 8px; } .kcard-status select { width: 100%; font-size: 12px; padding: 5px 8px; } .kcard-draft { cursor: pointer; }

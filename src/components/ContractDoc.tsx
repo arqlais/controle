@@ -83,7 +83,7 @@ function ClientContract({ s, body, clientName, has }: { s: Settings; body: strin
             <small>contratante</small>
           </div>
           <div>
-            {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
+            <i className="c-sign-img" />
             <span />
             <b>{s.legalName || s.ownerName || 'contratada'}</b>
             <small>contratada</small>
@@ -273,7 +273,7 @@ function LaisContract({ s, body, clientName }: { s: Settings; body: string; clie
       case 'sign':
         return (
           <div key={i} className="lc-signs">
-            <div className="lc-sign-box">{s.signature ? <img src={s.signature} alt="" /> : <span className="lc-sign-name">{who}</span>}</div>
+            <div className="lc-sign-box" />
             <p className="lc-sign-who">
               {who.toUpperCase()}
               <b>CONTRATADO</b>

@@ -158,7 +158,7 @@ export default function Agenda() {
           [
             ['entrega', 'Prazos de entrega'],
             ['pagamento', 'Pagamentos'],
-            ['evento', 'Compromissos e faculdade'],
+            ['evento', 'Compromissos'],
           ] as [Layer, string][]
         ).map(([k, label]) => (
           <label key={k} className="check">

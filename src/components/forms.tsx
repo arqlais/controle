@@ -10,6 +10,7 @@ import {
   projectTotal,
   DEFAULT_TASKS,
   EVENT_TYPES,
+  eventTypeLabel,
   EXPENSE_CATEGORIES,
   PRIORITY,
   statusInfo,
@@ -528,7 +529,8 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
 
 export function EventForm({ initial, date, isNew, onClose }: { initial?: CalendarEvent; date?: string; isNew?: boolean; onClose: () => void }) {
   const editing = !!initial && !isNew
-  const { data, upsert, remove } = useStore()
+  const { data, upsert, remove, setSettings } = useStore()
+  const [rename, setRename] = useState(false)
   const [ev, setEv] = useState<CalendarEvent>(
     initial ?? { id: uid(), title: '', date: date ?? today(), time: '', type: 'reuniao', projectId: '', notes: '', done: false },
   )
@@ -581,15 +583,40 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
         <Field label="Horário">
           <input type="time" value={ev.time} onChange={(e) => set('time', e.target.value)} />
         </Field>
-        <Field label="Tipo">
+        <Field
+          group
+          label="Tipo"
+          hint={
+            <button type="button" className="link small" onClick={() => setRename((v) => !v)}>
+              {rename ? 'fechar' : 'renomear os tipos'}
+            </button>
+          }
+        >
           <select value={ev.type} onChange={(e) => set('type', e.target.value as EventType)}>
-            {Object.entries(EVENT_TYPES).map(([k, v]) => (
+            {(Object.keys(EVENT_TYPES) as EventType[]).map((k) => (
               <option key={k} value={k}>
-                {v.label}
+                {eventTypeLabel(k)}
               </option>
             ))}
           </select>
         </Field>
+        {rename && (
+          <div className="event-rename" style={{ gridColumn: '1 / -1' }}>
+            <p className="muted small">Os tipos são seus: troque os nomes como fizer sentido na sua rotina (ex.: “Estudos / faculdade” vira “Curso” ou “Visita de obra”).</p>
+            {(Object.keys(EVENT_TYPES) as EventType[])
+              .filter((k) => k !== 'outro')
+              .map((k) => (
+                <label key={k} className="event-rename-row">
+                  <span className="dot" style={{ background: EVENT_TYPES[k].color }} />
+                  <input
+                    value={data.settings.eventLabels?.[k] ?? EVENT_TYPES[k].label}
+                    onChange={(e) => setSettings({ eventLabels: { ...data.settings.eventLabels, [k]: e.target.value } })}
+                    aria-label={`Nome do tipo ${EVENT_TYPES[k].label}`}
+                  />
+                </label>
+              ))}
+          </div>
+        )}
         {ev.type === 'outro' && (
           <Field label="Qual tipo?" span={3} hint="Opcional. Ex.: curso, médico, visita de obra.">
             <input

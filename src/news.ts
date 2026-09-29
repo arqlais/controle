@@ -27,6 +27,29 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-status-no-quadro',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'aprovado ou recusado direto nas demandas',
+    text: 'Nos cartões de orçamento (rascunhos e enviados) do quadro de demandas, agora dá para mudar a situação ali mesmo: enviado, aprovado, não fechou…',
+    steps: [{ page: 'projetos', target: '.kcard-status', text: 'Escolha a situação aqui. Se for “aprovado”, abre a janela para criar a demanda com o valor fechado.' }],
+  },
+  {
+    id: '2026-09-30-agenda-tipos',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'tipos da agenda com os seus nomes',
+    text: 'Os tipos de compromisso agora são seus: troque “Estudos / faculdade”, “Reunião” e os outros pelos nomes que fazem sentido na sua rotina.',
+    steps: [{ page: 'agenda', text: 'Toque em “+ Compromisso” e, no campo Tipo, em “renomear os tipos”. O nome novo vale para a agenda toda.' }],
+  },
+  {
+    id: '2026-09-30-contrato-assinatura',
+    date: '2026-09-30',
+    kind: 'correcao',
+    title: 'contrato com espaço de assinatura em branco',
+    text: 'O contrato sai sem assinatura pronta: as duas partes assinam depois, no papel ou numa plataforma de assinatura digital (como gov.br, Clicksign ou DocuSign).',
+  },
+  {
     id: '2026-09-29-pacote-mensal',
     date: '2026-09-29',
     kind: 'novo',
