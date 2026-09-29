@@ -14,6 +14,14 @@ export interface SiteContent {
   whatsapp: string
   email: string
   about: string // frase do rodapé
+  // página de vendas (topo, seções e dúvidas)
+  banner: string // faixa de aviso no alto (ex.: promoção de lançamento); vazio = não aparece
+  kicker: string // etiqueta acima do título
+  heroTitle: string // começo do título ("sua vida de freelancer,")
+  heroWords: string // palavras que giram no título, separadas por vírgula
+  lead: string // frase embaixo do título
+  hidden: string[] // seções escondidas: jornada, telas, para, depoimentos, duvidas
+  faqExtra: string // perguntas a mais: pergunta na 1ª linha, resposta embaixo; blocos separados por linha em branco
 }
 
 export const DEFAULT_SITE: SiteContent = {
@@ -29,7 +37,29 @@ Procurei um sistema pensado para o freelancer e não encontrei. Então criei o m
   whatsapp: '',
   email: '',
   about: 'o sistema de gestão para freelancers de arquitetura, design de interiores e visualização 3D.',
+  banner: '',
+  kicker: 'feito para freelancers criativos',
+  heroTitle: 'sua vida de freelancer,',
+  heroWords: 'organizada, mais leve, no seu ritmo, lucrativa',
+  lead: 'Clientes, orçamentos, prazos e pagamentos num lugar só. Do primeiro “oi” ao recibo.',
+  hidden: [],
+  faqExtra: '',
 }
+/** Seções da página de vendas que a dona pode esconder. */
+export const LP_SECTIONS: [string, string][] = [
+  ['jornada', 'como funciona'],
+  ['telas', 'telas de verdade'],
+  ['para', 'feito para quem…'],
+  ['depoimentos', 'depoimentos'],
+  ['duvidas', 'perguntas frequentes'],
+]
+/** Perguntas a mais escritas pela dona (pergunta na 1ª linha, resposta nas seguintes). */
+export const extraFaq = (text: string): [string, string][] =>
+  (text || '')
+    .split(/\n\s*\n/)
+    .map((b) => b.trim().split('\n'))
+    .filter((l) => l[0]?.trim() && l.slice(1).join(' ').trim())
+    .map((l) => [l[0].trim(), l.slice(1).join(' ').trim()])
 
 /** Termos de uso + contrato de assinatura (a dona revisa e edita no painel). */
 export const DEFAULT_TERMS = `TERMOS DE USO E CONTRATO DE ASSINATURA — ${PLATFORM.name.toUpperCase()}

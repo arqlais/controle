@@ -8,10 +8,11 @@ import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
 import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
-import { DEFAULT_TERMS, EMPTY_COMPANY, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
-import { formatDoc, matches, money } from '../utils'
+import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
+import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
+import { DateInput } from '../components/DateInput'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
@@ -31,11 +32,23 @@ export default function Admin() {
   // dados de cobrança (vindos da tela de assinatura) e sugestões de melhoria
   const [billing, setBilling] = useState<Record<string, Billing>>({})
   const [sugs, setSugs] = useState<Suggestion[]>([])
+  // controle de cobrança de cada assinante (pago até, pagamentos, anotações): só a dona vê
+  const [ctrl, setCtrl] = useState<Record<string, SubAdmin>>({})
+  const saveCtrl = async (userId: string, d: SubAdmin, msg = '') => {
+    setCtrl((c) => ({ ...c, [userId]: d }))
+    try {
+      await platform.saveSubAdmin(userId, d)
+      if (msg) toast(msg)
+    } catch {
+      toast('Não foi possível salvar o controle. Rode de novo o SQL da plataforma no Supabase (tem uma tabela nova).')
+    }
+  }
   const loadExtra = useCallback(async () => {
     try {
-      const [b, sg] = await Promise.all([platform.allBilling(), platform.suggestions()])
+      const [b, sg, ct] = await Promise.all([platform.allBilling(), platform.suggestions(), platform.subAdmin()])
       setBilling(b)
       setSugs(sg)
+      setCtrl(ct)
     } catch {
       /* tabelas ainda não criadas ou sem conexão */
     }
@@ -94,8 +107,8 @@ export default function Admin() {
           ]}
         />
       </div>
-      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} />}
-      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
+      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} />}
+      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
       {tab === 'depoimentos' && <FeedbackAdmin />}
@@ -121,9 +134,26 @@ export default function Admin() {
 }
 
 // ativar: pagamento confirmado por você (na fase 2, pelo sistema de pagamento)
+type SaveCtrl = (userId: string, d: SubAdmin, msg?: string) => Promise<void>
+/* ---- cobrança de cada assinante ---- */
+const cycleOf = (s: Subscription, c?: SubAdmin, b?: Billing) => c?.cycle ?? s.requestedCycle ?? b?.cycle ?? 'mensal'
+const priceOf = (s: Subscription, cycle: string) => (cycle === 'anual' ? annualPrice(PLANS[s.plan].price) : PLANS[s.plan].price)
+/** Dias até vencer (negativo = vencida). Só para quem paga e tem "pago até". */
+const dueDays = (s: Subscription, c?: SubAdmin) => (paying(s) && c?.paidUntil ? daysUntil(c.paidUntil) : null)
+const dueLabel = (d: number) => (d < 0 ? `venceu há ${-d} dia(s)` : d === 0 ? 'vence hoje' : `vence em ${d} dia(s)`)
+const dueColor = (d: number) => (d < 0 ? '#b5524c' : d <= 5 ? '#b98246' : '#5e8c6a')
+/** Registra um pagamento e empurra o "pago até" 1 mês (ou 12, no anual). */
+function withPayment(s: Subscription, c: SubAdmin | undefined, b: Billing | undefined, p: Omit<SubPayment, 'id'>): SubAdmin {
+  const cycle = cycleOf(s, c, b)
+  const base = c?.paidUntil && c.paidUntil > p.date ? c.paidUntil : p.date
+  return { ...c, cycle, method: p.method, paidUntil: addMonths(base, cycle === 'anual' ? 12 : 1), payments: [{ ...p, id: uid() }, ...(c?.payments ?? [])] }
+}
+const remindText = (s: Subscription, c?: SubAdmin) =>
+  `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! passando para lembrar que a sua assinatura do ${PLATFORM.name} (${PLANS[s.plan].name}) ${c?.paidUntil ? `vence em ${c.paidUntil.split('-').reverse().join('/')}` : 'está para renovar'}. ${c?.method === 'cartao' ? 'no cartão a cobrança é automática, é só conferir se o cartão está em dia ☺️' : 'posso te mandar o Pix por aqui? ☺️'}`
+
 const activate = (s: Subscription): Partial<Subscription> => ({ status: 'ativa', plan: s.requestedPlan ?? s.plan, requestedPlan: null, requestedAt: null, canceledAt: null, blocked: false })
 
-function Summary({ subs, update, openChat, billing }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; billing: Record<string, Billing> }) {
+function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const requests = subs.filter((x) => x.requestedPlan)
   const now = new Date()
   const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
@@ -147,8 +177,67 @@ function Summary({ subs, update, openChat, billing }: { subs: Subscription[]; up
       .reduce((s, x) => s + PLANS[x.plan].price, 0)
   })
 
+  // pagamentos registrados de verdade (aba assinantes → cobrança)
+  const allPays = subs.flatMap((s) => (ctrl[s.userId]?.payments ?? []).map((p) => ({ s, p })))
+  const ym = (iso: string) => iso.slice(0, 7)
+  const nowYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const receivedMonth = allPays.filter((x) => ym(x.p.date) === nowYM).reduce((n, x) => n + x.p.amount, 0)
+  const realRevenue = months.map((m) => allPays.filter((x) => ym(x.p.date) === `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`).reduce((n, x) => n + x.p.amount, 0))
+  const hasReal = allPays.length > 0
+  const upcoming = subs
+    .map((s) => ({ s, d: dueDays(s, ctrl[s.userId]) }))
+    .filter((x): x is { s: Subscription; d: number } => x.d !== null && x.d <= 10)
+    .sort((a, b) => a.d - b.d)
+  const endingTrials = subs.filter((x) => x.status === 'trial' && trialDaysLeft(x) > 0 && trialDaysLeft(x) <= 3)
   return (
     <>
+      <div className="stats">
+        <Stat label="Recebido este mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s) registrado(s)` : 'registre em assinantes → cobrança'} icon="check" tone="good" />
+        <Stat label="Vencendo / vencidas" value={upcoming.length} sub={upcoming.length ? `${upcoming.filter((x) => x.d < 0).length} vencida(s) · ${money(upcoming.reduce((n, x) => n + priceOf(x.s, cycleOf(x.s, ctrl[x.s.userId], billing[x.s.userId])), 0))}` : 'nada nos próximos 10 dias'} icon="calendar" tone={upcoming.some((x) => x.d < 0) ? 'warn' : undefined} />
+      </div>
+      {(upcoming.length > 0 || endingTrials.length > 0) && (
+        <Section title="cobranças e testes para olhar">
+          {upcoming.map(({ s, d }) => {
+            const c = ctrl[s.userId]
+            const cyc = cycleOf(s, c, billing[s.userId])
+            return (
+              <div key={s.userId} className="pf-plan-line">
+                <b>{s.name || s.email}</b>
+                <span className="muted small">
+                  {PLANS[s.plan].name} · {money(priceOf(s, cyc))}/{cyc === 'anual' ? 'ano' : 'mês'} · {c?.method === 'cartao' ? 'cartão' : 'Pix'}
+                </span>
+                <Badge color={dueColor(d)}>{dueLabel(d)}</Badge>
+                <span className="grow" />
+                <button className="btn small ghost" onClick={() => void platform.send(s.userId, remindText(s, c), true).then(() => toast('Lembrete enviado na conversa.'), () => toast('Não foi possível enviar agora.'))}>
+                  <Icon name="chat" size={14} /> lembrar
+                </button>
+                <button
+                  className="btn small approve"
+                  onClick={async () => {
+                    const amount = priceOf(s, cyc)
+                    if (!(await ask(`Registrar ${money(amount)} de ${s.name || s.email} recebido hoje (${c?.method === 'cartao' ? 'cartão' : 'Pix'})?`, { confirmLabel: 'Registrar' }))) return
+                    const next = withPayment(s, c, billing[s.userId], { date: today(), amount, method: c?.method ?? 'pix', note: '' })
+                    void saveCtrl(s.userId, next, `Pagamento registrado. Pago até ${next.paidUntil!.split('-').reverse().join('/')}.`)
+                  }}
+                >
+                  <Icon name="check" size={14} /> recebi
+                </button>
+              </div>
+            )
+          })}
+          {endingTrials.map((s) => (
+            <div key={s.userId} className="pf-plan-line">
+              <b>{s.name || s.email}</b>
+              <span className="muted small">teste do {PLANS[s.plan].name}</span>
+              <Badge color="#6b8f94">{`teste acaba em ${trialDaysLeft(s)} dia(s)`}</Badge>
+              <span className="grow" />
+              <button className="btn small ghost" onClick={() => openChat(s.userId)}>
+                <Icon name="chat" size={14} /> conversar
+              </button>
+            </div>
+          ))}
+        </Section>
+      )}
       <div className="stats">
         <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s)${requests.length ? ` · ${requests.length} pedido(s)` : ''}`} icon="wallet" tone="good" />
         <Stat label="Em teste grátis" value={trials.length} sub={expired.length ? `${expired.length} teste(s) já terminaram` : `${TRIAL_DAYS} dias de teste`} icon="clock" />
@@ -176,9 +265,9 @@ function Summary({ subs, update, openChat, billing }: { subs: Subscription[]; up
           ))}
         </Section>
       )}
-      <Section title="receita estimada (últimos 6 meses)">
-        <BarChart labels={months.map((m) => MONTHS[m.getMonth()])} series={[{ label: 'receita', color: 'var(--accent)', values: revenue }]} height={200} />
-        <p className="muted small">Por enquanto é uma simulação: a cobrança de verdade (Pix e cartão) entra na fase 2.</p>
+      <Section title="receita (últimos 6 meses)">
+        <BarChart labels={months.map((m) => MONTHS[m.getMonth()])} series={[{ label: hasReal ? 'recebido' : 'estimado', color: 'var(--accent)', values: hasReal ? realRevenue : revenue }]} height={200} />
+        <p className="muted small">{hasReal ? 'Soma dos pagamentos que você registrou em assinantes → cobrança.' : 'Estimativa pelos planos ativos. Registre os pagamentos em assinantes → cobrança para ver o valor real.'}</p>
       </Section>
       <div className="pf-grid-2">
         <Section title="por plano">
@@ -219,10 +308,40 @@ function Summary({ subs, update, openChat, billing }: { subs: Subscription[]; up
   )
 }
 
-function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing> }) {
+function Subscribers({ subs, update, openChat, unreadOf, billing, ctrl, saveCtrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
-  const [filter, setFilter] = useState<'todos' | SubStatus | 'bloqueados'>('todos')
-  const rows = subs.filter((s) => matches(q, s.name, s.email, s.studio)).filter((s) => (filter === 'todos' ? true : filter === 'bloqueados' ? s.blocked : s.status === filter))
+  const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos'>('painel-filtro', 'todos')
+  const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
+  const idle = (s: Subscription) => !s.lastSeen || Date.now() - new Date(s.lastSeen).getTime() > 14 * 86_400_000
+  const rows = subs
+    .filter((s) => matches(q, s.name, s.email, s.studio, ctrl[s.userId]?.notes))
+    .filter((s) => {
+      if (filter === 'todos') return true
+      if (filter === 'bloqueados') return s.blocked
+      if (filter === 'vencendo') return (dueDays(s, ctrl[s.userId]) ?? 99) <= 7
+      if (filter === 'teste_acabando') return s.status === 'trial' && trialDaysLeft(s) > 0 && trialDaysLeft(s) <= 3
+      if (filter === 'sumidos') return s.status !== 'cancelada' && idle(s)
+      return s.status === filter
+    })
+    .sort((a, b) =>
+      order === 'nome'
+        ? (a.name || a.email).localeCompare(b.name || b.email, 'pt-BR')
+        : order === 'vencimento'
+          ? (dueDays(a, ctrl[a.userId]) ?? 9999) - (dueDays(b, ctrl[b.userId]) ?? 9999)
+          : order === 'acesso'
+            ? (b.lastSeen || '').localeCompare(a.lastSeen || '')
+            : b.createdAt.localeCompare(a.createdAt),
+    )
+  const exportCSV = () => {
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const head = ['nome', 'e-mail', 'estúdio', 'plano', 'situação', 'ciclo', 'forma', 'pago até', 'total pago', 'desde', 'último acesso', 'telefone', 'cidade', 'anotações']
+    const lines = rows.map((s) => {
+      const c = ctrl[s.userId]
+      const b = billing[s.userId]
+      return [s.name, s.email, s.studio, PLANS[s.plan].name, STATUS_LABEL[s.status], cycleOf(s, c, b), c?.method ?? b?.payMethod ?? '', c?.paidUntil ?? '', (c?.payments ?? []).reduce((n, x) => n + x.amount, 0).toFixed(2).replace('.', ','), dateBR(s.createdAt), dateBR(s.lastSeen), b?.phone ?? '', b?.city ?? '', c?.notes ?? ''].map(cell).join(';')
+    })
+    download(`assinantes-${today()}.csv`, '\ufeff' + [head.map(cell).join(';'), ...lines].join('\n'), 'text/csv;charset=utf-8')
+  }
   if (!subs.length) return <Empty icon="users" title="nenhum assinante ainda" text="Quando alguém se cadastrar pela página de vendas, aparece aqui com o plano, o teste grátis e o último acesso." />
   return (
     <>
@@ -236,8 +355,21 @@ function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subs
             </option>
           ))}
           <option value="bloqueados">bloqueados</option>
+          <option value="vencendo">vencendo em 7 dias / vencidas</option>
+          <option value="teste_acabando">teste acabando (3 dias)</option>
+          <option value="sumidos">sem entrar há 14 dias</option>
         </select>
+        <select value={order} onChange={(e) => setOrder(e.target.value as typeof order)} aria-label="Ordem">
+          <option value="recentes">mais recentes</option>
+          <option value="nome">nome (A–Z)</option>
+          <option value="vencimento">vencimento</option>
+          <option value="acesso">último acesso</option>
+        </select>
+        <button className="btn ghost small" onClick={exportCSV} title="Planilha com os assinantes deste filtro">
+          <Icon name="download" size={14} /> CSV
+        </button>
       </div>
+      <p className="muted small">{rows.length} de {subs.length} assinante(s)</p>
       <div className="pf-subs">
         {rows.map((s) => {
           const left = trialDaysLeft(s)
@@ -274,6 +406,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subs
               </dl>
               {billing[s.userId] && <BillingDetails b={billing[s.userId]} />}
               <TrialControl s={s} update={update} />
+              {(s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
               <div className="pf-sub-actions">
                 <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
                   {PLAN_LIST.map((p) => (
@@ -325,6 +458,96 @@ function Subscribers({ subs, update, openChat, unreadOf, billing }: { subs: Subs
         {!rows.length && <p className="muted">Ninguém com esse filtro.</p>}
       </div>
     </>
+  )
+}
+
+/** Cobrança de um assinante: ciclo, forma, pago até, pagamentos e anotações (só a dona vê). */
+function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Billing; save: SaveCtrl }) {
+  const cycle = cycleOf(s, c, b)
+  const [adding, setAdding] = useState(false)
+  const [pay, setPay] = useState({ date: today(), amount: priceOf(s, cycle), method: (c?.method ?? (b?.payMethod === 'cartao' ? 'cartao' : 'pix')) as SubPayment['method'] })
+  const [notes, setNotes] = useState(c?.notes ?? '')
+  useEffect(() => {
+    setNotes(c?.notes ?? '')
+  }, [c?.notes])
+  const d = dueDays(s, c)
+  const paid = (c?.payments ?? []).reduce((n, x) => n + x.amount, 0)
+  const set = (patch: Partial<SubAdmin>, msg = '') => save(s.userId, { ...c, cycle, ...patch }, msg)
+  return (
+    <div className="pf-ctrl">
+      <div className="pf-ctrl-head">
+        <b>cobrança</b>
+        {d !== null && <Badge color={dueColor(d)}>{dueLabel(d)}</Badge>}
+        {paid > 0 && <span className="muted small">total pago {money(paid)}</span>}
+      </div>
+      <div className="pf-ctrl-grid">
+        <Segmented value={cycle} onChange={(v) => set({ cycle: v }, 'Ciclo atualizado.')} options={[{ value: 'mensal', label: 'mensal' }, { value: 'anual', label: 'anual' }]} />
+        <Segmented value={c?.method ?? 'pix'} onChange={(v) => set({ method: v }, 'Forma de pagamento atualizada.')} options={[{ value: 'pix', label: 'Pix' }, { value: 'cartao', label: 'cartão' }]} />
+        <label className="pf-ctrl-date">
+          <span className="muted small">pago até</span>
+          <DateInput value={c?.paidUntil ?? ''} onChange={(e) => set({ paidUntil: e.target.value || undefined }, 'Vencimento atualizado.')} />
+        </label>
+      </div>
+      {adding ? (
+        <div className="pf-ctrl-add">
+          <MoneyInput value={pay.amount} onChange={(amount) => setPay({ ...pay, amount })} />
+          <DateInput value={pay.date} max={today()} onChange={(e) => setPay({ ...pay, date: e.target.value || today() })} />
+          <Segmented value={pay.method} onChange={(method) => setPay({ ...pay, method })} options={[{ value: 'pix', label: 'Pix' }, { value: 'cartao', label: 'cartão' }]} />
+          <button
+            className="btn small approve"
+            onClick={() => {
+              if (pay.amount <= 0) return toast('Coloque o valor recebido.')
+              const next = withPayment(s, c, b, { ...pay, note: '' })
+              void save(s.userId, next, `Pagamento registrado. Pago até ${next.paidUntil!.split('-').reverse().join('/')}.`)
+              setAdding(false)
+            }}
+          >
+            <Icon name="check" size={14} /> registrar
+          </button>
+          <button className="btn small ghost" onClick={() => setAdding(false)}>
+            cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="row gap-s wrap">
+          <button className="btn small" onClick={() => (setPay((x) => ({ ...x, amount: priceOf(s, cycle), date: today() })), setAdding(true))}>
+            <Icon name="plus" size={14} /> registrar pagamento
+          </button>
+          {s.status !== 'cancelada' && (
+            <button
+              className="btn small ghost"
+              onClick={async () => {
+                try {
+                  await platform.send(s.userId, remindText(s, c), true)
+                  toast('Lembrete enviado na conversa.')
+                } catch {
+                  toast('Não foi possível enviar agora.')
+                }
+              }}
+            >
+              <Icon name="chat" size={14} /> lembrar no chat
+            </button>
+          )}
+        </div>
+      )}
+      {(c?.payments?.length ?? 0) > 0 && (
+        <details className="pf-ctrl-hist">
+          <summary>pagamentos ({c!.payments!.length})</summary>
+          {c!.payments!.map((x) => (
+            <div key={x.id} className="pf-plan-line">
+              <span>{x.date.split('-').reverse().join('/')}</span>
+              <b>{money(x.amount)}</b>
+              <span className="muted small">{x.method === 'cartao' ? 'cartão' : 'Pix'}</span>
+              <span className="grow" />
+              <button className="icon-btn" aria-label="Apagar pagamento" onClick={async () => (await askDelete('este pagamento')) && set({ payments: c!.payments!.filter((y) => y.id !== x.id) }, 'Pagamento apagado.')}>
+                <Icon name="trash" size={14} />
+              </button>
+            </div>
+          ))}
+        </details>
+      )}
+      <textarea className="pf-ctrl-notes" rows={2} placeholder="anotações só suas (ex.: prefere pagar dia 15, indicou fulana…)" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== (c?.notes ?? '') && void set({ notes }, 'Anotação salva.')} spellCheck lang="pt-BR" />
+    </div>
   )
 }
 
@@ -638,6 +861,45 @@ function SiteEditor() {
   }
   return (
     <>
+      <Section
+        title="topo da página"
+        action={
+          <button className="btn primary small" disabled={!dirty} onClick={() => void save()}>
+            {dirty ? 'salvar' : 'salvo'}
+          </button>
+        }
+      >
+        <div className="form-grid">
+          <Field label="Faixa de aviso no alto" span={3} hint="Ex.: “lançamento: 20% de desconto no plano anual até 31/10”. Em branco, a faixa some.">
+            <input value={site.banner} onChange={(e) => set({ banner: e.target.value })} placeholder="em branco = sem faixa" />
+          </Field>
+          <Field label="Etiqueta acima do título" span={3}>
+            <input value={site.kicker} onChange={(e) => set({ kicker: e.target.value })} />
+          </Field>
+          <Field label="Título" span={3} hint="A palavra que gira aparece logo depois.">
+            <input value={site.heroTitle} onChange={(e) => set({ heroTitle: e.target.value })} />
+          </Field>
+          <Field label="Palavras que giram" span={3} hint="Separe por vírgula. Ex.: organizada, mais leve, no seu ritmo">
+            <input value={site.heroWords} onChange={(e) => set({ heroWords: e.target.value })} />
+          </Field>
+          <Field label="Frase embaixo do título" span={3}>
+            <textarea rows={2} value={site.lead} onChange={(e) => set({ lead: e.target.value })} spellCheck lang="pt-BR" />
+          </Field>
+        </div>
+      </Section>
+      <Section title="seções da página">
+        <p className="muted small">Desmarque o que não quer mostrar agora. Planos e “quem criou” ficam sempre.</p>
+        <div className="se-sections">
+          {LP_SECTIONS.map(([id, label]) => (
+            <label key={id} className="check">
+              <input type="checkbox" checked={!(site.hidden ?? []).includes(id)} onChange={(e) => set({ hidden: e.target.checked ? (site.hidden ?? []).filter((x) => x !== id) : [...(site.hidden ?? []), id] })} /> {label}
+            </label>
+          ))}
+        </div>
+        <Field label="Perguntas frequentes a mais" hint="Pergunta na primeira linha e a resposta embaixo. Deixe uma linha em branco entre uma pergunta e outra. Elas aparecem depois das perguntas padrão.">
+          <textarea rows={6} value={site.faqExtra} onChange={(e) => set({ faqExtra: e.target.value })} placeholder={'emite nota fiscal?\nSim, ...\n\ntem aplicativo?\nFunciona pelo navegador e dá para salvar na tela inicial.'} spellCheck lang="pt-BR" />
+        </Field>
+      </Section>
       <Section
         title="quem criou"
         action={

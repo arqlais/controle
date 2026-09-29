@@ -112,6 +112,17 @@ create policy "cobrança: cliente cria a sua" on public.billing_info for insert 
 create policy "cobrança: cliente altera a sua" on public.billing_info for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "cobrança: dona vê todas" on public.billing_info for select using (public.sou_dona());
 
+-- 2c) Controle da dona sobre cada assinante (ciclo, pago até, pagamentos, anotações).
+--     Só a dona vê e altera: o assinante nunca lê estas anotações.
+create table if not exists public.subscriber_admin (
+  user_id    uuid primary key references auth.users (id) on delete cascade,
+  data       jsonb not null default '{}'::jsonb check (pg_column_size(data) < 60000),
+  updated_at timestamptz not null default now()
+);
+alter table public.subscriber_admin enable row level security;
+drop policy if exists "controle: só a dona" on public.subscriber_admin;
+create policy "controle: só a dona" on public.subscriber_admin for all using (public.sou_dona()) with check (public.sou_dona());
+
 -- 3) Chat com a dona: mensagens por cliente.
 create table if not exists public.support_messages (
   id          uuid primary key default gen_random_uuid(),

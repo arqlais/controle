@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
 import { compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
-import { DEFAULT_SITE, type SiteContent } from '../siteContent'
+import { DEFAULT_SITE, extraFaq, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
@@ -31,7 +31,6 @@ const SAMPLE: Settings = {
 }
 
 // palavra que troca sozinha no título
-const WORDS = ['organizada', 'mais leve', 'no seu ritmo', 'lucrativa']
 
 // a jornada de um trabalho, do primeiro "oi" ao pagamento
 const JOURNEY: { icon: string; step: string; title: string; text: string; card: { k: string; v: string; tone?: string }[] }[] = [
@@ -143,6 +142,8 @@ export default function Landing() {
   const root = useRef<HTMLDivElement>(null)
   // "quem criou", contatos e redes: a dona edita no painel da plataforma
   const [site, setSite] = useState<SiteContent>(DEFAULT_SITE)
+  const off = (id: string) => (site.hidden ?? []).includes(id)
+  const heroWords = (site.heroWords || '').split(',').map((w) => w.trim()).filter(Boolean)
   // depoimentos escolhidos pela dona no painel (sem nenhum, a seção não aparece)
   const [quotes, setQuotes] = useState<PublicFeedback[]>([])
   useEffect(() => {
@@ -168,6 +169,7 @@ export default function Landing() {
 
   return (
     <div className="lp" ref={root}>
+      {site.banner && <div className="lp-banner">{site.banner}</div>}
       <header className={`lp-top ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="lp-wrap lp-top-in">
           <a className="brand-name lp-logo" href="#/vendas" onClick={(e) => (e.preventDefault(), window.scrollTo({ top: 0, behavior: 'smooth' }))}>
@@ -179,7 +181,7 @@ export default function Landing() {
               ['jornada', 'como funciona'],
               ['telas', 'telas'],
               ['planos', 'planos'],
-            ].map(([id, label]) => (
+            ].filter(([id]) => !off(id)).map(([id, label]) => (
               <button key={id} className="link" onClick={() => scrollTo(id)}>
                 {label}
               </button>
@@ -204,18 +206,20 @@ export default function Landing() {
         </div>
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
-            <p className="lp-kicker">
-              <span className="lp-dot" /> feito para freelancers criativos
-            </p>
+            {site.kicker && (
+              <p className="lp-kicker">
+                <span className="lp-dot" /> {site.kicker}
+              </p>
+            )}
             <h1>
-              sua vida de freelancer, <RotatingWord words={WORDS} />
+              {site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
             </h1>
-            <p className="lp-lead">Clientes, orçamentos, prazos e pagamentos num lugar só. Do primeiro “oi” ao recibo.</p>
+            <p className="lp-lead">{site.lead}</p>
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta lp-shine" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />
               </button>
-              <button className="btn ghost lp-cta" onClick={() => scrollTo('jornada')}>
+              <button className="btn ghost lp-cta" onClick={() => scrollTo(off('jornada') ? (off('telas') ? 'planos' : 'telas') : 'jornada')}>
                 ver como funciona
               </button>
             </div>
@@ -290,6 +294,7 @@ export default function Landing() {
         </div>
       </section>
 
+      {!off('jornada') && (
       <section className="lp-section lp-alt" id="jornada">
         <div className="lp-wrap">
           <SectionHead eyebrow="como funciona" title={<>do primeiro “oi” <em>ao recibo</em></>} />
@@ -297,6 +302,8 @@ export default function Landing() {
         </div>
       </section>
 
+      )}
+      {!off('telas') && (
       <section className="lp-section" id="telas">
         <div className="lp-wrap">
           <SectionHead eyebrow="por dentro" title={<>telas de <em>verdade</em></>} text="Dados de exemplo, sistema real. Toque para explorar." />
@@ -306,6 +313,8 @@ export default function Landing() {
         </div>
       </section>
 
+      )}
+      {!off('para') && (
       <section className="lp-section lp-for">
         <div className="lp-wrap lp-for-in" data-reveal>
           <h2>
@@ -321,6 +330,7 @@ export default function Landing() {
         </div>
       </section>
 
+      )}
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
           <SectionHead eyebrow="planos" title={<>preço de freelancer, <em className="nowrap">sem fidelidade</em></>} text={`Comece com ${TRIAL_DAYS} dias grátis. Depois, escolha o que faz sentido para você.`} />
@@ -398,6 +408,7 @@ export default function Landing() {
         </div>
       </section>
 
+      {!off('depoimentos') && (
       <section className="lp-section">
         <div className="lp-wrap">
           <SectionHead eyebrow={quotes.length ? 'depoimentos' : 'na prática'} title={<>freelancers mais <em>tranquilos</em></>} />
@@ -437,11 +448,13 @@ export default function Landing() {
         </div>
       </section>
 
+      )}
+      {!off('duvidas') && (
       <section className="lp-section lp-alt" id="duvidas">
         <div className="lp-wrap lp-faq-wrap">
           <SectionHead eyebrow="dúvidas" title={<>perguntas <em>frequentes</em></>} />
           <div className="lp-faq">
-            {faq().map(([q, a]) => (
+            {[...faq(), ...extraFaq(site.faqExtra)].map(([q, a]) => (
               <details key={q} className="card lp-faq-item">
                 <summary>
                   {q}
@@ -454,6 +467,7 @@ export default function Landing() {
         </div>
       </section>
 
+      )}
       <section className="lp-final">
         <div className="lp-blobs is-dark" aria-hidden>
           <i />

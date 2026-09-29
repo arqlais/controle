@@ -50,6 +50,22 @@ export interface Billing {
   acceptedAt: string // quando aceitou os termos
 }
 
+/** Controle da dona sobre um assinante (só ela vê). */
+export interface SubPayment {
+  id: string
+  date: string // AAAA-MM-DD
+  amount: number
+  method: 'pix' | 'cartao'
+  note: string
+}
+export interface SubAdmin {
+  cycle?: Cycle
+  method?: 'pix' | 'cartao'
+  paidUntil?: string // AAAA-MM-DD: vale até (a próxima cobrança)
+  notes?: string
+  payments?: SubPayment[]
+}
+
 /** Sugestão de melhoria enviada por quem usa. */
 export type SuggestionStatus = 'recebida' | 'analisando' | 'planejada' | 'feita' | 'nao_agora'
 export type SuggestionCategory = 'nova' | 'melhoria' | 'problema' | 'outro'
@@ -276,6 +292,15 @@ const cloud = {
     if (error) throw error
     return Object.fromEntries((data ?? []).map((r) => [String(r.user_id), r.data as Billing]))
   },
+  async subAdmin(): Promise<Record<string, SubAdmin>> {
+    const { data, error } = await supabase!.from('subscriber_admin').select('user_id, data')
+    if (error) return {} // SQL ainda não rodado: segue sem o controle
+    return Object.fromEntries((data ?? []).map((r) => [String(r.user_id), r.data as SubAdmin]))
+  },
+  async saveSubAdmin(userId: string, d: SubAdmin) {
+    const { error } = await supabase!.from('subscriber_admin').upsert({ user_id: userId, data: d, updated_at: new Date().toISOString() })
+    if (error) throw error
+  },
   async suggestions(): Promise<Suggestion[]> {
     const { data, error } = await supabase!.from('suggestions').select('*').order('created_at', { ascending: false }).limit(1000)
     if (error) throw error
@@ -414,6 +439,7 @@ interface LocalDB {
   messages: ChatMessage[]
   hours: OnlineHours
   billing?: Record<string, Billing>
+  subAdmin?: Record<string, SubAdmin>
   suggestions?: Suggestion[]
   feedbacks?: Feedback[]
   site?: Partial<SiteContent>
@@ -491,7 +517,15 @@ function seed(): LocalDB {
     fb('ex-4', 'Júlia P.', 'arquiteta', 'o contrato sair preenchido me economiza uma tarde inteira.', true, false, 1),
     fb('ex-5', 'Thiago L.', 'arquiteto', 'gostei, mas queria mais modelos de proposta.', false, false, 0),
   ]
-  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks }
+  // controle de cobrança fictício (pago até, pagamentos e anotações)
+  const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10)
+  const pay = (id: string, daysAgo: number, amount: number, method: 'pix' | 'cartao') => ({ id, date: day(-daysAgo), amount, method, note: '' })
+  const subAdmin: Record<string, SubAdmin> = {
+    'ex-1': { cycle: 'mensal', method: 'cartao', paidUntil: day(12), notes: 'indicou a Camila. gosta de novidades de PDF.', payments: [pay('p1', 49, 59.9, 'cartao'), pay('p2', 18, 59.9, 'cartao')] },
+    'ex-2': { cycle: 'mensal', method: 'pix', paidUntil: day(3), notes: '', payments: [pay('p3', 34, 39.9, 'pix')] },
+    'ex-5': { cycle: 'mensal', method: 'pix', paidUntil: day(-6), notes: 'pediu para pagar dia 15.', payments: [pay('p4', 64, 39.9, 'pix'), pay('p5', 36, 39.9, 'pix')] },
+  }
+  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks, subAdmin }
 }
 
 const listeners = new Set<() => void>()
@@ -600,6 +634,13 @@ const local = {
   },
   async allBilling() {
     return readDB().billing ?? {}
+  },
+  async subAdmin() {
+    return readDB().subAdmin ?? {}
+  },
+  async saveSubAdmin(userId: string, d: SubAdmin) {
+    const db = readDB()
+    writeDB({ ...db, subAdmin: { ...(db.subAdmin ?? {}), [userId]: d } })
   },
   async suggestions() {
     const all = readDB().suggestions ?? []
