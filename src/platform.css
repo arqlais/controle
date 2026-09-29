@@ -1194,3 +1194,40 @@
 .cp-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cp-done { align-self: flex-end; }
 @media (max-width: 720px) { .cp-panel { position: fixed; left: 16px; right: 16px; top: auto; bottom: calc(90px + env(safe-area-inset-bottom)); width: auto; } }
+/* card das novidades e das boas-vindas: tela desfocada, cartão no centro */
+.nw-layer { position: fixed; inset: 0; z-index: 130; display: grid; place-items: center; padding: 16px; background: rgba(28, 34, 40, 0.28); backdrop-filter: blur(8px) saturate(1.1); -webkit-backdrop-filter: blur(8px); animation: nw-fade 0.3s ease both; }
+.nw-card { position: relative; width: min(520px, 100%); max-height: calc(100dvh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 30px 28px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 26px; box-shadow: 0 40px 90px -30px rgba(28, 34, 40, 0.55); animation: nw-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.nw-card::before { content: ''; position: absolute; inset: 0 0 auto; height: 120px; border-radius: inherit; background: radial-gradient(420px 120px at 80% -20%, color-mix(in srgb, var(--accent-soft) 55%, transparent), transparent 70%); pointer-events: none; }
+.nw-card > * { position: relative; }
+.nw-x { position: absolute; top: 14px; right: 14px; z-index: 1; }
+.nw-eyebrow { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--accent-ink); text-transform: lowercase; }
+.nw-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 50%, transparent); animation: nw-pulse 1.8s ease-out infinite; }
+.nw-title { margin: 0; font-size: clamp(24px, 4vw, 30px); line-height: 1.12; font-weight: 700; letter-spacing: -0.02em; text-wrap: balance; }
+.nw-title.is-item { font-size: 22px; }
+.nw-lead { margin: 0; font-size: 15px; line-height: 1.6; color: var(--muted); }
+.nw-summary { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.nw-summary button { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-2); font: inherit; font-size: 14px; font-weight: 500; color: var(--text); text-align: left; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+.nw-summary button span:not(.badge) { flex: 1; }
+.nw-summary button:hover { transform: translateX(3px); border-color: var(--accent-soft); }
+.nw-summary li { animation: nw-rise 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.nw-summary li:nth-child(2) { animation-delay: 0.05s; } .nw-summary li:nth-child(3) { animation-delay: 0.1s; } .nw-summary li:nth-child(4) { animation-delay: 0.15s; } .nw-summary li:nth-child(5) { animation-delay: 0.2s; }
+.nw-actions { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.nw-actions .link { margin-right: auto; }
+.nw-item { display: flex; flex-direction: column; gap: 14px; animation: nw-slide 0.35s ease both; }
+.nw-show { align-self: flex-start; }
+.nw-dots { display: flex; gap: 6px; }
+.nw-dots i { width: 22px; height: 4px; border-radius: 4px; background: var(--border); }
+.nw-dots i.done { background: var(--accent-soft); } .nw-dots i.on { background: var(--accent); }
+.nw-welcome-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.nw-welcome-list li { display: flex; gap: 8px; align-items: flex-start; }
+.nw-welcome-list svg { color: var(--good); flex: none; margin-top: 3px; }
+.nw-sign { margin: 0; font-family: var(--font-display); font-style: italic; font-size: 17px; color: var(--accent-ink); }
+@keyframes nw-fade { from { opacity: 0; } }
+@keyframes nw-rise { from { opacity: 0; transform: translateY(14px) scale(0.98); } }
+@keyframes nw-slide { from { opacity: 0; transform: translateX(16px); } }
+@keyframes nw-pulse { to { box-shadow: 0 0 0 10px transparent; } }
+@media (prefers-reduced-motion: reduce) { .nw-layer, .nw-card, .nw-summary li, .nw-item, .nw-pulse { animation: none; } }
+@media (max-width: 720px) { .nw-layer { place-items: end center; } .nw-card { padding: 26px 20px 20px; border-radius: 24px 24px 18px 18px; } }
+/* modo "cantos retos": o que é bolinha de verdade continua redondo (online, avisos, pontos de status, botões flutuantes) */
+:root[data-square='1'] :is(.dot, .cal-dots i, .sync-status i, .sync-dot, .timer-dot, .profile-chip-dot, .profile-avatar-badge, .ai-typing i, .pf-fab-online, .pf-chat-who small i, .news-dot, .nw-pulse, .lp-dot, .lp-blobs i, .cp-sv-dot, .cp-hue-dot, .cp-dot, .proj-active, .mix-item i, .ai-fab, .pf-chat-fab, input[type='radio']),
+:root[data-square='1'] .pf-online::before { border-radius: 50% !important; }

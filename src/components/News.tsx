@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react'
 import { Icon } from './Icon'
-import { Badge, Modal } from './ui'
+import { Badge } from './ui'
 import { go } from '../router'
 import { useStore } from '../store'
 import { PLATFORM } from '../plans'
@@ -38,39 +38,150 @@ export function NewsButton({ count, onOpen }: { count: number; onOpen: () => voi
   )
 }
 
-export function NewsModal({ unseen, onClose }: { unseen: News[]; onClose: () => void }) {
+const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+const longDate = (iso: string) => {
+  const [, m, d] = iso.split('-').map(Number)
+  return `${d} de ${MONTHS[m - 1]}`
+}
+// frase de abertura: muda a cada atualização (pela data), sempre curta
+const IMPACT = [
+  `o ${PLATFORM.name} ficou mais leve de novo`,
+  'menos planilha, mais projeto',
+  'novidades fresquinhas para a sua rotina',
+  'pequenos ajustes, grandes horas economizadas',
+  'feito ouvindo quem usa todo dia',
+]
+
+/** Card das novidades: desfoca a tela, mostra o resumo e depois passa por cada novidade. */
+export function NewsModal({ unseen, onClose, onLater }: { unseen: News[]; onClose: () => void; onLater?: () => void }) {
+  const all = unseen.length ? unseen : NEWS.slice(0, 6)
+  // resumo enxuto: novidades e melhorias uma a uma; correções viram um item só
+  const fixes = all.filter((x) => x.kind === 'correcao')
+  const list: News[] = [
+    ...all.filter((x) => x.kind !== 'correcao'),
+    ...(fixes.length
+      ? [{ id: 'correcoes', date: fixes.reduce((d, x) => (x.date > d ? x.date : d), ''), kind: 'correcao' as const, title: 'correções e pequenos ajustes', text: fixes.map((x) => x.title.charAt(0).toUpperCase() + x.title.slice(1)).join(' · ') + '.' }]
+      : []),
+  ]
+  const [i, setI] = useState(-1) // -1 = resumo; 0..n = uma novidade por vez
   const [guide, setGuide] = useState<NewsStep[] | null>(null)
-  const fresh = new Set(unseen.map((n) => n.id))
-  const list = unseen.length ? unseen : NEWS.slice(0, 8)
   if (guide) return <NewsGuide steps={guide} onClose={onClose} />
+  const date = all.reduce((d, n) => (n.date > d ? n.date : d), '')
+  const impact = IMPACT[Number(date.replace(/-/g, '')) % IMPACT.length]
+  const n = i >= 0 ? list[i] : null
   return (
-    <Modal
-      title={unseen.length ? `novidades no ${PLATFORM.name}` : 'últimas novidades'}
-      onClose={onClose}
-      footer={
-        <button className="btn primary" onClick={onClose}>
-          entendi
+    <div className="nw-layer" role="dialog" aria-modal="true" aria-label="Novidades">
+      <div className="nw-card">
+        <button className="icon-btn subtle nw-x" onClick={onClose} aria-label="Fechar">
+          <Icon name="x" size={16} />
         </button>
-      }
-    >
-      <div className="news-list">
-        {list.map((n) => (
-          <article key={n.id} className={`news-item ${fresh.has(n.id) ? 'is-new' : ''}`}>
-            <div className="news-head">
-              <Badge color={NEWS_KIND[n.kind].color}>{NEWS_KIND[n.kind].label}</Badge>
-              <span className="muted small">{fmt(n.date)}</span>
+        {!n ? (
+          <>
+            <p className="nw-eyebrow">
+              <span className="nw-pulse" /> atualização · {longDate(date)}
+            </p>
+            <h2 className="nw-title">{impact}</h2>
+            <p className="nw-lead">Estamos sempre melhorando o {PLATFORM.name} para a sua gestão ficar mais simples. Veja o que mudou:</p>
+            <ol className="nw-summary">
+              {list.map((x, k) => (
+                <li key={x.id}>
+                  <button type="button" onClick={() => setI(k)}>
+                    <Badge color={NEWS_KIND[x.kind].color}>{NEWS_KIND[x.kind].label}</Badge>
+                    <span>{x.title}</span>
+                    <Icon name="chevronR" size={14} />
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <div className="nw-actions">
+              {onLater && (
+                <button className="link" onClick={onLater}>
+                  ver depois
+                </button>
+              )}
+              <button className="btn primary" onClick={() => setI(0)}>
+                ver as novidades <Icon name="arrowRight" size={15} />
+              </button>
             </div>
-            <h3>{n.title}</h3>
-            <p className="muted">{n.text}</p>
+          </>
+        ) : (
+          <div key={n.id} className="nw-item">
+            <p className="nw-eyebrow">
+              <Badge color={NEWS_KIND[n.kind].color}>{NEWS_KIND[n.kind].label}</Badge>
+              <span>
+                {i + 1} de {list.length} · {fmt(n.date)}
+              </span>
+            </p>
+            <h2 className="nw-title is-item">{n.title}</h2>
+            <p className="nw-lead">{n.text}</p>
             {n.steps?.length ? (
-              <button className="btn small" onClick={() => setGuide(n.steps!)}>
-                <Icon name="arrowRight" size={14} /> me mostra
+              <button className="btn nw-show" onClick={() => setGuide(n.steps!)}>
+                <Icon name="eye" size={15} /> me mostra onde fica
               </button>
             ) : null}
-          </article>
-        ))}
+            <div className="nw-dots" aria-hidden>
+              {list.map((x, k) => (
+                <i key={x.id} className={k === i ? 'on' : k < i ? 'done' : ''} />
+              ))}
+            </div>
+            <div className="nw-actions">
+              <button className="btn ghost" onClick={() => setI(i - 1)}>
+                voltar
+              </button>
+              <button className="btn primary" onClick={() => (i + 1 < list.length ? setI(i + 1) : onClose())}>
+                {i + 1 < list.length ? (
+                  <>
+                    próxima <Icon name="chevronR" size={14} />
+                  </>
+                ) : (
+                  'entendi, obrigada!'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </Modal>
+    </div>
+  )
+}
+
+/** Boas-vindas para quem acabou de se cadastrar (aparece uma vez, antes do passo a passo). */
+export function WelcomeCard({ name, onTour, onSkip }: { name: string; onTour: () => void; onSkip: () => void }) {
+  const first = (name || '').trim().split(' ')[0]
+  return (
+    <div className="nw-layer" role="dialog" aria-modal="true" aria-label="Boas-vindas">
+      <div className="nw-card nw-welcome">
+        <p className="nw-eyebrow">
+          <span className="nw-pulse" /> boas-vindas
+        </p>
+        <h2 className="nw-title">
+          que bom ter você aqui{first ? `, ${first}` : ''}!
+        </h2>
+        <p className="nw-lead">
+          Obrigada por escolher o {PLATFORM.name} 💛 Ele nasceu da rotina de uma freelancer que precisava organizar clientes, orçamentos, prazos e dinheiro num lugar só, e agora é seu também.
+        </p>
+        <ul className="nw-welcome-list">
+          <li>
+            <Icon name="check" size={15} /> seus dias grátis já começaram, com tudo liberado
+          </li>
+          <li>
+            <Icon name="check" size={15} /> em 2 minutos o passo a passo mostra onde fica cada coisa
+          </li>
+          <li>
+            <Icon name="check" size={15} /> dúvida ou ideia? o balão de conversa no canto fala direto com a gente
+          </li>
+        </ul>
+        <div className="nw-actions">
+          <button className="link" onClick={onSkip}>
+            explorar sozinha(o)
+          </button>
+          <button className="btn primary" onClick={onTour}>
+            começar o passo a passo <Icon name="arrowRight" size={15} />
+          </button>
+        </div>
+        <p className="nw-sign">— {PLATFORM.owner}, criadora do {PLATFORM.name}</p>
+      </div>
+    </div>
   )
 }
 

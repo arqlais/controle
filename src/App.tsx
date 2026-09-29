@@ -39,7 +39,7 @@ import { setViewAsClient, viewingAsClient } from './viewAs'
 import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
-import { NewsButton, NewsModal, useNews } from './components/News'
+import { NewsButton, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox } from './chat'
 import { trialOver } from './platform'
 import { PLATFORM, type Feature } from './plans'
@@ -176,8 +176,13 @@ export default function App() {
   }
   // passo a passo do primeiro acesso: aparece para quem assina até concluir/pular ("ver depois" = volta no dia seguinte)
   const [tourOpen, setTourOpen] = useState(false)
+  const [welcomeOpen, setWelcomeOpen] = useState(false)
   useEffect(() => {
-    if (sync !== 'loading' && !access.isOwner && !access.legacy && settings.tour !== 'feito' && settings.tour !== today()) setTourOpen(true)
+    if (sync !== 'loading' && !access.isOwner && !access.legacy && !settings.tour) {
+      // conta nova: primeiro o cartão de boas-vindas; depois, o passo a passo
+      if (!settings.welcomed && !settings.tour) setWelcomeOpen(true)
+      else setTourOpen(true)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sync === 'loading', access.isOwner])
   // novidades: abre sozinha para quem assina quando há algo novo (depois do passo a passo); o sininho do topo reabre
@@ -185,10 +190,10 @@ export default function App() {
   const [newsOpen, setNewsOpen] = useState(false)
   const autoNews = useRef(false)
   useEffect(() => {
-    if (autoNews.current || tourOpen || access.isOwner || sync === 'loading' || !news.unseen.length) return
+    if (autoNews.current || tourOpen || welcomeOpen || access.isOwner || sync === 'loading' || !news.unseen.length) return
     autoNews.current = true
     setNewsOpen(true)
-  }, [tourOpen, access.isOwner, sync, news.unseen.length])
+  }, [tourOpen, welcomeOpen, access.isOwner, sync, news.unseen.length])
   // e-mail de boas-vindas: o site pede uma vez; a função no Supabase garante que só vai uma vez
   useEffect(() => {
     if (!CLOUD || access.isOwner || access.legacy || sync === 'loading') return
@@ -489,7 +494,22 @@ export default function App() {
           </div>
         </header>
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
-        {newsOpen && !tourOpen && <NewsModal unseen={news.unseen} onClose={closeNews} />}
+        {newsOpen && !tourOpen && !welcomeOpen && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} />}
+        {welcomeOpen && (
+          <WelcomeCard
+            name={access.sub?.name || settings.ownerName || ''}
+            onTour={() => {
+              setWelcomeOpen(false)
+              setSettings({ welcomed: true })
+              setTourOpen(true)
+            }}
+            onSkip={() => {
+              setWelcomeOpen(false)
+              setSettings({ welcomed: true })
+              closeTour('feito')
+            }}
+          />
+        )}
         {asClient && (
           <div className="owner-sales-bar" role="region" aria-label="Você está vendo como cliente">
             <span>

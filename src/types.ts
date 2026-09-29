@@ -376,6 +376,7 @@ export interface Settings {
   firstStepsHidden?: boolean // cartão "primeiros passos" escondido
   tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"
   newsSeen?: string[] // novidades já vistas (vazio/ausente: ainda não começou a acompanhar)
+  welcomed?: boolean // já viu o cartão de boas-vindas
   eventLabels?: Partial<Record<EventType, string>> // nomes dos tipos de compromisso (editáveis)
   aiKey?: string // chave do Gemini (Google AI Studio) para o chat
   messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)
