@@ -27,6 +27,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-seletor-cores',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'escolher cores ficou mais fácil',
+    text: 'Nas cores do seu estúdio e da proposta, agora abre um seletor próprio: arraste para achar o tom, digite o código (HEX ou RGB) e reaproveite as cores que você usou por último.',
+    steps: [{ page: 'config', configTab: 'aparencia', target: '.cp-swatch-btn', text: 'Toque na cor para abrir o seletor. As últimas cores escolhidas ficam guardadas em “recentes”.' }],
+  },
+  {
     id: '2026-09-30-status-no-quadro',
     date: '2026-09-30',
     kind: 'melhoria',

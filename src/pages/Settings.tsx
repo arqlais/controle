@@ -1,4 +1,5 @@
 import { MsgTools, WaPreview } from '../components/MsgTools'
+import { ColorPicker } from '../components/ColorPicker'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
@@ -564,11 +565,8 @@ function ProposalSettings() {
                 ['paper', 'Fundo'],
               ] as ['ink' | 'rose' | 'arch' | 'paper' | 'bar', string][]
             ).map(([k, label]) => (
-              <Field key={k} label={label}>
-                <div className="color-input">
-                  <input type="color" value={p[k]} onChange={(e) => setP({ [k]: e.target.value })} />
-                  <input value={p[k]} onChange={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value) && setP({ [k]: e.target.value })} maxLength={7} />
-                </div>
+              <Field group key={k} label={label}>
+                <ColorPicker label={label} value={p[k]} onChange={(hex) => setP({ [k]: hex })} />
               </Field>
             ))}
           </div>

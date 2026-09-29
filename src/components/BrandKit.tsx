@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { ColorPicker } from './ColorPicker'
 import { useStore, DEFAULT_SETTINGS } from '../store'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
@@ -168,11 +169,8 @@ export function BrandKit() {
       <h4 className="bk-sub">cores personalizadas</h4>
       <div className="form-grid">
         {COLOR_FIELDS.map(([k, label]) => (
-          <Field key={k} label={label}>
-            <div className="color-input">
-              <input type="color" value={raw[k] as string} onChange={(e) => setSettings({ [k]: e.target.value })} />
-              <input value={raw[k] as string} onChange={(e) => /^#[0-9a-f]{6}$/i.test(e.target.value) && setSettings({ [k]: e.target.value })} maxLength={7} />
-            </div>
+          <Field group key={k} label={label}>
+            <ColorPicker label={label} value={raw[k] as string} onChange={(hex) => setSettings({ [k]: hex })} />
           </Field>
         ))}
         <Field label={`Cantos arredondados · ${raw.radius}px`}>
