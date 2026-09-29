@@ -40,7 +40,7 @@ import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPre
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsModal, WelcomeCard, useNews } from './components/News'
-import { useInbox } from './chat'
+import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
 import { PLATFORM, type Feature } from './plans'
 import { effectiveSettings } from './brand'
@@ -83,6 +83,7 @@ export default function App() {
   const access = useAccess()
   // dona: caixa de entrada do chat (aviso de mensagem nova em qualquer tela)
   const inbox = useInbox(access.isOwner && !access.legacy, true)
+  const sugUpdates = useSuggestionUpdates(!access.isOwner && !access.legacy)
   const [chatSignal, setChatSignal] = useState(0)
   const openChat = () => setChatSignal((n) => n + 1)
   setEventLabels(settings.eventLabels)
@@ -237,9 +238,10 @@ export default function App() {
     () => ({
       projetos: data.projects.filter(isLate).length,
       financeiro: allPayments(data).filter((x) => paymentDue(x.pay, x.project)).length,
-      plataforma: inbox.unread,
+      plataforma: inbox.unread + inbox.newSuggestions,
+      sugestoes: sugUpdates.unseen.length,
     }),
-    [data, inbox.unread],
+    [data, inbox.unread, inbox.newSuggestions, sugUpdates.unseen.length],
   )
   // conta de cliente pausada, teste encerrado ou cancelada: dados guardados, só assinatura/chat/backup
   const locked = !access.isOwner && !!access.sub && (access.sub.blocked || trialOver(access.sub) || access.sub.status === 'cancelada')
@@ -256,7 +258,7 @@ export default function App() {
       case 'assinatura':
         return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
       case 'sugestoes':
-        return <Suggestions />
+        return <Suggestions unseen={sugUpdates.unseen} onSeen={sugUpdates.markSeen} />
       case 'avaliar':
         return <Feedback />
       case 'clientes':

@@ -15,7 +15,7 @@ interface Attachment {
   data: string // base64
   preview?: string // miniatura das imagens
 }
-interface Msg {
+export interface Msg {
   role: 'user' | 'model'
   text: string
   files?: Attachment[]
@@ -38,7 +38,7 @@ const readFile = (f: File) =>
 
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
 
-async function askGemini(key: string, system: string, history: Msg[]) {
+export async function askGemini(key: string, system: string, history: Msg[]) {
   for (const model of MODELS) {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { isValidElement, type ReactNode } from 'react'
 import { useKeep } from '../keep'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
@@ -258,6 +258,19 @@ const ROUTINE: [string, string[]][] = [
 ]
 
 const PHASES = ['em alinhamento', 'em execução', 'em ajustes', 'em aprovação', 'entregue']
+
+/** O manual em texto corrido: a IA lê para responder dúvidas de quem usa. */
+const plain = (n: ReactNode): string =>
+  n == null || typeof n === 'boolean' ? '' : typeof n === 'string' || typeof n === 'number' ? String(n) : Array.isArray(n) ? n.map(plain).join('') : isValidElement(n) ? plain((n.props as { children?: ReactNode }).children) : ''
+export function manualText() {
+  return [
+    ...STEPS.map((s) => `${s.title} (onde: ${s.where.path.join(' → ')})\n${s.todo.map((t) => `- ${plain(t)}`).join('\n')}${s.tip ? `\ndica: ${plain(s.tip)}` : ''}`),
+    'Casos comuns:',
+    ...CASES.map((c) => `- ${c.q}: ${plain(c.a)}`),
+    'Onde fica cada coisa:',
+    ...WHERE.map(([what, where]) => `- ${what}: ${where}`),
+  ].join('\n')
+}
 
 export default function Manual() {
   const [open, setOpen] = useKeep<string | null>('manual-aberto', '01')

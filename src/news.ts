@@ -27,6 +27,22 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-29-chat-formatacao',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'chat com negrito, itálico, sublinhado e emojis',
+    text: 'Na conversa com o assistente online agora dá para destacar palavras e colocar emojis. Selecione o texto e toque em N, I ou S; o 😊 abre os emojis.',
+    steps: [{ text: 'Toque no balão de conversa, no canto da tela: a barrinha de formatação fica em cima da caixa de escrever.' }],
+  },
+  {
+    id: '2026-09-29-avisos-resposta',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'aviso quando respondemos você',
+    text: 'Quando respondermos sua mensagem ou sua sugestão mudar de situação (em análise, planejada, feita…), você recebe um aviso na tela e por e-mail. No chat, dá para ativar os avisos do navegador.',
+    steps: [{ page: 'sugestoes', text: 'Em sugestões, as que tiveram resposta nova aparecem destacadas.' }],
+  },
+  {
     id: '2026-09-29-instagram-calendario',
     date: '2026-09-29',
     kind: 'melhoria',

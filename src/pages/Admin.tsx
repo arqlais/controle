@@ -15,6 +15,11 @@ import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid }
 import { DateInput } from '../components/DateInput'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
 import { NEWS } from '../news'
+import { RichInput, RichText, richPlain } from '../components/RichText'
+import { useNotifyAsk } from '../notify'
+import { draftReply } from '../aiReply'
+import { useStore } from '../store'
+import { href } from '../router'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
@@ -597,7 +602,7 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
   )
 }
 
-const MAIL_KIND: Record<string, string> = { 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade' }
+const MAIL_KIND: Record<string, string> = { 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade', 'dona-mensagem': 'mensagem nova (para você)', 'dona-sugestao': 'sugestão nova (para você)', resposta: 'resposta no chat', sugestao: 'sugestão respondida' }
 /** E-mails automáticos: o que sai sozinho, o histórico e o envio de novidades para todos. */
 function EmailsAdmin({ subs }: { subs: Subscription[] }) {
   const [log, setLog] = useState<Awaited<ReturnType<typeof platform.emailLog>>>([])
@@ -679,10 +684,16 @@ function Inbox({ subs, msgs, current, setCurrent, reload }: { subs: Subscription
   }, [msgs, subs])
   // quem ainda não conversou também pode receber mensagem (vindo de "conversar" nos assinantes)
   const currentSub = subs.find((s) => s.userId === current)
+  const notifyAsk = useNotifyAsk()
   if (!threads.length && !current) return <Empty icon="chat" title="nenhuma conversa ainda" text="Quando um cliente escrever no chat, a conversa aparece aqui e você recebe um aviso no menu." />
   return (
     <div className={`pf-inbox ${current ? 'has-open' : ''}`}>
       <div className="card pf-threads">
+        {notifyAsk.canAsk && (
+          <button type="button" className="pf-notify-ask" onClick={() => void notifyAsk.ask()} title="Mensagens e sugestões novas aparecem no canto da tela, mesmo com o sistema numa aba de fundo">
+            <Icon name="bell" size={14} /> ativar avisos neste aparelho
+          </button>
+        )}
         {threads.map((t) => (
           <button key={t.id} className={`pf-thread ${t.id === current ? 'is-active' : ''}`} onClick={() => setCurrent(t.id)}>
             <span className="pf-avatar">{(t.sub?.name || '?')[0].toUpperCase()}</span>
@@ -690,7 +701,7 @@ function Inbox({ subs, msgs, current, setCurrent, reload }: { subs: Subscription
               <b>{t.sub?.name || 'cliente'}</b> {t.sub && <OnlineDot s={t.sub} />}
               <small className="muted">
                 {t.last.fromOwner ? 'você: ' : ''}
-                {t.last.body.slice(0, 60)}
+                {richPlain(t.last.body).slice(0, 60)}
               </small>
             </span>
             <span className="pf-thread-meta">
@@ -716,7 +727,10 @@ function Inbox({ subs, msgs, current, setCurrent, reload }: { subs: Subscription
 
 function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: Subscription; onBack: () => void; onChange: () => Promise<void> }) {
   const { msgs, send, markRead } = useConversation(clientId)
+  const { data } = useStore()
+  const aiKey = data.settings.aiKey
   const [text, setText] = useState('')
+  const [drafting, setDrafting] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
   const unread = (msgs ?? []).some((m) => !m.fromOwner && !m.readAt)
   useEffect(() => {
@@ -726,11 +740,30 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [msgs])
   const submit = async () => {
+    if (!text.trim()) return
     if (await send(text, true)) {
       setText('')
       void onChange()
+      void platform.notice({ tipo: 'resposta', userId: clientId, text }).catch(() => undefined)
     }
   }
+  // rascunho com IA: o que já estiver escrito na caixa vira "anotações" do que ela quer dizer
+  const draft = async () => {
+    if (!aiKey) {
+      toast('Para a IA escrever, coloque sua chave do Gemini em configurações → assistente.')
+      return
+    }
+    if (!msgs?.length) return
+    setDrafting(true)
+    try {
+      setText(await draftReply({ key: aiKey, sub, msgs, notes: text }))
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'A IA não respondeu agora. Tente de novo.')
+    } finally {
+      setDrafting(false)
+    }
+  }
+  const lastFromClient = !!msgs?.length && !msgs[msgs.length - 1].fromOwner
   return (
     <section className="card pf-thread-view">
       <header className="pf-thread-head">
@@ -748,7 +781,9 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
       <div className="pf-thread-body">
         {(msgs ?? []).map((m) => (
           <div key={m.id} className={`ai-msg ${m.fromOwner ? 'is-user' : 'is-ai'}`}>
-            <p>{m.body}</p>
+            <p>
+              <RichText text={m.body} />
+            </p>
             <small className="pf-msg-time">
               {timeLabel(m.createdAt)}
               {m.fromOwner && m.readAt ? ' · lida' : ''}
@@ -769,28 +804,44 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
         </div>
       )}
       <form
-        className="ai-chat-input"
+        className="ai-chat-input rich-form"
         onSubmit={(e) => {
           e.preventDefault()
           void submit()
         }}
       >
-        <textarea
-          rows={Math.min(4, Math.max(1, text.split('\n').length))}
+        <RichInput
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              void submit()
-            }
-          }}
-          placeholder="Responder…"
+          onChange={setText}
+          onSubmit={() => void submit()}
+          placeholder={drafting ? 'a IA está escrevendo…' : 'Responder…'}
+          tools={
+            !!msgs?.length && (
+              <>
+                <span className="grow" />
+                <button
+                  type="button"
+                  className={`chip rich-ai ${lastFromClient && !text ? 'is-suggested' : ''}`}
+                  onClick={() => void draft()}
+                  disabled={drafting}
+                  title={aiKey ? 'A IA escreve um rascunho com base na conversa. Se você escrever uma ideia antes, ela usa como guia.' : 'Coloque sua chave do Gemini em configurações → assistente'}
+                >
+                  <Icon name="sparkle" size={13} /> {drafting ? 'escrevendo…' : text.trim() ? 'IA usando minha ideia' : 'responder com IA'}
+                </button>
+                {!aiKey && (
+                  <a className="small muted" href={href('config')} onClick={() => localStorage.setItem('config-aba', 'ia')}>
+                    colocar chave
+                  </a>
+                )}
+              </>
+            )
+          }
         />
-        <button className="btn primary icon-only" disabled={!text.trim()} aria-label="Enviar">
+        <button className="btn primary icon-only" disabled={!text.trim() || drafting} aria-label="Enviar">
           <Icon name="arrowRight" size={18} />
         </button>
       </form>
+      {text && !drafting && <p className="rich-hint muted">confira o texto antes de mandar: selecione palavras para tirar ou pôr negrito, itálico e sublinhado</p>}
     </section>
   )
 }
@@ -939,6 +990,8 @@ function SuggestionsAdmin({ sugs, subs, reload }: { sugs: Suggestion[]; subs: Su
   const save = async (x: Suggestion, patch: Partial<Pick<Suggestion, 'status' | 'reply'>>, msg: string) => {
     try {
       await platform.answerSuggestion(x.id, { status: patch.status ?? x.status, reply: patch.reply ?? x.reply })
+      // quem sugeriu recebe o aviso por e-mail (e na tela, quando abrir o sistema)
+      void platform.notice({ tipo: 'sugestao-atualizada', id: x.id }).catch(() => undefined)
       await reload()
       toast(msg)
     } catch {

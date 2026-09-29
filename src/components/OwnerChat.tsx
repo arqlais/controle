@@ -4,8 +4,11 @@ import { Icon } from './Icon'
 import { useStore } from '../store'
 import { CLOUD } from '../cloud'
 import { PLATFORM } from '../plans'
-import { PREVIEW_CLIENT, hoursSummary, isOnline, nextOnline } from '../platform'
+import { PREVIEW_CLIENT, hoursSummary, isOnline, nextOnline, platform } from '../platform'
 import { timeLabel, useConversation, useHours } from '../chat'
+import { RichInput, RichText, richPlain } from './RichText'
+import { toast } from './dialog'
+import { systemNotify, useNotifyAsk } from '../notify'
 
 /* Chat dos clientes com a dona (no lugar do assistente de IA).
    Mostra se ela está online agora; fora do horário: "respondo assim que possível". */
@@ -38,11 +41,29 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
   }, [msgs, open])
+  // resposta nova com o chat fechado: aviso na tela (e no navegador, se a aba estiver no fundo)
+  const seen = useRef<Set<string> | null>(null)
+  useEffect(() => {
+    if (!msgs) return
+    if (seen.current && !open) {
+      const fresh = msgs.filter((m) => m.fromOwner && !seen.current!.has(m.id))
+      if (fresh.length) {
+        toast(`💬 ${PLATFORM.support} respondeu no chat`)
+        systemNotify(`💬 ${PLATFORM.name}: resposta nova`, richPlain(fresh[fresh.length - 1].body).slice(0, 140), 'chat')
+      }
+    }
+    seen.current = new Set(msgs.map((m) => m.id))
+  }, [msgs, open])
+  const notifyAsk = useNotifyAsk()
 
   const submit = async () => {
     if (sending || !text.trim()) return
     setSending(true)
-    if (await send(text, false)) setText('')
+    if (await send(text, false)) {
+      // avisa a dona por e-mail (se ela não estiver com o painel aberto agora)
+      void platform.notice({ tipo: 'mensagem', text }).catch(() => undefined)
+      setText('')
+    }
     setSending(false)
   }
   const last = msgs?.[msgs.length - 1]
@@ -81,6 +102,11 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
                 {!online && next ? ` · voltamos ${next}` : ''}
               </span>
             </div>
+            {notifyAsk.canAsk && (msgs?.length ?? 0) > 0 && (
+              <button type="button" className="pf-notify-ask" onClick={() => void notifyAsk.ask()}>
+                <Icon name="bell" size={14} /> avisar quando eu tiver resposta
+              </button>
+            )}
             {msgs === null ? (
               <p className="muted small center">carregando…</p>
             ) : msgs.length === 0 ? (
@@ -97,7 +123,9 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
             ) : (
               msgs.map((m) => (
                 <div key={m.id} className={`ai-msg ${m.fromOwner ? 'is-ai' : 'is-user'}`}>
-                  <p>{m.body}</p>
+                  <p>
+                    <RichText text={m.body} />
+                  </p>
                   <small className="pf-msg-time">{timeLabel(m.createdAt)}</small>
                 </div>
               ))
@@ -112,25 +140,13 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
             <div ref={endRef} />
           </div>
           <form
-            className="ai-chat-input"
+            className="ai-chat-input rich-form"
             onSubmit={(e) => {
               e.preventDefault()
               void submit()
             }}
           >
-            <textarea
-              rows={Math.min(4, Math.max(1, text.split('\n').length))}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  void submit()
-                }
-              }}
-              placeholder="Escreva sua mensagem…"
-              autoFocus
-            />
+            <RichInput value={text} onChange={setText} onSubmit={() => void submit()} placeholder="Escreva sua mensagem…" autoFocus />
             <button className="btn primary icon-only" disabled={sending || !text.trim()} aria-label="Enviar">
               <Icon name="arrowRight" size={18} />
             </button>

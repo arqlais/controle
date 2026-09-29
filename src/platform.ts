@@ -257,7 +257,7 @@ const msgFromRow = (r: Row): ChatMessage => ({
 
 const cloud = {
   /** Pede um aviso por e-mail à função "avisos" do Supabase (a chave do Brevo fica só lá). */
-  async notice(body: { tipo: 'boas-vindas' | 'ativada' | 'novidade'; userId?: string; title?: string; text?: string }): Promise<{ ok?: boolean; enviados?: number; erro?: string }> {
+  async notice(body: { tipo: 'boas-vindas' | 'ativada' | 'novidade' | 'mensagem' | 'resposta' | 'sugestao' | 'sugestao-atualizada'; userId?: string; id?: string; title?: string; text?: string }): Promise<{ ok?: boolean; enviados?: number; erro?: string }> {
     const { data, error } = await supabase!.functions.invoke('avisos', { body })
     if (error) throw error
     return (data ?? {}) as { ok?: boolean; enviados?: number; erro?: string }
@@ -626,7 +626,7 @@ export function previewSignup(name: string, studio: string, email: string, plan:
 
 const local = {
   // prévia: nenhum e-mail sai de verdade
-  async notice(_body: { tipo: string; userId?: string; title?: string; text?: string }) {
+  async notice(_body: { tipo: string; userId?: string; id?: string; title?: string; text?: string }) {
     return { ok: true, enviados: 0 }
   },
   async emailLog() {

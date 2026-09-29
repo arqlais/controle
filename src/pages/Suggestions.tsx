@@ -5,11 +5,12 @@ import { toast } from '../components/dialog'
 import { PLATFORM } from '../plans'
 import { SUGGESTION_CATEGORY, SUGGESTION_STATUS, platform, type Suggestion, type SuggestionCategory } from '../platform'
 import { timeLabel } from '../chat'
+import { RichText } from '../components/RichText'
 
 /* Sugestões de melhoria: quem usa conta o que gostaria de ter nas próximas atualizações
    e acompanha a situação (recebida → em análise → planejada → feita) e a resposta. */
 
-export default function Suggestions() {
+export default function Suggestions({ unseen = [], onSeen }: { unseen?: string[]; onSeen?: () => void }) {
   const [list, setList] = useState<Suggestion[] | null>(null)
   const [category, setCategory] = useState<SuggestionCategory>('nova')
   const [title, setTitle] = useState('')
@@ -19,6 +20,11 @@ export default function Suggestions() {
   useEffect(() => {
     void load()
   }, [load])
+  // abriu a tela: as respostas novas deixam de contar no menu (o destaque fica até sair)
+  const [fresh] = useState(unseen)
+  useEffect(() => {
+    if (unseen.length) onSeen?.()
+  }, [unseen.length, onSeen])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -26,6 +32,8 @@ export default function Suggestions() {
     setBusy(true)
     try {
       await platform.suggest({ category, title: title.trim().slice(0, 140), body: body.trim().slice(0, 4000) })
+      // avisa a dona por e-mail
+      void platform.notice({ tipo: 'sugestao', title: title.trim().slice(0, 140), text: `${SUGGESTION_CATEGORY[category]}\n\n${body.trim().slice(0, 4000)}` }).catch(() => undefined)
       setTitle('')
       setBody('')
       toast('Valeu pela sugestão! Você acompanha a resposta aqui.')
@@ -78,9 +86,10 @@ export default function Suggestions() {
         ) : (
           <div className="sg-list">
             {list.map((x) => (
-              <article key={x.id} className="sg-item">
+              <article key={x.id} className={`sg-item ${fresh.includes(x.id) ? 'is-new' : ''}`}>
                 <header>
                   <b>{x.title}</b>
+                  {fresh.includes(x.id) && <Badge color="#5e8c6a">novidade</Badge>}
                   <Badge color={SUGGESTION_STATUS[x.status].color}>{SUGGESTION_STATUS[x.status].label}</Badge>
                 </header>
                 <small className="muted">
@@ -89,7 +98,10 @@ export default function Suggestions() {
                 {x.body && <p>{x.body}</p>}
                 {x.reply && (
                   <p className="sg-reply">
-                    <Icon name="chat" size={14} /> <span>{x.reply}</span>
+                    <Icon name="chat" size={14} />{' '}
+                    <span>
+                      <RichText text={x.reply} />
+                    </span>
                   </p>
                 )}
               </article>
