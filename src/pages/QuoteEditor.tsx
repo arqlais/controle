@@ -145,6 +145,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [touched, setTouched] = useState(false)
   const unsaved = dirty && touched
   const saveRef = useRef<() => Quote | null>(() => null)
+  const deletingRef = useRef(false)
   const draftKey = `orcamento-em-edicao:${id}`
   // cópia de segurança no aparelho enquanto edita (fechou/travou/recarregou: dá para recuperar)
   const [recover, setRecover] = useState<{ q: Quote; at: string } | null>(() => {
@@ -173,6 +174,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     window.addEventListener('beforeunload', warn)
     // sair pelo menu, por um link ou pela setinha sem salvar: pergunta
     const confirmLeave = async () => {
+      if (deletingRef.current) return true
       const choice = await askChoice('Este orçamento tem alterações que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
       if (choice === 'cancel') return false
       if (choice === 'confirm' && !saveRef.current()) return false // sem cliente: fica para completar
@@ -311,6 +313,25 @@ export default function QuoteEditor({ id }: { id: string }) {
   }
 
   saveRef.current = () => save()
+  // excluir: sai sem a pergunta de "salvar alterações" (senão ela salvava o orçamento de volta)
+  const deleteQuote = async () => {
+    if (!(await askDelete(`a proposta ${quoteNumber(q)}`))) return
+    deletingRef.current = true
+    try {
+      localStorage.removeItem(draftKey)
+    } catch {
+      /* ok */
+    }
+    // rascunhos seguintes descem para ocupar o número que ficou vago
+    const moves = afterDeleteDrafts(data.quotes, new Set([q.id]))
+    remove('quotes', q.id)
+    for (const m of moves) {
+      const x = data.quotes.find((o) => o.id === m.id)
+      if (x) upsert('quotes', { ...x, number: m.number })
+    }
+    toast(`Proposta ${quoteNumber(q)} excluída.`)
+    go('orcamentos')
+  }
   // baixar o PDF de um rascunho reserva o próximo número depois do último enviado (o PDF já sai com o número certo)
   const downloadPdf = (vector: boolean) => {
     let cur = q
@@ -448,6 +469,11 @@ export default function QuoteEditor({ id }: { id: string }) {
             )}
             <AskAIButton quote={q} />
           </MoreMenu>
+          {existing && id !== 'novo' && id !== 'antigo' && (
+            <button className="btn ghost danger icon-only" onClick={deleteQuote} title="Excluir este orçamento" aria-label="Excluir este orçamento">
+              <Icon name="trash" size={16} />
+            </button>
+          )}
           <button className={`btn ${dirty ? 'primary' : 'ghost is-saved'}`} onClick={() => save()} disabled={!dirty}>
             {dirty ? 'salvar' : 'salvo'}
           </button>
@@ -456,7 +482,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           <div className="head-status">
             <Segmented<QuoteStatus>
               value={q.status}
-              onChange={(st) => save({ status: st })}
+              onChange={(st) => (st === 'aprovado' && !(q.projectId && data.projects.some((p) => p.id === q.projectId)) ? approve() : save({ status: st }))}
               options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
             />
             <button className="btn small primary" onClick={approve}>
@@ -828,21 +854,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </button>
               )}
               {existing && (
-                <button
-                  className="btn ghost danger small"
-                  onClick={async () => {
-                    if (await askDelete(`a proposta ${quoteNumber(q)}`)) {
-                      // rascunhos seguintes descem para ocupar o número que ficou vago
-                      const moves = afterDeleteDrafts(data.quotes, new Set([q.id]))
-                      remove('quotes', q.id)
-                      for (const m of moves) {
-                        const x = data.quotes.find((o) => o.id === m.id)
-                        if (x) upsert('quotes', { ...x, number: m.number })
-                      }
-                      go('orcamentos')
-                    }
-                  }}
-                >
+                <button className="btn ghost danger small" onClick={deleteQuote}>
                   <Icon name="trash" size={14} /> excluir
                 </button>
               )}

@@ -16,14 +16,21 @@ type Filter = QuoteStatus | 'todos' | 'cobrar'
 
 // ordem da lista (fica guardada ao voltar para a página)
 type QuoteOrder = 'numero' | 'numero-asc' | 'data' | 'data-asc' | 'cliente' | 'valor'
-const byNumber = (a: Quote, b: Quote) => b.number - a.number
-const QUOTE_ORDERS: Record<QuoteOrder, { label: string; fn: (name: (id: string) => string, fee: number) => (a: Quote, b: Quote) => number }> = {
-  numero: { label: 'nº (mais recente)', fn: () => byNumber },
-  'numero-asc': { label: 'nº (mais antigo)', fn: () => (a, b) => a.number - b.number },
-  data: { label: 'data (mais recente)', fn: () => (a, b) => b.createdAt.localeCompare(a.createdAt) || byNumber(a, b) },
-  'data-asc': { label: 'data (mais antiga)', fn: () => (a, b) => a.createdAt.localeCompare(b.createdAt) || a.number - b.number },
-  cliente: { label: 'cliente (A–Z)', fn: (name) => (a, b) => name(a.clientId).localeCompare(name(b.clientId), 'pt-BR', { sensitivity: 'base' }) || byNumber(a, b) },
-  valor: { label: 'valor (maior)', fn: (_n, fee) => (a, b) => quoteTotal(b, fee) - quoteTotal(a, fee) || byNumber(a, b) },
+// orçamento antigo sem número: entra na ordem pela data, entre os numerados da mesma época
+type Num = (q: Quote) => number
+const QUOTE_ORDERS: Record<QuoteOrder, { label: string; fn: (name: (id: string) => string, fee: number, num: Num) => (a: Quote, b: Quote) => number }> = {
+  numero: { label: 'nº (mais recente)', fn: (_n, _f, num) => (a, b) => num(b) - num(a) },
+  'numero-asc': { label: 'nº (mais antigo)', fn: (_n, _f, num) => (a, b) => num(a) - num(b) },
+  data: { label: 'data (mais recente)', fn: (_n, _f, num) => (a, b) => b.createdAt.localeCompare(a.createdAt) || num(b) - num(a) },
+  'data-asc': { label: 'data (mais antiga)', fn: (_n, _f, num) => (a, b) => a.createdAt.localeCompare(b.createdAt) || num(a) - num(b) },
+  cliente: { label: 'cliente (A–Z)', fn: (name, _f, num) => (a, b) => name(a.clientId).localeCompare(name(b.clientId), 'pt-BR', { sensitivity: 'base' }) || num(b) - num(a) },
+  valor: { label: 'valor (maior)', fn: (_n, fee, num) => (a, b) => quoteTotal(b, fee) - quoteTotal(a, fee) || num(b) - num(a) },
+}
+/** Posição de cada orçamento na ordem por nº; os sem número ficam logo depois do último numerado até a data deles. */
+export function numberKey(quotes: Quote[]): Num {
+  const numbered = quotes.filter((x) => !x.noNumber && x.number > 0)
+  const pos = new Map(quotes.filter((x) => x.noNumber).map((q) => [q.id, Math.max(0, ...numbered.filter((x) => x.createdAt <= q.createdAt).map((x) => x.number)) + 0.5]))
+  return (q) => pos.get(q.id) ?? q.number
 }
 
 /** Dias desde o envio (orçamentos enviados e ainda sem resposta). */
@@ -49,7 +56,7 @@ export default function Quotes() {
       .filter((x) => (filter === 'todos' ? true : filter === 'cobrar' ? needsFollowUp(x) : x.status === filter))
       .filter((x) => !clientId || x.clientId === clientId)
       .filter((x) => matches(term, x.number, `#${x.number}`, quoteNumber(x), x.title, client(x.clientId)?.name, client(x.clientId)?.company))
-      .sort(QUOTE_ORDERS[order].fn((id) => client(id)?.name ?? '', fee))
+      .sort(QUOTE_ORDERS[order].fn((id) => client(id)?.name ?? '', fee, numberKey(data.quotes)))
   }, [data.quotes, data.clients, filter, q, clientId, order])
   const { visible, more } = usePaged(rows, 30, 'orcamentos')
 
