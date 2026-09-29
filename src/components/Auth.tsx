@@ -12,6 +12,7 @@ import { go, useRoute } from '../router'
 import { Signup } from './Signup'
 import Landing from '../pages/Landing'
 import { BriefingPublic } from './Briefing'
+import { PortalPublic } from './Studio'
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
@@ -23,6 +24,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // briefing do cliente final: página pública, sem login e sem nada do sistema
   const route = useRoute()
   if (route.page === 'briefing' && route.id) return <BriefingPublic id={route.id} />
+  // página de acompanhamento do projeto (plano Estúdio): também sem login
+  if (route.page === 'acompanhar' && route.id) return <PortalPublic token={route.id} />
   return <Gate>{children}</Gate>
 }
 

@@ -152,6 +152,54 @@ export interface Project {
   timerStart: string | null // cronômetro rodando desde (ISO)
   notes: string
   createdAt: string
+  // plano Estúdio
+  phases?: ProjectPhase[] // cronograma: etapas do projeto com prazo e parcela
+  visits?: SiteVisit[] // acompanhamento de obra
+  costs?: ProjectCost[] // custos do projeto (taxas, impressões, deslocamento…)
+  portal?: ProjectPortal // página de acompanhamento para o cliente
+}
+
+/** Etapa do cronograma (estudo preliminar, anteprojeto, executivo…). */
+export interface ProjectPhase {
+  id: string
+  name: string
+  start?: string
+  due?: string
+  done?: boolean
+  doneAt?: string
+  paymentId?: string // parcela que é cobrada quando esta etapa termina
+  note?: string
+}
+export interface VisitPhoto {
+  id: string
+  path?: string // arquivo guardado na nuvem (pasta da conta)
+  data?: string // prévia: a própria imagem (só neste aparelho)
+  caption?: string
+}
+/** Visita de obra: o que foi visto, fotos e o que fazer depois. */
+export interface SiteVisit {
+  id: string
+  date: string
+  title: string
+  notes: string
+  next?: string // próximos passos / pendências
+  photos: VisitPhoto[]
+}
+export interface ProjectCost {
+  id: string
+  date: string
+  description: string
+  category: string
+  amount: number
+}
+export interface ProjectPortal {
+  token: string
+  enabled: boolean
+  showPayments: boolean
+  showFiles: boolean
+  showVisits: boolean
+  message?: string
+  publishedAt?: string
 }
 
 export type ExpenseCategory =
@@ -352,6 +400,7 @@ export interface Contract {
 
 export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
+  hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   brandName: string
   tagline: string
   ownerName: string

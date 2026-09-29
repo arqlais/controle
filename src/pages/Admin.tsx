@@ -237,6 +237,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
         <Stat label="Online agora" value={subs.filter(isOnline5).length} sub={subs.filter(isOnline5).map((x) => first(x)).join(', ') || 'ninguém usando neste momento'} icon="users" />
         <Stat label="Recebido este mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s) registrado(s)` : 'registre em assinantes → cobrança'} icon="check" tone="good" />
         <Stat label="Vencendo / vencidas" value={upcoming.length} sub={upcoming.length ? `${upcoming.filter((x) => x.d < 0).length} vencida(s) · ${money(upcoming.reduce((n, x) => n + priceOf(x.s, cycleOf(x.s, ctrl[x.s.userId], billing[x.s.userId])), 0))}` : 'nada nos próximos 10 dias'} icon="calendar" tone={upcoming.some((x) => x.d < 0) ? 'warn' : undefined} />
+        <Stat label="Pedidos de assinatura" value={requests.length} sub={requests.length ? requests.map((x) => `${first(x)} · ${PLANS[x.requestedPlan!].name}`).join(', ') : 'nenhum pedido esperando'} icon="inbox" tone={requests.length ? 'warn' : undefined} />
       </div>
       {(upcoming.length > 0 || endingTrials.length > 0) && (
         <Section title="cobranças e testes para olhar">
@@ -282,7 +283,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
         </Section>
       )}
       <div className="stats">
-        <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s)${requests.length ? ` · ${requests.length} pedido(s)` : ''}`} icon="wallet" tone="good" />
+        <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s)`} icon="wallet" tone="good" />
         <Stat label="Em teste grátis" value={trials.length} sub={expired.length ? `${expired.length} teste(s) já terminaram` : `${TRIAL_DAYS} dias de teste`} icon="clock" />
         <Stat label="Novos este mês" value={newOnes.length} sub={`conversão do teste: ${conversion}%`} icon="trend" />
         <Stat label="Cancelamentos no mês" value={canceled.length} sub={late.length ? `${late.length} com pagamento atrasado` : 'nenhum atraso'} icon="alert" tone={canceled.length || late.length ? 'warn' : undefined} />

@@ -41,6 +41,10 @@ export type Feature =
   | 'agendaCelular' // agenda sincronizada no celular
   | 'identidade' // logo, cores e fontes próprias
   | 'briefing' // briefing online para o cliente final responder por link
+  | 'cronograma' // etapas do projeto com prazo e parcela
+  | 'obra' // acompanhamento de obra (visitas, fotos, relatório)
+  | 'lucro' // custos e lucro por projeto
+  | 'portal' // página de acompanhamento para o cliente
 
 export type PlanId = 'essencial' | 'completo' | 'estudio'
 
@@ -89,8 +93,8 @@ export const PLANS: Record<PlanId, Plan> = {
     name: 'Estúdio',
     price: 89.9,
     pitch: 'tudo do Completo + briefing online e recursos para escritório',
-    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing'],
-    highlights: ['tudo do Completo', 'briefing online: o cliente responde pelo celular e tudo cai na ficha', 'ficha completa do cliente final', 'novidades para escritórios primeiro', 'atendimento prioritário'],
+    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal'],
+    highlights: ['tudo do Completo', 'página do projeto para o cliente acompanhar', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
     inviteOnly: true,
   },
 }
@@ -100,7 +104,7 @@ export const PLAN_LIST = [PLANS.essencial, PLANS.completo, PLANS.estudio]
 export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
-export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing']
+export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal']
 
 /** O que a dona pode ligar/desligar em cada plano (painel → planos). */
 export const PLAN_TOGGLES: [Feature, string][] = [
@@ -110,6 +114,10 @@ export const PLAN_TOGGLES: [Feature, string][] = [
   ['agendaCelular', 'agenda no celular'],
   ['instagram', 'planejamento do instagram'],
   ['briefing', 'briefing online (cliente final)'],
+  ['cronograma', 'cronograma das etapas'],
+  ['obra', 'acompanhamento de obra'],
+  ['lucro', 'custos e lucro por projeto'],
+  ['portal', 'página do projeto para o cliente'],
 ]
 
 /** Tabela de comparação da página de vendas (linha → um valor por plano, na ordem de PLAN_LIST). */
@@ -129,7 +137,11 @@ export function compareRows(): CompareRow[] {
     row('contratos com os dados do orçamento', 'contratos'),
     row('agenda sincronizada no celular', 'agendaCelular'),
     row('planejamento do instagram', 'instagram'),
-    row('briefing online para o cliente final', 'briefing'),
+    row('página do projeto para o cliente acompanhar', 'portal'),
+    row('cronograma das etapas com prazo e parcela', 'cronograma'),
+    row('acompanhamento de obra com fotos e relatório', 'obra'),
+    row('custos e lucro de cada projeto', 'lucro'),
+    row('briefing online com modelos e fotos', 'briefing'),
     all('chat direto com o assistente online'),
   ]
 }

@@ -323,6 +323,39 @@ $$;
 revoke execute on function public.briefing_publico(uuid), public.responder_briefing(uuid, jsonb) from public;
 grant execute on function public.briefing_publico(uuid), public.responder_briefing(uuid, jsonb) to anon, authenticated;
 
+-- 5d) Página de acompanhamento do projeto (plano Estúdio): o cliente abre pelo link, sem login,
+--     e vê só o resumo que o escritório publicou (etapas, prazos, pagamentos, visitas).
+create table if not exists public.portal_links (
+  id         uuid primary key,
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  payload    jsonb not null check (pg_column_size(payload) < 400000),
+  updated_at timestamptz not null default now()
+);
+alter table public.portal_links enable row level security;
+drop policy if exists "portal: dono" on public.portal_links;
+create policy "portal: dono" on public.portal_links for all
+  using (user_id = auth.uid()) with check (user_id = auth.uid() and public.pode_editar());
+create or replace function public.portal_publico(p_id uuid) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select p.payload from public.portal_links p where p.id = p_id;
+$$;
+revoke execute on function public.portal_publico(uuid) from public;
+grant execute on function public.portal_publico(uuid) to anon, authenticated;
+
+-- 5e) Fotos de obra (plano Estúdio): cada conta só vê e mexe na própria pasta.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('obra', 'obra', false, 6291456, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do nothing;
+drop policy if exists "obra: dono vê" on storage.objects;
+drop policy if exists "obra: dono envia" on storage.objects;
+drop policy if exists "obra: dono apaga" on storage.objects;
+create policy "obra: dono vê" on storage.objects for select
+  using (bucket_id = 'obra' and (storage.foldername(name))[1] = auth.uid()::text);
+create policy "obra: dono envia" on storage.objects for insert
+  with check (bucket_id = 'obra' and (storage.foldername(name))[1] = auth.uid()::text and public.pode_editar());
+create policy "obra: dono apaga" on storage.objects for delete
+  using (bucket_id = 'obra' and (storage.foldername(name))[1] = auth.uid()::text);
+
 -- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
 revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;
 grant execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() to authenticated;

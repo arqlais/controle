@@ -29,6 +29,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-29-estudio-abas',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'demandas com abas',
+    text: 'Cada demanda agora tem abas: visão geral, cronograma, obra, custos e lucro e página do cliente. As quatro últimas são do plano Estúdio: cronograma com prazo e parcela de cada etapa, visitas de obra com fotos e relatório em PDF, lucro de cada projeto e um link para o cliente acompanhar tudo.',
+    steps: [{ page: 'projetos', text: 'Abra uma demanda: as abas ficam logo abaixo dos cartões do topo.' }],
+  },
+  {
     id: '2026-09-29-tres-planos',
     date: '2026-09-29',
     kind: 'novo',

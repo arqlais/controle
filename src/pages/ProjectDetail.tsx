@@ -8,6 +8,8 @@ import { Icon } from '../components/Icon'
 import { ProjectForm, EventForm } from '../components/forms'
 import { ReceiptDoc } from '../components/Docs'
 import { usePdf } from '../components/Print'
+import { useKeep } from '../keep'
+import { ClienteTab, CronogramaTab, LucroTab, ObraTab, PROJECT_TABS, ProjectTabs, StudioLocked, usePortalSync, type ProjectTab } from '../components/Studio'
 import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
@@ -57,7 +59,11 @@ export default function ProjectDetail({ id }: { id: string }) {
   const hasPackage = (p?.items ?? []).length > 0
   const [task, setTask] = useState('')
   const pdf = usePdf()
-  const canPdf = useAccess().has('propostaPdf') // recibos em PDF: plano Completo
+  const { has } = useAccess()
+  const canPdf = has('propostaPdf') // recibos em PDF: plano Completo
+  // abas (visão geral + recursos do Estúdio); a última aberta fica guardada
+  const [tab, setTab] = useKeep<ProjectTab>('demanda-aba', 'geral')
+  usePortalSync(p, p ? data.clients.find((c) => c.id === p.clientId) : undefined)
 
   const duplicate = () => {
     if (!p) return
@@ -208,19 +214,44 @@ export default function ProjectDetail({ id }: { id: string }) {
             </>
           }
         />
-        <Stat
-          label="Etapas"
-          value={`${done}/${p.tasks.length}`}
-          icon="check"
-          sub={
-            <>
-              <Progress value={done} max={p.tasks.length} />
-              <span>{p.tasks.find((t) => !t.done)?.text ?? 'tudo concluído'}</span>
-            </>
-          }
-        />
+        {p.phases?.length ? (
+          // com cronograma (Estúdio), o cartão mostra as etapas do projeto
+          <Stat
+            label="Cronograma"
+            value={`${p.phases.filter((x) => x.done).length}/${p.phases.length}`}
+            icon="calendar"
+            sub={
+              <>
+                <Progress value={p.phases.filter((x) => x.done).length} max={p.phases.length} />
+                <span>{p.phases.find((x) => !x.done)?.name ?? 'tudo concluído'}</span>
+              </>
+            }
+          />
+        ) : (
+          <Stat
+            label="Etapas"
+            value={`${done}/${p.tasks.length}`}
+            icon="check"
+            sub={
+              <>
+                <Progress value={done} max={p.tasks.length} />
+                <span>{p.tasks.find((t) => !t.done)?.text ?? 'tudo concluído'}</span>
+              </>
+            }
+          />
+        )}
       </div>
 
+      <ProjectTabs tab={tab} onTab={setTab} p={p} />
+      {tab !== 'geral' && (() => {
+        const t = PROJECT_TABS.find((x) => x.id === tab)
+        if (t?.feature && !has(t.feature)) return <StudioLocked tab={tab} />
+        if (tab === 'cronograma') return <CronogramaTab p={p} save={save} />
+        if (tab === 'obra') return <ObraTab p={p} save={save} client={client} />
+        if (tab === 'lucro') return <LucroTab p={p} save={save} />
+        return <ClienteTab p={p} save={save} client={client} />
+      })()}
+      {tab === 'geral' && (
       <div className="grid-2 wide-left">
         <div className="stack">
           <Section
@@ -512,6 +543,7 @@ export default function ProjectDetail({ id }: { id: string }) {
           </button>
         </div>
       </div>
+      )}
 
       {bill && <BillModal p={p} onClose={() => setBill(false)} />}
       {edit && <ProjectForm initial={p} onClose={() => setEdit(false)} />}

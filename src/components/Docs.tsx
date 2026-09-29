@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import { useAccess } from '../access'
 import { resolveTemplate, sheetColors } from '../proposalTemplates'
-import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings } from '../types'
+import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings, SiteVisit } from '../types'
 import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
@@ -544,6 +544,51 @@ export function BillDoc({ s, info, year }: { s: Settings; info: BillInfo; year: 
           obrigada pela confiança <span className="bill-heart">♥</span> fico à disposição para futuros projetos!
         </p>
       </div>
+    </Sheet>
+  )
+}
+
+/* ---------- relatório de visita de obra (plano Estúdio) ---------- */
+
+export function VisitReportDoc({ s, client, project, visit, urls }: { s: Settings; client?: Client; project: Project; visit: SiteVisit; urls: Record<string, string> }) {
+  const { tpl, p } = useSheet(s)
+  const photos = visit.photos.filter((ph) => urls[ph.id])
+  const main = (
+    <>
+      <div className="p-card">
+        <h3 className="p-card-title">{visit.title || 'visita de obra'}</h3>
+        {visit.notes && <p className="p-receipt vr-text">{visit.notes}</p>}
+        {visit.next && (
+          <p className="p-note vr-next">
+            <b>próximos passos:</b> {visit.next}
+          </p>
+        )}
+      </div>
+      {photos.length > 0 && (
+        <div className="vr-photos">
+          {photos.map((ph) => (
+            <figure key={ph.id}>
+              <img src={urls[ph.id]} alt="" crossOrigin="anonymous" />
+              {ph.caption && <figcaption>{ph.caption}</figcaption>}
+            </figure>
+          ))}
+        </div>
+      )}
+    </>
+  )
+  const who = client?.name ?? ''
+  if (tpl.id !== 'lais')
+    return (
+      <ClientSheet s={s} tpl={tpl.id} p={p} eyebrow="relatório de" title="visita de obra" number={fmt(visit.date)} meta={[['projeto', project.title], ['cliente', who || '—'], ['fotos', String(photos.length)]]} infos={[]}>
+        {main}
+      </ClientSheet>
+    )
+  return (
+    <Sheet s={s} year={visit.date.slice(0, 4)}>
+      <Fields name={who} date={visit.date} label="projeto" value={project.title} />
+      <Title s={s} eyebrow="relatório de" title="visita de obra" />
+      {main}
+      <Contacts s={s} />
     </Sheet>
   )
 }
