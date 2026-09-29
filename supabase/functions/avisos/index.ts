@@ -1,6 +1,6 @@
 // Avisos por e-mail do traço (roda no Supabase, nunca no site).
 // Cole este arquivo em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "avisos".
-// Segredos (Edge Functions → Secrets): BREVO_API_KEY e CRON_SECRET. Opcionais: SENDER_EMAIL, SENDER_NAME, SITE_URL.
+// Segredos (Edge Functions → Secrets): BREVO_API_KEY e CRON_SECRET. Opcionais: SENDER_EMAIL, SENDER_NAME, SITE_URL, REPLY_TO.
 //
 // Tipos de aviso:
 //   boas-vindas  → quem acabou de entrar pela primeira vez (o próprio site pede, uma vez só)
@@ -14,6 +14,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
 const SITE = env('SITE_URL', 'https://arqlais.github.io/controle/')
 const SENDER = { email: env('SENDER_EMAIL', 'nao-responda@lais3d.com.br'), name: env('SENDER_NAME', 'traço') }
+// quem responder o e-mail fala direto com a dona
+const REPLY_TO = env('REPLY_TO', 'arq.laisav@gmail.com')
 const PRICES: Record<string, { name: string; price: number }> = {
   essencial: { name: 'Essencial', price: 39.9 },
   completo: { name: 'Completo', price: 59.9 },
@@ -119,7 +121,7 @@ async function send(to: Sub, mail: Mail) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': env('BREVO_API_KEY'), 'Content-Type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: SENDER, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
+    body: JSON.stringify({ sender: SENDER, replyTo: { email: REPLY_TO, name: SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
   })
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${await r.text()}`)
 }
