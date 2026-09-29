@@ -552,7 +552,7 @@ function ProposalSettings() {
             <Field label="Formas de receber" span={3} hint="Aparecem ao marcar como o cliente pagou cada parcela. Toque no × para tirar uma.">
               <PayMethods list={paymentMethods(s)} onChange={(paymentMethods) => setSettings({ paymentMethods })} />
             </Field>
-            <Field label="Taxa do cartão de crédito (%)" hint="Quanto a maquininha / Mercado Pago desconta para você receber na hora. Entra como despesa quando o cliente paga no crédito. Confira o valor na sua conta.">
+            <Field className="cfg-card-fee" label="Taxa do cartão de crédito (%)" hint="Quanto a maquininha / Mercado Pago desconta para você receber na hora. Entra como despesa quando o cliente paga no crédito. Confira o valor na sua conta.">
               <input type="number" min={0} max={20} step={0.01} value={s.cardFee ?? DEFAULT_CARD_FEE} onChange={(e) => setSettings({ cardFee: Math.max(0, Math.min(20, Number(e.target.value) || 0)) })} />
             </Field>
             {(

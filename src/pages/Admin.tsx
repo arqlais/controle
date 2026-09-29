@@ -13,10 +13,11 @@ import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
 import { DateInput } from '../components/DateInput'
+import { NEWS } from '../news'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
-type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'depoimentos' | 'site' | 'termos' | 'horarios' | 'ajustes'
+type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'depoimentos' | 'site' | 'emails' | 'termos' | 'horarios' | 'ajustes'
 const STATUS_COLOR: Record<SubStatus, string> = { trial: '#6b8f94', ativa: '#5e8c6a', atrasada: '#b98246', cancelada: '#9aa3ab' }
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
@@ -64,6 +65,8 @@ export default function Admin() {
       await platform.updateSubscriber(s.userId, patch)
       setSubs((list) => list.map((x) => (x.userId === s.userId ? { ...x, ...patch } : x)))
       toast(msg)
+      // assinatura ativada agora: a pessoa recebe o e-mail de confirmação (se a função de avisos estiver publicada)
+      if (patch.status === 'ativa' && s.status !== 'ativa') void platform.notice({ tipo: 'ativada', userId: s.userId }).catch(() => undefined)
     } catch {
       toast('Não foi possível salvar. Confira a internet e se o SQL da plataforma foi rodado no Supabase.')
     }
@@ -101,6 +104,7 @@ export default function Admin() {
             { value: 'sugestoes', label: <>sugestões{newSugs ? <em className="pf-dot-count">{newSugs}</em> : null}</> },
             { value: 'depoimentos', label: 'depoimentos' },
             { value: 'site', label: 'página de vendas' },
+            { value: 'emails', label: 'e-mails' },
             { value: 'termos', label: 'termos' },
             { value: 'horarios', label: 'horários' },
             { value: 'ajustes', label: 'planos' },
@@ -126,6 +130,7 @@ export default function Admin() {
           <SiteEditor />
         </>
       )}
+      {tab === 'emails' && <EmailsAdmin subs={subs} />}
       {tab === 'termos' && <TermsEditor />}
       {tab === 'horarios' && <HoursEditor />}
       {tab === 'ajustes' && <PlansInfo />}
@@ -548,6 +553,78 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
       )}
       <textarea className="pf-ctrl-notes" rows={2} placeholder="anotações só suas (ex.: prefere pagar dia 15, indicou fulana…)" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={() => notes !== (c?.notes ?? '') && void set({ notes }, 'Anotação salva.')} spellCheck lang="pt-BR" />
     </div>
+  )
+}
+
+const MAIL_KIND: Record<string, string> = { 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade' }
+/** E-mails automáticos: o que sai sozinho, o histórico e o envio de novidades para todos. */
+function EmailsAdmin({ subs }: { subs: Subscription[] }) {
+  const [log, setLog] = useState<Awaited<ReturnType<typeof platform.emailLog>>>([])
+  const [title, setTitle] = useState(NEWS[0]?.title ?? '')
+  const [text, setText] = useState(NEWS[0]?.text ?? '')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    void platform.emailLog().then(setLog)
+  }, [])
+  const who = (id: string) => subs.find((s) => s.userId === id)
+  const reach = subs.filter((s) => s.status !== 'cancelada' && !s.blocked).length
+  return (
+    <>
+      <Section title="o que sai sozinho">
+        <ul className="pf-mail-list">
+          <li><b>boas-vindas</b> · quando a pessoa entra pela primeira vez</li>
+          <li><b>teste acabando</b> · 3 dias antes do fim do teste grátis</li>
+          <li><b>teste acabou</b> · no dia em que o teste termina (os dados continuam guardados)</li>
+          <li><b>assinatura ativada</b> · quando você toca em “ativar” aqui no painel</li>
+          <li><b>Pix vencendo</b> · 3 dias antes do “pago até” de quem paga no Pix (cartão cobra sozinho)</li>
+          <li><b>confirmar e-mail, nova senha e troca de e-mail</b> · pelo próprio Supabase (modelos em Authentication → Emails)</li>
+        </ul>
+        <p className="muted small">Cada aviso vai uma vez só para cada pessoa. Para funcionar, a função “avisos” precisa estar publicada no Supabase (passo a passo no chat com o Claude).</p>
+      </Section>
+      <Section title="mandar uma novidade por e-mail">
+        <p className="muted small">Vai para quem está em teste ou com assinatura ativa ({reach} pessoa(s)). Use pouco: só para novidades que valem a pena. Dentro do sistema, as novidades já aparecem sozinhas.</p>
+        <div className="form-grid">
+          <Field label="Título" span={3}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
+          </Field>
+          <Field label="Texto" span={3} hint="Linha em branco = novo parágrafo.">
+            <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" />
+          </Field>
+        </div>
+        <button
+          className="btn primary"
+          disabled={busy || !title.trim() || !text.trim()}
+          onClick={async () => {
+            if (!(await ask(`Mandar “${title}” por e-mail para ${reach} pessoa(s)?`, { confirmLabel: 'Mandar' }))) return
+            setBusy(true)
+            try {
+              const r = await platform.notice({ tipo: 'novidade', title: title.trim(), text: text.trim() })
+              toast(r.erro ? `Não foi: ${r.erro}` : `Enviado para ${r.enviados ?? 0} pessoa(s).`)
+              setLog(await platform.emailLog())
+            } catch {
+              toast('Não foi possível mandar. Confira se a função “avisos” está publicada no Supabase.')
+            }
+            setBusy(false)
+          }}
+        >
+          <Icon name="mail" size={16} /> mandar para todos
+        </button>
+      </Section>
+      <Section title="últimos e-mails enviados">
+        {log.length === 0 ? (
+          <p className="muted small">Nenhum aviso enviado ainda.</p>
+        ) : (
+          log.map((x) => (
+            <div key={`${x.userId}-${x.kind}-${x.ref}`} className="pf-plan-line">
+              <b>{who(x.userId)?.name || who(x.userId)?.email || 'alguém'}</b>
+              <span className="muted small">{MAIL_KIND[x.kind] ?? x.kind}{x.kind === 'novidade' ? ` · ${x.ref}` : ''}</span>
+              <span className="grow" />
+              <span className="muted small">{ago(x.sentAt)}</span>
+            </div>
+          ))
+        )}
+      </Section>
+    </>
   )
 }
 

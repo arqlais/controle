@@ -784,7 +784,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           <Section title="informações da proposta">
             <div className="form-grid">
-              <Field group label="Pacote / parceria mensal" span={3} hint={months ? 'O total é dividido em parcelas mensais iguais. Ao aprovar, a demanda já sai com uma parcela por mês no financeiro.' : 'Cliente quer fechar vários serviços e pagar mês a mês? Escolha em quantos meses divide.'}>
+              <Field group className="q-months" label="Pacote / parceria mensal" span={3} hint={months ? 'O total é dividido em parcelas mensais iguais. Ao aprovar, a demanda já sai com uma parcela por mês no financeiro.' : 'Cliente quer fechar vários serviços e pagar mês a mês? Escolha em quantos meses divide.'}>
                 <select value={months} onChange={(e) => set({ months: Number(e.target.value) || undefined, ...(Number(e.target.value) && !q.discountNote ? { discountNote: 'valor especial para pacote fechado' } : {}) })}>
                   <option value={0}>não, pagamento normal</option>
                   {[2, 3, 4, 5, 6, 8, 10, 12].map((n) => (

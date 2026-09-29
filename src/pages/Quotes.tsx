@@ -148,7 +148,7 @@ export default function Quotes() {
           <button className="btn ghost" onClick={() => setNumbering(true)} title="Números vagos para os enviados sem PDF e rascunhos em sequência">
             <Icon name="list" size={16} /> organizar nº
           </button>
-          <button className="btn ghost" onClick={() => go('orcamentos', 'antigo')} title="Trabalho feito antes do sistema: orçamento completo, sem número, na data real">
+          <button id="btn-orcamento-antigo" className="btn ghost" onClick={() => go('orcamentos', 'antigo')} title="Trabalho feito antes do sistema: orçamento completo, sem número, na data real">
             <Icon name="clock" size={16} /> Orçamento antigo
           </button>
                   <button className="btn primary" onClick={() => go('orcamentos', 'novo')}>

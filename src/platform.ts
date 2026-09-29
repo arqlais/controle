@@ -254,6 +254,17 @@ const msgFromRow = (r: Row): ChatMessage => ({
 })
 
 const cloud = {
+  /** Pede um aviso por e-mail à função "avisos" do Supabase (a chave do Brevo fica só lá). */
+  async notice(body: { tipo: 'boas-vindas' | 'ativada' | 'novidade'; userId?: string; title?: string; text?: string }): Promise<{ ok?: boolean; enviados?: number; erro?: string }> {
+    const { data, error } = await supabase!.functions.invoke('avisos', { body })
+    if (error) throw error
+    return (data ?? {}) as { ok?: boolean; enviados?: number; erro?: string }
+  },
+  async emailLog(): Promise<{ userId: string; kind: string; ref: string; sentAt: string }[]> {
+    const { data, error } = await supabase!.from('email_log').select('*').order('sent_at', { ascending: false }).limit(60)
+    if (error) return []
+    return (data ?? []).map((r) => ({ userId: String(r.user_id), kind: String(r.kind), ref: String(r.ref), sentAt: String(r.sent_at) }))
+  },
   async access(_plan?: string): Promise<AccessInfo> {
     const sb = supabase!
     const admin = await sb.rpc('sou_dona')
@@ -601,6 +612,13 @@ export function previewSignup(name: string, studio: string, email: string, plan:
 }
 
 const local = {
+  // prévia: nenhum e-mail sai de verdade
+  async notice(_body: { tipo: string; userId?: string; title?: string; text?: string }) {
+    return { ok: true, enviados: 0 }
+  },
+  async emailLog() {
+    return [] as { userId: string; kind: string; ref: string; sentAt: string }[]
+  },
   async access(_plan?: string): Promise<AccessInfo> {
     const role = roleNow()
     if (role !== 'cliente') return { role: 'dona', sub: null, legacy: false }
@@ -748,6 +766,10 @@ const asClientGuard = (b: typeof cloud): typeof cloud => ({
   },
   async sendFeedback(...a: Parameters<typeof cloud.sendFeedback>) {
     if (!viewingAsClient()) return b.sendFeedback(...a)
+  },
+  // vendo como cliente: não manda e-mail de boas-vindas em nome de ninguém
+  async notice(...a: Parameters<typeof cloud.notice>) {
+    return viewingAsClient() ? { ok: true, enviados: 0 } : b.notice(...a)
   },
   async suggestions() {
     return viewingAsClient() ? [] : b.suggestions()

@@ -1119,3 +1119,13 @@
 .pf-ctrl-add input[type='date'], .pf-ctrl-add .date-input { max-width: 150px; }
 .pf-ctrl-hist summary { cursor: pointer; font-size: 13px; font-weight: 500; }
 .pf-ctrl-notes { width: 100%; font-size: 13px; resize: vertical; }
+/* novidades */
+.news-btn { position: relative; }
+.news-dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: #b5524c; box-shadow: 0 0 0 2px var(--surface); }
+.news-list { display: flex; flex-direction: column; gap: 12px; }
+.news-item { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.news-item.is-new { border-color: var(--accent-soft); background: var(--accent-tint); }
+.news-item h3 { margin: 0; font-size: 16px; }
+.news-item p { margin: 0; font-size: 14px; line-height: 1.55; }
+.news-head { display: flex; align-items: center; gap: 8px; }
+.pf-mail-list { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }

@@ -36,9 +36,10 @@ import { OwnerChat } from './components/OwnerChat'
 import { useAccess } from './access'
 import Landing from './pages/Landing'
 import { setViewAsClient, viewingAsClient } from './viewAs'
-import { PREVIEW_CLIENT, notifyPlatformMode, setPlatformSample, setPreviewRole } from './platform'
+import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
+import { NewsButton, NewsModal, useNews } from './components/News'
 import { useInbox } from './chat'
 import { trialOver } from './platform'
 import { PLATFORM, type Feature } from './plans'
@@ -178,6 +179,34 @@ export default function App() {
     if (sync !== 'loading' && !access.isOwner && !access.legacy && settings.tour !== 'feito' && settings.tour !== today()) setTourOpen(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sync === 'loading', access.isOwner])
+  // novidades: abre sozinha para quem assina quando há algo novo (depois do passo a passo); o sininho do topo reabre
+  const news = useNews(!access.legacy)
+  const [newsOpen, setNewsOpen] = useState(false)
+  const autoNews = useRef(false)
+  useEffect(() => {
+    if (autoNews.current || tourOpen || access.isOwner || sync === 'loading' || !news.unseen.length) return
+    autoNews.current = true
+    setNewsOpen(true)
+  }, [tourOpen, access.isOwner, sync, news.unseen.length])
+  // e-mail de boas-vindas: o site pede uma vez; a função no Supabase garante que só vai uma vez
+  useEffect(() => {
+    if (!CLOUD || access.isOwner || access.legacy || sync === 'loading') return
+    try {
+      if (localStorage.getItem('boas-vindas-email')) return
+    } catch {
+      return
+    }
+    platform
+      .notice({ tipo: 'boas-vindas' })
+      .then((r) => {
+        if (r?.ok !== undefined) localStorage.setItem('boas-vindas-email', '1')
+      })
+      .catch(() => undefined) // função ainda não publicada: tenta na próxima vez
+  }, [access.isOwner, access.legacy, sync])
+  const closeNews = () => {
+    setNewsOpen(false)
+    news.markSeen()
+  }
   const closeTour = (how: 'feito' | 'depois') => {
     setTourOpen(false)
     setSettings({ tour: how === 'feito' ? 'feito' : today() })
@@ -412,6 +441,7 @@ export default function App() {
             </button>
           )}
           <GlobalSearch />
+          {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => setNewsOpen(true)} />}
           <ScreenHelp onTour={!access.isOwner ? () => (go('inicio'), setTourOpen(true)) : undefined} />
           <div className="add-menu">
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
@@ -453,6 +483,7 @@ export default function App() {
           </div>
         </header>
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
+        {newsOpen && !tourOpen && <NewsModal unseen={news.unseen} onClose={closeNews} />}
         {asClient && (
           <div className="owner-sales-bar" role="region" aria-label="Você está vendo como cliente">
             <span>

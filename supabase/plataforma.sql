@@ -123,6 +123,18 @@ alter table public.subscriber_admin enable row level security;
 drop policy if exists "controle: só a dona" on public.subscriber_admin;
 create policy "controle: só a dona" on public.subscriber_admin for all using (public.sou_dona()) with check (public.sou_dona());
 
+-- 2d) Avisos por e-mail já enviados (a função "avisos" grava aqui para nunca mandar o mesmo duas vezes).
+create table if not exists public.email_log (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  kind    text not null,
+  ref     text not null default '',
+  sent_at timestamptz not null default now(),
+  primary key (user_id, kind, ref)
+);
+alter table public.email_log enable row level security;
+drop policy if exists "avisos: dona vê" on public.email_log;
+create policy "avisos: dona vê" on public.email_log for select using (public.sou_dona());
+
 -- 3) Chat com a dona: mensagens por cliente.
 create table if not exists public.support_messages (
   id          uuid primary key default gen_random_uuid(),
