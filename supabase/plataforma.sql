@@ -111,6 +111,11 @@ create policy "cobrança: cliente vê a sua" on public.billing_info for select u
 create policy "cobrança: cliente cria a sua" on public.billing_info for insert with check (auth.uid() = user_id);
 create policy "cobrança: cliente altera a sua" on public.billing_info for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "cobrança: dona vê todas" on public.billing_info for select using (public.sou_dona());
+-- a dona corrige dados preenchidos errado
+drop policy if exists "cobrança: dona corrige" on public.billing_info;
+drop policy if exists "cobrança: dona cria" on public.billing_info;
+create policy "cobrança: dona corrige" on public.billing_info for update using (public.sou_dona()) with check (public.sou_dona());
+create policy "cobrança: dona cria" on public.billing_info for insert with check (public.sou_dona());
 
 -- 2c) Controle da dona sobre cada assinante (ciclo, pago até, pagamentos, anotações).
 --     Só a dona vê e altera: o assinante nunca lê estas anotações.

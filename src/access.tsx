@@ -71,10 +71,15 @@ export function AccessProvider({ userId, plan, children, override }: { userId: s
   useEffect(() => {
     void load()
     platform.touch().catch(() => undefined)
+    // "online agora" no painel da dona: avisa a cada 2 minutos enquanto a tela está aberta
+    const beat = window.setInterval(() => document.visibilityState === 'visible' && platform.touch().catch(() => undefined), 120_000)
     // volta para a aba: pega mudanças feitas pela dona (plano, bloqueio…)
     const onVisible = () => document.visibilityState === 'visible' && void load()
     document.addEventListener('visibilitychange', onVisible)
-    return () => document.removeEventListener('visibilitychange', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.clearInterval(beat)
+    }
   }, [load])
   // prévia: "ver como" dona/cliente
   useEffect(() => (ARTIFACT ? onPreviewRole(() => void load()) : undefined), [load])

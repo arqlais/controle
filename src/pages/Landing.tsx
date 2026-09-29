@@ -151,8 +151,6 @@ export default function Landing() {
     platform.publishedFeedbacks().then(setQuotes).catch(() => undefined)
   }, [])
   useReveal(root, quotes.length)
-  // celular: a história abre só o primeiro parágrafo (o resto em "continuar lendo")
-  const [storyOpen, setStoryOpen] = useState(false)
   useEffect(() => {
     applyTheme(DEFAULT_SETTINGS)
     document.title = `${PLATFORM.name} · ${PLATFORM.tagline}`
@@ -281,15 +279,10 @@ export default function Landing() {
             .split(/\n\s*\n/)
             .filter((t) => t.trim())
             .map((t, i) => (
-              <p key={i} className={`lp-story-text ${i > 0 && !storyOpen ? 'lp-story-more' : ''}`}>
+              <p key={i} className="lp-story-text">
                 {t.trim()}
               </p>
             ))}
-          {!storyOpen && site.text.split(/\n\s*\n/).filter((t) => t.trim()).length > 1 && (
-            <button type="button" className="link lp-story-toggle" onClick={() => setStoryOpen(true)}>
-              continuar lendo
-            </button>
-          )}
           {site.signature && <p className="lp-sign">— {site.signature}</p>}
         </div>
       </section>

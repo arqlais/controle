@@ -294,6 +294,12 @@ const cloud = {
     const { error } = await supabase!.rpc('pedir_assinatura', { plano: plan, ciclo: billing.cycle })
     if (error) throw error
   },
+  /** Salva os dados de cobrança: os próprios (userId vazio) ou, pela dona, os de um assinante. */
+  async saveBilling(userId: string | null, billing: Billing) {
+    const id = userId || (await supabase!.auth.getUser()).data.user?.id
+    const { error } = await supabase!.from('billing_info').upsert({ user_id: id, data: billing, updated_at: new Date().toISOString() })
+    if (error) throw error
+  },
   async myBilling(): Promise<Billing | null> {
     const { data } = await supabase!.from('billing_info').select('data').maybeSingle()
     return (data?.data as Billing | undefined) ?? null
@@ -478,7 +484,7 @@ function seed(): LocalDB {
   const subs = [
     s('ex-1', 'Beatriz Nogueira', 'Nogueira Interiores', 'completo', 'ativa', 58, 0),
     s('ex-2', 'Rafael Menezes', 'RM Visualização 3D', 'essencial', 'ativa', 44, 1),
-    s('ex-3', 'Camila Duarte', 'Studio Duarte', 'completo', 'trial', 5, 0),
+    s('ex-3', 'Camila Duarte', 'Studio Duarte', 'completo', 'trial', 5, 0, { lastSeen: new Date(Date.now() - 60_000).toISOString() }),
     s('ex-4', 'Júlia Prado', 'Prado Arquitetura', 'essencial', 'trial', 6, 2, { requestedPlan: 'completo', requestedAt: ago(0, 5) }),
     s('ex-5', 'Thiago Lemos', 'Lemos Arq', 'essencial', 'atrasada', 71, 9),
     s('ex-6', 'Marina Faria', 'Faria & Co.', 'completo', 'cancelada', 90, 20, { canceledAt: ago(6) }),
@@ -647,6 +653,10 @@ const local = {
       messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId: PREVIEW_CLIENT, fromOwner: false, body: `quero assinar o plano ${plan === 'completo' ? 'Completo' : 'Essencial'} (${billing.cycle}) ✨`, createdAt: now, readAt: null }],
     })
   },
+  async saveBilling(userId: string | null, billing: Billing) {
+    const db = readDB()
+    writeDB({ ...db, billing: { ...(db.billing ?? {}), [userId || PREVIEW_CLIENT]: billing } })
+  },
   async myBilling() {
     return readDB().billing?.[PREVIEW_CLIENT] ?? null
   },
@@ -757,6 +767,9 @@ const asClientGuard = (b: typeof cloud): typeof cloud => ({
   },
   async requestPlan(...a: Parameters<typeof cloud.requestPlan>) {
     if (!viewingAsClient()) return b.requestPlan(...a)
+  },
+  async saveBilling(...a: Parameters<typeof cloud.saveBilling>) {
+    if (!viewingAsClient()) return b.saveBilling(...a)
   },
   async send(...a: Parameters<typeof cloud.send>) {
     if (!viewingAsClient()) return b.send(...a)

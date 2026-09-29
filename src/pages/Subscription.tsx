@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { BillingFields, billingMissing, validDoc } from './Checkout'
+import type { Billing } from '../platform'
 import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
 import { Badge, Section } from '../components/ui'
@@ -126,6 +128,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
           )
         })}
       </div>
+      <MyBilling />
       <Section title="precisa de ajuda?">
         <p className="muted small">Dúvidas sobre o sistema, sugestões ou problemas: fale direto com a gente pelo chat.</p>
         <button className="btn" onClick={onChat}>
@@ -201,5 +204,66 @@ export function BlockedScreen({ onChat }: { onChat: () => void }) {
         </div>
       </section>
     </div>
+  )
+}
+
+/** Meus dados de cobrança: a pessoa confere e corrige (os mesmos que a dona vê no painel). */
+function MyBilling() {
+  const [b, setB] = useState<Billing | null>(null)
+  const [edit, setEdit] = useState(false)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    platform.myBilling().then(setB).catch(() => undefined)
+  }, [])
+  if (!b) return null
+  const set = (patch: Partial<Billing>) => setB((x) => (x ? { ...x, ...patch } : x))
+  const missing = billingMissing(b)
+  return (
+    <Section
+      title="meus dados"
+      action={
+        !edit && (
+          <button className="btn small" onClick={() => setEdit(true)}>
+            <Icon name="edit" size={14} /> corrigir
+          </button>
+        )
+      }
+    >
+      {edit ? (
+        <>
+          <BillingFields part="dados" b={b} set={set} docOk={validDoc(b.doc)} />
+          <BillingFields part="endereco" b={b} set={set} docOk={validDoc(b.doc)} />
+          {missing.length > 0 && <p className="text-bad small">Falta: {missing.join(', ')}.</p>}
+          <div className="row gap-s">
+            <button
+              className="btn primary"
+              disabled={busy || missing.length > 0}
+              onClick={async () => {
+                setBusy(true)
+                try {
+                  await platform.saveBilling(null, b)
+                  toast('Dados atualizados.')
+                  setEdit(false)
+                } catch {
+                  toast('Não foi possível salvar agora. Tente de novo.')
+                }
+                setBusy(false)
+              }}
+            >
+              salvar
+            </button>
+            <button className="btn ghost" onClick={() => (setEdit(false), void platform.myBilling().then(setB))}>
+              cancelar
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="muted small">
+          {b.fullName} · {b.doc} · {b.phone} · {b.email}
+          <br />
+          {[b.address, b.number, b.complement].filter(Boolean).join(', ')} · {b.city}
+        </p>
+      )}
+    </Section>
   )
 }

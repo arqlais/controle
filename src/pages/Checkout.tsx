@@ -90,18 +90,7 @@ export default function Checkout({ planId }: { planId: string }) {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    const missing = [
-      !b.fullName.trim() && 'nome completo',
-      !docOk && 'CPF ou CNPJ válido',
-      b.phone.replace(/\D/g, '').length < 10 && 'WhatsApp com DDD',
-      !/^\S+@\S+\.\S+$/.test(b.email) && 'e-mail',
-      b.cep.replace(/\D/g, '').length !== 8 && 'CEP',
-      !b.address.trim() && 'endereço',
-      !b.number.trim() && 'número',
-      !b.city.trim() && 'cidade',
-      !b.profession && 'área de atuação',
-      !agree && 'aceite dos termos',
-    ].filter(Boolean)
+    const missing = [...billingMissing(b), !agree && 'aceite dos termos'].filter(Boolean)
     if (missing.length) return setError(`Falta: ${missing.join(', ')}.`)
     setBusy(true)
     try {
@@ -193,69 +182,11 @@ export default function Checkout({ planId }: { planId: string }) {
           </Step>
 
           <Step n={2} title="seus dados">
-            <div className="form-grid">
-              <Field label="Nome completo" span={2}>
-                <input id="co-name" autoComplete="name" value={b.fullName} onChange={(e) => set({ fullName: e.target.value })} />
-              </Field>
-              <Field label="CPF ou CNPJ" hint={b.doc && !docOk ? <span className="text-bad">confira os números</span> : docOk ? 'conferido ✓' : 'para a nota e o recibo'}>
-                <input
-                  id="co-doc"
-                  inputMode="numeric"
-                  value={b.doc}
-                  onChange={async (e) => {
-                    const doc = formatDoc(e.target.value)
-                    set({ doc })
-                    // CNPJ completo: puxa a razão social
-                    if (doc.replace(/\D/g, '').length === 14 && validDoc(doc) && !b.fullName.trim()) {
-                      const r = await lookupCnpj(doc).catch(() => null)
-                      if (r?.legal) set({ fullName: r.legal })
-                    }
-                  }}
-                />
-              </Field>
-              <Field label="WhatsApp">
-                <PhoneInput id="co-phone" value={b.phone} onChange={(phone) => set({ phone })} />
-              </Field>
-              <Field label="E-mail" span={2}>
-                <EmailInput id="co-email" value={b.email} onChange={(email) => set({ email })} />
-              </Field>
-              <Field label="Área de atuação">
-                <select id="co-prof" value={b.profession} onChange={(e) => set({ profession: e.target.value })}>
-                  <option value="">escolha…</option>
-                  {PROFESSIONS.map((x) => (
-                    <option key={x}>{x}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Como conheceu (opcional)">
-                <select value={b.source} onChange={(e) => set({ source: e.target.value })}>
-                  <option value="">escolha…</option>
-                  {SOURCES.map((x) => (
-                    <option key={x}>{x}</option>
-                  ))}
-                </select>
-              </Field>
-            </div>
+            <BillingFields part="dados" b={b} set={set} docOk={docOk} />
           </Step>
 
           <Step n={3} title="endereço de cobrança">
-            <div className="form-grid">
-              <Field label="CEP" hint="o endereço se preenche sozinho">
-                <CepInput id="co-cep" value={b.cep} onChange={(cep) => set({ cep })} onFound={(a) => set({ address: a.address || b.address, city: a.city || b.city })} />
-              </Field>
-              <Field label="Rua e bairro" span={2}>
-                <input id="co-address" autoComplete="street-address" value={b.address} onChange={(e) => set({ address: e.target.value })} />
-              </Field>
-              <Field label="Número">
-                <input id="co-number" value={b.number} onChange={(e) => set({ number: e.target.value })} />
-              </Field>
-              <Field label="Complemento (opcional)">
-                <input value={b.complement} onChange={(e) => set({ complement: e.target.value })} />
-              </Field>
-              <Field label="Cidade - UF">
-                <input id="co-city" value={b.city} onChange={(e) => set({ city: e.target.value })} placeholder="Belo Horizonte - MG" />
-              </Field>
-            </div>
+            <BillingFields part="endereco" b={b} set={set} docOk={docOk} />
           </Step>
 
           <Step n={4} title="forma de pagamento">
@@ -369,4 +300,88 @@ function Blocked() {
       </section>
     </div>
   )
+}
+
+/** Campos dos dados de cobrança (usados na assinatura, em "meus dados" e no painel da dona). */
+export function BillingFields({ part, b, set, docOk }: { part: 'dados' | 'endereco'; b: Billing; set: (patch: Partial<Billing>) => void; docOk: boolean }) {
+  if (part === 'endereco')
+    return (
+      <div className="form-grid">
+              <Field label="CEP *" hint="o endereço se preenche sozinho">
+                <CepInput id="co-cep" value={b.cep} onChange={(cep) => set({ cep })} onFound={(a) => set({ address: a.address || b.address, city: a.city || b.city })} />
+              </Field>
+              <Field label="Rua e bairro *" span={2}>
+                <input id="co-address" autoComplete="street-address" value={b.address} onChange={(e) => set({ address: e.target.value })} />
+              </Field>
+              <Field label="Número *">
+                <input id="co-number" value={b.number} onChange={(e) => set({ number: e.target.value })} />
+              </Field>
+              <Field label="Complemento (opcional)">
+                <input value={b.complement} onChange={(e) => set({ complement: e.target.value })} />
+              </Field>
+              <Field label="Cidade - UF *">
+                <input id="co-city" value={b.city} onChange={(e) => set({ city: e.target.value })} placeholder="Belo Horizonte - MG" />
+              </Field>
+            </div>
+    )
+  return (
+    <div className="form-grid">
+              <Field label="Nome e sobrenome *" span={2}>
+                <input id="co-name" autoComplete="name" value={b.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+              </Field>
+              <Field label="CPF ou CNPJ *" hint={b.doc && !docOk ? <span className="text-bad">confira os números</span> : docOk ? 'conferido ✓' : 'para a nota e o recibo'}>
+                <input
+                  id="co-doc"
+                  inputMode="numeric"
+                  value={b.doc}
+                  onChange={async (e) => {
+                    const doc = formatDoc(e.target.value)
+                    set({ doc })
+                    // CNPJ completo: puxa a razão social
+                    if (doc.replace(/\D/g, '').length === 14 && validDoc(doc) && !b.fullName.trim()) {
+                      const r = await lookupCnpj(doc).catch(() => null)
+                      if (r?.legal) set({ fullName: r.legal })
+                    }
+                  }}
+                />
+              </Field>
+              <Field label="Celular (WhatsApp) *">
+                <PhoneInput id="co-phone" value={b.phone} onChange={(phone) => set({ phone })} />
+              </Field>
+              <Field label="E-mail *" span={2}>
+                <EmailInput id="co-email" value={b.email} onChange={(email) => set({ email })} />
+              </Field>
+              <Field label="Área de atuação *">
+                <select id="co-prof" value={b.profession} onChange={(e) => set({ profession: e.target.value })}>
+                  <option value="">escolha…</option>
+                  {PROFESSIONS.map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Como conheceu (opcional)">
+                <select value={b.source} onChange={(e) => set({ source: e.target.value })}>
+                  <option value="">escolha…</option>
+                  {SOURCES.map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+  )
+}
+
+/** O que falta preencher (nome e sobrenome, CPF/CNPJ válido, celular, e-mail, endereço…). */
+export function billingMissing(b: Billing) {
+  return [
+    b.fullName.trim().split(/\s+/).length < 2 && 'nome e sobrenome',
+    !validDoc(b.doc) && 'CPF ou CNPJ válido',
+    b.phone.replace(/\D/g, '').length < 10 && 'celular com DDD',
+    !/^\S+@\S+\.\S+$/.test(b.email) && 'e-mail',
+    b.cep.replace(/\D/g, '').length !== 8 && 'CEP',
+    !b.address.trim() && 'endereço',
+    !b.number.trim() && 'número',
+    !b.city.trim() && 'cidade',
+    !b.profession && 'área de atuação',
+  ].filter(Boolean) as string[]
 }

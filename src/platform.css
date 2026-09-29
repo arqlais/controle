@@ -1129,3 +1129,18 @@
 .news-item p { margin: 0; font-size: 14px; line-height: 1.55; }
 .news-head { display: flex; align-items: center; gap: 8px; }
 .pf-mail-list { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+/* mancha rosa do topo: o começo da página passa por baixo do menu (sem corte) e o menu só ganha fundo ao rolar */
+.lp-top:not(.is-scrolled) { background: transparent; backdrop-filter: none; }
+.lp-hero { margin-top: -64px; padding-top: 144px; }
+.lp-blobs i:nth-child(1) { top: -60px; }
+@media (max-width: 720px) { .lp-hero { padding-top: 92px; } }
+/* celular: "quem criou" inteiro, com letra um pouco menor */
+@media (max-width: 720px) {
+  .lp-me-story .lp-story-text { font-size: 14px; line-height: 1.6; }
+  .lp-story .lp-story-text + .lp-story-text { margin-top: 0; }
+}
+.pf-online { display: inline-flex; align-items: center; gap: 5px; margin-left: 6px; font-size: 11px; font-weight: 500; color: var(--good); vertical-align: middle; }
+.pf-online::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 22%, transparent); }
+.pf-templates { display: flex; gap: 6px; align-items: center; overflow-x: auto; padding: 8px 12px 0; scrollbar-width: none; }
+.pf-templates .chip { flex: none; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.pf-templates .chip.is-suggested { border-color: var(--accent-soft); background: var(--accent-tint); font-weight: 500; }

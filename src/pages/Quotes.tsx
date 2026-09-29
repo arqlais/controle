@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
+import { afterDeleteDrafts, draftRenumber, nextSentNumber } from '../numbering'
 import { duplicateQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -145,7 +145,7 @@ export default function Quotes() {
         </div>
 <div className="row gap-s wrap">
           <AskAIButton />
-          <button className="btn ghost" onClick={() => setNumbering(true)} title="Números vagos para os enviados sem PDF e rascunhos em sequência">
+          <button className="btn ghost" onClick={() => setNumbering(true)} title="Coloca os rascunhos em sequência depois do último número (enviados não mudam)">
             <Icon name="list" size={16} /> organizar nº
           </button>
           <button id="btn-orcamento-antigo" className="btn ghost" onClick={() => go('orcamentos', 'antigo')} title="Trabalho feito antes do sistema: orçamento completo, sem número, na data real">
@@ -358,7 +358,8 @@ export default function Quotes() {
 
 function NumberingModal({ onClose }: { onClose: () => void }) {
   const { data, replaceAll } = useStore()
-  const plan = renumberPlan(data.quotes)
+  // só os rascunhos mudam de número; enviados, aprovados e antigos (com ou sem número) ficam como estão
+  const plan = draftRenumber(data.quotes).map((r) => ({ id: r.id, from: data.quotes.find((q) => q.id === r.id)?.number ?? 0, to: r.number, why: 'rascunho' as const }))
   const q = (id: string) => data.quotes.find((x) => x.id === id)!
   const WHY = { vago: 'sem PDF → número vago pela data', rascunho: 'rascunho → em sequência', fim: 'sem PDF → depois do último' }
   const apply = () => {
@@ -387,7 +388,7 @@ function NumberingModal({ onClose }: { onClose: () => void }) {
     >
       <div className="stack">
         <p className="muted small">
-          Os enviados <b>com proposta em PDF</b> ficam com o número que o cliente recebeu. Os enviados <b>sem PDF</b> (desmarque “gerar proposta em PDF” no orçamento) ganham um número vago que caiba pela data, e os <b>rascunhos</b> seguem em ordem depois do último enviado.
+          Orçamentos <b>enviados, aprovados e antigos nunca mudam de número</b>. Só os <b>rascunhos</b> se organizam, em ordem de data, logo depois do último número usado. Orçamentos antigos lançados sem número continuam sem número.
         </p>
         {plan.length === 0 ? (
           <p className="numbering-ok">

@@ -13,6 +13,7 @@ import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
 import { DateInput } from '../components/DateInput'
+import { BillingFields, billingMissing, validDoc } from './Checkout'
 import { NEWS } from '../news'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
@@ -44,6 +45,15 @@ export default function Admin() {
       toast('Não foi possível salvar o controle. Rode de novo o SQL da plataforma no Supabase (tem uma tabela nova).')
     }
   }
+  const saveBilling = async (userId: string, b: Billing) => {
+    try {
+      await platform.saveBilling(userId, b)
+      setBilling((m) => ({ ...m, [userId]: b }))
+      toast('Dados de cobrança corrigidos.')
+    } catch {
+      toast('Não foi possível salvar. Rode de novo o SQL da plataforma no Supabase.')
+    }
+  }
   const loadExtra = useCallback(async () => {
     try {
       const [b, sg, ct] = await Promise.all([platform.allBilling(), platform.suggestions(), platform.subAdmin()])
@@ -57,6 +67,11 @@ export default function Admin() {
   useEffect(() => {
     void loadExtra()
   }, [loadExtra, subs])
+  // "online agora": atualiza a lista a cada minuto enquanto o painel está aberto
+  useEffect(() => {
+    const t = window.setInterval(() => document.visibilityState === 'visible' && void reload(), 60_000)
+    return () => window.clearInterval(t)
+  }, [reload])
   const newSugs = sugs.filter((x) => x.status === 'recebida').length
   const [chatWith, setChatWith] = useState('')
 
@@ -112,7 +127,7 @@ export default function Admin() {
         />
       </div>
       {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} />}
-      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
+      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} saveBilling={saveBilling} ctrl={ctrl} saveCtrl={saveCtrl} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
       {tab === 'depoimentos' && <FeedbackAdmin />}
@@ -139,6 +154,23 @@ export default function Admin() {
 }
 
 // ativar: pagamento confirmado por você (na fase 2, pelo sistema de pagamento)
+/** Entrou nos últimos 5 minutos (o sistema avisa a cada 2 minutos enquanto está aberto). */
+const isOnline5 = (s: Subscription) => !!s.lastSeen && Date.now() - new Date(s.lastSeen).getTime() < 5 * 60_000
+const OnlineDot = ({ s }: { s: Subscription }) => (isOnline5(s) ? <span className="pf-online" title="usando agora">online agora</span> : null)
+
+/* Mensagens prontas para quem está testando ou assinando (dá para ajustar antes de mandar). */
+const MSG_TEMPLATES: { id: string; label: string; when: (s: Subscription) => boolean; text: (s: Subscription) => string }[] = [
+  { id: 'oi', label: 'boas-vindas', when: (s) => s.status === 'trial' && trialDaysLeft(s) >= TRIAL_DAYS - 1, text: (s) => `oi, ${first(s)}! aqui é a ${PLATFORM.owner}, criadora do ${PLATFORM.name} 💛 que bom ter você aqui! uma dica para começar: coloque sua tabela de preços em configurações e faça um orçamento de teste. se travar em qualquer coisa, me chama por aqui.` },
+  { id: 'como', label: 'como está sendo?', when: (s) => s.status === 'trial' && trialDaysLeft(s) < TRIAL_DAYS - 1 && trialDaysLeft(s) > 3, text: (s) => `oi, ${first(s)}! passando para saber como estão sendo os primeiros dias no ${PLATFORM.name}. conseguiu cadastrar um cliente e fazer um orçamento? o que está achando até agora?` },
+  { id: 'sugestao', label: 'pedir sugestão', when: () => true, text: (s) => `oi, ${first(s)}! tem alguma coisa que deixaria o ${PLATFORM.name} mais útil para o seu dia a dia? pode ser algo que faltou ou que ficou confuso. eu leio tudo e muita coisa entra nas próximas atualizações 🙏` },
+  { id: 'feedback', label: 'pedir depoimento', when: (s) => s.status === 'ativa' || (s.status === 'trial' && trialDaysLeft(s) <= 4), text: (s) => `oi, ${first(s)}! se você estiver gostando do ${PLATFORM.name}, deixaria um depoimento rapidinho? fica no menu “deixar depoimento”. ajuda muito outros freelancers a conhecerem ✨` },
+  { id: 'acabando', label: 'teste acabando', when: (s) => s.status === 'trial' && trialDaysLeft(s) > 0 && trialDaysLeft(s) <= 3, text: (s) => `oi, ${first(s)}! seu teste grátis acaba em ${trialDaysLeft(s)} dia(s). quer continuar? é só escolher o plano em “minha assinatura” ou eu te mando o link por aqui. Pix ou cartão, sem fidelidade ☺️` },
+  { id: 'acabou', label: 'teste acabou', when: (s) => s.status === 'trial' && trialDaysLeft(s) <= 0, text: (s) => `oi, ${first(s)}! seu teste terminou, mas fica tranquila(o): tudo o que você cadastrou está guardado. se quiser continuar, te mando o link para assinar. e se algo não funcionou para você, me conta? quero melhorar 💛` },
+  { id: 'pix', label: 'mandar o Pix', when: (s) => !!s.requestedPlan || s.status === 'ativa' || s.status === 'atrasada', text: (s) => `oi, ${first(s)}! segue o Pix da sua assinatura do ${PLATFORM.name} (${PLANS[s.requestedPlan ?? s.plan].name}): [cole aqui a sua chave Pix ou o link]. assim que cair, eu ativo e te aviso ☺️` },
+  { id: 'obrigada', label: 'agradecer', when: (s) => s.status === 'ativa', text: (s) => `obrigada, ${first(s)}! pagamento confirmado e sua assinatura está ativa. qualquer coisa, estou por aqui 💛` },
+]
+const first = (s: Subscription) => (s.name || '').split(' ')[0] || 'tudo bem'
+
 type SaveCtrl = (userId: string, d: SubAdmin, msg?: string) => Promise<void>
 /* ---- cobrança de cada assinante ---- */
 const cycleOf = (s: Subscription, c?: SubAdmin, b?: Billing) => c?.cycle ?? s.requestedCycle ?? b?.cycle ?? 'mensal'
@@ -197,6 +229,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
   return (
     <>
       <div className="stats">
+        <Stat label="Online agora" value={subs.filter(isOnline5).length} sub={subs.filter(isOnline5).map((x) => first(x)).join(', ') || 'ninguém usando neste momento'} icon="users" />
         <Stat label="Recebido este mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s) registrado(s)` : 'registre em assinantes → cobrança'} icon="check" tone="good" />
         <Stat label="Vencendo / vencidas" value={upcoming.length} sub={upcoming.length ? `${upcoming.filter((x) => x.d < 0).length} vencida(s) · ${money(upcoming.reduce((n, x) => n + priceOf(x.s, cycleOf(x.s, ctrl[x.s.userId], billing[x.s.userId])), 0))}` : 'nada nos próximos 10 dias'} icon="calendar" tone={upcoming.some((x) => x.d < 0) ? 'warn' : undefined} />
       </div>
@@ -313,7 +346,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
   )
 }
 
-function Subscribers({ subs, update, openChat, unreadOf, billing, ctrl, saveCtrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
+function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos'>('painel-filtro', 'todos')
   const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
@@ -384,7 +417,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, ctrl, saveCtrl
               <header className="pf-sub-head">
                 <span className="pf-avatar">{(s.name || s.email || '?')[0].toUpperCase()}</span>
                 <span className="grow">
-                  <b>{s.name || 'sem nome'}</b>
+                  <b>{s.name || 'sem nome'}</b> <OnlineDot s={s} />
                   <small className="muted">{s.studio || '—'}</small>
                   <small className="muted pf-email">{s.email}</small>
                 </span>
@@ -409,7 +442,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, ctrl, saveCtrl
                   <dd>{s.status === 'trial' ? (left > 0 ? `faltam ${left} dia(s)` : 'terminou') : `${money0(PLANS[s.plan].price)}/mês`}</dd>
                 </div>
               </dl>
-              {billing[s.userId] && <BillingDetails b={billing[s.userId]} />}
+              {billing[s.userId] && <BillingDetails s={s} b={billing[s.userId]} save={(b) => saveBilling(s.userId, b)} />}
               <TrialControl s={s} update={update} />
               {(s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
               <div className="pf-sub-actions">
@@ -646,7 +679,7 @@ function Inbox({ subs, msgs, current, setCurrent, reload }: { subs: Subscription
           <button key={t.id} className={`pf-thread ${t.id === current ? 'is-active' : ''}`} onClick={() => setCurrent(t.id)}>
             <span className="pf-avatar">{(t.sub?.name || '?')[0].toUpperCase()}</span>
             <span className="grow">
-              <b>{t.sub?.name || 'cliente'}</b>
+              <b>{t.sub?.name || 'cliente'}</b> {t.sub && <OnlineDot s={t.sub} />}
               <small className="muted">
                 {t.last.fromOwner ? 'você: ' : ''}
                 {t.last.body.slice(0, 60)}
@@ -717,6 +750,16 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
         {msgs?.length === 0 && <p className="muted small center">comece a conversa ☺️</p>}
         <div ref={endRef} />
       </div>
+      {sub && (
+        <div className="pf-templates" aria-label="Mensagens prontas">
+          <span className="muted small">prontas:</span>
+          {[...MSG_TEMPLATES].sort((x, y) => Number(y.when(sub)) - Number(x.when(sub))).map((t) => (
+            <button key={t.id} type="button" className={`chip ${t.when(sub) ? 'is-suggested' : ''}`} onClick={() => setText(t.text(sub))} title="Coloca a mensagem na caixa para você ajustar e mandar">
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
       <form
         className="ai-chat-input"
         onSubmit={(e) => {
@@ -810,31 +853,71 @@ function PlansInfo() {
 const PAY_LABEL: Record<Billing['payMethod'], string> = { pix: 'Pix', cartao: 'cartão', boleto: 'boleto' }
 
 /** Dados de cobrança que a pessoa preencheu ao pedir a assinatura. */
-function BillingDetails({ b }: { b: Billing }) {
+function BillingDetails({ s, b, save }: { s: Subscription; b: Billing; save: (b: Billing) => Promise<void> }) {
+  const [edit, setEdit] = useState<Billing | null>(null)
+  const missing = billingMissing(b)
+  const setE = (patch: Partial<Billing>) => setEdit((x) => (x ? { ...x, ...patch } : x))
   return (
-    <details className="sg-billing">
-      <summary>dados de cobrança</summary>
-      <dl className="pf-facts sg-facts">
-        {(
-          [
-            ['nome', b.fullName],
-            ['CPF/CNPJ', b.doc],
-            ['WhatsApp', b.phone],
-            ['e-mail', b.email],
-            ['endereço', [b.address, b.number, b.complement].filter(Boolean).join(', ')],
-            ['cidade', `${b.city}${b.cep ? ` · ${b.cep}` : ''}`],
-            ['atuação', b.profession],
-            ['conheceu por', b.source || '—'],
-            ['pagamento', `${PAY_LABEL[b.payMethod]} · ${b.cycle}`],
-            ['aceitou os termos', b.acceptedAt ? new Date(b.acceptedAt).toLocaleString('pt-BR') : '—'],
-          ] as [string, string][]
-        ).map(([k, v]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>{v || '—'}</dd>
+    <details className="sg-billing" open={!!edit}>
+      <summary>
+        dados de cobrança{missing.length ? <em className="text-bad"> · falta {missing.join(', ')}</em> : ''}
+      </summary>
+      {edit ? (
+        <div className="stack-s">
+          <BillingFields part="dados" b={edit} set={setE} docOk={validDoc(edit.doc)} />
+          <BillingFields part="endereco" b={edit} set={setE} docOk={validDoc(edit.doc)} />
+          <div className="row gap-s">
+            <button className="btn small primary" onClick={async () => (await save(edit), setEdit(null))}>
+              salvar correção
+            </button>
+            <button className="btn small ghost" onClick={() => setEdit(null)}>
+              cancelar
+            </button>
           </div>
-        ))}
-      </dl>
+        </div>
+      ) : (
+        <>
+          <dl className="pf-facts sg-facts">
+            {(
+              [
+                ['nome', b.fullName],
+                ['CPF/CNPJ', b.doc],
+                ['celular', b.phone],
+                ['e-mail', b.email],
+                ['endereço', [b.address, b.number, b.complement].filter(Boolean).join(', ')],
+                ['cidade', `${b.city}${b.cep ? ` · ${b.cep}` : ''}`],
+                ['atuação', b.profession],
+                ['conheceu por', b.source || '—'],
+                ['pagamento', `${PAY_LABEL[b.payMethod]} · ${b.cycle}`],
+                ['aceitou os termos', b.acceptedAt ? new Date(b.acceptedAt).toLocaleString('pt-BR') : '—'],
+              ] as [string, string][]
+            ).map(([k, v]) => (
+              <div key={k}>
+                <dt>{k}</dt>
+                <dd>{v || '—'}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="row gap-s wrap">
+            <button className="btn small" onClick={() => setEdit(b)}>
+              <Icon name="edit" size={14} /> corrigir eu mesma
+            </button>
+            <button
+              className="btn small ghost"
+              onClick={async () => {
+                try {
+                  await platform.send(s.userId, `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! pode conferir seus dados em “minha assinatura” → “meus dados”?${missing.length ? ` está faltando: ${missing.join(', ')}.` : ' acho que algum dado ficou errado (CPF, celular ou endereço).'} é só tocar em “corrigir” ☺️`, true)
+                  toast('Pedido de correção enviado no chat.')
+                } catch {
+                  toast('Não foi possível enviar agora.')
+                }
+              }}
+            >
+              <Icon name="chat" size={14} /> pedir para corrigir
+            </button>
+          </div>
+        </>
+      )}
     </details>
   )
 }
