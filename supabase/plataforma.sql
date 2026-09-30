@@ -85,7 +85,7 @@ drop function if exists public.escolher_plano(text, boolean);
 create or replace function public.escolher_plano(plano text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if plano not in ('essencial', 'completo') then raise exception 'plano inválido'; end if;
+  if plano not in ('essencial', 'completo', 'estudio') then raise exception 'plano inválido'; end if;
   update public.subscriptions set plan = plano
    where user_id = auth.uid() and status = 'trial' and not blocked and trial_ends > now();
 end $$;
@@ -100,7 +100,7 @@ begin
   if ciclo not in ('mensal', 'semestral', 'anual') then raise exception 'período inválido'; end if;
   update public.subscriptions set requested_plan = plano, requested_cycle = ciclo, requested_at = now() where user_id = auth.uid();
   insert into public.support_messages (client_id, from_owner, body)
-  values (auth.uid(), false, 'quero assinar o plano ' || case plano when 'completo' then 'Completo' when 'estudio' then 'Estúdio' else 'Essencial' end || ' (' || ciclo || ') ✨');
+  values (auth.uid(), false, 'quero assinar o plano ' || case plano when 'completo' then 'Completo' when 'estudio' then 'Estúdio' else 'Essencial' end || ' (' || ciclo || ')');
 end $$;
 
 -- Dados de cobrança preenchidos na assinatura (nome, CPF/CNPJ, endereço, forma de pagamento).
