@@ -126,6 +126,36 @@ export const LIBRARY: BriefingTemplate[] = [
     ['prazo', 'prazo e investimento', '', closing(ROOM_BUDGET)],
   ]),
 
+  T('regularizacao', 'Regularização de imóvel', 'situação do imóvel, o que precisa regularizar e os documentos que já existem', 'file', [
+    ['imovel', 'o imóvel', 'onde fica e como ele é hoje', [
+      txt('local', 'Endereço do imóvel (rua, número, bairro, cidade)', field('propertyAddress')),
+      one('tipo', 'Que tipo de imóvel é?', ['casa', 'sobrado', 'apartamento', 'comercial', 'galpão', 'rural'], { other: true }),
+      txt('terreno', 'Área do terreno (m²), se souber'),
+      txt('construida', 'Área construída aproximada (m²)', field('propertyArea')),
+      one('posse', 'O imóvel está no seu nome?', ['sim, escritura registrada', 'tenho só contrato de compra e venda', 'é de herança / inventário', 'não sei'], field('propertyOwnership')),
+      txt('ano', 'Em que ano, mais ou menos, foi construído?'),
+    ]],
+    ['situacao', 'o que precisa regularizar', 'conte o que aconteceu e para que você precisa', [
+      many('precisa', 'O que você precisa?', ['averbar a construção na matrícula', 'habite-se', 'aprovar o projeto na prefeitura', 'regularizar ampliação ou reforma', 'desmembrar ou unificar lote', 'AVCB (bombeiros)', 'alvará de funcionamento', 'não sei, quero orientação'], { hint: 'Pode marcar mais de uma.' }),
+      many('motivo', 'Para que você precisa regularizar?', ['vender o imóvel', 'financiar ou usar de garantia', 'inventário / partilha', 'abrir empresa no local', 'recebi notificação da prefeitura', 'ficar tranquilo(a) com a documentação'], { other: true }),
+      yesNo('notificacao', 'Recebeu alguma notificação ou multa da prefeitura?'),
+      long('notifqual', 'Conte o que diz a notificação (e mande foto dela abaixo)', when('notificacao', 'sim')),
+      yesNo('ampliou', 'O imóvel teve ampliação ou reforma depois da última planta aprovada?'),
+      long('ampliouqual', 'O que foi feito? (ex.: cobriu a garagem, subiu um andar, fechou a varanda)', when('ampliou', 'sim')),
+      long('obs', 'Mais alguma coisa que eu precise saber?'),
+    ]],
+    ['docs', 'documentos', 'o que você já tem em mãos', [
+      many('tem', 'Quais destes documentos você tem?', ['matrícula atualizada do cartório', 'escritura', 'carnê do IPTU', 'planta aprovada antiga', 'habite-se antigo', 'contrato de compra e venda', 'ART / RRT de obra anterior', 'nenhum / não sei'], { hint: 'Não tem tudo? Sem problema, a gente vê juntos o que falta.' }),
+      photos('fotosdocs', 'Fotos ou PDF dos documentos', ['matrícula (todas as páginas)', 'capa do carnê do IPTU', 'plantas antigas, se tiver', 'notificação da prefeitura, se tiver']),
+    ]],
+    ['fotos', 'fotos do imóvel', '', [
+      photos('fotos', 'Fotos do imóvel como está hoje', ['a fachada, de frente para a rua', 'as laterais e os fundos', 'cada cômodo', 'a parte ampliada ou reformada, se tiver'], { hint: 'Pode ser pelo celular.' }),
+    ]],
+    ['prazo', 'prazo', '', [
+      txt('prazo', 'Tem alguma data limite? (venda, financiamento, prazo da notificação)', field('deadline')),
+    ]],
+  ]),
+
   T('arquitetonico', 'Arquitetônico (construção ou reforma)', 'família, terreno, programa de necessidades, lazer, técnica e conceito', 'compass', [
     ['familia', 'quem vai viver aqui', '', [
       txt('local', 'Onde é o terreno ou imóvel?', field('propertyAddress')),

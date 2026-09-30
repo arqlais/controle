@@ -42,10 +42,32 @@ export const DEFAULT_PROCESSES = (): ProjectProcess[] => [
       step('material final', 'Um guia com tudo o que combinamos, para você executar.', ['layout simplificado', 'referências e lista de compras'], 7, 50),
     ],
   },
+  {
+    id: 'regularizacao',
+    name: 'regularização de imóvel',
+    description: 'Da análise dos documentos à averbação no cartório.',
+    steps: [
+      step('levantamento e documentos', 'Entender a situação do imóvel e juntar tudo o que a prefeitura pede.', ['contrato', 'análise da matrícula, IPTU e escritura', 'levantamento métrico no local', 'consulta à legislação do município'], 10, 30),
+      step('projeto de regularização', 'Os desenhos do imóvel como ele está hoje, prontos para protocolar.', ['plantas, cortes e fachada do existente', 'quadro de áreas', 'memorial descritivo', 'ART / RRT'], 20, 30),
+      step('protocolo na prefeitura', 'Entrada do processo e acompanhamento até a análise.', ['protocolo do processo', 'guias e taxas', 'acompanhamento do andamento'], 15, 20),
+      step('exigências e ajustes', 'Se a prefeitura pedir correções (comunique-se), a gente resolve.', ['resposta às exigências', 'ajustes no projeto'], 0, 0),
+      step('aprovação e averbação', 'Imóvel regular: habite-se ou certidão e registro no cartório.', ['habite-se / certidão de regularização', 'orientação para a averbação no cartório'], 20, 20),
+    ],
+  },
 ]
 
-/** Processos da conta (os prontos, se ainda não mexeu). */
-export const processesOf = (s: Settings): ProjectProcess[] => (s.processes?.length ? s.processes : DEFAULT_PROCESSES())
+// processos prontos que já existiam antes (quem mexeu nos processos antes de um novo chegar ganha o novo no fim da lista)
+const OLD_DEFAULTS = ['interiores', 'arquitetonico', 'consultoria']
+
+/** Processos da conta (os prontos, se ainda não mexeu). Processos prontos novos entram no fim, uma vez. */
+export const processesOf = (s: Settings): ProjectProcess[] => {
+  if (!s.processes?.length) return DEFAULT_PROCESSES()
+  const known = s.processesKnown ?? OLD_DEFAULTS
+  const fresh = DEFAULT_PROCESSES().filter((d) => !known.includes(d.id) && !s.processes!.some((x) => x.id === d.id))
+  return fresh.length ? [...s.processes, ...fresh] : s.processes
+}
+/** Ids dos processos prontos (para marcar como já vistos ao salvar). */
+export const defaultProcessIds = () => DEFAULT_PROCESSES().map((d) => d.id)
 
 /** Copia as etapas (com ids novos) para usar num orçamento. */
 export const cloneSteps = (steps: ProcessStep[]) => steps.map((x) => ({ ...x, id: uid(), items: [...x.items] }))

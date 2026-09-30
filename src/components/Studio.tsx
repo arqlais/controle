@@ -77,6 +77,7 @@ export function StudioLocked({ tab }: { tab: ProjectTab }) {
 /* ---------------- cronograma ---------------- */
 
 const ARCH_PHASES = ['levantamento e medição', 'estudo preliminar', 'anteprojeto', 'projeto executivo', 'aprovação na prefeitura', 'acompanhamento de obra', 'entrega final']
+const REG_PHASES = ['levantamento e documentos', 'projeto de regularização', 'protocolo na prefeitura', 'exigências e ajustes', 'aprovação / habite-se', 'averbação no cartório']
 const INTERIOR_PHASES = ['briefing e levantamento', 'estudo preliminar (layout)', 'projeto de interiores', 'detalhamento de marcenaria', 'acompanhamento de obra', 'entrega final']
 const phaseState = (x: ProjectPhase) => (x.done ? 'done' : x.due && x.due < today() ? 'late' : x.start && x.start <= today() ? 'now' : 'next')
 const STATE_LABEL = { done: 'concluída', late: 'atrasada', now: 'em andamento', next: 'a fazer' }
@@ -116,6 +117,9 @@ export function CronogramaTab({ p, save }: { p: Project; save: (patch: Partial<P
           </button>
           <button className="btn" onClick={() => start(INTERIOR_PHASES)}>
             <Icon name="sofa" size={15} /> etapas de interiores
+          </button>
+          <button className="btn" onClick={() => start(REG_PHASES)}>
+            <Icon name="file" size={15} /> etapas de regularização
           </button>
           <button className="btn ghost" onClick={() => setPhases([{ id: uid(), name: 'nova etapa', start: p.startDate || today() }])}>
             <Icon name="plus" size={15} /> do zero

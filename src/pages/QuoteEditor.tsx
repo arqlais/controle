@@ -69,7 +69,7 @@ import {
 } from '../utils'
 
 /** Serviço da tabela que corresponde a cada tipo de projeto (cliente final). */
-const PROCESS_SERVICE: Record<string, string> = { interiores: 'arq-interiores', arquitetonico: 'arq-arquitetonico', consultoria: 'arq-consultoria' }
+const PROCESS_SERVICE: Record<string, string> = { interiores: 'arq-interiores', arquitetonico: 'arq-arquitetonico', consultoria: 'arq-consultoria', regularizacao: 'arq-regularizacao' }
 const newItem = (): QuoteItem => ({ id: uid(), service: '', title: '', detail: '', description: '', quantity: 1, complexity: 'media', price: 0, auto: true })
 /** Rascunho: recalcula os serviços que seguem a tabela (a tabela pode ter mudado desde que o orçamento foi montado). */
 function freshPrices(q: Quote, st: Settings, student: boolean): Quote {

@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-regularizacao',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'regularização de imóvel',
+    text: 'Para quem faz regularização: etapas prontas para a proposta e o cronograma (dos documentos à averbação) e um briefing próprio, com a situação do imóvel e os documentos que o cliente já tem.',
+  },
+  {
     id: '2026-09-30-vitrine-estudio',
     date: '2026-09-30',
     kind: 'novo',

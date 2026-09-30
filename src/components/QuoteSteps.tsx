@@ -5,7 +5,7 @@ import { Field, Modal, Section, Segmented } from './ui'
 import { toast } from './dialog'
 import { useStore } from '../store'
 import { go } from '../router'
-import { AUDIENCES, cloneSteps, processesOf, stepsPercent } from '../processes'
+import { AUDIENCES, cloneSteps, defaultProcessIds, processesOf, stepsPercent } from '../processes'
 import type { ProcessStep, ProjectProcess, QuoteAudience } from '../types'
 import { money, uid } from '../utils'
 
@@ -197,7 +197,7 @@ export function QuoteStepsSection({ steps, processId, total, onChange }: { steps
           onSave={(name, replace) => {
             const base: ProjectProcess = { id: replace && current ? current.id : uid(), name, description: current?.description ?? '', steps: cloneSteps(steps) }
             const next = replace && current ? list.map((x) => (x.id === current.id ? { ...base, name } : x)) : [...list, base]
-            setSettings({ processes: next })
+            setSettings({ processes: next, processesKnown: defaultProcessIds() })
             onChange({ steps, processId: base.id })
             setSaving(false)
             toast('Etapas salvas como padrão.')
@@ -237,7 +237,7 @@ function SaveProcess({ initial, onClose, onSave }: { initial: string; onClose: (
 /** Configurações → propostas: processos de trabalho (cliente final). */
 export function ProcessSettings() {
   const { data, setSettings } = useStore()
-  const draft = useDraft(processesOf(data.settings), (v) => setSettings({ processes: v }))
+  const draft = useDraft(processesOf(data.settings), (v) => setSettings({ processes: v, processesKnown: defaultProcessIds() }))
   const list = draft.value
   const [open, setOpen] = useState(list[0]?.id ?? '')
   const save = (next: ProjectProcess[]) => draft.set(next)
@@ -292,7 +292,7 @@ export function ProcessSettings() {
               apagar este processo
             </button>
             {data.settings.processes?.length ? (
-              <button type="button" className="link small muted-link" onClick={() => setSettings({ processes: undefined })}>
+              <button type="button" className="link small muted-link" onClick={() => setSettings({ processes: undefined, processesKnown: undefined })}>
                 voltar aos processos prontos
               </button>
             ) : null}
