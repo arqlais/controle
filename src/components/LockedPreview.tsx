@@ -1,5 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent, type MouseEvent, type ReactNode, type SyntheticEvent } from 'react'
-import { SandboxStore } from '../store'
+import { useRef, type ReactNode, type SyntheticEvent } from 'react'
 import { toast } from './dialog'
 import { Icon } from './Icon'
 import { go } from '../router'
@@ -41,53 +40,25 @@ export function LockBanner({ feature }: { feature: Feature }) {
   )
 }
 
-// o que tiraria o modelo daqui (baixar, copiar, mandar, imprimir…): na prévia, só com o plano
-const TAKE_AWAY = /\b(baixar|download|pdf|png|imprimir|print|copiar|enviar|mandar|whatsapp|compartilhar|link|exportar|importar|anexar|assinar|publicar|qr|salvar como)/i
-
-/** A tela real, para explorar: dá para abrir, clicar e testar, mas nada é salvo, baixado, copiado ou enviado. */
+/** A tela real, só para olhar: dá para rolar e ver, mas nada abre, nada se clica e nada se copia.
+    Qualquer toque mostra o aviso de que é para assinantes. */
 export function LockedView({ feature, children }: { feature: Feature; children: ReactNode }) {
-  const warned = useRef(false)
-  useEffect(() => {
-    document.body.classList.add('lk-on')
-    return () => document.body.classList.remove('lk-on')
-  }, [])
-  const blocked = (_what?: string) => toast(`Disponível para assinantes do ${lockPlan(feature)}.`)
-  const onClick = (e: MouseEvent) => {
-    const el = (e.target as HTMLElement).closest('button, a, [role="button"], label') as HTMLElement | null
-    if (!el || el.closest('.lk-banner')) return
-    const href = el.getAttribute('href') ?? ''
-    if (href.includes('assinatura')) return
-    const label = `${el.textContent ?? ''} ${el.getAttribute('title') ?? ''} ${el.getAttribute('aria-label') ?? ''}`
-    const leaves = el.tagName === 'A' && (el.hasAttribute('download') || (el as HTMLAnchorElement).target === '_blank' || /^(https?:|blob:|data:|mailto:)/.test(href))
-    if (leaves || TAKE_AWAY.test(label)) {
-      e.preventDefault()
-      e.stopPropagation()
-      blocked('baixar, copiar ou mandar')
-    }
-  }
-  const stop = (what: string) => (e: SyntheticEvent) => {
+  const last = useRef(0)
+  const blocked = (e: SyntheticEvent) => {
     e.preventDefault()
-    blocked(what)
-  }
-  const onKey = (e: KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && /^[cxps]$/i.test(e.key)) {
-      e.preventDefault()
-      blocked(e.key.toLowerCase() === 'p' ? 'imprimir' : e.key.toLowerCase() === 's' ? 'salvar' : 'copiar')
-    }
-  }
-  const onWrite = () => {
-    if (warned.current) return
-    warned.current = true
-    toast('Prévia: nada fica salvo.')
+    if (Date.now() - last.current < 2500) return
+    last.current = Date.now()
+    toast(`Disponível para assinantes do ${lockPlan(feature)}.`)
   }
   return (
     <div className="lk-wrap">
       <LockBanner feature={feature} />
-      <SandboxStore onWrite={onWrite}>
-        <div className="lk-view" onClickCapture={onClick} onCopyCapture={stop('copiar')} onCutCapture={stop('copiar')} onContextMenuCapture={(e) => e.preventDefault()} onDragStartCapture={(e) => e.preventDefault()} onKeyDownCapture={onKey}>
+      <div className="lk-stage">
+        <div className="lk-view" inert aria-hidden>
           {children}
         </div>
-      </SandboxStore>
+        <div className="lk-shield" onClick={blocked} onContextMenu={blocked} aria-hidden />
+      </div>
     </div>
   )
 }

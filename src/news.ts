@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'conheça tudo o que o traço tem',
-    text: 'Tudo o que o traço tem aparece em todos os planos. O que não está no seu fica com cadeado, mas dá para abrir, ver os modelos e testar como funciona (nada fica salvo). No teste grátis, cada função mostra de que plano ela é, para não ter surpresa depois.',
+    text: 'Tudo o que o traço tem aparece em todos os planos. O que não está no seu fica com cadeado: dá para ver a tela e os modelos, e para usar é só mudar de plano. No teste grátis, cada função mostra de que plano ela é, para não ter surpresa depois.',
   },
   {
     id: '2026-09-30-historico-novidades',
