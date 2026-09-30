@@ -1719,3 +1719,15 @@
 .bf-tpl-grid { max-height: 46vh; overflow-y: auto; }
 .card.bf-model-new { display: grid; width: 100%; min-height: 96px; }
 .bf-qed-opt .link { white-space: nowrap; }
+/* escolher cliente digitando */
+.cp { position: relative; flex: 1; min-width: 0; }
+.cp-input.has-letter { padding-left: 46px; }
+.cp > .cp-letter { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+.cp-letter { width: 26px; height: 26px; border-radius: 8px; display: inline-grid; place-items: center; flex: none; font-weight: 700; font-size: 13px; background: var(--accent-tint); color: var(--accent-ink); }
+.cp-letter.is-ghost { background: transparent; color: transparent; }
+.cp-list { position: absolute; z-index: 40; left: 0; right: 0; top: calc(100% + 6px); max-height: 300px; overflow-y: auto; margin: 0; padding: 6px; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+.cp-item { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+.cp-item.is-hi { background: var(--surface-2); }
+.cp-item.is-on .cp-name { font-weight: 600; }
+.cp-name small { color: var(--muted); }
+.cp-empty { padding: 10px; color: var(--muted); font-size: 13px; }

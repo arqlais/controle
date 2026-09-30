@@ -128,7 +128,7 @@ export async function publishPortal(token: string, payload: PortalPayload) {
     return
   }
   const { error } = await supabase!.from('portal_links').upsert({ id: token, payload, updated_at: new Date().toISOString() })
-  if (error) throw error
+  if (error) throw Object.assign(new Error(error.message), { banco: error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message) })
 }
 
 export async function unpublishPortal(token: string) {
@@ -142,7 +142,9 @@ export async function unpublishPortal(token: string) {
 }
 
 export async function loadPortal(token: string): Promise<PortalPayload | null> {
-  if (!CLOUD) return readLocal()[token] ?? null
+  // criada na prévia ou em "ver como cliente": fica neste navegador
+  const local = readLocal()[token]
+  if (local || !CLOUD) return local ?? null
   const { data, error } = await supabase!.rpc('portal_publico', { p_id: token })
   if (error || !data) return null
   return data as PortalPayload

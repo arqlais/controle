@@ -9,6 +9,7 @@ import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
+import { ClientPicker } from '../components/ClientPicker'
 import { QuoteDoc } from '../components/Docs'
 import { DocZoom, DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
@@ -529,29 +530,19 @@ export default function QuoteEditor({ id }: { id: string }) {
           <Section title="dados">
             <div className="form-grid">
               <AudienceSwitch value={audience} onChange={pickAudience} />
-              <Field label="Cliente" span={2} hint="O nome do cliente vai no campo “nome” da proposta.">
+              <Field group label="Cliente" span={2} hint="Digite para buscar. O nome do cliente vai no campo “nome” da proposta.">
                 <div className="row gap-s">
-                  <select
+                  <ClientPicker
                     id="q-client"
+                    clients={data.clients}
                     value={q.clientId}
-                    onChange={(e) => {
-                      const c = data.clients.find((x) => x.id === e.target.value)
-                      set({ clientId: e.target.value })
+                    onChange={(cid) => {
+                      const c = data.clients.find((x) => x.id === cid)
+                      set({ clientId: cid })
                       // escolheu um cliente final e o orçamento ainda está no formato de parceiro: troca sozinho
                       if (isFinalClient(c) && !isFinal && q.status === 'rascunho') pickAudience('final')
                     }}
-                  >
-                    <option value="">Selecione…</option>
-                    {[...data.clients]
-                      .filter((c) => !c.archived)
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                          {c.company ? ` · ${c.company}` : ''}
-                        </option>
-                      ))}
-                  </select>
+                  />
                   {client && (
                     <button className="btn ghost small" onClick={() => setEditClient(true)} title="Editar dados do cliente">
                       <Icon name="edit" size={14} />
@@ -868,7 +859,8 @@ export default function QuoteEditor({ id }: { id: string }) {
             {!existing && (
               <Segmented<QuoteStatus>
                 value={q.status}
-                onChange={(s) => set({ status: s })}
+                // aprovado abre o fechamento: cria a demanda e lança os pagamentos no financeiro
+                onChange={(s) => (s === 'aprovado' ? approve() : set({ status: s }))}
                 options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
               />
             )}

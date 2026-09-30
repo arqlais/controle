@@ -8,9 +8,11 @@ import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
 import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
-import type { Expense, Project } from '../types'
+import type { Expense, Project, Quote } from '../types'
+import { CloseDeal } from '../components/quick'
 import { BillModal } from '../components/Bill'
 import {
+  quoteNumber,
   CLIENT_TYPES,
   EXPENSE_CATEGORIES,
   MONTHS,
@@ -72,6 +74,11 @@ export default function Finance() {
 
   const { visible, more } = usePaged(rows, 30, 'financeiro')
   const expenses = expensesInMonth(data, month).sort((a, b) => a.date.localeCompare(b.date))
+  // o seletor de mês começa no trabalho mais antigo (orçamentos antigos lançados depois)
+  const firstMonth = [...pays.flatMap(({ pay }) => [pay.paidDate, pay.dueDate]), ...data.expenses.map((e) => e.date)].filter((d): d is string => !!d && d.length >= 7).map(monthKey).reduce((a, b) => (b < a ? b : a), '2026-01')
+  // aprovados sem demanda (lançados sem passar pelo fechamento): os pagamentos não chegaram aqui
+  const orphan = data.quotes.filter((q) => q.status === 'aprovado' && (!q.projectId || !data.projects.some((p) => p.id === q.projectId)))
+  const [closing, setClosing] = useState<Quote | null>(null)
   const lateTotal = sum(pays.filter((x) => paymentState(x.pay, x.project) === 'cobrar'), (x) => x.pay.amount)
 
   const markPaid = (projectId: string, payId: string, paid: boolean) => {
@@ -101,7 +108,7 @@ export default function Finance() {
             <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior">
               <Icon name="chevronL" />
             </button>
-            <MonthPicker value={month} onChange={setMonth} from="2026-01" />
+            <MonthPicker value={month} onChange={setMonth} from={firstMonth} />
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês">
               <Icon name="chevronR" />
             </button>
@@ -122,6 +129,24 @@ export default function Finance() {
         </div>
       </div>
 
+      {orphan.length > 0 && (
+        <div className="recover-note">
+          <Icon name="alert" size={16} />
+          <span className="grow">
+            {orphan.length === 1 ? '1 orçamento aprovado ainda não entrou' : `${orphan.length} orçamentos aprovados ainda não entraram`} no financeiro (foram marcados como aprovados sem criar a demanda):{' '}
+            {orphan.slice(0, 4).map((q, i) => (
+              <span key={q.id}>
+                {i ? ', ' : ''}
+                <button className="link" onClick={() => setClosing(q)}>
+                  {data.clients.find((c) => c.id === q.clientId)?.name ?? 'cliente'} · {quoteNumber(q)}
+                </button>
+              </span>
+            ))}
+            {orphan.length > 4 ? ` e mais ${orphan.length - 4}` : ''}. Clique para lançar.
+          </span>
+        </div>
+      )}
+      {closing && <CloseDeal q={closing} onClose={() => setClosing(null)} />}
       <div className="stats">
         <Stat
           label="Recebido no mês"

@@ -47,6 +47,7 @@ import {
   pkgActive,
   pkgFull,
   withPackage,
+  isFinalClient,
 } from '../utils'
 
 export default function ProjectDetail({ id }: { id: string }) {
@@ -62,7 +63,7 @@ export default function ProjectDetail({ id }: { id: string }) {
   const { has } = useAccess()
   const canPdf = has('propostaPdf') // recibos em PDF: plano Completo
   // abas (visão geral + recursos do Estúdio); a última aberta fica guardada
-  const [tab, setTab] = useKeep<ProjectTab>('demanda-aba', 'geral')
+  const [savedTab, setTab] = useKeep<ProjectTab>('demanda-aba', 'geral')
   usePortalSync(p, p ? data.clients.find((c) => c.id === p.clientId) : undefined)
 
   const duplicate = () => {
@@ -93,6 +94,9 @@ export default function ProjectDetail({ id }: { id: string }) {
   if (!p) return <Empty title="Projeto não encontrado" action={<a className="btn" href={href('projetos')}>Voltar</a>} />
 
   const client = data.clients.find((c) => c.id === p.clientId)
+  // cliente final tem abas (cronograma, obra, custos, página); freelancer e estudante ficam só com a visão geral e as etapas
+  const finalProject = isFinalClient(client) || data.quotes.some((q) => q.projectId === p.id && q.audience === 'final') || !!p.phases?.length || !!p.visits?.length || !!p.portal?.enabled
+  const tab: ProjectTab = finalProject ? savedTab : 'geral'
   const service = data.settings.services.find((s) => s.id === p.service)
   const save = (patch: Partial<Project>) => upsert('projects', { ...p, ...patch })
   const setPayment = (pid: string, patch: Partial<Payment>) => save({ payments: p.payments.map((x) => (x.id === pid ? { ...x, ...patch } : x)) })
@@ -242,7 +246,7 @@ export default function ProjectDetail({ id }: { id: string }) {
         )}
       </div>
 
-      <ProjectTabs tab={tab} onTab={setTab} p={p} />
+      {finalProject && <ProjectTabs tab={tab} onTab={setTab} p={p} />}
       {tab !== 'geral' && (() => {
         const t = PROJECT_TABS.find((x) => x.id === tab)
         if (t?.feature && !has(t.feature)) return <StudioLocked tab={tab} />
@@ -412,7 +416,7 @@ export default function ProjectDetail({ id }: { id: string }) {
             </Section>
           )}
 
-          <Section title={`Etapas · ${done}/${p.tasks.length}`}>
+          <Section title={`${finalProject ? 'Tarefas internas' : 'Etapas'} · ${done}/${p.tasks.length}`}>
             {p.tasks.length > 0 && <Progress value={done} max={p.tasks.length} />}
             <ul className="checklist">
               {p.tasks.map((t) => (

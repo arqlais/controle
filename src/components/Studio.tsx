@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
+import { ARTIFACT } from '../env'
+import { viewingAsClient } from '../viewAs'
 import { useAccess } from '../access'
 import { go } from '../router'
 import { Icon } from './Icon'
@@ -556,8 +558,12 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
       await publishPortal(next.token, portalPayload(p, client, data.settings, next))
       save({ portal: { ...next, publishedAt: new Date().toISOString() } })
       toast('Página no ar. Agora é só mandar o link.')
-    } catch {
-      toast('Não foi possível publicar agora. Confira a internet e tente de novo.')
+    } catch (e) {
+      toast(
+        (e as { banco?: boolean }).banco
+          ? 'A página do cliente ainda não foi ativada no banco de dados desta conta. Fale com o suporte pelo chat (a dona ativa rodando o bloco “banco de dados”).'
+          : 'Não foi possível publicar agora. Confira a internet e tente de novo.',
+      )
     }
   }
   const disable = async () => {
@@ -567,6 +573,7 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
     toast('Página tirada do ar. O link não abre mais.')
   }
   const set = (patch: Partial<ProjectPortal>) => portal && save({ portal: { ...portal, ...patch } })
+  const [peek, setPeek] = useState(false)
   const first = client?.name.split(' ')[0] ?? ''
   const msg = `Oi${first ? `, ${first}` : ''}! Por este link você acompanha o projeto ${p.title}: etapas, prazos e pagamentos, sempre atualizados. ${link}`
 
@@ -606,10 +613,19 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
           >
             <Icon name="copy" size={14} /> copiar
           </button>
-          <a className="btn small ghost" href={link} target="_blank" rel="noreferrer">
-            <Icon name="eye" size={14} /> ver como o cliente
-          </a>
+          <button className="btn small ghost" onClick={() => setPeek(true)}>
+            <Icon name="eye" size={14} /> ver como o cliente vê
+          </button>
         </div>
+        {(ARTIFACT || viewingAsClient()) && <p className="small text-warn">Nesta prévia o link só abre aqui dentro (use “ver como o cliente vê”). No sistema publicado, ele abre em qualquer celular.</p>}
+        {peek && (
+          <Modal wide title="como o cliente vê" onClose={() => setPeek(false)}>
+            <p className="muted small">É exatamente esta página que abre no celular do cliente.</p>
+            <div className="bf-preview-frame">
+              <PortalPublic token={portal.token} data={{ ...portalPayload(p, client, data.settings, portal), updatedAt: new Date().toISOString() }} preview />
+            </div>
+          </Modal>
+        )}
         <p className="muted small">Atualiza sozinha quando você muda etapas, pagamentos ou visitas.</p>
         <button className="link small danger-link" onClick={() => void disable()}>
           tirar a página do ar
@@ -640,13 +656,13 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
 
 /* ---------------- página pública (o cliente abre pelo link) ---------------- */
 
-export function PortalPublic({ token }: { token: string }) {
-  const [d, setD] = useState<PortalPayload | null | undefined>(undefined)
+export function PortalPublic({ token, data, preview }: { token: string; data?: PortalPayload; preview?: boolean }) {
+  const [d, setD] = useState<PortalPayload | null | undefined>(data)
   useEffect(() => {
-    import('../studioApi').then(({ loadPortal }) => loadPortal(token)).then(setD, () => setD(null))
-  }, [token])
+    if (!data) import('../studioApi').then(({ loadPortal }) => loadPortal(token)).then(setD, () => setD(null))
+  }, [token, data])
   const wrap = (children: ReactNode) => (
-    <div className="bf-public pt-public" style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
+    <div className={`bf-public pt-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
       <div className="bf-card">{children}</div>
       <p className="bf-foot">feito com traço</p>
     </div>
