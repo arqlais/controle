@@ -2025,3 +2025,10 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .follow-brand { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2, #f4efec); }
 .follow-brand p { margin: 0; }
 .pt-way { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2, #f4efec); }
+/* ícones do menu sempre do mesmo tamanho (o cadeado ou a etiqueta de plano não espremem o ícone) */
+.sidebar nav a > svg:first-child { flex: none; width: 18px; height: 18px; }
+.sidebar nav a > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar nav a .nav-lock, .sidebar nav a .nav-plan { flex: none; }
+/* item selecionado (fundo escuro): etiqueta de plano e cadeado bem legíveis */
+.sidebar nav a.active .nav-plan { color: #fff; background: rgba(255, 255, 255, 0.2); }
+.sidebar nav a.active .nav-lock { color: #fff; opacity: 0.9; }
