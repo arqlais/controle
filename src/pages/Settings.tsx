@@ -114,10 +114,10 @@ export default function SettingsPage() {
               </span>
             </button>
           ))}
-          <DesktopNote>Preços, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet, com mais espaço para editar.</DesktopNote>
         </nav>
 
         <div className="settings-panel">
+          <DesktopNote>Preços, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet.</DesktopNote>
           {tab === 'aparencia' && (
             <>
               {has('identidade') ? (
