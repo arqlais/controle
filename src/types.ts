@@ -318,6 +318,7 @@ export interface Quote {
   createdAt: string
   projectId: string
   closedValue?: number // valor fechado depois da negociação (0 = o da proposta)
+  projectRemoved?: boolean // a demanda deste orçamento foi apagada de propósito (não pede para lançar de novo)
   closedNote?: string // o que mudou no fechamento (escopo, valor…)
   audience?: QuoteAudience // para quem é: cliente final (proposta em slides, etapas) ou escritório parceiro (vazio = parceiro)
   processId?: string // processo de trabalho usado como base das etapas
@@ -516,6 +517,7 @@ export interface Data {
   posts?: SocialPost[] // planejamento do instagram
   contracts?: Contract[] // contratos gerados a partir dos orçamentos
   briefings?: Briefing[] // briefings enviados para clientes finais
+  deleted?: string[] // ids apagados (outro aparelho aberto com a versão antiga não traz de volta)
   settings: Settings
 }
 

@@ -424,7 +424,24 @@ function load(userId?: string): Data {
 }
 
 /** Garante que dados antigos/importados tenham todos os campos. */
+/** Tira o que foi apagado (em qualquer aparelho) de todas as listas. */
+function dropDeleted(d: Data): Data {
+  if (!d.deleted?.length) return d
+  const gone = new Set(d.deleted)
+  const keep = <T extends { id: string }>(l: T[] | undefined) => (l ?? []).filter((x) => !gone.has(x.id))
+  return { ...d, clients: keep(d.clients), projects: keep(d.projects), quotes: keep(d.quotes), expenses: keep(d.expenses), events: keep(d.events), posts: keep(d.posts), contracts: keep(d.contracts), briefings: keep(d.briefings) }
+}
+/** Junta o que foi apagado aqui com o que veio da nuvem (vale o apagado dos dois lados). */
+export function withDeleted(remote: Partial<Data>, local?: Partial<Data>): Partial<Data> {
+  const all = [...new Set([...(remote.deleted ?? []), ...(local?.deleted ?? [])])].slice(-1500)
+  return all.length ? { ...remote, deleted: all } : remote
+}
+
 export function normalize(d: Partial<Data>): Data {
+  return dropDeleted({ ...normalizeBase(d), deleted: d.deleted?.length ? d.deleted : undefined })
+}
+
+function normalizeBase(d: Partial<Data>): Data {
   const base = emptyData()
   return {
     version: 1,
@@ -623,8 +640,10 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
         if (!alive) return
         if (remote) {
           remoteAt.current = remote.updatedAt
-          fromRemote.current = true
-          const d = normalize(remote.data)
+          // apagados neste aparelho enquanto estava sem internet continuam apagados
+          const merged = withDeleted(remote.data, load(userId))
+          fromRemote.current = (merged.deleted?.length ?? 0) === (remote.data.deleted?.length ?? 0)
+          const d = normalize(merged)
           setData(d)
           // ao entrar, garante que a agenda do celular está em dia (ex.: se a última publicação falhou)
           if (d.settings.calendarToken) void publishAgendaFor(d)
@@ -707,8 +726,10 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
         const remote = await fetchRemote(userId!)
         if (remote && remote.updatedAt > remoteAt.current) {
           remoteAt.current = remote.updatedAt
-          fromRemote.current = true
-          setData(normalize(remote.data))
+          // outro aparelho salvou por cima com uma versão antiga: o que foi apagado aqui continua apagado (e a nuvem é corrigida)
+          const merged = withDeleted(remote.data, dataRef.current)
+          fromRemote.current = (merged.deleted?.length ?? 0) === (remote.data.deleted?.length ?? 0)
+          setData(normalize(merged))
         }
         setSync('saved')
       } catch {
@@ -742,11 +763,14 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
   }, [])
 
   const remove = useCallback((c: Collection, id: string) => {
+    if (sampleOn.current) toast('Você está vendo o exemplo: nada é apagado de verdade. Toque no olho (“exemplo”) para voltar aos seus dados.')
     setActive((d) => {
-      const next: Data = { ...d, [c]: ((d[c] ?? []) as { id: string }[]).filter((x) => x.id !== id) }
+      // guarda o id apagado: se outro aparelho aberto salvar a versão antiga, o item não volta
+      const next: Data = { ...d, [c]: ((d[c] ?? []) as { id: string }[]).filter((x) => x.id !== id), deleted: [...(d.deleted ?? []), id].slice(-1500) }
       // limpeza em cascata
       if (c === 'clients') {
         const pids = new Set(d.projects.filter((p) => p.clientId === id).map((p) => p.id))
+        next.deleted = [...(next.deleted ?? []), ...pids, ...d.quotes.filter((q) => q.clientId === id).map((q) => q.id)].slice(-1500)
         next.projects = d.projects.filter((p) => p.clientId !== id)
         next.quotes = d.quotes.filter((q) => q.clientId !== id)
         next.briefings = (d.briefings ?? []).filter((b) => b.clientId !== id)
@@ -754,7 +778,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
       }
       if (c === 'projects') {
         next.events = d.events.map((e) => (e.projectId === id ? { ...e, projectId: '' } : e))
-        next.quotes = d.quotes.map((q) => (q.projectId === id ? { ...q, projectId: '' } : q))
+        next.quotes = d.quotes.map((q) => (q.projectId === id ? { ...q, projectId: '', projectRemoved: true } : q))
       }
       return next
     })

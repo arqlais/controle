@@ -78,7 +78,7 @@ export function duplicateQuote(q: Quote, d: Data, offset = 0): Quote {
 }
 
 /** Orçamentos aprovados que ainda não entraram no financeiro (sem demanda ligada). */
-export const approvedWithoutProject = (d: Data) => d.quotes.filter((q) => q.status === 'aprovado' && q.clientId && !(q.projectId && d.projects.some((p) => p.id === q.projectId)))
+export const approvedWithoutProject = (d: Data) => d.quotes.filter((q) => q.status === 'aprovado' && q.clientId && !q.projectRemoved && !(q.projectId && d.projects.some((p) => p.id === q.projectId)))
 
 /** Trabalho antigo já feito e pago: vira demanda entregue, com o valor recebido na data em que fechou.
  *  Assim o financeiro (recebido no mês, gráficos, relatórios) passa a contar esse cliente. */
