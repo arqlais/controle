@@ -3,6 +3,7 @@ import { Icon } from './Icon'
 import type { ContractSignature, Settings } from '../types'
 import { useAccess } from '../access'
 import { sheetColors } from '../proposalTemplates'
+import { SignatureGlyph } from './SignaturePad'
 
 /* Contrato em folhas A4 (794 × 1123 px). O texto é medido parágrafo por parágrafo
    e dividido em páginas, assim nenhuma linha é cortada ao meio no PDF. */
@@ -40,6 +41,51 @@ function SignedMark({ sign }: { sign?: ContractSignature }) {
       {sign.doc ? ` · ${sign.doc}` : ''}
       {sign.hash ? ` · código ${sign.hash}` : ''}
     </span>
+  )
+}
+
+/** Certificado de assinatura (última página): o registro de quem assinou, como, quando e de qual texto. */
+function SignCertificate({ sign, lais }: { sign?: ContractSignature; lais?: boolean }) {
+  if (!sign || sign.via !== 'link') return null
+  const when = (iso?: string) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'medium' }) : '')
+  const rows: [string, string | undefined][] = [
+    ['nome', sign.name],
+    ['CPF / CNPJ', sign.doc],
+    ['contato', sign.contact],
+    ['assinado em', `${when(sign.at)}${sign.tz ? ` (${sign.tz})` : ''}`],
+    ['forma', sign.method === 'desenho' ? 'assinatura desenhada à mão na tela' : 'nome digitado, adotado como assinatura'],
+    ['aparelho', sign.device],
+    ['localização', sign.geo || 'não informada'],
+    ['confirmação', sign.confirmedAt ? `recebida pelo WhatsApp e registrada em ${when(sign.confirmedAt)}` : 'aguardando'],
+    ['código da assinatura', sign.hash],
+  ]
+  return (
+    <article className={`contract-page c-cert ${lais ? 'lc-page' : ''}`}>
+      <p className="c-cert-eyebrow">certificado de assinatura eletrônica</p>
+      <h2 className="c-cert-title">registro da assinatura</h2>
+      <p className="c-cert-text">Este documento foi assinado eletronicamente pelo link enviado pela contratada. Os dados abaixo foram registrados no momento da assinatura e ficam ligados ao texto exato do contrato pela impressão digital SHA-256: qualquer alteração no texto gera outra impressão e invalida esta assinatura.</p>
+      <div className="c-cert-sign">
+        <SignatureGlyph sign={sign} />
+        <span>{sign.name}</span>
+      </div>
+      <table className="c-cert-table">
+        <tbody>
+          {rows.map(([k, v]) => (
+            <tr key={k}>
+              <th>{k}</th>
+              <td>{v || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {sign.docHash && (
+        <p className="c-cert-hash">
+          <b>impressão digital do documento (SHA-256)</b>
+          <code>{sign.docHash}</code>
+        </p>
+      )}
+      <p className="c-cert-law">Assinatura eletrônica simples, nos termos da Lei nº 14.063/2020 e da MP nº 2.200-2/2001 (art. 10, § 2º), admitida como válida pelas partes que a aceitaram. Para assinatura com certificado digital ICP-Brasil, use um serviço credenciado (ex.: assinador gov.br).</p>
+    </article>
   )
 }
 
@@ -92,14 +138,14 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
       return (
         <div key={i} className="c-sign">
           <div>
-            {signed?.via === 'link' ? <i className="c-sign-img c-sign-typed">{signed.name}</i> : <i className="c-sign-img" />}
+            {signed?.via === 'link' ? <SignatureGlyph sign={signed} className="c-sign-img" /> : <i className="c-sign-img" />}
             <span />
             <b>{clientName || 'contratante'}</b>
             <small>contratante</small>
             <SignedMark sign={signed} />
           </div>
           <div>
-            <i className="c-sign-img" />
+            {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
             <span />
             <b>{s.legalName || s.ownerName || 'contratada'}</b>
             <small>contratada</small>
@@ -138,6 +184,7 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
           <footer className="c-foot">modelo de referência · revise com um advogado antes de assinar</footer>
         </article>
       ))}
+      <SignCertificate sign={signed} />
     </div>
   )
 }
@@ -289,12 +336,12 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
       case 'sign':
         return (
           <div key={i} className="lc-signs">
-            <div className="lc-sign-box" />
+            <div className="lc-sign-box">{s.signature && <img src={s.signature} alt="" />}</div>
             <p className="lc-sign-who">
               {who.toUpperCase()}
               <b>CONTRATADO</b>
             </p>
-            <div className="lc-sign-box">{signed?.via === 'link' && <i className="c-sign-typed">{signed.name}</i>}</div>
+            <div className="lc-sign-box">{signed?.via === 'link' && <SignatureGlyph sign={signed} />}</div>
             <p className="lc-sign-who">
               {(clientName || 'nome completo').toUpperCase()}
               <b>CONTRATANTE</b>
@@ -354,6 +401,7 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
           <footer className="lc-band" />
         </article>
       ))}
+      <SignCertificate sign={signed} lais />
     </div>
   )
 }

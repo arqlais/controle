@@ -427,6 +427,15 @@ export interface ContractSignature {
   at: string // data e hora (ISO)
   hash?: string // código que liga a assinatura a este texto exato (pelo link)
   site?: string // site usado (gov.br, ZapSign…)
+  method?: 'desenho' | 'digitado' // como o cliente assinou pelo link
+  drawing?: string // traço da assinatura desenhada (caminho SVG, área 600 × 200)
+  font?: string // letra escolhida para o nome digitado
+  contact?: string // e-mail ou WhatsApp informado por quem assinou
+  device?: string // aparelho e navegador usados
+  tz?: string // fuso horário do aparelho
+  geo?: string // localização aproximada (só se a pessoa permitiu)
+  docHash?: string // SHA-256 do texto do contrato assinado
+  confirmedAt?: string // quando a confirmação chegou e foi registrada
 }
 
 export interface Contract {

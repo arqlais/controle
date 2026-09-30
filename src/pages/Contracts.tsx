@@ -10,6 +10,7 @@ import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillCo
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
 import { SIGN_SITES, checkSignMessage, publishSign, type SignPayload } from '../contractSign'
+import { SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
 
 /* Contratos: escolhe um orçamento + um modelo → o texto sai preenchido
@@ -502,6 +503,7 @@ function TemplatesEditor() {
 function SignatureField() {
   const { data, setSettings } = useStore()
   const sig = data.settings.signature
+  const [drawing, setDrawing] = useState<string | null>(null)
   const pick = (f?: File) => {
     if (!f) return
     if (f.size > 1_500_000) return toast('Imagem muito grande: use uma de até 1,5 MB.')
@@ -514,9 +516,27 @@ function SignatureField() {
   }
   return (
     <Section title="sua assinatura">
-      <p className="muted small">Envie uma foto ou imagem da sua assinatura (de preferência PNG com fundo transparente). Ela entra sozinha no quadro de assinatura de todos os contratos. Sem imagem, vai o seu nome.</p>
+      <p className="muted small">Desenhe a sua assinatura aqui (com o dedo ou o mouse) ou envie uma imagem (de preferência PNG com fundo transparente). Ela entra sozinha no quadro de assinatura de todos os contratos. Sem imagem, vai o seu nome.</p>
+      {drawing !== null ? (
+        <div className="stack-s">
+          <SignaturePad value={drawing} onChange={setDrawing} label="desenhe a sua assinatura" />
+          <div className="row gap-s">
+            <button className="btn small primary" disabled={drawing.length < 30} onClick={() => (setSettings({ signature: drawingToDataUrl(drawing) }), setDrawing(null), toast('Assinatura salva.'))}>
+              salvar assinatura
+            </button>
+            <button className="btn small ghost" onClick={() => setDrawing(null)}>
+              cancelar
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="row gap-s wrap">
         {sig && <img className="pf-sig-preview" src={sig} alt="Sua assinatura" />}
+        {drawing === null && (
+          <button className="btn small ghost" onClick={() => setDrawing('')}>
+            <Icon name="pen" size={14} /> desenhar
+          </button>
+        )}
         <label className="btn small ghost">
           <Icon name="upload" size={14} /> {sig ? 'trocar imagem' : 'enviar imagem'}
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
@@ -602,7 +622,35 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
             desfazer
           </button>
         </div>
-        {c.sign.via === 'link' && <p className="muted small">A assinatura aparece no PDF, embaixo do nome do cliente. Se o texto for mudado, ela deixa de valer para a nova versão.</p>}
+        {c.sign.via === 'link' && (
+          <>
+            <div className="sg-evidence">
+              <SignatureGlyph sign={c.sign} />
+              <dl>
+                <dt>forma</dt>
+                <dd>{c.sign.method === 'desenho' ? 'desenhou a assinatura na tela' : 'nome digitado'}</dd>
+                {c.sign.contact && (
+                  <>
+                    <dt>contato</dt>
+                    <dd>{c.sign.contact}</dd>
+                  </>
+                )}
+                {c.sign.device && (
+                  <>
+                    <dt>aparelho</dt>
+                    <dd>{c.sign.device}</dd>
+                  </>
+                )}
+                <dt>localização</dt>
+                <dd>{c.sign.geo || 'não informada'}</dd>
+              </dl>
+            </div>
+            <p className="muted small">A assinatura entra no PDF embaixo do nome do cliente, e a última página traz o certificado com todos os dados e a impressão digital do texto. Se o texto for mudado, ela deixa de valer para a nova versão.</p>
+            <button className="btn small" onClick={onPdf}>
+              <Icon name="download" size={14} /> baixar PDF assinado com certificado
+            </button>
+          </>
+        )}
       </Section>
     )
 
@@ -619,7 +667,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
               <small>rápido · o cliente assina no celular</small>
             </div>
           </div>
-          <p className="muted small">O cliente lê o contrato, digita nome e CPF e aceita. A confirmação volta para você pelo WhatsApp com um código ligado ao texto.</p>
+          <p className="muted small">O cliente lê o contrato, informa nome, CPF e contato e assina desenhando com o dedo ou com o nome digitado. A confirmação volta pelo WhatsApp dele, com um código ligado ao texto, e o PDF ganha um certificado de assinatura.</p>
           {c.signLink ? (
             <>
               <div className="sg-link">
@@ -639,7 +687,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
                 </button>
               </div>
               <label className="sg-paste">
-                <span className="small">O cliente assinou? Cole aqui a mensagem que ele mandou:</span>
+                <span className="small">O cliente assinou? Cole aqui a mensagem que ele mandou{client?.phone ? ` (confira se veio do WhatsApp dele: ${client.phone})` : ''}:</span>
                 <textarea rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Oi! Li e assinei o contrato… código da assinatura: z…" />
               </label>
               <button className="btn primary small" disabled={!paste.trim()} onClick={() => void confirm()}>
@@ -651,7 +699,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
               <Icon name="link" size={14} /> {busy ? 'criando…' : 'criar link de assinatura'}
             </button>
           )}
-          <p className="sg-law muted">Assinatura eletrônica simples (Lei 14.063/2020): vale entre particulares e registra nome, CPF, data, hora e o código do texto.</p>
+          <p className="sg-law muted">Assinatura eletrônica simples (Lei 14.063/2020 e MP 2.200-2/2001, art. 10, § 2º): vale entre as partes que a aceitam. Registra nome, CPF, contato, data, hora, aparelho, localização (se permitida) e a impressão digital do texto.</p>
         </div>
 
         <div className="sg-way">

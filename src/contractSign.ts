@@ -27,14 +27,35 @@ export interface SignAnswer {
   d: string // CPF / CNPJ
   at: string
   h: string // código da assinatura
+  m?: 'desenho' | 'digitado'
+  p?: string // traço desenhado
+  f?: string // letra do nome digitado
+  c?: string // e-mail ou WhatsApp de quem assinou
+  ua?: string // aparelho e navegador
+  tz?: string // fuso horário
+  g?: string // localização (se permitida)
+  dh?: string // SHA-256 do texto
 }
 
 const base = () => `${location.origin}${location.pathname}`
 const fileName = (token: string) => `contrato-${token}.json`
 
 /** Código de 16 letras que liga nome, documento, data e o texto exato do contrato. */
-export async function signatureHash(body: string, name: string, doc: string, at: string) {
-  const bytes = new TextEncoder().encode([body.trim(), name.trim().toLowerCase(), doc.replace(/\D/g, ''), at].join('|'))
+/** SHA-256 completo do texto do contrato (aparece no certificado de assinatura). */
+export async function docHash(body: string) {
+  const bytes = new TextEncoder().encode(body.trim())
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+/** Resumo do aparelho para o registro (sistema e navegador, sem nada pessoal). */
+export function deviceLabel(ua = navigator.userAgent) {
+  const os = /iPhone|iPad/.test(ua) ? 'iPhone/iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'outro'
+  const br = /Edg\//.test(ua) ? 'Edge' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /FxiOS|Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'navegador'
+  return `${os} · ${br}`
+}
+
+export async function signatureHash(body: string, name: string, doc: string, at: string, extra = '') {
+  const bytes = new TextEncoder().encode([body.trim(), name.trim().toLowerCase(), doc.replace(/\D/g, ''), at, extra].join('|'))
   const hex = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('')
   return hex.slice(0, 16).toUpperCase().match(/.{4}/g)!.join('-')
 }
@@ -71,10 +92,16 @@ export const signMessage = async (p: SignPayload, a: SignAnswer) =>
     `nome: ${a.n}`,
     `CPF/CNPJ: ${a.d}`,
     `data: ${new Date(a.at).toLocaleString('pt-BR')}`,
+    `forma: ${a.m === 'desenho' ? 'assinatura desenhada à mão' : 'nome digitado'}`,
+    ...(a.c ? [`contato: ${a.c}`] : []),
+    ...(a.g ? [`localização: ${a.g}`] : []),
     `código de verificação: ${a.h}`,
     '',
     `${SIGN_TAG} ${await pack(a)}`,
   ].join('\n')
+
+/** O que entra no código além do texto: a forma de assinar e os dados de autenticação. */
+export const signExtra = (a: Pick<SignAnswer, 'm' | 'p' | 'f' | 'c' | 'ua' | 'tz' | 'g'>) => [a.m, a.p, a.f, a.c, a.ua, a.tz, a.g].map((x) => x ?? '').join('|')
 
 /** Lê a mensagem colada e confere com o contrato: devolve a assinatura ou o motivo de não valer. */
 export async function checkSignMessage(msg: string, token: string | undefined, body: string): Promise<{ sign?: ContractSignature; error?: string }> {
@@ -82,8 +109,10 @@ export async function checkSignMessage(msg: string, token: string | undefined, b
   const a = code ? await unpack<SignAnswer>(code) : null
   if (!a) return { error: 'Não achei o código da assinatura. Cole a mensagem inteira que o cliente mandou.' }
   if (token && a.t !== token) return { error: 'Esse código é de outro contrato.' }
-  if ((await signatureHash(body, a.n, a.d, a.at)) !== a.h) return { error: 'O texto do contrato mudou depois que o cliente assinou. Mande o link de novo para ele assinar a versão atual.' }
-  return { sign: { via: 'link', name: a.n, doc: a.d, at: a.at, hash: a.h } }
+  if ((await signatureHash(body, a.n, a.d, a.at, signExtra(a))) !== a.h) return { error: 'O texto do contrato mudou depois que o cliente assinou (ou a mensagem foi alterada). Mande o link de novo para ele assinar a versão atual.' }
+  return {
+    sign: { via: 'link', name: a.n, doc: a.d, at: a.at, hash: a.h, method: a.m ?? 'digitado', drawing: a.p, font: a.f, contact: a.c, device: a.ua, tz: a.tz, geo: a.g, docHash: a.dh ?? (await docHash(body)), confirmedAt: new Date().toISOString() },
+  }
 }
 
 /** Sites de assinatura eletrônica com validade jurídica (o PDF baixado daqui vai para lá). */
