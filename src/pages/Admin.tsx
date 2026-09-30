@@ -6,7 +6,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_DISCOUNT, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_FREE_MONTHS, CARD_FEE, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
@@ -179,7 +179,7 @@ const first = (s: Subscription) => (s.name || '').split(' ')[0] || 'tudo bem'
 type SaveCtrl = (userId: string, d: SubAdmin, msg?: string) => Promise<void>
 /* ---- cobrança de cada assinante ---- */
 const cycleOf = (s: Subscription, c?: SubAdmin, b?: Billing): Cycle => c?.cycle ?? (b?.cycle === 'semestral' ? 'semestral' : s.requestedCycle) ?? b?.cycle ?? 'mensal'
-const priceOf = (s: Subscription, cycle: Cycle) => cyclePrice(PLANS[s.plan].price, cycle)
+const priceOf = (s: Subscription, cycle: Cycle, method?: string) => (method === 'cartao' ? cardPrice(PLANS[s.plan].price, cycle) : cyclePrice(PLANS[s.plan].price, cycle))
 /** Dias até vencer (negativo = vencida). Só para quem paga e tem "pago até". */
 const dueDays = (s: Subscription, c?: SubAdmin) => (paying(s) && c?.paidUntil ? daysUntil(c.paidUntil) : null)
 const dueLabel = (d: number) => (d < 0 ? `venceu há ${-d} dia(s)` : d === 0 ? 'vence hoje' : `vence em ${d} dia(s)`)
@@ -248,7 +248,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
               <div key={s.userId} className="pf-plan-line">
                 <b>{s.name || s.email}</b>
                 <span className="muted small">
-                  {PLANS[s.plan].name} · {money(priceOf(s, cyc))}/{CYCLE_UNIT[cyc]} · {c?.method === 'cartao' ? 'cartão' : 'Pix'}
+                  {PLANS[s.plan].name} · {money(priceOf(s, cyc, c?.method))}/{CYCLE_UNIT[cyc]} · {c?.method === 'cartao' ? 'cartão' : 'Pix'}
                 </span>
                 <Badge color={dueColor(d)}>{dueLabel(d)}</Badge>
                 <span className="grow" />
@@ -297,7 +297,8 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
               <span className="muted small">
                 quer o {PLANS[s.requestedPlan!].name} · {(() => {
                   const cy: Cycle = billing[s.userId]?.cycle === 'semestral' ? 'semestral' : s.requestedCycle ?? billing[s.userId]?.cycle ?? 'mensal'
-                  return `${money(cyclePrice(PLANS[s.requestedPlan!].price, cy))}/${CYCLE_UNIT[cy]}`
+                  const pr = PLANS[s.requestedPlan!].price
+                  return `${money(billing[s.userId]?.payMethod === 'cartao' ? cardPrice(pr, cy) : cyclePrice(pr, cy))}/${CYCLE_UNIT[cy]}`
                 })()}
                 {billing[s.userId] ? ` · ${PAY_LABEL[billing[s.userId].payMethod]}${(billing[s.userId].installments ?? 1) > 1 ? ` em ${billing[s.userId].installments}x` : ''}` : ''}
               </span>
@@ -1425,7 +1426,8 @@ function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription
 function PlansEditor() {
   const snap = (): PlanConfig => ({
     trialDays: TRIAL_DAYS,
-    annualDiscount: ANNUAL_DISCOUNT,
+    annualFreeMonths: ANNUAL_FREE_MONTHS,
+    cardFee: CARD_FEE,
     semesterDiscount: SEMESTER_DISCOUNT,
     plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features], decided: PLAN_TOGGLES.map(([f]) => f) }])) as PlanConfig['plans'],
   })
@@ -1460,8 +1462,11 @@ function PlansEditor() {
           <Field label="Desconto no semestral (%)" hint="Menor que o do anual, para o anual continuar sendo o melhor negócio.">
             <input type="number" min={0} max={50} value={cfg.semesterDiscount ?? 5} onChange={(e) => setCfg({ ...cfg, semesterDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
           </Field>
-          <Field label="Desconto no plano anual (%)" hint="Um desconto leve (5% a 15%) já incentiva sem pesar no seu caixa.">
-            <input type="number" min={0} max={50} value={cfg.annualDiscount ?? 10} onChange={(e) => setCfg({ ...cfg, annualDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
+          <Field label="Meses grátis no anual" hint="No Pix à vista, a pessoa paga 12 menos estes meses. 2 meses grátis (paga 10) é o que mais chama atenção.">
+            <input type="number" min={0} max={6} value={cfg.annualFreeMonths ?? 2} onChange={(e) => setCfg({ ...cfg, annualFreeMonths: Math.max(0, Math.min(6, Math.round(Number(e.target.value) || 0))) })} />
+          </Field>
+          <Field label="Taxa do cartão em 12x (%)" hint="A taxa que o seu serviço de cobrança cobra para parcelar em 12x por sua conta. Ela entra no preço do anual no cartão, que aparece como 12x sem juros: você recebe o mesmo que no Pix.">
+            <input type="number" min={0} max={40} step={0.1} value={cfg.cardFee ?? 12} onChange={(e) => setCfg({ ...cfg, cardFee: Math.max(0, Math.min(40, Number(e.target.value) || 0)) })} />
           </Field>
         </div>
       </Section>
@@ -1475,7 +1480,12 @@ function PlansEditor() {
                 <Field label="Nome">
                   <input value={o.name ?? ''} onChange={(e) => setPlan(p.id, { name: e.target.value })} />
                 </Field>
-                <Field label="Preço por mês" hint={`Semestral: ${money0(Math.round((o.price ?? p.price) * 6 * (1 - (cfg.semesterDiscount ?? 5) / 100) * 100) / 100)} · anual: ${money0(Math.round((o.price ?? p.price) * 12 * (1 - (cfg.annualDiscount ?? 10) / 100) * 100) / 100)}`}>
+                <Field label="Preço por mês" hint={(() => {
+                  const pr = o.price ?? p.price
+                  const pix = Math.round(pr * (12 - (cfg.annualFreeMonths ?? 2)) * 100) / 100
+                  const cardMonth = Math.round(((pix * (1 + (cfg.cardFee ?? 12) / 100)) / 12) * 100) / 100
+                  return `Semestral: ${money0(Math.round(pr * 6 * (1 - (cfg.semesterDiscount ?? 5) / 100) * 100) / 100)} no Pix · anual: ${money0(pix)} no Pix ou 12x de ${money0(cardMonth)}${cardMonth >= pr ? ' (atenção: mais caro que o mensal)' : ''}`
+                })()}>
                   <MoneyInput value={o.price ?? p.price} onChange={(n) => setPlan(p.id, { price: n })} />
                 </Field>
                 <Field label="Frase curta" span={3}>

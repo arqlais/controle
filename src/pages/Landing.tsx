@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
-import { ANNUAL_DISCOUNT, CYCLE_INSTALLMENTS, CYCLE_UNIT, SEMESTER_DISCOUNT, cyclePrice, compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { CYCLE_UNIT, SEMESTER_DISCOUNT, annualBadge, cardInstallment, cyclePrice, compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -175,7 +175,7 @@ const BENEFITS = [
 
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
-  ['tem plano semestral ou anual?', `Tem. Todos os planos podem ser mensais, semestrais${SEMESTER_DISCOUNT > 0 ? ` (${SEMESTER_DISCOUNT}% de desconto)` : ''} ou anuais${ANNUAL_DISCOUNT > 0 ? ` (${ANNUAL_DISCOUNT}% de desconto)` : ''}. O semestral e o anual são pagos à vista no Pix ou parcelados no cartão (até ${CYCLE_INSTALLMENTS.semestral}x no semestral e ${CYCLE_INSTALLMENTS.anual}x no anual). Na seção de planos, toque em cada opção para ver os valores.`],
+  ['tem plano semestral ou anual?', `Tem. No anual você ganha ${annualBadge() || 'desconto'}: paga à vista no Pix ou divide em 12x sem juros no cartão. O semestral tem ${SEMESTER_DISCOUNT}% de desconto, à vista no Pix. E o mensal é no Pix todo mês ou no cartão recorrente, sem fidelidade.`],
   ['posso usar o meu próprio contrato?', 'Pode. O sistema traz modelos prontos, mas você anexa o seu contrato (Word ou PDF) ou cola o texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.'],
   ['para quem é o sistema?', 'Para quem vive de projeto: arquitetos, designers de interiores e escritórios que atendem o cliente final, e freelancers que prestam serviço para escritórios (3D, executivo, apresentação). No cadastro você diz como trabalha e o sistema já vem pronto para isso. Quem faz os dois usa tudo na mesma conta.'],
   ['serve para quem está começando?', 'Serve: estudantes e profissionais em começo de carreira, que precisam de organização sem pagar caro, começam bem no Essencial.'],
@@ -484,7 +484,7 @@ export default function Landing() {
               <Icon name="star" size={15} /> testar o {PLANS.estudio.name} grátis
             </button>
             <span className="muted small">
-              {TRIAL_DAYS} dias grátis, sem cartão · depois {money0(PLANS.estudio.price)}/mês{ANNUAL_DISCOUNT > 0 ? ` · semestral e anual com desconto` : ''}
+              {TRIAL_DAYS} dias grátis, sem cartão · depois {money0(PLANS.estudio.price)}/mês{annualBadge() ? ` · no anual, ${annualBadge()}` : ''}
             </span>
           </div>
         </div>
@@ -509,6 +509,15 @@ export default function Landing() {
             <CycleToggle value={cycle} onChange={setCycle} />
             <span className="muted small">{cycleHint(cycle)}</span>
           </div>
+          {annualBadge() && cycle !== 'anual' && (
+            <button className="cy-promo" onClick={() => setCycle('anual')}>
+              <Icon name="star" size={15} />
+              <span>
+                <b>No anual você ganha {annualBadge()}</b> e ainda pode dividir em 12x sem juros no cartão.
+              </span>
+              <em>ver o anual</em>
+            </button>
+          )}
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} id={`plano-${p.id}`} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
@@ -550,7 +559,7 @@ export default function Landing() {
                     <th key={p.id} className={p.featured ? 'is-best' : ''}>
                       {p.featured && <span className="lp-best-tag">recomendado</span>}
                       {p.name}
-                      <small>{`${money0(cyclePrice(p.price, cycle))}/${CYCLE_UNIT[cycle]}`}</small>
+                      <small>{cycle === 'anual' ? `12x ${money0(cardInstallment(p.price))}` : cycle === 'semestral' ? `${money0(cyclePrice(p.price, cycle))}/${CYCLE_UNIT[cycle]}` : `${money0(p.price)}/mês`}</small>
                     </th>
                   ))}
                 </tr>

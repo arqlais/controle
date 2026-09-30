@@ -6,7 +6,7 @@ import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../component
 import { toast } from '../components/dialog'
 import { TermsModal } from '../components/Terms'
 import { preferredCycle } from '../components/PlanPrice'
-import { CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
+import { CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, annualBadge, cardAllowed, cardPrice, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
 import { formatDoc, lookupCnpj, money } from '../utils'
@@ -44,8 +44,8 @@ const PROFESSIONS = ['arquiteto(a)', 'designer de interiores', 'artista 3D / vis
 const SOURCES = ['Instagram', 'indicação de amigo(a)', 'Google', 'faculdade', 'TikTok', 'outro']
 // só Pix e cartão de crédito; o que cada um significa muda com o ciclo. No mensal o cartão vem primeiro (cobra sozinho).
 const PAY: { id: PayMethod; label: string; hint: Record<Cycle, string>; icon: string }[] = [
-  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', semestral: `à vista ou em até ${CYCLE_INSTALLMENTS.semestral}x`, anual: `à vista ou em até ${CYCLE_INSTALLMENTS.anual}x` }, icon: 'file' },
-  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', semestral: 'um Pix só, à vista, pelos 6 meses', anual: 'um Pix só, à vista, pelo ano todo' }, icon: 'wallet' },
+  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', semestral: '', anual: `em até ${CYCLE_INSTALLMENTS.anual}x sem juros` }, icon: 'file' },
+  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', semestral: 'um Pix só, à vista, pelos 6 meses', anual: 'um Pix só, à vista: o menor preço' }, icon: 'wallet' },
 ]
 const cycleLabel = (c: Cycle) => (c === 'mensal' ? 'mensal' : c === 'semestral' ? 'semestral' : 'anual')
 
@@ -89,9 +89,15 @@ export default function Checkout({ planId }: { planId: string }) {
   }, [])
 
   const p = PLANS[plan]
-  const total = cyclePrice(p.price, b.cycle)
+  // semestral é só no Pix
+  useEffect(() => {
+    if (!cardAllowed(b.cycle) && b.payMethod === 'cartao') set({ payMethod: 'pix' })
+  }, [b.cycle, b.payMethod])
+  const card = b.payMethod === 'cartao'
+  const total = card ? cardPrice(p.price, b.cycle) : cyclePrice(p.price, b.cycle)
   const unit = CYCLE_UNIT[b.cycle]
-  const maxParts = b.payMethod === 'cartao' ? CYCLE_INSTALLMENTS[b.cycle] : 1
+  const maxParts = card ? CYCLE_INSTALLMENTS[b.cycle] : 1
+  const payOptions = PAY.filter((x) => x.id !== 'cartao' || cardAllowed(b.cycle))
   const docOk = validDoc(b.doc)
 
   const submit = async (e: FormEvent) => {
@@ -101,7 +107,7 @@ export default function Checkout({ planId }: { planId: string }) {
     if (missing.length) return setError(`Falta: ${missing.join(', ')}.`)
     setBusy(true)
     try {
-      await platform.requestPlan(plan, { ...b, installments: maxParts > 1 ? Math.min(b.installments ?? 1, maxParts) : undefined, fullName: b.fullName.trim(), acceptedAt: new Date().toISOString() })
+      await platform.requestPlan(plan, { ...b, installments: maxParts > 1 ? Math.min(b.installments ?? maxParts, maxParts) : undefined, fullName: b.fullName.trim(), acceptedAt: new Date().toISOString() })
       await refresh()
       setDone(true)
       window.scrollTo(0, 0)
@@ -124,7 +130,7 @@ export default function Checkout({ planId }: { planId: string }) {
           </h1>
           <p className="muted">
             Plano <b>{p.name}</b> · {money(total)} por {unit} · {PAY.find((x) => x.id === b.payMethod)?.label}
-            {maxParts > 1 && (b.installments ?? 1) > 1 ? ` em ${b.installments}x` : ''}
+            {maxParts > 1 ? ` em ${Math.min(b.installments ?? maxParts, maxParts)}x sem juros` : ''}
           </p>
           <ol className="co-steps">
             <li className="is-done">
@@ -189,7 +195,7 @@ export default function Checkout({ planId }: { planId: string }) {
                   /* sem espaço */
                 }
               }}
-              options={CYCLES.map((c) => ({ value: c, label: cycleDiscount(c) ? <>{cycleLabel(c)} · {cycleDiscount(c)}% off</> : cycleLabel(c) }))}
+              options={CYCLES.map((c) => ({ value: c, label: c === 'anual' && annualBadge() ? <>anual · {annualBadge()}</> : cycleDiscount(c) ? <>{cycleLabel(c)} · {cycleDiscount(c)}% off</> : cycleLabel(c) }))}
             />
           </Step>
 
@@ -203,7 +209,7 @@ export default function Checkout({ planId }: { planId: string }) {
 
           <Step n={4} title="forma de pagamento">
             <div className="co-pay">
-              {PAY.map((x) => (
+              {payOptions.map((x) => (
                 <button type="button" key={x.id} className={`pf-plan-opt ${b.payMethod === x.id ? 'active' : ''}`} onClick={() => set({ payMethod: x.id })} aria-pressed={b.payMethod === x.id}>
                   <Icon name={x.icon} size={18} />
                   <b>
@@ -215,11 +221,11 @@ export default function Checkout({ planId }: { planId: string }) {
               ))}
             </div>
             {maxParts > 1 && (
-              <Field label="Parcelas no cartão" hint="Parcelado, os juros do cartão aparecem no link de pagamento, antes de você confirmar.">
-                <select value={Math.min(b.installments ?? 1, maxParts)} onChange={(e) => set({ installments: Number(e.target.value) })}>
-                  {Array.from({ length: maxParts }, (_, i) => i + 1).map((n) => (
+              <Field label="Parcelas no cartão" hint={`Sem juros em qualquer número de parcelas. À vista no Pix sai ${money(cyclePrice(p.price, b.cycle))}.`}>
+                <select value={Math.min(b.installments ?? maxParts, maxParts)} onChange={(e) => set({ installments: Number(e.target.value) })}>
+                  {Array.from({ length: maxParts }, (_, i) => maxParts - i).map((n) => (
                     <option key={n} value={n}>
-                      {n === 1 ? `à vista · ${money(total)}` : `${n}x de ${money(total / n)} + juros do cartão`}
+                      {n === 1 ? `1x de ${money(total)}` : `${n}x de ${money(total / n)} sem juros`}
                     </option>
                   ))}
                 </select>
@@ -280,11 +286,9 @@ export default function Checkout({ planId }: { planId: string }) {
               <s>{money(p.price * CYCLE_MONTHS[b.cycle])}</s>
             </div>
           )}
-          {b.cycle !== 'mensal' && (
+          {b.cycle !== 'mensal' && p.price * CYCLE_MONTHS[b.cycle] > total && (
             <div className="co-line small text-good">
-              <span>
-                {cycleDiscount(b.cycle)}% de desconto no {cycleLabel(b.cycle)}
-              </span>
+              <span>{b.cycle === 'anual' ? (card ? 'economia do anual no cartão' : annualBadge() || 'desconto do anual') : `${cycleDiscount(b.cycle)}% de desconto no ${cycleLabel(b.cycle)}`}</span>
               <span>− {money(p.price * CYCLE_MONTHS[b.cycle] - total)}</span>
             </div>
           )}
@@ -295,7 +299,7 @@ export default function Checkout({ planId }: { planId: string }) {
               <small>/{unit}</small>
             </b>
           </div>
-          {b.cycle !== 'mensal' && <p className="muted small">equivale a {money(cycleMonthly(p.price, b.cycle))} por mês{maxParts > 1 ? ` · ou em até ${maxParts}x no cartão` : ''}</p>}
+          {b.cycle !== 'mensal' && <p className="muted small">{card && maxParts > 1 ? `${Math.min(b.installments ?? maxParts, maxParts)}x de ${money(total / Math.min(b.installments ?? maxParts, maxParts))} sem juros · no Pix à vista sai ${money(cyclePrice(p.price, b.cycle))}` : `equivale a ${money(cycleMonthly(p.price, b.cycle))} por mês`}</p>}
           <p className="co-secure small">
             <Icon name="lock" size={14} /> sem fidelidade · cancele quando quiser
           </p>

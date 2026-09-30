@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, cycleDiscount, cycleMonthly, cyclePrice, money0 } from '../plans'
+import { ANNUAL_FREE_MONTHS, CYCLES, CYCLE_MONTHS, CYCLE_UNIT, SEMESTER_DISCOUNT, annualBadge, cardInstallment, cycleMonthly, cyclePrice, money0 } from '../plans'
 import type { Cycle } from '../platform'
 
-/* Mensal ou anual nos cartões dos planos (página de vendas e minha assinatura).
-   A escolha fica guardada e o pagamento já abre no mesmo ciclo. */
+/* Mensal, semestral ou anual nos cartões dos planos (página de vendas e minha assinatura).
+   A escolha fica guardada e o pagamento já abre no mesmo ciclo. O anual vem escolhido (é o mais vantajoso). */
 
 const KEY = 'ciclo-preferido'
 export const preferredCycle = (): Cycle | null => {
@@ -15,8 +15,8 @@ export const preferredCycle = (): Cycle | null => {
   }
 }
 
-export function useCycle(): [Cycle, (c: Cycle) => void] {
-  const [cycle, setCycle] = useState<Cycle>(() => preferredCycle() ?? 'mensal')
+export function useCycle(start: Cycle = 'anual'): [Cycle, (c: Cycle) => void] {
+  const [cycle, setCycle] = useState<Cycle>(() => preferredCycle() ?? start)
   const set = (c: Cycle) => {
     setCycle(c)
     try {
@@ -28,12 +28,15 @@ export function useCycle(): [Cycle, (c: Cycle) => void] {
   return [cycle, set]
 }
 
+const badge = (c: Cycle) => (c === 'anual' ? annualBadge() : c === 'semestral' && SEMESTER_DISCOUNT > 0 ? `${SEMESTER_DISCOUNT}% off` : '')
+
 export function CycleToggle({ value, onChange }: { value: Cycle; onChange: (c: Cycle) => void }) {
   return (
     <div className="cy-toggle" role="radiogroup" aria-label="Forma de assinatura">
       {CYCLES.map((c) => (
-        <button key={c} type="button" role="radio" aria-checked={value === c} className={value === c ? 'is-on' : ''} onClick={() => onChange(c)}>
-          {c} {cycleDiscount(c) > 0 && <b>{cycleDiscount(c)}% off</b>}
+        <button key={c} type="button" role="radio" aria-checked={value === c} className={`${value === c ? 'is-on' : ''} ${c === 'anual' ? 'is-best' : ''}`} onClick={() => onChange(c)}>
+          <span>{c}</span>
+          {badge(c) && <b>{badge(c)}</b>}
         </button>
       ))}
     </div>
@@ -41,21 +44,46 @@ export function CycleToggle({ value, onChange }: { value: Cycle; onChange: (c: C
 }
 
 /** Frase curta embaixo do botão mensal/semestral/anual. */
-export const cycleHint = (c: Cycle) => (c === 'mensal' ? 'paga mês a mês, cancela quando quiser' : `Pix à vista ou em até ${CYCLE_INSTALLMENTS[c]}x no cartão`)
+export const cycleHint = (c: Cycle) =>
+  c === 'mensal' ? 'Pix todo mês ou cartão recorrente · cancela quando quiser' : c === 'semestral' ? 'um Pix só, à vista, pelos 6 meses' : `${ANNUAL_FREE_MONTHS > 0 ? `pague ${12 - ANNUAL_FREE_MONTHS} meses e use 12: ` : ''}à vista no Pix ou em 12x sem juros no cartão`
 
-/** Preço do cartão: no semestral e no anual, o valor por mês e o total do período. */
+/** Preço do cartão do plano. No anual: 12x sem juros em destaque, o Pix à vista e quanto economiza. */
 export function PlanPrice({ price, cycle }: { price: number; cycle: Cycle }) {
-  if (cycle !== 'mensal') {
-    const total = cyclePrice(price, cycle)
-    const saved = Math.round((price * CYCLE_MONTHS[cycle] - total) * 100) / 100
+  if (cycle === 'anual') {
+    const pix = cyclePrice(price, 'anual')
+    const saved = Math.round((price * 12 - pix) * 100) / 100
+    return (
+      <div className="cy-price is-annual">
+        {annualBadge() && (
+          <span className="cy-save">
+            {annualBadge()} · economize {money0(saved)}
+          </span>
+        )}
+        <p className="cy-was">
+          de <s>{money0(price)}/mês</s> por
+        </p>
+        <p className="pf-price">
+          <small className="cy-x">12x</small>
+          {money0(cardInstallment(price))}
+          <small> sem juros</small>
+        </p>
+        <p className="cy-pix">
+          ou <b>{money0(pix)}</b> à vista no Pix
+        </p>
+      </div>
+    )
+  }
+  if (cycle === 'semestral') {
+    const total = cyclePrice(price, 'semestral')
+    const saved = Math.round((price * CYCLE_MONTHS.semestral - total) * 100) / 100
     return (
       <div className="cy-price">
         <p className="pf-price">
-          {money0(cycleMonthly(price, cycle))}
+          {money0(cycleMonthly(price, 'semestral'))}
           <small>/mês</small>
         </p>
         <p className="cy-note">
-          {money0(total)} por {CYCLE_UNIT[cycle]}
+          {money0(total)} à vista no Pix por {CYCLE_UNIT.semestral}
           {saved > 0 ? ` · economiza ${money0(saved)}` : ''}
         </p>
       </div>
@@ -67,7 +95,7 @@ export function PlanPrice({ price, cycle }: { price: number; cycle: Cycle }) {
         {money0(price)}
         <small>/mês</small>
       </p>
-      <p className="cy-note">sem fidelidade{cycleDiscount('anual') > 0 ? ` · no anual sai ${money0(cycleMonthly(price, 'anual'))}/mês` : ''}</p>
+      <p className="cy-note">sem fidelidade{annualBadge() ? ` · no anual, ${annualBadge()}` : ''}</p>
     </div>
   )
 }

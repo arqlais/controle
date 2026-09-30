@@ -15,30 +15,47 @@ export const PLATFORM = {
   whatsapp: '', // opcional: número para "falar no WhatsApp" na página de vendas
 }
 
-/** Assinatura anual: 12 meses com um desconto leve. */
-export let ANNUAL_DISCOUNT = 10 // % de desconto no plano anual (a dona muda no painel → planos)
-export const setAnnualDiscount = (n: number) => {
-  ANNUAL_DISCOUNT = n
+/* Como cobrar (decidido para ser bom para a dona e claro para quem assina):
+   · mensal: Pix todo mês ou cartão recorrente;
+   · semestral: 5% de desconto, à vista no Pix;
+   · anual: "2 meses grátis" à vista no Pix, ou 12x sem juros no cartão com a taxa do parcelamento embutida
+     (mesmo assim sai mais barato que o mensal). A dona muda os números no painel → planos. */
+export let ANNUAL_FREE_MONTHS = 2
+export let ANNUAL_DISCOUNT = Math.round((ANNUAL_FREE_MONTHS / 12) * 1000) / 10 // % equivalente (para textos antigos)
+export const setAnnualFreeMonths = (n: number) => {
+  ANNUAL_FREE_MONTHS = n
+  ANNUAL_DISCOUNT = Math.round((n / 12) * 1000) / 10
 }
-export const annualPrice = (monthly: number) => cyclePrice(monthly, 'anual')
-
-/** Semestral: 6 meses com desconto menor que o anual. */
+export let CARD_FEE = 12 // % da taxa do cartão em 12x, embutida no anual parcelado
+export const setCardFee = (n: number) => {
+  CARD_FEE = n
+}
 export let SEMESTER_DISCOUNT = 5
 export const setSemesterDiscount = (n: number) => {
   SEMESTER_DISCOUNT = n
 }
 
-/* Ciclos de assinatura: meses, desconto e em quantas vezes dá para parcelar no cartão (o mensal não parcela). */
 export type BillCycle = 'mensal' | 'semestral' | 'anual'
 export const CYCLES: BillCycle[] = ['mensal', 'semestral', 'anual']
 export const CYCLE_MONTHS: Record<BillCycle, number> = { mensal: 1, semestral: 6, anual: 12 }
-export const CYCLE_INSTALLMENTS: Record<BillCycle, number> = { mensal: 1, semestral: 6, anual: 12 }
+/** Em quantas vezes sem juros no cartão (o semestral é só no Pix). */
+export const CYCLE_INSTALLMENTS: Record<BillCycle, number> = { mensal: 1, semestral: 1, anual: 12 }
+export const cardAllowed = (c: BillCycle) => c !== 'semestral'
 export const CYCLE_UNIT: Record<BillCycle, string> = { mensal: 'mês', semestral: 'semestre', anual: 'ano' }
 export const cycleDiscount = (c: BillCycle) => (c === 'anual' ? ANNUAL_DISCOUNT : c === 'semestral' ? SEMESTER_DISCOUNT : 0)
-/** Total cobrado no ciclo (mensal = o preço do mês). */
-export const cyclePrice = (monthly: number, c: BillCycle) => Math.round(monthly * CYCLE_MONTHS[c] * (1 - cycleDiscount(c) / 100) * 100) / 100
-/** Quanto sai por mês no ciclo. */
-export const cycleMonthly = (monthly: number, c: BillCycle) => Math.round((cyclePrice(monthly, c) / CYCLE_MONTHS[c]) * 100) / 100
+const cents = (n: number) => Math.round(n * 100) / 100
+/** Total à vista no Pix (mensal = o preço do mês). */
+export const cyclePrice = (monthly: number, c: BillCycle) =>
+  c === 'anual' ? cents(monthly * (12 - ANNUAL_FREE_MONTHS)) : cents(monthly * CYCLE_MONTHS[c] * (1 - cycleDiscount(c) / 100))
+/** Total no cartão: no anual, com a taxa do 12x embutida (fica em 12x sem juros). */
+export const cardPrice = (monthly: number, c: BillCycle) => (c === 'anual' ? cents(cyclePrice(monthly, c) * (1 + CARD_FEE / 100)) : cyclePrice(monthly, c))
+/** Quanto sai por mês à vista no Pix. */
+export const cycleMonthly = (monthly: number, c: BillCycle) => cents(cyclePrice(monthly, c) / CYCLE_MONTHS[c])
+/** Parcela do anual no cartão (12x sem juros). */
+export const cardInstallment = (monthly: number) => cents(cardPrice(monthly, 'anual') / 12)
+export const annualPrice = (monthly: number) => cyclePrice(monthly, 'anual')
+/** Selo do anual: "2 meses grátis". */
+export const annualBadge = () => (ANNUAL_FREE_MONTHS > 0 ? `${ANNUAL_FREE_MONTHS} ${ANNUAL_FREE_MONTHS === 1 ? 'mês grátis' : 'meses grátis'}` : '')
 
 /** Dias de teste grátis (a dona pode mudar no painel → planos). */
 export let TRIAL_DAYS = 7

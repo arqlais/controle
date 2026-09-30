@@ -32,8 +32,8 @@ export const NEWS: News[] = [
     id: '2026-09-30-anual-contrato-proprio',
     date: '2026-09-30',
     kind: 'melhoria',
-    title: 'planos semestral e anual, e contrato próprio',
-    text: 'Planos mensais, semestrais ou anuais: o semestral e o anual têm desconto e podem ser pagos à vista no Pix ou parcelados no cartão. Em contratos, dá para anexar o seu próprio contrato (Word ou PDF): ele vira um modelo editável, e o sistema aponta o que trocar por etiquetas (nome, CPF, valor, data) para cada contrato novo já sair preenchido. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
+    title: 'anual com 2 meses grátis e contrato próprio',
+    text: 'No plano anual você ganha 2 meses grátis: à vista no Pix ou em 12x sem juros no cartão. O semestral tem desconto no Pix, e o mensal segue sem fidelidade. Em contratos, dá para anexar o seu próprio contrato (Word ou PDF): ele vira um modelo editável, e o sistema aponta o que trocar por etiquetas (nome, CPF, valor, data) para cada contrato novo já sair preenchido. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
     steps: [{ page: 'contratos', text: 'Em contratos, toque em “anexar meu contrato”.' }],
   },
   {
