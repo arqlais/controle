@@ -50,16 +50,27 @@ export const defaultContractSettings = (owner = false): ContractSettings => ({ t
 export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
   const cs = s.contracts
   if (!cs?.templates?.length) return { ...(cs ?? {}), templates: defaultTemplates(owner) }
-  // modelo novo de cliente final (etapas e pagamento por etapa): entra também para quem já editou os seus
-  return cs.templates.some((t) => t.id === FINAL_CONTRACT.id) ? cs : { ...cs, templates: [...cs.templates, FINAL_CONTRACT] }
+  // modelos novos entram também para quem já editou os seus (menos os que a pessoa apagou)
+  const missing = defaultTemplates(owner).filter((d) => !cs.templates.some((t) => t.id === d.id) && !(cs.hidden ?? []).includes(d.id))
+  return missing.length ? { ...cs, templates: [...cs.templates, ...missing] } : cs
 }
 
 /** Modelo sugerido pelo serviço do orçamento (renderização, modelagem, executivo, por hora). */
 export function suggestTemplate(templates: ContractTemplate[], q?: Quote) {
-  // cliente final com etapas: o contrato em etapas (puxa etapas, prazos e pagamento)
+  // cliente final: o modelo do tipo de projeto do orçamento (interiores, arquitetônico, consultoria, obra…)
   if (q?.audience === 'final') {
-    const t = templates.find((x) => x.id === FINAL_CONTRACT.id) ?? templates.find((x) => /cliente final|etapas/i.test(x.name))
-    if (t) return t
+    const txt = [q.processId, q.title, ...q.items.map((i) => `${i.service} ${i.title}`), ...(q.steps ?? []).map((x) => x.name)].join(' ').toLowerCase()
+    const byId = (id: string) => templates.find((x) => x.id === id)
+    const pick =
+      (/consult/.test(txt) && byId('cf-consultoria')) ||
+      (/regulariz|legal|aprova[cç][aã]o|habite/.test(txt) && byId('cf-regularizacao')) ||
+      (/complementar|estrutural|el[eé]tric|hidr/.test(txt) && !/interior|arquitet/.test(txt) && byId('cf-complementares')) ||
+      (/acompanhamento de obra|gest[aã]o de obra/.test(txt) && !/projeto/.test(txt) && byId('cf-obra')) ||
+      (/arquitet|constru|reforma|casa|resid[eê]ncia/.test(txt) && byId('cf-arquitetonico')) ||
+      (/interior|decora|marcenaria|ambiente/.test(txt) && byId('cf-interiores')) ||
+      byId(FINAL_CONTRACT.id) ||
+      templates.find((x) => /cliente final|etapas/i.test(x.name))
+    if (pick) return pick
   }
   const text = (q ? [q.title, ...q.items.map((i) => `${i.service} ${i.title}`), ...q.options.flatMap((o) => o.items.map((i) => `${i.service} ${i.title}`))].join(' ') : '').toLowerCase()
   const want = /render|imagem|visualiza/.test(text) ? /render|visualiza/ : /modelag/.test(text) ? /modelag/ : /execut|detalh|planta/.test(text) ? /execut|detalh|apoio/ : /hora/.test(text) ? /hora/ : null

@@ -2,10 +2,7 @@ import type { ContractTemplate } from './types'
 
 /* ---------------- cliente final: projeto em etapas (puxa as etapas, os prazos e o pagamento do orçamento) ---------------- */
 
-export const FINAL_CONTRACT: ContractTemplate = {
-  id: 'cliente-final-etapas',
-  name: 'projeto em etapas (cliente final)',
-  body: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PROJETO
+const FINAL_BODY = `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PROJETO
 
 CONTRATADA
 {contratada}, {doc_contratada}, com endereço em {endereco_contratada}, e-mail {email_contratada}, telefone {telefone_contratada}.
@@ -66,8 +63,46 @@ As partes combinam o seguinte:
 
 E, por estarem de acordo, as partes assinam este contrato (inclusive por assinatura eletrônica).
 
-{cidade}, {data}.`,
+{cidade}, {data}.`
+
+/** Contrato de cliente final em etapas, com o objeto e as cláusulas de cada tipo de serviço. */
+function finalContract(id: string, name: string, objeto: string, extra: { inclui?: string[]; naoInclui?: string[]; clausula?: string } = {}): ContractTemplate {
+  let b = FINAL_BODY.replace('1.1 Elaboração do projeto "{projeto}", conforme a proposta {orcamento}, desenvolvido nas etapas descritas abaixo.', `1.1 ${objeto}`)
+  if (extra.inclui?.length) b = b.replace('1.2 Serviços incluídos:\n{servicos}', `1.2 Serviços incluídos:\n{servicos}\n${extra.inclui.map((x) => `• ${x}`).join('\n')}`)
+  if (extra.naoInclui?.length)
+    b = b.replace(/6\. O QUE NÃO ESTÁ INCLUÍDO[\s\S]*?\n\n7\./, `6. O QUE NÃO ESTÁ INCLUÍDO (salvo se descrito na proposta)\n${extra.naoInclui.map((x, k) => `6.${k + 1} ${x}`).join('\n')}\n\n7.`)
+  if (extra.clausula) b = b.replace('\n9. DIREITOS AUTORAIS', `\n${extra.clausula}\n\n9. DIREITOS AUTORAIS`)
+  return { id, name, body: b }
 }
+
+export const FINAL_CONTRACT: ContractTemplate = { id: 'cliente-final-etapas', name: 'projeto em etapas (cliente final)', body: FINAL_BODY }
+
+/** Modelos de cliente final por tipo de serviço (a escolha vem do orçamento). */
+export const FINAL_CONTRACTS: ContractTemplate[] = [
+  FINAL_CONTRACT,
+  finalContract('cf-interiores', 'projeto de interiores', 'Elaboração do projeto de interiores "{projeto}", conforme a proposta {orcamento}: layout, escolha de materiais, marcenaria, iluminação e decoração, desenvolvido nas etapas descritas abaixo.', {
+    naoInclui: ['Alterações estruturais, projetos complementares (elétrico, hidráulico, ar-condicionado) e aprovações em condomínio ou prefeitura.', 'Execução da obra, compra de materiais e móveis e contratação de fornecedores, que são de responsabilidade da CONTRATANTE.', 'Visitas à obra além das combinadas na proposta.'],
+    clausula: '8.2 Os valores de móveis, materiais e mão de obra indicados no projeto são referências e podem mudar conforme o fornecedor e a data da compra.',
+  }),
+  finalContract('cf-arquitetonico', 'projeto arquitetônico (construção ou reforma)', 'Elaboração do projeto arquitetônico "{projeto}", conforme a proposta {orcamento}, desenvolvido nas etapas descritas abaixo, com a emissão do registro de responsabilidade técnica (RRT/ART) do projeto.', {
+    naoInclui: ['Projetos complementares (estrutural, elétrico, hidrossanitário, climatização), levantamento topográfico e sondagem.', 'Taxas de prefeitura, cartório e órgãos públicos, que são pagas pela CONTRATANTE.', 'Execução e administração da obra.'],
+    clausula: '8.2 Os prazos de análise e aprovação da prefeitura e de outros órgãos não dependem da CONTRATADA e não entram na contagem dos prazos deste contrato.',
+  }),
+  finalContract('cf-consultoria', 'consultoria online', 'Consultoria online de arquitetura/interiores "{projeto}", conforme a proposta {orcamento}: orientação por videochamada e material com as soluções combinadas, para a CONTRATANTE executar.', {
+    naoInclui: ['Projeto executivo, detalhamentos técnicos e registro de responsabilidade técnica.', 'Visitas presenciais e acompanhamento de obra.', 'Medições no local (as medidas e fotos são enviadas pela CONTRATANTE, que responde pela exatidão delas).'],
+  }),
+  finalContract('cf-obra', 'acompanhamento de obra', 'Acompanhamento da obra do projeto "{projeto}", conforme a proposta {orcamento}: visitas técnicas para conferir se a execução segue o projeto, com relatório de cada visita.', {
+    inclui: ['Relatório de cada visita com fotos e pendências.', 'Canal de dúvidas com a equipe da obra.'],
+    naoInclui: ['Administração, gestão de equipe e compra de materiais.', 'Responsabilidade pela execução, que é da construtora ou dos profissionais contratados pela CONTRATANTE.', 'Visitas além da quantidade combinada na proposta.'],
+  }),
+  finalContract('cf-regularizacao', 'regularização / projeto legal', 'Elaboração da documentação técnica para regularização / aprovação do imóvel "{projeto}", conforme a proposta {orcamento}, e o acompanhamento do processo junto aos órgãos competentes.', {
+    naoInclui: ['Taxas, multas e emolumentos, que são pagos pela CONTRATANTE.', 'Obras de adequação que os órgãos venham a exigir.', 'Levantamento topográfico e documentos que só a CONTRATANTE pode obter (escritura, matrícula, IPTU).'],
+    clausula: '8.2 A aprovação depende dos órgãos públicos: a CONTRATADA atende às exigências técnicas feitas por eles, mas não garante prazo nem resultado da análise.',
+  }),
+  finalContract('cf-complementares', 'projetos complementares', 'Elaboração dos projetos complementares de "{projeto}" (conforme a proposta {orcamento}), compatibilizados com o projeto arquitetônico fornecido.', {
+    naoInclui: ['Alterações no projeto arquitetônico depois do início dos complementares.', 'Aprovação em concessionárias e órgãos públicos, salvo se descrito na proposta.'],
+  }),
+]
 
 /* Modelos de contrato.
    - LAIS_CONTRACTS: o modelo da Laís (dona), exclusivo da conta dela. Mesmo texto do contrato
@@ -166,7 +201,7 @@ const executivoLimites = [
 ]
 
 export const LAIS_CONTRACTS: ContractTemplate[] = [
-  FINAL_CONTRACT,
+  ...FINAL_CONTRACTS,
   {
     id: 'lais-render',
     name: 'renderização (visualização 3D)',
@@ -278,7 +313,7 @@ E, por estarem de acordo, as partes assinam este contrato (inclusive por assinat
 
 
 export const CLIENT_CONTRACTS: ContractTemplate[] = [
-  FINAL_CONTRACT,
+  ...FINAL_CONTRACTS,
   {
     id: 'visualizacao',
     name: 'visualização 3D (imagens)',

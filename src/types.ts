@@ -414,6 +414,7 @@ export interface ContractTemplate {
 export interface ContractSettings {
   off?: boolean // não usa contratos (some do menu)
   templates: ContractTemplate[]
+  hidden?: string[] // modelos prontos que a pessoa apagou (não voltam sozinhos)
 }
 
 export type ContractStatus = 'rascunho' | 'enviado' | 'assinado'

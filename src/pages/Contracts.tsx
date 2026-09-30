@@ -218,11 +218,19 @@ function NewContract({ onClose }: { onClose: () => void }) {
         {clientId && (
           <Field label="3. Modelo" hint="Sugerido pelo serviço do orçamento; dá para trocar.">
             <select value={tplId} onChange={(e) => setTplId(e.target.value)}>
-              {cs.templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
+              {/* separados por tipo de trabalho: cliente final e freelancer / parceiro */}
+              {([['cliente final', cs.templates.filter((t) => t.id.startsWith('cf-') || t.id === 'cliente-final-etapas' || /cliente final/i.test(t.name))], ['freelancer · escritório parceiro', cs.templates.filter((t) => !(t.id.startsWith('cf-') || t.id === 'cliente-final-etapas' || /cliente final/i.test(t.name)))]] as const).map(([label, list]) =>
+                list.length ? (
+                  <optgroup key={label} label={label}>
+                    {list.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                        {t.id === suggestTemplate(cs.templates, quote)?.id ? ' · sugerido pelo orçamento' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null,
+              )}
             </select>
           </Field>
         )}
@@ -409,7 +417,8 @@ function TemplatesEditor() {
     })
   }
   return (
-    <div className="pf-templates">
+    <div className="ct-templates">
+      <div className="ct-side">
       <Section
         title="seus modelos"
         action={
@@ -433,11 +442,12 @@ function TemplatesEditor() {
             </button>
           ))}
         </div>
-        <button className="link small" onClick={async () => (await ask('Voltar os modelos para os originais? Os modelos que você criou ou editou serão substituídos.', { confirmLabel: 'Restaurar' })) && setTemplates(defaultTemplates(isOwner))}>
+        <button className="link small" onClick={async () => (await ask('Voltar os modelos para os originais? Os modelos que você criou ou editou serão substituídos.', { confirmLabel: 'Restaurar' })) && setSettings({ contracts: { ...cs, templates: defaultTemplates(isOwner), hidden: [] } })}>
           restaurar modelos originais
         </button>
       </Section>
       <SignatureField />
+      </div>
       {cur && (
         <Section
           title="editar modelo"
@@ -456,7 +466,7 @@ function TemplatesEditor() {
                 onClick={async () => {
                   if (!(await askDelete(`o modelo “${cur.name}”`))) return
                   const rest = cs.templates.filter((t) => t.id !== cur.id)
-                  setTemplates(rest)
+                  setSettings({ contracts: { ...cs, templates: rest, hidden: [...(cs.hidden ?? []), cur.id] } })
                   setOpenId(rest[0]?.id ?? '')
                 }}
               >
