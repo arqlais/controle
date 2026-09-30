@@ -370,7 +370,8 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
         status: 'entregue',
         deliveredDate: when,
         payments: final.payments.map((x, i) => {
-          const d = pastDates[i] || x.dueDate || when
+          // trabalho antigo: tudo recebido na data preenchida (dá para mudar cada uma)
+          const d = pastDates[i] || final.startDate || when
           return { ...x, dueDate: d, paidDate: d, method: payMode === 'cartao' ? x.method : pastMethod }
         }),
         tasks: DEFAULT_TASKS.map((text) => ({ id: uid(), text, done: true })),
@@ -514,7 +515,7 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
                 <span>
                   {x.description} · <b>{money(x.amount)}</b>
                 </span>
-                <DateInput value={pastDates[i] || x.dueDate || today()} onChange={(e) => setPastDates((d) => ({ ...d, [i]: e.target.value }))} />
+                <DateInput value={pastDates[i] || p.startDate || x.dueDate || today()} onChange={(e) => setPastDates((d) => ({ ...d, [i]: e.target.value }))} />
               </div>
             ))}
             {payMode !== 'cartao' && <HowPaid method={pastMethod} onChange={setPastMethod} amount={total} />}

@@ -307,7 +307,8 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const [workDays, setWorkDays] = useState(0) // quantidade de dias (0 = sem prazo)
   const [dayMode, setDayMode] = useState<'uteis' | 'corridos' | 'data'>('uteis')
   const [exactDate, setExactDate] = useState('')
-  const [closedOn, setClosedOn] = useState(today())
+  // orçamento antigo (sem número): fechou, entregou e recebeu na data do orçamento (dá para mudar)
+  const [closedOn, setClosedOn] = useState(q.noNumber || q.imported ? q.createdAt || today() : today())
   // o que já foi pago (orçamento antigo: tudo). No cartão é sempre 100% no início
   const [paidPart, setPaidPart] = useState<'nada' | 'sinal' | 'tudo'>(q.noNumber ? 'tudo' : 'nada')
   const [cardPaid, setCardPaid] = useState(true)
@@ -333,19 +334,20 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
           payments: (pkg ? monthlyPayments(value, pkg, closedOn, method) : base.payments).map((x, i) => ({
             ...x,
             method,
-            paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? (i === 0 ? closedOn : pkg ? x.dueDate : x.dueDate || closedOn) : x.paidDate,
+            ...(q.noNumber && paidPart === 'tudo' && !pkg ? { dueDate: closedOn } : {}),
+            paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? (i === 0 || (q.noNumber && !pkg) ? closedOn : pkg ? x.dueDate : x.dueDate || closedOn) : x.paidDate,
           })),
         }
     // cliente final com etapas: cronograma e parcelas por etapa (a 1ª na assinatura, as outras ao entregar cada etapa)
     const staged = stagedPlan(q, value, closedOn, method)
     if (staged && !card && !pkg) {
       project.phases = staged.phases
-      project.payments = staged.payments.map((x, i) => ({ ...x, paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? x.dueDate || closedOn : null }))
+      project.payments = staged.payments.map((x, i) => (q.noNumber && paidPart === 'tudo' ? { ...x, dueDate: closedOn, paidDate: closedOn } : { ...x, paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? x.dueDate || closedOn : null }))
       if (!project.dueDate && staged.due) project.dueDate = staged.due
     }
     // orçamento antigo, tudo pago: a demanda já entra entregue
     const allPaid = project.payments.every((x) => x.paidDate)
-    const done = q.noNumber && allPaid ? { ...project, status: 'entregue' as const, deliveredDate: due || closedOn, tasks: project.tasks.map((t) => ({ ...t, done: true })) } : project
+    const done = q.noNumber && allPaid ? { ...project, status: 'entregue' as const, deliveredDate: closedOn, dueDate: project.dueDate || closedOn, phases: project.phases?.map((x) => ({ ...x, done: true, doneAt: closedOn })), tasks: project.tasks.map((t) => ({ ...t, done: true })) } : project
     upsert('projects', done)
     upsert('quotes', { ...approved, projectId: done.id })
     toast(`Aprovado por ${money(value)}! Demanda “${done.title}” criada${done.status === 'entregue' ? ', já entregue e paga' : allPaid ? ', já paga' : ', aguardando pagamento'}.`)
@@ -378,7 +380,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
         <Field label="Mudou algo? (opcional)" hint="Ex.: tirou a planta de forro; incluiu 2 imagens. Fica anotado no orçamento e na demanda.">
           <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder={value !== proposed ? 'O que mudou no escopo ou no valor?' : 'Opcional'} spellCheck lang="pt-BR" />
         </Field>
-        <Field label="Fechou em" hint="Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.">
+        <Field label={q.noNumber ? 'Data do trabalho' : 'Fechou em'} hint={q.noNumber ? 'Orçamento antigo: fechamento, entrega e pagamento ficam nesta data (a do orçamento). Mude se precisar.' : 'Hoje por padrão. Para orçamento antigo, coloque a data em que a cliente aprovou.'}>
           <DateInput value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
         </Field>
         <HowPaid method={method} onChange={setMethod} amount={value} />
