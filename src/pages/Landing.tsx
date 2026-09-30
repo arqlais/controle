@@ -201,20 +201,25 @@ const SCREENS: { id: Screen; label: string; icon: string }[] = [
 /** Passo de uma animação conforme a rolagem: 0 quando o bloco entra por baixo, n-1 perto de sair por cima.
     Clicar num passo vale até a pessoa rolar de novo. -1 = ainda não chegou. */
 function useScrollStep(ref: React.RefObject<HTMLElement | null>, n: number, screens = 1) {
-  const [step, setStep] = useState(-1)
+  const p = useScrollProgress(ref, screens)
+  return p < 0 ? -1 : Math.min(n - 1, Math.floor(p * n))
+}
+
+/** Quanto do bloco já foi rolado: 0 quando o topo passa de 85% da tela, 1 depois de rolar `screens` telas. */
+function useScrollProgress(ref: React.RefObject<HTMLElement | null>, screens = 1) {
+  const [p, setP] = useState(-1)
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return setStep(n - 1)
+    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return setP(1)
     let raf = 0
     const read = () => {
       raf = 0
       const r = el.getBoundingClientRect()
       const vh = window.innerHeight || 800
-      const start = vh * 0.85 // começa quando o topo passa de 85% da tela
-      const run = Math.max(320, vh * screens) // quanto rolar (em telas) para ir do primeiro ao último passo
-      const p = (start - r.top) / run
-      setStep(p < 0 ? -1 : Math.min(n - 1, Math.floor(p * n)))
+      const run = Math.max(320, vh * screens)
+      const v = (vh * 0.85 - r.top) / run
+      setP(v < 0 ? -1 : Math.round(Math.min(1.5, v) * 400) / 400)
     }
     const on = () => {
       if (!raf) raf = requestAnimationFrame(read)
@@ -227,8 +232,8 @@ function useScrollStep(ref: React.RefObject<HTMLElement | null>, n: number, scre
       window.removeEventListener('resize', on)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [ref, n, screens])
-  return step
+  }, [ref, screens])
+  return p
 }
 
 /** Elementos com data-reveal aparecem suavemente ao entrar na tela. */
@@ -248,7 +253,9 @@ function useReveal(root: React.RefObject<HTMLDivElement | null>, key = 0) {
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
     )
     // key muda quando entra conteúdo novo (ex.: depoimentos): observa só o que ainda não apareceu
-    el.querySelectorAll('[data-reveal]:not(.is-in)').forEach((x) => io.observe(x))
+    el.querySelectorAll('[data-reveal]:not(.is-in), [data-stagger]:not(.is-in)').forEach((x) => io.observe(x))
+    // grupos em cascata: cada filho entra um pouco depois do anterior
+    el.querySelectorAll<HTMLElement>('[data-stagger]').forEach((g) => Array.from(g.children).forEach((c, i) => (c as HTMLElement).style.setProperty('--i', String(i))))
     return () => io.disconnect()
   }, [root, key])
 }
@@ -890,7 +897,11 @@ function AllInOne({ onTry }: { onTry: () => void }) {
   const after = useRef<HTMLDivElement>(null)
   const auto = useRef<HTMLDivElement>(null)
   // tudo anda com a rolagem: os riscos, os passos do caminho e a lista do que é automático
-  const struck = useScrollStep(before, OUTSIDE.length + 1, 0.75)
+  // cada risco vai se arrastando até a direita conforme a rolagem, um depois do outro
+  const strikeP = useScrollProgress(before, 0.9)
+  const strike = (i: number) => Math.max(0, Math.min(1, strikeP * OUTSIDE.length - i))
+  // a linha entra deslizando da esquerda um pouco antes do risco dela começar
+  const rowIn = (i: number) => (strikeP < 0 ? 0 : Math.max(0, Math.min(1, strikeP * OUTSIDE.length - i + 1.4)))
   const scrolled = useScrollStep(after, INSIDE.length, 1.3)
   const autoIn = useScrollStep(auto, AUTO.length + 1, 0.7)
   const [picked, setPicked] = useState<{ at: number; step: number } | null>(null)
@@ -908,7 +919,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
             </p>
             <ul>
               {OUTSIDE.map((t, i) => (
-                <li key={t} className={i < struck ? 'is-struck' : ''}>
+                <li key={t} className={strike(i) >= 1 ? 'is-struck' : ''} style={{ ['--strike' as string]: `${strike(i) * 100}%`, opacity: 0.25 + rowIn(i) * 0.75, transform: `translateX(${(1 - rowIn(i)) * -28}px)` }}>
                   <span>{t}</span>
                 </li>
               ))}
@@ -943,7 +954,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
                 <Icon name="arrowRight" size={13} /> {cur.carry}
               </span>
             </div>
-            <div className="lp-all-stats">
+            <div className="lp-all-stats" data-stagger>
               <span>
                 <b>6 → 1</b> programas
               </span>
