@@ -33,7 +33,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'contrato assinado pelo celular',
-    text: 'No contrato, a nova seção "assinatura": mande um link e o cliente lê e assina com nome e CPF, com um código ligado ao texto. Prefere validade reforçada? Tem atalho para gov.br, ZapSign, Clicksign, D4Sign, Autentique e DocuSign.',
+    text: 'No contrato, a nova seção "assinatura": mande um link e o cliente lê e assina desenhando com o dedo (ou com o nome digitado). O PDF ganha um certificado de assinatura com nome, CPF, contato, data e hora, aparelho e a impressão digital do texto. Prefere validade reforçada? Tem atalho para gov.br, ZapSign, Clicksign, D4Sign, Autentique e DocuSign.',
     steps: [{ page: 'contratos', text: 'Abra um contrato e veja a seção assinatura.' }],
   },
   {

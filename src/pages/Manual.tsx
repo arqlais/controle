@@ -187,7 +187,7 @@ const FINAL_STEPS: Step[] = [
     todo: [
       <>No orçamento aprovado, <b>gerar contrato</b>: o modelo já vem sugerido pelo tipo do serviço (interiores, arquitetônico, reforma, consultoria…), com etapas, prazos e forma de pagamento preenchidos.</>,
       <>Os seus modelos ficam na lateral de <b>contratos</b>; os que você não usa podem ser excluídos (e restaurados).</>,
-      <>Para assinar: <b>criar link de assinatura</b> (o cliente assina no celular com nome e CPF) ou assine por um site como <b>gov.br</b> ou <b>ZapSign</b> e registre aqui.</>,
+      <>Para assinar: <b>criar link de assinatura</b> (o cliente assina no celular desenhando com o dedo) ou assine por um site como <b>gov.br</b> ou <b>ZapSign</b> e registre aqui.</>,
     ],
   },
   {
@@ -355,7 +355,7 @@ CASES.push(
     q: 'Mandar o contrato para o cliente assinar',
     top: true,
     plan: 'completo',
-    a: <>No contrato, seção <b>assinatura</b>. <b>Pelo link do traço</b>: crie o link e mande no WhatsApp; o cliente lê, digita nome e CPF e aceita, e manda a confirmação de volta. Cole essa mensagem em <b>registrar assinatura</b>: o contrato fica assinado e a assinatura aparece no PDF. Quer validade reforçada? Use <b>por um site de assinatura</b> (gov.br, ZapSign, Clicksign…): baixe o PDF, assine lá e registre aqui quando voltar.</>,
+    a: <>No contrato, seção <b>assinatura</b>. <b>Pelo link do traço</b>: crie o link e mande no WhatsApp; o cliente lê, informa nome, CPF e contato e assina <b>desenhando com o dedo</b> ou com o nome digitado; a confirmação volta pelo WhatsApp dele. Cole essa mensagem em <b>registrar assinatura</b>: a assinatura entra no PDF e a última página vira o <b>certificado de assinatura</b> (dados, aparelho, data e hora e a impressão digital do texto). A sua assinatura você desenha em contratos → modelos. Quer validade reforçada? Use <b>por um site de assinatura</b> (gov.br, ZapSign, Clicksign…): baixe o PDF, assine lá e registre aqui quando voltar.</>,
     page: 'contratos',
   },
   {
