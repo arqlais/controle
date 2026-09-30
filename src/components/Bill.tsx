@@ -6,7 +6,7 @@ import { toast } from './dialog'
 import { DocScale, usePdf } from './Print'
 import { BillDoc, type BillCard, type BillInfo } from './Docs'
 import type { Data, Project } from '../types'
-import { money, projectPaid, projectTotal, quoteFiles, today, whatsappLink } from '../utils'
+import { money, projectPaid, projectTotal, quoteFiles, today, whatsappLink, lower } from '../utils'
 
 /* Recibo de cobrança no modelo do estúdio ("recibo serviço"), igual para qualquer serviço:
    mostra o total, o que já foi pago e o que falta, com as condições de entrega.
@@ -69,7 +69,7 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
   const doc = <BillDoc s={s} info={info} year={today().slice(0, 4)} />
   const file = `Recibo - ${p.title}`
   const first = client?.name.split(' ')[0] ?? ''
-  const message = `Oi${first ? `, ${first}` : ''}! Segue o recibo de ${p.title.toLowerCase()}. ${rest > 0 ? `Fica em aberto ${money(rest)}.` : 'Tudo certo, pagamento concluído.'} Qualquer dúvida estou à disposição!`
+  const message = `Oi${first ? `, ${first}` : ''}! Segue o recibo de ${lower(p.title)}. ${rest > 0 ? `Fica em aberto ${money(rest)}.` : 'Tudo certo, pagamento concluído.'} Qualquer dúvida estou à disposição!`
 
   return (
     <Modal

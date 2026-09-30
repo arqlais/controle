@@ -5,7 +5,7 @@ import { useAccess } from '../access'
 import { resolveTemplate, sheetColors } from '../proposalTemplates'
 import { ProposalSlides } from './Slides'
 import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings, SiteVisit } from '../types'
-import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
+import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -417,7 +417,7 @@ export function ReceiptDoc({ s, client, project, payment }: { s: Settings; clien
         <p className="p-receipt">
           Recebi de <b>{payer}</b>
           {payerDoc && <>, {docKind(payerDoc) || 'CPF/CNPJ'} {showDoc(payerDoc)}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
-          {payment.description.toLowerCase()} do projeto <b>{project.title}</b>, dando plena quitação deste valor.
+          {lower(payment.description)} do projeto <b>{project.title}</b>, dando plena quitação deste valor.
         </p>
         <p className="p-note">
           {s.city ? `${s.city}, ` : ''}

@@ -8,7 +8,7 @@ import { Field, Modal, MoneyInput, Progress, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { PLANS, type Feature } from '../plans'
 import type { Client, Project, ProjectCost, ProjectPhase, ProjectPortal, SiteVisit, VisitPhoto } from '../types'
-import { daysUntil, fmtDate, money, payWhen, projectPaid, projectTotal, statusInfo, today, uid, whatsappLink } from '../utils'
+import { daysUntil, fmtDate, money, payWhen, projectPaid, projectTotal, statusInfo, today, uid, whatsappLink, lower } from '../utils'
 import { deletePhoto, packPortal, photoUrls, portalLink, portalShortLink, publishPortal, savePhoto, unpublishPortal, type PortalPayload } from '../studioApi'
 import { hashExtra, readShortCode, shortCode } from '../linkPack'
 import { usePdf } from './Print'
@@ -178,7 +178,7 @@ export function CronogramaTab({ p, save }: { p: Project; save: (patch: Partial<P
                   </label>
                 </div>
                 <input className="st-phase-note" value={x.note ?? ''} onChange={(e) => setOne(x.id, { note: e.target.value })} placeholder="observação (opcional, o cliente também vê)" />
-                {x.done && pay && !pay.paidDate && <p className="st-hint warn">Etapa concluída: hora de cobrar {pay.description.toLowerCase()} ({money(pay.amount)}).</p>}
+                {x.done && pay && !pay.paidDate && <p className="st-hint warn">Etapa concluída: hora de cobrar {lower(pay.description)} ({money(pay.amount)}).</p>}
               </div>
               <div className="st-phase-tools">
                 <button className="icon-btn subtle" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Subir">

@@ -4,7 +4,7 @@ import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
 import type { Payment, Project, ProjectPhase, Quote, QuoteStatus } from '../types'
-import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday, uid } from '../utils'
+import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday, uid, lower } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { tasksFor, workKind } from '../processes'
 import { Icon } from './Icon'
@@ -203,7 +203,7 @@ export function PayNext({ p, compact }: { p: Project; compact?: boolean }) {
       }}
     >
       <Icon name="check" size={13} />
-      {compact ? money(next.amount) : `${next.description.toLowerCase()} · ${money(next.amount)}`}
+      {compact ? money(next.amount) : `${lower(next.description)} · ${money(next.amount)}`}
     </button>
   )
 }

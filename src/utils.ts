@@ -220,6 +220,8 @@ export const paymentMethods = (s: { paymentMethods?: string[] }) => (s.paymentMe
 
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 export const money = (n: number) => brl.format(Number.isFinite(n) ? n : 0)
+/** Minúsculas para exibir, mas o "R$" continua sempre com R maiúsculo. */
+export const lower = (t: string) => t.toLowerCase().replace(/r\$/g, 'R$')
 
 export const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
 export const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']

@@ -48,6 +48,7 @@ import {
   pkgActive,
   pkgFull,
   withPackage,
+  lower,
 } from '../utils'
 
 export default function ProjectDetail({ id }: { id: string }) {
@@ -659,7 +660,7 @@ function ExtraForm({ p, onClose, onSave }: { p: Project; onClose: () => void; on
             value={open ? mode : 'separado'}
             onChange={setMode}
             options={[
-              ...(open ? [{ value: 'saldo' as const, label: `Somar em ${open.description.toLowerCase()}` }] : []),
+              ...(open ? [{ value: 'saldo' as const, label: `Somar em ${lower(open.description)}` }] : []),
               { value: 'separado' as const, label: 'Cobrar à parte' },
             ]}
           />
