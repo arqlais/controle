@@ -2152,3 +2152,10 @@ select.cell-input { min-width: 132px; }
   .bf-print-qa { margin: 0 0 8px; display: grid; gap: 2px; }
   .bf-print-qa b { font-size: 12px; color: #666; font-weight: 600; }
 }
+/* letras de assinatura: nome na letra e o nome do estilo */
+.cs-fonts { grid-template-columns: 1fr 1fr; }
+.cs-font { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-style: normal; font-size: 26px; min-height: 76px; overflow: hidden; }
+.cs-font span { white-space: nowrap; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.cs-font small { font-family: 'Poppins', system-ui, sans-serif; font-size: 11px; color: #9a8f8a; }
+@media (max-width: 480px) { .cs-fonts { grid-template-columns: 1fr; } }
+.cs-public .bf-send:disabled { opacity: .45; cursor: not-allowed; }

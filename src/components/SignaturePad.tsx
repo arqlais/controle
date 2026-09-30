@@ -1,3 +1,10 @@
+import '@fontsource/dancing-script/latin-400.css'
+import '@fontsource/great-vibes/latin-400.css'
+import '@fontsource/allura/latin-400.css'
+import '@fontsource/sacramento/latin-400.css'
+import '@fontsource/homemade-apple/latin-400.css'
+import '@fontsource/caveat/latin-400.css'
+import '@fontsource/patrick-hand/latin-400.css'
 import { useRef, useState } from 'react'
 import type { ContractSignature } from '../types'
 
@@ -7,10 +14,16 @@ import type { ContractSignature } from '../types'
 const W = 600
 const H = 200
 
-export const SIGN_FONTS: { id: string; name: string; family: string }[] = [
-  { id: 'classica', name: 'clássica', family: "'Playfair Display', Georgia, serif" },
-  { id: 'manuscrita', name: 'manuscrita', family: "'Snell Roundhand', 'Segoe Script', 'Brush Script MT', cursive" },
-  { id: 'simples', name: 'simples', family: "'Poppins', system-ui, sans-serif" },
+// letras que parecem escritas à mão: cinco cursivas e duas de forma
+
+export const SIGN_FONTS: { id: string; name: string; family: string; size?: number }[] = [
+  { id: 'dancing', name: 'cursiva leve', family: "'Dancing Script', cursive" },
+  { id: 'greatvibes', name: 'cursiva elegante', family: "'Great Vibes', cursive", size: 1.15 },
+  { id: 'allura', name: 'cursiva fina', family: "'Allura', cursive", size: 1.15 },
+  { id: 'sacramento', name: 'cursiva solta', family: "'Sacramento', cursive", size: 1.15 },
+  { id: 'homemade', name: 'caneta', family: "'Homemade Apple', cursive", size: 0.8 },
+  { id: 'caveat', name: 'letra de forma', family: "'Caveat', cursive", size: 1.05 },
+  { id: 'patrick', name: 'forma arredondada', family: "'Patrick Hand', cursive" },
 ]
 export const signFont = (id?: string) => SIGN_FONTS.find((f) => f.id === id) ?? SIGN_FONTS[0]
 
@@ -86,7 +99,7 @@ export function SignatureGlyph({ sign, className = '' }: { sign: Pick<ContractSi
       </svg>
     )
   return (
-    <i className={`c-sign-typed ${className}`} style={{ fontFamily: signFont(sign.font).family }}>
+    <i className={`c-sign-typed ${className}`} style={{ fontFamily: signFont(sign.font).family, fontStyle: 'normal', fontSize: `${signFont(sign.font).size ?? 1}em` }}>
       {sign.name}
     </i>
   )

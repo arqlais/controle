@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS } from '../store'
 import { formatDoc, whatsappLink } from '../utils'
 import { hashExtra } from '../linkPack'
 import { deviceLabel, docHash, loadSign, signExtra, signMessage, signatureHash, type SignAnswer, type SignPayload } from '../contractSign'
-import { SIGN_FONTS, SignatureGlyph, SignaturePad, signFont } from './SignaturePad'
+import { SIGN_FONTS, SignatureGlyph, SignaturePad } from './SignaturePad'
 import { ContractDoc } from './ContractDoc'
 import { DocScale } from './Print'
 import { Icon } from './Icon'
@@ -18,7 +18,7 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
   const [method, setMethod] = useState<'desenho' | 'digitado'>('desenho')
   const [drawing, setDrawing] = useState('')
   const [font, setFont] = useState(SIGN_FONTS[0].id)
-  const [geoOn, setGeoOn] = useState(false)
+  
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ a: SignAnswer; msg: string } | null>(null)
@@ -36,14 +36,14 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
   if (p === null) return wrap(<p>Este contrato não está mais disponível. Fale com quem te enviou o link.</p>)
 
   const digits = doc.replace(/\D/g, '')
-  // localização aproximada, só com a permissão da pessoa (fica no certificado)
+  // localização obrigatória: entra no registro e reforça a autenticidade da assinatura
   const where = () =>
     new Promise<string>((resolve) => {
-      if (!geoOn || !navigator.geolocation) return resolve('')
+      if (!navigator.geolocation) return resolve('')
       navigator.geolocation.getCurrentPosition(
         (pos) => resolve(`${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (±${Math.round(pos.coords.accuracy)} m)`),
         () => resolve(''),
-        { timeout: 8000, maximumAge: 60000 },
+        { timeout: 10000, maximumAge: 60000 },
       )
     })
   const sign = async () => {
@@ -54,6 +54,11 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
     if (!agree) return setError('Marque que leu e concorda com o contrato.')
     setError('')
     setBusy(true)
+    const geo = await where()
+    if (!geo) {
+      setBusy(false)
+      return setError('Para assinar, permita a localização no seu celular ou navegador (ela entra no registro da assinatura). Depois toque em assinar de novo.')
+    }
     const at = new Date().toISOString()
     const base: Omit<SignAnswer, 'h'> = {
       t: p.token,
@@ -66,7 +71,7 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
       c: contact.trim(),
       ua: deviceLabel(),
       tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      g: (await where()) || undefined,
+      g: geo,
       dh: await docHash(p.body),
     }
     const a: SignAnswer = { ...base, h: await signatureHash(p.body, base.n, digits, at, signExtra(base)) }
@@ -120,27 +125,24 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
             ) : (
               <div className="cs-fonts">
                 {SIGN_FONTS.map((f) => (
-                  <button key={f.id} className={`cs-font ${font === f.id ? 'is-on' : ''}`} onClick={() => setFont(f.id)} style={{ fontFamily: signFont(f.id).family }} aria-pressed={font === f.id}>
-                    {name.trim() || 'Seu Nome'}
+                  <button key={f.id} className={`cs-font ${font === f.id ? 'is-on' : ''}`} onClick={() => setFont(f.id)} aria-pressed={font === f.id}>
+                    <span style={{ fontFamily: f.family, fontSize: `${f.size ?? 1}em` }}>{name.trim() || 'Seu Nome'}</span>
+                    <small>{f.name}</small>
                   </button>
                 ))}
               </div>
             )}
           </div>
           <label className="cs-agree">
-            <input type="checkbox" checked={geoOn} onChange={(e) => setGeoOn(e.target.checked)} />
-            <span>Incluir a minha localização aproximada no registro (opcional, reforça a autenticidade).</span>
-          </label>
-          <label className="cs-agree">
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>Li todo o contrato, concordo com os termos e reconheço esta assinatura eletrônica como minha.</span>
           </label>
           {error && <p className="cs-error">{error}</p>}
-          <button className="bf-send" disabled={busy} onClick={() => void sign()}>
+          <button className="bf-send" disabled={busy || !agree} onClick={() => void sign()} title={agree ? undefined : 'Marque que leu e concorda para assinar'}>
             {busy ? 'assinando…' : 'assinar contrato'}
           </button>
           <p className="muted small">
-            Assinatura eletrônica (Lei 14.063/2020 e MP 2.200-2/2001, art. 10, § 2º). Ficam registrados nome, CPF, contato, data e hora, fuso, aparelho e a impressão digital (SHA-256) deste texto. Se o texto mudar, a assinatura deixa de valer. Tudo aparece no certificado de assinatura, na última página do contrato.
+            Assinatura eletrônica (Lei 14.063/2020 e MP 2.200-2/2001, art. 10, § 2º). Ao assinar, o navegador pede a sua localização. Ficam registrados nome, CPF, contato, data e hora, fuso, aparelho, localização e a impressão digital (SHA-256) deste texto. Se o texto mudar, a assinatura deixa de valer. Tudo aparece no certificado de assinatura, na última página do contrato.
           </p>
         </section>
       ) : (
