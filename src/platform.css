@@ -583,7 +583,6 @@
 /* aparecer ao rolar */
 .lp-anim [data-reveal] { opacity: 0; transform: translateY(26px); transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .lp-anim [data-reveal].is-in { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) { .lp-anim [data-reveal] { opacity: 1; transform: none; } }
 
 @media (max-width: 1024px) {
   .lp-float-1 { right: 0; }
@@ -625,7 +624,6 @@
 .lp-anim [data-reveal] { transform: none; translate: 0 22px; transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), translate 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s, box-shadow 0.3s; }
 .lp-anim [data-reveal].is-in { translate: 0 0; transform: none; }
 .lp-anim .pf-plan[data-reveal].is-in:hover { transform: translateY(-4px); }
-@media (prefers-reduced-motion: reduce) { .lp-anim [data-reveal] { translate: none; } }
 
 /* jornada: etapas empilhadas no mesmo lugar */
 .lp-journey-stage { display: grid; }
@@ -1150,7 +1148,6 @@
 .lp-rotate { display: inline-grid; vertical-align: bottom; }
 .lp-rotate-word { grid-area: 1 / 1; opacity: 0; translate: 0 0.25em; transition: opacity 0.5s ease, translate 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); animation: none; }
 .lp-rotate-word.is-on { opacity: 1; translate: 0 0; }
-@media (prefers-reduced-motion: reduce) { .lp-rotate-word { transition: none; } }
 /* marca da plataforma: pequena, sempre presente, nas cores do sistema */
 .platform-mark { display: inline-flex; align-items: baseline; padding: 2px 14px 14px; font-family: 'Poppins', var(--font-body); font-weight: 700; font-size: 19px; letter-spacing: -0.03em; color: var(--text); text-decoration: none; opacity: 0.92; }
 .platform-mark i { font-style: normal; color: #d6b3ab; }
@@ -1997,7 +1994,6 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
 .lp-for-track { display: contents; }
 .lp-chip-dup { display: none !important; }
 @media (max-width: 720px) { .lp-for-track { display: flex; } .lp-chip-dup { display: inline-flex !important; } }
-@media (prefers-reduced-motion: reduce) { .lp-for-track { animation: none; } }
 /* etapas do "como funciona": todos os cartões com a mesma altura, ícone e texto alinhados */
 .lp-steps-nav > li { display: flex; }
 .lp-steps-nav button { height: 100%; justify-content: flex-start; }
@@ -2352,7 +2348,6 @@ select.cell-input { min-width: 132px; }
 .lp-all-stats span { display: grid; gap: 2px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2, #f4efec); font-size: 12px; color: var(--muted); text-align: center; }
 .lp-all-stats b { font-size: 18px; color: var(--text); }
 .lp-all-cta { align-self: flex-start; }
-@media (prefers-reduced-motion: reduce) { .lp-all-card { animation: none; } .lp-all-before li span { transition: none; } }
 @media (max-width: 860px) {
   .lp-all-grid { grid-template-columns: 1fr; }
   .lp-all-before, .lp-all-after { padding: 18px; border-radius: 20px; }
@@ -2381,7 +2376,6 @@ select.cell-input { min-width: 132px; }
 /* a lista do que é automático entra item por item conforme a rolagem */
 .lp-anim .lp-auto li { opacity: 0; translate: 0 14px; transition: opacity 0.5s ease, translate 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .lp-anim .lp-auto li.is-in { opacity: 1; translate: 0 0; }
-@media (prefers-reduced-motion: reduce) { .lp-anim .lp-auto li { opacity: 1; translate: none; } }
 @media (max-width: 1000px) { .lp-auto ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .lp-auto { padding: 18px; } .lp-auto ul { grid-template-columns: 1fr; } }
 .lp-auto-chip { width: fit-content; max-width: 100%; align-self: flex-start; }
@@ -2456,9 +2450,6 @@ select.cell-input { min-width: 132px; }
 /* cards levantam ao passar o mouse */
 @media (hover: hover) {
   .lp-anim .card[data-reveal].is-in:hover { transform: translateY(-5px); box-shadow: 0 26px 50px -30px rgba(40, 50, 60, 0.45); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .lp-anim [data-reveal], .lp-anim [data-stagger] > * { opacity: 1; translate: none; scale: none; filter: none; transition: none; }
 }
 
 /* ---------- painel do cliente final: mais completo, computador e celular ---------- */

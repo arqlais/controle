@@ -211,7 +211,7 @@ function useScrollProgress(ref: React.RefObject<HTMLElement | null>, screens = 1
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return setP(1)
+    // anima sempre, mesmo com "efeitos de animação" desligados no Windows (a dona quer a página viva)
     let raf = 0
     const read = () => {
       raf = 0
