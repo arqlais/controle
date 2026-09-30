@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { DocScale } from '../components/Print'
 import { Field, Section, Segmented } from '../components/ui'
 import { ClientPicker } from '../components/ClientPicker'
+import { ColorPicker } from '../components/ColorPicker'
 import { DocWorkbench, ImageField, LinesField, useDocLook } from '../components/DocKit'
 import { MeasureGuideDoc, guideData } from '../components/docs/MeasureGuide'
 import { PLAQUE_LAYOUTS, PlaqueDoc, plaqueData } from '../components/docs/Plaque'
@@ -444,7 +445,7 @@ function DeckEditor({ value, set, w }: EdProps<DeckData>) {
           <Section title="materiais e paleta">
             {d.materials.map((m, i) => (
               <div key={i} className="dk-mat-row">
-                <input type="color" value={m.color} onChange={(e) => set({ materials: d.materials.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)) })} aria-label="Cor" />
+                <ColorPicker value={m.color} onChange={(color) => set({ materials: d.materials.map((x, j) => (j === i ? { ...x, color } : x)) })} />
                 <input value={m.name} onChange={(e) => set({ materials: d.materials.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)) })} aria-label="Nome do material" />
                 <button className="icon-btn subtle" onClick={() => set({ materials: d.materials.filter((_, j) => j !== i) })} aria-label="Tirar">
                   <Icon name="trash" size={14} />
