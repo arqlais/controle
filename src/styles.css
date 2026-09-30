@@ -1909,3 +1909,7 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .topbar > .search:focus-within input::placeholder { color: var(--muted); }
 }
 .manual-more { margin-top: 10px; }
+/* aviso "isso fica no computador" (só aparece no celular) */
+.pc-note { display: none; margin: 0; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: var(--radius); background: var(--accent-tint); color: var(--text); font-size: 12.5px; line-height: 1.45; }
+.pc-note svg { flex: none; margin-top: 1px; color: var(--accent-ink); }
+@media (max-width: 820px) { .pc-note { display: flex; } }

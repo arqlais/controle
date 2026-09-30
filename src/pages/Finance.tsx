@@ -6,7 +6,7 @@ import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
-import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
+import { Badge, DesktopNote, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
 import type { Expense, Project, Quote } from '../types'
 import { CloseDeal } from './../components/quick'
@@ -167,6 +167,7 @@ export default function Finance() {
         </div>
       )}
 
+      <DesktopNote>O gráfico dos últimos 12 meses aparece no computador.</DesktopNote>
       <Section title="Últimos 12 meses" className="hide-mobile">
         <BarChart
           labels={months12.map((k) => MONTHS[Number(k.slice(5)) - 1].slice(0, 3))}

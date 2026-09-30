@@ -12,7 +12,7 @@ import { ClientForm } from '../components/forms'
 import { ClientPicker } from '../components/ClientPicker'
 import { QuoteDoc } from '../components/Docs'
 import { DocZoom, DocScale, usePdf } from '../components/Print'
-import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
+import { Badge, DesktopNote, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
 import { askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Contract, QuoteAudience, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
@@ -556,6 +556,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         />
       </div>
 
+      {showPdf && <DesktopNote>Mudar os textos direto na folha da proposta fica no computador ou tablet. Aqui você preenche tudo e baixa o PDF normalmente.</DesktopNote>}
       <div className={`quote-layout view-${showPdf ? view : 'editar'} ${showPdf ? '' : 'no-preview'}`}>
         <div className="stack quote-form">
           <Section title="dados">

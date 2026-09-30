@@ -6,6 +6,7 @@ import type { Settings } from '../types'
 import { DocScale, usePdf } from './Print'
 import { Icon } from './Icon'
 import { toast } from './dialog'
+import { DesktopNote } from './ui'
 import '../docs.css'
 
 /* Peças comuns dos documentos (guia de medição, placa de obra, briefing em PDF, apresentação):
@@ -160,6 +161,7 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
         </div>
       </div>
       {toolbar}
+      {onFree && <DesktopNote>Editar os textos direto na folha fica no computador ou tablet. Aqui você preenche os campos e baixa o PDF normalmente.</DesktopNote>}
       <div className="dk-layout">
         <div className={`dk-form stack ${free !== null ? 'is-paused' : ''}`}>
           {free !== null && (

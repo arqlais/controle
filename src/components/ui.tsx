@@ -366,3 +366,13 @@ export function ServiceOptions({ services }: { services: ServiceDef[] }) {
     </>
   )
 }
+
+/** Só no celular: avisa que aquela parte avançada fica no computador (para ninguém procurar à toa). */
+export function DesktopNote({ children }: { children: ReactNode }) {
+  return (
+    <p className="pc-note" role="note">
+      <Icon name="monitor" size={15} />
+      <span>{children}</span>
+    </p>
+  )
+}

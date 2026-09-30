@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
@@ -11,7 +11,6 @@ import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState
 import type { Settings } from '../types'
 import { go } from '../router'
 
-const LandingDoc = lazy(() => import('./LandingDocs'))
 import { LANDING_PROFILE_KEY } from '../components/Signup'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
@@ -257,7 +256,6 @@ export default function Landing() {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   // no celular os planos ficam lado a lado (arrastar): a escolha rápida centraliza o cartão
   const pickPlan = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
-  const [storyOpen, setStoryOpen] = useState(false)
 
   return (
     <div className="lp" ref={root}>
@@ -316,10 +314,10 @@ export default function Landing() {
                 ver como funciona
               </button>
             </div>
-            <p className="muted small">sem cartão · cancele quando quiser</p>
-            <p className="lp-mobile-note small">
-              <Icon name="smartphone" size={13} /> o dia a dia funciona todo no celular; montar PDF, contrato e documentos fica mais confortável no computador ou tablet.
+            <p className="muted small">
+              sem cartão · cancele quando quiser<span className="lp-pc-note"> · ajustes avançados pelo computador</span>
             </p>
+
           </div>
           <div className="lp-hero-art" aria-hidden>
             <Frame>
@@ -377,15 +375,10 @@ export default function Landing() {
             .split(/\n\s*\n/)
             .filter((t) => t.trim())
             .map((t, i) => (
-              <p key={i} className={`lp-story-text ${i > 0 && !storyOpen ? 'lp-story-more' : ''}`}>
+              <p key={i} className="lp-story-text">
                 {t.trim()}
               </p>
             ))}
-          {!storyOpen && site.text.split(/\n\s*\n/).filter((t) => t.trim()).length > 1 && (
-            <button className="lp-story-toggle" onClick={() => setStoryOpen(true)}>
-              continuar lendo
-            </button>
-          )}
           {site.signature && <p className="lp-sign">— {site.signature}</p>}
         </div>
       </section>
@@ -440,11 +433,19 @@ export default function Landing() {
             feito para quem <em>vive de projeto</em>
           </h2>
           <div className="lp-for-list">
-            {AUDIENCE.map((a, i) => (
-              <span key={a.title} className="lp-chip" style={{ animationDelay: `${i * 0.08}s` }}>
-                <Icon name={a.icon} size={18} /> {a.title}
-              </span>
-            ))}
+            <div className="lp-for-track">
+              {AUDIENCE.map((a, i) => (
+                <span key={a.title} className="lp-chip" style={{ animationDelay: `${i * 0.08}s` }}>
+                  <Icon name={a.icon} size={18} /> {a.title}
+                </span>
+              ))}
+              {/* no celular as etiquetas passam devagar numa linha só (a cópia fecha a volta) */}
+              {AUDIENCE.map((a) => (
+                <span key={`${a.title}-2`} className="lp-chip lp-chip-dup" aria-hidden>
+                  <Icon name={a.icon} size={18} /> {a.title}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -663,6 +664,25 @@ export default function Landing() {
                 <i>.</i>
               </span>
               <p className="muted">{site.about}</p>
+              {(site.email || site.instagram || site.whatsapp) && (
+                <div className="lp-foot-icons">
+                  {site.whatsapp && (
+                    <a href={`https://wa.me/${site.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
+                      <Icon name="whatsapp" size={18} />
+                    </a>
+                  )}
+                  {site.instagram && (
+                    <a href={`https://instagram.com/${site.instagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer" aria-label="Instagram">
+                      <Icon name="instagram" size={18} />
+                    </a>
+                  )}
+                  {site.email && (
+                    <a href={`mailto:${site.email}`} aria-label="E-mail">
+                      <Icon name="mail" size={18} />
+                    </a>
+                  )}
+                </div>
+              )}
               <button className="btn primary small" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={14} />
               </button>
@@ -990,16 +1010,12 @@ function PropostaScreen() {
           total: <b>{money(quoteTotal(quote, SAMPLE.urgencyFee))}</b>
         </p>
       </div>
-      <Suspense fallback={<QuoteMock tpl={tpl} c={t.colors} total={money(quoteTotal(quote, SAMPLE.urgencyFee))} />}>
-        <LandingDoc kind="proposta" s={{ ...SAMPLE, proposal: { ...SAMPLE.proposal, ...t.colors, template: tpl } }} quote={quote} client={d.clients.find((c) => c.id === quote.clientId)} />
-      </Suspense>
+      <QuoteMock tpl={tpl} c={t.colors} total={money(quoteTotal(quote, SAMPLE.urgencyFee))} />
     </div>
   )
 }
 
 function ContratoScreen() {
-  const d = useDemo()
-  const quote = d.quotes[0]
   return (
     <div className="lp-screen lp-split">
       <div className="lp-split-side">
@@ -1018,9 +1034,7 @@ function ContratoScreen() {
         </ul>
         <p className="muted small">Modelos de referência: revise com um advogado.</p>
       </div>
-      <Suspense fallback={<ContractMock />}>
-        <LandingDoc kind="contrato" s={SAMPLE} quote={quote} client={d.clients.find((c) => c.id === quote.clientId)} />
-      </Suspense>
+      <ContractMock />
     </div>
   )
 }

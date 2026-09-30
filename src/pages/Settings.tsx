@@ -5,7 +5,7 @@ import { Fragment, useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
 import { demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
-import { Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { DesktopNote, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Pricing, Quote, Settings } from '../types'
 import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid, groupServices, serviceAsk } from '../utils'
@@ -114,7 +114,7 @@ export default function SettingsPage() {
               </span>
             </button>
           ))}
-          <p className="settings-note mobile-only">Preços, cores da proposta, mensagens e metas são editados no computador.</p>
+          <DesktopNote>Preços, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet, com mais espaço para editar.</DesktopNote>
         </nav>
 
         <div className="settings-panel">

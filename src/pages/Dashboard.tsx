@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
-import { Badge, Empty, Progress, Section, Stat, usePaged } from '../components/ui'
+import { Badge, DesktopNote, Empty, Progress, Section, Stat, usePaged } from '../components/ui'
 import { needsFollowUp, waitingDays } from './Quotes'
 import { BarChart, Donut } from '../components/Charts'
 import { StatusSelect, TaskQuick } from '../components/quick'
@@ -266,6 +266,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         </Section>
       </div>
 
+      <DesktopNote>Os gráficos de receitas e despesas aparecem no computador.</DesktopNote>
       <div className="grid-2 is-even hide-mobile">
         <Section title="Receitas × despesas · 6 meses" action={<a href={href('financeiro')} className="link">Financeiro →</a>}>
           <BarChart
