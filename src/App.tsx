@@ -51,7 +51,7 @@ import { setViewAsClient, setViewPlan, viewingAsClient, type ViewPlan } from './
 import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewPlan, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
-import { NewsButton, NewsModal, WelcomeCard, useNews } from './components/News'
+import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
 import { PLANS, PLATFORM, type Feature, type PlanId } from './plans'
@@ -264,9 +264,11 @@ export default function App() {
   // novidades: abre sozinha para quem assina quando há algo novo (depois do passo a passo); o sininho do topo reabre
   const news = useNews(!access.legacy)
   const [newsOpen, setNewsOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const autoNews = useRef(false)
   useEffect(() => {
-    if (autoNews.current || tourOpen || welcomeOpen || access.isOwner || sync === 'loading' || !news.fresh.length) return
+    // aparece na tela para todos (a dona também), uma vez por atualização; depois fica no histórico do sininho
+    if (autoNews.current || tourOpen || welcomeOpen || sync === 'loading' || !news.fresh.length) return
     autoNews.current = true
     setNewsOpen(true)
     news.markShown()
@@ -543,7 +545,7 @@ export default function App() {
           )}
           <GlobalSearch />
           {!access.legacy && <NoticesButton />}
-          {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => setNewsOpen(true)} />}
+          {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => (news.unseen.length ? setNewsOpen(true) : setHistoryOpen(true))} />}
           <ScreenHelp onTour={!access.isOwner ? () => (go('inicio'), setTourOpen(true)) : undefined} />
           <div className="add-menu">
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
@@ -587,7 +589,8 @@ export default function App() {
         <ClientPanelSync />
         <UpdateBanner />
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
-        {newsOpen && !tourOpen && !welcomeOpen && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} />}
+        {newsOpen && !tourOpen && !welcomeOpen && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} onHistory={() => (closeNews(), setHistoryOpen(true))} />}
+        {historyOpen && <NewsHistory onClose={() => setHistoryOpen(false)} />}
         {welcomeOpen && (
           <WelcomeCard
             name={access.sub?.name || settings.ownerName || ''}

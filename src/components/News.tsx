@@ -58,7 +58,7 @@ const IMPACT = [
 ]
 
 /** Card das novidades: desfoca a tela, mostra o resumo e depois passa por cada novidade. */
-export function NewsModal({ unseen, onClose, onLater }: { unseen: News[]; onClose: () => void; onLater?: () => void }) {
+export function NewsModal({ unseen, onClose, onLater, onHistory }: { unseen: News[]; onClose: () => void; onLater?: () => void; onHistory?: () => void }) {
   const { has } = useAccess()
   const all = unseen.length ? unseen : visibleNews().filter((n) => !n.feature || has(n.feature)).slice(0, 6)
   // resumo enxuto: novidades e melhorias uma a uma; correções viram um item só
@@ -105,6 +105,11 @@ export function NewsModal({ unseen, onClose, onLater }: { unseen: News[]; onClos
                   ver depois
                 </button>
               )}
+              {onHistory && (
+                <button className="link" onClick={onHistory}>
+                  todas as atualizações
+                </button>
+              )}
               <button className="btn primary" onClick={() => setI(0)}>
                 ver as novidades <Icon name="arrowRight" size={15} />
               </button>
@@ -146,6 +151,59 @@ export function NewsModal({ unseen, onClose, onLater }: { unseen: News[]; onClos
             </div>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+/** Histórico do sininho: todas as atualizações, da mais nova para a mais antiga, por data. */
+export function NewsHistory({ onClose }: { onClose: () => void }) {
+  const { has } = useAccess()
+  const [open, setOpen] = useState<string | null>(null)
+  const [guide, setGuide] = useState<NewsStep[] | null>(null)
+  if (guide) return <NewsGuide steps={guide} onClose={onClose} />
+  const list = visibleNews().filter((n) => !n.feature || has(n.feature))
+  const days = [...new Set(list.map((n) => n.date))].sort((a, b) => b.localeCompare(a))
+  return (
+    <div className="nw-layer" role="dialog" aria-modal="true" aria-label="Histórico de atualizações" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="nw-card nw-history">
+        <button className="icon-btn subtle nw-x" onClick={onClose} aria-label="Fechar">
+          <Icon name="x" size={16} />
+        </button>
+        <p className="nw-eyebrow">
+          <Icon name="bell" size={13} /> histórico
+        </p>
+        <h2 className="nw-title is-item">todas as atualizações</h2>
+        <div className="nw-hist">
+          {days.map((d) => (
+            <section key={d}>
+              <h3>{longDate(d)}</h3>
+              <ul>
+                {list
+                  .filter((n) => n.date === d)
+                  .map((n) => (
+                    <li key={n.id} className={open === n.id ? 'is-open' : ''}>
+                      <button type="button" onClick={() => setOpen(open === n.id ? null : n.id)} aria-expanded={open === n.id}>
+                        <Badge color={NEWS_KIND[n.kind].color}>{NEWS_KIND[n.kind].label}</Badge>
+                        <span className="nw-hist-title">{n.title}</span>
+                        <Icon name="chevronR" size={14} />
+                      </button>
+                      {open === n.id && (
+                        <div className="nw-hist-body">
+                          <p>{n.text}</p>
+                          {n.steps?.length ? (
+                            <button className="btn small" onClick={() => setGuide(n.steps!)}>
+                              <Icon name="eye" size={14} /> me mostra onde fica
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       </div>
     </div>
   )

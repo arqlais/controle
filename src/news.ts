@@ -23,12 +23,19 @@ export interface News {
 }
 
 export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
-  novo: { label: 'novo', color: '#4f6475' },
-  melhoria: { label: 'melhoria', color: '#7d8c99' },
-  correcao: { label: 'correção', color: '#a88a80' },
+  novo: { label: 'novo', color: '#8f6d64' },
+  melhoria: { label: 'melhoria', color: '#566779' },
+  correcao: { label: 'correção', color: '#9aa3ab' },
 }
 
 export const NEWS: News[] = [
+  {
+    id: '2026-09-30-historico-novidades',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'histórico das atualizações',
+    text: 'Cada atualização aparece na tela uma vez. Depois, todas ficam guardadas no sininho do topo, para rever quando quiser.',
+  },
   {
     id: '2026-09-30-briefing-proprio',
     date: '2026-09-30',
