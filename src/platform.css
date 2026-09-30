@@ -2270,3 +2270,21 @@ select.cell-input { min-width: 132px; }
 .cy-price { display: grid; gap: 2px; }
 .cy-price .pf-price { margin: 0; }
 .cy-note { margin: 0; font-size: 12.5px; color: var(--muted); }
+.ct-mine-actions { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
+@media (max-width: 620px) { .ct-mine-actions { grid-column: 2; } }
+.ct-attach { width: 100%; justify-content: center; margin-bottom: 10px; border-style: dashed; }
+.ct-swap { border: 1px solid var(--border); border-radius: 14px; padding: 10px 14px; background: var(--surface-2, #faf6f4); }
+.ct-swap summary { cursor: pointer; font-weight: 600; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+.ct-swap summary svg { color: var(--accent); }
+.ct-swap[open] summary { margin-bottom: 6px; }
+.ct-swap > p { margin: 0 0 10px; }
+.ct-swap-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.ct-swap-list li, .ct-swap-manual { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 250px) auto; gap: 8px; align-items: center; }
+.ct-swap-text { display: grid; min-width: 0; }
+.ct-swap-text b { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.ct-swap-text small { font-size: 11.5px; color: var(--muted); }
+.ct-swap select, .ct-swap input { font-size: 12.5px; min-width: 0; }
+@media (max-width: 620px) {
+  .ct-swap-list li, .ct-swap-manual { grid-template-columns: minmax(0, 1fr) auto; }
+  .ct-swap-list li .ct-swap-text, .ct-swap-manual input { grid-column: 1 / -1; }
+}

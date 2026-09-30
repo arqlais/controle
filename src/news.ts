@@ -33,8 +33,8 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'melhoria',
     title: 'plano anual e contrato próprio mais fáceis',
-    text: 'Nos planos dá para ver o valor mensal ou anual (o anual tem desconto). Em contratos, “usar meu contrato” cria um modelo seu para colar o seu texto, que passa a sair preenchido com os dados do cliente. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
-    steps: [{ page: 'contratos', text: 'Em contratos, toque em “usar meu contrato”.' }],
+    text: 'Nos planos dá para ver o valor mensal ou anual (o anual tem desconto). Em contratos, dá para anexar o seu próprio contrato (Word ou PDF): ele vira um modelo editável, e o sistema aponta o que trocar por etiquetas (nome, CPF, valor, data) para cada contrato novo já sair preenchido. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
+    steps: [{ page: 'contratos', text: 'Em contratos, toque em “anexar meu contrato”.' }],
   },
   {
     id: '2026-09-30-painel-cliente',

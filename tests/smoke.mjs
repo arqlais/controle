@@ -230,6 +230,27 @@ try {
     ok(errors.length === 0, `contrato: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await m.close(); await page.close()
   }
+  // 4b2. anexar o próprio contrato (Word) vira modelo editável, com sugestões de etiquetas
+  {
+    const { default: JSZip } = await import('jszip')
+    const P = (t, b) => `<w:p><w:r>${b ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${t}</w:t></w:r></w:p>`
+    const zip = new JSZip()
+    zip.file('word/document.xml', `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${[P('Contrato de Arquitetura', true), P('Contratante: Maria da Silva, CPF 123.456.789-09.'), P('Cláusula 1 – Do valor', true), P('O valor é de R$ 12.500,00.'), P('__________________'), P('CONTRATANTE')].join('')}</w:body></w:document>`)
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    const page = await browser.newPage({ viewport: { width: 1366, height: 900 } })
+    const errors = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await page.goto(`http://localhost:${PORT}/#/contratos`); await page.waitForTimeout(900)
+    const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: /anexar meu contrato/ }).first().click()])
+    await fc.setFiles({ name: 'Meu contrato.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer }); await page.waitForTimeout(1200)
+    const text = await page.locator('.ct-templates textarea.pf-contract-text').inputValue()
+    ok(/^CONTRATO DE ARQUITETURA/.test(text) && text.includes('CLÁUSULA 1') && !/CONTRATANTE\s*$/.test(text) && !text.includes('____'), 'contrato: Word anexado vira modelo (títulos e sem linhas de assinatura)')
+    ok(await page.locator('.ct-swap-list li').count() >= 2, 'contrato: sugere trocar CPF e valor por etiquetas')
+    await page.locator('.ct-swap-manual input').fill('Maria da Silva'); await page.locator('.ct-swap-manual .btn').click(); await page.waitForTimeout(300)
+    ok((await page.locator('.ct-templates textarea.pf-contract-text').inputValue()).includes('{contratante}'), 'contrato: troca o nome do cliente pela etiqueta')
+    ok(errors.length === 0, `contrato anexado: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
+    await page.close()
+  }
   // 4c. assinatura chega sozinha + painel do cliente (link, recado e central de avisos)
   {
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, permissions: ['geolocation'], geolocation: { latitude: -19.92, longitude: -43.94 } })

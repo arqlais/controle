@@ -9,6 +9,7 @@ import { DocScale, DocZoom, usePdf } from '../components/Print'
 import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
+import { IMPORT_ACCEPT, findFields, importContractFile, importError, swapAll } from '../contractImport'
 import { SIGN_SITES, checkSignMessage, publishSign, type SignPayload } from '../contractSign'
 import { SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
@@ -74,13 +75,16 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   const [tab, setTab] = useState<'lista' | 'modelos'>(startTab)
   const [creating, setCreating] = useState(false)
   const [mineId, setMineId] = useState('')
-  // usar o próprio contrato: vira um modelo novo, pronto para colar o texto
-  const useMine = () => {
-    const t: ContractTemplate = { id: uid(), name: 'meu contrato', body: '' }
+  const [imported, setImported] = useState(false)
+  // usar o próprio contrato: vira um modelo novo (anexado do Word/PDF ou em branco para colar o texto)
+  const useMine = (name = 'meu contrato', body = '') => {
+    const t: ContractTemplate = { id: uid(), name, body }
     setSettings({ contracts: { ...cs, templates: [t, ...cs.templates] } })
+    setImported(!!body)
     setMineId(t.id)
     setTab('modelos')
   }
+  const upload = useContractUpload(useMine)
   const [q, setQ] = useState('')
   const client = (id: string) => data.clients.find((c) => c.id === id)
   const rows = useMemo(
@@ -108,11 +112,17 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
       <div className="ct-mine">
         <Icon name="pen" size={16} />
         <span>
-          <b>Quer usar o seu próprio contrato?</b> Cole o texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os contratos e modelos de exemplo podem ser apagados à vontade.
+          <b>Quer usar o seu próprio contrato?</b> Anexe o arquivo (Word ou PDF) ou cole o texto: ele vira um modelo seu, editável, que sai preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.
         </span>
-        <button className="btn small" onClick={useMine}>
-          usar meu contrato
-        </button>
+        <div className="ct-mine-actions">
+          <button className="btn small primary" disabled={upload.busy} onClick={upload.open}>
+            <Icon name="upload" size={14} /> {upload.busy ? 'lendo…' : 'anexar meu contrato'}
+          </button>
+          <button className="btn small ghost" onClick={() => useMine()}>
+            colar o texto
+          </button>
+        </div>
+        {upload.input}
       </div>
       <Segmented
         value={tab}
@@ -144,7 +154,7 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
           <Empty icon="file" title="nenhum contrato ainda" text="Escolha um orçamento e um modelo: o contrato já sai preenchido com cliente, serviços, valor, prazo e pagamento." action={<button className="btn primary" onClick={() => setCreating(true)}>criar o primeiro contrato</button>} />
         )
       ) : (
-        <TemplatesEditor key={mineId} startId={mineId} />
+        <TemplatesEditor key={mineId} startId={mineId} imported={imported} />
       )}
       {creating && <NewContract onClose={() => setCreating(false)} />}
     </div>
@@ -421,7 +431,91 @@ function ContractEditor({ id }: { id: string }) {
   )
 }
 
-function TemplatesEditor({ startId }: { startId?: string }) {
+/** Anexar o contrato (Word, PDF ou texto): lê o arquivo e entrega o texto. */
+function useContractUpload(onText: (name: string, body: string) => void) {
+  const ref = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const input = (
+    <input
+      ref={ref}
+      type="file"
+      hidden
+      accept={IMPORT_ACCEPT}
+      onChange={async (e) => {
+        const f = e.target.files?.[0]
+        e.target.value = ''
+        if (!f) return
+        setBusy(true)
+        try {
+          const body = await importContractFile(f)
+          onText(f.name.replace(/\.[^.]+$/, '').slice(0, 60) || 'meu contrato', body)
+          toast('Contrato anexado. Confira o texto e troque os dados fixos pelas etiquetas.')
+        } catch (err) {
+          toast(importError(err))
+        } finally {
+          setBusy(false)
+        }
+      }}
+    />
+  )
+  return { input, busy, open: () => ref.current?.click() }
+}
+
+/** Troca o que é fixo do contrato original (nome, CPF, valor, data…) pelas etiquetas que se preenchem sozinhas. */
+function FieldSwap({ body, onChange, open }: { body: string; onChange: (b: string) => void; open?: boolean }) {
+  const hints = useMemo(() => findFields(body), [body])
+  const [picked, setPicked] = useState<Record<string, string>>({})
+  const [text, setText] = useState('')
+  const [tag, setTag] = useState('contratante')
+  const tagSelect = (value: string, set: (v: string) => void) => (
+    <select value={value} onChange={(e) => set(e.target.value)} aria-label="Etiqueta">
+      {CONTRACT_VARS.map(([k, d]) => (
+        <option key={k} value={k} title={`{${k}}`}>
+          {d}
+        </option>
+      ))}
+    </select>
+  )
+  const swap = (t: string, k: string) => {
+    if (!t.trim() || !body.includes(t)) return toast('Esse texto não está no contrato.')
+    const n = body.split(t).length - 1
+    onChange(swapAll(body, t, k))
+    toast(`${n === 1 ? '1 trecho trocado' : `${n} trechos trocados`} por {${k}}.`)
+  }
+  return (
+    <details className="ct-swap" open={open}>
+      <summary>
+        <Icon name="sparkle" size={15} /> trocar dados fixos por etiquetas
+      </summary>
+      <p className="muted small">O que muda de um cliente para outro (nome, CPF, valor, data…) vira etiqueta: cada contrato novo já sai preenchido com os dados do cliente e do orçamento.</p>
+      {hints.length > 0 && (
+        <ul className="ct-swap-list">
+          {hints.map((h) => (
+            <li key={h.text}>
+              <span className="ct-swap-text">
+                <b>{h.text}</b>
+                <small>{h.label}</small>
+              </span>
+              {tagSelect(picked[h.text] ?? h.tag, (v) => setPicked((p) => ({ ...p, [h.text]: v })))}
+              <button className="btn small" onClick={() => swap(h.text, picked[h.text] ?? h.tag)}>
+                trocar
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="ct-swap-manual">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="outro texto, ex.: Maria da Silva" aria-label="Texto para trocar" />
+        {tagSelect(tag, setTag)}
+        <button className="btn small primary" onClick={() => (swap(text, tag), setText(''))}>
+          trocar
+        </button>
+      </div>
+    </details>
+  )
+}
+
+function TemplatesEditor({ startId, imported }: { startId?: string; imported?: boolean }) {
   const { data, setSettings } = useStore()
   const { isOwner } = useAccess()
   const cs = contractSettings(data.settings, isOwner)
@@ -430,6 +524,13 @@ function TemplatesEditor({ startId }: { startId?: string }) {
   const setTemplates = (templates: ContractTemplate[]) => setSettings({ contracts: { ...cs, templates } })
   const cur = cs.templates.find((t) => t.id === openId)
   const patch = (p: Partial<ContractTemplate>) => cur && setTemplates(cs.templates.map((t) => (t.id === cur.id ? { ...t, ...p } : t)))
+  const [fresh, setFresh] = useState(imported ? startId ?? '' : '')
+  const upload = useContractUpload((name, body) => {
+    const t = { id: uid(), name, body }
+    setTemplates([t, ...cs.templates])
+    setOpenId(t.id)
+    setFresh(t.id)
+  })
   const insert = (v: string) => {
     if (!cur) return
     const el = ref.current
@@ -459,6 +560,10 @@ function TemplatesEditor({ startId }: { startId?: string }) {
           </button>
         }
       >
+        <button className="btn small ghost ct-attach" disabled={upload.busy} onClick={upload.open}>
+          <Icon name="upload" size={14} /> {upload.busy ? 'lendo o arquivo…' : 'anexar meu contrato (Word ou PDF)'}
+        </button>
+        {upload.input}
         <div className="pf-list">
           {cs.templates.map((t) => (
             <button key={t.id} className={`pf-row ${t.id === openId ? 'is-active' : ''}`} onClick={() => setOpenId(t.id)}>
@@ -513,6 +618,13 @@ function TemplatesEditor({ startId }: { startId?: string }) {
               ))}
             </div>
           </div>
+          {cur.id === fresh && (
+            <p className="pf-note">
+              <Icon name="check" size={16} />
+              <span>Texto do seu arquivo. Confira, ajuste o que quiser e troque os dados fixos pelas etiquetas abaixo. As linhas de assinatura saíram: o quadro de assinatura das duas partes entra sozinho no fim.</span>
+            </p>
+          )}
+          {cur.body.trim().length > 40 && <FieldSwap key={cur.id} body={cur.body} onChange={(body) => patch({ body })} open={cur.id === fresh} />}
           <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
           <p className="muted small">As mudanças valem para os próximos contratos. Os que você já criou não mudam.</p>
         </Section>
