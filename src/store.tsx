@@ -1030,3 +1030,38 @@ export function demoData(settings: Settings): Data {
 
   return { version: 1, demo: true, clients, projects, expenses, events, quotes, posts, contracts, settings }
 }
+
+/** Prévia de uma função bloqueada: dá para mexer à vontade, mas tudo fica só na memória desta tela.
+   Nada é salvo nos dados de verdade (fechar a tela desfaz tudo). */
+export function SandboxStore({ children, onWrite }: { children: ReactNode; onWrite?: () => void }) {
+  const real = useStore()
+  const [local, setLocal] = useState<Data>(real.data)
+  const warn = useRef(onWrite)
+  warn.current = onWrite
+  const value = useMemo<Store>(
+    () => ({
+      ...real,
+      data: local,
+      upsert: (c, item) => {
+        warn.current?.()
+        setLocal((d) => {
+          const list = (d[c] ?? []) as { id: string }[]
+          return { ...d, [c]: list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item] }
+        })
+      },
+      remove: (c, id) => {
+        warn.current?.()
+        setLocal((d) => ({ ...d, [c]: ((d[c] ?? []) as { id: string }[]).filter((x) => x.id !== id) }))
+      },
+      setSettings: (patch) => {
+        warn.current?.()
+        setLocal((d) => ({ ...d, settings: { ...d.settings, ...patch } }))
+      },
+      replaceAll: () => warn.current?.(),
+      publishAgendaNow: async () => false,
+      showSample: () => undefined,
+    }),
+    [real, local],
+  )
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>
+}

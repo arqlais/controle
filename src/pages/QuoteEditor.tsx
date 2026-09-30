@@ -525,7 +525,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <Icon name="briefcase" size={16} /> gerar contrato
               </button>
             )}
-            {!has('contratos') && <LockButton feature="contratos" label="gerar contrato" className="btn ghost" />}
+            {!has('contratos') && <LockButton feature="contratos" label="gerar contrato" className="btn ghost" to="contratos" />}
             <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
             <button
               className="btn ghost"

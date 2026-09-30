@@ -375,7 +375,7 @@ try {
     await tryBtn.click(); await page.waitForTimeout(200)
     await page.locator('.modal-foot .btn').last().click(); await page.waitForTimeout(500)
     await page.evaluate(() => (location.hash = '#/contratos')); await page.waitForTimeout(300)
-    ok(await page.locator('.lk-banner').count() === 1 && await page.locator('.lk-view[inert]').count() === 1, 'plataforma: Essencial vê contratos só como prévia bloqueada')
+    ok(await page.locator('.lk-banner').count() === 1 && await page.locator('.lk-view').count() === 1, 'plataforma: Essencial vê contratos só como prévia bloqueada')
     await page.locator('.pf-preview-btn').click()
     await page.locator('.pf-preview-menu button', { hasText: 'dona' }).click(); await page.waitForTimeout(700)
     await page.evaluate(() => (location.hash = '#/plataforma')); await page.waitForTimeout(500)

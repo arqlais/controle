@@ -2407,8 +2407,13 @@ select.cell-input { min-width: 132px; }
 .lk-text { flex: 1; min-width: 0; }
 .lk-text b { color: var(--brand-rose); }
 .lk-banner .btn { flex: none; }
-.lk-view { pointer-events: none; user-select: none; position: relative; }
-.lk-view::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--bg) 70%, transparent)); pointer-events: none; }
+.lk-view { position: relative; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* prévia: marca-d'água por cima de tudo, sem seleção nem cópia; textos longos somem aos poucos */
+.lk-on .modal { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.lk-on .modal-body { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='170'%3E%3Ctext x='20' y='100' transform='rotate(-24 130 85)' font-family='sans-serif' font-size='17' font-weight='600' fill='%238f6d64' fill-opacity='0.13'%3Epr%C3%A9via %C2%B7 tra%C3%A7o%3C/text%3E%3C/svg%3E"); }
+.lk-on .lk-view textarea, .lk-on .modal textarea { -webkit-mask-image: linear-gradient(#000 40%, transparent 96%); mask-image: linear-gradient(#000 40%, transparent 96%); }
+@media print { body.lk-on { display: none !important; } }
+.lk-view::after { content: ''; position: absolute; inset: 0; z-index: 30; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='170'%3E%3Ctext x='20' y='100' transform='rotate(-24 130 85)' font-family='sans-serif' font-size='17' font-weight='600' fill='%238f6d64' fill-opacity='0.13'%3Epr%C3%A9via %C2%B7 tra%C3%A7o%3C/text%3E%3C/svg%3E"); pointer-events: none; }
 .lk-view .page { padding-top: 0; }
 @media (max-width: 620px) {
   .lk-banner { display: grid; grid-template-columns: 32px minmax(0, 1fr); }

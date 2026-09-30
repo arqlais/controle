@@ -4,7 +4,7 @@ import { CLOUD, supabase } from '../cloud'
 import { DEFAULT_SETTINGS, SIGNUP_KEY, StoreProvider, hasLocalAccount, seedPreviewAccount } from '../store'
 import { AccessProvider } from '../access'
 import { onViewAsClient, viewPlan, viewingAsClient, type ViewPlan } from '../viewAs'
-import { TRIAL_DAYS } from '../plans'
+import { TRIAL_DAYS, previewCreatedAt } from '../plans'
 import type { AccessInfo } from '../platform'
 import { PREVIEW_CLIENT, getPreviewRole, onPreviewRole, setPreviewRole, type PreviewRole } from '../platform'
 import { PLATFORM, type PlanId } from '../plans'
@@ -193,7 +193,7 @@ const clientView = (v: ViewPlan): AccessInfo => ({
     trialEnds: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
     blocked: false,
     canceledAt: null,
-    createdAt: new Date().toISOString(),
+    createdAt: previewCreatedAt(),
     lastSeen: new Date().toISOString(),
     requestedPlan: null,
     requestedAt: null,

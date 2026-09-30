@@ -211,6 +211,8 @@ export const money0 = (n: number) => `R$ ${n.toLocaleString('pt-BR', { minimumFr
 /** Novidade de 30/09/2026: a plataforma passou a atender também quem trabalha para cliente final.
  *  Todas as contas que já existiam ganham o Estúdio, e o teste grátis passa a ser do Estúdio. */
 export const ESTUDIO_FOR_ACCOUNTS_BEFORE = '2026-10-01'
+/** Data de criação para contas de prévia ("ver como cliente"): nunca cai na regra das contas antigas. */
+export const previewCreatedAt = () => new Date(Math.max(Date.now(), Date.parse(`${ESTUDIO_FOR_ACCOUNTS_BEFORE}T12:00:00Z`))).toISOString()
 export function effectivePlan(sub: { plan: PlanId; status: string; createdAt?: string } | null | undefined): PlanId {
   if (!sub) return 'essencial'
   // teste grátis: Estúdio (quem escolheu testar o Essencial vê o Essencial)

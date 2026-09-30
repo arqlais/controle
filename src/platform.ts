@@ -2,7 +2,7 @@ import { viewingAsClient } from './viewAs'
 import { PREVIEW_KEY, type PlanConfig } from './planConfig'
 import { ARTIFACT } from './env'
 import { CLOUD, supabase } from './cloud'
-import { PLANS, TRIAL_DAYS, type PlanId, type SubStatus } from './plans'
+import { PLANS, TRIAL_DAYS, previewCreatedAt, type PlanId, type SubStatus } from './plans'
 import { DEFAULT_SITE, DEFAULT_TERMS, EMPTY_COMPANY, type Company, type SiteContent } from './siteContent'
 
 /* ============================================================
@@ -620,7 +620,7 @@ export function setPreviewPlan(v: 'trial' | PlanId) {
   writeDB({
     ...db,
     subs: db.subs.map((x) =>
-      x.userId === PREVIEW_CLIENT ? { ...x, plan: v === 'trial' ? 'completo' : v, status: v === 'trial' ? 'trial' : 'ativa', trialEnds, requestedPlan: null, requestedAt: null, blocked: false } : x,
+      x.userId === PREVIEW_CLIENT ? { ...x, plan: v === 'trial' ? 'completo' : v, status: v === 'trial' ? 'trial' : 'ativa', trialEnds, createdAt: previewCreatedAt(), requestedPlan: null, requestedAt: null, blocked: false } : x,
     ),
   })
 }

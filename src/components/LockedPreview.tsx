@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent, type ReactNode, type SyntheticEvent } from 'react'
+import { SandboxStore } from '../store'
+import { toast } from './dialog'
 import { Icon } from './Icon'
 import { go } from '../router'
 import { PLAN_LIST, plansWith, type Feature } from '../plans'
@@ -39,22 +41,61 @@ export function LockBanner({ feature }: { feature: Feature }) {
   )
 }
 
-/** A tela real, só para olhar: dá para rolar, mas não dá para clicar nem editar. */
+// o que tiraria o modelo daqui (baixar, copiar, mandar, imprimir…): na prévia, só com o plano
+const TAKE_AWAY = /\b(baixar|download|pdf|png|imprimir|print|copiar|enviar|mandar|whatsapp|compartilhar|link|exportar|importar|anexar|assinar|publicar|duplicar|qr|salvar como)/i
+
+/** A tela real, para explorar: dá para abrir, clicar e testar, mas nada é salvo, baixado, copiado ou enviado. */
 export function LockedView({ feature, children }: { feature: Feature; children: ReactNode }) {
+  const warned = useRef(false)
+  useEffect(() => {
+    document.body.classList.add('lk-on')
+    return () => document.body.classList.remove('lk-on')
+  }, [])
+  const blocked = (what: string) => toast(`Na prévia dá para ver e testar, mas não para ${what}. Isso fica liberado no plano ${lockPlan(feature)}.`)
+  const onClick = (e: MouseEvent) => {
+    const el = (e.target as HTMLElement).closest('button, a, [role="button"], label') as HTMLElement | null
+    if (!el || el.closest('.lk-banner')) return
+    const href = el.getAttribute('href') ?? ''
+    if (href.includes('assinatura')) return
+    const label = `${el.textContent ?? ''} ${el.getAttribute('title') ?? ''} ${el.getAttribute('aria-label') ?? ''}`
+    const leaves = el.tagName === 'A' && (el.hasAttribute('download') || (el as HTMLAnchorElement).target === '_blank' || /^(https?:|blob:|data:|mailto:)/.test(href))
+    if (leaves || TAKE_AWAY.test(label)) {
+      e.preventDefault()
+      e.stopPropagation()
+      blocked('baixar, copiar ou mandar')
+    }
+  }
+  const stop = (what: string) => (e: SyntheticEvent) => {
+    e.preventDefault()
+    blocked(what)
+  }
+  const onKey = (e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && /^[cxps]$/i.test(e.key)) {
+      e.preventDefault()
+      blocked(e.key.toLowerCase() === 'p' ? 'imprimir' : e.key.toLowerCase() === 's' ? 'salvar' : 'copiar')
+    }
+  }
+  const onWrite = () => {
+    if (warned.current) return
+    warned.current = true
+    toast('Prévia: pode testar à vontade, mas nada fica salvo.')
+  }
   return (
     <div className="lk-wrap">
       <LockBanner feature={feature} />
-      <div className="lk-view" inert aria-hidden>
-        {children}
-      </div>
+      <SandboxStore onWrite={onWrite}>
+        <div className="lk-view" onClickCapture={onClick} onCopyCapture={stop('copiar')} onCutCapture={stop('copiar')} onContextMenuCapture={(e) => e.preventDefault()} onDragStartCapture={(e) => e.preventDefault()} onKeyDownCapture={onKey}>
+          {children}
+        </div>
+      </SandboxStore>
     </div>
   )
 }
 
 /** Botão de uma função que o plano não tem: aparece com cadeado e leva para os planos. */
-export function LockButton({ feature, label, icon = 'lock', className = 'btn small ghost', iconOnly }: { feature: Feature; label: string; icon?: string; className?: string; iconOnly?: boolean }) {
+export function LockButton({ feature, label, icon = 'lock', className = 'btn small ghost', iconOnly, to = 'assinatura' }: { feature: Feature; label: string; icon?: string; className?: string; iconOnly?: boolean; to?: string }) {
   return (
-    <button type="button" className={`${className} lk-btn`} onClick={() => go('assinatura')} title={`${label}: plano ${lockPlan(feature)}. Toque para ver os planos.`} aria-label={`${label} (plano ${lockPlan(feature)})`}>
+    <button type="button" className={`${className} lk-btn`} onClick={() => go(to)} title={`${label}: plano ${lockPlan(feature)}. Toque para ver os planos.`} aria-label={`${label} (plano ${lockPlan(feature)})`}>
       <Icon name="lock" size={14} />
       {!iconOnly && <>{icon !== 'lock' && <Icon name={icon} size={14} />} {label}</>}
     </button>
