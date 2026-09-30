@@ -419,6 +419,16 @@ export interface ContractSettings {
 
 export type ContractStatus = 'rascunho' | 'enviado' | 'assinado'
 
+/** Assinatura registrada: pelo link do traço (aceite com nome e CPF) ou por um site de assinatura. */
+export interface ContractSignature {
+  via: 'link' | 'externo'
+  name: string
+  doc?: string // CPF / CNPJ de quem assinou
+  at: string // data e hora (ISO)
+  hash?: string // código que liga a assinatura a este texto exato (pelo link)
+  site?: string // site usado (gov.br, ZapSign…)
+}
+
 export interface Contract {
   id: string
   title: string
@@ -428,6 +438,9 @@ export interface Contract {
   body: string // texto final (já preenchido e editável)
   status: ContractStatus
   createdAt: string
+  signToken?: string // identifica o link de assinatura
+  signLink?: string
+  sign?: ContractSignature
 }
 
 export interface Settings {

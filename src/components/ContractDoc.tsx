@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from './Icon'
-import type { Settings } from '../types'
+import type { ContractSignature, Settings } from '../types'
 import { useAccess } from '../access'
 import { sheetColors } from '../proposalTemplates'
 
@@ -28,19 +28,34 @@ function toBlocks(body: string): Block[] {
   return out
 }
 
-export function ContractDoc({ s, body, clientName }: { s: Settings; body: string; clientName: string }) {
-  const { has } = useAccess()
-  // o contrato da Laís (modelo exclusivo): mesmo desenho dos PDFs dela
-  if (has('modeloExclusivo') && /^CONTRATADA\s*$/m.test(body)) return <LaisContract s={s} body={body} clientName={clientName} />
-  return <ClientContract s={s} body={body} clientName={clientName} has={has} />
+/** Desenho do contrato exclusivo da dona (o link de assinatura guarda isso, porque abre fora da conta). */
+export const usesExclusiveContract = (has: (f: 'modeloExclusivo') => boolean, body: string) => has('modeloExclusivo') && /^CONTRATADA\s*$/m.test(body)
+
+/** Linha "assinado eletronicamente" embaixo do nome de quem assinou pelo link. */
+function SignedMark({ sign }: { sign?: ContractSignature }) {
+  if (!sign || sign.via !== 'link') return null
+  return (
+    <span className="c-signed">
+      assinado eletronicamente · {new Date(sign.at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+      {sign.doc ? ` · ${sign.doc}` : ''}
+      {sign.hash ? ` · código ${sign.hash}` : ''}
+    </span>
+  )
 }
 
-function ClientContract({ s, body, clientName, has }: { s: Settings; body: string; clientName: string; has: ReturnType<typeof useAccess>['has'] }) {
+export function ContractDoc({ s, body, clientName, exclusive, signed }: { s: Settings; body: string; clientName: string; exclusive?: boolean; signed?: ContractSignature }) {
+  const { has } = useAccess()
+  // o contrato da Laís (modelo exclusivo): mesmo desenho dos PDFs dela
+  if (exclusive ?? usesExclusiveContract(has, body)) return <LaisContract s={s} body={body} clientName={clientName} signed={signed} />
+  return <ClientContract s={s} body={body} clientName={clientName} has={has} signed={signed} />
+}
+
+function ClientContract({ s, body, clientName, has, signed }: { s: Settings; body: string; clientName: string; has: ReturnType<typeof useAccess>['has']; signed?: ContractSignature }) {
   const colors = sheetColors(s.proposal, has)
   const blocks = toBlocks(body)
   const measure = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
-  const key = body + clientName
+  const key = body + clientName + (signed?.at ?? '')
 
   useLayoutEffect(() => {
     setPages(null)
@@ -77,10 +92,11 @@ function ClientContract({ s, body, clientName, has }: { s: Settings; body: strin
       return (
         <div key={i} className="c-sign">
           <div>
-            <i className="c-sign-img" />
+            {signed?.via === 'link' ? <i className="c-sign-img c-sign-typed">{signed.name}</i> : <i className="c-sign-img" />}
             <span />
             <b>{clientName || 'contratante'}</b>
             <small>contratante</small>
+            <SignedMark sign={signed} />
           </div>
           <div>
             <i className="c-sign-img" />
@@ -188,11 +204,11 @@ const L_PAD_TOP = 64
 const L_PAD_BOTTOM = 86 // faixa rosé do rodapé + respiro
 const L_HEAD_H = 150
 
-function LaisContract({ s, body, clientName }: { s: Settings; body: string; clientName: string }) {
+function LaisContract({ s, body, clientName, signed }: { s: Settings; body: string; clientName: string; signed?: ContractSignature }) {
   const blocks = laisBlocks(body)
   const measure = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
-  const key = body + clientName + (s.signature ?? '')
+  const key = body + clientName + (s.signature ?? '') + (signed?.at ?? '')
   useLayoutEffect(() => {
     setPages(null)
   }, [key])
@@ -278,10 +294,11 @@ function LaisContract({ s, body, clientName }: { s: Settings; body: string; clie
               {who.toUpperCase()}
               <b>CONTRATADO</b>
             </p>
-            <div className="lc-sign-box" />
+            <div className="lc-sign-box">{signed?.via === 'link' && <i className="c-sign-typed">{signed.name}</i>}</div>
             <p className="lc-sign-who">
               {(clientName || 'nome completo').toUpperCase()}
               <b>CONTRATANTE</b>
+              <SignedMark sign={signed} />
             </p>
           </div>
         )

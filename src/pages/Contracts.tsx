@@ -4,11 +4,12 @@ import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
-import { ContractDoc } from '../components/ContractDoc'
+import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
 import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate } from '../contracts'
 import { useAccess } from '../access'
-import type { Contract, ContractStatus, ContractTemplate } from '../types'
+import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
+import { SIGN_SITES, checkSignMessage, publishSign, type SignPayload } from '../contractSign'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
 
 /* Contratos: escolhe um orçamento + um modelo → o texto sai preenchido
@@ -281,7 +282,7 @@ function ContractEditor({ id }: { id: string }) {
     set({ templateId, body: fillContract(tpl.body, contractVars(data.settings, quote, client)) })
   }
   const missing = [...new Set(c.body.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
-  const doc = <ContractDoc s={data.settings} body={c.body} clientName={client ? client.name : ''} />
+  const doc = <ContractDoc s={data.settings} body={c.body} clientName={client ? client.name : ''} signed={c.sign} />
   const file = `Contrato - ${client?.name ?? c.title}.pdf`
 
   return (
@@ -366,6 +367,7 @@ function ContractEditor({ id }: { id: string }) {
               </p>
             )}
           </Section>
+          <SignSection c={c} client={client} dirty={dirty} save={save} onPdf={() => pdf.download(doc, file)} />
           <Section title="texto do contrato">
             <textarea className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} spellCheck lang="pt-BR" />
             <p className="muted small">Linhas em MAIÚSCULAS viram títulos (ex.: CLÁUSULA 1 — DO OBJETO). A assinatura das duas partes entra sozinha no fim.</p>
@@ -524,6 +526,193 @@ function SignatureField() {
             tirar assinatura
           </button>
         )}
+      </div>
+    </Section>
+  )
+}
+
+/* Assinatura: pelo link do traço (rápido, o cliente assina no celular) ou por um site com validade reforçada. */
+function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: Client; dirty: boolean; save: (patch?: Partial<Contract>) => void; onPdf: () => void }) {
+  const { data, userId } = useStore()
+  const { has } = useAccess()
+  const [busy, setBusy] = useState(false)
+  const [paste, setPaste] = useState('')
+  const [ext, setExt] = useState<{ site: string; name: string; at: string } | null>(null)
+  const st = data.settings
+  const first = client?.name.split(' ')[0] ?? ''
+
+  const makeLink = async () => {
+    if (dirty) save()
+    setBusy(true)
+    try {
+      const token = c.signToken ?? crypto.randomUUID()
+      const payload: SignPayload = {
+        token,
+        title: c.title,
+        body: c.body,
+        clientName: client?.name ?? '',
+        studio: st.brandName || st.ownerName,
+        owner: st.ownerName,
+        phone: st.phone,
+        accent: st.accent,
+        logo: st.logo || undefined,
+        s: { proposal: st.proposal, legalName: st.legalName, ownerName: st.ownerName, brandName: st.brandName, email: st.email, phone: st.phone, instagram: st.instagram, logo: st.logo, signature: st.signature, customFont: st.customFont },
+        exclusive: usesExclusiveContract(has, c.body),
+      }
+      const link = await publishSign(payload, userId)
+      save({ signToken: token, signLink: link, status: c.status === 'rascunho' ? 'enviado' : c.status })
+      await navigator.clipboard?.writeText(link).catch(() => undefined)
+      toast('Link de assinatura criado e copiado.')
+    } catch {
+      toast('Não deu para criar o link agora. Tente de novo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const confirm = async () => {
+    const r = await checkSignMessage(paste, c.signToken, c.body)
+    if (r.error) return toast(r.error)
+    save({ sign: r.sign, status: 'assinado' })
+    setPaste('')
+    toast(`Assinado por ${r.sign!.name}.`)
+  }
+
+  if (c.sign)
+    return (
+      <Section title="assinatura">
+        <div className="sg-done">
+          <span className="sg-done-icon">
+            <Icon name="check" size={18} />
+          </span>
+          <div className="grow">
+            <b>
+              assinado por {c.sign.name}
+              {c.sign.doc ? ` · ${c.sign.doc}` : ''}
+            </b>
+            <p className="muted small">
+              {new Date(c.sign.at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })} · {c.sign.via === 'link' ? `pelo link do traço · código ${c.sign.hash}` : `pelo ${c.sign.site}`}
+            </p>
+          </div>
+          <button
+            className="btn ghost small"
+            onClick={async () => {
+              if (await ask('Tirar a assinatura deste contrato? Use se registrou por engano.', { confirmLabel: 'Tirar' })) save({ sign: undefined, status: 'enviado' })
+            }}
+          >
+            desfazer
+          </button>
+        </div>
+        {c.sign.via === 'link' && <p className="muted small">A assinatura aparece no PDF, embaixo do nome do cliente. Se o texto for mudado, ela deixa de valer para a nova versão.</p>}
+      </Section>
+    )
+
+  return (
+    <Section title="assinatura">
+      <div className="sg-ways">
+        <div className="sg-way">
+          <div className="sg-way-head">
+            <span className="sg-way-icon">
+              <Icon name="link" size={16} />
+            </span>
+            <div>
+              <b>pelo link do traço</b>
+              <small>rápido · o cliente assina no celular</small>
+            </div>
+          </div>
+          <p className="muted small">O cliente lê o contrato, digita nome e CPF e aceita. A confirmação volta para você pelo WhatsApp com um código ligado ao texto.</p>
+          {c.signLink ? (
+            <>
+              <div className="sg-link">
+                <input readOnly value={c.signLink} onFocus={(e) => e.target.select()} aria-label="Link de assinatura" />
+                <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(c.signLink!).then(() => toast('Link copiado.'))}>
+                  <Icon name="copy" size={14} />
+                </button>
+              </div>
+              <div className="row gap-s wrap">
+                {client?.phone && (
+                  <a className="btn small" href={whatsappLink(client.phone, `oii, ${first}! segue o contrato do projeto para você ler e assinar pelo celular. no fim da página é só colocar seu nome e CPF: ${c.signLink}`)} target="_blank" rel="noreferrer">
+                    <Icon name="whatsapp" size={14} /> mandar para {first || 'o cliente'}
+                  </a>
+                )}
+                <button className="btn ghost small" disabled={busy} onClick={() => void makeLink()} title="Atualiza o link com o texto atual do contrato">
+                  atualizar link
+                </button>
+              </div>
+              <label className="sg-paste">
+                <span className="small">O cliente assinou? Cole aqui a mensagem que ele mandou:</span>
+                <textarea rows={3} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Oi! Li e assinei o contrato… código da assinatura: z…" />
+              </label>
+              <button className="btn primary small" disabled={!paste.trim()} onClick={() => void confirm()}>
+                registrar assinatura
+              </button>
+            </>
+          ) : (
+            <button className="btn primary small" disabled={busy} onClick={() => void makeLink()}>
+              <Icon name="link" size={14} /> {busy ? 'criando…' : 'criar link de assinatura'}
+            </button>
+          )}
+          <p className="sg-law muted">Assinatura eletrônica simples (Lei 14.063/2020): vale entre particulares e registra nome, CPF, data, hora e o código do texto.</p>
+        </div>
+
+        <div className="sg-way">
+          <div className="sg-way-head">
+            <span className="sg-way-icon">
+              <Icon name="lock" size={16} />
+            </span>
+            <div>
+              <b>por um site de assinatura</b>
+              <small>validade reforçada · selfie, documento ou gov.br</small>
+            </div>
+          </div>
+          <ol className="sg-steps small">
+            <li>
+              <button className="link" onClick={onPdf}>
+                baixe o PDF
+              </button>{' '}
+              do contrato;
+            </li>
+            <li>envie no site escolhido e mande para o cliente assinar;</li>
+            <li>quando voltar assinado, registre aqui.</li>
+          </ol>
+          <div className="sg-sites">
+            {SIGN_SITES.map((x) => (
+              <a key={x.id} className="sg-site" href={x.url} target="_blank" rel="noreferrer" title={x.text}>
+                <b>{x.name}</b>
+                {x.free && <em>grátis</em>}
+                <small>{x.text}</small>
+              </a>
+            ))}
+          </div>
+          {ext ? (
+            <div className="sg-ext form-grid">
+              <Field label="Site">
+                <select value={ext.site} onChange={(e) => setExt({ ...ext, site: e.target.value })}>
+                  {SIGN_SITES.map((x) => (
+                    <option key={x.id}>{x.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Assinado em">
+                <input type="date" value={ext.at} onChange={(e) => setExt({ ...ext, at: e.target.value })} />
+              </Field>
+              <Field label="Quem assinou" span={2}>
+                <input value={ext.name} onChange={(e) => setExt({ ...ext, name: e.target.value })} />
+              </Field>
+              <div className="row gap-s">
+                <button className="btn primary small" disabled={!ext.name.trim()} onClick={() => (save({ sign: { via: 'externo', site: ext.site, name: ext.name.trim(), at: new Date(`${ext.at}T12:00:00`).toISOString() }, status: 'assinado' }), setExt(null))}>
+                  registrar
+                </button>
+                <button className="btn ghost small" onClick={() => setExt(null)}>
+                  cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn ghost small" onClick={() => setExt({ site: SIGN_SITES[0].name, name: client?.name ?? '', at: today() })}>
+              <Icon name="check" size={14} /> já foi assinado no site
+            </button>
+          )}
+        </div>
       </div>
     </Section>
   )

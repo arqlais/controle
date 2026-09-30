@@ -1010,6 +1010,10 @@ export function demoData(settings: Settings): Data {
     orcamento: '#001',
     cidade: 'Belo Horizonte - MG',
     data: new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }),
+    etapas: '1. Modelagem 3D — a partir do DWG, com mobiliário\n2. Renderização — 5 imagens em alta resolução\n3. Ajustes — até 2 rodadas',
+    cronograma: '• Modelagem 3D: 5 dias úteis\n• Renderização: 5 dias úteis\n• Ajustes: 3 dias úteis',
+    prazo_total: '13 dias úteis',
+    pagamento_etapas: '• 50% (R$ 700,00) na assinatura deste contrato\n• 50% (R$ 700,00) na entrega das imagens finais',
   }
   const tpl = CLIENT_CONTRACTS[0]
   const contracts = [{ id: uid(), title: `Contrato — ${q0.title}`, quoteId: q0.id, clientId: bia.id, templateId: tpl.id, body: tpl.body.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m), status: 'enviado' as const, createdAt: addDays(t, -3) }]

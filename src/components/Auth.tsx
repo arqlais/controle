@@ -15,6 +15,7 @@ import { lazy, Suspense } from 'react'
 const Landing = lazy(() => import('../pages/Landing'))
 const BriefingPublic = lazy(() => import('./Briefing').then((m) => ({ default: m.BriefingPublic })))
 const PortalPublic = lazy(() => import('./Studio').then((m) => ({ default: m.PortalPublic })))
+const ContractSignPublic = lazy(() => import('./ContractSignPublic').then((m) => ({ default: m.ContractSignPublic })))
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
@@ -31,6 +32,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // página de acompanhamento do projeto (plano Estúdio): também sem login
   if (route.page === 'acompanhar' && route.id) return <Suspense fallback={wait}><PortalPublic token={route.id} /></Suspense>
   if (route.page === 'p' && route.id) return <Suspense fallback={wait}><PortalPublic token={route.id} short /></Suspense>
+  // contrato para o cliente ler e assinar
+  if (route.page === 'assinar' && route.id) return <Suspense fallback={wait}><ContractSignPublic id={route.id} /></Suspense>
   return <Gate>{children}</Gate>
 }
 

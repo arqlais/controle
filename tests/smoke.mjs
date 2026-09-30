@@ -193,6 +193,31 @@ try {
     ok(errors.length === 0, `${vp.name}: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()
   }
+  // 4b. contrato: link de assinatura → cliente assina no celular → confirmação colada vale
+  {
+    const page = await browser.newPage({ viewport: { width: 1366, height: 900 } })
+    const errors = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await page.goto(`http://localhost:${PORT}/#/contratos`); await page.waitForTimeout(900)
+    await page.locator('text=Contrato — Renders').first().click(); await page.waitForTimeout(700)
+    await page.getByRole('button', { name: /criar link de assinatura/ }).click(); await page.waitForTimeout(1000)
+    const link = await page.locator('.sg-link input').inputValue()
+    ok(link.includes('#/assinar/'), 'contrato: cria o link de assinatura')
+    const m = await browser.newPage({ viewport: { width: 390, height: 844 } })
+    m.on('pageerror', (e) => errors.push(e.message))
+    await m.goto(link.replace(/^https?:\/\/[^/]+\//, `http://localhost:${PORT}/`)); await m.waitForTimeout(1200)
+    ok(await m.locator('.cs-doc .contract-page').count() > 0, 'contrato: cliente abre o contrato pelo link')
+    await m.getByPlaceholder('como no documento').fill('Beatriz Souza Lima'); await m.getByPlaceholder('só os números').fill('12345678909')
+    await m.locator('.cs-agree input').check(); await m.getByRole('button', { name: 'assinar contrato' }).click(); await m.waitForTimeout(600)
+    const wa = await m.locator('.cs-done a.bf-send').getAttribute('href')
+    const msg = decodeURIComponent(new URL(wa).searchParams.get('text'))
+    ok(/código da assinatura: z/.test(msg), 'contrato: assinatura gera a confirmação para o WhatsApp')
+    await page.locator('.sg-paste textarea').fill(msg); await page.getByRole('button', { name: 'registrar assinatura' }).click(); await page.waitForTimeout(500)
+    ok(((await page.locator('.sg-done b').textContent()) ?? '').includes('Beatriz Souza Lima'), 'contrato: confirmação colada registra a assinatura')
+    ok(await page.locator('.c-signed').count() > 0, 'contrato: assinatura aparece no PDF')
+    ok(errors.length === 0, `contrato: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
+    await m.close(); await page.close()
+  }
   // 5. plataforma (prévia): página de vendas → cadastro → chat com a dona → painel da dona
   {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } })
