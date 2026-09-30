@@ -2293,3 +2293,9 @@ select.cell-input { min-width: 132px; }
   .cy-toggle button { padding: 8px 11px; font-size: 13px; }
   .cy-toggle b { padding: 2px 5px; font-size: 10px; }
 }
+/* vitrine: os 4 modelos de proposta com a mesma folha (mesmo tamanho ao trocar) */
+.mk-sheet.mk-quote { aspect-ratio: 4 / 5; }
+.mk-q-coluna .mk-q-total { flex-direction: column; align-items: flex-start; gap: 4px; }
+.mk-q-coluna .mk-q-total span { letter-spacing: 0.18em; }
+.mk-q-coluna .mk-q-body { justify-content: flex-start; }
+.mk-q-coluna .mk-q-foot { margin-top: 12px; }
