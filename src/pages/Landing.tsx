@@ -132,7 +132,7 @@ type Aud = 'freelancer' | 'final'
 const PLAN_FOR: Record<PlanId, string> = {
   essencial: 'para quem está começando ou trabalha sozinho',
   completo: 'para quem manda proposta com a própria marca',
-  estudio: 'para escritórios que atendem cliente final',
+  estudio: 'para quem atende cliente final (e freelancers que querem tudo)',
 }
 const readAud = (): Aud => {
   try {
@@ -396,7 +396,15 @@ export default function Landing() {
               ))}
             </div>
           </div>
-          <Journey key={aud} steps={final ? JOURNEY_FINAL : JOURNEY} />
+          {/* as duas versões no mesmo lugar: trocar de aba não muda a altura da faixa */}
+          <div className="lp-journey-stack">
+            <div className={`lp-journey-slot ${final ? 'is-active' : ''}`} aria-hidden={!final}>
+              <Journey steps={JOURNEY_FINAL} paused={!final} />
+            </div>
+            <div className={`lp-journey-slot ${!final ? 'is-active' : ''}`} aria-hidden={final}>
+              <Journey steps={JOURNEY} paused={final} />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -464,9 +472,21 @@ export default function Landing() {
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
           <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.estudio.name} (o mais completo) grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />
+          <div className="lp-pick" data-reveal>
+            <span className="muted small">escolha rápida:</span>
+            <button onClick={() => scrollTo('plano-essencial')}>
+              <Icon name="user" size={14} /> começando, texto no WhatsApp <b>{PLANS.essencial.name}</b>
+            </button>
+            <button onClick={() => scrollTo('plano-completo')}>
+              <Icon name="file" size={14} /> freelancer com PDF e contratos <b>{PLANS.completo.name}</b>
+            </button>
+            <button onClick={() => scrollTo('plano-estudio')}>
+              <Icon name="home" size={14} /> atende cliente final <b>{PLANS.estudio.name}</b>
+            </button>
+          </div>
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
-              <article key={p.id} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
+              <article key={p.id} id={`plano-${p.id}`} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
                 {p.featured && <span className="lp-ribbon">mais escolhido</span>}
                 <header>
                   <h3>{p.name}</h3>
@@ -699,14 +719,14 @@ function RotatingWord({ words }: { words: string[] }) {
 }
 
 /** Jornada em 4 passos: avança sozinha (pausa ao tocar) e mostra um cartão animado de cada etapa. */
-function Journey({ steps: JOURNEY }: { steps: typeof JOURNEY_FINAL }) {
+function Journey({ steps: JOURNEY, paused: hidden }: { steps: typeof JOURNEY_FINAL; paused?: boolean }) {
   const [step, setStep] = useState(0)
   const [paused, setPaused] = useState(false)
   useEffect(() => {
-    if (paused) return
+    if (paused || hidden) return
     const t = setInterval(() => setStep((n) => (n + 1) % JOURNEY.length), 4200)
     return () => clearInterval(t)
-  }, [paused])
+  }, [paused, hidden])
   return (
     <div className="lp-journey" data-reveal>
       <ol className="lp-steps-nav">
@@ -782,6 +802,7 @@ function useDemo() {
 
 function Screens() {
   const [screen, setScreen] = useState<Screen>('painel')
+  const touch = useRef(0)
   return (
     <div className="lp-screens">
       <div className="lp-screen-tabs" role="tablist">
@@ -792,12 +813,33 @@ function Screens() {
         ))}
       </div>
       <Frame>
-        {screen === 'painel' && <PainelScreen />}
-        {screen === 'demandas' && <DemandasScreen />}
-        {screen === 'proposta' && <PropostaScreen />}
-        {screen === 'contrato' && <ContratoScreen />}
-        {screen === 'financeiro' && <FinanceiroScreen />}
+        {/* todas as telas no mesmo lugar: a moldura fica sempre da mesma altura; no celular, dá para arrastar para o lado */}
+        <div
+          className="lp-screen-stage"
+          onTouchStart={(e) => (touch.current = e.touches[0].clientX)}
+          onTouchEnd={(e) => {
+            const dx = e.changedTouches[0].clientX - touch.current
+            if (Math.abs(dx) < 50) return
+            const i = SCREENS.findIndex((x) => x.id === screen)
+            setScreen(SCREENS[(i + (dx < 0 ? 1 : SCREENS.length - 1)) % SCREENS.length].id)
+          }}
+        >
+          {SCREENS.map((x) => (
+            <div key={x.id} className={`lp-screen-slot ${screen === x.id ? 'is-active' : ''}`} aria-hidden={screen !== x.id}>
+              {x.id === 'painel' && <PainelScreen />}
+              {x.id === 'demandas' && <DemandasScreen />}
+              {x.id === 'proposta' && <PropostaScreen />}
+              {x.id === 'contrato' && <ContratoScreen />}
+              {x.id === 'financeiro' && <FinanceiroScreen />}
+            </div>
+          ))}
+        </div>
       </Frame>
+      <div className="lp-screen-dots" aria-hidden>
+        {SCREENS.map((x) => (
+          <i key={x.id} className={screen === x.id ? 'is-on' : ''} />
+        ))}
+      </div>
     </div>
   )
 }
