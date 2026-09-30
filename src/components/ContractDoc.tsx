@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode }
 import { Icon } from './Icon'
 import type { ContractSignature, Settings } from '../types'
 import { useAccess } from '../access'
-import { sheetColors } from '../proposalTemplates'
+import { sheetColors, showsLogo } from '../proposalTemplates'
 import { SignatureGlyph } from './SignaturePad'
 
 /* Contrato em folhas A4 (794 × 1123 px). O texto é medido parágrafo por parágrafo
@@ -97,7 +97,7 @@ export function ContractDoc({ s, body, clientName, exclusive, signed }: { s: Set
 }
 
 function ClientContract({ s, body, clientName, has, signed }: { s: Settings; body: string; clientName: string; has: ReturnType<typeof useAccess>['has']; signed?: ContractSignature }) {
-  const colors = sheetColors(s.proposal, has)
+  const colors = sheetColors(s.proposal, has, s)
   const blocks = toBlocks(body)
   const measure = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
@@ -175,7 +175,7 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
           </div>
           {n === 0 && (
             <header className="c-head">
-              {s.proposal.showLogo && s.logo && <img className="c-logo" src={s.logo} alt="" />}
+              {showsLogo(s) && <img className="c-logo" src={s.logo} alt="" />}
               <span className="p-eyebrow">documento</span>
               <h1 className="p-title">contrato</h1>
             </header>

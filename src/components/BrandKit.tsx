@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { ColorPicker } from './ColorPicker'
 import { useStore, DEFAULT_SETTINGS } from '../store'
 import { useAccess } from '../access'
@@ -7,7 +7,7 @@ import { Field, Section } from './ui'
 import { toast } from './dialog'
 import { AvatarGlyph } from './Avatar'
 import { BODY_FONTS, CLIENT_DISPLAY, DISPLAY_FONTS, EXCLUSIVE_FONT, FONT_PAIRS, OWN_FONT, PALETTES, effectiveSettings, paletteToProposal, type Palette } from '../brand'
-import { resolveTemplate } from '../proposalTemplates'
+import { resolveTemplate, followsBrand } from '../proposalTemplates'
 import type { Settings } from '../types'
 
 /* Identidade visual do estúdio: paletas prontas, combinações de fontes, cartela de fontes,
@@ -29,19 +29,29 @@ export function BrandKit() {
   const raw = data.settings
   const s = effectiveSettings(raw, has) // o que está valendo de verdade
   const pdf = has('propostaPdf')
-  const [toPdf, setToPdf] = useState(true)
+  const follow = followsBrand(raw.proposal, has)
+  const logoRef = useRef<HTMLInputElement>(null)
+  const onLogo = (f?: File) => {
+    if (!f) return
+    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB.')
+    const r = new FileReader()
+    r.onload = () => {
+      setSettings({ logo: String(r.result) })
+      toast('Logotipo aplicado nos modelos.')
+    }
+    r.readAsDataURL(f)
+  }
   const fontRef = useRef<HTMLInputElement>(null)
   const exclusive = has('fonteExclusiva')
   const tpl = resolveTemplate(raw.proposal, has)
 
-  // aplica também na proposta (cores e fontes), fixando o modelo atual
-  const withProposal = (patch: Partial<Settings>, proposal: Partial<Settings['proposal']>): Partial<Settings> =>
-    pdf && toPdf && tpl.id !== 'lais' ? { ...patch, proposal: { ...raw.proposal, ...proposal, template: tpl.id } } : patch
+  // seguindo a identidade, os modelos acompanham sozinhos; aqui só muda o sistema
+  const withProposal = (patch: Partial<Settings>, _proposal: Partial<Settings['proposal']>): Partial<Settings> => patch
 
   const pickPalette = (p: Palette) => {
     const colors = { accent: p.accent, accentSoft: p.accentSoft, accentInk: p.accentInk, background: p.background, surface: p.surface, text: p.text }
     setSettings(withProposal(colors, paletteToProposal(p)))
-    toast(`Paleta “${p.name}” aplicada${pdf && toPdf && tpl.id !== 'lais' ? ' no sistema e na proposta' : ''}.`)
+    toast(`Paleta “${p.name}” aplicada${pdf && follow ? ' no sistema e nos modelos' : ''}.`)
   }
   const pickDisplay = (name: string) => setSettings(withProposal({ displayFont: name }, { serif: name }))
   const pickBody = (name: string) => setSettings(withProposal({ bodyFont: name }, { sans: name }))
@@ -78,19 +88,25 @@ export function BrandKit() {
       </p>
       {pdf && tpl.id !== 'lais' && (
         <label className="check toggle">
-          <input type="checkbox" checked={toPdf} onChange={(e) => setToPdf(e.target.checked)} /> aplicar também na proposta e no contrato em PDF
+          <input type="checkbox" checked={follow} onChange={(e) => setSettings({ proposal: { ...raw.proposal, followBrand: e.target.checked, template: tpl.id } })} /> os modelos (proposta, contrato, documentos e slides) usam estas cores e fontes
         </label>
       )}
 
       <h4 className="bk-sub">seu logo</h4>
       <div className="bk-logo">
         {raw.logo ? <img src={raw.logo} alt="Seu logo" /> : <span className="profile-chip-avatar"><AvatarGlyph s={raw} size={22} /></span>}
-        <a className="btn small" href="#/perfil">
-          <Icon name="upload" size={14} /> {raw.logo ? 'trocar logo' : 'enviar logo'}
-        </a>
+        <button type="button" className="btn small" onClick={() => logoRef.current?.click()}>
+          <Icon name="upload" size={14} /> {raw.logo ? 'trocar logotipo' : 'anexar logotipo'}
+        </button>
+        {raw.logo && (
+          <button type="button" className="link small" onClick={() => setSettings({ logo: '' })}>
+            tirar
+          </button>
+        )}
+        <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => (onLogo(e.target.files?.[0]), (e.target.value = ''))} />
         {pdf && raw.logo && tpl.id !== 'lais' && (
           <label className="check">
-            <input type="checkbox" checked={!!raw.proposal.showLogo} onChange={(e) => setSettings({ proposal: { ...raw.proposal, showLogo: e.target.checked } })} /> mostrar o logo na proposta e no contrato
+            <input type="checkbox" checked={raw.proposal.showLogo !== false} onChange={(e) => setSettings({ proposal: { ...raw.proposal, showLogo: e.target.checked } })} /> mostrar o logotipo em todos os modelos
           </label>
         )}
       </div>

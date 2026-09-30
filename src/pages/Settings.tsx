@@ -18,7 +18,7 @@ import { CLOUD } from '../cloud'
 import { BrandKit } from '../components/BrandKit'
 import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
 import { useAccess } from '../access'
-import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
+import { TEMPLATES, followsBrand, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
 import { WORK_PROFILES } from '../clientDefaults'
 import { PLANS } from '../plans'
@@ -344,7 +344,8 @@ function ProposalSettings() {
   const s = data.settings
   const tpl = resolveTemplate(s.proposal, has)
   // cores que a folha usa de verdade; ao editar, o modelo fica fixado nesta conta
-  const p = sheetColors(s.proposal, has)
+  const p = sheetColors(s.proposal, has, s)
+  const follow = followsBrand(s.proposal, has)
   const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch, template: tpl.id } })
   const [mode, setMode] = useState<'escopo' | 'opcoes'>('escopo')
   const sample: Quote = {
@@ -397,6 +398,24 @@ function ProposalSettings() {
             <Field label="Título">
               <input value={p.title} onChange={(e) => setP({ title: e.target.value })} />
             </Field>
+            {tpl.id !== 'lais' && has('identidade') && (
+              <div className="span-3 follow-brand">
+                <label className="check toggle">
+                  <input type="checkbox" checked={follow} onChange={(e) => setSettings({ proposal: { ...s.proposal, ...(e.target.checked ? {} : { ink: p.ink, rose: p.rose, arch: p.arch, bar: p.bar, paper: p.paper, serif: p.serif, sans: p.sans }), followBrand: e.target.checked, template: tpl.id } })} /> usar as cores e fontes da minha identidade
+                </label>
+                <p className="muted small">
+                  {follow ? (
+                    <>
+                      Proposta, contrato, documentos e slides seguem o que você escolheu em <b>aparência</b>. Mudou lá, muda aqui.
+                    </>
+                  ) : (
+                    'Desligado: os modelos usam as cores e fontes abaixo, só deles.'
+                  )}
+                </p>
+              </div>
+            )}
+            {!follow && (
+            <>
             <Field label="Fonte dos títulos">
               <select value={p.serif} onChange={(e) => setP({ serif: e.target.value })}>
                 {[...(has('fonteExclusiva') ? [EXCLUSIVE_FONT] : []), ...DISPLAY_FONTS.map((f) => f.name)].map((f) => (
@@ -411,6 +430,8 @@ function ProposalSettings() {
                 ))}
               </select>
             </Field>
+            </>
+            )}
             <Field label="Prazos e cronograma (padrão)" span={3}>
               <textarea className="auto-grow" rows={1} value={p.schedule} onChange={(e) => setP({ schedule: e.target.value.replace(/\n/g, ' ') })} />
             </Field>
@@ -426,7 +447,7 @@ function ProposalSettings() {
             <Field className="cfg-card-fee" label="Taxa do cartão de crédito (%)" hint="Quanto a maquininha / Mercado Pago desconta para você receber na hora. Entra como despesa quando o cliente paga no crédito. Confira o valor na sua conta.">
               <input type="number" min={0} max={20} step={0.01} value={s.cardFee ?? DEFAULT_CARD_FEE} onChange={(e) => setSettings({ cardFee: Math.max(0, Math.min(20, Number(e.target.value) || 0)) })} />
             </Field>
-            {(
+            {!follow && (
               [
                 ['ink', 'Textos'],
                 ['rose', 'Rótulos e detalhes'],

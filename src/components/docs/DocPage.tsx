@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { showsLogo } from '../../proposalTemplates'
 import type { Settings } from '../../types'
 
 /* Uma folha de documento com o "jeito" do modelo escolhido nas configurações:
@@ -18,7 +19,7 @@ export function DocPage({ s, n, total, look, kind = 'a4', className = '', childr
             <i />
             <b>{look === 'editorial' ? String(n).padStart(2, '0') : brand}</b>
           </span>
-          {s.logo && kind !== 'poster' ? <img className="d-logo" src={s.logo} alt="" /> : <span className="d-brand">{brand}</span>}
+          {showsLogo(s) && kind !== 'poster' ? <img className="d-logo" src={s.logo} alt="" /> : <span className="d-brand">{brand}</span>}
         </>
       )}
       <div className="d-body">{children}</div>

@@ -19,7 +19,7 @@ import '../docs.css'
 export function useDocLook(s: Settings) {
   const { has } = useAccess()
   const tpl = resolveTemplate(s.proposal, has)
-  const p = sheetColors(s.proposal, has)
+  const p = sheetColors(s.proposal, has, s)
   const style = {
     '--d-ink': p.ink,
     '--d-accent': p.rose,

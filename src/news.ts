@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-modelos-identidade',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'modelos com a sua identidade',
+    text: 'Proposta, contrato, documentos e slides agora seguem as cores e fontes que você escolheu para o sistema: mudou a paleta, muda tudo junto. O logotipo pode ser anexado direto em aparência e aparece em todos os modelos.',
+    steps: [{ page: 'config', configTab: 'aparencia', text: 'Em configurações → aparência, escolha a paleta e anexe o logotipo.' }],
+  },
+  {
     id: '2026-09-30-rascunhos',
     date: '2026-09-30',
     kind: 'melhoria',

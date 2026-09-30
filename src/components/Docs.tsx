@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import { useAccess } from '../access'
-import { resolveTemplate, sheetColors } from '../proposalTemplates'
+import { resolveTemplate, sheetColors, showsLogo } from '../proposalTemplates'
 import { ProposalSlides } from './Slides'
 import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings, SiteVisit } from '../types'
 import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower } from '../utils'
@@ -103,7 +103,7 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
       </div>
       <div className="p-body">
         {/* logo do estúdio no canto (opção em configurações → aparência) */}
-        {s.proposal.showLogo && s.logo && tpl.id !== 'lais' && <img className="p-logo" src={s.logo} alt="" />}
+        {showsLogo(s) && tpl.id !== 'lais' && <img className="p-logo" src={s.logo} alt="" />}
         {children}
       </div>
     </article>
@@ -113,7 +113,7 @@ function Sheet({ s, year, children, fit, barName }: { s: Settings; year: string;
 /** Modelo e cores que valem para esta conta. */
 function useSheet(s: Settings) {
   const { has } = useAccess()
-  return { tpl: resolveTemplate(s.proposal, has), p: sheetColors(s.proposal, has) }
+  return { tpl: resolveTemplate(s.proposal, has), p: sheetColors(s.proposal, has, s) }
 }
 
 /* ============================================================
@@ -135,7 +135,7 @@ function ClientSheet({ s, tpl, p, eyebrow, title, number, meta, infos, children 
   return (
     <article className={`proposal cdoc cdoc-${tpl}`} style={style}>
       <header className="cd-head">
-        <div className="cd-brand">{s.proposal.showLogo && s.logo ? <img src={s.logo} alt="" /> : <span>{brand}</span>}</div>
+        <div className="cd-brand">{showsLogo(s) ? <img src={s.logo} alt="" /> : <span>{brand}</span>}</div>
         <div className="cd-kind">
           <span className="cd-eyebrow">{eyebrow}</span>
           <h1 className="cd-title">{title}</h1>
