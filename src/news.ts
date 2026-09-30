@@ -29,6 +29,22 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-assinatura',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'contrato assinado pelo celular',
+    text: 'No contrato, a nova seção "assinatura": mande um link e o cliente lê e assina com nome e CPF, com um código ligado ao texto. Prefere validade reforçada? Tem atalho para gov.br, ZapSign, Clicksign, D4Sign, Autentique e DocuSign.',
+    steps: [{ page: 'contratos', text: 'Abra um contrato e veja a seção assinatura.' }],
+  },
+  {
+    id: '2026-09-30-funil-etapas',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'funil do mês e aviso de parcela por etapa',
+    text: 'Em orçamentos, o funil mostra quantos briefings viraram proposta e quantas fecharam. No início, quando uma etapa do cronograma está para terminar, aparece o lembrete com a mensagem pronta avisando a parcela. E dá para esconder o instagram do menu se não usar.',
+    steps: [{ page: 'orcamentos', text: 'Veja o funil do mês.' }],
+  },
+  {
     id: '2026-09-30-estudio-para-todos',
     date: '2026-09-30',
     kind: 'novo',

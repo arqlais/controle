@@ -105,7 +105,8 @@ try {
     ok((await priceOf()) > priceBefore, `${vp.name}: marcar uma planta aumenta o valor pelo m²`)
     // arquivo aberto: soma a taxa interna e muda o texto de entrega, sem falar da taxa no PDF
     const closedPrice = await priceOf()
-    await page.getByRole('button', { name: 'aberto (editável)' }).click(); await page.waitForTimeout(150)
+    await page.locator('.q-more-btn', { hasText: 'arquivo final' }).click(); await page.waitForTimeout(100)
+    await page.getByRole('button', { name: 'aberto (editável)', exact: false }).last().click(); await page.waitForTimeout(150)
     const filesText = await page.locator('.field', { hasText: 'formatos de arquivos entregues' }).locator('input').inputValue()
     ok((await priceOf()) > closedPrice && /aberto/.test(filesText), `${vp.name}: arquivo aberto soma a taxa e muda a entrega`)
     await page.getByRole('button', { name: 'fechado (PDF)' }).click(); await page.waitForTimeout(150)
@@ -114,6 +115,7 @@ try {
     await page.getByRole('button', { name: 'Mais um pavimento' }).click(); await page.waitForTimeout(150)
     ok((await priceOf()) > onePrice, `${vp.name}: 2 pavimentos encarecem o executivo`)
     await page.getByRole('button', { name: 'Menos um pavimento' }).click(); await page.waitForTimeout(150)
+    await page.locator('.q-item').nth(1).locator('.q-more-btn').click(); await page.waitForTimeout(100)
     await page.locator('.q-item').nth(1).getByText('cobrar junto com o serviço de cima').click(); await page.waitForTimeout(200)
     ok((await page.getByText('Somado ao valor do serviço 01').count()) === 1, `${vp.name}: cobrar dois serviços juntos`)
 

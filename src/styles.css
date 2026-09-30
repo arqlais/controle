@@ -1908,3 +1908,4 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .topbar > .search:focus-within { position: absolute; left: 12px; right: 12px; max-width: none; z-index: 5; }
   .topbar > .search:focus-within input::placeholder { color: var(--muted); }
 }
+.manual-more { margin-top: 10px; }

@@ -166,12 +166,12 @@ export default function App() {
     const order = settings.navOrder
     const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
     // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
-    return NAV.filter((n) => (!NEEDS[n.page] || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off)).sort((a, b) => {
+    return NAV.filter((n) => (!NEEDS[n.page] || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff)).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
     })
-  }, [settings.navOrder, settings.contracts?.off, access])
+  }, [settings.navOrder, settings.contracts?.off, settings.instagramOff, access])
   // grupos à parte, no fim do menu: plataforma (só a dona), sua conta (clientes) e ajustes e dicas
   const groups = useMemo(
     () =>

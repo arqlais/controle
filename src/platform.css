@@ -1963,3 +1963,27 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 @media (max-width: 900px) { .sg-ways { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { .sg-sites { grid-template-columns: 1fr; } }
 a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-content: center; }
+
+/* orçamentos: funil do mês */
+.funnel { display: grid; gap: 10px; }
+.funnel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.funnel-head .small { min-width: 120px; text-align: center; }
+.funnel-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.funnel-steps li { position: relative; min-height: 30px; display: flex; align-items: center; }
+.funnel-bar { position: absolute; inset: 0 auto 0 0; border-radius: calc(var(--radius) * 0.6); background: var(--accent-tint); transition: width .4s; }
+.funnel-steps li:last-child .funnel-bar { background: color-mix(in srgb, #5e8c6a 18%, transparent); }
+.funnel-text { position: relative; display: flex; align-items: center; gap: 6px; padding: 0 10px; font-size: 13px; white-space: nowrap; }
+.funnel-text svg { color: var(--accent-ink); }
+.funnel-text small { color: var(--muted); font-size: 11.5px; }
+.funnel-note { margin: 0; }
+.q-more-btn { justify-self: start; text-align: left; padding: 2px 0; text-transform: none; }
+.lp-mobile-note { display: none; }
+@media (max-width: 720px) {
+  /* topo mais curto: o painel de exemplo aparece só em parte, sem os três balões */
+  .lp-hero { padding-bottom: 12px; }
+  .lp-hero-art { max-height: 300px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); padding-bottom: 0; }
+  .lp-hero-art .lp-float-2, .lp-hero-art .lp-float-3 { display: none; }
+  .lp-hero .lp-lead { font-size: 15px; }
+  .lp-mobile-note { display: flex; gap: 6px; align-items: flex-start; margin: 2px 0 0; color: var(--muted); line-height: 1.45; }
+  .lp-mobile-note svg { flex: none; margin-top: 2px; }
+}

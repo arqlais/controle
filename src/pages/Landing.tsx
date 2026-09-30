@@ -317,6 +317,9 @@ export default function Landing() {
               </button>
             </div>
             <p className="muted small">sem cartão · cancele quando quiser</p>
+            <p className="lp-mobile-note small">
+              <Icon name="smartphone" size={13} /> o dia a dia funciona todo no celular; montar PDF, contrato e documentos fica mais confortável no computador ou tablet.
+            </p>
           </div>
           <div className="lp-hero-art" aria-hidden>
             <Frame>

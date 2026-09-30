@@ -189,6 +189,8 @@ export default function Quotes() {
         <Stat label="Valor aprovado" value={money(sum(approved, (x) => quoteDeal(x, fee)))} sub={approved.length ? `ticket médio ${money(sum(approved, (x) => quoteDeal(x, fee)) / approved.length)}` : undefined} icon="check" tone="good" />
       </div>
 
+      <Funnel />
+
       {data.quotes.length > 0 && (
         <section className="card status-mix" aria-label="Orçamentos por status">
           <div className="mix-bar">
@@ -435,5 +437,63 @@ function NumberingModal({ onClose }: { onClose: () => void }) {
         )}
       </div>
     </Modal>
+  )
+}
+
+/** Funil do mês: quantos briefings viraram proposta e quantas propostas fecharam. */
+function Funnel() {
+  const { data } = useStore()
+  const [month, setMonth] = useState(() => today().slice(0, 7))
+  const inMonth = (iso?: string | null) => !!iso && iso.slice(0, 7) === month
+  const briefs = (data.briefings ?? []).filter((b) => inMonth(b.createdAt))
+  const answered = briefs.filter((b) => b.status === 'respondido')
+  const made = data.quotes.filter((q) => inMonth(q.createdAt) && !q.imported && !q.noNumber)
+  const sent = made.filter((q) => q.status !== 'rascunho')
+  const closed = made.filter((q) => q.status === 'aprovado')
+  if (!briefs.length && !made.length) return null
+  const steps: [string, number, string][] = [
+    ...(briefs.length ? ([['briefings enviados', briefs.length, 'clip'], ['respondidos', answered.length, 'check']] as [string, number, string][]) : []),
+    ['propostas feitas', made.length, 'file'],
+    ['enviadas', sent.length, 'whatsapp'],
+    ['fechadas', closed.length, 'target'],
+  ]
+  const top = Math.max(...steps.map((x) => x[1]), 1)
+  const shift = (n: number) => {
+    const d = new Date(`${month}-15T12:00:00`)
+    d.setMonth(d.getMonth() + n)
+    setMonth(d.toISOString().slice(0, 7))
+  }
+  const label = new Date(`${month}-15T12:00:00`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+  return (
+    <section className="card funnel" aria-label="Funil do mês">
+      <div className="funnel-head">
+        <b>funil do mês</b>
+        <div className="row gap-s">
+          <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior">
+            <Icon name="chevronL" size={15} />
+          </button>
+          <span className="small">{label}</span>
+          <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês" disabled={month >= today().slice(0, 7)}>
+            <Icon name="chevronR" size={15} />
+          </button>
+        </div>
+      </div>
+      <ol className="funnel-steps">
+        {steps.map(([name, n, icon], i) => {
+          const prev = i ? steps[i - 1][1] : 0
+          return (
+            <li key={name}>
+              <span className="funnel-bar" style={{ width: `${Math.max(8, (n / top) * 100)}%` }} />
+              <span className="funnel-text">
+                <Icon name={icon} size={14} />
+                <b>{n}</b> {name}
+                {i > 0 && prev > 0 && <small>{Math.round((n / prev) * 100)}%</small>}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      {made.length > 0 && <p className="muted small funnel-note">{closed.length ? `De cada 10 propostas deste mês, ${Math.round((closed.length / made.length) * 10)} fecharam.` : 'Nenhuma proposta deste mês fechou ainda.'}</p>}
+    </section>
   )
 }

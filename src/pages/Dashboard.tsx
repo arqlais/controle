@@ -339,8 +339,31 @@ function TodoList() {
           : { label: 'marcar pago', onClick: () => upsert('projects', { ...project, payments: project.payments.map((x) => (x.id === pay.id ? { ...x, paidDate: today() } : x)) }) },
       })
     }
+    // cliente final: etapa do cronograma perto do fim com parcela ligada → avisar o cliente antes
+    for (const p of data.projects) {
+      if (!isOpen(p)) continue
+      for (const f of p.phases ?? []) {
+        if (f.done || !f.due || !f.paymentId) continue
+        const pay = p.payments.find((x) => x.id === f.paymentId)
+        const d = daysUntil(f.due)
+        if (!pay || pay.paidDate || d > 3 || d < -7) continue
+        const c = client(p.clientId)
+        const when = d < 0 ? `atrasada ${-d} dia${d === -1 ? '' : 's'}` : d === 0 ? 'termina hoje' : `termina em ${d} dia${d === 1 ? '' : 's'}`
+        const pix = data.settings.pixKey ? ` A chave pix é ${data.settings.pixKey}.` : ''
+        const text = `Oi, ${c?.name.split(' ')[0] ?? ''}! Passando para avisar que a etapa "${f.name}" do seu projeto fica pronta até ${fmtDate(f.due)}. Conforme combinamos, a parcela de ${money(pay.amount)} é paga na entrega dela.${pix} Qualquer dúvida, me chama!`
+        out.push({
+          key: `ph-${f.id}`,
+          tone: d < 0 ? 'warn' : 'info',
+          icon: 'layers',
+          title: `Etapa ${f.name} ${when} · parcela ${money(pay.amount)}`,
+          sub: `${c?.name ?? ''} · ${p.title} · avise antes da entrega`,
+          link: href('projetos', p.id),
+          action: c?.phone ? { label: 'avisar', href: whatsappLink(c.phone, text), icon: 'whatsapp' } : undefined,
+        })
+      }
+    }
     // instagram: postagens de hoje (ou atrasadas) ainda não postadas
-    for (const post of (data.posts ?? []).filter((x) => x.date && x.date <= today() && x.date >= addDays(today(), -3) && x.status !== 'postado')) {
+    for (const post of (data.settings.instagramOff ? [] : data.posts ?? []).filter((x) => x.date && x.date <= today() && x.date >= addDays(today(), -3) && x.status !== 'postado')) {
       out.push({
         key: `ig-${post.id}`,
         tone: post.date < today() ? 'warn' : 'info',

@@ -349,7 +349,9 @@ export function deadlineInfo(p: Project): { text: string; tone: 'good' | 'warn' 
 export const payWhen = (x: Payment): 'fechamento' | 'conclusao' => x.on ?? (/saldo|aprova|conclus|entrega/i.test(x.description) ? 'conclusao' : 'fechamento')
 export const PAY_WHEN = { fechamento: 'no fechamento', conclusao: 'na conclusão' } as const
 /** Já dá para cobrar: sinal em aberto, ou saldo em aberto com a demanda em aprovação/entregue. */
-export const paymentDue = (x: Payment, p?: Project) => !x.paidDate && (x.monthly ? !!x.dueDate && daysUntil(x.dueDate) <= 3 : payWhen(x) === 'fechamento' || (!!p && (p.status === 'aguardando' || p.status === 'entregue')))
+// parcela ligada a uma etapa do cronograma (cliente final): vira "a cobrar" quando a etapa termina
+const phaseDone = (x: Payment, p?: Project) => !!p?.phases?.some((f) => f.paymentId === x.id && f.done)
+export const paymentDue = (x: Payment, p?: Project) => !x.paidDate && (x.monthly ? !!x.dueDate && daysUntil(x.dueDate) <= 3 : payWhen(x) === 'fechamento' || phaseDone(x, p) || (!!p && (p.status === 'aguardando' || p.status === 'entregue')))
 
 export type PaymentState = 'pago' | 'cobrar' | 'pendente'
 export const paymentState = (x: Payment, p?: Project): PaymentState => (x.paidDate ? 'pago' : paymentDue(x, p) ? 'cobrar' : 'pendente')

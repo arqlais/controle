@@ -95,6 +95,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const found = data.quotes.find((q) => q.id === id)
   // rascunho: serviços que seguem a tabela abrem com o valor atual da tabela (enviados ficam como foram mandados)
   const [fresh] = useState(() => (found ? freshPrices(found, data.settings, isStudent(data.clients.find((c) => c.id === found.clientId))) : undefined))
+  const [showFile, setShowFile] = useState(false) // "arquivo final" fica recolhido até ser usado
   const existing = fresh ?? found
   const [q, setQ] = useState<Quote>(
     () =>
@@ -654,7 +655,12 @@ export default function QuoteEditor({ id }: { id: string }) {
                   </label>
                 </div>
               )}
-              {!isFinal && <Field
+              {!isFinal && !q.openFile && !showFile && (
+                <button type="button" className="link small q-more-btn span-2" onClick={() => setShowFile(true)}>
+                  + arquivo final aberto (editável)?
+                </button>
+              )}
+              {!isFinal && (q.openFile || showFile) && <Field
                 group
                 label="Arquivo final"
                 span={2}
@@ -1176,6 +1182,8 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 /** Lista de serviços com preço pela tabela, desconto por unidade e valor editável. */
 function ItemsEditor({ items, student, openFile, floors, area = 0, settings, audience, onChange }: { audience: QuoteAudience; items: QuoteItem[]; student: boolean; openFile: boolean; floors: number; area?: number; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
   const service = (sid: string) => settings.services.find((s) => s.id === sid)
+  // opções pouco usadas (cobrar junto, desconto por unidade) ficam em "mais opções" até serem usadas
+  const [more, setMore] = useState<string[]>([])
 
   const recompute = (it: QuoteItem): QuoteItem => {
     const s = service(it.service)
@@ -1262,7 +1270,18 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, aud
                   autoCorrect="on"
                 />
               </Field>
-              {n > 0 && (
+              {(() => {
+                const canJoin = n > 0
+                const canDiscount = !it.joined && !byList && !!s && (s.pricing === 'pacote' || s.pricing === 'unidade')
+                const open = more.includes(it.id) || !!it.joined || !!it.unitDiscount
+                if (!(canJoin || canDiscount) || open) return null
+                return (
+                  <button type="button" className="link small q-more-btn span-2" onClick={() => setMore([...more, it.id])}>
+                    + mais opções ({[canDiscount && 'desconto', canJoin && 'cobrar junto'].filter(Boolean).join(', ')})
+                  </button>
+                )
+              })()}
+              {n > 0 && (more.includes(it.id) || !!it.joined || !!it.unitDiscount) && (
                 <div className="field span-2">
                   <label className="check toggle">
                     <input type="checkbox" checked={!!it.joined} onChange={(e) => {
@@ -1288,7 +1307,7 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, aud
                   </label>
                 </div>
               )}
-              {!it.joined && !byList && s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (
+              {!it.joined && !byList && s && (s.pricing === 'pacote' || s.pricing === 'unidade') && (more.includes(it.id) || !!it.unitDiscount) && (
                 <Field label={`Desconto por ${s.unit}`} hint={it.unitDiscount ? `fica ${money(Math.max(0, rate - it.unitDiscount))}/${s.unit}` : 'opcional'}>
                   <MoneyInput value={it.unitDiscount ?? 0} onChange={(v) => setItem(it.id, { unitDiscount: v, auto: true })} />
                 </Field>

@@ -1,4 +1,4 @@
-import { isValidElement, type ReactNode } from 'react'
+import { isValidElement, useState, type ReactNode } from 'react'
 import { useKeep } from '../keep'
 import { useAccess } from '../access'
 import { go } from '../router'
@@ -187,6 +187,7 @@ const FINAL_STEPS: Step[] = [
     todo: [
       <>No orçamento aprovado, <b>gerar contrato</b>: o modelo já vem sugerido pelo tipo do serviço (interiores, arquitetônico, reforma, consultoria…), com etapas, prazos e forma de pagamento preenchidos.</>,
       <>Os seus modelos ficam na lateral de <b>contratos</b>; os que você não usa podem ser excluídos (e restaurados).</>,
+      <>Para assinar: <b>criar link de assinatura</b> (o cliente assina no celular com nome e CPF) ou assine por um site como <b>gov.br</b> ou <b>ZapSign</b> e registre aqui.</>,
     ],
   },
   {
@@ -260,9 +261,10 @@ const TOOLS: { icon: IconName; name: string; text: string; page: string; feature
 
 const firstPlanWith = (f?: Feature): PlanId => (f ? PLAN_LIST.find((p) => p.features.includes(f))?.id ?? 'estudio' : 'essencial')
 
-const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: PlanId }[] = [ // owner: só aparece para a dona; plan: a partir de qual plano
+const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: PlanId; top?: boolean }[] = [ // owner: só aparece para a dona; plan: a partir de qual plano
   {
     q: 'A cliente pediu algo a mais depois de fechar',
+    top: true,
     a: <>Na demanda, em <b>pagamentos → + adicional</b>. Escolha somar na parcela em aberto (ex.: saldo) ou cobrar à parte. Vale para qualquer serviço; quando for por unidade (o mais comum: imagens), marque <b>calcular por quantidade</b> (ex.: 15 × R$ 35,00).</>,
     page: 'projetos',
   },
@@ -274,6 +276,7 @@ const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: P
   },
   {
     q: 'Negociamos e fechou por outro valor',
+    top: true,
     a: <>Na hora de aprovar, troque o valor em <b>Fechou por quanto?</b>. A lista de orçamentos mostra o valor fechado com o proposto riscado.</>,
     page: 'orcamentos',
   },
@@ -289,6 +292,7 @@ const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: P
   },
   {
     q: 'Quero mudar o texto das mensagens',
+    top: true,
     a: <><b>configurações → aba mensagens</b> (no computador). As palavras entre chaves, como {'{cliente}'} e {'{valor}'}, são preenchidas sozinhas. Na barrinha em cima de cada texto: <b>N</b> (negrito), <b>I</b> (itálico), <b>S</b> (riscado) e emojis; embaixo aparece como vai ficar no WhatsApp.</>,
     page: 'config',
   },
@@ -299,6 +303,7 @@ const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: P
   },
   {
     q: 'Mudar a fase de uma demanda',
+    top: true,
     a: <>Pelo status no cartão, na lista, dentro da demanda ou arrastando entre colunas. Nas trocas importantes o sistema pergunta antes: ao <b>entregar</b>, a data de entrega, o que já foi pago e se conclui as etapas; ao ir para <b>em execução</b>, se o sinal já foi pago; ao <b>cancelar</b>, pede confirmação. O cartão mostra o cliente, o nº da proposta e o prazo em palavras (faltam X dias, entrega hoje, atrasado X dias).</>,
   },
   {
@@ -321,6 +326,7 @@ const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: P
   },
   {
     q: 'Lançar um gasto (software, equipamento, curso…)',
+    top: true,
     a: <><b>+ novo → Despesa</b>. Aparece no financeiro e entra no lucro do mês.</>,
     page: 'financeiro',
   },
@@ -339,13 +345,22 @@ const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: P
   },
   {
     q: 'Não acho uma cliente, demanda ou orçamento',
+    top: true,
     a: <>Use a <b>busca</b> no topo (ou Ctrl + K no computador). Procura por nome, empresa, título e número.</>,
   },
 ]
 
 CASES.push(
   {
+    q: 'Mandar o contrato para o cliente assinar',
+    top: true,
+    plan: 'completo',
+    a: <>No contrato, seção <b>assinatura</b>. <b>Pelo link do traço</b>: crie o link e mande no WhatsApp; o cliente lê, digita nome e CPF e aceita, e manda a confirmação de volta. Cole essa mensagem em <b>registrar assinatura</b>: o contrato fica assinado e a assinatura aparece no PDF. Quer validade reforçada? Use <b>por um site de assinatura</b> (gov.br, ZapSign, Clicksign…): baixe o PDF, assine lá e registre aqui quando voltar.</>,
+    page: 'contratos',
+  },
+  {
     q: 'Cadastrar um cliente antigo (trabalho que já terminou)',
+    top: true,
     a: <>No orçamento, em <b>nº e data</b>, marque <b>orçamento antigo, sem número</b> e coloque a data em que o trabalho foi feito e aprove. A conclusão e os pagamentos vêm com essa mesma data, já como pagos; dá para mudar qualquer um. No <b>financeiro</b>, o aviso de trabalhos antigos lança tudo de uma vez.</>,
     page: 'financeiro',
   },
@@ -356,6 +371,7 @@ CASES.push(
   },
   {
     q: 'O cliente respondeu o briefing e não apareceu',
+    top: true,
     plan: 'estudio',
     a: <>No fim do formulário, se a nuvem não confirmar, o cliente envia pelo WhatsApp uma mensagem com o <b>código das respostas</b>. Copie a mensagem inteira e cole em <b>briefings → colar respostas</b>: tudo entra na ficha.</>,
     page: 'briefings',
@@ -512,6 +528,9 @@ export default function Manual() {
   const prefix = isFinal ? 'f' : 's'
   const done = steps.filter((s) => seen.includes(prefix + s.n)).length
   const finalLocked = isFinal && plan !== 'estudio'
+  const [allCases, setAllCases] = useState(false)
+  // as mais procuradas primeiro; o resto em "ver todas"
+  const cases = CASES.filter((c) => (isOwner || !c.owner) && (!c.plan || rank(c.plan) <= rank(plan))).sort((a, b) => Number(!!b.top) - Number(!!a.top))
 
   return (
     <div className="page manual">
@@ -616,7 +635,7 @@ export default function Manual() {
       <section className="card">
         <h3>quando acontecer…</h3>
         <div className="manual-cases">
-          {CASES.filter((c) => (isOwner || !c.owner) && (!c.plan || rank(c.plan) <= rank(plan))).map((c) => (
+          {cases.slice(0, allCases ? undefined : 10).map((c) => (
             <details key={c.q} className="manual-case">
               <summary>{c.q}</summary>
               <p>{c.a}</p>
@@ -628,6 +647,11 @@ export default function Manual() {
             </details>
           ))}
         </div>
+        {cases.length > 10 && (
+          <button className="btn ghost small manual-more" onClick={() => setAllCases(!allCases)}>
+            {allCases ? 'mostrar só as principais' : `ver todas as ${cases.length} dúvidas`}
+          </button>
+        )}
       </section>
 
       <div className="grid-2 is-even">

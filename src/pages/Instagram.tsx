@@ -4,7 +4,8 @@ import { useStore } from '../store'
 import { useKeep } from '../keep'
 import { Icon } from '../components/Icon'
 import { Field, Modal, MonthPicker, Section, Segmented } from '../components/ui'
-import { askDelete, toast } from '../components/dialog'
+import { ask, askDelete, toast } from '../components/dialog'
+import { go } from '../router'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
 import { CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
@@ -58,7 +59,7 @@ const copy = (text: string, what = 'Texto') =>
 const fullCaption = (p: SocialPost) => [p.caption, p.cta && `→ ${p.cta}`, p.hashtags].filter(Boolean).join('\n\n')
 
 export default function Instagram() {
-  const { data, upsert } = useStore()
+  const { data, upsert, setSettings } = useStore()
   const s = data.settings
   const posts = data.posts ?? []
   // ideias prontas e estratégia são do conteúdo da Laís: quem assina monta o próprio plano
@@ -130,6 +131,9 @@ export default function Instagram() {
           </h1>
         </div>
         <div className="row gap-s wrap">
+          <button className="btn ghost" onClick={async () => (await ask('Esconder o instagram do menu? Nada é apagado; dá para ligar de novo em configurações → propostas.', { confirmLabel: 'Não uso o instagram' })) && (setSettings({ instagramOff: true }), go('inicio'))}>
+            não uso
+          </button>
           <button className="btn ghost" onClick={() => setEdit(blank(month === today().slice(0, 7) ? today() : `${month}-01`))}>
             <Icon name="plus" size={16} /> postagem
           </button>

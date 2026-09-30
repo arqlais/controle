@@ -754,6 +754,16 @@ function ProposalChooser() {
           </p>
         </>
       )}
+      {has('instagram') && (
+        <>
+          <label className="check toggle">
+            <input type="checkbox" checked={!data.settings.instagramOff} onChange={(e) => setSettings({ instagramOff: !e.target.checked })} /> usar o planejamento do instagram
+          </label>
+          <p className="muted small" style={{ marginTop: 4 }}>
+            {data.settings.instagramOff ? 'Desligado: o instagram some do menu e do início (nada é apagado).' : 'Calendário de postagens com artes prontas, no menu “instagram”.'}
+          </p>
+        </>
+      )}
     </Section>
   )
 }

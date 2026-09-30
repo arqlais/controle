@@ -520,6 +520,7 @@ export interface Settings {
   navOrder: string[] // ordem do menu lateral
   messages: MessageTemplate[] // mensagens padrão para o cliente
   contracts?: ContractSettings // modelos de contrato (plano Completo)
+  instagramOff?: boolean // não usa o planejamento do instagram (some do menu)
 }
 
 export interface Data {
