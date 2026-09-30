@@ -1,4 +1,11 @@
 import { PLATFORM } from './plans'
+import { NEWS } from './news'
+
+/** Prévia "ver como cliente": já viu tudo menos a atualização mais recente. */
+const previewSeenNews = () => {
+  const last = NEWS.reduce((m, n) => (n.date > m ? n.date : m), '')
+  return NEWS.filter((n) => n.date < last).map((n) => n.id)
+}
 import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS, servicesFor } from './clientDefaults'
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
@@ -598,7 +605,9 @@ const hasContent = (d: Data) => !d.demo && (d.clients.length > 0 || d.projects.l
 export function StoreProvider({ children, userId, userEmail = '', preview = false }: { children: ReactNode; userId?: string; userEmail?: string; preview?: boolean }) {
   // preview: "ver como cliente" da dona — conta nova de cliente só em memória (nada é salvo)
   const cloud = CLOUD && !!userId && !preview
-  const [data, setData] = useState<Data>(() => (preview ? { ...emptyData(), settings: { ...clientSettings(DEFAULT_SETTINGS), brandName: 'estúdio exemplo', ownerName: 'Ana' } } : load(userId)))
+  // "ver como cliente": como uma assinante que já usa o sistema e ainda não viu a última atualização
+  // (as novidades da atualização mais recente abrem sozinhas, igual abrem para quem assina)
+  const [data, setData] = useState<Data>(() => (preview ? { ...emptyData(), settings: { ...clientSettings(DEFAULT_SETTINGS), brandName: 'estúdio exemplo', ownerName: 'Ana', welcomed: true, tour: 'feito', newsSeen: previewSeenNews() } } : load(userId)))
   const [agenda, setAgenda] = useState<AgendaStatus>({ state: 'idle' })
   const agendaSent = useRef('')
   const publishAgendaFor = useCallback(
