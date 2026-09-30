@@ -1,5 +1,74 @@
 import type { ContractTemplate } from './types'
 
+/* ---------------- cliente final: projeto em etapas (puxa as etapas, os prazos e o pagamento do orçamento) ---------------- */
+
+export const FINAL_CONTRACT: ContractTemplate = {
+  id: 'cliente-final-etapas',
+  name: 'projeto em etapas (cliente final)',
+  body: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PROJETO
+
+CONTRATADA
+{contratada}, {doc_contratada}, com endereço em {endereco_contratada}, e-mail {email_contratada}, telefone {telefone_contratada}.
+
+CONTRATANTE
+{contratante}, {doc_contratante}, com endereço em {endereco_contratante}, e-mail {email_contratante}, telefone {telefone_contratante}.
+
+As partes combinam o seguinte:
+
+1. OBJETO
+1.1 Elaboração do projeto "{projeto}", conforme a proposta {orcamento}, desenvolvido nas etapas descritas abaixo.
+1.2 Serviços incluídos:
+{servicos}
+
+2. ETAPAS DO PROJETO
+2.1 O projeto é feito em etapas. Cada etapa começa depois da aprovação da anterior:
+{etapas}
+2.2 Ao final de cada etapa, a CONTRATANTE aprova o que foi entregue (por escrito, inclusive por mensagem). Voltar a uma etapa já aprovada é considerado alteração de escopo e pode ter custo adicional.
+
+3. PRAZOS
+3.1 Prazo estimado total: {prazo_total}, somando as etapas:
+{cronograma}
+3.2 Os prazos contam a partir do recebimento das informações necessárias (medidas, briefing, arquivos) e da aprovação de cada etapa. O tempo que a CONTRATANTE levar para responder ou aprovar não entra na contagem.
+
+4. VALOR E PAGAMENTO
+4.1 Valor total: {valor} ({valor_extenso}).
+4.2 O pagamento acompanha as etapas:
+{pagamento_etapas}
+4.3 Forma de pagamento: {pagamento}
+4.4 Atrasos no pagamento permitem à CONTRATADA pausar o projeto até a regularização, com os prazos estendidos pelo mesmo período.
+
+5. AJUSTES
+5.1 Estão incluídas até {revisoes} rodada(s) de ajustes em cada etapa.
+5.2 Ajustes além disso, ou mudanças de programa, de área ou de conceito depois da aprovação, são orçados à parte.
+
+6. O QUE NÃO ESTÁ INCLUÍDO (salvo se descrito na proposta)
+6.1 Projetos complementares (estrutural, elétrico, hidráulico, ar-condicionado), aprovações em órgãos públicos e taxas.
+6.2 Execução da obra, compra de materiais e contratação de fornecedores, que são de responsabilidade da CONTRATANTE.
+6.3 Visitas à obra além das combinadas na proposta.
+
+7. OBRIGAÇÕES
+7.1 Da CONTRATADA: desenvolver o projeto com qualidade técnica, cumprir os prazos, manter sigilo sobre as informações recebidas e emitir o registro de responsabilidade técnica quando aplicável.
+7.2 Da CONTRATANTE: fornecer as informações e o acesso ao imóvel, responder e aprovar as etapas em tempo razoável e fazer os pagamentos nas datas combinadas.
+
+8. ENTREGA
+8.1 Arquivos entregues: {arquivos}.
+
+9. DIREITOS AUTORAIS
+9.1 O projeto é obra intelectual da CONTRATADA (Lei 9.610/98). A CONTRATANTE pode usá-lo para executar a obra no endereço combinado, sem repetir em outro local.
+9.2 A CONTRATADA pode usar imagens do projeto em portfólio e redes sociais, sem expor dados pessoais da CONTRATANTE, salvo se ela pedir o contrário por escrito.
+
+10. CANCELAMENTO
+10.1 Qualquer das partes pode encerrar este contrato com aviso de 7 dias.
+10.2 Se o cancelamento partir da CONTRATANTE, as etapas concluídas e a etapa em andamento são devidas; o valor de entrada não é devolvido.
+
+11. FORO
+11.1 Fica eleito o foro da comarca de {foro}.
+
+E, por estarem de acordo, as partes assinam este contrato (inclusive por assinatura eletrônica).
+
+{cidade}, {data}.`,
+}
+
 /* Modelos de contrato.
    - LAIS_CONTRACTS: o modelo da Laís (dona), exclusivo da conta dela. Mesmo texto do contrato
      que ela usa, com os espaços em branco trocados por {variáveis} preenchidas pelo orçamento.
@@ -97,6 +166,7 @@ const executivoLimites = [
 ]
 
 export const LAIS_CONTRACTS: ContractTemplate[] = [
+  FINAL_CONTRACT,
   {
     id: 'lais-render',
     name: 'renderização (visualização 3D)',
@@ -206,7 +276,9 @@ E, por estarem de acordo, as partes assinam este contrato (inclusive por assinat
 
 {cidade}, {data}.`
 
+
 export const CLIENT_CONTRACTS: ContractTemplate[] = [
+  FINAL_CONTRACT,
   {
     id: 'visualizacao',
     name: 'visualização 3D (imagens)',

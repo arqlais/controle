@@ -1,5 +1,6 @@
 import type { Client, ContractSettings, ContractTemplate, Quote, Settings } from './types'
-import { CLIENT_CONTRACTS, LAIS_CONTRACTS } from './contractTemplates'
+import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS } from './contractTemplates'
+import { dayLabel } from './processes'
 import { porExtenso } from './components/Docs'
 import { PAYMENT_TERMS } from './store'
 import { cleanDetail, docKind, money, optionTotal, payerOf, quoteDeal, quoteNumber, shownOptions, showDoc, today, BOTH } from './utils'
@@ -30,6 +31,10 @@ export const CONTRACT_VARS: [string, string][] = [
   ['entrada', 'entrada (50% do valor)'],
   ['saldo', 'saldo (50% do valor)'],
   ['foro', 'cidade do foro'],
+  ['etapas', 'etapas do projeto com o que inclui (cliente final)'],
+  ['cronograma', 'prazo de cada etapa (cliente final)'],
+  ['prazo_total', 'soma dos prazos das etapas'],
+  ['pagamento_etapas', '% e valor de cada etapa (cliente final)'],
   ['revisoes', 'rodadas de ajuste incluídas'],
   ['arquivos', 'formatos entregues'],
   ['orcamento', 'número do orçamento'],
@@ -44,11 +49,18 @@ export const defaultContractSettings = (owner = false): ContractSettings => ({ t
 /** Modelos em uso nesta conta (os editados por ela ou os padrões do perfil). */
 export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
   const cs = s.contracts
-  return cs?.templates?.length ? cs : { ...(cs ?? {}), templates: defaultTemplates(owner) }
+  if (!cs?.templates?.length) return { ...(cs ?? {}), templates: defaultTemplates(owner) }
+  // modelo novo de cliente final (etapas e pagamento por etapa): entra também para quem já editou os seus
+  return cs.templates.some((t) => t.id === FINAL_CONTRACT.id) ? cs : { ...cs, templates: [...cs.templates, FINAL_CONTRACT] }
 }
 
 /** Modelo sugerido pelo serviço do orçamento (renderização, modelagem, executivo, por hora). */
 export function suggestTemplate(templates: ContractTemplate[], q?: Quote) {
+  // cliente final com etapas: o contrato em etapas (puxa etapas, prazos e pagamento)
+  if (q?.audience === 'final') {
+    const t = templates.find((x) => x.id === FINAL_CONTRACT.id) ?? templates.find((x) => /cliente final|etapas/i.test(x.name))
+    if (t) return t
+  }
   const text = (q ? [q.title, ...q.items.map((i) => `${i.service} ${i.title}`), ...q.options.flatMap((o) => o.items.map((i) => `${i.service} ${i.title}`))].join(' ') : '').toLowerCase()
   const want = /render|imagem|visualiza/.test(text) ? /render|visualiza/ : /modelag/.test(text) ? /modelag/ : /execut|detalh|planta/.test(text) ? /execut|detalh|apoio/ : /hora/.test(text) ? /hora/ : null
   return (want && templates.find((t) => want.test(t.name.toLowerCase()))) || templates[0]
@@ -83,7 +95,20 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
   const payer = payerOf(client)
   const addr = (a?: string, n?: string, city?: string) => [a, n, city].filter((x) => x?.trim()).join(', ')
   const total = q ? (q.mode === 'opcoes' && q.chosenOption !== BOTH && !q.closedValue ? optionTotal(shownOptions(q).find((o) => o.id === q.chosenOption) ?? shownOptions(q)[0] ?? { items: [], discount: 0 }) : quoteDeal(q, s.urgencyFee)) : 0
+  const steps = (q?.steps ?? []).filter((x) => x.name.trim())
+  const timed = steps.filter((x) => x.days > 0)
+  const paidSteps = steps.filter((x) => x.percent > 0)
+  const days = timed.reduce((n, x) => n + x.days, 0)
+  const partOf = (pct: number) => (total ? ` (${money(Math.round(total * pct) / 100)})` : '')
+  const stepsVars = {
+    etapas: steps.length ? steps.map((x, i) => `${i + 1}. ${x.name}${x.description ? ` — ${x.description}` : ''}${x.items.length ? `\n   Inclui: ${x.items.join('; ')}.` : ''}`).join('\n') : blank('etapas do projeto'),
+    cronograma: timed.length ? timed.map((x) => `• ${x.name}: ${dayLabel(x)}`).join('\n') : blank('prazo de cada etapa'),
+    prazo_total: days ? `${days} dias` : q?.deadlineDays ? `${q.deadlineDays} dias úteis` : blank('prazo total'),
+    pagamento_etapas: paidSteps.length ? paidSteps.map((x, i) => `• ${x.percent}%${partOf(x.percent)} ${i === 0 ? 'na assinatura deste contrato' : `na entrega da etapa "${x.name}"`}`).join('\n') : blank('pagamento por etapa'),
+  }
+  const first = paidSteps[0]?.percent
   return {
+    ...stepsVars,
     contratante: client ? payer.name : blank('nome do cliente'),
     doc_contratante: payer.doc ? `${docKind(payer.doc) || 'CPF/CNPJ'} ${showDoc(payer.doc)}` : blank('CPF/CNPJ do cliente'),
     endereco_contratante: addr(client?.address, client?.addressNumber, client?.city) || blank('endereço do cliente'),
@@ -95,7 +120,7 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
     valor: total ? money(total) : blank('valor'),
     valor_extenso: total ? porExtenso(total) : blank('valor por extenso'),
     pagamento: q?.paymentTerms.trim() || s.defaultPaymentTerms || PAYMENT_TERMS,
-    prazo: q?.deadlineDays ? `${q.deadlineDays} dias úteis` : blank('prazo'),
+    prazo: days ? `${days} dias (somando as etapas)` : q?.deadlineDays ? `${q.deadlineDays} dias úteis` : blank('prazo'),
     revisoes: q ? String(q.revisions) : String(s.defaultRevisions),
     arquivos: q?.files || s.proposal.files,
     orcamento: q ? quoteNumber(q) : blank('nº do orçamento'),
@@ -105,10 +130,10 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
     telefone_contratante: client?.phone || blank('telefone do cliente'),
     email_contratada: s.email || blank('seu e-mail'),
     telefone_contratada: s.phone || blank('seu telefone'),
-    prazo_dias: q?.deadlineDays ? String(q.deadlineDays) : blank('prazo'),
+    prazo_dias: days ? String(days) : q?.deadlineDays ? String(q.deadlineDays) : blank('prazo'),
     quantidade: q ? quantityOf(q) : blank('quantidade'),
-    entrada: total ? money(Math.round((total / 2) * 100) / 100) : blank('entrada'),
-    saldo: total ? money(total - Math.round((total / 2) * 100) / 100) : blank('saldo'),
+    entrada: total ? money(Math.round((total * (first ?? 50)) / 100 * 100) / 100) : blank('entrada'),
+    saldo: total ? money(total - Math.round((total * (first ?? 50)) / 100 * 100) / 100) : blank('saldo'),
     foro: (s.city || '').replace(/\s*-\s*/, '/') || blank('cidade/UF do foro'),
   }
 }

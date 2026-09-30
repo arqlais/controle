@@ -15,7 +15,8 @@ import { DocZoom, DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
 import { askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
-import type { Complexity, QuoteAudience, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
+import type { Complexity, Contract, QuoteAudience, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
+import { contractSettings, contractVars, fillContract, suggestTemplate } from '../contracts'
 import { CloseDeal } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
 import { AudienceChooser, AudienceSwitch, QuoteStepsSection } from '../components/QuoteSteps'
@@ -367,6 +368,17 @@ export default function QuoteEditor({ id }: { id: string }) {
     return cur
   }
   const [freeEdit, setFreeEdit] = useState<Quote | null>(null)
+  // contrato a partir deste orçamento: cliente, serviços, etapas, prazos e pagamento já preenchidos
+  const makeContract = () => {
+    const cur = unsaved ? save() ?? q : q
+    const cs = contractSettings(settings, isOwner)
+    const tpl = suggestTemplate(cs.templates, cur)
+    if (!tpl) return toast('Crie um modelo de contrato primeiro (menu contratos).')
+    const c: Contract = { id: uid(), title: `contrato · ${cur.title || client?.name || 'sem título'}`, quoteId: cur.id, clientId: cur.clientId, templateId: tpl.id, body: fillContract(tpl.body, contractVars(settings, cur, client)), status: 'rascunho', createdAt: today() }
+    upsert('contracts', c)
+    toast(`Contrato criado com o modelo “${tpl.name}”. Revise antes de mandar.`)
+    go('contratos', c.id)
+  }
   const downloadPdf = (vector: boolean, frozen?: ReactNode) => {
     const cur = frozen && freeEdit ? freeEdit : reserve()
     const doc = frozen ?? <QuoteDoc s={settings} client={client} quote={cur} />
@@ -483,6 +495,11 @@ export default function QuoteEditor({ id }: { id: string }) {
             {showPdf && !isFinal && (
               <button className="btn ghost" disabled={pdf.busy} onClick={() => downloadPdf(true)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
                 <Icon name="download" size={16} /> PDF em vetor
+              </button>
+            )}
+            {has('contratos') && !settings.contracts?.off && q.clientId && (
+              <button className="btn ghost" onClick={makeContract} title="Contrato já preenchido com o cliente, os serviços, as etapas, os prazos e o pagamento deste orçamento">
+                <Icon name="briefcase" size={16} /> gerar contrato
               </button>
             )}
             <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
