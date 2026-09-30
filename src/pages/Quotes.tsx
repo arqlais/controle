@@ -156,7 +156,7 @@ export default function Quotes() {
             orçamentos <em>&amp; propostas</em>
           </h1>
         </div>
-<div className="row gap-s wrap">
+<div className="row gap-s wrap qt-actions">
           <AskAIButton />
           {/* organizar nº e orçamento antigo: ferramentas só da dona */}
           {isOwner && (

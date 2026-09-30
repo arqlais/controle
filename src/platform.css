@@ -2079,3 +2079,9 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
   .lp-tpl { width: 100%; }
 }
 @media (max-width: 720px) { .mk-quote ~ .mk-tag-1, .mk-stage:has(.mk-quote) .mk-tag-1 { top: auto; bottom: 34%; right: 4px; } }
+/* orçamentos no celular: botões do topo em grade, dois por linha */
+@media (max-width: 720px) {
+  .qt-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
+  .page-head:has(.qt-actions) > div:first-child { width: 100%; }
+  .qt-actions > * { width: 100%; min-width: 0; justify-content: center; white-space: nowrap; padding-inline: 10px; }
+}
