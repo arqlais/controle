@@ -8,7 +8,7 @@ import { ClientPanelPublic } from '../components/ClientPanelPublic'
 import { createPanel, panelMessage } from '../components/ClientPanel'
 import { panelLink, panelPayload } from '../clientPanel'
 import { go } from '../router'
-import { fmtDate, whatsappLink } from '../utils'
+import { fmtDate, money, projectPaid, projectTotal, statusInfo, whatsappLink } from '../utils'
 import type { Client } from '../types'
 
 /* Painel do cliente: todos os clientes num lugar só. Ver quem já tem painel no ar, copiar ou mandar o link,
@@ -46,41 +46,79 @@ export default function Panels() {
   }
 
   const Row = ({ r }: { r: (typeof rows)[number] }) => {
-    const { c, on, main, phase } = r
+    const { c, on, main } = r
     const link = on && c.panel ? panelLink(userId, c.panel.token) : ''
-    const info = main ? [main.title, main.deliveredDate ? 'entregue' : phase, !main.deliveredDate && main.dueDate ? `entrega ${fmtDate(main.dueDate)}` : ''].filter(Boolean).join(' · ') : 'sem demanda ainda'
+    const phases = main?.phases ?? []
+    const done = phases.filter((x) => x.done).length
+    const now = phases.find((x) => !x.done)
+    const pct = main ? (phases.length ? Math.round((done / phases.length) * 100) : main.deliveredDate ? 100 : 0) : 0
+    const total = main ? projectTotal(main) : 0
+    const paid = main ? projectPaid(main) : 0
+    const toSign = (data.contracts ?? []).filter((k) => k.clientId === c.id && k.status === 'enviado').length
+    const docs = (data.docs ?? []).filter((x) => x.clientId === c.id).length
     return (
-      <li className={`pnl-row ${on ? 'is-on' : ''}`}>
-        <span className="pnl-avatar">{(c.name || '?')[0].toUpperCase()}</span>
-        <span className="pnl-main">
-          <b>{c.name}</b>
-          <small>{info}</small>
-        </span>
-        {on ? (
-          <span className="pnl-acts">
-            {c.phone && (
-              <a className="btn small primary" href={whatsappLink(c.phone, panelMessage(c, link))} target="_blank" rel="noreferrer">
-                <Icon name="whatsapp" size={14} /> mandar link
-              </a>
-            )}
-            <button className="icon-btn has-tip" data-tip="copiar link" aria-label="Copiar link" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'), () => toast(link))}>
-              <Icon name="copy" size={15} />
-            </button>
-            <button className="icon-btn has-tip" data-tip="ver como o cliente vê" aria-label="Ver como o cliente vê" onClick={() => setPeek(c)}>
-              <Icon name="eye" size={15} />
-            </button>
-            <button className="icon-btn has-tip" data-tip="o que aparece" aria-label="Escolher o que aparece" onClick={() => go('clientes', c.id)}>
-              <Icon name="settings" size={15} />
-            </button>
+      <article className={`card pnl-card ${on ? 'is-on' : ''}`}>
+        <header className="pnl-head">
+          <span className="pnl-avatar">{(c.name || '?')[0].toUpperCase()}</span>
+          <span className="grow">
+            <b>{c.name}</b>
+            <small className="muted">{main ? main.title : 'sem demanda ainda'}</small>
           </span>
-        ) : (
-          <span className="pnl-acts">
-            <button className="btn small" disabled={busy === c.id} onClick={() => void create(c)}>
-              <Icon name="link" size={14} /> {busy === c.id ? 'criando…' : 'criar painel'}
-            </button>
+          <span className={`pnl-state ${on ? 'is-on' : ''}`}>
+            <i /> {on ? 'no ar' : 'sem painel'}
           </span>
+        </header>
+        {main && (
+          <div className="pnl-facts">
+            <div className="pnl-fact is-wide">
+              <span>{main.deliveredDate ? 'situação' : 'etapa atual'}</span>
+              <b>{main.deliveredDate ? 'entregue' : now?.name ?? statusInfo(main.status).label}</b>
+              {phases.length > 0 && (
+                <div className="pnl-bar" aria-label={`${pct}% concluído`}>
+                  <i style={{ width: `${pct}%` }} />
+                </div>
+              )}
+            </div>
+            <div className="pnl-fact">
+              <span>entrega</span>
+              <b>{main.deliveredDate ? fmtDate(main.deliveredDate) : main.dueDate ? fmtDate(main.dueDate) : 'a combinar'}</b>
+            </div>
+            <div className="pnl-fact">
+              <span>pago</span>
+              <b>{total > 0 ? `${money(paid)} de ${money(total)}` : '—'}</b>
+            </div>
+            <div className="pnl-fact">
+              <span>documentos</span>
+              <b>{toSign ? `${toSign} para assinar` : docs ? `${docs} na ficha` : '—'}</b>
+            </div>
+          </div>
         )}
-      </li>
+        {on && c.panel?.publishedAt && <p className="muted small pnl-when">no ar desde {fmtDate(c.panel.publishedAt.slice(0, 10))}</p>}
+        <div className="pnl-actions">
+          {on ? (
+            <>
+              <button className="pnl-btn is-main" onClick={() => setPeek(c)}>
+                <Icon name="eye" size={14} /> ver como o cliente vê
+              </button>
+              {c.phone && (
+                <a className="pnl-btn" href={whatsappLink(c.phone, panelMessage(c, link))} target="_blank" rel="noreferrer">
+                  <Icon name="whatsapp" size={14} /> mandar
+                </a>
+              )}
+              <button className="pnl-btn" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'), () => toast(link))}>
+                <Icon name="copy" size={14} /> copiar link
+              </button>
+            </>
+          ) : (
+            <button className="pnl-btn is-main" disabled={busy === c.id} onClick={() => void create(c)}>
+              <Icon name="link" size={14} /> {busy === c.id ? 'criando…' : 'criar o painel'}
+            </button>
+          )}
+          <button className="pnl-btn" onClick={() => go('clientes', c.id)} title="Escolher o que o cliente vê, enviar arquivos e o recado">
+            <Icon name="settings" size={14} /> o que aparece
+          </button>
+        </div>
+      </article>
     )
   }
 
@@ -109,11 +147,11 @@ export default function Panels() {
               <p className="pnl-group-title">
                 <i className="is-on" /> no ar <small>{live.length}</small>
               </p>
-              <ul className="pnl-rows card">
+              <div className="pnl-list">
                 {live.map((r) => (
                   <Row key={r.c.id} r={r} />
                 ))}
-              </ul>
+              </div>
             </section>
           )}
           {ready.length > 0 && (
@@ -121,11 +159,11 @@ export default function Panels() {
               <p className="pnl-group-title">
                 <i /> aprovaram, ainda sem painel <small>{ready.length}</small>
               </p>
-              <ul className="pnl-rows card">
+              <div className="pnl-list">
                 {ready.map((r) => (
                   <Row key={r.c.id} r={r} />
                 ))}
-              </ul>
+              </div>
             </section>
           )}
         </>
@@ -136,11 +174,11 @@ export default function Panels() {
             <p className="pnl-group-title">
               <i /> outros clientes (sem orçamento aprovado) <small>{rest.length}</small>
             </p>
-            <ul className="pnl-rows card">
+            <div className="pnl-list">
               {rest.map((r) => (
                 <Row key={r.c.id} r={r} />
               ))}
-            </ul>
+            </div>
           </section>
         ) : (
           <button className="link small pnl-more" onClick={() => setOthers(true)}>
