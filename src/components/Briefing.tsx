@@ -3,6 +3,7 @@ import { applyAnswers, askNotifyPermission, useBriefingSync } from '../briefingS
 import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
+import { lockPlan } from './LockedPreview'
 import { Badge, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { BRIEFING_SECTIONS } from '../briefingQuestions'
@@ -66,9 +67,13 @@ export function BriefingSection({ client }: { client: Client }) {
     <Section
       title="briefing"
       action={
-        allowed && (
+        allowed ? (
           <button className="btn small" onClick={() => setCreating(true)}>
             <Icon name="plus" size={14} /> {list.length ? 'novo' : 'mandar briefing'}
+          </button>
+        ) : (
+          <button className="btn small ghost" onClick={() => go('briefings')} title={`Faz parte do plano ${lockPlan('briefing')}: toque para ver`}>
+            <Icon name="lock" size={13} /> ver como funciona
           </button>
         )
       }

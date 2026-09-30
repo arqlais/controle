@@ -42,6 +42,7 @@ import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UpdateBanner } from './components/UpdateBanner'
+import { LockedView } from './components/LockedPreview'
 import { ClientPanelSync } from './components/ClientPanel'
 import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
@@ -198,7 +199,8 @@ export default function App() {
     const order = settings.navOrder
     const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
     // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
-    return NAV.filter((n) => (!NEEDS[n.page] || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff)).sort((a, b) => {
+    // o que o plano não tem continua no menu (com cadeado): abre como vitrine, para dar vontade
+    return NAV.filter((n) => (!NEEDS[n.page] || NEEDS[n.page] !== 'painelDona' || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff)).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
@@ -328,7 +330,12 @@ export default function App() {
   const page = (() => {
     if (locked && (route.page !== 'assinatura' || access.sub?.blocked)) return <BlockedScreen onChat={openChat} />
     const need = NEEDS[route.page]
-    if (need && !access.has(need)) return <Upgrade onChat={openChat} />
+    if (need === 'painelDona' && !access.has(need)) return <Upgrade onChat={openChat} />
+    const inner = pageFor()
+    return need && !access.has(need) ? <LockedView feature={need}>{inner}</LockedView> : inner
+  })()
+
+  function pageFor() {
     switch (route.page) {
       case 'contratos':
         return <Contracts id={route.id} />
@@ -367,7 +374,7 @@ export default function App() {
       default:
         return <Dashboard onQuick={setQuick} />
     }
-  })()
+  }
 
   // a dona vê a página de vendas como um visitante, com uma barra para editar ou voltar
   if (route.page === 'vendas' && access.isOwner)
@@ -446,6 +453,7 @@ export default function App() {
               >
                 <Icon name={n.icon} />
                 <span>{n.label}</span>
+                {NEEDS[n.page] && !access.has(NEEDS[n.page]) && !organizing ? <Icon name="lock" size={13} className="nav-lock" /> : null}
                 {count && !organizing ? <em className="nav-alert" title="Itens atrasados">{count}</em> : null}
                 {organizing && (
                   <span className="nav-arrows">

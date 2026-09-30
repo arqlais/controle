@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
+import { lockPlan } from './LockedPreview'
+import { go } from '../router'
 import { Field, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { ClientPanelPublic } from './ClientPanelPublic'
@@ -19,7 +21,18 @@ export function ClientPanelSection({ client }: { client: Client }) {
   const [peek, setPeek] = useState(false)
   const [busy, setBusy] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
-  if (!has('portal')) return null
+  if (!has('portal'))
+    return (
+      <Section title="painel do cliente">
+        <div className="pn-empty">
+          <Icon name="lock" size={20} />
+          <p className="muted small">Um link só de {client.name.split(' ')[0]}, sem senha: etapas, pagamentos, contratos para assinar, briefings e documentos, sempre atualizado. Faz parte do plano {lockPlan('portal')}.</p>
+          <button className="btn small" onClick={() => go('assinatura')}>
+            <Icon name="star" size={14} /> conhecer o {lockPlan('portal')}
+          </button>
+        </div>
+      </Section>
+    )
 
   const save = (patch: Partial<ClientPanel>) => panel && upsert('clients', { ...client, panel: { ...panel, ...patch } })
   const projects = data.projects.filter((p) => p.clientId === client.id)

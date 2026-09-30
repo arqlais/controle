@@ -367,7 +367,7 @@ try {
     const bold = await page.locator('.pf-chat .ai-msg b', { hasText: 'importante' }).first().waitFor({ timeout: 5000 }).then(() => true, () => false)
     ok(bold, `plataforma: mensagem com negrito e emoji${bold ? '' : ` → ${await page.locator('.pf-chat .ai-msg').last().innerHTML().catch(() => '')}`}`)
     await page.locator('.pf-chat-fab').click().catch(() => undefined) // fecha o chat
-    // testando o Essencial: contratos ficam bloqueados
+    // testando o Essencial: contratos aparecem como prévia, bloqueados
     await page.evaluate(() => (location.hash = '#/assinatura'))
     const tryBtn = page.locator('.pf-plan', { has: page.locator('h3', { hasText: /^Essencial$/ }) }).getByRole('button', { name: /testar este plano/ })
     const found = await tryBtn.waitFor({ timeout: 8000 }).then(() => true, () => false)
@@ -375,7 +375,7 @@ try {
     await tryBtn.click(); await page.waitForTimeout(200)
     await page.locator('.modal-foot .btn').last().click(); await page.waitForTimeout(500)
     await page.evaluate(() => (location.hash = '#/contratos')); await page.waitForTimeout(300)
-    ok(await page.getByText('disponível no plano').count() === 1, 'plataforma: Essencial não tem contratos')
+    ok(await page.locator('.lk-banner').count() === 1 && await page.locator('.lk-view[inert]').count() === 1, 'plataforma: Essencial vê contratos só como prévia bloqueada')
     await page.locator('.pf-preview-btn').click()
     await page.locator('.pf-preview-menu button', { hasText: 'dona' }).click(); await page.waitForTimeout(700)
     await page.evaluate(() => (location.hash = '#/plataforma')); await page.waitForTimeout(500)

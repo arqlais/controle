@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-vitrine-estudio',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'conheça tudo o que o traço tem',
+    text: 'As funções de outros planos agora aparecem com um cadeado. Dá para abrir e ver como funcionam antes de decidir mudar de plano.',
+  },
+  {
     id: '2026-09-30-historico-novidades',
     date: '2026-09-30',
     kind: 'melhoria',

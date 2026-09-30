@@ -10,7 +10,8 @@ import { ReceiptDoc } from '../components/Docs'
 import { usePdf } from '../components/Print'
 import { useKeep } from '../keep'
 import { KIND_LABEL, projectKind } from '../processes'
-import { ClienteTab, CronogramaTab, LucroTab, ObraTab, PROJECT_TABS, ProjectTabs, StudioLocked, usePortalSync, type ProjectTab } from '../components/Studio'
+import { LockedView } from '../components/LockedPreview'
+import { ClienteTab, CronogramaTab, LucroTab, ObraTab, PROJECT_TABS, ProjectTabs, usePortalSync, type ProjectTab } from '../components/Studio'
 import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
@@ -266,11 +267,10 @@ export default function ProjectDetail({ id }: { id: string }) {
       )}
       {tab !== 'geral' && kind === 'final' && (() => {
         const t = PROJECT_TABS.find((x) => x.id === tab)
-        if (t?.feature && !has(t.feature)) return <StudioLocked tab={tab} />
-        if (tab === 'cronograma') return <CronogramaTab p={p} save={save} />
-        if (tab === 'obra') return <ObraTab p={p} save={save} client={client} />
-        if (tab === 'lucro') return <LucroTab p={p} save={save} />
-        return <ClienteTab p={p} save={save} client={client} />
+        const body = tab === 'cronograma' ? <CronogramaTab p={p} save={save} /> : tab === 'obra' ? <ObraTab p={p} save={save} client={client} /> : tab === 'lucro' ? <LucroTab p={p} save={save} /> : <ClienteTab p={p} save={save} client={client} />
+        // do Estúdio e o plano não tem: mostra a aba de verdade, só para olhar
+        if (t?.feature && !has(t.feature)) return <LockedView feature={t.feature}>{body}</LockedView>
+        return body
       })()}
       {(tab === 'geral' || kind !== 'final') && (
       <div className="grid-2 wide-left">

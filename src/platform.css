@@ -2400,3 +2400,18 @@ select.cell-input { min-width: 132px; }
 .nw-hist li.is-open > button svg { transform: rotate(90deg); }
 .nw-hist-body { padding: 0 12px 12px; display: grid; gap: 10px; justify-items: start; }
 .nw-hist-body p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text); }
+
+/* vitrine do que o plano não tem (dá para ver, não dá para usar) */
+.lk-banner { position: sticky; top: calc(var(--topbar-h, 64px) + 6px); z-index: 20; display: flex; align-items: center; gap: 12px; margin: 0 auto 16px; max-width: 1180px; padding: 12px 14px 12px 16px; border-radius: 18px; background: color-mix(in srgb, var(--brand-rose) 10%, var(--surface, #fff)); border: 1px solid color-mix(in srgb, var(--brand-rose) 35%, transparent); box-shadow: 0 16px 36px -22px rgba(62, 75, 87, 0.5); font-size: 13.5px; line-height: 1.45; }
+.lk-icon { flex: none; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--brand-rose); color: #fff; }
+.lk-text { flex: 1; min-width: 0; }
+.lk-text b { color: var(--brand-rose); }
+.lk-banner .btn { flex: none; }
+.lk-view { pointer-events: none; user-select: none; position: relative; }
+.lk-view::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, color-mix(in srgb, var(--bg) 70%, transparent)); pointer-events: none; }
+.lk-view .page { padding-top: 0; }
+@media (max-width: 620px) {
+  .lk-banner { display: grid; grid-template-columns: 32px minmax(0, 1fr); }
+  .lk-banner .btn { grid-column: 2; justify-self: start; }
+}
+.nav-lock { margin-left: auto; color: var(--muted); opacity: 0.8; }
