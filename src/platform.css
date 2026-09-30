@@ -2005,3 +2005,17 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
 .lp-chip-dup { display: none !important; }
 @media (max-width: 720px) { .lp-for-track { display: flex; } .lp-chip-dup { display: inline-flex !important; } }
 @media (prefers-reduced-motion: reduce) { .lp-for-track { animation: none; } }
+/* etapas do "como funciona": todos os cartões com a mesma altura, ícone e texto alinhados */
+.lp-steps-nav > li { display: flex; }
+.lp-steps-nav button { height: 100%; justify-content: flex-start; }
+@media (max-width: 720px) {
+  .lp-step-label { min-height: 2.6em; display: flex; align-items: center; justify-content: center; line-height: 1.3; }
+}
+/* barra da dona na página de vendas: texto corrido (antes quebrava em colunas) e compacta no celular */
+.owner-sales-bar span { display: block; }
+.owner-sales-bar span svg { vertical-align: -2px; margin-right: 4px; }
+@media (max-width: 560px) {
+  .owner-sales-bar { flex-wrap: nowrap; gap: 6px; padding: 8px; width: auto; }
+  .owner-sales-bar span { display: none; }
+  .owner-sales-bar .btn { white-space: nowrap; }
+}
