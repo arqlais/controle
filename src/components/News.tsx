@@ -23,8 +23,12 @@ export function useNews(enabled: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, sync === 'loading', !!seen])
   const unseen = enabled ? unseenNews(seen) : []
+  // abre sozinha só o que ainda não abriu (se a pessoa tocar em "depois", fica só o ponto no sininho)
+  const shown = data.settings.newsShown ?? []
+  const fresh = unseen.filter((n) => !shown.includes(n.id))
+  const markShown = () => setSettings({ newsShown: [...new Set([...shown, ...unseen.map((n) => n.id)])].slice(-300) })
   const markSeen = () => setSettings({ newsSeen: [...new Set([...(data.settings.newsSeen ?? []), ...visibleNews().map((n) => n.id)])] })
-  return { unseen, markSeen }
+  return { unseen, fresh, markSeen, markShown }
 }
 
 /** Sininho do topo: ponto quando há novidade; abre a lista. */

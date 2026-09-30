@@ -41,6 +41,7 @@ import { useBriefingSync } from './briefingSync'
 import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { UpdateBanner } from './components/UpdateBanner'
 import { ClientPanelSync } from './components/ClientPanel'
 import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
@@ -265,10 +266,12 @@ export default function App() {
   const [newsOpen, setNewsOpen] = useState(false)
   const autoNews = useRef(false)
   useEffect(() => {
-    if (autoNews.current || tourOpen || welcomeOpen || access.isOwner || sync === 'loading' || !news.unseen.length) return
+    if (autoNews.current || tourOpen || welcomeOpen || access.isOwner || sync === 'loading' || !news.fresh.length) return
     autoNews.current = true
     setNewsOpen(true)
-  }, [tourOpen, welcomeOpen, access.isOwner, sync, news.unseen.length])
+    news.markShown()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourOpen, welcomeOpen, access.isOwner, sync, news.fresh.length])
   // e-mail de boas-vindas: o site pede uma vez; a função no Supabase garante que só vai uma vez
   useEffect(() => {
     if (!CLOUD || access.isOwner || access.legacy || sync === 'loading') return
@@ -582,6 +585,7 @@ export default function App() {
           </div>
         </header>
         <ClientPanelSync />
+        <UpdateBanner />
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
         {newsOpen && !tourOpen && !welcomeOpen && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} />}
         {welcomeOpen && (
