@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber } from '../numbering'
-import { duplicateQuote } from '../quoteActions'
+import { duplicateQuote, launchPaidQuote } from '../quoteActions'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
 import { useAccess } from '../access'
@@ -11,7 +11,7 @@ import type { Quote, QuoteStatus } from '../types'
 import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink, matches, businessDaysUntil, today } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
-import { ask, toast } from '../components/dialog'
+import { ask, askChoice, toast } from '../components/dialog'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
 
@@ -91,11 +91,15 @@ export default function Quotes() {
     // os que já viraram demanda continuam aprovados (a demanda depende deles)
     const locked = chosen.filter((x) => x.projectId && x.status === 'aprovado')
     const list = chosen.filter((x) => !locked.includes(x))
-    if (
-      status === 'aprovado' &&
-      !(await ask(`Marcar ${list.length} orçamento(s) como aprovados? Serve para registrar orçamentos antigos: não cria demanda nem pagamentos (para isso, aprove um por um).`, { confirmLabel: 'Aprovar' }))
-    )
-      return
+    let launch = false
+    if (status === 'aprovado') {
+      const choice = await askChoice(
+        `Aprovar ${list.length} orçamento(s)? Se são trabalhos antigos, já feitos e pagos, lance no financeiro: cada um vira uma demanda entregue e o valor entra como recebido na data do orçamento.`,
+        { confirmLabel: 'Aprovar e lançar como pagos', altLabel: 'Só marcar aprovados' },
+      )
+      if (choice === 'cancel') return
+      launch = choice === 'confirm'
+    }
     // enviado: conta a partir da data do orçamento (antigos não viram "cobrar resposta" de uma vez)
     const updated = list.map((x) => ({
       ...x,
@@ -115,9 +119,16 @@ export default function Quotes() {
     // voltaram para rascunho: vão para depois do último número (os rascunhos se reorganizam pela data)
     const ids = new Set(updated.map((x) => x.id))
     const moves = status === 'rascunho' ? new Map(draftRenumber([...data.quotes.filter((x) => !ids.has(x.id)), ...updated]).map((r) => [r.id, r.number])) : new Map<string, number>()
-    for (const x of updated) upsert('quotes', moves.has(x.id) ? { ...x, number: moves.get(x.id)! } : x)
+    for (const x of updated) {
+      const q = moves.has(x.id) ? { ...x, number: moves.get(x.id)! } : x
+      if (launch && q.clientId && !q.projectId) {
+        const r = launchPaidQuote(q, data.settings.urgencyFee)
+        upsert('projects', r.project)
+        upsert('quotes', r.quote)
+      } else upsert('quotes', q)
+    }
     for (const x of data.quotes) if (!ids.has(x.id) && moves.has(x.id)) upsert('quotes', { ...x, number: moves.get(x.id)! })
-    toast(`${list.length} orçamento(s) → ${QUOTE_STATUS[status].label.toLowerCase()}${locked.length ? ` · ${locked.length} já com demanda continuam aprovados` : ''}`)
+    toast(`${list.length} orçamento(s) → ${QUOTE_STATUS[status].label.toLowerCase()}${launch ? " e lançados no financeiro como pagos" : ""}${locked.length ? ` · ${locked.length} já com demanda continuam aprovados` : ""}`)
     setPicked(new Set())
   }
   const bulkDelete = async () => {

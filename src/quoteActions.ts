@@ -1,5 +1,5 @@
 import type { Data, Project, Quote } from './types'
-import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber } from './utils'
+import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteDeal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 /** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
@@ -75,4 +75,24 @@ export function duplicateQuote(q: Quote, d: Data, offset = 0): Quote {
     closedValue: 0,
     projectId: '',
   }
+}
+
+/** Orçamentos aprovados que ainda não entraram no financeiro (sem demanda ligada). */
+export const approvedWithoutProject = (d: Data) => d.quotes.filter((q) => q.status === 'aprovado' && q.clientId && !(q.projectId && d.projects.some((p) => p.id === q.projectId)))
+
+/** Trabalho antigo já feito e pago: vira demanda entregue, com o valor recebido na data em que fechou.
+ *  Assim o financeiro (recebido no mês, gráficos, relatórios) passa a contar esse cliente. */
+export function launchPaidQuote(q: Quote, urgencyFee: number): { project: Project; quote: Quote } {
+  const on = q.closedAt || q.sentAt || q.createdAt || today()
+  const value = quoteDeal(q, urgencyFee)
+  const base = projectFromQuote(q, urgencyFee, on, on)
+  const project: Project = {
+    ...base,
+    status: 'entregue',
+    deliveredDate: on,
+    tasks: base.tasks.map((t) => ({ ...t, done: true })),
+    payments: [{ id: uid(), description: 'Pagamento (trabalho antigo)', amount: Math.round(value * 100) / 100, dueDate: on, paidDate: on, method: 'Pix', on: 'fechamento' }],
+    notes: `${base.notes} Lançado como trabalho antigo, já pago.`,
+  }
+  return { project, quote: { ...q, closedAt: on, projectId: project.id } }
 }

@@ -10,6 +10,8 @@ import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged
 import { askDelete } from '../components/dialog'
 import type { Expense, Project } from '../types'
 import { BillModal } from '../components/Bill'
+import { approvedWithoutProject, launchPaidQuote } from '../quoteActions'
+import { toast } from '../components/dialog'
 import {
   CLIENT_TYPES,
   EXPENSE_CATEGORIES,
@@ -26,6 +28,8 @@ import {
   monthLabel,
   monthSummary,
   paymentState,
+  quoteDeal,
+  quoteNumber,
   PAY_WHEN,
   payWhen,
   sum,
@@ -54,6 +58,8 @@ export default function Finance() {
 
   const s = useMemo(() => monthSummary(data, month), [data, month])
   const pays = useMemo(() => allPayments(data), [data])
+  // clientes antigos: o seletor de mês começa no primeiro pagamento ou despesa lançado
+  const firstMonth = useMemo(() => [...pays.map((x) => x.pay.paidDate || x.pay.dueDate), ...data.expenses.map((e) => e.date)].filter(Boolean).map((d) => monthKey(d!)).sort()[0] ?? '2026-01', [pays, data.expenses])
   // o gráfico fica parado nos 12 meses até hoje; só anda se o mês escolhido estiver fora dele
   const nowKey = monthKey(today())
   const months12 = lastMonths(12, `${month > nowKey || !lastMonths(12, `${nowKey}-01`).includes(month) ? month : nowKey}-01`)
@@ -101,7 +107,7 @@ export default function Finance() {
             <button className="icon-btn" onClick={() => shift(-1)} aria-label="Mês anterior">
               <Icon name="chevronL" />
             </button>
-            <MonthPicker value={month} onChange={setMonth} from="2026-01" />
+            <MonthPicker value={month} onChange={setMonth} from={firstMonth} />
             <button className="icon-btn" onClick={() => shift(1)} aria-label="Próximo mês">
               <Icon name="chevronR" />
             </button>
@@ -145,6 +151,8 @@ export default function Finance() {
       </div>
 
       {settings.meiLimit > 0 && <MeiBar year={month.slice(0, 4)} />}
+
+      <OldWorkNotice />
 
       {lateTotal > 0 && (
         <div className="alert-strip is-warn">
@@ -436,6 +444,77 @@ function MeiBar({ year }: { year: string }) {
           {projection > limit ? ' — acima do teto. Vale conversar com um contador sobre migrar para ME.' : '.'}
         </p>
       )}
+    </div>
+  )
+}
+
+/** Clientes antigos fora do financeiro: orçamentos aprovados sem demanda e demandas sem nenhuma parcela.
+ *  Um toque lança tudo como recebido na data certa (o gráfico e o "recebido no mês" passam a contar). */
+function OldWorkNotice() {
+  const { data, upsert } = useStore()
+  const [open, setOpen] = useState(false)
+  const fee = data.settings.urgencyFee
+  const quotes = approvedWithoutProject(data)
+  const bare = data.projects.filter((p) => p.status !== 'cancelado' && !p.payments.length && p.value - (p.discount || 0) > 0)
+  const [skip, setSkip] = useState<Set<string>>(new Set())
+  if (!quotes.length && !bare.length) return null
+  const clientName = (id: string) => data.clients.find((c) => c.id === id)?.name ?? 'cliente'
+  const total = sum(quotes.filter((q) => !skip.has(q.id)), (q) => quoteDeal(q, fee)) + sum(bare.filter((p) => !skip.has(p.id)), (p) => p.value - (p.discount || 0))
+  const launch = () => {
+    let n = 0
+    for (const q of quotes) {
+      if (skip.has(q.id)) continue
+      const r = launchPaidQuote(q, fee)
+      upsert('projects', r.project)
+      upsert('quotes', r.quote)
+      n++
+    }
+    for (const p of bare) {
+      if (skip.has(p.id)) continue
+      const on = p.deliveredDate || p.dueDate || p.startDate || p.createdAt.slice(0, 10)
+      upsert('projects', { ...p, payments: [{ id: crypto.randomUUID(), description: 'Pagamento (trabalho antigo)', amount: Math.round((p.value - (p.discount || 0)) * 100) / 100, dueDate: on, paidDate: on, method: 'Pix' }] })
+      n++
+    }
+    setOpen(false)
+    toast(`${n} trabalho(s) antigo(s) lançados no financeiro como recebidos.`)
+  }
+  const toggle = (id: string) => setSkip((s) => { const x = new Set(s); if (x.has(id)) x.delete(id); else x.add(id); return x })
+  return (
+    <div className="alert-strip is-info">
+      <Icon name="inbox" />
+      <div className="grow">
+        <b>{quotes.length + bare.length} trabalho(s) de clientes antigos ainda fora do financeiro</b>
+        <span className="muted small"> · orçamentos aprovados sem demanda{bare.length ? ' e demandas sem parcelas' : ''}. </span>
+        <button className="link" onClick={() => setOpen((v) => !v)}>{open ? 'fechar' : 'ver e lançar →'}</button>
+        {open && (
+          <div className="stack" style={{ marginTop: 10 }}>
+            <p className="small muted">Marcados entram como <b>recebidos</b> na data do orçamento (ou da entrega). Se algum ainda não foi pago, desmarque e aprove pelo orçamento para escolher as parcelas.</p>
+            <ul className="old-work">
+              {quotes.map((q) => (
+                <li key={q.id}>
+                  <label className="check">
+                    <input type="checkbox" checked={!skip.has(q.id)} onChange={() => toggle(q.id)} />
+                    <span className="grow">{clientName(q.clientId)} · {q.title || `orçamento ${quoteNumber(q)}`} <small className="muted">{fmtDate(q.closedAt || q.createdAt)}</small></span>
+                    <b>{money(quoteDeal(q, fee))}</b>
+                  </label>
+                </li>
+              ))}
+              {bare.map((p) => (
+                <li key={p.id}>
+                  <label className="check">
+                    <input type="checkbox" checked={!skip.has(p.id)} onChange={() => toggle(p.id)} />
+                    <span className="grow">{clientName(p.clientId)} · {p.title} <small className="muted">demanda sem parcelas</small></span>
+                    <b>{money(p.value - (p.discount || 0))}</b>
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <div className="row gap-s">
+              <button className="btn primary small" onClick={launch} disabled={total <= 0}>lançar {money(total)} como recebido</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
