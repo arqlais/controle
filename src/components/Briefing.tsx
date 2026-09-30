@@ -129,7 +129,7 @@ export function BriefingSection({ client }: { client: Client }) {
       ) : list.length === 0 ? (
         <p className="muted small">Escolha um modelo (residencial, comercial, cozinha…) e mande o link: o cliente responde pelo celular, sem criar conta, e as respostas preenchem a ficha.</p>
       ) : (
-        <BriefingList list={list} />
+        <BriefingList list={list} openFirst />
       )}
       {creating && <NewBriefing client={client} onClose={() => setCreating(false)} />}
     </Section>
@@ -137,9 +137,10 @@ export function BriefingSection({ client }: { client: Client }) {
 }
 
 /** Lista de briefings enviados (na ficha do cliente e na tela de briefings). */
-export function BriefingList({ list, showClient }: { list: Briefing[]; showClient?: boolean }) {
+export function BriefingList({ list, showClient, openFirst }: { list: Briefing[]; showClient?: boolean; openFirst?: boolean }) {
   const { data, remove, userId } = useStore()
-  const [open, setOpen] = useState<string | null>(null)
+  // na ficha do cliente, o briefing respondido mais recente já abre com as respostas
+  const [open, setOpen] = useState<string | null>(openFirst ? list.find((b) => b.status === 'respondido')?.id ?? null : null)
   const [paste, setPaste] = useState<Briefing | null>(null)
   const [peek, setPeek] = useState<Briefing | null>(null)
   const { check } = useBriefingSync(false)

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { useKeep } from '../keep'
 import { Icon } from '../components/Icon'
@@ -13,39 +13,141 @@ import { DECK_DEFAULTS, DeckDoc } from '../components/docs/Deck'
 import { PAGE } from '../components/docs/DocPage'
 import { allTemplates } from '../briefingTemplates'
 import { processesOf } from '../processes'
-import type { DeckData, DocsState, MeasureGuideData, PlaqueData } from '../docTypes'
+import type { DeckData, DocKind, DocsState, MeasureGuideData, PlaqueData, SavedDoc } from '../docTypes'
 
-import { go } from '../router'
+import { go, setLeaveGuard } from '../router'
+import { SavedDocs } from '../components/SavedDocs'
+import { askChoice, toast } from '../components/dialog'
+import { uid } from '../utils'
 
 /* Documentos do estúdio (plano Estúdio): peças prontas com a sua marca, no design escolhido
    em Configurações → propostas. Tudo editável: pelos campos ou direto na folha. */
 
-type DocId = 'guia' | 'placa' | 'briefing' | 'apresentacao'
+type DocId = DocKind
 const LIST: { id: DocId; title: string; text: string; size: string }[] = [
   { id: 'guia', title: 'guia de medição', text: 'o cliente mede o espaço sozinho, com desenhos explicando cada medida', size: 'A4 · 2 folhas' },
   { id: 'placa', title: 'placa de obra', text: 'quem passa na rua vê quem assina o projeto; QR code para o seu site ou instagram', size: '60×80 · 90×120 · A4' },
   { id: 'briefing', title: 'briefing em PDF', text: 'qualquer modelo de briefing para imprimir e levar na primeira reunião', size: 'A4' },
   { id: 'apresentacao', title: 'apresentação de projeto', text: 'conceito, planta, imagens, materiais e em que etapa o projeto está', size: 'slides 16:9' },
 ]
+const titleOf = (k: DocKind) => LIST.find((x) => x.id === k)!.title
+type DocValue = MeasureGuideData & PlaqueData & DeckData & { briefingTpl?: string }
+const KEY: Record<DocKind, keyof DocsState | 'briefingTpl'> = { guia: 'guide', placa: 'plaque', apresentacao: 'deck', briefing: 'briefingTpl' }
 
-export default function Documents() {
+export default function Documents({ id }: { id?: string }) {
+  const { data } = useStore()
   const [open, setOpen] = useKeep<DocId | ''>('documento-aberto', '')
-  if (open === 'guia') return <GuideEditor onBack={() => setOpen('')} />
-  if (open === 'placa') return <PlaqueEditor onBack={() => setOpen('')} />
-  if (open === 'briefing') return <BriefingPdfEditor onBack={() => setOpen('')} />
-  if (open === 'apresentacao') return <DeckEditor onBack={() => setOpen('')} />
+  const saved = id ? (data.docs ?? []).find((x) => x.id === id) : undefined
+  if (id && saved) return <DocSession key={saved.id} kind={saved.kind} saved={saved} onBack={() => go('documentos')} />
+  if (open) return <DocSession key={open} kind={open} onBack={() => setOpen('')} />
   return <DocsHome onOpen={setOpen} />
 }
 
 function useDocs() {
   const { data, setSettings } = useStore()
   const docs = data.settings.docs ?? {}
-  const save = <K extends keyof DocsState>(k: K, patch: Partial<NonNullable<DocsState[K]>>) => setSettings({ docs: { ...docs, [k]: { ...docs[k], ...patch } } })
-  return { s: data.settings, docs, save, data }
+  return { s: data.settings, docs, data, setSettings }
+}
+
+/** Props de cada editor: o valor do rascunho, como mudar e o que a mesa de trabalho precisa (voltar, salvar, cliente). */
+interface EdProps<T> {
+  value: T | undefined
+  set: (patch: Partial<T>) => void
+  w: { onBack: () => void; toolbar: ReactNode; free: string | null; onFree: (h: string | null) => void }
+  clientName?: string
+}
+
+/** Um documento aberto: rascunho próprio, "salvar" (na ficha do cliente ou como seu padrão) e "voltar". */
+function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; onBack: () => void }) {
+  const { data, upsert, setSettings } = useStore()
+  const defaults = (): DocValue => {
+    const d = data.settings.docs ?? {}
+    return (kind === 'guia' ? d.guide : kind === 'placa' ? d.plaque : kind === 'apresentacao' ? d.deck : {}) ?? {}
+  }
+  const initial: DocValue = saved ? ((kind === 'guia' ? saved.guide : kind === 'placa' ? saved.plaque : kind === 'apresentacao' ? saved.deck : { briefingTpl: saved.briefingTpl }) ?? {}) : defaults()
+  const [value, setValue] = useState<DocValue>(initial)
+  const [clientId, setClientId] = useState(saved?.clientId ?? '')
+  const [html, setHtml] = useState<string | null>(saved?.html ?? null)
+  const [savedId, setSavedId] = useState(saved?.id)
+  const snap = (v: DocValue, c: string, h: string | null) => JSON.stringify([v, c, h])
+  const [baseline, setBaseline] = useState(() => snap(initial, saved?.clientId ?? '', saved?.html ?? null))
+  const dirty = snap(value, clientId, html) !== baseline
+  const client = data.clients.find((c) => c.id === clientId)
+  const set = (patch: Partial<DocValue>) => setValue((v) => ({ ...v, ...patch }))
+  const save = () => {
+    if (clientId) {
+      const now = new Date().toISOString()
+      const doc: SavedDoc = {
+        id: savedId ?? uid(),
+        clientId,
+        kind,
+        title: `${titleOf(kind)}${kind === 'apresentacao' && value.title ? ` · ${value.title}` : ''}`,
+        ...(kind === 'guia' ? { guide: value } : kind === 'placa' ? { plaque: value } : kind === 'apresentacao' ? { deck: value } : { briefingTpl: value.briefingTpl }),
+        html: html ?? undefined,
+        createdAt: saved?.createdAt ?? now,
+        updatedAt: now,
+      }
+      upsert('docs', doc)
+      setSavedId(doc.id)
+      toast(`Salvo na ficha de ${client?.name.split(' ')[0] ?? 'cliente'}.`)
+    } else {
+      const k = KEY[kind]
+      if (k !== 'briefingTpl') setSettings({ docs: { ...(data.settings.docs ?? {}), [k]: value } })
+      toast('Salvo como o seu modelo padrão. Para guardar na ficha de um cliente, escolha o cliente acima.')
+    }
+    setBaseline(snap(value, clientId, html))
+  }
+  const saveRef = useRef(save)
+  saveRef.current = save
+  const back = async () => {
+    if (dirty) {
+      const c = await askChoice('Este documento tem mudanças que não foram salvas.', { confirmLabel: 'Salvar e voltar', altLabel: 'Voltar sem salvar' })
+      if (c === 'cancel') return
+      if (c === 'confirm') save()
+    }
+    onBack()
+  }
+  // sair pelo menu com mudanças: pergunta antes
+  useEffect(() => {
+    if (!dirty) return
+    setLeaveGuard(async () => {
+      const c = await askChoice('Este documento tem mudanças que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
+      if (c === 'cancel') return false
+      if (c === 'confirm') saveRef.current()
+      return true
+    })
+    return () => setLeaveGuard(null)
+  }, [dirty])
+  const pickClient = (id: string) => {
+    setClientId(id)
+    const c = data.clients.find((x) => x.id === id)
+    if (kind === 'apresentacao' && c && !value.client) set({ client: c.name.split(' ')[0] })
+  }
+  const toolbar = (
+    <div className={`dk-bar ${dirty ? 'is-dirty' : ''}`}>
+      <div className="dk-bar-client">
+        <span className="field-label">ficha do cliente</span>
+        <ClientPicker clients={data.clients} value={clientId} onChange={pickClient} placeholder="salvar na ficha de qual cliente? (opcional)" />
+      </div>
+      <span className="dk-bar-state small">{dirty ? 'mudanças não salvas' : savedId ? 'salvo na ficha' : 'tudo salvo'}</span>
+      <button className="btn ghost small" onClick={() => (setValue(initial), setHtml(saved?.html ?? null), setClientId(saved?.clientId ?? ''))} disabled={!dirty}>
+        descartar
+      </button>
+      <button className="btn primary small" onClick={save} disabled={!dirty && !!savedId}>
+        <Icon name="check" size={14} /> salvar
+      </button>
+    </div>
+  )
+  const w = { onBack: () => void back(), toolbar, free: html, onFree: setHtml }
+  const props = { value, set, w, clientName: client?.name }
+  if (kind === 'guia') return <GuideEditor {...props} />
+  if (kind === 'placa') return <PlaqueEditor {...props} />
+  if (kind === 'briefing') return <BriefingPdfEditor {...props} />
+  return <DeckEditor {...props} />
 }
 
 function DocsHome({ onOpen }: { onOpen: (id: DocId) => void }) {
-  const { s, docs } = useDocs()
+  const { s, docs, data } = useDocs()
   const look = useDocLook(s)
   const thumbs: Record<DocId, { node: ReactNode; w: number }> = {
     guia: { node: <MeasureGuideDoc s={s} data={docs.guide} />, w: PAGE.a4[0] },
@@ -85,26 +187,26 @@ function DocsHome({ onOpen }: { onOpen: (id: DocId) => void }) {
           </button>
         ))}
       </div>
+      <SavedDocs list={data.docs ?? []} showClient />
     </div>
   )
 }
 
 /* ---------------- guia de medição ---------------- */
 
-function GuideEditor({ onBack }: { onBack: () => void }) {
-  const { s, docs, save } = useDocs()
-  const d = guideData(docs.guide)
-  const set = (patch: Partial<MeasureGuideData>) => save('guide', patch)
-  const photos = docs.guide?.photos ?? []
+function GuideEditor({ value, set, w }: EdProps<MeasureGuideData>) {
+  const { s } = useDocs()
+  const d = guideData(value)
+  const photos = value?.photos ?? []
   return (
     <DocWorkbench
       title="guia de medição"
       eyebrow="documentos"
-      onBack={onBack}
+      {...w}
       filename={`Guia de medição - ${s.brandName || s.ownerName || 'estúdio'}.pdf`}
       pageW={PAGE.a4[0]}
       pageH={PAGE.a4[1]}
-      doc={<MeasureGuideDoc s={s} data={docs.guide} />}
+      doc={<MeasureGuideDoc s={s} data={value} />}
       form={
         <>
           <Section title="textos">
@@ -131,7 +233,7 @@ function GuideEditor({ onBack }: { onBack: () => void }) {
                 <textarea rows={2} value={x.text} onChange={(e) => set({ steps: d.steps.map((y, j) => (j === i ? { ...y, text: e.target.value } : y)) })} spellCheck lang="pt-BR" aria-label="Explicação do passo" />
               </div>
             ))}
-            {docs.guide?.steps?.length ? (
+            {value?.steps?.length ? (
               <button className="link small muted-link" onClick={() => set({ steps: undefined })}>
                 voltar ao texto pronto
               </button>
@@ -155,19 +257,18 @@ function GuideEditor({ onBack }: { onBack: () => void }) {
 
 const SIZES: Record<string, string> = { '60x80': '60 × 80 cm', '90x120': '90 × 120 cm', a4: 'A4 (para testar)' }
 
-function PlaqueEditor({ onBack }: { onBack: () => void }) {
-  const { s, docs, save } = useDocs()
-  const d = plaqueData(s, docs.plaque)
-  const set = (patch: Partial<PlaqueData>) => save('plaque', patch)
+function PlaqueEditor({ value, set, w }: EdProps<PlaqueData>) {
+  const { s } = useDocs()
+  const d = plaqueData(s, value)
   return (
     <DocWorkbench
       title="placa de obra"
       eyebrow="documentos"
-      onBack={onBack}
+      {...w}
       filename={`Placa de obra ${SIZES[d.size]} - ${s.brandName || s.ownerName || 'estúdio'}.pdf`}
       pageW={PAGE.poster[0]}
       pageH={PAGE.poster[1]}
-      doc={<PlaqueDoc s={s} data={docs.plaque} />}
+      doc={<PlaqueDoc s={s} data={value} />}
       note={<p className="muted small">O PDF sai na proporção 3:4, em alta resolução. Na gráfica, peça a impressão em {SIZES[d.size]} (lona ou PVC).</p>}
       form={
         <>
@@ -220,23 +321,21 @@ function PlaqueEditor({ onBack }: { onBack: () => void }) {
 
 /* ---------------- briefing em PDF ---------------- */
 
-function BriefingPdfEditor({ onBack }: { onBack: () => void }) {
-  const { s, data } = useDocs()
+function BriefingPdfEditor({ value, set, w, clientName }: EdProps<{ briefingTpl?: string }>) {
+  const { s } = useDocs()
   const templates = allTemplates(s.briefingTemplates, s.hiddenBriefings).filter((t) => t.questions.length)
-  const [tplId, setTplId] = useKeep('briefing-pdf-modelo', templates[0]?.id ?? '')
-  const [clientId, setClientId] = useState('')
-  const tpl = templates.find((t) => t.id === tplId) ?? templates[0]
-  const client = data.clients.find((c) => c.id === clientId)
+  const tpl = templates.find((t) => t.id === value?.briefingTpl) ?? templates[0]
+  const setTplId = (briefingTpl: string) => set({ briefingTpl })
   if (!tpl) return null
   return (
     <DocWorkbench
       title="briefing em PDF"
       eyebrow="documentos"
-      onBack={onBack}
-      filename={`Briefing ${tpl.name}${client ? ` - ${client.name}` : ''}.pdf`}
+      {...w}
+      filename={`Briefing ${tpl.name}${clientName ? ` - ${clientName}` : ''}.pdf`}
       pageW={PAGE.a4[0]}
       pageH={PAGE.a4[1]}
-      doc={<BriefingSheetDoc s={s} tpl={tpl} client={client?.name} />}
+      doc={<BriefingSheetDoc s={s} tpl={tpl} client={clientName} />}
       form={
         <>
           <Section title="modelo">
@@ -257,9 +356,7 @@ function BriefingPdfEditor({ onBack }: { onBack: () => void }) {
               .
             </p>
           </Section>
-          <Section title="cliente (opcional)">
-            <ClientPicker clients={data.clients} value={clientId} onChange={setClientId} placeholder="em branco: a pessoa escreve à mão" />
-          </Section>
+          <p className="muted small">Com um cliente escolhido acima, o nome dele já sai preenchido na folha.</p>
         </>
       }
     />
@@ -268,11 +365,10 @@ function BriefingPdfEditor({ onBack }: { onBack: () => void }) {
 
 /* ---------------- apresentação de projeto ---------------- */
 
-function DeckEditor({ onBack }: { onBack: () => void }) {
-  const { s, docs, save, data } = useDocs()
-  const deck = docs.deck ?? {}
+function DeckEditor({ value, set, w }: EdProps<DeckData>) {
+  const { s, data } = useDocs()
+  const deck = value ?? {}
   const d = { ...DECK_DEFAULTS, ...deck }
-  const set = (patch: Partial<DeckData>) => save('deck', patch)
   const project = data.projects.find((p) => p.id === deck.projectId)
   const stages = project?.phases?.length ? project.phases.map((x) => x.name) : processesOf(s)[0]?.steps.map((x) => x.name) ?? []
   const current = deck.stage ?? (project?.phases?.length ? Math.max(0, project.phases.findIndex((x) => !x.done)) : 2)
@@ -287,7 +383,7 @@ function DeckEditor({ onBack }: { onBack: () => void }) {
     <DocWorkbench
       title="apresentação de projeto"
       eyebrow="documentos"
-      onBack={onBack}
+      {...w}
       filename={`Apresentação ${d.title}${d.client ? ` - ${d.client}` : ''}.pdf`}
       pageW={PAGE.slide[0]}
       pageH={PAGE.slide[1]}

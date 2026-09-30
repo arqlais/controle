@@ -7,6 +7,7 @@ import { ClientForm, ProjectForm } from '../components/forms'
 import { Badge, Empty, Section, Stat, usePaged } from '../components/ui'
 import type { Client, ClientProfile } from '../types'
 import { BriefingSection } from '../components/Briefing'
+import { SavedDocs } from '../components/SavedDocs'
 import { askDelete } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import { MergeClients } from '../components/MergeClients'
@@ -127,6 +128,21 @@ export default function ClientDetail({ id }: { id: string }) {
                       <div className="list-sub">
                         {fmtDate(p.startDate)} → {fmtDate(p.dueDate)}
                       </div>
+                      {/* etapas: o cronograma (cliente final) ou o checklist da demanda */}
+                      {p.phases?.length ? (
+                        <div className="cd-phases" aria-label="etapas do projeto">
+                          {p.phases.map((x) => (
+                            <span key={x.id} className={x.done ? 'is-done' : x === p.phases!.find((y) => !y.done) ? 'is-now' : ''} title={x.name}>
+                              {x.name}
+                            </span>
+                          ))}
+                        </div>
+                      ) : p.tasks.length ? (
+                        <div className="list-sub">
+                          etapas {p.tasks.filter((t) => t.done).length}/{p.tasks.length}
+                          {p.tasks.find((t) => !t.done) ? ` · agora: ${p.tasks.find((t) => !t.done)!.text}` : ' · tudo feito'}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="right">
                       <b>{money(projectTotal(p))}</b>
@@ -176,7 +192,8 @@ export default function ClientDetail({ id }: { id: string }) {
           </Section>
 
           {c.type === 'final' && <FinalProfileCard client={c} onEdit={() => setEdit(true)} />}
-          {c.type === 'final' && <BriefingSection client={c} />}
+          {(c.type === 'final' || (data.briefings ?? []).some((b) => b.clientId === c.id)) && <BriefingSection client={c} />}
+          <SavedDocs list={(data.docs ?? []).filter((d) => d.clientId === c.id)} />
 
           <Section title="Pagamentos">
             {payments.length === 0 ? (

@@ -113,16 +113,20 @@ export function ImageField({ label, value, onChange, hint, max }: { label: strin
 
 /** Mesa de trabalho de um documento: campos à esquerda, a folha à direita.
  *  "Editar direto no documento" deixa mexer em qualquer texto da folha; o PDF sai com as mudanças. */
-export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, filename, note }: { title: string; eyebrow: string; onBack: () => void; form: ReactNode; doc: ReactNode; pageW: number; pageH: number; filename: string; note?: ReactNode }) {
+export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, filename, note, toolbar, free: freeProp, onFree }: { title: string; eyebrow: string; onBack: () => void; form: ReactNode; doc: ReactNode; pageW: number; pageH: number; filename: string; note?: ReactNode; toolbar?: ReactNode; free?: string | null; onFree?: (html: string | null) => void }) {
   const pdf = usePdf()
   const live = useRef<HTMLDivElement>(null)
   const edited = useRef<HTMLDivElement>(null)
-  const [free, setFree] = useState<string | null>(null)
-  // sai da edição livre se trocar de documento
-  useEffect(() => setFree(null), [filename])
+  const [own, setOwn] = useState<string | null>(null)
+  // edição livre controlada por fora (documento salvo guarda o que foi mudado na folha) ou aqui mesmo
+  const free = freeProp !== undefined ? freeProp : own
+  const setFree = (v: string | null) => (onFree ? onFree(v) : setOwn(v))
+  // a folha editável só é montada uma vez por edição (digitar não recarrega o texto)
+  const [mountKey, setMountKey] = useState(0)
   const startFree = () => {
     if (!live.current) return
     setFree(live.current.innerHTML)
+    setMountKey((k) => k + 1)
     toast('Toque em qualquer texto da folha para mudar. Os campos ao lado ficam pausados enquanto isso.')
   }
   const download = () => {
@@ -132,7 +136,7 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
   }
   return (
     <div className="page dk-page">
-      <button className="back" onClick={onBack}>
+      <button type="button" className="back" onClick={onBack}>
         <Icon name="chevronL" size={16} /> documentos
       </button>
       <div className="page-head">
@@ -140,9 +144,9 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
           <p className="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
         </div>
-        <div className="row gap-s wrap">
+        <div className="row gap-s wrap dk-actions">
           {free === null ? (
-            <button className="btn ghost" onClick={startFree}>
+            <button className="btn ghost dk-free-btn" onClick={startFree}>
               <Icon name="pen" size={15} /> editar direto no documento
             </button>
           ) : (
@@ -155,9 +159,15 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
           </button>
         </div>
       </div>
+      {toolbar}
       <div className="dk-layout">
         <div className={`dk-form stack ${free !== null ? 'is-paused' : ''}`}>
-          {free !== null && <p className="pf-note"><Icon name="pen" size={16} /><span>Editando direto na folha. Para voltar aos campos, toque em “descartar edições da folha”.</span></p>}
+          {free !== null && (
+            <p className="pf-note">
+              <Icon name="pen" size={16} />
+              <span>Editando direto na folha. Para voltar aos campos, toque em “descartar edições da folha”.</span>
+            </p>
+          )}
           {form}
         </div>
         <div className="dk-preview">
@@ -166,7 +176,7 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
             {free === null ? (
               <div ref={live}>{doc}</div>
             ) : (
-              <div ref={edited} className="dk-editable" contentEditable suppressContentEditableWarning spellCheck lang="pt-BR" dangerouslySetInnerHTML={{ __html: free }} />
+              <FreeSheet key={mountKey} html={free} innerRef={edited} onInput={(h) => onFree?.(h)} />
             )}
           </DocScale>
         </div>
@@ -174,6 +184,12 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
       {pdf.portal}
     </div>
   )
+}
+
+/** Folha editável: o HTML entra uma vez; o que a pessoa digita volta pelo onInput. */
+function FreeSheet({ html, innerRef, onInput }: { html: string; innerRef: React.RefObject<HTMLDivElement | null>; onInput: (h: string) => void }) {
+  const [initial] = useState(html)
+  return <div ref={innerRef} className="dk-editable" contentEditable suppressContentEditableWarning spellCheck lang="pt-BR" onInput={(e) => onInput((e.target as HTMLDivElement).closest('.dk-editable')?.innerHTML ?? '')} dangerouslySetInnerHTML={{ __html: initial }} />
 }
 
 /** Lista editável de textos (um por linha), com botões para subir/descer e tirar. */

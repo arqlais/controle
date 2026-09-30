@@ -1851,3 +1851,7 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 .qs-arrow { align-self: center; color: var(--muted); }
 @media (max-width: 640px) { .qs-arrow { display: none; } .qs-item { flex: 1 1 100%; } }
 .column-kind.is-blank { visibility: hidden; }
+.cd-phases { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.cd-phases span { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2, var(--bg)); color: var(--muted); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cd-phases span.is-done { background: color-mix(in srgb, var(--good, #5e8c6a) 14%, transparent); color: var(--good, #5e8c6a); }
+.cd-phases span.is-now { background: var(--accent); color: var(--accent-contrast, #fff); }

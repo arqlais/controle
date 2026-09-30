@@ -305,7 +305,7 @@ export default function App() {
       case 'processos':
         return <Processes />
       case 'documentos':
-        return <Documents />
+        return <Documents id={route.id} />
       case 'sugestoes':
         return <Suggestions unseen={sugUpdates.unseen} onSeen={sugUpdates.markSeen} />
       case 'avaliar':

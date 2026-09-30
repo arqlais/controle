@@ -154,6 +154,8 @@ try {
     await page.getByLabel('Para onde o QR code leva').fill('@estudio'); await page.waitForTimeout(200)
     ok(await page.locator('.pq-code path').count() === 1, `${vp.name}: placa de obra gera o QR code`)
     await page.locator('.dk-page .back').click(); await page.waitForTimeout(300)
+    ok(await page.getByRole('button', { name: 'Voltar sem salvar' }).count() === 1, `${vp.name}: documento pergunta antes de sair sem salvar`)
+    await page.getByRole('button', { name: 'Salvar e voltar' }).click(); await page.waitForTimeout(300)
     await go('#/processos'); await page.waitForTimeout(400)
     ok(await page.locator('.step-card').count() > 0, `${vp.name}: etapas de trabalho (cliente final)`)
 

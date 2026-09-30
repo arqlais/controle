@@ -1,4 +1,4 @@
-import type { DocsState } from './docTypes'
+import type { DocsState, SavedDoc } from './docTypes'
 
 export type ClientType =
   | 'final' // cliente final: a pessoa dona da casa/obra (quem contrata arquiteto ou designer)
@@ -519,6 +519,7 @@ export interface Data {
   posts?: SocialPost[] // planejamento do instagram
   contracts?: Contract[] // contratos gerados a partir dos orçamentos
   briefings?: Briefing[] // briefings enviados para clientes finais
+  docs?: SavedDoc[] // documentos salvos nas fichas dos clientes (guia, placa, apresentação…)
   deleted?: string[] // ids apagados (outro aparelho aberto com a versão antiga não traz de volta)
   settings: Settings
 }

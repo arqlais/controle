@@ -55,3 +55,19 @@ export interface DocsState {
   plaque?: PlaqueData
   deck?: DeckData
 }
+
+export type DocKind = 'guia' | 'placa' | 'briefing' | 'apresentacao'
+/** Documento salvo na ficha de um cliente (abre de novo para editar ou baixar). */
+export interface SavedDoc {
+  id: string
+  clientId: string
+  kind: DocKind
+  title: string
+  guide?: MeasureGuideData
+  plaque?: PlaqueData
+  deck?: DeckData
+  briefingTpl?: string // modelo de briefing (briefing em PDF)
+  html?: string // edições feitas direto na folha
+  createdAt: string
+  updatedAt: string
+}

@@ -414,3 +414,13 @@
 .dk-free-bar > span { display: flex; align-items: center; gap: 8px; }
 .dk-free-sheet { flex: 1; overflow: auto; padding: 24px; display: flex; justify-content: center; }
 .dk-free-sheet .doc-scale { width: min(100%, 1100px); }
+.dk-bar { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; margin: -6px 0 16px; padding: 12px 14px; border-radius: var(--radius, 16px); background: var(--surface); border: 1px solid var(--border); }
+.dk-bar.is-dirty { border-color: var(--accent); }
+.dk-bar-client { flex: 1 1 280px; display: grid; gap: 4px; min-width: 0; }
+.dk-bar-state { color: var(--muted); align-self: center; }
+.dk-bar.is-dirty .dk-bar-state { color: var(--text); }
+.saved-docs .list-item { display: flex; align-items: center; gap: 10px; }
+.saved-docs a.grow { flex: 1; min-width: 0; color: inherit; text-decoration: none; }
+.saved-doc-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-tint, #f4ece9); color: var(--accent); flex: none; }
+button.back { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
+button.back:hover { color: var(--text); }

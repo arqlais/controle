@@ -429,7 +429,7 @@ function dropDeleted(d: Data): Data {
   if (!d.deleted?.length) return d
   const gone = new Set(d.deleted)
   const keep = <T extends { id: string }>(l: T[] | undefined) => (l ?? []).filter((x) => !gone.has(x.id))
-  return { ...d, clients: keep(d.clients), projects: keep(d.projects), quotes: keep(d.quotes), expenses: keep(d.expenses), events: keep(d.events), posts: keep(d.posts), contracts: keep(d.contracts), briefings: keep(d.briefings) }
+  return { ...d, clients: keep(d.clients), projects: keep(d.projects), quotes: keep(d.quotes), expenses: keep(d.expenses), events: keep(d.events), posts: keep(d.posts), contracts: keep(d.contracts), briefings: keep(d.briefings), docs: keep(d.docs) }
 }
 /** Junta o que foi apagado aqui com o que veio da nuvem (vale o apagado dos dois lados). */
 export function withDeleted(remote: Partial<Data>, local?: Partial<Data>): Partial<Data> {
@@ -460,6 +460,7 @@ function normalizeBase(d: Partial<Data>): Data {
     posts: d.posts ?? [],
     contracts: d.contracts ?? [],
     briefings: d.briefings ?? [],
+    docs: d.docs ?? [],
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
@@ -558,7 +559,7 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings'
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings' | 'docs'
 type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
@@ -774,6 +775,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
         next.projects = d.projects.filter((p) => p.clientId !== id)
         next.quotes = d.quotes.filter((q) => q.clientId !== id)
         next.briefings = (d.briefings ?? []).filter((b) => b.clientId !== id)
+        next.docs = (d.docs ?? []).filter((x) => x.clientId !== id)
         next.events = d.events.map((e) => (pids.has(e.projectId) ? { ...e, projectId: '' } : e))
       }
       if (c === 'projects') {
