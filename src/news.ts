@@ -30,6 +30,15 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-painel-cliente-completo',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'painel do cliente mais completo',
+    text: 'O link do cliente ganhou um resumo no topo (etapa atual, entrega, pagamentos e documentos), o que ele precisa fazer em destaque, a chave Pix, o seu contato sempre à mão e um visual próprio para computador e celular. E no menu tem "painel do cliente", com todos os clientes para criar, mandar o link ou ver como o cliente vê.',
+    feature: 'portal',
+    steps: [{ page: 'paineis', text: 'No menu, "painel do cliente" mostra todos os seus clientes.' }],
+  },
+  {
     id: '2026-09-30-folha-cliente-final',
     date: '2026-09-30',
     kind: 'melhoria',

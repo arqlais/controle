@@ -81,34 +81,109 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
     if (node) open({ title: x.title, node, w: w[0], h: w[1], file: `${x.title}.pdf` })
   }
 
+  // resumo: a demanda em andamento (ou a mais recente), prazos e pagamentos de todas
+  const main = d.projects.find((p) => !p.deliveredDate) ?? d.projects[0]
+  const mDone = main ? main.phases.filter((x) => x.done).length : 0
+  const mNow = main?.phases.find((x) => !x.done)
+  const mPct = main ? (main.phases.length ? Math.round((mDone / main.phases.length) * 100) : main.deliveredDate ? 100 : 0) : 0
+  const days = main?.dueDate && !main.deliveredDate ? Math.ceil((Date.parse(main.dueDate) - Date.now()) / 86_400_000) : null
+  const payTotal = d.projects.reduce((n, p) => n + (p.total ?? 0), 0)
+  const payPaid = d.projects.reduce((n, p) => n + (p.paid ?? 0), 0)
+  const nextPay = d.projects
+    .flatMap((p) => (p.payments ?? []).filter((x) => !x.paid))
+    .sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999'))[0]
+  const showPay = d.projects.some((p) => p.payments?.length)
+
   return (
     <>
-      <header className="bf-head">
-        {d.logo && <img src={d.logo} alt="" className="bf-logo" />}
-        <p className="bf-eyebrow">{d.studio}</p>
+      <header className="bf-head pn-hero">
+        <div className="pn-hero-brand">
+          {d.logo ? <img src={d.logo} alt="" className="bf-logo" /> : <span className="pn-hero-mark">{(d.studio || '?')[0]}</span>}
+          <p className="bf-eyebrow">{d.studio}</p>
+        </div>
         <h1>{d.client ? `Oi, ${d.client}!` : 'Seu painel'}</h1>
-        <p className="muted">Aqui fica tudo do seu projeto: etapas, pagamentos e documentos. Atualizado em {new Date(d.updatedAt).toLocaleDateString('pt-BR')}.</p>
+        <p className="muted">Tudo do seu projeto num lugar só: etapas, prazos, pagamentos e documentos. Atualizado em {new Date(d.updatedAt).toLocaleDateString('pt-BR')}.</p>
       </header>
       {d.message && <p className="pt-message">{d.message}</p>}
-      {(toPay > 0 || toSign > 0 || toAnswer > 0) && (
-        <div className="pn-todo">
-          {toSign > 0 && (
-            <a href="#pn-contratos" onClick={(e) => jump(e, 'pn-contratos')}>
-              <Icon name="pen" size={15} /> {toSign === 1 ? '1 contrato para assinar' : `${toSign} contratos para assinar`}
-            </a>
+
+      {main && (
+        <div className="pn-summary">
+          <div className="pn-tile">
+            <span className="pn-tile-ico">
+              <Icon name="layers" size={16} />
+            </span>
+            <small>{main.deliveredDate ? 'situação' : 'etapa atual'}</small>
+            <b>{main.deliveredDate ? 'entregue' : mNow?.name ?? main.status}</b>
+            {main.phases.length > 0 && (
+              <div className="pn-bar is-mini" aria-label={`${mPct}% concluído`}>
+                <i style={{ width: `${mPct}%` }} />
+              </div>
+            )}
+            {main.phases.length > 0 && <em>{mPct}% concluído</em>}
+          </div>
+          <div className="pn-tile">
+            <span className="pn-tile-ico">
+              <Icon name="calendar" size={16} />
+            </span>
+            <small>{main.deliveredDate ? 'entregue em' : 'entrega prevista'}</small>
+            <b>{main.deliveredDate ? fmt(main.deliveredDate) : main.dueDate ? fmt(main.dueDate) : 'a combinar'}</b>
+            {days !== null && <em>{days > 1 ? `faltam ${days} dias` : days === 1 ? 'amanhã' : days === 0 ? 'hoje' : 'em ajuste de prazo'}</em>}
+          </div>
+          {showPay && (
+            <div className="pn-tile">
+              <span className="pn-tile-ico">
+                <Icon name="wallet" size={16} />
+              </span>
+              <small>pagamentos</small>
+              <b>
+                {money(payPaid)} <span className="muted">de {money(payTotal)}</span>
+              </b>
+              {payTotal > 0 && (
+                <div className="pn-bar is-mini is-pay" aria-hidden>
+                  <i style={{ width: `${Math.min(100, Math.round((payPaid / payTotal) * 100))}%` }} />
+                </div>
+              )}
+              <em>{nextPay ? `próxima: ${money(nextPay.amount)}${nextPay.due ? ` em ${fmt(nextPay.due)}` : ` ${nextPay.when}`}` : 'tudo pago'}</em>
+            </div>
           )}
-          {toAnswer > 0 && (
-            <a href="#pn-briefings" onClick={(e) => jump(e, 'pn-briefings')}>
-              <Icon name="clip" size={15} /> {toAnswer === 1 ? '1 briefing para responder' : `${toAnswer} briefings para responder`}
-            </a>
-          )}
-          {toPay > 0 && (
-            <a href="#pn-projetos" onClick={(e) => jump(e, 'pn-projetos')}>
-              <Icon name="wallet" size={15} /> {toPay === 1 ? '1 pagamento em aberto' : `${toPay} pagamentos em aberto`}
-            </a>
-          )}
+          <div className="pn-tile">
+            <span className="pn-tile-ico">
+              <Icon name="file" size={16} />
+            </span>
+            <small>documentos</small>
+            <b>{docsCount + d.contracts.length}</b>
+            <em>{toSign ? `${toSign} para assinar` : d.contracts.length ? 'contratos em dia' : 'arquivos do projeto'}</em>
+          </div>
         </div>
       )}
+
+      {(toPay > 0 || toSign > 0 || toAnswer > 0) && (
+        <div className="pn-todo-box">
+          <p className="pn-todo-title">
+            <Icon name="flag" size={14} /> para você fazer
+          </p>
+          <div className="pn-todo">
+            {toSign > 0 && (
+              <a href="#pn-contratos" onClick={(e) => jump(e, 'pn-contratos')}>
+                <Icon name="pen" size={15} /> {toSign === 1 ? 'assinar 1 contrato' : `assinar ${toSign} contratos`}
+              </a>
+            )}
+            {toAnswer > 0 && (
+              <a href="#pn-briefings" onClick={(e) => jump(e, 'pn-briefings')}>
+                <Icon name="clip" size={15} /> {toAnswer === 1 ? 'responder 1 briefing' : `responder ${toAnswer} briefings`}
+              </a>
+            )}
+            {toPay > 0 && (
+              <a href="#pn-projetos" onClick={(e) => jump(e, 'pn-projetos')}>
+                <Icon name="wallet" size={15} /> {toPay === 1 ? '1 pagamento em aberto' : `${toPay} pagamentos em aberto`}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="pn-grid">
+      <aside className="pn-side">
       <nav className="pn-nav" aria-label="Seções do painel">
         {nav
           .filter((x) => x.show)
@@ -120,11 +195,14 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </a>
           ))}
       </nav>
+      <Contact d={d} />
+      </aside>
+      <div className="pn-main">
 
       {d.projects.length > 0 && (
         <section id="pn-projetos" className="pn-section">
           {d.projects.map((p) => (
-            <ProjectCard key={p.id} p={p} />
+            <ProjectCard key={p.id} p={p} pix={d.pix} solo={d.projects.length === 1} />
           ))}
         </section>
       )}
@@ -251,6 +329,13 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
       )}
 
       <Talk d={d} owner={owner} preview={preview} token={token} />
+      </div>
+      </div>
+      {d.phone && (
+        <a className="pn-fab" href={whatsappLink(d.phone, 'Oi! Estou vendo o meu painel do projeto.')} target="_blank" rel="noreferrer" aria-label={`Falar com ${d.owner || d.studio} no WhatsApp`}>
+          <Icon name="whatsapp" size={22} />
+        </a>
+      )}
 
       {view && (
         <Modal wide title={view.title} onClose={() => setView(null)}>
@@ -274,14 +359,15 @@ function jump(e: React.MouseEvent, id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-function ProjectCard({ p }: { p: PanelProject }) {
+function ProjectCard({ p, pix, solo }: { p: PanelProject; pix?: string; solo?: boolean }) {
   const done = p.phases.filter((x) => x.done).length
   const now = p.phases.find((x) => !x.done)
   const pct = p.phases.length ? Math.round((done / p.phases.length) * 100) : p.deliveredDate ? 100 : 0
   return (
     <article className="bf-block pn-project">
       <h2>{p.title}</h2>
-      <section className="pt-now">
+      {/* um projeto só: o resumo do topo já mostra situação, entrega e etapas */}
+      {!solo && <section className="pt-now">
         <div>
           <span>situação</span>
           <b>{p.deliveredDate ? 'entregue' : now ? now.name : p.status}</b>
@@ -300,7 +386,7 @@ function ProjectCard({ p }: { p: PanelProject }) {
             </b>
           </div>
         )}
-      </section>
+      </section>}
       {p.phases.length > 0 && (
         <>
           <div className="pn-bar" aria-label={`${pct}% concluído`}>
@@ -332,6 +418,14 @@ function ProjectCard({ p }: { p: PanelProject }) {
                 pago {money(p.paid ?? 0)} de {money(p.total)}
               </p>
             </div>
+          )}
+          {pix && p.payments.some((x) => !x.paid) && (
+            <p className="pn-pix">
+              <Icon name="wallet" size={14} /> Pix: <b>{pix}</b>
+              <button type="button" className="link small" onClick={() => navigator.clipboard?.writeText(pix)}>
+                copiar
+              </button>
+            </p>
           )}
           <ul className="pt-pays">
             {p.payments.map((x, i) => (
@@ -414,5 +508,40 @@ function Talk({ d, owner, preview, token }: { d: PanelPayload; owner: string; pr
         </>
       )}
     </section>
+  )
+}
+
+/** Contato do escritório: sempre à mão (ao lado no computador, no fim no celular). */
+function Contact({ d }: { d: PanelPayload }) {
+  const ig = d.instagram?.replace(/^@/, '')
+  const site = d.website ? (/^https?:/.test(d.website) ? d.website : `https://${d.website}`) : ''
+  return (
+    <div className="pn-contact">
+      <p className="pn-contact-title">seu contato</p>
+      <b>{d.owner || d.studio}</b>
+      {d.owner && d.studio && d.owner !== d.studio && <small className="muted">{d.studio}</small>}
+      <div className="pn-contact-links">
+        {d.phone && (
+          <a href={whatsappLink(d.phone, 'Oi! Estou vendo o meu painel do projeto.')} target="_blank" rel="noreferrer">
+            <Icon name="whatsapp" size={15} /> WhatsApp
+          </a>
+        )}
+        {d.email && (
+          <a href={`mailto:${d.email}`}>
+            <Icon name="mail" size={15} /> e-mail
+          </a>
+        )}
+        {ig && (
+          <a href={`https://instagram.com/${ig}`} target="_blank" rel="noreferrer">
+            <Icon name="instagram" size={15} /> @{ig}
+          </a>
+        )}
+        {site && (
+          <a href={site} target="_blank" rel="noreferrer">
+            <Icon name="link" size={15} /> site
+          </a>
+        )}
+      </div>
+    </div>
   )
 }

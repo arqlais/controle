@@ -27,6 +27,7 @@ const SettingsPage = lazy(() => import('./pages/Settings'))
 const Manual = lazy(() => import('./pages/Manual'))
 const Instagram = lazy(() => import('./pages/Instagram'))
 const Briefings = lazy(() => import('./pages/Briefings'))
+const Panels = lazy(() => import('./pages/Panels'))
 const Processes = lazy(() => import('./pages/Processes'))
 const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
@@ -73,6 +74,7 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'financeiro', label: 'financeiro', icon: 'wallet', group: 'dia' },
   { page: 'clientes', label: 'clientes', icon: 'users', group: 'vendas' },
   { page: 'orcamentos', label: 'orçamentos', icon: 'file', group: 'vendas' },
+  { page: 'paineis', label: 'painel do cliente', icon: 'link', group: 'vendas' },
   { page: 'briefings', label: 'briefings', icon: 'clip', group: 'vendas' },
   { page: 'contratos', label: 'contratos', icon: 'briefcase', group: 'vendas' },
   { page: 'documentos', label: 'documentos', icon: 'ruler', group: 'estudio' },
@@ -80,7 +82,7 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
 ]
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'documentos' }
+const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'documentos', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -367,6 +369,8 @@ export default function App() {
         return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
       case 'briefings':
         return <Briefings id={route.id} />
+      case 'paineis':
+        return <Panels />
       case 'processos':
         return <Processes />
       case 'documentos':

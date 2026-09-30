@@ -14,6 +14,36 @@ import { fmtDate, whatsappLink } from '../utils'
 /* Painel do cliente (na ficha do cliente): o profissional escolhe o que o cliente vê e manda o link.
    Tudo o que muda aqui (etapas, pagamentos, contratos…) aparece sozinho para o cliente. */
 
+/** Cria (ou liga de novo) o painel de um cliente e publica. Usado na ficha e na lista de painéis. */
+export async function createPanel(data: ReturnType<typeof useStore>['data'], client: Client, has: (f: Parameters<ReturnType<typeof useAccess>['has']>[0]) => boolean, userId: string, upsert: ReturnType<typeof useStore>['upsert']) {
+  const panel = client.panel
+  const contracts = (data.contracts ?? []).filter((k) => k.clientId === client.id)
+  const next: ClientPanel = {
+    token: panel?.token ?? crypto.randomUUID(),
+    enabled: true,
+    showPayments: panel?.showPayments ?? true,
+    showVisits: panel?.showVisits ?? true,
+    showQuotes: panel?.showQuotes ?? false,
+    showBriefings: panel?.showBriefings ?? true,
+    contracts: panel?.contracts ?? contracts.filter((k) => k.status !== 'rascunho').map((k) => k.id),
+    docs: panel?.docs ?? [],
+    files: panel?.files ?? [],
+    message: panel?.message,
+    hideProjects: panel?.hideProjects,
+  }
+  let file = false
+  try {
+    file = await publishPanel(userId, next.token, panelPayload(data, client, next, has))
+  } catch {
+    /* publica de novo na próxima mudança */
+  }
+  upsert('clients', { ...client, panel: { ...next, file: file || undefined, publishedAt: new Date().toISOString() } })
+  return next
+}
+
+/** Mensagem pronta para mandar o link do painel. */
+export const panelMessage = (client: Client, link: string) => `Oi, ${client.name.split(' ')[0]}! Este é o seu painel do projeto: etapas, pagamentos, contratos e documentos, sempre atualizados. ${link}`
+
 export function ClientPanelSection({ client }: { client: Client }) {
   const { data, upsert, userId } = useStore()
   const { has } = useAccess()
@@ -42,28 +72,9 @@ export function ClientPanelSection({ client }: { client: Client }) {
   const quotes = data.quotes.filter((q) => q.clientId === client.id && q.status !== 'rascunho')
 
   const enable = async () => {
-    const next: ClientPanel = {
-      token: panel?.token ?? crypto.randomUUID(),
-      enabled: true,
-      showPayments: panel?.showPayments ?? true,
-      showVisits: panel?.showVisits ?? true,
-      showQuotes: panel?.showQuotes ?? false,
-      showBriefings: panel?.showBriefings ?? true,
-      contracts: panel?.contracts ?? contracts.filter((k) => k.status !== 'rascunho').map((k) => k.id),
-      docs: panel?.docs ?? [],
-      files: panel?.files ?? [],
-      message: panel?.message,
-      hideProjects: panel?.hideProjects,
-    }
     setBusy(true)
-    let file = false
-    try {
-      file = await publishPanel(userId, next.token, panelPayload(data, client, next, has))
-    } catch {
-      /* publica de novo na próxima mudança */
-    }
+    await createPanel(data, client, has, userId, upsert)
     setBusy(false)
-    upsert('clients', { ...client, panel: { ...next, file: file || undefined, publishedAt: new Date().toISOString() } })
     toast('Painel no ar. Agora é só mandar o link.')
   }
   const disable = async () => {
@@ -88,7 +99,7 @@ export function ClientPanelSection({ client }: { client: Client }) {
 
   const link = panelLink(userId, panel.token)
   const first = client.name.split(' ')[0]
-  const msg = `Oi, ${first}! Este é o seu painel do projeto: etapas, pagamentos, contratos e documentos, sempre atualizados. ${link}`
+  const msg = panelMessage(client, link)
   const toggle = (key: 'contracts' | 'docs', id: string, on: boolean) => save({ [key]: on ? [...(panel[key] ?? []), id] : (panel[key] ?? []).filter((x) => x !== id) })
   const addFiles = async (list: FileList | null) => {
     if (!list?.length) return
