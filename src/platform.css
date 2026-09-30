@@ -1878,3 +1878,42 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 .lp-pick button { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: var(--pill); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
 .lp-pick button b { color: var(--accent); font-weight: 600; }
 .lp-pick button:hover { border-color: var(--accent); }
+
+/* ===== página de vendas no celular: menos rolagem (cartões lado a lado, arrastando) ===== */
+.lp-doc-window { height: 500px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.lp-swipe-hint, .lp-story-toggle { display: none; }
+@media (max-width: 720px) {
+  /* telas: a folha (proposta / contrato) aparece primeiro e inteira na largura; o texto fica curto */
+  .lp-screens .lp-screen { max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; }
+  .lp-screen-stage .lp-screen:not(.lp-split) { max-height: 470px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 84%, transparent); mask-image: linear-gradient(#000 84%, transparent); }
+  .lp-split { gap: 12px; }
+  .lp-split > .lp-doc, .lp-split > .mk-stage { order: -1; }
+  .lp-doc-window { height: 380px; }
+  .lp-split-side { gap: 8px; }
+  .lp-split-side > p.muted, .lp-split-side > .pf-checks, .lp-split-side > p.small { display: none; }
+  .lp-split-side > b { font-size: 15px; }
+  .lp-tpl-list { flex-direction: row; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 2px; }
+  .lp-tpl-list::-webkit-scrollbar { display: none; }
+  .lp-tpl { flex: none; padding: 6px 12px 6px 8px; border-radius: var(--pill); }
+  .lp-tpl small { display: none; }
+  .lp-tpl b { font-size: 13px; }
+
+  /* quem criou: só o primeiro parágrafo, o resto em "continuar lendo" */
+  .lp-story-more { display: none; }
+  .lp-story-toggle { display: inline-flex; margin: 4px auto 0; padding: 7px 16px; border-radius: var(--pill); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  /* para quem é: chips menores, mais por linha */
+  .lp-for-list { gap: 6px; }
+  .lp-chip { padding: 8px 13px; font-size: 13px; box-shadow: none; }
+
+  /* estúdio e planos: cartões lado a lado, arrastando */
+  .lp-studio-grid, .pf-plan-cards.lp-plans { display: flex !important; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin-inline: -16px; padding: 14px 16px 6px; scroll-padding-inline: 16px; max-width: none; }
+  .lp-studio-grid::-webkit-scrollbar, .pf-plan-cards.lp-plans::-webkit-scrollbar { display: none; }
+  .lp-studio-grid > *, .pf-plan-cards.lp-plans > * { flex: 0 0 84%; scroll-snap-align: center; min-width: 0; }
+  .pf-plan-cards.lp-plans > * { flex-basis: 86%; }
+  .lp-swipe-hint { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+  .lp-pick { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .lp-pick::-webkit-scrollbar { display: none; }
+  .lp-pick button { flex: none; }
+  .lp-pick > span { display: none; }
+}

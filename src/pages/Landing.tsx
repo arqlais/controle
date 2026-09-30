@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
@@ -10,6 +10,8 @@ import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
 import { go } from '../router'
+
+const LandingDoc = lazy(() => import('./LandingDocs'))
 import { LANDING_PROFILE_KEY } from '../components/Signup'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
@@ -253,6 +255,9 @@ export default function Landing() {
   const heroWords = siteWords
   const signup = (plan?: PlanId) => go('cadastro', plan)
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  // no celular os planos ficam lado a lado (arrastar): a escolha rápida centraliza o cartão
+  const pickPlan = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+  const [storyOpen, setStoryOpen] = useState(false)
 
   return (
     <div className="lp" ref={root}>
@@ -369,10 +374,15 @@ export default function Landing() {
             .split(/\n\s*\n/)
             .filter((t) => t.trim())
             .map((t, i) => (
-              <p key={i} className="lp-story-text">
+              <p key={i} className={`lp-story-text ${i > 0 && !storyOpen ? 'lp-story-more' : ''}`}>
                 {t.trim()}
               </p>
             ))}
+          {!storyOpen && site.text.split(/\n\s*\n/).filter((t) => t.trim()).length > 1 && (
+            <button className="lp-story-toggle" onClick={() => setStoryOpen(true)}>
+              continuar lendo
+            </button>
+          )}
           {site.signature && <p className="lp-sign">— {site.signature}</p>}
         </div>
       </section>
@@ -458,6 +468,9 @@ export default function Landing() {
               </article>
             ))}
           </div>
+          <p className="lp-swipe-hint" aria-hidden>
+            arraste para o lado <Icon name="arrowRight" size={13} />
+          </p>
           <div className="lp-studio-cta">
             <button className="btn primary" onClick={() => signup('estudio')}>
               <Icon name="star" size={15} /> testar o {PLANS.estudio.name} grátis
@@ -474,13 +487,13 @@ export default function Landing() {
           <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.estudio.name} (o mais completo) grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />
           <div className="lp-pick" data-reveal>
             <span className="muted small">escolha rápida:</span>
-            <button onClick={() => scrollTo('plano-essencial')}>
+            <button onClick={() => pickPlan('plano-essencial')}>
               <Icon name="user" size={14} /> começando, texto no WhatsApp <b>{PLANS.essencial.name}</b>
             </button>
-            <button onClick={() => scrollTo('plano-completo')}>
+            <button onClick={() => pickPlan('plano-completo')}>
               <Icon name="file" size={14} /> freelancer com PDF e contratos <b>{PLANS.completo.name}</b>
             </button>
-            <button onClick={() => scrollTo('plano-estudio')}>
+            <button onClick={() => pickPlan('plano-estudio')}>
               <Icon name="home" size={14} /> atende cliente final <b>{PLANS.estudio.name}</b>
             </button>
           </div>
@@ -510,6 +523,9 @@ export default function Landing() {
               </article>
             ))}
           </div>
+          <p className="lp-swipe-hint" aria-hidden>
+            arraste para ver os 3 planos <Icon name="arrowRight" size={13} />
+          </p>
           <details className="card lp-compare">
             <summary>
               comparar os planos <Icon name="plus" size={16} />
@@ -971,12 +987,16 @@ function PropostaScreen() {
           total: <b>{money(quoteTotal(quote, SAMPLE.urgencyFee))}</b>
         </p>
       </div>
-      <QuoteMock tpl={tpl} c={t.colors} total={money(quoteTotal(quote, SAMPLE.urgencyFee))} />
+      <Suspense fallback={<QuoteMock tpl={tpl} c={t.colors} total={money(quoteTotal(quote, SAMPLE.urgencyFee))} />}>
+        <LandingDoc kind="proposta" s={{ ...SAMPLE, proposal: { ...SAMPLE.proposal, ...t.colors, template: tpl } }} quote={quote} client={d.clients.find((c) => c.id === quote.clientId)} />
+      </Suspense>
     </div>
   )
 }
 
 function ContratoScreen() {
+  const d = useDemo()
+  const quote = d.quotes[0]
   return (
     <div className="lp-screen lp-split">
       <div className="lp-split-side">
@@ -995,7 +1015,9 @@ function ContratoScreen() {
         </ul>
         <p className="muted small">Modelos de referência: revise com um advogado.</p>
       </div>
-      <ContractMock />
+      <Suspense fallback={<ContractMock />}>
+        <LandingDoc kind="contrato" s={SAMPLE} quote={quote} client={d.clients.find((c) => c.id === quote.clientId)} />
+      </Suspense>
     </div>
   )
 }
