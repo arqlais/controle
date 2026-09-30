@@ -1,15 +1,16 @@
 import { MsgTools, WaPreview } from '../components/MsgTools'
+import { PriceTable } from '../components/PriceTable'
 import { LockedView, lockPlan } from '../components/LockedPreview'
 import { ColorPicker } from '../components/ColorPicker'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
-import { Fragment, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
 import { demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { DesktopNote, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
-import type { Complexity, Pricing, Quote, Settings } from '../types'
-import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, PRICING, download, paymentMethods, money, nextQuoteNumber, today, uid, groupServices, serviceAsk } from '../utils'
+import type { Complexity, Quote } from '../types'
+import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, download, paymentMethods, nextQuoteNumber, today, uid } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
@@ -19,15 +20,14 @@ import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
 import { useAccess } from '../access'
 import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
-import { ARCH_SERVICES, WORK_PROFILES } from '../clientDefaults'
+import { WORK_PROFILES } from '../clientDefaults'
 import { PLANS } from '../plans'
 import { PortfolioSettings, ProcessSettings } from '../components/QuoteSteps'
-import { serviceAudience } from '../processes'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
   { id: 'aparencia', label: 'aparência', hint: 'cores, fontes e tema', icon: 'star' },
-  { id: 'precos', label: 'preços', hint: 'tabela e regras', icon: 'wallet', desktop: true },
+  { id: 'precos', label: 'preços', hint: 'tabela e regras', icon: 'wallet' },
   { id: 'propostas', label: 'propostas', hint: 'modelo do PDF, contratos e padrões', icon: 'file' },
   { id: 'mensagens', label: 'mensagens', hint: 'textos para a cliente', icon: 'whatsapp', desktop: true },
   { id: 'metas', label: 'metas', hint: 'faturamento e MEI', icon: 'target', desktop: true },
@@ -90,8 +90,6 @@ export default function SettingsPage() {
     r.readAsText(f)
   }
 
-  const setService = (id: string, patch: Partial<Settings['services'][number]>) =>
-    setSettings({ services: s.services.map((x) => (x.id === id ? { ...x, ...patch } : x)) })
 
   return (
     <div className="page">
@@ -118,7 +116,7 @@ export default function SettingsPage() {
         </nav>
 
         <div className="settings-panel">
-          <DesktopNote>Preços, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet.</DesktopNote>
+          <DesktopNote>Regras de preço, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet.</DesktopNote>
           {tab === 'aparencia' && (
             <>
               {has('identidade') ? (
@@ -147,168 +145,8 @@ export default function SettingsPage() {
 
           {tab === 'precos' && (
             <>
-            <Section
-              className="desktop-only"
-              title="tabela de preços"
-              action={
-                <button
-                  className="btn small"
-                  onClick={() => setSettings({ services: [...s.services, { id: uid(), name: 'Novo serviço', unit: 'unidade', pricing: 'unidade', price: 0, tiers: [], min: 0, hours: 1 }] })}
-                >
-                  <Icon name="plus" size={14} /> serviço
-                </button>
-              }
-            >
-              <MissingArchServices />
-              <p className="muted small">
-                Cada serviço tem uma forma de preço: <b>pacotes</b> (o valor por unidade cai conforme a quantidade), <b>por m² × complexidade</b>, <b>por unidade</b>, <b>por hora</b> (no orçamento você coloca quantas horas) ou <b>valor livre</b>{' '}
-                (você digita no orçamento). Estudantes recebem {s.studentDiscount}% de desconto na sugestão. No orçamento você sempre pode digitar outro valor.
-              </p>
-              <div className="services">
-                {groupServices(s.services).map(([g, list]) => (
-                  <Fragment key={g || '-'}>
-                    {g && (
-                      <h4 className="service-group">
-                        {g} <small className="muted">{list.length}</small>
-                      </h4>
-                    )}
-                {list.map((x) => (
-                  <div key={x.id} className="service-row">
-                    <div className="service-main">
-                      <input className="service-name" value={x.name} onChange={(e) => setService(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
-                      <select value={x.pricing} onChange={(e) => setService(x.id, { pricing: e.target.value as Pricing, unit: e.target.value === 'm2' ? 'm²' : e.target.value === 'hora' ? 'hora' : x.unit === 'm²' || x.unit === 'hora' ? 'unidade' : x.unit })} aria-label="Forma de preço">
-                        {(Object.keys(PRICING) as Pricing[]).map((k) => (
-                          <option key={k} value={k}>
-                            {PRICING[k]}
-                          </option>
-                        ))}
-                      </select>
-                      <input className="service-group-input" list="service-groups" value={x.group ?? ''} onChange={(e) => setService(x.id, { group: e.target.value })} placeholder="grupo" aria-label="Grupo do serviço" title="Grupo: organiza a tabela e a lista do orçamento (ex.: projetos complementares)" />
-                      {s.workProfile !== 'freelancer' && (
-                        <select className="service-aud" value={serviceAudience(x)} onChange={(e) => setService(x.id, { audience: e.target.value as 'final' | 'parceiro' | 'ambos' })} aria-label="Para quem" title="Em qual tipo de orçamento este serviço aparece">
-                          <option value="final">cliente final</option>
-                          <option value="parceiro">escritório parceiro</option>
-                          <option value="ambos">os dois</option>
-                        </select>
-                      )}
-                      <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })} aria-label="Remover">
-                        <Icon name="trash" size={16} />
-                      </button>
-                    </div>
-                    {x.pricing !== 'livre' && (
-                      <div className="service-fields">
-                        {x.pricing !== 'm2' && (
-                          <Field label="Unidade">
-                            <input value={x.unit} onChange={(e) => setService(x.id, { unit: e.target.value })} placeholder="imagem" />
-                          </Field>
-                        )}
-                        <Field label={x.pricing === 'm2' ? 'R$ por m²' : x.pricing === 'pacote' ? `Avulso (1 ${x.unit})` : `R$ por ${x.unit}`}>
-                          <MoneyInput value={x.price} onChange={(n) => setService(x.id, { price: n })} />
-                        </Field>
-                        {x.pricing === 'm2' && (
-                          <Field label="Valor base do projeto" hint="Somado ao valor por m².">
-                            <MoneyInput value={x.base ?? 0} onChange={(n) => setService(x.id, { base: n })} />
-                          </Field>
-                        )}
-                        <Field label="Valor mínimo">
-                          <MoneyInput value={x.min} onChange={(n) => setService(x.id, { min: n })} />
-                        </Field>
-                      </div>
-                    )}
-                    <label className="check toggle service-floor">
-                      <input type="checkbox" checked={!!x.perFloor} onChange={(e) => setService(x.id, { perFloor: e.target.checked })} /> encarece por pavimento a mais
-                    </label>
-                    <div className="service-delivery">
-                      <Field label="Como é entregue" hint="Vai no PDF em “formatos de arquivos entregues”.">
-                        <textarea className="auto-grow" rows={1} value={x.delivery ?? ''} onChange={(e) => setService(x.id, { delivery: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: PDF fechado, pronto para execução" />
-                      </Field>
-                      <Field label="Se o cliente quiser o arquivo aberto" hint="Em branco = usa a entrega normal + “arquivo aberto (editável)”. O valor soma a taxa interna de arquivo aberto.">
-                        <textarea className="auto-grow" rows={1} value={x.deliveryOpen ?? ''} onChange={(e) => setService(x.id, { deliveryOpen: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: PDF + arquivo aberto (editável) do layout" />
-                      </Field>
-                      <Field label="Observações prontas" hint="Uma por linha. Aparecem como sugestão na observação do orçamento (um toque coloca ou tira).">
-                        <textarea rows={3} value={(x.noteHints ?? []).join('\n')} onChange={(e) => setService(x.id, { noteHints: e.target.value.split('\n') })} placeholder="Ex.: necessário planta baixa em dwg com medidas reais." spellCheck lang="pt-BR" />
-                      </Field>
-                    </div>
-                    {x.pricing === 'pacote' && (
-                      <div className="tiers">
-                        {x.tiers.map((t, i) => (
-                          <div key={i} className="tier">
-                            <input type="number" min={1} value={t.qty} onChange={(e) => setService(x.id, { tiers: x.tiers.map((y, j) => (j === i ? { ...y, qty: Number(e.target.value) || 0 } : y)) })} aria-label="Quantidade do pacote" />
-                            <span className="muted small">{x.unit}s por</span>
-                            <MoneyInput value={t.price} onChange={(n) => setService(x.id, { tiers: x.tiers.map((y, j) => (j === i ? { ...y, price: n } : y)) })} />
-                            <span className="muted small nowrap">{t.qty ? `= ${money(t.price / t.qty)}/${x.unit}` : ''}</span>
-                            <button className="icon-btn subtle" onClick={() => setService(x.id, { tiers: x.tiers.filter((_, j) => j !== i) })} aria-label="Remover pacote">
-                              <Icon name="x" size={14} />
-                            </button>
-                          </div>
-                        ))}
-                        <button className="btn small ghost" onClick={() => setService(x.id, { tiers: [...x.tiers, { qty: (x.tiers.at(-1)?.qty ?? 0) + 5, price: 0 }] })}>
-                          <Icon name="plus" size={14} /> pacote
-                        </button>
-                      </div>
-                    )}
-                    {x.checklist?.length ? (
-                      <div className="service-checklist">
-                        <Field label="Título da lista" hint="Vai na pergunta ao cliente.">
-                          <input value={x.checklistTitle ?? ''} onChange={(e) => setService(x.id, { checklistTitle: e.target.value })} placeholder="Ex.: plantas executivas" />
-                        </Field>
-                        <Field label="Pergunta ao cliente" hint="Aparece no “perguntar” do orçamento, só quando este serviço está nele.">
-                          <input value={x.askText ?? ''} onChange={(e) => setService(x.id, { askText: e.target.value })} placeholder={serviceAsk({ ...x, askText: '' })} />
-                        </Field>
-                        <div className="checklist-rows">
-                          <span className="field-label">
-                            opções e valor de cada uma {x.pricing === 'm2' ? '(por m², × complexidade)' : '(cada, × complexidade)'}
-                          </span>
-                          {x.checklist.map((c, i) => (
-                            <div key={i} className="checklist-row">
-                              <input
-                                value={c}
-                                onChange={(e) => {
-                                  const name = e.target.value
-                                  const prices = { ...(x.checklistPrices ?? {}) }
-                                  prices[name] = prices[c] ?? x.customRate ?? 0
-                                  if (!x.checklist!.some((y, j) => j !== i && y === c)) delete prices[c]
-                                  setService(x.id, { checklist: x.checklist!.map((y, j) => (j === i ? name : y)), checklistPrices: prices })
-                                }}
-                                placeholder="Ex.: planta de forro"
-                                aria-label="Nome da opção"
-                              />
-                              <MoneyInput value={x.checklistPrices?.[c] ?? 0} onChange={(n) => setService(x.id, { checklistPrices: { ...(x.checklistPrices ?? {}), [c]: n } })} />
-                              <button className="icon-btn subtle" onClick={() => setService(x.id, { checklist: x.checklist!.filter((_, j) => j !== i) })} aria-label="Remover opção">
-                                <Icon name="x" size={14} />
-                              </button>
-                            </div>
-                          ))}
-                          <div className="checklist-row">
-                            <span className="muted small">item personalizado (escrito no orçamento)</span>
-                            <MoneyInput value={x.customRate ?? 0} onChange={(n) => setService(x.id, { customRate: n })} />
-                            <span />
-                          </div>
-                          <div className="row gap-s">
-                            <button className="btn small ghost" onClick={() => setService(x.id, { checklist: [...x.checklist!, ''] })}>
-                              <Icon name="plus" size={14} /> opção
-                            </button>
-                            <button className="link small" onClick={() => setService(x.id, { checklist: [], checklistTitle: '' })}>
-                              remover lista
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <button className="link small" onClick={() => setService(x.id, { checklist: [''], checklistTitle: x.name, checklistPrices: {} })}>
-                        + lista para o cliente escolher (ex.: quais plantas), com valor por item
-                      </button>
-                    )}
-                  </div>
-                ))}
-                  </Fragment>
-                ))}
-                <datalist id="service-groups">
-                  {[...new Set([...s.services.map((x) => x.group ?? ''), ...ARCH_SERVICES.map((x) => x.group ?? '')].filter(Boolean))].map((g) => (
-                    <option key={g} value={g} />
-                  ))}
-                </datalist>
-              </div>
+            <Section title="tabela de preços">
+              <PriceTable services={s.services} profile={s.workProfile} onChange={(services) => setSettings({ services })} onRestart={() => setSettings({ servicesSetup: false })} />
             </Section>
               <Section title="regras de preço" className="desktop-only">
                 <div className="form-grid">
@@ -810,22 +648,3 @@ function WorkProfileSection() {
   )
 }
 
-/** Quem atende cliente final e ainda não tem os serviços de arquitetura: um toque adiciona os que faltam. */
-function MissingArchServices() {
-  const { data, setSettings } = useStore()
-  const p = data.settings.workProfile
-  if (p !== 'final' && p !== 'ambos') return null
-  const missing = ARCH_SERVICES.filter((x) => x.id !== 'personalizado' && !data.settings.services.some((y) => y.id === x.id))
-  if (!missing.length) return null
-  return (
-    <div className="pf-note wp-add">
-      <Icon name="sparkle" size={16} />
-      <span className="grow">
-        Tabela pronta para cliente final: {missing.length} serviço(s) de arquitetura (consultoria, projetos, complementares, regularização, obra) com valores de partida para você ajustar.
-      </span>
-      <button className="btn small" onClick={() => setSettings({ services: [...missing, ...data.settings.services] })}>
-        <Icon name="plus" size={14} /> adicionar
-      </button>
-    </div>
-  )
-}

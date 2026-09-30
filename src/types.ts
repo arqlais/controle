@@ -497,6 +497,7 @@ export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   processes?: ProjectProcess[] // processos de trabalho para cliente final (vazio = os prontos)
+  servicesSetup?: boolean // já fez o primeiro passo "o que você faz e quanto cobra"
   processesKnown?: string[] // processos prontos que a pessoa já recebeu (um novo entra uma vez; apagou, não volta)
   freelaTasks?: string[] // etapas da demanda freelancer / escritório parceiro (vazio = as prontas)
   studentTasks?: string[] // etapas da demanda de estudante (vazio = as prontas)

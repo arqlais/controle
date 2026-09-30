@@ -42,6 +42,8 @@ import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UpdateBanner } from './components/UpdateBanner'
+import { ServicesSetup } from './components/ServicesSetup'
+import { CLIENT_SERVICES, servicesFor } from './clientDefaults'
 import { LockedView, TrialFeatureNote, lockPlan } from './components/LockedPreview'
 import { ClientPanelSync } from './components/ClientPanel'
 import { markBetaDevice } from './beta'
@@ -263,6 +265,10 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sync === 'loading', access.isOwner])
+  // primeiro passo obrigatório: o que faz e quanto cobra (conta nova com a tabela de exemplo, ou quem pediu para refazer)
+  const untouchedServices = JSON.stringify(settings.services) === JSON.stringify(CLIENT_SERVICES) || JSON.stringify(settings.services) === JSON.stringify(servicesFor(settings.workProfile))
+  const needsSetup = sync !== 'loading' && !access.isOwner && !access.legacy && (settings.servicesSetup === false || (settings.servicesSetup === undefined && untouchedServices))
+  const setupNow = needsSetup && !welcomeOpen && !tourOpen
   // novidades: abre sozinha para quem assina quando há algo novo (depois do passo a passo); o sininho do topo reabre
   const news = useNews(!access.legacy)
   const [newsOpen, setNewsOpen] = useState(false)
@@ -604,8 +610,19 @@ export default function App() {
         <ClientPanelSync />
         <UpdateBanner />
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
-        {newsOpen && !tourOpen && !welcomeOpen && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} onHistory={() => (closeNews(), setHistoryOpen(true))} />}
+        {newsOpen && !tourOpen && !welcomeOpen && !setupNow && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} onHistory={() => (closeNews(), setHistoryOpen(true))} />}
         {historyOpen && <NewsHistory onClose={() => setHistoryOpen(false)} />}
+        {setupNow && (
+          <ServicesSetup
+            initialProfile={settings.workProfile}
+            onDone={(services, workProfile) => {
+              // refazendo: o que já estava na tabela fica, e os novos entram no fim
+              const keep = untouchedServices ? [] : settings.services.filter((x) => !services.some((y) => y.id === x.id || y.name.trim().toLowerCase() === x.name.trim().toLowerCase()))
+              setSettings({ services: [...keep, ...services], workProfile, servicesSetup: true })
+              toast('Pronto! Sua tabela de preços está montada.')
+            }}
+          />
+        )}
         {welcomeOpen && (
           <WelcomeCard
             name={access.sub?.name || settings.ownerName || ''}

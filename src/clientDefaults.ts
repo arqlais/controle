@@ -72,6 +72,16 @@ export const ARCH_SERVICES: ServiceDef[] = [
   { id: 'personalizado', group: 'outros', name: 'serviço personalizado', unit: 'projeto', pricing: 'livre', price: 0, min: 0, hours: 0, tiers: [] },
 ]
 
+/** Mais sugestões para quem presta serviço para escritórios (aparecem no "adicionar serviço"). */
+export const FREELA_EXTRA: ServiceDef[] = [
+  { id: 'fr-tour', name: 'vídeo / tour 3d', unit: 'vídeo', pricing: 'unidade', price: 400, min: 0, hours: 8, tiers: [] },
+  { id: 'fr-marcenaria', name: 'detalhamento de marcenaria', unit: 'móvel', pricing: 'unidade', price: 180, min: 0, hours: 3, tiers: [] },
+  { id: 'fr-asbuilt', name: 'levantamento / as built', unit: 'm²', pricing: 'm2', price: 4, base: 200, min: 350, hours: 0.05, tiers: [] },
+  { id: 'fr-compat', name: 'compatibilização de projetos', unit: 'hora', pricing: 'hora', price: 70, min: 0, hours: 1, tiers: [] },
+  { id: 'fr-legal', name: 'desenho para prefeitura (projeto legal)', unit: 'prancha', pricing: 'unidade', price: 220, min: 0, hours: 4, tiers: [] },
+  { id: 'fr-revisao', name: 'alteração / revisão extra', unit: 'hora', pricing: 'hora', price: 60, min: 0, hours: 1, tiers: [] },
+]
+
 /** Tabela inicial conforme o jeito de trabalhar. */
 export const servicesFor = (profile?: WorkProfile): ServiceDef[] =>
   profile === 'final' ? ARCH_SERVICES : profile === 'ambos' ? [...ARCH_SERVICES.filter((x) => x.id !== 'personalizado'), ...CLIENT_SERVICES.map((x) => ({ ...x, group: x.id === 'personalizado' ? 'outros' : 'freelance (para escritórios)' }))] : CLIENT_SERVICES

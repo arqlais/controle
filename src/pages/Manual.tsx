@@ -565,20 +565,17 @@ export default function Manual() {
                 </span>
                 <span className="manual-tool-text">
                   <b>{t.name}</b>
-                  <small>{on ? t.text : `a partir do ${PLANS[firstPlanWith(t.feature)].name}`}</small>
+                  <small>{t.text}</small>
+                  {!on && (
+                    <em className="manual-tool-plan">
+                      <Icon name="lock" size={11} /> a partir do {PLANS[firstPlanWith(t.feature)].name}
+                    </em>
+                  )}
                 </span>
               </button>
             )
           })}
         </div>
-        {TOOLS.some((t) => !has(t.feature)) && (
-          <p className="manual-tools-more muted small">
-            <Icon name="lock" size={13} /> mais {TOOLS.filter((t) => !has(t.feature)).length} ferramentas nos planos acima:{' '}
-            {TOOLS.filter((t) => !has(t.feature))
-              .map((t) => t.name)
-              .join(', ')}
-          </p>
-        )}
       </section>
 
       <section className="card manual-intro">
