@@ -44,8 +44,8 @@ const PROFESSIONS = ['arquiteto(a)', 'designer de interiores', 'artista 3D / vis
 const SOURCES = ['Instagram', 'indicação de amigo(a)', 'Google', 'faculdade', 'TikTok', 'outro']
 // só Pix e cartão de crédito; o que cada um significa muda com o ciclo. No mensal o cartão vem primeiro (cobra sozinho).
 const PAY: { id: PayMethod; label: string; hint: Record<Cycle, string>; icon: string }[] = [
-  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', semestral: '', anual: `em até ${CYCLE_INSTALLMENTS.anual}x sem juros` }, icon: 'file' },
-  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', semestral: 'um Pix só, à vista, pelos 6 meses', anual: 'um Pix só, à vista: o menor preço' }, icon: 'wallet' },
+  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', semestral: `em até ${CYCLE_INSTALLMENTS.semestral}x sem juros`, anual: `em até ${CYCLE_INSTALLMENTS.anual}x sem juros` }, icon: 'file' },
+  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', semestral: 'um Pix só, à vista: o menor preço', anual: 'um Pix só, à vista: o menor preço' }, icon: 'wallet' },
 ]
 const cycleLabel = (c: Cycle) => (c === 'mensal' ? 'mensal' : c === 'semestral' ? 'semestral' : 'anual')
 
@@ -291,7 +291,7 @@ export default function Checkout({ planId }: { planId: string }) {
           )}
           {b.cycle !== 'mensal' && p.price * CYCLE_MONTHS[b.cycle] > total && (
             <div className="co-line small text-good">
-              <span>{b.cycle === 'anual' ? (card ? 'economia do anual no cartão' : annualBadge() || 'desconto do anual') : `${cycleDiscount(b.cycle)}% de desconto no ${cycleLabel(b.cycle)}`}</span>
+              <span>{card ? `economia do ${cycleLabel(b.cycle)} no cartão` : b.cycle === 'anual' ? annualBadge() || 'desconto do anual' : `${cycleDiscount(b.cycle)}% de desconto no ${cycleLabel(b.cycle)}`}</span>
               <span>− {money(p.price * CYCLE_MONTHS[b.cycle] - total)}</span>
             </div>
           )}

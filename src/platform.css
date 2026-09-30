@@ -2366,3 +2366,4 @@ select.cell-input { min-width: 132px; }
   .lp-all-cta { align-self: stretch; justify-content: center; }
 }
 .lp-all-before li { display: block; line-height: 1.45; }
+.cy-save.is-soft { background: color-mix(in srgb, var(--brand-rose) 16%, var(--surface, #fff)); color: var(--brand-rose); }

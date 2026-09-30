@@ -425,7 +425,7 @@ const cloud = {
     await patchCloudSettings({ terms })
   },
   async savePlanConfig(c: PlanConfig) {
-    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, annualFreeMonths: c.annualFreeMonths, cardFee: c.cardFee, semesterDiscount: c.semesterDiscount })
+    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, annualFreeMonths: c.annualFreeMonths, cardFee: c.cardFee, cardFee6: c.cardFee6, semesterDiscount: c.semesterDiscount })
   },
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
@@ -445,6 +445,7 @@ interface PlatformData {
   annualDiscount?: number
   annualFreeMonths?: number
   cardFee?: number
+  cardFee6?: number
   semesterDiscount?: number
   company?: Company
 }

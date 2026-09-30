@@ -1,5 +1,5 @@
 import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
-import { PLANS, setAnnualFreeMonths, setCardFee, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
+import { PLANS, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
    e os dias de teste. Carregados antes de abrir o site, para a página de vendas já
@@ -18,6 +18,7 @@ export interface PlanConfig {
   annualDiscount?: number // antigo: % de desconto no anual (hoje é em meses grátis)
   annualFreeMonths?: number // meses grátis no anual
   cardFee?: number // % da taxa do cartão em 12x, embutida no anual parcelado
+  cardFee6?: number // % da taxa do cartão em 6x, embutida no semestral parcelado
   semesterDiscount?: number // % de desconto no semestral
   plans?: Partial<Record<PlanId, PlanOverride>>
 }
@@ -30,6 +31,7 @@ export function applyPlanConfig(c: PlanConfig) {
   if (c.trialDays && c.trialDays > 0) setTrialDays(Math.round(c.trialDays))
   if (typeof c.annualFreeMonths === 'number' && c.annualFreeMonths >= 0 && c.annualFreeMonths <= 6) setAnnualFreeMonths(c.annualFreeMonths)
   if (typeof c.cardFee === 'number' && c.cardFee >= 0 && c.cardFee <= 40) setCardFee(c.cardFee)
+  if (typeof c.cardFee6 === 'number' && c.cardFee6 >= 0 && c.cardFee6 <= 40) setCardFee6(c.cardFee6)
   if (typeof c.semesterDiscount === 'number' && c.semesterDiscount >= 0 && c.semesterDiscount <= 50) setSemesterDiscount(c.semesterDiscount)
   for (const id of Object.keys(PLANS) as PlanId[]) {
     const o = c.plans?.[id]
@@ -64,7 +66,7 @@ async function fetchConfig(timeoutMs: number): Promise<PlanConfig | null> {
     if (!r.ok) return null
     const rows = (await r.json()) as { data?: PlanConfig }[]
     const d = rows[0]?.data ?? {}
-    return { trialDays: d.trialDays, annualFreeMonths: d.annualFreeMonths, cardFee: d.cardFee, semesterDiscount: d.semesterDiscount, plans: d.plans }
+    return { trialDays: d.trialDays, annualFreeMonths: d.annualFreeMonths, cardFee: d.cardFee, cardFee6: d.cardFee6, semesterDiscount: d.semesterDiscount, plans: d.plans }
   } catch {
     return null
   } finally {

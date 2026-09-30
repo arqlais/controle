@@ -6,7 +6,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_FREE_MONTHS, CARD_FEE, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
@@ -1428,6 +1428,7 @@ function PlansEditor() {
     trialDays: TRIAL_DAYS,
     annualFreeMonths: ANNUAL_FREE_MONTHS,
     cardFee: CARD_FEE,
+    cardFee6: CARD_FEE_6,
     semesterDiscount: SEMESTER_DISCOUNT,
     plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features], decided: PLAN_TOGGLES.map(([f]) => f) }])) as PlanConfig['plans'],
   })
@@ -1460,10 +1461,13 @@ function PlansEditor() {
             <input type="number" min={1} max={365} value={cfg.trialDays ?? 7} onChange={(e) => setCfg({ ...cfg, trialDays: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
           </Field>
           <Field label="Desconto no semestral (%)" hint="Menor que o do anual, para o anual continuar sendo o melhor negócio.">
-            <input type="number" min={0} max={50} value={cfg.semesterDiscount ?? 5} onChange={(e) => setCfg({ ...cfg, semesterDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
+            <input type="number" min={0} max={50} value={cfg.semesterDiscount ?? 10} onChange={(e) => setCfg({ ...cfg, semesterDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
           </Field>
           <Field label="Meses grátis no anual" hint="No Pix à vista, a pessoa paga 12 menos estes meses. 2 meses grátis (paga 10) é o que mais chama atenção.">
             <input type="number" min={0} max={6} value={cfg.annualFreeMonths ?? 2} onChange={(e) => setCfg({ ...cfg, annualFreeMonths: Math.max(0, Math.min(6, Math.round(Number(e.target.value) || 0))) })} />
+          </Field>
+          <Field label="Taxa do cartão em 6x (%)" hint="A taxa para parcelar em 6x por sua conta. Ela entra no preço do semestral no cartão (6x sem juros).">
+            <input type="number" min={0} max={40} step={0.1} value={cfg.cardFee6 ?? 8} onChange={(e) => setCfg({ ...cfg, cardFee6: Math.max(0, Math.min(40, Number(e.target.value) || 0)) })} />
           </Field>
           <Field label="Taxa do cartão em 12x (%)" hint="A taxa que o seu serviço de cobrança cobra para parcelar em 12x por sua conta. Ela entra no preço do anual no cartão, que aparece como 12x sem juros: você recebe o mesmo que no Pix.">
             <input type="number" min={0} max={40} step={0.1} value={cfg.cardFee ?? 12} onChange={(e) => setCfg({ ...cfg, cardFee: Math.max(0, Math.min(40, Number(e.target.value) || 0)) })} />
@@ -1484,7 +1488,7 @@ function PlansEditor() {
                   const pr = o.price ?? p.price
                   const pix = Math.round(pr * (12 - (cfg.annualFreeMonths ?? 2)) * 100) / 100
                   const cardMonth = Math.round(((pix * (1 + (cfg.cardFee ?? 12) / 100)) / 12) * 100) / 100
-                  return `Semestral: ${money0(Math.round(pr * 6 * (1 - (cfg.semesterDiscount ?? 5) / 100) * 100) / 100)} no Pix · anual: ${money0(pix)} no Pix ou 12x de ${money0(cardMonth)}${cardMonth >= pr ? ' (atenção: mais caro que o mensal)' : ''}`
+                  return `Semestral: ${money0(Math.round(pr * 6 * (1 - (cfg.semesterDiscount ?? 10) / 100) * 100) / 100)} no Pix ou 6x de ${money0(Math.round(((pr * 6 * (1 - (cfg.semesterDiscount ?? 10) / 100) * (1 + (cfg.cardFee6 ?? 8) / 100)) / 6) * 100) / 100)} · anual: ${money0(pix)} no Pix ou 12x de ${money0(cardMonth)}${cardMonth >= pr ? ' (atenção: mais caro que o mensal)' : ''}`
                 })()}>
                   <MoneyInput value={o.price ?? p.price} onChange={(n) => setPlan(p.id, { price: n })} />
                 </Field>

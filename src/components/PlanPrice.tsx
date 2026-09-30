@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ANNUAL_FREE_MONTHS, CYCLES, CYCLE_MONTHS, CYCLE_UNIT, SEMESTER_DISCOUNT, annualBadge, cardInstallment, cycleMonthly, cyclePrice, money0 } from '../plans'
+import { ANNUAL_FREE_MONTHS, CYCLES, CYCLE_MONTHS, SEMESTER_DISCOUNT, annualBadge, cardInstallment, cyclePrice, money0 } from '../plans'
 import type { Cycle } from '../platform'
 
 /* Mensal, semestral ou anual nos cartões dos planos (página de vendas e minha assinatura).
@@ -45,7 +45,7 @@ export function CycleToggle({ value, onChange }: { value: Cycle; onChange: (c: C
 
 /** Frase curta embaixo do botão mensal/semestral/anual. */
 export const cycleHint = (c: Cycle) =>
-  c === 'mensal' ? 'Pix todo mês ou cartão recorrente · cancela quando quiser' : c === 'semestral' ? 'um Pix só, à vista, pelos 6 meses' : `${ANNUAL_FREE_MONTHS > 0 ? `pague ${12 - ANNUAL_FREE_MONTHS} meses e use 12: ` : ''}à vista no Pix ou em 12x sem juros no cartão`
+  c === 'mensal' ? 'Pix todo mês ou cartão recorrente · cancela quando quiser' : c === 'semestral' ? 'à vista no Pix ou em 6x sem juros no cartão' : `${ANNUAL_FREE_MONTHS > 0 ? `pague ${12 - ANNUAL_FREE_MONTHS} meses e use 12: ` : ''}à vista no Pix ou em 12x sem juros no cartão`
 
 /** Preço do cartão do plano. No anual: 12x sem juros em destaque, o Pix à vista e quanto economiza. */
 export function PlanPrice({ price, cycle }: { price: number; cycle: Cycle }) {
@@ -74,17 +74,25 @@ export function PlanPrice({ price, cycle }: { price: number; cycle: Cycle }) {
     )
   }
   if (cycle === 'semestral') {
-    const total = cyclePrice(price, 'semestral')
-    const saved = Math.round((price * CYCLE_MONTHS.semestral - total) * 100) / 100
+    const pix = cyclePrice(price, 'semestral')
+    const saved = Math.round((price * CYCLE_MONTHS.semestral - pix) * 100) / 100
     return (
-      <div className="cy-price">
-        <p className="pf-price">
-          {money0(cycleMonthly(price, 'semestral'))}
-          <small>/mês</small>
+      <div className="cy-price is-annual">
+        {saved > 0 && (
+          <span className="cy-save is-soft">
+            {SEMESTER_DISCOUNT}% off · economize {money0(saved)}
+          </span>
+        )}
+        <p className="cy-was">
+          de <s>{money0(price)}/mês</s> por
         </p>
-        <p className="cy-note">
-          {money0(total)} à vista no Pix por {CYCLE_UNIT.semestral}
-          {saved > 0 ? ` · economiza ${money0(saved)}` : ''}
+        <p className="pf-price">
+          <small className="cy-x">6x</small>
+          {money0(cardInstallment(price, 'semestral'))}
+          <small> sem juros</small>
+        </p>
+        <p className="cy-pix">
+          ou <b>{money0(pix)}</b> à vista no Pix
         </p>
       </div>
     )

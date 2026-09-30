@@ -91,10 +91,10 @@ O ${PLATFORM.name} é uma plataforma on-line de gestão para profissionais de pr
 5.1 Os valores e o que cada plano inclui estão na página de planos no momento da assinatura.
 5.2 Formas de assinatura, sempre pagas antecipadamente:
 a) Mensal: Pix todo mês ou cartão de crédito cobrado automaticamente todo mês (recorrente).
-b) Semestral: 6 meses com desconto, pagos à vista no Pix.
+b) Semestral: 6 meses com desconto, pagos à vista no Pix ou no cartão de crédito em até 6 parcelas sem juros. O valor no cartão inclui a taxa do parcelamento e é mostrado antes da confirmação.
 c) Anual: 12 meses com meses grátis (desconto), pagos à vista no Pix ou no cartão de crédito em até 12 parcelas sem juros. O valor no cartão inclui a taxa do parcelamento e é mostrado antes da confirmação.
 5.3 O desconto e os meses grátis do semestral e do anual são uma condição do período completo contratado: não são um período de uso gratuito separado, não viram crédito e não são devolvidos em dinheiro.
-5.4 No anual parcelado no cartão, a compra é única (o plano de 12 meses) e é dividida pela operadora do cartão. Cancelar a assinatura não interrompe as parcelas já contratadas; eventual devolução segue as regras dos itens 6 e 7.
+5.4 No semestral e no anual parcelados no cartão, a compra é única (o plano de 6 ou 12 meses) e é dividida pela operadora do cartão. Cancelar a assinatura não interrompe as parcelas já contratadas; eventual devolução segue as regras dos itens 6 e 7.
 5.5 Contestação de pagamento junto ao banco ou à operadora do cartão (chargeback) por serviço efetivamente disponibilizado pausa a conta até a regularização, sem prejuízo da cobrança do valor devido.
 5.6 Mudanças de preço são avisadas com antecedência mínima de 30 dias e valem a partir do período seguinte. O período já pago não muda de preço.
 
