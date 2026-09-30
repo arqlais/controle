@@ -51,7 +51,7 @@ export function LockedView({ feature, children }: { feature: Feature; children: 
     document.body.classList.add('lk-on')
     return () => document.body.classList.remove('lk-on')
   }, [])
-  const blocked = (what: string) => toast(`Na prévia dá para ver e testar, mas não para ${what}. Isso fica liberado no plano ${lockPlan(feature)}.`)
+  const blocked = (_what?: string) => toast(`Disponível para assinantes do ${lockPlan(feature)}.`)
   const onClick = (e: MouseEvent) => {
     const el = (e.target as HTMLElement).closest('button, a, [role="button"], label') as HTMLElement | null
     if (!el || el.closest('.lk-banner')) return
@@ -78,7 +78,7 @@ export function LockedView({ feature, children }: { feature: Feature; children: 
   const onWrite = () => {
     if (warned.current) return
     warned.current = true
-    toast('Prévia: pode testar à vontade, mas nada fica salvo.')
+    toast('Prévia: nada fica salvo.')
   }
   return (
     <div className="lk-wrap">
