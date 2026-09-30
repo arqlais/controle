@@ -29,6 +29,21 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-painel-cliente',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'painel do cliente',
+    text: 'Cada cliente pode ter um painel só dele, aberto pelo link que você manda: etapas, pagamentos, contratos para assinar, briefings, documentos e arquivos que você escolher. Atualiza sozinho e o cliente pode te mandar recados por ali.',
+    steps: [{ page: 'clientes', text: 'Abra um cliente e toque em “criar o painel”.' }],
+  },
+  {
+    id: '2026-09-30-central-avisos',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'avisos quando o cliente preenche algo',
+    text: 'Briefing respondido, contrato assinado ou recado pelo painel: chega aviso no topo do sistema (ícone da caixa) e no seu e-mail. A assinatura pelo link entra sozinha no contrato, sem precisar colar a confirmação.',
+  },
+  {
     id: '2026-09-30-tela-inicio',
     date: '2026-09-30',
     kind: 'novo',

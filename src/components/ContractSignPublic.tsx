@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SETTINGS } from '../store'
 import { formatDoc, whatsappLink } from '../utils'
-import { hashExtra } from '../linkPack'
+import { hashExtra, readShortCode } from '../linkPack'
+import { avisar } from '../avisar'
 import { deviceLabel, docHash, loadSign, signExtra, signMessage, signatureHash, type SignAnswer, type SignPayload } from '../contractSign'
 import { SIGN_FONTS, SignatureGlyph, SignaturePad } from './SignaturePad'
 import { ContractDoc } from './ContractDoc'
@@ -22,6 +23,7 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ a: SignAnswer; msg: string } | null>(null)
+  const [sent, setSent] = useState(false) // a assinatura já chegou sozinha no sistema do profissional
   useEffect(() => {
     if (!data) loadSign(id, hashExtra()).then(setP, () => setP(null))
   }, [id, data])
@@ -75,8 +77,15 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
       dh: await docHash(p.body),
     }
     const a: SignAnswer = { ...base, h: await signatureHash(p.body, base.n, digits, at, signExtra(base)) }
-    setDone({ a, msg: await signMessage(p, a) })
+    const msg = await signMessage(p, a)
+    setDone({ a, msg })
     setBusy(false)
+    // manda direto para o sistema do profissional (e o e-mail de aviso); o WhatsApp fica como garantia
+    if (!preview) {
+      const owner = id.includes('.') ? readShortCode(id)?.userId ?? '' : ''
+      const code = msg.match(/c[óo]digo da assinatura:\s*(\S+)/i)?.[1] ?? ''
+      void avisar({ user: owner, kind: 'assinatura', ref: p.token, cliente: a.n, titulo: p.title, code, clienteEmail: a.c?.includes('@') ? a.c : undefined, studio: p.studio }).then((ok) => setSent(ok && !!owner))
+    }
   }
   const s = { ...DEFAULT_SETTINGS, ...p.s }
 
@@ -154,12 +163,18 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
           <div className="cs-done-sign">
             <SignatureGlyph sign={{ name: done.a.n, drawing: done.a.p, font: done.a.f }} />
           </div>
-          <p className="muted">
-            Código de verificação <b>{done.a.h}</b>. Falta um passo: envie a confirmação para {p.owner || p.studio}.
-          </p>
+          {sent ? (
+            <p className="muted">
+              Código de verificação <b>{done.a.h}</b>. Pronto: {p.owner || p.studio} já recebeu a sua assinatura{done.a.c?.includes('@') ? ' e uma cópia vai para o seu e-mail' : ''}.
+            </p>
+          ) : (
+            <p className="muted">
+              Código de verificação <b>{done.a.h}</b>. Falta um passo: envie a confirmação para {p.owner || p.studio}.
+            </p>
+          )}
           {p.phone ? (
-            <a className="bf-send" href={whatsappLink(p.phone, done.msg)} target="_blank" rel="noreferrer">
-              <Icon name="whatsapp" size={16} /> enviar confirmação no WhatsApp
+            <a className={sent ? 'btn ghost small' : 'bf-send'} href={whatsappLink(p.phone, done.msg)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={16} /> {sent ? 'mandar também no WhatsApp' : 'enviar confirmação no WhatsApp'}
             </a>
           ) : null}
           <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(done.msg)}>

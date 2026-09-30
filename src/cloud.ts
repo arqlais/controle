@@ -71,3 +71,10 @@ export async function readPublicFile<T>(userId: string, name: string): Promise<T
     return null
   }
 }
+
+/** Arquivo qualquer (PDF, imagem…) na pasta pública da conta: quem tem o endereço abre. */
+export async function publishPublicBlob(userId: string, name: string, blob: Blob) {
+  const { error } = await supabase!.storage.from(BUCKET).upload(`${userId}/${name}`, blob, { upsert: true, contentType: blob.type || 'application/octet-stream', cacheControl: '3600' })
+  if (error) throw error
+  return publicFileUrl(userId, name)
+}

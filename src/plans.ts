@@ -95,7 +95,7 @@ export const PLANS: Record<PlanId, Plan> = {
     price: 89.9,
     pitch: 'tudo do Completo + briefing online e recursos para escritório',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
-    highlights: ['tudo do Completo', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'página do projeto para o cliente acompanhar', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
+    highlights: ['tudo do Completo', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'painel do cliente: etapas, pagamentos, contratos e documentos num link', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
   },
 }
 
@@ -117,7 +117,7 @@ export const PLAN_TOGGLES: [Feature, string][] = [
   ['cronograma', 'cronograma das etapas'],
   ['obra', 'acompanhamento de obra'],
   ['lucro', 'custos e lucro por projeto'],
-  ['portal', 'página do projeto para o cliente'],
+  ['portal', 'painel do cliente'],
   ['documentos', 'documentos (guia de medição, placa de obra, apresentação)'],
 ]
 
@@ -138,7 +138,7 @@ export function compareRows(): CompareRow[] {
     row('contratos com os dados do orçamento', 'contratos'),
     row('agenda sincronizada no celular', 'agendaCelular'),
     row('planejamento do instagram', 'instagram'),
-    row('página do projeto para o cliente acompanhar', 'portal'),
+    row('painel do cliente (etapas, pagamentos, contratos e documentos)', 'portal'),
     row('cronograma das etapas com prazo e parcela', 'cronograma'),
     row('acompanhamento de obra com fotos e relatório', 'obra'),
     row('custos e lucro de cada projeto', 'lucro'),

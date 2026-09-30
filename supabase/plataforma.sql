@@ -380,6 +380,24 @@ create policy "anexos: dono apaga" on storage.objects for delete to authenticate
   using (bucket_id = 'briefing-anexos' and exists (
     select 1 from public.briefing_links b where b.id::text = (storage.foldername(name))[1] and b.user_id = auth.uid()));
 
+-- 5g) Avisos dos clientes finais (assinatura de contrato, recado pelo painel): quem grava é a função
+--     "avisos" (com a chave de serviço). O profissional só lê e marca como visto os avisos dele.
+create table if not exists public.client_events (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  kind       text not null,
+  ref        text not null,
+  payload    jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  seen_at    timestamptz,
+  unique (user_id, kind, ref)
+);
+alter table public.client_events enable row level security;
+drop policy if exists "avisos do cliente: dono vê" on public.client_events;
+drop policy if exists "avisos do cliente: dono marca" on public.client_events;
+create policy "avisos do cliente: dono vê" on public.client_events for select to authenticated using (user_id = auth.uid());
+create policy "avisos do cliente: dono marca" on public.client_events for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+
 -- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
 revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;
 grant execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() to authenticated;

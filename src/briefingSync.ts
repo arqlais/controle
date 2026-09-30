@@ -35,6 +35,7 @@ export function useBriefingSync(enabled: boolean) {
           upsert('briefings', { ...b, status: 'respondido', answers: r.answers, answeredAt: r.answeredAt })
           const c = d.clients.find((x) => x.id === b.clientId)
           if (c) upsert('clients', applyAnswers(c, b, r.answers))
+          upsert('notices', { id: uid(), at: new Date().toISOString(), kind: 'briefing', ref: `briefing:${b.id}`, clientId: b.clientId, link: c ? `clientes/${c.id}` : 'briefings', title: `${c?.name ?? 'Cliente'} respondeu o briefing`, text: `“${b.title}”: respostas na ficha do cliente, com PDF.` })
           toast(`${c?.name.split(' ')[0] ?? 'O cliente'} respondeu o briefing`)
           notifyDevice(`${c?.name ?? 'Cliente'} respondeu o briefing`, `“${b.title}” já está na ficha do cliente.`)
         }

@@ -48,7 +48,7 @@ export const TEMPLATES: ProposalTemplate[] = [
   },
 ]
 
-type Has = (f: Feature) => boolean
+export type Has = (f: Feature) => boolean
 
 export const templateAllowed = (t: ProposalTemplate, has: Has) => !t.needs || has(t.needs)
 

@@ -58,8 +58,49 @@ export interface Client {
   favorite: boolean
   history: ClientNote[] // conversas e combinados, com data
   profile?: ClientProfile // só para cliente final
+  panel?: ClientPanel // painel do cliente (link com tudo o que o profissional compartilhar)
   archived: boolean
   createdAt: string
+}
+
+/** Painel do cliente: uma página só dele, pelo link, com projetos, etapas, pagamentos e documentos. */
+export interface ClientPanel {
+  token: string
+  enabled: boolean
+  file?: boolean // publicado como arquivo: link curto (/#/cliente/…)
+  message?: string // recado no topo do painel
+  showPayments: boolean
+  showVisits?: boolean
+  showQuotes?: boolean // propostas enviadas/fechadas
+  showBriefings?: boolean
+  hideProjects?: string[] // demandas que não aparecem
+  contracts?: string[] // contratos compartilhados
+  docs?: string[] // documentos salvos compartilhados
+  files?: PanelFile[] // arquivos enviados (PDF, imagem…)
+  publishedAt?: string
+}
+export interface PanelFile {
+  id: string
+  name: string
+  url: string
+  path?: string // caminho na nuvem (para apagar)
+  size?: number
+  type?: string
+  projectId?: string
+  at: string
+}
+
+/** Aviso dentro do sistema: algo que o cliente preencheu, assinou ou mandou. */
+export interface Notice {
+  id: string
+  at: string
+  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso'
+  title: string
+  text?: string
+  clientId?: string
+  link?: string // rota interna (ex.: contratos/<id>)
+  read?: boolean
+  ref?: string // o que gerou o aviso (evita repetir)
 }
 
 export type ProjectStatus =
@@ -544,6 +585,7 @@ export interface Data {
   contracts?: Contract[] // contratos gerados a partir dos orçamentos
   briefings?: Briefing[] // briefings enviados para clientes finais
   docs?: SavedDoc[] // documentos salvos nas fichas dos clientes (guia, placa, apresentação…)
+  notices?: Notice[] // central de avisos (o que os clientes preencheram)
   deleted?: string[] // ids apagados (outro aparelho aberto com a versão antiga não traz de volta)
   settings: Settings
 }

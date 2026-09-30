@@ -38,6 +38,9 @@ import Feedback from './pages/Feedback'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useBriefingSync } from './briefingSync'
+import { useClientInbox } from './avisar'
+import { NoticesButton } from './components/Notices'
+import { ClientPanelSync } from './components/ClientPanel'
 import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
 import { useAccess } from './access'
@@ -150,6 +153,8 @@ export default function App() {
   const sugUpdates = useSuggestionUpdates(!access.isOwner && !access.legacy)
   // respostas de briefing que chegaram enquanto estava fora
   useBriefingSync(access.has('briefing'))
+  // assinaturas e recados que os clientes mandaram pelas páginas públicas
+  useClientInbox(!access.legacy)
   const [chatSignal, setChatSignal] = useState(0)
   const openChat = () => setChatSignal((n) => n + 1)
   setEventLabels(settings.eventLabels)
@@ -533,6 +538,7 @@ export default function App() {
             </button>
           )}
           <GlobalSearch />
+          {!access.legacy && <NoticesButton />}
           {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => setNewsOpen(true)} />}
           <ScreenHelp onTour={!access.isOwner ? () => (go('inicio'), setTourOpen(true)) : undefined} />
           <div className="add-menu">
@@ -574,6 +580,7 @@ export default function App() {
             )}
           </div>
         </header>
+        <ClientPanelSync />
         {tourOpen && <Tour has={(f) => access.has(f)} onClose={closeTour} />}
         {newsOpen && !tourOpen && !welcomeOpen && <NewsModal unseen={news.unseen} onClose={closeNews} onLater={news.unseen.length ? () => setNewsOpen(false) : undefined} />}
         {welcomeOpen && (

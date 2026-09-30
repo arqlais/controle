@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -264,6 +264,11 @@ function ContractEditor({ id }: { id: string }) {
   const [c, setC] = useState<Contract | undefined>(found)
   const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
+  // assinatura que chegou sozinha (cliente assinou pelo link) com o contrato aberto: entra na tela também
+  const arrived = found?.sign && !c?.sign ? found.sign : undefined
+  useEffect(() => {
+    if (arrived) setC((x) => (x ? { ...x, sign: arrived, status: 'assinado' } : x))
+  }, [arrived])
   if (!c) return <Empty icon="file" title="contrato não encontrado" action={<a className="btn" href={href('contratos')}>ver contratos</a>} />
   const client = data.clients.find((x) => x.id === c.clientId)
   const quote = data.quotes.find((x) => x.id === c.quoteId)

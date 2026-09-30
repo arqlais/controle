@@ -461,6 +461,7 @@ function normalizeBase(d: Partial<Data>): Data {
     contracts: d.contracts ?? [],
     briefings: d.briefings ?? [],
     docs: d.docs ?? [],
+    notices: (d.notices ?? []).slice(-200),
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
       sentAt: q.sentAt ?? (q.status === 'rascunho' ? '' : q.createdAt),
@@ -559,7 +560,7 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings' | 'docs'
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings' | 'docs' | 'notices'
 type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'

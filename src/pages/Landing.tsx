@@ -145,7 +145,7 @@ const readAud = (): Aud => {
 
 // o que o plano Estúdio tem a mais (seção própria na página de vendas)
 const STUDIO_FEATURES: { icon: string; title: string; text: string; points: string[] }[] = [
-  { icon: 'link', title: 'página do projeto para o cliente', text: 'Um link que o cliente abre no celular e acompanha tudo, sempre atualizado.', points: ['etapas e prazos', 'o que já foi pago e o que falta', 'arquivos e visitas de obra'] },
+  { icon: 'link', title: 'painel do cliente', text: 'Um link só do cliente, que ele abre no celular e acompanha tudo, sempre atualizado.', points: ['etapas, prazos e pagamentos', 'contratos para assinar e briefings', 'documentos e arquivos que você escolher'] },
   { icon: 'calendar', title: 'cronograma das etapas', text: 'Levantamento, estudo, anteprojeto, executivo, aprovação e obra, cada uma com prazo.', points: ['etapas prontas de arquitetura e interiores', 'parcela ligada a cada etapa', 'aviso de etapa atrasada'] },
   { icon: 'hardhat', title: 'acompanhamento de obra', text: 'Cada visita registrada pelo celular, com fotos e o que ficou para depois.', points: ['fotos direto da câmera', 'próximos passos e pendências', 'relatório em PDF com a sua marca'] },
   { icon: 'trend', title: 'custos e lucro por projeto', text: 'Saiba se o projeto deu lucro de verdade, não só quanto entrou.', points: ['taxas, impressões, deslocamento', 'horas trabalhadas', 'quanto rendeu cada hora sua'] },

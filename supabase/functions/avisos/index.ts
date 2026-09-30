@@ -12,6 +12,9 @@
 //   resposta     → a dona respondeu no chat: avisa a pessoa (se ela não estiver usando o sistema agora)
 //   sugestao-atualizada → a dona mudou a situação ou respondeu uma sugestão: avisa quem sugeriu
 //   briefing     → o cliente final respondeu o briefing (página sem login): avisa quem mandou
+//   cliente      → o cliente final assinou um contrato ou mandou um recado pelo painel (sem login):
+//                  guarda na tabela client_events (o sistema lê e mostra na central de avisos),
+//                  avisa o profissional por e-mail e, se o cliente deixou e-mail, manda uma cópia para ele
 // Cada aviso vai no máximo uma vez para cada pessoa (tabela email_log).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -197,11 +200,41 @@ const briefingMail = (s: Sub, client: string, title: string): Mail => ({
   }),
 })
 
-async function send(to: Sub, mail: Mail) {
+const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
+  assinatura: { eyebrow: 'contrato', did: 'assinou o contrato' },
+  recado: { eyebrow: 'painel do cliente', did: 'mandou um recado' },
+  briefing: { eyebrow: 'briefing', did: 'respondeu o briefing' },
+}
+const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string): Mail => {
+  const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado
+  return {
+    subject: `${client || 'Seu cliente'} ${k.did}${title ? `: ${title}` : ''}`,
+    html: layout({
+      eyebrow: k.eyebrow,
+      title: `${esc(client || 'Seu cliente')} ${k.did}`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o traço: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : ''}.</p>`,
+      button: 'abrir o traço',
+      url: `${SITE}#/clientes`,
+    }),
+  }
+}
+const clientCopyMail = (kind: string, studio: string, title: string): Mail => ({
+  subject: kind === 'assinatura' ? `Cópia: você assinou "${title}"` : `Recebemos: ${title || 'sua mensagem'}`,
+  html: layout({
+    eyebrow: CLIENT_KIND[kind]?.eyebrow ?? 'aviso',
+    title: kind === 'assinatura' ? 'Contrato assinado' : 'Recebido!',
+    text:
+      kind === 'assinatura'
+        ? `<p style="margin:0 0 12px;">Sua assinatura de <b>${esc(title)}</b> foi registrada e ${esc(studio || 'o profissional')} já foi avisado(a).</p><p style="margin:0;">Guarde este e-mail como comprovante. A via assinada, com o certificado de assinatura, fica disponível com ${esc(studio || 'o profissional')}.</p>`
+        : `<p style="margin:0;">${esc(studio || 'O profissional')} recebeu ${esc(title || 'sua mensagem')} e já foi avisado(a).</p>`,
+  }),
+})
+
+async function send(to: Sub, mail: Mail, replyTo?: string) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': env('BREVO_API_KEY'), 'Content-Type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: SENDER, replyTo: { email: REPLY_TO, name: SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
+    body: JSON.stringify({ sender: SENDER, replyTo: { email: replyTo || REPLY_TO, name: SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
   })
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${await r.text()}`)
 }
@@ -312,6 +345,41 @@ Deno.serve(async (req) => {
     if (!s?.email) return json({ ok: false })
     const p = (b.payload ?? {}) as { clientName?: string; title?: string }
     return json({ ok: await once(s, 'briefing', String(b.id), briefingMail(s, String(p.clientName ?? ''), String(p.title ?? 'briefing'))) })
+  }
+
+  if (tipo === 'cliente') {
+    // página pública (sem login): o cliente final assinou ou mandou algo. Um registro por coisa (não repete).
+    const user = String(body.user ?? '')
+    const kind = String(body.kind ?? '')
+    const ref = String(body.ref ?? '').slice(0, 80)
+    if (!/^[0-9a-f-]{36}$/i.test(user) || !CLIENT_KIND[kind] || !ref) return json({ ok: false }, 400)
+    const payload = {
+      cliente: String(body.cliente ?? '').slice(0, 120),
+      titulo: String(body.titulo ?? '').slice(0, 160),
+      texto: String(body.texto ?? '').slice(0, 2000),
+      code: String(body.code ?? '').slice(0, 20000),
+      contato: String(body.clienteEmail ?? '').slice(0, 160),
+      painel: String(body.painel ?? '').slice(0, 80),
+    }
+    const { error } = await db.from('client_events').insert({ user_id: user, kind, ref, payload })
+    if (error) return json({ ok: false, motivo: 'já recebido' })
+    // e-mail para o profissional (assinante; se não tiver assinatura, o e-mail da conta)
+    let s = await subOf(user)
+    if (!s?.email) {
+      const { data: u } = await db.auth.admin.getUserById(user)
+      if (!u?.user?.email) return json({ ok: true, email: false })
+      s = { user_id: user, email: u.user.email, name: '', plan: '', status: '', trial_ends: '', blocked: false }
+    }
+    const sent = await once(s, `cliente-${kind}`, ref, clientEventMail(s, kind, payload.cliente, payload.titulo, payload.texto))
+    // cópia para o cliente (só se deixou um e-mail); responder cai no e-mail do profissional
+    const to = payload.contato.trim()
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      const studio = String(body.studio ?? '').slice(0, 80)
+      const copy: Sub = { ...s, email: to, name: payload.cliente }
+      const { error: dup } = await db.from('email_log').insert({ user_id: user, kind: `copia-${kind}`, ref })
+      if (!dup) await send(copy, clientCopyMail(kind, studio, payload.titulo), s.email).catch((e) => console.error(e))
+    }
+    return json({ ok: true, email: sent })
   }
 
   if (tipo === 'diario') {
