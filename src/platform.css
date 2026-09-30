@@ -2139,3 +2139,16 @@ select.cell-input { min-width: 132px; }
 .q-suggest .link { text-transform: none; text-align: left; }
 .table.compact select.cell-input, select.cell-input { min-width: 150px; }
 .column-kind { white-space: nowrap; }
+/* dica ao passar o mouse (botões só com ícone) */
+.has-tip { position: relative; }
+.has-tip[data-tip]:hover::after, .has-tip[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); padding: 5px 10px; border-radius: 8px; background: var(--text); color: var(--surface); font-size: 12px; font-weight: 500; white-space: nowrap; pointer-events: none; z-index: 20; }
+/* cópia das respostas do briefing: só aparece na impressão */
+.bf-print { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  .bf-print, .bf-print * { visibility: visible; }
+  .bf-print { display: block; position: absolute; inset: 0; padding: 24px; background: #fff; color: #222; }
+  .bf-print h2 { margin: 4px 0 14px; }
+  .bf-print-qa { margin: 0 0 8px; display: grid; gap: 2px; }
+  .bf-print-qa b { font-size: 12px; color: #666; font-weight: 600; }
+}

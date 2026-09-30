@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { applyAnswers, useBriefingSync } from '../briefingSync'
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react'
+import { applyAnswers, askNotifyPermission, useBriefingSync } from '../briefingSync'
 import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
@@ -15,6 +15,8 @@ import { ClientPicker } from './ClientPicker'
 import { fmtDate, matches, today, whatsappLink } from '../utils'
 import { go } from '../router'
 import { PLANS } from '../plans'
+
+const BriefingPdfButton = lazy(() => import('./BriefingPdf'))
 
 /* Briefing online do cliente final: o arquiteto escolhe os blocos de perguntas, manda o link
    (WhatsApp ou copiar) e as respostas voltam sozinhas para a ficha do cliente. */
@@ -264,6 +266,10 @@ function Answers({ b }: { b: Briefing }) {
         )
       })}
       {skipped > 0 && <p className="muted small">{skipped} pergunta(s) ficaram sem resposta.</p>}
+      <div className="row gap-s wrap">
+      <Suspense fallback={null}>
+        <BriefingPdfButton b={b} />
+      </Suspense>
       <button
         className="btn small ghost"
         onClick={() =>
@@ -275,6 +281,7 @@ function Answers({ b }: { b: Briefing }) {
       >
         <Icon name="copy" size={14} /> copiar respostas
       </button>
+      </div>
     </div>
   )
 }
@@ -295,6 +302,7 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
   const client = fixed ?? data.clients.find((c) => c.id === clientId)
 
   const create = async () => {
+    askNotifyPermission() // para avisar no aparelho quando o cliente responder
     if (!tpl || !client) return
     if (!tpl.questions.length) return toast('Este modelo ainda não tem perguntas. Edite em “briefings”.')
     setBusy(true)
@@ -484,6 +492,31 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
         <span className="bf-done-icon"><Icon name="check" size={26} /></span>
         <h1>obrigada!</h1>
         <p>Suas respostas chegaram{p.owner ? ` para ${p.owner}` : ''}. Agora é com a gente: em breve entramos em contato.</p>
+        {!b.answered && Object.keys(answers).length > 0 && (
+          <>
+            <button className="btn ghost bf-send bf-no-print" onClick={() => window.print()}>
+              <Icon name="download" size={16} /> guardar uma cópia das respostas (PDF)
+            </button>
+            <div className="bf-print">
+              <p className="bf-eyebrow">{p.studio} · briefing</p>
+              <h2>{p.title}</h2>
+              {sectionsOf({ ...p, questions: visibleQuestions(p.questions, answers) }).map((s) => {
+                const list = inSection({ ...p, questions: visibleQuestions(p.questions, answers) }, s.id).filter((q) => q.kind !== 'photos' && answerText(answers[q.id]))
+                return list.length ? (
+                  <div key={s.id}>
+                    <p className="bf-sec">{s.title}</p>
+                    {list.map((q) => (
+                      <p key={q.id} className="bf-print-qa">
+                        <b>{q.label}</b>
+                        <span>{q.kind === 'date' ? fmtDate(answerText(answers[q.id])) : answerText(answers[q.id])}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : null
+              })}
+            </div>
+          </>
+        )}
       </PublicShell>
     )
   if (sent === 'manual') {

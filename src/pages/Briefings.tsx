@@ -99,8 +99,8 @@ function BriefingsHome() {
                 </a>
                 <p className="bf-model-desc">{t.description}</p>
                 <footer>
-                  <button className="btn small primary" onClick={() => setSend(t.id)} disabled={!t.questions.length}>
-                    <Icon name="whatsapp" size={14} /> mandar
+                  <button className="btn small primary icon-only has-tip" data-tip="mandar para um cliente" aria-label="Mandar para um cliente" onClick={() => setSend(t.id)} disabled={!t.questions.length}>
+                    <Icon name="whatsapp" size={16} />
                   </button>
                   <span className="grow" />
                   <a className="icon-btn subtle" href={href('briefings', t.id)} title="Editar" aria-label="Editar modelo">

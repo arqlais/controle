@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import type { BriefingQuestion, BriefingTemplate, Settings } from '../../types'
+import { createContext, useContext, useLayoutEffect, useRef, useState } from 'react'
+import type { BriefingAnswers, BriefingQuestion, BriefingTemplate, Settings } from '../../types'
 import { ArtImage, isArt } from '../BriefingArt'
 import { useDocLook } from '../DocKit'
 import { DocPage } from './DocPage'
@@ -54,9 +54,24 @@ function paginate(blocks: Block[], heights: number[] | null, firstExtra: number)
   return pages
 }
 
+/** Respostas do cliente (PDF do briefing respondido); sem elas, a folha sai em branco para preencher. */
+const AnswersCtx = createContext<BriefingAnswers | null>(null)
+
 function Question({ q }: { q: BriefingQuestion }) {
+  const all = useContext(AnswersCtx)
+  const answered = all ? all[q.id] : undefined
+  const chosen = (o: string) => (Array.isArray(answered) ? answered.includes(o) : answered === o)
+  const extra = all ? (Array.isArray(answered) ? answered : answered ? [answered] : []).filter((v) => !(q.options ?? []).includes(v)) : []
   const opts = q.options ?? []
   const mark = q.kind === 'multi' ? 'bs-box' : 'bs-dot'
+  const text = typeof answered === 'string' ? answered : Array.isArray(answered) ? answered.join(', ') : ''
+  if (all && (q.kind === 'text' || q.kind === 'long' || q.kind === 'date'))
+    return (
+      <div className={`bs-q ${q.showIf ? 'is-sub' : ''}`}>
+        <p className="bs-label">{q.label}</p>
+        <p className="bs-answer">{text ? (q.kind === 'date' ? text.split('-').reverse().join('/') : text) : '—'}</p>
+      </div>
+    )
   return (
     <div className={`bs-q ${q.showIf ? 'is-sub' : ''}`}>
       <p className="bs-label">
@@ -71,7 +86,7 @@ function Question({ q }: { q: BriefingQuestion }) {
               <div key={o} className="bs-pic">
                 <span className="bs-pic-img">{q.optionImages?.[o] ? <ArtImage src={q.optionImages[o]} /> : null}</span>
                 <span>
-                  <i className={mark} /> {o}
+                  <i className={`${mark} ${chosen(o) ? 'is-on' : ''}`} /> {o}
                 </span>
               </div>
             ))}
@@ -82,12 +97,12 @@ function Question({ q }: { q: BriefingQuestion }) {
         <div className="bs-opts" style={{ gridTemplateColumns: `repeat(${COLS(q)}, 1fr)` }}>
           {opts.map((o) => (
             <span key={o}>
-              <i className={mark} /> {o}
+              <i className={`${mark} ${chosen(o) ? 'is-on' : ''}`} /> {o}
             </span>
           ))}
           {q.other && (
             <span>
-              <i className={mark} /> outro: ________
+              <i className={`${mark} ${extra.length ? 'is-on' : ''}`} /> outro: {extra.length ? extra.join(', ') : '________'}
             </span>
           )}
         </div>
@@ -99,7 +114,7 @@ function Question({ q }: { q: BriefingQuestion }) {
         </div>
       ) : q.kind === 'photos' ? (
         <p className="bs-photos">
-          📷 mande as fotos por WhatsApp ou e-mail{q.tips?.length ? `: ${q.tips.join(' · ')}` : ''}
+          {answered ? (Array.isArray(answered) && answered.length ? `${answered.length} foto(s) enviada(s)` : 'sem fotos') : `mande as fotos por WhatsApp ou e-mail${q.tips?.length ? `: ${q.tips.join(' · ')}` : ''}`}
         </p>
       ) : q.kind === 'date' ? (
         <div className="bs-lines is-short">
@@ -146,10 +161,10 @@ function Head({ tpl, client }: { tpl: Pick<BriefingTemplate, 'name'>; client?: s
   )
 }
 
-export function BriefingSheetDoc({ s, tpl, client }: { s: Settings; tpl: Pick<BriefingTemplate, 'name' | 'sections' | 'questions'>; client?: string }) {
+export function BriefingSheetDoc({ s, tpl, client, answers }: { s: Settings; tpl: Pick<BriefingTemplate, 'name' | 'sections' | 'questions'>; client?: string; answers?: BriefingAnswers }) {
   const look = useDocLook(s)
   const blocks = blocksOf(tpl)
-  const sig = JSON.stringify([tpl.name, tpl.sections, tpl.questions, look.look])
+  const sig = JSON.stringify([tpl.name, tpl.sections, tpl.questions, look.look, answers ?? null])
   // mede cada pergunta de verdade (fora da tela) e só então distribui nas folhas
   const [measured, setMeasured] = useState<{ sig: string; head: number; hs: number[] } | null>(null)
   const probe = useRef<HTMLDivElement>(null)
@@ -165,7 +180,8 @@ export function BriefingSheetDoc({ s, tpl, client }: { s: Settings; tpl: Pick<Br
   }, [ready, sig])
   const pages = paginate(blocks, ready ? measured!.hs : null, ready ? measured!.head : 250)
   return (
-    <div className="doc-pages" data-look={look.look} style={look.style}>
+    <AnswersCtx.Provider value={answers ?? null}>
+    <div className={`doc-pages ${answers ? 'bs-answered' : ''}`} data-look={look.look} style={look.style}>
       {!ready && (
         <section className={`d-page d-a4 look-${look.look} bs-probe`} aria-hidden>
           <div className="d-body" ref={probe}>
@@ -185,5 +201,6 @@ export function BriefingSheetDoc({ s, tpl, client }: { s: Settings; tpl: Pick<Br
         </DocPage>
       ))}
     </div>
+    </AnswersCtx.Provider>
   )
 }

@@ -477,3 +477,6 @@ button.back:hover { color: var(--text); }
 .pq-old.pq-faixa .pq-qr .pq-code { order: 1; }
 .pq-old.pq-faixa .pq-qr .pq-phone { order: 2; }
 .pq-old.pq-faixa .pq-qr p { order: 3; max-width: 260px; }
+/* briefing respondido em PDF: marcas preenchidas e respostas escritas */
+.bs-answered .bs-dot.is-on, .bs-answered .bs-box.is-on { background: var(--d-accent); border-color: var(--d-accent); box-shadow: inset 0 0 0 2px var(--d-paper); }
+.bs-answer { margin: 4px 0 0; padding: 6px 0 8px; border-bottom: 1px solid color-mix(in srgb, var(--d-ink) 18%, transparent); font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }

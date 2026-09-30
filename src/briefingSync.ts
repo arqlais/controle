@@ -36,6 +36,7 @@ export function useBriefingSync(enabled: boolean) {
           const c = d.clients.find((x) => x.id === b.clientId)
           if (c) upsert('clients', applyAnswers(c, b, r.answers))
           toast(`${c?.name.split(' ')[0] ?? 'O cliente'} respondeu o briefing`)
+          notifyDevice(`${c?.name ?? 'Cliente'} respondeu o briefing`, `“${b.title}” já está na ficha do cliente.`)
         }
       } catch {
         /* sem conexão: tenta depois */
@@ -59,3 +60,21 @@ export function useBriefingSync(enabled: boolean) {
   return { check: () => check(pending, data) }
 }
 
+
+/** Aviso do aparelho (celular/computador), quando a pessoa permitiu. */
+export function notifyDevice(title: string, body: string) {
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') new Notification(title, { body, icon: `${import.meta.env.BASE_URL}icon-192.png` })
+  } catch {
+    /* sem suporte */
+  }
+}
+
+/** Pede permissão para avisar quando um cliente responder (uma vez, ao mandar o primeiro briefing). */
+export function askNotifyPermission() {
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') void Notification.requestPermission()
+  } catch {
+    /* sem suporte */
+  }
+}
