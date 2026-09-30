@@ -2064,3 +2064,25 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
 .sg-evidence dt { color: var(--muted); }
 .sg-evidence dd { margin: 0; }
 .cs-public .bf-send, .cs-public .bf-send:visited { color: #fff; }
+
+/* vitrine: folhas ilustrativas inteiras (sem esmaecer o pé) e sem nada vazando das bordas */
+.mk-sheet { -webkit-mask-image: none; mask-image: none; aspect-ratio: auto; min-height: 0; }
+.mk-quote .mk-q-body { padding-bottom: 18px; }
+.mk-q-foot { margin-top: auto; }
+.mk-contract { padding-bottom: 22px; }
+.mk-q-title { overflow-wrap: anywhere; }
+.mk-q-coluna .mk-q-head { padding-inline: 14px; }
+.mk-q-coluna .mk-q-title { font-size: clamp(15px, 4.2vw, 22px); }
+@media (max-width: 720px) {
+  .mk-q-coluna .mk-q-title { font-size: 17px; }
+  .mk-q-editorial .mk-q-title { font-size: 34px; }
+  .mk-q-body { padding-inline: 14px; }
+  .mk-q-row { grid-template-columns: 18px minmax(0, 1fr) 34px; gap: 6px; }
+  .mk-tag-1 { right: 4px; }
+  .mk-tag-2 { left: 4px; }
+  .mk-tag-3 { right: 4px; }
+  /* modelos de proposta: 2 por linha, sem cortar o último */
+  .lp-tpl-list { display: grid; grid-template-columns: 1fr 1fr; overflow: visible; }
+  .lp-tpl { width: 100%; }
+}
+@media (max-width: 720px) { .mk-quote ~ .mk-tag-1, .mk-stage:has(.mk-quote) .mk-tag-1 { top: auto; bottom: 34%; right: 4px; } }
