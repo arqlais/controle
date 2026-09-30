@@ -95,6 +95,10 @@ export default function Projects() {
   }, [data, q, clientId])
 
   const move = (p: Project, status: ProjectStatus) => requestStatus(p, status, (next) => upsert('projects', next))
+  // resumo dos orçamentos: o que ainda está em negociação e o que virou demanda neste mês
+  const month = new Date().toISOString().slice(0, 7)
+  const approvedMonth = data.quotes.filter((x) => x.status === 'aprovado' && (x.closedAt ?? x.createdAt).startsWith(month))
+  const sentOpen = data.quotes.filter((x) => x.status === 'enviado' && !x.projectId)
 
   return (
     <div className={`page ${view === 'quadro' ? 'page-board' : ''}`}>
@@ -161,6 +165,22 @@ export default function Projects() {
         )}
       </div>
 
+      <div className="quote-strip">
+        <a href={href('orcamentos')} className="qs-item">
+          <b>{data.quotes.filter((x) => x.status === 'rascunho').length}</b>
+          <span>rascunhos</span>
+        </a>
+        <a href={href('orcamentos')} className="qs-item">
+          <b>{sentOpen.length}</b>
+          <span>enviados · {money(sum(sentOpen, (x) => quoteTotal(x, data.settings.urgencyFee)))} em negociação</span>
+        </a>
+        <Icon name="arrowRight" size={16} className="qs-arrow" />
+        <a href={href('orcamentos')} className="qs-item is-good">
+          <b>{approvedMonth.length}</b>
+          <span>fechados neste mês · viraram demanda</span>
+        </a>
+      </div>
+
       {data.projects.length === 0 ? (
         <Empty icon="folder" title="Nenhuma demanda ainda" text="Cadastre seu primeiro projeto para acompanhar prazos e pagamentos." action={<button className="btn primary" onClick={() => setForm(true)}>Nova demanda</button>} />
       ) : view === 'quadro' ? (
@@ -180,6 +200,7 @@ export default function Projects() {
                     <h4>{label}</h4>
                     <span className="count">{list.length}</span>
                   </header>
+                  <p className="column-kind">orçamento · {st === 'rascunho' ? 'ainda não enviado' : 'esperando o cliente'}</p>
                   <div className="column-body">
                     {list.slice(0, 8).map((x) => (
                       <div key={x.id} className="kcard kcard-draft" role="link" tabIndex={0} onClick={() => go('orcamentos', x.id)} onKeyDown={(e) => e.key === 'Enter' && go('orcamentos', x.id)}>
@@ -209,7 +230,7 @@ export default function Projects() {
                 </div>
               )
             })}
-          {boardColumns().map((col) => {
+          {boardColumns().map((col, ci) => {
             let items = filtered.filter((p) => p.status === col)
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
             else items = items.sort((a, b) => urgencyScore(b) - urgencyScore(a))
@@ -248,6 +269,7 @@ export default function Projects() {
                     </button>
                   )}
                 </header>
+                {!prio && <p className={`column-kind ${ci === 0 ? 'is-closed' : 'is-blank'}`}>{ci === 0 ? 'cliente fechou · demanda' : 'demanda'}</p>}
                 <div className="column-body">
                   {items.map((p) => (
                     <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onDragStart={() => setDragId(p.id)} />
