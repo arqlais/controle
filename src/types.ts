@@ -532,7 +532,7 @@ export interface BriefingQuestion {
   images?: string[] // imagens de referência que o arquiteto mostra (ex.: estilos)
   other?: boolean // escolha com opção "outro" para escrever
   optionImages?: Record<string, string> // escolha por imagem: foto/ilustração de cada opção ("art:..." = ilustração pronta)
-  showIf?: { q: string; is: string } // sub-pergunta: só aparece quando a pergunta `q` tem a resposta `is`
+  showIf?: { q: string; is?: string; value?: string } // sub-pergunta: só aparece quando a pergunta `q` tem a resposta `is` (`value` nos links antigos)
   tips?: string[] // fotos sugeridas (perguntas de anexar fotos): "de cada parede", "do teto"…
 }
 export interface BriefingSection {

@@ -8,7 +8,8 @@ import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
 import { Badge, Empty, MonthPicker, Progress, Section, Segmented, Stat, usePaged } from '../components/ui'
 import { askDelete } from '../components/dialog'
-import type { Expense, Project } from '../types'
+import type { Expense, Project, Quote } from '../types'
+import { CloseDeal } from './../components/quick'
 import { BillModal } from '../components/Bill'
 import { approvedWithoutProject, launchPaidQuote } from '../quoteActions'
 import { toast } from '../components/dialog'
@@ -457,6 +458,7 @@ function OldWorkNotice() {
   const quotes = approvedWithoutProject(data)
   const bare = data.projects.filter((p) => p.status !== 'cancelado' && !p.payments.length && p.value - (p.discount || 0) > 0)
   const [skip, setSkip] = useState<Set<string>>(new Set())
+  const [closing, setClosing] = useState<Quote | null>(null)
   if (!quotes.length && !bare.length) return null
   const clientName = (id: string) => data.clients.find((c) => c.id === id)?.name ?? 'cliente'
   const total = sum(quotes.filter((q) => !skip.has(q.id)), (q) => quoteDeal(q, fee)) + sum(bare.filter((p) => !skip.has(p.id)), (p) => p.value - (p.discount || 0))
@@ -497,6 +499,9 @@ function OldWorkNotice() {
                     <span className="grow">{clientName(q.clientId)} · {q.title || `orçamento ${quoteNumber(q)}`} <small className="muted">{fmtDate(q.closedAt || q.createdAt)}</small></span>
                     <b>{money(quoteDeal(q, fee))}</b>
                   </label>
+                  <button className="link small" onClick={() => setClosing(q)} title="Para escolher parcelas, datas e o que já foi pago">
+                    ainda não foi pago? aprovar com parcelas
+                  </button>
                 </li>
               ))}
               {bare.map((p) => (
@@ -515,6 +520,7 @@ function OldWorkNotice() {
           </div>
         )}
       </div>
+      {closing && <CloseDeal q={closing} onClose={() => setClosing(null)} />}
     </div>
   )
 }

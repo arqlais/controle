@@ -1722,7 +1722,6 @@
 .bf-refs .art { width: 100%; aspect-ratio: 4 / 3; border-radius: 10px; display: block; }
 .bf-tips { padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--bf-accent) 7%, transparent); font-size: 13px; }
 .bf-tips > span { font-weight: 500; }
-.bf-tips ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }
 .bf-qed-optpic { width: 34px; height: 28px; border-radius: 6px; overflow: hidden; flex: none; background: #f1ece6; }
 .bf-qed-optpic img, .bf-qed-optpic .art { width: 100%; height: 100%; object-fit: cover; display: block; }
 .bf-qed-art { justify-self: start; margin-left: 28px; }
@@ -1737,8 +1736,6 @@
 .bf-tpl-filter .chip, .bf-groups .chip { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: var(--pill); padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; }
 .bf-tpl-filter .chip.active, .bf-groups .chip.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
 
-/* escolher cliente digitando */
-.cp { position: relative; flex: 1; min-width: 0; }
 .cp-field { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: var(--radius-s, 12px); background: var(--surface); padding: 0 10px; min-height: 44px; }
 .cp-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent); }
 .cp-field input { flex: 1; min-width: 0; border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 10px 0 !important; outline: none; }
@@ -1777,3 +1774,6 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 .kind-note { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--accent-tint, #f4ece9); font-size: 13px; color: var(--text); }
 .kind-note svg { margin-top: 2px; color: var(--accent); flex: none; }
 .kind-undo { display: block; margin: -6px 0 12px; }
+.bf-public.is-preview { min-height: 0; padding: 18px 12px 24px; }
+.cp { position: relative; flex: 1; min-width: 0; }
+.bf-tips ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }

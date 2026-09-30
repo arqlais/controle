@@ -237,6 +237,40 @@ export const LIBRARY: BriefingTemplate[] = [
     ['prazo', 'prazo e investimento', '', closing(ROOM_BUDGET)],
   ]),
 
+  T('adolescente', 'Quarto de adolescente', 'estudo, games, amigos, armário e um quarto que acompanha a idade', 'star', [
+    ['quem', 'quem vai usar', '', [
+      txt('idade', 'Idade e o que a pessoa curte (música, esporte, séries, games)'),
+      txt('metragem', 'Metragem do quarto (m²)', field('propertyArea')),
+      long('opiniao', 'O que o próprio adolescente pediu? (vale colar a lista dele)'),
+    ]],
+    ['usos', 'como o quarto é usado', '', [
+      one('cama', 'Tamanho da cama', Object.keys(BEDS), pics(BEDS)),
+      many('precisa', 'O que precisa ter?', ['mesa de estudos', 'setup de games', 'espaço para instrumento', 'cama auxiliar para amigos', 'penteadeira', 'estante / prateleiras', 'TV', 'puff ou poltrona'], { other: true }),
+      one('monitores', 'Quantos monitores no setup?', ['1', '2', '3 ou mais'], when('precisa', 'setup de games')),
+      one('pol', 'TV de quantas polegadas?', ['32"', '43"', '50"', '55" ou mais'], when('precisa', 'TV')),
+      one('luz', 'Iluminação', ['clara para estudar', 'fita de LED colorida', 'as duas']),
+    ]],
+    ['estilo', 'estilo e cores', '', [styleQ(), colorQ(), spacePhotos('Fotos do quarto hoje'), refPhotos()]],
+    ['prazo', 'prazo e investimento', '', closing(ROOM_BUDGET)],
+  ]),
+
+  T('varanda', 'Varanda', 'estar, gourmet, plantas, sol e chuva', 'leaf', [
+    ['uso', 'como a varanda é usada', '', [
+      txt('metragem', 'Metragem da varanda (m²)', field('propertyArea')),
+      many('usos', 'A varanda vai ser para', ['descansar e ler', 'receber amigos', 'refeições', 'churrasco', 'crianças e pets', 'home office', 'plantas e horta']),
+      one('fechada', 'A varanda é', ['aberta', 'fechada com vidro', 'quero fechar']),
+      one('sol', 'Bate sol?', ['a manhã toda', 'a tarde toda', 'o dia inteiro', 'quase não bate']),
+    ]],
+    ['itens', 'o que precisa ter', '', [
+      many('itens', 'Gostaria de', ['churrasqueira', 'bancada com pia', 'mesa de jantar', 'sofá / lounge', 'rede ou balanço', 'jardim vertical', 'deck de madeira', 'cortina ou persiana'], { other: true }),
+      one('churras', 'Churrasqueira', ['a carvão', 'elétrica', 'a gás', 'já existe'], when('itens', 'churrasqueira')),
+      one('lugares', 'Mesa para quantos lugares?', ['2', '4', '6', '8 ou mais'], when('itens', 'mesa de jantar')),
+      one('plantas', 'Com plantas?', ['muitas', 'algumas, fáceis de cuidar', 'nenhuma']),
+    ]],
+    ['estilo', 'estilo', '', [styleQ(), colorQ(), spacePhotos('Fotos da varanda hoje'), refPhotos()]],
+    ['prazo', 'prazo e investimento', '', closing(ROOM_BUDGET)],
+  ]),
+
   T('cozinha', 'Cozinha', 'como vocês cozinham, eletros, bancadas e armários', 'box', [
     ['uso', 'como a cozinha é usada', '', [
       one('frequencia', 'Com que frequência cozinham?', ['todo dia, de verdade', 'o básico do dia a dia', 'quase nunca']),

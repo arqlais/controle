@@ -890,7 +890,8 @@ export default function QuoteEditor({ id }: { id: string }) {
             {!existing && (
               <Segmented<QuoteStatus>
                 value={q.status}
-                onChange={(s) => set({ status: s })}
+                // aprovado abre o fechamento: cria a demanda e lança os pagamentos no financeiro
+                onChange={(s) => (s === 'aprovado' ? approve() : set({ status: s }))}
                 options={(Object.keys(QUOTE_STATUS) as QuoteStatus[]).map((k) => ({ value: k, label: QUOTE_STATUS[k].label }))}
               />
             )}

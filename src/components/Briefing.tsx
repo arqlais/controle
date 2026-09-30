@@ -443,7 +443,7 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
 
 /** Sub-pergunta aparece só quando a pergunta de cima tem aquela resposta. */
 const answerHas = (v: string | string[] | undefined, is: string) => (Array.isArray(v) ? v.includes(is) : v === is)
-export const visibleQuestions = (qs: BriefingQuestion[], a: BriefingAnswers) => qs.filter((q) => !q.showIf || answerHas(a[q.showIf.q], q.showIf.is))
+export const visibleQuestions = (qs: BriefingQuestion[], a: BriefingAnswers) => qs.filter((q) => !q.showIf || answerHas(a[q.showIf.q], q.showIf.is ?? q.showIf.value ?? ''))
 
 /** Respostas em texto (WhatsApp / copiar), com o código que devolve tudo para o sistema. */
 function answersMessage(p: BriefingPayload, a: BriefingAnswers, code: string) {

@@ -580,6 +580,7 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
     toast('Página tirada do ar. O link não abre mais.')
   }
   const set = (patch: Partial<ProjectPortal>) => portal && save({ portal: { ...portal, ...patch } })
+  const [peek, setPeek] = useState(false)
   const first = client?.name.split(' ')[0] ?? ''
   const msg = `Oi${first ? `, ${first}` : ''}! Por este link você acompanha o projeto ${p.title}: etapas, prazos e pagamentos, sempre atualizados. ${link}`
 
@@ -619,10 +620,18 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
           >
             <Icon name="copy" size={14} /> copiar
           </button>
-          <a className="btn small ghost" href={link} target="_blank" rel="noreferrer">
-            <Icon name="eye" size={14} /> ver como o cliente
-          </a>
+          <button className="btn small ghost" onClick={() => setPeek(true)}>
+            <Icon name="eye" size={14} /> ver como o cliente vê
+          </button>
         </div>
+        {peek && (
+          <Modal wide title="como o cliente vê" onClose={() => setPeek(false)}>
+            <p className="muted small">É exatamente esta página que abre no celular do cliente.</p>
+            <div className="bf-preview-frame">
+              <PortalPublic token={portal.token} data={{ ...portalPayload(p, client, data.settings, portal), updatedAt: new Date().toISOString() }} preview />
+            </div>
+          </Modal>
+        )}
         <p className="muted small">Atualiza sozinha quando você muda etapas, pagamentos ou visitas.</p>
         <button className="link small danger-link" onClick={() => void disable()}>
           tirar a página do ar
@@ -653,13 +662,13 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
 
 /* ---------------- página pública (o cliente abre pelo link) ---------------- */
 
-export function PortalPublic({ token }: { token: string }) {
-  const [d, setD] = useState<PortalPayload | null | undefined>(undefined)
+export function PortalPublic({ token, data, preview }: { token: string; data?: PortalPayload; preview?: boolean }) {
+  const [d, setD] = useState<PortalPayload | null | undefined>(data)
   useEffect(() => {
-    import('../studioApi').then(({ loadPortal }) => loadPortal(token, hashExtra())).then(setD, () => setD(null))
-  }, [token])
+    if (!data) import('../studioApi').then(({ loadPortal }) => loadPortal(token, hashExtra())).then(setD, () => setD(null))
+  }, [token, data])
   const wrap = (children: ReactNode) => (
-    <div className="bf-public pt-public" style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
+    <div className={`bf-public pt-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
       <div className="bf-card">{children}</div>
       <p className="bf-foot">feito com traço</p>
     </div>

@@ -61,7 +61,7 @@ function Question({ q }: { q: BriefingQuestion }) {
     <div className={`bs-q ${q.showIf ? 'is-sub' : ''}`}>
       <p className="bs-label">
         {q.label}
-        {q.showIf && <small> (se “{q.showIf.is}”)</small>}
+        {q.showIf && <small> (se “{q.showIf.is ?? q.showIf.value}”)</small>}
         {q.kind === 'multi' && <small> · pode marcar mais de uma</small>}
       </p>
       {withPics(q) ? (
