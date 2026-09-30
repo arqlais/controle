@@ -1,3 +1,4 @@
+import { SERIES } from '../palette'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Client } from '../types'
 import { CLIENT_TYPES, fold, matches } from '../utils'
@@ -5,7 +6,7 @@ import { CLIENT_TYPES, fold, matches } from '../utils'
 /* Escolher cliente digitando: vai aparecendo quem já está cadastrado (sem acento, em qualquer ordem),
    com a inicial colorida. Setas + Enter funcionam; no fim da lista, "cadastrar" com o nome digitado. */
 
-const TONES = ['#a88a80', '#566779', '#7d8c99', '#c29b92', '#7d8c99', '#c29b92', '#a07a70', '#9aa3ab']
+const TONES = [...SERIES]
 export const clientTone = (name: string) => TONES[[...fold(name)].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7) % TONES.length]
 const initials = (name: string) =>
   name

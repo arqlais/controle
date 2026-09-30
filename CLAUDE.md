@@ -5,4 +5,4 @@
 - "R$" sempre com R maiúsculo (use `lower()` de `src/utils.ts` quando precisar mostrar texto em minúsculas).
 - Foco visual: notebook e celular. No celular, o que for configuração avançada fica no computador e aparece o aviso `DesktopNote`.
 - Antes de publicar: `npx tsc -b` e `npm run test:smoke`. Publicação: push para `main` e `plataforma`.
-- Cores: só a paleta azul e rosa do traço (`src/palette.ts` e as variáveis de `src/styles.css`). Nada de verde, amarelo ou vermelho puro na interface; "ok" usa o azul, "atenção" e "urgente" usam os tons de rosa. As cores dos documentos de cada profissional continuam livres.
+- Cores: só a paleta azul e rosa do traço (`src/palette.ts` e as variáveis de `src/styles.css`). Nada de verde, amarelo ou vermelho puro na interface; "ok" usa o azul, "atenção" e "urgente" usam os tons de rosa. As cores dos documentos de cada profissional continuam livres. Precisou de cor nova: use `SERIES`/`EXTRA` de `src/palette.ts`; se faltar um tom, acrescente lá um tom apagado que converse com o azul e o rosa (dá para passar por `harmonize()`), nunca uma cor viva solta no código.

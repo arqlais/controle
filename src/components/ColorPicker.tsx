@@ -1,10 +1,12 @@
+import { EXTRA, PAL } from '../palette'
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type RefObject } from 'react'
 
 /* Seletor de cor do próprio sistema (no lugar da janela do Windows/Mac):
    quadro de tom + barra de cor, HEX, RGB e as últimas cores usadas. */
 
 const RECENT_KEY = 'cores-recentes'
-const SUGGESTED = ['#3e4b57', '#2f4a5a', '#5b7a99', '#6b8f94', '#5e8c6a', '#a88a80', '#d6b3ab', '#c98f7e', '#b98246', '#8a6f9e', '#1f2429', '#f5f1ee']
+// sugestões que conversam com a paleta do traço (dá para escolher qualquer outra cor)
+const SUGGESTED = [PAL.slate, PAL.navy, PAL.blue, PAL.steel, EXTRA.dusk, PAL.rose, PAL.roseSoft, PAL.roseDeep, EXTRA.clay, EXTRA.sand, EXTRA.sage, '#f5f1ee']
 
 type HSV = { h: number; s: number; v: number }
 const clamp = (n: number, a = 0, b = 1) => Math.min(b, Math.max(a, n))

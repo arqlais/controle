@@ -1,3 +1,4 @@
+import { EXTRA, harmonize } from './palette'
 import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
 import type {
@@ -161,7 +162,8 @@ export const DEFAULT_TASKS = [
 /* Colunas criadas pela usuária (Configurações → customColumns), registradas pelo App. */
 let customColumns: BoardColumn[] = []
 export const setCustomColumns = (cols: BoardColumn[]) => {
-  customColumns = cols
+  // cor gravada antes da paleta atual: aproxima dos tons do traço
+  customColumns = cols.map((c) => (c.color && !COLUMN_COLORS.includes(c.color) ? { ...c, color: harmonize(c.color) } : c))
 }
 /** Nome e cor de um status, padrão ou criado pela usuária. */
 export const statusInfo = (id: string) => STATUS[id] ?? customColumns.find((c) => c.id === id) ?? { label: 'Sem coluna', color: '#9aa3ab' }
@@ -169,7 +171,7 @@ export const statusInfo = (id: string) => STATUS[id] ?? customColumns.find((c) =
 export const boardColumns = (): string[] => ['briefing', 'producao', 'revisao', 'aguardando', ...customColumns.map((c) => c.id), 'entregue']
 /** Todos os status para seleção (inclui pausado e cancelado). */
 export const allStatuses = (): string[] => [...boardColumns(), 'pausado', 'cancelado']
-export const COLUMN_COLORS = ['#566779', '#b08a7e', '#8f6d64', '#3e4b57', '#d6b3ab', '#7d8c99', '#7d8c99', '#9aa3ab']
+export const COLUMN_COLORS = ['#566779', '#b08a7e', '#8f6d64', '#3e4b57', '#d6b3ab', '#7d8c99', '#a88a80', '#9aa3ab', ...Object.values(EXTRA)]
 
 export const PRIORITY: Record<Priority, { label: string; color: string; weight: number }> = {
   baixa: { label: 'Baixa', color: '#9aa3ab', weight: 0 },

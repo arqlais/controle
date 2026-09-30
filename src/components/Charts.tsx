@@ -1,3 +1,4 @@
+import { SERIES } from '../palette'
 import { useEffect, useRef, useState } from 'react'
 import { money } from '../utils'
 
@@ -141,4 +142,4 @@ export function Donut({ data, size = 150, center }: { data: { label: string; val
   )
 }
 
-export const PALETTE = ['var(--accent)', 'var(--accent-soft)', '#7d8c99', '#d6b3ab', '#7d8c99', '#8f6d64', '#566779', '#e1cac4']
+export const PALETTE = ['var(--accent)', 'var(--accent-soft)', ...SERIES.slice(2)]
