@@ -29,7 +29,7 @@ export function BrandKit() {
   const raw = data.settings
   const s = effectiveSettings(raw, has) // o que está valendo de verdade
   const pdf = has('propostaPdf')
-  const follow = followsBrand(raw.proposal, has)
+  const follow = followsBrand(raw.proposal, has, raw)
   const logoRef = useRef<HTMLInputElement>(null)
   const onLogo = (f?: File) => {
     if (!f) return

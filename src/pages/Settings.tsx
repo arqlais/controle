@@ -345,7 +345,7 @@ function ProposalSettings() {
   const tpl = resolveTemplate(s.proposal, has)
   // cores que a folha usa de verdade; ao editar, o modelo fica fixado nesta conta
   const p = sheetColors(s.proposal, has, s)
-  const follow = followsBrand(s.proposal, has)
+  const follow = followsBrand(s.proposal, has, s)
   const setP = (patch: Partial<typeof p>) => setSettings({ proposal: { ...p, ...patch, template: tpl.id } })
   const [mode, setMode] = useState<'escopo' | 'opcoes'>('escopo')
   const sample: Quote = {

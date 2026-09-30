@@ -52,7 +52,7 @@ import { useAccess } from './access'
 const Landing = lazy(() => import('./pages/Landing'))
 import { setViewAsClient, setViewPlan, viewingAsClient, type ViewPlan } from './viewAs'
 import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewPlan, setPreviewRole } from './platform'
-import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
+import { SIGNUP_KEY, demoData, hasLocalAccount, seedPreviewAccount } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox, useSuggestionUpdates } from './chat'
@@ -267,7 +267,9 @@ export default function App() {
   }, [sync === 'loading', access.isOwner])
   // primeiro passo obrigatório: o que faz e quanto cobra (conta nova com a tabela de exemplo, ou quem pediu para refazer)
   const untouchedServices = JSON.stringify(settings.services) === JSON.stringify(CLIENT_SERVICES) || JSON.stringify(settings.services) === JSON.stringify(servicesFor(settings.workProfile))
-  const needsSetup = sync !== 'loading' && !access.isOwner && !access.legacy && (settings.servicesSetup === false || (settings.servicesSetup === undefined && untouchedServices))
+  // só conta nova de verdade (sem nada feito além do exemplo); quem já usa o sistema nunca é obrigado nem perde nada
+  const freshAccount = (!data.quotes.length && !data.projects.length) || (hasDemoData(data) && data.quotes.length <= demoData(settings).quotes.length && data.projects.length <= demoData(settings).projects.length)
+  const needsSetup = sync !== 'loading' && !access.isOwner && !access.legacy && (settings.servicesSetup === false || (settings.servicesSetup === undefined && untouchedServices && freshAccount))
   const setupNow = needsSetup && !welcomeOpen && !tourOpen
   // novidades: abre sozinha para quem assina quando há algo novo (depois do passo a passo); o sininho do topo reabre
   const news = useNews(!access.legacy)
@@ -617,7 +619,8 @@ export default function App() {
             initialProfile={settings.workProfile}
             onDone={(services, workProfile) => {
               // refazendo: o que já estava na tabela fica, e os novos entram no fim
-              const keep = untouchedServices ? [] : settings.services.filter((x) => !services.some((y) => y.id === x.id || y.name.trim().toLowerCase() === x.name.trim().toLowerCase()))
+              // conta nova com a tabela de exemplo: troca; em qualquer outro caso só acrescenta (nada do que já existe é apagado)
+              const keep = untouchedServices && freshAccount ? [] : settings.services.filter((x) => !services.some((y) => y.id === x.id || y.name.trim().toLowerCase() === x.name.trim().toLowerCase()))
               setSettings({ services: [...keep, ...services], workProfile, servicesSetup: true })
               toast('Pronto! Sua tabela de preços está montada.')
             }}

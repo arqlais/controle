@@ -64,7 +64,7 @@ export function resolveTemplate(p: ProposalStyle, has: Has): ProposalTemplate {
 export function sheetColors(p: ProposalStyle, has: Has, s?: Settings) {
   const t = resolveTemplate(p, has)
   // seguindo a identidade: as cores e fontes escolhidas para o sistema valem também nos modelos
-  if (s && followsBrand(p, has)) {
+  if (s && followsBrand(p, has, s)) {
     const b = effectiveSettings(s, has)
     return { ...p, ...paletteToProposal(b), serif: proposalSerif(b.displayFont, has), sans: b.bodyFont || 'Poppins' }
   }
@@ -73,6 +73,13 @@ export function sheetColors(p: ProposalStyle, has: Has, s?: Settings) {
 }
 
 /** Os modelos seguem as cores do sistema? (padrão sim; o modelo exclusivo da dona tem as cores dele) */
-export const followsBrand = (p: ProposalStyle, has: Has) => p.followBrand !== false && has('identidade') && resolveTemplate(p, has).id !== 'lais'
+export function followsBrand(p: ProposalStyle, has: Has, s?: Settings) {
+  if (!has('identidade') || resolveTemplate(p, has).id === 'lais') return false
+  if (p.followBrand !== undefined) return p.followBrand
+  // nunca escolheu: segue. Quem já tinha personalizado as cores da proposta continua com as dela
+  if (!p.template || !s) return true
+  const b = paletteToProposal(effectiveSettings(s, has))
+  return (['ink', 'rose', 'arch', 'paper', 'bar'] as const).every((k) => (p[k] ?? '').toLowerCase() === b[k].toLowerCase())
+}
 /** Mostrar o logo nos modelos (padrão sim, quando há logo). */
 export const showsLogo = (s: Settings) => !!s.logo && s.proposal.showLogo !== false
