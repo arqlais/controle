@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
 import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
@@ -524,6 +525,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <Icon name="briefcase" size={16} /> gerar contrato
               </button>
             )}
+            {!has('contratos') && <LockButton feature="contratos" label="gerar contrato" className="btn ghost" />}
             <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
             <button
               className="btn ghost"
@@ -670,6 +672,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                   ]}
                 />
               </Field>
+              {!has('propostaPdf') && (
+                <div className="field field-check">
+                  <LockButton feature="propostaPdf" label="gerar proposta em PDF" className="link small" />
+                </div>
+              )}
               {pdfOn && (
                 <div className="field field-check">
                   <label className="check toggle">

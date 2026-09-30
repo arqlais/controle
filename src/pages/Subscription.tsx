@@ -155,6 +155,11 @@ export function TrialBanner() {
         {left > 0 ? (
           <>
             <b>Teste grátis:</b> faltam {left} dia(s) · plano {PLANS[effectivePlan(sub)].name}
+            {effectivePlan(sub) === 'estudio' && (
+              <small className="pf-trial-note">
+                <Icon name="lock" size={12} /> No teste tudo fica liberado. Depois, o que tem etiqueta de plano no menu só continua aberto nesse plano; nos outros, fica com cadeado (dá para ver, mas não usar).
+              </small>
+            )}
           </>
         ) : (
           <>

@@ -1,4 +1,5 @@
 import { MsgTools, WaPreview } from '../components/MsgTools'
+import { LockedView, lockPlan } from '../components/LockedPreview'
 import { ColorPicker } from '../components/ColorPicker'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
 import { Fragment, useRef, useState } from 'react'
@@ -123,14 +124,9 @@ export default function SettingsPage() {
               {has('identidade') ? (
                 <BrandKit />
               ) : (
-                <Section title="identidade visual">
-                  <p className="muted small">
-                    Logo, cores e fontes do seu estúdio fazem parte do plano <b>{PLANS.completo.name}</b>. No {PLANS.essencial.name}, o sistema usa o visual padrão da plataforma.{' '}
-                    <a className="link" href="#/assinatura">
-                      ver planos
-                    </a>
-                  </p>
-                </Section>
+                <LockedView feature="identidade">
+                  <BrandKit />
+                </LockedView>
               )}
               <Section title="tema deste aparelho">
                 <div className="form-grid">
@@ -346,11 +342,11 @@ export default function SettingsPage() {
           {tab === 'propostas' && (
             <>
               <ProposalChooser />
-              {has('propostaPdf') && <ProposalSettings />}
+              {has('propostaPdf') ? <ProposalSettings /> : <LockedView feature="propostaPdf"><ProposalSettings /></LockedView>}
               {s.workProfile !== 'freelancer' && (
                 <>
                   <ProcessSettings />
-                  {has('propostaPdf') && <PortfolioSettings />}
+                  {has('propostaPdf') ? <PortfolioSettings /> : <LockedView feature="propostaPdf"><PortfolioSettings /></LockedView>}
                 </>
               )}
               <Section title="numeração e padrões" className="desktop-only">
@@ -721,8 +717,8 @@ function ProposalChooser() {
       {has('propostaPdf') && <p className="muted small" style={{ marginTop: 4 }}>
         {s.proposal.pdfOff ? 'Desligado: o orçamento vai só como resumo no WhatsApp (com os valores de cada serviço).' : 'O design escolhido abaixo vale para todos os PDFs: proposta, proposta em slides, guia de medição, placa de obra, briefing em PDF e apresentação de projeto.'}
       </p>}
-      {has('propostaPdf') && !s.proposal.pdfOff && (
-        <div className="pf-tpl-grid">
+      {(!has('propostaPdf') || !s.proposal.pdfOff) && (
+        <div className={`pf-tpl-grid ${has('propostaPdf') ? '' : 'lk-dim'}`} inert={!has('propostaPdf')}>
           {visible.map((t) => {
             const allowed = templateAllowed(t, has)
             return (
@@ -744,6 +740,7 @@ function ProposalChooser() {
           })}
         </div>
       )}
+      {!has('contratos') && <p className="pf-note"><Icon name="lock" size={16} /><span>Contratos a partir do orçamento: plano <a className="link" href="#/assinatura">{lockPlan('contratos')}</a>.</span></p>}
       {has('contratos') && (
         <>
           <label className="check toggle">
@@ -754,6 +751,7 @@ function ProposalChooser() {
           </p>
         </>
       )}
+      {!has('instagram') && <p className="pf-note"><Icon name="lock" size={16} /><span>Planejamento do instagram: plano <a className="link" href="#/assinatura">{lockPlan('instagram')}</a>.</span></p>}
       {has('instagram') && (
         <>
           <label className="check toggle">

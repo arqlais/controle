@@ -42,7 +42,7 @@ import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { UpdateBanner } from './components/UpdateBanner'
-import { LockedView } from './components/LockedPreview'
+import { LockedView, TrialFeatureNote, lockPlan } from './components/LockedPreview'
 import { ClientPanelSync } from './components/ClientPanel'
 import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
@@ -55,7 +55,7 @@ import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
-import { PLANS, PLATFORM, type Feature, type PlanId } from './plans'
+import { PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
@@ -332,7 +332,8 @@ export default function App() {
     const need = NEEDS[route.page]
     if (need === 'painelDona' && !access.has(need)) return <Upgrade onChat={openChat} />
     const inner = pageFor()
-    return need && !access.has(need) ? <LockedView feature={need}>{inner}</LockedView> : inner
+    if (need && !access.has(need)) return <LockedView feature={need}>{inner}</LockedView>
+    return need && need !== 'painelDona' ? <TrialFeatureNote feature={need}>{inner}</TrialFeatureNote> : inner
   })()
 
   function pageFor() {
@@ -453,7 +454,13 @@ export default function App() {
               >
                 <Icon name={n.icon} />
                 <span>{n.label}</span>
-                {NEEDS[n.page] && !access.has(NEEDS[n.page]) && !organizing ? <Icon name="lock" size={13} className="nav-lock" /> : null}
+                {NEEDS[n.page] && !organizing ? (
+                  !access.has(NEEDS[n.page]) ? (
+                    <Icon name="lock" size={13} className="nav-lock" />
+                  ) : access.sub?.status === 'trial' && !access.isOwner && plansWith(NEEDS[n.page]).length < PLAN_LIST.length ? (
+                    <em className="nav-plan" title={`No teste está liberado. Depois do teste, só no plano ${lockPlan(NEEDS[n.page])}${plansWith(NEEDS[n.page]).length > 1 ? ' ou acima' : ''}.`}>{lockPlan(NEEDS[n.page])}</em>
+                  ) : null
+                ) : null}
                 {count && !organizing ? <em className="nav-alert" title="Itens atrasados">{count}</em> : null}
                 {organizing && (
                   <span className="nav-arrows">

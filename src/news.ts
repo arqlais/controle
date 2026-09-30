@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'conheça tudo o que o traço tem',
-    text: 'As funções de outros planos agora aparecem com um cadeado. Dá para abrir e ver como funcionam antes de decidir mudar de plano.',
+    text: 'Tudo o que o traço tem aparece em todos os planos: o que não está no seu fica com cadeado (no menu, nas configurações, no orçamento e nos recibos) e dá para abrir e ver como funciona. No teste grátis, cada função mostra de que plano ela é.',
   },
   {
     id: '2026-09-30-historico-novidades',

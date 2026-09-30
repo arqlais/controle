@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -247,6 +248,7 @@ export default function Finance() {
                         </td>
                         <td className="num" data-label="valor">{money(pay.amount)}</td>
                         <td className="parcel-action">
+                          {!canPdf && <LockButton feature="propostaPdf" label="Recibo de cobrança" className="icon-btn subtle" iconOnly />}
                           {canPdf && (
                             <button className="icon-btn subtle" title="Recibo de cobrança (PDF ou PNG)" onClick={() => setBill(project)}>
                               <Icon name="file" size={16} />
