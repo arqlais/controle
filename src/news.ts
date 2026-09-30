@@ -30,7 +30,7 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
-    id: '2026-09-30-painel-cliente-completo',
+    id: '2026-09-30-painel-cliente-completo-resumo',
     date: '2026-09-30',
     kind: 'novo',
     title: 'painel do cliente e propostas',
@@ -38,7 +38,7 @@ export const NEWS: News[] = [
     steps: [{ page: 'paineis', text: 'No menu, "painel do cliente" mostra todos os seus clientes.' }],
   },
   {
-    id: '2026-09-30-termometro-uso',
+    id: '2026-09-30-termometro-uso-resumo',
     date: '2026-09-30',
     kind: 'novo',
     title: 'termômetro de uso',
@@ -46,7 +46,7 @@ export const NEWS: News[] = [
     feature: 'painelDona',
   },
   {
-    id: '2026-09-30-tabela-precos-simples',
+    id: '2026-09-30-tabela-precos-simples-resumo',
     date: '2026-09-30',
     kind: 'melhoria',
     title: 'tudo mais simples e do seu jeito',
@@ -54,7 +54,7 @@ export const NEWS: News[] = [
     steps: [{ page: 'config', configTab: 'precos', text: 'Em configurações → preços, toque num serviço para mudar.' }],
   },
   {
-    id: '2026-09-30-regularizacao',
+    id: '2026-09-30-regularizacao-resumo',
     date: '2026-09-30',
     kind: 'novo',
     title: 'regularização de imóvel',
