@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
-import { go, href } from '../router'
+import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Segmented } from '../components/ui'
-import { askDelete, toast } from '../components/dialog'
+import { askChoice, askDelete, toast } from '../components/dialog'
 import { BriefingList, BriefingPreview, NewBriefing } from '../components/Briefing'
 import { KIND_LABEL, allTemplates, findTemplate, isBuiltin, templateGroup } from '../briefingTemplates'
 import { referenceImage } from '../briefingApi'
@@ -24,7 +24,7 @@ function BriefingsHome() {
   const [tab, setTab] = useState<'modelos' | 'enviados'>('modelos')
   const [send, setSend] = useState<string | null>(null)
   const mine = data.settings.briefingTemplates ?? []
-  const all = allTemplates(mine)
+  const all = allTemplates(mine, data.settings.hiddenBriefings)
   const [group, setGroup] = useState<'todos' | 'casa' | 'comercial' | 'meus'>('todos')
   const templates = all.filter((t) => group === 'todos' || templateGroup(t) === group)
   const sent = [...(data.briefings ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -85,38 +85,42 @@ function BriefingsHome() {
             const edited = isBuiltin(t.id) && mine.some((m) => m.id === t.id)
             const own = !isBuiltin(t.id)
             return (
-              <article key={t.id} className="card bf-model">
-                <header>
+              <article key={t.id} className="card bf-model is-clean">
+                <a className="bf-model-main" href={href('briefings', t.id)} title="abrir e editar">
                   <span className="bf-tpl-icon">
-                    <Icon name={t.icon || 'file'} size={18} />
+                    <Icon name={t.icon || 'file'} size={17} />
                   </span>
-                  <div className="grow">
-                    <h3>{t.name}</h3>
-                    <p className="muted small">{t.description}</p>
-                  </div>
-                </header>
-                <div className="bf-model-meta">
-                  <span>{t.questions.length} perguntas</span>
-                  <span>{t.sections.length} partes</span>
-                  {t.questions.some((q) => q.kind === 'photos') && <span>com fotos</span>}
-                  {edited && <span className="is-mine">editado por você</span>}
-                  {own && <span className="is-mine">seu modelo</span>}
-                </div>
+                  <span className="grow">
+                    <b>{t.name}</b>
+                    <small>
+                      {t.questions.length} perguntas · {t.sections.length} partes{edited ? ' · editado' : own ? ' · seu' : ''}
+                    </small>
+                  </span>
+                </a>
+                <p className="bf-model-desc">{t.description}</p>
                 <footer>
                   <button className="btn small primary" onClick={() => setSend(t.id)} disabled={!t.questions.length}>
                     <Icon name="whatsapp" size={14} /> mandar
                   </button>
-                  <a className="btn small" href={href('briefings', t.id)}>
-                    <Icon name="edit" size={14} /> editar
+                  <span className="grow" />
+                  <a className="icon-btn subtle" href={href('briefings', t.id)} title="Editar" aria-label="Editar modelo">
+                    <Icon name="edit" size={15} />
                   </a>
                   <button className="icon-btn subtle" title="Duplicar" aria-label="Duplicar modelo" onClick={() => duplicate(t)}>
                     <Icon name="copy" size={15} />
                   </button>
-                  {own && (
-                    <button className="icon-btn subtle" title="Apagar" aria-label="Apagar modelo" onClick={async () => (await askDelete(`o modelo "${t.name}"`)) && setSettings({ briefingTemplates: mine.filter((m) => m.id !== t.id) })}>
-                      <Icon name="trash" size={15} />
-                    </button>
-                  )}
+                  <button
+                    className="icon-btn subtle"
+                    title={own ? 'Apagar' : 'Tirar da minha lista'}
+                    aria-label="Excluir modelo"
+                    onClick={async () => {
+                      if (own) return (await askDelete(`o modelo "${t.name}"`)) && setSettings({ briefingTemplates: mine.filter((m) => m.id !== t.id) })
+                      if (!(await askDelete(`o modelo "${t.name}" da sua lista (só na sua conta; dá para trazer de volta)`))) return
+                      setSettings({ hiddenBriefings: [...(data.settings.hiddenBriefings ?? []), t.id], briefingTemplates: mine.filter((m) => m.id !== t.id) })
+                    }}
+                  >
+                    <Icon name="trash" size={15} />
+                  </button>
                 </footer>
               </article>
             )
@@ -126,6 +130,11 @@ function BriefingsHome() {
             <b>criar modelo do zero</b>
             <small className="muted">monte as suas perguntas</small>
           </button>
+          {(data.settings.hiddenBriefings ?? []).length > 0 && (
+            <button type="button" className="link small bf-unhide" onClick={() => setSettings({ hiddenBriefings: [] })}>
+              trazer de volta os {data.settings.hiddenBriefings!.length} modelo(s) prontos que você tirou
+            </button>
+          )}
         </div>
       ) : sent.length === 0 ? (
         <Empty icon="clip" title="nenhum briefing enviado ainda" text="Toque em “mandar briefing”, escolha o cliente e o modelo." />
@@ -147,15 +156,53 @@ const KIND_ICON: Record<BriefingKind, string> = { text: 'edit', long: 'list', ch
 function TemplateEditor({ id }: { id: string }) {
   const { data, setSettings } = useStore()
   const mine = data.settings.briefingTemplates ?? []
-  const t = findTemplate(mine, id)
+  const stored = findTemplate(mine, id)
   const [preview, setPreview] = useState(false)
-  if (!t) return <Empty title="Modelo não encontrado" action={<a className="btn" href={href('briefings')}>voltar</a>} />
+  // as mudanças ficam num rascunho: salvar, desfazer a última ou descartar tudo
+  const [draft, setDraft] = useState<BriefingTemplate | undefined>(stored)
+  const [history, setHistory] = useState<BriefingTemplate[]>([])
+  const dirty = !!draft && !!stored && JSON.stringify({ ...draft, updatedAt: '' }) !== JSON.stringify({ ...stored, updatedAt: '' })
+  useEffect(() => {
+    if (!dirty) return
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    setLeaveGuard(async () => {
+      const c = await askChoice('Este modelo tem mudanças que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
+      if (c === 'cancel') return false
+      if (c === 'confirm') commitRef.current()
+      return true
+    })
+    return () => {
+      window.removeEventListener('beforeunload', warn)
+      setLeaveGuard(null)
+    }
+  }, [dirty])
+  const commitRef = useRef(() => {})
+  if (!stored || !draft) return <Empty title="Modelo não encontrado" action={<a className="btn" href={href('briefings')}>voltar</a>} />
+  const t = draft
   const builtin = isBuiltin(t.id)
   const edited = builtin && mine.some((m) => m.id === t.id)
-  // editar um modelo pronto cria a sua versão (o original continua guardado para restaurar)
   const save = (patch: Partial<BriefingTemplate>) => {
-    const next = { ...t, ...patch, updatedAt: new Date().toISOString() }
+    setHistory((h) => [...h.slice(-60), t])
+    setDraft({ ...t, ...patch })
+  }
+  // salvar um modelo pronto cria a sua versão (o original continua guardado para restaurar)
+  const commit = () => {
+    const next = { ...t, updatedAt: new Date().toISOString() }
     setSettings({ briefingTemplates: mine.some((m) => m.id === t.id) ? mine.map((m) => (m.id === t.id ? next : m)) : [...mine, next] })
+    setDraft(next)
+    setHistory([])
+    toast('Modelo salvo.')
+  }
+  commitRef.current = commit
+  const undo = () => {
+    const prev = history[history.length - 1]
+    if (!prev) return
+    setDraft(prev)
+    setHistory((h) => h.slice(0, -1))
   }
   const setQ = (qid: string, patch: Partial<BriefingQuestion>) => save({ questions: t.questions.map((q) => (q.id === qid ? { ...q, ...patch } : q)) })
   const setS = (sid: string, patch: Partial<BriefingSection>) => save({ sections: t.sections.map((s) => (s.id === sid ? { ...s, ...patch } : s)) })
@@ -195,7 +242,7 @@ function TemplateEditor({ id }: { id: string }) {
         <input className="bf-ed-desc" value={t.description} onChange={(e) => save({ description: e.target.value })} placeholder="para que serve este modelo" aria-label="Descrição" />
         <div className="bf-ed-meta">
           <span className="muted small">
-            {t.questions.length} perguntas · {t.sections.length} partes · salvo automaticamente
+            {t.questions.length} perguntas · {t.sections.length} partes
           </span>
           <div className="row gap-s wrap">
             <button className="btn small ghost" onClick={() => setPreview(true)}>
@@ -207,6 +254,9 @@ function TemplateEditor({ id }: { id: string }) {
                 onClick={async () => {
                   if (!(await askDelete('as suas mudanças neste modelo (volta ao original)'))) return
                   setSettings({ briefingTemplates: mine.filter((m) => m.id !== t.id) })
+                  const original = findTemplate([], t.id)
+                  if (original) setDraft(original)
+                  setHistory([])
                 }}
               >
                 restaurar original
@@ -214,7 +264,19 @@ function TemplateEditor({ id }: { id: string }) {
             )}
           </div>
         </div>
-        {builtin && !edited && <p className="bf-ed-note">Este é um modelo pronto. Qualquer mudança vira a sua versão, e dá para restaurar o original depois.</p>}
+        {builtin && !edited && <p className="bf-ed-note">Este é um modelo pronto. Ao salvar, vira a sua versão, e dá para restaurar o original depois.</p>}
+      </div>
+      <div className={`bf-ed-bar ${dirty ? 'is-dirty' : ''}`}>
+        <span className="grow small">{dirty ? 'mudanças não salvas' : 'tudo salvo'}</span>
+        <button className="btn small ghost" onClick={undo} disabled={!history.length} title="Desfazer a última mudança">
+          <Icon name="chevronL" size={14} /> desfazer
+        </button>
+        <button className="btn small ghost" onClick={() => (setDraft(stored), setHistory([]))} disabled={!dirty}>
+          descartar
+        </button>
+        <button className="btn small primary" onClick={commit} disabled={!dirty}>
+          <Icon name="check" size={14} /> salvar
+        </button>
       </div>
 
       {t.sections.map((s, si) => {

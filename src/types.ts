@@ -203,6 +203,7 @@ export interface ProjectPortal {
   showVisits: boolean
   message?: string
   publishedAt?: string
+  file?: boolean // publicada também como arquivo: link curto (/#/p/…)
 }
 
 export type ExpenseCategory =
@@ -437,6 +438,7 @@ export interface Settings {
   portfolio?: string[] // fotos de projetos para a proposta e a apresentação (data URL, trocáveis)
   about?: string // "sobre" do escritório, na proposta para cliente final
   briefingTemplates?: BriefingTemplate[] // modelos de briefing criados ou editados pela pessoa
+  hiddenBriefings?: string[] // modelos prontos que a pessoa tirou da lista dela
   docs?: DocsState // documentos do estúdio (guia de medição, placa de obra, apresentação)
   brandName: string
   tagline: string
@@ -565,6 +567,7 @@ export interface Briefing {
   createdAt: string
   answeredAt?: string
   pack?: string // cópia compacta que vai dentro do link (abre mesmo sem a nuvem)
+  short?: string // código do link curto (/#/b/…): o briefing fica num arquivo público da conta
 }
 
 export type PostFormat = 'carrossel' | 'reels' | 'story' | 'post'

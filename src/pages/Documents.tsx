@@ -50,7 +50,7 @@ function DocsHome({ onOpen }: { onOpen: (id: DocId) => void }) {
   const thumbs: Record<DocId, { node: ReactNode; w: number }> = {
     guia: { node: <MeasureGuideDoc s={s} data={docs.guide} />, w: PAGE.a4[0] },
     placa: { node: <PlaqueDoc s={s} data={docs.plaque} />, w: PAGE.poster[0] },
-    briefing: { node: <BriefingSheetDoc s={s} tpl={allTemplates(s.briefingTemplates).find((t) => t.id === 'infantil') ?? allTemplates(s.briefingTemplates)[0]} />, w: PAGE.a4[0] },
+    briefing: { node: <BriefingSheetDoc s={s} tpl={allTemplates(s.briefingTemplates, s.hiddenBriefings).find((t) => t.id === 'infantil') ?? allTemplates(s.briefingTemplates, s.hiddenBriefings)[0]} />, w: PAGE.a4[0] },
     apresentacao: { node: <DeckDoc s={s} data={docs.deck} stages={processesOf(s)[0]?.steps.map((x) => x.name) ?? []} />, w: PAGE.slide[0] },
   }
   return (
@@ -222,7 +222,7 @@ function PlaqueEditor({ onBack }: { onBack: () => void }) {
 
 function BriefingPdfEditor({ onBack }: { onBack: () => void }) {
   const { s, data } = useDocs()
-  const templates = allTemplates(s.briefingTemplates).filter((t) => t.questions.length)
+  const templates = allTemplates(s.briefingTemplates, s.hiddenBriefings).filter((t) => t.questions.length)
   const [tplId, setTplId] = useKeep('briefing-pdf-modelo', templates[0]?.id ?? '')
   const [clientId, setClientId] = useState('')
   const tpl = templates.find((t) => t.id === tplId) ?? templates[0]

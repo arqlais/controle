@@ -1,4 +1,4 @@
-import { CLOUD, supabase } from './cloud'
+import { CLOUD, publishPublicFile, readPublicFile, removePublicFile, supabase } from './cloud'
 import { viewingAsClient } from './viewAs'
 import type { BriefingAnswers, BriefingQuestion, BriefingSection } from './types'
 
@@ -23,7 +23,7 @@ export interface PublicBriefing {
   payload: BriefingPayload
   answered: boolean
   /** de onde veio: nuvem, este navegador ou a cópia dentro do link (sem nuvem: respostas vão pelo WhatsApp) */
-  source: 'cloud' | 'local' | 'link'
+  source: 'cloud' | 'file' | 'local' | 'link'
 }
 
 const LOCAL = 'briefings-publicos'
@@ -66,16 +66,31 @@ export const packBriefing = async (p: BriefingPayload) => {
   return pack(linkCopy(p))
 }
 
-export async function publishBriefing(id: string, payload: BriefingPayload) {
+/** Publica o briefing: na tabela (respostas voltam sozinhas) e como arquivo público (link curto).
+ *  Devolve o que deu certo; só falha se nenhum dos dois funcionou. */
+export async function publishBriefing(id: string, payload: BriefingPayload, userId?: string): Promise<{ table: boolean; file: boolean }> {
   if (!useCloud()) {
     const all = readLocal()
     all[id] = { ...all[id], payload }
     writeLocal(all)
-    return
+    return { table: true, file: false }
   }
-  const { error } = await supabase!.from('briefing_links').upsert({ id, payload })
-  if (error) throw error
+  const [t, f] = await Promise.allSettled([
+    supabase!
+      .from('briefing_links')
+      .upsert({ id, payload })
+      .then(({ error }) => {
+        if (error) throw error
+      }),
+    userId ? publishPublicFile(userId, `briefing-${id}.json`, payload) : Promise.reject(new Error('sem conta')),
+  ])
+  const out = { table: t.status === 'fulfilled', file: f.status === 'fulfilled' }
+  if (!out.table && !out.file) throw new Error('nuvem')
+  return out
 }
+
+/** Link curto: /#/b/<conta.briefing> (o conteúdo fica no arquivo público). */
+export const briefingShortLink = (code: string) => `${location.origin}${location.pathname}#/b/${code}`
 
 /** Respostas que chegaram (só dos briefings desta conta). */
 export async function fetchAnswers(ids: string[]): Promise<Record<string, { answers: BriefingAnswers; answeredAt: string }>> {
@@ -89,7 +104,8 @@ export async function fetchAnswers(ids: string[]): Promise<Record<string, { answ
   return Object.fromEntries((data ?? []).map((r) => [String(r.id), { answers: (r.answers ?? {}) as BriefingAnswers, answeredAt: String(r.answered_at) }]))
 }
 
-export async function deleteBriefingLink(id: string) {
+export async function deleteBriefingLink(id: string, userId?: string) {
+  if (userId && useCloud()) void removePublicFile(userId, `briefing-${id}.json`).catch(() => undefined)
   if (!useCloud()) {
     const all = readLocal()
     delete all[id]
@@ -100,7 +116,7 @@ export async function deleteBriefingLink(id: string) {
 }
 
 /** Página pública: lê o briefing pelo código do link. Ordem: nuvem → este navegador → cópia do link. */
-export async function loadPublicBriefing(id: string, packed?: string): Promise<PublicBriefing | null> {
+export async function loadPublicBriefing(id: string, packed?: string, userId?: string): Promise<PublicBriefing | null> {
   if (CLOUD) {
     try {
       const { data, error } = await supabase!.rpc('briefing_publico', { p_id: id })
@@ -111,6 +127,10 @@ export async function loadPublicBriefing(id: string, packed?: string): Promise<P
     } catch {
       /* sem nuvem: tenta os outros jeitos */
     }
+  }
+  if (CLOUD && userId) {
+    const file = await readPublicFile<BriefingPayload>(userId, `briefing-${id}.json`)
+    if (file) return { payload: file, answered: false, source: 'file' }
   }
   const row = readLocal()[id]
   if (row) return { payload: row.payload, answered: !!row.answeredAt, source: 'local' }
@@ -128,7 +148,7 @@ export async function sendPublicAnswers(id: string, answers: BriefingAnswers, so
     writeLocal(all)
     return true
   }
-  if (source !== 'cloud' || !CLOUD) return false
+  if ((source !== 'cloud' && source !== 'file') || !CLOUD) return false
   try {
     const { data, error } = await supabase!.rpc('responder_briefing', { p_id: id, p_answers: answers })
     if (error || !data) return false

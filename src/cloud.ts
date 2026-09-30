@@ -41,7 +41,8 @@ export async function publishAgenda(userId: string, token: string, ics: string) 
   const st = supabase!.storage.from(BUCKET)
   const { data: files, error: listError } = await st.list(userId)
   if (listError) throw listError
-  const old = (files ?? []).filter((f) => f.name !== `${token}.ics`).map((f) => `${userId}/${f.name}`)
+  // só os arquivos de agenda antigos (a pasta também guarda os briefings e as páginas dos clientes)
+  const old = (files ?? []).filter((f) => f.name.endsWith('.ics') && f.name !== `${token}.ics`).map((f) => `${userId}/${f.name}`)
   if (old.length) await st.remove(old)
   if (!token) return
   const { error } = await st.upload(agendaPath(userId, token), new Blob([ics], { type: 'text/calendar' }), {
@@ -50,4 +51,23 @@ export async function publishAgenda(userId: string, token: string, ics: string) 
     cacheControl: '60',
   })
   if (error) throw error
+}
+
+/* Links curtos (briefing e página do cliente): o conteúdo vira um arquivo público na pasta da conta,
+   no mesmo lugar da agenda. Quem tem o link lê; só a dona da conta escreve. */
+export const publicFileUrl = (userId: string, name: string) => `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${userId}/${name}`
+export async function publishPublicFile(userId: string, name: string, content: unknown) {
+  const { error } = await supabase!.storage.from(BUCKET).upload(`${userId}/${name}`, new Blob([JSON.stringify(content)], { type: 'application/json' }), { upsert: true, contentType: 'application/json', cacheControl: '30' })
+  if (error) throw error
+}
+export async function removePublicFile(userId: string, name: string) {
+  await supabase!.storage.from(BUCKET).remove([`${userId}/${name}`])
+}
+export async function readPublicFile<T>(userId: string, name: string): Promise<T | null> {
+  try {
+    const r = await fetch(`${publicFileUrl(userId, name)}?t=${Date.now()}`)
+    return r.ok ? ((await r.json()) as T) : null
+  } catch {
+    return null
+  }
 }

@@ -6,9 +6,9 @@ import { Badge, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { BRIEFING_SECTIONS } from '../briefingQuestions'
 import { allTemplates, templateGroup } from '../briefingTemplates'
-import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, packBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type BriefingPayload, type PublicBriefing } from '../briefingApi'
+import { attachmentUrls, briefingLink, briefingShortLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, packBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type BriefingPayload, type PublicBriefing } from '../briefingApi'
 import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data, Settings } from '../types'
-import { ANSWER_TAG, findAnswerCode, hashExtra } from '../linkPack'
+import { ANSWER_TAG, findAnswerCode, hashExtra, readShortCode, shortCode } from '../linkPack'
 import { ArtImage, isArt } from './BriefingArt'
 import { ClientPicker } from './ClientPicker'
 import { fmtDate, matches, today, uid, whatsappLink } from '../utils'
@@ -21,6 +21,9 @@ import { PLANS } from '../plans'
 /** "Família Souza" → "Família Souza"; "Maria Souza" → "Maria". */
 const greetName = (name: string) => (/^fam[ií]lia\b/i.test(name.trim()) ? name.trim() : name.trim().split(' ')[0])
 const answerText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join(', ') : (v ?? '')).trim()
+
+/** Link que vai para o cliente: o curto (arquivo na nuvem) ou o que leva a cópia dentro. */
+export const linkOf = (b: Briefing) => (b.short ? briefingShortLink(b.short) : briefingLink(b.id, b.pack))
 
 /** O que vai para a página do cliente (e, compacto, dentro do link). */
 export function briefingPayload(st: Settings, tpl: Pick<BriefingTemplate, 'name' | 'questions' | 'sections'>, clientName: string): BriefingPayload {
@@ -64,7 +67,7 @@ export function useBriefingSync(enabled: boolean) {
           upsert('briefings', { ...b, status: 'respondido', answers: r.answers, answeredAt: r.answeredAt })
           const c = d.clients.find((x) => x.id === b.clientId)
           if (c) upsert('clients', applyAnswers(c, b, r.answers))
-          toast(`📋 ${c?.name.split(' ')[0] ?? 'O cliente'} respondeu o briefing`)
+          toast(`${c?.name.split(' ')[0] ?? 'O cliente'} respondeu o briefing`)
         }
       } catch {
         /* sem conexão: tenta depois */
@@ -135,7 +138,7 @@ export function BriefingSection({ client }: { client: Client }) {
 
 /** Lista de briefings enviados (na ficha do cliente e na tela de briefings). */
 export function BriefingList({ list, showClient }: { list: Briefing[]; showClient?: boolean }) {
-  const { data, remove } = useStore()
+  const { data, remove, userId } = useStore()
   const [open, setOpen] = useState<string | null>(null)
   const [paste, setPaste] = useState<Briefing | null>(null)
   const [peek, setPeek] = useState<Briefing | null>(null)
@@ -180,7 +183,7 @@ export function BriefingList({ list, showClient }: { list: Briefing[]; showClien
                 aria-label="Apagar briefing"
                 onClick={async () => {
                   if (!(await askDelete(`o briefing "${b.title}"`))) return
-                  void deleteBriefingLink(b.id).catch(() => undefined)
+                  void deleteBriefingLink(b.id, userId).catch(() => undefined)
                   remove('briefings', b.id)
                 }}
               >
@@ -233,7 +236,7 @@ function PasteAnswers({ b, onClose }: { b: Briefing; onClose: () => void }) {
 
 function ShareButtons({ client, b }: { client: Client; b: Briefing }) {
   const { data } = useStore()
-  const link = briefingLink(b.id, b.pack)
+  const link = linkOf(b)
   const first = greetName(client.name)
   const msg = `Olá, ${first}! Para eu entender direitinho o que vocês precisam, preparei algumas perguntas. Dá para responder pelo celular, com calma, e mandar fotos: ${link}\n\n${data.settings.ownerName || ''}`.trim()
   return (
@@ -325,9 +328,9 @@ function Answers({ b }: { b: Briefing }) {
 
 /** Mandar um briefing: escolhe o modelo e o link sai pronto. */
 export function NewBriefing({ client: fixed, templateId, onClose }: { client?: Client; templateId?: string; onClose: () => void }) {
-  const { data, upsert } = useStore()
+  const { data, upsert, userId } = useStore()
   const st = data.settings
-  const templates = allTemplates(st.briefingTemplates)
+  const templates = allTemplates(st.briefingTemplates, st.hiddenBriefings)
   const [tplId, setTplId] = useState(templateId ?? '')
   const [find, setFind] = useState('')
   const [group, setGroup] = useState<'todos' | 'casa' | 'comercial' | 'meus'>('todos')
@@ -350,28 +353,29 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
     } catch {
       /* segue só com a nuvem */
     }
-    let online = true
+    let res: { table: boolean; file: boolean } | null = null
     try {
-      await publishBriefing(b.id, payload)
+      res = await publishBriefing(b.id, payload, userId)
     } catch {
-      online = false
+      res = null
     }
-    if (!online && !b.pack) {
+    // link curto quando o arquivo público foi publicado; senão, o link leva a cópia (abre sempre)
+    if (res?.file && userId) b.short = shortCode(userId, b.id) || undefined
+    if (!res && !b.pack) {
       setBusy(false)
       return toast('Não foi possível criar o link agora. Confira a internet e tente de novo.')
     }
     upsert('briefings', b)
     setDone(b)
-    if (!online) toast('Link criado. A nuvem não respondeu: as respostas voltam pelo WhatsApp, com um código para colar aqui.')
     setBusy(false)
   }
   const [peek, setPeek] = useState(false)
 
   if (done && client)
     return (
-      <Modal title="briefing pronto ✨" onClose={onClose}>
+      <Modal title="briefing pronto" onClose={onClose}>
         <p>Agora é só mandar o link para {greetName(client.name)}. Quando responder, você recebe um aviso e as respostas preenchem a ficha.</p>
-        <p className="bf-link">{briefingLink(done.id, done.pack)}</p>
+        <p className="bf-link">{linkOf(done)}</p>
         <div className="row gap-s wrap">
           <ShareButtons client={client} b={done} />
         </div>
@@ -459,10 +463,14 @@ function answersMessage(p: BriefingPayload, a: BriefingAnswers, code: string) {
   return `Olá${p.owner ? `, ${p.owner.split(' ')[0]}` : ''}! Aqui estão as minhas respostas do briefing "${p.title}" (${p.clientName}):\n\n${body}${photos ? '\n\n📷 As fotos eu mando aqui na conversa.' : ''}\n\n${ANSWER_TAG} ${code}`
 }
 
-export function BriefingPublic({ id }: { id: string }) {
+export function BriefingPublic({ id: raw, short }: { id: string; short?: boolean }) {
+  // link curto (/#/b/conta.briefing) ou o de sempre (/#/briefing/id/cópia)
+  const code = short ? readShortCode(raw) : null
+  const id = code?.id ?? raw
   const [b, setB] = useState<PublicBriefing | null | undefined>(undefined)
   useEffect(() => {
-    loadPublicBriefing(id, hashExtra()).then(setB, () => setB(null))
+    loadPublicBriefing(id, short ? '' : hashExtra(), code?.userId).then(setB, () => setB(null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
   const accent = b?.payload.accent || '#a88a80'
   if (b === undefined) return <PublicShell accent={accent}><p className="muted">carregando…</p></PublicShell>
@@ -473,7 +481,7 @@ export function BriefingPublic({ id }: { id: string }) {
 function PublicShell({ accent, children, preview }: { accent: string; children: ReactNode; preview?: boolean }) {
   return (
     <div className={`bf-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: accent }}>
-      {preview && <p className="bf-preview-bar">👀 pré-visualização · é assim que o cliente vê no celular (nada é enviado)</p>}
+      {preview && <p className="bf-preview-bar"><Icon name="eye" size={14} /> pré-visualização · é assim que o cliente vê (nada é enviado)</p>}
       <div className="bf-card">{children}</div>
       <p className="bf-foot">feito com traço</p>
     </div>
@@ -489,6 +497,7 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
   const [sent, setSent] = useState<'ok' | 'manual' | null>(null)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [step, setStep] = useState(-1) // -1 = capa
   const draftKey = `briefing-rascunho:${id}`
   useEffect(() => {
     if (preview) return
@@ -519,7 +528,8 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
     return (
       <PublicShell accent={p.accent} preview={preview}>
         <p className="bf-eyebrow">{p.studio}</p>
-        <h1>obrigada! 💛</h1>
+        <span className="bf-done-icon"><Icon name="check" size={26} /></span>
+        <h1>obrigada!</h1>
         <p>Suas respostas chegaram{p.owner ? ` para ${p.owner}` : ''}. Agora é com a gente: em breve entramos em contato.</p>
       </PublicShell>
     )
@@ -528,7 +538,7 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
     return (
       <PublicShell accent={p.accent} preview={preview}>
         <p className="bf-eyebrow">{p.studio}</p>
-        <h1>falta só um toque ✨</h1>
+        <h1>falta só um toque</h1>
         <p>Suas respostas estão prontas. Toque abaixo para mandar{p.owner ? ` para ${p.owner}` : ''}{p.phone ? ' pelo WhatsApp' : ''}: a mensagem já vai escrita.</p>
         <div className="stack-s">
           {p.phone && (
@@ -577,7 +587,10 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
     const need = qs.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
     setMissing(need)
     if (need.length) {
-      document.getElementById(`bfq-${need[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const first = qs.find((q) => q.id === need[0])
+      const at = secs.findIndex((x) => inSection({ ...p, questions: qs }, x.id).some((q) => q.id === first?.id))
+      if (at >= 0 && at !== step) setStep(at)
+      setTimeout(() => document.getElementById(`bfq-${need[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80)
       return toast(`Falta responder ${need.length} pergunta(s) obrigatória(s).`)
     }
     if (!filled) return toast('Responda pelo menos uma pergunta.')
@@ -603,38 +616,94 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
     window.scrollTo(0, 0)
     setBusy(false)
   }
+  // uma parte por vez: capa → partes → enviar (menos cansativo e dá para ver o quanto falta)
+  const total = secs.length
+  const cur = secs[step]
+  const curQs = cur ? inSection({ ...p, questions: qs }, cur.id) : []
+  const minutes = Math.max(3, Math.round(qs.reduce((n, q) => n + (q.kind === 'long' ? 1 : q.kind === 'photos' ? 1.2 : 0.35), 0)))
+  const goStep = (n: number) => {
+    setStep(n)
+    requestAnimationFrame(() => (preview ? document.querySelector('.bf-preview-frame')?.scrollTo({ top: 0 }) : window.scrollTo({ top: 0, behavior: 'smooth' })))
+  }
+  const next = () => {
+    const need = curQs.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
+    setMissing(need)
+    if (need.length) {
+      document.getElementById(`bfq-${need[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return toast(`Falta responder ${need.length} pergunta(s) obrigatória(s) desta parte.`)
+    }
+    goStep(step + 1)
+  }
+  if (step < 0)
+    return (
+      <PublicShell accent={p.accent} preview={preview}>
+        <header className="bf-cover">
+          {p.logo ? <img src={p.logo} alt="" className="bf-logo" /> : <p className="bf-eyebrow">{p.studio || 'briefing'}</p>}
+          <h1>{p.title}</h1>
+          <p className="bf-intro">{p.intro}</p>
+          <ul className="bf-facts">
+            <li>
+              <Icon name="clock" size={16} /> uns {minutes} minutos
+            </li>
+            <li>
+              <Icon name="list" size={16} /> {total} {total === 1 ? 'parte' : 'partes'} · {qs.length} perguntas
+            </li>
+            <li>
+              <Icon name="check" size={16} /> dá para pular o que não souber
+            </li>
+          </ul>
+          <ol className="bf-map">
+            {secs.map((x, i) => (
+              <li key={x.id}>
+                <span>{String(i + 1).padStart(2, '0')}</span>
+                {x.title}
+              </li>
+            ))}
+          </ol>
+          <button className="btn primary bf-send" onClick={() => goStep(0)}>
+            {filled ? 'continuar de onde parei' : 'começar'} <Icon name="arrowRight" size={16} />
+          </button>
+          <p className="bf-note">Suas respostas ficam salvas neste aparelho até você enviar.</p>
+        </header>
+      </PublicShell>
+    )
   return (
     <PublicShell accent={p.accent} preview={preview}>
-      <header className="bf-head">
-        {p.logo && <img src={p.logo} alt="" className="bf-logo" />}
-        <p className="bf-eyebrow">{p.studio || 'briefing'}</p>
-        <h1>{p.title}</h1>
-        <p className="muted">{p.intro}</p>
-        <div className="bf-progress" aria-label={`${filled} de ${qs.length} respondidas`}>
-          <i style={{ width: `${(filled / Math.max(1, qs.length)) * 100}%` }} />
-        </div>
-        <p className="bf-count">
-          {filled} de {qs.length} respondidas · <span className="bf-req">*</span> obrigatória
-        </p>
-      </header>
-      {secs.map((s, si) => (
-        <section key={s.id} className="bf-block">
-          <div className="bf-block-head">
-            <span className="bf-block-n">{si + 1}</span>
-            <div>
-              <h2>{s.title}</h2>
-              {s.description && <p className="muted small">{s.description}</p>}
-            </div>
+      <div className="bf-stepper" aria-label={`parte ${step + 1} de ${total}`}>
+        {secs.map((x, i) => (
+          <button key={x.id} type="button" className={i < step ? 'is-done' : i === step ? 'is-now' : ''} onClick={() => i < step && goStep(i)} aria-label={x.title} disabled={i > step} />
+        ))}
+      </div>
+      <section className="bf-block" key={cur.id}>
+        <div className="bf-block-head">
+          <span className="bf-block-n">{String(step + 1).padStart(2, '0')}</span>
+          <div>
+            <p className="bf-eyebrow">parte {step + 1} de {total}</p>
+            <h2>{cur.title}</h2>
+            {cur.description && <p className="bf-desc">{cur.description}</p>}
           </div>
-          {inSection({ ...p, questions: qs }, s.id).map((q) => (
-            <PublicQuestion key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} missing={missing.includes(q.id)} previews={previews} uploading={uploading} onPhotos={(f) => void addPhotos(q, f)} canUpload={canUpload} />
-          ))}
-        </section>
-      ))}
-      <button className="btn primary bf-send" onClick={() => void submit()} disabled={busy || uploading > 0}>
-        {uploading ? 'enviando fotos…' : busy ? 'enviando…' : 'enviar respostas'}
-      </button>
-      <p className="muted small center">Suas respostas ficam salvas neste aparelho até você enviar.</p>
+        </div>
+        {curQs.map((q) => (
+          <PublicQuestion key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} missing={missing.includes(q.id)} previews={previews} uploading={uploading} onPhotos={(f) => void addPhotos(q, f)} canUpload={canUpload} />
+        ))}
+      </section>
+      <div className="bf-nav">
+        <button className="btn ghost" onClick={() => goStep(step - 1)}>
+          <Icon name="chevronL" size={16} /> {step === 0 ? 'início' : 'voltar'}
+        </button>
+        {step < total - 1 ? (
+          <button className="btn primary" onClick={next}>
+            próxima parte <Icon name="chevronR" size={16} />
+          </button>
+        ) : (
+          <button className="btn primary" onClick={() => void submit()} disabled={busy || uploading > 0}>
+            {uploading ? 'enviando fotos…' : busy ? 'enviando…' : 'enviar respostas'} <Icon name="check" size={16} />
+          </button>
+        )}
+      </div>
+      <p className="bf-note">
+        {filled} de {qs.length} respondidas · <span className="bf-req">*</span> obrigatória · fica salvo neste aparelho
+      </p>
     </PublicShell>
   )
 }
@@ -722,7 +791,7 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
         <div className="bf-upload">
           {q.tips && q.tips.length > 0 && (
             <div className="bf-tips">
-              <span>📸 fotos que ajudam:</span>
+              <span><Icon name="camera" size={14} /> fotos que ajudam</span>
               <ul>
                 {q.tips.map((t) => (
                   <li key={t}>{t}</li>
@@ -745,7 +814,7 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
                 </div>
               )}
               <button type="button" className="btn bf-upload-btn" onClick={() => fileRef.current?.click()}>
-                📷 {list.length ? 'adicionar mais fotos' : 'adicionar fotos'}
+                <Icon name="camera" size={16} /> {list.length ? 'adicionar mais fotos' : 'adicionar fotos'}
               </button>
               {uploading > 0 && <small className="muted">enviando…</small>}
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => (onPhotos(e.target.files), (e.target.value = ''))} />

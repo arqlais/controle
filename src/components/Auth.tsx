@@ -24,8 +24,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   // briefing do cliente final: página pública, sem login e sem nada do sistema
   const route = useRoute()
   if (route.page === 'briefing' && route.id) return <BriefingPublic id={route.id} />
+  if (route.page === 'b' && route.id) return <BriefingPublic id={route.id} short />
   // página de acompanhamento do projeto (plano Estúdio): também sem login
   if (route.page === 'acompanhar' && route.id) return <PortalPublic token={route.id} />
+  if (route.page === 'p' && route.id) return <PortalPublic token={route.id} short />
   return <Gate>{children}</Gate>
 }
 

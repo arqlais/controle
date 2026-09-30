@@ -1777,3 +1777,63 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 .bf-public.is-preview { min-height: 0; padding: 18px 12px 24px; }
 .cpk { position: relative; flex: 1; min-width: 0; }
 .bf-tips ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }
+
+/* ============ briefing do cliente: capa, uma parte por vez, tamanho de leitura confortável ============ */
+.bf-public { padding: 28px 16px 44px; background: radial-gradient(1200px 500px at 50% -120px, color-mix(in srgb, var(--bf-accent) 14%, transparent), transparent 70%), var(--bg, #f5f1ee); }
+.bf-card { max-width: 760px; padding: clamp(24px, 5vw, 44px) clamp(20px, 5vw, 48px); gap: 26px; border-radius: 28px; font-size: 16px; line-height: 1.55; }
+.bf-card h1 { font-family: var(--font-display, var(--font-body)); font-size: clamp(26px, 5vw, 38px); letter-spacing: -.01em; }
+.bf-cover { display: grid; gap: 16px; justify-items: start; }
+.bf-cover .bf-logo { width: 64px; height: 64px; }
+.bf-intro { margin: 0; font-size: 16.5px; color: color-mix(in srgb, var(--text, #3e4b57) 80%, transparent); max-width: 560px; }
+.bf-facts { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.bf-facts li { display: inline-flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: 999px; background: color-mix(in srgb, var(--bf-accent) 10%, transparent); font-size: 13.5px; }
+.bf-facts svg { color: var(--bf-accent); }
+.bf-map { list-style: none; margin: 6px 0 4px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; width: 100%; }
+.bf-map li { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border, #e6d8d3); font-size: 14.5px; }
+.bf-map li span { font-weight: 700; color: var(--bf-accent); font-size: 13px; letter-spacing: .04em; }
+.bf-note { margin: 0; text-align: center; font-size: 12.5px; color: var(--muted, #8b939a); width: 100%; }
+.bf-send { display: inline-flex; align-items: center; gap: 8px; font-size: 16px; border-radius: 16px; }
+.bf-stepper { display: flex; gap: 6px; }
+.bf-stepper button { flex: 1; height: 6px; padding: 0; border: 0; border-radius: 6px; background: var(--border, #e6d8d3); cursor: default; transition: background .3s; }
+.bf-stepper button.is-done { background: color-mix(in srgb, var(--bf-accent) 55%, transparent); cursor: pointer; }
+.bf-stepper button.is-now { background: var(--bf-accent); }
+.bf-block { gap: 22px; animation: bf-in .3s ease; }
+.bf-block-head { gap: 14px; }
+.bf-block-head h2 { font-size: clamp(21px, 4.2vw, 26px); letter-spacing: 0; text-transform: none; color: var(--text, #3e4b57); font-weight: 600; line-height: 1.2; }
+.bf-block-head .bf-eyebrow { font-size: 11px; }
+.bf-block-n { width: 40px; height: 40px; font-size: 14px; border-radius: 14px; margin-top: 0; }
+.bf-desc { margin: 6px 0 0; font-size: 14.5px; color: var(--muted, #8b939a); }
+.bf-q { gap: 10px; padding: 18px 0 20px; border-top: 1px solid color-mix(in srgb, var(--border, #e6d8d3) 70%, transparent); }
+.bf-block-head + .bf-q { border-top: 0; padding-top: 4px; }
+.bf-label { font-size: 16.5px; font-weight: 500; }
+.bf-hint { font-size: 14px; }
+.bf-chip { padding: 10px 16px; font-size: 15px; transition: background .15s, border-color .15s, transform .1s; }
+.bf-chip:active { transform: scale(.97); }
+.bf-q textarea, .bf-q input:not([type=checkbox]) { border-radius: 14px; padding: 12px 14px; }
+.bf-nav { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.bf-nav .btn { border-radius: 14px; padding: 12px 18px; font-size: 15px; display: inline-flex; align-items: center; gap: 6px; }
+.bf-nav .btn.primary { background: var(--bf-accent); border-color: var(--bf-accent); flex: 1; justify-content: center; max-width: 320px; margin-left: auto; }
+.bf-done-icon { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: var(--bf-accent); color: #fff; }
+.bf-preview-bar { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.bf-preview-frame { max-height: 72vh; overflow: auto; }
+@media (max-width: 560px) {
+  /* celular: tamanho de conversa de WhatsApp, sem exagero */
+  .bf-public { padding: 12px 10px 28px; }
+  .bf-card { border-radius: 22px; font-size: 15px; gap: 20px; }
+  .bf-label { font-size: 15.5px; }
+  .bf-chip { font-size: 14px; padding: 9px 14px; }
+  .bf-imgopts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.bf-ed-bar { position: sticky; top: 8px; z-index: 5; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; margin: -4px 0 12px; border-radius: var(--radius, 16px); background: var(--surface); border: 1px solid var(--border); box-shadow: 0 10px 30px -22px rgba(0, 0, 0, .35); color: var(--muted); }
+.bf-ed-bar.is-dirty { border-color: var(--accent); color: var(--text); }
+.bf-ed-bar .grow { flex: 1; }
+/* cards de modelo de briefing: mais limpos */
+.bf-model.is-clean { display: flex; flex-direction: column; gap: 10px; padding: 16px 16px 12px; }
+.bf-model-main { display: flex; gap: 12px; align-items: center; color: inherit; text-decoration: none; }
+.bf-model-main b { display: block; font-size: 15px; font-weight: 600; line-height: 1.25; }
+.bf-model-main small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.bf-model-main .grow { flex: 1; min-width: 0; }
+.bf-model-desc { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bf-model.is-clean footer { margin-top: auto; display: flex; align-items: center; gap: 4px; }
+.bf-model.is-clean footer .grow { flex: 1; }
+.bf-unhide { grid-column: 1 / -1; justify-self: start; }

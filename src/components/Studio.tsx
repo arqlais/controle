@@ -9,8 +9,8 @@ import { askDelete, toast } from './dialog'
 import { PLANS, type Feature } from '../plans'
 import type { Client, Project, ProjectCost, ProjectPhase, ProjectPortal, SiteVisit, VisitPhoto } from '../types'
 import { daysUntil, fmtDate, money, payWhen, projectPaid, projectTotal, statusInfo, today, uid, whatsappLink } from '../utils'
-import { deletePhoto, packPortal, photoUrls, portalLink, publishPortal, savePhoto, unpublishPortal, type PortalPayload } from '../studioApi'
-import { hashExtra } from '../linkPack'
+import { deletePhoto, packPortal, photoUrls, portalLink, portalShortLink, publishPortal, savePhoto, unpublishPortal, type PortalPayload } from '../studioApi'
+import { hashExtra, readShortCode, shortCode } from '../linkPack'
 import { usePdf } from './Print'
 import { VisitReportDoc } from './Docs'
 
@@ -534,21 +534,21 @@ export function portalPayload(p: Project, client: Client | undefined, st: Return
 
 /** Mantém a página do cliente em dia: publica de novo quando algo muda na demanda. */
 export function usePortalSync(p: Project | undefined, client: Client | undefined) {
-  const { data } = useStore()
+  const { data, userId } = useStore()
   const payload = p?.portal?.enabled ? JSON.stringify({ ...portalPayload(p, client, data.settings, p.portal), updatedAt: '' }) : ''
   const last = useRef('')
   useEffect(() => {
     if (!payload || !p?.portal || payload === last.current) return
     const t = setTimeout(() => {
       last.current = payload
-      void publishPortal(p.portal!.token, { ...JSON.parse(payload), updatedAt: new Date().toISOString() }).catch(() => undefined)
+      void publishPortal(p.portal!.token, { ...JSON.parse(payload), updatedAt: new Date().toISOString() }, userId).catch(() => undefined)
     }, 1500)
     return () => clearTimeout(t)
   }, [payload, p?.portal])
 }
 
 export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Partial<Project>) => void; client?: Client }) {
-  const { data } = useStore()
+  const { data, userId } = useStore()
   const portal = p.portal
   // cópia dentro do link (abre mesmo se a nuvem falhar); acompanha o que muda na demanda
   const snapshot = portal?.enabled ? JSON.stringify({ ...portalPayload(p, client, data.settings, portal), updatedAt: '' }) : ''
@@ -561,21 +561,23 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
       off = true
     }
   }, [snapshot])
-  const link = portal ? portalLink(portal.token, packed) : ''
+  const code = portal?.file && userId ? shortCode(userId, portal.token) : ''
+  const link = portal ? (code ? portalShortLink(code) : portalLink(portal.token, packed)) : ''
   const enable = async () => {
     const next: ProjectPortal = { token: portal?.token ?? crypto.randomUUID(), enabled: true, showPayments: portal?.showPayments ?? true, showFiles: portal?.showFiles ?? true, showVisits: portal?.showVisits ?? true, message: portal?.message }
     let online = true
+    let file = false
     try {
-      await publishPortal(next.token, portalPayload(p, client, data.settings, next))
+      file = (await publishPortal(next.token, portalPayload(p, client, data.settings, next), userId)).file
     } catch {
       online = false
     }
-    save({ portal: { ...next, publishedAt: new Date().toISOString() } })
+    save({ portal: { ...next, file: file || undefined, publishedAt: new Date().toISOString() } })
     toast(online ? 'Página no ar. Agora é só mandar o link.' : 'Página criada. A nuvem não respondeu agora: o link leva uma cópia do projeto e abre mesmo assim. Quando mudar algo, mande o link de novo.')
   }
   const disable = async () => {
     if (!portal) return
-    await unpublishPortal(portal.token).catch(() => undefined)
+    await unpublishPortal(portal.token, userId).catch(() => undefined)
     save({ portal: { ...portal, enabled: false } })
     toast('Página tirada do ar. O link não abre mais.')
   }
@@ -662,10 +664,13 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
 
 /* ---------------- página pública (o cliente abre pelo link) ---------------- */
 
-export function PortalPublic({ token, data, preview }: { token: string; data?: PortalPayload; preview?: boolean }) {
+export function PortalPublic({ token: raw, data, preview, short }: { token: string; data?: PortalPayload; preview?: boolean; short?: boolean }) {
+  const code = short ? readShortCode(raw) : null
+  const token = code?.id ?? raw
   const [d, setD] = useState<PortalPayload | null | undefined>(data)
   useEffect(() => {
-    if (!data) import('../studioApi').then(({ loadPortal }) => loadPortal(token, hashExtra())).then(setD, () => setD(null))
+    if (!data) import('../studioApi').then(({ loadPortal }) => loadPortal(token, short ? '' : hashExtra(), code?.userId)).then(setD, () => setD(null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, data])
   const wrap = (children: ReactNode) => (
     <div className={`bf-public pt-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>

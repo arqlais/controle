@@ -1,4 +1,4 @@
-import { CLOUD, supabase } from './cloud'
+import { CLOUD, publishPublicFile, readPublicFile, removePublicFile, supabase } from './cloud'
 import { viewingAsClient } from './viewAs'
 import type { VisitPhoto } from './types'
 
@@ -118,7 +118,8 @@ const readLocal = (): Record<string, PortalPayload> => {
 export const portalLink = (token: string, packed?: string) => `${location.origin}${location.pathname}#/acompanhar/${token}${packed ? `/${packed}` : ''}`
 export const packPortal = async (p: PortalPayload) => (await import('./linkPack')).pack({ ...p, logo: undefined })
 
-export async function publishPortal(token: string, payload: PortalPayload) {
+/** Publica a página do cliente: na tabela e como arquivo público (link curto). Diz o que deu certo. */
+export async function publishPortal(token: string, payload: PortalPayload, userId?: string): Promise<{ table: boolean; file: boolean }> {
   if (!useCloud()) {
     const all = readLocal()
     all[token] = payload
@@ -127,23 +128,36 @@ export async function publishPortal(token: string, payload: PortalPayload) {
     } catch {
       /* sem espaço */
     }
-    return
+    return { table: true, file: false }
   }
-  const { error } = await supabase!.from('portal_links').upsert({ id: token, payload, updated_at: new Date().toISOString() })
-  if (error) throw error
+  const [t, f] = await Promise.allSettled([
+    supabase!
+      .from('portal_links')
+      .upsert({ id: token, payload, updated_at: new Date().toISOString() })
+      .then(({ error }) => {
+        if (error) throw error
+      }),
+    userId ? publishPublicFile(userId, `portal-${token}.json`, payload) : Promise.reject(new Error('sem conta')),
+  ])
+  const out = { table: t.status === 'fulfilled', file: f.status === 'fulfilled' }
+  if (!out.table && !out.file) throw new Error('nuvem')
+  return out
 }
 
-export async function unpublishPortal(token: string) {
+export const portalShortLink = (code: string) => `${location.origin}${location.pathname}#/p/${code}`
+
+export async function unpublishPortal(token: string, userId?: string) {
   if (!useCloud()) {
     const all = readLocal()
     delete all[token]
     localStorage.setItem(LOCAL, JSON.stringify(all))
     return
   }
+  if (userId) void removePublicFile(userId, `portal-${token}.json`).catch(() => undefined)
   await supabase!.from('portal_links').delete().eq('id', token)
 }
 
-export async function loadPortal(token: string, packed?: string): Promise<PortalPayload | null> {
+export async function loadPortal(token: string, packed?: string, userId?: string): Promise<PortalPayload | null> {
   // nuvem (sempre a versão mais nova) → este navegador ("ver como cliente" e prévia) → cópia do link
   if (CLOUD) {
     try {
@@ -152,6 +166,10 @@ export async function loadPortal(token: string, packed?: string): Promise<Portal
     } catch {
       /* tenta os outros jeitos */
     }
+  }
+  if (CLOUD && userId) {
+    const file = await readPublicFile<PortalPayload>(userId, `portal-${token}.json`)
+    if (file) return file
   }
   const local = readLocal()[token]
   if (local) return local

@@ -71,7 +71,7 @@ export const BUILTIN_BRIEFINGS: BriefingTemplate[] = [
 /** Modelo pelo id: os da pessoa têm prioridade sobre os prontos (quando ela edita um pronto). */
 export const findTemplate = (mine: BriefingTemplate[] | undefined, id: string) => mine?.find((t) => t.id === id) ?? BUILTIN_BRIEFINGS.find((t) => t.id === id)
 /** Todos os modelos para escolher: os editados substituem os prontos do mesmo id. */
-export const allTemplates = (mine: BriefingTemplate[] = []) => [...BUILTIN_BRIEFINGS.map((b) => mine.find((m) => m.id === b.id) ?? b), ...mine.filter((m) => !BUILTIN_BRIEFINGS.some((b) => b.id === m.id))]
+export const allTemplates = (mine: BriefingTemplate[] = [], hidden: string[] = []) => [...BUILTIN_BRIEFINGS.filter((b) => !hidden.includes(b.id)).map((b) => mine.find((m) => m.id === b.id) ?? b), ...mine.filter((m) => !BUILTIN_BRIEFINGS.some((b) => b.id === m.id))]
 export const isBuiltin = (id: string) => BUILTIN_BRIEFINGS.some((b) => b.id === id)
 export const KIND_LABEL: Record<BriefingKind, string> = { text: 'resposta curta', long: 'parágrafo', choice: 'uma opção', multi: 'várias opções (check)', photos: 'anexar fotos', date: 'data' }
 
