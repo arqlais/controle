@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { photoStyle } from './DocKit'
 import { dayLabel, stepsPercent } from '../processes'
 import type { Client, ProcessStep, Quote, QuoteItem, QuoteOption, Settings } from '../types'
 import { allLabel, cleanDetail, comboSeparate, comboTotal, isCombo, money, optionArea, optionTotal, quoteFiles, quoteNumber, quoteTotal } from '../utils'
@@ -146,7 +147,7 @@ export function ProposalSlides({ s, client, quote: q }: { s: Settings; client?: 
           <p className="sp-date">{fmt(q.createdAt)}</p>
         </div>
         <div className="sp-cover-art">
-          {photos[0] ? <img src={photos[0]} alt="" /> : <span className="sp-cover-lines" aria-hidden><i /><i /><i /></span>}
+          {photos[0] ? <img src={photos[0]} alt="" style={photoStyle(s.portfolioPos?.[0])} /> : <span className="sp-cover-lines" aria-hidden><i /><i /><i /></span>}
         </div>
       </>,
     ),
@@ -330,7 +331,7 @@ export function ProposalSlides({ s, client, quote: q }: { s: Settings; client?: 
           <Heading kicker="alguns projetos" a="feito" b="por nós" />
           <div className="sp-photos">
             {photos.slice(0, 3).map((src, i) => (
-              <img key={i} src={src} alt="" />
+              <img key={i} src={src} alt="" style={photoStyle(s.portfolioPos?.[i])} />
             ))}
           </div>
         </>,

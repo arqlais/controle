@@ -22,6 +22,7 @@ export interface PhotoPos {
   x: number
   y: number
   zoom: number
+  fit?: boolean // encaixar a foto inteira no espaço (sem cortar)
 }
 
 export type PlaqueLayout = 'diagonal' | 'retrato' | 'faixa' | 'moldura'
@@ -42,6 +43,7 @@ export interface PlaqueData {
 export interface DeckImage {
   src: string
   caption?: string
+  pos?: PhotoPos // recorte ou encaixe no espaço
 }
 export interface DeckData {
   projectId?: string
@@ -49,9 +51,11 @@ export interface DeckData {
   subtitle?: string
   client?: string
   cover?: string
+  coverPos?: PhotoPos
   brief?: string[] // o ponto de partida (o que o cliente pediu)
   concept?: string
   mood?: string[] // imagens do moodboard (até 4)
+  moodPos?: (PhotoPos | undefined)[]
   plan?: DeckImage // planta de layout
   planNotes?: string[]
   renders?: DeckImage[] // imagens 3D (até 6)

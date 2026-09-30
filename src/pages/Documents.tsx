@@ -453,7 +453,7 @@ function DeckEditor({ value, set, w }: EdProps<DeckData>) {
                 <input value={d.client ?? ''} onChange={(e) => set({ client: e.target.value })} />
               </Field>
             </div>
-            <ImageField label="Imagem da capa" value={deck.cover} onChange={(cover) => set({ cover })} max={1400} />
+            <ImageField label="Imagem da capa" value={deck.cover} onChange={(cover) => set({ cover, coverPos: undefined })} max={1400} aspect={1.1} pos={deck.coverPos} onPos={(coverPos) => set({ coverPos })} />
           </Section>
           <Section title="ponto de partida e conceito">
             <LinesField label="O que o cliente pediu (um por linha)" value={d.brief} onChange={(brief) => set({ brief })} />
@@ -461,17 +461,26 @@ function DeckEditor({ value, set, w }: EdProps<DeckData>) {
               <textarea rows={3} value={d.concept} onChange={(e) => set({ concept: e.target.value })} spellCheck lang="pt-BR" />
             </Field>
             {[0, 1, 2, 3].map((i) => (
-              <ImageField key={i} label={`moodboard ${i + 1}`} value={mood[i]} max={900} onChange={(v) => set({ mood: [0, 1, 2, 3].map((k) => (k === i ? v ?? '' : mood[k] ?? '')).filter(Boolean) })} />
+              <ImageField
+                key={i}
+                label={`moodboard ${i + 1}`}
+                value={mood[i] || undefined}
+                max={900}
+                aspect={4 / 3}
+                pos={deck.moodPos?.[i]}
+                onPos={(p) => set({ moodPos: [0, 1, 2, 3].map((k) => (k === i ? p : deck.moodPos?.[k])) })}
+                onChange={(v) => set({ mood: [0, 1, 2, 3].map((k) => (k === i ? v ?? '' : mood[k] ?? '')), moodPos: [0, 1, 2, 3].map((k) => (k === i ? undefined : deck.moodPos?.[k])) })}
+              />
             ))}
           </Section>
           <Section title="planta">
-            <ImageField label="Planta de layout" value={deck.plan?.src} max={1600} onChange={(src) => set({ plan: src ? { ...deck.plan, src } : undefined })} />
+            <ImageField label="Planta de layout" value={deck.plan?.src} max={1600} onChange={(src) => set({ plan: src ? { ...deck.plan, src, pos: undefined } : undefined })} aspect={16 / 10} defaultFit pos={deck.plan?.pos} onPos={(pos) => deck.plan && set({ plan: { ...deck.plan, pos } })} />
             <LinesField label="Destaques da planta (um por linha)" value={d.planNotes} onChange={(planNotes) => set({ planNotes })} />
           </Section>
           <Section title="imagens do projeto">
             {renders.map((r, i) => (
               <div key={i} className="dk-render-row">
-                <img src={r.src} alt="" />
+                <PhotoCrop src={r.src} pos={r.pos} aspect={16 / 10} onChange={(pos) => set({ renders: renders.map((x, j) => (j === i ? { ...x, pos } : x)) })} />
                 <input value={r.caption ?? ''} placeholder="legenda (ex.: sala de estar)" onChange={(e) => set({ renders: renders.map((x, j) => (j === i ? { ...x, caption: e.target.value } : x)) })} />
                 <button className="icon-btn subtle" onClick={() => set({ renders: renders.filter((_, j) => j !== i) })} aria-label="Tirar imagem">
                   <Icon name="trash" size={14} />

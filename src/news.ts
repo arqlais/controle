@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-fotos-recorte',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'fotos no lugar certo',
+    text: 'Cada espaço de foto dos documentos e da proposta tem o seu formato. Ao colocar a imagem, escolha recortar (arrastar e aproximar) ou encaixar a foto inteira.',
+  },
+  {
     id: '2026-09-30-tabela-precos-simples',
     date: '2026-09-30',
     kind: 'melhoria',

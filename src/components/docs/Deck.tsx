@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Settings } from '../../types'
-import type { DeckData, DeckImage } from '../../docTypes'
-import { useDocLook } from '../DocKit'
+import type { DeckData, DeckImage, PhotoPos } from '../../docTypes'
+import { photoStyle, useDocLook } from '../DocKit'
 import { DocPage } from './DocPage'
 
 /* Apresentação de projeto (slides 16:9): para mostrar o anteprojeto ao cliente —
@@ -23,7 +23,7 @@ export const DECK_DEFAULTS = {
   thanks: 'obrigada pela confiança!',
 }
 
-const Img = ({ src, className }: { src?: string; className?: string }) => (src ? <img className={className} src={src} alt="" /> : <span className={`dk-ph ${className ?? ''}`}>imagem</span>)
+const Img = ({ src, className, pos, fit }: { src?: string; className?: string; pos?: PhotoPos; fit?: boolean }) => (src ? <img className={className} src={src} alt="" style={photoStyle(pos, fit)} /> : <span className={`dk-ph ${className ?? ''}`}>imagem</span>)
 
 const Title = ({ a, b }: { a: string; b?: string }) => (
   <h2 className="dk-title">
@@ -41,7 +41,7 @@ export function DeckDoc({ s, data, stages }: { s: Settings; data?: DeckData; sta
   const look = useDocLook(s)
   const d = { ...DECK_DEFAULTS, ...data }
   const renders = (data?.renders ?? []).filter((x) => x.src)
-  const mood = (data?.mood ?? []).filter(Boolean)
+  const mood = (data?.mood ?? []).map((src, i) => ({ src, pos: data?.moodPos?.[i] })).filter((x) => x.src)
   const slides: ((n: number, t: number) => ReactNode)[] = []
   const [w1, ...wr] = d.title.split(' ')
   const stage = Math.min(Math.max(0, d.stage ?? 2), Math.max(0, stages.length - 1))
@@ -55,7 +55,7 @@ export function DeckDoc({ s, data, stages }: { s: Settings; data?: DeckData; sta
         </h1>
         {d.client && <p className="dk-for">para {d.client}</p>}
       </div>
-      <Img src={d.cover} className="dk-cover-img" />
+      <Img src={d.cover} className="dk-cover-img" pos={d.coverPos} />
     </DocPage>
   ))
   if (d.brief.length)
@@ -80,8 +80,8 @@ export function DeckDoc({ s, data, stages }: { s: Settings; data?: DeckData; sta
         <p className="dk-quote">{d.concept}</p>
       </div>
       <div className={`dk-mood n${mood.length ? Math.min(4, mood.length) : 4}`}>
-        {(mood.length ? mood : [undefined, undefined, undefined, undefined]).slice(0, 4).map((src, i) => (
-          <Img key={i} src={src} />
+        {(mood.length ? mood : [{ src: '', pos: undefined }, { src: '', pos: undefined }, { src: '', pos: undefined }, { src: '', pos: undefined }]).slice(0, 4).map((x, i) => (
+          <Img key={i} src={x.src || undefined} pos={x.pos} />
         ))}
       </div>
     </DocPage>
@@ -90,7 +90,7 @@ export function DeckDoc({ s, data, stages }: { s: Settings; data?: DeckData; sta
     slides.push((n, t) => (
       <DocPage key="planta" s={s} n={n} total={t} look={look.look} kind="slide" className="dk-plan">
         <div className="dk-plan-img">
-          <Img src={d.plan?.src} />
+          <Img src={d.plan?.src} pos={d.plan?.pos} fit />
         </div>
         <div className="dk-plan-text">
           <Title a="a" b="planta" />
@@ -108,7 +108,7 @@ export function DeckDoc({ s, data, stages }: { s: Settings; data?: DeckData; sta
       <DocPage key={`img${k}`} s={s} n={n} total={t} look={look.look} kind="slide" className={`dk-renders n${group.length}`}>
         {group.map((x, i) => (
           <figure key={i}>
-            <img src={x.src} alt="" />
+            <img src={x.src} alt="" style={photoStyle(x.pos)} />
             {x.caption && <figcaption>{x.caption}</figcaption>}
           </figure>
         ))}

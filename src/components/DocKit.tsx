@@ -3,6 +3,7 @@ import qrcode from 'qrcode-generator'
 import { useAccess } from '../access'
 import { resolveTemplate, sheetColors } from '../proposalTemplates'
 import type { Settings } from '../types'
+import type { PhotoPos } from '../docTypes'
 import { DocScale, usePdf } from './Print'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -71,7 +72,7 @@ export async function pickImage(file: File, max = 1400): Promise<string> {
   })
 }
 
-export function ImageField({ label, value, onChange, hint, max }: { label: string; value?: string; onChange: (v: string | undefined) => void; hint?: string; max?: number }) {
+export function ImageField({ label, value, onChange, hint, max, aspect, pos, onPos, defaultFit }: { label: string; value?: string; onChange: (v: string | undefined) => void; hint?: string; max?: number; aspect?: number; pos?: PhotoPos; onPos?: (p: PhotoPos) => void; defaultFit?: boolean }) {
   const ref = useRef<HTMLInputElement>(null)
   return (
     <div className="dk-img">
@@ -92,6 +93,7 @@ export function ImageField({ label, value, onChange, hint, max }: { label: strin
         </div>
       </div>
       {hint && <p className="muted small">{hint}</p>}
+      {value && aspect && onPos && <PhotoCrop src={value} pos={pos} aspect={aspect} onChange={onPos} defaultFit={defaultFit} />}
       <input
         ref={ref}
         type="file"
@@ -244,19 +246,35 @@ export function FreeEditModal({ doc, width, onClose, onDownload }: { doc: ReactN
   )
 }
 
-/** Ajustar a foto dentro do molde: arraste para escolher o que aparece e use o controle para aproximar. */
-export function PhotoCrop({ src, pos, aspect, onChange }: { src: string; pos?: { x: number; y: number; zoom: number }; aspect: number; onChange: (p: { x: number; y: number; zoom: number }) => void }) {
-  const p = pos ?? { x: 50, y: 50, zoom: 1 }
+/** Como a foto aparece no espaço: recortada (ponto central + aproximação) ou encaixada inteira. */
+export function photoStyle(pos?: PhotoPos, defaultFit = false): CSSProperties | undefined {
+  if (pos?.fit || (!pos && defaultFit)) return { objectFit: 'contain' }
+  if (!pos) return undefined
+  return { objectFit: 'cover', objectPosition: `${pos.x}% ${pos.y}%`, transform: pos.zoom > 1 ? `scale(${pos.zoom})` : undefined, transformOrigin: `${pos.x}% ${pos.y}%` }
+}
+
+/** Ajustar a foto dentro do molde: recortar (arrastar e aproximar) ou encaixar a foto inteira. */
+export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { src: string; pos?: PhotoPos; aspect: number; onChange: (p: PhotoPos) => void; defaultFit?: boolean }) {
+  const p: PhotoPos = pos ?? { x: 50, y: 50, zoom: 1, fit: defaultFit }
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
   const clamp = (v: number) => Math.max(0, Math.min(100, v))
   return (
     <div className="dk-crop">
+      <div className="dk-crop-mode" role="radiogroup" aria-label="Como a foto entra no espaço">
+        <button type="button" role="radio" aria-checked={!p.fit} className={!p.fit ? 'is-on' : ''} onClick={() => onChange({ ...p, fit: false })}>
+          <Icon name="grid" size={13} /> recortar
+        </button>
+        <button type="button" role="radio" aria-checked={!!p.fit} className={p.fit ? 'is-on' : ''} onClick={() => onChange({ ...p, fit: true })}>
+          <Icon name="cube" size={13} /> encaixar inteira
+        </button>
+      </div>
       <div
         ref={box}
-        className="dk-crop-box"
+        className={`dk-crop-box ${p.fit ? 'is-fit' : ''}`}
         style={{ aspectRatio: String(aspect) }}
         onPointerDown={(e) => {
+          if (p.fit) return
           ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
           drag.current = { x: e.clientX, y: e.clientY, px: p.x, py: p.y }
         }}
@@ -271,18 +289,20 @@ export function PhotoCrop({ src, pos, aspect, onChange }: { src: string; pos?: {
         onPointerUp={() => (drag.current = null)}
         onPointerCancel={() => (drag.current = null)}
       >
-        <img src={src} alt="" draggable={false} style={{ objectPosition: `${p.x}% ${p.y}%`, transform: p.zoom > 1 ? `scale(${p.zoom})` : undefined, transformOrigin: `${p.x}% ${p.y}%` }} />
+        <img src={src} alt="" draggable={false} style={photoStyle(p) ?? { objectFit: 'cover' }} />
         <span className="dk-crop-hint">
-          <Icon name="grid" size={13} /> arraste para enquadrar
+          <Icon name={p.fit ? 'check' : 'grid'} size={13} /> {p.fit ? 'a foto inteira aparece no espaço' : 'arraste para enquadrar'}
         </span>
       </div>
-      <label className="dk-crop-zoom">
-        <span className="small">aproximar</span>
-        <input type="range" min={1} max={3} step={0.05} value={p.zoom} onChange={(e) => onChange({ ...p, zoom: Number(e.target.value) })} aria-label="Aproximar a foto" />
-        <button type="button" className="link small" onClick={() => onChange({ x: 50, y: 50, zoom: 1 })}>
-          centralizar
-        </button>
-      </label>
+      {!p.fit && (
+        <label className="dk-crop-zoom">
+          <span className="small">aproximar</span>
+          <input type="range" min={1} max={3} step={0.05} value={p.zoom} onChange={(e) => onChange({ ...p, zoom: Number(e.target.value) })} aria-label="Aproximar a foto" />
+          <button type="button" className="link small" onClick={() => onChange({ x: 50, y: 50, zoom: 1 })}>
+            centralizar
+          </button>
+        </label>
+      )}
     </div>
   )
 }

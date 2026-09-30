@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PhotoCrop } from './DocKit'
 import { Icon } from './Icon'
 import { SaveBar, useDraft } from './SaveBar'
 import { Field, Modal, Section, Segmented } from './ui'
@@ -325,7 +326,7 @@ export function PortfolioSettings() {
       const url = await readImage(file)
       const next = [...photos]
       next[i] = url
-      setSettings({ portfolio: next.filter(Boolean).slice(0, 3) })
+      setSettings({ portfolio: next.filter(Boolean).slice(0, 3), portfolioPos: (s.portfolioPos ?? []).map((p, k) => (k === i ? undefined : p)) })
     } catch {
       toast('Não deu para abrir esta imagem.')
     }
@@ -345,7 +346,7 @@ export function PortfolioSettings() {
                 aria-label="Tirar foto"
                 onClick={(e) => {
                   e.preventDefault()
-                  setSettings({ portfolio: photos.filter((_, k) => k !== i) })
+                  setSettings({ portfolio: photos.filter((_, k) => k !== i), portfolioPos: (s.portfolioPos ?? []).filter((_, k) => k !== i) })
                 }}
               >
                 <Icon name="x" size={14} />
@@ -354,6 +355,16 @@ export function PortfolioSettings() {
           </label>
         ))}
       </div>
+      {photos.length > 0 && (
+        <div className="port-crops">
+          {photos.map((src, i) => (
+            <div key={i}>
+              <span className="field-label">{i === 0 ? 'foto da capa' : `foto ${i + 1}`}</span>
+              <PhotoCrop src={src} pos={s.portfolioPos?.[i]} aspect={i === 0 ? 16 / 10 : 4 / 3} onChange={(p) => setSettings({ portfolioPos: [0, 1, 2].map((k) => (k === i ? p : s.portfolioPos?.[k])) })} />
+            </div>
+          ))}
+        </div>
+      )}
       <Field label="Sobre você / seu escritório" hint="Um parágrafo curto, no slide “O seu projeto”.">
         <textarea rows={3} value={s.about ?? ''} onChange={(e) => setSettings({ about: e.target.value })} placeholder="Ex.: Somos um estúdio de arquitetura e interiores que desenha espaços leves, funcionais e com a cara de quem vive neles." spellCheck lang="pt-BR" />
       </Field>
