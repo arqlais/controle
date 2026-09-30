@@ -41,7 +41,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'melhoria',
     title: 'anual com 2 meses grátis e contrato próprio',
-    text: 'No plano anual você ganha 2 meses grátis: à vista no Pix ou em 12x sem juros no cartão. O semestral tem desconto no Pix, e o mensal segue sem fidelidade. Em contratos, dá para anexar o seu próprio contrato (Word ou PDF): ele vira um modelo editável, e o sistema aponta o que trocar por etiquetas (nome, CPF, valor, data) para cada contrato novo já sair preenchido. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
+    text: 'No plano anual você ganha 2 meses grátis: à vista no Pix ou em 12x sem juros no cartão. O semestral tem desconto no Pix, e o mensal segue sem fidelidade. As regras de cancelamento e devolução ficaram mais claras nos termos. Em contratos, dá para anexar o seu próprio contrato (Word ou PDF): ele vira um modelo editável, e o sistema aponta o que trocar por etiquetas (nome, CPF, valor, data) para cada contrato novo já sair preenchido. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
     steps: [{ page: 'contratos', text: 'Em contratos, toque em “anexar meu contrato”.' }],
   },
   {

@@ -246,7 +246,10 @@ export default function Checkout({ planId }: { planId: string }) {
               </span>
             </label>
             <p className="muted small co-rights">
-              <Icon name="check" size={13} /> Se se arrepender, você tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (art. 49 do Código de Defesa do Consumidor). Depois disso, cancela quando quiser, sem multa.
+              <Icon name="check" size={13} /> Se se arrepender, você tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (art. 49 do Código de Defesa do Consumidor).{' '}
+              {b.cycle === 'mensal'
+                ? 'Depois disso, cancela quando quiser, sem multa.'
+                : `Depois disso, pode cancelar quando quiser e usa até o fim do ${cycleLabel(b.cycle) === 'anual' ? 'ano' : 'semestre'}. Se pedir devolução antes do fim, os meses usados são cobrados pelo preço do mensal (sem o desconto do período completo).`}
             </p>
             {showTerms && <TermsModal who={{ name: b.fullName, doc: b.doc, email: b.email, plan: `${p.name} · ${money0(total)}/${unit}` }} onClose={() => setShowTerms(false)} onAccept={() => setAgree(true)} />}
             {error && <p className="auth-error">{error}</p>}

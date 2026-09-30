@@ -185,7 +185,7 @@ const faq = (): [string, ReactNode][] => [
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
   ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para o WhatsApp), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: página do projeto para o cliente, cronograma das etapas, acompanhamento de obra com fotos, lucro de cada projeto e briefing online.`],
   [`o que mudou com o ${PLANS.estudio.name}?`, `Novidade: o ${PLATFORM.name} nasceu para freelancers e agora também é para quem trabalha direto com o cliente final (casas, apartamentos, lojas, obras). Foi um pedido de várias arquitetas. O ${PLANS.estudio.name} está aberto para todos e é o plano do teste grátis.`],
-  ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
+  ['posso cancelar quando quiser?', 'Pode, sem fidelidade. No mensal, o acesso vai até o fim do mês pago. No semestral e no anual, você usa até o fim do período; se pedir devolução antes, os meses usados são cobrados pelo preço do mensal. E nos primeiros 7 dias depois do pagamento, o dinheiro volta inteiro.'],
   ['o teste grátis é de qual plano?', `Do ${PLANS.estudio.name}, o mais completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
 
@@ -368,6 +368,8 @@ export default function Landing() {
           ))}
         </div>
       </div>
+
+      <AllInOne onTry={() => signup()} />
 
       <section className="lp-section lp-story-sec">
         <div className="lp-wrap lp-story lp-me-story" data-reveal>
@@ -826,6 +828,101 @@ function Journey({ steps: JOURNEY, paused: hidden }: { steps: typeof JOURNEY_FIN
         ))}
       </div>
     </div>
+  )
+}
+
+/* ---------------- tudo num lugar só (o grande diferencial) ---------------- */
+
+const OUTSIDE = ['formulário on-line para o briefing', 'app de design para a proposta', 'editor de texto para o contrato', 'site pago para assinar o contrato', 'talão ou gerador de recibo', 'planilha para o financeiro']
+const INSIDE: { icon: string; title: string; text: string; carry: string }[] = [
+  { icon: 'clip', title: 'briefing', text: 'o cliente responde pelo link, no celular, com fotos', carry: 'nome, imóvel e o que ele precisa' },
+  { icon: 'file', title: 'orçamento', text: 'proposta em PDF com a sua marca, pela sua tabela de preços', carry: 'já sabe quem é o cliente' },
+  { icon: 'pen', title: 'contrato', text: 'sai preenchido com valor, prazo, etapas e pagamento', carry: 'puxa tudo do orçamento' },
+  { icon: 'check', title: 'assinatura', text: 'o cliente assina pelo celular, com certificado no PDF', carry: 'sem site de assinatura à parte' },
+  { icon: 'wallet', title: 'recibo', text: 'um toque em cada pagamento recebido', carry: 'valor e dados já prontos' },
+  { icon: 'trend', title: 'financeiro', text: 'entra sozinho no recebido e no a receber do mês', carry: 'sem digitar nada de novo' },
+]
+
+function AllInOne({ onTry }: { onTry: () => void }) {
+  const [step, setStep] = useState(0)
+  const [hold, setHold] = useState(false)
+  const [seen, setSeen] = useState(false)
+  const box = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = box.current
+    if (!el || typeof IntersectionObserver === 'undefined') return setSeen(true)
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.3 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  useEffect(() => {
+    const still = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (hold || !seen || still) return
+    const t = setInterval(() => setStep((n) => (n + 1) % INSIDE.length), 2600)
+    return () => clearInterval(t)
+  }, [hold, seen])
+  const cur = INSIDE[step]
+  return (
+    <section ref={box} className={`lp-section lp-all ${seen ? 'is-seen' : ''}`} id="tudo">
+      <div className="lp-wrap">
+        <SectionHead eyebrow="sem pular de programa em programa" title={<>tudo num lugar <em>só</em></>} text="Briefing, orçamento, contrato com assinatura, recibo e financeiro no mesmo sistema. Você digita uma vez e a informação vai sozinha para o próximo passo." />
+        <div className="lp-all-grid">
+          <div className="lp-all-before" data-reveal>
+            <p className="lp-all-label">
+              <Icon name="x" size={14} /> sem o {PLATFORM.name}
+            </p>
+            <ul>
+              {OUTSIDE.map((t, i) => (
+                <li key={t} style={{ transitionDelay: `${0.25 + i * 0.12}s` }}>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="lp-all-foot">6 lugares diferentes, digitando o nome, o valor e o prazo de novo em cada um.</p>
+          </div>
+          <div className="lp-all-after" data-reveal onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
+            <p className="lp-all-label is-good">
+              <Icon name="check" size={14} /> no {PLATFORM.name}, do começo ao fim
+            </p>
+            <div className="lp-all-steps" role="tablist" aria-label="O caminho dentro do sistema">
+              {INSIDE.map((x, i) => (
+                <button key={x.title} role="tab" aria-selected={i === step} className={`${i === step ? 'is-on' : ''} ${i < step ? 'is-done' : ''}`} onClick={() => setStep(i)}>
+                  <span className="lp-all-dot">
+                    <Icon name={x.icon} size={16} />
+                  </span>
+                  <small>{x.title}</small>
+                </button>
+              ))}
+              <i className="lp-all-line" style={{ ['--p' as string]: `${(step / (INSIDE.length - 1)) * 100}%` }} aria-hidden />
+            </div>
+            <div className="lp-all-card" key={step}>
+              <span className="lp-all-num">
+                {step + 1}/{INSIDE.length}
+              </span>
+              <b>{cur.title}</b>
+              <p>{cur.text}</p>
+              <span className="lp-all-carry">
+                <Icon name="arrowRight" size={13} /> {cur.carry}
+              </span>
+            </div>
+            <div className="lp-all-stats">
+              <span>
+                <b>6 → 1</b> programas
+              </span>
+              <span>
+                <b>0</b> dados digitados duas vezes
+              </span>
+              <span>
+                <b>celular</b> e computador
+              </span>
+            </div>
+            <button className="btn primary lp-all-cta" onClick={onTry}>
+              testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={15} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 

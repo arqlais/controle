@@ -84,21 +84,31 @@ O ${PLATFORM.name} é uma plataforma on-line de gestão para profissionais de pr
 3.3 Cada conta é de uma pessoa (uso individual do assinante).
 
 4. TESTE GRÁTIS
-4.1 Todo cadastro novo recebe {dias_teste} dias grátis com o plano Completo, sem cartão e sem cobrança.
+4.1 Todo cadastro novo recebe {dias_teste} dias grátis com o plano escolhido, sem cartão e sem cobrança.
 4.2 Ao fim do teste, para continuar usando, o USUÁRIO escolhe e assina um plano. Sem assinatura, a conta fica pausada: os dados continuam guardados e podem ser baixados.
 
 5. PLANOS, VALORES E PAGAMENTO
 5.1 Os valores e o que cada plano inclui estão na página de planos no momento da assinatura.
-5.2 A assinatura é mensal, semestral ou anual, paga antecipadamente. No mensal, por Pix todo mês ou cartão de crédito cobrado automaticamente (recorrente). No semestral, com desconto, por Pix à vista. No anual, com meses grátis no Pix à vista, ou no cartão de crédito em até 12 vezes sem juros (o valor no cartão inclui a taxa do parcelamento e aparece antes da confirmação). O acesso vale pelo período inteiro já contratado.
-5.3 Mudanças de preço são avisadas com antecedência mínima de 30 dias e valem a partir do período seguinte.
+5.2 Formas de assinatura, sempre pagas antecipadamente:
+a) Mensal: Pix todo mês ou cartão de crédito cobrado automaticamente todo mês (recorrente).
+b) Semestral: 6 meses com desconto, pagos à vista no Pix.
+c) Anual: 12 meses com meses grátis (desconto), pagos à vista no Pix ou no cartão de crédito em até 12 parcelas sem juros. O valor no cartão inclui a taxa do parcelamento e é mostrado antes da confirmação.
+5.3 O desconto e os meses grátis do semestral e do anual são uma condição do período completo contratado: não são um período de uso gratuito separado, não viram crédito e não são devolvidos em dinheiro.
+5.4 No anual parcelado no cartão, a compra é única (o plano de 12 meses) e é dividida pela operadora do cartão. Cancelar a assinatura não interrompe as parcelas já contratadas; eventual devolução segue as regras dos itens 6 e 7.
+5.5 Contestação de pagamento junto ao banco ou à operadora do cartão (chargeback) por serviço efetivamente disponibilizado pausa a conta até a regularização, sem prejuízo da cobrança do valor devido.
+5.6 Mudanças de preço são avisadas com antecedência mínima de 30 dias e valem a partir do período seguinte. O período já pago não muda de preço.
 
 6. DIREITO DE ARREPENDIMENTO (7 DIAS)
-6.1 Conforme o art. 49 do Código de Defesa do Consumidor, o USUÁRIO pode desistir da assinatura em até 7 (sete) dias contados do pagamento, com devolução integral do valor pago.
-6.2 O período de teste grátis não reduz esse prazo: ele começa a contar a partir do primeiro pagamento.
+6.1 Conforme o art. 49 do Código de Defesa do Consumidor, o USUÁRIO pode desistir da assinatura em até 7 (sete) dias contados do primeiro pagamento, com devolução integral do valor pago, pelo mesmo meio de pagamento (no cartão, com o estorno da compra inteira).
+6.2 O período de teste grátis não reduz esse prazo. Renovações e novas assinaturas depois de uma desistência não geram um novo prazo de 7 dias para o mesmo plano dentro de 12 meses.
 
-7. CANCELAMENTO
-7.1 Depois dos 7 dias, o USUÁRIO pode cancelar quando quiser, sem multa e sem fidelidade. O acesso continua até o fim do período já pago, sem devolução proporcional.
-7.2 Em caso de atraso no pagamento, a conta pode ser pausada para edição até a regularização. Os dados não são apagados.
+7. CANCELAMENTO (DEPOIS DOS 7 DIAS)
+7.1 Mensal: o USUÁRIO cancela quando quiser, sem multa. O acesso continua até o fim do mês já pago, sem devolução do mês em andamento.
+7.2 Semestral e anual: o USUÁRIO pode cancelar a qualquer momento. O acesso continua até o fim do período contratado e a assinatura não é renovada.
+7.3 Se, no semestral ou no anual, o USUÁRIO pedir o encerramento antecipado com devolução, o valor devolvido é: o valor pago, menos os meses já usados (contando o mês em andamento) pelo preço do plano mensal vigente na contratação, menos as taxas de pagamento e parcelamento já cobradas pela operadora. Se o resultado for zero ou negativo, não há devolução nem cobrança adicional. Assim, quem sai antes do fim paga os meses usados pelo preço do mensal, sem o desconto do período completo.
+7.4 Exemplo: plano anual pago à vista por R$ 599 (mensal de R$ 59,90). Pedido de encerramento no 4º mês: 599 − 4 × 59,90 = R$ 359,40 devolvidos (menos taxas da operadora, se houver).
+7.5 Em caso de atraso no pagamento, a conta pode ser pausada para edição até a regularização. Os dados não são apagados.
+7.6 O uso em desacordo com estes termos (revenda, compartilhamento de acesso, fraude) permite o encerramento da conta sem devolução, após aviso.
 
 8. DADOS E PRIVACIDADE (LGPD)
 8.1 Coletamos os dados do cadastro e da assinatura (nome, e-mail, telefone, CPF/CNPJ, endereço) para criar a conta, cobrar e dar suporte.
@@ -119,7 +129,7 @@ O sistema, a marca e o visual da PLATAFORMA pertencem à PLATAFORMA. O USUÁRIO 
 Mudanças importantes são avisadas dentro da plataforma. Continuar usando depois do aviso significa concordar com a nova versão.
 
 12. FORO
-Fica eleito o foro da comarca de {empresa_cidade} para resolver qualquer questão sobre estes termos.`
+Fica eleito o foro da comarca de {empresa_cidade} para resolver qualquer questão sobre estes termos, ressalvado o direito do consumidor de propor a ação no próprio domicílio, quando a lei assim garantir.`
 
 /** Reduz a foto enviada para no máximo 640 px (JPEG), para guardar leve. */
 export function shrinkPhoto(file: File, max = 640): Promise<string> {
