@@ -281,7 +281,9 @@ export default function App() {
   // só conta nova de verdade (sem nada feito além do exemplo); quem já usa o sistema nunca é obrigado nem perde nada
   const freshAccount = (!data.quotes.length && !data.projects.length) || (hasDemoData(data) && data.quotes.length <= demoData(settings).quotes.length && data.projects.length <= demoData(settings).projects.length)
   const needsSetup = sync !== 'loading' && !access.isOwner && !access.legacy && (settings.servicesSetup === false || (settings.servicesSetup === undefined && untouchedServices && freshAccount))
-  const setupNow = needsSetup && !welcomeOpen && !tourOpen
+  // "fazer depois": some até a próxima vez que abrir o sistema; no "ver como cliente" não abre sozinho
+  const [setupLater, setSetupLater] = useState(false)
+  const setupNow = needsSetup && !welcomeOpen && !tourOpen && !setupLater && (!asClient || settings.servicesSetup === false)
   // novidades: abre sozinha para quem assina quando há algo novo (depois do passo a passo); o sininho do topo reabre
   const news = useNews(!access.legacy)
   const [newsOpen, setNewsOpen] = useState(false)
@@ -628,6 +630,10 @@ export default function App() {
         {setupNow && (
           <ServicesSetup
             initialProfile={settings.workProfile}
+            onLater={() => {
+              setSetupLater(true)
+              if (settings.servicesSetup === false) setSettings({ servicesSetup: undefined })
+            }}
             onDone={(services, workProfile) => {
               // refazendo: o que já estava na tabela fica, e os novos entram no fim
               // conta nova com a tabela de exemplo: troca; em qualquer outro caso só acrescenta (nada do que já existe é apagado)

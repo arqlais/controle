@@ -12,7 +12,7 @@ import { uid } from '../utils'
 const PROFILE_ICON: Record<WorkProfile, string> = { freelancer: 'briefcase', final: 'home', ambos: 'users' }
 const STEPS = ['para quem', 'o que você faz', 'quanto cobra']
 
-export function ServicesSetup({ initialProfile, onDone }: { initialProfile?: WorkProfile; onDone: (services: ServiceDef[], profile: WorkProfile) => void }) {
+export function ServicesSetup({ initialProfile, onDone, onLater }: { initialProfile?: WorkProfile; onDone: (services: ServiceDef[], profile: WorkProfile) => void; onLater?: () => void }) {
   const [step, setStep] = useState(0)
   const [profile, setProfile] = useState<WorkProfile | undefined>(initialProfile)
   const [picked, setPicked] = useState<ServiceDef[]>([])
@@ -109,6 +109,10 @@ export function ServicesSetup({ initialProfile, onDone }: { initialProfile?: Wor
           {step > 0 ? (
             <button type="button" className="btn ghost" onClick={() => setStep(step - 1)}>
               <Icon name="chevronL" size={15} /> voltar
+            </button>
+          ) : onLater ? (
+            <button type="button" className="btn ghost" onClick={onLater}>
+              fazer depois
             </button>
           ) : (
             <span />
