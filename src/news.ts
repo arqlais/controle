@@ -56,7 +56,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'melhoria',
     title: 'tabela de preços mais simples',
-    text: 'Cada serviço virou uma linha com o resumo do preço. Tocando, você escolhe como cobra (por hora, por m², por unidade, pacotes ou valor fechado) e vê um exemplo da conta. Dá para adicionar serviços das sugestões ou criar os seus, também pelo celular.',
+    text: 'Cada serviço virou uma linha com o resumo do preço. Tocando, você escolhe como cobra (por hora, por m², por unidade, pacotes ou valor fechado) e vê um exemplo da conta. Um serviço pode ter mais de uma forma de cobrar, e no orçamento você escolhe qual usar. Dá para adicionar das sugestões ou criar os seus, também pelo celular.',
     steps: [{ page: 'config', configTab: 'precos', text: 'Em configurações → preços, toque num serviço para mudar.' }],
   },
   {

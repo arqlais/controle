@@ -80,7 +80,7 @@ export function ServicesSetup({ initialProfile, onDone }: { initialProfile?: Wor
           {step === 1 && (
             <>
               <SuggestPicker kinds={kindsFor(profile)} picked={picked} onToggle={toggle} />
-              <OwnService onAdd={(x) => setPicked((l) => [...l, { ...x, id: uid(), ...(profile === 'ambos' ? { audience: 'ambos' as const } : profile === 'final' ? { audience: 'final' as const } : {}) }])} />
+              <OwnService onAdd={(list) => setPicked((l) => [...l, ...list.map((x) => ({ ...x, id: uid(), ...(profile === 'ambos' ? { audience: 'ambos' as const } : profile === 'final' ? { audience: 'final' as const } : {}) }))])} />
               {picked.length > 0 && (
                 <p className="ss-count">
                   <Icon name="check" size={14} /> {picked.length} {picked.length === 1 ? 'serviço escolhido' : 'serviços escolhidos'}

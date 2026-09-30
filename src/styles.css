@@ -2024,3 +2024,4 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .draft-note svg { color: var(--accent); flex: none; }
 .follow-brand { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2, #f4efec); }
 .follow-brand p { margin: 0; }
+.pt-way { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2, #f4efec); }

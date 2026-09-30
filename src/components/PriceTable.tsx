@@ -71,6 +71,26 @@ export function HowPicker({ value, onChange, compact }: { value: Pricing; onChan
   )
 }
 
+/** Escolher várias formas de cobrar (para criar um serviço com mais de um jeito de cobrar). */
+export function HowMulti({ value, onChange }: { value: Pricing[]; onChange: (p: Pricing[]) => void }) {
+  return (
+    <div className="how-pick is-compact" role="group" aria-label="Formas de cobrar (pode marcar mais de uma)">
+      {HOW_ORDER.map((k) => {
+        const on = value.includes(k)
+        return (
+          <button key={k} type="button" aria-pressed={on} className={on ? 'is-on' : ''} onClick={() => onChange(on ? value.filter((x) => x !== k) : [...value, k])} title={HOW[k].text}>
+            <Icon name={on ? 'check' : HOW[k].icon} size={15} />
+            <b>{HOW[k].title}</b>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Nome com a forma de cobrar, para quando o mesmo serviço tem mais de um jeito: "consultoria (por hora)". */
+export const withWay = (name: string, p: Pricing) => `${name.replace(/\s*\((por hora|por m²|por unidade|pacotes|valor fechado)\)\s*$/, '')} (${HOW[p].title})`
+
 /** Troca a forma de cobrar ajustando a unidade junto. */
 export const withPricing = (x: ServiceDef, p: Pricing): Partial<ServiceDef> => ({
   pricing: p,
@@ -139,7 +159,8 @@ export function PriceFields({ x, set }: { x: ServiceDef; set: (patch: Partial<Se
 }
 
 /** Um serviço: linha resumida; tocando, abre o editor. */
-function ServiceCard({ x, open, onToggle, set, onRemove, audience }: { x: ServiceDef; open: boolean; onToggle: () => void; set: (patch: Partial<ServiceDef>) => void; onRemove: () => void; audience: boolean }) {
+function ServiceCard({ x, open, onToggle, set, onRemove, audience, onAddWay }: { x: ServiceDef; open: boolean; onToggle: () => void; set: (patch: Partial<ServiceDef>) => void; onRemove: () => void; audience: boolean; onAddWay?: (p: Pricing) => void }) {
+  const [way, setWay] = useState(false)
   const [more, setMore] = useState(false)
   const aud = AUD.find((a) => a.value === serviceAudience(x))
   return (
@@ -169,6 +190,25 @@ function ServiceCard({ x, open, onToggle, set, onRemove, audience }: { x: Servic
             <HowPicker value={x.pricing} onChange={(p) => set(withPricing(x, p))} />
           </div>
           <PriceFields x={x} set={set} />
+          {onAddWay &&
+            (way ? (
+              <div className="pt-way">
+                <span className="field-label">cobrar também de outro jeito: qual?</span>
+                <div className="how-pick is-compact">
+                  {HOW_ORDER.filter((k) => k !== x.pricing).map((k) => (
+                    <button key={k} type="button" onClick={() => (onAddWay(k), setWay(false))} title={HOW[k].text}>
+                      <Icon name={HOW[k].icon} size={15} />
+                      <b>{HOW[k].title}</b>
+                    </button>
+                  ))}
+                </div>
+                <small className="muted">Vira outro item, com a forma no nome. No orçamento você escolhe qual usar.</small>
+              </div>
+            ) : (
+              <button type="button" className="link small pt-more-btn" onClick={() => setWay(true)}>
+                <Icon name="plus" size={13} /> cobrar também de outro jeito
+              </button>
+            ))}
           {audience && (
             <div>
               <span className="field-label">aparece no orçamento para</span>
@@ -322,12 +362,13 @@ export function SuggestPicker({ kinds, picked, onToggle, existing = [] }: { kind
 }
 
 /** Campo para criar um serviço seu, com a forma de cobrar. */
-export function OwnService({ onAdd }: { onAdd: (x: ServiceDef) => void }) {
+export function OwnService({ onAdd }: { onAdd: (list: ServiceDef[]) => void }) {
   const [name, setName] = useState('')
-  const [how, setHow] = useState<Pricing>('unidade')
+  const [how, setHow] = useState<Pricing[]>([])
   const add = () => {
-    if (!name.trim()) return
-    onAdd(blankService(name.trim(), how))
+    if (!name.trim() || !how.length) return
+    // mais de uma forma: um item para cada, com a forma no nome (no orçamento você escolhe qual usar)
+    onAdd(how.map((p) => blankService(how.length > 1 ? withWay(name.trim(), p) : name.trim(), p)))
     setName('')
   }
   return (
@@ -337,11 +378,12 @@ export function OwnService({ onAdd }: { onAdd: (x: ServiceDef) => void }) {
       </p>
       <div className="pt-own-row">
         <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Ex.: maquete física, consultoria de cores" aria-label="Nome do serviço" />
-        <button type="button" className="btn primary" onClick={add} disabled={!name.trim()}>
+        <button type="button" className="btn primary" onClick={add} disabled={!name.trim() || !how.length}>
           <Icon name="plus" size={15} /> criar
         </button>
       </div>
-      <HowPicker value={how} onChange={setHow} compact />
+      <span className="muted small">como você cobra? pode marcar mais de uma forma</span>
+      <HowMulti value={how} onChange={setHow} />
     </div>
   )
 }
@@ -375,7 +417,7 @@ function AddServices({ profile, existing, onAdd, onClose }: { profile?: WorkProf
           ver também as sugestões {kindsFor(profile)[0] === 'final' ? 'para escritórios' : 'para cliente final'}
         </button>
       )}
-      <OwnService onAdd={(x) => onAdd([...picked, x])} />
+      <OwnService onAdd={(list) => onAdd([...picked, ...list])} />
     </Modal>
   )
 }
@@ -412,6 +454,14 @@ export function PriceTable({ services, profile, onChange, onRestart }: { service
                 onToggle={() => setOpen(open === x.id ? '' : x.id)}
                 set={(patch) => set(x.id, patch)}
                 audience={audience}
+                onAddWay={(p) => {
+                  const twin: ServiceDef = { ...x, ...withPricing(x, p), id: uid(), name: withWay(x.name, p), price: 0, min: 0, base: 0, tiers: [] }
+                  const i = services.findIndex((y) => y.id === x.id)
+                  const next = [...services]
+                  next.splice(i, 1, { ...x, name: withWay(x.name, x.pricing) }, twin)
+                  onChange(next)
+                  setOpen(twin.id)
+                }}
                 onRemove={async () => (await askDelete(`o serviço "${x.name}"`)) && onChange(services.filter((y) => y.id !== x.id))}
               />
             ))}
