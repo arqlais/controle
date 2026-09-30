@@ -5,9 +5,9 @@ import { DocScale } from '../components/Print'
 import { Field, Section, Segmented } from '../components/ui'
 import { ClientPicker } from '../components/ClientPicker'
 import { ColorPicker } from '../components/ColorPicker'
-import { DocWorkbench, ImageField, LinesField, useDocLook } from '../components/DocKit'
+import { DocWorkbench, ImageField, LinesField, PhotoCrop, useDocLook } from '../components/DocKit'
 import { MeasureGuideDoc, guideData } from '../components/docs/MeasureGuide'
-import { PLAQUE_LAYOUTS, PlaqueDoc, plaqueData } from '../components/docs/Plaque'
+import { PLAQUE_LAYOUTS, PlaqueDoc, plaqueData, plaqueHasPhoto } from '../components/docs/Plaque'
 import { BriefingSheetDoc } from '../components/docs/BriefingSheet'
 import { DECK_DEFAULTS, DeckDoc } from '../components/docs/Deck'
 import { PAGE } from '../components/docs/DocPage'
@@ -256,6 +256,9 @@ function GuideEditor({ value, set, w }: EdProps<MeasureGuideData>) {
 
 /* ---------------- placa de obra ---------------- */
 
+// proporção (largura ÷ altura) do espaço da foto em cada layout, para o ajuste mostrar o mesmo recorte
+const PHOTO_ASPECT: Record<string, number> = { diagonal: 3 / (0.68 * 4), retrato: (0.62 * 3) / (0.54 * 4), faixa: 3 / (0.5 * 4), moldura: 1 }
+
 const SIZES: Record<string, string> = { '60x80': '60 × 80 cm', '90x120': '90 × 120 cm', a4: 'A4 (para testar)' }
 
 function PlaqueEditor({ value, set, w }: EdProps<PlaqueData>) {
@@ -311,9 +314,14 @@ function PlaqueEditor({ value, set, w }: EdProps<PlaqueData>) {
               <input value={d.cta} onChange={(e) => set({ cta: e.target.value })} />
             </Field>
           </Section>
-          <Section title="foto">
-            <ImageField label="Foto do projeto ou sua" value={d.photo} onChange={(photo) => set({ photo })} max={1800} hint="Uma imagem 3D do projeto funciona muito bem. No layout “moldura” a foto não aparece." />
-          </Section>
+          {plaqueHasPhoto(d.layout) ? (
+            <Section title="foto">
+              <ImageField label="Foto do projeto ou sua" value={d.photo} onChange={(photo) => set({ photo, photoPos: undefined })} max={1800} hint="Uma imagem 3D do projeto funciona muito bem." />
+              {d.photo && <PhotoCrop src={d.photo} pos={d.photoPos} aspect={PHOTO_ASPECT[d.layout]} onChange={(photoPos) => set({ photoPos })} />}
+            </Section>
+          ) : (
+            <p className="muted small">O layout “moldura” é só tipografia, sem foto.</p>
+          )}
         </>
       }
     />

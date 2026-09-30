@@ -241,3 +241,46 @@ export function FreeEditModal({ doc, width, onClose, onDownload }: { doc: ReactN
     </div>
   )
 }
+
+/** Ajustar a foto dentro do molde: arraste para escolher o que aparece e use o controle para aproximar. */
+export function PhotoCrop({ src, pos, aspect, onChange }: { src: string; pos?: { x: number; y: number; zoom: number }; aspect: number; onChange: (p: { x: number; y: number; zoom: number }) => void }) {
+  const p = pos ?? { x: 50, y: 50, zoom: 1 }
+  const box = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
+  const clamp = (v: number) => Math.max(0, Math.min(100, v))
+  return (
+    <div className="dk-crop">
+      <div
+        ref={box}
+        className="dk-crop-box"
+        style={{ aspectRatio: String(aspect) }}
+        onPointerDown={(e) => {
+          ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+          drag.current = { x: e.clientX, y: e.clientY, px: p.x, py: p.y }
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current
+          const r = box.current?.getBoundingClientRect()
+          if (!d || !r) return
+          // arrastar a foto para a direita mostra mais do lado esquerdo dela
+          const k = 100 / p.zoom
+          onChange({ ...p, x: clamp(d.px - ((e.clientX - d.x) / r.width) * k), y: clamp(d.py - ((e.clientY - d.y) / r.height) * k) })
+        }}
+        onPointerUp={() => (drag.current = null)}
+        onPointerCancel={() => (drag.current = null)}
+      >
+        <img src={src} alt="" draggable={false} style={{ objectPosition: `${p.x}% ${p.y}%`, transform: p.zoom > 1 ? `scale(${p.zoom})` : undefined, transformOrigin: `${p.x}% ${p.y}%` }} />
+        <span className="dk-crop-hint">
+          <Icon name="grid" size={13} /> arraste para enquadrar
+        </span>
+      </div>
+      <label className="dk-crop-zoom">
+        <span className="small">aproximar</span>
+        <input type="range" min={1} max={3} step={0.05} value={p.zoom} onChange={(e) => onChange({ ...p, zoom: Number(e.target.value) })} aria-label="Aproximar a foto" />
+        <button type="button" className="link small" onClick={() => onChange({ x: 50, y: 50, zoom: 1 })}>
+          centralizar
+        </button>
+      </label>
+    </div>
+  )
+}

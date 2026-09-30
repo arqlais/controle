@@ -14,6 +14,13 @@ export interface MeasureGuideData {
   example?: boolean // mostra a página com o exemplo de medição (padrão: sim)
 }
 
+/** Enquadramento de uma foto dentro do molde: ponto central (0–100%) e aproximação (1 = inteira). */
+export interface PhotoPos {
+  x: number
+  y: number
+  zoom: number
+}
+
 export type PlaqueLayout = 'diagonal' | 'retrato' | 'faixa' | 'moldura'
 export interface PlaqueData {
   layout?: PlaqueLayout
@@ -25,6 +32,7 @@ export interface PlaqueData {
   cta?: string
   link?: string // vira o QR code
   photo?: string
+  photoPos?: PhotoPos // enquadramento da foto (arrastar e aproximar)
   size?: '60x80' | '90x120' | 'a4'
 }
 

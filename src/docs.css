@@ -90,6 +90,9 @@
 .pq { padding: 0; position: relative; }
 .pq .d-body { position: absolute; inset: 0; display: block; }
 .pq-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* foto enquadrada: o recorte fica dentro da moldura da foto */
+.pq-ph { display: block; overflow: hidden; }
+.pq-ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pq-nophoto { position: relative; display: block; background: var(--d-soft); overflow: hidden; }
 .pq-nophoto i { position: absolute; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--d-accent) 55%, transparent); }
 .pq-nophoto i:nth-child(1) { width: 120%; aspect-ratio: 1; right: -50%; bottom: -60%; }
@@ -120,25 +123,7 @@
 .pq-d-foot { position: absolute; left: 0; right: 0; bottom: 0; height: 24%; padding: 0 70px; display: flex; align-items: center; justify-content: space-between; gap: 30px; background: var(--d-paper); }
 .pq-d-foot .pq-mark { font-size: 150px; color: var(--d-ink); }
 /* 2. retrato: fundo de cor, título no alto, foto num arco e um cartão com os dados */
-.pq-retrato { background: var(--d-accent); color: var(--d-paper); }
-.pq-r-top { position: absolute; left: 70px; right: 70px; top: 80px; text-align: center; }
-.pq-r-top .pq-head { font-size: 70px; }
-.pq-r-top .pq-head em { font-size: 78px; }
-.pq-r-arch { position: absolute; left: 50%; transform: translateX(-50%); top: 330px; width: 560px; height: 560px; border-radius: 280px 280px 0 0; overflow: hidden; border: 10px solid var(--d-paper); border-bottom: 0; }
-.pq-r-card { position: absolute; left: 0; right: 0; bottom: 0; height: 310px; background: var(--d-paper); color: var(--d-ink); padding: 44px 70px; display: flex; align-items: center; justify-content: space-between; gap: 30px; }
-.pq-r-card .pq-who b { font-size: 38px; }
-.pq-r-card .pq-who small, .pq-r-card .pq-phone { font-size: 20px; }
 /* 3. faixa: foto em cima, faixa larga com o título, informações embaixo */
-.pq-faixa { background: var(--d-paper); color: var(--d-ink); }
-.pq-f-photo { position: absolute; inset: 0 0 45% 0; }
-.pq-f-band { position: absolute; left: 0; right: 0; top: 52%; transform: translateY(-50%); background: var(--d-dark); color: var(--d-paper); padding: 34px 70px; }
-.pq-f-band .pq-head { font-size: 54px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 16px; }
-.pq-f-band .pq-head em { font-size: 58px; color: color-mix(in srgb, var(--d-accent) 55%, var(--d-paper)); }
-.pq-f-info { position: absolute; left: 70px; right: 70px; bottom: 150px; display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; }
-.pq-f-info .pq-who b { font-size: 40px; }
-.pq-f-info .pq-who small, .pq-f-info .pq-phone { font-size: 20px; }
-.pq-f-info .pq-qr { flex-direction: column; align-items: flex-end; text-align: right; }
-.pq-faixa > .d-body > .pq-mark { position: absolute; left: 70px; bottom: 34px; font-size: 110px; color: var(--d-soft); }
 /* 4. moldura: só tipografia, moldura fina, tudo centralizado */
 .pq-moldura { background: var(--d-paper); color: var(--d-ink); }
 .pq-moldura .d-body { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 36px; padding: 120px 100px; }
@@ -154,7 +139,6 @@
 .pq-moldura .pq-qr { flex-direction: column; }
 .pq-moldura .pq-qr p { text-align: center; }
 .look-planilha.pq-moldura .pq-head, .look-planilha .pq-m-brand { text-transform: lowercase; }
-.look-planilha .pq-r-arch, .look-coluna .pq-r-arch { border-radius: 0; }
 
 /* ---------- briefing em PDF ---------- */
 .bs-client { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px 26px; margin: 14px 0 20px; padding: 16px 20px; border-radius: 18px; background: color-mix(in srgb, var(--d-soft) 70%, transparent); font-size: 13px; }
@@ -447,6 +431,49 @@
 .saved-doc-icon { width: 32px; height: 32px; border-radius: calc(var(--radius, 16px) * .65); display: grid; place-items: center; background: var(--accent-tint, #f4ece9); color: var(--accent); flex: none; }
 button.back { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
 button.back:hover { color: var(--text); }
-.pq-r-top .pq-head em { color: var(--d-dark); }
 /* edição avançada (mexer direto na folha) só em telas maiores: no celular, os campos */
 @media (max-width: 700px) { .dk-free-btn, .qe-free-btn { display: none !important; } }
+
+
+/* placa: retrato e faixa no desenho de antes (foto recortada no fundo, textos em coluna, marca grande no pé) */
+.pq-old { --pq-bg: var(--d-dark); --pq-fg: var(--d-paper); color: var(--pq-fg); background: var(--pq-bg); }
+.pq-old .pq-photo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pq-old .pq-text { position: absolute; z-index: 2; inset: 0; padding: 92px 84px 250px; display: flex; flex-direction: column; gap: 60px; }
+.pq-old .pq-head { font-size: 74px; }
+.pq-old .pq-head em { font-size: 76px; margin-top: 6px; }
+.pq-old .pq-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: currentColor; vertical-align: middle; margin-right: 6px; }
+.pq-old .pq-who b { font-weight: 400; font-size: 48px; }
+.pq-old .pq-who small { margin-top: 16px; font-size: 26px; letter-spacing: .04em; opacity: .9; }
+.pq-old .pq-qr { margin-top: auto; display: grid; justify-items: start; gap: 16px; }
+.pq-old .pq-qr p { font-size: 24px; max-width: 290px; }
+.pq-old .pq-code { width: 210px; height: 210px; }
+.pq-old .pq-phone { margin: 0; font-size: 22px; }
+.pq-old .pq-mark-big { position: absolute; z-index: 3; left: -10px; right: -10px; bottom: -64px; font-size: 300px; line-height: 1; color: var(--pq-fg); opacity: .92; text-align: center; overflow: hidden; }
+.pq-old.pq-retrato .pq-photo { left: 38%; top: 46%; width: 62%; height: 54%; border-radius: 300px 0 0 0; }
+.pq-old.pq-retrato .pq-who b { font-size: 44px; }
+.pq-old.pq-retrato .pq-qr { max-width: 320px; }
+.pq-old.pq-retrato.no-photo::after { content: ''; position: absolute; z-index: 1; right: -160px; top: 330px; width: 560px; height: 560px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--d-accent) 60%, transparent); box-shadow: 0 0 0 40px color-mix(in srgb, var(--d-accent) 10%, transparent); }
+.look-planilha.pq-old.pq-retrato .pq-photo, .look-coluna.pq-old.pq-retrato .pq-photo { border-radius: 0; }
+.pq-old.pq-faixa { background: var(--d-paper); color: var(--d-ink); --pq-fg: var(--d-ink); }
+.pq-old.pq-faixa .pq-photo { height: 50%; }
+.pq-old.pq-faixa.no-photo::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 50%; background: var(--d-soft); }
+.pq-old.pq-faixa .pq-text { padding-top: 640px; gap: 26px; }
+.pq-old.pq-faixa .pq-head { position: absolute; left: 0; right: 0; top: 520px; padding: 30px 84px; background: var(--d-dark); color: var(--d-paper); font-size: 56px; }
+.pq-old.pq-faixa .pq-head em { font-size: 58px; display: inline; margin-left: 10px; }
+.pq-old.pq-faixa .pq-head span { display: inline; }
+.pq-old.pq-faixa .pq-who { margin-top: 110px; }
+.pq-old.pq-faixa .pq-qr { position: absolute; right: 84px; bottom: 240px; justify-items: end; text-align: right; }
+.pq-old.pq-faixa .pq-mark-big { color: var(--d-soft); opacity: 1; }
+/* ajuste da foto no molde */
+.dk-crop { display: grid; gap: 8px; margin-top: 10px; }
+.dk-crop-box { position: relative; width: 100%; max-width: 360px; overflow: hidden; border-radius: 10px; background: var(--bg); cursor: grab; touch-action: none; user-select: none; border: 1px solid var(--border); }
+.dk-crop-box:active { cursor: grabbing; }
+.dk-crop-box img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.dk-crop-hint { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .88); color: #3e4b57; font-size: 11.5px; pointer-events: none; }
+.dk-crop-zoom { display: flex; align-items: center; gap: 10px; max-width: 360px; }
+.dk-crop-zoom input { flex: 1; }
+/* faixa: QR, telefone e frase empilhados embaixo da faixa escura (antes a frase subia por cima dela) */
+.pq-old.pq-faixa .pq-qr { bottom: 130px; z-index: 4; gap: 12px; }
+.pq-old.pq-faixa .pq-qr .pq-code { order: 1; }
+.pq-old.pq-faixa .pq-qr .pq-phone { order: 2; }
+.pq-old.pq-faixa .pq-qr p { order: 3; max-width: 260px; }
