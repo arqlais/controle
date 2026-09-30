@@ -315,7 +315,7 @@ export default function Landing() {
               </button>
             </div>
             <p className="muted small">
-              sem cartão · cancele quando quiser<span className="lp-pc-note"> · ajustes avançados pelo computador</span>
+              sem cartão · cancele quando quiser
             </p>
 
           </div>
@@ -527,6 +527,9 @@ export default function Landing() {
               </article>
             ))}
           </div>
+          <p className="lp-pc-note small">
+            <Icon name="monitor" size={13} /> no celular fica o dia a dia; ajustes avançados são no computador
+          </p>
           <p className="lp-swipe-hint" aria-hidden>
             arraste para ver os 3 planos <Icon name="arrowRight" size={13} />
           </p>

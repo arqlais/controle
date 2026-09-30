@@ -1983,7 +1983,7 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
 .lp-foot-icons { display: none; gap: 8px; }
 .lp-foot-icons a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
 @media (max-width: 720px) {
-  .lp-pc-note { display: inline; }
+  .lp-pc-note { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
   .lp-foot { padding-block: 26px 18px; }
   .lp-foot-grid { display: block; }
   .lp-foot-grid > :not(.lp-foot-brand) { display: none; }
