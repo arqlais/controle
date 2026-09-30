@@ -9,9 +9,12 @@ export interface MeasureGuideData {
   title?: string
   intro?: string
   steps?: GuideStep[]
-  photos?: string[] // fotos de exemplo (até 3)
+  photos?: string[] // fotos de exemplo (até 4)
+  photoFrames?: (PhotoPos | undefined)[] // enquadramento de cada foto
+  shots?: string[] // legenda de cada foto ("cada parede, de frente"…)
   closing?: string
-  example?: boolean // mostra a página com o exemplo de medição (padrão: sim)
+  example?: boolean // mostra o desenho com o exemplo de medição (padrão: sim)
+  photosOn?: boolean // mostra as fotos que ajudam (padrão: sim; sem fotos, não aparece)
 }
 
 /** Enquadramento de uma foto dentro do molde: ponto central (0–100%) e aproximação (1 = inteira). */

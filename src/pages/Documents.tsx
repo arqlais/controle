@@ -6,7 +6,7 @@ import { Field, Section, Segmented } from '../components/ui'
 import { ClientPicker } from '../components/ClientPicker'
 import { ColorPicker } from '../components/ColorPicker'
 import { DocWorkbench, ImageField, LinesField, PhotoCrop, useDocLook } from '../components/DocKit'
-import { MeasureGuideDoc, guideData } from '../components/docs/MeasureGuide'
+import { GUIDE_SHOTS, MeasureGuideDoc, guideData } from '../components/docs/MeasureGuide'
 import { PLAQUE_LAYOUTS, PlaqueDoc, plaqueData, plaqueHasPhoto } from '../components/docs/Plaque'
 import { BriefingSheetDoc } from '../components/docs/BriefingSheet'
 import { DECK_DEFAULTS, DeckDoc } from '../components/docs/Deck'
@@ -240,13 +240,43 @@ function GuideEditor({ value, set, w }: EdProps<MeasureGuideData>) {
               </button>
             ) : null}
           </Section>
-          <Section title="exemplo">
-            <label className="check">
-              <input type="checkbox" checked={d.example} onChange={(e) => set({ example: e.target.checked })} /> mostrar a página com o exemplo de medição
+          <Section title="exemplo de medição">
+            <label className="check toggle">
+              <input type="checkbox" checked={d.example} onChange={(e) => set({ example: e.target.checked })} /> mostrar o desenho com o exemplo de medição
             </label>
-            {[0, 1, 2].map((i) => (
-              <ImageField key={i} label={`foto de exemplo ${i + 1} (opcional)`} value={photos[i]} max={900} onChange={(v) => set({ photos: [0, 1, 2].map((k) => (k === i ? v ?? '' : photos[k] ?? '')).filter((x, k, arr) => x || arr.slice(k + 1).some(Boolean)) })} />
-            ))}
+          </Section>
+          <Section title="fotos que ajudam">
+            <label className="check toggle">
+              <input type="checkbox" checked={value?.photosOn !== false && photos.some(Boolean)} disabled={!photos.some(Boolean)} onChange={(e) => set({ photosOn: e.target.checked })} /> mostrar as fotos no guia
+            </label>
+            {!photos.some(Boolean) && <p className="muted small">Coloque pelo menos uma foto: sem fotos, essa parte não aparece no guia.</p>}
+            <div className="dk-photo-edit">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="dk-photo-slot">
+                  <ImageField
+                    label={`foto ${i + 1}`}
+                    value={photos[i] || undefined}
+                    max={1200}
+                    onChange={(v) => {
+                      const next = [0, 1, 2, 3].map((k) => (k === i ? v ?? '' : photos[k] ?? ''))
+                      const frames = [0, 1, 2, 3].map((k) => (k === i ? undefined : value?.photoFrames?.[k]))
+                      set({ photos: next, photoFrames: frames, ...(v ? { photosOn: true } : {}) })
+                    }}
+                  />
+                  {photos[i] && (
+                    <>
+                      <input
+                        value={value?.shots?.[i] ?? GUIDE_SHOTS[i] ?? ''}
+                        onChange={(e) => set({ shots: [0, 1, 2, 3].map((k) => (k === i ? e.target.value : value?.shots?.[k] ?? GUIDE_SHOTS[k] ?? '')) })}
+                        placeholder="legenda (ex.: cada parede, de frente)"
+                        aria-label={`Legenda da foto ${i + 1}`}
+                      />
+                      <PhotoCrop src={photos[i]} pos={value?.photoFrames?.[i]} aspect={4 / 3} onChange={(pos) => set({ photoFrames: [0, 1, 2, 3].map((k) => (k === i ? pos : value?.photoFrames?.[k])) })} />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
           </Section>
         </>
       }

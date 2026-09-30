@@ -1,11 +1,14 @@
 import type { Settings } from '../../types'
 import type { GuideStep, MeasureGuideData } from '../../docTypes'
 import { useDocLook } from '../DocKit'
+import { FramedPhoto } from './Plaque'
 import { DocPage } from './DocPage'
 
 /* Guia de medição (A4, 2 folhas): o cliente mede o espaço sozinho e manda para o projeto a distância. */
 
-export const GUIDE_DEFAULTS: Required<Omit<MeasureGuideData, 'photos'>> = {
+export const GUIDE_SHOTS = ['cada parede, de frente', 'os quatro cantos', 'teto e piso', 'tomadas, janelas e portas de perto']
+
+export const GUIDE_DEFAULTS: Required<Omit<MeasureGuideData, 'photos' | 'photoFrames' | 'shots' | 'photosOn'>> = {
   title: 'como medir o seu espaço',
   intro: 'Com estas medidas eu consigo desenhar o seu projeto sem precisar ir até aí. Leva uns 20 minutos e não precisa ficar perfeito: o importante é anotar tudo o que encontrar.',
   steps: [
@@ -122,8 +125,10 @@ export function MeasureGuideDoc({ s, data }: { s: Settings; data?: MeasureGuideD
   const d = guideData(data)
   const first = d.steps.slice(0, 5)
   const rest = d.steps.slice(5)
-  const photos = (data?.photos ?? []).filter(Boolean)
-  const pages = d.example || rest.length ? 2 : 1
+  const photos = (data?.photos ?? []).map((src, i) => ({ src, pos: data?.photoFrames?.[i], caption: data?.shots?.[i] ?? GUIDE_SHOTS[i] ?? '' })).filter((x) => x.src)
+  // fotos só aparecem se foram colocadas (e não foram desligadas); o desenho de exemplo tem a própria opção
+  const showPhotos = data?.photosOn !== false && photos.length > 0
+  const pages = d.example || showPhotos || rest.length ? 2 : 1
   const [head, ...tail] = d.title.split(' ')
   return (
     <div className="doc-pages" data-look={look.look} style={look.style}>
@@ -164,26 +169,27 @@ export function MeasureGuideDoc({ s, data }: { s: Settings; data?: MeasureGuideD
               ))}
             </ol>
           )}
-          {d.example && (
-            <div className="g-example">
-              <figure>
-                <p className="d-label">exemplo de medição</p>
-                <ExampleDrawing />
-              </figure>
-              <div className="g-photos">
-                <p className="d-label">fotos que ajudam</p>
-                {photos.length ? (
-                  photos.slice(0, 3).map((src, i) => <img key={i} src={src} alt="" />)
-                ) : (
-                  <ul className="g-shots">
-                    <li>cada parede, de frente</li>
-                    <li>os quatro cantos</li>
-                    <li>teto e piso</li>
-                    <li>tomadas, janelas e portas de perto</li>
-                    <li>um vídeo andando pelo espaço</li>
-                  </ul>
-                )}
-              </div>
+          {(d.example || showPhotos) && (
+            <div className={`g-example ${d.example && showPhotos ? '' : 'is-single'}`}>
+              {d.example && (
+                <figure>
+                  <p className="d-label">exemplo de medição</p>
+                  <ExampleDrawing />
+                </figure>
+              )}
+              {showPhotos && (
+                <div className="g-photos">
+                  <p className="d-label">fotos que ajudam</p>
+                  <div className={`g-photo-grid n-${Math.min(photos.length, 4)}`}>
+                    {photos.slice(0, 4).map((x, i) => (
+                      <figure key={i} className="g-photo">
+                        <FramedPhoto src={x.src} pos={x.pos} className="g-photo-img" />
+                        {x.caption && <figcaption>{x.caption}</figcaption>}
+                      </figure>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           <div className="g-check">

@@ -480,3 +480,19 @@ button.back:hover { color: var(--text); }
 /* briefing respondido em PDF: marcas preenchidas e respostas escritas */
 .bs-answered .bs-dot.is-on, .bs-answered .bs-box.is-on { background: var(--d-accent); border-color: var(--d-accent); box-shadow: inset 0 0 0 2px var(--d-paper); }
 .bs-answer { margin: 4px 0 0; padding: 6px 0 8px; border-bottom: 1px solid color-mix(in srgb, var(--d-ink) 18%, transparent); font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; }
+/* guia de medição: fotos que ajudam sempre do mesmo tamanho, com legenda */
+.g-example.is-single { grid-template-columns: 1fr; }
+.g-example.is-single figure > svg { max-width: 70%; margin: 0 auto; display: block; }
+.g-photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g-example.is-single .g-photo-grid { grid-template-columns: repeat(4, 1fr); }
+.g-example.is-single .g-photo-grid.n-1, .g-example.is-single .g-photo-grid.n-2 { grid-template-columns: repeat(2, 1fr); max-width: 70%; }
+.g-photo { margin: 0; display: grid; gap: 6px; }
+.g-photo-img { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; }
+.look-planilha .g-photo-img, .look-coluna .g-photo-img { border-radius: 0; }
+.g-photo figcaption { font-size: 11.5px; line-height: 1.35; color: var(--d-muted, #7a7470); }
+.dk-photo-edit { display: grid; gap: 14px; }
+.dk-photo-slot { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+.dk-photo-slot:last-child { border-bottom: 0; }
+.dk-photo-slot .dk-crop-box { max-width: 240px; }
+.g-example.is-single figure > svg { max-width: 52%; }
+.g-example.is-single .g-photo-grid.n-3 { grid-template-columns: repeat(3, 1fr); }
