@@ -23,8 +23,8 @@ export interface News {
 }
 
 export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
-  novo: { label: 'novo', color: '#5e8c6a' },
-  melhoria: { label: 'melhoria', color: '#6b8f94' },
+  novo: { label: 'novo', color: '#4f6475' },
+  melhoria: { label: 'melhoria', color: '#7d8c99' },
   correcao: { label: 'correção', color: '#a88a80' },
 }
 

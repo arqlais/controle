@@ -5,7 +5,7 @@ import { CLIENT_TYPES, fold, matches } from '../utils'
 /* Escolher cliente digitando: vai aparecendo quem já está cadastrado (sem acento, em qualquer ordem),
    com a inicial colorida. Setas + Enter funcionam; no fim da lista, "cadastrar" com o nome digitado. */
 
-const TONES = ['#b7837a', '#7d9a87', '#8a8fb5', '#c29a5b', '#6f9bb0', '#a98bb0', '#b0876f', '#7a9e9a']
+const TONES = ['#a88a80', '#566779', '#7d8c99', '#c29b92', '#7d8c99', '#c29b92', '#a07a70', '#9aa3ab']
 export const clientTone = (name: string) => TONES[[...fold(name)].reduce((n, ch) => (n * 31 + ch.charCodeAt(0)) >>> 0, 7) % TONES.length]
 const initials = (name: string) =>
   name

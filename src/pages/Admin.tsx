@@ -24,7 +24,7 @@ import { href } from '../router'
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
 type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'depoimentos' | 'site' | 'emails' | 'termos' | 'horarios' | 'ajustes'
-const STATUS_COLOR: Record<SubStatus, string> = { trial: '#6b8f94', ativa: '#5e8c6a', atrasada: '#b98246', cancelada: '#9aa3ab' }
+const STATUS_COLOR: Record<SubStatus, string> = { trial: '#7d8c99', ativa: '#4f6475', atrasada: '#b08a7e', cancelada: '#9aa3ab' }
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
 const ago = (iso: string) => {
@@ -183,7 +183,7 @@ const priceOf = (s: Subscription, cycle: Cycle, method?: string) => (method === 
 /** Dias até vencer (negativo = vencida). Só para quem paga e tem "pago até". */
 const dueDays = (s: Subscription, c?: SubAdmin) => (paying(s) && c?.paidUntil ? daysUntil(c.paidUntil) : null)
 const dueLabel = (d: number) => (d < 0 ? `venceu há ${-d} dia(s)` : d === 0 ? 'vence hoje' : `vence em ${d} dia(s)`)
-const dueColor = (d: number) => (d < 0 ? '#b5524c' : d <= 5 ? '#b98246' : '#5e8c6a')
+const dueColor = (d: number) => (d < 0 ? '#9a5b53' : d <= 5 ? '#b08a7e' : '#4f6475')
 /** Registra um pagamento e empurra o "pago até" 1 mês (6 no semestral, 12 no anual). */
 function withPayment(s: Subscription, c: SubAdmin | undefined, b: Billing | undefined, p: Omit<SubPayment, 'id'>): SubAdmin {
   const cycle = cycleOf(s, c, b)
@@ -273,7 +273,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
             <div key={s.userId} className="pf-plan-line">
               <b>{s.name || s.email}</b>
               <span className="muted small">teste do {PLANS[s.plan].name}</span>
-              <Badge color="#6b8f94">{`teste acaba em ${trialDaysLeft(s)} dia(s)`}</Badge>
+              <Badge color="#7d8c99">{`teste acaba em ${trialDaysLeft(s)} dia(s)`}</Badge>
               <span className="grow" />
               <button className="btn small ghost" onClick={() => openChat(s.userId)}>
                 <Icon name="chat" size={14} /> conversar
@@ -435,9 +435,9 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
               <div className="pf-badges">
                 <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
                 <Badge color="#3e4b57">{PLANS[s.plan].name}</Badge>
-                {s.deletedAt ? <Badge color="#9aa3ab">conta apagada em {dateBR(s.deletedAt)}</Badge> : s.blocked && <Badge color="#b5524c">bloqueado</Badge>}
+                {s.deletedAt ? <Badge color="#9aa3ab">conta apagada em {dateBR(s.deletedAt)}</Badge> : s.blocked && <Badge color="#9a5b53">bloqueado</Badge>}
                 {!s.deletedAt && s.status === 'cancelada' && s.canceledAt && <Badge color="#9aa3ab">desativou em {dateBR(s.canceledAt)}</Badge>}
-                {s.requestedPlan && <Badge color="#b98246">pediu o {PLANS[s.requestedPlan].name}</Badge>}
+                {s.requestedPlan && <Badge color="#b08a7e">pediu o {PLANS[s.requestedPlan].name}</Badge>}
               </div>
               <dl className="pf-facts">
                 <div>

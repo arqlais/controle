@@ -55,7 +55,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
     })
     pays.forEach(({ pay, project, client }) => {
       if (!pay.paidDate && pay.dueDate && daysUntil(pay.dueDate) >= 0 && daysUntil(pay.dueDate) <= 7)
-        items.push({ date: pay.dueDate, label: `${money(pay.amount)} · ${client?.name ?? ''}`, sub: pay.description, color: '#2f855a', link: href('projetos', project.id), kind: 'pagamento' })
+        items.push({ date: pay.dueDate, label: `${money(pay.amount)} · ${client?.name ?? ''}`, sub: pay.description, color: '#4f6475', link: href('projetos', project.id), kind: 'pagamento' })
     })
     data.events.forEach((e) => {
       if (!e.done && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7)

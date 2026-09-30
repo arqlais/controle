@@ -72,7 +72,7 @@ export default function ClientDetail({ id }: { id: string }) {
               <Badge color={CLIENT_COLORS[c.type]}>{CLIENT_TYPES[c.type]}</Badge>
               {c.company && <span className="muted">{c.company}</span>}
               {c.city && <span className="muted">· {c.city}</span>}
-              {c.archived && <Badge color="#8a8f98">Arquivado</Badge>}
+              {c.archived && <Badge color="#9aa3ab">Arquivado</Badge>}
             </div>
           </div>
         </div>

@@ -70,7 +70,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
               <span className="pf-current-name">{PLANS[effectivePlan(sub)].name}</span>
               <span className="muted"> · {money0(PLANS[effectivePlan(sub)].price)}/mês</span>
             </div>
-            <Badge color={sub.status === 'ativa' ? '#5e8c6a' : sub.status === 'trial' ? '#6b8f94' : '#b98246'}>{STATUS_LABEL[sub.status]}</Badge>
+            <Badge color={sub.status === 'ativa' ? '#4f6475' : sub.status === 'trial' ? '#7d8c99' : '#b08a7e'}>{STATUS_LABEL[sub.status]}</Badge>
           </div>
           {sub.requestedPlan && (
             <p className="pf-note is-warn">

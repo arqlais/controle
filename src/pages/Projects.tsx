@@ -199,8 +199,8 @@ export default function Projects() {
           {!prio &&
             (
               [
-                ['rascunho', 'rascunhos', '#b9aba6', 'Nenhum rascunho de orçamento.'],
-                ['enviado', 'enviados', '#c29a55', 'Nenhum orçamento esperando resposta.'],
+                ['rascunho', 'rascunhos', '#b8aca6', 'Nenhum rascunho de orçamento.'],
+                ['enviado', 'enviados', '#b08a7e', 'Nenhum orçamento esperando resposta.'],
               ] as const
             ).map(([st, label, color, empty]) => {
               const list = quotesIn[st]

@@ -24,9 +24,9 @@
   --font-display: 'The Seasons', 'Cormorant Garamond', Georgia, serif;
   --font-body: 'Poppins', system-ui, -apple-system, sans-serif;
   --label-transform: lowercase;
-  --good: #5e8c6a;
-  --bad: #b5524c;
-  --warn: #b98246;
+  --good: #4f6475;
+  --bad: #9a5b53;
+  --warn: #b08a7e;
   --shadow: 0 1px 2px rgba(62, 75, 87, 0.04), 0 10px 30px -12px rgba(62, 75, 87, 0.12);
   --shadow-btn: 0 10px 24px -8px rgba(62, 75, 87, 0.45);
   --sidebar-w: 248px;
@@ -34,9 +34,9 @@
   color-scheme: light;
 }
 :root[data-app-theme='dark'] {
-  --good: #8fc29b;
-  --bad: #e38b84;
-  --warn: #e0ad72;
+  --good: #9fb0c0;
+  --bad: #e0a59c;
+  --warn: #d9b6ab;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-btn: 0 10px 24px -10px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
@@ -1192,7 +1192,7 @@ textarea.auto-grow { resize: vertical; min-height: 44px; line-height: 1.5; paddi
 .scope-chip.is-own svg { opacity: 0.6; }
 .scope-add input { width: 190px; max-width: 100%; padding: 6px 12px; border-radius: var(--pill); font-size: 12.5px; min-height: 0; border-style: dashed; }
 .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 20%, transparent); }
-.sync-dot.is-error { background: var(--bad, #c0564b); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad, #c0564b) 20%, transparent); }
+.sync-dot.is-error { background: var(--bad, #a0625a); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad, #a0625a) 20%, transparent); }
 
 /* proposta com escopo grande: título mais perto e quadro mais compacto, sem espremer */
 .proposal.is-long .p-body { padding-top: 46px; }

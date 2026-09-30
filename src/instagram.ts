@@ -6,9 +6,9 @@ import type { PostFormat } from './types'
 
 export const FORMATS: Record<PostFormat, { label: string; color: string; hint: string }> = {
   carrossel: { label: 'carrossel', color: '#4a5d6b', hint: 'educa e gera salvamentos: o formato que mais atrai arquiteto' },
-  reels: { label: 'reels', color: '#b07f76', hint: 'alcance: leva o perfil para quem ainda não te conhece' },
-  story: { label: 'story', color: '#8a9a7b', hint: 'relacionamento e venda: quem já te segue decide aqui' },
-  post: { label: 'post', color: '#a888a8', hint: 'vitrine: render destaque, depoimento, apresentação' },
+  reels: { label: 'reels', color: '#a88a80', hint: 'alcance: leva o perfil para quem ainda não te conhece' },
+  story: { label: 'story', color: '#7d8c99', hint: 'relacionamento e venda: quem já te segue decide aqui' },
+  post: { label: 'post', color: '#8f6d64', hint: 'vitrine: render destaque, depoimento, apresentação' },
 }
 
 export const PILLARS = [

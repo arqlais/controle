@@ -83,10 +83,10 @@ export interface Suggestion {
   updatedAt: string
 }
 export const SUGGESTION_STATUS: Record<SuggestionStatus, { label: string; color: string }> = {
-  recebida: { label: 'recebida', color: '#6b8f94' },
-  analisando: { label: 'em análise', color: '#c29a55' },
-  planejada: { label: 'planejada', color: '#5b7a99' },
-  feita: { label: 'feita ✓', color: '#5e8c6a' },
+  recebida: { label: 'recebida', color: '#7d8c99' },
+  analisando: { label: 'em análise', color: '#b08a7e' },
+  planejada: { label: 'planejada', color: '#566779' },
+  feita: { label: 'feita ✓', color: '#4f6475' },
   nao_agora: { label: 'não por agora', color: '#9aa3ab' },
 }
 /** Depoimento de quem usa: a pessoa autoriza, a dona escolhe se vai para a página de vendas. */

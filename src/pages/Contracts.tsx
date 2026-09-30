@@ -19,8 +19,8 @@ import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../
 
 const STATUS: Record<ContractStatus, { label: string; color: string }> = {
   rascunho: { label: 'rascunho', color: '#9aa3ab' },
-  enviado: { label: 'enviado', color: '#c29a55' },
-  assinado: { label: 'assinado', color: '#5e8c6a' },
+  enviado: { label: 'enviado', color: '#b08a7e' },
+  assinado: { label: 'assinado', color: '#4f6475' },
 }
 
 export default function Contracts({ id }: { id?: string }) {

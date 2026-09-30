@@ -112,7 +112,7 @@ export function BriefingList({ list, showClient, openFirst }: { list: Briefing[]
                   {b.answeredAt ? ` · respondido ${fmtDate(b.answeredAt.slice(0, 10))}` : ''}
                 </small>
               </span>
-              <Badge color={b.status === 'respondido' ? '#5e8c6a' : '#b98246'}>{b.status === 'respondido' ? 'respondido' : 'aguardando'}</Badge>
+              <Badge color={b.status === 'respondido' ? '#4f6475' : '#b08a7e'}>{b.status === 'respondido' ? 'respondido' : 'aguardando'}</Badge>
             </div>
             <div className="row gap-s wrap">
               {b.status === 'respondido' ? (

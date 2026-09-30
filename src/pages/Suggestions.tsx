@@ -89,7 +89,7 @@ export default function Suggestions({ unseen = [], onSeen }: { unseen?: string[]
               <article key={x.id} className={`sg-item ${fresh.includes(x.id) ? 'is-new' : ''}`}>
                 <header>
                   <b>{x.title}</b>
-                  {fresh.includes(x.id) && <Badge color="#5e8c6a">novidade</Badge>}
+                  {fresh.includes(x.id) && <Badge color="#4f6475">novidade</Badge>}
                   <Badge color={SUGGESTION_STATUS[x.status].color}>{SUGGESTION_STATUS[x.status].label}</Badge>
                 </header>
                 <small className="muted">

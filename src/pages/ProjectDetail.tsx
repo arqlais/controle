@@ -174,7 +174,7 @@ export default function ProjectDetail({ id }: { id: string }) {
           tone={paid >= total && total > 0 ? 'good' : undefined}
           sub={
             <>
-              <Progress value={paid} max={total} color="#2f855a" />
+              <Progress value={paid} max={total} color="#4f6475" />
               <span>{projectOpen(p) > 0 ? `faltam ${money(projectOpen(p))}` : 'quitado'}</span>
             </>
           }

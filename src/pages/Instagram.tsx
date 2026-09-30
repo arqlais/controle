@@ -17,10 +17,10 @@ import { fmtDate, today, uid } from '../utils'
 
 type Tab = 'plano' | 'ideias' | 'estrategia'
 const STATUS: Record<PostStatus, { label: string; color: string }> = {
-  ideia: { label: 'ideia', color: '#9aa1a9' },
-  produzindo: { label: 'produzindo', color: '#c49a5a' },
-  pronto: { label: 'pronto', color: '#5b7fa6' },
-  postado: { label: 'postado', color: '#6a9a74' },
+  ideia: { label: 'ideia', color: '#9aa3ab' },
+  produzindo: { label: 'produzindo', color: '#b08a7e' },
+  pronto: { label: 'pronto', color: '#566779' },
+  postado: { label: 'postado', color: '#3e4b57' },
 }
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
 const pillarLabel = (id: string) => PILLARS.find((p) => p.id === id)?.label ?? id

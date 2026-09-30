@@ -129,23 +129,23 @@ export const defaultClientType = (profile?: WorkProfile): ClientType => (profile
 
 /** Cor de cada tipo de cliente — tons da paleta, diferentes entre si. */
 export const CLIENT_COLORS: Record<ClientType, string> = {
-  final: '#6f8f72',
-  arquiteto: '#5b7a99',
-  designer: '#c07f73',
+  final: '#566779',
+  arquiteto: '#566779',
+  designer: '#c29b92',
   escritorio: '#3e4b57',
-  construtora: '#8f7a52',
-  estudante: '#9a7aa6',
-  outro: '#8e979e',
+  construtora: '#8f6d64',
+  estudante: '#a88a80',
+  outro: '#9aa3ab',
 }
 
 export const STATUS: Record<string, { label: string; color: string }> = {
   briefing: { label: 'Em alinhamento', color: '#9aa3ab' },
-  producao: { label: 'Em execução', color: '#5b7a99' },
-  revisao: { label: 'Em ajustes', color: '#c29a55' },
-  aguardando: { label: 'Em aprovação', color: '#a888a8' },
-  entregue: { label: 'Entregue', color: '#6f9a7c' },
-  pausado: { label: 'Pausado', color: '#b8b0aa' },
-  cancelado: { label: 'Cancelado', color: '#b5524c' },
+  producao: { label: 'Em execução', color: '#566779' },
+  revisao: { label: 'Em ajustes', color: '#b08a7e' },
+  aguardando: { label: 'Em aprovação', color: '#8f6d64' },
+  entregue: { label: 'Entregue', color: '#3e4b57' },
+  pausado: { label: 'Pausado', color: '#b8aca6' },
+  cancelado: { label: 'Cancelado', color: '#9a5b53' },
 }
 
 /** Etapas padrão de uma demanda freelancer (sem questionário de briefing). */
@@ -169,13 +169,13 @@ export const statusInfo = (id: string) => STATUS[id] ?? customColumns.find((c) =
 export const boardColumns = (): string[] => ['briefing', 'producao', 'revisao', 'aguardando', ...customColumns.map((c) => c.id), 'entregue']
 /** Todos os status para seleção (inclui pausado e cancelado). */
 export const allStatuses = (): string[] => [...boardColumns(), 'pausado', 'cancelado']
-export const COLUMN_COLORS = ['#5b7a99', '#c29a55', '#a888a8', '#6f9a7c', '#c98a7a', '#8a7a5c', '#6b8f94', '#9aa3ab']
+export const COLUMN_COLORS = ['#566779', '#b08a7e', '#8f6d64', '#3e4b57', '#d6b3ab', '#7d8c99', '#7d8c99', '#9aa3ab']
 
 export const PRIORITY: Record<Priority, { label: string; color: string; weight: number }> = {
   baixa: { label: 'Baixa', color: '#9aa3ab', weight: 0 },
-  media: { label: 'Média', color: '#5b7a99', weight: 1 },
-  alta: { label: 'Alta', color: '#c98a5e', weight: 2 },
-  urgente: { label: 'Urgente', color: '#b5524c', weight: 3 },
+  media: { label: 'Média', color: '#566779', weight: 1 },
+  alta: { label: 'Alta', color: '#a07a70', weight: 2 },
+  urgente: { label: 'Urgente', color: '#9a5b53', weight: 3 },
 }
 
 export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
@@ -190,10 +190,10 @@ export const EXPENSE_CATEGORIES: Record<ExpenseCategory, string> = {
 }
 
 export const EVENT_TYPES: Record<EventType, { label: string; color: string }> = {
-  reuniao: { label: 'Reunião com cliente', color: '#5b7a99' },
-  faculdade: { label: 'Estudos / faculdade', color: '#a888a8' },
-  entrega: { label: 'Entrega parcial', color: '#6f9a7c' },
-  pessoal: { label: 'Pessoal', color: '#d19a8f' },
+  reuniao: { label: 'Reunião com cliente', color: '#566779' },
+  faculdade: { label: 'Estudos / faculdade', color: '#8f6d64' },
+  entrega: { label: 'Entrega parcial', color: '#3e4b57' },
+  pessoal: { label: 'Pessoal', color: '#c29b92' },
   outro: { label: 'Outro', color: '#9aa3ab' },
 }
 /** Nomes dos tipos de compromisso trocados pela pessoa (configurações → na própria agenda). */
@@ -207,9 +207,9 @@ export const eventLabel = (e: { type: EventType; customType?: string }) => (e.ty
 
 export const QUOTE_STATUS: Record<QuoteStatus, { label: string; color: string }> = {
   rascunho: { label: 'Rascunho', color: '#9aa3ab' },
-  enviado: { label: 'Enviado', color: '#5b7a99' },
-  aprovado: { label: 'Aprovado', color: '#6f9a7c' },
-  recusado: { label: 'Não fechou', color: '#c99a92' },
+  enviado: { label: 'Enviado', color: '#566779' },
+  aprovado: { label: 'Aprovado', color: '#3e4b57' },
+  recusado: { label: 'Não fechou', color: '#c29b92' },
 }
 
 export const PAYMENT_METHODS = ['Pix', 'Cartão de crédito']

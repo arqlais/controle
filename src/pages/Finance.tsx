@@ -311,7 +311,7 @@ export default function Finance() {
                   {expenses.map((e) => (
                     <tr key={e.id} className="clickable" onClick={() => setExpForm(e)}>
                       <td>
-                        {e.description} {e.recurring && <Badge color="#6b7f86">mensal</Badge>}
+                        {e.description} {e.recurring && <Badge color="#7d8c99">mensal</Badge>}
                       </td>
                       <td className="muted">{EXPENSE_CATEGORIES[e.category]}</td>
                       <td className="muted">{e.recurring ? `desde ${fmtDateLong(e.date)}` : fmtDate(e.date)}</td>
