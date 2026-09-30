@@ -20,7 +20,8 @@ import { contractSettings, contractVars, fillContract, suggestTemplate } from '.
 import { CloseDeal } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
 import { AudienceChooser, AudienceSwitch, QuoteStepsSection } from '../components/QuoteSteps'
-import { cloneSteps, processesOf, quoteAudience, servicesForAudience } from '../processes'
+import { cloneSteps, processesOf, quoteAudience, serviceAudience, servicesForAudience } from '../processes'
+import { ARCH_SERVICES } from '../clientDefaults'
 import { SLIDE_W } from '../components/Slides'
 import { FreeEditModal } from '../components/DocKit'
 import {
@@ -66,6 +67,8 @@ import {
   templateText,
 } from '../utils'
 
+/** Serviço da tabela que corresponde a cada tipo de projeto (cliente final). */
+const PROCESS_SERVICE: Record<string, string> = { interiores: 'arq-interiores', arquitetonico: 'arq-arquitetonico', consultoria: 'arq-consultoria' }
 const newItem = (): QuoteItem => ({ id: uid(), service: '', title: '', detail: '', description: '', quantity: 1, complexity: 'media', price: 0, auto: true })
 /** Rascunho: recalcula os serviços que seguem a tabela (a tabela pode ter mudado desde que o orçamento foi montado). */
 function freshPrices(q: Quote, st: Settings, student: boolean): Quote {
@@ -90,7 +93,7 @@ function freshPrices(q: Quote, st: Settings, student: boolean): Quote {
 const newOption = (): QuoteOption => ({ id: uid(), name: '', items: [newItem()], note: '', discount: 0, discountNote: '', deadlineDays: 10 })
 
 export default function QuoteEditor({ id }: { id: string }) {
-  const { data, upsert, remove } = useStore()
+  const { data, upsert, remove, setSettings } = useStore()
   const { settings } = data
   const found = data.quotes.find((q) => q.id === id)
   // rascunho: serviços que seguem a tabela abrem com o valor atual da tabela (enviados ficam como foram mandados)
@@ -237,7 +240,25 @@ export default function QuoteEditor({ id }: { id: string }) {
       // processo escolhido no começo ('' = sem etapas); sem escolha, o primeiro da lista
       const proc = processId === '' ? undefined : processesOf(settings).find((x) => x.id === processId) ?? processesOf(settings)[0]
       const steps = processId !== undefined ? { steps: proc ? cloneSteps(proc.steps) : [], processId: proc?.id } : !q.steps?.length && proc ? { steps: cloneSteps(proc.steps), processId: proc.id } : {}
-      set({ audience: a, pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(proc && !q.title ? { title: proc.name } : {}), ...steps })
+      // serviços de cliente final: se a tabela só tem serviços de freelancer, entra a tabela de arquitetura (editável em configurações → preços)
+      let services = settings.services
+      if (!services.some((sv) => sv.id !== 'personalizado' && serviceAudience(sv) === 'final')) {
+        services = [...services, ...ARCH_SERVICES.filter((x) => !services.some((y) => y.id === x.id))]
+        setSettings({ services })
+      }
+      // o serviço do tipo do orçamento já entra, com o que está incluso em cada etapa (tudo editável)
+      const sid = proc ? PROCESS_SERVICE[proc.id] : undefined
+      const sv = sid ? services.find((x) => x.id === sid) : undefined
+      const empty = !q.items.some((it) => it.service || it.title.trim())
+      const items =
+        sv && proc && empty
+          ? (() => {
+              const quantity = sv.pricing === 'm2' ? q.area || 0 : 1
+              const description = proc.steps.map((st) => (st.items.length ? `${st.name}: ${st.items.join(', ')}` : st.name)).join('\n')
+              return [{ ...newItem(), service: sv.id, title: sv.name, quantity, description, price: suggestPrice(sv, quantity, 'media', student, { ...settings, services }, description.split('\n'), !!q.openFile, floors) }]
+            })()
+          : undefined
+      set({ audience: a, pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(proc && !q.title ? { title: proc.name } : {}), ...steps, ...(items ? { items } : {}) })
     } else set({ audience: a })
   }
   const oa = (o: QuoteOption) => optionArea(q, o)

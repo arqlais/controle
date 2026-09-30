@@ -2138,3 +2138,4 @@ select.cell-input { min-width: 132px; }
 .q-suggest { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
 .q-suggest .link { text-transform: none; text-align: left; }
 .table.compact select.cell-input, select.cell-input { min-width: 150px; }
+.column-kind { white-space: nowrap; }

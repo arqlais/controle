@@ -194,6 +194,32 @@ export default function ClientDetail({ id }: { id: string }) {
           {c.type === 'final' && <FinalProfileCard client={c} onEdit={() => setEdit(true)} />}
           {(c.type === 'final' || (data.briefings ?? []).some((b) => b.clientId === c.id)) && <BriefingSection client={c} />}
           <SavedDocs list={(data.docs ?? []).filter((d) => d.clientId === c.id)} />
+          {(data.contracts ?? []).some((k) => k.clientId === c.id) && (
+            <Section title="contratos">
+              <ul className="list saved-docs">
+                {(data.contracts ?? [])
+                  .filter((k) => k.clientId === c.id)
+                  .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                  .map((k) => (
+                    <li key={k.id} className="list-item">
+                      <span className="saved-doc-icon">
+                        <Icon name="pen" size={16} />
+                      </span>
+                      <a className="grow" href={href('contratos', k.id)}>
+                        <div className="list-title">{k.title}</div>
+                        <div className="list-sub">
+                          {k.sign ? `assinado por ${k.sign.name} em ${fmtDate(k.sign.at.slice(0, 10))}${k.sign.via === 'externo' ? ` (${k.sign.site})` : ''}` : k.status === 'enviado' ? 'enviado, aguardando assinatura' : 'rascunho'}
+                        </div>
+                      </a>
+                      <span className={`pill pill-${k.sign ? 'pago' : k.status === 'enviado' ? 'cobrar' : 'pendente'}`}>{k.sign ? 'assinado' : k.status}</span>
+                      <a className="btn small ghost" href={href('contratos', k.id)}>
+                        abrir
+                      </a>
+                    </li>
+                  ))}
+              </ul>
+            </Section>
+          )}
 
           <Section title="Pagamentos">
             {payments.length === 0 ? (

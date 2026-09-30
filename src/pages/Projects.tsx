@@ -33,6 +33,17 @@ import {
 type View = 'quadro' | 'lista'
 type Scope = 'ativos' | 'todos' | 'atrasados' | 'arquivo'
 
+/** Legenda de cada coluna (todas têm uma, assim os cartões ficam alinhados). */
+const COLUMN_HINT: Record<string, string> = {
+  briefing: 'cliente fechou · demanda',
+  producao: 'demanda · produzindo',
+  revisao: 'demanda · cliente pediu mudanças',
+  aguardando: 'demanda · esperando o cliente aprovar',
+  entregue: 'demanda · concluída',
+  pausado: 'demanda · parada por enquanto',
+  cancelado: 'demanda · não segue',
+}
+
 export default function Projects() {
   const { data, upsert, setSettings, replaceAll } = useStore()
   const custom = data.settings.customColumns
@@ -269,7 +280,7 @@ export default function Projects() {
                     </button>
                   )}
                 </header>
-                {!prio && ci === 0 && <p className="column-kind is-closed">cliente fechou · demanda</p>}
+                {!prio && <p className={`column-kind ${ci === 0 ? 'is-closed' : ''}`}>{COLUMN_HINT[col] ?? 'demanda'}</p>}
                 <div className="column-body">
                   {items.map((p) => (
                     <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onDragStart={() => setDragId(p.id)} />
