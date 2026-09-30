@@ -166,6 +166,7 @@ try {
     })
     await go(`#/briefing/00000000-0000-0000-0000-00000000000${vp.width > 800 ? 1 : 2}/${packed}`); await page.waitForTimeout(700)
     ok((await page.locator('.bf-public h1').first().textContent()) === 'Teste', `${vp.name}: link do briefing abre pela cópia do link`)
+    await page.locator('.bf-cover .bf-send').click(); await page.waitForTimeout(300)
     await page.getByRole('radio', { name: 'sim' }).click(); await page.waitForTimeout(150)
     ok(await page.locator('.bf-sub').count() === 1, `${vp.name}: sub-pergunta aparece com a resposta`)
     await page.getByText('enviar respostas').click(); await page.waitForTimeout(500)
@@ -197,7 +198,7 @@ try {
     ok(await page.locator('.pf-signup .auth-error').count() === 1, 'plataforma: sem aceitar os termos não cria a conta')
     await page.locator('#signup-terms').check()
     await page.locator('button.auth-submit').click(); await page.waitForTimeout(900)
-    ok(await page.locator('.pf-trial-banner', { hasText: 'Completo' }).count() === 1, 'plataforma: cadastro entra no teste grátis do Completo')
+    ok(await page.locator('.pf-trial-banner', { hasText: 'Estúdio' }).count() === 1, 'plataforma: cadastro entra no teste grátis do Estúdio')
     ok(await page.locator('.nw-welcome').count() === 1, 'plataforma: cartão de boas-vindas aparece no primeiro acesso')
     await page.getByRole('button', { name: /começar o passo a passo/ }).click(); await page.waitForTimeout(300)
     ok(await page.locator('.tour').count() === 1, 'plataforma: passo a passo começa depois das boas-vindas')
@@ -226,7 +227,7 @@ try {
     await page.locator('.pf-chat-fab').click().catch(() => undefined) // fecha o chat
     // testando o Essencial: contratos ficam bloqueados
     await page.evaluate(() => (location.hash = '#/assinatura'))
-    const tryBtn = page.locator('.pf-plan', { hasText: 'Essencial' }).getByRole('button', { name: /testar este plano/ })
+    const tryBtn = page.locator('.pf-plan', { has: page.locator('h3', { hasText: /^Essencial$/ }) }).getByRole('button', { name: /testar este plano/ })
     const found = await tryBtn.waitFor({ timeout: 8000 }).then(() => true, () => false)
     ok(found, `plataforma: tela de assinatura mostra os planos${found ? '' : ` → tela: ${(await page.locator('main').innerText().catch(() => '')).slice(0, 400).replace(/\n/g, ' | ')} · erros: ${errors.join(' | ') || 'nenhum'}`}`)
     await tryBtn.click(); await page.waitForTimeout(200)

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { OWNER_FEATURES, PLANS, type Feature, type Plan } from './plans'
+import { OWNER_FEATURES, PLANS, effectivePlan, type Feature, type Plan } from './plans'
 import { onPreviewRole, platform, type AccessInfo } from './platform'
 import { ARTIFACT } from './env'
 
@@ -13,11 +13,12 @@ export interface Access extends AccessInfo {
   refresh: () => Promise<void>
 }
 
-const featuresOf = (i: AccessInfo): Set<Feature> => new Set(i.role === 'dona' ? OWNER_FEATURES : PLANS[i.sub?.plan ?? 'essencial'].features)
+// teste grátis e contas antigas: Estúdio (ver effectivePlan)
+const featuresOf = (i: AccessInfo): Set<Feature> => new Set(i.role === 'dona' ? OWNER_FEATURES : PLANS[effectivePlan(i.sub)].features)
 
 const build = (i: AccessInfo, refresh: () => Promise<void>): Access => {
   const f = featuresOf(i)
-  return { ...i, isOwner: i.role === 'dona', plan: i.role === 'dona' ? null : PLANS[i.sub?.plan ?? 'essencial'], has: (x) => f.has(x), refresh }
+  return { ...i, isOwner: i.role === 'dona', plan: i.role === 'dona' ? null : PLANS[effectivePlan(i.sub)], has: (x) => f.has(x), refresh }
 }
 
 // fora do provedor (ex.: telas de teste): comporta-se como hoje, com tudo liberado

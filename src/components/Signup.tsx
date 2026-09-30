@@ -98,7 +98,7 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
           <Icon name="star" size={18} />
           <span>
             <b>
-              {TRIAL_DAYS} dias do plano {PLANS.completo.name} grátis
+              {TRIAL_DAYS} dias do plano {PLANS.estudio.name} grátis
             </b>
             <small>tudo liberado, sem cartão. No fim, você escolhe o plano.</small>
           </span>

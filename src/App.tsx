@@ -593,7 +593,7 @@ export default function App() {
                         setPreviewPlan(v)
                         await access.refresh()
                       }
-                      toast(v === 'trial' ? 'Vendo como quem está no teste grátis (tudo do Completo).' : `Vendo como assinante do ${PLANS[v].name}.`)
+                      toast(v === 'trial' ? 'Vendo como quem está no teste grátis (tudo do Estúdio).' : `Vendo como assinante do ${PLANS[v].name}.`)
                     }}
                   >
                     {label}

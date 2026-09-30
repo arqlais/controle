@@ -96,12 +96,11 @@ export const PLANS: Record<PlanId, Plan> = {
     pitch: 'tudo do Completo + briefing online e recursos para escritório',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
     highlights: ['tudo do Completo', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'página do projeto para o cliente acompanhar', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
-    inviteOnly: true,
   },
 }
 
 export const PLAN_LIST = [PLANS.essencial, PLANS.completo, PLANS.estudio]
-/** Planos que qualquer pessoa assina sozinha (o Estúdio é sob convite). */
+/** Planos que qualquer pessoa assina sozinha (todos). */
 export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
@@ -153,3 +152,14 @@ export type SubStatus = 'trial' | 'ativa' | 'atrasada' | 'cancelada'
 export const STATUS_LABEL: Record<SubStatus, string> = { trial: 'teste grátis', ativa: 'ativa', atrasada: 'pagamento atrasado', cancelada: 'cancelada' }
 
 export const money0 = (n: number) => `R$ ${n.toLocaleString('pt-BR', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`
+
+/** Novidade de 30/09/2026: a plataforma passou a atender também quem trabalha para cliente final.
+ *  Todas as contas que já existiam ganham o Estúdio, e o teste grátis passa a ser do Estúdio. */
+export const ESTUDIO_FOR_ACCOUNTS_BEFORE = '2026-10-01'
+export function effectivePlan(sub: { plan: PlanId; status: string; createdAt?: string } | null | undefined): PlanId {
+  if (!sub) return 'essencial'
+  // teste grátis: Estúdio (quem escolheu testar o Essencial vê o Essencial)
+  if (sub.status === 'trial') return sub.plan === 'essencial' ? 'essencial' : 'estudio'
+  if (sub.createdAt && sub.createdAt < ESTUDIO_FOR_ACCOUNTS_BEFORE) return 'estudio'
+  return sub.plan
+}

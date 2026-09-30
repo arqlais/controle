@@ -10,7 +10,7 @@ import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
 import { go } from '../router'
-import { INVITE_KEY, LANDING_PROFILE_KEY } from '../components/Signup'
+import { LANDING_PROFILE_KEY } from '../components/Signup'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
    As telas de exemplo usam os mesmos componentes do sistema, com dados fictícios. */
@@ -148,7 +148,8 @@ const STUDIO_FEATURES: { icon: string; title: string; text: string; points: stri
   { icon: 'calendar', title: 'cronograma das etapas', text: 'Levantamento, estudo, anteprojeto, executivo, aprovação e obra, cada uma com prazo.', points: ['etapas prontas de arquitetura e interiores', 'parcela ligada a cada etapa', 'aviso de etapa atrasada'] },
   { icon: 'hardhat', title: 'acompanhamento de obra', text: 'Cada visita registrada pelo celular, com fotos e o que ficou para depois.', points: ['fotos direto da câmera', 'próximos passos e pendências', 'relatório em PDF com a sua marca'] },
   { icon: 'trend', title: 'custos e lucro por projeto', text: 'Saiba se o projeto deu lucro de verdade, não só quanto entrou.', points: ['taxas, impressões, deslocamento', 'horas trabalhadas', 'quanto rendeu cada hora sua'] },
-  { icon: 'clip', title: 'briefing online completo', text: 'Modelos prontos e editáveis, no estilo formulário, que o cliente responde pelo celular.', points: ['residencial, comercial, arquitetônico e por ambiente', 'o cliente anexa fotos', 'as respostas preenchem a ficha'] },
+  { icon: 'clip', title: 'briefing online completo', text: 'Mais de 20 modelos que o cliente responde pelo celular, tocando nas imagens.', points: ['studio, infantil, arquitetônico, clínica, loja…', 'perguntas que aparecem conforme a resposta', 'as respostas preenchem a ficha'] },
+  { icon: 'ruler', title: 'documentos com a sua marca', text: 'Peças prontas no design que você escolher, com qualquer texto editável.', points: ['guia de medição para o cliente', 'placa de obra com QR code', 'apresentação de projeto e briefing em PDF'] },
 ]
 
 const FEATURES = ['clientes', 'ficha do cliente final', 'orçamentos', 'propostas', 'projetos complementares', 'regularização', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'sua identidade visual', 'celular e computador']
@@ -178,9 +179,9 @@ const faq = (): [string, ReactNode][] => [
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
   ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para o WhatsApp), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: página do projeto para o cliente, cronograma das etapas, acompanhamento de obra com fotos, lucro de cada projeto e briefing online.`],
-  [`como entro no plano ${PLANS.estudio.name}?`, `O ${PLANS.estudio.name} é sob convite. Crie sua conta (o teste grátis é do ${PLANS.completo.name}) e peça acesso em “minha assinatura” ou pelo chat: a gente libera e te avisa.`],
+  [`o que mudou com o ${PLANS.estudio.name}?`, `Novidade: o ${PLATFORM.name} nasceu para freelancers e agora também é para quem trabalha direto com o cliente final (casas, apartamentos, lojas, obras). Foi um pedido de várias arquitetas. O ${PLANS.estudio.name} está aberto para todos e é o plano do teste grátis.`],
   ['posso cancelar quando quiser?', 'Pode, sem multa e sem fidelidade: o acesso vai até o fim do período já pago. E se você se arrepender, tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (direito de arrependimento, art. 49 do Código de Defesa do Consumidor).'],
-  ['o teste grátis é de qual plano?', `Do Completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
+  ['o teste grátis é de qual plano?', `Do ${PLANS.estudio.name}, o mais completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
 
 type Screen = 'painel' | 'demandas' | 'proposta' | 'contrato' | 'financeiro'
@@ -250,17 +251,7 @@ export default function Landing() {
   }
   const final = aud === 'final'
   const heroWords = siteWords
-  const signup = (plan?: PlanId) => {
-    // Estúdio é sob convite: faz o cadastro (teste do Completo) e o pedido vai pelo chat
-    if (plan && PLANS[plan].inviteOnly) {
-      try {
-        localStorage.setItem(INVITE_KEY, plan)
-      } catch {
-        /* ok */
-      }
-    }
-    go('cadastro', plan)
-  }
+  const signup = (plan?: PlanId) => go('cadastro', plan)
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   return (
@@ -440,7 +431,7 @@ export default function Landing() {
       )}
       <section className="lp-section lp-studio" id="estudio">
         <div className="lp-wrap">
-          <SectionHead eyebrow={`plano ${PLANS.estudio.name.toLowerCase()} · para escritórios`} title={<>o projeto inteiro, <em>do briefing à obra</em></>} text="Tudo do Completo e mais cinco ferramentas para quem atende o cliente final. Cada demanda ganha abas, uma para cada parte do trabalho." />
+          <SectionHead eyebrow={`novidade · plano ${PLANS.estudio.name.toLowerCase()}`} title={<>para quem atende <em>o cliente final</em></>} text={`Começamos com freelancers e, a pedido de várias arquitetas, agora é também para quem projeta direto para o cliente final: do briefing à obra. Tudo do ${PLANS.completo.name} e mais seis ferramentas.`} />
           <div className="lp-studio-grid">
             {STUDIO_FEATURES.map((f, i) => (
               <article key={f.title} className="card lp-studio-card" data-reveal style={{ transitionDelay: `${i * 0.06}s` }}>
@@ -461,10 +452,10 @@ export default function Landing() {
           </div>
           <div className="lp-studio-cta">
             <button className="btn primary" onClick={() => signup('estudio')}>
-              <Icon name="star" size={15} /> pedir convite do {PLANS.estudio.name}
+              <Icon name="star" size={15} /> testar o {PLANS.estudio.name} grátis
             </button>
             <span className="muted small">
-              {money0(PLANS.estudio.price)}/mês · vagas liberadas aos poucos
+              {TRIAL_DAYS} dias grátis, sem cartão · depois {money0(PLANS.estudio.price)}/mês
             </span>
           </div>
         </div>
@@ -472,14 +463,13 @@ export default function Landing() {
 
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
-          <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.completo.name} grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />
+          <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.estudio.name} (o mais completo) grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
                 {p.featured && <span className="lp-ribbon">mais escolhido</span>}
                 <header>
                   <h3>{p.name}</h3>
-                  {p.inviteOnly && <span className="lp-invite">sob convite</span>}
                 </header>
                 <p className="lp-plan-for">{PLAN_FOR[p.id]}</p>
                 <p className="pf-price">
@@ -495,7 +485,7 @@ export default function Landing() {
                   ))}
                 </ul>
                 <button className={`btn ${p.featured ? 'primary' : ''} block`} onClick={() => signup(p.id)}>
-                  {p.inviteOnly ? 'pedir convite' : 'começar grátis'}
+                  começar grátis
                 </button>
               </article>
             ))}
@@ -535,7 +525,7 @@ export default function Landing() {
                   {PLAN_LIST.map((p) => (
                     <td key={p.id} className={`center ${p.featured ? 'is-best' : ''}`}>
                       <button className={`btn small ${p.featured ? 'primary' : 'ghost'}`} onClick={() => signup(p.id)}>
-                        {p.inviteOnly ? 'pedir convite' : p.featured ? `quero o ${p.name}` : 'começar'}
+                        {p.featured ? `quero o ${p.name}` : 'começar'}
                       </button>
                     </td>
                   ))}
@@ -543,7 +533,7 @@ export default function Landing() {
               </tfoot>
             </table>
             <p className="lp-compare-note">
-              <Icon name="star" size={14} /> no {PLANS.completo.name} você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês. O {PLANS.estudio.name} é para escritórios que atendem cliente final e querem o briefing online: as vagas são liberadas aos poucos.
+              <Icon name="star" size={14} /> no {PLANS.completo.name} você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês. O {PLANS.estudio.name} é para quem atende cliente final: briefing online, cronograma, obra, página do cliente e documentos com a sua marca.
             </p>
           </details>
         </div>

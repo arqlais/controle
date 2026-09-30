@@ -29,6 +29,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-estudio-para-todos',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'agora também para quem atende cliente final',
+    text: 'O traço nasceu para freelancers e, a pedido de várias arquitetas, agora também é para quem projeta direto para o cliente final: briefing online com imagens, cronograma das etapas, obra, página do projeto para o cliente, proposta em slides e documentos com a sua marca. Presente: a sua conta passou para o plano Estúdio, o mais completo.',
+    steps: [{ page: 'briefings', text: 'Comece mandando um briefing para um cliente.' }, { page: 'documentos', text: 'Veja os documentos: guia de medição, placa de obra e apresentação.' }],
+  },
+  {
     id: '2026-09-30-documentos',
     date: '2026-09-30',
     kind: 'novo',
