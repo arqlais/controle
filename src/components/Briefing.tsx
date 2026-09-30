@@ -5,12 +5,12 @@ import { Icon } from './Icon'
 import { Badge, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { BRIEFING_SECTIONS } from '../briefingQuestions'
-import { allTemplates } from '../briefingTemplates'
+import { allTemplates, templateGroup } from '../briefingTemplates'
 import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, packBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type BriefingPayload, type PublicBriefing } from '../briefingApi'
 import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data, Settings } from '../types'
 import { ANSWER_TAG, findAnswerCode, hashExtra } from '../linkPack'
 import { ArtImage, isArt } from './BriefingArt'
-import { fmtDate, today, uid, whatsappLink } from '../utils'
+import { fmtDate, matches, today, uid, whatsappLink } from '../utils'
 import { go } from '../router'
 import { PLANS } from '../plans'
 
@@ -328,6 +328,9 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
   const st = data.settings
   const templates = allTemplates(st.briefingTemplates)
   const [tplId, setTplId] = useState(templateId ?? '')
+  const [find, setFind] = useState('')
+  const [group, setGroup] = useState<'todos' | 'casa' | 'comercial' | 'meus'>('todos')
+  const shown = templates.filter((t) => (group === 'todos' || templateGroup(t) === group) && matches(find, t.name, t.description))
   const [clientId, setClientId] = useState(fixed?.id ?? '')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<Briefing | null>(null)
@@ -410,8 +413,19 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
         </label>
       )}
       <span className="field-label">qual modelo</span>
+      <div className="bf-tpl-filter">
+        <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="procurar: cozinha, clínica, closet…" aria-label="Procurar modelo" />
+        <div className="chips">
+          {(['todos', 'casa', 'comercial', 'meus'] as const).map((g) => (
+            <button key={g} type="button" className={`chip ${group === g ? 'active' : ''}`} onClick={() => setGroup(g)}>
+              {g}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="bf-tpl-grid">
-        {templates.map((t) => (
+        {shown.length === 0 && <p className="muted small">Nenhum modelo com esse nome. Dá para criar o seu em “briefings”.</p>}
+        {shown.map((t) => (
           <button key={t.id} type="button" className={`bf-tpl ${tplId === t.id ? 'is-on' : ''}`} onClick={() => setTplId(t.id)} aria-pressed={tplId === t.id}>
             <span className="bf-tpl-icon">
               <Icon name={t.icon || 'file'} size={18} />
