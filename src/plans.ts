@@ -45,6 +45,7 @@ export type Feature =
   | 'obra' // acompanhamento de obra (visitas, fotos, relatório)
   | 'lucro' // custos e lucro por projeto
   | 'portal' // página de acompanhamento para o cliente
+  | 'documentos' // guia de medição, placa de obra com QR e apresentação de projeto
 
 export type PlanId = 'essencial' | 'completo' | 'estudio'
 
@@ -93,8 +94,8 @@ export const PLANS: Record<PlanId, Plan> = {
     name: 'Estúdio',
     price: 89.9,
     pitch: 'tudo do Completo + briefing online e recursos para escritório',
-    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal'],
-    highlights: ['tudo do Completo', 'página do projeto para o cliente acompanhar', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
+    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
+    highlights: ['tudo do Completo', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'página do projeto para o cliente acompanhar', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
     inviteOnly: true,
   },
 }
@@ -104,7 +105,7 @@ export const PLAN_LIST = [PLANS.essencial, PLANS.completo, PLANS.estudio]
 export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
-export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal']
+export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos']
 
 /** O que a dona pode ligar/desligar em cada plano (painel → planos). */
 export const PLAN_TOGGLES: [Feature, string][] = [
@@ -118,6 +119,7 @@ export const PLAN_TOGGLES: [Feature, string][] = [
   ['obra', 'acompanhamento de obra'],
   ['lucro', 'custos e lucro por projeto'],
   ['portal', 'página do projeto para o cliente'],
+  ['documentos', 'documentos (guia de medição, placa de obra, apresentação)'],
 ]
 
 /** Tabela de comparação da página de vendas (linha → um valor por plano, na ordem de PLAN_LIST). */
@@ -142,6 +144,7 @@ export function compareRows(): CompareRow[] {
     row('acompanhamento de obra com fotos e relatório', 'obra'),
     row('custos e lucro de cada projeto', 'lucro'),
     row('briefing online com modelos e fotos', 'briefing'),
+    row('guia de medição, placa de obra com QR e apresentação de projeto', 'documentos'),
     all('chat direto com o assistente online'),
   ]
 }

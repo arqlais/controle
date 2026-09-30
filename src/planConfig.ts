@@ -19,7 +19,7 @@ export interface PlanConfig {
   plans?: Partial<Record<PlanId, PlanOverride>>
 }
 
-const NEW_FEATURES: Feature[] = ['briefing', 'cronograma', 'obra', 'lucro', 'portal']
+const NEW_FEATURES: Feature[] = ['briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos']
 const CACHE = 'config-planos'
 export const PREVIEW_KEY = 'previa-config-planos'
 

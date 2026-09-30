@@ -27,6 +27,8 @@ const SettingsPage = lazy(() => import('./pages/Settings'))
 const Manual = lazy(() => import('./pages/Manual'))
 const Instagram = lazy(() => import('./pages/Instagram'))
 const Briefings = lazy(() => import('./pages/Briefings'))
+const Processes = lazy(() => import('./pages/Processes'))
+const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
 const Admin = lazy(() => import('./pages/Admin'))
@@ -50,19 +52,27 @@ import { trialOver } from './platform'
 import { PLANS, PLATFORM, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 
-const NAV = [
-  { page: 'inicio', label: 'início', icon: 'home' },
-  { page: 'projetos', label: 'demandas', icon: 'folder' },
-  { page: 'clientes', label: 'clientes', icon: 'users' },
-  { page: 'financeiro', label: 'financeiro', icon: 'wallet' },
-  { page: 'agenda', label: 'agenda', icon: 'calendar' },
-  { page: 'orcamentos', label: 'orçamentos', icon: 'file' },
-  { page: 'contratos', label: 'contratos', icon: 'briefcase' },
-  { page: 'instagram', label: 'instagram', icon: 'instagram' },
-  { page: 'briefings', label: 'briefings', icon: 'clip' },
+// menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
+const NAV_GROUPS = [
+  { key: 'dia', label: 'dia a dia' },
+  { key: 'vendas', label: 'clientes e vendas' },
+  { key: 'estudio', label: 'estúdio' },
+] as const
+const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUPS)[number]['key'] }[] = [
+  { page: 'inicio', label: 'início', icon: 'home', group: 'dia' },
+  { page: 'projetos', label: 'demandas', icon: 'folder', group: 'dia' },
+  { page: 'agenda', label: 'agenda', icon: 'calendar', group: 'dia' },
+  { page: 'financeiro', label: 'financeiro', icon: 'wallet', group: 'dia' },
+  { page: 'clientes', label: 'clientes', icon: 'users', group: 'vendas' },
+  { page: 'orcamentos', label: 'orçamentos', icon: 'file', group: 'vendas' },
+  { page: 'briefings', label: 'briefings', icon: 'clip', group: 'vendas' },
+  { page: 'contratos', label: 'contratos', icon: 'briefcase', group: 'vendas' },
+  { page: 'documentos', label: 'documentos', icon: 'ruler', group: 'estudio' },
+  { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' },
+  { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
 ]
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing' }
+const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'documentos' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -154,10 +164,12 @@ export default function App() {
   // ordem do menu escolhida pela usuária (itens novos entram no fim)
   const nav = useMemo(() => {
     const order = settings.navOrder
+    const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
+    // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
     return NAV.filter((n) => (!NEEDS[n.page] || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off)).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
-      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
+      return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
     })
   }, [settings.navOrder, settings.contracts?.off, access])
   // grupos à parte, no fim do menu: plataforma (só a dona), sua conta (clientes) e ajustes e dicas
@@ -290,6 +302,10 @@ export default function App() {
         return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
       case 'briefings':
         return <Briefings id={route.id} />
+      case 'processos':
+        return <Processes />
+      case 'documentos':
+        return <Documents />
       case 'sugestoes':
         return <Suggestions unseen={sugUpdates.unseen} onSeen={sugUpdates.markSeen} />
       case 'avaliar':
@@ -372,9 +388,11 @@ export default function App() {
         <nav className={organizing ? 'organizing' : ''}>
           {nav.map((n, i) => {
             const count = alerts[n.page as keyof typeof alerts]
+            const label = i === 0 || nav[i - 1].group !== n.group ? NAV_GROUPS.find((x) => x.key === n.group)?.label : ''
             return (
+              <Fragment key={n.page}>
+              {label && <span className="nav-group-label nav-main-label">{label}</span>}
               <a
-                key={n.page}
                 href={href(n.page)}
                 className={`${route.page === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''}`}
                 // só dá para arrastar com "organizar menu" ligado (evita mudar sem querer)
@@ -402,6 +420,7 @@ export default function App() {
                   </span>
                 )}
               </a>
+              </Fragment>
             )
           })}
           {groups.map((g) => (

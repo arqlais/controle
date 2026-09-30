@@ -428,6 +428,8 @@ export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   processes?: ProjectProcess[] // processos de trabalho para cliente final (vazio = os prontos)
+  freelaTasks?: string[] // etapas da demanda freelancer / escritório parceiro (vazio = as prontas)
+  studentTasks?: string[] // etapas da demanda de estudante (vazio = as prontas)
   portfolio?: string[] // fotos de projetos para a proposta e a apresentação (data URL, trocáveis)
   about?: string // "sobre" do escritório, na proposta para cliente final
   briefingTemplates?: BriefingTemplate[] // modelos de briefing criados ou editados pela pessoa

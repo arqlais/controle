@@ -3,25 +3,70 @@ import { Icon } from './Icon'
 import { Field, Modal, Section, Segmented } from './ui'
 import { toast } from './dialog'
 import { useStore } from '../store'
+import { go } from '../router'
 import { AUDIENCES, cloneSteps, processesOf, stepsPercent } from '../processes'
 import type { ProcessStep, ProjectProcess, QuoteAudience } from '../types'
 import { money, uid } from '../utils'
 
-/** "Para quem é este orçamento?" — aparece ao criar um orçamento novo. */
-export function AudienceChooser({ onPick, onClose }: { onPick: (a: QuoteAudience) => void; onClose: () => void }) {
+/** "Para quem é este orçamento?" — aparece ao criar um orçamento novo.
+ *  1º passo: cliente final ou freelancer/parceiro (formatos e preços diferentes, explicados).
+ *  2º passo (cliente final): o tipo de projeto, que já traz as etapas do seu jeito de trabalhar. */
+export function AudienceChooser({ onPick, onClose }: { onPick: (a: QuoteAudience, processId?: string) => void; onClose: () => void }) {
+  const { data } = useStore()
+  const [step, setStep] = useState<'quem' | 'processo'>('quem')
+  const list = processesOf(data.settings)
+  if (step === 'processo')
+    return (
+      <Modal title="Que tipo de projeto?" onClose={onClose} wide>
+        <p className="muted small">As etapas entram prontas na proposta (linha do tempo, prazos e pagamento por etapa). Você muda o que quiser neste orçamento, e o seu padrão fica em “etapas de trabalho”.</p>
+        <div className="proc-pick">
+          {list.map((p) => (
+            <button key={p.id} type="button" className="proc-card" onClick={() => onPick('final', p.id)}>
+              <b>{p.name}</b>
+              {p.description && <span className="muted small">{p.description}</span>}
+              <ol>
+                {p.steps.filter((x) => x.name.trim()).map((x) => (
+                  <li key={x.id}>
+                    {x.name}
+                    {x.percent > 0 && <em>{x.percent}%</em>}
+                  </li>
+                ))}
+              </ol>
+            </button>
+          ))}
+          <button type="button" className="proc-card is-plain" onClick={() => onPick('final', '')}>
+            <b>sem etapas</b>
+            <span className="muted small">só os serviços e o valor (ex.: uma consultoria avulsa)</span>
+          </button>
+        </div>
+        <div className="row gap-s">
+          <button type="button" className="btn ghost small" onClick={() => setStep('quem')}>
+            <Icon name="chevronL" size={14} /> voltar
+          </button>
+          <button type="button" className="link small" onClick={() => (onClose(), go('processos'))}>
+            editar minhas etapas de trabalho
+          </button>
+        </div>
+      </Modal>
+    )
   return (
-    <Modal title="Para quem é este orçamento?" onClose={onClose}>
-      <p className="muted small">Os formatos são diferentes: escolha pelo tipo de cliente. Dá para trocar depois, no topo do orçamento.</p>
+    <Modal title="Para quem é este orçamento?" onClose={onClose} wide>
+      <p className="muted small">Os dois formatos são bem diferentes: a proposta, o jeito de cobrar e as etapas mudam. Na dúvida, pense em <b>quem paga</b>: o dono do imóvel é cliente final; outro arquiteto ou escritório é parceiro.</p>
       <div className="aud-options">
         {AUDIENCES.map((a) => (
-          <button key={a.id} type="button" className="aud-option" data-audience={a.id} onClick={() => onPick(a.id)}>
+          <button key={a.id} type="button" className="aud-option" data-audience={a.id} onClick={() => (a.id === 'final' ? setStep('processo') : onPick('parceiro'))}>
             <span className="aud-icon">
               <Icon name={a.id === 'final' ? 'home' : 'briefcase'} size={20} />
             </span>
             <b>{a.title}</b>
             <span className="aud-short">{a.short}</span>
-            <span className="aud-text">{a.text}</span>
+            <ul className="aud-points">
+              {a.points.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
             <span className="aud-example">{a.example}</span>
+            <span className="aud-go">{a.id === 'final' ? 'escolher o tipo de projeto →' : 'montar orçamento →'}</span>
           </button>
         ))}
       </div>

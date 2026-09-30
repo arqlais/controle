@@ -366,9 +366,9 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
           <TotalBar label="investimento total" value={quoteTotal(quote, s.urgencyFee)} note={scopeNote} />
         </>
       )}
-      {isCombo(quote) && (quote.comboDiscount ?? 0) > 0 && (
+      {isCombo(quote) && (
         <div className="p-combo">
-          <TotalBar label={`fechando ${allLabel(quote)} juntas`} value={comboTotal(quote)} note={`em vez de ${money(comboSeparate(quote))} · economia de ${money(comboSeparate(quote) - comboTotal(quote))}`} />
+          <TotalBar label={`fechando ${allLabel(quote)} juntas`} value={comboTotal(quote)} note={(quote.comboDiscount ?? 0) > 0 ? `em vez de ${money(comboSeparate(quote))} · economia de ${money(comboSeparate(quote) - comboTotal(quote))}` : ''} />
         </div>
       )}
       {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}

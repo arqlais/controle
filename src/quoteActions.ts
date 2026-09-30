@@ -6,7 +6,7 @@ import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, op
 const sub = (d: string) => (d.trim() ? '\n' + d.split('\n').filter((l) => l.trim()).map((l) => `   · ${l.trim()}`).join('\n') : '')
 
 /** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
-export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = ''): Project {
+export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = '', taskList: string[] = DEFAULT_TASKS): Project {
   // propostas fechadas juntas: vira uma demanda só, com os serviços de todas (pacote com o desconto)
   const both = isCombo(q) && q.chosenOption === BOTH
   const pair = shownOptions(q)
@@ -50,7 +50,7 @@ export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedO
     revisionsUsed: 0,
     estimatedHours: 0,
     timeLogs: [],
-    tasks: DEFAULT_TASKS.map((t) => ({ id: uid(), text: t, done: false })),
+    tasks: taskList.map((t) => ({ id: uid(), text: t, done: false })),
     filesLink: '',
     timerStart: null,
     notes: `Criado a partir do orçamento Nº ${quoteNumber(q)}.`,

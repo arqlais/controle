@@ -1,5 +1,5 @@
-import type { ProcessStep, ProjectProcess, Quote, QuoteAudience, ServiceDef, Settings } from './types'
-import { uid } from './utils'
+import type { Client, ProcessStep, ProjectProcess, Quote, QuoteAudience, ServiceDef, Settings } from './types'
+import { DEFAULT_TASKS, isStudent, uid } from './utils'
 
 /* Processos de trabalho para cliente final. São só pontos de partida:
    cada pessoa muda nomes, o que inclui, prazos e a divisão do pagamento (Configurações → propostas). */
@@ -70,19 +70,48 @@ export const stepsPercent = (steps: ProcessStep[] = []) => Math.round(steps.redu
 
 export const dayLabel = (x: ProcessStep) => (x.days > 0 ? `${x.days} dias ${x.dayType === 'uteis' ? 'úteis' : 'corridos'}` : '')
 
-export const AUDIENCES: { id: QuoteAudience; title: string; short: string; text: string; example: string }[] = [
+export const AUDIENCES: { id: QuoteAudience; title: string; short: string; text: string; points: string[]; example: string }[] = [
   {
     id: 'final',
     title: 'cliente final',
-    short: 'quem vai morar ou usar o espaço',
-    text: 'Proposta completa em slides (16:9): apresentação, etapas do projeto, prazos, investimento e pagamento dividido por etapa.',
-    example: 'Ex.: a Ana quer o projeto de interiores do apartamento dela.',
+    short: 'arquitetura e interiores: quem vai morar, trabalhar ou usar o espaço',
+    text: 'Proposta em slides (16:9): apresentação, etapas do projeto, prazos, investimento e pagamento dividido por etapa.',
+    points: [
+      'proposta em slides, com a sua apresentação e fotos de projetos',
+      'etapas do seu jeito (briefing, layout, anteprojeto, executivo, obra…)',
+      'valor por projeto ou por m², pago em parcelas por etapa',
+      'ao fechar, as etapas viram o cronograma e a página do cliente',
+    ],
+    example: 'Ex.: a Ana quer o projeto de interiores do apartamento; o Carlos vai construir uma casa.',
   },
   {
     id: 'parceiro',
-    title: 'escritório parceiro',
-    short: 'prestação de serviço freelancer',
+    title: 'freelancer · escritório parceiro',
+    short: 'você presta serviço para outro arquiteto, escritório ou construtora (e estudantes)',
     text: 'Proposta objetiva em uma folha: serviços, valores e prazo. Pode virar parceria mensal.',
-    example: 'Ex.: um escritório pede 10 imagens 3D ou o detalhamento de um projeto.',
+    points: [
+      'proposta de uma folha: serviços, quantidades e valores da sua tabela',
+      'por unidade (imagem, prancha, modelagem) e prazo curto',
+      'sinal e saldo, ou parceria mensal',
+      'estudante entra aqui, com o desconto das configurações',
+    ],
+    example: 'Ex.: um escritório pede 10 imagens 3D; uma estudante pede ajuda com o TCC.',
   },
 ]
+
+/** Etapas de uma demanda de estudante: mais simples (sem briefing de obra nem cronograma). */
+export const DEFAULT_STUDENT_TASKS = ['Pagamento combinado', 'Arquivos e orientações recebidos', 'Execução', 'Prévia enviada', 'Ajustes', 'Entrega final']
+
+export type WorkKind = 'final' | 'freela' | 'estudante'
+/** Que tipo de trabalho é: cliente final, freelancer (escritório parceiro) ou estudante. */
+export function workKind(client: Client | undefined, audience?: QuoteAudience): WorkKind {
+  if (isStudent(client)) return 'estudante'
+  if (audience === 'final' || client?.type === 'final') return 'final'
+  return 'freela'
+}
+/** Checklist da demanda conforme o tipo de trabalho (cada lista é editável em "etapas de trabalho"). */
+export function tasksFor(s: Settings, kind: WorkKind, steps?: ProcessStep[]): string[] {
+  if (kind === 'estudante') return s.studentTasks?.length ? s.studentTasks : DEFAULT_STUDENT_TASKS
+  if (kind === 'final' && steps?.some((x) => x.name.trim())) return steps.filter((x) => x.name.trim()).map((x) => x.name)
+  return s.freelaTasks?.length ? s.freelaTasks : DEFAULT_TASKS
+}

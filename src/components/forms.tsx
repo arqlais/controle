@@ -34,6 +34,7 @@ import {
 } from '../utils'
 import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented, CepInput, ServiceOptions } from './ui'
 import { Icon } from './Icon'
+import { tasksFor, workKind } from '../processes'
 
 /* ---------------- Cliente ---------------- */
 
@@ -60,10 +61,10 @@ export function newClient(type: ClientType = 'arquiteto'): Client {
   }
 }
 
-export function ClientForm({ initial, onClose, onSaved }: { initial?: Client; onClose: () => void; onSaved?: (c: Client) => void }) {
+export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?: Client; name?: string; type?: ClientType; onClose: () => void; onSaved?: (c: Client) => void }) {
   const { data, upsert } = useStore()
   const profile = data.settings.workProfile
-  const [c, setC] = useState<Client>(initial ?? newClient(defaultClientType(profile)))
+  const [c, setC] = useState<Client>(initial ?? { ...newClient(type ?? defaultClientType(profile)), name: name ?? '' })
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }))
   const setP = (k: keyof ClientProfile, v: string) => setC((x) => ({ ...x, profile: { ...x.profile, [k]: v } }))
   const final = c.type === 'final'
@@ -379,7 +380,8 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
     if (!final.tasks.length && !initial) {
       final = {
         ...final,
-        tasks: DEFAULT_TASKS.map((text) => ({
+        // checklist conforme o tipo de trabalho: freelancer, estudante ou cliente final
+        tasks: tasksFor(data.settings, workKind(data.clients.find((c) => c.id === final.clientId))).map((text) => ({
           id: uid(),
           text,
           done: false,

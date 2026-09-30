@@ -9,6 +9,7 @@ import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
+import { ClientPicker } from '../components/ClientPicker'
 import { QuoteDoc } from '../components/Docs'
 import { DocZoom, DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
@@ -131,7 +132,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     if (storedNumber && q.status === 'rascunho' && storedNumber !== q.number) setQ((x) => ({ ...x, number: storedNumber }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storedNumber])
-  const [newClient, setNewClient] = useState(false)
+  const [newClient, setNewClient] = useState<string | false>(false)
   const [editClient, setEditClient] = useState(false)
   const [dirty, setDirty] = useState(!existing)
   // valores atualizados pela tabela já ficam salvos (a lista mostra o total certo)
@@ -228,10 +229,12 @@ export default function QuoteEditor({ id }: { id: string }) {
     setTouched(true)
   }
   // cliente final: proposta em slides com as etapas do seu processo; escritório parceiro: a folha de sempre
-  const pickAudience = (a: QuoteAudience) => {
+  const pickAudience = (a: QuoteAudience, processId?: string) => {
     if (a === 'final') {
-      const first = processesOf(settings)[0]
-      set({ audience: a, pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(!q.steps?.length && first ? { steps: cloneSteps(first.steps), processId: first.id } : {}) })
+      // processo escolhido no começo ('' = sem etapas); sem escolha, o primeiro da lista
+      const proc = processId === '' ? undefined : processesOf(settings).find((x) => x.id === processId) ?? processesOf(settings)[0]
+      const steps = processId !== undefined ? { steps: proc ? cloneSteps(proc.steps) : [], processId: proc?.id } : !q.steps?.length && proc ? { steps: cloneSteps(proc.steps), processId: proc.id } : {}
+      set({ audience: a, pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(proc && !q.title ? { title: proc.name } : {}), ...steps })
     } else set({ audience: a })
   }
   const oa = (o: QuoteOption) => optionArea(q, o)
@@ -531,33 +534,24 @@ export default function QuoteEditor({ id }: { id: string }) {
               <AudienceSwitch value={audience} onChange={pickAudience} />
               <Field label="Cliente" span={2} hint="O nome do cliente vai no campo “nome” da proposta.">
                 <div className="row gap-s">
-                  <select
+                  <ClientPicker
                     id="q-client"
+                    clients={data.clients}
                     value={q.clientId}
-                    onChange={(e) => {
-                      const c = data.clients.find((x) => x.id === e.target.value)
-                      set({ clientId: e.target.value })
+                    onChange={(cid) => {
+                      const c = data.clients.find((x) => x.id === cid)
+                      set({ clientId: cid })
                       // escolheu um cliente final e o orçamento ainda está no formato de parceiro: troca sozinho
                       if (isFinalClient(c) && !isFinal && q.status === 'rascunho') pickAudience('final')
                     }}
-                  >
-                    <option value="">Selecione…</option>
-                    {[...data.clients]
-                      .filter((c) => !c.archived)
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                          {c.company ? ` · ${c.company}` : ''}
-                        </option>
-                      ))}
-                  </select>
+                    onCreate={(name) => setNewClient(name)}
+                  />
                   {client && (
                     <button className="btn ghost small" onClick={() => setEditClient(true)} title="Editar dados do cliente">
                       <Icon name="edit" size={14} />
                     </button>
                   )}
-                  <button className="btn ghost small" onClick={() => setNewClient(true)} title="Novo cliente">
+                  <button className="btn ghost small" onClick={() => setNewClient('')} title="Novo cliente">
                     +
                   </button>
                 </div>
@@ -938,13 +932,13 @@ export default function QuoteEditor({ id }: { id: string }) {
         )}
       </div>
 
-      {newClient && <ClientForm onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
+      {newClient !== false && <ClientForm name={newClient} type={isFinal ? 'final' : undefined} onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
       {editClient && client && <ClientForm initial={client} onClose={() => setEditClient(false)} />}
       {pdf.portal}
       {asking && (
         <AudienceChooser
-          onPick={(a) => {
-            pickAudience(a)
+          onPick={(a, pid) => {
+            pickAudience(a, pid)
             setAsking(false)
           }}
           onClose={() => {

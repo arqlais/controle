@@ -10,6 +10,7 @@ import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPub
 import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data, Settings } from '../types'
 import { ANSWER_TAG, findAnswerCode, hashExtra } from '../linkPack'
 import { ArtImage, isArt } from './BriefingArt'
+import { ClientPicker } from './ClientPicker'
 import { fmtDate, matches, today, uid, whatsappLink } from '../utils'
 import { go } from '../router'
 import { PLANS } from '../plans'
@@ -397,20 +398,10 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
       }
     >
       {!fixed && (
-        <label className="bf-pick-client">
+        <div className="bf-pick-client">
           <span className="field-label">para quem</span>
-          <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
-            <option value="">escolha o cliente…</option>
-            {data.clients
-              .filter((c) => !c.archived)
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
-        </label>
+          <ClientPicker clients={data.clients} value={clientId} onChange={setClientId} />
+        </div>
       )}
       <span className="field-label">qual modelo</span>
       <div className="bf-tpl-filter">
