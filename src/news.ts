@@ -18,6 +18,7 @@ export interface News {
   title: string
   text: string
   steps?: NewsStep[]
+  feature?: import('./plans').Feature // só aparece para quem tem esta função no plano
   beta?: boolean // ainda em teste: só a dona (e a prévia) veem; quem assina vê quando sair o "beta"
 }
 
@@ -33,6 +34,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'use o seu próprio briefing',
+    feature: 'briefing',
     text: 'Já tem um briefing seu? Anexe o arquivo (Word ou PDF): as perguntas, as opções de marcar e as imagens viram um modelo seu, tudo editável e pronto para mandar pelo link.',
     steps: [{ page: 'briefings', text: 'Em briefings, toque em “anexar meu briefing”.' }],
   },
@@ -49,6 +51,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'painel do cliente',
+    feature: 'portal',
     text: 'Cada cliente pode ter um painel só dele, aberto pelo link que você manda: etapas, pagamentos, contratos para assinar, briefings, documentos e arquivos que você escolher. Atualiza sozinho e o cliente pode te mandar recados por ali.',
     steps: [{ page: 'clientes', text: 'Abra um cliente e toque em “criar o painel”.' }],
   },
@@ -324,4 +327,4 @@ export const NEWS: News[] = [
 /** Novidades que a pessoa ainda não viu. */
 /** As novidades que esta pessoa pode ver (as em teste só aparecem para a dona e na prévia). */
 export const visibleNews = () => NEWS.filter((n) => !n.beta || isBeta())
-export const unseenNews = (seen?: string[]) => (seen ? visibleNews().filter((n) => !seen.includes(n.id)) : [])
+export const unseenNews = (seen?: string[], has: (f: import('./plans').Feature) => boolean = () => true) => (seen ? visibleNews().filter((n) => !seen.includes(n.id) && (!n.feature || has(n.feature))) : [])

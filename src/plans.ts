@@ -162,6 +162,20 @@ export const PLAN_TOGGLES: [Feature, string][] = [
   ['documentos', 'documentos (guia de medição, placa de obra, apresentação)'],
 ]
 
+/** Em que planos está uma função (lido do cadastro dos planos, que a dona edita no painel). */
+export const plansWith = (f: Feature) => PLAN_LIST.filter((p) => p.features.includes(f))
+/** Texto curto para a página de vendas: '' (todos os planos), "plano Estúdio", "a partir do Completo"… */
+export function planLabel(f?: Feature) {
+  if (!f) return ''
+  const has = plansWith(f)
+  if (!has.length || has.length === PLAN_LIST.length) return ''
+  if (has.length === 1) return `plano ${has[0].name}`
+  const first = PLAN_LIST.findIndex((p) => p.id === has[0].id)
+  const fromHere = PLAN_LIST.slice(first)
+  if (fromHere.length === has.length && fromHere.every((p, i) => p.id === has[i].id)) return `a partir do ${has[0].name}`
+  return `planos ${has.map((p) => p.name).join(' e ')}`
+}
+
 /** Tabela de comparação da página de vendas (linha → um valor por plano, na ordem de PLAN_LIST). */
 export type CompareRow = [string, ...(boolean | string)[]]
 export function compareRows(): CompareRow[] {

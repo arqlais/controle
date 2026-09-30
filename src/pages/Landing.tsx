@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
-import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type Feature, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -176,8 +176,8 @@ const BENEFITS = [
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['tem plano semestral ou anual?', `Tem. No anual você ganha ${annualBadge() || 'desconto'}: à vista no Pix ou em 12x sem juros no cartão. O semestral tem ${SEMESTER_DISCOUNT}% de desconto: à vista no Pix ou em 6x sem juros no cartão. E o mensal é no Pix todo mês ou no cartão recorrente, sem fidelidade.`],
-  ['posso usar o meu próprio briefing?', 'Pode. Além dos modelos prontos, você anexa o seu briefing (Word ou PDF): as perguntas, as opções de marcar e as imagens viram um modelo seu, editável, que o cliente responde pelo link.'],
-  ['posso usar o meu próprio contrato?', 'Pode. O sistema traz modelos prontos, mas você anexa o seu contrato (Word ou PDF) ou cola o texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.'],
+  ['posso usar o meu próprio briefing?', `Pode${planLabel('briefing') ? `, no ${planLabel('briefing')}` : ''}. Além dos modelos prontos, você anexa o seu briefing (Word ou PDF): as perguntas, as opções de marcar e as imagens viram um modelo seu, editável, que o cliente responde pelo link.`],
+  ['posso usar o meu próprio contrato?', (planLabel('contratos') ? `Pode, ${planLabel('contratos')}. ` : 'Pode. ') + 'O sistema traz modelos prontos, mas você anexa o seu contrato (Word ou PDF) ou cola o texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.'],
   ['para quem é o sistema?', 'Para quem vive de projeto: arquitetos, designers de interiores e escritórios que atendem o cliente final, e freelancers que prestam serviço para escritórios (3D, executivo, apresentação). No cadastro você diz como trabalha e o sistema já vem pronto para isso. Quem faz os dois usa tudo na mesma conta.'],
   ['serve para quem está começando?', 'Serve: estudantes e profissionais em começo de carreira, que precisam de organização sem pagar caro, começam bem no Essencial.'],
   ['serve para escritório que atende cliente final?', 'Serve. O cliente final ganha uma ficha completa (profissão, família, rotina e o imóvel) e a tabela de preços já vem organizada: consultoria, projeto, projetos complementares (estrutural, elétrico, hidrossanitário…), regularização e obra. No plano Estúdio ainda tem a página do projeto para o cliente, o cronograma das etapas, o acompanhamento de obra, o lucro de cada projeto e o briefing online.'],
@@ -596,7 +596,7 @@ export default function Landing() {
               </tfoot>
             </table>
             <p className="lp-compare-note">
-              <Icon name="star" size={14} /> no {PLANS.completo.name} você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês. O {PLANS.estudio.name} é para quem atende cliente final: briefing online, cronograma, obra, página do cliente e documentos com a sua marca.
+              <Icon name="star" size={14} /> no {PLANS.completo.name} você tem proposta, recibo e contrato em PDF com a sua identidade, por {money0(PLANS.completo.price - PLANS.essencial.price)} a mais por mês. O {PLANS.estudio.name} é para quem atende cliente final: briefing online, cronograma, obra, painel do cliente e documentos com a sua marca.
             </p>
           </details>
         </div>
@@ -837,23 +837,23 @@ function Journey({ steps: JOURNEY, paused: hidden }: { steps: typeof JOURNEY_FIN
 /* ---------------- tudo num lugar só (o grande diferencial) ---------------- */
 
 const OUTSIDE = ['formulário on-line para o briefing', 'app de design para a proposta', 'editor de texto para o contrato', 'site pago para assinar o contrato', 'talão ou gerador de recibo', 'planilha para o financeiro']
-const INSIDE: { icon: string; title: string; text: string; carry: string }[] = [
-  { icon: 'clip', title: 'briefing', text: 'o cliente responde pelo link, no celular, com fotos', carry: 'nome, imóvel e o que ele precisa' },
-  { icon: 'file', title: 'orçamento', text: 'proposta em PDF com a sua marca, pela sua tabela de preços', carry: 'já sabe quem é o cliente' },
-  { icon: 'pen', title: 'contrato', text: 'sai preenchido com valor, prazo, etapas e pagamento', carry: 'puxa tudo do orçamento' },
-  { icon: 'check', title: 'assinatura', text: 'o cliente assina pelo celular, com certificado no PDF', carry: 'sem site de assinatura à parte' },
-  { icon: 'wallet', title: 'recibo', text: 'um toque em cada pagamento recebido', carry: 'valor e dados já prontos' },
+const INSIDE: { icon: string; title: string; text: string; carry: string; feature?: Feature }[] = [
+  { icon: 'clip', title: 'briefing', text: 'o cliente responde pelo link, no celular, com fotos', carry: 'nome, imóvel e o que ele precisa', feature: 'briefing' },
+  { icon: 'file', title: 'orçamento', text: 'pela sua tabela de preços, em texto para o WhatsApp ou proposta em PDF com a sua marca', carry: 'já sabe quem é o cliente' },
+  { icon: 'pen', title: 'contrato', text: 'sai preenchido com valor, prazo, etapas e pagamento', carry: 'puxa tudo do orçamento', feature: 'contratos' },
+  { icon: 'check', title: 'assinatura', text: 'o cliente assina pelo celular, com certificado no PDF', carry: 'sem site de assinatura à parte', feature: 'contratos' },
+  { icon: 'wallet', title: 'recibo', text: 'um toque em cada pagamento recebido', carry: 'valor e dados já prontos', feature: 'propostaPdf' },
   { icon: 'trend', title: 'financeiro', text: 'entra sozinho no recebido e no a receber do mês', carry: 'sem digitar nada de novo' },
 ]
 
-const AUTO: [string, string][] = [
-  ['clip', 'as respostas do briefing já preenchem a ficha do cliente'],
+const AUTO: [string, string, Feature?][] = [
+  ['clip', 'as respostas do briefing já preenchem a ficha do cliente', 'briefing'],
   ['file', 'o orçamento sai com os seus preços, prazos e forma de pagamento'],
-  ['pen', 'o contrato se preenche com o cliente, o valor, as etapas e o prazo'],
-  ['check', 'a assinatura do cliente volta sozinha para o contrato, com certificado'],
+  ['pen', 'o contrato se preenche com o cliente, o valor, as etapas e o prazo', 'contratos'],
+  ['check', 'a assinatura do cliente volta sozinha para o contrato, com certificado', 'contratos'],
   ['wallet', 'cada pagamento vira recibo e entra no financeiro na hora'],
   ['calendar', 'prazos e parcelas vão para a agenda e lembram você de cobrar'],
-  ['link', 'o painel do cliente se atualiza sozinho a cada etapa'],
+  ['link', 'o painel do cliente se atualiza sozinho a cada etapa', 'portal'],
   ['inbox', 'você recebe aviso quando o cliente responde ou assina'],
 ]
 
@@ -913,7 +913,10 @@ function AllInOne({ onTry }: { onTry: () => void }) {
               <span className="lp-all-num">
                 {step + 1}/{INSIDE.length}
               </span>
-              <b>{cur.title}</b>
+              <b>
+                {cur.title}
+                {planLabel(cur.feature) && <em className="lp-plan-tag">{planLabel(cur.feature)}</em>}
+              </b>
               <p>{cur.text}</p>
               <span className="lp-all-carry">
                 <Icon name="arrowRight" size={13} /> {cur.carry}
@@ -940,12 +943,15 @@ function AllInOne({ onTry }: { onTry: () => void }) {
             <Icon name="sparkle" size={14} /> o que o {PLATFORM.name} faz sozinho
           </p>
           <ul>
-            {AUTO.map(([icon, text]) => (
+            {AUTO.map(([icon, text, f]) => (
               <li key={text}>
                 <span className="lp-auto-ico">
                   <Icon name={icon} size={15} />
                 </span>
-                {text}
+                <span>
+                  {text}
+                  {planLabel(f) && <em className="lp-plan-tag">{planLabel(f)}</em>}
+                </span>
               </li>
             ))}
           </ul>
