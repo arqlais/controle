@@ -9,6 +9,7 @@ import { ProjectForm, EventForm } from '../components/forms'
 import { ReceiptDoc } from '../components/Docs'
 import { usePdf } from '../components/Print'
 import { useKeep } from '../keep'
+import { KIND_LABEL, projectKind } from '../processes'
 import { ClienteTab, CronogramaTab, LucroTab, ObraTab, PROJECT_TABS, ProjectTabs, StudioLocked, usePortalSync, type ProjectTab } from '../components/Studio'
 import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
@@ -95,6 +96,8 @@ export default function ProjectDetail({ id }: { id: string }) {
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = data.settings.services.find((s) => s.id === p.service)
   const save = (patch: Partial<Project>) => upsert('projects', { ...p, ...patch })
+  // cliente final: cronograma, obra, custos e página do cliente; freelancer e estudante: checklist simples
+  const kind = projectKind(p, data)
   const setPayment = (pid: string, patch: Partial<Payment>) => save({ payments: p.payments.map((x) => (x.id === pid ? { ...x, ...patch } : x)) })
 
   const total = projectTotal(p)
@@ -242,8 +245,25 @@ export default function ProjectDetail({ id }: { id: string }) {
         )}
       </div>
 
-      <ProjectTabs tab={tab} onTab={setTab} p={p} />
-      {tab !== 'geral' && (() => {
+      {kind === 'final' ? (
+        <ProjectTabs tab={tab} onTab={setTab} p={p} />
+      ) : (
+        <p className="kind-note">
+          <Icon name="layers" size={14} />
+          <span>
+            Demanda de <b>{KIND_LABEL[kind]}</b>: checklist simples, sem cronograma de obra.{' '}
+            <button className="link" onClick={() => save({ kind: 'final' })}>
+              é cliente final? usar cronograma, obra e página do cliente
+            </button>
+          </span>
+        </p>
+      )}
+      {p.kind === 'final' && projectKind({ ...p, kind: undefined }, data) !== 'final' && (
+        <button className="link small muted-link kind-undo" onClick={() => save({ kind: undefined })}>
+          voltar para {KIND_LABEL[projectKind({ ...p, kind: undefined }, data)]} (esconder as abas)
+        </button>
+      )}
+      {tab !== 'geral' && kind === 'final' && (() => {
         const t = PROJECT_TABS.find((x) => x.id === tab)
         if (t?.feature && !has(t.feature)) return <StudioLocked tab={tab} />
         if (tab === 'cronograma') return <CronogramaTab p={p} save={save} />
@@ -251,7 +271,7 @@ export default function ProjectDetail({ id }: { id: string }) {
         if (tab === 'lucro') return <LucroTab p={p} save={save} />
         return <ClienteTab p={p} save={save} client={client} />
       })()}
-      {tab === 'geral' && (
+      {(tab === 'geral' || kind !== 'final') && (
       <div className="grid-2 wide-left">
         <div className="stack">
           <Section

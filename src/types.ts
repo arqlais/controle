@@ -152,6 +152,7 @@ export interface Project {
   timerStart: string | null // cronômetro rodando desde (ISO)
   notes: string
   createdAt: string
+  kind?: 'final' | 'freela' | 'estudante' // tipo de trabalho escolhido à mão (vazio = pelo cliente)
   // plano Estúdio
   phases?: ProjectPhase[] // cronograma: etapas do projeto com prazo e parcela
   visits?: SiteVisit[] // acompanhamento de obra

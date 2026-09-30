@@ -1,4 +1,4 @@
-import type { Client, ProcessStep, ProjectProcess, Quote, QuoteAudience, ServiceDef, Settings } from './types'
+import type { Client, Data, Project, ProcessStep, ProjectProcess, Quote, QuoteAudience, ServiceDef, Settings } from './types'
 import { DEFAULT_TASKS, isStudent, uid } from './utils'
 
 /* Processos de trabalho para cliente final. São só pontos de partida:
@@ -115,3 +115,14 @@ export function tasksFor(s: Settings, kind: WorkKind, steps?: ProcessStep[]): st
   if (kind === 'final' && steps?.some((x) => x.name.trim())) return steps.filter((x) => x.name.trim()).map((x) => x.name)
   return s.freelaTasks?.length ? s.freelaTasks : DEFAULT_TASKS
 }
+
+/** Tipo de trabalho de uma demanda: o escolhido à mão, senão pelo orçamento e pelo cliente. */
+export function projectKind(p: Project, d: Pick<Data, 'clients' | 'quotes'>): WorkKind {
+  if (p.kind) return p.kind
+  const client = d.clients.find((c) => c.id === p.clientId)
+  const quote = d.quotes.find((q) => q.projectId === p.id)
+  if (isStudent(client)) return 'estudante'
+  if (quote?.audience === 'final' || client?.type === 'final' || (p.phases?.length ?? 0) > 0) return 'final'
+  return 'freela'
+}
+export const KIND_LABEL: Record<WorkKind, string> = { final: 'cliente final', freela: 'freelancer / parceiro', estudante: 'estudante' }
