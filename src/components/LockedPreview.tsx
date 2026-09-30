@@ -42,7 +42,7 @@ export function LockBanner({ feature }: { feature: Feature }) {
 }
 
 // o que tiraria o modelo daqui (baixar, copiar, mandar, imprimir…): na prévia, só com o plano
-const TAKE_AWAY = /\b(baixar|download|pdf|png|imprimir|print|copiar|enviar|mandar|whatsapp|compartilhar|link|exportar|importar|anexar|assinar|publicar|duplicar|qr|salvar como)/i
+const TAKE_AWAY = /\b(baixar|download|pdf|png|imprimir|print|copiar|enviar|mandar|whatsapp|compartilhar|link|exportar|importar|anexar|assinar|publicar|qr|salvar como)/i
 
 /** A tela real, para explorar: dá para abrir, clicar e testar, mas nada é salvo, baixado, copiado ou enviado. */
 export function LockedView({ feature, children }: { feature: Feature; children: ReactNode }) {
