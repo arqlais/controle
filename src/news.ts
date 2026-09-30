@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-folha-cliente-final',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'folha única também para cliente final',
+    text: 'O orçamento de cliente final pode sair em slides (apresentação) ou na folha única, objetiva, com serviços, valores e prazo. Escolha em cada orçamento, na parte "apresentação", ou deixe um padrão em configurações → propostas.',
+  },
+  {
     id: '2026-09-30-termometro-uso',
     date: '2026-09-30',
     kind: 'novo',

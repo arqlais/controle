@@ -366,6 +366,7 @@ export interface Quote {
   processId?: string // processo de trabalho usado como base das etapas
   steps?: ProcessStep[] // etapas do projeto (cliente final): o que inclui, prazo e % do pagamento
   intro?: string // texto de abertura da proposta (cliente final)
+  layout?: 'slides' | 'folha' // cliente final: proposta em slides (padrão) ou folha única objetiva
 }
 
 export type QuoteAudience = 'final' | 'parceiro'
@@ -442,6 +443,7 @@ export interface ProposalStyle {
   template?: string // modelo escolhido (src/proposalTemplates.ts); vazio = padrão do plano
   pdfOff?: boolean // não usa PDF: orçamento vai só como resumo no WhatsApp
   sans?: string // fonte dos textos da proposta (padrão Poppins)
+  finalLayout?: 'slides' | 'folha' // formato padrão da proposta para cliente final
   showLogo?: boolean // logo do perfil nos modelos (vazio = sim, quando tem logo)
   followBrand?: boolean // cores e fontes dos modelos seguem a identidade do sistema (vazio = sim)
 }

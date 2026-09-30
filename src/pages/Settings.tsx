@@ -556,6 +556,18 @@ function ProposalChooser() {
   const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
   return (
     <Section title="design dos documentos">
+      {s.workProfile !== 'freelancer' && has('propostaPdf') && (
+        <Field group label="Proposta para cliente final (padrão)" hint="Vale para os orçamentos novos. Em cada orçamento dá para trocar.">
+          <Segmented
+            value={s.proposal.finalLayout ?? 'slides'}
+            onChange={(v) => setSettings({ proposal: { ...s.proposal, finalLayout: v } })}
+            options={[
+              { value: 'slides', label: 'slides (apresentação)' },
+              { value: 'folha', label: 'folha única (objetiva)' },
+            ]}
+          />
+        </Field>
+      )}
       {!has('propostaPdf') && (
         <p className="pf-note">
           <Icon name="lock" size={16} />

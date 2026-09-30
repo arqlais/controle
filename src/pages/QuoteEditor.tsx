@@ -11,7 +11,7 @@ import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
 import { ClientForm } from '../components/forms'
 import { ClientPicker } from '../components/ClientPicker'
-import { QuoteDoc } from '../components/Docs'
+import { QuoteDoc, isSlides } from '../components/Docs'
 import { DocZoom, DocScale, usePdf } from '../components/Print'
 import { Badge, DesktopNote, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
 import { askChoice, askDelete, toast } from '../components/dialog'
@@ -259,7 +259,7 @@ export default function QuoteEditor({ id }: { id: string }) {
               return [{ ...newItem(), service: sv.id, title: sv.name, quantity, description, price: suggestPrice(sv, quantity, 'media', student, { ...settings, services }, description.split('\n'), !!q.openFile, floors) }]
             })()
           : undefined
-      set({ audience: a, pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(proc && !q.title ? { title: proc.name } : {}), ...steps, ...(items ? { items } : {}) })
+      set({ audience: a, ...(a === 'final' && !q.layout && settings.proposal.finalLayout ? { layout: settings.proposal.finalLayout } : {}), pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(proc && !q.title ? { title: proc.name } : {}), ...steps, ...(items ? { items } : {}) })
     } else set({ audience: a })
   }
   const oa = (o: QuoteOption) => optionArea(q, o)
@@ -405,7 +405,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const downloadPdf = (vector: boolean, frozen?: ReactNode) => {
     const cur = frozen && freeEdit ? freeEdit : reserve()
     const doc = frozen ?? <QuoteDoc s={settings} client={client} quote={cur} />
-    if (cur.audience === 'final') return pdf.downloadSlides(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
+    if (isSlides(cur)) return pdf.downloadSlides(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
     ;(vector ? pdf.downloadVector : pdf.download)(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
   }
   const duplicate = () => {
@@ -515,7 +515,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             </a>
           )}
           <MoreMenu>
-            {showPdf && !isFinal && (
+            {showPdf && !isSlides(q) && (
               <button className="btn ghost" disabled={pdf.busy} onClick={() => downloadPdf(true)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
                 <Icon name="download" size={16} /> PDF em vetor
               </button>
@@ -739,9 +739,19 @@ export default function QuoteEditor({ id }: { id: string }) {
 
           {isFinal && (
             <Section title="apresentação">
-              <Field label="Texto de abertura" hint="Aparece no slide “O seu projeto”. Em branco, vai um texto padrão. Seu “sobre” e as fotos de projetos ficam em Configurações → propostas.">
-                <textarea rows={3} value={q.intro ?? ''} onChange={(e) => set({ intro: e.target.value })} placeholder="Ex.: Um apartamento pensado para a rotina de vocês, com espaço para receber os amigos e muita luz natural." spellCheck lang="pt-BR" />
+              <Field group label="Formato da proposta" hint={isSlides(q) ? 'Slides 16:9: apresentação, etapas, prazos, investimento e pagamento por etapa.' : 'Folha única: serviços, valores e prazo, direto ao ponto (como a proposta de freelancer).'}>
+                <Segmented
+                  value={isSlides(q) ? 'slides' : 'folha'}
+                  onChange={(v) => set({ layout: v })}
+                  options={[
+                    { value: 'slides', label: 'slides (apresentação)' },
+                    { value: 'folha', label: 'folha única (objetiva)' },
+                  ]}
+                />
               </Field>
+              {isSlides(q) && <Field label="Texto de abertura" hint="Aparece no slide “O seu projeto”. Em branco, vai um texto padrão. Seu “sobre” e as fotos de projetos ficam em Configurações → propostas.">
+                <textarea rows={3} value={q.intro ?? ''} onChange={(e) => set({ intro: e.target.value })} placeholder="Ex.: Um apartamento pensado para a rotina de vocês, com espaço para receber os amigos e muita luz natural." spellCheck lang="pt-BR" />
+              </Field>}
             </Section>
           )}
           {!two ? (
@@ -982,12 +992,12 @@ export default function QuoteEditor({ id }: { id: string }) {
         {showPdf && (
           <aside className="quote-preview">
             <div className="doc-zoomable" onClick={() => setZoom(true)} title="Ver maior">
-              <DocScale width={isFinal ? SLIDE_W : undefined}>{preview}</DocScale>
+              <DocScale width={isSlides(q) ? SLIDE_W : undefined}>{preview}</DocScale>
               <span className="doc-zoom-btn">
                 <Icon name="eye" size={14} /> ver maior
               </span>
             </div>
-            {zoom && <DocZoom width={isFinal ? SLIDE_W : undefined} onClose={() => setZoom(false)}>{preview}</DocZoom>}
+            {zoom && <DocZoom width={isSlides(q) ? SLIDE_W : undefined} onClose={() => setZoom(false)}>{preview}</DocZoom>}
             <p className="muted small center">
               Pré-visualização do PDF · cores e textos padrão em{' '}
               <a className="link" href={href('config')}>
@@ -1017,7 +1027,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       {freeEdit && (
         <FreeEditModal
           doc={<QuoteDoc s={settings} client={client} quote={freeEdit} />}
-          width={freeEdit.audience === 'final' ? SLIDE_W : 794}
+          width={isSlides(freeEdit) ? SLIDE_W : 794}
           onClose={() => setFreeEdit(null)}
           onDownload={(frozen) => {
             downloadPdf(false, frozen)

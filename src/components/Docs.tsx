@@ -303,9 +303,12 @@ function TotalBar({ label, value, note, compact }: { label: string; value: numbe
 
 const discountText = (value: number) => (value > 0 ? `com ${money(value)} de desconto` : '')
 
+/** Esta proposta sai em slides? (cliente final, a menos que tenha escolhido a folha única) */
+export const isSlides = (q: Quote) => q.audience === 'final' && q.layout !== 'folha'
+
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  // cliente final: proposta em slides 16:9
-  if (quote.audience === 'final') return <ProposalSlides s={s} client={client} quote={quote} />
+  // cliente final: proposta em slides 16:9 (ou a folha única, se escolheu)
+  if (isSlides(quote)) return <ProposalSlides s={s} client={client} quote={quote} />
   return <QuoteSheet s={s} client={client} quote={quote} />
 }
 
