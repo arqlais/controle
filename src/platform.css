@@ -1775,5 +1775,5 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 .kind-note svg { margin-top: 2px; color: var(--accent); flex: none; }
 .kind-undo { display: block; margin: -6px 0 12px; }
 .bf-public.is-preview { min-height: 0; padding: 18px 12px 24px; }
-.cp { position: relative; flex: 1; min-width: 0; }
+.cpk { position: relative; flex: 1; min-width: 0; }
 .bf-tips ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 2px; }

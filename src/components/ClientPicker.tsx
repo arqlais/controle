@@ -60,7 +60,7 @@ export function ClientPicker({ id, clients, value, onChange, onCreate, placehold
     setOpen(false)
   }
   return (
-    <div className="cp" ref={box}>
+    <div className="cpk" ref={box}>
       <div className={`cp-field ${chosen ? 'has-client' : ''}`}>
         {chosen && !typing && <ClientAvatar name={chosen.name} size={24} />}
         <input
