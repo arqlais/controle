@@ -52,7 +52,7 @@ import { useAccess } from './access'
 const Landing = lazy(() => import('./pages/Landing'))
 import { setViewAsClient, setViewPlan, viewingAsClient, type ViewPlan } from './viewAs'
 import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewPlan, setPreviewRole } from './platform'
-import { SIGNUP_KEY, demoData, hasLocalAccount, seedPreviewAccount } from './store'
+import { SIGNUP_KEY, demoData, hasLocalAccount, seedPreviewAccount, usageCounts } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox, useSuggestionUpdates } from './chat'
@@ -242,6 +242,17 @@ export default function App() {
     go('inicio')
   }
   const asClient = CLOUD && viewingAsClient()
+  // termômetro de uso: manda só as contagens (nada do conteúdo) quando mudam, alguns segundos depois
+  const lastUsage = useRef('')
+  const usageSig = JSON.stringify(usageCounts(data))
+  useEffect(() => {
+    if (!CLOUD || access.isOwner || access.legacy || isSample || asClient || sync === 'loading' || usageSig === lastUsage.current) return
+    const t = window.setTimeout(() => {
+      lastUsage.current = usageSig
+      void platform.reportUsage(JSON.parse(usageSig)).catch(() => undefined)
+    }, 4000)
+    return () => window.clearTimeout(t)
+  }, [usageSig, access.isOwner, access.legacy, isSample, asClient, sync])
   // olhinho da dona: o painel da plataforma também mostra o exemplo (assinantes, conversas, depoimentos…)
   // liga antes de as telas buscarem os dados (senão o painel carregaria o real, vazio)
   const platformSample = CLOUD && isSample && access.isOwner

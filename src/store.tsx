@@ -1065,3 +1065,21 @@ export function SandboxStore({ children, onWrite }: { children: ReactNode; onWri
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
+
+/** Termômetro de uso: só contagens do que a pessoa fez (sem os dados de exemplo), nunca o conteúdo. */
+export function usageCounts(d: Data) {
+  const demoNames = new Set(demoData(d.settings).clients.map((c) => c.name))
+  const demoIds = new Set(d.clients.filter((c) => demoNames.has(c.name)).map((c) => c.id))
+  const real = <T extends { clientId?: string }>(l: T[] = []) => l.filter((x) => !x.clientId || !demoIds.has(x.clientId))
+  const quotes = real(d.quotes)
+  const last = quotes.map((q) => q.createdAt).filter(Boolean).sort().at(-1) ?? ''
+  return {
+    quotes: quotes.length,
+    clients: d.clients.filter((c) => !demoIds.has(c.id)).length,
+    projects: real(d.projects).length,
+    contracts: real(d.contracts).length,
+    docs: real(d.docs).length,
+    briefings: real(d.briefings as { clientId?: string }[]).length,
+    lastQuoteAt: last.slice(0, 10),
+  }
+}

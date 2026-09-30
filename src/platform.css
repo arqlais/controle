@@ -2439,3 +2439,10 @@ select.cell-input { min-width: 132px; }
 .lk-dim { opacity: 0.6; filter: saturate(0.6); pointer-events: none; }
 .lk-btn { color: var(--muted); }
 .lk-btn svg:first-child { color: var(--brand-rose); }
+/* termômetro de uso */
+.pf-usage-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+.pf-usage-sum-title { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.pf-usage-sum small { flex-basis: 100%; }
+.pf-usage-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pf-usage { grid-column: 1 / -1; }
+.pf-usage-in { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }

@@ -8,7 +8,7 @@ import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
 import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
@@ -41,6 +41,7 @@ export default function Admin() {
   const [sugs, setSugs] = useState<Suggestion[]>([])
   // controle de cobrança de cada assinante (pago até, pagamentos, anotações): só a dona vê
   const [ctrl, setCtrl] = useState<Record<string, SubAdmin>>({})
+  const [usage, setUsage] = useState<Record<string, Usage>>({})
   const saveCtrl = async (userId: string, d: SubAdmin, msg = '') => {
     setCtrl((c) => ({ ...c, [userId]: d }))
     try {
@@ -61,7 +62,8 @@ export default function Admin() {
   }
   const loadExtra = useCallback(async () => {
     try {
-      const [b, sg, ct] = await Promise.all([platform.allBilling(), platform.suggestions(), platform.subAdmin()])
+      const [b, sg, ct, us] = await Promise.all([platform.allBilling(), platform.suggestions(), platform.subAdmin(), platform.usage()])
+      setUsage(us)
       setBilling(b)
       setSugs(sg)
       setCtrl(ct)
@@ -131,8 +133,8 @@ export default function Admin() {
           ]}
         />
       </div>
-      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} />}
-      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} saveBilling={saveBilling} ctrl={ctrl} saveCtrl={saveCtrl} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
+      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} usage={usage} />}
+      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} saveBilling={saveBilling} ctrl={ctrl} saveCtrl={saveCtrl} usage={usage} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
       {tab === 'depoimentos' && <FeedbackAdmin />}
@@ -195,7 +197,7 @@ const remindText = (s: Subscription, c?: SubAdmin) =>
 
 const activate = (s: Subscription): Partial<Subscription> => ({ status: 'ativa', plan: s.requestedPlan ?? s.plan, requestedPlan: null, requestedAt: null, canceledAt: null, blocked: false })
 
-function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
+function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const requests = subs.filter((x) => x.requestedPlan)
   const now = new Date()
   const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
@@ -233,6 +235,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
   const endingTrials = subs.filter((x) => x.status === 'trial' && trialDaysLeft(x) > 0 && trialDaysLeft(x) <= 3)
   return (
     <>
+      <UsageSummary subs={subs.filter((x) => !x.deletedAt)} usage={usage} />
       <div className="stats">
         <Stat label="Online agora" value={subs.filter(isOnline5).length} sub={subs.filter(isOnline5).map((x) => first(x)).join(', ') || 'ninguém usando neste momento'} icon="users" />
         <Stat label="Recebido este mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s) registrado(s)` : 'registre em assinantes → cobrança'} icon="check" tone="good" />
@@ -356,7 +359,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
   )
 }
 
-function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
+function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos'>('painel-filtro', 'todos')
   const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
@@ -418,6 +421,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
         </button>
       </div>
       <p className="muted small">{rows.length} de {subs.length} assinante(s)</p>
+      <UsageSummary subs={subs.filter((x) => !x.deletedAt)} usage={usage} />
       <div className="pf-subs">
         {rows.map((s) => {
           const left = trialDaysLeft(s)
@@ -447,6 +451,12 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
                 <div>
                   <dt>último acesso</dt>
                   <dd>{s.lastSeen ? ago(s.lastSeen) : '—'}</dd>
+                </div>
+                <div className="pf-usage">
+                  <dt>uso</dt>
+                  <dd>
+                    <UsageBadge u={usage[s.userId]} />
+                  </dd>
                 </div>
                 <div>
                   <dt>{s.status === 'trial' ? 'teste' : 'valor'}</dt>
@@ -1599,5 +1609,49 @@ function FeedbackAdmin() {
         ))}
       </div>
     </>
+  )
+}
+
+/* ---------------- termômetro de uso (só contagens) ---------------- */
+
+const LEVEL: Record<UsageLevel, { label: string; color: string; icon: string }> = {
+  bem: { label: 'usando bem', color: '#566779', icon: 'trend' },
+  comecou: { label: 'começou', color: '#a88a80', icon: 'sparkle' },
+  olhou: { label: 'só olhou', color: '#9aa3ab', icon: 'eye' },
+}
+
+function UsageBadge({ u }: { u?: Usage }) {
+  const lv = LEVEL[usageLevel(u)]
+  const parts = u ? [[u.quotes, 'orçamento'], [u.clients, 'cliente'], [u.contracts, 'contrato'], [u.docs, 'documento'], [u.briefings, 'briefing']].filter(([n]) => (n as number) > 0).map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`) : []
+  return (
+    <span className="pf-usage-in">
+      <span className="pf-usage-badge" style={{ color: lv.color, background: `color-mix(in srgb, ${lv.color} 12%, transparent)` }}>
+        <Icon name={lv.icon} size={12} /> {lv.label}
+      </span>
+      <small className="muted">
+        {parts.length ? parts.join(' · ') : u ? 'nada criado ainda' : 'ainda sem dados (entra quando a pessoa abrir o sistema)'}
+        {u?.lastQuoteAt ? ` · último orçamento ${ago(u.lastQuoteAt)}` : ''}
+      </small>
+    </span>
+  )
+}
+
+function UsageSummary({ subs, usage }: { subs: Subscription[]; usage: Record<string, Usage> }) {
+  const count = (lv: UsageLevel) => subs.filter((x) => usageLevel(usage[x.userId]) === lv).length
+  const quotes = subs.reduce((n, x) => n + (usage[x.userId]?.quotes ?? 0), 0)
+  return (
+    <div className="pf-usage-sum" role="note">
+      <span className="pf-usage-sum-title">
+        <Icon name="target" size={14} /> termômetro de uso
+      </span>
+      {(Object.keys(LEVEL) as UsageLevel[]).map((lv) => (
+        <span key={lv} className="pf-usage-badge" style={{ color: LEVEL[lv].color, background: `color-mix(in srgb, ${LEVEL[lv].color} 12%, transparent)` }}>
+          <Icon name={LEVEL[lv].icon} size={12} /> {count(lv)} {LEVEL[lv].label}
+        </span>
+      ))}
+      <small className="muted">
+        {quotes} orçamento(s) feitos no total · só números: o conteúdo de cada conta continua fechado
+      </small>
+    </div>
   )
 }

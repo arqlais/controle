@@ -68,6 +68,27 @@ export interface SubAdmin {
   payments?: SubPayment[]
 }
 
+/** Termômetro de uso de uma conta: só contagens, nunca o conteúdo. */
+export interface Usage {
+  quotes: number
+  clients: number
+  projects: number
+  contracts: number
+  docs: number
+  briefings: number
+  lastQuoteAt: string // AAAA-MM-DD ('' = nenhum)
+  updatedAt: string
+}
+export type UsageLevel = 'bem' | 'comecou' | 'olhou'
+/** "usando bem": 3+ orçamentos e um nos últimos 30 dias · "começou": algum orçamento ou cliente · "só olhou": nada ainda. */
+export function usageLevel(u?: Usage): UsageLevel {
+  if (!u) return 'olhou'
+  const recent = !!u.lastQuoteAt && Date.now() - Date.parse(u.lastQuoteAt) < 30 * 86_400_000
+  if (u.quotes >= 3 && recent) return 'bem'
+  if (u.quotes > 0 || u.clients > 0 || u.projects > 0) return 'comecou'
+  return 'olhou'
+}
+
 /** Sugestão de melhoria enviada por quem usa. */
 export type SuggestionStatus = 'recebida' | 'analisando' | 'planejada' | 'feita' | 'nao_agora'
 export type SuggestionCategory = 'nova' | 'melhoria' | 'problema' | 'outro'
@@ -327,6 +348,19 @@ const cloud = {
   async saveSubAdmin(userId: string, d: SubAdmin) {
     const { error } = await supabase!.from('subscriber_admin').upsert({ user_id: userId, data: d, updated_at: new Date().toISOString() })
     if (error) throw error
+  },
+  /** A própria conta manda as contagens (tabela ainda não criada: ignora em silêncio). */
+  async reportUsage(u: Omit<Usage, 'updatedAt'>) {
+    const id = (await supabase!.auth.getUser()).data.user?.id
+    if (!id) return
+    await supabase!.from('usage_stats').upsert({ user_id: id, quotes: u.quotes, clients: u.clients, projects: u.projects, contracts: u.contracts, docs: u.docs, briefings: u.briefings, last_quote_at: u.lastQuoteAt || null, updated_at: new Date().toISOString() })
+  },
+  async usage(): Promise<Record<string, Usage>> {
+    const { data, error } = await supabase!.from('usage_stats').select('*')
+    if (error) return {}
+    return Object.fromEntries(
+      (data ?? []).map((r) => [String(r.user_id), { quotes: Number(r.quotes) || 0, clients: Number(r.clients) || 0, projects: Number(r.projects) || 0, contracts: Number(r.contracts) || 0, docs: Number(r.docs) || 0, briefings: Number(r.briefings) || 0, lastQuoteAt: String(r.last_quote_at ?? ''), updatedAt: String(r.updated_at ?? '') }]),
+    )
   },
   async suggestions(): Promise<Suggestion[]> {
     const { data, error } = await supabase!.from('suggestions').select('*').order('created_at', { ascending: false }).limit(1000)
@@ -701,6 +735,18 @@ const local = {
     const db = readDB()
     writeDB({ ...db, subAdmin: { ...(db.subAdmin ?? {}), [userId]: d } })
   },
+  async reportUsage(_u: Omit<Usage, 'updatedAt'>) {
+    /* prévia: nada é enviado */
+  },
+  // prévia: números de exemplo, sempre os mesmos para cada assinante
+  async usage(): Promise<Record<string, Usage>> {
+    const out: Record<string, Usage> = {}
+    readDB().subs.forEach((x, i) => {
+      const k = [0, 14, 3, 0, 27, 6, 1][i % 7]
+      out[x.userId] = { quotes: k, clients: Math.ceil(k * 0.7), projects: Math.ceil(k * 0.5), contracts: Math.floor(k / 4), docs: Math.floor(k / 5), briefings: Math.floor(k / 6), lastQuoteAt: k ? new Date(Date.now() - (i % 3 === 0 ? 45 : 3) * 86_400_000).toISOString().slice(0, 10) : '', updatedAt: new Date().toISOString() }
+    })
+    return out
+  },
   async suggestions() {
     const all = readDB().suggestions ?? []
     // na nuvem, o cliente só recebe as dele (regra do banco); aqui imita isso
@@ -793,6 +839,10 @@ const local = {
 /* "Ver como cliente" (dona): nada é enviado e nada da conta dela aparece como se fosse do cliente. */
 const asClientGuard = (b: typeof cloud): typeof cloud => ({
   ...b,
+  // "ver como cliente": nada é contado
+  async reportUsage(...a: Parameters<typeof cloud.reportUsage>) {
+    if (!viewingAsClient()) return b.reportUsage(...a)
+  },
   async choosePlan(...a: Parameters<typeof cloud.choosePlan>) {
     if (!viewingAsClient()) return b.choosePlan(...a)
   },

@@ -400,6 +400,29 @@ drop policy if exists "avisos do cliente: dono marca" on public.client_events;
 create policy "avisos do cliente: dono vê" on public.client_events for select to authenticated using (user_id = auth.uid());
 create policy "avisos do cliente: dono marca" on public.client_events for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- 5h) Termômetro de uso: só CONTAGENS (quantos orçamentos, clientes, contratos…), nunca o conteúdo.
+--     Cada conta grava a sua; a dona vê de todos para saber quem está usando de verdade.
+create table if not exists public.usage_stats (
+  user_id        uuid primary key references auth.users (id) on delete cascade,
+  quotes         int not null default 0,
+  clients        int not null default 0,
+  projects       int not null default 0,
+  contracts      int not null default 0,
+  docs           int not null default 0,
+  briefings      int not null default 0,
+  last_quote_at  date,
+  updated_at     timestamptz not null default now()
+);
+alter table public.usage_stats enable row level security;
+drop policy if exists "uso: conta grava a sua" on public.usage_stats;
+drop policy if exists "uso: conta atualiza a sua" on public.usage_stats;
+drop policy if exists "uso: conta vê a sua" on public.usage_stats;
+drop policy if exists "uso: dona vê todos" on public.usage_stats;
+create policy "uso: conta grava a sua" on public.usage_stats for insert to authenticated with check (user_id = auth.uid());
+create policy "uso: conta atualiza a sua" on public.usage_stats for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "uso: conta vê a sua" on public.usage_stats for select to authenticated using (user_id = auth.uid());
+create policy "uso: dona vê todos" on public.usage_stats for select to authenticated using (public.sou_dona());
+
 -- 6) Funções só para quem está logado (visitantes sem login não chamam nada).
 revoke execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() from public, anon;
 grant execute on function public.sou_dona(), public.garantir_assinatura(text), public.marcar_acesso(), public.escolher_plano(text), public.pedir_assinatura(text, text), public.marcar_lidas(uuid), public.pode_editar() to authenticated;

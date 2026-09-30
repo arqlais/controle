@@ -30,6 +30,15 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-termometro-uso',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'termômetro de uso',
+    text: 'No painel, cada assinante mostra quantos orçamentos, clientes e contratos já fez e quando foi o último orçamento, com o selo usando bem, começou ou só olhou. São só números: o conteúdo das contas continua fechado.',
+    feature: 'painelDona',
+    steps: [{ page: 'plataforma', text: 'No painel, veja o termômetro no topo e em cada assinante.' }],
+  },
+  {
     id: '2026-09-30-modelos-identidade',
     date: '2026-09-30',
     kind: 'melhoria',
