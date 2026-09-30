@@ -269,7 +269,7 @@ export default function Projects() {
                     </button>
                   )}
                 </header>
-                {!prio && <p className={`column-kind ${ci === 0 ? 'is-closed' : 'is-blank'}`}>{ci === 0 ? 'cliente fechou · demanda' : 'demanda'}</p>}
+                {!prio && ci === 0 && <p className="column-kind is-closed">cliente fechou · demanda</p>}
                 <div className="column-body">
                   {items.map((p) => (
                     <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onDragStart={() => setDragId(p.id)} />
