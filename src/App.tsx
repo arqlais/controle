@@ -40,6 +40,7 @@ import { OwnerChat } from './components/OwnerChat'
 import { useBriefingSync } from './briefingSync'
 import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { ClientPanelSync } from './components/ClientPanel'
 import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
@@ -676,7 +677,7 @@ export default function App() {
           )}
           <Fragment key={isSample ? 'exemplo' : 'real'}>
             {/* telas mais pesadas chegam só quando abertas */}
-            <Suspense fallback={<div className="page-loading" aria-busy="true" />}>{page}</Suspense>
+            <ErrorBoundary resetKey={`${route.page}/${route.id ?? ''}`}><Suspense fallback={<div className="page-loading" aria-busy="true" />}>{page}</Suspense></ErrorBoundary>
           </Fragment>
         </main>
         <StatusDialogHost />

@@ -11,6 +11,7 @@ import { platform, trialDaysLeft, trialOver } from '../platform'
 import { go, href } from '../router'
 import { download, today } from '../utils'
 import { useStore } from '../store'
+import { CycleToggle, PlanPrice, useCycle } from '../components/PlanPrice'
 
 /* "Minha assinatura": plano, teste grátis e troca de plano (em modo teste, sem cobrança). */
 
@@ -45,6 +46,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
   }
   // assinar: tela de compra (dados, endereço, pagamento) → vira pedido que a administração libera
   const request = (plan: PlanId) => go('assinatura', plan)
+  const [cycle, setCycle] = useCycle()
   return (
     <div className="page">
       <div className="page-head">
@@ -88,6 +90,10 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
           )}
         </Section>
       )}
+      <div className="cy-row">
+        <CycleToggle value={cycle} onChange={setCycle} />
+        <span className="muted small">{cycle === 'anual' ? 'um pagamento só, pelo ano todo (Pix ou cartão)' : 'paga mês a mês, cancela quando quiser'}</span>
+      </div>
       <div className="pf-plan-cards">
         {PLAN_LIST.map((p) => {
           const current = effectivePlan(sub) === p.id
@@ -97,10 +103,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
                 <h3>{p.name}</h3>
                 {current && <Badge color="#3e4b57">{sub?.status === 'trial' ? 'no teste' : 'seu plano'}</Badge>}
               </header>
-              <p className="pf-price">
-                {money0(p.price)}
-                <small>/mês</small>
-              </p>
+              <PlanPrice price={p.price} cycle={cycle} />
               <p className="muted small">{p.pitch}</p>
               <ul className="pf-checks">
                 {p.highlights.map((h) => (

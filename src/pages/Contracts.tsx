@@ -73,6 +73,14 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   const cs = contractSettings(data.settings, isOwner)
   const [tab, setTab] = useState<'lista' | 'modelos'>(startTab)
   const [creating, setCreating] = useState(false)
+  const [mineId, setMineId] = useState('')
+  // usar o próprio contrato: vira um modelo novo, pronto para colar o texto
+  const useMine = () => {
+    const t: ContractTemplate = { id: uid(), name: 'meu contrato', body: '' }
+    setSettings({ contracts: { ...cs, templates: [t, ...cs.templates] } })
+    setMineId(t.id)
+    setTab('modelos')
+  }
   const [q, setQ] = useState('')
   const client = (id: string) => data.clients.find((c) => c.id === id)
   const rows = useMemo(
@@ -97,6 +105,15 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
         </div>
       </Head>
       <Disclaimer />
+      <div className="ct-mine">
+        <Icon name="pen" size={16} />
+        <span>
+          <b>Quer usar o seu próprio contrato?</b> Cole o texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os contratos e modelos de exemplo podem ser apagados à vontade.
+        </span>
+        <button className="btn small" onClick={useMine}>
+          usar meu contrato
+        </button>
+      </div>
       <Segmented
         value={tab}
         onChange={setTab}
@@ -127,7 +144,7 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
           <Empty icon="file" title="nenhum contrato ainda" text="Escolha um orçamento e um modelo: o contrato já sai preenchido com cliente, serviços, valor, prazo e pagamento." action={<button className="btn primary" onClick={() => setCreating(true)}>criar o primeiro contrato</button>} />
         )
       ) : (
-        <TemplatesEditor />
+        <TemplatesEditor key={mineId} startId={mineId} />
       )}
       {creating && <NewContract onClose={() => setCreating(false)} />}
     </div>
@@ -404,11 +421,11 @@ function ContractEditor({ id }: { id: string }) {
   )
 }
 
-function TemplatesEditor() {
+function TemplatesEditor({ startId }: { startId?: string }) {
   const { data, setSettings } = useStore()
   const { isOwner } = useAccess()
   const cs = contractSettings(data.settings, isOwner)
-  const [openId, setOpenId] = useState(cs.templates[0]?.id ?? '')
+  const [openId, setOpenId] = useState(startId || (cs.templates[0]?.id ?? ''))
   const ref = useRef<HTMLTextAreaElement>(null)
   const setTemplates = (templates: ContractTemplate[]) => setSettings({ contracts: { ...cs, templates } })
   const cur = cs.templates.find((t) => t.id === openId)
@@ -496,7 +513,7 @@ function TemplatesEditor() {
               ))}
             </div>
           </div>
-          <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" />
+          <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
           <p className="muted small">As mudanças valem para os próximos contratos. Os que você já criou não mudam.</p>
         </Section>
       )}

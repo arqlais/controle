@@ -3,13 +3,14 @@ import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
-import { compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { ANNUAL_DISCOUNT, annualPrice, compareRows, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
 import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState, quoteTotal, urgencyScore } from '../utils'
 import type { Settings } from '../types'
 import { go } from '../router'
+import { CycleToggle, PlanPrice, useCycle } from '../components/PlanPrice'
 
 import { LANDING_PROFILE_KEY } from '../components/Signup'
 
@@ -174,6 +175,8 @@ const BENEFITS = [
 
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
+  ['tem plano anual?', `Tem. Todos os planos podem ser mensais ou anuais${ANNUAL_DISCOUNT > 0 ? `, e o anual tem ${ANNUAL_DISCOUNT}% de desconto` : ''}, pago de uma vez por Pix ou cartão. Na seção de planos, toque em “anual” para ver os valores.`],
+  ['posso usar o meu próprio contrato?', 'Pode. O sistema traz modelos prontos, mas você cola o seu texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.'],
   ['para quem é o sistema?', 'Para quem vive de projeto: arquitetos, designers de interiores e escritórios que atendem o cliente final, e freelancers que prestam serviço para escritórios (3D, executivo, apresentação). No cadastro você diz como trabalha e o sistema já vem pronto para isso. Quem faz os dois usa tudo na mesma conta.'],
   ['serve para quem está começando?', 'Serve: estudantes e profissionais em começo de carreira, que precisam de organização sem pagar caro, começam bem no Essencial.'],
   ['serve para escritório que atende cliente final?', 'Serve. O cliente final ganha uma ficha completa (profissão, família, rotina e o imóvel) e a tabela de preços já vem organizada: consultoria, projeto, projetos complementares (estrutural, elétrico, hidrossanitário…), regularização e obra. No plano Estúdio ainda tem a página do projeto para o cliente, o cronograma das etapas, o acompanhamento de obra, o lucro de cada projeto e o briefing online.'],
@@ -253,6 +256,7 @@ export default function Landing() {
   const final = aud === 'final'
   const heroWords = siteWords
   const signup = (plan?: PlanId) => go('cadastro', plan)
+  const [cycle, setCycle] = useCycle()
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   // no celular os planos ficam lado a lado (arrastar): a escolha rápida centraliza o cartão
   const pickPlan = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
@@ -480,7 +484,7 @@ export default function Landing() {
               <Icon name="star" size={15} /> testar o {PLANS.estudio.name} grátis
             </button>
             <span className="muted small">
-              {TRIAL_DAYS} dias grátis, sem cartão · depois {money0(PLANS.estudio.price)}/mês
+              {TRIAL_DAYS} dias grátis, sem cartão · depois {money0(PLANS.estudio.price)}/mês{ANNUAL_DISCOUNT > 0 ? ` ou anual com ${ANNUAL_DISCOUNT}% off` : ''}
             </span>
           </div>
         </div>
@@ -501,6 +505,10 @@ export default function Landing() {
               <Icon name="home" size={14} /> atende cliente final <b>{PLANS.estudio.name}</b>
             </button>
           </div>
+          <div className="cy-row" data-reveal>
+            <CycleToggle value={cycle} onChange={setCycle} />
+            <span className="muted small">{cycle === 'anual' ? 'um pagamento só, pelo ano todo (Pix ou cartão)' : 'paga mês a mês, cancela quando quiser'}</span>
+          </div>
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} id={`plano-${p.id}`} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
@@ -509,10 +517,7 @@ export default function Landing() {
                   <h3>{p.name}</h3>
                 </header>
                 <p className="lp-plan-for">{PLAN_FOR[p.id]}</p>
-                <p className="pf-price">
-                  {money0(p.price)}
-                  <small>/mês</small>
-                </p>
+                <PlanPrice price={p.price} cycle={cycle} />
                 <p className="muted small">{p.pitch}</p>
                 <ul className="pf-checks">
                   {(p.featured ? p.highlights : p.highlights.slice(0, 6)).map((h) => (
@@ -545,7 +550,7 @@ export default function Landing() {
                     <th key={p.id} className={p.featured ? 'is-best' : ''}>
                       {p.featured && <span className="lp-best-tag">recomendado</span>}
                       {p.name}
-                      <small>{money0(p.price)}/mês</small>
+                      <small>{cycle === 'anual' ? `${money0(annualPrice(p.price))}/ano` : `${money0(p.price)}/mês`}</small>
                     </th>
                   ))}
                 </tr>

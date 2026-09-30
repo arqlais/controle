@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon'
 import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../components/ui'
 import { toast } from '../components/dialog'
 import { TermsModal } from '../components/Terms'
+import { preferredCycle } from '../components/PlanPrice'
 import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLATFORM, annualPrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
@@ -67,7 +68,7 @@ export default function Checkout({ planId }: { planId: string }) {
     profession: '',
     source: '',
     payMethod: 'pix',
-    cycle: 'mensal',
+    cycle: preferredCycle() ?? 'mensal',
     acceptedAt: '',
   })
   const [agree, setAgree] = useState(false)
@@ -81,7 +82,8 @@ export default function Checkout({ planId }: { planId: string }) {
   useEffect(() => {
     platform
       .myBilling()
-      .then((prev) => prev && setB((x) => ({ ...x, ...prev, acceptedAt: '' })))
+      // o ciclo escolhido agora nos planos vale mais que o do pedido anterior
+      .then((prev) => prev && setB((x) => ({ ...x, ...prev, cycle: preferredCycle() ?? prev.cycle ?? x.cycle, acceptedAt: '' })))
       .catch(() => undefined)
   }, [])
 
@@ -175,7 +177,14 @@ export default function Checkout({ planId }: { planId: string }) {
             </div>
             <Segmented<Cycle>
               value={b.cycle}
-              onChange={(cycle) => set({ cycle })}
+              onChange={(cycle) => {
+                set({ cycle })
+                try {
+                  localStorage.setItem('ciclo-preferido', cycle)
+                } catch {
+                  /* sem espaço */
+                }
+              }}
               options={[
                 { value: 'mensal', label: 'mensal' },
                 { value: 'anual', label: <>anual · {ANNUAL_DISCOUNT}% de desconto</> },

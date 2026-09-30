@@ -29,6 +29,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-anual-contrato-proprio',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'plano anual e contrato próprio mais fáceis',
+    text: 'Nos planos dá para ver o valor mensal ou anual (o anual tem desconto). Em contratos, “usar meu contrato” cria um modelo seu para colar o seu texto, que passa a sair preenchido com os dados do cliente. E se uma tela der erro, só ela avisa, sem derrubar o sistema.',
+    steps: [{ page: 'contratos', text: 'Em contratos, toque em “usar meu contrato”.' }],
+  },
+  {
     id: '2026-09-30-painel-cliente',
     date: '2026-09-30',
     kind: 'novo',
