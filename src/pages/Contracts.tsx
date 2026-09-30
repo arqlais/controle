@@ -4,6 +4,7 @@ import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
+import { useFormDraft } from '../components/SaveBar'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
 import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate } from '../contracts'
@@ -288,7 +289,10 @@ function ContractEditor({ id }: { id: string }) {
   const { data, upsert, remove } = useStore()
   const { isOwner } = useAccess()
   const found = data.contracts?.find((c) => c.id === id)
-  const [c, setC] = useState<Contract | undefined>(found)
+  // rascunho: fechou a página sem salvar? O texto volta ao abrir o contrato de novo
+  const draft = useFormDraft<Contract | undefined>(`contrato:${id}`, found)
+  const c = draft.value
+  const setC = draft.setValue
   const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
   // assinatura que chegou sozinha (cliente assinou pelo link) com o contrato aberto: entra na tela também
@@ -306,6 +310,7 @@ function ContractEditor({ id }: { id: string }) {
     const next = { ...c, ...patch }
     setC(next)
     upsert('contracts', next)
+    draft.rebase(next)
     toast('Contrato salvo.')
   }
   const refill = async (templateId = c.templateId) => {
@@ -409,6 +414,7 @@ function ContractEditor({ id }: { id: string }) {
             className="btn ghost danger"
             onClick={async () => {
               if (!(await askDelete('este contrato'))) return
+              draft.clear()
               remove('contracts', c.id)
               go('contratos')
             }}

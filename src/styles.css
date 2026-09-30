@@ -2020,3 +2020,5 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .ss-foot { padding: 12px 16px 16px; }
   .ss-profiles { grid-template-columns: 1fr; }
 }
+.draft-note { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 8px 12px; border-radius: 12px; background: var(--accent-soft); font-size: 13px; color: var(--text); }
+.draft-note svg { color: var(--accent); flex: none; }

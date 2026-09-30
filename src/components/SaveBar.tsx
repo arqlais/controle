@@ -69,3 +69,72 @@ export function SaveBar({ d }: { d: { dirty: boolean; canUndo: boolean; undo: ()
     </div>
   )
 }
+
+/* Rascunho de formulário: o que foi digitado fica guardado neste aparelho enquanto a janela está aberta.
+   Fechou sem querer (tocou fora, Esc, a página recarregou)? Ao abrir de novo, o rascunho volta.
+   "Cancelar" e "Salvar" apagam o rascunho. */
+const DRAFT_PREFIX = 'rascunho:'
+export function useFormDraft<T>(key: string, initial: T) {
+  const base = useRef(JSON.stringify(initial))
+  const [restored, setRestored] = useState(false)
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_PREFIX + key)
+      if (raw && raw !== base.current) {
+        setTimeout(() => setRestored(true), 0)
+        return JSON.parse(raw) as T
+      }
+    } catch {
+      /* ok */
+    }
+    return initial
+  })
+  const cleared = useRef(false)
+  useEffect(() => {
+    if (cleared.current) return
+    try {
+      const raw = JSON.stringify(value)
+      if (raw === base.current) localStorage.removeItem(DRAFT_PREFIX + key)
+      else localStorage.setItem(DRAFT_PREFIX + key, raw)
+    } catch {
+      /* sem espaço ou bloqueado: segue sem rascunho */
+    }
+  }, [key, value])
+  const clear = () => {
+    cleared.current = true
+    try {
+      localStorage.removeItem(DRAFT_PREFIX + key)
+    } catch {
+      /* ok */
+    }
+  }
+  const restart = () => {
+    setRestored(false)
+    setValue(initial)
+  }
+  /** Salvou e continua editando: o salvo vira a nova base (sem rascunho pendente). */
+  const rebase = (v: T) => {
+    base.current = JSON.stringify(v)
+    setRestored(false)
+    try {
+      localStorage.removeItem(DRAFT_PREFIX + key)
+    } catch {
+      /* ok */
+    }
+  }
+  return { value, setValue, restored, clear, restart, rebase }
+}
+
+/** Aviso de rascunho recuperado, com a opção de começar de novo. */
+export function DraftNote({ d }: { d: { restored: boolean; restart: () => void } }) {
+  if (!d.restored) return null
+  return (
+    <p className="draft-note">
+      <Icon name="edit" size={14} />
+      <span className="grow">Rascunho recuperado: você tinha fechado sem salvar.</span>
+      <button type="button" className="link small" onClick={d.restart}>
+        começar de novo
+      </button>
+    </p>
+  )
+}

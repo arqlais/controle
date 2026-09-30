@@ -34,6 +34,7 @@ import {
 } from '../utils'
 import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented, CepInput, ServiceOptions } from './ui'
 import { Icon } from './Icon'
+import { DraftNote, useFormDraft } from './SaveBar'
 import { tasksFor, workKind } from '../processes'
 
 /* ---------------- Cliente ---------------- */
@@ -62,9 +63,11 @@ export function newClient(type: ClientType = 'arquiteto'): Client {
 }
 
 export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?: Client; name?: string; type?: ClientType; onClose: () => void; onSaved?: (c: Client) => void }) {
-  const { data, upsert } = useStore()
+  const { data, upsert, remove } = useStore()
   const profile = data.settings.workProfile
-  const [c, setC] = useState<Client>(initial ?? { ...newClient(type ?? defaultClientType(profile)), name: name ?? '' })
+  const draft = useFormDraft<Client>(`cliente:${initial?.id ?? 'novo'}`, initial ?? { ...newClient(type ?? defaultClientType(profile)), name: name ?? '' })
+  const c = draft.value
+  const setC = draft.setValue
   const set = <K extends keyof Client>(k: K, v: Client[K]) => setC((x) => ({ ...x, [k]: v }))
   const setP = (k: keyof ClientProfile, v: string) => setC((x) => ({ ...x, profile: { ...x.profile, [k]: v } }))
   const final = c.type === 'final'
@@ -96,6 +99,7 @@ export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?
     if (!c.name.trim()) return toast('Informe o nome do cliente.')
     const saved = { ...c, name: titleCase(c.name) }
     upsert('clients', saved)
+    draft.clear()
     onSaved?.(saved)
     onClose()
   }
@@ -105,7 +109,13 @@ export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?
       onClose={onClose}
       footer={
         <>
-          <button className="btn ghost" onClick={onClose}>
+          {initial && (
+            <button className="icon-btn danger-text" title="Excluir cliente" aria-label="Excluir cliente" onClick={async () => { if (await askDelete(`o cliente "${initial.name}" (e as demandas e orçamentos dele)`)) { draft.clear(); remove('clients', initial.id); onClose() } }}>
+              <Icon name="trash" size={16} />
+            </button>
+          )}
+          <span className="spacer" />
+          <button className="btn ghost" onClick={() => (draft.clear(), onClose())}>
             Cancelar
           </button>
           <button className="btn primary" onClick={save}>
@@ -114,6 +124,7 @@ export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?
         </>
       }
     >
+      <DraftNote d={draft} />
       <div className="form-grid">
         <Field label="Nome *" span={2}>
           <input autoFocus value={c.name} onChange={(e) => set('name', e.target.value)} placeholder="Nome do contato" />
@@ -327,9 +338,11 @@ export function newProject(clientId = ''): Project {
 type PayChoice = PayMode | 'manter'
 
 export function ProjectForm({ initial, clientId, past: startPast, onClose, onSaved }: { initial?: Project; clientId?: string; past?: boolean; onClose: () => void; onSaved?: (p: Project) => void }) {
-  const { data, upsert } = useStore()
+  const { data, upsert, remove } = useStore()
   const { settings } = data
-  const [p, setP] = useState<Project>(() => initial ?? { ...newProject(clientId), revisionsIncluded: settings.defaultRevisions })
+  const draft = useFormDraft<Project>(`demanda:${initial?.id ?? `nova:${clientId ?? ''}`}`, initial ?? { ...newProject(clientId), revisionsIncluded: settings.defaultRevisions })
+  const p = draft.value
+  const setP = draft.setValue
   const [payMode, setPayMode] = useState<PayChoice>(initial?.payments.length ? 'manter' : '50-50')
   const [showNewClient, setShowNewClient] = useState(false)
   const [showEditClient, setShowEditClient] = useState(false)
@@ -390,6 +403,7 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
       }
     }
     upsert('projects', final)
+    draft.clear()
     onSaved?.(final)
     onClose()
   }
@@ -403,7 +417,13 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
       onClose={onClose}
       footer={
         <>
-          <button className="btn ghost" onClick={onClose}>
+          {initial && (
+            <button className="icon-btn danger-text" title="Excluir demanda" aria-label="Excluir demanda" onClick={async () => { if (await askDelete(`a demanda "${initial.title}"`)) { draft.clear(); remove('projects', initial.id); onClose() } }}>
+              <Icon name="trash" size={16} />
+            </button>
+          )}
+          <span className="spacer" />
+          <button className="btn ghost" onClick={() => (draft.clear(), onClose())}>
             Cancelar
           </button>
           <button className="btn primary" onClick={save}>
@@ -412,6 +432,7 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
         </>
       }
     >
+      <DraftNote d={draft} />
       <div className="form-grid">
         {!initial && (
           <label className="check toggle past-job" style={{ gridColumn: '1 / -1' }}>
@@ -547,14 +568,15 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
 /* ---------------- Despesa ---------------- */
 
 export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: () => void }) {
-  const { upsert } = useStore()
-  const [e, setE] = useState<Expense>(
-    initial ?? { id: uid(), description: '', category: 'software', amount: 0, date: today(), recurring: false, notes: '' },
-  )
+  const { upsert, remove } = useStore()
+  const draft = useFormDraft<Expense>(`despesa:${initial?.id ?? 'nova'}`, initial ?? { id: uid(), description: '', category: 'software', amount: 0, date: today(), recurring: false, notes: '' })
+  const e = draft.value
+  const setE = draft.setValue
   const set = <K extends keyof Expense>(k: K, v: Expense[K]) => setE((x) => ({ ...x, [k]: v }))
   const save = () => {
     if (!e.description.trim()) return toast('Descreva a despesa.')
     upsert('expenses', e)
+    draft.clear()
     onClose()
   }
   return (
@@ -563,7 +585,13 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
       onClose={onClose}
       footer={
         <>
-          <button className="btn ghost" onClick={onClose}>
+          {initial && (
+            <button className="icon-btn danger-text" title="Excluir despesa" aria-label="Excluir despesa" onClick={async () => { if (await askDelete('esta despesa')) { draft.clear(); remove('expenses', initial.id); onClose() } }}>
+              <Icon name="trash" size={16} />
+            </button>
+          )}
+          <span className="spacer" />
+          <button className="btn ghost" onClick={() => (draft.clear(), onClose())}>
             Cancelar
           </button>
           <button className="btn primary" onClick={save}>
@@ -572,6 +600,7 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
         </>
       }
     >
+      <DraftNote d={draft} />
       <div className="form-grid">
         <Field label="Descrição *" span={2}>
           <input autoFocus value={e.description} onChange={(ev) => set('description', ev.target.value)} placeholder="Ex.: Licença D5 Render" />
@@ -615,9 +644,9 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
   const editing = !!initial && !isNew
   const { data, upsert, remove, setSettings } = useStore()
   const [rename, setRename] = useState(false)
-  const [ev, setEv] = useState<CalendarEvent>(
-    initial ?? { id: uid(), title: '', date: date ?? today(), time: '', type: 'reuniao', projectId: '', notes: '', done: false },
-  )
+  const draft = useFormDraft<CalendarEvent>(`compromisso:${editing ? initial!.id : `novo:${date ?? ''}`}`, initial ?? { id: uid(), title: '', date: date ?? today(), time: '', type: 'reuniao', projectId: '', notes: '', done: false })
+  const ev = draft.value
+  const setEv = draft.setValue
   const [repeat, setRepeat] = useState(0)
   const set = <K extends keyof CalendarEvent>(k: K, v: CalendarEvent[K]) => setEv((x) => ({ ...x, [k]: v }))
   const save = () => {
@@ -626,6 +655,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
     // repetição semanal: cria as próximas ocorrências como compromissos independentes
     for (let i = 1; i <= repeat; i++) upsert('events', { ...ev, id: uid(), date: addDays(ev.date, 7 * i), done: false })
     if (repeat) toast(`${repeat + 1} compromissos criados, um por semana.`)
+    draft.clear()
     onClose()
   }
   return (
@@ -639,6 +669,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
               className="btn danger ghost"
               onClick={async () => {
                 if (await askDelete('este compromisso')) {
+                  draft.clear()
                   remove('events', ev.id)
                   onClose()
                 }
@@ -648,7 +679,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
             </button>
           )}
           <span className="spacer" />
-          <button className="btn ghost" onClick={onClose}>
+          <button className="btn ghost" onClick={() => (draft.clear(), onClose())}>
             Cancelar
           </button>
           <button className="btn primary" onClick={save}>
@@ -657,6 +688,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
         </>
       }
     >
+      <DraftNote d={draft} />
       <div className="form-grid">
         <Field label="Título *" span={3}>
           <input autoFocus value={ev.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex.: Reunião de briefing, prova, orientação do TCC" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />

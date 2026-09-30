@@ -17,7 +17,8 @@ import type { DeckData, DocKind, DocsState, MeasureGuideData, PlaqueData, SavedD
 
 import { go, setLeaveGuard } from '../router'
 import { SavedDocs } from '../components/SavedDocs'
-import { askChoice, toast } from '../components/dialog'
+import { askChoice, askDelete, toast } from '../components/dialog'
+import { useFormDraft } from '../components/SaveBar'
 import { uid } from '../utils'
 
 /* Documentos do estúdio (plano Estúdio): peças prontas com a sua marca, no design escolhido
@@ -60,13 +61,16 @@ interface EdProps<T> {
 
 /** Um documento aberto: rascunho próprio, "salvar" (na ficha do cliente ou como seu padrão) e "voltar". */
 function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; onBack: () => void }) {
-  const { data, upsert, setSettings } = useStore()
+  const { data, upsert, remove, setSettings } = useStore()
   const defaults = (): DocValue => {
     const d = data.settings.docs ?? {}
     return (kind === 'guia' ? d.guide : kind === 'placa' ? d.plaque : kind === 'apresentacao' ? d.deck : {}) ?? {}
   }
   const initial: DocValue = saved ? ((kind === 'guia' ? saved.guide : kind === 'placa' ? saved.plaque : kind === 'apresentacao' ? saved.deck : { briefingTpl: saved.briefingTpl }) ?? {}) : defaults()
-  const [value, setValue] = useState<DocValue>(initial)
+  // rascunho: se a página fechar sem querer, o que foi feito volta ao abrir de novo
+  const draft = useFormDraft<DocValue>(`doc:${saved?.id ?? kind}`, initial)
+  const value = draft.value
+  const setValue = draft.setValue
   const [clientId, setClientId] = useState(saved?.clientId ?? '')
   const [html, setHtml] = useState<string | null>(saved?.html ?? null)
   const [savedId, setSavedId] = useState(saved?.id)
@@ -97,6 +101,7 @@ function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; 
       toast('Salvo como o seu modelo padrão. Para guardar na ficha de um cliente, escolha o cliente acima.')
     }
     setBaseline(snap(value, clientId, html))
+    draft.rebase(value)
   }
   const saveRef = useRef(save)
   saveRef.current = save
@@ -130,7 +135,23 @@ function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; 
         <span className="field-label">ficha do cliente</span>
         <ClientPicker clients={data.clients} value={clientId} onChange={pickClient} placeholder="salvar na ficha de qual cliente? (opcional)" />
       </div>
-      <span className="dk-bar-state small">{dirty ? 'mudanças não salvas' : savedId ? 'salvo na ficha' : 'tudo salvo'}</span>
+      <span className="dk-bar-state small">{draft.restored && dirty ? 'rascunho recuperado' : dirty ? 'mudanças não salvas' : savedId ? 'salvo na ficha' : 'tudo salvo'}</span>
+      {savedId && (
+        <button
+          className="icon-btn subtle danger-text"
+          title="Apagar este documento da ficha"
+          aria-label="Apagar documento"
+          onClick={async () => {
+            if (!(await askDelete('este documento da ficha do cliente'))) return
+            draft.clear()
+            remove('docs', savedId)
+            setBaseline(snap(value, clientId, html))
+            onBack()
+          }}
+        >
+          <Icon name="trash" size={15} />
+        </button>
+      )}
       <button className="btn ghost small" onClick={() => (setValue(initial), setHtml(saved?.html ?? null), setClientId(saved?.clientId ?? ''))} disabled={!dirty}>
         descartar
       </button>

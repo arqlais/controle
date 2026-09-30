@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-rascunhos',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'rascunho guardado',
+    text: 'Fechou uma janela sem querer? Cliente, demanda, despesa, compromisso, contrato e documentos guardam o que você já tinha feito e mostram de volta ao abrir. Na edição, a lixeirinha apaga.',
+  },
+  {
     id: '2026-09-30-fotos-recorte',
     date: '2026-09-30',
     kind: 'melhoria',
