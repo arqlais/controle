@@ -2,9 +2,9 @@ import { useRef, useState } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
-import { Empty, Modal, Segmented } from '../components/ui'
+import { Empty, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
-import { BriefingList, NewBriefing, PublicQuestion } from '../components/Briefing'
+import { BriefingList, BriefingPreview, NewBriefing } from '../components/Briefing'
 import { KIND_LABEL, allTemplates, findTemplate, isBuiltin } from '../briefingTemplates'
 import { referenceImage } from '../briefingApi'
 import type { BriefingKind, BriefingQuestion, BriefingSection, BriefingTemplate } from '../types'
@@ -244,28 +244,7 @@ function TemplateEditor({ id }: { id: string }) {
       <button className="btn bf-ed-addsec" onClick={addS}>
         <Icon name="plus" size={15} /> nova parte
       </button>
-      {preview && (
-        <Modal title={`${t.name} · como o cliente vê`} onClose={() => setPreview(false)} wide>
-          <div className="bf-preview" style={{ ['--bf-accent' as string]: data.settings.accent }}>
-            {t.sections.map((s, i) => (
-              <section key={s.id} className="bf-block">
-                <div className="bf-block-head">
-                  <span className="bf-block-n">{i + 1}</span>
-                  <div>
-                    <h2>{s.title}</h2>
-                    {s.description && <p className="muted small">{s.description}</p>}
-                  </div>
-                </div>
-                {t.questions
-                  .filter((q) => q.section === s.id)
-                  .map((q) => (
-                    <PublicQuestion key={q.id} q={q} onChange={() => undefined} missing={false} previews={{}} uploading={0} onPhotos={() => undefined} />
-                  ))}
-              </section>
-            ))}
-          </div>
-        </Modal>
-      )}
+      {preview && <BriefingPreview tpl={t} onClose={() => setPreview(false)} />}
     </div>
   )
 }

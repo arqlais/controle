@@ -6,8 +6,10 @@ import { Badge, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { BRIEFING_SECTIONS } from '../briefingQuestions'
 import { allTemplates } from '../briefingTemplates'
-import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type PublicBriefing } from '../briefingApi'
-import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data } from '../types'
+import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, packBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type BriefingPayload, type PublicBriefing } from '../briefingApi'
+import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data, Settings } from '../types'
+import { ANSWER_TAG, findAnswerCode, hashExtra } from '../linkPack'
+import { ArtImage, isArt } from './BriefingArt'
 import { fmtDate, today, uid, whatsappLink } from '../utils'
 import { go } from '../router'
 import { PLANS } from '../plans'
@@ -18,6 +20,23 @@ import { PLANS } from '../plans'
 /** "Família Souza" → "Família Souza"; "Maria Souza" → "Maria". */
 const greetName = (name: string) => (/^fam[ií]lia\b/i.test(name.trim()) ? name.trim() : name.trim().split(' ')[0])
 const answerText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join(', ') : (v ?? '')).trim()
+
+/** O que vai para a página do cliente (e, compacto, dentro do link). */
+export function briefingPayload(st: Settings, tpl: Pick<BriefingTemplate, 'name' | 'questions' | 'sections'>, clientName: string): BriefingPayload {
+  return {
+    title: tpl.name,
+    clientName,
+    studio: st.brandName || st.ownerName || '',
+    owner: st.ownerName || '',
+    accent: st.accent,
+    logo: st.logo && st.logo.length < 250_000 ? st.logo : undefined,
+    intro: `Oi, ${greetName(clientName)}! Estas perguntas me ajudam a entender o que vocês precisam e como vivem. Responda com calma: não existe resposta certa, e dá para pular o que não souber.`,
+    questions: tpl.questions,
+    sections: tpl.sections,
+    phone: st.phone || undefined,
+    email: st.email || undefined,
+  }
+}
 
 /** Aplica as respostas: preenche o que estiver vazio na ficha e anota no histórico. */
 function applyAnswers(client: Client, b: Briefing, answers: BriefingAnswers): Client {
@@ -117,6 +136,8 @@ export function BriefingSection({ client }: { client: Client }) {
 export function BriefingList({ list, showClient }: { list: Briefing[]; showClient?: boolean }) {
   const { data, remove } = useStore()
   const [open, setOpen] = useState<string | null>(null)
+  const [paste, setPaste] = useState<Briefing | null>(null)
+  const [peek, setPeek] = useState<Briefing | null>(null)
   const { check } = useBriefingSync(false)
   return (
     <ul className="bf-list">
@@ -145,8 +166,14 @@ export function BriefingList({ list, showClient }: { list: Briefing[]; showClien
                   <button className="btn small ghost" onClick={() => void check()}>
                     <Icon name="inbox" size={14} /> conferir respostas
                   </button>
+                  <button className="btn small ghost" onClick={() => setPaste(b)} title="Quando o cliente manda as respostas pelo WhatsApp">
+                    <Icon name="whatsapp" size={14} /> colar respostas
+                  </button>
                 </>
               )}
+              <button className="icon-btn subtle" aria-label="Ver como o cliente" title="Ver como o cliente" onClick={() => setPeek(b)}>
+                <Icon name="eye" size={15} />
+              </button>
               <button
                 className="icon-btn subtle"
                 aria-label="Apagar briefing"
@@ -163,13 +190,49 @@ export function BriefingList({ list, showClient }: { list: Briefing[]; showClien
           </li>
         )
       })}
+      {paste && <PasteAnswers b={paste} onClose={() => setPaste(null)} />}
+      {peek && <BriefingPreview tpl={{ name: peek.title.split(' · ')[0], questions: peek.questions, sections: peek.sections ?? [] }} clientName={data.clients.find((c) => c.id === peek.clientId)?.name} onClose={() => setPeek(null)} />}
     </ul>
+  )
+}
+
+/** Respostas que chegaram pelo WhatsApp (plano B): cola a mensagem, o código devolve tudo para a ficha. */
+function PasteAnswers({ b, onClose }: { b: Briefing; onClose: () => void }) {
+  const { data, upsert } = useStore()
+  const [text, setText] = useState('')
+  const apply = async () => {
+    const code = findAnswerCode(text)
+    if (!code) return toast(`Não achei o “${ANSWER_TAG}” na mensagem. Cole a mensagem inteira que o cliente mandou.`)
+    const { unpack } = await import('../linkPack')
+    const got = await unpack<{ id: string; a: BriefingAnswers }>(code)
+    if (!got) return toast('O código veio incompleto. Peça para o cliente copiar a mensagem inteira de novo.')
+    if (got.id !== b.id && !(await import('./dialog').then((m) => m.ask('Este código é de outro briefing. Usar mesmo assim?')))) return
+    upsert('briefings', { ...b, status: 'respondido', answers: got.a, answeredAt: new Date().toISOString() })
+    const c = data.clients.find((x) => x.id === b.clientId)
+    if (c) upsert('clients', applyAnswers(c, b, got.a))
+    toast('Respostas guardadas na ficha do cliente.')
+    onClose()
+  }
+  return (
+    <Modal
+      title="colar respostas do WhatsApp"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>cancelar</button>
+          <button className="btn primary" onClick={() => void apply()} disabled={!text.trim()}>guardar respostas</button>
+        </>
+      }
+    >
+      <p className="muted small">Quando a internet do cliente não deixa salvar, a página monta uma mensagem com as respostas e um código no final. Cole a mensagem inteira aqui.</p>
+      <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder={`Olá! Aqui estão as minhas respostas…\n\n${ANSWER_TAG} z…`} />
+    </Modal>
   )
 }
 
 function ShareButtons({ client, b }: { client: Client; b: Briefing }) {
   const { data } = useStore()
-  const link = briefingLink(b.id)
+  const link = briefingLink(b.id, b.pack)
   const first = greetName(client.name)
   const msg = `Olá, ${first}! Para eu entender direitinho o que vocês precisam, preparei algumas perguntas. Dá para responder pelo celular, com calma, e mandar fotos: ${link}\n\n${data.settings.ownerName || ''}`.trim()
   return (
@@ -275,32 +338,36 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
     if (!tpl || !client) return
     if (!tpl.questions.length) return toast('Este modelo ainda não tem perguntas. Edite em “briefings”.')
     setBusy(true)
+    const payload = briefingPayload(st, tpl, client.name)
     const b: Briefing = { id: crypto.randomUUID(), clientId: client.id, title: `${tpl.name} · ${client.name}`, questions: tpl.questions, sections: tpl.sections, templateId: tpl.id, status: 'enviado', createdAt: today() }
+    // cópia dentro do link: abre mesmo se a nuvem falhar
     try {
-      await publishBriefing(b.id, {
-        title: tpl.name,
-        clientName: client.name,
-        studio: st.brandName || st.ownerName || '',
-        owner: st.ownerName || '',
-        accent: st.accent,
-        logo: st.logo && st.logo.length < 250_000 ? st.logo : undefined,
-        intro: `Oi, ${greetName(client.name)}! Estas perguntas me ajudam a entender o que vocês precisam e como vivem. Responda com calma: não existe resposta certa, e dá para pular o que não souber.`,
-        questions: tpl.questions,
-        sections: tpl.sections,
-      })
-      upsert('briefings', b)
-      setDone(b)
+      b.pack = await packBriefing(payload)
     } catch {
-      toast('Não foi possível criar o link agora. Confira a internet e tente de novo.')
+      /* segue só com a nuvem */
     }
+    let online = true
+    try {
+      await publishBriefing(b.id, payload)
+    } catch {
+      online = false
+    }
+    if (!online && !b.pack) {
+      setBusy(false)
+      return toast('Não foi possível criar o link agora. Confira a internet e tente de novo.')
+    }
+    upsert('briefings', b)
+    setDone(b)
+    if (!online) toast('Link criado. A nuvem não respondeu: as respostas voltam pelo WhatsApp, com um código para colar aqui.')
     setBusy(false)
   }
+  const [peek, setPeek] = useState(false)
 
   if (done && client)
     return (
       <Modal title="briefing pronto ✨" onClose={onClose}>
         <p>Agora é só mandar o link para {greetName(client.name)}. Quando responder, você recebe um aviso e as respostas preenchem a ficha.</p>
-        <p className="bf-link">{briefingLink(done.id)}</p>
+        <p className="bf-link">{briefingLink(done.id, done.pack)}</p>
         <div className="row gap-s wrap">
           <ShareButtons client={client} b={done} />
         </div>
@@ -316,6 +383,9 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
         <>
           <button className="btn ghost" onClick={onClose}>
             cancelar
+          </button>
+          <button className="btn ghost" onClick={() => setPeek(true)} disabled={!tpl || !tpl.questions.length}>
+            <Icon name="eye" size={14} /> pré-visualizar
           </button>
           <button className="btn primary" onClick={() => void create()} disabled={busy || !tpl || !client}>
             {busy ? 'criando…' : tpl ? `criar link (${tpl.questions.length} perguntas)` : 'escolha um modelo'}
@@ -359,75 +429,137 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
         </button>
         : vale para os próximos envios.
       </p>
+      {peek && tpl && <BriefingPreview tpl={tpl} clientName={client?.name} onClose={() => setPeek(false)} />}
     </Modal>
   )
 }
 
 /* ---------------- página pública (o cliente final responde) ---------------- */
 
+/** Sub-pergunta aparece só quando a pergunta de cima tem aquela resposta. */
+const answerHas = (v: string | string[] | undefined, is: string) => (Array.isArray(v) ? v.includes(is) : v === is)
+export const visibleQuestions = (qs: BriefingQuestion[], a: BriefingAnswers) => qs.filter((q) => !q.showIf || answerHas(a[q.showIf.q], q.showIf.is))
+
+/** Respostas em texto (WhatsApp / copiar), com o código que devolve tudo para o sistema. */
+function answersMessage(p: BriefingPayload, a: BriefingAnswers, code: string) {
+  const qs = visibleQuestions(p.questions, a)
+  const body = sectionsOf(p)
+    .map((s) => {
+      const list = inSection({ ...p, questions: qs }, s.id).filter((q) => q.kind !== 'photos' && answerText(a[q.id]))
+      return list.length ? `*${s.title.toUpperCase()}*\n${list.map((q) => `• ${q.label}: ${q.kind === 'date' ? fmtDate(answerText(a[q.id])) : answerText(a[q.id])}`).join('\n')}` : ''
+    })
+    .filter(Boolean)
+    .join('\n\n')
+  const photos = qs.some((q) => q.kind === 'photos')
+  return `Olá${p.owner ? `, ${p.owner.split(' ')[0]}` : ''}! Aqui estão as minhas respostas do briefing "${p.title}" (${p.clientName}):\n\n${body}${photos ? '\n\n📷 As fotos eu mando aqui na conversa.' : ''}\n\n${ANSWER_TAG} ${code}`
+}
+
 export function BriefingPublic({ id }: { id: string }) {
   const [b, setB] = useState<PublicBriefing | null | undefined>(undefined)
+  useEffect(() => {
+    loadPublicBriefing(id, hashExtra()).then(setB, () => setB(null))
+  }, [id])
+  const accent = b?.payload.accent || '#a88a80'
+  if (b === undefined) return <PublicShell accent={accent}><p className="muted">carregando…</p></PublicShell>
+  if (b === null) return <PublicShell accent={accent}><p>Não encontrei este briefing. Confira se o link veio inteiro (às vezes o WhatsApp corta) ou peça um novo para quem te enviou.</p></PublicShell>
+  return <BriefingForm id={id} data={b} />
+}
+
+function PublicShell({ accent, children, preview }: { accent: string; children: ReactNode; preview?: boolean }) {
+  return (
+    <div className={`bf-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: accent }}>
+      {preview && <p className="bf-preview-bar">👀 pré-visualização · é assim que o cliente vê no celular (nada é enviado)</p>}
+      <div className="bf-card">{children}</div>
+      <p className="bf-foot">feito com traço</p>
+    </div>
+  )
+}
+
+/** Formulário do cliente. Com `preview`, é só para ver: nada é salvo nem enviado. */
+export function BriefingForm({ id, data: b, preview }: { id: string; data: PublicBriefing; preview?: boolean }) {
   const [answers, setAnswers] = useState<BriefingAnswers>({})
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [uploading, setUploading] = useState(0)
   const [missing, setMissing] = useState<string[]>([])
-  const [sent, setSent] = useState(false)
+  const [sent, setSent] = useState<'ok' | 'manual' | null>(null)
+  const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const draftKey = `briefing-rascunho:${id}`
   useEffect(() => {
-    loadPublicBriefing(id).then(setB, () => setB(null))
+    if (preview) return
     try {
       setAnswers(JSON.parse(localStorage.getItem(draftKey) || '{}'))
     } catch {
       /* ok */
     }
-  }, [id, draftKey])
+  }, [draftKey, preview])
+  const save = (next: BriefingAnswers) => {
+    if (preview) return
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(next)) // não perde o que escreveu se fechar a página
+    } catch {
+      /* ok */
+    }
+  }
   const set = (qid: string, v: string | string[]) =>
     setAnswers((a) => {
       const next = { ...a, [qid]: v }
-      try {
-        localStorage.setItem(draftKey, JSON.stringify(next)) // não perde o que escreveu se fechar a página
-      } catch {
-        /* ok */
-      }
+      save(next)
       return next
     })
 
-  const accent = b?.payload.accent || '#a88a80'
-  const wrap = (children: ReactNode) => (
-    <div className="bf-public" style={{ ['--bf-accent' as string]: accent }}>
-      <div className="bf-card">{children}</div>
-      <p className="bf-foot">feito com traço</p>
-    </div>
-  )
-  if (b === undefined) return wrap(<p className="muted">carregando…</p>)
-  if (b === null) return wrap(<p>Este link não existe mais. Peça um novo para quem te enviou.</p>)
   const p = b.payload
-  if (b.answered || sent)
-    return wrap(
-      <>
+  const canUpload = b.source !== 'link' // pela cópia do link não há onde guardar fotos: vão pelo WhatsApp
+  if (b.answered || sent === 'ok')
+    return (
+      <PublicShell accent={p.accent} preview={preview}>
         <p className="bf-eyebrow">{p.studio}</p>
         <h1>obrigada! 💛</h1>
         <p>Suas respostas chegaram{p.owner ? ` para ${p.owner}` : ''}. Agora é com a gente: em breve entramos em contato.</p>
-      </>,
+      </PublicShell>
     )
-  const secs = sectionsOf(p)
-  const filled = p.questions.filter((q) => answerText(answers[q.id])).length
+  if (sent === 'manual') {
+    const msg = answersMessage(p, answers, code)
+    return (
+      <PublicShell accent={p.accent} preview={preview}>
+        <p className="bf-eyebrow">{p.studio}</p>
+        <h1>falta só um toque ✨</h1>
+        <p>Suas respostas estão prontas. Toque abaixo para mandar{p.owner ? ` para ${p.owner}` : ''}{p.phone ? ' pelo WhatsApp' : ''}: a mensagem já vai escrita.</p>
+        <div className="stack-s">
+          {p.phone && (
+            <a className="btn primary bf-send" href={whatsappLink(p.phone, msg)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={16} /> mandar pelo WhatsApp
+            </a>
+          )}
+          {p.email && (
+            <a className="btn bf-send" href={`mailto:${p.email}?subject=${encodeURIComponent(`Briefing · ${p.clientName}`)}&body=${encodeURIComponent(msg)}`}>
+              <Icon name="mail" size={16} /> mandar por e-mail
+            </a>
+          )}
+          <button className="btn ghost bf-send" onClick={() => navigator.clipboard?.writeText(msg).then(() => toast('Respostas copiadas: é só colar na conversa.')).catch(() => undefined)}>
+            <Icon name="copy" size={16} /> copiar as respostas
+          </button>
+        </div>
+        {p.questions.some((q) => q.kind === 'photos') && <p className="muted small">Tem fotos? Mande logo depois, na mesma conversa.</p>}
+      </PublicShell>
+    )
+  }
+
+  const qs = visibleQuestions(p.questions, answers)
+  const secs = sectionsOf({ ...p, questions: qs })
+  const filled = qs.filter((q) => answerText(answers[q.id])).length
   const addPhotos = async (q: BriefingQuestion, files: FileList | null) => {
+    if (preview) return toast('Na pré-visualização as fotos não são enviadas.')
     const list = [...(files ?? [])].filter((f) => f.type.startsWith('image/')).slice(0, 12)
     for (const f of list) {
       setUploading((n) => n + 1)
       try {
-        const v = await uploadAttachment(id, f)
+        const v = await uploadAttachment(id, f, b.source === 'cloud')
         setPreviews((m) => ({ ...m, [v]: URL.createObjectURL(f) }))
         setAnswers((a) => {
           const cur = Array.isArray(a[q.id]) ? (a[q.id] as string[]) : []
           const next = { ...a, [q.id]: [...cur, v] }
-          try {
-            localStorage.setItem(draftKey, JSON.stringify(next))
-          } catch {
-            /* ok */
-          }
+          save(next)
           return next
         })
       } catch {
@@ -437,40 +569,47 @@ export function BriefingPublic({ id }: { id: string }) {
     }
   }
   const submit = async () => {
-    const need = p.questions.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
+    const need = qs.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
     setMissing(need)
     if (need.length) {
       document.getElementById(`bfq-${need[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return toast(`Falta responder ${need.length} pergunta(s) obrigatória(s).`)
     }
     if (!filled) return toast('Responda pelo menos uma pergunta.')
+    if (preview) return toast('Pré-visualização: aqui o cliente envia as respostas.')
     setBusy(true)
-    try {
-      await sendPublicAnswers(id, answers)
+    // só as perguntas que apareceram (sub-perguntas escondidas não vão)
+    const clean = Object.fromEntries(Object.entries(answers).filter(([k]) => qs.some((q) => q.id === k)))
+    const ok = await sendPublicAnswers(id, clean, b.source)
+    if (ok) {
       try {
         localStorage.removeItem(draftKey)
       } catch {
         /* ok */
       }
-      setSent(true)
-      window.scrollTo(0, 0)
-    } catch {
-      toast('Não foi possível enviar agora. Confira a internet e tente de novo: suas respostas continuam aqui.')
+      setSent('ok')
+    } else {
+      // plano B: as respostas vão pelo WhatsApp, com um código que devolve tudo para o sistema
+      const { pack } = await import('../linkPack')
+      const photoless = Object.fromEntries(Object.entries(clean).filter(([k]) => p.questions.find((q) => q.id === k)?.kind !== 'photos'))
+      setCode(await pack({ id, a: photoless }))
+      setSent('manual')
     }
+    window.scrollTo(0, 0)
     setBusy(false)
   }
-  return wrap(
-    <>
+  return (
+    <PublicShell accent={p.accent} preview={preview}>
       <header className="bf-head">
         {p.logo && <img src={p.logo} alt="" className="bf-logo" />}
         <p className="bf-eyebrow">{p.studio || 'briefing'}</p>
         <h1>{p.title}</h1>
         <p className="muted">{p.intro}</p>
-        <div className="bf-progress" aria-label={`${filled} de ${p.questions.length} respondidas`}>
-          <i style={{ width: `${(filled / Math.max(1, p.questions.length)) * 100}%` }} />
+        <div className="bf-progress" aria-label={`${filled} de ${qs.length} respondidas`}>
+          <i style={{ width: `${(filled / Math.max(1, qs.length)) * 100}%` }} />
         </div>
         <p className="bf-count">
-          {filled} de {p.questions.length} respondidas · <span className="bf-req">*</span> obrigatória
+          {filled} de {qs.length} respondidas · <span className="bf-req">*</span> obrigatória
         </p>
       </header>
       {secs.map((s, si) => (
@@ -482,8 +621,8 @@ export function BriefingPublic({ id }: { id: string }) {
               {s.description && <p className="muted small">{s.description}</p>}
             </div>
           </div>
-          {inSection(p, s.id).map((q) => (
-            <PublicQuestion key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} missing={missing.includes(q.id)} previews={previews} uploading={uploading} onPhotos={(f) => void addPhotos(q, f)} />
+          {inSection({ ...p, questions: qs }, s.id).map((q) => (
+            <PublicQuestion key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} missing={missing.includes(q.id)} previews={previews} uploading={uploading} onPhotos={(f) => void addPhotos(q, f)} canUpload={canUpload} />
           ))}
         </section>
       ))}
@@ -491,32 +630,64 @@ export function BriefingPublic({ id }: { id: string }) {
         {uploading ? 'enviando fotos…' : busy ? 'enviando…' : 'enviar respostas'}
       </button>
       <p className="muted small center">Suas respostas ficam salvas neste aparelho até você enviar.</p>
-    </>,
+    </PublicShell>
   )
 }
 
-export function PublicQuestion({ q, value, onChange, missing, previews, uploading, onPhotos }: { q: BriefingQuestion; value?: string | string[]; onChange: (v: string | string[]) => void; missing: boolean; previews: Record<string, string>; uploading: number; onPhotos: (f: FileList | null) => void }) {
+/** Pré-visualização de um modelo (ou de um briefing já montado), como o cliente vê. */
+export function BriefingPreview({ tpl, clientName, onClose }: { tpl: Pick<BriefingTemplate, 'name' | 'questions' | 'sections'>; clientName?: string; onClose: () => void }) {
+  const { data } = useStore()
+  const payload = briefingPayload(data.settings, tpl, clientName || 'Ana')
+  return (
+    <Modal title={`${tpl.name} · como o cliente vê`} onClose={onClose} wide>
+      <div className="bf-preview-frame">
+        <BriefingForm id="previa" data={{ payload, answered: false, source: 'local' }} preview />
+      </div>
+    </Modal>
+  )
+}
+
+export function PublicQuestion({ q, value, onChange, missing, previews, uploading, onPhotos, canUpload = true }: { q: BriefingQuestion; value?: string | string[]; onChange: (v: string | string[]) => void; missing: boolean; previews: Record<string, string>; uploading: number; onPhotos: (f: FileList | null) => void; canUpload?: boolean }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const list = Array.isArray(value) ? value : []
   const text = typeof value === 'string' ? value : ''
   const opts = q.options ?? []
+  const pics = q.optionImages ?? {}
+  const withPics = (q.kind === 'choice' || q.kind === 'multi') && opts.some((o) => pics[o])
   // "outro": o que a pessoa escreveu e não é uma das opções
   const otherVal = q.kind === 'multi' ? list.find((v) => !opts.includes(v)) ?? '' : q.kind === 'choice' && text && !opts.includes(text) ? text : ''
+  const isOn = (o: string) => (q.kind === 'multi' ? list.includes(o) : text === o)
+  const toggle = (o: string) => (q.kind === 'multi' ? onChange(isOn(o) ? list.filter((x) => x !== o) : [...list, o]) : onChange(text === o ? '' : o))
   return (
-    <div id={`bfq-${q.id}`} className={`bf-q ${missing ? 'is-missing' : ''}`}>
+    <div id={`bfq-${q.id}`} className={`bf-q ${missing ? 'is-missing' : ''} ${q.showIf ? 'bf-sub' : ''}`}>
       <label className="bf-label" htmlFor={`bf-${q.id}`}>
         {q.label}
         {q.required && <span className="bf-req"> *</span>}
       </label>
       {q.hint && <p className="bf-hint">{q.hint}</p>}
+      {q.kind === 'multi' && <p className="bf-hint bf-hint-multi">pode marcar mais de uma</p>}
       {q.images && q.images.length > 0 && (
         <div className="bf-refs">
           {q.images.map((src, i) => (
-            <img key={i} src={src} alt="" />
+            <ArtImage key={i} src={src} />
           ))}
         </div>
       )}
-      {q.kind === 'long' ? (
+      {withPics ? (
+        <div className={`bf-imgopts ${opts.length > 4 ? 'is-many' : ''}`} role={q.kind === 'choice' ? 'radiogroup' : undefined}>
+          {opts.map((o) => (
+            <button key={o} type="button" className={`bf-imgopt ${isOn(o) ? 'is-on' : ''}`} onClick={() => toggle(o)} aria-pressed={isOn(o)}>
+              <span className="bf-imgopt-pic">{pics[o] ? <ArtImage src={pics[o]} alt={o} /> : <span className="bf-imgopt-none">{o.slice(0, 1)}</span>}</span>
+              <span className="bf-imgopt-label">
+                <i className={q.kind === 'choice' ? 'bf-radio' : 'bf-box'} aria-hidden />
+                {o}
+              </span>
+            </button>
+          ))}
+          {q.other && <input className="bf-other" value={otherVal} onChange={(e) => (q.kind === 'multi' ? onChange([...list.filter((v) => opts.includes(v)), ...(e.target.value ? [e.target.value] : [])]) : onChange(e.target.value))} placeholder="outro: escreva aqui" />}
+          {Object.values(pics).some((v) => !isArt(v)) && <p className="bf-hint bf-pic-note">fotos ilustrativas</p>}
+        </div>
+      ) : q.kind === 'long' ? (
         <textarea id={`bf-${q.id}`} rows={3} value={text} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" />
       ) : q.kind === 'date' ? (
         <input id={`bf-${q.id}`} type="date" value={text} onChange={(e) => onChange(e.target.value)} />
@@ -544,23 +715,39 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
         </div>
       ) : q.kind === 'photos' ? (
         <div className="bf-upload">
-          {list.length > 0 && (
-            <div className="bf-thumbs">
-              {list.map((v) => (
-                <span key={v} className="bf-thumb">
-                  {previews[v] || v.startsWith('data:') ? <img src={previews[v] || v} alt="" /> : <span className="bf-thumb-ok">✓</span>}
-                  <button type="button" aria-label="Tirar foto" onClick={() => onChange(list.filter((x) => x !== v))}>
-                    ×
-                  </button>
-                </span>
-              ))}
+          {q.tips && q.tips.length > 0 && (
+            <div className="bf-tips">
+              <span>📸 fotos que ajudam:</span>
+              <ul>
+                {q.tips.map((t) => (
+                  <li key={t}>{t}</li>
+                ))}
+              </ul>
             </div>
           )}
-          <button type="button" className="btn bf-upload-btn" onClick={() => fileRef.current?.click()}>
-            📷 {list.length ? 'adicionar mais fotos' : 'adicionar fotos'}
-          </button>
-          {uploading > 0 && <small className="muted">enviando…</small>}
-          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => (onPhotos(e.target.files), (e.target.value = ''))} />
+          {canUpload ? (
+            <>
+              {list.length > 0 && (
+                <div className="bf-thumbs">
+                  {list.map((v) => (
+                    <span key={v} className="bf-thumb">
+                      {previews[v] || v.startsWith('data:') ? <img src={previews[v] || v} alt="" /> : <span className="bf-thumb-ok">✓</span>}
+                      <button type="button" aria-label="Tirar foto" onClick={() => onChange(list.filter((x) => x !== v))}>
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <button type="button" className="btn bf-upload-btn" onClick={() => fileRef.current?.click()}>
+                📷 {list.length ? 'adicionar mais fotos' : 'adicionar fotos'}
+              </button>
+              {uploading > 0 && <small className="muted">enviando…</small>}
+              <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => (onPhotos(e.target.files), (e.target.value = ''))} />
+            </>
+          ) : (
+            <p className="bf-hint">Depois de enviar as respostas, mande as fotos direto na conversa do WhatsApp.</p>
+          )}
         </div>
       ) : (
         <input id={`bf-${q.id}`} value={text} onChange={(e) => onChange(e.target.value)} />

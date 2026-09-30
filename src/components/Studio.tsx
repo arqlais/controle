@@ -9,7 +9,8 @@ import { askDelete, toast } from './dialog'
 import { PLANS, type Feature } from '../plans'
 import type { Client, Project, ProjectCost, ProjectPhase, ProjectPortal, SiteVisit, VisitPhoto } from '../types'
 import { daysUntil, fmtDate, money, payWhen, projectPaid, projectTotal, statusInfo, today, uid, whatsappLink } from '../utils'
-import { deletePhoto, photoUrls, portalLink, publishPortal, savePhoto, unpublishPortal, type PortalPayload } from '../studioApi'
+import { deletePhoto, packPortal, photoUrls, portalLink, publishPortal, savePhoto, unpublishPortal, type PortalPayload } from '../studioApi'
+import { hashExtra } from '../linkPack'
 import { usePdf } from './Print'
 import { VisitReportDoc } from './Docs'
 
@@ -549,16 +550,28 @@ export function usePortalSync(p: Project | undefined, client: Client | undefined
 export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Partial<Project>) => void; client?: Client }) {
   const { data } = useStore()
   const portal = p.portal
-  const link = portal ? portalLink(portal.token) : ''
+  // cópia dentro do link (abre mesmo se a nuvem falhar); acompanha o que muda na demanda
+  const snapshot = portal?.enabled ? JSON.stringify({ ...portalPayload(p, client, data.settings, portal), updatedAt: '' }) : ''
+  const [packed, setPacked] = useState('')
+  useEffect(() => {
+    if (!snapshot) return
+    let off = false
+    void packPortal({ ...JSON.parse(snapshot), updatedAt: new Date().toISOString() }).then((v) => !off && setPacked(v))
+    return () => {
+      off = true
+    }
+  }, [snapshot])
+  const link = portal ? portalLink(portal.token, packed) : ''
   const enable = async () => {
     const next: ProjectPortal = { token: portal?.token ?? crypto.randomUUID(), enabled: true, showPayments: portal?.showPayments ?? true, showFiles: portal?.showFiles ?? true, showVisits: portal?.showVisits ?? true, message: portal?.message }
+    let online = true
     try {
       await publishPortal(next.token, portalPayload(p, client, data.settings, next))
-      save({ portal: { ...next, publishedAt: new Date().toISOString() } })
-      toast('Página no ar. Agora é só mandar o link.')
     } catch {
-      toast('Não foi possível publicar agora. Confira a internet e tente de novo.')
+      online = false
     }
+    save({ portal: { ...next, publishedAt: new Date().toISOString() } })
+    toast(online ? 'Página no ar. Agora é só mandar o link.' : 'Página criada. A nuvem não respondeu agora: o link leva uma cópia do projeto e abre mesmo assim. Quando mudar algo, mande o link de novo.')
   }
   const disable = async () => {
     if (!portal) return
@@ -643,7 +656,7 @@ export function ClienteTab({ p, save, client }: { p: Project; save: (patch: Part
 export function PortalPublic({ token }: { token: string }) {
   const [d, setD] = useState<PortalPayload | null | undefined>(undefined)
   useEffect(() => {
-    import('../studioApi').then(({ loadPortal }) => loadPortal(token)).then(setD, () => setD(null))
+    import('../studioApi').then(({ loadPortal }) => loadPortal(token, hashExtra())).then(setD, () => setD(null))
   }, [token])
   const wrap = (children: ReactNode) => (
     <div className="bf-public pt-public" style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>

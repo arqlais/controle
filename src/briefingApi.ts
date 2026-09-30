@@ -16,10 +16,14 @@ export interface BriefingPayload {
   intro: string
   questions: BriefingQuestion[]
   sections?: BriefingSection[]
+  phone?: string // WhatsApp de quem mandou (plano B: as respostas vão por mensagem)
+  email?: string
 }
 export interface PublicBriefing {
   payload: BriefingPayload
   answered: boolean
+  /** de onde veio: nuvem, este navegador ou a cópia dentro do link (sem nuvem: respostas vão pelo WhatsApp) */
+  source: 'cloud' | 'local' | 'link'
 }
 
 const LOCAL = 'briefings-publicos'
@@ -41,8 +45,26 @@ const writeLocal = (v: Record<string, LocalRow>) => {
 // "ver como cliente" da dona e a prévia: nada vai para a nuvem
 const useCloud = () => CLOUD && !viewingAsClient()
 
-/** Link que vai para o cliente. */
-export const briefingLink = (id: string) => `${location.origin}${location.pathname}#/briefing/${id}`
+/** Link que vai para o cliente (com a cópia compacta, quando houver: abre mesmo sem a nuvem). */
+export const briefingLink = (id: string, packed?: string) => `${location.origin}${location.pathname}#/briefing/${id}${packed ? `/${packed}` : ''}`
+
+/** Cópia que vai dentro do link: sem imagens enviadas (pesadas); as ilustrações prontas continuam. */
+export function linkCopy(p: BriefingPayload): BriefingPayload {
+  const light = (src: string) => !src.startsWith('data:')
+  return {
+    ...p,
+    logo: undefined,
+    questions: p.questions.map((q) => ({
+      ...q,
+      images: q.images?.filter(light),
+      optionImages: q.optionImages ? Object.fromEntries(Object.entries(q.optionImages).filter(([, v]) => light(v))) : undefined,
+    })),
+  }
+}
+export const packBriefing = async (p: BriefingPayload) => {
+  const { pack } = await import('./linkPack')
+  return pack(linkCopy(p))
+}
 
 export async function publishBriefing(id: string, payload: BriefingPayload) {
   if (!useCloud()) {
@@ -77,31 +99,45 @@ export async function deleteBriefingLink(id: string) {
   await supabase!.from('briefing_links').delete().eq('id', id)
 }
 
-/** Página pública: lê o briefing pelo código do link. */
-export async function loadPublicBriefing(id: string): Promise<PublicBriefing | null> {
-  if (!CLOUD) {
-    const row = readLocal()[id]
-    return row ? { payload: row.payload, answered: !!row.answeredAt } : null
+/** Página pública: lê o briefing pelo código do link. Ordem: nuvem → este navegador → cópia do link. */
+export async function loadPublicBriefing(id: string, packed?: string): Promise<PublicBriefing | null> {
+  if (CLOUD) {
+    try {
+      const { data, error } = await supabase!.rpc('briefing_publico', { p_id: id })
+      if (!error && data) {
+        const d = data as { payload: BriefingPayload; respondido: boolean }
+        return { payload: d.payload, answered: d.respondido, source: 'cloud' }
+      }
+    } catch {
+      /* sem nuvem: tenta os outros jeitos */
+    }
   }
-  const { data, error } = await supabase!.rpc('briefing_publico', { p_id: id })
-  if (error || !data) return null
-  const d = data as { payload: BriefingPayload; respondido: boolean }
-  return { payload: d.payload, answered: d.respondido }
+  const row = readLocal()[id]
+  if (row) return { payload: row.payload, answered: !!row.answeredAt, source: 'local' }
+  const { unpack } = await import('./linkPack')
+  const copy = await unpack<BriefingPayload>(packed)
+  return copy ? { payload: copy, answered: false, source: 'link' } : null
 }
 
-export async function sendPublicAnswers(id: string, answers: BriefingAnswers) {
-  if (!CLOUD) {
+/** Manda as respostas. `false` = não salvou (a página oferece mandar pelo WhatsApp). */
+export async function sendPublicAnswers(id: string, answers: BriefingAnswers, source: PublicBriefing['source']) {
+  if (source === 'local') {
     const all = readLocal()
     if (!all[id] || all[id].answeredAt) return false
     all[id] = { ...all[id], answers, answeredAt: new Date().toISOString() }
     writeLocal(all)
     return true
   }
-  const { data, error } = await supabase!.rpc('responder_briefing', { p_id: id, p_answers: answers })
-  if (error) throw error
+  if (source !== 'cloud' || !CLOUD) return false
+  try {
+    const { data, error } = await supabase!.rpc('responder_briefing', { p_id: id, p_answers: answers })
+    if (error || !data) return false
+  } catch {
+    return false
+  }
   // avisa quem mandou o briefing (por e-mail); se falhar, as respostas já estão salvas
   void supabase!.functions.invoke('avisos', { body: { tipo: 'briefing', id } }).catch(() => undefined)
-  return !!data
+  return true
 }
 
 /* ---------------- fotos que o cliente anexa no briefing ---------------- */
@@ -116,9 +152,9 @@ const toDataUrl = (b: Blob) =>
   })
 
 /** Guarda uma foto enviada pelo cliente (diminuída) e devolve como ela fica na resposta. */
-export async function uploadAttachment(briefingId: string, file: File): Promise<string> {
+export async function uploadAttachment(briefingId: string, file: File, cloud = CLOUD): Promise<string> {
   const { compressImage } = await import('./studioApi')
-  if (!CLOUD) return toDataUrl(await compressImage(file, 900, 0.7))
+  if (!cloud) return toDataUrl(await compressImage(file, 900, 0.7))
   const blob = await compressImage(file)
   const path = `${briefingId}/${crypto.randomUUID()}.jpg`
   const { error } = await supabase!.storage.from(ATT).upload(path, blob, { contentType: 'image/jpeg' })

@@ -525,6 +525,9 @@ export interface BriefingQuestion {
   hint?: string // explicação curta embaixo da pergunta
   images?: string[] // imagens de referência que o arquiteto mostra (ex.: estilos)
   other?: boolean // escolha com opção "outro" para escrever
+  optionImages?: Record<string, string> // escolha por imagem: foto/ilustração de cada opção ("art:..." = ilustração pronta)
+  showIf?: { q: string; is: string } // sub-pergunta: só aparece quando a pergunta `q` tem a resposta `is`
+  tips?: string[] // fotos sugeridas (perguntas de anexar fotos): "de cada parede", "do teto"…
 }
 export interface BriefingSection {
   id: string
@@ -553,6 +556,7 @@ export interface Briefing {
   status: 'enviado' | 'respondido'
   createdAt: string
   answeredAt?: string
+  pack?: string // cópia compacta que vai dentro do link (abre mesmo sem a nuvem)
 }
 
 export type PostFormat = 'carrossel' | 'reels' | 'story' | 'post'

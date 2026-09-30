@@ -114,7 +114,9 @@ const readLocal = (): Record<string, PortalPayload> => {
   }
 }
 
-export const portalLink = (token: string) => `${location.origin}${location.pathname}#/acompanhar/${token}`
+/** Link do cliente. A cópia compacta (sem logo) faz a página abrir mesmo se a nuvem falhar. */
+export const portalLink = (token: string, packed?: string) => `${location.origin}${location.pathname}#/acompanhar/${token}${packed ? `/${packed}` : ''}`
+export const packPortal = async (p: PortalPayload) => (await import('./linkPack')).pack({ ...p, logo: undefined })
 
 export async function publishPortal(token: string, payload: PortalPayload) {
   if (!useCloud()) {
@@ -141,9 +143,18 @@ export async function unpublishPortal(token: string) {
   await supabase!.from('portal_links').delete().eq('id', token)
 }
 
-export async function loadPortal(token: string): Promise<PortalPayload | null> {
-  if (!CLOUD) return readLocal()[token] ?? null
-  const { data, error } = await supabase!.rpc('portal_publico', { p_id: token })
-  if (error || !data) return null
-  return data as PortalPayload
+export async function loadPortal(token: string, packed?: string): Promise<PortalPayload | null> {
+  // nuvem (sempre a versão mais nova) → este navegador ("ver como cliente" e prévia) → cópia do link
+  if (CLOUD) {
+    try {
+      const { data, error } = await supabase!.rpc('portal_publico', { p_id: token })
+      if (!error && data) return data as PortalPayload
+    } catch {
+      /* tenta os outros jeitos */
+    }
+  }
+  const local = readLocal()[token]
+  if (local) return local
+  const { unpack } = await import('./linkPack')
+  return unpack<PortalPayload>(packed)
 }
