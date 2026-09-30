@@ -87,6 +87,8 @@ try {
 
     // 3b. orçamento: colar a resposta do cliente marca as plantas; campo de m² apaga o zero; cobrar junto
     await go('#/orcamentos/novo'); await page.waitForTimeout(500)
+    // orçamento novo pergunta para quem é
+    if (await page.locator('.aud-option').count()) await page.locator('.aud-option[data-audience=parceiro]').click()
     await page.getByRole('button', { name: 'colar resposta' }).click()
     await page.locator('.scope-text').fill('plantas executivas:\n- planta de layout (mobiliário)\n- \u2060planta elétrica\n\ndetalhamentos (caso precise):\n- marcenaria\n- serralheria com vidraçaria')
     await page.getByRole('button', { name: 'marcar no orçamento' }).click(); await page.waitForTimeout(300)
@@ -117,6 +119,8 @@ try {
 
     // 3c. duas propostas: fechando as duas juntas sai mais barato
     await go('#/orcamentos/novo'); await page.waitForTimeout(500)
+    // orçamento novo pergunta para quem é
+    if (await page.locator('.aud-option').count()) await page.locator('.aud-option[data-audience=parceiro]').click()
     await page.getByRole('button', { name: 'propostas + juntas' }).click(); await page.waitForTimeout(150)
     await page.locator('.q-item-head select').nth(0).selectOption('render-vray')
     await page.locator('.q-item-head select').nth(1).selectOption('render-ia'); await page.waitForTimeout(150)

@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
-import type { Project, Quote, QuoteStatus } from '../types'
-import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday } from '../utils'
+import type { Payment, Project, ProjectPhase, Quote, QuoteStatus } from '../types'
+import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday, uid } from '../utils'
 import { projectFromQuote } from '../quoteActions'
 import { Icon } from './Icon'
 import { toast } from './dialog'
@@ -272,6 +272,32 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
 }
 
 /** "Fechou por quanto?" — já vem com o valor da proposta; muda só se negociou. */
+/** Etapas do orçamento (cliente final) → cronograma da demanda + parcelas ligadas a cada etapa. */
+function stagedPlan(q: Quote, value: number, start: string, method: string) {
+  const steps = (q.steps ?? []).filter((x) => x.name.trim())
+  if (q.audience !== 'final' || !steps.length) return null
+  const pct = steps.reduce((n, x) => n + (x.percent || 0), 0)
+  let cursor = start
+  const payments: Payment[] = []
+  const phases: ProjectPhase[] = steps.map((x) => {
+    const due = x.days > 0 ? (x.dayType === 'uteis' ? addBusinessDays(cursor, x.days) : addDays(cursor, x.days)) : ''
+    const phase: ProjectPhase = { id: uid(), name: x.name, start: cursor, due: due || undefined }
+    if (x.percent > 0 && pct > 0) {
+      const amount = Math.round(((value * x.percent) / pct) * 100) / 100
+      const pay: Payment = { id: uid(), description: `${x.name} (${x.percent}%)`, amount, dueDate: payments.length === 0 ? start : due || cursor, paidDate: null, method, ...(payments.length === 0 ? { on: 'fechamento' as const } : {}) }
+      payments.push(pay)
+      if (payments.length > 1) phase.paymentId = pay.id
+    }
+    if (due) cursor = due
+    return phase
+  })
+  if (!payments.length) return null
+  // arredondamento: a diferença de centavos vai para a última parcela
+  const diff = Math.round((value - payments.reduce((n, x) => n + x.amount, 0)) * 100) / 100
+  payments[payments.length - 1].amount = Math.round((payments[payments.length - 1].amount + diff) * 100) / 100
+  return { phases, payments, due: cursor !== start ? cursor : '' }
+}
+
 export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => void; onDone?: (projectId: string) => void }) {
   const { data, upsert } = useStore()
   const fee = data.settings.urgencyFee
@@ -309,6 +335,13 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
             paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? (i === 0 ? closedOn : pkg ? x.dueDate : x.dueDate || closedOn) : x.paidDate,
           })),
         }
+    // cliente final com etapas: cronograma e parcelas por etapa (a 1ª na assinatura, as outras ao entregar cada etapa)
+    const staged = stagedPlan(q, value, closedOn, method)
+    if (staged && !card && !pkg) {
+      project.phases = staged.phases
+      project.payments = staged.payments.map((x, i) => ({ ...x, paidDate: paidPart === 'tudo' || (paidPart === 'sinal' && i === 0) ? x.dueDate || closedOn : null }))
+      if (!project.dueDate && staged.due) project.dueDate = staged.due
+    }
     // orçamento antigo, tudo pago: a demanda já entra entregue
     const allPaid = project.payments.every((x) => x.paidDate)
     const done = q.noNumber && allPaid ? { ...project, status: 'entregue' as const, deliveredDate: due || closedOn, tasks: project.tasks.map((t) => ({ ...t, done: true })) } : project
@@ -348,6 +381,9 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
           <DateInput value={closedOn} min={q.createdAt} max={today()} onChange={(e) => setClosedOn(e.target.value || today())} />
         </Field>
         <HowPaid method={method} onChange={setMethod} amount={value} />
+        {!card && !pkg && q.audience === 'final' && q.steps?.some((x) => x.percent > 0) && (
+          <p className="small muted">As parcelas seguem as etapas do orçamento ({q.steps.filter((x) => x.percent > 0).map((x) => `${x.name} ${x.percent}%`).join(' · ')}) e as etapas viram o cronograma da demanda.</p>
+        )}
         {card ? (
           <label className="check">
             <input type="checkbox" checked={cardPaid} onChange={(e) => setCardPaid(e.target.checked)} /> já foi pago: 100% no cartão, no início (entra como recebido em {closedOn.split('-').reverse().join('/')})

@@ -3,6 +3,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
 import { useAccess } from '../access'
 import { resolveTemplate, sheetColors } from '../proposalTemplates'
+import { ProposalSlides } from './Slides'
 import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings, SiteVisit } from '../types'
 import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
@@ -303,6 +304,12 @@ function TotalBar({ label, value, note, compact }: { label: string; value: numbe
 const discountText = (value: number) => (value > 0 ? `com ${money(value)} de desconto` : '')
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
+  // cliente final: proposta em slides 16:9
+  if (quote.audience === 'final') return <ProposalSlides s={s} client={client} quote={quote} />
+  return <QuoteSheet s={s} client={client} quote={quote} />
+}
+
+function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
   const { tpl, p } = useSheet(s)
   const clientName = client?.name || '[nome do cliente]'
   // cada quadro com a própria área e pavimentos (opções/propostas de projetos diferentes)

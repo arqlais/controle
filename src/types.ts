@@ -316,6 +316,31 @@ export interface Quote {
   projectId: string
   closedValue?: number // valor fechado depois da negociação (0 = o da proposta)
   closedNote?: string // o que mudou no fechamento (escopo, valor…)
+  audience?: QuoteAudience // para quem é: cliente final (proposta em slides, etapas) ou escritório parceiro (vazio = parceiro)
+  processId?: string // processo de trabalho usado como base das etapas
+  steps?: ProcessStep[] // etapas do projeto (cliente final): o que inclui, prazo e % do pagamento
+  intro?: string // texto de abertura da proposta (cliente final)
+}
+
+export type QuoteAudience = 'final' | 'parceiro'
+
+/** Uma etapa do processo de projeto (briefing, layout, anteprojeto, executivo, obra…). */
+export interface ProcessStep {
+  id: string
+  name: string
+  description: string
+  items: string[] // o que está incluído nesta etapa (vira lista na proposta)
+  days: number // prazo desta etapa (0 = sem prazo)
+  dayType?: 'uteis' | 'corridos'
+  percent: number // parte do pagamento cobrada nesta etapa (0 = nada)
+}
+
+/** Jeito de trabalhar (interiores, arquitetônico, consultoria online…): cada pessoa edita o seu. */
+export interface ProjectProcess {
+  id: string
+  name: string
+  description: string
+  steps: ProcessStep[]
 }
 
 export type Pricing = 'unidade' | 'pacote' | 'm2' | 'hora' | 'livre'
@@ -345,6 +370,7 @@ export interface ServiceDef {
   delivery?: string // como é entregue (ex.: "PDF fechado, pronto para execução")
   noteHints?: string[] // observações prontas para este serviço (aparecem como sugestão no orçamento)
   deliveryOpen?: string // como é entregue quando o cliente quer o arquivo aberto ('' = não se aplica)
+  audience?: 'final' | 'parceiro' | 'ambos' // para quem este serviço aparece no orçamento (vazio = pelo tipo do serviço)
   perFloor?: boolean // encarece a cada pavimento a mais (pranchas, arquivos e modelos em dobro, triplo…)
 }
 
@@ -401,6 +427,9 @@ export interface Contract {
 export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
+  processes?: ProjectProcess[] // processos de trabalho para cliente final (vazio = os prontos)
+  portfolio?: string[] // fotos de projetos para a proposta e a apresentação (data URL, trocáveis)
+  about?: string // "sobre" do escritório, na proposta para cliente final
   briefingTemplates?: BriefingTemplate[] // modelos de briefing criados ou editados pela pessoa
   brandName: string
   tagline: string

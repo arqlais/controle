@@ -14,9 +14,12 @@ import { DocZoom, DocScale, usePdf } from '../components/Print'
 import { Badge, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
 import { askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
-import type { Complexity, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
+import type { Complexity, QuoteAudience, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { CloseDeal } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
+import { AudienceChooser, AudienceSwitch, QuoteStepsSection } from '../components/QuoteSteps'
+import { cloneSteps, processesOf, quoteAudience, servicesForAudience } from '../processes'
+import { SLIDE_W } from '../components/Slides'
 import {
   BOTH,
   optionArea,
@@ -45,6 +48,7 @@ import {
   fmtDate,
   fmtDateLong,
   isStudent,
+  isFinalClient,
   itemDetail,
   money,
   optionTotal,
@@ -136,6 +140,10 @@ export default function QuoteEditor({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const [view, setView] = useState<'editar' | 'ver'>('editar')
+  // orçamento novo: pergunta para quem é (quem só atende escritórios não precisa escolher)
+  const [asking, setAsking] = useState(() => !existing && id === 'novo' && data.settings.workProfile !== 'freelancer')
+  const audience = quoteAudience(q)
+  const isFinal = audience === 'final'
   const [zoom, setZoom] = useState(false)
   const pdf = usePdf()
   // quem desligou o PDF (configurações → propostas) manda só o resumo no WhatsApp
@@ -218,6 +226,13 @@ export default function QuoteEditor({ id }: { id: string }) {
     setQ((x) => ({ ...x, ...patch }))
     setDirty(true)
     setTouched(true)
+  }
+  // cliente final: proposta em slides com as etapas do seu processo; escritório parceiro: a folha de sempre
+  const pickAudience = (a: QuoteAudience) => {
+    if (a === 'final') {
+      const first = processesOf(settings)[0]
+      set({ audience: a, pdf: pdfOn ? true : q.pdf, ...(q.paymentTerms === settings.defaultPaymentTerms ? { paymentTerms: 'Pix ou transferência. A 1ª parcela na assinatura; as outras, na entrega de cada etapa.' } : {}), ...(!q.steps?.length && first ? { steps: cloneSteps(first.steps), processId: first.id } : {}) })
+    } else set({ audience: a })
   }
   const oa = (o: QuoteOption) => optionArea(q, o)
   const setOption = (oid: string, patch: Partial<QuoteOption>) => set({ options: q.options.map((o) => (o.id === oid ? { ...o, ...patch } : o)) })
@@ -346,6 +361,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       if (saved) cur = saved
     }
     const doc = <QuoteDoc s={settings} client={client} quote={cur} />
+    if (cur.audience === 'final') return pdf.downloadSlides(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
     ;(vector ? pdf.downloadVector : pdf.download)(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
   }
   const duplicate = () => {
@@ -450,7 +466,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             </a>
           )}
           <MoreMenu>
-            {showPdf && (
+            {showPdf && !isFinal && (
               <button className="btn ghost" disabled={pdf.busy} onClick={() => downloadPdf(true)} title="Abre a janela de impressão: escolha “Salvar como PDF” (textos em vetor, selecionáveis)">
                 <Icon name="download" size={16} /> PDF em vetor
               </button>
@@ -512,9 +528,19 @@ export default function QuoteEditor({ id }: { id: string }) {
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
+              <AudienceSwitch value={audience} onChange={pickAudience} />
               <Field label="Cliente" span={2} hint="O nome do cliente vai no campo “nome” da proposta.">
                 <div className="row gap-s">
-                  <select id="q-client" value={q.clientId} onChange={(e) => set({ clientId: e.target.value })}>
+                  <select
+                    id="q-client"
+                    value={q.clientId}
+                    onChange={(e) => {
+                      const c = data.clients.find((x) => x.id === e.target.value)
+                      set({ clientId: e.target.value })
+                      // escolheu um cliente final e o orçamento ainda está no formato de parceiro: troca sozinho
+                      if (isFinalClient(c) && !isFinal && q.status === 'rascunho') pickAudience('final')
+                    }}
+                  >
                     <option value="">Selecione…</option>
                     {[...data.clients]
                       .filter((c) => !c.archived)
@@ -606,7 +632,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                   </label>
                 </div>
               )}
-              <Field
+              {!isFinal && <Field
                 group
                 label="Arquivo final"
                 span={2}
@@ -626,7 +652,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                     { value: 'aberto', label: `aberto (editável) · +${settings.openFileFee ?? 30}%` },
                   ]}
                 />
-              </Field>
+              </Field>}
             </div>
             {q.status === 'aprovado' && (
               <div className="closed-row">
@@ -654,9 +680,16 @@ export default function QuoteEditor({ id }: { id: string }) {
             {student && <p className="small text-warn">Cliente estudante: sugestões com {settings.studentDiscount}% de desconto.</p>}
           </Section>
 
+          {isFinal && (
+            <Section title="apresentação">
+              <Field label="Texto de abertura" hint="Aparece no slide “O seu projeto”. Em branco, vai um texto padrão. Seu “sobre” e as fotos de projetos ficam em Configurações → propostas.">
+                <textarea rows={3} value={q.intro ?? ''} onChange={(e) => set({ intro: e.target.value })} placeholder="Ex.: Um apartamento pensado para a rotina de vocês, com espaço para receber os amigos e muita luz natural." spellCheck lang="pt-BR" />
+              </Field>
+            </Section>
+          )}
           {!two ? (
             <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
-              <ItemsEditor items={q.items} student={student} openFile={!!q.openFile} floors={floors} area={q.area} settings={settings} onChange={(items) => set({ items })} />
+              <ItemsEditor audience={audience} items={q.items} student={student} openFile={!!q.openFile} floors={floors} area={q.area} settings={settings} onChange={(items) => set({ items })} />
               <div className="quote-totals">
                 <div>
                   <span>subtotal</span>
@@ -728,7 +761,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                     />
                   </Field>
                 </div>
-                <ItemsEditor items={o.items} student={student} openFile={!!q.openFile} floors={oa(o).floors} area={oa(o).area} settings={settings} onChange={(items) => setOption(o.id, { items })} />
+                <ItemsEditor audience={audience} items={o.items} student={student} openFile={!!q.openFile} floors={oa(o).floors} area={oa(o).area} settings={settings} onChange={(items) => setOption(o.id, { items })} />
                 <div className="quote-totals">
                   <div className="discount-row">
                     <span>desconto</span>
@@ -784,6 +817,8 @@ export default function QuoteEditor({ id }: { id: string }) {
               <p className="muted small">Na proposta aparece o valor de cada uma e, embaixo, quanto fica fechando {allLabel(q)} juntas.</p>
             </Section>
           )}
+
+          {isFinal && <QuoteStepsSection steps={q.steps ?? []} processId={q.processId} total={two ? 0 : total} onChange={(patch) => set(patch)} />}
 
           <Section title="informações da proposta">
             <div className="form-grid">
@@ -887,12 +922,12 @@ export default function QuoteEditor({ id }: { id: string }) {
         {showPdf && (
           <aside className="quote-preview">
             <div className="doc-zoomable" onClick={() => setZoom(true)} title="Ver maior">
-              <DocScale>{preview}</DocScale>
+              <DocScale width={isFinal ? SLIDE_W : undefined}>{preview}</DocScale>
               <span className="doc-zoom-btn">
                 <Icon name="eye" size={14} /> ver maior
               </span>
             </div>
-            {zoom && <DocZoom onClose={() => setZoom(false)}>{preview}</DocZoom>}
+            {zoom && <DocZoom width={isFinal ? SLIDE_W : undefined} onClose={() => setZoom(false)}>{preview}</DocZoom>}
             <p className="muted small center">
               Pré-visualização do PDF · cores e textos padrão em{' '}
               <a className="link" href={href('config')}>
@@ -906,6 +941,18 @@ export default function QuoteEditor({ id }: { id: string }) {
       {newClient && <ClientForm onClose={() => setNewClient(false)} onSaved={(c) => set({ clientId: c.id })} />}
       {editClient && client && <ClientForm initial={client} onClose={() => setEditClient(false)} />}
       {pdf.portal}
+      {asking && (
+        <AudienceChooser
+          onPick={(a) => {
+            pickAudience(a)
+            setAsking(false)
+          }}
+          onClose={() => {
+            pickAudience('parceiro')
+            setAsking(false)
+          }}
+        />
+      )}
       {closing && <CloseDeal q={closing} onClose={() => setClosing(null)} onDone={(id) => go('projetos', id)} />}
     </div>
   )
@@ -1093,7 +1140,7 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
 }
 
 /** Lista de serviços com preço pela tabela, desconto por unidade e valor editável. */
-function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onChange }: { items: QuoteItem[]; student: boolean; openFile: boolean; floors: number; area?: number; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
+function ItemsEditor({ items, student, openFile, floors, area = 0, settings, audience, onChange }: { audience: QuoteAudience; items: QuoteItem[]; student: boolean; openFile: boolean; floors: number; area?: number; settings: Settings; onChange: (items: QuoteItem[]) => void }) {
   const service = (sid: string) => settings.services.find((s) => s.id === sid)
 
   const recompute = (it: QuoteItem): QuoteItem => {
@@ -1136,7 +1183,7 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, onC
                 }}
               >
                 <option value="">escolha o serviço…</option>
-                <ServiceOptions services={settings.services} />
+                <ServiceOptions services={servicesForAudience(settings.services, audience)} />
               </select>
               <button className="icon-btn subtle" onClick={() => onChange(items.filter((x) => x.id !== it.id))} aria-label="Remover serviço">
                 <Icon name="x" size={14} />

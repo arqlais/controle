@@ -6,7 +6,7 @@ import { toast } from './dialog'
 import { dataUrlBlob, saveFile } from './saveFile'
 
 /** Mostra uma folha A4 (794px) reduzida para caber na largura disponível. */
-export function DocScale({ children }: { children: ReactNode }) {
+export function DocScale({ children, width = 794 }: { children: ReactNode; width?: number }) {
   const outer = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.5)
@@ -14,7 +14,7 @@ export function DocScale({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const measure = () => {
       if (!outer.current || !inner.current) return
-      const sc = outer.current.clientWidth / 794
+      const sc = outer.current.clientWidth / width
       setScale(sc)
       setHeight(inner.current.offsetHeight * sc)
     }
@@ -23,7 +23,7 @@ export function DocScale({ children }: { children: ReactNode }) {
     if (outer.current) ro.observe(outer.current)
     if (inner.current) ro.observe(inner.current)
     return () => ro.disconnect()
-  }, [])
+  }, [width])
   return (
     <div className="doc-scale" ref={outer} style={{ height }}>
       <div className="doc-scale-inner" ref={inner} style={{ transform: `scale(${scale})` }}>
@@ -61,8 +61,9 @@ export async function renderSheet<T>(el: HTMLElement, fn: (el: HTMLElement, o: R
 export const errText = (e: unknown) => (e instanceof Event ? 'uma imagem não carregou' : e instanceof Error ? e.message : String(e)).slice(0, 80)
 
 export function usePdf() {
-  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean } | null>(null)
+  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean; slides?: boolean } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
+  const [previewW, setPreviewW] = useState(794)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -98,6 +99,18 @@ export function usePdf() {
           return
         }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
+        if (job.slides) {
+          // proposta em slides: uma página 16:9 por slide (cabe certinho na tela do computador)
+          const list = [...el.querySelectorAll<HTMLElement>('.slide')]
+          const pdf = new jsPDF({ unit: 'px', format: [1280, 720], orientation: 'landscape', compress: true, hotfixes: ['px_scaling'] })
+          for (let i = 0; i < list.length; i++) {
+            const c = await renderSheet(list[i], toCanvas, { pixelRatio: 2 })
+            if (i) pdf.addPage([1280, 720], 'landscape')
+            pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 1280, 720, undefined, 'FAST')
+          }
+          saveFile(pdf.output('blob'), job.filename, 'PDF baixado.')
+          return
+        }
         const canvas = await renderSheet(el, toCanvas, { pixelRatio: 3 })
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true })
         const pageW = 210
@@ -129,6 +142,7 @@ export function usePdf() {
   const clean = (f: string) => f.replace(/[\\/:*?"<>|]+/g, '-')
   /** PDF baixado direto, sem janela (a folha vira imagem em alta resolução, com as cores do modelo). */
   const download = (doc: ReactNode, filename: string) => {
+    setPreviewW(794)
     if (ARTIFACT) return setPreview(doc) // o visualizador do Claude bloqueia downloads
     toast('Gerando PDF…')
     setJob({ doc, filename: clean(filename) })
@@ -138,6 +152,15 @@ export function usePdf() {
     if (ARTIFACT) return setPreview(doc)
     toast('Na janela que abrir, escolha “Salvar como PDF”.')
     setJob({ doc, filename: clean(filename), vector: true })
+  }
+  /** Proposta em slides 16:9 (cliente final). */
+  const downloadSlides = (doc: ReactNode, filename: string) => {
+    if (ARTIFACT) {
+      setPreviewW(1280)
+      return setPreview(doc)
+    }
+    toast('Gerando PDF…')
+    setJob({ doc, filename: clean(filename), slides: true })
   }
   const downloadPng = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc)
@@ -158,17 +181,17 @@ export function usePdf() {
         <Modal wide title="pré-visualização" onClose={() => setPreview(null)}>
           <p className="muted small">Para baixar o PDF, use o sistema publicado (arqlais.github.io/controle) — aqui o visualizador do Claude não permite downloads.</p>
           <div className="doc-preview">
-            <DocScale>{preview}</DocScale>
+            <DocScale width={previewW}>{preview}</DocScale>
           </div>
         </Modal>
       )}
     </>
   )
-  return { download, downloadVector, downloadPng, busy: !!job && !job.vector, portal }
+  return { download, downloadVector, downloadSlides, downloadPng, busy: !!job && !job.vector, portal }
 }
 
 /** Prévia do documento em tamanho grande, por cima da tela (fecha no X, no Esc ou clicando fora). */
-export function DocZoom({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+export function DocZoom({ children, onClose, width }: { children: ReactNode; onClose: () => void; width?: number }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', key)
@@ -184,8 +207,8 @@ export function DocZoom({ children, onClose }: { children: ReactNode; onClose: (
       <button className="doc-zoom-close" onClick={onClose} aria-label="Fechar">
         ✕
       </button>
-      <div className="doc-zoom-sheet" onClick={(e) => e.stopPropagation()}>
-        <DocScale>{children}</DocScale>
+      <div className={`doc-zoom-sheet ${width && width > 794 ? 'is-wide' : ''}`} onClick={(e) => e.stopPropagation()}>
+        <DocScale width={width}>{children}</DocScale>
       </div>
     </div>,
     document.body,

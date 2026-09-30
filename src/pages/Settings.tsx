@@ -20,6 +20,8 @@ import { TEMPLATES, resolveTemplate, sheetColors, templateAllowed } from '../pro
 import { contractSettings } from '../contracts'
 import { ARCH_SERVICES, WORK_PROFILES } from '../clientDefaults'
 import { PLANS } from '../plans'
+import { PortfolioSettings, ProcessSettings } from '../components/QuoteSteps'
+import { serviceAudience } from '../processes'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
@@ -186,6 +188,13 @@ export default function SettingsPage() {
                         ))}
                       </select>
                       <input className="service-group-input" list="service-groups" value={x.group ?? ''} onChange={(e) => setService(x.id, { group: e.target.value })} placeholder="grupo" aria-label="Grupo do serviço" title="Grupo: organiza a tabela e a lista do orçamento (ex.: projetos complementares)" />
+                      {s.workProfile !== 'freelancer' && (
+                        <select className="service-aud" value={serviceAudience(x)} onChange={(e) => setService(x.id, { audience: e.target.value as 'final' | 'parceiro' | 'ambos' })} aria-label="Para quem" title="Em qual tipo de orçamento este serviço aparece">
+                          <option value="final">cliente final</option>
+                          <option value="parceiro">escritório parceiro</option>
+                          <option value="ambos">os dois</option>
+                        </select>
+                      )}
                       <button className="icon-btn" onClick={async () => (await askDelete(`o serviço "${x.name}"`)) && setSettings({ services: s.services.filter((y) => y.id !== x.id) })} aria-label="Remover">
                         <Icon name="trash" size={16} />
                       </button>
@@ -338,6 +347,12 @@ export default function SettingsPage() {
             <>
               <ProposalChooser />
               {has('propostaPdf') && <ProposalSettings />}
+              {s.workProfile !== 'freelancer' && (
+                <>
+                  <ProcessSettings />
+                  {has('propostaPdf') && <PortfolioSettings />}
+                </>
+              )}
               <Section title="numeração e padrões" className="desktop-only">
                 <div className="form-grid">
                   <Field label="Começar a contagem em" hint={`Os orçamentos seguem em ordem a partir daqui. Próximo: #${String(nextQuoteNumber(data)).padStart(3, '0')}.`}>

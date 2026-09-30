@@ -29,6 +29,17 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-29-orcamento-cliente-final',
+    date: '2026-09-29',
+    kind: 'novo',
+    title: 'orçamento para cliente final, em slides',
+    text: 'Ao criar um orçamento, você escolhe para quem é: cliente final ou escritório parceiro. Para cliente final, a proposta sai em slides 16:9 (cabem certinho na tela do computador), com linha do tempo das etapas, prazos, investimento e pagamento dividido por etapa. As etapas seguem o seu jeito de trabalhar e dá para editar tudo. Ao aprovar, elas viram o cronograma da demanda.',
+    steps: [
+      { page: 'orcamentos', text: 'Clique em “novo” e escolha “cliente final”.' },
+      { page: 'config', text: 'Em configurações → propostas, edite seus processos (interiores, arquitetônico, consultoria online) e coloque as fotos dos seus projetos.' },
+    ],
+  },
+  {
     id: '2026-09-29-estudio-abas',
     date: '2026-09-29',
     kind: 'novo',
