@@ -89,7 +89,7 @@ O ${PLATFORM.name} é uma plataforma on-line de gestão para profissionais de pr
 
 5. PLANOS, VALORES E PAGAMENTO
 5.1 Os valores e o que cada plano inclui estão na página de planos no momento da assinatura.
-5.2 A assinatura é mensal ou anual (o anual tem desconto), paga antecipadamente por Pix ou cartão de crédito. No mensal, o cartão é cobrado automaticamente todo mês (recorrente) e o Pix é pago mês a mês.
+5.2 A assinatura é mensal, semestral ou anual (o semestral e o anual têm desconto), paga antecipadamente por Pix ou cartão de crédito. No mensal, o cartão é cobrado automaticamente todo mês (recorrente) e o Pix é pago mês a mês. No semestral e no anual, o Pix é pago à vista e o cartão pode ser parcelado (até 6 vezes no semestral e 12 no anual), com os juros da operadora do cartão informados antes da confirmação; o acesso vale pelo período inteiro já contratado.
 5.3 Mudanças de preço são avisadas com antecedência mínima de 30 dias e valem a partir do período seguinte.
 
 6. DIREITO DE ARREPENDIMENTO (7 DIAS)

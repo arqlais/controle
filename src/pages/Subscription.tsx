@@ -11,7 +11,7 @@ import { platform, trialDaysLeft, trialOver } from '../platform'
 import { go, href } from '../router'
 import { download, today } from '../utils'
 import { useStore } from '../store'
-import { CycleToggle, PlanPrice, useCycle } from '../components/PlanPrice'
+import { CycleToggle, PlanPrice, cycleHint, useCycle } from '../components/PlanPrice'
 
 /* "Minha assinatura": plano, teste grátis e troca de plano (em modo teste, sem cobrança). */
 
@@ -92,7 +92,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
       )}
       <div className="cy-row">
         <CycleToggle value={cycle} onChange={setCycle} />
-        <span className="muted small">{cycle === 'anual' ? 'um pagamento só, pelo ano todo (Pix ou cartão)' : 'paga mês a mês, cancela quando quiser'}</span>
+        <span className="muted small">{cycleHint(cycle)}</span>
       </div>
       <div className="pf-plan-cards">
         {PLAN_LIST.map((p) => {

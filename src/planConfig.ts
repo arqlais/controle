@@ -1,5 +1,5 @@
 import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
-import { PLANS, setAnnualDiscount, setTrialDays, type Feature, type PlanId } from './plans'
+import { PLANS, setAnnualDiscount, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
    e os dias de teste. Carregados antes de abrir o site, para a página de vendas já
@@ -16,6 +16,7 @@ export interface PlanOverride {
 export interface PlanConfig {
   trialDays?: number
   annualDiscount?: number // % de desconto no anual
+  semesterDiscount?: number // % de desconto no semestral
   plans?: Partial<Record<PlanId, PlanOverride>>
 }
 
@@ -26,6 +27,7 @@ export const PREVIEW_KEY = 'previa-config-planos'
 export function applyPlanConfig(c: PlanConfig) {
   if (c.trialDays && c.trialDays > 0) setTrialDays(Math.round(c.trialDays))
   if (typeof c.annualDiscount === 'number' && c.annualDiscount >= 0 && c.annualDiscount <= 50) setAnnualDiscount(c.annualDiscount)
+  if (typeof c.semesterDiscount === 'number' && c.semesterDiscount >= 0 && c.semesterDiscount <= 50) setSemesterDiscount(c.semesterDiscount)
   for (const id of Object.keys(PLANS) as PlanId[]) {
     const o = c.plans?.[id]
     if (!o) continue
@@ -59,7 +61,7 @@ async function fetchConfig(timeoutMs: number): Promise<PlanConfig | null> {
     if (!r.ok) return null
     const rows = (await r.json()) as { data?: PlanConfig }[]
     const d = rows[0]?.data ?? {}
-    return { trialDays: d.trialDays, annualDiscount: d.annualDiscount, plans: d.plans }
+    return { trialDays: d.trialDays, annualDiscount: d.annualDiscount, semesterDiscount: d.semesterDiscount, plans: d.plans }
   } catch {
     return null
   } finally {

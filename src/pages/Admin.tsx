@@ -6,9 +6,9 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, STATUS_LABEL, TRIAL_DAYS, annualPrice, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_DISCOUNT, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, type SubAdmin, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
@@ -178,17 +178,17 @@ const first = (s: Subscription) => (s.name || '').split(' ')[0] || 'tudo bem'
 
 type SaveCtrl = (userId: string, d: SubAdmin, msg?: string) => Promise<void>
 /* ---- cobrança de cada assinante ---- */
-const cycleOf = (s: Subscription, c?: SubAdmin, b?: Billing) => c?.cycle ?? s.requestedCycle ?? b?.cycle ?? 'mensal'
-const priceOf = (s: Subscription, cycle: string) => (cycle === 'anual' ? annualPrice(PLANS[s.plan].price) : PLANS[s.plan].price)
+const cycleOf = (s: Subscription, c?: SubAdmin, b?: Billing): Cycle => c?.cycle ?? (b?.cycle === 'semestral' ? 'semestral' : s.requestedCycle) ?? b?.cycle ?? 'mensal'
+const priceOf = (s: Subscription, cycle: Cycle) => cyclePrice(PLANS[s.plan].price, cycle)
 /** Dias até vencer (negativo = vencida). Só para quem paga e tem "pago até". */
 const dueDays = (s: Subscription, c?: SubAdmin) => (paying(s) && c?.paidUntil ? daysUntil(c.paidUntil) : null)
 const dueLabel = (d: number) => (d < 0 ? `venceu há ${-d} dia(s)` : d === 0 ? 'vence hoje' : `vence em ${d} dia(s)`)
 const dueColor = (d: number) => (d < 0 ? '#b5524c' : d <= 5 ? '#b98246' : '#5e8c6a')
-/** Registra um pagamento e empurra o "pago até" 1 mês (ou 12, no anual). */
+/** Registra um pagamento e empurra o "pago até" 1 mês (6 no semestral, 12 no anual). */
 function withPayment(s: Subscription, c: SubAdmin | undefined, b: Billing | undefined, p: Omit<SubPayment, 'id'>): SubAdmin {
   const cycle = cycleOf(s, c, b)
   const base = c?.paidUntil && c.paidUntil > p.date ? c.paidUntil : p.date
-  return { ...c, cycle, method: p.method, paidUntil: addMonths(base, cycle === 'anual' ? 12 : 1), payments: [{ ...p, id: uid() }, ...(c?.payments ?? [])] }
+  return { ...c, cycle, method: p.method, paidUntil: addMonths(base, CYCLE_MONTHS[cycle]), payments: [{ ...p, id: uid() }, ...(c?.payments ?? [])] }
 }
 const remindText = (s: Subscription, c?: SubAdmin) =>
   `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! passando para lembrar que a sua assinatura do ${PLATFORM.name} (${PLANS[s.plan].name}) ${c?.paidUntil ? `vence em ${c.paidUntil.split('-').reverse().join('/')}` : 'está para renovar'}. ${c?.method === 'cartao' ? 'no cartão a cobrança é automática, é só conferir se o cartão está em dia ☺️' : 'posso te mandar o Pix por aqui? ☺️'}`
@@ -248,7 +248,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
               <div key={s.userId} className="pf-plan-line">
                 <b>{s.name || s.email}</b>
                 <span className="muted small">
-                  {PLANS[s.plan].name} · {money(priceOf(s, cyc))}/{cyc === 'anual' ? 'ano' : 'mês'} · {c?.method === 'cartao' ? 'cartão' : 'Pix'}
+                  {PLANS[s.plan].name} · {money(priceOf(s, cyc))}/{CYCLE_UNIT[cyc]} · {c?.method === 'cartao' ? 'cartão' : 'Pix'}
                 </span>
                 <Badge color={dueColor(d)}>{dueLabel(d)}</Badge>
                 <span className="grow" />
@@ -295,8 +295,11 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl }: { subs: Su
             <div key={s.userId} className="pf-plan-line">
               <b>{s.name || s.email}</b>
               <span className="muted small">
-                quer o {PLANS[s.requestedPlan!].name} · {s.requestedCycle === 'anual' || billing[s.userId]?.cycle === 'anual' ? `${money(annualPrice(PLANS[s.requestedPlan!].price))}/ano` : `${money0(PLANS[s.requestedPlan!].price)}/mês`}
-                {billing[s.userId] ? ` · ${PAY_LABEL[billing[s.userId].payMethod]}` : ''}
+                quer o {PLANS[s.requestedPlan!].name} · {(() => {
+                  const cy: Cycle = billing[s.userId]?.cycle === 'semestral' ? 'semestral' : s.requestedCycle ?? billing[s.userId]?.cycle ?? 'mensal'
+                  return `${money(cyclePrice(PLANS[s.requestedPlan!].price, cy))}/${CYCLE_UNIT[cy]}`
+                })()}
+                {billing[s.userId] ? ` · ${PAY_LABEL[billing[s.userId].payMethod]}${(billing[s.userId].installments ?? 1) > 1 ? ` em ${billing[s.userId].installments}x` : ''}` : ''}
               </span>
               <span className="grow" />
               <button className="btn small ghost" onClick={() => openChat(s.userId)}>
@@ -533,7 +536,7 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
         {d === null && !paid && <span className="muted small">registrar pagamentos e vencimento</span>}
       </summary>
       <div className="pf-ctrl-grid">
-        <Segmented value={cycle} onChange={(v) => set({ cycle: v }, 'Ciclo atualizado.')} options={[{ value: 'mensal', label: 'mensal' }, { value: 'anual', label: 'anual' }]} />
+        <Segmented value={cycle} onChange={(v) => set({ cycle: v }, 'Ciclo atualizado.')} options={[{ value: 'mensal', label: 'mensal' }, { value: 'semestral', label: 'semestral' }, { value: 'anual', label: 'anual' }]} />
         <Segmented value={c?.method ?? 'pix'} onChange={(v) => set({ method: v }, 'Forma de pagamento atualizada.')} options={[{ value: 'pix', label: 'Pix' }, { value: 'cartao', label: 'cartão' }]} />
         <label className="pf-ctrl-date">
           <span className="muted small">pago até</span>
@@ -1423,6 +1426,7 @@ function PlansEditor() {
   const snap = (): PlanConfig => ({
     trialDays: TRIAL_DAYS,
     annualDiscount: ANNUAL_DISCOUNT,
+    semesterDiscount: SEMESTER_DISCOUNT,
     plans: Object.fromEntries(PLAN_LIST.map((p) => [p.id, { name: p.name, price: p.price, pitch: p.pitch, highlights: [...p.highlights], features: [...p.features], decided: PLAN_TOGGLES.map(([f]) => f) }])) as PlanConfig['plans'],
   })
   const [cfg, setCfg] = useState<PlanConfig>(snap)
@@ -1442,7 +1446,7 @@ function PlansEditor() {
   return (
     <>
       <Section
-        title="teste grátis e plano anual"
+        title="teste grátis, semestral e anual"
         action={
           <button className={`btn small ${dirty ? 'primary' : 'ghost'}`} disabled={!dirty} onClick={() => void save()}>
             {dirty ? 'salvar planos' : 'salvo'}
@@ -1452,6 +1456,9 @@ function PlansEditor() {
         <div className="form-grid">
           <Field label="Dias de teste para quem se cadastra" hint="Vale para os próximos cadastros. Para alguém específico, aumente ou encerre o teste em “assinantes”.">
             <input type="number" min={1} max={365} value={cfg.trialDays ?? 7} onChange={(e) => setCfg({ ...cfg, trialDays: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
+          </Field>
+          <Field label="Desconto no semestral (%)" hint="Menor que o do anual, para o anual continuar sendo o melhor negócio.">
+            <input type="number" min={0} max={50} value={cfg.semesterDiscount ?? 5} onChange={(e) => setCfg({ ...cfg, semesterDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
           </Field>
           <Field label="Desconto no plano anual (%)" hint="Um desconto leve (5% a 15%) já incentiva sem pesar no seu caixa.">
             <input type="number" min={0} max={50} value={cfg.annualDiscount ?? 10} onChange={(e) => setCfg({ ...cfg, annualDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />
@@ -1468,7 +1475,7 @@ function PlansEditor() {
                 <Field label="Nome">
                   <input value={o.name ?? ''} onChange={(e) => setPlan(p.id, { name: e.target.value })} />
                 </Field>
-                <Field label="Preço por mês" hint={`Anual: ${money0(Math.round((o.price ?? p.price) * 12 * (1 - (cfg.annualDiscount ?? 10) / 100) * 100) / 100)}`}>
+                <Field label="Preço por mês" hint={`Semestral: ${money0(Math.round((o.price ?? p.price) * 6 * (1 - (cfg.semesterDiscount ?? 5) / 100) * 100) / 100)} · anual: ${money0(Math.round((o.price ?? p.price) * 12 * (1 - (cfg.annualDiscount ?? 10) / 100) * 100) / 100)}`}>
                   <MoneyInput value={o.price ?? p.price} onChange={(n) => setPlan(p.id, { price: n })} />
                 </Field>
                 <Field label="Frase curta" span={3}>

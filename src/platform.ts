@@ -32,7 +32,7 @@ export interface Subscription {
 }
 
 /** Dados de cobrança preenchidos na assinatura (como numa compra). */
-export type Cycle = 'mensal' | 'anual'
+export type Cycle = 'mensal' | 'semestral' | 'anual'
 export type PayMethod = 'pix' | 'cartao' | 'boleto'
 export interface Billing {
   fullName: string
@@ -48,6 +48,7 @@ export interface Billing {
   source: string // como conheceu
   payMethod: PayMethod
   cycle: Cycle
+  installments?: number // cartão no semestral/anual: em quantas vezes (1 = à vista)
   acceptedAt: string // quando aceitou os termos
 }
 
@@ -293,7 +294,9 @@ const cloud = {
   async requestPlan(plan: PlanId, billing: Billing) {
     const { error: e1 } = await supabase!.from('billing_info').upsert({ user_id: (await supabase!.auth.getUser()).data.user?.id, data: billing, updated_at: new Date().toISOString() })
     if (e1) throw e1
-    const { error } = await supabase!.rpc('pedir_assinatura', { plano: plan, ciclo: billing.cycle })
+    let { error } = await supabase!.rpc('pedir_assinatura', { plano: plan, ciclo: billing.cycle })
+    // banco ainda sem o semestral (arquivo do Supabase não rodado de novo): pede assim mesmo; o ciclo certo fica nos dados de cobrança
+    if (error && billing.cycle === 'semestral') ({ error } = await supabase!.rpc('pedir_assinatura', { plano: plan, ciclo: 'mensal' }))
     if (error) throw error
   },
   /** Salva os dados de cobrança: os próprios (userId vazio) ou, pela dona, os de um assinante. */
@@ -422,7 +425,7 @@ const cloud = {
     await patchCloudSettings({ terms })
   },
   async savePlanConfig(c: PlanConfig) {
-    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, annualDiscount: c.annualDiscount })
+    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, annualDiscount: c.annualDiscount, semesterDiscount: c.semesterDiscount })
   },
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
@@ -440,6 +443,7 @@ interface PlatformData {
   plans?: PlanConfig['plans']
   trialDays?: number
   annualDiscount?: number
+  semesterDiscount?: number
   company?: Company
 }
 async function cloudSettings(): Promise<PlatformData> {

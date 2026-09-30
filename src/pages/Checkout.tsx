@@ -6,7 +6,7 @@ import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../component
 import { toast } from '../components/dialog'
 import { TermsModal } from '../components/Terms'
 import { preferredCycle } from '../components/PlanPrice'
-import { ANNUAL_DISCOUNT, PLANS, PLAN_LIST, PLATFORM, annualPrice, money0, type PlanId } from '../plans'
+import { CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
 import { formatDoc, lookupCnpj, money } from '../utils'
@@ -42,11 +42,12 @@ export function validDoc(v: string) {
 
 const PROFESSIONS = ['arquiteto(a)', 'designer de interiores', 'artista 3D / visualização', 'estudante', 'paisagista', 'outro']
 const SOURCES = ['Instagram', 'indicação de amigo(a)', 'Google', 'faculdade', 'TikTok', 'outro']
-// só Pix e cartão de crédito; o que cada um significa muda com o ciclo (mensal ou anual)
+// só Pix e cartão de crédito; o que cada um significa muda com o ciclo. No mensal o cartão vem primeiro (cobra sozinho).
 const PAY: { id: PayMethod; label: string; hint: Record<Cycle, string>; icon: string }[] = [
-  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', anual: 'um Pix só, pelo ano todo' }, icon: 'wallet' },
-  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', anual: 'uma cobrança pelo ano todo' }, icon: 'file' },
+  { id: 'cartao', label: 'cartão de crédito', hint: { mensal: 'recorrente: cobra sozinho todo mês', semestral: `à vista ou em até ${CYCLE_INSTALLMENTS.semestral}x`, anual: `à vista ou em até ${CYCLE_INSTALLMENTS.anual}x` }, icon: 'file' },
+  { id: 'pix', label: 'Pix', hint: { mensal: 'um Pix por mês, com lembrete antes do vencimento', semestral: 'um Pix só, à vista, pelos 6 meses', anual: 'um Pix só, à vista, pelo ano todo' }, icon: 'wallet' },
 ]
+const cycleLabel = (c: Cycle) => (c === 'mensal' ? 'mensal' : c === 'semestral' ? 'semestral' : 'anual')
 
 export default function Checkout({ planId }: { planId: string }) {
   const { sub, refresh } = useAccess()
@@ -67,7 +68,7 @@ export default function Checkout({ planId }: { planId: string }) {
     city: s.city || '',
     profession: '',
     source: '',
-    payMethod: 'pix',
+    payMethod: (preferredCycle() ?? 'mensal') === 'mensal' ? 'cartao' : 'pix',
     cycle: preferredCycle() ?? 'mensal',
     acceptedAt: '',
   })
@@ -88,7 +89,9 @@ export default function Checkout({ planId }: { planId: string }) {
   }, [])
 
   const p = PLANS[plan]
-  const total = b.cycle === 'anual' ? annualPrice(p.price) : p.price
+  const total = cyclePrice(p.price, b.cycle)
+  const unit = CYCLE_UNIT[b.cycle]
+  const maxParts = b.payMethod === 'cartao' ? CYCLE_INSTALLMENTS[b.cycle] : 1
   const docOk = validDoc(b.doc)
 
   const submit = async (e: FormEvent) => {
@@ -98,7 +101,7 @@ export default function Checkout({ planId }: { planId: string }) {
     if (missing.length) return setError(`Falta: ${missing.join(', ')}.`)
     setBusy(true)
     try {
-      await platform.requestPlan(plan, { ...b, fullName: b.fullName.trim(), acceptedAt: new Date().toISOString() })
+      await platform.requestPlan(plan, { ...b, installments: maxParts > 1 ? Math.min(b.installments ?? 1, maxParts) : undefined, fullName: b.fullName.trim(), acceptedAt: new Date().toISOString() })
       await refresh()
       setDone(true)
       window.scrollTo(0, 0)
@@ -120,7 +123,8 @@ export default function Checkout({ planId }: { planId: string }) {
             pedido <em>recebido!</em>
           </h1>
           <p className="muted">
-            Plano <b>{p.name}</b> · {b.cycle === 'anual' ? `${money(total)} por ano` : `${money(total)} por mês`} · {PAY.find((x) => x.id === b.payMethod)?.label}
+            Plano <b>{p.name}</b> · {money(total)} por {unit} · {PAY.find((x) => x.id === b.payMethod)?.label}
+            {maxParts > 1 && (b.installments ?? 1) > 1 ? ` em ${b.installments}x` : ''}
           </p>
           <ol className="co-steps">
             <li className="is-done">
@@ -185,10 +189,7 @@ export default function Checkout({ planId }: { planId: string }) {
                   /* sem espaço */
                 }
               }}
-              options={[
-                { value: 'mensal', label: 'mensal' },
-                { value: 'anual', label: <>anual · {ANNUAL_DISCOUNT}% de desconto</> },
-              ]}
+              options={CYCLES.map((c) => ({ value: c, label: cycleDiscount(c) ? <>{cycleLabel(c)} · {cycleDiscount(c)}% off</> : cycleLabel(c) }))}
             />
           </Step>
 
@@ -205,11 +206,25 @@ export default function Checkout({ planId }: { planId: string }) {
               {PAY.map((x) => (
                 <button type="button" key={x.id} className={`pf-plan-opt ${b.payMethod === x.id ? 'active' : ''}`} onClick={() => set({ payMethod: x.id })} aria-pressed={b.payMethod === x.id}>
                   <Icon name={x.icon} size={18} />
-                  <b>{x.label}</b>
+                  <b>
+                    {x.label}
+                    {x.id === 'cartao' && b.cycle === 'mensal' && <em className="co-rec">recomendado</em>}
+                  </b>
                   <small>{x.hint[b.cycle]}</small>
                 </button>
               ))}
             </div>
+            {maxParts > 1 && (
+              <Field label="Parcelas no cartão" hint="Parcelado, os juros do cartão aparecem no link de pagamento, antes de você confirmar.">
+                <select value={Math.min(b.installments ?? 1, maxParts)} onChange={(e) => set({ installments: Number(e.target.value) })}>
+                  {Array.from({ length: maxParts }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n === 1 ? `à vista · ${money(total)}` : `${n}x de ${money(total / n)} + juros do cartão`}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <p className="muted small">Nada é cobrado agora: o {PLATFORM.support} confirma o pedido e te envia o Pix ou o link seguro do cartão pelo chat. Os dados do seu cartão nunca são digitados aqui.</p>
           </Step>
 
@@ -227,15 +242,14 @@ export default function Checkout({ planId }: { planId: string }) {
             <p className="muted small co-rights">
               <Icon name="check" size={13} /> Se se arrepender, você tem 7 dias depois do pagamento para cancelar com o dinheiro de volta (art. 49 do Código de Defesa do Consumidor). Depois disso, cancela quando quiser, sem multa.
             </p>
-            {showTerms && <TermsModal who={{ name: b.fullName, doc: b.doc, email: b.email, plan: `${p.name} · ${b.cycle === 'anual' ? `${money0(annualPrice(p.price))}/ano` : `${money0(p.price)}/mês`}` }} onClose={() => setShowTerms(false)} onAccept={() => setAgree(true)} />}
+            {showTerms && <TermsModal who={{ name: b.fullName, doc: b.doc, email: b.email, plan: `${p.name} · ${money0(total)}/${unit}` }} onClose={() => setShowTerms(false)} onAccept={() => setAgree(true)} />}
             {error && <p className="auth-error">{error}</p>}
             <button className="btn primary co-submit" disabled={busy}>
               {busy ? (
                 'enviando…'
               ) : (
                 <span>
-                  pedir assinatura · <span className="keep-case">{money(total)}</span>
-                  {b.cycle === 'anual' ? '/ano' : '/mês'}
+                  pedir assinatura · <span className="keep-case">{money(total)}</span>/{unit}
                 </span>
               )}
               {!busy && <Icon name="arrowRight" size={16} />}
@@ -249,7 +263,7 @@ export default function Checkout({ planId }: { planId: string }) {
             <b>
               {PLATFORM.name} · {p.name}
             </b>
-            <span>{b.cycle === 'anual' ? 'anual' : 'mensal'}</span>
+            <span>{cycleLabel(b.cycle)}</span>
           </div>
           <ul className="pf-checks">
             {p.highlights.slice(0, 5).map((h) => (
@@ -258,26 +272,30 @@ export default function Checkout({ planId }: { planId: string }) {
               </li>
             ))}
           </ul>
-          {b.cycle === 'anual' && (
+          {b.cycle !== 'mensal' && (
             <div className="co-line muted small">
-              <span>12 × {money(p.price)}</span>
-              <s>{money(p.price * 12)}</s>
+              <span>
+                {CYCLE_MONTHS[b.cycle]} × {money(p.price)}
+              </span>
+              <s>{money(p.price * CYCLE_MONTHS[b.cycle])}</s>
             </div>
           )}
-          {b.cycle === 'anual' && (
+          {b.cycle !== 'mensal' && (
             <div className="co-line small text-good">
-              <span>{ANNUAL_DISCOUNT}% de desconto no anual</span>
-              <span>− {money(p.price * 12 - total)}</span>
+              <span>
+                {cycleDiscount(b.cycle)}% de desconto no {cycleLabel(b.cycle)}
+              </span>
+              <span>− {money(p.price * CYCLE_MONTHS[b.cycle] - total)}</span>
             </div>
           )}
           <div className="co-line co-total">
             <span>total</span>
             <b>
               {money(total)}
-              <small>{b.cycle === 'anual' ? '/ano' : '/mês'}</small>
+              <small>/{unit}</small>
             </b>
           </div>
-          {b.cycle === 'anual' && <p className="muted small">equivale a {money(total / 12)} por mês</p>}
+          {b.cycle !== 'mensal' && <p className="muted small">equivale a {money(cycleMonthly(p.price, b.cycle))} por mês{maxParts > 1 ? ` · ou em até ${maxParts}x no cartão` : ''}</p>}
           <p className="co-secure small">
             <Icon name="lock" size={14} /> sem fidelidade · cancele quando quiser
           </p>

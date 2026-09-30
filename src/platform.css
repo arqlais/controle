@@ -2288,3 +2288,8 @@ select.cell-input { min-width: 132px; }
   .ct-swap-list li, .ct-swap-manual { grid-template-columns: minmax(0, 1fr) auto; }
   .ct-swap-list li .ct-swap-text, .ct-swap-manual input { grid-column: 1 / -1; }
 }
+.co-rec { margin-left: 6px; padding: 2px 7px; border-radius: 999px; background: #e3efe6; color: #4b7556; font-size: 10.5px; font-style: normal; font-weight: 600; vertical-align: 2px; }
+@media (max-width: 480px) {
+  .cy-toggle button { padding: 8px 11px; font-size: 13px; }
+  .cy-toggle b { padding: 2px 5px; font-size: 10px; }
+}

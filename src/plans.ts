@@ -20,7 +20,25 @@ export let ANNUAL_DISCOUNT = 10 // % de desconto no plano anual (a dona muda no 
 export const setAnnualDiscount = (n: number) => {
   ANNUAL_DISCOUNT = n
 }
-export const annualPrice = (monthly: number) => Math.round(monthly * 12 * (1 - ANNUAL_DISCOUNT / 100) * 100) / 100
+export const annualPrice = (monthly: number) => cyclePrice(monthly, 'anual')
+
+/** Semestral: 6 meses com desconto menor que o anual. */
+export let SEMESTER_DISCOUNT = 5
+export const setSemesterDiscount = (n: number) => {
+  SEMESTER_DISCOUNT = n
+}
+
+/* Ciclos de assinatura: meses, desconto e em quantas vezes dá para parcelar no cartão (o mensal não parcela). */
+export type BillCycle = 'mensal' | 'semestral' | 'anual'
+export const CYCLES: BillCycle[] = ['mensal', 'semestral', 'anual']
+export const CYCLE_MONTHS: Record<BillCycle, number> = { mensal: 1, semestral: 6, anual: 12 }
+export const CYCLE_INSTALLMENTS: Record<BillCycle, number> = { mensal: 1, semestral: 6, anual: 12 }
+export const CYCLE_UNIT: Record<BillCycle, string> = { mensal: 'mês', semestral: 'semestre', anual: 'ano' }
+export const cycleDiscount = (c: BillCycle) => (c === 'anual' ? ANNUAL_DISCOUNT : c === 'semestral' ? SEMESTER_DISCOUNT : 0)
+/** Total cobrado no ciclo (mensal = o preço do mês). */
+export const cyclePrice = (monthly: number, c: BillCycle) => Math.round(monthly * CYCLE_MONTHS[c] * (1 - cycleDiscount(c) / 100) * 100) / 100
+/** Quanto sai por mês no ciclo. */
+export const cycleMonthly = (monthly: number, c: BillCycle) => Math.round((cyclePrice(monthly, c) / CYCLE_MONTHS[c]) * 100) / 100
 
 /** Dias de teste grátis (a dona pode mudar no painel → planos). */
 export let TRIAL_DAYS = 7

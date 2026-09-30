@@ -46,7 +46,9 @@ alter table public.subscriptions add constraint subscriptions_plan_check check (
 alter table public.subscriptions drop constraint if exists subscriptions_requested_plan_check;
 alter table public.subscriptions add constraint subscriptions_requested_plan_check check (requested_plan in ('essencial', 'completo', 'estudio'));
 alter table public.subscriptions add column if not exists requested_at timestamptz;
-alter table public.subscriptions add column if not exists requested_cycle text check (requested_cycle in ('mensal', 'anual'));
+alter table public.subscriptions add column if not exists requested_cycle text;
+alter table public.subscriptions drop constraint if exists subscriptions_requested_cycle_check;
+alter table public.subscriptions add constraint subscriptions_requested_cycle_check check (requested_cycle in ('mensal', 'semestral', 'anual'));
 alter table public.subscriptions add column if not exists deleted_at timestamptz; -- conta apagada pela própria pessoa
 alter table public.subscriptions alter column trial_ends set default now() + interval '7 days';
 alter table public.subscriptions enable row level security;
@@ -95,7 +97,7 @@ create or replace function public.pedir_assinatura(plano text, ciclo text defaul
 language plpgsql security definer set search_path = public as $$
 begin
   if plano not in ('essencial', 'completo', 'estudio') then raise exception 'plano inválido'; end if;
-  if ciclo not in ('mensal', 'anual') then raise exception 'período inválido'; end if;
+  if ciclo not in ('mensal', 'semestral', 'anual') then raise exception 'período inválido'; end if;
   update public.subscriptions set requested_plan = plano, requested_cycle = ciclo, requested_at = now() where user_id = auth.uid();
   insert into public.support_messages (client_id, from_owner, body)
   values (auth.uid(), false, 'quero assinar o plano ' || case plano when 'completo' then 'Completo' when 'estudio' then 'Estúdio' else 'Essencial' end || ' (' || ciclo || ') ✨');
