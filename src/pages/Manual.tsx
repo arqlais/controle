@@ -3,6 +3,9 @@ import { useKeep } from '../keep'
 import { useAccess } from '../access'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
+import { PLANS, PLAN_LIST, type Feature, type PlanId } from '../plans'
+
+type IconName = string
 
 /* Manual de uso: a jornada do pedido de orçamento até a entrega, com "onde fica" e atalho para cada tela. */
 
@@ -10,6 +13,8 @@ type Where = { path: string[]; page?: string; id?: string }
 
 interface Step {
   n: string
+  icon?: IconName
+  plan?: PlanId // a partir de qual plano (sem = todos)
   title: string
   when: string
   where: Where
@@ -20,6 +25,7 @@ interface Step {
 const STEPS: Step[] = [
   {
     n: '01',
+    icon: 'user',
     title: 'Chegou um pedido: cadastre a cliente',
     when: 'Alguém pediu orçamento pelo WhatsApp, Instagram ou indicação.',
     where: { path: ['clientes', 'novo cliente'], page: 'clientes' },
@@ -34,6 +40,7 @@ const STEPS: Step[] = [
   },
   {
     n: '02',
+    icon: 'file',
     title: 'Monte o orçamento',
     when: 'Você já entendeu o que a cliente precisa.',
     where: { path: ['orçamentos', 'novo orçamento'], page: 'orcamentos', id: 'novo' },
@@ -52,6 +59,7 @@ const STEPS: Step[] = [
   },
   {
     n: '03',
+    icon: 'whatsapp',
     title: 'Envie para a cliente',
     when: 'O orçamento está pronto.',
     where: { path: ['orçamentos', 'abrir o orçamento', 'baixar PDF / enviar'], page: 'orcamentos' },
@@ -63,6 +71,7 @@ const STEPS: Step[] = [
   },
   {
     n: '04',
+    icon: 'clock',
     title: 'Aguarde a resposta (e cobre, se sumir)',
     when: 'Proposta enviada, cliente ainda não respondeu.',
     where: { path: ['início', 'para fazer'], page: 'inicio' },
@@ -74,6 +83,7 @@ const STEPS: Step[] = [
   },
   {
     n: '05',
+    icon: 'check',
     title: 'Fechou! Aprove o orçamento',
     when: 'A cliente topou (com ou sem negociação).',
     where: { path: ['orçamentos', 'pílula de status', 'Aprovado'], page: 'orcamentos' },
@@ -87,6 +97,7 @@ const STEPS: Step[] = [
   },
   {
     n: '06',
+    icon: 'wallet',
     title: 'Receba o sinal',
     when: 'Logo depois de fechar.',
     where: { path: ['demandas', 'cartão da demanda', 'botão do sinal'], page: 'projetos' },
@@ -98,6 +109,7 @@ const STEPS: Step[] = [
   },
   {
     n: '07',
+    icon: 'layers',
     title: 'Execute o projeto',
     when: 'Durante o trabalho.',
     where: { path: ['demandas', 'abrir a demanda'], page: 'projetos' },
@@ -111,6 +123,7 @@ const STEPS: Step[] = [
   },
   {
     n: '08',
+    icon: 'flag',
     title: 'Envie para aprovação e entregue',
     when: 'Prévia pronta / arquivos finais.',
     where: { path: ['demandas', 'pílula de fase'], page: 'projetos' },
@@ -125,7 +138,129 @@ const STEPS: Step[] = [
   },
 ]
 
-const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean }[] = [ // owner: só aparece para a dona
+/* Jornada de quem atende o cliente final (plano Estúdio): do briefing à obra. */
+const FINAL_STEPS: Step[] = [
+  {
+    n: '01',
+    icon: 'clip',
+    title: 'Mande o briefing antes da reunião',
+    when: 'Um cliente final pediu projeto (casa, apartamento, loja, consultório).',
+    where: { path: ['briefings', 'escolher modelo', 'copiar link'], page: 'briefings' },
+    todo: [
+      <>Em <b>briefings</b>, escolha um dos mais de 20 modelos prontos (casa, interiores, infantil, clínica, loja…) ou crie o seu. Modelos que você não usa: <b>lixeira</b> no cartão (some só para você; <b>trazer de volta</b> restaura).</>,
+      <>Para editar um modelo, abra e mude as perguntas: dá para <b>escolher por imagem</b>, criar <b>sub-perguntas</b> (só aparecem conforme a resposta) e dicas de foto. <b>desfazer</b>, <b>descartar</b> e <b>salvar</b> ficam na barra de cima; <b>restaurar original</b> volta ao modelo pronto.</>,
+      <><b>novo briefing</b> → escolha o cliente (digite o nome; se não existir, cadastre ali mesmo) → <b>copiar link</b> ou <b>enviar no WhatsApp</b>. O link é curto.</>,
+      <>O <b>olho</b> mostra exatamente como o cliente vê, no celular ou no computador.</>,
+    ],
+    tip: <>Quando o cliente termina, as respostas chegam sozinhas na ficha dele. Se a nuvem não salvar, ele manda as respostas pelo WhatsApp com um <b>código</b>: cole a mensagem inteira em <b>colar respostas</b>, no briefing.</>,
+  },
+  {
+    n: '02',
+    icon: 'user',
+    title: 'Leia as respostas na ficha do cliente',
+    when: 'O cliente respondeu o briefing.',
+    where: { path: ['clientes', 'abrir o cliente', 'briefing'], page: 'clientes' },
+    todo: [
+      <>A ficha mostra o <b>briefing respondido</b>, com as fotos que ele mandou, os <b>projetos</b> e em que <b>etapa</b> cada um está.</>,
+      <>Dá para baixar o briefing em PDF com o seu design (em <b>documentos → briefing em PDF</b>) para levar na reunião.</>,
+    ],
+  },
+  {
+    n: '03',
+    icon: 'file',
+    title: 'Monte a proposta para cliente final',
+    when: 'Depois da conversa, com o escopo claro.',
+    where: { path: ['orçamentos', 'novo orçamento', 'para quem é: cliente final'], page: 'orcamentos', id: 'novo' },
+    todo: [
+      <>No começo do orçamento, escolha <b>para quem é</b>: <b>cliente final</b> (proposta em slides com as etapas do seu processo) ou <b>escritório / freelancer</b> (a folha de sempre).</>,
+      <>Escolha as <b>etapas de trabalho</b> (levantamento, estudo, anteprojeto, executivo…) com prazo e parcela de cada uma. Elas vêm de <b>etapas de trabalho</b>, no menu, onde você monta o seu processo.</>,
+      <>Duas ou três propostas (ex.: interiores e marcenaria)? Modelo <b>propostas + juntas</b>: mostra o valor de cada uma e quanto fica fechando juntas.</>,
+      <><b>editar textos</b> muda qualquer frase da proposta. O design segue o modelo escolhido em <b>configurações → propostas</b>.</>,
+    ],
+  },
+  {
+    n: '04',
+    icon: 'pen',
+    title: 'Gere o contrato a partir da proposta',
+    when: 'O cliente aprovou.',
+    where: { path: ['orçamento', 'gerar contrato'], page: 'contratos' },
+    todo: [
+      <>No orçamento aprovado, <b>gerar contrato</b>: o modelo já vem sugerido pelo tipo do serviço (interiores, arquitetônico, reforma, consultoria…), com etapas, prazos e forma de pagamento preenchidos.</>,
+      <>Os seus modelos ficam na lateral de <b>contratos</b>; os que você não usa podem ser excluídos (e restaurados).</>,
+    ],
+  },
+  {
+    n: '05',
+    icon: 'calendar',
+    title: 'Cronograma e página do cliente',
+    when: 'O projeto começou.',
+    where: { path: ['demandas', 'abrir o projeto', 'cronograma / cliente'], page: 'projetos' },
+    todo: [
+      <>Dentro do projeto, a aba <b>cronograma</b> tem as etapas com prazo e parcela; marque cada uma ao concluir e o financeiro acompanha.</>,
+      <>Na aba <b>cliente</b>, ligue a <b>página do projeto</b> e mande o link: o cliente acompanha etapas, pagamentos, arquivos e visitas pelo celular. <b>ver como o cliente vê</b> mostra antes.</>,
+    ],
+    tip: <>As abas do estúdio (cronograma, obra, lucro, cliente) aparecem só em projetos de cliente final. Freelancer e estudante continuam com o checklist simples de etapas.</>,
+  },
+  {
+    n: '06',
+    icon: 'ruler',
+    title: 'Documentos com a sua marca',
+    when: 'Quando precisar de medição, placa ou apresentação.',
+    where: { path: ['documentos'], page: 'documentos' },
+    todo: [
+      <><b>guia de medição</b>: passo a passo para o cliente medir o espaço e mandar fotos.</>,
+      <><b>placa de obra</b>: quatro artes diferentes (diagonal, retrato, faixa, moldura) com QR code para o seu site ou Instagram.</>,
+      <><b>apresentação de projeto</b>: capa, conceito, moodboard, planta, imagens, materiais e próximos passos.</>,
+      <>Escolha o cliente e <b>salvar</b>: o documento fica na ficha dele para abrir, editar e baixar de novo. Saiu sem salvar? O sistema pergunta antes.</>,
+    ],
+    tip: <>Cores, fontes e arredondamento seguem o que você escolheu em <b>configurações → aparência / propostas</b>. Edições direto na folha (texto livre) são melhores no computador ou tablet.</>,
+  },
+  {
+    n: '07',
+    icon: 'hardhat',
+    title: 'Acompanhe a obra',
+    when: 'Visitas técnicas e execução.',
+    where: { path: ['demandas', 'abrir o projeto', 'obra'], page: 'projetos' },
+    todo: [
+      <>Na aba <b>obra</b>, registre cada visita pelo celular: fotos direto da câmera, o que foi visto e o que ficou pendente.</>,
+      <>O relatório sai em PDF com a sua marca e aparece na página do cliente.</>,
+    ],
+  },
+  {
+    n: '08',
+    icon: 'trend',
+    title: 'Entregue e veja o lucro real',
+    when: 'Projeto concluído.',
+    where: { path: ['demandas', 'abrir o projeto', 'lucro'], page: 'projetos' },
+    todo: [
+      <>Marque como <b>entregue</b>; as parcelas que faltam viram <b>a cobrar</b>.</>,
+      <>Na aba <b>lucro</b>, lance custos (taxas, impressões, deslocamento) e horas: o sistema mostra quanto rendeu cada hora sua.</>,
+    ],
+  },
+]
+
+/* Mapa do que existe em cada plano: um toque abre a tela. */
+const TOOLS: { icon: IconName; name: string; text: string; page: string; feature?: Feature }[] = [
+  { icon: 'users', name: 'clientes', text: 'ficha com histórico, projetos e documentos', page: 'clientes' },
+  { icon: 'folder', name: 'demandas', text: 'quadro com prazos e urgência automática', page: 'projetos' },
+  { icon: 'file', name: 'orçamentos', text: 'sua tabela de preços, texto pronto para o WhatsApp', page: 'orcamentos' },
+  { icon: 'wallet', name: 'financeiro', text: 'parcelas, despesas e metas do mês', page: 'financeiro' },
+  { icon: 'calendar', name: 'agenda', text: 'prazos, pagamentos e compromissos', page: 'agenda' },
+  { icon: 'printer', name: 'PDF e recibos', text: 'proposta e recibo com a sua identidade', page: 'orcamentos', feature: 'propostaPdf' },
+  { icon: 'pen', name: 'contratos', text: 'preenchidos com os dados do orçamento', page: 'contratos', feature: 'contratos' },
+  { icon: 'instagram', name: 'instagram', text: 'calendário de posts com artes prontas', page: 'instagram', feature: 'instagram' },
+  { icon: 'smartphone', name: 'agenda no celular', text: 'tudo aparece no calendário do telefone', page: 'agenda', feature: 'agendaCelular' },
+  { icon: 'clip', name: 'briefing online', text: 'o cliente responde pelo link, com imagens', page: 'briefings', feature: 'briefing' },
+  { icon: 'layers', name: 'etapas e cronograma', text: 'seu processo com prazo e parcela por etapa', page: 'processos', feature: 'cronograma' },
+  { icon: 'link', name: 'página do cliente', text: 'o cliente acompanha o projeto pelo celular', page: 'projetos', feature: 'portal' },
+  { icon: 'hardhat', name: 'obra', text: 'visitas com fotos e relatório em PDF', page: 'projetos', feature: 'obra' },
+  { icon: 'trend', name: 'lucro', text: 'custos e horas de cada projeto', page: 'projetos', feature: 'lucro' },
+  { icon: 'ruler', name: 'documentos', text: 'guia de medição, placa com QR, apresentação', page: 'documentos', feature: 'documentos' },
+]
+
+const firstPlanWith = (f?: Feature): PlanId => (f ? PLAN_LIST.find((p) => p.features.includes(f))?.id ?? 'estudio' : 'essencial')
+
+const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: PlanId }[] = [ // owner: só aparece para a dona; plan: a partir de qual plano
   {
     q: 'A cliente pediu algo a mais depois de fechar',
     a: <>Na demanda, em <b>pagamentos → + adicional</b>. Escolha somar na parcela em aberto (ex.: saldo) ou cobrar à parte. Vale para qualquer serviço; quando for por unidade (o mais comum: imagens), marque <b>calcular por quantidade</b> (ex.: 15 × R$ 35,00).</>,
@@ -210,6 +345,28 @@ const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean }[] = [ /
 
 CASES.push(
   {
+    q: 'Cadastrar um cliente antigo (trabalho que já terminou)',
+    a: <>No orçamento, em <b>nº e data</b>, marque <b>orçamento antigo, sem número</b> e coloque a data em que o trabalho foi feito e aprove. A conclusão e os pagamentos vêm com essa mesma data, já como pagos; dá para mudar qualquer um. No <b>financeiro</b>, o aviso de trabalhos antigos lança tudo de uma vez.</>,
+    page: 'financeiro',
+  },
+  {
+    q: 'Excluí uma demanda e ela voltou',
+    a: <>Isso acontecia quando outro aparelho aberto com dados antigos salvava por cima. Agora o que é excluído fica marcado e não volta. Se estiver no <b>modo exemplo</b> (olho no pé do menu), nada é salvo: saia dele antes de excluir.</>,
+    page: 'projetos',
+  },
+  {
+    q: 'O cliente respondeu o briefing e não apareceu',
+    plan: 'estudio',
+    a: <>No fim do formulário, se a nuvem não confirmar, o cliente envia pelo WhatsApp uma mensagem com o <b>código das respostas</b>. Copie a mensagem inteira e cole em <b>briefings → colar respostas</b>: tudo entra na ficha.</>,
+    page: 'briefings',
+  },
+  {
+    q: 'Onde ficam os documentos que salvei?',
+    plan: 'estudio',
+    a: <>Na <b>ficha do cliente</b>, em documentos (abra para editar ou baixar de novo). Documento salvo sem cliente vira o seu padrão, e aparece na próxima vez que abrir aquele tipo.</>,
+    page: 'documentos',
+  },
+  {
     q: 'Numeração dos orçamentos (e os que mandei só pelo WhatsApp)',
     owner: true,
     a: <>Deixe o nº em <b>0</b>: ao salvar, o sistema escolhe pela data. Enviado ocupa o número vago daquela época, rascunhos se reorganizam e os já enviados nunca mudam. Para arrumar tudo de uma vez: <b>orçamentos → organizar nº</b>.</>,
@@ -269,6 +426,8 @@ const plain = (n: ReactNode): string =>
 export function manualText() {
   return [
     ...STEPS.map((s) => `${s.title} (onde: ${s.where.path.join(' → ')})\n${s.todo.map((t) => `- ${plain(t)}`).join('\n')}${s.tip ? `\ndica: ${plain(s.tip)}` : ''}`),
+    'Cliente final (plano Estúdio):',
+    ...FINAL_STEPS.map((s) => `${s.title} (onde: ${s.where.path.join(' → ')})\n${s.todo.map((t) => `- ${plain(t)}`).join('\n')}${s.tip ? `\ndica: ${plain(s.tip)}` : ''}`),
     'Casos comuns:',
     ...CASES.map((c) => `- ${c.q}: ${plain(c.a)}`),
     'Onde fica cada coisa:',
@@ -276,10 +435,83 @@ export function manualText() {
   ].join('\n')
 }
 
-export default function Manual() {
-  const { isOwner } = useAccess()
-  const [open, setOpen] = useKeep<string | null>('manual-aberto', '01')
+const PLAN_ICON: Record<PlanId, IconName> = { essencial: 'leaf', completo: 'star', estudio: 'crown' }
+const rank = (p: PlanId) => PLAN_LIST.findIndex((x) => x.id === p)
+
+function StepList({ steps, open, setOpen, seen, plan, keyPrefix }: { steps: Step[]; open: string | null; setOpen: (v: string | null) => void; seen: string[]; plan: PlanId; keyPrefix: string }) {
   const goTo = (w?: { page?: string; id?: string }) => w?.page && go(w.page, w.id)
+  return (
+    <ol className="manual-steps">
+      {steps.map((s) => {
+        const k = keyPrefix + s.n
+        const isOpen = open === k
+        const locked = s.plan && rank(s.plan) > rank(plan)
+        return (
+          <li key={k} className={`card manual-step ${isOpen ? 'is-open' : ''} ${seen.includes(k) ? 'is-seen' : ''} ${locked ? 'is-locked' : ''}`}>
+            <button className="manual-step-head" onClick={() => setOpen(isOpen ? null : k)} aria-expanded={isOpen}>
+              <span className="manual-icon" aria-hidden>
+                <Icon name={seen.includes(k) && !isOpen ? 'check' : s.icon ?? 'check'} size={18} />
+              </span>
+              <span className="grow">
+                <span className="manual-title">
+                  <span className="manual-n-small">{s.n}</span> {s.title}
+                </span>
+                <span className="manual-when">{s.when}</span>
+              </span>
+              <Icon name="chevronR" size={16} className={isOpen ? 'rot-down' : ''} />
+            </button>
+            {isOpen && (
+              <div className="manual-body">
+                <div className="manual-where">
+                  <span className="muted small">onde:</span>
+                  {s.where.path.map((w, i) => (
+                    <span key={w} className="manual-crumb">
+                      {w}
+                      {i < s.where.path.length - 1 && <Icon name="chevronR" size={12} />}
+                    </span>
+                  ))}
+                  {s.where.page && (
+                    <button className="btn small" onClick={() => goTo(s.where)}>
+                      ir <Icon name="chevronR" size={13} />
+                    </button>
+                  )}
+                </div>
+                <ul className="manual-todo">
+                  {s.todo.map((t, i) => (
+                    <li key={i}>{t}</li>
+                  ))}
+                </ul>
+                {s.tip && (
+                  <p className="manual-tip">
+                    <Icon name="sparkle" size={14} /> <span>{s.tip}</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+export default function Manual() {
+  const { isOwner, plan: myPlan } = useAccess()
+  const mine: PlanId = myPlan?.id ?? 'estudio'
+  const [plan, setPlan] = useKeep<PlanId>('manual-plano', mine)
+  const [track, setTrack] = useKeep<'freela' | 'final'>('manual-jornada', mine === 'estudio' ? 'final' : 'freela')
+  const [open, setOpen] = useKeep<string | null>('manual-aberto', null)
+  const [seen, setSeen] = useKeep<string[]>('manual-visto', [])
+  const toggle = (k: string | null) => {
+    setOpen(k)
+    if (k && !seen.includes(k)) setSeen([...seen, k])
+  }
+  const has = (f?: Feature) => !f || PLANS[plan].features.includes(f)
+  const isFinal = track === 'final'
+  const steps = isFinal ? FINAL_STEPS : STEPS
+  const prefix = isFinal ? 'f' : 's'
+  const done = steps.filter((s) => seen.includes(prefix + s.n)).length
+  const finalLocked = isFinal && plan !== 'estudio'
 
   return (
     <div className="page manual">
@@ -292,68 +524,99 @@ export default function Manual() {
         </div>
       </div>
 
+      <section className="card manual-plans">
+        <p className="muted small">veja o que cada plano tem {!isOwner && <>· o seu é o <b>{PLANS[mine].name}</b></>}</p>
+        <div className="manual-plan-tabs" role="tablist">
+          {PLAN_LIST.map((p) => (
+            <button key={p.id} role="tab" aria-selected={plan === p.id} className={plan === p.id ? 'is-on' : ''} onClick={() => setPlan(p.id)}>
+              <Icon name={PLAN_ICON[p.id]} size={15} />
+              {p.name}
+              {!isOwner && p.id === mine && <small>seu</small>}
+            </button>
+          ))}
+        </div>
+        <div className="manual-tools">
+          {TOOLS.map((t) => {
+            const on = has(t.feature)
+            return (
+              <button key={t.name} className={`manual-tool ${on ? '' : 'is-off'}`} onClick={() => on && go(t.page)} disabled={!on} title={on ? `abrir ${t.name}` : `a partir do ${PLANS[firstPlanWith(t.feature)].name}`}>
+                <span className="manual-tool-icon">
+                  <Icon name={on ? t.icon : 'lock'} size={16} />
+                </span>
+                <span className="manual-tool-text">
+                  <b>{t.name}</b>
+                  <small>{on ? t.text : `a partir do ${PLANS[firstPlanWith(t.feature)].name}`}</small>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        {TOOLS.some((t) => !has(t.feature)) && (
+          <p className="manual-tools-more muted small">
+            <Icon name="lock" size={13} /> mais {TOOLS.filter((t) => !has(t.feature)).length} ferramentas nos planos acima:{' '}
+            {TOOLS.filter((t) => !has(t.feature))
+              .map((t) => t.name)
+              .join(', ')}
+          </p>
+        )}
+      </section>
+
       <section className="card manual-intro">
+        <div className="manual-track" role="tablist" aria-label="Jornada">
+          <button role="tab" aria-selected={!isFinal} className={!isFinal ? 'is-on' : ''} onClick={() => setTrack('freela')}>
+            <Icon name="briefcase" size={15} /> presto serviço para escritórios
+          </button>
+          <button role="tab" aria-selected={isFinal} className={isFinal ? 'is-on' : ''} onClick={() => setTrack('final')}>
+            <Icon name="home" size={15} /> atendo cliente final
+          </button>
+        </div>
         <p>
-          Cada cliente passa por <b>8 passos</b>. Siga na ordem e nada fica para trás. Clique num passo para ver o que fazer e use <b>ir</b> para abrir a tela certa.
+          {isFinal ? (
+            <>Do briefing à obra em <b>8 passos</b>. Tudo isso fica no plano <b>Estúdio</b>, junto com tudo dos outros planos.</>
+          ) : (
+            <>Cada cliente passa por <b>8 passos</b>. Siga na ordem e nada fica para trás. Toque num passo para ver o que fazer e use <b>ir</b> para abrir a tela certa.</>
+          )}
         </p>
         <div className="manual-flow" aria-label="Fases da demanda">
-          <span className="flow-q">orçamento</span>
-          <Icon name="chevronR" size={14} />
-          {PHASES.map((f, i) => (
-            <span key={f} className="flow-step">
+          {(isFinal ? ['briefing', 'proposta', 'contrato', 'cronograma', 'obra', 'entregue'] : ['orçamento', ...PHASES]).map((f, i, all) => (
+            <span key={f} className={`flow-step ${i === 0 ? 'flow-q' : ''}`}>
               {f}
-              {i < PHASES.length - 1 && <Icon name="chevronR" size={14} />}
+              {i < all.length - 1 && <Icon name="chevronR" size={14} />}
             </span>
           ))}
         </div>
+        <div className="manual-progress" aria-label={`${done} de ${steps.length} passos vistos`}>
+          <span style={{ width: `${(done / steps.length) * 100}%` }} />
+        </div>
+        <p className="muted small manual-progress-label">
+          {done === steps.length ? 'você já viu todos os passos' : `${done} de ${steps.length} passos vistos`}
+          {done > 0 && (
+            <button className="link" onClick={() => setSeen(seen.filter((k) => !k.startsWith(prefix)))}>
+              recomeçar
+            </button>
+          )}
+        </p>
       </section>
 
-      <ol className="manual-steps">
-        {STEPS.map((s) => {
-          const isOpen = open === s.n
-          return (
-            <li key={s.n} className={`card manual-step ${isOpen ? 'is-open' : ''}`}>
-              <button className="manual-step-head" onClick={() => setOpen(isOpen ? null : s.n)} aria-expanded={isOpen}>
-                <span className="manual-n">{s.n}</span>
-                <span className="grow">
-                  <span className="manual-title">{s.title}</span>
-                  <span className="manual-when">{s.when}</span>
-                </span>
-                <Icon name="chevronR" size={16} className={isOpen ? 'rot-down' : ''} />
-              </button>
-              {isOpen && (
-                <div className="manual-body">
-                  <div className="manual-where">
-                    <span className="muted small">onde:</span>
-                    {s.where.path.map((w, i) => (
-                      <span key={w} className="manual-crumb">
-                        {w}
-                        {i < s.where.path.length - 1 && <Icon name="chevronR" size={12} />}
-                      </span>
-                    ))}
-                    {s.where.page && (
-                      <button className="btn small" onClick={() => goTo(s.where)}>
-                        ir <Icon name="chevronR" size={13} />
-                      </button>
-                    )}
-                  </div>
-                  <ul className="manual-todo">
-                    {s.todo.map((t, i) => (
-                      <li key={i}>{t}</li>
-                    ))}
-                  </ul>
-                  {s.tip && <p className="manual-tip">💡 {s.tip}</p>}
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ol>
+      {finalLocked ? (
+        <section className="card manual-locked">
+          <Icon name="lock" size={20} />
+          <div>
+            <b>Esta jornada é do plano Estúdio</b>
+            <p className="muted small">Briefing online, cronograma, página do cliente, obra, lucro e documentos. {!isOwner && mine !== 'estudio' && 'Dá para mudar de plano em assinatura.'}</p>
+          </div>
+          <button className="btn small" onClick={() => setPlan('estudio')}>
+            ver no Estúdio
+          </button>
+        </section>
+      ) : (
+        <StepList steps={steps} open={open} setOpen={toggle} seen={seen} plan={plan} keyPrefix={prefix} />
+      )}
 
       <section className="card">
         <h3>quando acontecer…</h3>
         <div className="manual-cases">
-          {CASES.filter((c) => isOwner || !c.owner).map((c) => (
+          {CASES.filter((c) => (isOwner || !c.owner) && (!c.plan || rank(c.plan) <= rank(plan))).map((c) => (
             <details key={c.q} className="manual-case">
               <summary>{c.q}</summary>
               <p>{c.a}</p>

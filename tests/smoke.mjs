@@ -159,6 +159,15 @@ try {
     await go('#/processos'); await page.waitForTimeout(400)
     ok(await page.locator('.step-card').count() > 0, `${vp.name}: etapas de trabalho (cliente final)`)
 
+    // 3e2. manual por plano
+    await go('#/manual'); await page.waitForTimeout(400)
+    await page.locator('.manual-plan-tabs button', { hasText: 'Essencial' }).click(); await page.waitForTimeout(150)
+    const offEss = await page.locator('.manual-tool.is-off').count()
+    await page.locator('.manual-plan-tabs button', { hasText: 'Estúdio' }).click(); await page.waitForTimeout(150)
+    ok(offEss > 0 && await page.locator('.manual-tool.is-off').count() === 0, `${vp.name}: manual mostra o que cada plano tem`)
+    await page.locator('.manual-track button', { hasText: 'cliente final' }).click(); await page.waitForTimeout(150)
+    ok(await page.locator('.manual-step').count() === 8, `${vp.name}: manual tem a jornada do cliente final`)
+
     // 3f. link do briefing abre só com a cópia que vai dentro dele (sem nuvem)
     const packed = await page.evaluate(async () => {
       const payload = { title: 'Teste', clientName: 'Ana', studio: 'estúdio', owner: 'Laís', accent: '#a88a80', intro: 'oi', phone: '31999999999', sections: [{ id: 'a', title: 'a' }], questions: [{ id: 'q1', section: 'a', label: 'Quer TV?', kind: 'choice', options: ['sim', 'não'] }, { id: 'q2', section: 'a', label: 'Polegadas', kind: 'choice', options: ['32', '43'], showIf: { q: 'q1', is: 'sim' } }] }

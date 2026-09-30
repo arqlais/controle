@@ -1850,3 +1850,50 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 /* arredondar o valor do serviço */
 .round-btns { display: inline-flex; gap: 4px; flex: none; }
 .round-btns .btn { padding-inline: 10px; white-space: nowrap; }
+
+/* manual por plano: abas dos planos, mapa das ferramentas, jornada e progresso */
+.manual-plans { display: flex; flex-direction: column; gap: 12px; }
+.manual-plans > p { margin: 0; }
+.manual-plan-tabs, .manual-track { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-radius: var(--pill); background: var(--bg); width: fit-content; max-width: 100%; }
+.manual-plan-tabs button, .manual-track button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 0; border-radius: var(--pill); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
+.manual-plan-tabs button.is-on, .manual-track button.is-on { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+.manual-plan-tabs small { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: var(--pill); background: var(--accent-tint); color: var(--accent-ink); }
+.manual-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.manual-tool { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); text-align: left; font: inherit; cursor: pointer; transition: border-color 0.2s, transform 0.2s, opacity 0.2s; }
+.manual-tool:hover:not(:disabled) { border-color: var(--accent); transform: translateY(-1px); }
+.manual-tool-icon { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: calc(var(--radius) * 0.7); background: var(--accent-tint); color: var(--accent-ink); }
+.manual-tool-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.manual-tool-text b { font-size: 13px; font-weight: 600; }
+.manual-tool-text small { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
+.manual-tool.is-off { cursor: default; opacity: 0.5; background: var(--bg); }
+.manual-tool.is-off .manual-tool-icon { background: var(--border); color: var(--muted); }
+.manual-intro .manual-track { margin-bottom: 14px; }
+.manual-flow .flow-step.flow-q { color: var(--accent-ink); }
+.manual-progress { height: 5px; border-radius: var(--pill); background: var(--bg); overflow: hidden; margin-top: 14px; }
+.manual-progress span { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width 0.4s; }
+.manual-progress-label { margin: 6px 0 0 !important; display: flex; gap: 10px; align-items: center; }
+.manual-icon { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border-radius: calc(var(--radius) * 0.8); background: var(--accent-tint); color: var(--accent-ink); transition: background 0.2s, color 0.2s; }
+.manual-step.is-open .manual-icon { background: var(--accent); color: var(--surface); }
+.manual-step.is-seen:not(.is-open) .manual-icon { background: var(--bg); color: var(--good, var(--accent-ink)); }
+.manual-n-small { font-family: var(--font-display); font-style: italic; font-weight: 400; color: var(--accent-ink); margin-right: 4px; }
+.manual-tip { display: flex; gap: 8px; align-items: flex-start; }
+.manual-tip > svg { flex: none; margin-top: 3px; color: var(--accent-ink); }
+.manual-locked { display: flex; align-items: center; gap: 14px; }
+.manual-locked > svg { color: var(--accent-ink); flex: none; }
+.manual-locked > div { flex: 1; }
+.manual-locked p { margin: 2px 0 0; }
+@media (max-width: 720px) {
+  .manual-body { padding: 0 16px 16px; }
+  .manual-tools { grid-template-columns: 1fr 1fr; }
+  .manual-tool { padding: 9px 10px; gap: 8px; }
+  .manual-tool-text small { display: none; }
+  .manual-plan-tabs, .manual-track { width: 100%; }
+  .manual-plan-tabs button, .manual-track button { flex: 1; justify-content: center; padding: 7px 8px; font-size: 12.5px; }
+  .manual-locked { flex-wrap: wrap; }
+}
+.manual-tools-more { display: none; margin: 0; }
+@media (max-width: 720px) {
+  .manual-tool.is-off { display: none; }
+  .manual-tools-more { display: block; line-height: 1.5; }
+  .manual-tools-more svg { vertical-align: -2px; }
+}
