@@ -1,3 +1,5 @@
+import type { DocsState } from './docTypes'
+
 export type ClientType =
   | 'final' // cliente final: a pessoa dona da casa/obra (quem contrata arquiteto ou designer)
   | 'arquiteto'
@@ -434,6 +436,7 @@ export interface Settings {
   portfolio?: string[] // fotos de projetos para a proposta e a apresentação (data URL, trocáveis)
   about?: string // "sobre" do escritório, na proposta para cliente final
   briefingTemplates?: BriefingTemplate[] // modelos de briefing criados ou editados pela pessoa
+  docs?: DocsState // documentos do estúdio (guia de medição, placa de obra, apresentação)
   brandName: string
   tagline: string
   ownerName: string

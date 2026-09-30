@@ -61,7 +61,7 @@ export async function renderSheet<T>(el: HTMLElement, fn: (el: HTMLElement, o: R
 export const errText = (e: unknown) => (e instanceof Event ? 'uma imagem não carregou' : e instanceof Error ? e.message : String(e)).slice(0, 80)
 
 export function usePdf() {
-  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean; slides?: boolean } | null>(null)
+  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean; slides?: boolean; page?: [number, number] } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
   const [previewW, setPreviewW] = useState(794)
   const ref = useRef<HTMLDivElement>(null)
@@ -99,14 +99,16 @@ export function usePdf() {
           return
         }
         const [{ toCanvas }, { jsPDF }] = await Promise.all([import('html-to-image'), import('jspdf')])
-        if (job.slides) {
-          // proposta em slides: uma página 16:9 por slide (cabe certinho na tela do computador)
-          const list = [...el.querySelectorAll<HTMLElement>('.slide')]
-          const pdf = new jsPDF({ unit: 'px', format: [1280, 720], orientation: 'landscape', compress: true, hotfixes: ['px_scaling'] })
+        if (job.slides || job.page) {
+          // uma página do PDF por folha: slides 16:9 (1280 × 720) ou folhas desenhadas (A4, placa…)
+          const [w, h] = job.page ?? [1280, 720]
+          const orientation = w > h ? 'landscape' : 'portrait'
+          const list = [...el.querySelectorAll<HTMLElement>('.slide, .pdf-page')]
+          const pdf = new jsPDF({ unit: 'px', format: [w, h], orientation, compress: true, hotfixes: ['px_scaling'] })
           for (let i = 0; i < list.length; i++) {
             const c = await renderSheet(list[i], toCanvas, { pixelRatio: 2 })
-            if (i) pdf.addPage([1280, 720], 'landscape')
-            pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 1280, 720, undefined, 'FAST')
+            if (i) pdf.addPage([w, h], orientation)
+            pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h, undefined, 'FAST')
           }
           saveFile(pdf.output('blob'), job.filename, 'PDF baixado.')
           return
@@ -162,6 +164,15 @@ export function usePdf() {
     toast('Gerando PDF…')
     setJob({ doc, filename: clean(filename), slides: true })
   }
+  /** Folhas desenhadas página por página (guia de medição, placa de obra, briefing, apresentação). */
+  const downloadPages = (doc: ReactNode, filename: string, w: number, h: number) => {
+    if (ARTIFACT) {
+      setPreviewW(w)
+      return setPreview(doc)
+    }
+    toast('Gerando PDF…')
+    setJob({ doc, filename: clean(filename), page: [w, h] })
+  }
   const downloadPng = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc)
     toast('Gerando imagem…')
@@ -187,7 +198,7 @@ export function usePdf() {
       )}
     </>
   )
-  return { download, downloadVector, downloadSlides, downloadPng, busy: !!job && !job.vector, portal }
+  return { download, downloadVector, downloadSlides, downloadPages, downloadPng, busy: !!job && !job.vector, portal }
 }
 
 /** Prévia do documento em tamanho grande, por cima da tela (fecha no X, no Esc ou clicando fora). */

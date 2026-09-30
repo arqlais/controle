@@ -700,7 +700,7 @@ function ProposalChooser() {
   }
   const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
   return (
-    <Section title="modelo da proposta">
+    <Section title="design dos documentos">
       {!has('propostaPdf') && (
         <p className="pf-note">
           <Icon name="lock" size={16} />
@@ -719,7 +719,7 @@ function ProposalChooser() {
         </label>
       )}
       {has('propostaPdf') && <p className="muted small" style={{ marginTop: 4 }}>
-        {s.proposal.pdfOff ? 'Desligado: o orçamento vai só como resumo no WhatsApp (com os valores de cada serviço).' : 'Ligado: cada orçamento pode gerar o PDF no modelo escolhido abaixo.'}
+        {s.proposal.pdfOff ? 'Desligado: o orçamento vai só como resumo no WhatsApp (com os valores de cada serviço).' : 'O design escolhido abaixo vale para todos os PDFs: proposta, proposta em slides, guia de medição, placa de obra, briefing em PDF e apresentação de projeto.'}
       </p>}
       {has('propostaPdf') && !s.proposal.pdfOff && (
         <div className="pf-tpl-grid">
