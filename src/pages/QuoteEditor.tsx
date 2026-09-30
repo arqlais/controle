@@ -21,6 +21,7 @@ import { AskAIButton } from '../components/AskAI'
 import { AudienceChooser, AudienceSwitch, QuoteStepsSection } from '../components/QuoteSteps'
 import { cloneSteps, processesOf, quoteAudience, servicesForAudience } from '../processes'
 import { SLIDE_W } from '../components/Slides'
+import { FreeEditModal } from '../components/DocKit'
 import {
   BOTH,
   optionArea,
@@ -356,14 +357,19 @@ export default function QuoteEditor({ id }: { id: string }) {
     go('orcamentos')
   }
   // baixar o PDF de um rascunho reserva o próximo número depois do último enviado (o PDF já sai com o número certo)
-  const downloadPdf = (vector: boolean) => {
+  const reserve = () => {
     let cur = q
     if (q.status === 'rascunho' && q.clientId && !q.imported && !q.noNumber) {
       const n = nextSentNumber(data.quotes, q)
       const saved = n !== q.number || !q.pdfAt ? save({ number: n, pdfAt: q.pdfAt || new Date().toISOString() }) : null
       if (saved) cur = saved
     }
-    const doc = <QuoteDoc s={settings} client={client} quote={cur} />
+    return cur
+  }
+  const [freeEdit, setFreeEdit] = useState<Quote | null>(null)
+  const downloadPdf = (vector: boolean, frozen?: ReactNode) => {
+    const cur = frozen && freeEdit ? freeEdit : reserve()
+    const doc = frozen ?? <QuoteDoc s={settings} client={client} quote={cur} />
     if (cur.audience === 'final') return pdf.downloadSlides(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
     ;(vector ? pdf.downloadVector : pdf.download)(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
   }
@@ -451,6 +457,11 @@ export default function QuoteEditor({ id }: { id: string }) {
           <h1>{q.title || 'novo orçamento'}</h1>
         </div>
         <div className="row gap-s wrap">
+          {showPdf && (
+            <button className="btn ghost" onClick={() => setFreeEdit(reserve())} title="Mudar qualquer texto direto na proposta antes de baixar">
+              <Icon name="pen" size={16} /> editar textos
+            </button>
+          )}
           {showPdf && (
             <button className="btn primary" disabled={pdf.busy} onClick={() => downloadPdf(false)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
@@ -948,6 +959,17 @@ export default function QuoteEditor({ id }: { id: string }) {
         />
       )}
       {closing && <CloseDeal q={closing} onClose={() => setClosing(null)} onDone={(id) => go('projetos', id)} />}
+      {freeEdit && (
+        <FreeEditModal
+          doc={<QuoteDoc s={settings} client={client} quote={freeEdit} />}
+          width={freeEdit.audience === 'final' ? SLIDE_W : 794}
+          onClose={() => setFreeEdit(null)}
+          onDownload={(frozen) => {
+            downloadPdf(false, frozen)
+            setFreeEdit(null)
+          }}
+        />
+      )}
     </div>
   )
 }

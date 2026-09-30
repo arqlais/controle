@@ -186,3 +186,42 @@ export function LinesField({ label, value, onChange, hint, rows = 4 }: { label: 
     </label>
   )
 }
+
+/** Editar os textos de um documento já montado (proposta, slides): toque em qualquer texto e mude.
+ *  O PDF sai com as mudanças; o orçamento em si não muda. */
+export function FreeEditModal({ doc, width, onClose, onDownload }: { doc: ReactNode; width: number; onClose: () => void; onDownload: (frozen: ReactNode) => void }) {
+  const probe = useRef<HTMLDivElement>(null)
+  const edited = useRef<HTMLDivElement>(null)
+  const [html, setHtml] = useState<string | null>(null)
+  useEffect(() => {
+    // espera as fontes e imagens desenharem antes de copiar a folha
+    const t = setTimeout(() => probe.current && setHtml(probe.current.innerHTML), 120)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div className="dk-free" role="dialog" aria-label="Editar textos do documento">
+      <div className="dk-free-bar">
+        <span>
+          <Icon name="pen" size={15} /> toque em qualquer texto para mudar · o orçamento não muda, só este PDF
+        </span>
+        <div className="row gap-s">
+          <button className="btn ghost small" onClick={onClose}>
+            cancelar
+          </button>
+          <button className="btn primary small" disabled={html === null} onClick={() => onDownload(<div className="dk-frozen" dangerouslySetInnerHTML={{ __html: edited.current?.innerHTML ?? html ?? '' }} />)}>
+            <Icon name="download" size={14} /> baixar PDF com as mudanças
+          </button>
+        </div>
+      </div>
+      <div className="dk-free-sheet">
+        <DocScale width={width}>
+          {html === null ? (
+            <div ref={probe}>{doc}</div>
+          ) : (
+            <div ref={edited} className="dk-editable" contentEditable suppressContentEditableWarning spellCheck lang="pt-BR" dangerouslySetInnerHTML={{ __html: html }} />
+          )}
+        </DocScale>
+      </div>
+    </div>
+  )
+}
