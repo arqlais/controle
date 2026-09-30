@@ -53,6 +53,7 @@ export interface PanelPayload {
   quotes: { id: string; number: number; title: string; total: number; status: string; date: string; closedAt?: string; validityDays: number }[]
   docs: PanelDoc[]
   files: Omit<PanelFile, 'path'>[]
+  links?: { label: string; url: string }[]
   updatedAt: string
 }
 
@@ -144,6 +145,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
     quotes,
     docs,
     files: (panel.files ?? []).map(({ path: _p, ...f }) => f),
+    links: (panel.links ?? []).filter((l) => l.url.trim()).map((l) => ({ label: l.label.trim() || 'link do projeto', url: l.url.trim() })),
     updatedAt: new Date().toISOString(),
   }
 }

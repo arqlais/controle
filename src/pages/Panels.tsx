@@ -5,16 +5,21 @@ import { Icon } from '../components/Icon'
 import { Empty, Modal } from '../components/ui'
 import { toast } from '../components/dialog'
 import { ClientPanelPublic } from '../components/ClientPanelPublic'
-import { createPanel, panelMessage } from '../components/ClientPanel'
+import { PanelControls, createPanel, panelMessage } from '../components/ClientPanel'
 import { panelLink, panelPayload } from '../clientPanel'
 import { go } from '../router'
 import { fmtDate, money, projectPaid, projectTotal, statusInfo, whatsappLink } from '../utils'
-import type { Client } from '../types'
+import type { Client, Project, ProjectPhase } from '../types'
 
 /* Painel do cliente: todos os clientes num lugar só. Ver quem já tem painel no ar, copiar ou mandar o link,
    ver como o cliente vê e criar o painel de quem ainda não tem, sem precisar abrir a ficha. */
 
-export default function Panels() {
+export default function Panels({ id }: { id?: string }) {
+  if (id) return <PanelEditor id={id} />
+  return <PanelList />
+}
+
+function PanelList() {
   const { data, upsert, userId } = useStore()
   const { has } = useAccess()
   const [q, setQ] = useState('')
@@ -97,7 +102,10 @@ export default function Panels() {
         <div className="pnl-actions">
           {on ? (
             <>
-              <button className="pnl-btn is-main" onClick={() => setPeek(c)}>
+              <button className="pnl-btn is-main" onClick={() => go('paineis', c.id)}>
+                <Icon name="edit" size={14} /> editar ao vivo
+              </button>
+              <button className="pnl-btn" onClick={() => setPeek(c)}>
                 <Icon name="eye" size={14} /> ver como o cliente vê
               </button>
               {c.phone && (
@@ -114,9 +122,7 @@ export default function Panels() {
               <Icon name="link" size={14} /> {busy === c.id ? 'criando…' : 'criar o painel'}
             </button>
           )}
-          <button className="pnl-btn" onClick={() => go('clientes', c.id)} title="Escolher o que o cliente vê, enviar arquivos e o recado">
-            <Icon name="settings" size={14} /> o que aparece
-          </button>
+
         </div>
       </article>
     )
@@ -193,6 +199,146 @@ export default function Panels() {
           </div>
         </Modal>
       )}
+    </div>
+  )
+}
+
+/* ---------------- editor do painel em tempo real ---------------- */
+
+/** Editar o painel de um cliente vendo, ao lado, exatamente o que ele vê (computador ou celular). */
+export function PanelEditor({ id }: { id: string }) {
+  const { data, upsert, userId } = useStore()
+  const { has } = useAccess()
+  const [width, setWidth] = useState<'pc' | 'cel'>('pc')
+  const [tab, setTab] = useState<'editar' | 'ver'>('editar')
+  const [busy, setBusy] = useState(false)
+  const c = data.clients.find((x) => x.id === id)
+  if (!c) return <Empty icon="users" title="cliente não encontrado" />
+  const on = !!c.panel?.enabled
+  const link = on && c.panel ? panelLink(userId, c.panel.token) : ''
+  const projects = data.projects.filter((p) => p.clientId === c.id && !(c.panel?.hideProjects ?? []).includes(p.id))
+  const saveProject = (p: Project, patch: Partial<Project>) => upsert('projects', { ...p, ...patch })
+  const setPhase = (p: Project, i: number, patch: Partial<ProjectPhase>) => saveProject(p, { phases: (p.phases ?? []).map((x, j) => (j === i ? { ...x, ...patch, ...(patch.done ? { doneAt: new Date().toISOString().slice(0, 10) } : {}) } : x)) })
+
+  return (
+    <div className="page pe-page">
+      <div className="pe-top">
+        <button className="btn small ghost" onClick={() => go('paineis')}>
+          <Icon name="chevronL" size={14} /> painéis
+        </button>
+        <span className="grow pe-title">
+          <b>painel de {c.name}</b>
+          <small className={`pnl-state ${on ? 'is-on' : ''}`}>
+            <i /> {on ? 'no ar · muda para o cliente na hora' : 'ainda não está no ar'}
+          </small>
+        </span>
+        {on ? (
+          <span className="pnl-actions">
+            {c.phone && (
+              <a className="pnl-btn is-main" href={whatsappLink(c.phone, panelMessage(c, link))} target="_blank" rel="noreferrer">
+                <Icon name="whatsapp" size={14} /> mandar link
+              </a>
+            )}
+            <button className="pnl-btn" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'), () => toast(link))}>
+              <Icon name="copy" size={14} /> copiar link
+            </button>
+          </span>
+        ) : (
+          <button
+            className="pnl-btn is-main"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true)
+              await createPanel(data, c, has, userId, upsert)
+              setBusy(false)
+              toast('Painel no ar.')
+            }}
+          >
+            <Icon name="link" size={14} /> {busy ? 'criando…' : 'colocar no ar'}
+          </button>
+        )}
+      </div>
+
+      <div className="pe-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'editar'} className={tab === 'editar' ? 'is-on' : ''} onClick={() => setTab('editar')}>
+          <Icon name="edit" size={14} /> editar
+        </button>
+        <button role="tab" aria-selected={tab === 'ver'} className={tab === 'ver' ? 'is-on' : ''} onClick={() => setTab('ver')}>
+          <Icon name="eye" size={14} /> ver como o cliente
+        </button>
+      </div>
+
+      <div className={`pe-grid is-${tab}`}>
+        <div className="pe-edit">
+          {!on ? (
+            <div className="card pe-box">
+              <p className="muted">Coloque o painel no ar para escolher o que {c.name.split(' ')[0]} vê. A prévia ao lado já mostra como vai ficar.</p>
+            </div>
+          ) : (
+            <>
+              {projects.map((p) => (
+                <section key={p.id} className="card pe-box">
+                  <p className="pe-box-title">
+                    <Icon name="layers" size={14} /> {p.title}
+                  </p>
+                  <div className="pe-row">
+                    <label className="field">
+                      <span className="field-label">entrega prevista</span>
+                      <input type="date" value={p.dueDate ?? ''} onChange={(e) => saveProject(p, { dueDate: e.target.value })} />
+                    </label>
+                    <label className="field">
+                      <span className="field-label">link da pasta do projeto</span>
+                      <input value={p.filesLink ?? ''} onChange={(e) => saveProject(p, { filesLink: e.target.value })} placeholder="Drive, Dropbox, WeTransfer…" />
+                    </label>
+                  </div>
+                  <span className="field-label">etapas</span>
+                  {(p.phases ?? []).length ? (
+                    <ol className="pe-phases">
+                      {(p.phases ?? []).map((x, i) => (
+                        <li key={x.id} className={x.done ? 'is-done' : ''}>
+                          <label className="pe-phase-check" title={x.done ? 'concluída' : 'marcar como concluída'}>
+                            <input type="checkbox" checked={!!x.done} onChange={(e) => setPhase(p, i, { done: e.target.checked })} />
+                          </label>
+                          <input className="pe-phase-name" value={x.name} onChange={(e) => setPhase(p, i, { name: e.target.value })} aria-label="Nome da etapa" />
+                          <input type="date" value={x.due ?? ''} onChange={(e) => setPhase(p, i, { due: e.target.value })} aria-label="Prazo da etapa" />
+                          <input className="pe-phase-note" value={x.note ?? ''} onChange={(e) => setPhase(p, i, { note: e.target.value })} placeholder="recado desta etapa (o cliente vê)" aria-label="Recado da etapa" />
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="muted small">Sem cronograma ainda: o cliente vê as tarefas da demanda.</p>
+                  )}
+                  <button className="link small" onClick={() => saveProject(p, { phases: [...(p.phases ?? []), { id: crypto.randomUUID(), name: 'nova etapa' }] })}>
+                    + etapa
+                  </button>
+                </section>
+              ))}
+              <section className="card pe-box">
+                <p className="pe-box-title">
+                  <Icon name="settings" size={14} /> o que aparece, links, arquivos e recado
+                </p>
+                <PanelControls client={c} open />
+              </section>
+            </>
+          )}
+        </div>
+        <div className="pe-preview">
+          <div className="pe-preview-bar">
+            <span className="muted small">prévia ao vivo</span>
+            <div className="segmented">
+              <button className={width === 'pc' ? 'active' : ''} onClick={() => setWidth('pc')} type="button">
+                <Icon name="monitor" size={13} /> computador
+              </button>
+              <button className={width === 'cel' ? 'active' : ''} onClick={() => setWidth('cel')} type="button">
+                <Icon name="smartphone" size={13} /> celular
+              </button>
+            </div>
+          </div>
+          <div className={`pe-frame is-${width}`}>
+            <ClientPanelPublic id={c.panel?.token ?? 'previa'} data={panelPayload(data, c, c.panel ?? { token: 'previa', enabled: false, showPayments: true, showVisits: true, showBriefings: true }, has)} preview />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

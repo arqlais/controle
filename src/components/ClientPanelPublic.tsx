@@ -58,6 +58,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   const toAnswer = d.briefings.filter((b) => !b.answered && b.link).length
   const nav: { id: string; label: string; icon: IconName; n?: number; show: boolean }[] = [
     { id: 'pn-projetos', label: d.projects.length > 1 ? 'projetos' : 'projeto', icon: 'layers', show: d.projects.length > 0 },
+    { id: 'pn-links', label: 'links', icon: 'link', show: (d.links ?? []).length > 0 },
     { id: 'pn-documentos', label: 'documentos', icon: 'file', n: docsCount, show: docsCount > 0 },
     { id: 'pn-contratos', label: 'contratos', icon: 'pen', n: toSign || undefined, show: d.contracts.length > 0 },
     { id: 'pn-briefings', label: 'briefings', icon: 'clip', n: toAnswer || undefined, show: d.briefings.length > 0 },
@@ -204,6 +205,26 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
           {d.projects.map((p) => (
             <ProjectCard key={p.id} p={p} pix={d.pix} solo={d.projects.length === 1} />
           ))}
+        </section>
+      )}
+
+      {(d.links ?? []).length > 0 && (
+        <section id="pn-links" className="bf-block pn-section">
+          <h2>links do projeto</h2>
+          <div className="pn-link-cards">
+            {(d.links ?? []).map((l, i) => (
+              <a key={i} className="pn-link-card" href={l.url} target="_blank" rel="noreferrer">
+                <span className="pn-ico">
+                  <Icon name={linkIcon(l.url)} size={16} />
+                </span>
+                <span className="grow">
+                  <b>{l.label}</b>
+                  <small>{l.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}</small>
+                </span>
+                <Icon name="arrowRight" size={15} />
+              </a>
+            ))}
+          </div>
         </section>
       )}
 
@@ -544,4 +565,15 @@ function Contact({ d }: { d: PanelPayload }) {
       </div>
     </div>
   )
+}
+
+const linkIcon = (url: string): IconName => {
+  const u = url.toLowerCase()
+  if (/drive\.google|docs\.google|dropbox|onedrive|sharepoint|1drv/.test(u)) return 'folder'
+  if (/pinterest|pin\.it/.test(u)) return 'heart'
+  if (/wetransfer|we\.tl/.test(u)) return 'download'
+  if (/youtube|youtu\.be|vimeo/.test(u)) return 'monitor'
+  if (/canva|figma/.test(u)) return 'layers'
+  if (/matterport|kuula|panoee|360/.test(u)) return 'cube'
+  return 'link'
 }

@@ -370,7 +370,7 @@ export default function App() {
       case 'briefings':
         return <Briefings id={route.id} />
       case 'paineis':
-        return <Panels />
+        return <Panels id={route.id} />
       case 'processos':
         return <Processes />
       case 'documentos':

@@ -77,7 +77,13 @@ export interface ClientPanel {
   contracts?: string[] // contratos compartilhados
   docs?: string[] // documentos salvos compartilhados
   files?: PanelFile[] // arquivos enviados (PDF, imagem…)
+  links?: PanelLink[] // links do projeto (Drive, Pinterest, tour 360…)
   publishedAt?: string
+}
+export interface PanelLink {
+  id: string
+  label: string
+  url: string
 }
 export interface PanelFile {
   id: string

@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'melhoria',
     title: 'painel do cliente mais completo',
-    text: 'O link do cliente ganhou um resumo no topo (etapa atual, entrega, pagamentos e documentos), o que ele precisa fazer em destaque, a chave Pix, o seu contato sempre à mão e um visual próprio para computador e celular. E no menu tem "painel do cliente", com todos os clientes para criar, mandar o link ou ver como o cliente vê.',
+    text: 'O link do cliente ganhou um resumo no topo (etapa atual, entrega, pagamentos e documentos), o que ele precisa fazer, a chave Pix, links do projeto (Drive, Pinterest, tour 360…), o seu contato e visual próprio para computador e celular. Em "painel do cliente", o editor ao vivo mostra ao lado exatamente o que o cliente vê enquanto você muda etapas, prazos, links, arquivos e o recado.',
     feature: 'portal',
     steps: [{ page: 'paineis', text: 'No menu, "painel do cliente" mostra todos os seus clientes.' }],
   },
