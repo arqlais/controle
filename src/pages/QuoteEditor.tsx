@@ -862,15 +862,17 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </select>
               </Field>
               <Field label="Pagamento" span={3} hint={months ? 'Texto automático do pacote (muda sozinho com o valor e os meses).' : undefined}>
-                {months ? <div className="readonly">{payText}</div> : <input value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} />}
+                {months ? <div className="readonly">{payText}</div> : <textarea className="auto-grow" rows={1} value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value.replace(/\n/g, ' ') })} />}
               </Field>
               <Field label="Prazos e cronograma" span={3}>
-                <input list="schedule-opts" value={q.schedule} onChange={(e) => set({ schedule: e.target.value })} placeholder="Ex.: 10 dias úteis após o sinal." />
-                <datalist id="schedule-opts">
-                  {[settings.proposal.schedule, CLIENT_SCHEDULE, DEFAULT_PROPOSAL.schedule, q.deadlineDays ? `${q.deadlineDays} dias úteis após a aprovação.` : ''].filter((x, i, a) => x && a.indexOf(x) === i).map((x) => (
-                    <option key={x} value={x} />
+                <textarea className="auto-grow" rows={1} value={q.schedule} onChange={(e) => set({ schedule: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: 10 dias úteis após o sinal." />
+                <span className="q-suggest">
+                  {[settings.proposal.schedule, CLIENT_SCHEDULE, DEFAULT_PROPOSAL.schedule, q.deadlineDays ? `${q.deadlineDays} dias úteis após a aprovação.` : ''].filter((x, i, a) => x && x !== q.schedule && a.indexOf(x) === i).map((x) => (
+                    <button key={x} type="button" className="link small" onClick={() => set({ schedule: x })}>
+                      {x}
+                    </button>
                   ))}
-                </datalist>
+                </span>
               </Field>
               <Field
                 label="Formatos de arquivos entregues"
@@ -885,7 +887,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                   )
                 }
               >
-                <input value={quoteFiles(q, settings.services)} onChange={(e) => set({ files: e.target.value, filesAuto: false })} placeholder="Ex.: PDF fechado, pronto para execução." />
+                <textarea className="auto-grow" rows={1} value={quoteFiles(q, settings.services)} onChange={(e) => set({ files: e.target.value.replace(/\n/g, ' '), filesAuto: false })} placeholder="Ex.: PDF fechado, pronto para execução." />
               </Field>
               <Field label="Rodadas de ajuste" hint="Controle interno.">
                 <input type="number" min={0} inputMode="numeric" value={q.revisions} onFocus={(e) => e.target.select()} onChange={(e) => set({ revisions: Number(e.target.value) || 0 })} />

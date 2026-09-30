@@ -226,7 +226,7 @@ function GuideEditor({ value, set, w }: EdProps<MeasureGuideData>) {
               <div key={i} className="stack-s dk-step-edit">
                 <div className="row gap-s">
                   <b className="step-num">{String(i + 1).padStart(2, '0')}</b>
-                  <input value={x.title} onChange={(e) => set({ steps: d.steps.map((y, j) => (j === i ? { ...y, title: e.target.value } : y)) })} aria-label="Título do passo" />
+                  <textarea className="auto-grow" rows={1} value={x.title} onChange={(e) => set({ steps: d.steps.map((y, j) => (j === i ? { ...y, title: e.target.value.replace(/\n/g, ' ') } : y)) })} aria-label="Título do passo" />
                   <button className="icon-btn subtle" onClick={() => set({ steps: d.steps.filter((_, j) => j !== i) })} aria-label="Tirar passo">
                     <Icon name="trash" size={14} />
                   </button>
@@ -311,7 +311,7 @@ function PlaqueEditor({ value, set, w }: EdProps<PlaqueData>) {
               <input value={d.link} onChange={(e) => set({ link: e.target.value })} placeholder="www.seusite.com.br ou @seuinstagram" />
             </Field>
             <Field label="Frase acima do QR code">
-              <input value={d.cta} onChange={(e) => set({ cta: e.target.value })} />
+              <textarea className="auto-grow" rows={1} value={d.cta} onChange={(e) => set({ cta: e.target.value.replace(/\n/g, ' ') })} />
             </Field>
           </Section>
           {plaqueHasPhoto(d.layout) ? (

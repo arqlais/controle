@@ -118,7 +118,7 @@ export function StepsList({ steps, total, onChange }: { steps: ProcessStep[]; to
           </div>
           <div className="step-body">
             <Field label="Explicação para o cliente">
-              <input value={x.description} placeholder="Em uma frase, o que acontece nesta etapa" onChange={(e) => set(x.id, { description: e.target.value })} spellCheck lang="pt-BR" />
+              <textarea className="auto-grow" rows={2} value={x.description} placeholder="Em uma frase, o que acontece nesta etapa" onChange={(e) => set(x.id, { description: e.target.value.replace(/\n/g, ' ') })} spellCheck lang="pt-BR" />
             </Field>
             <Field label="O que inclui" hint="Um por linha.">
               <textarea rows={Math.min(6, Math.max(2, x.items.length))} value={x.items.join('\n')} placeholder={'levantamento métrico\nbriefing'} onChange={(e) => set(x.id, { items: e.target.value.split('\n') })} onBlur={() => set(x.id, { items: x.items.map((t) => t.trim()).filter(Boolean) })} spellCheck lang="pt-BR" />
@@ -272,7 +272,7 @@ export function ProcessSettings() {
               <input value={cur.name} onChange={(e) => save(list.map((x) => (x.id === cur.id ? { ...x, name: e.target.value } : x)))} />
             </Field>
             <Field label="Resumo">
-              <input value={cur.description} onChange={(e) => save(list.map((x) => (x.id === cur.id ? { ...x, description: e.target.value } : x)))} />
+              <textarea className="auto-grow" rows={1} value={cur.description} onChange={(e) => save(list.map((x) => (x.id === cur.id ? { ...x, description: e.target.value.replace(/\n/g, ' ') } : x)))} />
             </Field>
           </div>
           <StepsList steps={cur.steps} onChange={(steps) => save(list.map((x) => (x.id === cur.id ? { ...x, steps } : x)))} />

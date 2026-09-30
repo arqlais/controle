@@ -2098,3 +2098,43 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
 .cs-tabs button { white-space: nowrap; }
 .cs-agree span { font-weight: 400 !important; font-size: 13.5px; line-height: 1.45; }
 .cs-public .bf-send { border: 0; font-weight: 600; }
+/* etapas do orçamento no celular: nome da etapa inteiro (botões numa linha abaixo) e prazo sem cortar */
+@media (max-width: 620px) {
+  .step-head { flex-wrap: wrap; row-gap: 4px; }
+  .step-name { flex: 1 1 calc(100% - 52px); }
+  .step-tools { margin-left: auto; }
+  .step-nums { grid-template-columns: 1fr; }
+  .step-nums .row { flex-wrap: nowrap; }
+  .step-nums .row select { flex: 1; min-width: 110px; }
+}
+
+/* revisão de cortes no celular */
+.pf-row .grow b { white-space: normal; overflow: visible; text-overflow: clip; }
+.ct-model-row { flex-wrap: wrap; }
+.ct-model-row select { flex: 1 1 220px; min-width: 0; }
+.dk-step-edit .row input { flex: 1; min-width: 0; }
+@media (max-width: 620px) {
+  .dk-mat-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .cp-type { display: none; }
+  .head-status { flex-wrap: wrap; overflow: visible; }
+  .head-status .btn { flex: 0 1 auto; white-space: normal; }
+  .page-head > .row, .page-head .row.gap-s.wrap { flex-wrap: wrap; }
+}
+.dk-step-edit .row textarea { flex: 1; min-width: 0; }
+/* revisão de cortes no computador */
+.checklist-rows { display: grid; gap: 6px; width: 100%; grid-column: 1 / -1; }
+.checklist-row { width: 100%; }
+.service-aud { max-width: none; min-width: 170px; }
+.service-main select { min-width: max-content; }
+.step-nums .row input { width: 84px; }
+.cal-chip { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+.table select.cell-input { min-width: 132px; }
+.bk-font-sample, .bk-font small, .settings-tab small { white-space: normal; overflow: visible; text-overflow: clip; }
+.dk-form .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.modal select { min-width: 0; text-overflow: ellipsis; }
+select.cell-input { min-width: 132px; }
+.service-main .service-name { flex: 1 1 200px; min-width: 160px; }
+.service-main { flex-wrap: wrap; }
+.q-suggest { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+.q-suggest .link { text-transform: none; text-align: left; }
+.table.compact select.cell-input, select.cell-input { min-width: 150px; }

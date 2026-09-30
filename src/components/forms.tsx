@@ -669,6 +669,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
         </Field>
         <Field
           group
+          span={2}
           label="Tipo"
           hint={
             <button type="button" className="link small" onClick={() => setRename((v) => !v)}>

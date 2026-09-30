@@ -107,7 +107,7 @@ try {
     const closedPrice = await priceOf()
     await page.locator('.q-more-btn', { hasText: 'arquivo final' }).click(); await page.waitForTimeout(100)
     await page.getByRole('button', { name: 'aberto (editável)', exact: false }).last().click(); await page.waitForTimeout(150)
-    const filesText = await page.locator('.field', { hasText: 'formatos de arquivos entregues' }).locator('input').inputValue()
+    const filesText = await page.locator('.field', { hasText: 'formatos de arquivos entregues' }).locator('textarea').inputValue()
     ok((await priceOf()) > closedPrice && /aberto/.test(filesText), `${vp.name}: arquivo aberto soma a taxa e muda a entrega`)
     await page.getByRole('button', { name: 'fechado (PDF)' }).click(); await page.waitForTimeout(150)
     // pavimentos: cada um a mais encarece

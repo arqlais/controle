@@ -125,7 +125,7 @@ export default function Profile() {
               <input value={s.brandName} onChange={(e) => set({ brandName: e.target.value })} placeholder="Ex.: laís" />
             </Field>
             <Field label="Especialidade / slogan">
-              <input value={s.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="Ex.: renderização · modelagem · detalhamento" />
+              <textarea className="auto-grow" rows={1} value={s.tagline} onChange={(e) => set({ tagline: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: renderização · modelagem · detalhamento" />
             </Field>
             <Field label="Nome completo" hint="Vai no topo da proposta e no recibo.">
               <input value={s.legalName} onChange={(e) => set({ legalName: e.target.value })} />

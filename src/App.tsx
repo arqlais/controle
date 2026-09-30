@@ -84,6 +84,31 @@ type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 export default function App() {
   const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample, upsert } = useStore()
   // rascunhos de orçamento sempre depois do último número enviado/aprovado, em ordem de data
+  // caixas de texto crescem com o conteúdo: nada fica escondido (o texto do contrato tem rolagem própria)
+  useEffect(() => {
+    const fit = (t: HTMLTextAreaElement) => {
+      if (t.classList.contains('pf-contract-text') || t.dataset.fixed != null || !t.offsetParent) return
+      t.style.height = 'auto'
+      t.style.height = `${t.scrollHeight + 2}px`
+    }
+    const onInput = (e: Event) => e.target instanceof HTMLTextAreaElement && fit(e.target)
+    let raf = 0
+    const all = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => document.querySelectorAll('textarea').forEach((t) => fit(t as HTMLTextAreaElement)))
+    }
+    const mo = new MutationObserver((list) => list.some((m) => [...m.addedNodes].some((n) => n instanceof HTMLElement && (n.tagName === 'TEXTAREA' || !!n.querySelector?.('textarea')))) && all())
+    mo.observe(document.body, { childList: true, subtree: true })
+    document.addEventListener('input', onInput)
+    window.addEventListener('resize', all)
+    all()
+    return () => {
+      mo.disconnect()
+      document.removeEventListener('input', onInput)
+      window.removeEventListener('resize', all)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
   useEffect(() => {
     if (sync === 'loading' || isSample) return
     for (const r of draftRenumber(data.quotes)) {

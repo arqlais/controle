@@ -224,10 +224,10 @@ export default function SettingsPage() {
                     </label>
                     <div className="service-delivery">
                       <Field label="Como é entregue" hint="Vai no PDF em “formatos de arquivos entregues”.">
-                        <input value={x.delivery ?? ''} onChange={(e) => setService(x.id, { delivery: e.target.value })} placeholder="Ex.: PDF fechado, pronto para execução" />
+                        <textarea className="auto-grow" rows={1} value={x.delivery ?? ''} onChange={(e) => setService(x.id, { delivery: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: PDF fechado, pronto para execução" />
                       </Field>
                       <Field label="Se o cliente quiser o arquivo aberto" hint="Em branco = usa a entrega normal + “arquivo aberto (editável)”. O valor soma a taxa interna de arquivo aberto.">
-                        <input value={x.deliveryOpen ?? ''} onChange={(e) => setService(x.id, { deliveryOpen: e.target.value })} placeholder="Ex.: PDF + arquivo aberto (editável) do layout" />
+                        <textarea className="auto-grow" rows={1} value={x.deliveryOpen ?? ''} onChange={(e) => setService(x.id, { deliveryOpen: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: PDF + arquivo aberto (editável) do layout" />
                       </Field>
                       <Field label="Observações prontas" hint="Uma por linha. Aparecem como sugestão na observação do orçamento (um toque coloca ou tira).">
                         <textarea rows={3} value={(x.noteHints ?? []).join('\n')} onChange={(e) => setService(x.id, { noteHints: e.target.value.split('\n') })} placeholder="Ex.: necessário planta baixa em dwg com medidas reais." spellCheck lang="pt-BR" />
@@ -578,10 +578,10 @@ function ProposalSettings() {
               </select>
             </Field>
             <Field label="Prazos e cronograma (padrão)" span={3}>
-              <input value={p.schedule} onChange={(e) => setP({ schedule: e.target.value })} />
+              <textarea className="auto-grow" rows={1} value={p.schedule} onChange={(e) => setP({ schedule: e.target.value.replace(/\n/g, ' ') })} />
             </Field>
             <Field label="Formatos de arquivos entregues (padrão)" span={3}>
-              <input value={p.files} onChange={(e) => setP({ files: e.target.value })} />
+              <textarea className="auto-grow" rows={1} value={p.files} onChange={(e) => setP({ files: e.target.value.replace(/\n/g, ' ') })} />
             </Field>
             <Field label="Pagamento (padrão)" span={3} hint="Usado em todo orçamento novo; dá para mudar em cada um.">
               <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={s.defaultPaymentTerms} onChange={(e) => setSettings({ defaultPaymentTerms: e.target.value })} />

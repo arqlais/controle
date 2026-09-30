@@ -330,7 +330,7 @@ function ContractEditor({ id }: { id: string }) {
                 <Segmented<ContractStatus> value={c.status} onChange={(status) => set({ status })} options={(Object.keys(STATUS) as ContractStatus[]).map((k) => ({ value: k, label: STATUS[k].label }))} />
               </Field>
               <Field label="Modelo" span={2}>
-                <div className="row gap-s">
+                <div className="row gap-s ct-model-row">
                   <select value={c.templateId} onChange={(e) => void refill(e.target.value)}>
                     {cs.templates.map((t) => (
                       <option key={t.id} value={t.id}>
