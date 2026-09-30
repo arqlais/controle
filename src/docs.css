@@ -448,3 +448,5 @@
 button.back { background: none; border: 0; padding: 0; font: inherit; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
 button.back:hover { color: var(--text); }
 .pq-r-top .pq-head em { color: var(--d-dark); }
+/* edição avançada (mexer direto na folha) só em telas maiores: no celular, os campos */
+@media (max-width: 700px) { .dk-free-btn, .qe-free-btn { display: none !important; } }

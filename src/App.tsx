@@ -16,9 +16,9 @@ import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/fo
 import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, setEventLabels, today } from './utils'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
-import ClientDetail from './pages/ClientDetail'
+const ClientDetail = lazy(() => import('./pages/ClientDetail'))
 import Projects from './pages/Projects'
-import ProjectDetail from './pages/ProjectDetail'
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
 import Finance from './pages/Finance'
 import Agenda from './pages/Agenda'
 import Quotes from './pages/Quotes'
@@ -37,11 +37,11 @@ import Suggestions from './pages/Suggestions'
 import Feedback from './pages/Feedback'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
-import { useBriefingSync } from './components/Briefing'
+import { useBriefingSync } from './briefingSync'
 import { markBetaDevice } from './beta'
 import { INVITE_KEY } from './components/Signup'
 import { useAccess } from './access'
-import Landing from './pages/Landing'
+const Landing = lazy(() => import('./pages/Landing'))
 import { setViewAsClient, setViewPlan, viewingAsClient, type ViewPlan } from './viewAs'
 import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewPlan, setPreviewRole } from './platform'
 import { SIGNUP_KEY, hasLocalAccount, seedPreviewAccount } from './store'
@@ -337,7 +337,9 @@ export default function App() {
   if (route.page === 'vendas' && access.isOwner)
     return (
       <>
-        <Landing />
+        <Suspense fallback={<div className="loading-screen" />}>
+          <Landing />
+        </Suspense>
         <div className="owner-sales-bar" role="region" aria-label="Você está vendo a página de vendas">
           <span>
             <Icon name="eye" size={15} /> você está vendo a <b>página de vendas</b>, como os visitantes

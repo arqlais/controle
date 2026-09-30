@@ -470,7 +470,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         </div>
         <div className="row gap-s wrap">
           {showPdf && (
-            <button className="btn ghost" onClick={() => setFreeEdit(reserve())} title="Mudar qualquer texto direto na proposta antes de baixar">
+            <button className="btn ghost qe-free-btn" onClick={() => setFreeEdit(reserve())} title="Mudar qualquer texto direto na proposta antes de baixar">
               <Icon name="pen" size={16} /> editar textos
             </button>
           )}

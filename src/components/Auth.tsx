@@ -10,9 +10,11 @@ import { PREVIEW_CLIENT, getPreviewRole, onPreviewRole, setPreviewRole, type Pre
 import { PLATFORM, type PlanId } from '../plans'
 import { go, useRoute } from '../router'
 import { Signup } from './Signup'
-import Landing from '../pages/Landing'
-import { BriefingPublic } from './Briefing'
-import { PortalPublic } from './Studio'
+import { lazy, Suspense } from 'react'
+// páginas públicas e de vendas: só carregam quando alguém abre (o sistema fica mais leve)
+const Landing = lazy(() => import('../pages/Landing'))
+const BriefingPublic = lazy(() => import('./Briefing').then((m) => ({ default: m.BriefingPublic })))
+const PortalPublic = lazy(() => import('./Studio').then((m) => ({ default: m.PortalPublic })))
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
@@ -23,11 +25,12 @@ import { Icon } from './Icon'
 export function AuthGate({ children }: { children: ReactNode }) {
   // briefing do cliente final: página pública, sem login e sem nada do sistema
   const route = useRoute()
-  if (route.page === 'briefing' && route.id) return <BriefingPublic id={route.id} />
-  if (route.page === 'b' && route.id) return <BriefingPublic id={route.id} short />
+  const wait = <div className="loading-screen" />
+  if (route.page === 'briefing' && route.id) return <Suspense fallback={wait}><BriefingPublic id={route.id} /></Suspense>
+  if (route.page === 'b' && route.id) return <Suspense fallback={wait}><BriefingPublic id={route.id} short /></Suspense>
   // página de acompanhamento do projeto (plano Estúdio): também sem login
-  if (route.page === 'acompanhar' && route.id) return <PortalPublic token={route.id} />
-  if (route.page === 'p' && route.id) return <PortalPublic token={route.id} short />
+  if (route.page === 'acompanhar' && route.id) return <Suspense fallback={wait}><PortalPublic token={route.id} /></Suspense>
+  if (route.page === 'p' && route.id) return <Suspense fallback={wait}><PortalPublic token={route.id} short /></Suspense>
   return <Gate>{children}</Gate>
 }
 
@@ -88,7 +91,7 @@ function PublicScreens({ onEnter, onSignup }: { onEnter?: () => void; onSignup?:
       </AuthLayout>
     )
   if (route.page === 'entrar') return <Login onEnter={onEnter} />
-  if (route.page === 'vendas' || !lastBrand() || !CLOUD) return <Landing />
+  if (route.page === 'vendas' || !lastBrand() || !CLOUD) return <Suspense fallback={<div className="loading-screen" />}><Landing /></Suspense>
   return <Login onEnter={onEnter} />
 }
 
