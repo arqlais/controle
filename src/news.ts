@@ -29,6 +29,37 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-documentos',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'documentos do estúdio',
+    text: 'Guia de medição com desenhos explicando cada medida, placa de obra com QR code (4 layouts), briefing em PDF para imprimir e apresentação de projeto em slides. Tudo sai no design escolhido em configurações, e qualquer texto pode ser mudado direto na folha antes de baixar.',
+    steps: [{ page: 'documentos', text: 'Abra “documentos” no menu e escolha um.' }],
+  },
+  {
+    id: '2026-09-30-briefing-imagens',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'briefing com imagens e sub-perguntas',
+    text: '21 modelos prontos (studio, dormitório infantil, arquitetônico, clínica, área gourmet, closet, salão, restaurante, loja, igreja…). O cliente escolhe tocando nas imagens, perguntas extras aparecem conforme a resposta e cada pergunta de fotos diz quais fotos mandar. Dá para ver como o cliente vê antes de mandar.',
+    steps: [{ page: 'briefings', text: 'Em “briefings”, toque em “editar” num modelo ou em “mandar”.' }],
+  },
+  {
+    id: '2026-09-30-orcamento-para-quem',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'orçamento: para quem é, explicado',
+    text: 'Ao criar um orçamento você escolhe cliente final (proposta em slides, com o tipo de projeto e as etapas) ou freelancer / escritório parceiro. O cliente aparece enquanto você digita o nome. A proposta em slides ganhou design novo e mostra o valor das propostas fechadas juntas. E dá para gerar o contrato já com as etapas, os prazos e o pagamento.',
+    steps: [{ page: 'orcamentos', id: 'novo', text: 'Toque em “novo orçamento”.' }, { page: 'processos', text: 'Suas etapas de trabalho (cliente final, freelancer e estudante) ficam em “etapas de trabalho”.' }],
+  },
+  {
+    id: '2026-09-30-correcoes',
+    date: '2026-09-30',
+    kind: 'correcao',
+    title: 'links e financeiro',
+    text: 'O link do briefing e a página do projeto para o cliente agora abrem sempre (o link leva uma cópia e, se a internet falhar, as respostas vêm pelo WhatsApp). Clientes antigos entram no financeiro: aprovar orçamentos antigos lança como pago, e o financeiro avisa o que ficou de fora. Demandas de freelancer e estudante não mostram mais as abas de obra.',
+  },
+  {
     id: '2026-09-29-orcamento-cliente-final',
     date: '2026-09-29',
     kind: 'novo',

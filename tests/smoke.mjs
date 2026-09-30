@@ -130,8 +130,50 @@ try {
     const num = (t) => Number(t.replace(/[^\d,]/g, '').replace(',', '.'))
     ok(num(joint) > 0 && num(joint) < num(sep), `${vp.name}: duas propostas com desconto para fechar juntas`)
 
+    // 3d. cliente final: escolhe o tipo de projeto e a proposta sai em slides com as etapas
+    await go('#/orcamentos/novo'); await page.waitForTimeout(500)
+    {
+      if (await page.locator('.aud-option').count()) {
+        await page.locator('.aud-option[data-audience=final]').click(); await page.waitForTimeout(200)
+        await page.locator('.proc-card').first().click(); await page.waitForTimeout(400)
+      } else {
+        await page.locator('.field', { hasText: 'para quem é' }).getByRole('button', { name: 'cliente final' }).click(); await page.waitForTimeout(400)
+      }
+      await page.locator('#q-client').fill('Mar'); await page.waitForTimeout(150)
+      ok(await page.locator('.cp-list li').count() > 0, `${vp.name}: cliente aparece enquanto digita`)
+      await page.keyboard.press('Enter'); await page.waitForTimeout(300)
+      await page.getByRole('button', { name: 'propostas + juntas' }).click(); await page.waitForTimeout(400)
+      ok(await page.locator('.sp-rail li').count() >= 3, `${vp.name}: proposta de cliente final com as etapas`)
+      ok(await page.locator('.sp-combo-total').count() >= 1, `${vp.name}: slides mostram o valor fechando juntas`)
+    }
+
+    // 3e. documentos e etapas de trabalho
+    await go('#/documentos'); await page.waitForTimeout(600)
+    ok(await page.locator('.docs-card').count() === 4, `${vp.name}: documentos (guia, placa, briefing, apresentação)`)
+    await page.locator('.docs-card').nth(1).click(); await page.waitForTimeout(500)
+    await page.getByLabel('Para onde o QR code leva').fill('@estudio'); await page.waitForTimeout(200)
+    ok(await page.locator('.pq-code path').count() === 1, `${vp.name}: placa de obra gera o QR code`)
+    await page.locator('.dk-page .back').click(); await page.waitForTimeout(300)
+    await go('#/processos'); await page.waitForTimeout(400)
+    ok(await page.locator('.step-card').count() > 0, `${vp.name}: etapas de trabalho (cliente final)`)
+
+    // 3f. link do briefing abre só com a cópia que vai dentro dele (sem nuvem)
+    const packed = await page.evaluate(async () => {
+      const payload = { title: 'Teste', clientName: 'Ana', studio: 'estúdio', owner: 'Laís', accent: '#a88a80', intro: 'oi', phone: '31999999999', sections: [{ id: 'a', title: 'a' }], questions: [{ id: 'q1', section: 'a', label: 'Quer TV?', kind: 'choice', options: ['sim', 'não'] }, { id: 'q2', section: 'a', label: 'Polegadas', kind: 'choice', options: ['32', '43'], showIf: { q: 'q1', is: 'sim' } }] }
+      const res = new Response(new Blob([new TextEncoder().encode(JSON.stringify(payload))]).stream().pipeThrough(new CompressionStream('deflate-raw')))
+      const out = new Uint8Array(await res.arrayBuffer()); let s = ''; for (const b of out) s += String.fromCharCode(b)
+      return 'z' + btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    })
+    await go(`#/briefing/00000000-0000-0000-0000-00000000000${vp.width > 800 ? 1 : 2}/${packed}`); await page.waitForTimeout(700)
+    ok((await page.locator('.bf-public h1').first().textContent()) === 'Teste', `${vp.name}: link do briefing abre pela cópia do link`)
+    await page.getByRole('radio', { name: 'sim' }).click(); await page.waitForTimeout(150)
+    ok(await page.locator('.bf-sub').count() === 1, `${vp.name}: sub-pergunta aparece com a resposta`)
+    await page.getByText('enviar respostas').click(); await page.waitForTimeout(500)
+    ok(await page.locator('a[href*="whatsapp"], a[href*="wa.me"]').count() >= 1, `${vp.name}: sem nuvem, as respostas vão pelo WhatsApp`)
+    await go('#/inicio'); await page.waitForTimeout(400)
+
     // 4. todas as páginas abrem sem erro e sem passar da largura da tela
-    for (const r of ['inicio', 'projetos', 'clientes', 'financeiro', 'agenda', 'orcamentos', 'config', 'manual', 'perfil', 'orcamentos/novo']) {
+    for (const r of ['inicio', 'projetos', 'clientes', 'financeiro', 'agenda', 'orcamentos', 'config', 'manual', 'perfil', 'orcamentos/novo', 'documentos', 'processos', 'briefings']) {
       await go(`#/${r}`); await page.waitForTimeout(300)
       const wide = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)
       ok(!wide, `${vp.name}: página ${r} cabe na tela`)
