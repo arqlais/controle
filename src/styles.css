@@ -1824,7 +1824,8 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 }
 /* configurações no celular: as abas numa linha só */
 @media (max-width: 820px) {
-  .settings-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; } /* no celular: aparência, assistente e dados */
+  .settings-tabs { display: flex; flex-wrap: wrap; gap: 4px; } /* no celular: dois por linha; se sobrar um, ocupa a linha toda */
+  .settings-tabs > .settings-tab { flex: 1 1 40%; min-width: 0; }
   .settings-tabs .desktop-only { display: none; }
   .settings-tab { gap: 6px; padding: 10px 6px; min-width: 0; }
   .settings-note { grid-column: 1 / -1; }
