@@ -52,7 +52,17 @@ export async function publishBriefing(id: string, payload: BriefingPayload) {
     return
   }
   const { error } = await supabase!.from('briefing_links').upsert({ id, payload })
-  if (error) throw error
+  if (error) throw new BriefingError(error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message) ? 'banco' : 'rede', error.message)
+}
+
+/** Por que o link não foi criado: 'banco' = o briefing online ainda não foi ativado no banco de dados. */
+export class BriefingError extends Error {
+  constructor(
+    public reason: 'banco' | 'rede',
+    detail: string,
+  ) {
+    super(detail)
+  }
 }
 
 /** Respostas que chegaram (só dos briefings desta conta). */
@@ -79,10 +89,10 @@ export async function deleteBriefingLink(id: string) {
 
 /** Página pública: lê o briefing pelo código do link. */
 export async function loadPublicBriefing(id: string): Promise<PublicBriefing | null> {
-  if (!CLOUD) {
-    const row = readLocal()[id]
-    return row ? { payload: row.payload, answered: !!row.answeredAt } : null
-  }
+  // criado na prévia ou em "ver como cliente": fica neste navegador
+  const row = readLocal()[id]
+  if (row) return { payload: row.payload, answered: !!row.answeredAt }
+  if (!CLOUD) return null
   const { data, error } = await supabase!.rpc('briefing_publico', { p_id: id })
   if (error || !data) return null
   const d = data as { payload: BriefingPayload; respondido: boolean }
@@ -90,7 +100,7 @@ export async function loadPublicBriefing(id: string): Promise<PublicBriefing | n
 }
 
 export async function sendPublicAnswers(id: string, answers: BriefingAnswers) {
-  if (!CLOUD) {
+  if (!CLOUD || readLocal()[id]) {
     const all = readLocal()
     if (!all[id] || all[id].answeredAt) return false
     all[id] = { ...all[id], answers, answeredAt: new Date().toISOString() }
@@ -118,7 +128,7 @@ const toDataUrl = (b: Blob) =>
 /** Guarda uma foto enviada pelo cliente (diminuída) e devolve como ela fica na resposta. */
 export async function uploadAttachment(briefingId: string, file: File): Promise<string> {
   const { compressImage } = await import('./studioApi')
-  if (!CLOUD) return toDataUrl(await compressImage(file, 900, 0.7))
+  if (!CLOUD || readLocal()[briefingId]) return toDataUrl(await compressImage(file, 900, 0.7))
   const blob = await compressImage(file)
   const path = `${briefingId}/${crypto.randomUUID()}.jpg`
   const { error } = await supabase!.storage.from(ATT).upload(path, blob, { contentType: 'image/jpeg' })

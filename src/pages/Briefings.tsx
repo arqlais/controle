@@ -4,8 +4,8 @@ import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { Empty, Modal, Segmented } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
-import { BriefingList, NewBriefing, PublicQuestion } from '../components/Briefing'
-import { KIND_LABEL, allTemplates, findTemplate, isBuiltin } from '../briefingTemplates'
+import { BriefingList, BriefingPublic, NewBriefing, briefingPayload } from '../components/Briefing'
+import { KIND_LABEL, TEMPLATE_GROUPS, allTemplates, findTemplate, isBuiltin } from '../briefingTemplates'
 import { referenceImage } from '../briefingApi'
 import type { BriefingKind, BriefingQuestion, BriefingSection, BriefingTemplate } from '../types'
 import { uid } from '../utils'
@@ -24,6 +24,10 @@ function BriefingsHome() {
   const [send, setSend] = useState<string | null>(null)
   const mine = data.settings.briefingTemplates ?? []
   const templates = allTemplates(mine)
+  const [group, setGroup] = useState<string>('todos')
+  const groupOf = (t: BriefingTemplate) => (isBuiltin(t.id) ? t.group ?? 'meus' : 'meus')
+  const groups = [...TEMPLATE_GROUPS.map((g) => ({ id: g.id as string, label: g.label })), { id: 'meus', label: 'seus modelos' }].filter((g) => templates.some((t) => groupOf(t) === g.id && t.id !== 'zero'))
+  const shownGroups = groups.filter((g) => group === 'todos' || g.id === group)
   const sent = [...(data.briefings ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const waiting = sent.filter((b) => b.status === 'enviado').length
   const createBlank = () => {
@@ -68,8 +72,19 @@ function BriefingsHome() {
         />
       </div>
       {tab === 'modelos' ? (
+        <>
+        <div className="bf-group-filter">
+          {[{ id: 'todos', label: 'todos' }, ...groups].map((g) => (
+            <button key={g.id} type="button" className={`chip ${group === g.id ? 'active' : ''}`} onClick={() => setGroup(g.id)}>
+              {g.label}
+            </button>
+          ))}
+        </div>
+        {shownGroups.map((g) => (
+        <section key={g.id} className="bf-group">
+        <h2 className="bf-group-title">{g.label}</h2>
         <div className="bf-models">
-          {templates.map((t) => {
+          {templates.filter((t) => groupOf(t) === g.id && t.id !== 'zero').map((t) => {
             const edited = isBuiltin(t.id) && mine.some((m) => m.id === t.id)
             const own = !isBuiltin(t.id)
             return (
@@ -109,12 +124,15 @@ function BriefingsHome() {
               </article>
             )
           })}
-          <button type="button" className="card bf-model bf-model-new" onClick={createBlank}>
+        </div>
+        </section>
+        ))}
+          <button type="button" className="card bf-model-new" onClick={createBlank}>
             <Icon name="plus" size={22} />
             <b>criar modelo do zero</b>
             <small className="muted">monte as suas perguntas</small>
           </button>
-        </div>
+        </>
       ) : sent.length === 0 ? (
         <Empty icon="clip" title="nenhum briefing enviado ainda" text="Toque em “mandar briefing”, escolha o cliente e o modelo." />
       ) : (
@@ -228,7 +246,7 @@ function TemplateEditor({ id }: { id: string }) {
               </div>
             </div>
             {list.map((q, qi) => (
-              <QuestionEditor key={q.id} q={q} n={qi + 1} first={qi === 0} last={qi === list.length - 1} sections={t.sections} onChange={(patch) => setQ(q.id, patch)} onMove={(d) => moveQ(q.id, d)} onDuplicate={() => save({ questions: [...t.questions.slice(0, t.questions.indexOf(q) + 1), { ...structuredClone(q), id: `q-${uid()}` }, ...t.questions.slice(t.questions.indexOf(q) + 1)] })} onDelete={() => save({ questions: t.questions.filter((x) => x.id !== q.id) })} />
+              <QuestionEditor key={q.id} q={q} all={t.questions} n={qi + 1} first={qi === 0} last={qi === list.length - 1} sections={t.sections} onChange={(patch) => setQ(q.id, patch)} onMove={(d) => moveQ(q.id, d)} onDuplicate={() => save({ questions: [...t.questions.slice(0, t.questions.indexOf(q) + 1), { ...structuredClone(q), id: `q-${uid()}` }, ...t.questions.slice(t.questions.indexOf(q) + 1)] })} onDelete={() => save({ questions: t.questions.filter((x) => x.id !== q.id) })} />
             ))}
             <div className="bf-ed-add">
               <span className="muted small">+ pergunta:</span>
@@ -246,23 +264,9 @@ function TemplateEditor({ id }: { id: string }) {
       </button>
       {preview && (
         <Modal title={`${t.name} · como o cliente vê`} onClose={() => setPreview(false)} wide>
-          <div className="bf-preview" style={{ ['--bf-accent' as string]: data.settings.accent }}>
-            {t.sections.map((s, i) => (
-              <section key={s.id} className="bf-block">
-                <div className="bf-block-head">
-                  <span className="bf-block-n">{i + 1}</span>
-                  <div>
-                    <h2>{s.title}</h2>
-                    {s.description && <p className="muted small">{s.description}</p>}
-                  </div>
-                </div>
-                {t.questions
-                  .filter((q) => q.section === s.id)
-                  .map((q) => (
-                    <PublicQuestion key={q.id} q={q} onChange={() => undefined} missing={false} previews={{}} uploading={0} onPhotos={() => undefined} />
-                  ))}
-              </section>
-            ))}
+          <p className="muted small">É exatamente esta página que abre no celular do cliente. Pode clicar e testar: nada é enviado.</p>
+          <div className="bf-preview-frame">
+            <BriefingPublic id={`previa-${t.id}`} preview data={{ payload: briefingPayload(t, data.settings, 'Ana Souza'), answered: false }} />
           </div>
         </Modal>
       )}
@@ -270,11 +274,25 @@ function TemplateEditor({ id }: { id: string }) {
   )
 }
 
-function QuestionEditor({ q, n, first, last, sections, onChange, onMove, onDuplicate, onDelete }: { q: BriefingQuestion; n: number; first: boolean; last: boolean; sections: BriefingSection[]; onChange: (p: Partial<BriefingQuestion>) => void; onMove: (d: number) => void; onDuplicate: () => void; onDelete: () => void }) {
+function QuestionEditor({ q, all, n, first, last, sections, onChange, onMove, onDuplicate, onDelete }: { q: BriefingQuestion; all: BriefingQuestion[]; n: number; first: boolean; last: boolean; sections: BriefingSection[]; onChange: (p: Partial<BriefingQuestion>) => void; onMove: (d: number) => void; onDuplicate: () => void; onDelete: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [showHint, setShowHint] = useState(!!q.hint)
   const hasOptions = q.kind === 'choice' || q.kind === 'multi'
   const opts = q.options ?? []
+  const optRef = useRef<HTMLInputElement>(null)
+  const [optFor, setOptFor] = useState('')
+  const setOptImage = async (file?: File) => {
+    if (!file || !optFor) return
+    try {
+      onChange({ optionImages: { ...(q.optionImages ?? {}), [optFor]: await referenceImage(file) } })
+    } catch {
+      toast('Não consegui abrir esta imagem.')
+    }
+  }
+  // perguntas de escolha que vêm antes desta (para "só aparece se…")
+  const parents = all.slice(0, all.findIndex((x) => x.id === q.id)).filter((x) => (x.kind === 'choice' || x.kind === 'multi') && x.options?.length)
+  const parent = parents.find((x) => x.id === q.showIf?.q)
+  const [showCond, setShowCond] = useState(!!q.showIf)
   const addImages = async (files: FileList | null) => {
     const list = [...(files ?? [])].filter((f) => f.type.startsWith('image/')).slice(0, 6)
     const imgs: string[] = []
@@ -311,7 +329,44 @@ function QuestionEditor({ q, n, first, last, sections, onChange, onMove, onDupli
           {opts.map((o, i) => (
             <div key={i} className="bf-qed-opt">
               <span className={q.kind === 'choice' ? 'bf-radio' : 'bf-box'} aria-hidden />
-              <input value={o} onChange={(e) => onChange({ options: opts.map((x, j) => (j === i ? e.target.value : x)) })} aria-label={`Opção ${i + 1}`} />
+              <input
+                value={o}
+                onChange={(e) => {
+                  const img = q.optionImages?.[o]
+                  const next = { ...(q.optionImages ?? {}) }
+                  if (img) {
+                    delete next[o]
+                    next[e.target.value] = img
+                  }
+                  onChange({ options: opts.map((x, j) => (j === i ? e.target.value : x)), ...(img ? { optionImages: next } : {}) })
+                }}
+                aria-label={`Opção ${i + 1}`}
+              />
+              <button
+                type="button"
+                className={`bf-qed-optimg ${q.optionImages?.[o] ? 'has-img' : ''}`}
+                title={q.optionImages?.[o] ? 'Trocar a imagem desta opção' : 'Colocar uma imagem nesta opção (o cliente escolhe pela imagem)'}
+                aria-label="Imagem da opção"
+                onClick={() => {
+                  setOptFor(o)
+                  optRef.current?.click()
+                }}
+              >
+                {q.optionImages?.[o] ? <img src={q.optionImages[o]} alt="" /> : <Icon name="camera" size={13} />}
+              </button>
+              {q.optionImages?.[o] && (
+                <button
+                  type="button"
+                  className="link small muted-link"
+                  onClick={() => {
+                    const next = { ...(q.optionImages ?? {}) }
+                    delete next[o]
+                    onChange({ optionImages: next })
+                  }}
+                >
+                  tirar imagem
+                </button>
+              )}
               <button className="icon-btn subtle" onClick={() => onChange({ options: opts.filter((_, j) => j !== i) })} aria-label="Tirar opção">
                 <Icon name="x" size={13} />
               </button>
@@ -342,7 +397,41 @@ function QuestionEditor({ q, n, first, last, sections, onChange, onMove, onDupli
           )}
         </div>
       )}
-      {q.kind === 'photos' && <p className="bf-qed-info">O cliente toca em “adicionar fotos” e escolhe da galeria ou tira na hora.</p>}
+      {hasOptions && <input ref={optRef} type="file" accept="image/*" hidden onChange={(e) => (void setOptImage(e.target.files?.[0]), (e.target.value = ''))} />}
+      {q.kind === 'photos' && (
+        <>
+          <p className="bf-qed-info">O cliente toca em “adicionar fotos” e escolhe da galeria ou tira na hora.</p>
+          <label className="bf-qed-tips">
+            <span className="muted small">o que fotografar (uma sugestão por linha, aparece como lista para o cliente)</span>
+            <textarea rows={3} value={(q.tips ?? []).join('\n')} onChange={(e) => onChange({ tips: e.target.value.split('\n') })} onBlur={() => onChange({ tips: (q.tips ?? []).map((t) => t.trim()).filter(Boolean) })} placeholder={'cada parede do ambiente\npiso e teto\ntomadas e janelas'} spellCheck lang="pt-BR" />
+          </label>
+        </>
+      )}
+      {(showCond || q.showIf) && parents.length > 0 && (
+        <div className="bf-qed-cond">
+          <span className="muted small">só aparece se</span>
+          <select value={q.showIf?.q ?? ''} onChange={(e) => onChange({ showIf: e.target.value ? { q: e.target.value, value: parents.find((x) => x.id === e.target.value)?.options?.[0] ?? '' } : undefined })} aria-label="Pergunta">
+            <option value="">(sempre aparece)</option>
+            {parents.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.label.slice(0, 60)}
+              </option>
+            ))}
+          </select>
+          {parent && (
+            <>
+              <span className="muted small">for</span>
+              <select value={q.showIf?.value ?? ''} onChange={(e) => onChange({ showIf: { q: parent.id, value: e.target.value } })} aria-label="Resposta">
+                {(parent.options ?? []).map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
+      )}
       {(q.kind === 'text' || q.kind === 'long' || q.kind === 'date') && <p className="bf-qed-info">{q.kind === 'long' ? 'Resposta em parágrafo.' : q.kind === 'date' ? 'O cliente escolhe uma data.' : 'Resposta curta.'}</p>}
 
       {q.images && q.images.length > 0 && (
@@ -370,6 +459,11 @@ function QuestionEditor({ q, n, first, last, sections, onChange, onMove, onDupli
         <button className="link small" onClick={() => fileRef.current?.click()}>
           + imagem de referência
         </button>
+        {!showCond && !q.showIf && parents.length > 0 && (
+          <button className="link small" onClick={() => setShowCond(true)} title="Pergunta que só aparece conforme uma resposta anterior">
+            + só aparece se…
+          </button>
+        )}
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => (void addImages(e.target.files), (e.target.value = ''))} />
         {sections.length > 1 && (
           <select className="bf-qed-move" value={q.section} onChange={(e) => onChange({ section: e.target.value })} aria-label="Mudar de parte">

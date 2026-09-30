@@ -525,6 +525,9 @@ export interface BriefingQuestion {
   hint?: string // explicação curta embaixo da pergunta
   images?: string[] // imagens de referência que o arquiteto mostra (ex.: estilos)
   other?: boolean // escolha com opção "outro" para escrever
+  optionImages?: Record<string, string> // imagem de cada opção (escolha por imagem); trocável pelo arquiteto
+  showIf?: { q: string; value: string } // só aparece se a pergunta q tiver esta resposta
+  tips?: string[] // fotos: sugestões do que fotografar
 }
 export interface BriefingSection {
   id: string
@@ -537,6 +540,7 @@ export interface BriefingTemplate {
   name: string
   description: string
   icon?: string
+  group?: 'completo' | 'ambiente' | 'comercial' // organiza a lista de modelos prontos
   sections: BriefingSection[]
   questions: BriefingQuestion[]
   updatedAt?: string

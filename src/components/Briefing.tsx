@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
+import { ARTIFACT } from '../env'
+import { viewingAsClient } from '../viewAs'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
 import { Badge, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { BRIEFING_SECTIONS } from '../briefingQuestions'
 import { allTemplates } from '../briefingTemplates'
-import { attachmentUrls, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type PublicBriefing } from '../briefingApi'
+import { attachmentUrls, BriefingError, briefingLink, deleteBriefingLink, fetchAnswers, loadPublicBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type PublicBriefing, type BriefingPayload } from '../briefingApi'
 import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, ClientProfile, Data } from '../types'
 import { fmtDate, today, uid, whatsappLink } from '../utils'
 import { go } from '../router'
@@ -16,6 +18,7 @@ import { PLANS } from '../plans'
    (WhatsApp ou copiar) e as respostas voltam sozinhas para a ficha do cliente. */
 
 /** "Família Souza" → "Família Souza"; "Maria Souza" → "Maria". */
+const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 const greetName = (name: string) => (/^fam[ií]lia\b/i.test(name.trim()) ? name.trim() : name.trim().split(' ')[0])
 const answerText = (v: string | string[] | undefined) => (Array.isArray(v) ? v.join(', ') : (v ?? '')).trim()
 
@@ -74,6 +77,13 @@ const sectionsOf = (b: { sections?: BSection[]; questions: BriefingQuestion[] })
   const extra = b.questions.some((q) => !base.some((x) => x.id === (q.section || 'extra'))) ? [{ id: 'extra', title: 'mais algumas perguntas' }] : []
   return [...base, ...extra].filter((x) => b.questions.some((q) => (base.some((y) => y.id === q.section) ? q.section : 'extra') === x.id))
 }
+/** Pergunta condicional: só aparece quando a resposta da pergunta ligada bate. */
+export const visibleQ = (q: BriefingQuestion, answers: BriefingAnswers) => {
+  if (!q.showIf) return true
+  const v = answers[q.showIf.q]
+  return Array.isArray(v) ? v.includes(q.showIf.value) : v === q.showIf.value
+}
+
 const inSection = (b: { sections?: BSection[]; questions: BriefingQuestion[] }, id: string) => {
   const base = b.sections?.length ? b.sections : BRIEFING_SECTIONS.map((x) => ({ id: x.id }))
   return b.questions.filter((q) => (base.some((y) => y.id === q.section) ? q.section : 'extra') === id)
@@ -190,6 +200,27 @@ function ShareButtons({ client, b }: { client: Client; b: Briefing }) {
       >
         <Icon name="link" size={14} /> copiar link
       </button>
+      <ClientView id={b.id} />
+    </>
+  )
+}
+
+/** Abre o link como o cliente vê (numa janela por cima, sem sair do sistema). */
+export function ClientView({ id, data, label = 'ver como o cliente vê' }: { id: string; data?: PublicBriefing; label?: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button type="button" className="btn small ghost" onClick={() => setOpen(true)}>
+        <Icon name="eye" size={14} /> {label}
+      </button>
+      {open && (
+        <Modal wide title="como o cliente vê" onClose={() => setOpen(false)}>
+          <p className="muted small">É exatamente esta página que abre no celular do cliente. Aqui é só uma prévia: nada é enviado.</p>
+          <div className="bf-preview-frame">
+            <BriefingPublic id={id} data={data} preview />
+          </div>
+        </Modal>
+      )}
     </>
   )
 }
@@ -259,12 +290,28 @@ function Answers({ b }: { b: Briefing }) {
   )
 }
 
+/** O que vai no link: perguntas do modelo com a marca da conta. */
+export function briefingPayload(tpl: BriefingTemplate, st: Data['settings'], clientName: string): BriefingPayload {
+  return {
+    title: tpl.name,
+    clientName,
+    studio: st.brandName || st.ownerName || '',
+    owner: st.ownerName || '',
+    accent: st.accent,
+    logo: st.logo && st.logo.length < 250_000 ? st.logo : undefined,
+    intro: `Oi, ${greetName(clientName)}! Estas perguntas me ajudam a entender o que vocês precisam e como vivem. Responda com calma: não existe resposta certa, e dá para pular o que não souber.`,
+    questions: tpl.questions,
+    sections: tpl.sections,
+  }
+}
+
 /** Mandar um briefing: escolhe o modelo e o link sai pronto. */
 export function NewBriefing({ client: fixed, templateId, onClose }: { client?: Client; templateId?: string; onClose: () => void }) {
   const { data, upsert } = useStore()
   const st = data.settings
   const templates = allTemplates(st.briefingTemplates)
   const [tplId, setTplId] = useState(templateId ?? '')
+  const [find, setFind] = useState('')
   const [clientId, setClientId] = useState(fixed?.id ?? '')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<Briefing | null>(null)
@@ -277,21 +324,15 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
     setBusy(true)
     const b: Briefing = { id: crypto.randomUUID(), clientId: client.id, title: `${tpl.name} · ${client.name}`, questions: tpl.questions, sections: tpl.sections, templateId: tpl.id, status: 'enviado', createdAt: today() }
     try {
-      await publishBriefing(b.id, {
-        title: tpl.name,
-        clientName: client.name,
-        studio: st.brandName || st.ownerName || '',
-        owner: st.ownerName || '',
-        accent: st.accent,
-        logo: st.logo && st.logo.length < 250_000 ? st.logo : undefined,
-        intro: `Oi, ${greetName(client.name)}! Estas perguntas me ajudam a entender o que vocês precisam e como vivem. Responda com calma: não existe resposta certa, e dá para pular o que não souber.`,
-        questions: tpl.questions,
-        sections: tpl.sections,
-      })
+      await publishBriefing(b.id, briefingPayload(tpl, st, client.name))
       upsert('briefings', b)
       setDone(b)
-    } catch {
-      toast('Não foi possível criar o link agora. Confira a internet e tente de novo.')
+    } catch (e) {
+      toast(
+        e instanceof BriefingError && e.reason === 'banco'
+          ? 'O briefing online ainda não foi ativado no banco de dados desta conta. Fale com o suporte pelo chat (a dona ativa rodando o bloco “banco de dados”).'
+          : 'Não foi possível criar o link agora. Confira a internet e tente de novo.',
+      )
     }
     setBusy(false)
   }
@@ -301,6 +342,7 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
       <Modal title="briefing pronto ✨" onClose={onClose}>
         <p>Agora é só mandar o link para {greetName(client.name)}. Quando responder, você recebe um aviso e as respostas preenchem a ficha.</p>
         <p className="bf-link">{briefingLink(done.id)}</p>
+        {(ARTIFACT || viewingAsClient()) && <p className="small text-warn">Nesta prévia o link só abre aqui dentro (use “ver como o cliente vê”). No sistema publicado, ele abre em qualquer celular.</p>}
         <div className="row gap-s wrap">
           <ShareButtons client={client} b={done} />
         </div>
@@ -340,8 +382,9 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
         </label>
       )}
       <span className="field-label">qual modelo</span>
+      <input className="bf-tpl-search" value={find} onChange={(e) => setFind(e.target.value)} placeholder="buscar: cozinha, clínica, infantil…" aria-label="Buscar modelo" />
       <div className="bf-tpl-grid">
-        {templates.map((t) => (
+        {templates.filter((t) => t.questions.length && (!find.trim() || norm(`${t.name} ${t.description}`).includes(norm(find)))).map((t) => (
           <button key={t.id} type="button" className={`bf-tpl ${tplId === t.id ? 'is-on' : ''}`} onClick={() => setTplId(t.id)} aria-pressed={tplId === t.id}>
             <span className="bf-tpl-icon">
               <Icon name={t.icon || 'file'} size={18} />
@@ -365,8 +408,8 @@ export function NewBriefing({ client: fixed, templateId, onClose }: { client?: C
 
 /* ---------------- página pública (o cliente final responde) ---------------- */
 
-export function BriefingPublic({ id }: { id: string }) {
-  const [b, setB] = useState<PublicBriefing | null | undefined>(undefined)
+export function BriefingPublic({ id, preview, data }: { id: string; preview?: boolean; data?: PublicBriefing }) {
+  const [b, setB] = useState<PublicBriefing | null | undefined>(data)
   const [answers, setAnswers] = useState<BriefingAnswers>({})
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [uploading, setUploading] = useState(0)
@@ -375,7 +418,7 @@ export function BriefingPublic({ id }: { id: string }) {
   const [busy, setBusy] = useState(false)
   const draftKey = `briefing-rascunho:${id}`
   useEffect(() => {
-    loadPublicBriefing(id).then(setB, () => setB(null))
+    if (!data) loadPublicBriefing(id).then(setB, () => setB(null))
     try {
       setAnswers(JSON.parse(localStorage.getItem(draftKey) || '{}'))
     } catch {
@@ -395,7 +438,7 @@ export function BriefingPublic({ id }: { id: string }) {
 
   const accent = b?.payload.accent || '#a88a80'
   const wrap = (children: ReactNode) => (
-    <div className="bf-public" style={{ ['--bf-accent' as string]: accent }}>
+    <div className={`bf-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: accent }}>
       <div className="bf-card">{children}</div>
       <p className="bf-foot">feito com traço</p>
     </div>
@@ -411,8 +454,9 @@ export function BriefingPublic({ id }: { id: string }) {
         <p>Suas respostas chegaram{p.owner ? ` para ${p.owner}` : ''}. Agora é com a gente: em breve entramos em contato.</p>
       </>,
     )
-  const secs = sectionsOf(p)
-  const filled = p.questions.filter((q) => answerText(answers[q.id])).length
+  const shown = { ...p, questions: p.questions.filter((q) => visibleQ(q, answers)) }
+  const secs = sectionsOf(shown)
+  const filled = shown.questions.filter((q) => answerText(answers[q.id])).length
   const addPhotos = async (q: BriefingQuestion, files: FileList | null) => {
     const list = [...(files ?? [])].filter((f) => f.type.startsWith('image/')).slice(0, 12)
     for (const f of list) {
@@ -437,13 +481,14 @@ export function BriefingPublic({ id }: { id: string }) {
     }
   }
   const submit = async () => {
-    const need = p.questions.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
+    const need = shown.questions.filter((q) => q.required && !answerText(answers[q.id])).map((q) => q.id)
     setMissing(need)
     if (need.length) {
       document.getElementById(`bfq-${need[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return toast(`Falta responder ${need.length} pergunta(s) obrigatória(s).`)
     }
     if (!filled) return toast('Responda pelo menos uma pergunta.')
+    if (preview) return toast('Prévia: no link de verdade, as respostas chegam para você e preenchem a ficha do cliente.')
     setBusy(true)
     try {
       await sendPublicAnswers(id, answers)
@@ -466,11 +511,11 @@ export function BriefingPublic({ id }: { id: string }) {
         <p className="bf-eyebrow">{p.studio || 'briefing'}</p>
         <h1>{p.title}</h1>
         <p className="muted">{p.intro}</p>
-        <div className="bf-progress" aria-label={`${filled} de ${p.questions.length} respondidas`}>
-          <i style={{ width: `${(filled / Math.max(1, p.questions.length)) * 100}%` }} />
+        <div className="bf-progress" aria-label={`${filled} de ${shown.questions.length} respondidas`}>
+          <i style={{ width: `${(filled / Math.max(1, shown.questions.length)) * 100}%` }} />
         </div>
         <p className="bf-count">
-          {filled} de {p.questions.length} respondidas · <span className="bf-req">*</span> obrigatória
+          {filled} de {shown.questions.length} respondidas · <span className="bf-req">*</span> obrigatória
         </p>
       </header>
       {secs.map((s, si) => (
@@ -482,7 +527,7 @@ export function BriefingPublic({ id }: { id: string }) {
               {s.description && <p className="muted small">{s.description}</p>}
             </div>
           </div>
-          {inSection(p, s.id).map((q) => (
+          {inSection(shown, s.id).map((q) => (
             <PublicQuestion key={q.id} q={q} value={answers[q.id]} onChange={(v) => set(q.id, v)} missing={missing.includes(q.id)} previews={previews} uploading={uploading} onPhotos={(f) => void addPhotos(q, f)} />
           ))}
         </section>
@@ -520,6 +565,30 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
         <textarea id={`bf-${q.id}`} rows={3} value={text} onChange={(e) => onChange(e.target.value)} spellCheck lang="pt-BR" />
       ) : q.kind === 'date' ? (
         <input id={`bf-${q.id}`} type="date" value={text} onChange={(e) => onChange(e.target.value)} />
+      ) : (q.kind === 'choice' || q.kind === 'multi') && q.optionImages && opts.some((o) => q.optionImages?.[o]) ? (
+        <div className="bf-imgopts" role={q.kind === 'choice' ? 'radiogroup' : undefined}>
+          {opts.map((o) => {
+            const on = q.kind === 'multi' ? list.includes(o) : text === o
+            const toggle = () => (q.kind === 'multi' ? onChange(on ? list.filter((x) => x !== o) : [...list, o]) : onChange(on ? '' : o))
+            return (
+              <button key={o} type="button" role={q.kind === 'choice' ? 'radio' : undefined} aria-checked={q.kind === 'choice' ? on : undefined} aria-pressed={q.kind === 'multi' ? on : undefined} className={`bf-imgopt ${on ? 'is-on' : ''}`} onClick={toggle}>
+                {q.optionImages?.[o] ? <img src={q.optionImages[o]} alt="" /> : <span className="bf-imgopt-empty">{o.slice(0, 1)}</span>}
+                <span className="bf-imgopt-label">
+                  {on ? '✓ ' : ''}
+                  {o}
+                </span>
+              </button>
+            )
+          })}
+          {q.other && (
+            <input
+              className="bf-other"
+              value={otherVal}
+              onChange={(e) => (q.kind === 'multi' ? onChange([...list.filter((v) => opts.includes(v)), ...(e.target.value ? [e.target.value] : [])]) : onChange(e.target.value))}
+              placeholder="outro: escreva aqui"
+            />
+          )}
+        </div>
       ) : q.kind === 'choice' ? (
         <div className="bf-chips" role="radiogroup">
           {opts.map((o) => (
@@ -544,6 +613,16 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
         </div>
       ) : q.kind === 'photos' ? (
         <div className="bf-upload">
+          {q.tips && q.tips.length > 0 && (
+            <div className="bf-tips">
+              <b>o que fotografar</b>
+              <ul>
+                {q.tips.map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {list.length > 0 && (
             <div className="bf-thumbs">
               {list.map((v) => (
