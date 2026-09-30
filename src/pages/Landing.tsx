@@ -198,6 +198,39 @@ const SCREENS: { id: Screen; label: string; icon: string }[] = [
   { id: 'financeiro', label: 'financeiro', icon: 'wallet' },
 ]
 
+/** Passo de uma animação conforme a rolagem: 0 quando o bloco entra por baixo, n-1 perto de sair por cima.
+    Clicar num passo vale até a pessoa rolar de novo. -1 = ainda não chegou. */
+function useScrollStep(ref: React.RefObject<HTMLElement | null>, n: number, screens = 1) {
+  const [step, setStep] = useState(-1)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return setStep(n - 1)
+    let raf = 0
+    const read = () => {
+      raf = 0
+      const r = el.getBoundingClientRect()
+      const vh = window.innerHeight || 800
+      const start = vh * 0.85 // começa quando o topo passa de 85% da tela
+      const run = Math.max(320, vh * screens) // quanto rolar (em telas) para ir do primeiro ao último passo
+      const p = (start - r.top) / run
+      setStep(p < 0 ? -1 : Math.min(n - 1, Math.floor(p * n)))
+    }
+    const on = () => {
+      if (!raf) raf = requestAnimationFrame(read)
+    }
+    read()
+    window.addEventListener('scroll', on, { passive: true })
+    window.addEventListener('resize', on)
+    return () => {
+      window.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [ref, n, screens])
+  return step
+}
+
 /** Elementos com data-reveal aparecem suavemente ao entrar na tela. */
 function useReveal(root: React.RefObject<HTMLDivElement | null>, key = 0) {
   useEffect(() => {
@@ -780,32 +813,26 @@ function RotatingWord({ words }: { words: string[] }) {
   )
 }
 
-/** Jornada em 4 passos: avança sozinha (pausa ao tocar) e mostra um cartão animado de cada etapa. */
-function Journey({ steps: JOURNEY, paused: hidden }: { steps: typeof JOURNEY_FINAL; paused?: boolean }) {
-  const [step, setStep] = useState(0)
-  const [paused, setPaused] = useState(false)
-  useEffect(() => {
-    if (paused || hidden) return
-    const t = setInterval(() => setStep((n) => (n + 1) % JOURNEY.length), 4200)
-    return () => clearInterval(t)
-  }, [paused, hidden])
+/** Jornada em 4 passos: avança conforme a pessoa rola a página (ou ao tocar) e mostra um cartão animado de cada etapa. */
+function Journey({ steps: JOURNEY }: { steps: typeof JOURNEY_FINAL; paused?: boolean }) {
+  const box = useRef<HTMLDivElement>(null)
+  const scrolled = useScrollStep(box, JOURNEY.length, 1.1)
+  const [picked, setPicked] = useState<{ at: number; step: number } | null>(null)
+  // o clique vale até a rolagem mudar de passo
+  const step = picked && picked.at === scrolled ? picked.step : Math.max(0, scrolled)
   return (
-    <div className="lp-journey" data-reveal>
+    <div className="lp-journey" data-reveal ref={box}>
       <ol className="lp-steps-nav">
         {JOURNEY.map((x, i) => (
           <li key={x.step}>
             <button
               className={i === step ? 'active' : i < step ? 'done' : ''}
-              onClick={() => {
-                setStep(i)
-                setPaused(true)
-              }}
+              onClick={() => setPicked({ at: scrolled, step: i })}
             >
               <span className="lp-step-icon">
                 <Icon name={x.icon} size={18} />
               </span>
               <span className="lp-step-label">{x.step}</span>
-              {i === step && !paused && <i className="lp-step-bar" />}
             </button>
           </li>
         ))}
@@ -858,49 +885,43 @@ const AUTO: [string, string, Feature?][] = [
 ]
 
 function AllInOne({ onTry }: { onTry: () => void }) {
-  const [step, setStep] = useState(0)
-  const [hold, setHold] = useState(false)
-  const [seen, setSeen] = useState(false)
   const box = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const el = box.current
-    if (!el || typeof IntersectionObserver === 'undefined') return setSeen(true)
-    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.3 })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  useEffect(() => {
-    const still = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (hold || !seen || still) return
-    const t = setInterval(() => setStep((n) => (n + 1) % INSIDE.length), 2600)
-    return () => clearInterval(t)
-  }, [hold, seen])
+  const before = useRef<HTMLDivElement>(null)
+  const after = useRef<HTMLDivElement>(null)
+  const auto = useRef<HTMLDivElement>(null)
+  // tudo anda com a rolagem: os riscos, os passos do caminho e a lista do que é automático
+  const struck = useScrollStep(before, OUTSIDE.length + 1, 0.75)
+  const scrolled = useScrollStep(after, INSIDE.length, 1.3)
+  const autoIn = useScrollStep(auto, AUTO.length + 1, 0.7)
+  const [picked, setPicked] = useState<{ at: number; step: number } | null>(null)
+  const step = picked && picked.at === scrolled ? picked.step : Math.max(0, scrolled)
+  const seen = scrolled >= 0
   const cur = INSIDE[step]
   return (
     <section ref={box} className={`lp-section lp-all ${seen ? 'is-seen' : ''}`} id="tudo">
       <div className="lp-wrap">
         <SectionHead eyebrow="automático, do começo ao fim" title={<>tudo num lugar <em>só</em></>} text="Briefing, orçamento, contrato com assinatura, recibo e financeiro no mesmo sistema, e tudo automático: você digita uma vez e a informação vai sozinha para o próximo passo. Nada de ficar preenchendo a mesma coisa toda hora." />
         <div className="lp-all-grid">
-          <div className="lp-all-before" data-reveal>
+          <div className="lp-all-before" data-reveal ref={before}>
             <p className="lp-all-label">
               <Icon name="x" size={14} /> sem o {PLATFORM.name}
             </p>
             <ul>
               {OUTSIDE.map((t, i) => (
-                <li key={t} style={{ transitionDelay: `${0.25 + i * 0.12}s` }}>
+                <li key={t} className={i < struck ? 'is-struck' : ''}>
                   <span>{t}</span>
                 </li>
               ))}
             </ul>
             <p className="lp-all-foot">6 lugares diferentes, digitando o nome, o valor e o prazo de novo em cada um.</p>
           </div>
-          <div className="lp-all-after" data-reveal onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocus={() => setHold(true)} onBlur={() => setHold(false)}>
+          <div className="lp-all-after" data-reveal ref={after}>
             <p className="lp-all-label is-good">
               <Icon name="check" size={14} /> no {PLATFORM.name}, do começo ao fim
             </p>
             <div className="lp-all-steps" role="tablist" aria-label="O caminho dentro do sistema">
               {INSIDE.map((x, i) => (
-                <button key={x.title} role="tab" aria-selected={i === step} className={`${i === step ? 'is-on' : ''} ${i < step ? 'is-done' : ''}`} onClick={() => setStep(i)}>
+                <button key={x.title} role="tab" aria-selected={i === step} className={`${i === step ? 'is-on' : ''} ${i < step ? 'is-done' : ''}`} onClick={() => setPicked({ at: scrolled, step: i })}>
                   <span className="lp-all-dot">
                     <Icon name={x.icon} size={16} />
                   </span>
@@ -938,19 +959,19 @@ function AllInOne({ onTry }: { onTry: () => void }) {
             </button>
           </div>
         </div>
-        <div className="lp-auto" data-reveal>
+        <div className="lp-auto" data-reveal ref={auto}>
           <p className="lp-all-label is-good">
             <Icon name="sparkle" size={14} /> o que o {PLATFORM.name} faz sozinho
           </p>
           <ul>
-            {AUTO.map(([icon, text, f]) => (
-              <li key={text}>
+            {AUTO.map(([icon, text, f], i) => (
+              <li key={text} className={i < autoIn ? 'is-in' : ''}>
                 <span className="lp-auto-ico">
                   <Icon name={icon} size={15} />
                 </span>
-                <span>
+                <span className="lp-auto-txt">
+                  <em className={`lp-auto-plan ${planLabel(f) ? '' : 'is-all'}`}>{planLabel(f) || 'todos os planos'}</em>
                   {text}
-                  {planLabel(f) && <em className="lp-plan-tag">{planLabel(f)}</em>}
                 </span>
               </li>
             ))}
