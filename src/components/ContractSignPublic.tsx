@@ -109,10 +109,10 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
             <span>Como quer assinar?</span>
             <div className="cs-tabs" role="tablist">
               <button role="tab" aria-selected={method === 'desenho'} className={method === 'desenho' ? 'is-on' : ''} onClick={() => setMethod('desenho')}>
-                desenhar com o dedo
+                desenhar
               </button>
               <button role="tab" aria-selected={method === 'digitado'} className={method === 'digitado' ? 'is-on' : ''} onClick={() => setMethod('digitado')}>
-                usar o nome digitado
+                digitar o nome
               </button>
             </div>
             {method === 'desenho' ? (

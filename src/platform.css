@@ -2085,3 +2085,16 @@ a.bf-send, a.bf-send:visited { color: #fff; text-decoration: none; justify-conte
   .page-head:has(.qt-actions) > div:first-child { width: 100%; }
   .qt-actions > * { width: 100%; min-width: 0; justify-content: center; white-space: nowrap; padding-inline: 10px; }
 }
+
+/* contrato (desenho exclusivo): assinaturas lado a lado, sobre uma linha, com nome e papel embaixo */
+.lc-signs { display: grid; grid-template-columns: 1fr 1fr; column-gap: 44px; align-items: end; margin-top: 30px; }
+.lc-signs > :nth-child(1) { grid-column: 1; grid-row: 1; }
+.lc-signs > :nth-child(2) { grid-column: 1; grid-row: 2; }
+.lc-signs > :nth-child(3) { grid-column: 2; grid-row: 1; }
+.lc-signs > :nth-child(4) { grid-column: 2; grid-row: 2; }
+.lc-sign-box { height: 70px; border: 0; border-bottom: 1px solid var(--lc-ink, #3e4b57); border-radius: 0; align-items: end; padding-bottom: 4px; }
+.lc-sign-who { margin: 8px 0 0; align-self: start; }
+/* página de assinatura do cliente: abas numa linha, textos leves, botão limpo */
+.cs-tabs button { white-space: nowrap; }
+.cs-agree span { font-weight: 400 !important; font-size: 13.5px; line-height: 1.45; }
+.cs-public .bf-send { border: 0; font-weight: 600; }
