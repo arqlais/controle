@@ -251,6 +251,26 @@ try {
     ok(errors.length === 0, `contrato anexado: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()
   }
+  // 4b3. anexar o próprio briefing (Word) vira modelo com partes, perguntas e opções
+  {
+    const { default: JSZip } = await import('jszip')
+    const P = (t, b) => `<w:p><w:r>${b ? '<w:rPr><w:b/></w:rPr>' : ''}<w:t xml:space="preserve">${t}</w:t></w:r></w:p>`
+    const zip = new JSZip()
+    zip.file('word/document.xml', `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${[P('Meu Briefing', true), P('Sobre você', true), P('1. Nome completo:'), P('2. Quais ambientes?'), P('☐ Sala'), P('☐ Cozinha'), P('3. Envie fotos do espaço.')].join('')}</w:body></w:document>`)
+    const buffer = await zip.generateAsync({ type: 'nodebuffer' })
+    const page = await browser.newPage({ viewport: { width: 1366, height: 900 } })
+    const errors = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    await page.goto(`http://localhost:${PORT}/#/briefings`); await page.waitForTimeout(900)
+    const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: /anexar meu briefing/ }).click()])
+    await fc.setFiles({ name: 'Meu briefing.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer }); await page.waitForTimeout(1500)
+    const t = await page.evaluate(() => { const k = Object.keys(localStorage).find((x) => x.startsWith('lais3d')); return JSON.parse(localStorage[k]).settings.briefingTemplates.at(-1) })
+    ok(t?.name === 'Meu Briefing' && t.sections.length === 1 && t.questions.length === 3, 'briefing: Word anexado vira modelo (partes e perguntas)')
+    ok(t?.questions[1]?.kind === 'multi' && t.questions[1].options?.join('/') === 'Sala/Cozinha' && t.questions[2]?.kind === 'photos', 'briefing: opções de marcar e pergunta de fotos reconhecidas')
+    ok((await page.evaluate(() => location.hash)).startsWith('#/briefings/meu-'), 'briefing: abre o modelo importado para editar')
+    ok(errors.length === 0, `briefing anexado: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
+    await page.close()
+  }
   // 4c. assinatura chega sozinha + painel do cliente (link, recado e central de avisos)
   {
     const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, permissions: ['geolocation'], geolocation: { latitude: -19.92, longitude: -43.94 } })

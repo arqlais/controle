@@ -29,6 +29,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-briefing-proprio',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'use o seu próprio briefing',
+    text: 'Já tem um briefing seu? Anexe o arquivo (Word ou PDF): as perguntas, as opções de marcar e as imagens viram um modelo seu, tudo editável e pronto para mandar pelo link.',
+    steps: [{ page: 'briefings', text: 'Em briefings, toque em “anexar meu briefing”.' }],
+  },
+  {
     id: '2026-09-30-anual-contrato-proprio',
     date: '2026-09-30',
     kind: 'melhoria',

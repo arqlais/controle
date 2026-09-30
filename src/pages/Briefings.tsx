@@ -34,6 +34,25 @@ function BriefingsHome() {
     setSettings({ briefingTemplates: [...mine, t] })
     go('briefings', t.id)
   }
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  // o briefing que a pessoa já usa (Word/PDF): vira um modelo dela, com as fotos, e abre para editar
+  const importFile = async (f?: File) => {
+    if (!f) return
+    setImporting(true)
+    try {
+      const { importBriefingFile } = await import('../briefingImport')
+      const t = await importBriefingFile(f)
+      setSettings({ briefingTemplates: [...mine, t] })
+      toast(`Briefing importado: ${t.questions.length} perguntas${t.questions.some((q) => q.images?.length) ? ', com as imagens' : ''}. Confira e ajuste o que quiser.`)
+      go('briefings', t.id)
+    } catch (e) {
+      const { briefingImportError } = await import('../briefingImport')
+      toast(briefingImportError(e))
+    } finally {
+      setImporting(false)
+    }
+  }
   const duplicate = (t: BriefingTemplate) => {
     const copy: BriefingTemplate = { ...structuredClone(t), id: `meu-${uid()}`, name: `${t.name} (cópia)`, updatedAt: new Date().toISOString() }
     setSettings({ briefingTemplates: [...mine, copy] })
@@ -60,6 +79,18 @@ function BriefingsHome() {
           Escolha um modelo, ajuste as perguntas se quiser e mande o link. O cliente responde pelo celular, sem criar conta, pode anexar fotos, e as respostas voltam para a ficha dele. Você recebe um aviso quando ele terminar.
         </span>
       </p>
+      <div className="ct-mine bf-import">
+        <Icon name="upload" size={16} />
+        <span>
+          <b>Já tem o seu briefing?</b> Anexe o arquivo (Word ou PDF): as perguntas, as opções de marcar e as imagens viram um modelo seu, tudo editável, pronto para mandar pelo link.
+        </span>
+        <div className="ct-mine-actions">
+          <button className="btn small primary" disabled={importing} onClick={() => fileRef.current?.click()}>
+            <Icon name="upload" size={14} /> {importing ? 'lendo…' : 'anexar meu briefing'}
+          </button>
+        </div>
+        <input ref={fileRef} type="file" hidden accept=".docx,.pdf,.txt,.doc" onChange={(e) => (void importFile(e.target.files?.[0]), (e.target.value = ''))} />
+      </div>
       <div className="bf-home-tabs">
         <Segmented
           value={tab}

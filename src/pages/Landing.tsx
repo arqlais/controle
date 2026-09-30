@@ -176,6 +176,7 @@ const BENEFITS = [
 const faq = (): [string, ReactNode][] => [
   ['preciso de cartão para testar?', `Não. São ${TRIAL_DAYS} dias grátis com tudo do plano escolhido, sem cadastrar cartão.`],
   ['tem plano semestral ou anual?', `Tem. No anual você ganha ${annualBadge() || 'desconto'}: paga à vista no Pix ou divide em 12x sem juros no cartão. O semestral tem ${SEMESTER_DISCOUNT}% de desconto, à vista no Pix. E o mensal é no Pix todo mês ou no cartão recorrente, sem fidelidade.`],
+  ['posso usar o meu próprio briefing?', 'Pode. Além dos modelos prontos, você anexa o seu briefing (Word ou PDF): as perguntas, as opções de marcar e as imagens viram um modelo seu, editável, que o cliente responde pelo link.'],
   ['posso usar o meu próprio contrato?', 'Pode. O sistema traz modelos prontos, mas você anexa o seu contrato (Word ou PDF) ou cola o texto num modelo seu e ele passa a sair preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.'],
   ['para quem é o sistema?', 'Para quem vive de projeto: arquitetos, designers de interiores e escritórios que atendem o cliente final, e freelancers que prestam serviço para escritórios (3D, executivo, apresentação). No cadastro você diz como trabalha e o sistema já vem pronto para isso. Quem faz os dois usa tudo na mesma conta.'],
   ['serve para quem está começando?', 'Serve: estudantes e profissionais em começo de carreira, que precisam de organização sem pagar caro, começam bem no Essencial.'],
