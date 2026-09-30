@@ -311,6 +311,9 @@ export default function Landing() {
               {site.heroTitle} {heroWords.length > 0 && <RotatingWord words={heroWords} />}
             </h1>
             <p className="lp-lead">{site.lead}</p>
+            <p className="lp-auto-chip">
+              <Icon name="sparkle" size={14} /> <span className="hide-mobile">tudo automático: você digita uma vez e o resto se preenche sozinho</span><span className="only-mobile">tudo automático: digite uma vez só</span>
+            </p>
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta lp-shine" onClick={() => signup()}>
                 testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />
@@ -843,6 +846,17 @@ const INSIDE: { icon: string; title: string; text: string; carry: string }[] = [
   { icon: 'trend', title: 'financeiro', text: 'entra sozinho no recebido e no a receber do mês', carry: 'sem digitar nada de novo' },
 ]
 
+const AUTO: [string, string][] = [
+  ['clip', 'as respostas do briefing já preenchem a ficha do cliente'],
+  ['file', 'o orçamento sai com os seus preços, prazos e forma de pagamento'],
+  ['pen', 'o contrato se preenche com o cliente, o valor, as etapas e o prazo'],
+  ['check', 'a assinatura do cliente volta sozinha para o contrato, com certificado'],
+  ['wallet', 'cada pagamento vira recibo e entra no financeiro na hora'],
+  ['calendar', 'prazos e parcelas vão para a agenda e lembram você de cobrar'],
+  ['link', 'o painel do cliente se atualiza sozinho a cada etapa'],
+  ['inbox', 'você recebe aviso quando o cliente responde ou assina'],
+]
+
 function AllInOne({ onTry }: { onTry: () => void }) {
   const [step, setStep] = useState(0)
   const [hold, setHold] = useState(false)
@@ -865,7 +879,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
   return (
     <section ref={box} className={`lp-section lp-all ${seen ? 'is-seen' : ''}`} id="tudo">
       <div className="lp-wrap">
-        <SectionHead eyebrow="sem pular de programa em programa" title={<>tudo num lugar <em>só</em></>} text="Briefing, orçamento, contrato com assinatura, recibo e financeiro no mesmo sistema. Você digita uma vez e a informação vai sozinha para o próximo passo." />
+        <SectionHead eyebrow="automático, do começo ao fim" title={<>tudo num lugar <em>só</em></>} text="Briefing, orçamento, contrato com assinatura, recibo e financeiro no mesmo sistema, e tudo automático: você digita uma vez e a informação vai sozinha para o próximo passo. Nada de ficar preenchendo a mesma coisa toda hora." />
         <div className="lp-all-grid">
           <div className="lp-all-before" data-reveal>
             <p className="lp-all-label">
@@ -920,6 +934,21 @@ function AllInOne({ onTry }: { onTry: () => void }) {
               testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={15} />
             </button>
           </div>
+        </div>
+        <div className="lp-auto" data-reveal>
+          <p className="lp-all-label is-good">
+            <Icon name="sparkle" size={14} /> o que o {PLATFORM.name} faz sozinho
+          </p>
+          <ul>
+            {AUTO.map(([icon, text]) => (
+              <li key={text}>
+                <span className="lp-auto-ico">
+                  <Icon name={icon} size={15} />
+                </span>
+                {text}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
