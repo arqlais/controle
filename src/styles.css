@@ -2032,3 +2032,25 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 /* item selecionado (fundo escuro): etiqueta de plano e cadeado bem legíveis */
 .sidebar nav a.active .nav-plan { color: #fff; background: rgba(255, 255, 255, 0.2); }
 .sidebar nav a.active .nav-lock { color: #fff; opacity: 0.9; }
+
+/* listas (select) com a identidade do traço nos navegadores que permitem (Chrome/Edge novos);
+   nos outros continua a lista do próprio aparelho */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) { appearance: base-select; }
+  select { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  select::picker-icon { color: var(--muted); transition: rotate 0.2s; }
+  select:open::picker-icon { rotate: 180deg; }
+  ::picker(select) {
+    margin-top: 6px; padding: 6px; max-height: min(440px, 70vh);
+    color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: 0 26px 56px -26px rgba(40, 50, 60, 0.5);
+  }
+  option { padding: 8px 12px; border-radius: 10px; font-size: 14px; font-weight: 400; color: var(--text); text-transform: none; letter-spacing: normal; }
+  option::checkmark { color: var(--accent); }
+  option:hover, option:focus-visible { background: var(--surface-2); outline: none; }
+  option:checked { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); font-weight: 600; }
+  optgroup { padding: 10px 6px 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  optgroup + optgroup { margin-top: 4px; border-top: 1px solid var(--border); }
+}
