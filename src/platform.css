@@ -1849,7 +1849,8 @@ nav > .nav-main-label:first-child { margin-top: 2px; }
 .qs-item span { color: var(--muted); }
 .qs-item.is-good { border-style: solid; border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 .qs-arrow { align-self: center; color: var(--muted); }
-@media (max-width: 640px) { .qs-arrow { display: none; } .qs-item { flex: 1 1 100%; } }
+.qs-item i { font-style: normal; }
+@media (max-width: 640px) { .quote-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; } .qs-arrow, .qs-item i { display: none; } .qs-item { flex-direction: column; align-items: flex-start; gap: 0; padding: 8px 10px; font-size: 12px; } .qs-item b { font-size: 16px; } }
 .column-kind.is-blank { visibility: hidden; }
 .cd-phases { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .cd-phases span { font-size: 11px; padding: 2px 8px; border-radius: var(--pill, 999px); background: var(--surface-2, var(--bg)); color: var(--muted); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

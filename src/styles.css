@@ -1897,3 +1897,14 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   .manual-tools-more { display: block; line-height: 1.5; }
   .manual-tools-more svg { vertical-align: -2px; }
 }
+
+/* celular: a busca do topo abre por cima da barra ao tocar (antes ficava espremida entre os botões) */
+@media (max-width: 520px) {
+  .topbar { gap: 6px; }
+  .topbar > .search { min-width: 44px; padding: 0 12px; gap: 6px; }
+  .topbar > .search input::placeholder { color: transparent; }
+  .topbar > .search:not(:focus-within)::after { content: 'buscar'; position: absolute; left: 34px; font-size: 13px; color: var(--muted); pointer-events: none; }
+  .topbar > .search:has(input:not(:placeholder-shown))::after { content: none; }
+  .topbar > .search:focus-within { position: absolute; left: 12px; right: 12px; max-width: none; z-index: 5; }
+  .topbar > .search:focus-within input::placeholder { color: var(--muted); }
+}

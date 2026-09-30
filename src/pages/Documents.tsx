@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
-import { useKeep } from '../keep'
 import { Icon } from '../components/Icon'
 import { DocScale } from '../components/Print'
 import { Field, Section, Segmented } from '../components/ui'
@@ -25,6 +24,7 @@ import { uid } from '../utils'
    em Configurações → propostas. Tudo editável: pelos campos ou direto na folha. */
 
 type DocId = DocKind
+const DOC_IDS: DocId[] = ['guia', 'placa', 'briefing', 'apresentacao']
 const LIST: { id: DocId; title: string; text: string; size: string }[] = [
   { id: 'guia', title: 'guia de medição', text: 'o cliente mede o espaço sozinho, com desenhos explicando cada medida', size: 'A4 · 2 folhas' },
   { id: 'placa', title: 'placa de obra', text: 'quem passa na rua vê quem assina o projeto; QR code para o seu site ou instagram', size: '60×80 · 90×120 · A4' },
@@ -37,11 +37,11 @@ const KEY: Record<DocKind, keyof DocsState | 'briefingTpl'> = { guia: 'guide', p
 
 export default function Documents({ id }: { id?: string }) {
   const { data } = useStore()
-  const [open, setOpen] = useKeep<DocId | ''>('documento-aberto', '')
+  // o documento aberto fica no endereço (#/documentos/placa): o menu "documentos" e o voltar do navegador levam à lista
   const saved = id ? (data.docs ?? []).find((x) => x.id === id) : undefined
   if (id && saved) return <DocSession key={saved.id} kind={saved.kind} saved={saved} onBack={() => go('documentos')} />
-  if (open) return <DocSession key={open} kind={open} onBack={() => setOpen('')} />
-  return <DocsHome onOpen={setOpen} />
+  if (id && (DOC_IDS as string[]).includes(id)) return <DocSession key={id} kind={id as DocId} onBack={() => go('documentos')} />
+  return <DocsHome onOpen={(k) => go('documentos', k)} />
 }
 
 function useDocs() {

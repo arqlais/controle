@@ -172,12 +172,12 @@ export default function Projects() {
         </a>
         <a href={href('orcamentos')} className="qs-item">
           <b>{sentOpen.length}</b>
-          <span>enviados · {money(sum(sentOpen, (x) => quoteTotal(x, data.settings.urgencyFee)))} em negociação</span>
+          <span>enviados<i> · {money(sum(sentOpen, (x) => quoteTotal(x, data.settings.urgencyFee)))} em negociação</i></span>
         </a>
         <Icon name="arrowRight" size={16} className="qs-arrow" />
         <a href={href('orcamentos')} className="qs-item is-good">
           <b>{approvedMonth.length}</b>
-          <span>fechados neste mês · viraram demanda</span>
+          <span>fechados<i> neste mês · viraram demanda</i></span>
         </a>
       </div>
 
