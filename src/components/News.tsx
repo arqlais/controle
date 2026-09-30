@@ -63,8 +63,10 @@ export function NewsModal({ unseen, onClose, onLater, onHistory }: { unseen: New
   const all = unseen.length ? unseen : visibleNews().filter((n) => !n.feature || has(n.feature)).slice(0, 6)
   // resumo enxuto: novidades e melhorias uma a uma; correções viram um item só
   const fixes = all.filter((x) => x.kind === 'correcao')
+  // no máximo 8 de uma vez (as mais novas); o resto fica no histórico do sininho
+  const more = Math.max(0, all.filter((x) => x.kind !== 'correcao').length - 8)
   const list: News[] = [
-    ...all.filter((x) => x.kind !== 'correcao'),
+    ...all.filter((x) => x.kind !== 'correcao').slice(0, 8),
     ...(fixes.length
       ? [{ id: 'correcoes', date: fixes.reduce((d, x) => (x.date > d ? x.date : d), ''), kind: 'correcao' as const, title: 'correções e pequenos ajustes', text: fixes.map((x) => x.title.charAt(0).toUpperCase() + x.title.slice(1)).join(' · ') + '.' }]
       : []),
@@ -99,6 +101,7 @@ export function NewsModal({ unseen, onClose, onLater, onHistory }: { unseen: New
                 </li>
               ))}
             </ol>
+            {more > 0 && <p className="muted small nw-more">e mais {more} no histórico do sininho</p>}
             <div className="nw-actions">
               {onLater && (
                 <button className="link" onClick={onLater}>
