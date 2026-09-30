@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
+import { SaveBar, useDraft } from '../components/SaveBar'
 import { Section, Segmented } from '../components/ui'
 import { ProcessSettings } from '../components/QuoteSteps'
 import { DEFAULT_STUDENT_TASKS } from '../processes'
@@ -68,8 +69,9 @@ function TaskList({ kind }: { kind: 'freela' | 'estudante' }) {
   const { data, setSettings } = useStore()
   const key = kind === 'freela' ? 'freelaTasks' : 'studentTasks'
   const base = kind === 'freela' ? DEFAULT_TASKS : DEFAULT_STUDENT_TASKS
-  const list = data.settings[key]?.length ? data.settings[key]! : base
-  const save = (next: string[]) => setSettings({ [key]: next })
+  const draft = useDraft(data.settings[key]?.length ? data.settings[key]! : base, (v) => setSettings({ [key]: v.filter((x) => x.trim()) }))
+  const list = draft.value
+  const save = (next: string[]) => draft.set(next)
   const move = (i: number, d: number) => {
     const j = i + d
     if (j < 0 || j >= list.length) return
@@ -86,6 +88,7 @@ function TaskList({ kind }: { kind: 'freela' | 'estudante' }) {
         </button>
       }
     >
+      <SaveBar d={draft} />
       <ol className="task-edit">
         {list.map((t, i) => (
           <li key={i}>

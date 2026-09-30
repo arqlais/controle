@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { CLOUD, supabase } from '../cloud'
 import { signOut } from '../components/Auth'
 import { Icon } from '../components/Icon'
+import { InstallHint } from '../components/InstallHint'
 import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
 import { EmailInput, Field, PhoneInput, Section, CepInput } from '../components/ui'
 import { toast } from '../components/dialog'
@@ -247,6 +248,10 @@ function AccountSection({ email }: { email: string }) {
     toast('Senha alterada.')
   }
   return (
+    <>
+    <Section title="no celular">
+      <InstallHint always />
+    </Section>
     <Section title="conta e segurança">
       {CLOUD ? (
         <div className="account-grid">
@@ -273,5 +278,6 @@ function AccountSection({ email }: { email: string }) {
         <p className="muted small">Nesta versão os dados ficam só neste navegador. Use o site com login para sincronizar entre aparelhos.</p>
       )}
     </Section>
+    </>
   )
 }

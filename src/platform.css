@@ -2159,3 +2159,8 @@ select.cell-input { min-width: 132px; }
 .cs-font small { font-family: 'Poppins', system-ui, sans-serif; font-size: 11px; color: #9a8f8a; }
 @media (max-width: 480px) { .cs-fonts { grid-template-columns: 1fr; } }
 .cs-public .bf-send:disabled { opacity: .45; cursor: not-allowed; }
+/* adicionar à tela de início */
+.install-hint { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.install-hint p { margin: 2px 0 0; color: var(--muted); line-height: 1.45; }
+.install-hint p svg { vertical-align: -2px; }
+.install-icon img { width: 40px; height: 40px; border-radius: 10px; display: block; }

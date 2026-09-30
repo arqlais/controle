@@ -1,4 +1,5 @@
 import { FirstSteps } from '../components/FirstSteps'
+import { InstallHint } from '../components/InstallHint'
 import { useMemo } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
@@ -119,6 +120,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
   return (
     <div className="page">
       <FirstSteps />
+      <InstallHint />
       <section className="welcome">
         <div className="welcome-text">
           <p className="welcome-date">{d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>

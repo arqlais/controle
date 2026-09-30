@@ -1,13 +1,26 @@
 {
-  "name": "laís · gestão",
-  "short_name": "laís",
+  "name": "traço",
+  "short_name": "traço",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f1ee",
-  "theme_color": "#d6b3ab",
+  "theme_color": "#f5f1ee",
   "icons": [
-    { "src": "icon.svg?v=4", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "icon-192.png?v=4", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png?v=4", "sizes": "512x512", "type": "image/png" }
-  ]
+    {
+      "src": "icon.svg?v=4",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon-192.png?v=4",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png?v=4",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "description": "gestão leve para quem vive de projeto"
 }

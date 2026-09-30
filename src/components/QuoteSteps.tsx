@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
+import { SaveBar, useDraft } from './SaveBar'
 import { Field, Modal, Section, Segmented } from './ui'
 import { toast } from './dialog'
 import { useStore } from '../store'
@@ -236,9 +237,10 @@ function SaveProcess({ initial, onClose, onSave }: { initial: string; onClose: (
 /** Configurações → propostas: processos de trabalho (cliente final). */
 export function ProcessSettings() {
   const { data, setSettings } = useStore()
-  const list = processesOf(data.settings)
+  const draft = useDraft(processesOf(data.settings), (v) => setSettings({ processes: v }))
+  const list = draft.value
   const [open, setOpen] = useState(list[0]?.id ?? '')
-  const save = (next: ProjectProcess[]) => setSettings({ processes: next })
+  const save = (next: ProjectProcess[]) => draft.set(next)
   const cur = list.find((x) => x.id === open)
   return (
     <Section
@@ -257,6 +259,7 @@ export function ProcessSettings() {
         </button>
       }
     >
+      <SaveBar d={draft} />
       <p className="muted small">Para orçamentos de cliente final. Cada um trabalha de um jeito: mude nomes, o que inclui, prazos e a divisão do pagamento.</p>
       <div className="proc-tabs">
         {list.map((p) => (

@@ -29,6 +29,22 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-09-30-tela-inicio',
+    date: '2026-09-30',
+    kind: 'novo',
+    title: 'traço na tela de início do celular',
+    text: 'Dá para adicionar o traço como um ícone no celular, que abre em tela cheia como um aplicativo. O passo a passo aparece no início (no celular) e no perfil.',
+    steps: [{ page: 'perfil', text: 'No perfil, veja “no celular”.' }],
+  },
+  {
+    id: '2026-09-30-briefing-contrato-mais',
+    date: '2026-09-30',
+    kind: 'melhoria',
+    title: 'briefing, assinatura e documentos mais completos',
+    text: 'Briefing respondido pode ser baixado em PDF e você recebe um aviso no aparelho quando o cliente termina; o cliente pode guardar uma cópia das respostas. Na assinatura, 7 letras que parecem escritas à mão e localização no registro. No guia de medição, fotos com legenda e ajuste, e a planta de exemplo com opção separada. Etapas de trabalho agora têm salvar e desfazer. A ficha do cliente mostra também os contratos.',
+    steps: [{ page: 'briefings', text: 'Abra um briefing respondido para baixar o PDF.' }],
+  },
+  {
     id: '2026-09-30-assinatura',
     date: '2026-09-30',
     kind: 'novo',
