@@ -101,7 +101,7 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
       </header>
       <div className="cs-doc" tabIndex={0} aria-label="Texto do contrato">
         <DocScale>
-          <ContractDoc s={s} body={p.body} clientName={p.clientName} exclusive={p.exclusive} signed={done ? { via: 'link', name: done.a.n, doc: done.a.d, at: done.a.at, hash: done.a.h, method: done.a.m, drawing: done.a.p, font: done.a.f, contact: done.a.c, device: done.a.ua, tz: done.a.tz, geo: done.a.g, docHash: done.a.dh } : undefined} />
+          <ContractDoc s={s} body={p.body} html={p.html} clientName={p.clientName} exclusive={p.exclusive} signed={done ? { via: 'link', name: done.a.n, doc: done.a.d, at: done.a.at, hash: done.a.h, method: done.a.m, drawing: done.a.p, font: done.a.f, contact: done.a.c, device: done.a.ua, tz: done.a.tz, geo: done.a.g, docHash: done.a.dh } : undefined} />
         </DocScale>
       </div>
       {!done ? (

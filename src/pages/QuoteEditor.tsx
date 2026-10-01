@@ -6,6 +6,8 @@ import { DateInput } from '../components/DateInput'
 import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
 import { CLIENT_SCHEDULE } from '../clientDefaults'
 import { duplicateQuote, moveProjectDate } from '../quoteActions'
+import { DocLookPanel } from '../components/DocKit'
+import { fillHtml, htmlToText } from '../contractHtml'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
@@ -398,7 +400,7 @@ export default function QuoteEditor({ id }: { id: string }) {
     const cs = contractSettings(settings, isOwner)
     const tpl = suggestTemplate(cs.templates, cur)
     if (!tpl) return toast('Crie um modelo de contrato primeiro (menu contratos).')
-    const c: Contract = { id: uid(), title: `contrato · ${cur.title || client?.name || 'sem título'}`, quoteId: cur.id, clientId: cur.clientId, templateId: tpl.id, body: fillContract(tpl.body, contractVars(settings, cur, client)), status: 'rascunho', createdAt: today() }
+    const c: Contract = { id: uid(), title: `contrato · ${cur.title || client?.name || 'sem título'}`, quoteId: cur.id, clientId: cur.clientId, templateId: tpl.id, ...(tpl.html ? (() => { const html = fillHtml(tpl.html!, contractVars(settings, cur, client)); return { html, body: htmlToText(html) } })() : { body: fillContract(tpl.body, contractVars(settings, cur, client)) }), status: 'rascunho', createdAt: today() }
     upsert('contracts', c)
     toast(`Contrato criado com o modelo “${tpl.name}”. Revise antes de mandar.`)
     go('contratos', c.id)
@@ -761,6 +763,7 @@ export default function QuoteEditor({ id }: { id: string }) {
               </Field>}
             </Section>
           )}
+          {pdfOn && <DocLookPanel fold />}
           {!two ? (
             <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
               <ItemsEditor audience={audience} items={q.items} student={student} openFile={!!q.openFile} floors={floors} area={q.area} settings={settings} onChange={(items) => set({ items })} />

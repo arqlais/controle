@@ -308,14 +308,16 @@ export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { 
   )
 }
 
-/** Aparência dos documentos, dentro de cada um: modelo, cores do site e logotipo.
- *  Vale para todos os PDFs da conta (a mesma escolha de configurações → propostas). */
-export function DocLookPanel() {
+/** Aparência dos documentos, dentro de cada um: as 4 escolhas (modelo, cores, fontes e logotipo).
+ *  Vale para todos os PDFs da conta (proposta, recibo, contrato, briefing e documentos do estúdio).
+ *  `fold`: começa recolhida (nos editores com muitos campos). */
+export function DocLookPanel({ fold }: { fold?: boolean } = {}) {
   const { data, setSettings } = useStore()
   const { has } = useAccess()
   const raw = data.settings
   const current = resolveTemplate(raw.proposal, has)
   const follow = followsBrand(raw.proposal, has, raw)
+  const colors = sheetColors(raw.proposal, has, raw)
   const logoRef = useRef<HTMLInputElement>(null)
   const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
   const pick = (id: string) => {
@@ -332,41 +334,90 @@ export function DocLookPanel() {
     }
     r.readAsDataURL(f)
   }
-  return (
-    <Section title="aparência">
-      <div className="dk-look-tpls" role="radiogroup" aria-label="Modelo">
-        {visible.map((t) => {
-          const allowed = templateAllowed(t, has)
-          return (
-            <button key={t.id} type="button" role="radio" aria-checked={current.id === t.id} className={`dk-look-tpl ${current.id === t.id ? 'is-on' : ''}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
-              <span className="dk-look-sw" style={{ background: t.colors.paper }}>
-                <i style={{ background: t.colors.bar }} />
-                <i style={{ background: t.colors.arch }} />
-              </span>
-              {t.name}
-              {!allowed && <Icon name="lock" size={11} />}
-            </button>
-          )
-        })}
+  const body = (
+    <div className="dk-look">
+      <div className="dk-look-row">
+        <span className="dk-look-k">
+          <Icon name="layers" size={14} /> modelo
+        </span>
+        <div className="dk-look-tpls" role="radiogroup" aria-label="Modelo">
+          {visible.map((t) => {
+            const allowed = templateAllowed(t, has)
+            return (
+              <button key={t.id} type="button" role="radio" aria-checked={current.id === t.id} className={`dk-look-tpl ${current.id === t.id ? 'is-on' : ''}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
+                <span className="dk-look-sw" style={{ background: t.colors.paper }}>
+                  <i style={{ background: t.colors.bar }} />
+                  <i style={{ background: t.colors.arch }} />
+                </span>
+                {t.name}
+                {!allowed && <Icon name="lock" size={11} />}
+              </button>
+            )
+          })}
+        </div>
       </div>
-      {has('identidade') && current.id !== 'lais' && (
-        <label className="check toggle">
-          <input type="checkbox" checked={follow} onChange={(e) => setSettings({ proposal: { ...raw.proposal, followBrand: e.target.checked, template: current.id } })} /> usar as cores e fontes do meu site
-        </label>
-      )}
-      <div className="dk-look-logo">
-        {raw.logo ? <img src={raw.logo} alt="Seu logotipo" /> : <span className="dk-look-nologo"><Icon name="camera" size={16} /></span>}
-        <button type="button" className="btn small" onClick={() => logoRef.current?.click()}>
-          <Icon name="upload" size={14} /> {raw.logo ? 'trocar logotipo' : 'anexar logotipo'}
-        </button>
-        {raw.logo && (
-          <label className="check">
-            <input type="checkbox" checked={raw.proposal.showLogo !== false} onChange={(e) => setSettings({ proposal: { ...raw.proposal, showLogo: e.target.checked } })} /> mostrar
-          </label>
-        )}
-        <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => (onLogo(e.target.files?.[0]), (e.target.value = ''))} />
+      <div className="dk-look-row">
+        <span className="dk-look-k">
+          <Icon name="star" size={14} /> cores
+        </span>
+        <div className="dk-look-line">
+          <span className="dk-look-colors" aria-hidden>
+            {[colors.ink, colors.rose, colors.arch, colors.paper].map((c, i) => (
+              <i key={i} style={{ background: c }} />
+            ))}
+          </span>
+          {has('identidade') && current.id !== 'lais' ? (
+            <label className="check toggle">
+              <input type="checkbox" checked={follow} onChange={(e) => setSettings({ proposal: { ...raw.proposal, followBrand: e.target.checked, template: current.id } })} /> as da minha marca
+            </label>
+          ) : (
+            <span className="muted small">as do modelo</span>
+          )}
+        </div>
       </div>
-      <p className="muted small">Vale para todos os PDFs: proposta, guia, placa, briefing e apresentação.</p>
-    </Section>
+      <div className="dk-look-row">
+        <span className="dk-look-k">
+          <Icon name="pen" size={14} /> fontes
+        </span>
+        <div className="dk-look-line">
+          <span className="dk-look-font" style={{ fontFamily: `'${colors.serif}', serif` }}>
+            {colors.serif}
+          </span>
+          <span className="muted small">+ {colors.sans}</span>
+          <a className="link small" href="#/config" onClick={() => localStorage.setItem('config-aba', follow ? 'aparencia' : 'propostas')}>
+            trocar
+          </a>
+        </div>
+      </div>
+      <div className="dk-look-row">
+        <span className="dk-look-k">
+          <Icon name="camera" size={14} /> logotipo
+        </span>
+        <div className="dk-look-logo">
+          {raw.logo ? <img src={raw.logo} alt="Seu logotipo" /> : <span className="dk-look-nologo"><Icon name="plus" size={14} /></span>}
+          <button type="button" className="btn small" onClick={() => logoRef.current?.click()}>
+            <Icon name="upload" size={14} /> {raw.logo ? 'trocar' : 'anexar logotipo'}
+          </button>
+          {raw.logo && (
+            <label className="check">
+              <input type="checkbox" checked={raw.proposal.showLogo !== false} onChange={(e) => setSettings({ proposal: { ...raw.proposal, showLogo: e.target.checked } })} /> mostrar
+            </label>
+          )}
+          <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => (onLogo(e.target.files?.[0]), (e.target.value = ''))} />
+        </div>
+      </div>
+      <p className="muted small">Vale para todos os PDFs: proposta, recibo, contrato, briefing e documentos do estúdio.</p>
+    </div>
   )
+  if (fold)
+    return (
+      <details className="card dk-look-fold">
+        <summary>
+          <Icon name="star" size={15} /> aparência do PDF <span className="muted small">modelo, cores, fontes e logotipo</span>
+          <Icon name="chevronR" size={14} className="dk-look-chev" />
+        </summary>
+        {body}
+      </details>
+    )
+  return <Section title="aparência">{body}</Section>
 }

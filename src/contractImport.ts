@@ -161,3 +161,27 @@ export function findFields(body: string): FieldHint[] {
 
 /** Troca todas as ocorrências de um texto por uma etiqueta. */
 export const swapAll = (body: string, text: string, tag: string) => body.split(text).join(`{${tag}}`)
+
+/** Lê o arquivo: do Word sai também o desenho (HTML), para o contrato ficar igual ao da pessoa. */
+export async function importContract(file: File): Promise<{ body: string; html?: string }> {
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.docx')) {
+    const { docxToHtml, htmlToText } = await import('./contractHtml')
+    const html = dropSignLines(await docxToHtml(file))
+    const body = tidy(htmlToText(html))
+    if (body.length < 40) throw new Error('vazio')
+    return { body, html }
+  }
+  return { body: await importContractFile(file) }
+}
+
+/** No desenho do Word: tira as linhas de assinatura (o quadro de assinatura das duas partes entra sozinho no fim). */
+function dropSignLines(html: string) {
+  const d = new DOMParser().parseFromString(html, 'text/html')
+  const root = d.body.querySelector('.ch-doc') ?? d.body
+  const text = (el: Element) => (el.textContent ?? '').replace(/\u00a0/g, ' ').trim()
+  root.querySelectorAll(':scope > p').forEach((p) => SIGN_LINE.test(text(p)) && text(p) && p.remove())
+  const tail = /^(contratante|contratad[ao]|testemunhas?|assinatura|nome|cpf|rg)\b[\s:0-9._-]*$/i
+  for (let last = root.lastElementChild; last && last.tagName === 'P' && (!text(last) || tail.test(text(last))); last = root.lastElementChild) last.remove()
+  return d.body.innerHTML
+}

@@ -10,6 +10,7 @@ export interface SignPayload {
   token: string
   title: string
   body: string
+  html?: string // contrato no modelo da pessoa (Word)
   clientName: string
   studio: string
   owner: string
@@ -71,7 +72,7 @@ export async function publishSign(payload: SignPayload, userId?: string): Promis
       /* segue com a cópia no link */
     }
   }
-  return `${base()}#/assinar/${payload.token}/${await pack(payload)}`
+  return `${base()}#/assinar/${payload.token}/${await pack({ ...payload, html: undefined })}`
 }
 
 export async function unpublishSign(token: string, userId?: string) {

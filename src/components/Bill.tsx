@@ -5,6 +5,7 @@ import { Icon } from './Icon'
 import { toast } from './dialog'
 import { DocScale, usePdf } from './Print'
 import { BillDoc, type BillCard, type BillInfo } from './Docs'
+import { DocLookPanel } from './DocKit'
 import type { Data, Project } from '../types'
 import { money, projectPaid, projectTotal, quoteFiles, today, whatsappLink, lower } from '../utils'
 
@@ -120,6 +121,7 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
             ))}
             <p className="muted small">Palavras entre **asteriscos** ficam em destaque rosé.</p>
           </div>
+          <DocLookPanel fold />
         </div>
         <div className="bill-preview">
           <DocScale>{doc}</DocScale>

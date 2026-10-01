@@ -152,7 +152,8 @@ export default function Finance() {
         <Stat label="Lucro" value={money(s.profit)} icon="target" tone={s.profit < 0 ? 'bad' : 'good'} sub={s.received ? `margem de ${Math.round((s.profit / s.received) * 100)}%` : undefined} />
       </div>
 
-      {settings.meiLimit > 0 && <MeiBar year={month.slice(0, 4)} />}
+      {(settings.yearGoal ?? 0) > 0 && <MeiBar year={month.slice(0, 4)} limit={settings.yearGoal!} goal />}
+      {settings.meiLimit > 0 && <MeiBar year={month.slice(0, 4)} limit={settings.meiLimit} />}
 
       <OldWorkNotice />
       <MisdatedNotice />
@@ -422,9 +423,9 @@ function Reports({ month }: { month: string }) {
 }
 
 /** Faturamento do ano (pelo que foi recebido) comparado ao teto anual do MEI. */
-function MeiBar({ year }: { year: string }) {
+/** Barra do ano: meta de faturamento (qualquer pessoa) ou teto do MEI (só quem é MEI). */
+function MeiBar({ year, limit, goal }: { year: string; limit: number; goal?: boolean }) {
   const { data } = useStore()
-  const limit = data.settings.meiLimit
   const received = sum(
     allPayments(data).filter((x) => x.pay.paidDate?.startsWith(year)),
     (x) => x.pay.amount,
@@ -433,17 +434,22 @@ function MeiBar({ year }: { year: string }) {
   const isCurrent = year === today().slice(0, 4)
   const monthsElapsed = isCurrent ? new Date().getMonth() + 1 : 12
   const projection = (received / monthsElapsed) * 12
-  const tone = pct >= 90 ? 'text-bad' : pct >= 70 || projection > limit ? 'text-warn' : 'muted'
+  const tone = goal ? (pct >= 100 ? 'text-good' : 'muted') : pct >= 90 ? 'text-bad' : pct >= 70 || projection > limit ? 'text-warn' : 'muted'
   return (
     <div className="mei card">
       <div className="mei-top">
-        <span className="stat-label">limite do MEI em {year}</span>
+        <span className="stat-label">{goal ? `meta de ${year}` : `limite do MEI em ${year}`}</span>
         <span className={`small ${tone}`}>
           {money(received)} de {money(limit)} · {pct}%
         </span>
       </div>
-      <Progress value={received} max={limit} color={pct >= 90 ? 'var(--bad)' : pct >= 70 ? 'var(--warn)' : undefined} />
-      {isCurrent && received > 0 && (
+      <Progress value={received} max={limit} color={goal ? undefined : pct >= 90 ? 'var(--bad)' : pct >= 70 ? 'var(--warn)' : undefined} />
+      {goal && isCurrent && received > 0 && (
+        <p className="small muted">
+          {received >= limit ? 'Meta do ano batida.' : `Faltam ${money(limit - received)}. No ritmo atual, o ano fecha em cerca de ${money(projection)}.`}
+        </p>
+      )}
+      {!goal && isCurrent && received > 0 && (
         <p className={`small ${projection > limit ? 'text-warn' : 'muted'}`}>
           No ritmo atual, o ano fecha em cerca de {money(projection)}
           {projection > limit ? ' — acima do teto. Vale conversar com um contador sobre migrar para ME.' : '.'}

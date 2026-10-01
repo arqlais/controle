@@ -1,3 +1,4 @@
+import { go } from '../router'
 import { MsgTools, WaPreview } from '../components/MsgTools'
 import { PriceTable } from '../components/PriceTable'
 import { LockedView, lockPlan } from '../components/LockedPreview'
@@ -27,10 +28,10 @@ import { PortfolioSettings, ProcessSettings } from '../components/QuoteSteps'
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
   { id: 'aparencia', label: 'aparência', hint: 'cores, fontes e tema', icon: 'star' },
-  { id: 'precos', label: 'preços', hint: 'tabela e regras', icon: 'wallet' },
+  { id: 'precos', label: 'serviços e preços', hint: 'para quem você trabalha, tabela e regras', icon: 'wallet' },
   { id: 'propostas', label: 'propostas', hint: 'modelo do PDF, contratos e padrões', icon: 'file' },
   { id: 'mensagens', label: 'mensagens', hint: 'textos para a cliente', icon: 'whatsapp', desktop: true },
-  { id: 'metas', label: 'metas', hint: 'faturamento e MEI', icon: 'target', desktop: true },
+  { id: 'metas', label: 'metas', hint: 'faturamento do mês e do ano', icon: 'target', desktop: true },
   { id: 'ia', label: 'assistente', hint: 'chat com IA sobre orçamentos', icon: 'sparkle' },
   { id: 'dados', label: 'dados', hint: 'perfil e backup', icon: 'download' },
 ]
@@ -145,6 +146,7 @@ export default function SettingsPage() {
 
           {tab === 'precos' && (
             <>
+            <WorkProfileSection />
             <Section title="tabela de preços">
               <PriceTable services={s.services} profile={s.workProfile} onChange={(services) => setSettings({ services })} onRestart={() => setSettings({ servicesSetup: false })} />
             </Section>
@@ -179,36 +181,32 @@ export default function SettingsPage() {
 
           {tab === 'propostas' && (
             <>
-              <ProposalChooser />
-              {has('propostaPdf') ? <ProposalSettings /> : <LockedView feature="propostaPdf"><ProposalSettings /></LockedView>}
-              {s.workProfile !== 'freelancer' && (
-                <>
-                  <ProcessSettings />
-                  {has('propostaPdf') ? <PortfolioSettings /> : <LockedView feature="propostaPdf"><PortfolioSettings /></LockedView>}
-                </>
-              )}
-              <Section title="numeração e padrões" className="desktop-only">
-                <div className="form-grid">
-                  <Field label="Começar a contagem em" hint={`Os orçamentos seguem em ordem a partir daqui. Próximo: #${String(nextQuoteNumber(data)).padStart(3, '0')}.`}>
-                    <input type="number" min={1} value={s.quoteStart ?? 1} onChange={(e) => setSettings({ quoteStart: Math.max(1, Number(e.target.value) || 1) })} />
-                  </Field>
-                  <Field label="Rodadas de ajuste incluídas">
-                    <input type="number" min={0} value={s.defaultRevisions} onChange={(e) => setSettings({ defaultRevisions: Number(e.target.value) || 0 })} />
-                  </Field>
-                </div>
-              </Section>
+              <p className="pf-note">
+                <Icon name="file" size={16} />
+                <span>
+                  Isso também fica em{' '}
+                  <button className="link" onClick={() => go('documentos', 'padroes')}>
+                    documentos → modelo e padrões
+                  </button>
+                  , junto com todos os PDFs.
+                </span>
+              </p>
+              <ProposalDefaults />
             </>
           )}
 
           {tab === 'mensagens' && <MessagesSettings />}
 
           {tab === 'metas' && (
-            <Section title="metas do mês e do ano" className="desktop-only">
+            <Section title="metas" className="desktop-only">
               <div className="form-grid">
-                <Field label="Meta mensal de faturamento">
+                <Field label="Meta do mês" hint="Quanto você quer receber por mês. Aparece no início e no financeiro.">
                   <MoneyInput value={s.monthlyGoal} onChange={(n) => setSettings({ monthlyGoal: n })} />
                 </Field>
-                <Field label="Teto anual do MEI" hint="Só se você abrir um MEI: mostra no Financeiro quanto do teto já usou. Com 0, fica escondido.">
+                <Field label="Meta do ano" hint="Quanto você quer receber no ano. Vale para qualquer formato: autônomo, MEI, ME ou escritório. Com 0, fica escondida.">
+                  <MoneyInput value={s.yearGoal ?? 0} onChange={(n) => setSettings({ yearGoal: n })} />
+                </Field>
+                <Field label="Teto do MEI (opcional)" hint="Só para quem é MEI: mostra quanto do limite anual já usou. Com 0, fica escondido.">
                   <MoneyInput value={s.meiLimit} onChange={(n) => setSettings({ meiLimit: n })} />
                 </Field>
               </div>
@@ -291,7 +289,6 @@ export default function SettingsPage() {
                   <Icon name="user" size={14} /> abrir perfil
                 </a>
               </Section>
-          <WorkProfileSection />
           <Section title="backup e dados">
             <p className="muted small">
               {CLOUD ? (
@@ -667,8 +664,8 @@ function WorkProfileSection() {
   const { data, setSettings } = useStore()
   const cur = data.settings.workProfile ?? 'freelancer'
   return (
-    <Section title="como você trabalha">
-      <p className="muted small">Muda o que já vem pronto: o tipo de cliente, a ficha do cliente final (com briefing) e os serviços sugeridos. Nada do que você já cadastrou é apagado.</p>
+    <Section title="para quem você trabalha">
+      <p className="muted small">Só para freelancer (outros escritórios), só para cliente final ou os dois. Muda o que já vem pronto: o tipo de cliente, a ficha do cliente final (com briefing) e os serviços sugeridos. Nada do que você já cadastrou é apagado.</p>
       <div className="wp-options">
         {WORK_PROFILES.map((w) => (
           <button key={w.value} type="button" className={`wp-option ${cur === w.value ? 'is-on' : ''}`} onClick={() => setSettings({ workProfile: w.value })} aria-pressed={cur === w.value}>
@@ -681,3 +678,31 @@ function WorkProfileSection() {
   )
 }
 
+/** Modelo e padrões das propostas (também aparece em documentos → modelo e padrões). */
+export function ProposalDefaults() {
+  const { data, setSettings } = useStore()
+  const { has } = useAccess()
+  const s = data.settings
+  return (
+    <>
+              <ProposalChooser />
+              {has('propostaPdf') ? <ProposalSettings /> : <LockedView feature="propostaPdf"><ProposalSettings /></LockedView>}
+              {s.workProfile !== 'freelancer' && (
+                <>
+                  <ProcessSettings />
+                  {has('propostaPdf') ? <PortfolioSettings /> : <LockedView feature="propostaPdf"><PortfolioSettings /></LockedView>}
+                </>
+              )}
+              <Section title="numeração e padrões" className="desktop-only">
+                <div className="form-grid">
+                  <Field label="Começar a contagem em" hint={`Os orçamentos seguem em ordem a partir daqui. Próximo: #${String(nextQuoteNumber(data)).padStart(3, '0')}.`}>
+                    <input type="number" min={1} value={s.quoteStart ?? 1} onChange={(e) => setSettings({ quoteStart: Math.max(1, Number(e.target.value) || 1) })} />
+                  </Field>
+                  <Field label="Rodadas de ajuste incluídas">
+                    <input type="number" min={0} value={s.defaultRevisions} onChange={(e) => setSettings({ defaultRevisions: Number(e.target.value) || 0 })} />
+                  </Field>
+                </div>
+              </Section>
+            </>
+  )
+}

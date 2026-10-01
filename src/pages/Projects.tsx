@@ -373,15 +373,20 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
   if (!rows.length) return <Empty title="Nada por aqui" text="Nenhuma demanda com esses filtros." />
   return (
     <>
-    <select className="sort-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Ordenar por">
-      {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
-        <option key={k} value={k}>
-          ordenar: {SORT_LABEL[k]}
-        </option>
-      ))}
-    </select>
+    <div className="table-head">
+      <span className="muted small">
+        {rows.length} {rows.length === 1 ? 'demanda' : 'demandas'} · {money(sum(rows, projectTotal))}
+      </span>
+      <select className="sort-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Ordenar por">
+        {(Object.keys(SORT_LABEL) as SortKey[]).map((k) => (
+          <option key={k} value={k}>
+            ordenar: {SORT_LABEL[k]}
+          </option>
+        ))}
+      </select>
+    </div>
     <div className="table-wrap card">
-      <table className="table cards-mobile">
+      <table className="table cards-mobile proj-table">
         <thead>
           <tr>
             <th>Projeto</th>
@@ -405,10 +410,10 @@ function ProjectTable({ projects, clientName }: { projects: Project[]; clientNam
                   <div className="list-sub mobile-only">{clientName(p.clientId)}</div>
                 </td>
                 <td className="hide-mobile">{clientName(p.clientId)}</td>
-                <td onClick={(e) => e.stopPropagation()}>
+                <td className="pt-status" onClick={(e) => e.stopPropagation()}>
                   <StatusSelect p={p} />
                 </td>
-                <td>
+                <td className="pt-prio">
                   <Badge color={PRIORITY[u.level].color}>{PRIORITY[u.level].label}</Badge>
                 </td>
                 <td className={`nowrap ${isLate(p) ? 'text-bad' : ''}`} data-label="prazo">

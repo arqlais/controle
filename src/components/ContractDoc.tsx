@@ -4,6 +4,7 @@ import type { ContractSignature, Settings } from '../types'
 import { useAccess } from '../access'
 import { sheetColors, showsLogo } from '../proposalTemplates'
 import { SignatureGlyph } from './SignaturePad'
+import { cleanHtml } from '../contractHtml'
 
 /* Contrato em folhas A4 (794 × 1123 px). O texto é medido parágrafo por parágrafo
    e dividido em páginas, assim nenhuma linha é cortada ao meio no PDF. */
@@ -89,8 +90,10 @@ function SignCertificate({ sign, lais }: { sign?: ContractSignature; lais?: bool
   )
 }
 
-export function ContractDoc({ s, body, clientName, exclusive, signed }: { s: Settings; body: string; clientName: string; exclusive?: boolean; signed?: ContractSignature }) {
+export function ContractDoc({ s, body, html, clientName, exclusive, signed }: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature }) {
   const { has } = useAccess()
+  // contrato no modelo da própria pessoa (do Word): a folha fica igual à dela
+  if (html) return <OwnContract s={s} html={html} clientName={clientName} signed={signed} />
   // o contrato da Laís (modelo exclusivo): mesmo desenho dos PDFs dela
   if (exclusive ?? usesExclusiveContract(has, body)) return <LaisContract s={s} body={body} clientName={clientName} signed={signed} />
   return <ClientContract s={s} body={body} clientName={clientName} has={has} signed={signed} />
@@ -402,6 +405,83 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
         </article>
       ))}
       <SignCertificate sign={signed} lais />
+    </div>
+  )
+}
+
+/* ---------------- contrato no modelo da pessoa (Word) ---------------- */
+
+const OWN_PAD = 72
+function OwnContract({ s, html, clientName, signed }: { s: Settings; html: string; clientName: string; signed?: ContractSignature }) {
+  const clean = cleanHtml(html)
+  const measure = useRef<HTMLDivElement>(null)
+  const [pages, setPages] = useState<string[][] | null>(null)
+  const key = clean + clientName + (signed?.at ?? '')
+  const root = /^<div class="ch-doc" style="([^"]*)">/.exec(clean)
+  const rootStyle = root?.[1] ?? ''
+  useLayoutEffect(() => {
+    setPages(null)
+  }, [key])
+  useLayoutEffect(() => {
+    if (pages || !measure.current) return
+    const doc = measure.current.querySelector('.ch-doc') ?? measure.current
+    const els = [...doc.children] as HTMLElement[]
+    const room = PAGE_H - OWN_PAD * 2 - 24
+    const out: string[][] = [[]]
+    let used = 0
+    els.forEach((el, i) => {
+      if (el.classList.contains('ch-break')) {
+        if (out[out.length - 1].length) out.push([])
+        used = 0
+        return
+      }
+      const h = i < els.length - 1 ? els[i + 1].offsetTop - el.offsetTop : el.offsetHeight + 8
+      if (used + h > room && out[out.length - 1].length) {
+        out.push([])
+        used = 0
+      }
+      out[out.length - 1].push(el.outerHTML)
+      used += h
+    })
+    // o quadro de assinatura precisa de ~230px: se não couber, vai para uma folha nova
+    if (used + 230 > room) out.push([])
+    setPages(out)
+  })
+  const signBox = (
+    <div className="c-sign ch-sign">
+      <div>
+        {signed?.via === 'link' ? <SignatureGlyph sign={signed} className="c-sign-img" /> : <i className="c-sign-img" />}
+        <span />
+        <b>{clientName || 'contratante'}</b>
+        <small>contratante</small>
+        <SignedMark sign={signed} />
+      </div>
+      <div>
+        {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
+        <span />
+        <b>{s.legalName || s.ownerName || 'contratada'}</b>
+        <small>contratada</small>
+      </div>
+    </div>
+  )
+  if (!pages)
+    return (
+      <div className="contract-doc ch-own">
+        <article className="contract-page ch-page is-measuring">
+          <div ref={measure} dangerouslySetInnerHTML={{ __html: clean }} />
+        </article>
+      </div>
+    )
+  return (
+    <div className="contract-doc ch-own">
+      {pages.map((chunk, n) => (
+        <article key={n} className="contract-page ch-page">
+          <div className="ch-doc" style={Object.fromEntries(rootStyle.split(';').filter(Boolean).map((x) => { const [k, v] = x.split(':'); return [k.trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase()), v.trim()] }))} dangerouslySetInnerHTML={{ __html: chunk.join('') }} />
+          {n === pages.length - 1 && signBox}
+          <span className="ch-pnum">{n + 1}/{pages.length}</span>
+        </article>
+      ))}
+      <SignCertificate sign={signed} />
     </div>
   )
 }

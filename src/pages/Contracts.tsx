@@ -6,11 +6,14 @@ import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui
 import { ask, askDelete, toast } from '../components/dialog'
 import { useFormDraft } from '../components/SaveBar'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
+import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
 import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
-import { IMPORT_ACCEPT, findFields, importContractFile, importError, swapAll } from '../contractImport'
+import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
+import { fillHtml, htmlToText } from '../contractHtml'
+import { DocRich, type DocRichHandle } from '../components/DocRich'
 import { SIGN_SITES, checkSignMessage, publishSign, type SignPayload } from '../contractSign'
 import { SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
@@ -58,6 +61,16 @@ function Head({ children }: { children?: ReactNode }) {
   )
 }
 
+/** Contrato novo a partir do modelo: no modelo da pessoa (Word) sai com o desenho dela; senão, o texto. */
+function fromTemplate(tpl: ContractTemplate, vars: Record<string, string>): { body: string; html?: string } {
+  if (tpl.html) {
+    const html = fillHtml(tpl.html, vars)
+    return { body: htmlToText(html), html }
+  }
+  return { body: fillContract(tpl.body, vars) }
+}
+const swapHtmlLike = (t: ContractTemplate, _body: string) => t.html ?? ''
+
 function Disclaimer() {
   return (
     <p className="pf-note">
@@ -78,8 +91,8 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   const [mineId, setMineId] = useState('')
   const [imported, setImported] = useState(false)
   // usar o próprio contrato: vira um modelo novo (anexado do Word/PDF ou em branco para colar o texto)
-  const useMine = (name = 'meu contrato', body = '') => {
-    const t: ContractTemplate = { id: uid(), name, body }
+  const useMine = (name = 'meu contrato', body = '', html?: string) => {
+    const t: ContractTemplate = { id: uid(), name, body, ...(html ? { html } : {}) }
     setSettings({ contracts: { ...cs, templates: [t, ...cs.templates] } })
     setImported(!!body)
     setMineId(t.id)
@@ -188,7 +201,7 @@ function NewContract({ onClose }: { onClose: () => void }) {
   // o que falta preencher (aparece antes de criar)
   const vars = contractVars(data.settings, quote, client)
   const tpl = cs.templates.find((t) => t.id === tplId) ?? cs.templates[0]
-  const missing = tpl ? [...new Set((fillContract(tpl.body, vars).match(/\[[^\]\n]{3,40}\]/g) ?? []).map((x) => x.slice(1, -1)))] : []
+  const missing = tpl ? [...new Set((fromTemplate(tpl, vars).body.match(/\[[^\]\n]{3,40}\]/g) ?? []).map((x) => x.slice(1, -1)))] : []
   const create = () => {
     if (!tpl) return toast('Crie um modelo primeiro.')
     const c: Contract = {
@@ -197,7 +210,7 @@ function NewContract({ onClose }: { onClose: () => void }) {
       quoteId,
       clientId,
       templateId: tpl.id,
-      body: fillContract(tpl.body, vars),
+      ...fromTemplate(tpl, vars),
       status: 'rascunho',
       createdAt: today(),
     }
@@ -317,10 +330,10 @@ function ContractEditor({ id }: { id: string }) {
     const tpl = cs.templates.find((t) => t.id === templateId)
     if (!tpl) return
     if (c.body.trim() && !(await ask('Preencher de novo a partir do modelo? O que você editou à mão neste contrato será substituído.', { confirmLabel: 'Preencher de novo' }))) return
-    set({ templateId, body: fillContract(tpl.body, contractVars(data.settings, quote, client)) })
+    set({ templateId, html: undefined, ...fromTemplate(tpl, contractVars(data.settings, quote, client)) })
   }
   const missing = [...new Set(c.body.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
-  const doc = <ContractDoc s={data.settings} body={c.body} clientName={client ? client.name : ''} signed={c.sign} />
+  const doc = <ContractDoc s={data.settings} body={c.body} html={c.html} clientName={client ? client.name : ''} signed={c.sign} />
   const file = `Contrato - ${client?.name ?? c.title}.pdf`
 
   return (
@@ -406,9 +419,19 @@ function ContractEditor({ id }: { id: string }) {
             )}
           </Section>
           <SignSection c={c} client={client} dirty={dirty} save={save} onPdf={() => pdf.download(doc, file)} />
+          <DocLookPanel fold />
           <Section title="texto do contrato">
-            <textarea className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} spellCheck lang="pt-BR" />
-            <p className="muted small">Linhas em MAIÚSCULAS viram títulos (ex.: CLÁUSULA 1 — DO OBJETO). A assinatura das duas partes entra sozinha no fim.</p>
+            {c.html ? (
+              <>
+                <DocRich html={c.html} onChange={(html) => set({ html, body: htmlToText(html) })} />
+                <p className="muted small">No seu modelo: edite direto na folha. A assinatura das duas partes entra sozinha no fim.</p>
+              </>
+            ) : (
+              <>
+                <textarea className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} spellCheck lang="pt-BR" />
+                <p className="muted small">Linhas em MAIÚSCULAS viram títulos (ex.: CLÁUSULA 1 — DO OBJETO). A assinatura das duas partes entra sozinha no fim.</p>
+              </>
+            )}
           </Section>
           <button
             className="btn ghost danger"
@@ -438,7 +461,7 @@ function ContractEditor({ id }: { id: string }) {
 }
 
 /** Anexar o contrato (Word, PDF ou texto): lê o arquivo e entrega o texto. */
-function useContractUpload(onText: (name: string, body: string) => void) {
+function useContractUpload(onText: (name: string, body: string, html?: string) => void) {
   const ref = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const input = (
@@ -453,9 +476,9 @@ function useContractUpload(onText: (name: string, body: string) => void) {
         if (!f) return
         setBusy(true)
         try {
-          const body = await importContractFile(f)
-          onText(f.name.replace(/\.[^.]+$/, '').slice(0, 60) || 'meu contrato', body)
-          toast('Contrato anexado. Confira o texto e troque os dados fixos pelas etiquetas.')
+          const { body, html } = await importContract(f)
+          onText(f.name.replace(/\.[^.]+$/, '').slice(0, 60) || 'meu contrato', body, html)
+          toast(html ? 'Contrato anexado com o seu modelo. Confira e troque os dados fixos pelas etiquetas.' : 'Contrato anexado. Confira o texto e troque os dados fixos pelas etiquetas.')
         } catch (err) {
           toast(importError(err))
         } finally {
@@ -468,7 +491,7 @@ function useContractUpload(onText: (name: string, body: string) => void) {
 }
 
 /** Troca o que é fixo do contrato original (nome, CPF, valor, data…) pelas etiquetas que se preenchem sozinhas. */
-function FieldSwap({ body, onChange, open }: { body: string; onChange: (b: string) => void; open?: boolean }) {
+function FieldSwap({ body, onChange, onSwap, open }: { body: string; onChange: (b: string) => void; onSwap?: (text: string, tag: string) => void; open?: boolean }) {
   const hints = useMemo(() => findFields(body), [body])
   const [picked, setPicked] = useState<Record<string, string>>({})
   const [text, setText] = useState('')
@@ -485,7 +508,8 @@ function FieldSwap({ body, onChange, open }: { body: string; onChange: (b: strin
   const swap = (t: string, k: string) => {
     if (!t.trim() || !body.includes(t)) return toast('Esse texto não está no contrato.')
     const n = body.split(t).length - 1
-    onChange(swapAll(body, t, k))
+    if (onSwap) onSwap(t, k)
+    else onChange(swapAll(body, t, k))
     toast(`${n === 1 ? '1 trecho trocado' : `${n} trechos trocados`} por {${k}}.`)
   }
   return (
@@ -531,14 +555,17 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
   const cur = cs.templates.find((t) => t.id === openId)
   const patch = (p: Partial<ContractTemplate>) => cur && setTemplates(cs.templates.map((t) => (t.id === cur.id ? { ...t, ...p } : t)))
   const [fresh, setFresh] = useState(imported ? startId ?? '' : '')
-  const upload = useContractUpload((name, body) => {
-    const t = { id: uid(), name, body }
+  const upload = useContractUpload((name, body, html) => {
+    const t: ContractTemplate = { id: uid(), name, body, ...(html ? { html } : {}) }
     setTemplates([t, ...cs.templates])
     setOpenId(t.id)
     setFresh(t.id)
   })
+  const rich = useRef<DocRichHandle>(null)
+  const [preview, setPreview] = useState(false)
   const insert = (v: string) => {
     if (!cur) return
+    if (cur.html) return rich.current?.insert(`{${v}}`)
     const el = ref.current
     const at = el?.selectionStart ?? cur.body.length
     const body = cur.body.slice(0, at) + `{${v}}` + cur.body.slice(el?.selectionEnd ?? at)
@@ -630,8 +657,27 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
               <span>Texto do seu arquivo. Confira, ajuste o que quiser e troque os dados fixos pelas etiquetas abaixo. As linhas de assinatura saíram: o quadro de assinatura das duas partes entra sozinho no fim.</span>
             </p>
           )}
-          {cur.body.trim().length > 40 && <FieldSwap key={cur.id} body={cur.body} onChange={(body) => patch({ body })} open={cur.id === fresh} />}
+          {cur.body.trim().length > 40 && <FieldSwap key={cur.id} body={cur.body} onChange={(body) => patch(cur.html ? { body: htmlToText(swapHtmlLike(cur, body)), html: swapHtmlLike(cur, body) } : { body })} onSwap={cur.html ? (t, k) => patch({ html: swapAll(cur.html!, t, k), body: htmlToText(swapAll(cur.html!, t, k)) }) : undefined} open={cur.id === fresh} />}
+          {cur.html ? (
+            <>
+              <DocRich key={cur.id} ref={rich} html={cur.html} onChange={(html) => patch({ html, body: htmlToText(html) })} />
+              <div className="row gap-s">
+                <button type="button" className="btn small ghost" onClick={() => setPreview(true)}>
+                  <Icon name="eye" size={14} /> ver como fica
+                </button>
+                <button type="button" className="link small muted-link" onClick={async () => (await ask('Usar só o texto, sem o desenho do seu arquivo? O contrato passa a sair no modelo do traço.', { confirmLabel: 'Usar só o texto' })) && patch({ html: undefined })}>
+                  usar só o texto (sem o desenho do arquivo)
+                </button>
+              </div>
+              {preview && (
+                <DocZoom onClose={() => setPreview(false)}>
+                  <ContractDoc s={data.settings} body={cur.body} html={cur.html} clientName="{contratante}" />
+                </DocZoom>
+              )}
+            </>
+          ) : (
           <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
+          )}
           <p className="muted small">As mudanças valem para os próximos contratos. Os que você já criou não mudam.</p>
         </Section>
       )}
@@ -710,6 +756,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
         token,
         title: c.title,
         body: c.body,
+        ...(c.html ? { html: c.html } : {}),
         clientName: client?.name ?? '',
         studio: st.brandName || st.ownerName,
         owner: st.ownerName,

@@ -2,7 +2,13 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { DocScale } from '../components/Print'
-import { Field, Section, Segmented } from '../components/ui'
+import { Field, Modal, Section, Segmented } from '../components/ui'
+import { useAccess } from '../access'
+import { LockButton, LockedView, lockPlan } from '../components/LockedPreview'
+import { BillModal } from '../components/Bill'
+import { ProposalDefaults } from './Settings'
+import type { Feature } from '../plans'
+import type { Project } from '../types'
 import { ClientPicker } from '../components/ClientPicker'
 import { ColorPicker } from '../components/ColorPicker'
 import { DocLookPanel, DocWorkbench, ImageField, LinesField, PhotoCrop, useDocLook } from '../components/DocKit'
@@ -38,11 +44,16 @@ const KEY: Record<DocKind, keyof DocsState | 'briefingTpl'> = { guia: 'guide', p
 
 export default function Documents({ id }: { id?: string }) {
   const { data } = useStore()
+  const { has } = useAccess()
   // o documento aberto fica no endereço (#/documentos/placa): o menu "documentos" e o voltar do navegador levam à lista
   const saved = id ? (data.docs ?? []).find((x) => x.id === id) : undefined
   if (id && saved) return <DocSession key={saved.id} kind={saved.kind} saved={saved} onBack={() => go('documentos')} />
-  if (id && (DOC_IDS as string[]).includes(id)) return <DocSession key={id} kind={id as DocId} onBack={() => go('documentos')} />
-  return <DocsHome onOpen={(k) => go('documentos', k)} />
+  if (id && (DOC_IDS as string[]).includes(id)) {
+    // documentos do estúdio: só no plano que tem (os outros veem a prévia bloqueada)
+    if (!has('documentos')) return <LockedView feature="documentos"><DocSession key={id} kind={id as DocId} onBack={() => go('documentos')} /></LockedView>
+    return <DocSession key={id} kind={id as DocId} onBack={() => go('documentos')} />
+  }
+  return <DocsHome onOpen={(k) => go('documentos', k)} tab={id === 'padroes' ? 'padroes' : 'docs'} />
 }
 
 function useDocs() {
@@ -168,48 +179,127 @@ function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; 
   return <DeckEditor {...props} />
 }
 
-function DocsHome({ onOpen }: { onOpen: (id: DocId) => void }) {
+function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 'padroes' }) {
   const { s, docs, data } = useDocs()
+  const { has } = useAccess()
   const look = useDocLook(s)
+  const [billPick, setBillPick] = useState(false)
+  const [bill, setBill] = useState<Project | null>(null)
   const thumbs: Record<DocId, { node: ReactNode; w: number }> = {
     guia: { node: <MeasureGuideDoc s={s} data={docs.guide} />, w: PAGE.a4[0] },
     placa: { node: <PlaqueDoc s={s} data={docs.plaque} />, w: PAGE.poster[0] },
     briefing: { node: <BriefingSheetDoc s={s} tpl={allTemplates(s.briefingTemplates, s.hiddenBriefings).find((t) => t.id === 'infantil') ?? allTemplates(s.briefingTemplates, s.hiddenBriefings)[0]} />, w: PAGE.a4[0] },
     apresentacao: { node: <DeckDoc s={s} data={docs.deck} stages={processesOf(s)[0]?.steps.map((x) => x.name) ?? []} />, w: PAGE.slide[0] },
   }
+  // PDFs do dia a dia: cada um abre onde ele é feito (o orçamento, a demanda, o contrato)
+  const daily: { id: string; title: string; text: string; icon: string; feature: Feature; open: () => void }[] = [
+    { id: 'proposta', title: 'proposta / orçamento', text: 'em folha única ou em slides, com os seus serviços, valores e prazos', icon: 'file', feature: 'propostaPdf', open: () => go('orcamentos', 'novo') },
+    { id: 'recibo', title: 'recibo', text: 'escolha a demanda: valor total, o que já foi pago e o que falta', icon: 'wallet', feature: 'propostaPdf', open: () => setBillPick(true) },
+    { id: 'contrato', title: 'contrato', text: 'preenchido com o orçamento, para assinar pelo link ou em PDF', icon: 'pen', feature: 'contratos', open: () => go('contratos') },
+  ]
+  const projects = [...data.projects].filter((p) => p.status !== 'cancelado').sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''))
+  const clientName = (id: string) => data.clients.find((c) => c.id === id)?.name ?? ''
   return (
     <div className="page">
       <div className="page-head">
         <div>
-          <p className="eyebrow">plano Estúdio</p>
+          <p className="eyebrow">proposta, recibo, contrato e mais</p>
           <h1>
-            documentos <em>do estúdio</em>
+            documentos <em>com a sua marca</em>
           </h1>
         </div>
       </div>
-      <p className="pf-note">
-        <Icon name="sparkle" size={16} />
-        <span>
-          Tudo sai no design <b>“{look.name}”</b>, com as suas cores, fontes e logo. Para trocar o design de todos os PDFs de uma vez (propostas, slides e estes documentos), vá em{' '}
-          <button className="link" onClick={() => go('config')}>
-            configurações → propostas
-          </button>
-          .
-        </span>
-      </p>
-      <div className="docs-home">
-        {LIST.map((d) => (
-          <button key={d.id} type="button" className="docs-card" onClick={() => onOpen(d.id)}>
-            <span className="docs-thumb" aria-hidden>
-              <DocScale width={thumbs[d.id].w}>{thumbs[d.id].node}</DocScale>
+      <Segmented
+        value={tab}
+        onChange={(v) => go('documentos', v === 'padroes' ? 'padroes' : undefined)}
+        options={[
+          { value: 'docs', label: <><Icon name="file" size={14} /> documentos</> },
+          { value: 'padroes', label: <><Icon name="star" size={14} /> modelo e padrões</> },
+        ]}
+      />
+      {tab === 'padroes' ? (
+        <>
+          <DocLookPanel />
+          <ProposalDefaults />
+        </>
+      ) : (
+        <>
+          <p className="pf-note">
+            <Icon name="sparkle" size={16} />
+            <span>
+              Tudo sai no modelo <b>“{look.name}”</b>, com as suas cores, fontes e logo. Para mudar de uma vez em todos os PDFs:{' '}
+              <button className="link" onClick={() => go('documentos', 'padroes')}>
+                modelo e padrões
+              </button>
+              .
             </span>
-            <b>{d.title}</b>
-            <small>{d.text}</small>
-            <small className="muted">{d.size}</small>
-          </button>
-        ))}
-      </div>
-      <SavedDocs list={data.docs ?? []} showClient />
+          </p>
+          <h2 className="docs-group">do dia a dia</h2>
+          <div className="docs-home docs-daily">
+            {daily.map((d) =>
+              has(d.feature) ? (
+                <button key={d.id} type="button" className="docs-card docs-card-icon" onClick={d.open}>
+                  <span className="docs-ico" aria-hidden>
+                    <Icon name={d.icon} size={26} />
+                  </span>
+                  <b>{d.title}</b>
+                  <small>{d.text}</small>
+                </button>
+              ) : (
+                <div key={d.id} className="docs-card docs-card-icon is-locked">
+                  <span className="docs-ico" aria-hidden>
+                    <Icon name={d.icon} size={26} />
+                  </span>
+                  <b>{d.title}</b>
+                  <small>{d.text}</small>
+                  <LockButton feature={d.feature} label={`a partir do ${lockPlan(d.feature)}`} />
+                </div>
+              ),
+            )}
+          </div>
+          <h2 className="docs-group">
+            do estúdio {!has('documentos') && <em className="lp-plan-tag">plano {lockPlan('documentos')}</em>}
+          </h2>
+          <div className="docs-home">
+            {LIST.map((d) => (
+              <button key={d.id} type="button" className="docs-card" onClick={() => onOpen(d.id)}>
+                <span className="docs-thumb" aria-hidden>
+                  <DocScale width={thumbs[d.id].w}>{thumbs[d.id].node}</DocScale>
+                  {!has('documentos') && (
+                    <span className="docs-lock">
+                      <Icon name="lock" size={14} />
+                    </span>
+                  )}
+                </span>
+                <b>{d.title}</b>
+                <small>{d.text}</small>
+                <small className="muted">{d.size}</small>
+              </button>
+            ))}
+          </div>
+          <SavedDocs list={data.docs ?? []} showClient />
+        </>
+      )}
+      {billPick && (
+        <Modal title="recibo de qual demanda?" onClose={() => setBillPick(false)}>
+          {projects.length ? (
+            <ul className="docs-pick">
+              {projects.map((p) => (
+                <li key={p.id}>
+                  <button type="button" onClick={() => (setBill(p), setBillPick(false))}>
+                    <b>{p.title}</b>
+                    <small className="muted">{clientName(p.clientId)}</small>
+                    <Icon name="chevronR" size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">Nenhuma demanda ainda. O recibo sai de uma demanda (com o valor e os pagamentos dela).</p>
+          )}
+        </Modal>
+      )}
+      {bill && <BillModal p={bill} onClose={() => setBill(null)} />}
     </div>
   )
 }

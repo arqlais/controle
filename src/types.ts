@@ -459,6 +459,7 @@ export interface ContractTemplate {
   id: string
   name: string
   body: string
+  html?: string // modelo da própria pessoa (do Word), com o desenho dela
 }
 
 export interface ContractSettings {
@@ -495,6 +496,7 @@ export interface Contract {
   clientId: string
   templateId: string
   body: string // texto final (já preenchido e editável)
+  html?: string // contrato no modelo da pessoa (desenho do Word); o body fica com o texto puro
   status: ContractStatus
   createdAt: string
   signToken?: string // identifica o link de assinatura
@@ -552,6 +554,7 @@ export interface Settings {
   legalName: string // nome completo (proposta, recibo)
   proposal: ProposalStyle
   meiLimit: number // teto anual do MEI
+  yearGoal?: number // meta de faturamento do ano (para qualquer tipo de empresa ou autônomo)
   hourlyTarget: number
   urgencyFee: number // %
   openFileFee?: number // % a mais quando o cliente quer o arquivo aberto (interno)

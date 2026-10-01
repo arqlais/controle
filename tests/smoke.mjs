@@ -151,8 +151,8 @@ try {
 
     // 3e. documentos e etapas de trabalho
     await go('#/documentos'); await page.waitForTimeout(600)
-    ok(await page.locator('.docs-card').count() === 4, `${vp.name}: documentos (guia, placa, briefing, apresentação)`)
-    await page.locator('.docs-card').nth(1).click(); await page.waitForTimeout(500)
+    ok(await page.locator('.docs-card-icon').count() === 3 && await page.locator('.docs-card:not(.docs-card-icon)').count() === 4, `${vp.name}: documentos (proposta, recibo, contrato + guia, placa, briefing, apresentação)`)
+    await page.locator('.docs-card:not(.docs-card-icon)').nth(1).click(); await page.waitForTimeout(500)
     await page.getByLabel('Para onde o QR code leva').fill('@estudio'); await page.waitForTimeout(200)
     ok(await page.locator('.pq-code path').count() === 1, `${vp.name}: placa de obra gera o QR code`)
     await page.locator('.dk-page .back').click(); await page.waitForTimeout(300)
@@ -243,11 +243,11 @@ try {
     await page.goto(`http://localhost:${PORT}/#/contratos`); await page.waitForTimeout(900)
     const [fc] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: /anexar meu contrato/ }).first().click()])
     await fc.setFiles({ name: 'Meu contrato.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', buffer }); await page.waitForTimeout(1200)
-    const text = await page.locator('.ct-templates textarea.pf-contract-text').inputValue()
-    ok(/^CONTRATO DE ARQUITETURA/.test(text) && text.includes('CLÁUSULA 1') && !/CONTRATANTE\s*$/.test(text) && !text.includes('____'), 'contrato: Word anexado vira modelo (títulos e sem linhas de assinatura)')
+    const text = await page.locator('.ct-templates .rt-page').innerText()
+    ok(/^Contrato de Arquitetura/.test(text) && text.includes('Cláusula 1') && !/CONTRATANTE\s*$/.test(text) && !text.includes('____') && await page.locator('.ct-templates .rt-page span[style*="font-weight:700"]').count() >= 2, 'contrato: Word anexado vira modelo com o desenho do arquivo (negrito, sem linhas de assinatura)')
     ok(await page.locator('.ct-swap-list li').count() >= 2, 'contrato: sugere trocar CPF e valor por etiquetas')
     await page.locator('.ct-swap-manual input').fill('Maria da Silva'); await page.locator('.ct-swap-manual .btn').click(); await page.waitForTimeout(300)
-    ok((await page.locator('.ct-templates textarea.pf-contract-text').inputValue()).includes('{contratante}'), 'contrato: troca o nome do cliente pela etiqueta')
+    ok((await page.locator('.ct-templates .rt-page').innerText()).includes('{contratante}'), 'contrato: troca o nome do cliente pela etiqueta')
     ok(errors.length === 0, `contrato anexado: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()
   }

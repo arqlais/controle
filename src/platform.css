@@ -2601,3 +2601,31 @@ select.cell-input { min-width: 132px; }
 .date-input.has-pnl-date input.pnl-date { font-size: 12.5px; }
 /* o calendário fica no canto, na linha do título, e a data usa a largura toda */
 .date-input.has-pnl-date .date-input-btn { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; }
+
+/* contrato no modelo da pessoa (Word): folha branca com o desenho dela */
+.ch-own .contract-page.ch-page { background: #fff; padding: 72px 72px 48px; display: block; color: #1d1d1b; font-family: 'Calibri', 'Carlito', 'Arial', sans-serif; }
+.ch-doc, .ch-doc-edit { font-size: 11pt; line-height: 1.35; color: #1d1d1b; overflow-wrap: anywhere; }
+.ch-doc p, .ch-doc h2, .ch-doc h3, .ch-doc h4, .ch-doc-edit p, .ch-doc-edit h2, .ch-doc-edit h3, .ch-doc-edit h4 { margin: 0 0 8px; font-family: inherit; color: inherit; letter-spacing: normal; text-transform: none; }
+.ch-doc h2, .ch-doc-edit h2 { font-size: 1.35em; font-weight: 700; }
+.ch-doc h3, .ch-doc-edit h3 { font-size: 1.15em; font-weight: 700; }
+.ch-doc h4, .ch-doc-edit h4 { font-size: 1.05em; font-weight: 700; }
+.ch-doc table, .ch-doc-edit table { width: 100%; border-collapse: collapse; margin: 0 0 10px; }
+.ch-doc td, .ch-doc-edit td { border: 1px solid #bdbdbd; padding: 4px 8px; vertical-align: top; }
+.ch-doc table.ch-noborder td, .ch-doc-edit table.ch-noborder td { border: 0; }
+.ch-doc td p, .ch-doc-edit td p { margin-bottom: 2px; }
+.ch-tab { display: inline-block; width: 3em; }
+.ch-num { display: inline-block; min-width: 1.6em; }
+.ch-break { height: 0; }
+.ch-doc-edit .ch-break { border-top: 1px dashed #cfcfcf; margin: 14px 0; }
+.ch-doc img, .ch-doc-edit img { max-width: 100%; height: auto; }
+.ch-sign { margin-top: 36px; }
+.ch-pnum { position: absolute; right: 40px; bottom: 22px; font-size: 10px; color: #9a9a9a; }
+/* editor na folha */
+.rt { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.rt-bar { display: flex; align-items: center; gap: 2px; padding: 6px; border-bottom: 1px solid var(--border); background: var(--surface-2); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+.rt-btn { min-width: 32px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: 13px; display: inline-grid; place-items: center; cursor: pointer; }
+.rt-btn:hover { background: var(--surface); }
+.rt-bold { font-weight: 800; } .rt-italic { font-style: italic; font-family: Georgia, serif; } .rt-underline { text-decoration: underline; }
+.rt-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+.rt-page { background: #fff; padding: 36px 40px; min-height: 420px; max-height: 70vh; overflow: auto; outline: none; font-family: 'Calibri', 'Carlito', 'Arial', sans-serif; }
+@media (max-width: 640px) { .rt-page { padding: 18px 16px; } }

@@ -298,7 +298,7 @@ const cloud = {
     }
     if (admin.data === true) return { role: 'dona', sub: null, legacy: false }
     // cria a assinatura em teste grátis na primeira entrada (o plano vem do cadastro)
-    const { data, error } = await sb.rpc('garantir_assinatura', { plano: 'completo' })
+    const { data, error } = await sb.rpc('garantir_assinatura', { plano: 'estudio' })
     if (error) throw error
     const row = (Array.isArray(data) ? data[0] : data) as Row | null
     return { role: 'cliente', sub: row ? subFromRow(row) : null, legacy: false }

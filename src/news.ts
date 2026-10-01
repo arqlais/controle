@@ -30,6 +30,30 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-documentos-todos',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'todos os PDFs em documentos',
+    text: 'Proposta, recibo, contrato e os documentos do estúdio agora ficam juntos em "documentos", com a aba "modelo e padrões". Cada PDF tem a aparência ali mesmo: modelo, cores da marca, fontes e logotipo.',
+    steps: [{ page: 'documentos', text: 'No menu, "documentos" reúne tudo.' }],
+  },
+  {
+    id: '2026-10-01-contrato-modelo-word',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'seu contrato com o seu desenho',
+    text: 'Anexando o contrato do Word, ele fica igual ao seu arquivo (negrito, cores, tabelas, listas e imagens), editável direto na folha e com prévia.',
+    feature: 'contratos',
+    steps: [{ page: 'contratos', text: 'Toque em "anexar meu contrato".' }],
+  },
+  {
+    id: '2026-10-01-metas-perfil',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'metas e para quem você trabalha',
+    text: 'Meta do ano para qualquer formato (não só MEI) e, em configurações, a escolha de trabalhar para freelancer, cliente final ou os dois. A lista de demandas também ficou mais organizada.',
+  },
+  {
     id: '2026-10-01-documentos-aparencia',
     date: '2026-10-01',
     kind: 'melhoria',

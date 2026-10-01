@@ -6,7 +6,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
@@ -86,12 +86,14 @@ export default function Admin() {
     try {
       await platform.updateSubscriber(s.userId, patch)
       setSubs((list) => list.map((x) => (x.userId === s.userId ? { ...x, ...patch } : x)))
-      toast(msg)
+      if (msg) toast(msg)
       // assinatura ativada agora: a pessoa recebe o e-mail de confirmação (se a função de avisos estiver publicada)
       if (patch.status === 'ativa' && s.status !== 'ativa') void platform.notice({ tipo: 'ativada', userId: s.userId }).catch(() => undefined)
     } catch {
       toast('Não foi possível salvar. Confira a internet e se o SQL da plataforma foi rodado no Supabase.')
+      return false
     }
+    return true
   }
   const openChat = (id: string) => {
     setChatWith(id)
@@ -197,7 +199,7 @@ const remindText = (s: Subscription, c?: SubAdmin) =>
 
 const activate = (s: Subscription): Partial<Subscription> => ({ status: 'ativa', plan: s.requestedPlan ?? s.plan, requestedPlan: null, requestedAt: null, canceledAt: null, blocked: false })
 
-function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
+function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; openChat: (id: string) => void; billing: Record<string, Billing>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const requests = subs.filter((x) => x.requestedPlan)
   const now = new Date()
   const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`
@@ -275,7 +277,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
           {endingTrials.map((s) => (
             <div key={s.userId} className="pf-plan-line">
               <b>{s.name || s.email}</b>
-              <span className="muted small">teste do {PLANS[s.plan].name}</span>
+              <span className="muted small">teste do {PLANS[effectivePlan(s)].name}</span>
               <Badge color="#7d8c99">{`teste acaba em ${trialDaysLeft(s)} dia(s)`}</Badge>
               <span className="grow" />
               <button className="btn small ghost" onClick={() => openChat(s.userId)}>
@@ -359,7 +361,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
   )
 }
 
-function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
+function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos'>('painel-filtro', 'todos')
   const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
@@ -383,6 +385,19 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
             ? (b.lastSeen || '').localeCompare(a.lastSeen || '')
             : b.createdAt.localeCompare(a.createdAt),
     )
+  // todos que estão no teste grátis passam a testar o Estúdio (o plano mais completo)
+  const allTrialsToStudio = async () => {
+    const list = subs.filter((x) => x.status === 'trial' && !x.deletedAt && x.plan !== 'estudio')
+    let n = 0
+    for (const x of list) {
+      if (await update(x, { plan: 'estudio' }, '')) n++
+      else {
+        toast('Não consegui trocar. Rode no Supabase o arquivo supabase/atualizacao-2026-10-01.sql (libera o plano Estúdio) e tente de novo.')
+        break
+      }
+    }
+    if (n) toast(`${n} ${n === 1 ? 'pessoa em teste passou' : 'pessoas em teste passaram'} para o ${PLANS.estudio.name}.`)
+  }
   const exportCSV = () => {
     const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
     const head = ['nome', 'e-mail', 'estúdio', 'plano', 'situação', 'ciclo', 'forma', 'pago até', 'total pago', 'desde', 'último acesso', 'telefone', 'cidade', 'anotações']
@@ -416,6 +431,11 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
           <option value="vencimento">vencimento</option>
           <option value="acesso">último acesso</option>
         </select>
+        {subs.some((x) => x.status === 'trial' && !x.deletedAt && x.plan !== 'estudio') && (
+          <button className="btn ghost small" onClick={() => void allTrialsToStudio()} title="Quem está no teste grátis passa a testar o Estúdio">
+            <Icon name="crown" size={14} /> todos em teste no {PLANS.estudio.name}
+          </button>
+        )}
         <button className="btn ghost small" onClick={exportCSV} title="Planilha com os assinantes deste filtro">
           <Icon name="download" size={14} /> CSV
         </button>
@@ -438,7 +458,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
               </header>
               <div className="pf-badges">
                 <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
-                <Badge color="#3e4b57">{PLANS[s.plan].name}</Badge>
+                <Badge color="#3e4b57">{s.status === 'trial' ? `testando o ${PLANS[effectivePlan(s)].name}` : PLANS[s.plan].name}</Badge>
                 {s.deletedAt ? <Badge color="#9aa3ab">conta apagada em {dateBR(s.deletedAt)}</Badge> : s.blocked && <Badge color="#9a5b53">bloqueado</Badge>}
                 {!s.deletedAt && s.status === 'cancelada' && s.canceledAt && <Badge color="#9aa3ab">desativou em {dateBR(s.canceledAt)}</Badge>}
                 {s.requestedPlan && <Badge color="#b08a7e">pediu o {PLANS[s.requestedPlan].name}</Badge>}
@@ -1387,7 +1407,7 @@ function TermsEditor() {
 }
 
 /** Teste grátis de cada pessoa: aumentar, escolher a data, encerrar agora ou dar um teste novo. */
-function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<void> }) {
+function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean> }) {
   const DAY = 86_400_000
   const inTrial = s.status === 'trial'
   const left = trialDaysLeft(s)

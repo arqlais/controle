@@ -78,12 +78,12 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'paineis', label: 'painel do cliente', icon: 'link', group: 'vendas' },
   { page: 'briefings', label: 'briefings', icon: 'clip', group: 'vendas' },
   { page: 'contratos', label: 'contratos', icon: 'briefcase', group: 'vendas' },
-  { page: 'documentos', label: 'documentos', icon: 'ruler', group: 'estudio' },
+  { page: 'documentos', label: 'documentos', icon: 'file', group: 'vendas' },
   { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' },
   { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
 ]
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'documentos', paineis: 'portal' }
+const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
