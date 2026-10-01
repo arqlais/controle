@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-rolagem-celular',
+    date: '2026-10-01',
+    kind: 'correcao',
+    title: 'rolagem mais leve no celular',
+    text: 'A tela rola fluida no celular, sem trancos. No orçamento, a proposta cabe inteira na tela e o topo rola junto com a página.',
+  },
+  {
     id: '2026-10-01-ia-para-orcamento',
     date: '2026-10-01',
     kind: 'novo',

@@ -185,25 +185,38 @@ export default function App() {
   setEventLabels(settings.eventLabels)
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
-  // topo das páginas de item fixo: mede a barra de busca e marca quando o topo "grudou" (fica mais compacto)
+  // topo das páginas de item fixo: mede a barra de busca e marca quando o topo "grudou" (fica mais compacto).
+  // Leve para o celular: no máximo uma leitura por quadro, só escreve quando o valor muda,
+  // e o "grudou" tem folga (não fica liga-desliga quando a altura do topo muda).
   useEffect(() => {
-    const onScroll = () => {
+    let raf = 0
+    let last = { bar: -1, head: -1, stuck: false }
+    const measure = () => {
+      raf = 0
       const bar = document.querySelector<HTMLElement>('.topbar')
       const h = bar?.offsetHeight ?? 70
-      document.documentElement.style.setProperty('--topbar-h', `${h}px`)
+      if (h !== last.bar) document.documentElement.style.setProperty('--topbar-h', `${h}px`)
       const head = document.querySelector<HTMLElement>('.sticky-head')
-      if (head) head.classList.toggle('is-stuck', window.scrollY > 40 && head.getBoundingClientRect().top <= h + 1)
-      // altura do topo fixo: a prévia do PDF para logo abaixo dele (não fica escondida atrás)
-      document.documentElement.style.setProperty('--head-h', `${head?.offsetHeight ?? 0}px`)
+      const y = window.scrollY
+      // no celular o topo rola junto (não gruda): nada muda de tamanho durante a rolagem
+      const stuck = !!head && window.innerWidth > 820 && (last.stuck ? y > 24 : y > 72)
+      if (head && stuck !== head.classList.contains('is-stuck')) head.classList.toggle('is-stuck', stuck)
+      const hh = head?.offsetHeight ?? 0
+      if (hh !== last.head) document.documentElement.style.setProperty('--head-h', `${hh}px`)
+      last = { bar: h, head: hh, stuck }
     }
-    onScroll()
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(measure)
+    }
+    measure()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
     return () => {
+      if (raf) cancelAnimationFrame(raf)
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
     }
-  }, [])
+  }, [route.page, route.id])
   useEffect(() => {
     try {
       if (settings.brandName?.trim()) localStorage.setItem(BRAND_KEY, settings.brandName.trim())
