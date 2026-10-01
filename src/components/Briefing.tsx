@@ -703,9 +703,18 @@ export function BriefingForm({ id, data: b, preview }: { id: string; data: Publi
 export function BriefingPreview({ tpl, clientName, onClose }: { tpl: Pick<BriefingTemplate, 'name' | 'questions' | 'sections'>; clientName?: string; onClose: () => void }) {
   const { data } = useStore()
   const payload = briefingPayload(data.settings, tpl, clientName || 'Ana')
+  const [cel, setCel] = useState(typeof window !== 'undefined' && window.innerWidth < 720)
   return (
     <Modal title={`${tpl.name} · como o cliente vê`} onClose={onClose} wide>
-      <div className="bf-preview-frame">
+      <div className="bf-preview-toggle segmented" role="tablist" aria-label="Aparelho">
+        <button type="button" className={!cel ? 'active' : ''} onClick={() => setCel(false)}>
+          <Icon name="monitor" size={14} /> computador
+        </button>
+        <button type="button" className={cel ? 'active' : ''} onClick={() => setCel(true)}>
+          <Icon name="smartphone" size={14} /> celular
+        </button>
+      </div>
+      <div className={`bf-preview-frame ${cel ? 'is-cel' : ''}`}>
         <BriefingForm id="previa" data={{ payload, answered: false, source: 'local' }} preview />
       </div>
     </Modal>
@@ -718,7 +727,7 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
   const text = typeof value === 'string' ? value : ''
   const opts = q.options ?? []
   const pics = q.optionImages ?? {}
-  const withPics = (q.kind === 'choice' || q.kind === 'multi') && opts.some((o) => pics[o])
+  const withPics = (q.kind === 'choice' || q.kind === 'multi') && (!!q.photoCols || opts.some((o) => pics[o]))
   // "outro": o que a pessoa escreveu e não é uma das opções
   const otherVal = q.kind === 'multi' ? list.find((v) => !opts.includes(v)) ?? '' : q.kind === 'choice' && text && !opts.includes(text) ? text : ''
   const isOn = (o: string) => (q.kind === 'multi' ? list.includes(o) : text === o)
@@ -739,10 +748,10 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
         </div>
       )}
       {withPics ? (
-        <div className={`bf-imgopts ${opts.length > 4 ? 'is-many' : ''}`} role={q.kind === 'choice' ? 'radiogroup' : undefined}>
+        <div className={`bf-imgopts ${q.photoCols ? `cols-${q.photoCols}` : opts.length > 4 ? 'is-many' : ''}`} role={q.kind === 'choice' ? 'radiogroup' : undefined}>
           {opts.map((o) => (
             <button key={o} type="button" className={`bf-imgopt ${isOn(o) ? 'is-on' : ''}`} onClick={() => toggle(o)} aria-pressed={isOn(o)}>
-              <span className="bf-imgopt-pic">{pics[o] ? <ArtImage src={pics[o]} alt={o} /> : <span className="bf-imgopt-none">{o.slice(0, 1)}</span>}</span>
+              <span className="bf-imgopt-pic">{pics[o] ? <ArtImage src={pics[o]} alt={o} /> : <span className="bf-imgopt-none"><b>{o}</b></span>}</span>
               <span className="bf-imgopt-label">
                 <i className={q.kind === 'choice' ? 'bf-radio' : 'bf-box'} aria-hidden />
                 {o}

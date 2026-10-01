@@ -188,6 +188,8 @@ export async function importBriefingFile(file: File): Promise<BriefingTemplate> 
   const current = () => questions[questions.length - 1]
   const checkboxOf = new Map<string, boolean>()
   const imagesOf = new Map<string, Blob[]>()
+  const optImagesOf = new Map<string, Map<string, Blob>>() // foto de cada opção (imagem na linha da opção ou logo abaixo dela)
+  let lastOpt = ''
 
   for (const p of paras) {
     const t = p.text
@@ -203,6 +205,13 @@ export async function importBriefingFile(file: File): Promise<BriefingTemplate> 
       const opt = t.replace(OPTION, '').trim()
       if (opt) q.options = [...(q.options ?? []), opt]
       if (CHECKBOX.test(t)) checkboxOf.set(q.id, true)
+      lastOpt = opt
+      if (opt && p.images.length) {
+        const m = optImagesOf.get(q.id) ?? new Map<string, Blob>()
+        m.set(opt, p.images[0])
+        optImagesOf.set(q.id, m)
+        continue
+      }
     } else if (t && isQuestion(t)) {
       if (!section) newSection('perguntas')
       const q: BriefingQuestion = { id: `q-${uid()}`, section, label: t.replace(NUMBERED, '').replace(/:\s*$/, '').trim(), kind: 'long' }
@@ -214,8 +223,16 @@ export async function importBriefingFile(file: File): Promise<BriefingTemplate> 
     } else if (t && current() && !current().hint && t.length < 200) {
       current().hint = t // explicação logo abaixo da pergunta
     }
+    if (t && !(p.list || OPTION.test(t))) lastOpt = ''
     if (p.images.length) {
       const q = current()
+      // imagem sozinha logo abaixo de uma opção que ainda não tem foto: é a foto dessa opção
+      if (q && !t && lastOpt && !optImagesOf.get(q.id)?.has(lastOpt)) {
+        const m = optImagesOf.get(q.id) ?? new Map<string, Blob>()
+        m.set(lastOpt, p.images[0])
+        optImagesOf.set(q.id, m)
+        continue
+      }
       if (q) imagesOf.set(q.id, [...(imagesOf.get(q.id) ?? []), ...p.images])
       else pending.push(...p.images)
     }
@@ -231,8 +248,27 @@ export async function importBriefingFile(file: File): Promise<BriefingTemplate> 
         q.other = true
       }
     } else delete q.options
-    const imgs = imagesOf.get(q.id)
-    if (imgs?.length) q.images = await Promise.all(imgs.map(toDataUrl))
+    let imgs = imagesOf.get(q.id) ?? []
+    const per = optImagesOf.get(q.id)
+    // fotos da pergunta sem opções (ex.: "qual destas referências você gosta?"): cada foto vira uma opção para tocar
+    if (imgs.length >= 2 && !(q.options ?? []).length && q.kind !== 'photos') {
+      q.kind = 'multi'
+      q.options = imgs.map((_, i) => `referência ${i + 1}`)
+    }
+    const o = q.options ?? []
+    if ((q.kind === 'choice' || q.kind === 'multi') && o.length) {
+      const map = new Map(per ?? [])
+      // tantas fotos quanto opções, em sequência: uma para cada opção, na mesma ordem do arquivo
+      if (!map.size && imgs.length === o.length) {
+        o.forEach((opt, i) => map.set(opt, imgs[i]))
+        imgs = []
+      }
+      if (map.size) {
+        q.optionImages = Object.fromEntries(await Promise.all([...map].map(async ([k, b]) => [k, await toDataUrl(b)] as const)))
+        q.photoCols = o.length <= 2 ? 2 : o.length === 3 ? 3 : o.length === 4 ? 4 : o.length % 3 === 0 ? 3 : 4
+      }
+    }
+    if (imgs.length) q.images = await Promise.all(imgs.map(toDataUrl))
   }
   // imagens que sobraram sem pergunta (fim do arquivo): viram referência da primeira pergunta de estilo/referências, ou da primeira
   if (pending.length) {

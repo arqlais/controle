@@ -23,7 +23,7 @@ export const DECK_DEFAULTS = {
   thanks: 'obrigada pela confiança!',
 }
 
-const Img = ({ src, className, pos, fit }: { src?: string; className?: string; pos?: PhotoPos; fit?: boolean }) => (src ? <img className={className} src={src} alt="" style={photoStyle(pos, fit)} /> : <span className={`dk-ph ${className ?? ''}`}>imagem</span>)
+const Img = ({ src, className, pos, fit }: { src?: string; className?: string; pos?: PhotoPos; fit?: boolean }) => (src ? <img className={className} src={src} alt="" style={photoStyle(pos, fit)} /> : <span className={`dk-ph ${className ?? ''}`}><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1M3 16l5-5 5 5 3-3 5 5M15.5 10.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3" /></svg><small>adicione sua imagem</small></span>)
 
 const Title = ({ a, b }: { a: string; b?: string }) => (
   <h2 className="dk-title">

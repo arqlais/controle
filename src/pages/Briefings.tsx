@@ -7,7 +7,7 @@ import { askChoice, askDelete, toast } from '../components/dialog'
 import { BriefingList, BriefingPreview, NewBriefing } from '../components/Briefing'
 import { KIND_LABEL, allTemplates, findTemplate, isBuiltin, templateGroup } from '../briefingTemplates'
 import { referenceImage } from '../briefingApi'
-import { ArtImage, styleOptions } from '../components/BriefingArt'
+import { ArtImage } from '../components/BriefingArt'
 import type { BriefingKind, BriefingQuestion, BriefingSection, BriefingTemplate } from '../types'
 import { uid } from '../utils'
 
@@ -370,7 +370,6 @@ function QuestionEditor({ q, all, n, first, last, sections, onChange, onMove, on
       toast('Não consegui abrir esta imagem.')
     }
   }
-  const styleArt = styleOptions(opts)
   // perguntas de escolha que vêm antes: podem "abrir" esta como sub-pergunta
   const parents = all.filter((x) => x.id !== q.id && (x.kind === 'choice' || x.kind === 'multi') && all.indexOf(x) < all.indexOf(q))
   const parent = parents.find((x) => x.id === q.showIf?.q)
@@ -406,6 +405,64 @@ function QuestionEditor({ q, all, n, first, last, sections, onChange, onMove, on
       {(showHint || q.hint) && <input className="bf-qed-hint" value={q.hint ?? ''} onChange={(e) => onChange({ hint: e.target.value })} placeholder="explicação curta embaixo da pergunta" aria-label="Explicação" />}
 
       {hasOptions && (
+        <div className="bf-qed-photo-pick">
+          <span className="muted small">
+            <Icon name="image" size={13} /> fotos nas opções
+          </span>
+          <div className="segmented">
+            {([0, 2, 3, 4, 6] as const).map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={(q.photoCols ?? 0) === n ? 'active' : ''}
+                onClick={() => onChange(n ? { photoCols: n, options: opts.length >= n ? opts : [...opts, ...Array.from({ length: n - opts.length }, (_, k) => `opção ${opts.length + k + 1}`)] } : { photoCols: undefined })}
+              >
+                {n ? `${n} fotos` : 'sem foto'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {hasOptions && q.photoCols ? (
+        <div className={`bf-photogrid cols-${q.photoCols}`}>
+          {opts.map((o, i) => (
+            <div key={i} className="bf-photogrid-item">
+              <button type="button" className={`ph-slot ${pics[o] ? 'has-img' : ''}`} onClick={() => (setOptTarget(o), optFile.current?.click())} title={pics[o] ? 'Trocar a foto' : 'Adicionar a sua referência'}>
+                {pics[o] ? <ArtImage src={pics[o]} /> : (
+                  <>
+                    <Icon name="image" size={22} />
+                    <small>adicione sua referência</small>
+                  </>
+                )}
+              </button>
+              <div className="bf-photogrid-row">
+                <input
+                  value={o}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    const nextPics = pics[o] ? Object.fromEntries(Object.entries(pics).map(([k, img]) => [k === o ? v : k, img])) : undefined
+                    onChange({ options: opts.map((x, j) => (j === i ? v : x)), ...(nextPics ? { optionImages: nextPics } : {}) })
+                  }}
+                  aria-label={`Opção ${i + 1}`}
+                />
+                {pics[o] && (
+                  <button className="icon-btn subtle" title="Tirar a foto" aria-label="Tirar a foto" onClick={() => onChange({ optionImages: Object.fromEntries(Object.entries(pics).filter(([k]) => k !== o)) })}>
+                    <Icon name="trash" size={13} />
+                  </button>
+                )}
+                <button className="icon-btn subtle" onClick={() => onChange({ options: opts.filter((_, j) => j !== i) })} aria-label="Tirar opção" title="Tirar opção">
+                  <Icon name="x" size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+          <button type="button" className="ph-slot ph-add" onClick={() => onChange({ options: [...opts, `opção ${opts.length + 1}`] })}>
+            <Icon name="plus" size={18} />
+            <small>mais uma opção</small>
+          </button>
+          <input ref={optFile} type="file" accept="image/*" hidden onChange={(e) => (void putOptionImage(e.target.files?.[0]), (e.target.value = ''))} />
+        </div>
+      ) : hasOptions && (
         <div className="bf-qed-opts">
           {opts.map((o, i) => (
             <div key={i} className="bf-qed-opt">
@@ -452,11 +509,6 @@ function QuestionEditor({ q, all, n, first, last, sections, onChange, onMove, on
             )}
           </div>
           <input ref={optFile} type="file" accept="image/*" hidden onChange={(e) => (void putOptionImage(e.target.files?.[0]), (e.target.value = ''))} />
-          {Object.keys(styleArt).length > 0 && Object.keys(styleArt).some((k) => !pics[k]) && (
-            <button className="link small bf-qed-art" onClick={() => onChange({ optionImages: { ...styleArt, ...pics } })}>
-              ✨ usar as ilustrações prontas de estilo
-            </button>
-          )}
           {Object.keys(pics).length > 0 && <p className="bf-qed-info">O cliente escolhe tocando nas imagens. Troque pelas fotos dos seus projetos quando quiser.</p>}
           {q.other && (
             <div className="bf-qed-opt">

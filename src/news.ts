@@ -30,6 +30,15 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-briefing-fotos',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'briefing com as suas fotos',
+    text: 'Nas perguntas de escolha, coloque 2, 3, 4 ou 6 fotos suas como opções; os espaços vazios mostram "adicione sua referência". O briefing anexado do Word já traz as fotos de cada opção, e a prévia mostra como fica no computador e no celular.',
+    feature: 'briefing',
+    steps: [{ page: 'briefings', text: 'Abra um modelo e escolha "fotos nas opções" numa pergunta de escolha.' }],
+  },
+  {
     id: '2026-10-01-documentos-todos',
     date: '2026-10-01',
     kind: 'novo',

@@ -80,7 +80,7 @@ export function ImageField({ label, value, onChange, hint, max, aspect, pos, onP
       <span className="field-label">{label}</span>
       <div className="dk-img-row">
         <button type="button" className={`dk-img-slot ${value ? 'has-img' : ''}`} onClick={() => ref.current?.click()}>
-          {value ? <img src={value} alt="" /> : <Icon name="camera" size={18} />}
+          {value ? <img src={value} alt="" /> : <><Icon name="image" size={18} /><small>adicione</small></>}
         </button>
         <div className="stack-s">
           <button type="button" className="btn small" onClick={() => ref.current?.click()}>

@@ -1,5 +1,4 @@
 import type { BriefingQuestion, BriefingSection, BriefingTemplate, ClientProfile } from './types'
-import { STYLE_ART } from './components/BriefingArt'
 
 /* Biblioteca de briefings prontos por tipo de projeto. Tudo editável pela pessoa
    (vira a versão dela) e com texto próprio: perguntas curtas, no tom de conversa. */
@@ -31,7 +30,7 @@ function T(id: string, name: string, description: string, icon: string, secs: Se
 
 const STYLES = ['contemporâneo', 'clássico', 'minimalista', 'industrial', 'boho', 'rústico', 'japandi', 'escandinavo']
 const styleQ = (label = 'Qual destes estilos tem mais a ver com você?') =>
-  many('estilo', label, STYLES, { ...pics(Object.fromEntries(STYLES.map((s) => [s, STYLE_ART[s]]))), hint: 'Pode marcar mais de um. As imagens são só para inspirar.', ...field('style') })
+  many('estilo', label, STYLES, { photoCols: 4, hint: 'Pode marcar mais de um. As imagens são só para inspirar.', ...field('style') })
 
 const COLORS: Record<string, string> = {
   'off-white e areia': 'art:#ece4d8',
@@ -197,7 +196,7 @@ export const LIBRARY: BriefingTemplate[] = [
       many('conforto', 'Conforto', ['tratamento acústico', 'pé-direito duplo', 'jardim de inverno', 'tela mosquiteira']),
     ]],
     ['conceito', 'conceito e fachada', '', [
-      many('conceito', 'Conceito da arquitetura', ['contemporâneo', 'clássico', 'rústico', 'moderno', 'americano', 'minimalista'], pics({ contemporâneo: STYLE_ART['contemporâneo'], clássico: STYLE_ART['clássico'], rústico: STYLE_ART['rústico'], moderno: STYLE_ART['moderno'], americano: STYLE_ART['americano'], minimalista: STYLE_ART['minimalista'] })),
+      many('conceito', 'Conceito da arquitetura', ['contemporâneo', 'clássico', 'rústico', 'moderno', 'americano', 'minimalista'], { photoCols: 3 }),
       one('telhado', 'Telhado', ['platibanda (telhado escondido)', 'telhado aparente', 'laje / terraço']),
       many('fachada', 'Detalhes de fachada que você gosta', ['brises', 'cobogós', 'madeira', 'pedra', 'concreto aparente', 'vidro']),
       one('esquadrias', 'Esquadrias', ['alumínio preto', 'alumínio branco', 'madeira', 'tanto faz']),
@@ -371,7 +370,7 @@ export const LIBRARY: BriefingTemplate[] = [
       many('precisa', 'Precisa ter', ['espelho de corpo inteiro', 'penteadeira', 'ilha com gavetas', 'banco / puff', 'gaveta com chave', 'cofre', 'passadeira embutida']),
     ]],
     ['acabamento', 'acabamento', '', [
-      one('portas', 'Portas', ['sem portas (aberto)', 'vidro fumê', 'vidro reflecta', 'espelho', 'MDF', 'palhinha'], pics({ 'sem portas (aberto)': STYLE_ART['minimalista'], 'vidro fumê': 'art:#5b5a58', 'vidro reflecta': 'art:#9a8f84', espelho: 'art:#cfd6da', MDF: 'art:#e6ddd1', palhinha: 'art:#c9a978' })),
+      one('portas', 'Portas', ['sem portas (aberto)', 'vidro fumê', 'vidro reflecta', 'espelho', 'MDF', 'palhinha'], pics({ 'vidro fumê': 'art:#5b5a58', 'vidro reflecta': 'art:#9a8f84', espelho: 'art:#cfd6da', MDF: 'art:#e6ddd1', palhinha: 'art:#c9a978' })),
       one('luz', 'Iluminação', ['fita de LED nas prateleiras', 'luz geral', 'os dois']),
       styleQ(),
       spacePhotos(),

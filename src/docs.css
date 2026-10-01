@@ -555,3 +555,8 @@ button.back:hover { color: var(--text); }
   .docs-daily .docs-card-icon { grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; row-gap: 2px; padding: 14px; }
   .docs-daily .docs-ico { grid-row: 1 / span 3; width: 52px; aspect-ratio: 1; margin: 0; }
 }
+/* espaço de foto vazio: cor sólida com o símbolo de imagem */
+.dk-img-slot:not(.has-img) { border: 0; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: color-mix(in srgb, var(--accent) 70%, var(--muted)); align-content: center; gap: 2px; }
+.dk-img-slot small { font-size: 10.5px; font-weight: 600; }
+.dk-ph { align-content: center; gap: 8px; background: var(--d-soft); letter-spacing: .04em; text-transform: none; }
+.dk-ph small { font-size: 13px; font-weight: 600; }
