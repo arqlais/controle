@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-docs-painel',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'documentos novos já vão para o painel do cliente',
+    text: 'Documento ou contrato novo de um cliente que tem painel já aparece no painel dele; se não quiser mostrar, é só desmarcar em “o que o cliente vê”. Na aba documentos, proposta, recibo e contrato ganharam a miniatura com o seu modelo.',
+  },
+  {
     id: '2026-10-01-contrato-anexado-e-layouts',
     date: '2026-10-01',
     kind: 'melhoria',

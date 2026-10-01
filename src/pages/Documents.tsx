@@ -25,7 +25,12 @@ import { go, setLeaveGuard } from '../router'
 import { SavedDocs } from '../components/SavedDocs'
 import { askChoice, askDelete, toast } from '../components/dialog'
 import { useFormDraft } from '../components/SaveBar'
-import { uid } from '../utils'
+import { today, uid } from '../utils'
+import { withPanelShare } from '../clientPanel'
+import { BillDoc, QuoteDoc } from '../components/Docs'
+import { ContractDoc } from '../components/ContractDoc'
+import { contractSettings } from '../contracts'
+import type { Quote } from '../types'
 
 /* Documentos do estúdio (plano Estúdio): peças prontas com a sua marca, no design escolhido
    em Configurações → propostas. Tudo editável: pelos campos ou direto na folha. */
@@ -104,6 +109,11 @@ function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; 
         updatedAt: now,
       }
       upsert('docs', doc)
+      // documento novo de quem tem painel: já aparece no painel do cliente
+      if (!savedId) {
+        const shared = withPanelShare(client, 'docs', doc.id)
+        if (shared) upsert('clients', shared)
+      }
       setSavedId(doc.id)
       toast(`Salvo na ficha de ${client?.name.split(' ')[0] ?? 'cliente'}.`)
     } else {
@@ -191,6 +201,14 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
     briefing: { node: <BriefingSheetDoc s={s} tpl={allTemplates(s.briefingTemplates, s.hiddenBriefings).find((t) => t.id === 'infantil') ?? allTemplates(s.briefingTemplates, s.hiddenBriefings)[0]} />, w: PAGE.a4[0] },
     apresentacao: { node: <DeckDoc s={s} data={docs.deck} stages={processesOf(s)[0]?.steps.map((x) => x.name) ?? []} />, w: PAGE.slide[0] },
   }
+  // miniaturas dos PDFs do dia a dia (exemplo com o seu modelo, cores e logo)
+  const sampleQuote: Quote = { id: 'amostra', number: 1, clientId: '', title: 'Apartamento Savassi', mode: 'escopo', pdf: true, area: 85, clientLabel: '', items: [{ id: 'a', service: '', title: 'projeto de interiores', detail: '85 m²', description: 'layout, marcenaria e iluminação', quantity: 85, complexity: 'media', price: 6800, auto: false }, { id: 'b', service: '', title: 'imagens 3d', detail: '5 imagens', description: 'sala, cozinha e suíte', quantity: 5, complexity: 'media', price: 900, auto: false }], options: [], chosenOption: '', discount: 0, discountNote: '', files: s.proposal.files, schedule: s.proposal.schedule, urgency: false, deadlineDays: 30, validityDays: 15, revisions: s.defaultRevisions, paymentTerms: s.defaultPaymentTerms, notes: '', status: 'rascunho', sentAt: '', createdAt: today(), projectId: '' }
+  const tplBody = contractSettings(s, false).templates[0]?.body ?? 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS'
+  const dailyThumb: Record<string, ReactNode> = {
+    proposta: <QuoteDoc s={s} quote={sampleQuote} client={{ id: '', name: 'Mariana Costa', company: '', type: 'final', email: '', phone: '', instagram: '', city: '', document: '', origin: '', notes: '', favorite: false, archived: false, history: [], createdAt: '' }} />,
+    recibo: <BillDoc s={s} year={today().slice(0, 4)} info={{ kind: 'servico', label: 'projeto de interiores', total: 7700, paid: 3850, cards: [{ icon: 'folder', title: 'levantamento', text: 'medição do espaço', on: true }, { icon: 'edit', title: 'layout', text: 'estudo **aprovado**', on: true }, { icon: 'laptop', title: 'executivo', text: 'detalhamento', on: false }] }} />,
+    contrato: <ContractDoc s={s} body={tplBody} clientName="Mariana Costa" />,
+  }
   // PDFs do dia a dia: cada um abre onde ele é feito (o orçamento, a demanda, o contrato)
   const daily: { id: string; title: string; text: string; icon: string; feature: Feature; open: () => void }[] = [
     { id: 'proposta', title: 'proposta / orçamento', text: 'em folha única ou em slides, com os seus serviços, valores e prazos', icon: 'file', feature: 'propostaPdf', open: () => go('orcamentos', 'novo') },
@@ -239,16 +257,19 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
             {daily.map((d) =>
               has(d.feature) ? (
                 <button key={d.id} type="button" className="docs-card docs-card-icon" onClick={d.open}>
-                  <span className="docs-ico" aria-hidden>
-                    <Icon name={d.icon} size={26} />
+                  <span className="docs-thumb" aria-hidden>
+                    <DocScale width={PAGE.a4[0]}>{dailyThumb[d.id]}</DocScale>
                   </span>
                   <b>{d.title}</b>
                   <small>{d.text}</small>
                 </button>
               ) : (
                 <div key={d.id} className="docs-card docs-card-icon is-locked">
-                  <span className="docs-ico" aria-hidden>
-                    <Icon name={d.icon} size={26} />
+                  <span className="docs-thumb" aria-hidden>
+                    <DocScale width={PAGE.a4[0]}>{dailyThumb[d.id]}</DocScale>
+                    <span className="docs-lock">
+                      <Icon name="lock" size={14} />
+                    </span>
                   </span>
                   <b>{d.title}</b>
                   <small>{d.text}</small>

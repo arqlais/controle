@@ -1,3 +1,4 @@
+import { withPanelShare } from '../clientPanel'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
@@ -216,6 +217,8 @@ function NewContract({ onClose }: { onClose: () => void }) {
       createdAt: today(),
     }
     upsert('contracts', c)
+    const shared = withPanelShare(data.clients.find((x) => x.id === c.clientId), 'contracts', c.id)
+    if (shared) upsert('clients', shared)
     onClose()
     go('contratos', c.id)
   }

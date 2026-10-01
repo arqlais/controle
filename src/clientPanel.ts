@@ -238,3 +238,10 @@ export async function uploadPanelFile(userId: string, file: File): Promise<Panel
 export async function removePanelFile(userId: string, f: PanelFile) {
   if (f.path && useCloud()) await supabase!.storage.from('agenda').remove([`${userId}/${f.path}`]).catch(() => undefined)
 }
+
+/** Documento ou contrato novo de um cliente com painel: já entra no painel (o profissional desmarca se não quiser mostrar). */
+export function withPanelShare(client: Client | undefined, key: 'docs' | 'contracts', id: string): Client | null {
+  const p = client?.panel
+  if (!client || !p?.enabled || (p[key] ?? []).includes(id)) return null
+  return { ...client, panel: { ...p, [key]: [...(p[key] ?? []), id] } }
+}

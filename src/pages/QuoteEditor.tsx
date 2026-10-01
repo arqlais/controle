@@ -1,3 +1,4 @@
+import { withPanelShare } from '../clientPanel'
 import { useEffect, useRef, useState } from 'react'
 import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
@@ -432,6 +433,8 @@ export default function QuoteEditor({ id }: { id: string }) {
     if (!tpl) return toast('Crie um modelo de contrato primeiro (menu contratos).')
     const c: Contract = { id: uid(), title: `contrato · ${cur.title || client?.name || 'sem título'}`, quoteId: cur.id, clientId: cur.clientId, templateId: tpl.id, ...(tpl.html ? (() => { const html = fillHtml(tpl.html!, contractVars(settings, cur, client)); return { html, body: htmlToText(html) } })() : { body: fillContract(tpl.body, contractVars(settings, cur, client)) }), status: 'rascunho', createdAt: today() }
     upsert('contracts', c)
+    const shared = withPanelShare(client, 'contracts', c.id)
+    if (shared) upsert('clients', shared)
     toast(`Contrato criado com o modelo “${tpl.name}”. Revise antes de mandar.`)
     go('contratos', c.id)
   }

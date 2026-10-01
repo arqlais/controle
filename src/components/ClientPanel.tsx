@@ -220,7 +220,7 @@ export function PanelControls({ client, open }: { client: Client; open?: boolean
                 </button>
               </label>
             ))}
-            {docs.length > 0 && <p className="pn-group">documentos salvos</p>}
+            {docs.length > 0 && <p className="pn-group">documentos salvos <small className="muted">· os novos já entram marcados</small></p>}
             {docs.map((x) => (
               <label key={x.id} className="check">
                 <input type="checkbox" checked={(panel.docs ?? []).includes(x.id)} onChange={(e) => toggle('docs', x.id, e.target.checked)} /> <span>{x.title}</span>
