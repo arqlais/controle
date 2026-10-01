@@ -121,7 +121,7 @@ function Step({ n, step }: { n: number; step: GuideStep }) {
 }
 
 export function MeasureGuideDoc({ s, data }: { s: Settings; data?: MeasureGuideData }) {
-  const look = useDocLook(s)
+  const look = useDocLook(s, 'guia')
   const d = guideData(data)
   const first = d.steps.slice(0, 5)
   const rest = d.steps.slice(5)

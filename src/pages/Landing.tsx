@@ -306,8 +306,6 @@ export default function Landing() {
   const signup = (plan?: PlanId) => go('cadastro', plan)
   const [cycle, setCycle] = useCycle()
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  // no celular os planos ficam lado a lado (arrastar): a escolha rápida centraliza o cartão
-  const pickPlan = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
 
   return (
     <div className="lp" ref={root}>
@@ -546,31 +544,17 @@ export default function Landing() {
       <section className="lp-section lp-alt" id="planos">
         <div className="lp-wrap">
           <SectionHead eyebrow="planos" title={<>um plano para cada momento, <em className="nowrap">sem fidelidade</em></>} text={`Teste o ${PLANS.estudio.name} (o mais completo) grátis por ${TRIAL_DAYS} dias, sem cartão. Depois, escolha o plano do tamanho do seu trabalho.`} />
-          <div className="lp-pick" data-reveal>
-            <span className="muted small">escolha rápida:</span>
-            <button onClick={() => pickPlan('plano-essencial')}>
-              <Icon name="user" size={14} /> começando, texto no WhatsApp <b>{PLANS.essencial.name}</b>
-            </button>
-            <button onClick={() => pickPlan('plano-completo')}>
-              <Icon name="file" size={14} /> freelancer com PDF e contratos <b>{PLANS.completo.name}</b>
-            </button>
-            <button onClick={() => pickPlan('plano-estudio')}>
-              <Icon name="home" size={14} /> atende cliente final <b>{PLANS.estudio.name}</b>
-            </button>
-          </div>
-          <div className="cy-row" data-reveal>
+          <div className="cy-panel" data-reveal>
             <CycleToggle value={cycle} onChange={setCycle} />
-            <span className="muted small">{cycleHint(cycle)}</span>
+            <p className="cy-hint">
+              <span>{cycleHint(cycle)}</span>
+              {annualBadge() && cycle !== 'anual' && (
+                <button type="button" className="link" onClick={() => setCycle('anual')}>
+                  no anual, {annualBadge()} →
+                </button>
+              )}
+            </p>
           </div>
-          {annualBadge() && cycle !== 'anual' && (
-            <button className="cy-promo" onClick={() => setCycle('anual')}>
-              <Icon name="star" size={15} />
-              <span>
-                <b>No anual você ganha {annualBadge()}</b> e ainda pode dividir em 12x sem juros no cartão.
-              </span>
-              <em>ver o anual</em>
-            </button>
-          )}
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} id={`plano-${p.id}`} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>

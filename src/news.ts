@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-contrato-anexado-e-layouts',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'contrato anexado no modelo do sistema e layout por documento',
+    text: 'Ao anexar o seu contrato (Word ou PDF), o texto entra no modelo de contrato com a sua marca: cláusulas viram títulos, o cabeçalho do papel timbrado sai e tudo fica editável, com “ver como fica”. Se quiser, dá para tentar o desenho do arquivo. E cada documento (guia de medição, placa, briefing, apresentação e recibo) agora pode ter o próprio modelo de layout, escolhido no próprio documento. O menu também ficou na ordem mais usada.',
+  },
+  {
     id: '2026-10-01-fechamento-e-contrato-pdf',
     date: '2026-10-01',
     kind: 'novo',

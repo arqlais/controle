@@ -17,7 +17,14 @@ function tidy(text: string) {
   // sobras do bloco de assinatura no fim (nomes das partes, testemunhas)
   const tail = /^(contratante|contratad[ao]|testemunhas?|assinatura|nome|cpf|rg)\b[\s:0-9._-]*$/i
   while (out.length && (!out[out.length - 1].trim() || tail.test(out[out.length - 1].trim()))) out.pop()
-  return out.join('\n').trim()
+  // cabeçalho do papel timbrado (nome do estúdio, contatos) antes do título: o modelo já põe o da conta
+  const head = out.findIndex((l, i) => i < 14 && /^\s*(instrumento particular de\s+)?contrato\b/i.test(l))
+  if (head > 0) out.splice(0, head)
+  return out
+    .join('\n')
+    // letras espaçadas (A R Q U I T E T U R A) voltam a ser uma palavra
+    .replace(/\b(?:\p{L} ){3,}\p{L}\b/gu, (m) => m.replace(/ /g, ''))
+    .trim()
 }
 
 async function fromDocx(file: File) {
@@ -166,18 +173,18 @@ export const swapAll = (body: string, text: string, tag: string) => body.split(t
 export async function importContract(file: File): Promise<{ body: string; html?: string }> {
   const name = file.name.toLowerCase()
   if (name.endsWith('.docx')) {
-    const { docxToHtml, htmlToText } = await import('./contractHtml')
+    const { docxToHtml, structuredText } = await import('./contractHtml')
     const html = dropSignLines(await docxToHtml(file))
-    const body = tidy(htmlToText(html))
+    const body = tidy(structuredText(html))
     if (body.length < 40) throw new Error('vazio')
     return { body, html }
   }
   if (name.endsWith('.pdf')) {
     // PDF com texto: mesmo desenho (títulos, negrito, centralizado…); se não der, só o texto
     try {
-      const { pdfToHtml, htmlToText } = await import('./contractHtml')
+      const { pdfToHtml, structuredText } = await import('./contractHtml')
       const html = dropSignLines(await pdfToHtml(file))
-      const body = tidy(htmlToText(html))
+      const body = tidy(structuredText(html))
       if (body.length >= 40) return { body, html }
     } catch (e) {
       if (e instanceof Error && e.message === 'pdf-imagem') throw e

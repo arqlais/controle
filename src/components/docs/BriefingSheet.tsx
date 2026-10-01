@@ -162,7 +162,7 @@ function Head({ tpl, client }: { tpl: Pick<BriefingTemplate, 'name'>; client?: s
 }
 
 export function BriefingSheetDoc({ s, tpl, client, answers }: { s: Settings; tpl: Pick<BriefingTemplate, 'name' | 'sections' | 'questions'>; client?: string; answers?: BriefingAnswers }) {
-  const look = useDocLook(s)
+  const look = useDocLook(s, 'briefing')
   const blocks = blocksOf(tpl)
   const sig = JSON.stringify([tpl.name, tpl.sections, tpl.questions, look.look, answers ?? null])
   // mede cada pergunta de verdade (fora da tela) e só então distribui nas folhas

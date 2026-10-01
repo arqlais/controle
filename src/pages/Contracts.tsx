@@ -92,7 +92,8 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   const [imported, setImported] = useState(false)
   // usar o próprio contrato: vira um modelo novo (anexado do Word/PDF ou em branco para colar o texto)
   const useMine = (name = 'meu contrato', body = '', html?: string) => {
-    const t: ContractTemplate = { id: uid(), name, body, ...(html ? { html } : {}) }
+    // o texto entra no modelo de contrato do traço (sempre funciona, com a marca da pessoa); o desenho do arquivo fica guardado como opção
+    const t: ContractTemplate = { id: uid(), name, body, ...(html ? { fileHtml: html } : {}) }
     setSettings({ contracts: { ...cs, templates: [t, ...cs.templates] } })
     setImported(!!body)
     setMineId(t.id)
@@ -480,7 +481,7 @@ function useContractUpload(onText: (name: string, body: string, html?: string) =
         try {
           const { body, html } = await importContract(f)
           onText(f.name.replace(/\.[^.]+$/, '').slice(0, 60) || 'meu contrato', body, html)
-          toast(html ? 'Contrato anexado com o seu modelo. Confira e troque os dados fixos pelas etiquetas.' : 'Contrato anexado. Confira o texto e troque os dados fixos pelas etiquetas.')
+          toast('Contrato anexado: o seu texto já está no modelo de contrato, com a sua marca. Confira e troque os dados fixos pelas etiquetas.')
         } catch (err) {
           toast(importError(err))
         } finally {
@@ -678,7 +679,31 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
               )}
             </>
           ) : (
+          <>
+          {cur.fileHtml && (
+            <p className="pf-note">
+              <Icon name="file" size={16} />
+              <span>
+                O texto do seu arquivo está no modelo de contrato do traço, com a sua marca. Quer tentar o desenho original?{' '}
+                <button type="button" className="link" onClick={() => patch({ html: cur.fileHtml })}>
+                  usar o desenho do arquivo
+                </button>{' '}
+                <small className="muted">(funciona bem em Word simples; fundos, ícones e formas não vêm)</small>
+              </span>
+            </p>
+          )}
           <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
+          {cur.body.trim().length > 40 && (
+            <button type="button" className="btn small ghost ct-see" onClick={() => setPreview(true)}>
+              <Icon name="eye" size={14} /> ver como fica
+            </button>
+          )}
+          {preview && (
+            <DocZoom onClose={() => setPreview(false)}>
+              <ContractDoc s={data.settings} body={cur.body} clientName="{contratante}" />
+            </DocZoom>
+          )}
+          </>
           )}
           <p className="muted small">As mudanças valem para os próximos contratos. Os que você já criou não mudam.</p>
         </Section>

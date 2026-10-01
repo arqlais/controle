@@ -1,3 +1,4 @@
+import { useKindSettings } from './DocKit'
 import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
@@ -409,7 +410,8 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
   )
 }
 
-export function ReceiptDoc({ s, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
+export function ReceiptDoc({ s: s0, client, project, payment }: { s: Settings; client?: Client; project: Project; payment: Payment }) {
+  const s = useKindSettings(s0, 'recibo')
   const { tpl, p } = useSheet(s)
   const { name: payer, doc: payerDoc } = payerOf(client)
   const date = payment.paidDate ?? today()
@@ -474,7 +476,8 @@ const BILL_ICONS: Record<BillCard['icon'], ReactNode> = {
 
 const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((part, i) => (part.startsWith('**') ? <b key={i}>{part.slice(2, -2)}</b> : part))
 
-export function BillDoc({ s, info, year }: { s: Settings; info: BillInfo; year: string }) {
+export function BillDoc({ s: s0, info, year }: { s: Settings; info: BillInfo; year: string }) {
+  const s = useKindSettings(s0, 'recibo')
   const [a, b] = ['recibo', 'serviço']
   const pct = info.total > 0 ? Math.round((info.paid / info.total) * 100) : 0
   const rest = Math.max(0, info.total - info.paid)

@@ -38,7 +38,7 @@ function renderSlides(list: DeckImage[]) {
 }
 
 export function DeckDoc({ s, data, stages }: { s: Settings; data?: DeckData; stages: string[] }) {
-  const look = useDocLook(s)
+  const look = useDocLook(s, 'apresentacao')
   const d = { ...DECK_DEFAULTS, ...data }
   const renders = (data?.renders ?? []).filter((x) => x.src)
   const mood = (data?.mood ?? []).map((src, i) => ({ src, pos: data?.moodPos?.[i] })).filter((x) => x.src)

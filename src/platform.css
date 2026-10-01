@@ -2929,3 +2929,9 @@ select.cell-input { min-width: 132px; }
   .cp-hero:not(.has-cover) .cp-brand { padding-right: 84px; }
   .cp-hero.has-cover .cp-ring { top: 96px; }
 }
+/* planos: período e explicação alinhados com o título, numa coluna só */
+.cy-panel { display: grid; justify-items: start; gap: 8px; margin: 0 0 22px; }
+.cy-hint { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13.5px; color: var(--muted); }
+.cy-hint .link { font-size: 13.5px; font-weight: 600; }
+@media (max-width: 620px) { .cy-panel { justify-items: stretch; } .cy-panel .segmented, .cy-panel > :first-child { max-width: 100%; } }
+@media (min-width: 721px) { .pf-plan-cards.lp-plans { max-width: none; margin: 0; } }

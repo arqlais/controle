@@ -488,3 +488,30 @@ export async function pdfToHtml(file: File): Promise<string> {
   }
   return `<div class="ch-doc" style="font-size:${base}pt${serif ? ";font-family:Georgia,'Times New Roman',serif" : ''}">${out.join('')}</div>`
 }
+
+/** Texto com a estrutura do arquivo, para sair no modelo de contrato do traço:
+    títulos (estilo de título ou parágrafo curto todo em negrito) viram MAIÚSCULAS, listas ganham número ou marcador. */
+export function structuredText(html: string): string {
+  const d = new DOMParser().parseFromString(html, 'text/html')
+  d.querySelectorAll('br').forEach((b) => b.replaceWith('\n'))
+  d.querySelectorAll('td').forEach((td) => td.append(' '))
+  const out: string[] = []
+  d.body.querySelectorAll('p, h1, h2, h3, h4, h5, h6, li, tr').forEach((el) => {
+    if (el.closest('td') && el.tagName !== 'TR') return
+    if (el.tagName === 'P' && el.closest('li')) return
+    const t = (el.textContent ?? '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').trim()
+    if (!t) return out.push('')
+    if (/^H\d$/.test(el.tagName)) return out.push(t.toUpperCase())
+    if (el.tagName === 'LI') {
+      const list = el.parentElement
+      const n = list ? [...list.children].indexOf(el) + 1 : 1
+      return out.push(list?.tagName === 'OL' ? `${n}. ${t}` : `• ${t}`)
+    }
+    // parágrafo curto todo em negrito = título de cláusula
+    const plain = [...el.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? '').trim())
+    const bold = !plain && [...el.children].every((c) => /^(STRONG|B)$/.test(c.tagName) || (c as HTMLElement).style?.fontWeight >= '600' || !!c.querySelector('strong, b'))
+    if (bold && t.length < 90 && !/[.;,]$/.test(t)) return out.push(t.toUpperCase())
+    out.push(t)
+  })
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}

@@ -45,7 +45,7 @@ export function plaqueData(s: Settings, d?: PlaqueData): Required<Omit<PlaqueDat
 }
 
 export function PlaqueDoc({ s, data }: { s: Settings; data?: PlaqueData }) {
-  const look = useDocLook(s)
+  const look = useDocLook(s, 'placa')
   const d = plaqueData(s, data)
   const brand = (s.brandName || s.ownerName || 'estúdio').toLowerCase()
   const url = linkFrom(d.link)

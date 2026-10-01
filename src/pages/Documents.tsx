@@ -321,7 +321,7 @@ function GuideEditor({ value, set, w }: EdProps<MeasureGuideData>) {
       doc={<MeasureGuideDoc s={s} data={value} />}
       form={
         <>
-          <DocLookPanel />
+          <DocLookPanel kind="guia" />
           <Section title="textos">
             <Field label="Título">
               <input value={d.title} onChange={(e) => set({ title: e.target.value })} />
@@ -418,7 +418,7 @@ function PlaqueEditor({ value, set, w }: EdProps<PlaqueData>) {
       note={<p className="muted small">O PDF sai na proporção 3:4, em alta resolução. Na gráfica, peça a impressão em {SIZES[d.size]} (lona ou PVC).</p>}
       form={
         <>
-          <DocLookPanel />
+          <DocLookPanel kind="placa" />
           <Section title="layout">
             <div className="proc-pick">
               {PLAQUE_LAYOUTS.map((l) => (
@@ -490,7 +490,7 @@ function BriefingPdfEditor({ value, set, w, clientName }: EdProps<{ briefingTpl?
       doc={<BriefingSheetDoc s={s} tpl={tpl} client={clientName} />}
       form={
         <>
-          <DocLookPanel />
+          <DocLookPanel kind="briefing" />
           <Section title="modelo">
             <Field label="Qual briefing">
               <select value={tpl.id} onChange={(e) => setTplId(e.target.value)}>
@@ -543,7 +543,7 @@ function DeckEditor({ value, set, w }: EdProps<DeckData>) {
       doc={<DeckDoc s={s} data={{ ...deck, stage: current }} stages={stages} />}
       form={
         <>
-          <DocLookPanel />
+          <DocLookPanel kind="apresentacao" />
           <Section title="projeto">
             <Field label="Demanda (opcional)" hint="Puxa o nome do projeto, o cliente e as etapas do cronograma.">
               <select value={deck.projectId ?? ''} onChange={(e) => pickProject(e.target.value)}>

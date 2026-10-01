@@ -469,6 +469,7 @@ export interface ContractTemplate {
   name: string
   body: string
   html?: string // modelo da própria pessoa (do Word), com o desenho dela
+  fileHtml?: string // desenho do arquivo anexado, guardado (dá para usar depois em "usar o desenho do arquivo")
 }
 
 export interface ContractSettings {
@@ -537,6 +538,7 @@ export interface Settings {
   document: string
   pixKey: string
   closingRest?: string // texto do restante na mensagem de fechamento
+  docLooks?: Record<string, string> // modelo de layout de cada documento (vazio = o mesmo da proposta)
   calendarToken: string // chave secreta do link de agenda para o celular ('' = desligada)
   calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean; periodos?: boolean } // o que vai para o celular
   city: string

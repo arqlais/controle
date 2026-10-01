@@ -16,9 +16,24 @@ import '../docs.css'
    - qualquer texto pode ser editado direto no documento antes de baixar
    - o PDF sai folha por folha, do tamanho certo */
 
-/** Design da conta: cores, fontes e o modelo (coluna, faixa, planilha, editorial…). */
-export function useDocLook(s: Settings) {
+export type LookKind = 'guia' | 'placa' | 'briefing' | 'apresentacao' | 'recibo'
+/** Configurações com o modelo de layout escolhido só para este documento (cores, fontes e logo continuam os da conta). */
+export function kindSettings(s: Settings, has: Parameters<typeof resolveTemplate>[1], kind?: LookKind): Settings {
+  const id = kind ? s.docLooks?.[kind] : undefined
+  const o = id ? TEMPLATES.find((t) => t.id === id) : undefined
+  if (!o || !templateAllowed(o, has) || o.id === resolveTemplate(s.proposal, has).id) return s
+  const brand = followsBrand(s.proposal, has, s) && o.id !== 'lais'
+  return { ...s, proposal: { ...s.proposal, ...(brand ? { followBrand: true } : o.colors), template: o.id } }
+}
+export function useKindSettings(s: Settings, kind?: LookKind): Settings {
   const { has } = useAccess()
+  return kindSettings(s, has, kind)
+}
+
+/** Design da conta: cores, fontes e o modelo (coluna, faixa, planilha, editorial…). */
+export function useDocLook(s0: Settings, kind?: LookKind) {
+  const { has } = useAccess()
+  const s = kindSettings(s0, has, kind)
   const tpl = resolveTemplate(s.proposal, has)
   const p = sheetColors(s.proposal, has, s)
   const style = {
@@ -311,7 +326,7 @@ export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { 
 /** Aparência dos documentos, dentro de cada um: as 4 escolhas (modelo, cores, fontes e logotipo).
  *  Vale para todos os PDFs da conta (proposta, recibo, contrato, briefing e documentos do estúdio).
  *  `fold`: começa recolhida (nos editores com muitos campos). */
-export function DocLookPanel({ fold }: { fold?: boolean } = {}) {
+export function DocLookPanel({ fold, kind }: { fold?: boolean; kind?: LookKind } = {}) {
   const { data, setSettings } = useStore()
   const { has } = useAccess()
   const raw = data.settings
@@ -320,7 +335,11 @@ export function DocLookPanel({ fold }: { fold?: boolean } = {}) {
   const colors = sheetColors(raw.proposal, has, raw)
   const logoRef = useRef<HTMLInputElement>(null)
   const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
+  // num documento: o modelo vale só para ele ("igual à proposta" volta a seguir o padrão)
+  const own = kind ? raw.docLooks?.[kind] : undefined
+  const shown = kind && own ? TEMPLATES.find((t) => t.id === own && templateAllowed(t, has)) ?? current : current
   const pick = (id: string) => {
+    if (kind) return setSettings({ docLooks: { ...(raw.docLooks ?? {}), [kind]: id === current.id ? '' : id } })
     const t = TEMPLATES.find((x) => x.id === id)!
     setSettings({ proposal: { ...raw.proposal, ...t.colors, template: id } })
   }
@@ -338,13 +357,13 @@ export function DocLookPanel({ fold }: { fold?: boolean } = {}) {
     <div className="dk-look">
       <div className="dk-look-row">
         <span className="dk-look-k">
-          <Icon name="layers" size={14} /> modelo
+          <Icon name="layers" size={14} /> {kind ? 'modelo deste documento' : 'modelo'}
         </span>
         <div className="dk-look-tpls" role="radiogroup" aria-label="Modelo">
           {visible.map((t) => {
             const allowed = templateAllowed(t, has)
             return (
-              <button key={t.id} type="button" role="radio" aria-checked={current.id === t.id} className={`dk-look-tpl ${current.id === t.id ? 'is-on' : ''}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
+              <button key={t.id} type="button" role="radio" aria-checked={shown.id === t.id} className={`dk-look-tpl ${shown.id === t.id ? 'is-on' : ''}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
                 <span className="dk-look-sw" style={{ background: t.colors.paper }}>
                   <i style={{ background: t.colors.bar }} />
                   <i style={{ background: t.colors.arch }} />

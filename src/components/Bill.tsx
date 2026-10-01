@@ -121,7 +121,7 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
             ))}
             <p className="muted small">Palavras entre **asteriscos** ficam em destaque rosé.</p>
           </div>
-          <DocLookPanel fold />
+          <DocLookPanel fold kind="recibo" />
         </div>
         <div className="bill-preview">
           <DocScale>{doc}</DocScale>
