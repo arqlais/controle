@@ -76,26 +76,32 @@ export default function ClientDetail({ id }: { id: string }) {
             </div>
           </div>
         </div>
-        <div className="row gap-s wrap">
-          {c.phone && (
-            <a className="btn ghost" href={whatsappLink(c.phone, `Olá, ${c.name.split(' ')[0]}! `)} target="_blank" rel="noreferrer">
-              <Icon name="whatsapp" size={16} /> WhatsApp
-            </a>
+        <div className="row gap-s wrap client-acts">
+          {(c.phone || c.email || c.instagram) && (
+            <div className="client-acts-group">
+              {c.phone && (
+                <a className="btn ghost" href={whatsappLink(c.phone, `Olá, ${c.name.split(' ')[0]}! `)} target="_blank" rel="noreferrer">
+                  <Icon name="whatsapp" size={16} /> WhatsApp
+                </a>
+              )}
+              {c.email && (
+                <a className="btn ghost" href={`mailto:${c.email}`}>
+                  <Icon name="mail" size={16} /> E-mail
+                </a>
+              )}
+              {c.instagram && (
+                <a className="btn ghost" href={instagramLink(c.instagram)} target="_blank" rel="noreferrer" aria-label="Instagram" title="Instagram">
+                  <Icon name="instagram" size={16} />
+                </a>
+              )}
+            </div>
           )}
-          {c.email && (
-            <a className="btn ghost" href={`mailto:${c.email}`}>
-              <Icon name="mail" size={16} /> E-mail
-            </a>
-          )}
-          {c.instagram && (
-            <a className="btn ghost" href={instagramLink(c.instagram)} target="_blank" rel="noreferrer">
-              <Icon name="instagram" size={16} />
-            </a>
-          )}
-          <button className="btn ghost" onClick={() => setEdit(true)}>
-            <Icon name="edit" size={16} /> Editar
-          </button>
-          <MessagesButton client={c} project={projects.find(isOpen) ?? projects[0]} quote={quotes.find((q) => q.status === 'enviado' || q.status === 'rascunho')} />
+          <div className="client-acts-group">
+            <button className="btn ghost" onClick={() => setEdit(true)}>
+              <Icon name="edit" size={16} /> Editar
+            </button>
+            <MessagesButton client={c} project={projects.find(isOpen) ?? projects[0]} quote={quotes.find((q) => q.status === 'enviado' || q.status === 'rascunho')} />
+          </div>
         </div>
       </div>
 
@@ -261,7 +267,7 @@ export default function ClientDetail({ id }: { id: string }) {
             </Section>
           )}
 
-          <div className="row gap-s wrap">
+          <div className="row gap-s wrap danger-row">
             <button className="btn ghost small" onClick={() => upsert('clients', { ...c, archived: !c.archived })}>
               {c.archived ? 'Desarquivar' : 'Arquivar cliente'}
             </button>

@@ -452,10 +452,10 @@ function Funnel() {
   const closed = made.filter((q) => q.status === 'aprovado')
   if (!briefs.length && !made.length) return null
   const steps: [string, number, string][] = [
-    ...(briefs.length ? ([['briefings enviados', briefs.length, 'clip'], ['respondidos', answered.length, 'check']] as [string, number, string][]) : []),
-    ['propostas feitas', made.length, 'file'],
-    ['enviadas', sent.length, 'whatsapp'],
-    ['fechadas', closed.length, 'target'],
+    ...(briefs.length ? ([[briefs.length === 1 ? 'briefing enviado' : 'briefings enviados', briefs.length, 'clip'], [answered.length === 1 ? 'respondido' : 'respondidos', answered.length, 'check']] as [string, number, string][]) : []),
+    [made.length === 1 ? 'proposta feita' : 'propostas feitas', made.length, 'file'],
+    [sent.length === 1 ? 'enviada' : 'enviadas', sent.length, 'whatsapp'],
+    [closed.length === 1 ? 'fechada' : 'fechadas', closed.length, 'target'],
   ]
   const top = Math.max(...steps.map((x) => x[1]), 1)
   const shift = (n: number) => {

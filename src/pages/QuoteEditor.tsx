@@ -573,9 +573,14 @@ export default function QuoteEditor({ id }: { id: string }) {
               </button>
             )}
             <AskAIButton quote={q} />
+            {existing && id !== 'novo' && id !== 'antigo' && (
+              <button className="btn ghost danger only-mobile" onClick={deleteQuote}>
+                <Icon name="trash" size={16} /> excluir orçamento
+              </button>
+            )}
           </MoreMenu>
           {existing && id !== 'novo' && id !== 'antigo' && (
-            <button className="btn ghost danger icon-only" onClick={deleteQuote} title="Excluir este orçamento" aria-label="Excluir este orçamento">
+            <button className="btn ghost danger icon-only hide-mobile" onClick={deleteQuote} title="Excluir este orçamento" aria-label="Excluir este orçamento">
               <Icon name="trash" size={16} />
             </button>
           )}

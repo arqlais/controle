@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
-import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
+import { Badge, Empty, Field, Modal, MoreMenu, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import { useFormDraft } from '../components/SaveBar'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
@@ -354,16 +354,18 @@ function ContractEditor({ id }: { id: string }) {
               <Icon name="whatsapp" size={16} /> enviar
             </a>
           )}
-          <button className="btn ghost" onClick={() => pdf.downloadVector(doc, file)} title="Imprimir em folhas A4 (ou salvar como PDF pela impressão)">
-            <Icon name="printer" size={16} /> imprimir
-          </button>
-          <button className="btn ghost" onClick={() => setZoom(true)} title="Ver o contrato em tamanho grande">
-            <Icon name="eye" size={16} /> ver maior
-          </button>
-          <button className="btn ghost" onClick={() => navigator.clipboard?.writeText(c.body).then(() => toast('Texto copiado.')).catch(() => toast('Selecione o texto e copie.'))}>
-            <Icon name="copy" size={16} /> copiar texto
-          </button>
-          <button className={`btn ${dirty ? 'primary' : 'ghost is-saved'}`} disabled={!dirty} onClick={() => save()}>
+          <MoreMenu>
+            <button className="btn ghost" onClick={() => pdf.downloadVector(doc, file)} title="Imprimir em folhas A4 (ou salvar como PDF pela impressão)">
+              <Icon name="printer" size={16} /> imprimir
+            </button>
+            <button className="btn ghost" onClick={() => setZoom(true)} title="Ver o contrato em tamanho grande">
+              <Icon name="eye" size={16} /> ver maior
+            </button>
+            <button className="btn ghost" onClick={() => navigator.clipboard?.writeText(c.body).then(() => toast('Texto copiado.')).catch(() => toast('Selecione o texto e copie.'))}>
+              <Icon name="copy" size={16} /> copiar texto
+            </button>
+          </MoreMenu>
+          <button className={`btn head-save ${dirty ? 'primary' : 'ghost is-saved'}`} disabled={!dirty} onClick={() => save()}>
             {dirty ? 'salvar' : 'salvo'}
           </button>
         </div>
