@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-servicos-organizados',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'sua tabela de serviços organizada',
+    text: 'Os serviços que estavam em “outros” foram para as áreas certas (3D, desenho técnico, apresentação…), e repetidos que não estavam em nenhum orçamento viraram um só. Valores e orçamentos já feitos continuam exatamente iguais.',
+    steps: [{ text: 'Veja em configurações → preços.', page: 'config', configTab: 'precos' }],
+  },
+  {
     id: '2026-10-01-painel-personalizado',
     date: '2026-10-01',
     kind: 'novo',

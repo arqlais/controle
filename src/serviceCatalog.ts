@@ -199,3 +199,47 @@ export const CATALOG: Record<CatalogKind, { label: string; icon: string; hint: s
   final: { label: 'para cliente final', icon: 'home', hint: 'arquitetura, interiores, obra e consultoria para quem é dono do imóvel', groups: build(FINAL, 'final') },
   freela: { label: 'para arquitetos, designers e escritórios', icon: 'briefcase', hint: 'freelancer: desenho, 3D, detalhamento, apresentação e planejamento', groups: build(FREELA, 'freela') },
 }
+
+/* ---------- organizar tabelas antigas ---------- */
+
+const norm = (t: string) => t.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+const RULES: Record<CatalogKind, [RegExp, string][]> = {
+  freela: [
+    [/render|imagem|perspectiv|humaniz|modelag|\b3d\b|pos-produ|video|animac|tour/, '3D e visualização'],
+    [/marcenaria|marmoraria|mobiliario|construtivo|quantitativo|tabela/, 'detalhamento'],
+    [/prancha|diagrama|mapa|apresenta|slide|moodboard|portfolio|monografia|book/, 'apresentação'],
+    [/orcament|cotac|cronograma|planejamento|materiais/, 'orçamento e planejamento'],
+    [/executivo|detalh|desenho|levantamento|as built|compatibiliz|atualiza|projeto|legal|prefeitura/, 'projetos e desenho técnico'],
+    [/hora|revis|altera|ajuste/, 'avulsos'],
+  ],
+  final: [
+    [/interior|decora|mobili|ilumina|cozinha|banheiro/, 'interiores'],
+    [/obra|visita|vistoria|gerenciamento|administra/, 'obra'],
+    [/consultor/, 'consultoria'],
+    [/render|imagem|\b3d\b|modelag|humaniz|apresenta|perspectiv/, '3D e apresentação'],
+    [/marcenaria|marmoraria|pagina|complementar|compatibiliz|detalh|tecnic/, 'projetos técnicos'],
+    [/arquitet|reforma|residencial|comercial|corporativ|legal|regulariza|executivo|paisag|viabilidade|estudo|levantamento|projeto/, 'arquitetura'],
+  ],
+}
+
+/** Área de um serviço antigo (sem grupo): pelo nome igual ao do catálogo ou por palavras do nome. '' = deixa como está. */
+export function groupFor(x: ServiceDef, profile?: string): string {
+  if (x.id === 'personalizado' || /personalizad/.test(norm(x.name))) return ''
+  const kind: CatalogKind = x.audience === 'final' ? 'final' : x.audience === 'parceiro' ? 'freela' : profile === 'final' ? 'final' : 'freela'
+  const n = norm(x.name)
+  const same = CATALOG[kind].groups.find((g) => g.services.some((s) => norm(s.name) === n || s.id === x.id))
+  if (same) return same.label
+  return RULES[kind].find(([re]) => re.test(n))?.[1] ?? ''
+}
+
+/** Organiza a tabela sem mexer em valores: põe cada serviço sem grupo na área certa e junta os repetidos
+    (mesmo nome) que não estão em nenhum orçamento ou demanda. Os que já estão em uso ficam como estão. */
+export function organizeServices(list: ServiceDef[], profile: string | undefined, used: Set<string>): ServiceDef[] {
+  const out: ServiceDef[] = []
+  for (const x of list) {
+    const twin = out.find((y) => norm(y.name) === norm(x.name) && (!y.audience || !x.audience || y.audience === x.audience))
+    if (twin && !used.has(x.id)) continue // repetido e sem uso: fica só o primeiro (com os valores dele)
+    out.push(x.group?.trim() ? x : (() => { const g = groupFor(x, profile); return g ? { ...x, group: g } : x })())
+  }
+  return out
+}

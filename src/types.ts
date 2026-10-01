@@ -586,6 +586,7 @@ export interface Settings {
   messagesV3?: boolean // migração: mensagens de cobrar retorno (ajustes/aprovação)
   messagesV2?: boolean // migração: mensagens padrão reescritas em minúsculas, com emojis
   imagesV1?: boolean // migração: imagens deixaram de encarecer por pavimento
+  servicesGroupsV1?: boolean // migração: serviços sem área organizados nas áreas do catálogo
   slidesV1?: boolean // migração: serviço de apresentação em slides
   aiLowercase?: boolean // respostas da IA em minúsculas (R$ sempre maiúsculo); padrão ligado
   aiNotes?: string // regras e jeito de trabalhar, escritas por você, para a IA seguir

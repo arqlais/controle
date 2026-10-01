@@ -6,6 +6,7 @@ const previewSeenNews = () => {
   const last = NEWS.reduce((m, n) => (n.date > m ? n.date : m), '')
   return NEWS.filter((n) => n.date < last).map((n) => n.id)
 }
+import { organizeServices } from './serviceCatalog'
 import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS, servicesFor } from './clientDefaults'
 import { ARTIFACT } from './env'
 import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
@@ -528,12 +529,13 @@ function normalizeBase(d: Partial<Data>): Data {
         defaultRevisions: d.settings?.revisionsV1 ? d.settings.defaultRevisions : 1,
         revisionsV1: true,
         complexity: { ...base.settings.complexity, ...(d.settings?.complexity ?? {}) },
-        services: addSlides(d.settings?.slidesV1, (!d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })))).map((x) =>
+        services: organizeOnce(d, addSlides(d.settings?.slidesV1, (!d.settings?.services || d.settings.services.some((x) => !x.pricing) ? migrateServices(DEFAULT_SERVICES) : migrateServices(d.settings.services.map((x) => ({ ...x, tiers: x.tiers ?? [], min: x.min ?? 0 })))).map((x) =>
           // imagens não encarecem por pavimento (uma vez só; depois vale o que ela marcar)
           !d.settings?.imagesV1 && (x.id === 'render-vray' || x.id === 'render-ia') ? { ...x, perFloor: false } : x,
-        )),
+        ))),
         imagesV1: true,
         slidesV1: true,
+        servicesGroupsV1: !!d.settings?.servicesGroupsV1 || !defaultTable(d),
         // mensagens no jeito dela (uma vez só; as que ela editou ficam como estão)
         messages: !d.settings?.messagesV2 ? migrateMessages(d.settings?.messages) : d.settings.messagesV3 ? (d.settings.messages ?? DEFAULT_MESSAGES) : addNewMessages(d.settings.messages ?? DEFAULT_MESSAGES),
         messagesV2: true,
@@ -542,6 +544,20 @@ function normalizeBase(d: Partial<Data>): Data {
       d.settings,
     ),
   }
+}
+
+/** Tabela de exemplo sem mexer (conta nova): fica como está até a pessoa montar a dela. */
+const defaultTable = (d: Partial<Data>) => {
+  const raw = JSON.stringify(d.settings?.services ?? null)
+  return !d.settings?.services || raw === JSON.stringify(CLIENT_SERVICES) || raw === JSON.stringify(servicesFor(d.settings?.workProfile))
+}
+/** Uma vez só: serviços sem área vão para a área certa e repetidos sem uso se juntam (valores e orçamentos não mudam). */
+function organizeOnce(d: Partial<Data>, list: ServiceDef[]): ServiceDef[] {
+  if (d.settings?.servicesGroupsV1 || defaultTable(d)) return list
+  const used = new Set<string>()
+  for (const q of d.quotes ?? []) for (const i of [...(q.items ?? []), ...(q.options ?? []).flatMap((o) => o.items ?? [])]) if (i.service) used.add(i.service)
+  for (const p of d.projects ?? []) if (p.service) used.add(p.service)
+  return organizeServices(list, d.settings?.workProfile, used)
 }
 
 /** Dados salvos com a identidade antiga recebem as cores e fontes do site. */
