@@ -2935,3 +2935,23 @@ select.cell-input { min-width: 132px; }
 .cy-hint .link { font-size: 13.5px; font-weight: 600; }
 @media (max-width: 620px) { .cy-panel { justify-items: stretch; } .cy-panel .segmented, .cy-panel > :first-child { max-width: 100%; } }
 @media (min-width: 721px) { .pf-plan-cards.lp-plans { max-width: none; margin: 0; } }
+
+/* comprovante do assinante (PDF) */
+.proof-link { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0; }
+.proof-view { max-height: 65vh; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+.proof-doc { width: 794px; padding: 48px 56px; background: #fff; color: #2b2f33; font-family: 'Poppins', system-ui, sans-serif; font-size: 11.5px; line-height: 1.5; }
+.proof-doc header { border-bottom: 2px solid #3e4b57; padding-bottom: 12px; margin-bottom: 8px; }
+.proof-doc h1 { margin: 2px 0; font-size: 22px; color: #3e4b57; }
+.proof-doc h2 { margin: 20px 0 8px; font-size: 13px; text-transform: lowercase; color: #3e4b57; border-bottom: 1px solid #e6dcd8; padding-bottom: 4px; }
+.proof-k { margin: 0; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #a88a80; }
+.proof-muted { color: #7a7f84; }
+.proof-doc dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 20px; margin: 0; }
+.proof-doc dt { font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: #8a8f94; }
+.proof-doc dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.proof-doc table { width: 100%; border-collapse: collapse; }
+.proof-doc th, .proof-doc td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eee5e1; vertical-align: top; }
+.proof-doc th { font-size: 9.5px; letter-spacing: .06em; text-transform: uppercase; color: #8a8f94; }
+.proof-chat { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.proof-chat small { color: #8a8f94; }
+.proof-chat p { margin: 0; white-space: pre-wrap; }
+.proof-annex { margin-top: 26px; font-size: 10px; }

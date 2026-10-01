@@ -68,6 +68,13 @@ export interface SubAdmin {
   payments?: SubPayment[]
 }
 
+/** Um acesso registrado (data e hora, IP e aparelho). */
+export interface AccessEntry {
+  at: string
+  ip: string
+  ua: string
+}
+
 /** Termômetro de uso de uma conta: só contagens, nunca o conteúdo. */
 export interface Usage {
   quotes: number
@@ -396,6 +403,12 @@ const cloud = {
   async answerSuggestion(id: string, patch: Pick<Suggestion, 'status' | 'reply'>) {
     const { error } = await supabase!.from('suggestions').update({ status: patch.status, reply: patch.reply, updated_at: new Date().toISOString() }).eq('id', id)
     if (error) throw error
+  },
+  /** Acessos de uma conta (só a dona vê): para o comprovante do assinante. */
+  async accessLog(userId: string): Promise<AccessEntry[]> {
+    const { data, error } = await supabase!.from('access_log').select('at, ip, ua').eq('user_id', userId).order('at', { ascending: false }).limit(500)
+    if (error) return [] // SQL ainda não rodado
+    return (data ?? []).map((r) => ({ at: String(r.at), ip: (r.ip as string) || '', ua: (r.ua as string) || '' }))
   },
   async messages(clientId: string) {
     const { data, error } = await supabase!.from('support_messages').select('*').eq('client_id', clientId).order('created_at').limit(500)
@@ -779,6 +792,15 @@ const local = {
   async answerSuggestion(id: string, patch: Pick<Suggestion, 'status' | 'reply'>) {
     const db = readDB()
     writeDB({ ...db, suggestions: (db.suggestions ?? []).map((x) => (x.id === id ? { ...x, ...patch, updatedAt: new Date().toISOString() } : x)) })
+  },
+  async accessLog(userId: string): Promise<AccessEntry[]> {
+    // prévia: acessos de exemplo a partir do cadastro e do último acesso
+    const sub = readDB().subs.find((x) => x.userId === userId)
+    if (!sub) return []
+    const start = Date.parse(sub.createdAt || new Date().toISOString())
+    const end = Date.parse(sub.lastSeen || new Date().toISOString())
+    const n = Math.max(1, Math.min(12, Math.round((end - start) / 86_400_000 / 2)))
+    return Array.from({ length: n }, (_, i) => ({ at: new Date(end - ((end - start) * i) / n).toISOString(), ip: '177.12.34.56', ua: i % 2 ? 'iPhone · Safari' : 'Windows · Chrome' }))
   },
   async messages(clientId: string) {
     return readDB().messages.filter((x) => x.clientId === clientId)

@@ -1,4 +1,5 @@
 import { TermsText } from '../components/Terms'
+import { SubscriberProof } from '../components/SubscriberProof'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, MoneyInput, Section, Segmented, Stat } from '../components/ui'
@@ -363,6 +364,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
 
 function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
+  const [proof, setProof] = useState<Subscription | null>(null)
   const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos'>('painel-filtro', 'todos')
   const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
   const idle = (s: Subscription) => !s.lastSeen || Date.now() - new Date(s.lastSeen).getTime() > 14 * 86_400_000
@@ -411,6 +413,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
   if (!subs.length) return <Empty icon="users" title="nenhum assinante ainda" text="Quando alguém se cadastrar pela página de vendas, aparece aqui com o plano, o teste grátis e o último acesso." />
   return (
     <>
+      {proof && <SubscriberProof s={proof} b={billing[proof.userId]} ctrl={ctrl[proof.userId]} usage={usage[proof.userId]} onClose={() => setProof(null)} />}
       <div className="pf-toolbar">
         <input type="search" className="pf-search" placeholder="buscar por nome, e-mail ou estúdio…" value={q} onChange={(e) => setQ(e.target.value)} />
         <select value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)} aria-label="Filtrar">
@@ -484,6 +487,9 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
                 </div>
               </dl>
               {billing[s.userId] && <BillingDetails s={s} b={billing[s.userId]} save={(b) => saveBilling(s.userId, b)} />}
+              <button type="button" className="link small proof-link" onClick={() => setProof(s)}>
+                <Icon name="file" size={13} /> comprovante do assinante (para contestação de pagamento)
+              </button>
               {!s.deletedAt && <TrialControl s={s} update={update} />}
               {!s.deletedAt && (s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
               {s.deletedAt ? (

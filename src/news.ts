@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-comprovante-assinante',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'comprovante do assinante',
+    text: 'No painel da plataforma, cada assinante tem o “comprovante do assinante”: um PDF com cadastro, aceite dos termos, pedido, pagamentos, acessos, uso da conta e conversas, para anexar numa contestação de pagamento.',
+    beta: true,
+  },
+  {
     id: '2026-10-01-docs-painel',
     date: '2026-10-01',
     kind: 'melhoria',
