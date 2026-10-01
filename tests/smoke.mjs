@@ -301,7 +301,7 @@ try {
     const cid = await page.evaluate(() => { const k = Object.keys(localStorage).find((x) => x.startsWith('lais3d')); const d = JSON.parse(localStorage[k]); return d.contracts.find((c) => c.sign)?.clientId })
     await page.evaluate((id) => (location.hash = `#/clientes/${id}`), cid); await page.waitForTimeout(700)
     await page.getByRole('button', { name: /criar o painel/ }).click(); await page.waitForTimeout(800)
-    const plink = await page.locator('.pn-link-row input').inputValue()
+    const plink = await page.locator('.pn-link-row:not(.pn-newlink) input').inputValue()
     ok(plink.includes('#/cliente/'), 'painel: cria o link do painel do cliente')
     await page.locator('.pn-share summary').click()
     const boxes = page.locator('.pn-share input[type=checkbox]:not(:disabled):not(:checked)')

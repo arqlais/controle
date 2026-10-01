@@ -326,7 +326,7 @@ function PanelLinks({ links, onChange }: { links: PanelLink[]; onChange: (l: Pan
           </button>
         </div>
       ))}
-      <div className="pn-link-row">
+      <div className="pn-link-row pn-newlink">
         <input value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="cole o link: Drive, Pinterest, WeTransfer, tour 360…" aria-label="Novo link" />
         <button className="btn small" onClick={add} disabled={!url.trim()}>
           <Icon name="plus" size={14} /> adicionar
