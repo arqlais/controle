@@ -2790,3 +2790,7 @@ select.cell-input { min-width: 132px; }
 .cp-done-steps > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--cp-accent); list-style: none; }
 .cp-done-steps > summary::-webkit-details-marker { display: none; }
 .cp-done-steps[open] > summary { margin-bottom: 12px; }
+.bf-qed { min-width: 0; }
+.bf-qed > * { min-width: 0; }
+.bf-qed-photo-pick .segmented { min-width: 0; max-width: 100%; flex: 1 1 auto; overflow-x: auto; scrollbar-width: none; }
+.bf-qed-photo-pick .segmented button { flex: none; }

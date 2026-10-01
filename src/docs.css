@@ -560,3 +560,6 @@ button.back:hover { color: var(--text); }
 .dk-img-slot small { font-size: 10.5px; font-weight: 600; }
 .dk-ph { align-content: center; gap: 8px; background: var(--d-soft); letter-spacing: .04em; text-transform: none; }
 .dk-ph small { font-size: 13px; font-weight: 600; }
+.dk-look-tpls { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px; }
+.dk-look-tpls::-webkit-scrollbar { display: none; }
+.dk-look-tpl { flex: none; }
