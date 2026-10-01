@@ -7,6 +7,7 @@ import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
 import { CLIENT_SCHEDULE } from '../clientDefaults'
 import { duplicateQuote, moveProjectDate } from '../quoteActions'
 import { DocLookPanel } from '../components/DocKit'
+import { ClosingMessage } from '../components/ClosingMessage'
 import { AI_APPLY_EVENT, AI_PREFILL_KEY, aiPrefill, type AIQuote } from '../aiQuote'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
@@ -295,6 +296,7 @@ export default function QuoteEditor({ id }: { id: string }) {
 
   const sub = quoteSubtotal(q)
   const total = quoteTotal(q, settings.urgencyFee)
+  const [closingMsg, setClosingMsg] = useState(false)
   const months = packageMonths(q)
   const payText = months ? packageText(months, two ? undefined : total) : q.paymentTerms
 
@@ -1014,6 +1016,12 @@ export default function QuoteEditor({ id }: { id: string }) {
                 ) : null}
               </p>
             ) : null}
+            {id !== 'novo' && total > 0 && (
+              <button className="btn ghost block closing-btn" onClick={() => setClosingMsg(true)}>
+                <Icon name="whatsapp" size={15} /> mensagem de fechamento (valor, entrada e Pix)
+              </button>
+            )}
+            {closingMsg && <ClosingMessage q={q} total={total} phone={client?.phone} onClose={() => setClosingMsg(false)} />}
             {!existing && (
               <button className="btn primary block" onClick={approve}>
                 <Icon name="check" size={16} /> aprovado → criar demanda

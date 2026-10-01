@@ -2204,3 +2204,4 @@ svg { flex-shrink: 0; }
 .pt-group-card .pt-chips { padding: 2px 12px 12px; }
 .quote-totals .urgency-show { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 13px; margin-top: -4px; }
 .quote-totals .urgency-show input { width: 16px; height: 16px; flex: none; }
+.closing-btn { margin-bottom: 6px; } .closing-text { font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.5; }

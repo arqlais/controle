@@ -536,6 +536,7 @@ export interface Settings {
   website: string
   document: string
   pixKey: string
+  closingRest?: string // texto do restante na mensagem de fechamento
   calendarToken: string // chave secreta do link de agenda para o celular ('' = desligada)
   calendarSync?: { entregas: boolean; pagamentos: boolean; compromissos: boolean; periodos?: boolean } // o que vai para o celular
   city: string

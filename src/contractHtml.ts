@@ -356,3 +356,135 @@ export function cleanHtml(html: string): string {
   })
   return d.body.innerHTML
 }
+
+/* ---------- PDF → HTML (mesmo desenho: títulos, negrito, itálico, centralizado, tamanhos e recuos) ---------- */
+
+const escHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+type PdfRun = { text: string; bold: boolean; italic: boolean }
+type PdfLine = { y: number; x0: number; x1: number; size: number; runs: PdfRun[]; serif: boolean }
+
+/** Lê um PDF com texto e devolve o contrato no mesmo desenho, editável. */
+export async function pdfToHtml(file: File): Promise<string> {
+  const pdfjs = await import('pdfjs-dist')
+  const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+  pdfjs.GlobalWorkerOptions.workerSrc = worker
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  const pages: { lines: PdfLine[]; w: number }[] = []
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const page = await pdf.getPage(n)
+    const w = page.getViewport({ scale: 1 }).width
+    await page.getOperatorList() // carrega as fontes (para saber o que é negrito/itálico)
+    const content = await page.getTextContent()
+    const fontInfo = (name: string) => {
+      let f: { name?: string; bold?: boolean; italic?: boolean } | undefined
+      try {
+        f = page.commonObjs.get(name) as typeof f
+      } catch {
+        f = undefined
+      }
+      const nm = (f?.name ?? '') + ' ' + name
+      const fam = (content.styles as Record<string, { fontFamily?: string }>)[name]?.fontFamily ?? ''
+      return { bold: !!f?.bold || /bold|black|heavy|semibold|demi/i.test(nm), italic: !!f?.italic || /italic|oblique/i.test(nm), serif: /serif/i.test(fam) && !/sans/i.test(fam) }
+    }
+    const items = content.items
+      .filter((it): it is typeof it & { str: string; transform: number[]; width: number; fontName: string } => 'str' in it && !!(it as { str: string }).str)
+      .map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, size: Math.hypot(it.transform[2], it.transform[3]) || 11, font: it.fontName }))
+      .sort((a, b) => b.y - a.y || a.x - b.x)
+    const lines: PdfLine[] = []
+    for (const it of items) {
+      const f = fontInfo(it.font)
+      let line = lines.find((l) => Math.abs(l.y - it.y) < Math.max(2, it.size * 0.45))
+      if (!line) {
+        line = { y: it.y, x0: it.x, x1: it.x + it.w, size: it.size, runs: [], serif: f.serif }
+        lines.push(line)
+      } else {
+        // espaço entre pedaços da mesma linha
+        const gap = it.x - line.x1
+        if (gap > it.size * 0.18 && !/\s$/.test(line.runs[line.runs.length - 1]?.text ?? '') && !/^\s/.test(it.str)) line.runs.push({ text: ' ', bold: false, italic: false })
+      }
+      line.x0 = Math.min(line.x0, it.x)
+      line.x1 = Math.max(line.x1, it.x + it.w)
+      line.size = Math.max(line.size, it.size)
+      const last = line.runs[line.runs.length - 1]
+      if (last && last.bold === f.bold && last.italic === f.italic) last.text += it.str
+      else line.runs.push({ text: it.str, bold: f.bold, italic: f.italic })
+    }
+    lines.sort((a, b) => b.y - a.y)
+    pages.push({ lines: lines.filter((l) => l.runs.some((r) => r.text.trim())), w })
+  }
+  const all = pages.flatMap((p) => p.lines)
+  if (!all.length) throw new Error('pdf-imagem')
+  // tamanho do texto corrido: o mais usado
+  const count = new Map<number, number>()
+  for (const l of all) {
+    const k = Math.round(l.size * 2) / 2
+    count.set(k, (count.get(k) ?? 0) + l.runs.reduce((n, r) => n + r.text.length, 0))
+  }
+  const base = [...count.entries()].sort((a, b) => b[1] - a[1])[0][0]
+  const serif = all.filter((l) => l.serif).length > all.length / 2
+  const out: string[] = []
+  for (const { lines, w } of pages) {
+    const L = Math.min(...lines.map((l) => l.x0))
+    const R = Math.max(...lines.map((l) => l.x1))
+    const span = Math.max(1, R - L)
+    const align = (l: PdfLine) => {
+      const mid = (l.x0 + l.x1) / 2
+      if (l.x1 - l.x0 < span * 0.88 && Math.abs(mid - (L + R) / 2) < w * 0.035 && l.x0 > L + span * 0.04) return 'center'
+      if (Math.abs(l.x1 - R) < w * 0.03 && l.x0 > L + span * 0.35) return 'right'
+      return 'left'
+    }
+    const listStart = (t: string) => /^\s*(\d+[.)]|[a-z][.)]|[•·▪◦–-])\s/.test(t)
+    const text = (l: PdfLine) => l.runs.map((r) => r.text).join('')
+    let i = 0
+    let prevBottom: number | null = null
+    while (i < lines.length) {
+      const first = lines[i]
+      const a = align(first)
+      const group = [first]
+      let j = i + 1
+      while (j < lines.length) {
+        const prev = group[group.length - 1]
+        const next = lines[j]
+        const lead = prev.y - next.y
+        const sameLook = Math.abs(next.size - prev.size) < 0.6 && align(next) === a
+        if (!sameLook || lead > prev.size * 1.75 || listStart(text(next)) || (a === 'left' && prev.x1 < R - span * 0.12)) break
+        group.push(next)
+        j++
+      }
+      const size = first.size
+      const indent = a === 'left' ? Math.max(0, Math.round(Math.min(...group.map((g) => g.x0)) - L)) : 0
+      const space = prevBottom === null ? 0 : prevBottom - first.y - size * 1.35
+      const justify = a === 'left' && group.length > 1
+      const styles = [
+        `text-align:${justify ? 'justify' : a}`,
+        Math.abs(size - base) > 0.6 ? `font-size:${Math.round((size / base) * 100) / 100}em` : '',
+        indent > 4 ? `padding-left:${indent}pt` : '',
+        space > size * 0.4 ? `margin-top:${Math.min(2, Math.round((space / size) * 10) / 10)}em` : 'margin-top:0.2em',
+        'margin-bottom:0',
+      ].filter(Boolean)
+      // juntar as linhas: quebra de linha do PDF vira espaço (hífen no fim junta a palavra)
+      const runs: PdfRun[] = []
+      group.forEach((g, k) => {
+        g.runs.forEach((r, m) => {
+          let t = r.text
+          if (k < group.length - 1 && m === g.runs.length - 1) t = /-$/.test(t) && !/\s-$/.test(t) ? t.slice(0, -1) : t.replace(/\s*$/, ' ')
+          const last = runs[runs.length - 1]
+          if (last && last.bold === r.bold && last.italic === r.italic) last.text += t
+          else runs.push({ ...r, text: t })
+        })
+      })
+      const inner = runs
+        .map((r) => {
+          let h = escHtml(r.text)
+          if (r.bold) h = `<strong>${h}</strong>`
+          if (r.italic) h = `<em>${h}</em>`
+          return h
+        })
+        .join('')
+      out.push(`<p style="${styles.join(';')}">${inner}</p>`)
+      prevBottom = group[group.length - 1].y
+      i = j
+    }
+  }
+  return `<div class="ch-doc" style="font-size:${base}pt${serif ? ";font-family:Georgia,'Times New Roman',serif" : ''}">${out.join('')}</div>`
+}

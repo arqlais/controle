@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-fechamento-e-contrato-pdf',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'mensagem de fechamento e contrato em PDF com o seu desenho',
+    text: 'No orçamento, “mensagem de fechamento” monta o texto para o WhatsApp com o valor negociado, a entrada e como fica o restante, e o Pix sai separado para copiar. E o contrato anexado em PDF agora mantém o desenho (títulos, negrito, centralizado, listas) e continua editável, como já acontecia com o Word.',
+  },
+  {
     id: '2026-10-01-servicos-organizados',
     date: '2026-10-01',
     kind: 'melhoria',

@@ -172,6 +172,17 @@ export async function importContract(file: File): Promise<{ body: string; html?:
     if (body.length < 40) throw new Error('vazio')
     return { body, html }
   }
+  if (name.endsWith('.pdf')) {
+    // PDF com texto: mesmo desenho (títulos, negrito, centralizado…); se não der, só o texto
+    try {
+      const { pdfToHtml, htmlToText } = await import('./contractHtml')
+      const html = dropSignLines(await pdfToHtml(file))
+      const body = tidy(htmlToText(html))
+      if (body.length >= 40) return { body, html }
+    } catch (e) {
+      if (e instanceof Error && e.message === 'pdf-imagem') throw e
+    }
+  }
   return { body: await importContractFile(file) }
 }
 
