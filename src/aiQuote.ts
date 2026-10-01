@@ -71,7 +71,7 @@ export const aiTotal = (q: AIQuote) => q.itens.reduce((n, x) => n + x.valor, 0)
 export function aiItems(q: AIQuote, services: ServiceDef[]): QuoteItem[] {
   return q.itens.map((x) => {
     const sv = services.find((s) => s.id === x.servico) ?? services.find((s) => s.name.toLowerCase() === (x.titulo || '').toLowerCase())
-    return { id: uid(), service: sv?.id ?? '', title: x.titulo || sv?.name || 'serviço', detail: x.detalhe ?? '', description: x.descricao ?? '', quantity: x.quantidade || 1, complexity: 'media', price: Math.round(x.valor * 100) / 100, auto: false }
+    return { id: uid(), service: sv?.id ?? '', title: x.titulo || sv?.name || 'serviço', detail: x.detalhe ?? '', description: (x.descricao ?? '').split(/\n|;\s*/).map((l) => l.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean).join('\n'), quantity: x.quantidade || 1, complexity: 'media', price: Math.round(x.valor * 100) / 100, auto: false }
   })
 }
 

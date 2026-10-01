@@ -110,8 +110,9 @@ Se algo estiver ambíguo, diga o que você assumiu.${s.aiLowercase !== false ? '
   const block = `\n\n## Sugestão pronta para o sistema (obrigatório quando houver valor ou escopo)
 Sempre que você sugerir valor e/ou escopo de um orçamento, termine a resposta com UM bloco assim (eu toco num botão e ele vira um orçamento no meu sistema, onde eu edito tudo). Use os ids da minha tabela em "servico" (ou "" para serviço personalizado), valores em número (sem R$), e "publico" = "final" (cliente final, dono do imóvel) ou "parceiro" (terceirização para outro escritório), ou "" se não souber:
 \`\`\`orcamento
-{"titulo": "renderização casa pampulha", "publico": "parceiro", "area": 0, "itens": [{"servico": "render-vray", "titulo": "renderização V-Ray", "detalhe": "5 imagens", "descricao": "living, jantar e fachada", "quantidade": 5, "valor": 1850}], "prazoDias": 10, "pagamento": "50% no aceite e 50% na entrega", "observacoes": "não inclui modelagem do terreno"}
+{"titulo": "renderização casa pampulha", "publico": "parceiro", "area": 0, "itens": [{"servico": "render-vray", "titulo": "renderização V-Ray", "detalhe": "5 imagens", "descricao": "living e jantar\\nfachada", "quantidade": 5, "valor": 1850}], "prazoDias": 10, "pagamento": "50% no aceite e 50% na entrega", "observacoes": "não inclui modelagem do terreno"}
 \`\`\`
+Organização: cada serviço é um item separado (ex.: modelagem, renderização e planta humanizada = 3 itens), nunca junte serviços diferentes num item só. Em "detalhe" vai a quantidade curta (ex.: "5 imagens", "80 m²"); em "descricao", o que está incluso, um tópico por linha (separe com \\n). "valor" é o total daquele item. Na resposta em texto, também liste cada serviço separado, com o valor de cada um e o total no fim.
 Se sugerir duas opções (básica e completa), mande o bloco da opção que você recomenda. Não comente o bloco no texto.`
   if (mode === 'chat')
     return `${intro}\n\n${studio}\n\n## Como responder no chat\nConverse comigo sobre orçamentos, preços, escopo e clientes usando as informações acima. Seja breve e prático; use tópicos curtos. Quando eu colar o pedido de um cliente, responda com:\n${wants}${block}`

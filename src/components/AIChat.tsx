@@ -435,26 +435,40 @@ function QuoteSuggestion({ q, current, onClose }: { q: AIQuote; current?: Quote;
   return (
     <div className="ai-quote">
       <p className="ai-quote-head">
-        <Icon name="file" size={14} /> orçamento sugerido
+        <Icon name="file" size={14} /> orçamento sugerido · {q.itens.length} {q.itens.length === 1 ? 'serviço' : 'serviços'}
       </p>
-      <ul>
+      <ol className="ai-quote-items">
         {q.itens.map((x, i) => (
           <li key={i}>
-            <span>
-              {x.titulo}
-              {x.detalhe ? <small> · {x.detalhe}</small> : null}
-            </span>
-            <b>{money(x.valor)}</b>
+            <div className="ai-quote-line">
+              <span className="ai-quote-n">{i + 1}</span>
+              <span className="grow">
+                <b>{x.titulo}</b>
+                {x.detalhe ? <small> · {x.detalhe}</small> : null}
+              </span>
+              <b>{money(x.valor)}</b>
+            </div>
+            {x.descricao?.trim() && (
+              <ul className="ai-quote-desc">
+                {x.descricao
+                  .split(/\n|;\s*/)
+                  .map((l) => l.replace(/^\s*[-•*]\s*/, '').trim())
+                  .filter(Boolean)
+                  .map((l, j) => (
+                    <li key={j}>{l}</li>
+                  ))}
+              </ul>
+            )}
           </li>
         ))}
-      </ul>
+      </ol>
       <p className="ai-quote-total">
         total <b>{money(aiTotal(q))}</b>
         {q.prazoDias ? <small> · {q.prazoDias} dias</small> : null}
       </p>
       {asking || (both && !guess) ? (
         <div className="ai-quote-ask">
-          <span className="muted small">É para quem?</span>
+          <span className="muted small">Criar o orçamento para:</span>
           <button type="button" className="btn small primary" onClick={() => toNew('final')}>
             <Icon name="home" size={14} /> cliente final
           </button>
@@ -465,11 +479,11 @@ function QuoteSuggestion({ q, current, onClose }: { q: AIQuote; current?: Quote;
       ) : (
         <div className="ai-quote-ask">
           <button type="button" className="btn small primary" onClick={() => (both ? setAsking(true) : toNew(guess || 'parceiro'))}>
-            <Icon name="arrowRight" size={14} /> jogar pro orçamento
+            <Icon name="file" size={14} /> criar orçamento com isso
           </button>
           {current && (
             <button type="button" className="btn small ghost" onClick={toCurrent}>
-              pôr neste orçamento
+              usar neste orçamento
             </button>
           )}
         </div>

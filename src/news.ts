@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-01',
     kind: 'novo',
     title: 'da IA direto para o orçamento',
-    text: 'Quando o assistente sugerir valor e escopo, aparece o orçamento sugerido com o botão "jogar pro orçamento": ele pergunta se é para cliente final ou terceirização e abre o orçamento já preenchido, para você editar tudo.',
+    text: 'Quando o assistente sugerir valor e escopo, aparece o orçamento sugerido, com cada serviço separado, e o botão "criar orçamento com isso": ele pergunta se é para cliente final ou terceirização e abre o orçamento já preenchido, para você editar tudo.',
     feature: 'assistenteIA',
   },
   {
