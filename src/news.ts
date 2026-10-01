@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-catalogo-servicos',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'lista de serviços bem mais completa',
+    text: 'Ao adicionar serviços, agora tem dezenas de opções organizadas por área: arquitetura, interiores, projetos técnicos, obra, 3D, consultoria e, para quem atende escritórios, desenho técnico, detalhamento, apresentação e planejamento. Cada um já vem com a forma de cobrar e um valor de partida, e tem busca para achar rápido.',
+    steps: [{ text: 'Em configurações → preços, toque em “adicionar serviço”.', page: 'config', configTab: 'precos' }],
+  },
+  {
     id: '2026-10-01-ia-valor-tabela',
     date: '2026-10-01',
     kind: 'correcao',

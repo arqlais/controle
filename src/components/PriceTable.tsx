@@ -5,7 +5,8 @@ import { Field, Modal, MoneyInput } from './ui'
 import { askDelete } from './dialog'
 import { groupServices, money, serviceAsk, uid } from '../utils'
 import { serviceAudience } from '../processes'
-import { ARCH_SERVICES, CLIENT_SERVICES, FREELA_EXTRA } from '../clientDefaults'
+import { ARCH_SERVICES } from '../clientDefaults'
+import { CATALOG, type CatalogKind } from '../serviceCatalog'
 
 /* Tabela de preços simples: cada serviço é uma linha com o resumo do preço. Tocando, abre o editor:
    primeiro "como você cobra" (cartões com ícone e explicação), depois só os campos daquela forma,
@@ -31,6 +32,7 @@ export function priceSummary(x: ServiceDef) {
   const min = x.min > 0 ? ` · mínimo ${money(x.min)}` : ''
   if (x.pricing === 'livre') return 'você digita o valor no orçamento'
   if (x.pricing === 'hora') return `${money(x.price)} por hora${min}`
+  if (x.pricing === 'm2' && !x.price && x.checklistPrices && Object.keys(x.checklistPrices).length) return `valor por m² de cada opção marcada${min}`
   if (x.pricing === 'm2') return `${money(x.price)}/m²${x.base ? ` + ${money(x.base)} fixo` : ''}${min}`
   if (x.pricing === 'pacote') {
     const t = [...x.tiers].filter((y) => y.qty > 0).sort((a, b) => a.qty - b.qty)[0]
@@ -321,42 +323,85 @@ function Checklist({ x, set }: { x: ServiceDef; set: (patch: Partial<ServiceDef>
 
 /* ---------------- sugestões ---------------- */
 
-export type SuggestKind = 'final' | 'freela'
-export const SUGGEST: Record<SuggestKind, { label: string; icon: string; hint: string; list: ServiceDef[] }> = {
-  final: { label: 'para cliente final', icon: 'home', hint: 'arquitetura e interiores para quem é dono do imóvel', list: ARCH_SERVICES.filter((x) => x.id !== 'personalizado').map((x) => ({ ...x, audience: 'final' as const })) },
-  freela: { label: 'para escritórios (freelancer)', icon: 'briefcase', hint: 'render, modelagem, executivo, apresentação…', list: [...CLIENT_SERVICES.filter((x) => x.id !== 'personalizado'), ...FREELA_EXTRA].map((x) => ({ ...x, audience: 'parceiro' as const })) },
-}
+export type SuggestKind = CatalogKind
+export const SUGGEST = CATALOG
 export const kindsFor = (p?: WorkProfile): SuggestKind[] => (p === 'final' ? ['final'] : p === 'ambos' ? ['final', 'freela'] : ['freela'])
-const sameService = (a: ServiceDef, b: ServiceDef) => a.id === b.id || a.name.trim().toLowerCase() === b.name.trim().toLowerCase()
+const norm = (t: string) => t.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+// mesmo nome vale como repetido, a não ser que seja um para cliente final e outro para escritório
+const sameService = (a: ServiceDef, b: ServiceDef) =>
+  a.id === b.id || (norm(a.name) === norm(b.name) && (!a.audience || !b.audience || a.audience === b.audience || a.audience === 'ambos' || b.audience === 'ambos'))
 /** Cópia de uma sugestão pronta para entrar na tabela da pessoa. */
-export const fromSuggestion = (x: ServiceDef): ServiceDef => ({ ...x, tiers: x.tiers.map((t) => ({ ...t })), checklist: x.checklist ? [...x.checklist] : undefined })
+export const fromSuggestion = (x: ServiceDef): ServiceDef => ({ ...x, tiers: x.tiers.map((t) => ({ ...t })), checklist: x.checklist ? [...x.checklist] : undefined, checklistPrices: x.checklistPrices ? { ...x.checklistPrices } : undefined })
 export const blankService = (name: string, pricing: Pricing = 'unidade'): ServiceDef => ({ id: uid(), name, unit: pricing === 'm2' ? 'm²' : pricing === 'hora' ? 'hora' : 'unidade', pricing, price: 0, tiers: [], min: 0, hours: 1 })
 
-/** Escolher serviços sugeridos (marca e desmarca) + criar o seu. */
+/** Escolher serviços sugeridos por área (marca e desmarca), com busca. */
 export function SuggestPicker({ kinds, picked, onToggle, existing = [] }: { kinds: SuggestKind[]; picked: ServiceDef[]; onToggle: (x: ServiceDef) => void; existing?: ServiceDef[] }) {
+  const [q, setQ] = useState('')
+  // a primeira área de cada lista já vem aberta
+  const [open, setOpen] = useState<string[]>(() => kinds.map((k) => SUGGEST[k].groups[0]?.id ?? ''))
+  const term = norm(q)
+  const toggleGroup = (id: string) => setOpen((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]))
+  let found = 0
+  const blocks = kinds.map((k) => {
+    const groups = SUGGEST[k].groups
+      .map((g) => ({ ...g, list: g.services.filter((x) => !existing.some((y) => sameService(x, y)) && (!term || norm(x.name).includes(term) || norm(g.label).includes(term))) }))
+      .filter((g) => g.list.length)
+    groups.forEach((g) => (found += g.list.length))
+    return { k, groups }
+  })
   return (
     <div className="pt-suggest">
-      {kinds.map((k) => {
-        const list = SUGGEST[k].list.filter((x) => !existing.some((y) => sameService(x, y)))
-        if (!list.length) return null
-        return (
-          <div key={k} className="pt-suggest-group">
-            <p className="pt-suggest-title">
-              <Icon name={SUGGEST[k].icon} size={14} /> {SUGGEST[k].label}
-            </p>
-            <div className="pt-chips">
-              {list.map((x) => {
-                const on = picked.some((y) => sameService(x, y))
+      <label className="pt-search">
+        <Icon name="search" size={15} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="buscar serviço (ex.: render, reforma, marcenaria)" aria-label="Buscar serviço" />
+        {q && (
+          <button type="button" className="icon-btn subtle" onClick={() => setQ('')} aria-label="Limpar busca">
+            <Icon name="x" size={14} />
+          </button>
+        )}
+      </label>
+      {term && !found && <p className="muted small">Nenhum serviço com esse nome. Crie o seu logo abaixo.</p>}
+      {blocks.map(({ k, groups }) =>
+        groups.length ? (
+          <div key={k} className="pt-suggest-kind">
+            {kinds.length > 1 && (
+              <p className="pt-suggest-title">
+                <Icon name={SUGGEST[k].icon} size={14} /> {SUGGEST[k].label}
+              </p>
+            )}
+            <div className="pt-groups">
+              {groups.map((g) => {
+                const on = g.list.filter((x) => picked.some((y) => sameService(x, y))).length
+                const isOpen = !!term || open.includes(g.id)
                 return (
-                  <button key={x.id} type="button" className={`pt-chip ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => onToggle(x)}>
-                    <Icon name={on ? 'check' : 'plus'} size={13} /> {x.name}
-                  </button>
+                  <div key={g.id} className={`pt-group-card ${isOpen ? 'is-open' : ''}`}>
+                    <button type="button" className="pt-group-head" onClick={() => toggleGroup(g.id)} aria-expanded={isOpen}>
+                      <span className="pt-group-ico">
+                        <Icon name={g.icon} size={17} />
+                      </span>
+                      <b>{g.label}</b>
+                      <small>{on ? `${on} de ${g.list.length}` : g.list.length}</small>
+                      <Icon name="chevronR" size={15} />
+                    </button>
+                    {isOpen && (
+                      <div className="pt-chips">
+                        {g.list.map((x) => {
+                          const sel = picked.some((y) => sameService(x, y))
+                          return (
+                            <button key={x.id} type="button" className={`pt-chip ${sel ? 'is-on' : ''}`} aria-pressed={sel} onClick={() => onToggle(x)} title={priceSummary(x)}>
+                              <Icon name={sel ? 'check' : 'plus'} size={13} /> {x.name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
           </div>
-        )
-      })}
+        ) : null,
+      )}
     </div>
   )
 }
@@ -439,11 +484,11 @@ export function PriceTable({ services, profile, onChange, onRestart }: { service
         </p>
       </div>
       <div className="pt-list">
-        {groupServices(services).map(([g, list]) => (
+        {groupServices(services).map(([g, list], _i, all) => (
           <Fragment key={g || '-'}>
-            {g && (
+            {(g || all.length > 1) && (
               <p className="pt-group">
-                {g} <small>{list.length}</small>
+                {g || 'seus serviços'} <small>{list.length}</small>
               </p>
             )}
             {list.map((x) => (
@@ -479,7 +524,7 @@ export function PriceTable({ services, profile, onChange, onRestart }: { service
         )}
       </div>
       <datalist id="service-groups">
-        {[...new Set([...services.map((x) => x.group ?? ''), ...ARCH_SERVICES.map((x) => x.group ?? '')].filter(Boolean))].map((g) => (
+        {[...new Set([...services.map((x) => x.group ?? ''), ...ARCH_SERVICES.map((x) => x.group ?? ''), ...Object.values(CATALOG).flatMap((c) => c.groups.map((g) => g.label))].filter(Boolean))].map((g) => (
           <option key={g} value={g} />
         ))}
       </datalist>

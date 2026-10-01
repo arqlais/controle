@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { ServiceDef, WorkProfile } from '../types'
 import { Icon } from './Icon'
 import { HowPicker, OwnService, PriceFields, SuggestPicker, fromSuggestion, kindsFor, withPricing } from './PriceTable'
 import { WORK_PROFILES } from '../clientDefaults'
-import { uid } from '../utils'
+import { groupServices, uid } from '../utils'
 
 /* Primeiro passo de quem começa: dizer o que faz e quanto cobra. É obrigatório porque é o que faz
    o orçamento sair sozinho. Três telas curtas: para quem trabalha → o que faz → quanto cobra. */
@@ -91,12 +91,17 @@ export function ServicesSetup({ initialProfile, onDone, onLater }: { initialProf
 
           {step === 2 && (
             <div className="ss-prices">
-              {picked.map((x) => (
-                <div key={x.id} className="ss-price">
-                  <input className="ss-price-name" value={x.name} onChange={(e) => set(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
-                  <HowPicker value={x.pricing} onChange={(p) => set(x.id, withPricing(x, p))} compact />
-                  <PriceFields x={x} set={(patch) => set(x.id, patch)} />
-                </div>
+              {groupServices(picked).map(([g, list], _i, all) => (
+                <Fragment key={g || '-'}>
+                  {(g || all.length > 1) && <p className="pt-group">{g || 'seus serviços'}</p>}
+                  {list.map((x) => (
+                    <div key={x.id} className="ss-price">
+                      <input className="ss-price-name" value={x.name} onChange={(e) => set(x.id, { name: e.target.value })} aria-label="Nome do serviço" />
+                      <HowPicker value={x.pricing} onChange={(p) => set(x.id, withPricing(x, p))} compact />
+                      <PriceFields x={x} set={(patch) => set(x.id, patch)} />
+                    </div>
+                  ))}
+                </Fragment>
               ))}
               <p className="muted small ss-later">
                 <Icon name="settings" size={13} /> Depois dá para mudar tudo em configurações → preços.
