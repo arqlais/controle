@@ -256,6 +256,8 @@ Deno.serve(async (req) => {
   const isOwner = uid ? !!(await db.from('admins').select('user_id').eq('user_id', uid).maybeSingle()).data : false
 
   // manda uma vez só: grava antes de enviar (se já existe, não manda de novo)
+  // último erro do envio (Brevo recusou, chave errada…): volta na resposta para a dona ver
+  let lastError = ''
   const once = async (s: Sub, kind: string, ref: string, mail: Mail) => {
     const { error } = await db.from('email_log').insert({ user_id: s.user_id, kind, ref })
     if (error) return false // já enviado
@@ -265,23 +267,25 @@ Deno.serve(async (req) => {
     } catch (e) {
       await db.from('email_log').delete().match({ user_id: s.user_id, kind, ref }) // falhou: tenta de novo na próxima
       console.error(e)
+      lastError = String(e instanceof Error ? e.message : e).slice(0, 240)
       return false
     }
   }
+  const result = (ok: boolean) => (ok ? { ok: true } : lastError ? { ok: false, erro: lastError } : { ok: false })
   const subOf = async (id: string) => (await db.from('subscriptions').select('*').eq('user_id', id).maybeSingle()).data as Sub | null
 
   if (tipo === 'boas-vindas') {
     if (!uid) return json({ erro: 'entre na conta' }, 401)
     const s = await subOf(uid)
     if (!s?.email) return json({ ok: false })
-    return json({ ok: await once(s, 'boas-vindas', '1', MAILS['boas-vindas'](s)) })
+    return json(result(await once(s, 'boas-vindas', '1', MAILS['boas-vindas'](s))))
   }
 
   if (tipo === 'ativada') {
     if (!isOwner) return json({ erro: 'só a dona' }, 403)
     const s = await subOf(String(body.userId ?? ''))
     if (!s?.email) return json({ ok: false })
-    return json({ ok: await once(s, 'ativada', new Date().toISOString().slice(0, 10), MAILS.ativada(s)) })
+    return json(result(await once(s, 'ativada', new Date().toISOString().slice(0, 10), MAILS.ativada(s))))
   }
 
   if (tipo === 'novidade') {
@@ -305,7 +309,7 @@ Deno.serve(async (req) => {
     const s = await subOf(uid)
     if (!s) return json({ ok: false })
     const text = String(body.text ?? '')
-    return json({ ok: await once(owner(s), 'dona-mensagem', slot(), OWNER_MAILS.mensagem(s, text)) })
+    return json(result(await once(owner(s), 'dona-mensagem', slot(), OWNER_MAILS.mensagem(s, text))))
   }
 
   if (tipo === 'sugestao') {
@@ -314,7 +318,7 @@ Deno.serve(async (req) => {
     if (!s) return json({ ok: false })
     const title = String(body.title ?? '').slice(0, 140)
     if (!title) return json({ ok: false })
-    return json({ ok: await once(owner(s), 'dona-sugestao', title, OWNER_MAILS.sugestao(s, title, String(body.text ?? ''))) })
+    return json(result(await once(owner(s), 'dona-sugestao', title, OWNER_MAILS.sugestao(s, title, String(body.text ?? '')))))
   }
 
   if (tipo === 'resposta') {
@@ -324,7 +328,7 @@ Deno.serve(async (req) => {
     // usando o sistema agora (visto nos últimos 3 min): já vê a resposta na tela
     const seen = Date.parse(String((s as Sub & { last_seen?: string }).last_seen ?? ''))
     if (seen && Date.now() - seen < 3 * 60_000) return json({ ok: false, motivo: 'online' })
-    return json({ ok: await once(s, 'resposta', slot(), CLIENT_MAILS.resposta(s, String(body.text ?? ''))) })
+    return json(result(await once(s, 'resposta', slot(), CLIENT_MAILS.resposta(s, String(body.text ?? '')))))
   }
 
   if (tipo === 'sugestao-atualizada') {
@@ -334,7 +338,7 @@ Deno.serve(async (req) => {
     const s = await subOf(String(sg.user_id))
     if (!s?.email) return json({ ok: false })
     // um e-mail por situação nova (se só editar o texto da resposta, não manda de novo)
-    return json({ ok: await once(s, 'sugestao', `${sg.id}:${sg.status}:${String(sg.reply ?? '').length > 0}`, CLIENT_MAILS.sugestao(s, String(sg.title ?? ''), String(sg.status ?? ''), String(sg.reply ?? ''))) })
+    return json(result(await once(s, 'sugestao', `${sg.id}:${sg.status}:${String(sg.reply ?? '').length > 0}`, CLIENT_MAILS.sugestao(s, String(sg.title ?? ''), String(sg.status ?? ''), String(sg.reply ?? '')))))
   }
 
   if (tipo === 'briefing') {
@@ -344,7 +348,7 @@ Deno.serve(async (req) => {
     const s = await subOf(String(b.user_id))
     if (!s?.email) return json({ ok: false })
     const p = (b.payload ?? {}) as { clientName?: string; title?: string }
-    return json({ ok: await once(s, 'briefing', String(b.id), briefingMail(s, String(p.clientName ?? ''), String(p.title ?? 'briefing'))) })
+    return json(result(await once(s, 'briefing', String(b.id), briefingMail(s, String(p.clientName ?? ''), String(p.title ?? 'briefing')))))
   }
 
   if (tipo === 'cliente') {

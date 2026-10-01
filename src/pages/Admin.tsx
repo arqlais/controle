@@ -785,7 +785,21 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
     if (await send(text, true)) {
       setText('')
       void onChange()
-      void platform.notice({ tipo: 'resposta', userId: clientId, text }).catch(() => undefined)
+      // diz se foi o aviso por e-mail (e por que não foi), para a dona saber
+      void platform
+        .notice({ tipo: 'resposta', userId: clientId, text })
+        .then((r) =>
+          toast(
+            r.ok
+              ? 'Avisada por e-mail.'
+              : r.motivo === 'online'
+                ? 'Ela está com o sistema aberto agora: vê a resposta na tela (sem e-mail).'
+                : r.erro
+                  ? `Aviso por e-mail não saiu: ${r.erro}`
+                  : 'Sem e-mail desta vez: já foi um aviso para ela nos últimos 30 minutos.',
+          ),
+        )
+        .catch((e) => toast(`Aviso por e-mail não saiu: ${e instanceof Error ? e.message : 'erro'}`))
     }
   }
   // rascunho com IA: o que já estiver escrito na caixa vira "anotações" do que ela quer dizer
