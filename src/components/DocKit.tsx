@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import qrcode from 'qrcode-generator'
 import { useAccess } from '../access'
-import { resolveTemplate, sheetColors } from '../proposalTemplates'
+import { TEMPLATES, followsBrand, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
+import { useStore } from '../store'
 import type { Settings } from '../types'
 import type { PhotoPos } from '../docTypes'
 import { DocScale, usePdf } from './Print'
 import { Icon } from './Icon'
 import { toast } from './dialog'
-import { DesktopNote } from './ui'
+import { DesktopNote, Section } from './ui'
 import '../docs.css'
 
 /* Peças comuns dos documentos (guia de medição, placa de obra, briefing em PDF, apresentação):
@@ -304,5 +305,68 @@ export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { 
         </label>
       )}
     </div>
+  )
+}
+
+/** Aparência dos documentos, dentro de cada um: modelo, cores do site e logotipo.
+ *  Vale para todos os PDFs da conta (a mesma escolha de configurações → propostas). */
+export function DocLookPanel() {
+  const { data, setSettings } = useStore()
+  const { has } = useAccess()
+  const raw = data.settings
+  const current = resolveTemplate(raw.proposal, has)
+  const follow = followsBrand(raw.proposal, has, raw)
+  const logoRef = useRef<HTMLInputElement>(null)
+  const visible = TEMPLATES.filter((t) => t.id !== 'lais' || has('modeloExclusivo'))
+  const pick = (id: string) => {
+    const t = TEMPLATES.find((x) => x.id === id)!
+    setSettings({ proposal: { ...raw.proposal, ...t.colors, template: id } })
+  }
+  const onLogo = (f?: File) => {
+    if (!f) return
+    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB.')
+    const r = new FileReader()
+    r.onload = () => {
+      setSettings({ logo: String(r.result), proposal: { ...raw.proposal, showLogo: true } })
+      toast('Logotipo aplicado nos modelos.')
+    }
+    r.readAsDataURL(f)
+  }
+  return (
+    <Section title="aparência">
+      <div className="dk-look-tpls" role="radiogroup" aria-label="Modelo">
+        {visible.map((t) => {
+          const allowed = templateAllowed(t, has)
+          return (
+            <button key={t.id} type="button" role="radio" aria-checked={current.id === t.id} className={`dk-look-tpl ${current.id === t.id ? 'is-on' : ''}`} disabled={!allowed} onClick={() => pick(t.id)} title={t.description}>
+              <span className="dk-look-sw" style={{ background: t.colors.paper }}>
+                <i style={{ background: t.colors.bar }} />
+                <i style={{ background: t.colors.arch }} />
+              </span>
+              {t.name}
+              {!allowed && <Icon name="lock" size={11} />}
+            </button>
+          )
+        })}
+      </div>
+      {has('identidade') && current.id !== 'lais' && (
+        <label className="check toggle">
+          <input type="checkbox" checked={follow} onChange={(e) => setSettings({ proposal: { ...raw.proposal, followBrand: e.target.checked, template: current.id } })} /> usar as cores e fontes do meu site
+        </label>
+      )}
+      <div className="dk-look-logo">
+        {raw.logo ? <img src={raw.logo} alt="Seu logotipo" /> : <span className="dk-look-nologo"><Icon name="camera" size={16} /></span>}
+        <button type="button" className="btn small" onClick={() => logoRef.current?.click()}>
+          <Icon name="upload" size={14} /> {raw.logo ? 'trocar logotipo' : 'anexar logotipo'}
+        </button>
+        {raw.logo && (
+          <label className="check">
+            <input type="checkbox" checked={raw.proposal.showLogo !== false} onChange={(e) => setSettings({ proposal: { ...raw.proposal, showLogo: e.target.checked } })} /> mostrar
+          </label>
+        )}
+        <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => (onLogo(e.target.files?.[0]), (e.target.value = ''))} />
+      </div>
+      <p className="muted small">Vale para todos os PDFs: proposta, guia, placa, briefing e apresentação.</p>
+    </Section>
   )
 }

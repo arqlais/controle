@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
 import { CLIENT_SCHEDULE } from '../clientDefaults'
-import { duplicateQuote } from '../quoteActions'
+import { duplicateQuote, moveProjectDate } from '../quoteActions'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
 import { Icon } from '../components/Icon'
@@ -315,7 +315,8 @@ export default function QuoteEditor({ id }: { id: string }) {
   const setOpenFile = (openFile: boolean) => reprice({ openFile })
   const save = (patch: Partial<Quote> = {}) => {
     const next = { ...q, ...patch }
-    if (next.status !== 'rascunho' && !next.sentAt) next.sentAt = today()
+    // orçamento antigo: "enviado" na data do orçamento, não no dia em que foi lançado
+    if (next.status !== 'rascunho' && !next.sentAt) next.sentAt = next.noNumber || next.imported ? next.createdAt : today()
     if (!next.clientId) {
       toast('Escolha o cliente.')
       return null
@@ -636,7 +637,10 @@ export default function QuoteEditor({ id }: { id: string }) {
                     onChange={(e) => {
                       const d = e.target.value || today()
                       // orçamento antigo: o "enviado em" acompanha a data, para não aparecer como "aguardando há 0 dias"
-                      set({ createdAt: d, dateFixed: d !== today() || undefined, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt })
+                      set({ createdAt: d, dateFixed: d !== today() || undefined, sentAt: q.status !== 'rascunho' && (!q.sentAt || q.sentAt > d || q.sentAt === q.createdAt) ? d : q.sentAt, ...(q.noNumber && q.status === 'aprovado' && q.closedAt === q.createdAt ? { closedAt: d } : {}) })
+                      // orçamento antigo já lançado: fechamento, pagamento e entrega acompanham a nova data
+                      const p = q.noNumber && q.status === 'aprovado' && q.projectId ? data.projects.find((x) => x.id === q.projectId) : undefined
+                      if (p && (!q.closedAt || q.closedAt === q.createdAt)) upsert('projects', moveProjectDate(p, q.createdAt, d))
                     }}
                   />
                 </div>
@@ -726,9 +730,12 @@ export default function QuoteEditor({ id }: { id: string }) {
                     const d = e.target.value
                     if (!d) return
                     set({ closedAt: d })
-                    // a demanda começa no dia em que fechou
+                    // a demanda começa no dia em que fechou; o que estava na data antiga do fechamento (sinal, pagamento de trabalho antigo) vai junto
                     const p = q.projectId ? data.projects.find((x) => x.id === q.projectId) : undefined
-                    if (p && p.startDate !== d) upsert('projects', { ...p, startDate: d })
+                    if (p) {
+                      const moved = moveProjectDate(p, q.closedAt || p.startDate, d)
+                      upsert('projects', { ...moved, startDate: d })
+                    }
                   }}
                 />
                 <span className="muted small">{q.closedAt && q.closedAt > q.createdAt ? `${daysBetween(q.createdAt, q.closedAt)} dia(s) depois do orçamento` : 'pode ser diferente da data do orçamento'}</span>

@@ -502,3 +502,23 @@ button.back:hover { color: var(--text); }
 .g-example.is-single .g-photo-grid.n-3 { grid-template-columns: repeat(3, 1fr); }
 .port-crops { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin: 12px 0; }
 .port-crops .dk-crop-box { max-width: none; }
+
+/* aparência dentro de cada documento */
+.dk-look-tpls { display: flex; flex-wrap: wrap; gap: 6px; }
+.dk-look-tpl { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px 5px 5px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.82rem; color: var(--text); }
+.dk-look-tpl.is-on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.dk-look-tpl:disabled { opacity: 0.5; }
+.dk-look-sw { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; border: 1px solid var(--border); }
+.dk-look-sw i { width: 9px; height: 9px; border-radius: 50%; }
+.dk-look-logo { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.dk-look-logo img { height: 34px; max-width: 90px; object-fit: contain; }
+.dk-look-nologo { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; border: 1px dashed var(--border); color: var(--muted); }
+
+/* placa com logotipo no lugar do nome */
+.pq-mark-logo { display: flex; align-items: center; }
+.pq-logo { display: block; max-width: 100%; object-fit: contain; }
+.pq-d-foot .pq-mark-logo .pq-logo { height: 120px; max-width: 360px; }
+.pq-m-brand.pq-mark-logo { justify-content: center; }
+.pq-m-brand .pq-logo { height: 70px; max-width: 280px; }
+.pq-old .pq-mark-big.pq-mark-logo { bottom: 40px; justify-content: center; opacity: 1; }
+.pq-old .pq-mark-big .pq-logo { height: 140px; max-width: 70%; }

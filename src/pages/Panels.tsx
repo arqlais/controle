@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
 import { Empty, Modal } from '../components/ui'
+import { DateInput } from '../components/DateInput'
 import { toast } from '../components/dialog'
 import { ClientPanelPublic } from '../components/ClientPanelPublic'
 import { PanelControls, createPanel, panelMessage } from '../components/ClientPanel'
@@ -85,8 +86,15 @@ function PanelList() {
               )}
             </div>
             <div className="pnl-fact">
-              <span>entrega</span>
-              <b>{main.deliveredDate ? fmtDate(main.deliveredDate) : main.dueDate ? fmtDate(main.dueDate) : 'a combinar'}</b>
+              <span>{main.deliveredDate ? 'entregue em' : 'entrega'}</span>
+              {/* dá para mudar a data aqui mesmo: prevista, ou a da entrega quando já foi entregue */}
+              <DateInput
+                className={`pnl-date ${main.deliveredDate || main.dueDate ? '' : 'is-empty'}`}
+                value={main.deliveredDate ?? main.dueDate ?? ''}
+                onChange={(e) => e.target.value && upsert('projects', { ...main, ...(main.deliveredDate ? { deliveredDate: e.target.value } : { dueDate: e.target.value }) })}
+                aria-label={main.deliveredDate ? 'Data em que foi entregue' : 'Entrega prevista'}
+                title="Toque para mudar a data"
+              />
             </div>
             <div className="pnl-fact">
               <span>pago</span>
@@ -284,8 +292,14 @@ export function PanelEditor({ id }: { id: string }) {
                   <div className="pe-row">
                     <label className="field">
                       <span className="field-label">entrega prevista</span>
-                      <input type="date" value={p.dueDate ?? ''} onChange={(e) => saveProject(p, { dueDate: e.target.value })} />
+                      <DateInput value={p.dueDate ?? ''} onChange={(e) => saveProject(p, { dueDate: e.target.value })} />
                     </label>
+                    {p.deliveredDate && (
+                      <label className="field">
+                        <span className="field-label">entregue em</span>
+                        <DateInput value={p.deliveredDate} onChange={(e) => e.target.value && saveProject(p, { deliveredDate: e.target.value })} />
+                      </label>
+                    )}
                     <label className="field">
                       <span className="field-label">link da pasta do projeto</span>
                       <input value={p.filesLink ?? ''} onChange={(e) => saveProject(p, { filesLink: e.target.value })} placeholder="Drive, Dropbox, WeTransfer…" />

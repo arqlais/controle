@@ -83,7 +83,8 @@ export const approvedWithoutProject = (d: Data) => d.quotes.filter((q) => q.stat
 /** Trabalho antigo já feito e pago: vira demanda entregue, com o valor recebido na data em que fechou.
  *  Assim o financeiro (recebido no mês, gráficos, relatórios) passa a contar esse cliente. */
 export function launchPaidQuote(q: Quote, urgencyFee: number): { project: Project; quote: Quote } {
-  const on = q.closedAt || q.sentAt || q.createdAt || today()
+  // a data do orçamento (ou a do fechamento, se marcada). Nunca a data em que foi marcado como enviado/aprovado no sistema
+  const on = q.closedAt || q.createdAt || today()
   const value = quoteDeal(q, urgencyFee)
   const base = projectFromQuote(q, urgencyFee, on, on)
   const project: Project = {
@@ -95,4 +96,27 @@ export function launchPaidQuote(q: Quote, urgencyFee: number): { project: Projec
     notes: `${base.notes} Lançado como trabalho antigo, já pago.`,
   }
   return { project, quote: { ...q, closedAt: on, projectId: project.id } }
+}
+
+/** Trocou a data de um trabalho já lançado: parcelas, entrega e etapas que estavam na data antiga vão para a nova.
+ *  Só mexe no que estava exatamente na data antiga (o que a pessoa ajustou à mão fica como está). */
+export function moveProjectDate(p: Project, from: string, to: string): Project {
+  if (!from || !to || from === to) return p
+  const mv = (d?: string | null) => (d === from ? to : d)
+  return {
+    ...p,
+    startDate: mv(p.startDate) ?? p.startDate,
+    dueDate: mv(p.dueDate) ?? p.dueDate,
+    deliveredDate: mv(p.deliveredDate) ?? p.deliveredDate,
+    payments: p.payments.map((x) => ({ ...x, dueDate: mv(x.dueDate) ?? x.dueDate, paidDate: mv(x.paidDate) ?? x.paidDate })),
+    phases: p.phases?.map((x) => ({ ...x, due: mv(x.due) ?? x.due, doneAt: mv(x.doneAt) ?? x.doneAt })),
+  }
+}
+
+/** Orçamentos antigos (sem número) que entraram no financeiro no dia em que foram lançados, e não na data do orçamento. */
+export function misdatedOldQuotes(d: Data) {
+  return d.quotes
+    .filter((q) => (q.noNumber || q.imported) && q.status === 'aprovado' && q.closedAt && q.createdAt && q.closedAt > q.createdAt && q.closedAt === q.sentAt)
+    .map((q) => ({ q, p: d.projects.find((x) => x.id === q.projectId) }))
+    .filter((r): r is { q: Quote; p: Project } => !!r.p && r.p.payments.some((x) => x.paidDate === r.q.closedAt))
 }

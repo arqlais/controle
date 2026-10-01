@@ -3,6 +3,7 @@ import type { PhotoPos, PlaqueData, PlaqueLayout } from '../../docTypes'
 import { photoStyle } from '../DocKit'
 import { QR, linkFrom, useDocLook } from '../DocKit'
 import { DocPage } from './DocPage'
+import { showsLogo } from '../../proposalTemplates'
 
 /* Placa de obra (proporção 3:4 — 60×80 cm, 90×120 cm ou A4): quem passa na rua vê quem assina
    o projeto e aponta a câmera no QR code para conhecer o trabalho. */
@@ -89,7 +90,11 @@ export function PlaqueDoc({ s, data }: { s: Settings; data?: PlaqueData }) {
       <p>{d.cta}</p>
     </div>
   ) : null
-  const mark = (
+  // com logotipo anexado, a marca da placa é o logo; sem ele, o nome do estúdio
+  const logo = showsLogo(s) ? <img className="pq-logo" src={s.logo} alt="" /> : null
+  const mark = logo ? (
+    <span className="pq-mark pq-mark-logo">{logo}</span>
+  ) : (
     <span className="pq-mark" aria-hidden>
       {brand}
       <i>.</i>
@@ -116,16 +121,20 @@ export function PlaqueDoc({ s, data }: { s: Settings; data?: PlaqueData }) {
           <>
             {d.photo && <FramedPhoto className="pq-photo" src={d.photo} pos={d.photoPos} />}
             {classicText}
-            <span className="pq-mark pq-mark-big" aria-hidden>
-              {brand}
-              <i>.</i>
-            </span>
+            {logo ? (
+              <span className="pq-mark pq-mark-big pq-mark-logo">{logo}</span>
+            ) : (
+              <span className="pq-mark pq-mark-big" aria-hidden>
+                {brand}
+                <i>.</i>
+              </span>
+            )}
           </>
         )}
         {d.layout === 'moldura' && (
           <>
             <span className="pq-m-frame" aria-hidden />
-            <p className="pq-m-brand">{brand}<i>.</i></p>
+            {logo ? <p className="pq-m-brand pq-mark-logo">{logo}</p> : <p className="pq-m-brand">{brand}<i>.</i></p>}
             {head}
             <span className="pq-m-rule" aria-hidden />
             {who}

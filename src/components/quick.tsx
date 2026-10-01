@@ -218,7 +218,7 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
   const change = (v: string) => {
     const [status, optionId] = v.split(':') as [QuoteStatus, string | undefined]
     if (status === 'aprovado' && !q.projectId) return setClosing(optionId ?? '')
-    const next = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || today() }
+    const next = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || (q.noNumber || q.imported ? q.createdAt : today()) }
     if (status !== 'rascunho' && q.status === 'rascunho' && !q.noNumber) next.number = nextSentNumber(data.quotes, next) // sem número vago
     if (status === 'rascunho' && q.status !== 'rascunho' && !q.noNumber) {
       // voltou para rascunho: vai para depois do último número (os rascunhos se reorganizam pela data)

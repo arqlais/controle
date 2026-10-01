@@ -198,41 +198,48 @@ const SCREENS: { id: Screen; label: string; icon: string }[] = [
   { id: 'financeiro', label: 'financeiro', icon: 'wallet' },
 ]
 
-/** Passo de uma animação conforme a rolagem: 0 quando o bloco entra por baixo, n-1 perto de sair por cima.
-    Clicar num passo vale até a pessoa rolar de novo. -1 = ainda não chegou. */
-function useScrollStep(ref: React.RefObject<HTMLElement | null>, n: number, screens = 1) {
-  const p = useScrollProgress(ref, screens)
+/** Passo de uma animação que toca sozinha: começa quando o bloco entra na tela e vai até o fim,
+    mesmo que a pessoa pare de rolar ou passe direto. -1 = ainda não chegou. */
+function useScrollStep(ref: React.RefObject<HTMLElement | null>, n: number, ms = 1000) {
+  const p = useScrollProgress(ref, ms)
   return p < 0 ? -1 : Math.min(n - 1, Math.floor(p * n))
 }
 
-/** Quanto do bloco já foi rolado: 0 quando o topo passa de 85% da tela, 1 depois de rolar `screens` telas. */
-function useScrollProgress(ref: React.RefObject<HTMLElement | null>, screens = 1) {
+/** Progresso de 0 a 1 em `ms` milissegundos, contado a partir do momento em que o topo do bloco passa de 85% da tela.
+    Não depende da rolagem depois de começar: termina sozinho, e cada seção começa a sua quando chega nela. */
+function useScrollProgress(ref: React.RefObject<HTMLElement | null>, ms = 1000) {
   const [p, setP] = useState(-1)
   useEffect(() => {
     const el = ref.current
     if (!el) return
     // anima sempre, mesmo com "efeitos de animação" desligados no Windows (a dona quer a página viva)
     let raf = 0
-    const read = () => {
-      raf = 0
+    let t0 = 0
+    const tick = (t: number) => {
+      if (!t0) t0 = t
+      const v = Math.min(1, (t - t0) / ms)
+      setP(Math.round(v * 400) / 400)
+      raf = v < 1 ? requestAnimationFrame(tick) : 0
+    }
+    const check = () => {
       const r = el.getBoundingClientRect()
       const vh = window.innerHeight || 800
-      const run = Math.max(320, vh * screens)
-      const v = (vh * 0.85 - r.top) / run
-      setP(v < 0 ? -1 : Math.round(Math.min(1.5, v) * 400) / 400)
+      if (r.top > vh * 0.85 || t0 || raf) return
+      stop()
+      raf = requestAnimationFrame(tick)
     }
-    const on = () => {
-      if (!raf) raf = requestAnimationFrame(read)
+    const stop = () => {
+      window.removeEventListener('scroll', check)
+      window.removeEventListener('resize', check)
     }
-    read()
-    window.addEventListener('scroll', on, { passive: true })
-    window.addEventListener('resize', on)
+    window.addEventListener('scroll', check, { passive: true })
+    window.addEventListener('resize', check)
+    check()
     return () => {
-      window.removeEventListener('scroll', on)
-      window.removeEventListener('resize', on)
+      stop()
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [ref, screens])
+  }, [ref, ms])
   return p
 }
 
@@ -823,10 +830,10 @@ function RotatingWord({ words }: { words: string[] }) {
 /** Jornada em 4 passos: avança conforme a pessoa rola a página (ou ao tocar) e mostra um cartão animado de cada etapa. */
 function Journey({ steps: JOURNEY }: { steps: typeof JOURNEY_FINAL; paused?: boolean }) {
   const box = useRef<HTMLDivElement>(null)
-  const scrolled = useScrollStep(box, JOURNEY.length, 1.1)
+  const scrolled = useScrollStep(box, JOURNEY.length, JOURNEY.length * 2200)
   const [picked, setPicked] = useState<{ at: number; step: number } | null>(null)
-  // o clique vale até a rolagem mudar de passo
-  const step = picked && picked.at === scrolled ? picked.step : Math.max(0, scrolled)
+  // tocou num passo: a pessoa assume o controle e a animação automática para
+  const step = picked ? picked.step : Math.max(0, scrolled)
   return (
     <div className="lp-journey" data-reveal ref={box}>
       <ol className="lp-steps-nav">
@@ -896,16 +903,16 @@ function AllInOne({ onTry }: { onTry: () => void }) {
   const before = useRef<HTMLDivElement>(null)
   const after = useRef<HTMLDivElement>(null)
   const auto = useRef<HTMLDivElement>(null)
-  // tudo anda com a rolagem: os riscos, os passos do caminho e a lista do que é automático
-  // cada risco vai se arrastando até a direita conforme a rolagem, um depois do outro
-  const strikeP = useScrollProgress(before, 0.9)
+  // cada parte toca sozinha quando aparece na tela: os riscos, os passos do caminho e a lista do que é automático
+  // cada risco vai se arrastando até a direita, um depois do outro
+  const strikeP = useScrollProgress(before, OUTSIDE.length * 550)
   const strike = (i: number) => Math.max(0, Math.min(1, strikeP * OUTSIDE.length - i))
   // a linha entra deslizando da esquerda um pouco antes do risco dela começar
   const rowIn = (i: number) => (strikeP < 0 ? 0 : Math.max(0, Math.min(1, strikeP * OUTSIDE.length - i + 1.4)))
-  const scrolled = useScrollStep(after, INSIDE.length, 1.3)
-  const autoIn = useScrollStep(auto, AUTO.length + 1, 0.7)
+  const scrolled = useScrollStep(after, INSIDE.length, INSIDE.length * 1500)
+  const autoIn = useScrollStep(auto, AUTO.length + 1, (AUTO.length + 1) * 260)
   const [picked, setPicked] = useState<{ at: number; step: number } | null>(null)
-  const step = picked && picked.at === scrolled ? picked.step : Math.max(0, scrolled)
+  const step = picked ? picked.step : Math.max(0, scrolled)
   const seen = scrolled >= 0
   const cur = INSIDE[step]
   return (

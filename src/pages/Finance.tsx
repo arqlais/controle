@@ -12,7 +12,7 @@ import { askDelete } from '../components/dialog'
 import type { Expense, Project, Quote } from '../types'
 import { CloseDeal } from './../components/quick'
 import { BillModal } from '../components/Bill'
-import { approvedWithoutProject, launchPaidQuote } from '../quoteActions'
+import { approvedWithoutProject, launchPaidQuote, misdatedOldQuotes, moveProjectDate } from '../quoteActions'
 import { toast } from '../components/dialog'
 import {
   CLIENT_TYPES,
@@ -155,6 +155,7 @@ export default function Finance() {
       {settings.meiLimit > 0 && <MeiBar year={month.slice(0, 4)} />}
 
       <OldWorkNotice />
+      <MisdatedNotice />
 
       {lateTotal > 0 && (
         <div className="alert-strip is-warn">
@@ -448,6 +449,49 @@ function MeiBar({ year }: { year: string }) {
           {projection > limit ? ' — acima do teto. Vale conversar com um contador sobre migrar para ME.' : '.'}
         </p>
       )}
+    </div>
+  )
+}
+
+/** Orçamentos antigos que entraram no financeiro no dia em que foram lançados (e não na data do orçamento).
+ *  Nada muda sozinho: a pessoa vê a lista e confirma. */
+function MisdatedNotice() {
+  const { data, upsert } = useStore()
+  const [open, setOpen] = useState(false)
+  const list = misdatedOldQuotes(data)
+  if (!list.length) return null
+  const clientName = (id: string) => data.clients.find((c) => c.id === id)?.name ?? 'cliente'
+  const fix = () => {
+    for (const { q, p } of list) {
+      upsert('projects', moveProjectDate(p, q.closedAt!, q.createdAt))
+      upsert('quotes', { ...q, closedAt: q.createdAt, sentAt: q.createdAt })
+    }
+    toast(`${list.length} ${list.length === 1 ? 'orçamento antigo foi para a data certa' : 'orçamentos antigos foram para as datas certas'}.`)
+  }
+  return (
+    <div className="alert-strip is-info">
+      <Icon name="calendar" />
+      <div className="grow">
+        <b>{list.length} {list.length === 1 ? 'orçamento antigo está contando' : 'orçamentos antigos estão contando'} no dia em que {list.length === 1 ? 'foi lançado' : 'foram lançados'}</b>
+        <span className="muted small"> · e não na data do orçamento. </span>
+        <button className="link" onClick={() => setOpen((v) => !v)}>{open ? 'fechar' : 'ver e corrigir →'}</button>
+        {open && (
+          <div className="stack" style={{ marginTop: 10 }}>
+            <ul className="old-work">
+              {list.map(({ q }) => (
+                <li key={q.id}>
+                  <span className="grow">{clientName(q.clientId)} · {q.title || 'orçamento sem nº'}</span>
+                  <small className="muted">{fmtDate(q.closedAt!)} → <b>{fmtDate(q.createdAt)}</b></small>
+                </li>
+              ))}
+            </ul>
+            <p className="small muted">Pagamento, fechamento e entrega vão para a data de cada orçamento. Nada é apagado.</p>
+            <div className="row gap-s">
+              <button className="btn primary small" onClick={fix}>mover para as datas dos orçamentos</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

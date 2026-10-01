@@ -30,6 +30,23 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-documentos-aparencia',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'aparência dentro de cada documento',
+    text: 'Guia de medição, placa de obra, briefing em PDF e apresentação agora têm, ali mesmo, a escolha do modelo, as cores do seu site e o logotipo. A placa também mostra o seu logo.',
+    feature: 'documentos',
+    steps: [{ page: 'documentos', text: 'Abra um documento: a parte "aparência" fica no topo.' }],
+  },
+  {
+    id: '2026-10-01-datas-antigos',
+    date: '2026-10-01',
+    kind: 'correcao',
+    title: 'datas certas para orçamentos antigos',
+    text: 'Orçamentos antigos sem número entram no financeiro na data do orçamento, não no dia em que foram lançados. Se algum entrou no mês errado, o financeiro mostra um aviso para corrigir. A data de entrega também dá para mudar direto no painel do cliente.',
+    steps: [{ page: 'financeiro', text: 'Se aparecer o aviso no topo, toque em "ver e corrigir".' }],
+  },
+  {
     id: '2026-09-30-painel-cliente-completo-resumo',
     date: '2026-09-30',
     kind: 'novo',

@@ -2055,3 +2055,28 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
   optgroup { padding: 10px 6px 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
   optgroup + optgroup { margin-top: 4px; border-top: 1px solid var(--border); }
 }
+
+/* ícones nunca encolhem ao lado de textos longos */
+svg { flex-shrink: 0; }
+/* celular: grupos de opções numa linha só, sem deixar uma opção sozinha embaixo */
+@media (max-width: 520px) {
+  .segmented { display: flex; flex-wrap: nowrap; max-width: 100%; }
+  /* até 4 opções: dividem a linha (o texto quebra dentro do botão) */
+  .segmented:not(:has(> :nth-child(5))) button { flex: 1 1 auto; min-width: 0; justify-content: center; text-align: center; white-space: normal; line-height: 1.2; padding: 7px 9px; }
+  /* 5 ou mais: a linha desliza para o lado */
+  .segmented:has(> :nth-child(5)) { overflow-x: auto; scrollbar-width: none; }
+  .segmented:has(> :nth-child(5))::-webkit-scrollbar { display: none; }
+  .segmented:has(> :nth-child(5)) button { flex: none; }
+  .manual-plan-tabs { flex-wrap: nowrap; }
+  .manual-plan-tabs button { min-width: 0; padding: 7px 6px; gap: 4px; }
+  .chips.bf-groups, .dk-look-tpls { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -2px; padding: 2px; }
+  .chips.bf-groups::-webkit-scrollbar, .dk-look-tpls::-webkit-scrollbar { display: none; }
+  .chips.bf-groups > *, .dk-look-tpl { flex: none; }
+}
+/* celular bem estreito (320–360): os botões do topo cabem sem o "+" sair da tela */
+@media (max-width: 360px) {
+  .topbar { gap: 3px; padding-left: 10px; padding-right: 10px; }
+  .topbar .icon-btn, .topbar .back-btn { width: 38px; height: 38px; min-width: 38px; }
+  .topbar > .search:not(:focus-within) { flex-basis: 38px; min-width: 38px; height: 38px; }
+  .topbar .add-menu > .btn { padding-left: 12px; padding-right: 12px; }
+}

@@ -5,7 +5,7 @@ import { DocScale } from '../components/Print'
 import { Field, Section, Segmented } from '../components/ui'
 import { ClientPicker } from '../components/ClientPicker'
 import { ColorPicker } from '../components/ColorPicker'
-import { DocWorkbench, ImageField, LinesField, PhotoCrop, useDocLook } from '../components/DocKit'
+import { DocLookPanel, DocWorkbench, ImageField, LinesField, PhotoCrop, useDocLook } from '../components/DocKit'
 import { GUIDE_SHOTS, MeasureGuideDoc, guideData } from '../components/docs/MeasureGuide'
 import { PLAQUE_LAYOUTS, PlaqueDoc, plaqueData, plaqueHasPhoto } from '../components/docs/Plaque'
 import { BriefingSheetDoc } from '../components/docs/BriefingSheet'
@@ -231,6 +231,7 @@ function GuideEditor({ value, set, w }: EdProps<MeasureGuideData>) {
       doc={<MeasureGuideDoc s={s} data={value} />}
       form={
         <>
+          <DocLookPanel />
           <Section title="textos">
             <Field label="Título">
               <input value={d.title} onChange={(e) => set({ title: e.target.value })} />
@@ -327,6 +328,7 @@ function PlaqueEditor({ value, set, w }: EdProps<PlaqueData>) {
       note={<p className="muted small">O PDF sai na proporção 3:4, em alta resolução. Na gráfica, peça a impressão em {SIZES[d.size]} (lona ou PVC).</p>}
       form={
         <>
+          <DocLookPanel />
           <Section title="layout">
             <div className="proc-pick">
               {PLAQUE_LAYOUTS.map((l) => (
@@ -398,6 +400,7 @@ function BriefingPdfEditor({ value, set, w, clientName }: EdProps<{ briefingTpl?
       doc={<BriefingSheetDoc s={s} tpl={tpl} client={clientName} />}
       form={
         <>
+          <DocLookPanel />
           <Section title="modelo">
             <Field label="Qual briefing">
               <select value={tpl.id} onChange={(e) => setTplId(e.target.value)}>
@@ -450,6 +453,7 @@ function DeckEditor({ value, set, w }: EdProps<DeckData>) {
       doc={<DeckDoc s={s} data={{ ...deck, stage: current }} stages={stages} />}
       form={
         <>
+          <DocLookPanel />
           <Section title="projeto">
             <Field label="Demanda (opcional)" hint="Puxa o nome do projeto, o cliente e as etapas do cronograma.">
               <select value={deck.projectId ?? ''} onChange={(e) => pickProject(e.target.value)}>

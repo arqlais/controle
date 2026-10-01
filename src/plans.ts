@@ -128,7 +128,6 @@ export const PLANS: Record<PlanId, Plan> = {
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade'],
     highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
-    featured: true,
   },
   estudio: {
     id: 'estudio',
@@ -137,6 +136,7 @@ export const PLANS: Record<PlanId, Plan> = {
     pitch: 'tudo do Completo + briefing online e recursos para escritório',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
     highlights: ['tudo do Completo', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'painel do cliente: etapas, pagamentos, contratos e documentos num link', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
+    featured: true,
   },
 }
 
