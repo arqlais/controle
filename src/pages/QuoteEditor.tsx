@@ -335,9 +335,11 @@ export default function QuoteEditor({ id }: { id: string }) {
       // área nova: serviços por m² que estavam com a área antiga (ou sem área) acompanham
       const follow = area && sv.pricing === 'm2' && area.to > 0 && (it.quantity === area.from || !it.quantity || (!area.from && it.quantity === 50))
       const quantity = follow ? area.to : it.quantity
-      if (!it.auto || it.joined || sv.pricing === 'livre') return follow ? { ...it, quantity } : it
+      // valor da IA: área, pavimentos ou arquivo aberto mudaram → passa a seguir a tabela
+      const auto = it.auto || (!!it.ai && sv.pricing !== 'livre' && (area ? !!follow : !!(sv.perFloor || sv.deliveryOpen)))
+      if (!auto || it.joined || sv.pricing === 'livre') return follow ? { ...it, quantity } : it
       const price = Math.max(0, suggestPrice(sv, quantity, it.complexity, student, settings, it.description.split('\n'), openFile, fl) - (it.unitDiscount ?? 0) * quantity)
-      return { ...it, quantity, price }
+      return { ...it, quantity, price, auto: true, ai: undefined }
     })
   const syncArea = (items: QuoteItem[], from: number, to: number, openFile: boolean, fl: number) => repriceItems(items, openFile, fl, { from, to })
   const setOpenFile = (openFile: boolean) => reprice({ openFile })
@@ -1276,7 +1278,10 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, aud
       price: it.auto && s && s.pricing !== 'livre' ? Math.max(0, suggestPrice(s, it.quantity, it.complexity, student, settings, it.description.split('\n'), openFile, floors) - (it.unitDiscount ?? 0) * it.quantity) : it.price,
     }
   }
-  const setItem = (iid: string, patch: Partial<QuoteItem>) => onChange(items.map((i) => (i.id === iid ? recompute({ ...i, ...patch }) : i)))
+  // valor sugerido pela IA: ao mexer na quantidade, área ou complexidade, passa a seguir a tabela
+  const fromAI = (i: QuoteItem, patch: Partial<QuoteItem>): Partial<QuoteItem> =>
+    i.ai && ('quantity' in patch || 'complexity' in patch || 'unitDiscount' in patch) ? { ...patch, auto: true, ai: undefined } : 'price' in patch || 'auto' in patch ? { ...patch, ai: undefined } : patch
+  const setItem = (iid: string, patch: Partial<QuoteItem>) => onChange(items.map((i) => (i.id === iid ? recompute({ ...i, ...fromAI(i, patch) }) : i)))
 
   return (
     <div className="q-items">
@@ -1425,8 +1430,8 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, aud
                     </span>
                   )}
                   {s && s.pricing !== 'livre' && (!it.auto || Math.abs(Math.max(0, suggestion - (it.unitDiscount ?? 0) * it.quantity) - it.price) >= 0.01) && (
-                    <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Usar o valor da tabela">
-                      tabela
+                    <button className="btn small ghost" onClick={() => setItem(it.id, { auto: true })} title="Usar o valor da tabela de preços (acompanha área, quantidade e complexidade)">
+                      usar tabela · {money(Math.max(0, suggestion - (it.unitDiscount ?? 0) * it.quantity))}
                     </button>
                   )}
                 </div>

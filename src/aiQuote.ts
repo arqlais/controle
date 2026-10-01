@@ -70,8 +70,13 @@ export const aiTotal = (q: AIQuote) => q.itens.reduce((n, x) => n + x.valor, 0)
 /** Itens do orçamento a partir da sugestão (com o valor sugerido, editável). */
 export function aiItems(q: AIQuote, services: ServiceDef[]): QuoteItem[] {
   return q.itens.map((x) => {
-    const sv = services.find((s) => s.id === x.servico) ?? services.find((s) => s.name.toLowerCase() === (x.titulo || '').toLowerCase())
-    return { id: uid(), service: sv?.id ?? '', title: x.titulo || sv?.name || 'serviço', detail: x.detalhe ?? '', description: (x.descricao ?? '').split(/\n|;\s*/).map((l) => l.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean).join('\n'), quantity: x.quantidade || 1, complexity: 'media', price: Math.round(x.valor * 100) / 100, auto: false }
+    const t = (x.titulo || '').toLowerCase().trim()
+    const sv =
+      services.find((s) => s.id === x.servico) ??
+      services.find((s) => s.name.toLowerCase().trim() === t) ??
+      // nome do serviço dentro do título (ex.: "modelagem 3d do existente" → "modelagem 3d"), o mais longo primeiro
+      [...services].sort((a, b) => b.name.length - a.name.length).find((s) => s.name.trim().length >= 4 && t.includes(s.name.toLowerCase().trim()))
+    return { id: uid(), service: sv?.id ?? '', title: x.titulo || sv?.name || 'serviço', detail: x.detalhe ?? '', description: (x.descricao ?? '').split(/\n|;\s*/).map((l) => l.replace(/^\s*[-•*]\s*/, '').trim()).filter(Boolean).join('\n'), quantity: x.quantidade || 1, complexity: 'media', price: Math.round(x.valor * 100) / 100, auto: false, ai: true }
   })
 }
 

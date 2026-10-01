@@ -305,6 +305,7 @@ export interface QuoteItem {
   auto: boolean // true = valor segue a tabela; false = digitado à mão
   joined?: boolean // cobrado junto com o serviço de cima (um valor só para os dois)
   openFee?: boolean // valor digitado à mão já com a taxa de arquivo aberto somada
+  ai?: boolean // valor sugerido pela IA: passa a seguir a tabela quando muda área, quantidade, complexidade ou pavimentos
 }
 
 export interface QuoteOption {

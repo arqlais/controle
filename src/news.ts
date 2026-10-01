@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-ia-valor-tabela',
+    date: '2026-10-01',
+    kind: 'correcao',
+    title: 'valor da IA acompanha a tabela',
+    text: 'No orçamento preenchido pela IA, ao mudar m², quantidade, complexidade ou pavimentos, o valor passa a seguir a sua tabela de preços. O botão “usar tabela” mostra o valor da tabela antes de trocar.',
+    beta: true,
+  },
+  {
     id: '2026-10-01-celular-alinhado',
     date: '2026-10-01',
     kind: 'correcao',
