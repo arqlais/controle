@@ -160,11 +160,8 @@ export const fontAllowed = (name: string, has: Has) => name !== EXCLUSIVE_FONT |
 
 /** Visual que vale para esta conta: a The Seasons só aparece para a dona. */
 export function effectiveSettings(s: Settings, has: Has): Settings {
-  // identidade própria (cores e fontes) é do Completo; no Essencial fica o visual padrão da plataforma
-  if (!has('identidade')) {
-    const kit = PALETTES.find((p) => p.name === 'areia & carvão')!
-    return { ...s, accent: kit.accent, accentSoft: kit.accentSoft, accentInk: kit.accentInk, background: kit.background, surface: kit.surface, text: kit.text, displayFont: CLIENT_DISPLAY, customFont: '', customBodyFont: '', bodyFont: 'Poppins' }
-  }
+  // a aparência do sistema (cores e fontes da tela) é livre em todos os planos;
+  // levar a identidade para os PDFs e documentos continua sendo do Completo (ver followsBrand)
   if (fontAllowed(s.displayFont, has)) return s
   return { ...s, displayFont: CLIENT_DISPLAY, customFont: '' }
 }

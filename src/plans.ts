@@ -127,7 +127,7 @@ export const PLANS: Record<PlanId, Plan> = {
     price: 59.9,
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade'],
-    highlights: ['tudo do Essencial', 'sua identidade visual: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
+    highlights: ['tudo do Essencial', 'sua identidade visual nos documentos: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
   },
   estudio: {
     id: 'estudio',
@@ -188,7 +188,8 @@ export function compareRows(): CompareRow[] {
     all('financeiro, parcelas e metas'),
     all('agenda do estúdio'),
     all('orçamento em texto pronto para o WhatsApp'),
-    row('logo, cores e fontes do seu estúdio', 'identidade'),
+    all('cores e fontes do sistema do seu jeito'),
+    row('logo, cores e fontes do seu estúdio nos documentos', 'identidade'),
     row('proposta e recibos em PDF', 'propostaPdf', 'todos os modelos'),
     row('contratos com os dados do orçamento', 'contratos'),
     row('agenda sincronizada no celular', 'agendaCelular'),

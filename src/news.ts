@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-aparencia-todos',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'aparência do sistema liberada em todos os planos',
+    text: 'Paletas, cores, fontes e tema do sistema agora podem ser escolhidos em qualquer plano. Levar o logo, as cores e as fontes para os PDFs e documentos continua no plano Completo.',
+    steps: [{ text: 'Em configurações → aparência.', page: 'config', configTab: 'aparencia' }],
+  },
+  {
     id: '2026-10-01-comprovante-assinante',
     date: '2026-10-01',
     kind: 'novo',

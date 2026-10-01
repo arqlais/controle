@@ -120,13 +120,15 @@ export default function SettingsPage() {
           <DesktopNote>Regras de preço, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet.</DesktopNote>
           {tab === 'aparencia' && (
             <>
-              {has('identidade') ? (
-                <BrandKit />
-              ) : (
-                <LockedView feature="identidade">
-                  <BrandKit />
-                </LockedView>
+              {!has('identidade') && (
+                <p className="pf-note">
+                  <Icon name="star" size={16} />
+                  <span>
+                    As cores e fontes do sistema são livres em todos os planos. Levar o seu logo, cores e fontes para os PDFs e documentos que vão para o cliente faz parte do plano {PLANS.completo.name}.
+                  </span>
+                </p>
               )}
+              <BrandKit />
               <Section title="tema deste aparelho">
                 <div className="form-grid">
                   <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
