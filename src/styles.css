@@ -2141,3 +2141,21 @@ svg { flex-shrink: 0; }
 .ai-quote-ask .btn { flex: 1 1 auto; justify-content: center; }
 .ai-quote-ask > span { flex-basis: 100%; }
 .ai-quote-ask .btn { flex: 1 1 0; min-width: 0; }
+
+/* orçamento no celular: a folha cabe na tela e o topo fixo fica enxuto */
+@media (max-width: 1100px) {
+  .quote-layout { grid-template-columns: minmax(0, 1fr); }
+  .quote-preview, .quote-form { min-width: 0; }
+}
+@media (max-width: 820px) {
+
+  /* rolando a página: só o título e os botões ficam presos no topo (a situação aparece no começo da página) */
+  .sticky-head.is-stuck .head-status { display: none; }
+  .sticky-head.is-stuck { padding-top: 6px; padding-bottom: 8px; }
+  .sticky-head.is-stuck h1 { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .sticky-head.is-stuck .btn { padding-top: 7px; padding-bottom: 7px; }
+}
+@media (max-width: 820px) {
+  .page-head.sticky-head.is-stuck > .row.gap-s.wrap { flex-wrap: nowrap; overflow-x: auto; }
+  .page-head.sticky-head.is-stuck > .row .btn.danger.icon-only { display: none; }
+}

@@ -26,7 +26,7 @@ export function DocScale({ children, width = 794 }: { children: ReactNode; width
   }, [width])
   return (
     <div className="doc-scale" ref={outer} style={{ height }}>
-      <div className="doc-scale-inner" ref={inner} style={{ transform: `scale(${scale})` }}>
+      <div className="doc-scale-inner" ref={inner} style={{ width, transform: `scale(${scale})` }}>
         {children}
       </div>
     </div>
