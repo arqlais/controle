@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-01',
     kind: 'correcao',
     title: 'botões alinhados no celular',
-    text: 'Os ícones do topo ficaram do mesmo tamanho e alinhados, e os botões de orçamentos, contratos, demandas e clientes se organizam sem sobrar um sozinho embaixo. Ações menos usadas ficam em “mais”.',
+    text: 'Os ícones do topo ficaram do mesmo tamanho e alinhados, e os botões de orçamentos, contratos, demandas e clientes se organizam sem sobrar um sozinho embaixo. Ações menos usadas ficam em “mais”. Na sugestão de orçamento da IA, nomes longos e botões cabem certinho.',
   },
   {
     id: '2026-10-01-rolagem-celular',

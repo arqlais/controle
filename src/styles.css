@@ -2140,7 +2140,8 @@ svg { flex-shrink: 0; }
 .ai-qi-more { justify-self: start; margin-top: 2px; font-size: 12px; }
 .ai-quote-ask .btn { flex: 1 1 auto; justify-content: center; }
 .ai-quote-ask > span { flex-basis: 100%; }
-.ai-quote-ask .btn { flex: 1 1 0; min-width: 0; }
+.ai-quote-ask .btn { flex: 1 1 180px; min-width: 0; white-space: normal; text-align: center; line-height: 1.25; }
+.ai-quote li b.ai-qi-name { white-space: normal; }
 
 /* orçamento no celular: a folha cabe na tela e o topo fixo fica enxuto */
 @media (max-width: 1100px) {
