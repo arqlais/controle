@@ -460,7 +460,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           ...q.options.slice(0, MAX_OPTIONS).flatMap((o, i) => [`*${q.combo ? 'proposta' : 'opção'} ${i + 1}${o.name ? ` · ${o.name}` : ''}*`, ...o.items.map(line), `total: ${money(optionTotal(o))}`, '']),
           ...(isCombo(q) && q.comboDiscount ? [`*fechando ${allLabel(q).toLowerCase()} juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
         ]
-      : [...q.items.map(line), q.urgency ? `• taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• desconto — −${money(q.discount)}` : '', '', `*investimento total: ${money(total)}*`, months ? `(pacote em ${months}× de ${money(Math.round((total / months) * 100) / 100)} por mês)` : '']
+      : [...(q.urgency && q.urgencyHidden ? q.items.map((it) => ({ ...it, price: Math.round(it.price * (1 + settings.urgencyFee / 100) * 100) / 100 })) : q.items).map(line), q.urgency && !q.urgencyHidden ? `• taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• desconto — −${money(q.discount)}` : '', '', `*investimento total: ${money(total)}*`, months ? `(pacote em ${months}× de ${money(Math.round((total / months) * 100) / 100)} por mês)` : '']
     return [...head, ...body, payText ? `pagamento: ${payText}` : '', q.schedule ? `prazos: ${q.schedule}` : '', '', 'é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre']
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
       .join('\n')
@@ -809,6 +809,11 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <input type="checkbox" checked={q.urgency} onChange={(e) => set({ urgency: e.target.checked })} /> taxa de urgência (+{settings.urgencyFee}%)
                   {q.urgency && <b>{money((sub * settings.urgencyFee) / 100)}</b>}
                 </label>
+                {q.urgency && (
+                  <label className="check small urgency-show">
+                    <input type="checkbox" checked={!q.urgencyHidden} onChange={(e) => set({ urgencyHidden: !e.target.checked || undefined })} /> mostrar a urgência no PDF{q.urgencyHidden && <span className="muted"> · embutida nos serviços</span>}
+                  </label>
+                )}
                 <div className="discount-row">
                   <span>desconto</span>
                   {[5, 10, 15].map((pct) => (

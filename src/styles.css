@@ -2202,3 +2202,5 @@ svg { flex-shrink: 0; }
 .pt-group-card.is-open .pt-group-head > svg:last-child { transform: rotate(90deg); }
 .pt-group-ico { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent-ink, var(--accent)); }
 .pt-group-card .pt-chips { padding: 2px 12px 12px; }
+.quote-totals .urgency-show { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 13px; margin-top: -4px; }
+.quote-totals .urgency-show input { width: 16px; height: 16px; flex: none; }

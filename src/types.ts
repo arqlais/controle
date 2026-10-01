@@ -351,6 +351,7 @@ export interface Quote {
   openFile?: boolean // cliente quer o arquivo aberto (taxa interna, não aparece no PDF)
   schedule: string // prazos e cronograma (texto da proposta)
   urgency: boolean
+  urgencyHidden?: boolean // taxa de urgência embutida no total, sem aparecer no PDF nem no texto
   deadlineDays: number
   validityDays: number
   revisions: number

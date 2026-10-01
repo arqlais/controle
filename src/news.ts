@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-urgencia-opcional',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'taxa de urgência sem aparecer no PDF',
+    text: 'No orçamento com urgência, escolha se o valor da taxa aparece no PDF. Desmarcando, ela fica embutida no valor de cada serviço e o total continua o mesmo.',
+  },
+  {
     id: '2026-10-01-catalogo-servicos',
     date: '2026-10-01',
     kind: 'novo',

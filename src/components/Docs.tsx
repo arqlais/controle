@@ -327,7 +327,7 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
   ].filter((x) => x.text?.trim())
 
   const sub = quoteSubtotal(quote)
-  const urgencyValue = quote.urgency ? (sub * s.urgencyFee) / 100 : 0
+  const urgencyValue = quote.urgency && !quote.urgencyHidden ? (sub * s.urgencyFee) / 100 : 0
   const scopeDiscount = quote.discount + quote.items.reduce((acc, i) => acc + itemDiscount(i), 0)
   const pkg = packageMonths(quote)
   const scopeNote = [quote.discountNote || [urgencyValue ? `inclui urgência de ${money(urgencyValue)}` : '', discountText(scopeDiscount)].filter(Boolean).join(' · '), pkg ? `em ${pkg}× de ${money(Math.round((quoteTotal(quote, s.urgencyFee) / pkg) * 100) / 100)} por mês` : ''].filter(Boolean).join(' · ')
@@ -363,7 +363,7 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
               <h3 className="p-card-title">{heading(quote.title)}</h3>
               <span className="p-label">valor</span>
             </div>
-            <Rows items={quote.items} />
+            <Rows items={quote.urgency && quote.urgencyHidden ? quote.items.map((it) => ({ ...it, price: Math.round(it.price * (1 + s.urgencyFee / 100) * 100) / 100 })) : quote.items} />
             {quote.notes && <p className="p-note">{quote.notes}</p>}
           </div>
           <TotalBar label="investimento total" value={quoteTotal(quote, s.urgencyFee)} note={scopeNote} />
