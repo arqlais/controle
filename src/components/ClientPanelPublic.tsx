@@ -48,21 +48,24 @@ export function ClientPanelPublic({ id, data, preview }: { id: string; data?: Pa
   return wrap(<Panel d={d} owner={owner} preview={preview} token={id} />)
 }
 
+const DAY = 86_400_000
+const daysTo = (iso?: string | null) => (iso ? Math.ceil((Date.parse(iso.slice(0, 10) + 'T12:00:00') - Date.now()) / DAY) : null)
+const inDays = (n: number) => (n > 1 ? `faltam ${n} dias` : n === 1 ? 'é amanhã' : n === 0 ? 'é hoje' : 'prazo em ajuste')
+
 function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; preview?: boolean; token: string }) {
   const s = { ...DEFAULT_SETTINGS, ...(d.s as Partial<Settings>) } as Settings
   const pdf = usePdf()
   const [view, setView] = useState<Viewer | null>(null)
+  const [copied, setCopied] = useState(false)
   const docsCount = d.docs.length + d.files.length
-  const toPay = d.projects.reduce((n, p) => n + (p.payments ?? []).filter((x) => !x.paid).length, 0)
-  const toSign = d.contracts.filter((c) => !c.sign && c.signLink).length
-  const toAnswer = d.briefings.filter((b) => !b.answered && b.link).length
+  const unpaid = d.projects.flatMap((p) => (p.payments ?? []).filter((x) => !x.paid).map((x) => ({ ...x, project: p.title })))
+  const toSign = d.contracts.filter((c) => !c.sign && c.signLink)
+  const toAnswer = d.briefings.filter((b) => !b.answered && b.link)
   const nav: { id: string; label: string; icon: IconName; n?: number; show: boolean }[] = [
-    { id: 'pn-projetos', label: d.projects.length > 1 ? 'projetos' : 'projeto', icon: 'layers', show: d.projects.length > 0 },
+    { id: 'pn-projetos', label: d.projects.length > 1 ? 'projetos' : 'etapas', icon: 'layers', show: d.projects.length > 0 },
+    { id: 'pn-pagamentos', label: 'pagamentos', icon: 'wallet', n: unpaid.length || undefined, show: d.projects.some((p) => p.payments?.length) },
+    { id: 'pn-documentos', label: 'documentos', icon: 'file', n: docsCount || undefined, show: docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0 },
     { id: 'pn-links', label: 'links', icon: 'link', show: (d.links ?? []).length > 0 },
-    { id: 'pn-documentos', label: 'documentos', icon: 'file', n: docsCount, show: docsCount > 0 },
-    { id: 'pn-contratos', label: 'contratos', icon: 'pen', n: toSign || undefined, show: d.contracts.length > 0 },
-    { id: 'pn-briefings', label: 'briefings', icon: 'clip', n: toAnswer || undefined, show: d.briefings.length > 0 },
-    { id: 'pn-propostas', label: 'propostas', icon: 'wallet', show: d.quotes.length > 0 },
     { id: 'pn-recado', label: 'falar', icon: 'chat', show: true },
   ]
   const open = (v: Viewer) => setView(v)
@@ -81,111 +84,170 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
     ) : null
     if (node) open({ title: x.title, node, w: w[0], h: w[1], file: `${x.title}.pdf` })
   }
+  const copyPix = () => {
+    if (!d.pix) return
+    void navigator.clipboard?.writeText(d.pix)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2200)
+  }
 
-  // resumo: a demanda em andamento (ou a mais recente), prazos e pagamentos de todas
+  // resumo: a demanda em andamento (ou a mais recente)
   const main = d.projects.find((p) => !p.deliveredDate) ?? d.projects[0]
   const mDone = main ? main.phases.filter((x) => x.done).length : 0
   const mNow = main?.phases.find((x) => !x.done)
   const mPct = main ? (main.phases.length ? Math.round((mDone / main.phases.length) * 100) : main.deliveredDate ? 100 : 0) : 0
-  const days = main?.dueDate && !main.deliveredDate ? Math.ceil((Date.parse(main.dueDate) - Date.now()) / 86_400_000) : null
+  const days = main && !main.deliveredDate ? daysTo(main.dueDate) : null
   const payTotal = d.projects.reduce((n, p) => n + (p.total ?? 0), 0)
   const payPaid = d.projects.reduce((n, p) => n + (p.paid ?? 0), 0)
-  const nextPay = d.projects
-    .flatMap((p) => (p.payments ?? []).filter((x) => !x.paid))
-    .sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999'))[0]
+  const nextPay = [...unpaid].sort((x, y) => (x.due || '9999').localeCompare(y.due || '9999'))[0]
   const showPay = d.projects.some((p) => p.payments?.length)
+  const c = d.colors
+  const vars = {
+    ['--bf-accent' as string]: c?.accent || d.accent || '#a88a80',
+    ['--cp-accent' as string]: c?.accent || d.accent || '#a88a80',
+    ['--cp-soft' as string]: c?.soft || `color-mix(in srgb, ${d.accent || '#a88a80'} 35%, #fff)`,
+    ['--cp-ink' as string]: c?.ink || d.accent || '#a88a80',
+    ['--cp-bg' as string]: c?.bg || '#f7f4f1',
+    ['--cp-text' as string]: c?.text || '#33383d',
+  }
+  const todos = toSign.length + toAnswer.length + (nextPay ? 1 : 0)
 
   return (
-    <>
-      <header className="bf-head pn-hero">
-        <div className="pn-hero-brand">
-          {d.logo ? <img src={d.logo} alt="" className="bf-logo" /> : <span className="pn-hero-mark">{(d.studio || '?')[0]}</span>}
-          <p className="bf-eyebrow">{d.studio}</p>
+    <div className="cp" style={vars}>
+      <header className="cp-hero">
+        <div className="cp-hero-text">
+          <div className="cp-brand">
+            {d.logo ? <img src={d.logo} alt="" className="cp-logo" /> : <span className="cp-mark">{(d.studio || '?')[0]}</span>}
+            <span>
+              <b>{d.studio}</b>
+              <small>atualizado em {new Date(d.updatedAt).toLocaleDateString('pt-BR')}</small>
+            </span>
+          </div>
+          <h1>{d.client ? `Oi, ${d.client}!` : 'Seu painel'}</h1>
+          <p>Aqui você acompanha o seu projeto: em que etapa está, quando fica pronto, os pagamentos e os documentos. Sempre atualizado.</p>
+          {d.message && (
+            <p className="cp-message">
+              <Icon name="chat" size={15} /> {d.message}
+            </p>
+          )}
         </div>
-        <h1>{d.client ? `Oi, ${d.client}!` : 'Seu painel'}</h1>
-        <p className="muted">Tudo do seu projeto num lugar só: etapas, prazos, pagamentos e documentos. Atualizado em {new Date(d.updatedAt).toLocaleDateString('pt-BR')}.</p>
+        {main && (
+          <div className="cp-ring" style={{ ['--p' as string]: mPct }} aria-label={`${mPct}% do projeto concluído`}>
+            <div>
+              <b>{mPct}%</b>
+              <small>{main.deliveredDate ? 'entregue' : 'concluído'}</small>
+            </div>
+          </div>
+        )}
       </header>
-      {d.message && <p className="pt-message">{d.message}</p>}
 
       {main && (
-        <div className="pn-summary">
-          <div className="pn-tile">
-            <span className="pn-tile-ico">
-              <Icon name="layers" size={16} />
+        <div className="cp-glance">
+          <div className="cp-tile">
+            <span className="cp-tile-ico">
+              <Icon name="layers" size={18} />
             </span>
-            <small>{main.deliveredDate ? 'situação' : 'etapa atual'}</small>
-            <b>{main.deliveredDate ? 'entregue' : mNow?.name ?? main.status}</b>
-            {main.phases.length > 0 && (
-              <div className="pn-bar is-mini" aria-label={`${mPct}% concluído`}>
-                <i style={{ width: `${mPct}%` }} />
-              </div>
-            )}
-            {main.phases.length > 0 && <em>{mPct}% concluído</em>}
+            <small>{main.deliveredDate ? 'situação' : 'etapa de agora'}</small>
+            <b>{main.deliveredDate ? 'projeto entregue' : mNow?.name ?? main.status}</b>
+            {main.phases.length > 0 && <em>{mDone} de {main.phases.length} etapas prontas</em>}
           </div>
-          <div className="pn-tile">
-            <span className="pn-tile-ico">
-              <Icon name="calendar" size={16} />
+          <div className="cp-tile">
+            <span className="cp-tile-ico">
+              <Icon name="calendar" size={18} />
             </span>
-            <small>{main.deliveredDate ? 'entregue em' : 'entrega prevista'}</small>
+            <small>{main.deliveredDate ? 'entregue em' : 'fica pronto em'}</small>
             <b>{main.deliveredDate ? fmt(main.deliveredDate) : main.dueDate ? fmt(main.dueDate) : 'a combinar'}</b>
-            {days !== null && <em>{days > 1 ? `faltam ${days} dias` : days === 1 ? 'amanhã' : days === 0 ? 'hoje' : 'em ajuste de prazo'}</em>}
+            {days !== null && <em>{inDays(days)}</em>}
           </div>
           {showPay && (
-            <div className="pn-tile">
-              <span className="pn-tile-ico">
-                <Icon name="wallet" size={16} />
+            <div className="cp-tile">
+              <span className="cp-tile-ico">
+                <Icon name="wallet" size={18} />
               </span>
               <small>pagamentos</small>
               <b>
-                {money(payPaid)} <span className="muted">de {money(payTotal)}</span>
+                {money(payPaid)} <span>de {money(payTotal)}</span>
               </b>
               {payTotal > 0 && (
-                <div className="pn-bar is-mini is-pay" aria-hidden>
+                <div className="cp-bar" aria-hidden>
                   <i style={{ width: `${Math.min(100, Math.round((payPaid / payTotal) * 100))}%` }} />
                 </div>
               )}
-              <em>{nextPay ? `próxima: ${money(nextPay.amount)}${nextPay.due ? ` em ${fmt(nextPay.due)}` : ` ${nextPay.when}`}` : 'tudo pago'}</em>
+              <em>{nextPay ? `próximo: ${money(nextPay.amount)}${nextPay.due ? ` em ${fmt(nextPay.due)}` : ` ${nextPay.when}`}` : 'tudo pago'}</em>
             </div>
           )}
-          <div className="pn-tile">
-            <span className="pn-tile-ico">
-              <Icon name="file" size={16} />
+          <div className="cp-tile">
+            <span className="cp-tile-ico">
+              <Icon name="file" size={18} />
             </span>
             <small>documentos</small>
-            <b>{docsCount + d.contracts.length}</b>
-            <em>{toSign ? `${toSign} para assinar` : d.contracts.length ? 'contratos em dia' : 'arquivos do projeto'}</em>
+            <b>{docsCount + d.contracts.length + d.briefings.length}</b>
+            <em>{toSign.length ? `${toSign.length} para assinar` : 'tudo em dia'}</em>
           </div>
         </div>
       )}
 
-      {(toPay > 0 || toSign > 0 || toAnswer > 0) && (
-        <div className="pn-todo-box">
-          <p className="pn-todo-title">
-            <Icon name="flag" size={14} /> para você fazer
-          </p>
-          <div className="pn-todo">
-            {toSign > 0 && (
-              <a href="#pn-contratos" onClick={(e) => jump(e, 'pn-contratos')}>
-                <Icon name="pen" size={15} /> {toSign === 1 ? 'assinar 1 contrato' : `assinar ${toSign} contratos`}
-              </a>
-            )}
-            {toAnswer > 0 && (
-              <a href="#pn-briefings" onClick={(e) => jump(e, 'pn-briefings')}>
-                <Icon name="clip" size={15} /> {toAnswer === 1 ? 'responder 1 briefing' : `responder ${toAnswer} briefings`}
-              </a>
-            )}
-            {toPay > 0 && (
-              <a href="#pn-projetos" onClick={(e) => jump(e, 'pn-projetos')}>
-                <Icon name="wallet" size={15} /> {toPay === 1 ? '1 pagamento em aberto' : `${toPay} pagamentos em aberto`}
-              </a>
+      {todos > 0 && (
+        <section className="cp-todo" aria-label="Para você fazer">
+          <h2>
+            <Icon name="flag" size={16} /> para você fazer
+          </h2>
+          <div className="cp-todo-list">
+            {toSign.map((k) => (
+              <div key={k.id} className="cp-action">
+                <span className="cp-action-ico">
+                  <Icon name="pen" size={20} />
+                </span>
+                <span className="cp-action-text">
+                  <b>assinar o contrato</b>
+                  <small>Leia com calma e assine pelo celular. Leva uns 2 minutos.</small>
+                </span>
+                <a className="btn primary" href={k.signLink}>
+                  ler e assinar
+                </a>
+              </div>
+            ))}
+            {toAnswer.map((b) => (
+              <div key={b.id} className="cp-action">
+                <span className="cp-action-ico">
+                  <Icon name="clip" size={20} />
+                </span>
+                <span className="cp-action-text">
+                  <b>responder o briefing</b>
+                  <small>São perguntas sobre como você vive e o que gosta. Dá para pular o que não souber.</small>
+                </span>
+                <a className="btn primary" href={b.link}>
+                  responder
+                </a>
+              </div>
+            ))}
+            {nextPay && (
+              <div className="cp-action">
+                <span className="cp-action-ico">
+                  <Icon name="wallet" size={20} />
+                </span>
+                <span className="cp-action-text">
+                  <b>
+                    {nextPay.description} · {money(nextPay.amount)}
+                  </b>
+                  <small>{nextPay.due ? (daysTo(nextPay.due)! < 0 ? `venceu em ${fmt(nextPay.due)}` : `vence em ${fmt(nextPay.due)}`) : `pagamento ${nextPay.when}`}{d.pix ? ` · Pix: ${d.pix}` : ''}</small>
+                </span>
+                {d.pix ? (
+                  <button type="button" className="btn primary" onClick={copyPix}>
+                    <Icon name={copied ? 'check' : 'copy'} size={15} /> {copied ? 'Pix copiado' : 'copiar Pix'}
+                  </button>
+                ) : (
+                  <a className="btn" href="#pn-pagamentos" onClick={(e) => jump(e, 'pn-pagamentos')}>
+                    ver
+                  </a>
+                )}
+              </div>
             )}
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="pn-grid">
-      <aside className="pn-side">
-      <nav className="pn-nav" aria-label="Seções do painel">
+      <nav className="cp-nav" aria-label="Seções do painel">
         {nav
           .filter((x) => x.show)
           .map((x) => (
@@ -196,161 +258,196 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </a>
           ))}
       </nav>
-      <Contact d={d} />
-      </aside>
-      <div className="pn-main">
 
-      {d.projects.length > 0 && (
-        <section id="pn-projetos" className="pn-section">
-          {d.projects.map((p) => (
-            <ProjectCard key={p.id} p={p} pix={d.pix} solo={d.projects.length === 1} />
-          ))}
-        </section>
-      )}
+      <div className="cp-grid">
+        <div className="cp-main">
+          {d.projects.length > 0 && (
+            <section id="pn-projetos" className="cp-section">
+              {d.projects.map((p) => (
+                <Journey key={p.id} p={p} />
+              ))}
+              <p className="cp-legend" aria-hidden>
+                <span>
+                  <i className="is-done">
+                    <Icon name="check" size={10} />
+                  </i>{' '}
+                  pronta
+                </span>
+                <span>
+                  <i className="is-now" /> acontecendo agora
+                </span>
+                <span>
+                  <i /> próximas
+                </span>
+              </p>
+            </section>
+          )}
 
-      {(d.links ?? []).length > 0 && (
-        <section id="pn-links" className="bf-block pn-section">
-          <h2>links do projeto</h2>
-          <div className="pn-link-cards">
-            {(d.links ?? []).map((l, i) => (
-              <a key={i} className="pn-link-card" href={l.url} target="_blank" rel="noreferrer">
-                <span className="pn-ico">
-                  <Icon name={linkIcon(l.url)} size={16} />
-                </span>
-                <span className="grow">
-                  <b>{l.label}</b>
-                  <small>{l.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}</small>
-                </span>
-                <Icon name="arrowRight" size={15} />
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
+          {showPay && (
+            <section id="pn-pagamentos" className="cp-section">
+              <h2 className="cp-h">
+                <Icon name="wallet" size={17} /> pagamentos
+              </h2>
+              {d.projects
+                .filter((p) => p.payments?.length)
+                .map((p) => (
+                  <div key={p.id} className="cp-card">
+                    {d.projects.length > 1 && <p className="cp-card-title">{p.title}</p>}
+                    {typeof p.total === 'number' && p.total > 0 && (
+                      <div className="cp-paysum">
+                        <div className="cp-bar is-big">
+                          <i style={{ width: `${Math.min(100, Math.round(((p.paid ?? 0) / p.total) * 100))}%` }} />
+                        </div>
+                        <p>
+                          <b>{money(p.paid ?? 0)}</b> pagos de {money(p.total)}
+                        </p>
+                      </div>
+                    )}
+                    <ul className="cp-pays">
+                      {(p.payments ?? []).map((x, i) => {
+                        const late = !x.paid && x.due && daysTo(x.due)! < 0
+                        return (
+                          <li key={i} className={x.paid ? 'is-paid' : late ? 'is-late' : ''}>
+                            <span className="cp-pay-ico">
+                              <Icon name={x.paid ? 'check' : late ? 'alert' : 'clock'} size={14} />
+                            </span>
+                            <span className="grow">
+                              <b>{x.description}</b>
+                              <small>{x.paid ? `pago${x.paidDate ? ` em ${fmt(x.paidDate)}` : ''}` : x.due ? `${late ? 'venceu' : 'vence'} em ${fmt(x.due)}` : x.when}</small>
+                            </span>
+                            <span className="cp-pay-val">{money(x.amount)}</span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                    {d.pix && (p.payments ?? []).some((x) => !x.paid) && (
+                      <p className="cp-pix">
+                        <Icon name="wallet" size={14} /> Pix: <b>{d.pix}</b>
+                        <button type="button" className="link small" onClick={copyPix}>
+                          {copied ? 'copiado' : 'copiar'}
+                        </button>
+                      </p>
+                    )}
+                  </div>
+                ))}
+            </section>
+          )}
 
-      {docsCount > 0 && (
-        <section id="pn-documentos" className="bf-block pn-section">
-          <h2>documentos</h2>
-          <ul className="pn-list">
-            {d.docs.map((x) => (
-              <li key={x.id}>
-                <span className="pn-ico">
-                  <Icon name={x.kind === 'placa' ? 'hardhat' : x.kind === 'apresentacao' ? 'layers' : x.kind === 'briefing' ? 'clip' : 'ruler'} size={16} />
-                </span>
-                <span className="grow">
-                  <b>{x.title}</b>
-                  <small>atualizado em {fmt(x.updatedAt)}</small>
-                </span>
-                <button className="btn small" onClick={() => openDoc(x)}>
-                  <Icon name="eye" size={14} /> ver
-                </button>
-              </li>
-            ))}
-            {d.files.map((f) => (
-              <li key={f.id}>
-                <span className="pn-ico">
-                  <Icon name={f.type?.startsWith('image/') ? 'camera' : 'file'} size={16} />
-                </span>
-                <span className="grow">
-                  <b>{f.name}</b>
-                  <small>
-                    {fmt(f.at)}
-                    {f.size ? ` · ${size(f.size)}` : ''}
-                    {f.projectId ? ` · ${d.projects.find((p) => p.id === f.projectId)?.title ?? ''}` : ''}
-                  </small>
-                </span>
-                <a className="btn small" href={f.url} target="_blank" rel="noreferrer" download={f.url.startsWith('data:') ? f.name : undefined}>
-                  <Icon name="download" size={14} /> abrir
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {d.contracts.length > 0 && (
-        <section id="pn-contratos" className="bf-block pn-section">
-          <h2>contratos</h2>
-          <ul className="pn-list">
-            {d.contracts.map((c) => (
-              <li key={c.id}>
-                <span className={`pn-ico ${c.sign ? 'is-ok' : ''}`}>
-                  <Icon name={c.sign ? 'check' : 'pen'} size={16} />
-                </span>
-                <span className="grow">
-                  <b>{c.title}</b>
-                  <small>{c.sign ? `assinado por ${c.sign.name} em ${fmt(c.sign.at)}` : c.status}</small>
-                </span>
-                {!c.sign && c.signLink ? (
-                  <a className="btn small primary" href={c.signLink}>
-                    <Icon name="pen" size={14} /> ler e assinar
-                  </a>
-                ) : (
-                  <button className="btn small" onClick={() => open({ title: c.title, node: <ContractDoc s={s} body={c.body} html={c.html} clientName={d.clientFull} exclusive={c.exclusive} signed={c.sign} />, w: PAGE.a4[0], h: PAGE.a4[1], file: `Contrato - ${c.title}.pdf`, flow: true })}>
-                    <Icon name="eye" size={14} /> ver
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {d.briefings.length > 0 && (
-        <section id="pn-briefings" className="bf-block pn-section">
-          <h2>briefings</h2>
-          <ul className="pn-list">
-            {d.briefings.map((b) => (
-              <li key={b.id}>
-                <span className={`pn-ico ${b.answered ? 'is-ok' : ''}`}>
-                  <Icon name={b.answered ? 'check' : 'clip'} size={16} />
-                </span>
-                <span className="grow">
-                  <b>{b.title}</b>
-                  <small>{b.answered ? `respondido em ${fmt(b.answeredAt)}` : 'esperando as suas respostas'}</small>
-                </span>
-                {b.answered ? (
-                  <button className="btn small" onClick={() => open({ title: b.title, node: <BriefingSheetDoc s={s} tpl={{ name: b.title, sections: b.sections ?? [], questions: b.questions ?? [] }} client={d.clientFull} answers={b.answers ?? {}} />, w: PAGE.a4[0], h: PAGE.a4[1], file: `Briefing - ${b.title}.pdf` })}>
-                    <Icon name="eye" size={14} /> ver
-                  </button>
-                ) : (
-                  b.link && (
-                    <a className="btn small primary" href={b.link}>
-                      <Icon name="pen" size={14} /> responder
+          {(docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0) && (
+            <section id="pn-documentos" className="cp-section">
+              <h2 className="cp-h">
+                <Icon name="file" size={17} /> documentos
+              </h2>
+              <div className="cp-docs">
+                {d.contracts.map((k) => (
+                  <div key={k.id} className={`cp-doc ${k.sign ? 'is-ok' : 'is-todo'}`}>
+                    <span className="cp-doc-ico">
+                      <Icon name={k.sign ? 'check' : 'pen'} size={18} />
+                    </span>
+                    <b>{k.title}</b>
+                    <small>{k.sign ? `assinado em ${fmt(k.sign.at)}` : 'contrato para assinar'}</small>
+                    {!k.sign && k.signLink ? (
+                      <a className="btn small primary" href={k.signLink}>
+                        ler e assinar
+                      </a>
+                    ) : (
+                      <button className="btn small" onClick={() => open({ title: k.title, node: <ContractDoc s={s} body={k.body} html={k.html} clientName={d.clientFull} exclusive={k.exclusive} signed={k.sign} />, w: PAGE.a4[0], h: PAGE.a4[1], file: `Contrato - ${k.title}.pdf`, flow: true })}>
+                        <Icon name="eye" size={14} /> ver
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {d.briefings.map((b) => (
+                  <div key={b.id} className={`cp-doc ${b.answered ? 'is-ok' : 'is-todo'}`}>
+                    <span className="cp-doc-ico">
+                      <Icon name={b.answered ? 'check' : 'clip'} size={18} />
+                    </span>
+                    <b>{b.title}</b>
+                    <small>{b.answered ? `briefing respondido em ${fmt(b.answeredAt)}` : 'briefing esperando as suas respostas'}</small>
+                    {b.answered ? (
+                      <button className="btn small" onClick={() => open({ title: b.title, node: <BriefingSheetDoc s={s} tpl={{ name: b.title, sections: b.sections ?? [], questions: b.questions ?? [] }} client={d.clientFull} answers={b.answers ?? {}} />, w: PAGE.a4[0], h: PAGE.a4[1], file: `Briefing - ${b.title}.pdf` })}>
+                        <Icon name="eye" size={14} /> ver
+                      </button>
+                    ) : (
+                      b.link && (
+                        <a className="btn small primary" href={b.link}>
+                          responder
+                        </a>
+                      )
+                    )}
+                  </div>
+                ))}
+                {d.docs.map((x) => (
+                  <div key={x.id} className="cp-doc">
+                    <span className="cp-doc-ico">
+                      <Icon name={x.kind === 'placa' ? 'hardhat' : x.kind === 'apresentacao' ? 'layers' : x.kind === 'briefing' ? 'clip' : 'ruler'} size={18} />
+                    </span>
+                    <b>{x.title}</b>
+                    <small>atualizado em {fmt(x.updatedAt)}</small>
+                    <button className="btn small" onClick={() => openDoc(x)}>
+                      <Icon name="eye" size={14} /> ver
+                    </button>
+                  </div>
+                ))}
+                {d.files.map((f) => (
+                  <div key={f.id} className="cp-doc">
+                    <span className="cp-doc-ico">
+                      <Icon name={f.type?.startsWith('image/') ? 'image' : 'file'} size={18} />
+                    </span>
+                    <b>{f.name}</b>
+                    <small>
+                      {fmt(f.at)}
+                      {f.size ? ` · ${size(f.size)}` : ''}
+                    </small>
+                    <a className="btn small" href={f.url} target="_blank" rel="noreferrer" download={f.url.startsWith('data:') ? f.name : undefined}>
+                      <Icon name="download" size={14} /> abrir
                     </a>
-                  )
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+                  </div>
+                ))}
+                {d.quotes.map((q) => (
+                  <div key={q.id} className="cp-doc">
+                    <span className="cp-doc-ico">
+                      <Icon name="wallet" size={18} />
+                    </span>
+                    <b>{q.title || 'proposta'}</b>
+                    <small>
+                      proposta {q.number ? `nº ${q.number} · ` : ''}
+                      {q.status}
+                    </small>
+                    <span className="cp-doc-val">{money(q.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-      {d.quotes.length > 0 && (
-        <section id="pn-propostas" className="bf-block pn-section">
-          <h2>propostas</h2>
-          <ul className="pn-list">
-            {d.quotes.map((q) => (
-              <li key={q.id}>
-                <span className="pn-ico">
-                  <Icon name="wallet" size={16} />
-                </span>
-                <span className="grow">
-                  <b>{q.title}</b>
-                  <small>
-                    {q.number ? `nº ${q.number} · ` : ''}
-                    {fmt(q.date)} · {q.status}
-                  </small>
-                </span>
-                <span className="pn-value">{money(q.total)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+          {(d.links ?? []).length > 0 && (
+            <section id="pn-links" className="cp-section">
+              <h2 className="cp-h">
+                <Icon name="link" size={17} /> links do projeto
+              </h2>
+              <div className="pn-link-cards">
+                {(d.links ?? []).map((l, i) => (
+                  <a key={i} className="pn-link-card" href={l.url} target="_blank" rel="noreferrer">
+                    <span className="pn-ico">
+                      <Icon name={linkIcon(l.url)} size={16} />
+                    </span>
+                    <span className="grow">
+                      <b>{l.label}</b>
+                      <small>{l.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}</small>
+                    </span>
+                    <Icon name="arrowRight" size={15} />
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
 
-      <Talk d={d} owner={owner} preview={preview} token={token} />
-      </div>
+          <Talk d={d} owner={owner} preview={preview} token={token} />
+        </div>
+        <aside className="cp-side">
+          <Contact d={d} />
+        </aside>
       </div>
       {d.phone && (
         <a className="pn-fab" href={whatsappLink(d.phone, 'Oi! Estou vendo o meu painel do projeto.')} target="_blank" rel="noreferrer" aria-label={`Falar com ${d.owner || d.studio} no WhatsApp`}>
@@ -371,7 +468,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
         </Modal>
       )}
       {pdf.portal}
-    </>
+    </div>
   )
 }
 
@@ -380,90 +477,58 @@ function jump(e: React.MouseEvent, id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-function ProjectCard({ p, pix, solo }: { p: PanelProject; pix?: string; solo?: boolean }) {
+/** Caminho do projeto: cada etapa com o seu símbolo (pronta, agora, próxima), prazos e recados. */
+function Journey({ p: raw }: { p: PanelProject }) {
+  // entregue: todas as etapas aparecem como prontas
+  const p = raw.deliveredDate ? { ...raw, phases: raw.phases.map((x) => ({ ...x, done: true })) } : raw
   const done = p.phases.filter((x) => x.done).length
   const now = p.phases.find((x) => !x.done)
   const pct = p.phases.length ? Math.round((done / p.phases.length) * 100) : p.deliveredDate ? 100 : 0
   return (
-    <article className="bf-block pn-project">
-      <h2>{p.title}</h2>
-      {/* um projeto só: o resumo do topo já mostra situação, entrega e etapas */}
-      {!solo && <section className="pt-now">
-        <div>
-          <span>situação</span>
-          <b>{p.deliveredDate ? 'entregue' : now ? now.name : p.status}</b>
-        </div>
-        {p.dueDate && !p.deliveredDate && (
-          <div>
-            <span>entrega prevista</span>
-            <b>{fmt(p.dueDate)}</b>
-          </div>
-        )}
-        {p.phases.length > 0 && (
-          <div>
-            <span>etapas</span>
-            <b>
-              {done} de {p.phases.length}
-            </b>
-          </div>
-        )}
-      </section>}
-      {p.phases.length > 0 && (
-        <>
-          <div className="pn-bar" aria-label={`${pct}% concluído`}>
-            <i style={{ width: `${pct}%` }} />
-          </div>
-          <ol className="pt-steps">
+    <article className="cp-card cp-journey">
+      <header className="cp-journey-head">
+        <span>
+          <b>{p.title}</b>
+          <small>{p.deliveredDate ? `entregue em ${fmt(p.deliveredDate)}` : now ? `agora: ${now.name}` : p.status}</small>
+        </span>
+        <span className={`cp-chip ${p.deliveredDate ? 'is-ok' : ''}`}>{p.deliveredDate ? 'entregue' : `${pct}%`}</span>
+      </header>
+      {p.phases.length > 0 && raw.deliveredDate ? (
+        <details className="cp-done-steps">
+          <summary>ver as {p.phases.length} etapas</summary>
+          <ol className="cp-steps">
             {p.phases.map((x, i) => (
-              <li key={i} className={x.done ? 'is-done' : x === now ? 'is-now' : ''}>
-                <span className="pt-dot">{x.done ? <Icon name="check" size={13} /> : i + 1}</span>
-                <span className="grow">
+              <li key={i} className="is-done">
+                <span className="cp-dot">
+                  <Icon name="check" size={13} />
+                </span>
+                <span className="cp-step-text">
                   <b>{x.name}</b>
-                  <small>{x.done ? 'concluída' : x === now ? `em andamento${x.due ? ` · prazo ${fmt(x.due)}` : ''}` : x.due ? `prazo ${fmt(x.due)}` : ''}</small>
-                  {x.note && <small className="pn-note">{x.note}</small>}
+                  <small>pronta</small>
                 </span>
               </li>
             ))}
           </ol>
-        </>
-      )}
-      {p.payments && p.payments.length > 0 && (
-        <>
-          <h3 className="pn-sub">pagamentos</h3>
-          {typeof p.total === 'number' && p.total > 0 && (
-            <div className="pn-paybar">
-              <div className="pn-bar is-pay">
-                <i style={{ width: `${Math.min(100, Math.round(((p.paid ?? 0) / p.total) * 100))}%` }} />
-              </div>
-              <p className="pt-total">
-                pago {money(p.paid ?? 0)} de {money(p.total)}
-              </p>
-            </div>
-          )}
-          {pix && p.payments.some((x) => !x.paid) && (
-            <p className="pn-pix">
-              <Icon name="wallet" size={14} /> Pix: <b>{pix}</b>
-              <button type="button" className="link small" onClick={() => navigator.clipboard?.writeText(pix)}>
-                copiar
-              </button>
-            </p>
-          )}
-          <ul className="pt-pays">
-            {p.payments.map((x, i) => (
-              <li key={i}>
-                <span className="grow">
-                  <b>{x.description}</b>
-                  <small>{x.paid ? `pago${x.paidDate ? ` em ${fmt(x.paidDate)}` : ''}` : x.due ? `vence ${fmt(x.due)}` : x.when}</small>
-                </span>
-                <span className={x.paid ? 'pt-paid' : ''}>{money(x.amount)}</span>
-              </li>
-            ))}
-          </ul>
-        </>
+        </details>
+      ) : p.phases.length > 0 && (
+        <ol className="cp-steps">
+          {p.phases.map((x, i) => (
+            <li key={i} className={x.done ? 'is-done' : x === now ? 'is-now' : ''}>
+              <span className="cp-dot">{x.done ? <Icon name="check" size={13} /> : i + 1}</span>
+              <span className="cp-step-text">
+                <b>{x.name}</b>
+                <small>{x.done ? 'pronta' : x === now ? `acontecendo agora${x.due ? ` · até ${fmt(x.due)}` : ''}` : x.due ? `até ${fmt(x.due)}` : 'depois'}</small>
+                {x.note && <small className="cp-note">{x.note}</small>}
+              </span>
+            </li>
+          ))}
+        </ol>
       )}
       {p.visits && p.visits.length > 0 && (
-        <>
-          <h3 className="pn-sub">visitas de obra</h3>
+        <div className="cp-visits">
+          <p className="cp-card-title">
+            <Icon name="hardhat" size={14} /> visitas de obra
+          </p>
           {p.visits.map((v, i) => (
             <div key={i} className="pt-visit">
               <b>
@@ -477,7 +542,7 @@ function ProjectCard({ p, pix, solo }: { p: PanelProject; pix?: string; solo?: b
               )}
             </div>
           ))}
-        </>
+        </div>
       )}
       {p.filesLink && (
         <a className="btn pn-files" href={p.filesLink} target="_blank" rel="noreferrer">

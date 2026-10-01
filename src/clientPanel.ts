@@ -37,6 +37,7 @@ export interface PanelPayload {
   studio: string
   owner: string
   accent: string
+  colors?: { accent: string; soft: string; ink: string; bg: string; surface: string; text: string } // paleta do profissional
   logo?: string
   phone?: string
   email?: string
@@ -128,6 +129,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
     studio: st.brandName || st.ownerName || '',
     owner: st.ownerName || '',
     accent: st.accent,
+    colors: { accent: st.accent, soft: st.accentSoft, ink: st.accentInk, bg: st.background, surface: st.surface, text: st.text },
     logo: st.logo && st.logo.length < 250_000 ? st.logo : undefined,
     phone: st.phone || undefined,
     email: st.email || undefined,
