@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-fonte-propria-texto',
+    date: '2026-10-01',
+    kind: 'melhoria',
+    title: 'sua fonte também nos textos',
+    text: 'Em configurações → aparência, além da fonte dos títulos, agora dá para enviar um arquivo de fonte seu para os textos. Vale para o sistema e para os documentos.',
+    steps: [{ text: 'Em aparência, desça até “fonte do texto” e toque em “usar uma fonte minha”.', page: 'config', configTab: 'aparencia' }],
+  },
+  {
     id: '2026-10-01-urgencia-opcional',
     date: '2026-10-01',
     kind: 'melhoria',

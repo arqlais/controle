@@ -538,6 +538,7 @@ export interface Settings {
   logo: string // data URL
   avatarIcon?: string // símbolo no lugar da foto (quando não há logo)
   customFont: string // arquivo de fonte enviado (data URL), ex.: The Seasons
+  customBodyFont?: string // arquivo de fonte do texto enviado (data URL)
   themeVersion: number
   accent: string
   accentSoft: string

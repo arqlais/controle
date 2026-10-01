@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from './types'
 import { PLATFORM } from './plans'
+import { DISPLAY_FONTS, EXCLUSIVE_FONT, OWN_BODY_FONT, OWN_FONT } from './brand'
 
 const hexToRgb = (hex: string) => {
   const h = hex.replace('#', '')
@@ -94,7 +95,7 @@ export function applyTheme(s: Settings, dark = false) {
 /** Fonte enviada pela usuária (ex.: The Seasons), registrada com o nome escolhido em "fonte dos títulos". */
 function applyCustomFont(s: Settings) {
   let el = document.getElementById('custom-font') as HTMLStyleElement | null
-  if (!s.customFont) {
+  if (!s.customFont && !s.customBodyFont) {
     el?.remove()
     return
   }
@@ -103,6 +104,9 @@ function applyCustomFont(s: Settings) {
     el.id = 'custom-font'
     document.head.appendChild(el)
   }
-  const css = `@font-face{font-family:'${s.displayFont}';src:url(${s.customFont});font-display:swap;}`
+  // títulos: com o nome escolhido e também com os nomes fixos (assim trocar de fonte depois não "sequestra" outra fonte da lista)
+  const face = (name: string, src: string) => `@font-face{font-family:'${name}';src:url(${src});font-display:swap;}`
+  const title = s.customFont ? [...new Set([EXCLUSIVE_FONT, OWN_FONT, ...([EXCLUSIVE_FONT, OWN_FONT].includes(s.displayFont) ? [] : DISPLAY_FONTS.some((f) => f.name === s.displayFont) ? [] : [s.displayFont])])].map((n) => face(n, s.customFont)).join('') : ''
+  const css = title + (s.customBodyFont ? face(OWN_BODY_FONT, s.customBodyFont) : '')
   if (el.textContent !== css) el.textContent = css
 }

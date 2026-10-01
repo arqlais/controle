@@ -17,7 +17,7 @@ import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
 import { CLOUD } from '../cloud'
 import { BrandKit } from '../components/BrandKit'
-import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT } from '../brand'
+import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT, OWN_BODY_FONT, OWN_FONT } from '../brand'
 import { useAccess } from '../access'
 import { TEMPLATES, followsBrand, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
@@ -415,14 +415,14 @@ function ProposalSettings() {
             <>
             <Field label="Fonte dos títulos">
               <select value={p.serif} onChange={(e) => setP({ serif: e.target.value })}>
-                {[...(has('fonteExclusiva') ? [EXCLUSIVE_FONT] : []), ...DISPLAY_FONTS.map((f) => f.name)].map((f) => (
+                {[...(has('fonteExclusiva') ? [EXCLUSIVE_FONT] : []), ...(s.customFont && !has('fonteExclusiva') ? [OWN_FONT] : []), ...DISPLAY_FONTS.map((f) => f.name)].map((f) => (
                   <option key={f}>{f}</option>
                 ))}
               </select>
             </Field>
             <Field label="Fonte dos textos">
               <select value={p.sans} onChange={(e) => setP({ sans: e.target.value })}>
-                {BODY_FONTS.map((f) => (
+                {[...(s.customBodyFont ? [{ name: OWN_BODY_FONT }] : []), ...BODY_FONTS].map((f) => (
                   <option key={f.name}>{f.name}</option>
                 ))}
               </select>

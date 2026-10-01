@@ -6,7 +6,7 @@ import { Icon } from './Icon'
 import { Field, Section } from './ui'
 import { toast } from './dialog'
 import { AvatarGlyph } from './Avatar'
-import { BODY_FONTS, CLIENT_DISPLAY, DISPLAY_FONTS, EXCLUSIVE_FONT, FONT_PAIRS, OWN_FONT, PALETTES, effectiveSettings, paletteToProposal, type Palette } from '../brand'
+import { BODY_FONTS, CLIENT_DISPLAY, DISPLAY_FONTS, EXCLUSIVE_FONT, FONT_PAIRS, OWN_BODY_FONT, OWN_FONT, PALETTES, effectiveSettings, paletteToProposal, type Palette } from '../brand'
 import { resolveTemplate, followsBrand } from '../proposalTemplates'
 import type { Settings } from '../types'
 
@@ -42,6 +42,7 @@ export function BrandKit() {
     r.readAsDataURL(f)
   }
   const fontRef = useRef<HTMLInputElement>(null)
+  const bodyFontRef = useRef<HTMLInputElement>(null)
   const exclusive = has('fonteExclusiva')
   const tpl = resolveTemplate(raw.proposal, has)
 
@@ -72,6 +73,18 @@ export function BrandKit() {
     }
     r.readAsDataURL(f)
   }
+
+  const onBodyFont = (f?: File) => {
+    if (!f) return
+    if (f.size > 900_000) return toast('Arquivo de fonte muito grande (máx. 900 KB). Prefira .woff2 ou .woff.')
+    const r = new FileReader()
+    r.onload = () => {
+      setSettings(withProposal({ customBodyFont: String(r.result), bodyFont: OWN_BODY_FONT }, { sans: OWN_BODY_FONT }))
+      toast('Sua fonte foi aplicada aos textos.')
+    }
+    r.readAsDataURL(f)
+  }
+  const bodies = [...(raw.customBodyFont ? [{ name: OWN_BODY_FONT, mood: 'arquivo enviado por você' }] : []), ...BODY_FONTS]
 
   const palettes = PALETTES.filter((p) => !p.owner || exclusive)
   const displays = [...(exclusive ? [{ name: EXCLUSIVE_FONT, mood: 'sua fonte exclusiva' }] : []), ...(raw.customFont && !exclusive ? [{ name: OWN_FONT, mood: 'arquivo enviado por você' }] : []), ...DISPLAY_FONTS]
@@ -170,7 +183,7 @@ export function BrandKit() {
 
       <h4 className="bk-sub">fonte do texto</h4>
       <div className="bk-fonts">
-        {BODY_FONTS.map((f) => (
+        {bodies.map((f) => (
           <button key={f.name} className={`bk-font ${s.bodyFont === f.name ? 'active' : ''}`} onClick={() => pickBody(f.name)}>
             <span className="bk-font-sample is-body" style={{ fontFamily: `'${f.name}'` }}>
               Aa 123 R$
@@ -181,6 +194,19 @@ export function BrandKit() {
           </button>
         ))}
       </div>
+
+      <div className="row gap-s wrap">
+        <button className="btn small" onClick={() => bodyFontRef.current?.click()}>
+          <Icon name="upload" size={14} /> {raw.customBodyFont ? 'trocar arquivo de fonte' : 'usar uma fonte minha (arquivo)'}
+        </button>
+        {raw.customBodyFont && (
+          <button className="btn small ghost" onClick={() => setSettings(withProposal({ customBodyFont: '', ...(s.bodyFont === OWN_BODY_FONT ? { bodyFont: 'Poppins' } : {}) }, s.bodyFont === OWN_BODY_FONT ? { sans: 'Poppins' } : {}))}>
+            remover arquivo
+          </button>
+        )}
+        <input ref={bodyFontRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" hidden onChange={(e) => (onBodyFont(e.target.files?.[0]), (e.target.value = ''))} />
+      </div>
+      <p className="muted small">Arquivos .woff2, .woff, .otf ou .ttf de até 900 KB. Use só fontes que você tem licença para usar no seu negócio.</p>
 
       <h4 className="bk-sub">cores personalizadas</h4>
       <div className="form-grid">

@@ -60,6 +60,8 @@ type Has = (f: Feature) => boolean
 export const EXCLUSIVE_FONT = 'The Seasons'
 /** Fonte enviada pelo próprio cliente (arquivo dele). */
 export const OWN_FONT = 'Minha fonte'
+/** Fonte do texto enviada pelo próprio cliente. */
+export const OWN_BODY_FONT = 'Minha fonte (texto)'
 /** Padrão dos clientes: serifada elegante em itálico, parecida com a The Seasons. */
 export const CLIENT_DISPLAY = 'Playfair Display'
 
@@ -161,7 +163,7 @@ export function effectiveSettings(s: Settings, has: Has): Settings {
   // identidade própria (cores e fontes) é do Completo; no Essencial fica o visual padrão da plataforma
   if (!has('identidade')) {
     const kit = PALETTES.find((p) => p.name === 'areia & carvão')!
-    return { ...s, accent: kit.accent, accentSoft: kit.accentSoft, accentInk: kit.accentInk, background: kit.background, surface: kit.surface, text: kit.text, displayFont: CLIENT_DISPLAY, customFont: '', bodyFont: 'Poppins' }
+    return { ...s, accent: kit.accent, accentSoft: kit.accentSoft, accentInk: kit.accentInk, background: kit.background, surface: kit.surface, text: kit.text, displayFont: CLIENT_DISPLAY, customFont: '', customBodyFont: '', bodyFont: 'Poppins' }
   }
   if (fontAllowed(s.displayFont, has)) return s
   return { ...s, displayFont: CLIENT_DISPLAY, customFont: '' }
