@@ -8,7 +8,8 @@ import { Field, Modal, Section } from './ui'
 import { askDelete, toast } from './dialog'
 import { ClientPanelPublic } from './ClientPanelPublic'
 import { panelLink, panelPayload, publishPanel, removePanelFile, unpublishPanel, uploadPanelFile } from '../clientPanel'
-import type { Client, ClientPanel, PanelLink } from '../types'
+import type { Client, ClientPanel, PanelLink, PanelLook, PanelSection } from '../types'
+import { DateInput } from './DateInput'
 import { fmtDate, whatsappLink } from '../utils'
 
 /* Painel do cliente (na ficha do cliente): o profissional escolhe o que o cliente vê e manda o link.
@@ -19,6 +20,7 @@ export async function createPanel(data: ReturnType<typeof useStore>['data'], cli
   const panel = client.panel
   const contracts = (data.contracts ?? []).filter((k) => k.clientId === client.id)
   const next: ClientPanel = {
+    ...panel,
     token: panel?.token ?? crypto.randomUUID(),
     enabled: true,
     showPayments: panel?.showPayments ?? true,
@@ -368,4 +370,140 @@ export function ClientPanelSync() {
     return () => clearTimeout(t)
   }, [list, userId])
   return null
+}
+
+const LOOKS: { value: PanelLook; label: string; text: string }[] = [
+  { value: 'suave', label: 'suave', text: 'fundo na cor de apoio, leve' },
+  { value: 'marcante', label: 'marcante', text: 'topo na cor principal' },
+  { value: 'claro', label: 'claro', text: 'branco, com detalhes' },
+]
+const SECTIONS: { value: PanelSection; label: string; icon: string }[] = [
+  { value: 'resumo', label: 'resumo (etapa, prazo, pagamentos)', icon: 'grid' },
+  { value: 'fazer', label: 'para você fazer (assinar, responder, pagar)', icon: 'flag' },
+  { value: 'etapas', label: 'etapas do projeto', icon: 'layers' },
+  { value: 'pagamentos', label: 'pagamentos', icon: 'wallet' },
+  { value: 'documentos', label: 'documentos', icon: 'file' },
+  { value: 'links', label: 'links do projeto', icon: 'link' },
+  { value: 'recado', label: 'mandar recado', icon: 'chat' },
+  { value: 'contato', label: 'seu contato', icon: 'phone' },
+]
+
+/** Aparência e topo do painel: estilo com as cores da identidade, capa, boas-vindas, próximo encontro e seções. */
+export function PanelLookControls({ client }: { client: Client }) {
+  const { data, upsert, userId } = useStore()
+  const [busy, setBusy] = useState(false)
+  const coverInput = useRef<HTMLInputElement>(null)
+  const panel = client.panel
+  if (!panel) return null
+  const st = data.settings
+  const save = (patch: Partial<ClientPanel>) => upsert('clients', { ...client, panel: { ...panel, ...patch } })
+  const look = panel.look ?? 'suave'
+  const hide = panel.hide ?? []
+  const onCover = async (f?: File) => {
+    if (!f) return
+    if (!f.type.startsWith('image/')) return toast('Escolha uma imagem (JPG ou PNG).')
+    if (f.size > 6_000_000) return toast('Imagem muito grande (máx. 6 MB).')
+    setBusy(true)
+    try {
+      const up = await uploadPanelFile(userId, f)
+      save({ cover: up.url })
+    } catch {
+      toast('Não consegui enviar a imagem. Tente uma menor.')
+    }
+    setBusy(false)
+  }
+  const mini = (v: PanelLook) =>
+    v === 'suave'
+      ? { background: `linear-gradient(135deg, color-mix(in srgb, ${st.accentSoft} 40%, #fff), ${st.background})`, color: st.text, title: st.accentInk }
+      : v === 'marcante'
+        ? { background: st.accent, color: '#fff', title: `color-mix(in srgb, ${st.accentSoft} 55%, #fff)` }
+        : { background: '#fff', color: st.text, title: st.text, boxShadow: `inset 4px 0 0 ${st.accent}, inset 0 0 0 1px rgba(0,0,0,.08)` }
+  return (
+    <div className="stack pn-look">
+      <div>
+        <span className="field-label">estilo · usa as cores da sua identidade</span>
+        <div className="pn-looks">
+          {LOOKS.map((x) => {
+            const m = mini(x.value)
+            return (
+              <button key={x.value} type="button" className={`pn-look-opt ${look === x.value ? 'is-on' : ''}`} aria-pressed={look === x.value} onClick={() => save({ look: x.value })}>
+                <span className="pn-look-mini" style={{ background: m.background, color: m.color, boxShadow: m.boxShadow }}>
+                  <i style={{ color: m.title }}>Oi!</i>
+                  <span className="pn-look-dots">
+                    <em style={{ background: st.accent }} />
+                    <em style={{ background: st.accentSoft }} />
+                    <em style={{ background: st.accentInk }} />
+                  </span>
+                </span>
+                <b>{x.label}</b>
+                <small>{x.text}</small>
+              </button>
+            )
+          })}
+        </div>
+        <p className="muted small">
+          As cores vêm de configurações → aparência.{' '}
+          <button type="button" className="link small" onClick={() => go('config')}>
+            mudar as cores
+          </button>
+        </p>
+      </div>
+
+      <div className="pn-cover-row">
+        <span className="field-label">foto de capa</span>
+        {panel.cover ? (
+          <div className="pn-cover-thumb" style={{ backgroundImage: `url(${JSON.stringify(panel.cover)})` }} />
+        ) : (
+          <button type="button" className="pn-cover-empty" onClick={() => coverInput.current?.click()} disabled={busy}>
+            <Icon name="image" size={22} />
+            <span>{busy ? 'enviando…' : 'adicione uma foto do projeto ou do imóvel'}</span>
+          </button>
+        )}
+        <div className="row gap-s">
+          {panel.cover && (
+            <>
+              <button type="button" className="btn small ghost" disabled={busy} onClick={() => coverInput.current?.click()}>
+                <Icon name="upload" size={14} /> {busy ? 'enviando…' : 'trocar'}
+              </button>
+              <button type="button" className="btn small ghost" onClick={() => save({ cover: undefined })}>
+                <Icon name="trash" size={14} /> tirar
+              </button>
+            </>
+          )}
+        </div>
+        <input ref={coverInput} type="file" accept="image/*" hidden onChange={(e) => (void onCover(e.target.files?.[0]), (e.target.value = ''))} />
+      </div>
+
+      <Field label="Texto de boas-vindas" hint="Em branco, aparece o texto padrão.">
+        <textarea rows={2} value={panel.greeting ?? ''} onChange={(e) => save({ greeting: e.target.value })} placeholder="Aqui você acompanha o seu projeto: em que etapa está, quando fica pronto, os pagamentos e os documentos." spellCheck lang="pt-BR" />
+      </Field>
+
+      <div className="pn-next-row">
+        <span className="field-label">próximo encontro (reunião, visita, apresentação)</span>
+        <div className="pn-next-fields">
+          <DateInput value={panel.next?.date ?? ''} onChange={(e) => save({ next: { date: e.target.value, text: panel.next?.text ?? '' } })} aria-label="Data do próximo encontro" />
+          <input value={panel.next?.text ?? ''} onChange={(e) => save({ next: { date: panel.next?.date ?? '', text: e.target.value } })} placeholder="Ex.: apresentação do layout, às 15h" aria-label="O que vai ser" />
+          {(panel.next?.date || panel.next?.text) && (
+            <button type="button" className="icon-btn subtle" onClick={() => save({ next: undefined })} aria-label="Tirar o próximo encontro">
+              <Icon name="x" size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <span className="field-label">seções do painel</span>
+        <div className="pn-sections">
+          {SECTIONS.map((x) => {
+            const on = !hide.includes(x.value)
+            return (
+              <button key={x.value} type="button" className={`pt-chip ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => save({ hide: on ? [...hide, x.value] : hide.filter((y) => y !== x.value) })}>
+                <Icon name={on ? 'check' : 'plus'} size={13} /> {x.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
 }

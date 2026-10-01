@@ -79,7 +79,14 @@ export interface ClientPanel {
   files?: PanelFile[] // arquivos enviados (PDF, imagem…)
   links?: PanelLink[] // links do projeto (Drive, Pinterest, tour 360…)
   publishedAt?: string
+  look?: PanelLook // estilo do painel com as cores da identidade
+  cover?: string // foto de capa (link do arquivo enviado)
+  greeting?: string // texto de boas-vindas no topo (no lugar do padrão)
+  next?: { date: string; text: string } // próximo encontro (reunião, visita, apresentação)
+  hide?: PanelSection[] // seções escondidas
 }
+export type PanelLook = 'suave' | 'marcante' | 'claro'
+export type PanelSection = 'resumo' | 'fazer' | 'etapas' | 'pagamentos' | 'documentos' | 'links' | 'recado' | 'contato'
 export interface PanelLink {
   id: string
   label: string

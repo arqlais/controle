@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-painel-personalizado',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'painel do cliente com a sua cara',
+    text: 'O painel agora usa as cores da sua identidade em três estilos (suave, marcante e claro). Dá para colocar foto de capa, um texto de boas-vindas seu, o próximo encontro com o cliente e escolher quais seções aparecem. A página dos painéis ganhou um resumo no topo e os valores pagos somam todos os projetos, igual ao que o cliente vê.',
+    steps: [{ text: 'Em painel do cliente, toque em “editar ao vivo” e veja “aparência e topo do painel”.', page: 'paineis' }],
+  },
+  {
     id: '2026-10-01-fonte-propria-texto',
     date: '2026-10-01',
     kind: 'melhoria',

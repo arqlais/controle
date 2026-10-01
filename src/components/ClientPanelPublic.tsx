@@ -61,12 +61,13 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   const unpaid = d.projects.flatMap((p) => (p.payments ?? []).filter((x) => !x.paid).map((x) => ({ ...x, project: p.title })))
   const toSign = d.contracts.filter((c) => !c.sign && c.signLink)
   const toAnswer = d.briefings.filter((b) => !b.answered && b.link)
+  const hidden = new Set(d.hide ?? [])
   const nav: { id: string; label: string; icon: IconName; n?: number; show: boolean }[] = [
-    { id: 'pn-projetos', label: d.projects.length > 1 ? 'projetos' : 'etapas', icon: 'layers', show: d.projects.length > 0 },
-    { id: 'pn-pagamentos', label: 'pagamentos', icon: 'wallet', n: unpaid.length || undefined, show: d.projects.some((p) => p.payments?.length) },
-    { id: 'pn-documentos', label: 'documentos', icon: 'file', n: docsCount || undefined, show: docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0 },
-    { id: 'pn-links', label: 'links', icon: 'link', show: (d.links ?? []).length > 0 },
-    { id: 'pn-recado', label: 'falar', icon: 'chat', show: true },
+    { id: 'pn-projetos', label: d.projects.length > 1 ? 'projetos' : 'etapas', icon: 'layers', show: d.projects.length > 0 && !hidden.has('etapas') },
+    { id: 'pn-pagamentos', label: 'pagamentos', icon: 'wallet', n: unpaid.length || undefined, show: d.projects.some((p) => p.payments?.length) && !hidden.has('pagamentos') },
+    { id: 'pn-documentos', label: 'documentos', icon: 'file', n: docsCount || undefined, show: (docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0) && !hidden.has('documentos') },
+    { id: 'pn-links', label: 'links', icon: 'link', show: (d.links ?? []).length > 0 && !hidden.has('links') },
+    { id: 'pn-recado', label: 'falar', icon: 'chat', show: !hidden.has('recado') },
   ]
   const open = (v: Viewer) => setView(v)
   const openDoc = (x: PanelDoc) => {
@@ -110,11 +111,15 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
     ['--cp-bg' as string]: c?.bg || '#f7f4f1',
     ['--cp-text' as string]: c?.text || '#33383d',
   }
-  const todos = toSign.length + toAnswer.length + (nextPay ? 1 : 0)
+  const hide = new Set(d.hide ?? [])
+  const look = d.look ?? 'suave'
+  const nextDays = d.next?.date ? daysTo(d.next.date) : null
+  const todos = hide.has('fazer') ? 0 : toSign.length + toAnswer.length + (nextPay ? 1 : 0)
 
   return (
-    <div className="cp" style={vars}>
-      <header className="cp-hero">
+    <div className={`cp is-${look}`} style={vars}>
+      <header className={`cp-hero ${d.cover ? 'has-cover' : ''}`}>
+        {d.cover && <div className="cp-cover" style={{ backgroundImage: `url(${JSON.stringify(d.cover)})` }} role="img" aria-label="Capa do projeto" />}
         <div className="cp-hero-text">
           <div className="cp-brand">
             {d.logo ? <img src={d.logo} alt="" className="cp-logo" /> : <span className="cp-mark">{(d.studio || '?')[0]}</span>}
@@ -124,7 +129,18 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </span>
           </div>
           <h1>{d.client ? `Oi, ${d.client}!` : 'Seu painel'}</h1>
-          <p>Aqui você acompanha o seu projeto: em que etapa está, quando fica pronto, os pagamentos e os documentos. Sempre atualizado.</p>
+          <p>{d.greeting || 'Aqui você acompanha o seu projeto: em que etapa está, quando fica pronto, os pagamentos e os documentos. Sempre atualizado.'}</p>
+          {d.next && (
+            <p className="cp-next">
+              <span className="cp-next-ico">
+                <Icon name="calendar" size={15} />
+              </span>
+              <span>
+                <small>próximo encontro{d.next.date ? ` · ${fmt(d.next.date)}${nextDays !== null && nextDays >= 0 && nextDays <= 7 ? ` (${nextDays === 0 ? 'hoje' : nextDays === 1 ? 'amanhã' : `em ${nextDays} dias`})` : ''}` : ''}</small>
+                <b>{d.next.text || 'a combinar'}</b>
+              </span>
+            </p>
+          )}
           {d.message && (
             <p className="cp-message">
               <Icon name="chat" size={15} /> {d.message}
@@ -141,7 +157,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
         )}
       </header>
 
-      {main && (
+      {main && !hide.has('resumo') && (
         <div className="cp-glance">
           <div className="cp-tile">
             <span className="cp-tile-ico">
@@ -164,7 +180,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
               <span className="cp-tile-ico">
                 <Icon name="wallet" size={18} />
               </span>
-              <small>pagamentos</small>
+              <small>{d.projects.filter((p) => p.payments?.length).length > 1 ? 'pagamentos · todos os projetos' : 'pagamentos'}</small>
               <b>
                 {money(payPaid)} <span>de {money(payTotal)}</span>
               </b>
@@ -259,9 +275,9 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
           ))}
       </nav>
 
-      <div className="cp-grid">
+      <div className={`cp-grid ${hide.has('contato') ? 'no-side' : ''}`}>
         <div className="cp-main">
-          {d.projects.length > 0 && (
+          {d.projects.length > 0 && !hide.has('etapas') && (
             <section id="pn-projetos" className="cp-section">
               {d.projects.map((p) => (
                 <Journey key={p.id} p={p} />
@@ -283,7 +299,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </section>
           )}
 
-          {showPay && (
+          {showPay && !hide.has('pagamentos') && (
             <section id="pn-pagamentos" className="cp-section">
               <h2 className="cp-h">
                 <Icon name="wallet" size={17} /> pagamentos
@@ -333,7 +349,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </section>
           )}
 
-          {(docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0) && (
+          {(docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0) && !hide.has('documentos') && (
             <section id="pn-documentos" className="cp-section">
               <h2 className="cp-h">
                 <Icon name="file" size={17} /> documentos
@@ -421,7 +437,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </section>
           )}
 
-          {(d.links ?? []).length > 0 && (
+          {(d.links ?? []).length > 0 && !hide.has('links') && (
             <section id="pn-links" className="cp-section">
               <h2 className="cp-h">
                 <Icon name="link" size={17} /> links do projeto
@@ -443,11 +459,13 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             </section>
           )}
 
-          <Talk d={d} owner={owner} preview={preview} token={token} />
+          {!hide.has('recado') && <Talk d={d} owner={owner} preview={preview} token={token} />}
         </div>
-        <aside className="cp-side">
-          <Contact d={d} />
-        </aside>
+        {!hide.has('contato') && (
+          <aside className="cp-side">
+            <Contact d={d} />
+          </aside>
+        )}
       </div>
       {d.phone && (
         <a className="pn-fab" href={whatsappLink(d.phone, 'Oi! Estou vendo o meu painel do projeto.')} target="_blank" rel="noreferrer" aria-label={`Falar com ${d.owner || d.studio} no WhatsApp`}>

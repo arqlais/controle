@@ -6,7 +6,7 @@ import { payWhen, projectPaid, projectTotal, quoteTotal, statusInfo } from './ut
 import type { Has } from './proposalTemplates'
 import { resolveTemplate } from './proposalTemplates'
 import { usesExclusiveContract } from './components/ContractDoc'
-import type { BriefingAnswers, BriefingQuestion, BriefingSection, Client, ClientPanel, ContractSignature, Data, PanelFile } from './types'
+import type { BriefingAnswers, BriefingQuestion, BriefingSection, Client, ClientPanel, ContractSignature, Data, PanelFile, PanelLook, PanelSection } from './types'
 import type { SavedDoc } from './docTypes'
 import { processesOf } from './processes'
 import { allTemplates } from './briefingTemplates'
@@ -55,6 +55,11 @@ export interface PanelPayload {
   docs: PanelDoc[]
   files: Omit<PanelFile, 'path'>[]
   links?: { label: string; url: string }[]
+  look?: PanelLook
+  cover?: string
+  greeting?: string
+  next?: { date: string; text: string }
+  hide?: PanelSection[]
   updatedAt: string
 }
 
@@ -148,6 +153,11 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
     docs,
     files: (panel.files ?? []).map(({ path: _p, ...f }) => f),
     links: (panel.links ?? []).filter((l) => l.url.trim()).map((l) => ({ label: l.label.trim() || 'link do projeto', url: l.url.trim() })),
+    look: panel.look ?? 'suave',
+    ...(panel.cover ? { cover: panel.cover } : {}),
+    ...(panel.greeting?.trim() ? { greeting: panel.greeting.trim() } : {}),
+    ...(panel.next?.date || panel.next?.text?.trim() ? { next: { date: panel.next.date, text: panel.next.text.trim() } } : {}),
+    ...(panel.hide?.length ? { hide: panel.hide } : {}),
     updatedAt: new Date().toISOString(),
   }
 }

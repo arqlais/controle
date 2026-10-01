@@ -6,7 +6,7 @@ import { Empty, Modal } from '../components/ui'
 import { DateInput } from '../components/DateInput'
 import { toast } from '../components/dialog'
 import { ClientPanelPublic } from '../components/ClientPanelPublic'
-import { PanelControls, createPanel, panelMessage } from '../components/ClientPanel'
+import { PanelControls, PanelLookControls, createPanel, panelMessage } from '../components/ClientPanel'
 import { panelLink, panelPayload } from '../clientPanel'
 import { go } from '../router'
 import { fmtDate, money, projectPaid, projectTotal, statusInfo, whatsappLink } from '../utils'
@@ -41,6 +41,9 @@ function PanelList() {
       .sort((a, b) => a.c.name.localeCompare(b.c.name))
   }, [data, q])
   const live = rows.filter((r) => r.on)
+  const liveIds = new Set(live.map((r) => r.c.id))
+  const signs = (data.contracts ?? []).filter((k) => liveIds.has(k.clientId) && k.status === 'enviado').length
+  const toReceive = data.projects.filter((p) => liveIds.has(p.clientId) && p.status !== 'cancelado').reduce((n, p) => n + Math.max(0, projectTotal(p) - projectPaid(p)), 0)
   const ready = rows.filter((r) => !r.on && r.approved)
   const rest = rows.filter((r) => !r.on && !r.approved)
 
@@ -58,8 +61,11 @@ function PanelList() {
     const done = phases.filter((x) => x.done).length
     const now = phases.find((x) => !x.done)
     const pct = main ? (phases.length ? Math.round((done / phases.length) * 100) : main.deliveredDate ? 100 : 0) : 0
-    const total = main ? projectTotal(main) : 0
-    const paid = main ? projectPaid(main) : 0
+    // pagamentos de todos os projetos que aparecem no painel (igual ao que o cliente vê)
+    const shown = data.projects.filter((p) => p.clientId === c.id && !(c.panel?.hideProjects ?? []).includes(p.id))
+    const total = shown.reduce((n, p) => n + projectTotal(p), 0)
+    const paid = shown.reduce((n, p) => n + projectPaid(p), 0)
+    const payPct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0
     const toSign = (data.contracts ?? []).filter((k) => k.clientId === c.id && k.status === 'enviado').length
     const docs = (data.docs ?? []).filter((x) => x.clientId === c.id).length
     return (
@@ -97,8 +103,17 @@ function PanelList() {
               />
             </div>
             <div className="pnl-fact">
-              <span>pago</span>
-              <b>{total > 0 ? `${money(paid)} de ${money(total)}` : '—'}</b>
+              <span>{shown.length > 1 ? `pago · ${shown.length} projetos` : 'pago'}</span>
+              {total > 0 ? (
+                <>
+                  <b className="pnl-big">{payPct}%</b>
+                  <small className="pnl-small">
+                    {money(paid)} de {money(total)}
+                  </small>
+                </>
+              ) : (
+                <b>—</b>
+              )}
             </div>
             <div className="pnl-fact">
               <span>documentos</span>
@@ -106,7 +121,12 @@ function PanelList() {
             </div>
           </div>
         )}
-        {on && c.panel?.publishedAt && <p className="muted small pnl-when">no ar desde {fmtDate(c.panel.publishedAt.slice(0, 10))}</p>}
+        {on && c.panel?.next && (c.panel.next.date || c.panel.next.text) && (
+          <p className="pnl-next">
+            <Icon name="calendar" size={14} /> próximo encontro: <b>{[c.panel.next.date ? fmtDate(c.panel.next.date) : '', c.panel.next.text].filter(Boolean).join(' · ')}</b>
+          </p>
+        )}
+        {on && c.panel?.publishedAt && <p className="muted small pnl-when">no ar desde {fmtDate(c.panel.publishedAt.slice(0, 10))}{c.panel.look ? ` · estilo ${c.panel.look}` : ''}</p>}
         <div className="pnl-actions">
           {on ? (
             <>
@@ -145,6 +165,37 @@ function PanelList() {
             painel <em>do cliente</em>
           </h1>
           <p className="muted">Um link só de cada cliente, sem senha: etapas, prazos, pagamentos, contratos, briefings e documentos. Atualiza sozinho.</p>
+        </div>
+      </div>
+
+      <div className="pnl-stats">
+        <div className="pnl-stat">
+          <span className="pnl-stat-ico">
+            <Icon name="link" size={16} />
+          </span>
+          <b>{live.length}</b>
+          <small>{live.length === 1 ? 'painel no ar' : 'painéis no ar'}</small>
+        </div>
+        <div className="pnl-stat is-b">
+          <span className="pnl-stat-ico">
+            <Icon name="users" size={16} />
+          </span>
+          <b>{ready.length}</b>
+          <small>aprovaram, sem painel</small>
+        </div>
+        <div className="pnl-stat">
+          <span className="pnl-stat-ico">
+            <Icon name="pen" size={16} />
+          </span>
+          <b>{signs}</b>
+          <small>{signs === 1 ? 'contrato para assinar' : 'contratos para assinar'}</small>
+        </div>
+        <div className="pnl-stat is-b">
+          <span className="pnl-stat-ico">
+            <Icon name="wallet" size={16} />
+          </span>
+          <b>{money(toReceive)}</b>
+          <small>a receber de quem tem painel</small>
         </div>
       </div>
 
@@ -327,6 +378,12 @@ export function PanelEditor({ id }: { id: string }) {
                   </button>
                 </section>
               ))}
+              <section className="card pe-box">
+                <p className="pe-box-title">
+                  <Icon name="star" size={14} /> aparência e topo do painel
+                </p>
+                <PanelLookControls client={c} />
+              </section>
               <section className="card pe-box">
                 <p className="pe-box-title">
                   <Icon name="settings" size={14} /> o que aparece, links, arquivos e recado
