@@ -2123,3 +2123,21 @@ svg { flex-shrink: 0; }
 .ai-msg .ai-quote-desc { padding-left: 14px; margin-left: 26px; }
 .ai-msg .ai-quote-desc li { margin: 0; font-size: 12px; line-height: 1.4; color: var(--muted); }
 .ai-msg .ai-quote-line small { font-size: 11.5px; }
+/* sugestão de orçamento no chat: cabe na largura (inclusive no celular) */
+.ai-msg:has(.ai-quote) { max-width: 100%; width: 100%; min-width: 0; }
+.ai-quote { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.ai-msg .ai-quote-items { gap: 10px; }
+.ai-msg .ai-quote-items > li.ai-qi { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; align-items: start; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.ai-msg .ai-quote-items > li.ai-qi:last-child { border-bottom: 0; padding-bottom: 0; }
+.ai-qi .ai-quote-n { margin-top: 1px; }
+.ai-qi-main { display: grid; gap: 2px; min-width: 0; }
+.ai-qi-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.ai-qi-name { font-size: 13.5px; line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
+.ai-qi-val { flex: none; font-size: 13.5px; white-space: nowrap; }
+.ai-qi-detail { font-size: 12px; color: var(--muted); }
+.ai-msg .ai-qi .ai-quote-desc { margin: 4px 0 0; padding-left: 16px; }
+.ai-msg .ai-qi:not(.is-open) .ai-quote-desc li { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ai-qi-more { justify-self: start; margin-top: 2px; font-size: 12px; }
+.ai-quote-ask .btn { flex: 1 1 auto; justify-content: center; }
+.ai-quote-ask > span { flex-basis: 100%; }
+.ai-quote-ask .btn { flex: 1 1 0; min-width: 0; }

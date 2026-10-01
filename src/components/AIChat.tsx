@@ -439,27 +439,7 @@ function QuoteSuggestion({ q, current, onClose }: { q: AIQuote; current?: Quote;
       </p>
       <ol className="ai-quote-items">
         {q.itens.map((x, i) => (
-          <li key={i}>
-            <div className="ai-quote-line">
-              <span className="ai-quote-n">{i + 1}</span>
-              <span className="grow">
-                <b>{x.titulo}</b>
-                {x.detalhe ? <small> · {x.detalhe}</small> : null}
-              </span>
-              <b>{money(x.valor)}</b>
-            </div>
-            {x.descricao?.trim() && (
-              <ul className="ai-quote-desc">
-                {x.descricao
-                  .split(/\n|;\s*/)
-                  .map((l) => l.replace(/^\s*[-•*]\s*/, '').trim())
-                  .filter(Boolean)
-                  .map((l, j) => (
-                    <li key={j}>{l}</li>
-                  ))}
-              </ul>
-            )}
-          </li>
+          <SuggestedItem key={i} n={i + 1} x={x} />
         ))}
       </ol>
       <p className="ai-quote-total">
@@ -489,5 +469,39 @@ function QuoteSuggestion({ q, current, onClose }: { q: AIQuote; current?: Quote;
         </div>
       )}
     </div>
+  )
+}
+
+/** Um serviço da sugestão: nome, quantidade e valor; o escopo aparece resumido, com "ver mais". */
+function SuggestedItem({ n, x }: { n: number; x: AIQuote['itens'][number] }) {
+  const [open, setOpen] = useState(false)
+  const lines = (x.descricao ?? '')
+    .split(/\n|;\s*/)
+    .map((l) => l.replace(/^\s*[-•*]\s*/, '').trim())
+    .filter(Boolean)
+  const long = lines.length > 2 || lines.some((l) => l.length > 90)
+  return (
+    <li className={`ai-qi ${open ? 'is-open' : ''}`}>
+      <span className="ai-quote-n">{n}</span>
+      <div className="ai-qi-main">
+        <div className="ai-qi-top">
+          <b className="ai-qi-name">{x.titulo}</b>
+          <b className="ai-qi-val">{money(x.valor)}</b>
+        </div>
+        {x.detalhe && <small className="ai-qi-detail">{x.detalhe}</small>}
+        {lines.length > 0 && (
+          <ul className="ai-quote-desc">
+            {(open ? lines : lines.slice(0, 2)).map((l, j) => (
+              <li key={j}>{l}</li>
+            ))}
+          </ul>
+        )}
+        {long && (
+          <button type="button" className="link small ai-qi-more" onClick={() => setOpen((v) => !v)}>
+            {open ? 'ver menos' : `ver escopo completo${lines.length > 2 ? ` (${lines.length})` : ''}`}
+          </button>
+        )}
+      </div>
+    </li>
   )
 }
