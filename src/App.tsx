@@ -58,6 +58,7 @@ import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './components/News'
 import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
+import { misdatedOldQuotes } from './quoteActions'
 import { PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 
@@ -132,6 +133,23 @@ export default function App() {
   const toggleExample = () => (isSample ? showSample(false) : ownDemo ? replaceAll({ ...data, demo: !data.demo }) : showSample(true))
   const { settings } = data
   const access = useAccess()
+  // conta da dona: orçamentos antigos que entraram no mês em que foram lançados vão uma vez para a data do orçamento
+  // (cópia de como estava fica guardada neste aparelho em "backup-datas-antigos")
+  useEffect(() => {
+    if (sync === 'loading' || isSample || !access.isOwner) return
+    const list = misdatedOldQuotes(data)
+    if (!list.length) return
+    try {
+      localStorage.setItem('backup-datas-antigos', JSON.stringify({ at: new Date().toISOString(), quotes: list.map((r) => r.q), projects: list.map((r) => r.p) }))
+    } catch {
+      /* sem espaço: segue mesmo assim */
+    }
+    for (const r of list) {
+      upsert('projects', r.fixedP)
+      upsert('quotes', r.fixedQ)
+    }
+    toast(`${list.length} ${list.length === 1 ? 'orçamento antigo foi para a data certa' : 'orçamentos antigos foram para as datas certas'} no financeiro.`)
+  }, [data, sync, isSample, access.isOwner, upsert])
   // aparelho da dona: vê as novidades ainda em teste (inclusive em "ver como cliente")
   useEffect(() => {
     if (access.isOwner) markBetaDevice()

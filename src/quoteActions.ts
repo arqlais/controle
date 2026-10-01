@@ -1,5 +1,5 @@
 import type { Data, Project, Quote } from './types'
-import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteDeal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber } from './utils'
+import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteDeal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber, addDays } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 /** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
@@ -113,10 +113,31 @@ export function moveProjectDate(p: Project, from: string, to: string): Project {
   }
 }
 
-/** Orçamentos antigos (sem número) que entraram no financeiro no dia em que foram lançados, e não na data do orçamento. */
+/** Orçamentos antigos (sem número) que entraram no financeiro no mês em que foram lançados, e não na data do trabalho.
+ *  Sinal: pagamento recebido nos últimos 60 dias, num mês depois do mês do orçamento. A correção leva para a data
+ *  do orçamento tudo o que caiu nesses dias de lançamento (pagamentos, fechamento, entrega, etapas). Nada é apagado. */
 export function misdatedOldQuotes(d: Data) {
-  return d.quotes
-    .filter((q) => (q.noNumber || q.imported) && q.status === 'aprovado' && q.closedAt && q.createdAt && q.closedAt > q.createdAt && q.closedAt === q.sentAt)
-    .map((q) => ({ q, p: d.projects.find((x) => x.id === q.projectId) }))
-    .filter((r): r is { q: Quote; p: Project } => !!r.p && r.p.payments.some((x) => x.paidDate === r.q.closedAt))
+  const recent = addDays(today(), -60)
+  const out: { q: Quote; p: Project; fixedQ: Quote; fixedP: Project; from: string[] }[] = []
+  for (const q of d.quotes) {
+    if (!(q.noNumber || q.imported) || q.status !== 'aprovado' || !q.createdAt) continue
+    const p = d.projects.find((x) => x.id === q.projectId)
+    if (!p) continue
+    const work = q.createdAt
+    const wrong = (x?: string | null): x is string => !!x && x >= recent && x.slice(0, 7) > work.slice(0, 7)
+    if (!p.payments.some((x) => wrong(x.paidDate))) continue
+    const fix = (x?: string | null) => (wrong(x) ? work : x)
+    const from = [...new Set([...p.payments.flatMap((x) => [x.paidDate, x.dueDate]), p.deliveredDate, q.closedAt].filter(wrong))].sort()
+    const fixedP: Project = {
+      ...p,
+      startDate: fix(p.startDate) ?? p.startDate,
+      dueDate: fix(p.dueDate) ?? p.dueDate,
+      deliveredDate: fix(p.deliveredDate) ?? p.deliveredDate,
+      payments: p.payments.map((x) => ({ ...x, dueDate: fix(x.dueDate) ?? x.dueDate, paidDate: fix(x.paidDate) ?? x.paidDate })),
+      phases: p.phases?.map((x) => ({ ...x, due: fix(x.due) ?? x.due, doneAt: fix(x.doneAt) ?? x.doneAt })),
+    }
+    const fixedQ: Quote = { ...q, closedAt: fix(q.closedAt) ?? q.closedAt, sentAt: fix(q.sentAt) ?? q.sentAt }
+    out.push({ q, p, fixedQ, fixedP, from })
+  }
+  return out
 }

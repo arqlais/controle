@@ -12,7 +12,7 @@ import { askDelete } from '../components/dialog'
 import type { Expense, Project, Quote } from '../types'
 import { CloseDeal } from './../components/quick'
 import { BillModal } from '../components/Bill'
-import { approvedWithoutProject, launchPaidQuote, misdatedOldQuotes, moveProjectDate } from '../quoteActions'
+import { approvedWithoutProject, launchPaidQuote, misdatedOldQuotes } from '../quoteActions'
 import { toast } from '../components/dialog'
 import {
   CLIENT_TYPES,
@@ -462,9 +462,9 @@ function MisdatedNotice() {
   if (!list.length) return null
   const clientName = (id: string) => data.clients.find((c) => c.id === id)?.name ?? 'cliente'
   const fix = () => {
-    for (const { q, p } of list) {
-      upsert('projects', moveProjectDate(p, q.closedAt!, q.createdAt))
-      upsert('quotes', { ...q, closedAt: q.createdAt, sentAt: q.createdAt })
+    for (const r of list) {
+      upsert('projects', r.fixedP)
+      upsert('quotes', r.fixedQ)
     }
     toast(`${list.length} ${list.length === 1 ? 'orçamento antigo foi para a data certa' : 'orçamentos antigos foram para as datas certas'}.`)
   }
@@ -478,12 +478,12 @@ function MisdatedNotice() {
         {open && (
           <div className="stack" style={{ marginTop: 10 }}>
             <ul className="old-work">
-              {list.map(({ q }) => (
+              {list.map((r) => { const q = r.q; return (
                 <li key={q.id}>
                   <span className="grow">{clientName(q.clientId)} · {q.title || 'orçamento sem nº'}</span>
-                  <small className="muted">{fmtDate(q.closedAt!)} → <b>{fmtDate(q.createdAt)}</b></small>
+                  <small className="muted">{r.from.map(fmtDate).join(', ')} → <b>{fmtDate(q.createdAt)}</b></small>
                 </li>
-              ))}
+              ) })}
             </ul>
             <p className="small muted">Pagamento, fechamento e entrega vão para a data de cada orçamento. Nada é apagado.</p>
             <div className="row gap-s">
