@@ -120,7 +120,7 @@ export function misdatedOldQuotes(d: Data) {
   const recent = addDays(today(), -60)
   const out: { q: Quote; p: Project; fixedQ: Quote; fixedP: Project; from: string[] }[] = []
   for (const q of d.quotes) {
-    if (!(q.noNumber || q.imported) || q.status !== 'aprovado' || !q.createdAt) continue
+    if (!q.noNumber || q.status !== 'aprovado' || !q.createdAt) continue
     const p = d.projects.find((x) => x.id === q.projectId)
     if (!p) continue
     const work = q.createdAt
