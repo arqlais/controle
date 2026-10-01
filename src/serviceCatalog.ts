@@ -192,6 +192,9 @@ const FREELA: Omit<CatalogGroup, 'kind'>[] = [
 const build = (groups: Omit<CatalogGroup, 'kind'>[], kind: CatalogKind): CatalogGroup[] =>
   groups.map((g) => ({ ...g, kind, services: g.services.map((s) => ({ ...s, group: g.label, audience: kind === 'final' ? ('final' as const) : ('parceiro' as const) })) }))
 
+/** Só aparecem nas sugestões da dona (para quem assina fica só "renderização"). */
+export const OWNER_ONLY = ['fr-render-ia']
+
 export const CATALOG: Record<CatalogKind, { label: string; icon: string; hint: string; groups: CatalogGroup[] }> = {
   final: { label: 'para cliente final', icon: 'home', hint: 'arquitetura, interiores, obra e consultoria para quem é dono do imóvel', groups: build(FINAL, 'final') },
   freela: { label: 'para arquitetos, designers e escritórios', icon: 'briefcase', hint: 'freelancer: desenho, 3D, detalhamento, apresentação e planejamento', groups: build(FREELA, 'freela') },

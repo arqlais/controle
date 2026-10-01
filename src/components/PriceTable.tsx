@@ -6,7 +6,8 @@ import { askDelete } from './dialog'
 import { groupServices, money, serviceAsk, uid } from '../utils'
 import { serviceAudience } from '../processes'
 import { ARCH_SERVICES } from '../clientDefaults'
-import { CATALOG, type CatalogKind } from '../serviceCatalog'
+import { CATALOG, OWNER_ONLY, type CatalogKind } from '../serviceCatalog'
+import { isBeta } from '../beta'
 
 /* Tabela de preços simples: cada serviço é uma linha com o resumo do preço. Tocando, abre o editor:
    primeiro "como você cobra" (cartões com ícone e explicação), depois só os campos daquela forma,
@@ -344,7 +345,7 @@ export function SuggestPicker({ kinds, picked, onToggle, existing = [] }: { kind
   let found = 0
   const blocks = kinds.map((k) => {
     const groups = SUGGEST[k].groups
-      .map((g) => ({ ...g, list: g.services.filter((x) => !existing.some((y) => sameService(x, y)) && (!term || norm(x.name).includes(term) || norm(g.label).includes(term))) }))
+      .map((g) => ({ ...g, list: g.services.filter((x) => (isBeta() || !OWNER_ONLY.includes(x.id)) && !existing.some((y) => sameService(x, y)) && (!term || norm(x.name).includes(term) || norm(g.label).includes(term))) }))
       .filter((g) => g.list.length)
     groups.forEach((g) => (found += g.list.length))
     return { k, groups }
