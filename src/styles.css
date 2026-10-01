@@ -2099,3 +2099,14 @@ svg { flex-shrink: 0; }
 .table.cards-mobile.proj-table td.pt-status .status-select { width: 100%; min-width: 0; }
 /* espaço no fim da página para o botão do assistente não cobrir os totais */
 .content { padding-bottom: 104px; }
+
+/* chat da IA: orçamento sugerido que vira orçamento com um toque */
+.ai-quote { margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); display: grid; gap: 8px; }
+.ai-quote-head { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--accent-ink); }
+.ai-quote ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ai-quote li { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ai-quote li small { color: var(--muted); }
+.ai-quote li b { white-space: nowrap; }
+.ai-quote-total { margin: 0; padding-top: 6px; border-top: 1px dashed var(--border); font-size: 13px; display: flex; gap: 6px; align-items: baseline; }
+.ai-quote-total b { font-size: 15px; }
+.ai-quote-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

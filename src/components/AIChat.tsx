@@ -4,7 +4,10 @@ import { href } from '../router'
 import { Icon } from './Icon'
 import { buildAIPrompt, claudeLink } from './AskAI'
 import { toast } from './dialog'
-import { lowerKeepRS, quoteNumber } from '../utils'
+import { lowerKeepRS, money, quoteNumber } from '../utils'
+import { AI_APPLY_EVENT, AI_PREFILL_KEY, aiPrefill, aiTotal, parseAIQuote, type AIQuote } from '../aiQuote'
+import { go } from '../router'
+import type { Quote, QuoteAudience } from '../types'
 
 /* Assistente de orçamentos (chat) com o Gemini do Google, usando a chave da própria usuária.
    A cada pergunta vai junto o "briefing" do estúdio: processo, regras, tabela e histórico. */
@@ -311,9 +314,13 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
                         {m.files.map((f, j) => (f.preview ? <img key={j} src={f.preview} alt={f.name} /> : <span key={j} className="ai-file"><Icon name="file" size={14} /> {f.name}</span>))}
                       </div>
                     ) : null}
-                    {m.role === 'user' ? m.text && <p>{m.text}</p> : <Rich text={m.text} />}
+                    {m.role === 'user' ? m.text && <p>{m.text}</p> : <Rich text={parseAIQuote(m.text).clean} />}
+                    {m.role === 'model' && (() => {
+                      const sug = parseAIQuote(m.text).quote
+                      return sug ? <QuoteSuggestion q={sug} current={current} onClose={() => setOpen(false)} /> : null
+                    })()}
                     {m.role === 'model' && !m.text.startsWith('⚠') && (
-                      <button className="link small ai-copy" onClick={() => copy(m.text)}>
+                      <button className="link small ai-copy" onClick={() => copy(parseAIQuote(m.text).clean)}>
                         <Icon name="copy" size={12} /> copiar
                       </button>
                     )}
@@ -401,5 +408,72 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
         </section>
       )}
     </>
+  )
+}
+
+/** Sugestão de orçamento da IA: um toque e vira orçamento (para cliente final ou terceirização), editável. */
+function QuoteSuggestion({ q, current, onClose }: { q: AIQuote; current?: Quote; onClose: () => void }) {
+  const { data } = useStore()
+  const profile = data.settings.workProfile
+  const guess: QuoteAudience | '' = q.publico === 'final' ? 'final' : q.publico === 'parceiro' ? 'parceiro' : profile === 'freelancer' || !profile ? 'parceiro' : profile === 'final' ? 'final' : ''
+  const [asking, setAsking] = useState(false)
+  const toNew = (a: QuoteAudience) => {
+    try {
+      sessionStorage.setItem(AI_PREFILL_KEY, JSON.stringify(aiPrefill(q, a, data.settings.services)))
+    } catch {
+      /* sem espaço: abre em branco */
+    }
+    onClose()
+    go('orcamentos', 'novo')
+    toast('Orçamento montado com a sugestão da IA. Confira e edite o que quiser.')
+  }
+  const toCurrent = () => {
+    window.dispatchEvent(new CustomEvent(AI_APPLY_EVENT, { detail: q }))
+    toast('Sugestão aplicada neste orçamento. Confira e edite o que quiser.')
+  }
+  const both = profile === 'ambos'
+  return (
+    <div className="ai-quote">
+      <p className="ai-quote-head">
+        <Icon name="file" size={14} /> orçamento sugerido
+      </p>
+      <ul>
+        {q.itens.map((x, i) => (
+          <li key={i}>
+            <span>
+              {x.titulo}
+              {x.detalhe ? <small> · {x.detalhe}</small> : null}
+            </span>
+            <b>{money(x.valor)}</b>
+          </li>
+        ))}
+      </ul>
+      <p className="ai-quote-total">
+        total <b>{money(aiTotal(q))}</b>
+        {q.prazoDias ? <small> · {q.prazoDias} dias</small> : null}
+      </p>
+      {asking || (both && !guess) ? (
+        <div className="ai-quote-ask">
+          <span className="muted small">É para quem?</span>
+          <button type="button" className="btn small primary" onClick={() => toNew('final')}>
+            <Icon name="home" size={14} /> cliente final
+          </button>
+          <button type="button" className="btn small primary" onClick={() => toNew('parceiro')}>
+            <Icon name="briefcase" size={14} /> terceirização
+          </button>
+        </div>
+      ) : (
+        <div className="ai-quote-ask">
+          <button type="button" className="btn small primary" onClick={() => (both ? setAsking(true) : toNew(guess || 'parceiro'))}>
+            <Icon name="arrowRight" size={14} /> jogar pro orçamento
+          </button>
+          {current && (
+            <button type="button" className="btn small ghost" onClick={toCurrent}>
+              pôr neste orçamento
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

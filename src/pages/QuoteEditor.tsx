@@ -7,6 +7,7 @@ import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
 import { CLIENT_SCHEDULE } from '../clientDefaults'
 import { duplicateQuote, moveProjectDate } from '../quoteActions'
 import { DocLookPanel } from '../components/DocKit'
+import { AI_APPLY_EVENT, AI_PREFILL_KEY, aiPrefill, type AIQuote } from '../aiQuote'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
@@ -72,6 +73,9 @@ import {
 
 /** Serviço da tabela que corresponde a cada tipo de projeto (cliente final). */
 const PROCESS_SERVICE: Record<string, string> = { interiores: 'arq-interiores', arquitetonico: 'arq-arquitetonico', consultoria: 'arq-consultoria', regularizacao: 'arq-regularizacao' }
+/** Orçamento novo com a sugestão da IA por cima (quando veio do chat). */
+const withAI = (q: Quote, fill: Partial<Quote> | null): Quote => (fill ? { ...q, ...fill, items: fill.items?.length ? fill.items : q.items, mode: 'escopo' } : q)
+
 const newItem = (): QuoteItem => ({ id: uid(), service: '', title: '', detail: '', description: '', quantity: 1, complexity: 'media', price: 0, auto: true })
 /** Rascunho: recalcula os serviços que seguem a tabela (a tabela pode ter mudado desde que o orçamento foi montado). */
 function freshPrices(q: Quote, st: Settings, student: boolean): Quote {
@@ -103,9 +107,20 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [fresh] = useState(() => (found ? freshPrices(found, data.settings, isStudent(data.clients.find((c) => c.id === found.clientId))) : undefined))
   const [showFile, setShowFile] = useState(false) // "arquivo final" fica recolhido até ser usado
   const existing = fresh ?? found
+  // sugestão da IA ("jogar pro orçamento"): entra no orçamento novo, tudo editável
+  const [aiFill] = useState<Partial<Quote> | null>(() => {
+    if (found || id !== 'novo') return null
+    try {
+      const raw = sessionStorage.getItem(AI_PREFILL_KEY)
+      sessionStorage.removeItem(AI_PREFILL_KEY)
+      return raw ? (JSON.parse(raw) as Partial<Quote>) : null
+    } catch {
+      return null
+    }
+  })
   const [q, setQ] = useState<Quote>(
     () =>
-      existing ?? {
+      existing ?? withAI({
         id: uid(),
         number: id === 'antigo' ? 0 : nextQuoteNumber(data),
         ...(id === 'antigo' ? { noNumber: true, dateFixed: true } : {}),
@@ -133,7 +148,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         sentAt: '',
         createdAt: today(), // a data da proposta é o dia em que ela é montada
         projectId: '',
-      },
+      }, aiFill),
   )
   // rascunho renumerado automaticamente (ex.: outro orçamento foi enviado): mostra o número novo
   const storedNumber = data.quotes.find((x) => x.id === q.id)?.number
@@ -151,7 +166,18 @@ export default function QuoteEditor({ id }: { id: string }) {
   }, [])
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   // orçamento novo: pergunta para quem é (quem só atende escritórios não precisa escolher)
-  const [asking, setAsking] = useState(() => !existing && id === 'novo' && data.settings.workProfile !== 'freelancer')
+  const [asking, setAsking] = useState(() => !existing && id === 'novo' && data.settings.workProfile !== 'freelancer' && !aiFill?.audience)
+  // "pôr neste orçamento" no chat da IA: troca os serviços pelos sugeridos (dá para desfazer editando)
+  useEffect(() => {
+    const on = (e: Event) => {
+      const sug = (e as CustomEvent<AIQuote>).detail
+      if (!sug) return
+      const fill = aiPrefill(sug, quoteAudience(q), settings.services)
+      set({ items: fill.items ?? q.items, ...(fill.title && !q.title ? { title: fill.title } : {}), ...(fill.deadlineDays ? { deadlineDays: fill.deadlineDays } : {}), ...(fill.notes && !q.notes ? { notes: fill.notes } : {}) })
+    }
+    window.addEventListener(AI_APPLY_EVENT, on)
+    return () => window.removeEventListener(AI_APPLY_EVENT, on)
+  })
   const audience = quoteAudience(q)
   const isFinal = audience === 'final'
   const [zoom, setZoom] = useState(false)

@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-01-ia-para-orcamento',
+    date: '2026-10-01',
+    kind: 'novo',
+    title: 'da IA direto para o orçamento',
+    text: 'Quando o assistente sugerir valor e escopo, aparece o orçamento sugerido com o botão "jogar pro orçamento": ele pergunta se é para cliente final ou terceirização e abre o orçamento já preenchido, para você editar tudo.',
+    feature: 'assistenteIA',
+  },
+  {
     id: '2026-10-01-painel-cliente-novo',
     date: '2026-10-01',
     kind: 'novo',

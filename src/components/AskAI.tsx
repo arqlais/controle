@@ -79,7 +79,7 @@ export function buildAIPrompt(d: Data, request: string, current?: Quote, names =
             .map((c) => `${c} ${money(x.checklistPrices?.[c] ?? x.customRate ?? 0)}`)
             .join(', ')}`
         : ''
-      return `- ${x.name}: ${price}${x.min ? `, mínimo ${money(x.min)}` : ''}${x.delivery ? `; entrega: ${x.delivery}` : ''}${list}`
+      return `- ${x.name} [id: ${x.id}]: ${price}${x.min ? `, mínimo ${money(x.min)}` : ''}${x.delivery ? `; entrega: ${x.delivery}` : ''}${list}`
     })
     .join('\n')
   const cx = Object.entries(s.complexity)
@@ -107,8 +107,14 @@ ${history || '(nenhum ainda)'}`
 4. Texto do "não inclui" no meu estilo.
 5. Uma mensagem curta e simpática para eu mandar ao cliente no WhatsApp.
 Se algo estiver ambíguo, diga o que você assumiu.${s.aiLowercase !== false ? '\nLembrete de estilo: escreva tudo em letra minúscula (inclusive títulos e a mensagem para o cliente); só o "R$" fica com R maiúsculo.' : ''}`
+  const block = `\n\n## Sugestão pronta para o sistema (obrigatório quando houver valor ou escopo)
+Sempre que você sugerir valor e/ou escopo de um orçamento, termine a resposta com UM bloco assim (eu toco num botão e ele vira um orçamento no meu sistema, onde eu edito tudo). Use os ids da minha tabela em "servico" (ou "" para serviço personalizado), valores em número (sem R$), e "publico" = "final" (cliente final, dono do imóvel) ou "parceiro" (terceirização para outro escritório), ou "" se não souber:
+\`\`\`orcamento
+{"titulo": "renderização casa pampulha", "publico": "parceiro", "area": 0, "itens": [{"servico": "render-vray", "titulo": "renderização V-Ray", "detalhe": "5 imagens", "descricao": "living, jantar e fachada", "quantidade": 5, "valor": 1850}], "prazoDias": 10, "pagamento": "50% no aceite e 50% na entrega", "observacoes": "não inclui modelagem do terreno"}
+\`\`\`
+Se sugerir duas opções (básica e completa), mande o bloco da opção que você recomenda. Não comente o bloco no texto.`
   if (mode === 'chat')
-    return `${intro}\n\n${studio}\n\n## Como responder no chat\nConverse comigo sobre orçamentos, preços, escopo e clientes usando as informações acima. Seja breve e prático; use tópicos curtos. Quando eu colar o pedido de um cliente, responda com:\n${wants}`
+    return `${intro}\n\n${studio}\n\n## Como responder no chat\nConverse comigo sobre orçamentos, preços, escopo e clientes usando as informações acima. Seja breve e prático; use tópicos curtos. Quando eu colar o pedido de um cliente, responda com:\n${wants}${block}`
   return `${intro}
 
 ## O que o cliente pediu
