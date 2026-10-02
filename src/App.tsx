@@ -551,10 +551,11 @@ export default function App() {
                   <span>ver como cliente</span>
                 </button>
               )}
-              {g.key === 'ajustes' && siteUrl && (
+              {/* atalho para o portfólio: só da dona */}
+              {g.key === 'ajustes' && siteUrl && access.isOwner && (
                 <a className="is-tool" href={siteUrl} target="_blank" rel="noreferrer" title="Abre em outra aba">
                   <Icon name="link" />
-                  <span>{access.isOwner ? 'meu portfólio' : 'meu site'} ↗</span>
+                  <span>meu portfólio ↗</span>
                 </a>
               )}
             </div>
