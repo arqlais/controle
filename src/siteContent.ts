@@ -33,9 +33,9 @@ export const DEFAULT_SITE: SiteContent = {
 Procurei um sistema pensado para o freelancer e não encontrei. Então criei o meu, do jeito que a rotina pede. Deu tão certo que resolvi abrir para outros freelancers, com uma assinatura que cabe no bolso de quem está começando.`,
   facts: ['estudante de arquitetura', 'freelancer em visualização 3D', `criadora do ${PLATFORM.name}`],
   signature: `${PLATFORM.owner} · criadora do ${PLATFORM.name}`,
-  instagram: '',
+  instagram: '@sou.plane',
   whatsapp: '',
-  email: '',
+  email: 'equipe.plane@gmail.com',
   about: 'o sistema de gestão para quem vive de projeto: arquitetos, designers de interiores, escritórios e freelancers de 3D.',
   banner: '',
   kicker: 'para arquitetos, designers, escritórios e freelancers de projeto',
@@ -202,5 +202,8 @@ const OLD_TEXTS: Partial<Record<keyof SiteContent, string>> = {
 export function freshSite(c: SiteContent): SiteContent {
   const out = { ...c }
   for (const [k, v] of Object.entries(OLD_TEXTS) as [keyof SiteContent, string][]) if (out[k] === v) (out as Record<string, unknown>)[k] = DEFAULT_SITE[k]
+  // contato da marca planê: entra quando ainda não foi preenchido
+  if (!out.instagram?.trim() || /traco/i.test(out.instagram)) out.instagram = DEFAULT_SITE.instagram
+  if (!out.email?.trim()) out.email = DEFAULT_SITE.email
   return out
 }

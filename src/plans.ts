@@ -3,9 +3,12 @@
    TUDO que é "comercial" fica aqui — trocar nome ou preço é só neste arquivo.
    ============================================================ */
 
-/** Nome e textos da plataforma (PROVISÓRIOS: troque quando decidir). */
+/** Nome, contatos e endereço da plataforma. */
 export const PLATFORM = {
-  name: 'traço', // nome provisório
+  name: 'planê',
+  domain: 'useplane.com.br', // site oficial
+  email: 'equipe.plane@gmail.com', // contato e suporte
+  instagram: '@sou.plane',
   provisional: false, // mostra o aviso "nome provisório" na prévia e no painel
   tagline: 'gestão leve para quem vive de projeto',
   owner: 'Laís', // só aparece para você (painel, prévia)

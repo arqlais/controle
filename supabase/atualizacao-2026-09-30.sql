@@ -1,5 +1,5 @@
 -- ============================================================
--- Atualização de 30/09/2026 (traço)
+-- Atualização de 30/09/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: plano semestral no pedido de assinatura, testar o Estúdio no teste grátis,
 --       avisos dos clientes finais e o termômetro de uso do painel.

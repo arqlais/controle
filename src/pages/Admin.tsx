@@ -1232,7 +1232,7 @@ function SiteEditor() {
           <Field label="Frase do rodapé" span={3}>
             <input value={site.about} onChange={(e) => set({ about: e.target.value })} />
           </Field>
-          <Field label="Instagram da plataforma" hint="Ex.: @traco.app (vazio = não aparece)">
+          <Field label="Instagram da plataforma" hint="Ex.: @sou.plane (vazio = não aparece)">
             <input value={site.instagram} onChange={(e) => set({ instagram: e.target.value.trim() })} placeholder="@" />
           </Field>
           <Field label="WhatsApp">

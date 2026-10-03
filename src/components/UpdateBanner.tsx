@@ -38,7 +38,7 @@ export function UpdateBanner() {
   return (
     <div className="upd-banner" role="status">
       <Icon name="sparkle" size={16} />
-      <span>Tem uma versão nova do traço, com novidades.</span>
+      <span>Tem uma versão nova do planê, com novidades.</span>
       <button className="btn small primary" onClick={() => location.reload()}>
         atualizar
       </button>

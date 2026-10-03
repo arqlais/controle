@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type R
    quadro de tom + barra de cor, HEX, RGB e as últimas cores usadas. */
 
 const RECENT_KEY = 'cores-recentes'
-// sugestões que conversam com a paleta do traço (dá para escolher qualquer outra cor)
+// sugestões que conversam com a paleta do planê (dá para escolher qualquer outra cor)
 const SUGGESTED = [PAL.slate, PAL.navy, PAL.blue, PAL.steel, EXTRA.dusk, PAL.rose, PAL.roseSoft, PAL.roseDeep, EXTRA.clay, EXTRA.sand, EXTRA.sage, '#f5f1ee']
 
 type HSV = { h: number; s: number; v: number }

@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-plane',
+    date: '2026-10-03',
+    kind: 'novo',
+    title: 'agora somos planê',
+    text: 'A plataforma ganhou nome definitivo: planê. Tudo continua igual por dentro, com os seus dados e configurações. Contato: equipe.plane@gmail.com · Instagram @sou.plane.',
+  },
+  {
     id: '2026-10-03-leitura-pdf',
     date: '2026-10-03',
     kind: 'correcao',
@@ -269,8 +276,8 @@ export const NEWS: News[] = [
     id: '2026-09-30-tela-inicio',
     date: '2026-09-30',
     kind: 'novo',
-    title: 'traço na tela de início do celular',
-    text: 'Dá para adicionar o traço como um ícone no celular, que abre em tela cheia como um aplicativo.',
+    title: 'planê na tela de início do celular',
+    text: 'Dá para adicionar o planê como um ícone no celular, que abre em tela cheia como um aplicativo.',
     steps: [{ page: 'perfil', text: 'No perfil, veja “no celular”.' }],
   },
   {
@@ -317,7 +324,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'agora também para quem atende cliente final',
-    text: 'O traço nasceu para freelancers e, a pedido de várias arquitetas, agora também é para quem projeta direto para o cliente final: briefing online com imagens, cronograma das etapas, obra, página do projeto para o cliente, proposta em slides e documentos com a sua marca.',
+    text: 'O planê nasceu para freelancers e, a pedido de várias arquitetas, agora também é para quem projeta direto para o cliente final: briefing online com imagens, cronograma das etapas, obra, página do projeto para o cliente, proposta em slides e documentos com a sua marca.',
     steps: [{ page: 'briefings', text: 'Comece mandando um briefing para um cliente.' }, { page: 'documentos', text: 'Veja os documentos: guia de medição, placa de obra e apresentação.' }],
   },
   {

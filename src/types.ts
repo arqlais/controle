@@ -480,7 +480,7 @@ export interface ContractSettings {
 
 export type ContractStatus = 'rascunho' | 'enviado' | 'assinado'
 
-/** Assinatura registrada: pelo link do traço (aceite com nome e CPF) ou por um site de assinatura. */
+/** Assinatura registrada: pelo link do planê (aceite com nome e CPF) ou por um site de assinatura. */
 export interface ContractSignature {
   via: 'link' | 'externo'
   name: string

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
 import { PLATFORM } from '../plans'
 
-/* "Adicionar à tela de início": o traço vira um ícone no celular, com o nome da plataforma, e abre em tela cheia.
+/* "Adicionar à tela de início": o planê vira um ícone no celular, com o nome da plataforma, e abre em tela cheia.
    No Android/Chrome aparece o botão instalar; no iPhone, o passo a passo do Safari. */
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }

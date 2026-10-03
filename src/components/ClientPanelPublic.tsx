@@ -40,7 +40,7 @@ export function ClientPanelPublic({ id, data, preview }: { id: string; data?: Pa
   const wrap = (children: ReactNode) => (
     <div className={`bf-public pn-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
       <div className="bf-card">{children}</div>
-      <p className="bf-foot">feito com traço</p>
+      <p className="bf-foot">feito com planê</p>
     </div>
   )
   if (d === undefined) return wrap(<p className="muted">carregando…</p>)

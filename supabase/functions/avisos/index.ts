@@ -1,4 +1,4 @@
-// Avisos por e-mail do traço (roda no Supabase, nunca no site).
+// Avisos por e-mail do planê (roda no Supabase, nunca no site).
 // Cole este arquivo em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "avisos".
 // Segredos (Edge Functions → Secrets): BREVO_API_KEY e CRON_SECRET. Opcionais: SENDER_EMAIL, SENDER_NAME, SITE_URL, REPLY_TO.
 //
@@ -21,9 +21,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
 const SITE = env('SITE_URL', 'https://arqlais.github.io/controle/')
-const SENDER = { email: env('SENDER_EMAIL', 'nao-responda@lais3d.com.br'), name: env('SENDER_NAME', 'traço') }
+const SENDER = { email: env('SENDER_EMAIL', 'nao-responda@lais3d.com.br'), name: env('SENDER_NAME', 'planê') }
 // quem responder o e-mail fala direto com a dona
-const REPLY_TO = env('REPLY_TO', 'arq.laisav@gmail.com')
+const REPLY_TO = env('REPLY_TO', 'equipe.plane@gmail.com')
 // para onde vão os avisos de mensagem e sugestão nova
 const OWNER_EMAIL = env('OWNER_EMAIL', REPLY_TO)
 const SUG_LABEL: Record<string, string> = { recebida: 'recebida', analisando: 'em análise', planejada: 'planejada', feita: 'feita ✓', nao_agora: 'não por agora' }
@@ -63,7 +63,7 @@ function layout(o: { eyebrow: string; title: string; text: string; button?: stri
   return `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:0;background:#f3eae6;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3eae6;padding:32px 12px;font-family:Poppins,Helvetica,Arial,sans-serif;color:#3e4b57;"><tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
-<tr><td style="padding:0 8px 18px;"><img src="${SITE}icon-192.png" width="40" height="40" alt="" style="vertical-align:middle;border-radius:10px;"><span style="font-size:22px;font-weight:600;vertical-align:middle;margin-left:10px;">traço</span></td></tr>
+<tr><td style="padding:0 8px 18px;"><img src="${SITE}icon-192.png" width="40" height="40" alt="" style="vertical-align:middle;border-radius:10px;"><span style="font-size:22px;font-weight:600;vertical-align:middle;margin-left:10px;">planê</span></td></tr>
 <tr><td style="background:#ffffff;border-radius:22px;padding:36px 32px;">
 <p style="margin:0 0 6px;font-size:12px;letter-spacing:3px;color:#a88a80;">${esc(o.eyebrow)}</p>
 <h1 style="margin:0 0 16px;font-size:26px;line-height:1.2;font-weight:700;color:#3e4b57;">${esc(o.title)}</h1>
@@ -71,7 +71,7 @@ function layout(o: { eyebrow: string; title: string; text: string; button?: stri
 ${btn}
 ${o.small ? `<p style="margin:26px 0 0;font-size:12px;line-height:1.6;color:#8b939a;">${o.small}</p>` : ''}
 </td></tr>
-<tr><td style="padding:18px 8px 0;font-size:12px;line-height:1.6;color:#a88a80;text-align:center;">traço · gestão leve para quem vive de projeto<br><span style="color:#8b939a;">Dúvidas? Fale com a gente pelo chat dentro do traço.</span></td></tr>
+<tr><td style="padding:18px 8px 0;font-size:12px;line-height:1.6;color:#a88a80;text-align:center;">planê · gestão leve para quem vive de projeto<br><span style="color:#8b939a;">Dúvidas? Fale com a gente pelo chat dentro do planê.</span></td></tr>
 </table></td></tr></table></body></html>`
 }
 
@@ -80,17 +80,17 @@ type Mail = { subject: string; html: string }
 
 const MAILS = {
   'boas-vindas': (s: Sub): Mail => ({
-    subject: 'Boas-vindas ao traço ✨',
+    subject: 'Boas-vindas ao planê ✨',
     html: layout({
       eyebrow: 'boas-vindas',
       title: `Que bom ter você aqui${first(s.name) ? `, ${esc(first(s.name))}` : ''}!`,
       text: `<p style="margin:0 0 12px;">Seu teste grátis do plano ${PRICES[s.plan]?.name ?? ''} já começou e vai até <b>${br(s.trial_ends)}</b>.</p><p style="margin:0;">Para começar com o pé direito: coloque seus dados e sua tabela de preços em <b>configurações</b>, cadastre um cliente e faça o primeiro orçamento. O passo a passo dentro do sistema te guia.</p>`,
-      button: 'abrir o traço',
+      button: 'abrir o planê',
       small: 'Ficou com dúvida? Fale com a gente pelo balão de conversa no canto da tela.',
     }),
   }),
   'teste-acabando': (s: Sub): Mail => ({
-    subject: 'Seu teste do traço acaba em 3 dias',
+    subject: 'Seu teste do planê acaba em 3 dias',
     html: layout({
       eyebrow: 'teste grátis',
       title: 'Faltam 3 dias do seu teste',
@@ -100,7 +100,7 @@ const MAILS = {
     }),
   }),
   'teste-acabou': (s: Sub): Mail => ({
-    subject: 'Seu teste do traço terminou',
+    subject: 'Seu teste do planê terminou',
     html: layout({
       eyebrow: 'teste grátis',
       title: 'Seu teste terminou, seus dados continuam aqui',
@@ -110,25 +110,25 @@ const MAILS = {
     }),
   }),
   ativada: (s: Sub): Mail => ({
-    subject: 'Sua assinatura do traço está ativa 🎉',
+    subject: 'Sua assinatura do planê está ativa 🎉',
     html: layout({
       eyebrow: 'assinatura',
       title: 'Pagamento confirmado!',
       text: `<p style="margin:0;">Obrigada${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Sua assinatura do plano <b>${PRICES[s.plan]?.name ?? ''}</b> está ativa. Pode seguir usando tudo normalmente.</p>`,
-      button: 'abrir o traço',
+      button: 'abrir o planê',
     }),
   }),
   'vence-em-breve': (s: Sub, until: string): Mail => ({
-    subject: 'Sua assinatura do traço vence em 3 dias',
+    subject: 'Sua assinatura do planê vence em 3 dias',
     html: layout({
       eyebrow: 'assinatura',
       title: `Vence em ${br(until)}`,
-      text: `<p style="margin:0;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! A mensalidade do plano <b>${PRICES[s.plan]?.name ?? ''}</b> (${money(PRICES[s.plan]?.price ?? 0)}) vence em <b>${br(until)}</b>. Vamos te mandar o Pix pelo chat do traço.</p>`,
-      button: 'abrir o traço',
+      text: `<p style="margin:0;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! A mensalidade do plano <b>${PRICES[s.plan]?.name ?? ''}</b> (${money(PRICES[s.plan]?.price ?? 0)}) vence em <b>${br(until)}</b>. Vamos te mandar o Pix pelo chat do planê.</p>`,
+      button: 'abrir o planê',
     }),
   }),
   novidade: (_s: Sub, title: string, text: string): Mail => ({
-    subject: `Novidade no traço: ${title}`,
+    subject: `Novidade no planê: ${title}`,
     html: layout({
       eyebrow: 'novidades',
       title,
@@ -136,7 +136,7 @@ const MAILS = {
         .split(/\n\s*\n/)
         .map((p) => `<p style="margin:0 0 12px;">${esc(p.trim()).replace(/\n/g, '<br>')}</p>`)
         .join(''),
-      button: 'ver no traço',
+      button: 'ver no planê',
       small: 'Dentro do sistema, o botão “me mostra” leva direto até a novidade.',
     }),
   }),
@@ -144,7 +144,7 @@ const MAILS = {
 
 const OWNER_MAILS = {
   mensagem: (s: Sub, text: string): Mail => ({
-    subject: `💬 ${s.name || s.email} escreveu no chat do traço`,
+    subject: `💬 ${s.name || s.email} escreveu no chat do planê`,
     html: layout({
       eyebrow: 'chat',
       title: `Mensagem de ${esc(first(s.name) || s.email)}`,
@@ -168,21 +168,21 @@ const OWNER_MAILS = {
 
 const CLIENT_MAILS = {
   resposta: (s: Sub, text: string): Mail => ({
-    subject: 'Você tem uma resposta no traço 💬',
+    subject: 'Você tem uma resposta no planê 💬',
     html: layout({
       eyebrow: 'chat',
       title: `Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Respondemos sua mensagem`,
       text: quote(rich(text.slice(0, 2000))),
       button: 'abrir a conversa',
-      small: 'Para responder, use o balão de conversa no canto da tela do traço.',
+      small: 'Para responder, use o balão de conversa no canto da tela do planê.',
     }),
   }),
   sugestao: (s: Sub, title: string, status: string, reply: string): Mail => ({
-    subject: `Sua sugestão no traço: ${SUG_LABEL[status] ?? status}`,
+    subject: `Sua sugestão no planê: ${SUG_LABEL[status] ?? status}`,
     html: layout({
       eyebrow: 'sugestões',
       title: `“${esc(title)}”`,
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Sua sugestão agora está como <b>${esc(SUG_LABEL[status] ?? status)}</b>.</p>${reply.trim() ? quote(rich(reply.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Obrigada por ajudar a melhorar o traço 💛</p>`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Sua sugestão agora está como <b>${esc(SUG_LABEL[status] ?? status)}</b>.</p>${reply.trim() ? quote(rich(reply.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Obrigada por ajudar a melhorar o planê 💛</p>`,
       button: 'ver minhas sugestões',
       url: `${SITE}#/sugestoes`,
     }),
@@ -194,7 +194,7 @@ const briefingMail = (s: Sub, client: string, title: string): Mail => ({
   html: layout({
     eyebrow: 'briefing',
     title: `${esc(client || 'Seu cliente')} respondeu!`,
-    text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! As respostas de <b>${esc(title)}</b> chegaram.</p><p style="margin:0;">Abra a ficha do cliente no traço: as respostas estão lá e o que era da ficha (profissão, família, imóvel…) já foi preenchido.</p>`,
+    text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! As respostas de <b>${esc(title)}</b> chegaram.</p><p style="margin:0;">Abra a ficha do cliente no planê: as respostas estão lá e o que era da ficha (profissão, família, imóvel…) já foi preenchido.</p>`,
     button: 'ver as respostas',
     url: `${SITE}#/clientes`,
   }),
@@ -212,8 +212,8 @@ const clientEventMail = (s: Sub, kind: string, client: string, title: string, te
     html: layout({
       eyebrow: k.eyebrow,
       title: `${esc(client || 'Seu cliente')} ${k.did}`,
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o traço: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : ''}.</p>`,
-      button: 'abrir o traço',
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : ''}.</p>`,
+      button: 'abrir o planê',
       url: `${SITE}#/clientes`,
     }),
   }

@@ -2034,7 +2034,7 @@ textarea:has(+ .note-hints) { field-sizing: content; min-height: 64px; max-heigh
 .sidebar nav a.active .nav-plan { color: #fff; background: rgba(255, 255, 255, 0.2); }
 .sidebar nav a.active .nav-lock { color: #fff; opacity: 0.9; }
 
-/* listas (select) com a identidade do traço nos navegadores que permitem (Chrome/Edge novos);
+/* listas (select) com a identidade do planê nos navegadores que permitem (Chrome/Edge novos);
    nos outros continua a lista do próprio aparelho */
 @supports (appearance: base-select) {
   select,

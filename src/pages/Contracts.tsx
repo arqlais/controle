@@ -93,7 +93,7 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   const [imported, setImported] = useState(false)
   // usar o próprio contrato: vira um modelo novo (anexado do Word/PDF ou em branco para colar o texto)
   const useMine = (name = 'meu contrato', body = '', html?: string) => {
-    // o texto entra no modelo de contrato do traço (sempre funciona, com a marca da pessoa); o desenho do arquivo fica guardado como opção
+    // o texto entra no modelo de contrato do planê (sempre funciona, com a marca da pessoa); o desenho do arquivo fica guardado como opção
     const t: ContractTemplate = { id: uid(), name, body, ...(html ? { fileHtml: html } : {}) }
     setSettings({ contracts: { ...cs, templates: [t, ...cs.templates] } })
     setImported(!!body)
@@ -671,7 +671,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
                 <button type="button" className="btn small ghost" onClick={() => setPreview(true)}>
                   <Icon name="eye" size={14} /> ver como fica
                 </button>
-                <button type="button" className="link small muted-link" onClick={async () => (await ask('Usar só o texto, sem o desenho do seu arquivo? O contrato passa a sair no modelo do traço.', { confirmLabel: 'Usar só o texto' })) && patch({ html: undefined })}>
+                <button type="button" className="link small muted-link" onClick={async () => (await ask('Usar só o texto, sem o desenho do seu arquivo? O contrato passa a sair no modelo do planê.', { confirmLabel: 'Usar só o texto' })) && patch({ html: undefined })}>
                   usar só o texto (sem o desenho do arquivo)
                 </button>
               </div>
@@ -687,7 +687,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
             <p className="pf-note">
               <Icon name="file" size={16} />
               <span>
-                O texto do seu arquivo está no modelo de contrato do traço, com a sua marca. Quer tentar o desenho original?{' '}
+                O texto do seu arquivo está no modelo de contrato do planê, com a sua marca. Quer tentar o desenho original?{' '}
                 <button type="button" className="link" onClick={() => patch({ html: cur.fileHtml })}>
                   usar o desenho do arquivo
                 </button>{' '}
@@ -767,7 +767,7 @@ function SignatureField() {
   )
 }
 
-/* Assinatura: pelo link do traço (rápido, o cliente assina no celular) ou por um site com validade reforçada. */
+/* Assinatura: pelo link do planê (rápido, o cliente assina no celular) ou por um site com validade reforçada. */
 function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: Client; dirty: boolean; save: (patch?: Partial<Contract>) => void; onPdf: () => void }) {
   const { data, userId } = useStore()
   const { has } = useAccess()
@@ -827,7 +827,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
               {c.sign.doc ? ` · ${c.sign.doc}` : ''}
             </b>
             <p className="muted small">
-              {new Date(c.sign.at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })} · {c.sign.via === 'link' ? `pelo link do traço · código ${c.sign.hash}` : `pelo ${c.sign.site}`}
+              {new Date(c.sign.at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })} · {c.sign.via === 'link' ? `pelo link do planê · código ${c.sign.hash}` : `pelo ${c.sign.site}`}
             </p>
           </div>
           <button
@@ -880,7 +880,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
               <Icon name="link" size={16} />
             </span>
             <div>
-              <b>pelo link do traço</b>
+              <b>pelo link do planê</b>
               <small>rápido · o cliente assina no celular</small>
             </div>
           </div>

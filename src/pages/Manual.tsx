@@ -356,7 +356,7 @@ CASES.push(
     q: 'Mandar o contrato para o cliente assinar',
     top: true,
     plan: 'completo',
-    a: <>No contrato, seção <b>assinatura</b>. <b>Pelo link do traço</b>: crie o link e mande no WhatsApp; o cliente lê, informa nome, CPF e contato e assina <b>desenhando com o dedo</b> ou com o nome digitado; a confirmação volta pelo WhatsApp dele. Cole essa mensagem em <b>registrar assinatura</b>: a assinatura entra no PDF e a última página vira o <b>certificado de assinatura</b> (dados, aparelho, data e hora e a impressão digital do texto). A sua assinatura você desenha em contratos → modelos. Quer validade reforçada? Use <b>por um site de assinatura</b> (gov.br, ZapSign, Clicksign…): baixe o PDF, assine lá e registre aqui quando voltar.</>,
+    a: <>No contrato, seção <b>assinatura</b>. <b>Pelo link do planê</b>: crie o link e mande no WhatsApp; o cliente lê, informa nome, CPF e contato e assina <b>desenhando com o dedo</b> ou com o nome digitado; a confirmação volta pelo WhatsApp dele. Cole essa mensagem em <b>registrar assinatura</b>: a assinatura entra no PDF e a última página vira o <b>certificado de assinatura</b> (dados, aparelho, data e hora e a impressão digital do texto). A sua assinatura você desenha em contratos → modelos. Quer validade reforçada? Use <b>por um site de assinatura</b> (gov.br, ZapSign, Clicksign…): baixe o PDF, assine lá e registre aqui quando voltar.</>,
     page: 'contratos',
   },
   {

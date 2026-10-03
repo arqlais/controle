@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey?: s
     return (
       <div className={`card err-box ${this.props.full ? 'is-full' : ''}`} role="alert">
         <Icon name="alert" size={24} />
-        <h2>{stale ? 'o traço foi atualizado' : 'esta tela não abriu direito'}</h2>
+        <h2>{stale ? 'o planê foi atualizado' : 'esta tela não abriu direito'}</h2>
         <p className="muted">{stale ? 'Tem uma versão nova no ar. Recarregue para continuar: nada do que você salvou se perde.' : 'Seus dados estão guardados. Tente de novo ou volte para o início; se continuar, fale com a gente pelo balão de conversa.'}</p>
         <div className="row gap-s wrap">
           <button className="btn primary" onClick={() => (stale ? location.reload() : this.setState({ error: null }))}>

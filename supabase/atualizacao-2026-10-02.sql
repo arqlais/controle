@@ -1,5 +1,5 @@
 -- ============================================================
--- Atualização de 02/10/2026 (traço)
+-- Atualização de 02/10/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: registro de acessos de cada conta (data, hora, aparelho e IP), para o comprovante do assinante
 --       (prova de uso em caso de contestação de pagamento). Só a dona vê.

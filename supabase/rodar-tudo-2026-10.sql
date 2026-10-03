@@ -1,7 +1,7 @@
--- traço · atualizações de 30/09, 01/10 e 02/10/2026 juntas. Cole tudo no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
+-- planê · atualizações de 30/09, 01/10 e 02/10/2026 juntas. Cole tudo no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 
 -- ============================================================
--- Atualização de 30/09/2026 (traço)
+-- Atualização de 30/09/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: plano semestral no pedido de assinatura, testar o Estúdio no teste grátis,
 --       avisos dos clientes finais e o termômetro de uso do painel.
@@ -83,7 +83,7 @@ create policy "uso: dona vê todos" on public.usage_stats for select to authenti
 select table_name from information_schema.tables where table_schema = 'public' and table_name in ('client_events', 'usage_stats');
 
 -- ============================================================
--- Atualização de 01/10/2026 (traço)
+-- Atualização de 01/10/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: plano Estúdio liberado no cadastro, todo mundo que está em teste passa a testar o Estúdio
 --       e quem criar conta daqui para frente já começa testando o Estúdio.
@@ -116,7 +116,7 @@ end $$;
 select plan, count(*) from public.subscriptions where status = 'trial' group by plan;
 
 -- ============================================================
--- Atualização de 02/10/2026 (traço)
+-- Atualização de 02/10/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: registro de acessos de cada conta (data, hora, aparelho e IP), para o comprovante do assinante
 --       (prova de uso em caso de contestação de pagamento). Só a dona vê.

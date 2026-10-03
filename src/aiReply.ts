@@ -2,7 +2,7 @@ import { askGemini, type Msg } from './components/AIChat'
 import { PLANS, PLATFORM, STATUS_LABEL } from './plans'
 import { trialDaysLeft, type ChatMessage, type Subscription } from './platform'
 
-/* Rascunho de resposta com IA para o chat da dona com quem usa o traço.
+/* Rascunho de resposta com IA para o chat da dona com quem usa o planê.
    Usa a chave do Gemini da própria dona (configurações → assistente); a resposta
    vem para a caixa de texto, ela lê, corrige e só então manda. */
 

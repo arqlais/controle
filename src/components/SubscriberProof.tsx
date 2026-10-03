@@ -157,7 +157,7 @@ export function SubscriberProof({ s, b, ctrl, usage, onClose }: { s: Subscriptio
           {data.msgs.map((m) => (
             <li key={m.id}>
               <small>
-                {dt(m.createdAt)} · {m.fromOwner ? 'traço (suporte)' : name}
+                {dt(m.createdAt)} · {m.fromOwner ? 'planê (suporte)' : name}
               </small>
               <p>{m.body}</p>
             </li>

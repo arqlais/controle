@@ -1,5 +1,5 @@
 -- ============================================================
--- Atualização de 01/10/2026 (traço)
+-- Atualização de 01/10/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: plano Estúdio liberado no cadastro, todo mundo que está em teste passa a testar o Estúdio
 --       e quem criar conta daqui para frente já começa testando o Estúdio.

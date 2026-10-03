@@ -994,7 +994,7 @@ function SectionHead({ eyebrow, title, text }: { eyebrow: string; title: ReactNo
   )
 }
 
-function Frame({ children, label = `${PLATFORM.name}.app` }: { children: ReactNode; label?: string }) {
+function Frame({ children, label = PLATFORM.domain }: { children: ReactNode; label?: string }) {
   return (
     <div className="lp-frame">
       <div className="lp-frame-bar">

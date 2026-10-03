@@ -162,7 +162,7 @@ export const DEFAULT_TASKS = [
 /* Colunas criadas pela usuária (Configurações → customColumns), registradas pelo App. */
 let customColumns: BoardColumn[] = []
 export const setCustomColumns = (cols: BoardColumn[]) => {
-  // cor gravada antes da paleta atual: aproxima dos tons do traço
+  // cor gravada antes da paleta atual: aproxima dos tons do planê
   customColumns = cols.map((c) => (c.color && !COLUMN_COLORS.includes(c.color) ? { ...c, color: harmonize(c.color) } : c))
 }
 /** Nome e cor de um status, padrão ou criado pela usuária. */
