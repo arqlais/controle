@@ -71,8 +71,11 @@ export default function Projects() {
   const [prio, setPrio] = useKeep<Priority | ''>('dem-prio', '')
   const [scope, setScope] = useKeep<Scope>('dem-escopo', 'ativos')
   const [form, setForm] = useState(false)
-  const [dragId, setDragId] = useState<string | null>(null)
-  const [overCol, setOverCol] = useState<ProjectStatus | null>(null)
+  // arrastar cartões entre colunas: mouse (arrasta direto) e celular (segura um instante e arrasta)
+  const drag = useCardDrag((id, col) => {
+    const p = data.projects.find((x) => x.id === id)
+    if (p && p.status !== col) move(p, col)
+  })
 
   const changeView = (v: View) => {
     setView(v)
@@ -246,21 +249,7 @@ export default function Projects() {
             if (col === 'entregue') items = items.sort((a, b) => (b.deliveredDate ?? '').localeCompare(a.deliveredDate ?? '')).slice(0, 8)
             else items = items.sort((a, b) => urgencyScore(b) - urgencyScore(a))
             return (
-              <div
-                key={col}
-                className={`column ${overCol === col ? 'drop' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setOverCol(col)
-                }}
-                onDragLeave={() => setOverCol(null)}
-                onDrop={() => {
-                  const p = data.projects.find((x) => x.id === dragId)
-                  if (p) move(p, col)
-                  setDragId(null)
-                  setOverCol(null)
-                }}
-              >
+              <div key={col} data-col={col} className={`column ${drag.over === col ? 'drop' : ''}`}>
                 <header>
                   <span className="dot" style={{ background: statusInfo(col).color }} />
                   {custom.some((c) => c.id === col) ? (
@@ -283,7 +272,7 @@ export default function Projects() {
                 {!prio && <p className={`column-kind ${ci === 0 ? 'is-closed' : ''}`}>{COLUMN_HINT[col] ?? 'demanda'}</p>}
                 <div className="column-body">
                   {items.map((p) => (
-                    <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onDragStart={() => setDragId(p.id)} />
+                    <ProjectCard key={p.id} p={p} client={clientName(p.clientId)} onPointerDown={(e) => drag.start(e, p.id)} wasDragged={drag.wasDragged} />
                   ))}
                   {col === 'entregue' && <p className="muted small center">Últimas entregas · veja todas na lista</p>}
                 </div>
@@ -322,12 +311,12 @@ export default function Projects() {
   )
 }
 
-function ProjectCard({ p, client, onDragStart }: { p: Project; client: string; onDragStart: () => void }) {
+function ProjectCard({ p, client, onPointerDown, wasDragged }: { p: Project; client: string; onPointerDown: (e: React.PointerEvent<HTMLElement>) => void; wasDragged: () => boolean }) {
   const { data } = useStore()
   const quote = data.quotes.find((q) => q.projectId === p.id)
   const dl = deadlineInfo(p)
   return (
-    <div className="kcard" draggable onDragStart={onDragStart} onClick={() => go('projetos', p.id)}>
+    <div className="kcard is-draggable" onPointerDown={onPointerDown} onContextMenu={(e) => matchMedia('(pointer: coarse)').matches && e.preventDefault()} onClick={() => !wasDragged() && go('projetos', p.id)}>
       <div className="kcard-top">
         <span className="kcard-client">{client || 'sem cliente'}</span>
         {quote && <span className="kcard-num">{quoteNumber(quote)}</span>}
@@ -534,4 +523,97 @@ function useDragScroll() {
       state.current = null
     },
   }
+}
+
+/** Arrastar um cartão para outra coluna, com mouse ou com o dedo.
+ *  Mouse: começa a arrastar depois de mover alguns pixels. Toque: segura ~0,35 s (assim a rolagem continua normal). */
+function useCardDrag(onDrop: (id: string, col: ProjectStatus) => void) {
+  const [over, setOver] = useState<ProjectStatus | null>(null)
+  const dragged = useRef(0)
+  const start = (e: React.PointerEvent<HTMLElement>, id: string) => {
+    if (e.button !== 0) return
+    if ((e.target as HTMLElement).closest('input, select, button, a, textarea, .kcard-status, .task-quick')) return
+    const card = e.currentTarget
+    const board = card.closest<HTMLElement>('.board')
+    const touch = e.pointerType !== 'mouse'
+    const sx = e.clientX
+    const sy = e.clientY
+    let x = sx
+    let y = sy
+    let ghost: HTMLElement | null = null
+    let col: ProjectStatus | null = null
+    let timer = 0
+    let scroll = 0
+    const block = (ev: TouchEvent) => ev.preventDefault()
+    const place = () => {
+      if (!ghost) return
+      ghost.style.transform = `translate(${x - sx}px, ${y - sy}px) rotate(1.5deg)`
+      const target = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-col]')
+      const next = (target?.dataset.col as ProjectStatus | undefined) ?? null
+      if (next !== col) setOver((col = next))
+    }
+    // perto das bordas do quadro, ele rola sozinho para mostrar as outras colunas
+    const edgeScroll = () => {
+      if (!ghost || !board) return
+      const r = board.getBoundingClientRect()
+      const edge = Math.min(80, r.width * 0.15)
+      // mais perto da borda, mais rápido (devagar o bastante para soltar na coluna certa)
+      const depth = x > r.right - edge ? (x - (r.right - edge)) / edge : x < r.left + edge ? -((r.left + edge - x) / edge) : 0
+      const dx = Math.round(depth * 9)
+      if (dx) {
+        board.scrollLeft += dx
+        place()
+      }
+      scroll = requestAnimationFrame(edgeScroll)
+    }
+    const begin = () => {
+      const r = card.getBoundingClientRect()
+      ghost = card.cloneNode(true) as HTMLElement
+      ghost.classList.add('kcard-ghost')
+      Object.assign(ghost.style, { width: `${r.width}px`, left: `${r.left}px`, top: `${r.top}px` })
+      document.body.appendChild(ghost)
+      card.classList.add('is-dragging')
+      document.body.classList.add('is-card-dragging')
+      if (touch) navigator.vibrate?.(12)
+      document.addEventListener('touchmove', block, { passive: false })
+      place()
+      scroll = requestAnimationFrame(edgeScroll)
+    }
+    const stop = () => {
+      clearTimeout(timer)
+      cancelAnimationFrame(scroll)
+      ghost?.remove()
+      ghost = null
+      card.classList.remove('is-dragging')
+      document.body.classList.remove('is-card-dragging')
+      setOver(null)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', stop)
+      document.removeEventListener('touchmove', block)
+    }
+    const onMove = (ev: PointerEvent) => {
+      x = ev.clientX
+      y = ev.clientY
+      if (!ghost) {
+        const dist = Math.hypot(x - sx, y - sy)
+        if (touch) return void (dist > 10 && stop()) // mexeu antes de segurar: é rolagem
+        if (dist < 6) return
+        begin()
+      }
+      place()
+    }
+    const onUp = () => {
+      if (ghost) {
+        dragged.current = Date.now()
+        if (col) onDrop(id, col)
+      }
+      stop()
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', stop)
+    if (touch) timer = window.setTimeout(begin, 350)
+  }
+  return { start, over, wasDragged: () => Date.now() - dragged.current < 300 }
 }

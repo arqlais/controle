@@ -531,6 +531,11 @@ export const quoteSubtotal = (q: Quote) => (q.mode === 'opcoes' ? 0 : q.items.re
 /** Próximo nº de orçamento: contagem contínua (maior já usado + 1), nunca abaixo do início escolhido. */
 export const nextQuoteNumber = (d: Data) => Math.max((d.settings.quoteStart ?? 1) - 1, 0, ...d.quotes.map((x) => x.number || 0)) + 1
 export const quoteNumber = (q: Quote) => (q.noNumber ? 'sem nº' : `#${String(q.number).padStart(3, '0')}`)
+/** Nome curto de uma demanda para listas: título + nº do orçamento (quando tem), para não confundir nomes iguais. */
+export function projectTag(d: { quotes: Quote[] }, p: { id: string; title: string }) {
+  const q = d.quotes.find((x) => x.projectId === p.id)
+  return q && !q.noNumber ? `${p.title} · ${quoteNumber(q)}` : p.title
+}
 
 /** Total de uma opção: soma dos serviços menos o desconto da opção. */
 export const optionTotal = (o: { items: { price: number }[]; discount: number }) => Math.max(0, o.items.reduce((s, i) => s + (i.price || 0), 0) - (o.discount || 0))

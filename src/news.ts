@@ -30,6 +30,18 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-agenda-quadro-capa',
+    date: '2026-10-03',
+    kind: 'melhoria',
+    title: 'agenda mais completa, cartões que arrastam e capa ajustável',
+    text: 'Na agenda, cada compromisso agora tem horário de término, local e cliente, e o tipo "pessoal" fica separado do trabalho. As demandas aparecem com o número do orçamento, sem confundir nomes iguais. No quadro de demandas, arraste os cartões entre as colunas, também no celular (segure um instante e arraste). E a foto de capa do painel do cliente dá para enquadrar e aproximar.',
+    steps: [
+      { text: 'Novo compromisso na agenda.', page: 'agenda' },
+      { text: 'Arraste um cartão no quadro de demandas.', page: 'projetos' },
+      { text: 'Capa em painel do cliente → aparência e topo.', page: 'paineis' },
+    ],
+  },
+  {
     id: '2026-10-03-briefing-fotos',
     date: '2026-10-03',
     kind: 'melhoria',

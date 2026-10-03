@@ -10,6 +10,7 @@ import { ClientPanelPublic } from './ClientPanelPublic'
 import { panelLink, panelPayload, publishPanel, removePanelFile, unpublishPanel, uploadPanelFile } from '../clientPanel'
 import type { Client, ClientPanel, PanelLink, PanelLook, PanelSection } from '../types'
 import { DateInput } from './DateInput'
+import { PhotoCrop } from './DocKit'
 import { fmtDate, whatsappLink } from '../utils'
 
 /* Painel do cliente (na ficha do cliente): o profissional escolhe o que o cliente vê e manda o link.
@@ -406,7 +407,7 @@ export function PanelLookControls({ client }: { client: Client }) {
     setBusy(true)
     try {
       const up = await uploadPanelFile(userId, f)
-      save({ cover: up.url })
+      save({ cover: up.url, coverPos: undefined })
     } catch {
       toast('Não consegui enviar a imagem. Tente uma menor.')
     }
@@ -452,7 +453,7 @@ export function PanelLookControls({ client }: { client: Client }) {
       <div className="pn-cover-row">
         <span className="field-label">foto de capa</span>
         {panel.cover ? (
-          <div className="pn-cover-thumb" style={{ backgroundImage: `url(${JSON.stringify(panel.cover)})` }} />
+          <PhotoCrop src={panel.cover} pos={panel.coverPos} aspect={3.2} onChange={(coverPos) => save({ coverPos })} />
         ) : (
           <button type="button" className="pn-cover-empty" onClick={() => coverInput.current?.click()} disabled={busy}>
             <Icon name="image" size={22} />
@@ -465,7 +466,7 @@ export function PanelLookControls({ client }: { client: Client }) {
               <button type="button" className="btn small ghost" disabled={busy} onClick={() => coverInput.current?.click()}>
                 <Icon name="upload" size={14} /> {busy ? 'enviando…' : 'trocar'}
               </button>
-              <button type="button" className="btn small ghost" onClick={() => save({ cover: undefined })}>
+              <button type="button" className="btn small ghost" onClick={() => save({ cover: undefined, coverPos: undefined })}>
                 <Icon name="trash" size={14} /> tirar
               </button>
             </>

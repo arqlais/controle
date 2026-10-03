@@ -16,6 +16,7 @@ import {
   allPayments,
   download,
   fmtDateLong,
+  projectTag,
   isOpen,
   money,
   parseISO,
@@ -55,7 +56,7 @@ export default function Agenda() {
       list.push({
         id: `p-${p.id}`,
         date: p.status === 'entregue' && p.deliveredDate ? p.deliveredDate : p.dueDate,
-        title: p.title,
+        title: projectTag(data, p),
         sub: `${p.status === 'entregue' ? 'Entregue' : 'Prazo de entrega'} · ${client?.name ?? ''}`,
         color: isOpen(p) ? PRIORITY[urgency(p).level].color : '#4f6475',
         kind: 'entrega',
@@ -76,19 +77,21 @@ export default function Agenda() {
         done: !!pay.paidDate,
       })
     })
-    data.events.forEach((e) =>
+    data.events.forEach((e) => {
+      const proj = data.projects.find((p) => p.id === e.projectId)
+      const who = data.clients.find((c) => c.id === (e.clientId || proj?.clientId))?.name
       list.push({
         id: `e-${e.id}`,
         date: e.date,
-        time: e.time,
+        time: e.time && e.endTime ? `${e.time}–${e.endTime}` : e.time,
         title: e.title,
-        sub: eventLabel(e),
+        sub: [eventLabel(e), who, proj && projectTag(data, proj), e.place?.trim()].filter(Boolean).join(' · '),
         color: EVENT_TYPES[e.type].color,
         kind: 'evento',
         event: e,
         done: e.done,
-      }),
-    )
+      })
+    })
     return list.filter((i) => layers[i.kind]).sort((a, b) => (a.date + (a.time ?? '')).localeCompare(b.date + (b.time ?? '')))
   }, [data, layers])
 

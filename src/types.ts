@@ -81,6 +81,7 @@ export interface ClientPanel {
   publishedAt?: string
   look?: PanelLook // estilo do painel com as cores da identidade
   cover?: string // foto de capa (link do arquivo enviado)
+  coverPos?: import('./docTypes').PhotoPos // enquadramento da capa (arrastar e aproximar)
   greeting?: string // texto de boas-vindas no topo (no lugar do padrão)
   next?: { date: string; text: string } // próximo encontro (reunião, visita, apresentação)
   hide?: PanelSection[] // seções escondidas
@@ -291,6 +292,9 @@ export interface CalendarEvent {
   customType?: string // quando o tipo é "outro": nome digitado (ex.: "curso", "médico")
   noPhone?: boolean // true = não vai para a agenda do celular
   projectId: string
+  clientId?: string // cliente do compromisso (vem do projeto, ou escolhido sem projeto)
+  endTime?: string // horário de término
+  place?: string // endereço ou link da chamada
   notes: string
   done: boolean
 }

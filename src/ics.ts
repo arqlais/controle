@@ -47,6 +47,8 @@ interface Entry {
   title: string
   description: string
   end?: string // último dia (inclusive) de um evento de vários dias
+  endTime?: string // horário de término (compromissos)
+  location?: string // endereço ou link
   alarms?: string[] // gatilhos dos lembretes, ex.: -PT15H (9h do dia anterior num evento de dia inteiro)
 }
 
@@ -97,6 +99,8 @@ export function calendarEntries(data: Data): Entry[] {
       date: e.date,
       time: e.time || undefined,
       title: e.title,
+      endTime: e.time && e.endTime && e.endTime > e.time ? e.endTime : undefined,
+      location: e.place?.trim() || undefined,
       description: [(e.type === 'outro' && e.customType?.trim()) || EVENT_LABEL[e.type] || '', e.notes].filter(Boolean).join('\n'),
       alarms: e.time ? ['-PT1H', '-PT15M'] : ['-PT15H', 'PT8H'],
     })
@@ -116,12 +120,13 @@ export function buildICS(data: Data, name = 'Estúdio') {
     lines.push('BEGIN:VEVENT', `UID:${e.uid}@controle-lais`, `DTSTAMP:${stamp}`)
     if (e.time) {
       const t = e.time.replace(':', '') + '00'
-      lines.push(`DTSTART;TZID=America/Sao_Paulo:${ymd(e.date)}T${t}`, 'DURATION:PT1H')
+      lines.push(`DTSTART;TZID=America/Sao_Paulo:${ymd(e.date)}T${t}`, e.endTime ? `DTEND;TZID=America/Sao_Paulo:${ymd(e.date)}T${e.endTime.replace(':', '')}00` : 'DURATION:PT1H')
     } else {
       lines.push(`DTSTART;VALUE=DATE:${ymd(e.date)}`, `DTEND;VALUE=DATE:${nextDay(e.end ?? e.date)}`, 'TRANSP:TRANSPARENT')
     }
     lines.push(`SUMMARY:${esc(e.title)}`)
     if (e.description) lines.push(`DESCRIPTION:${esc(e.description)}`)
+    if (e.location) lines.push(`LOCATION:${esc(e.location)}`)
     for (const a of e.alarms ?? []) lines.push('BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${esc(e.title)}`, `TRIGGER:${a}`, 'END:VALARM')
     lines.push('END:VEVENT')
   }

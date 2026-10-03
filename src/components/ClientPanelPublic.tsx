@@ -119,7 +119,11 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   return (
     <div className={`cp is-${look}`} style={vars}>
       <header className={`cp-hero ${d.cover ? 'has-cover' : ''}`}>
-        {d.cover && <div className="cp-cover" style={{ backgroundImage: `url(${JSON.stringify(d.cover)})` }} role="img" aria-label="Capa do projeto" />}
+        {d.cover && (
+          <div className="cp-cover">
+            <img src={d.cover} alt="Capa do projeto" style={coverStyle(d.coverPos)} />
+          </div>
+        )}
         <div className="cp-hero-text">
           <div className="cp-brand">
             {d.logo ? <img src={d.logo} alt="" className="cp-logo" /> : <span className="cp-mark">{(d.studio || '?')[0]}</span>}
@@ -659,4 +663,11 @@ const linkIcon = (url: string): IconName => {
   if (/canva|figma/.test(u)) return 'layers'
   if (/matterport|kuula|panoee|360/.test(u)) return 'cube'
   return 'link'
+}
+
+/** Enquadramento da capa escolhido pela profissional (ponto central + aproximação, ou a foto inteira). */
+function coverStyle(p?: PanelPayload['coverPos']) {
+  if (!p) return undefined
+  if (p.fit) return { objectFit: 'contain' as const }
+  return { objectPosition: `${p.x}% ${p.y}%`, transform: p.zoom > 1 ? `scale(${p.zoom})` : undefined, transformOrigin: `${p.x}% ${p.y}%` }
 }

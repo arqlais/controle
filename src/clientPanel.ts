@@ -57,6 +57,7 @@ export interface PanelPayload {
   links?: { label: string; url: string }[]
   look?: PanelLook
   cover?: string
+  coverPos?: { x: number; y: number; zoom: number; fit?: boolean }
   greeting?: string
   next?: { date: string; text: string }
   hide?: PanelSection[]
@@ -154,7 +155,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
     files: (panel.files ?? []).map(({ path: _p, ...f }) => f),
     links: (panel.links ?? []).filter((l) => l.url.trim()).map((l) => ({ label: l.label.trim() || 'link do projeto', url: l.url.trim() })),
     look: panel.look ?? 'suave',
-    ...(panel.cover ? { cover: panel.cover } : {}),
+    ...(panel.cover ? { cover: panel.cover, ...(panel.coverPos ? { coverPos: panel.coverPos } : {}) } : {}),
     ...(panel.greeting?.trim() ? { greeting: panel.greeting.trim() } : {}),
     ...(panel.next?.date || panel.next?.text?.trim() ? { next: { date: panel.next.date, text: panel.next.text.trim() } } : {}),
     ...(panel.hide?.length ? { hide: panel.hide } : {}),

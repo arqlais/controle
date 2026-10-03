@@ -5,6 +5,8 @@ import { useStore } from '../store'
 import { HowPaid } from './quick'
 import type { CalendarEvent, Client, ClientProfile, ClientType, EventType, Expense, ExpenseCategory, Priority, Project, ProjectStatus } from '../types'
 import {
+  isOpen,
+  projectTag,
   clientTypeOptions,
   defaultClientType,
   projectExtras,
@@ -649,11 +651,21 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
   const setEv = draft.setValue
   const [repeat, setRepeat] = useState(0)
   const set = <K extends keyof CalendarEvent>(k: K, v: CalendarEvent[K]) => setEv((x) => ({ ...x, [k]: v }))
+  const project = data.projects.find((p) => p.id === ev.projectId)
+  const clientId = ev.clientId || project?.clientId || ''
+  // demandas do cliente escolhido (ou todas), abertas primeiro, agrupadas pelo nome do cliente
+  const projects = data.projects.filter((p) => !clientId || p.clientId === clientId).sort((a, b) => Number(!isOpen(a)) - Number(!isOpen(b)) || a.title.localeCompare(b.title, 'pt-BR'))
+  const groups = [...projects.reduce((m, p) => m.set(clientName(p.clientId), [...(m.get(clientName(p.clientId)) ?? []), p]), new Map<string, typeof projects>())].sort((a, b) => a[0].localeCompare(b[0], 'pt-BR'))
+  function clientName(id: string) {
+    return data.clients.find((c) => c.id === id)?.name ?? 'sem cliente'
+  }
   const save = () => {
     if (!ev.title.trim()) return toast('Dê um título ao compromisso.')
-    upsert('events', ev)
+    const personal = ev.type === 'pessoal'
+    const out: CalendarEvent = { ...ev, projectId: personal ? '' : ev.projectId, clientId: personal ? undefined : clientId || undefined, endTime: ev.time ? ev.endTime || undefined : undefined }
+    upsert('events', out)
     // repetição semanal: cria as próximas ocorrências como compromissos independentes
-    for (let i = 1; i <= repeat; i++) upsert('events', { ...ev, id: uid(), date: addDays(ev.date, 7 * i), done: false })
+    for (let i = 1; i <= repeat; i++) upsert('events', { ...out, id: uid(), date: addDays(ev.date, 7 * i), done: false })
     if (repeat) toast(`${repeat + 1} compromissos criados, um por semana.`)
     draft.clear()
     onClose()
@@ -693,30 +705,20 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
         <Field label="Título *" span={3}>
           <input autoFocus value={ev.title} onChange={(e) => set('title', e.target.value)} placeholder="Ex.: Reunião de briefing, prova, orientação do TCC" spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" />
         </Field>
-        <Field label="Data">
-          <DateInput value={ev.date} onChange={(e) => set('date', e.target.value)} />
-        </Field>
-        <Field label="Horário">
-          <input type="time" value={ev.time} onChange={(e) => set('time', e.target.value)} />
-        </Field>
-        <Field
-          group
-          span={2}
-          label="Tipo"
-          hint={
-            <button type="button" className="link small" onClick={() => setRename((v) => !v)}>
-              {rename ? 'fechar' : 'renomear os tipos'}
-            </button>
-          }
-        >
-          <select value={ev.type} onChange={(e) => set('type', e.target.value as EventType)}>
+        <div className="field span-3">
+          <span className="field-label">tipo</span>
+          <div className="ev-types" role="radiogroup" aria-label="Tipo de compromisso">
             {(Object.keys(EVENT_TYPES) as EventType[]).map((k) => (
-              <option key={k} value={k}>
+              <button key={k} type="button" role="radio" aria-checked={ev.type === k} className={`ev-type ${ev.type === k ? 'is-on' : ''}`} style={{ ['--c' as string]: EVENT_TYPES[k].color }} onClick={() => set('type', k)}>
+                <i />
                 {eventTypeLabel(k)}
-              </option>
+              </button>
             ))}
-          </select>
-        </Field>
+            <button type="button" className="link small" onClick={() => setRename((v) => !v)}>
+              {rename ? 'fechar' : 'renomear'}
+            </button>
+          </div>
+        </div>
         {rename && (
           <div className="event-rename" style={{ gridColumn: '1 / -1' }}>
             <p className="muted small">Os tipos são seus: troque os nomes como fizer sentido na sua rotina (ex.: “Estudos / faculdade” vira “Curso” ou “Visita de obra”).</p>
@@ -750,6 +752,50 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
             </datalist>
           </Field>
         )}
+        <Field label="Data">
+          <DateInput value={ev.date} onChange={(e) => set('date', e.target.value)} />
+        </Field>
+        <Field label="Começa">
+          <input type="time" value={ev.time} onChange={(e) => set('time', e.target.value)} />
+        </Field>
+        <Field label="Termina" hint={ev.endTime && ev.time && ev.endTime <= ev.time ? 'antes do começo?' : undefined}>
+          <input type="time" value={ev.endTime ?? ''} onChange={(e) => set('endTime', e.target.value)} disabled={!ev.time} />
+        </Field>
+        <Field label="Local" span={3} hint="Opcional: endereço, sala ou o link da chamada.">
+          <input value={ev.place ?? ''} onChange={(e) => set('place', e.target.value)} placeholder="Ex.: obra da Rua das Flores, 120 · ou link do Meet" />
+        </Field>
+        {ev.type !== 'pessoal' && (
+          <>
+            <Field label="Cliente">
+              <select
+                value={ev.clientId ?? project?.clientId ?? ''}
+                onChange={(e) => setEv((x) => ({ ...x, clientId: e.target.value, projectId: e.target.value && project?.clientId !== e.target.value ? '' : x.projectId }))}
+              >
+                <option value="">—</option>
+                {[...data.clients].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Demanda" span={2} hint={projects.length ? undefined : 'Esse cliente ainda não tem demanda.'}>
+              <select value={ev.projectId} onChange={(e) => setEv((x) => ({ ...x, projectId: e.target.value, clientId: data.projects.find((p) => p.id === e.target.value)?.clientId ?? x.clientId }))}>
+                <option value="">—</option>
+                {groups.map(([name, list]) => (
+                  <optgroup key={name} label={name}>
+                    {list.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {projectTag(data, p)}
+                        {isOpen(p) ? '' : ' (concluída)'}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </Field>
+          </>
+        )}
         {!editing && (
           <Field label="Repetir toda semana" span={3} hint="Útil para aulas, orientação do TCC ou reuniões fixas.">
             <select id="event-repeat" value={repeat} onChange={(e) => setRepeat(Number(e.target.value))}>
@@ -762,16 +808,6 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
             </select>
           </Field>
         )}
-        <Field label="Projeto relacionado" span={3}>
-          <select value={ev.projectId} onChange={(e) => set('projectId', e.target.value)}>
-            <option value="">—</option>
-            {data.projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-        </Field>
         <Field label="Notas" span={3}>
           <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={2} value={ev.notes} onChange={(e) => set('notes', e.target.value)} />
         </Field>
