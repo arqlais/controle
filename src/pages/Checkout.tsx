@@ -6,7 +6,7 @@ import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../component
 import { toast } from '../components/dialog'
 import { TermsModal } from '../components/Terms'
 import { preferredCycle } from '../components/PlanPrice'
-import { LAUNCHED, CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, annualBadge, cardAllowed, cardPrice, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
+import { LAUNCHED, FOUNDER_PRICE, PLAN_PROFILE, CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, annualBadge, cardAllowed, cardPrice, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
 import { formatDoc, lookupCnpj, money } from '../utils'
@@ -199,12 +199,22 @@ function CheckoutForm({ planId }: { planId: string }) {
       <form className="co-layout" onSubmit={submit} noValidate>
         <div className="stack">
           <Step n={1} title="plano e período">
+            {FOUNDER_PRICE && (
+              <p className="lp-founder">
+                <Icon name="star" size={15} />
+                <span>
+                  <b>preço de fundador:</b> este valor fica com você para sempre, enquanto a assinatura estiver ativa no mesmo plano. A tabela vai ter reajuste em breve.
+                </span>
+              </p>
+            )}
             <div className="co-plans">
               {choices.map((x) => (
                 <button type="button" key={x.id} className={`pf-plan-opt ${plan === x.id ? 'active' : ''}`} onClick={() => setPlan(x.id)} aria-pressed={plan === x.id}>
                   <b>{x.name}</b>
                   <span>{money0(x.price)}/mês</span>
-                  <small>{x.pitch}</small>
+                  <small>
+                    <b>{PLAN_PROFILE[x.id]}</b> · {x.pitch}
+                  </small>
                 </button>
               ))}
             </div>

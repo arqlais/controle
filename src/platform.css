@@ -3116,3 +3116,18 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .ig-steps b { display: block; font-size: 14px; }
 .ig-steps small { display: block; font-size: 12.5px; color: var(--muted); line-height: 1.45; margin-top: 2px; }
 .ig-n { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: var(--accent); color: #fff; }
+/* página de vendas: diferenciais, preço de fundador e "é para você se…" */
+.lp-diffs-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 960px) { .lp-diffs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lp-diff { display: grid; gap: 6px; align-content: start; padding: 20px; border-radius: var(--radius, 18px); background: var(--surface); border: 1px solid var(--border); transition: transform .25s, box-shadow .25s; }
+.lp-diff:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.lp-diff b { font-size: 15px; line-height: 1.3; }
+.lp-diff small { font-size: 13px; line-height: 1.5; color: var(--muted); }
+.lp-diff-ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 14px; background: var(--accent); color: #fff; margin-bottom: 6px; }
+.lp-diff:nth-child(even) .lp-diff-ico { background: var(--accent-soft); color: var(--accent); }
+.lp-founder { display: flex; align-items: flex-start; gap: 10px; max-width: 760px; margin: 0 auto 18px; padding: 12px 16px; border-radius: 14px; background: var(--accent-tint, #f4e8e5); border: 1px solid color-mix(in srgb, var(--accent-soft) 70%, transparent); font-size: 14px; line-height: 1.5; }
+.lp-founder svg { flex: none; margin-top: 3px; color: var(--accent-ink, var(--accent)); }
+.lp-who { margin: 2px 0 4px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2, var(--bg)); }
+.lp-who small { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink, var(--muted)); margin-bottom: 4px; }
+.lp-who ul { margin: 0; padding-left: 16px; display: grid; gap: 3px; font-size: 13px; line-height: 1.4; }
+.lp-plan-for { font-weight: 600; }

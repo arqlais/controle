@@ -6,7 +6,7 @@ import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
 import { Badge, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { LAUNCHED, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { LAUNCHED, PLAN_PROFILE, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, trialDaysLeft, trialOver } from '../platform'
 import { go, href } from '../router'
 import { download, today } from '../utils'
@@ -103,6 +103,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
                 <h3>{p.name}</h3>
                 {current && <Badge color="#3e4b57">{sub?.status === 'trial' ? 'no teste' : 'seu plano'}</Badge>}
               </header>
+              <p className="lp-plan-for small">{PLAN_PROFILE[p.id]}</p>
               <PlanPrice price={p.price} cycle={cycle} />
               <p className="muted small">{p.pitch}</p>
               <ul className="pf-checks">

@@ -141,14 +141,18 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'estudio',
     name: 'Estúdio',
     price: 89.9,
-    pitch: 'tudo do Completo + briefing online e recursos para escritório',
+    pitch: 'tudo do Completo + briefing online, painel do cliente e obra',
     features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
-    highlights: ['tudo do Completo', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'painel do cliente: etapas, pagamentos, contratos e documentos num link', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
+    highlights: ['tudo do Completo', 'documentos de obra: memorial, compras, custos, diário, visita, ata e OS', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'painel do cliente: etapas, pagamentos, contratos e documentos num link', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
     featured: true,
   },
 }
 
 export const PLAN_LIST = [PLANS.essencial, PLANS.completo, PLANS.estudio]
+/** Para quem é cada plano (aparece na página de vendas, na assinatura e no pagamento). */
+export const PLAN_PROFILE: Record<PlanId, string> = { essencial: 'freelancer começando', completo: 'freelancer profissional', estudio: 'escritório que atende cliente final' }
+/** Preço de fundador: quem assina agora mantém o valor (aparece na página de vendas e na assinatura). */
+export const FOUNDER_PRICE = true
 /** Planos que qualquer pessoa assina sozinha (todos). */
 export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 

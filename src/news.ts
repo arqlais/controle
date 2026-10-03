@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-ajustes',
+    date: '2026-10-04',
+    kind: 'melhoria',
+    title: 'mais fácil no dia a dia',
+    text: 'Orçamento sem PDF ganhou o botão “copiar orçamento”, completo e organizado para WhatsApp ou e-mail. Rascunhos e enviados também arrastam no quadro de demandas. Os documentos de obra têm 4 layouts bem diferentes (tabela, índice, painel de referências e ficha técnica). Foto “encaixada inteira” preenche o espaço sem faixas brancas. E ao fechar algo sem salvar, o planê pergunta antes.',
+    steps: [{ text: 'Para pôr o planê na tela do celular: menu → app no celular.', page: 'inicio' }],
+  },
+  {
     id: '2026-10-03-documentos-de-obra',
     date: '2026-10-03',
     kind: 'novo',

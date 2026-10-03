@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
-import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, money0, type Feature, type PlanId } from '../plans'
+import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, money0, type Feature, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -131,11 +131,20 @@ const JOURNEY_FINAL: typeof JOURNEY = [
   },
 ]
 type Aud = 'freelancer' | 'final'
-const PLAN_FOR: Record<PlanId, string> = {
-  essencial: 'para quem está começando ou trabalha sozinho',
-  completo: 'para quem manda proposta com a própria marca',
-  estudio: 'para quem atende cliente final (e freelancers que querem tudo)',
+const PLAN_FOR = PLAN_PROFILE
+// "qual é o meu plano?": três perfis, sem erro na hora de assinar
+const PLAN_WHO: Record<PlanId, string[]> = {
+  essencial: ['está começando ou estudando', 'manda o orçamento em texto pelo WhatsApp', 'quer clientes, prazos e financeiro em ordem'],
+  completo: ['já tem clientes fixos (escritórios, parceiros)', 'quer proposta, recibo e contrato em PDF com a sua marca', 'quer agenda no celular e planejar o instagram'],
+  estudio: ['projeta para o dono do imóvel (casa, apê, loja, obra)', 'quer briefing online, cronograma e painel do cliente', 'acompanha obra: memorial, compras, custos, diário e atas'],
 }
+// diferenciais que só aparecem juntos aqui (curtos, sem poluir)
+const DIFFS: { icon: string; title: string; text: string }[] = [
+  { icon: 'link', title: 'o cliente acompanha tudo num link', text: 'etapas, pagamentos, contratos para assinar e documentos, no celular dele' },
+  { icon: 'layers', title: 'documentos de obra em 4 layouts', text: 'memorial, compras, custos, diário, visita, ata e ordem de serviço' },
+  { icon: 'image', title: 'briefing que o cliente responde tocando nas fotos', text: 'mais de 20 modelos ou o seu próprio, anexado em Word ou PDF' },
+  { icon: 'smartphone', title: 'no bolso, como um app', text: 'arraste demandas, marque pagamentos e registre a obra pelo celular' },
+]
 const readAud = (): Aud => {
   try {
     return localStorage.getItem(LANDING_PROFILE_KEY) === 'freelancer' ? 'freelancer' : 'final'
@@ -151,7 +160,7 @@ const STUDIO_FEATURES: { icon: string; title: string; text: string; points: stri
   { icon: 'hardhat', title: 'acompanhamento de obra', text: 'Cada visita registrada pelo celular, com fotos e o que ficou para depois.', points: ['fotos direto da câmera', 'próximos passos e pendências', 'relatório em PDF com a sua marca'] },
   { icon: 'trend', title: 'custos e lucro por projeto', text: 'Saiba se o projeto deu lucro de verdade, não só quanto entrou.', points: ['taxas, impressões, deslocamento', 'horas trabalhadas', 'quanto rendeu cada hora sua'] },
   { icon: 'clip', title: 'briefing online completo', text: 'Mais de 20 modelos que o cliente responde pelo celular, tocando nas imagens.', points: ['studio, infantil, arquitetônico, clínica, loja…', 'perguntas que aparecem conforme a resposta', 'as respostas preenchem a ficha'] },
-  { icon: 'ruler', title: 'documentos com a sua marca', text: 'Peças prontas no design que você escolher, com qualquer texto editável.', points: ['guia de medição para o cliente', 'placa de obra com QR code', 'apresentação de projeto e briefing em PDF'] },
+  { icon: 'ruler', title: 'documentos de obra', text: 'Memorial, compras, custos, diário, visita, ata e OS, em 4 layouts, com valor, link e foto em cada item.', points: ['PDF com a sua marca e no painel do cliente', 'guia de medição e placa de obra com QR', 'apresentação de projeto'] },
 ]
 
 const FEATURES = ['clientes', 'ficha do cliente final', 'orçamentos', 'propostas', 'projetos complementares', 'regularização', 'contratos', 'prazos', 'agenda', 'financeiro', 'recibos', 'cobrança no WhatsApp', 'sua identidade visual', 'celular e computador']
@@ -183,7 +192,9 @@ const faq = (): [string, ReactNode][] => [
   ['serve para escritório que atende cliente final?', 'Serve. O cliente final ganha uma ficha completa (profissão, família, rotina e o imóvel) e a tabela de preços já vem organizada: consultoria, projeto, projetos complementares (estrutural, elétrico, hidrossanitário…), regularização e obra. No plano Estúdio ainda tem a página do projeto para o cliente, o cronograma das etapas, o acompanhamento de obra, o lucro de cada projeto e o briefing online.'],
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
-  ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para o WhatsApp), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: página do projeto para o cliente, cronograma das etapas, acompanhamento de obra com fotos, lucro de cada projeto e briefing online.`],
+  ['qual plano é o meu?', `Freelancer começando: ${PLANS.essencial.name}. Freelancer profissional, que manda proposta e contrato com a própria marca: ${PLANS.completo.name}. Escritório ou profissional que atende o cliente final (dono do imóvel) e acompanha obra: ${PLANS.estudio.name}. Na dúvida, teste o ${PLANS.estudio.name} grátis: no fim do teste você escolhe, sem perder nada do que cadastrou.`],
+  ['o que é o preço de fundador?', 'Quem assina agora, antes do reajuste da tabela, fica com o valor contratado para sempre, enquanto a assinatura continuar ativa no mesmo plano.'],
+  ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para copiar e mandar no WhatsApp ou e-mail), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: painel do cliente, cronograma das etapas, acompanhamento e documentos de obra (memorial, compras, custos, diário, visita, ata e ordem de serviço), lucro de cada projeto e briefing online.`],
   [`o que mudou com o ${PLANS.estudio.name}?`, `Novidade: o ${PLATFORM.name} nasceu para freelancers e agora também é para quem trabalha direto com o cliente final (casas, apartamentos, lojas, obras). Foi um pedido de várias arquitetas. O ${PLANS.estudio.name} está aberto para todos e é o plano do teste grátis.`],
   ['posso cancelar quando quiser?', 'Pode, sem fidelidade. No mensal, o acesso vai até o fim do mês pago. No semestral e no anual, você usa até o fim do período; se pedir devolução antes, os meses usados são cobrados pelo preço do mensal. E nos primeiros 7 dias depois do pagamento, o dinheiro volta inteiro.'],
   ['o teste grátis é de qual plano?', `Do ${PLANS.estudio.name}, o mais completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
@@ -481,6 +492,22 @@ export default function Landing() {
       </section>
 
       )}
+      <section className="lp-section lp-diffs">
+        <div className="lp-wrap">
+          <SectionHead eyebrow="só aqui" title={<>o que faz o {PLATFORM.name} <em>diferente</em></>} />
+          <div className="lp-diffs-grid">
+            {DIFFS.map((d, i) => (
+              <article key={d.title} className="lp-diff" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
+                <span className="lp-diff-ico">
+                  <Icon name={d.icon} size={20} />
+                </span>
+                <b>{d.title}</b>
+                <small>{d.text}</small>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
       {!off('para') && (
       <section className="lp-section lp-for">
         <div className="lp-wrap lp-for-in" data-reveal>
@@ -555,6 +582,14 @@ export default function Landing() {
               )}
             </p>
           </div>
+          {FOUNDER_PRICE && (
+            <p className="lp-founder" data-reveal>
+              <Icon name="star" size={15} />
+              <span>
+                <b>preço de fundador:</b> quem assina agora fica com este valor para sempre, enquanto a assinatura estiver ativa. Os preços vão ter reajuste em breve.
+              </span>
+            </p>
+          )}
           <div className="pf-plan-cards lp-plans">
             {PLAN_LIST.map((p, i) => (
               <article key={p.id} id={`plano-${p.id}`} className={`card pf-plan ${p.featured ? 'is-featured' : ''}`} data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
@@ -565,6 +600,14 @@ export default function Landing() {
                 <p className="lp-plan-for">{PLAN_FOR[p.id]}</p>
                 <PlanPrice price={p.price} cycle={cycle} />
                 <p className="muted small">{p.pitch}</p>
+                <div className="lp-who">
+                  <small>é para você se…</small>
+                  <ul>
+                    {PLAN_WHO[p.id].map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
                 <ul className="pf-checks">
                   {(p.featured ? p.highlights : p.highlights.slice(0, 6)).map((h) => (
                     <li key={h}>
