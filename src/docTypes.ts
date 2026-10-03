@@ -71,7 +71,7 @@ export interface DocsState {
   deck?: DeckData
 }
 
-export type DocKind = 'guia' | 'placa' | 'briefing' | 'apresentacao'
+export type DocKind = 'guia' | 'placa' | 'briefing' | 'apresentacao' | 'obra'
 /** Documento salvo na ficha de um cliente (abre de novo para editar ou baixar). */
 export interface SavedDoc {
   id: string
@@ -82,6 +82,7 @@ export interface SavedDoc {
   plaque?: PlaqueData
   deck?: DeckData
   briefingTpl?: string // modelo de briefing (briefing em PDF)
+  work?: import('./workDocs').WorkDoc // documento de obra (memorial, compras, custos, diário, visita, ata, OS)
   html?: string // edições feitas direto na folha
   createdAt: string
   updatedAt: string

@@ -1,3 +1,4 @@
+import { WORK_KINDS } from '../workDocs'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from './Icon'
@@ -18,7 +19,7 @@ export function SavedDocs({ list, showClient }: { list: SavedDoc[]; showClient?:
           .map((d) => (
             <li key={d.id} className="list-item">
               <span className="saved-doc-icon">
-                <Icon name={d.kind === 'placa' ? 'hardhat' : d.kind === 'apresentacao' ? 'layers' : d.kind === 'briefing' ? 'clip' : 'ruler'} size={16} />
+                <Icon name={d.kind === 'obra' ? WORK_KINDS[d.work?.kind ?? 'memorial'].icon : d.kind === 'placa' ? 'hardhat' : d.kind === 'apresentacao' ? 'layers' : d.kind === 'briefing' ? 'clip' : 'ruler'} size={16} />
               </span>
               <a className="grow" href={href('documentos', d.id)}>
                 <div className="list-title">{d.title}</div>

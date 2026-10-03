@@ -13,6 +13,7 @@ import { deletePhoto, packPortal, photoUrls, portalLink, portalShortLink, publis
 import { hashExtra, readShortCode, shortCode } from '../linkPack'
 import { usePdf } from './Print'
 import { VisitReportDoc } from './Docs'
+import { WORK_KINDS, WORK_ORDER } from '../workDocs'
 
 /* Plano Estúdio, dentro de cada demanda: abas para o cronograma das etapas, a obra,
    os custos e o lucro, e a página que o cliente acompanha pelo link. */
@@ -226,8 +227,40 @@ export function ObraTab({ p, save, client }: { p: Project; save: (patch: Partial
     const u = await photoUrls(v.photos).catch(() => ({}) as Record<string, string>)
     pdf.download(<VisitReportDoc s={data.settings} client={client} project={p} visit={v} urls={u} />, `Relatório de obra - ${p.title} - ${fmtDate(v.date)}.pdf`)
   }
+  const workDocs = (data.docs ?? []).filter((x) => x.kind === 'obra' && x.work?.projectId === p.id).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
   return (
     <div className="stack">
+      <section className="card wd-in-project">
+        <header>
+          <h3>documentos de obra</h3>
+          <p className="muted small">Memorial, compras, custos, diário, relatório de visita, ata e ordem de serviço. Cada um em 4 layouts, com PDF e no painel do cliente.</p>
+        </header>
+        <div className="wd-new">
+          {WORK_ORDER.map((w) => (
+            <button key={w} type="button" className="wd-new-btn" onClick={() => go('documentos', `obra-${w}~${p.id}`)}>
+              <Icon name={WORK_KINDS[w].icon} size={15} /> {WORK_KINDS[w].label}
+            </button>
+          ))}
+        </div>
+        {workDocs.length > 0 && (
+          <ul className="wd-saved">
+            {workDocs.map((x) => (
+              <li key={x.id}>
+                <button type="button" onClick={() => go('documentos', x.id)}>
+                  <Icon name={WORK_KINDS[x.work!.kind].icon} size={15} />
+                  <span className="grow">
+                    <b>{x.title}</b>
+                    <small className="muted">
+                      {x.work!.items.length} item(ns) · salvo {fmtDate(x.updatedAt.slice(0, 10))}
+                    </small>
+                  </span>
+                  <Icon name="chevronR" size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       <div className="st-bar">
         <p className="muted small">Cada visita: o que foi visto, fotos e o que fica para depois. O relatório em PDF sai com a sua marca, pronto para mandar.</p>
         <button className="btn primary" onClick={() => setEdit({ id: uid(), date: today(), title: 'visita de obra', notes: '', next: '', photos: [] })}>

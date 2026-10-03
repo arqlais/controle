@@ -14,6 +14,8 @@ import { BriefingSheetDoc } from './docs/BriefingSheet'
 import { MeasureGuideDoc } from './docs/MeasureGuide'
 import { PlaqueDoc } from './docs/Plaque'
 import { DeckDoc } from './docs/Deck'
+import { WorkDocView } from './docs/WorkDocView'
+import { WORK_KINDS } from '../workDocs'
 import { PAGE } from './docs/DocPage'
 
 /* Painel do cliente final: abre pelo link, sem conta. Mostra tudo o que o profissional compartilhou. */
@@ -74,6 +76,8 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
     const w = x.kind === 'placa' ? PAGE.poster : x.kind === 'apresentacao' ? PAGE.slide : PAGE.a4
     const node = x.html ? (
       <div className="dk-frozen" dangerouslySetInnerHTML={{ __html: x.html }} />
+    ) : x.kind === 'obra' && x.work ? (
+      <WorkDocView s={s} doc={x.work} clientName={d.clientFull} projectName={d.projects.find((p) => p.id === x.work?.projectId)?.title} />
     ) : x.kind === 'guia' ? (
       <MeasureGuideDoc s={s} data={x.guide} />
     ) : x.kind === 'placa' ? (
@@ -400,7 +404,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
                 {d.docs.map((x) => (
                   <div key={x.id} className="cp-doc">
                     <span className="cp-doc-ico">
-                      <Icon name={x.kind === 'placa' ? 'hardhat' : x.kind === 'apresentacao' ? 'layers' : x.kind === 'briefing' ? 'clip' : 'ruler'} size={18} />
+                      <Icon name={x.kind === 'obra' ? WORK_KINDS[x.work?.kind ?? 'memorial'].icon : x.kind === 'placa' ? 'hardhat' : x.kind === 'apresentacao' ? 'layers' : x.kind === 'briefing' ? 'clip' : 'ruler'} size={18} />
                     </span>
                     <b>{x.title}</b>
                     <small>atualizado em {fmt(x.updatedAt)}</small>

@@ -30,6 +30,16 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-documentos-de-obra',
+    date: '2026-10-03',
+    kind: 'novo',
+    title: 'documentos de obra',
+    text: 'Memorial descritivo, lista de compras, custos de obra, diário de obra, relatório de visita com checklist, ata de reunião e ordem de serviço. Cada item tem valor, quantidade, descrição, link e foto; escolha entre 4 layouts (tabela, lista, cartões ou fichas), baixe o PDF com a sua marca e mostre no painel do cliente.',
+    steps: [
+      { text: 'Em documentos → de obra, ou dentro da demanda, na aba obra.', page: 'documentos' },
+    ],
+  },
+  {
     id: '2026-10-03-menu-e-modelos',
     date: '2026-10-03',
     kind: 'melhoria',

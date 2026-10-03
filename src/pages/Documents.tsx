@@ -31,11 +31,13 @@ import { BillDoc, QuoteDoc } from '../components/Docs'
 import { ContractDoc } from '../components/ContractDoc'
 import { contractSettings } from '../contracts'
 import type { Quote } from '../types'
+import { WorkDocEditor } from './WorkDocEditor'
+import { WORK_KINDS, WORK_ORDER, type WorkKind } from '../workDocs'
 
 /* Documentos do estúdio (plano Estúdio): peças prontas com a sua marca, no design escolhido
    em Configurações → propostas. Tudo editável: pelos campos ou direto na folha. */
 
-type DocId = DocKind
+type DocId = Exclude<DocKind, 'obra'>
 const DOC_IDS: DocId[] = ['guia', 'placa', 'briefing', 'apresentacao']
 const LIST: { id: DocId; title: string; text: string; size: string }[] = [
   { id: 'guia', title: 'guia de medição', text: 'o cliente mede o espaço sozinho, com desenhos explicando cada medida', size: 'A4 · 2 folhas' },
@@ -43,16 +45,23 @@ const LIST: { id: DocId; title: string; text: string; size: string }[] = [
   { id: 'briefing', title: 'briefing em PDF', text: 'qualquer modelo de briefing para imprimir e levar na primeira reunião', size: 'A4' },
   { id: 'apresentacao', title: 'apresentação de projeto', text: 'conceito, planta, imagens, materiais e em que etapa o projeto está', size: 'slides 16:9' },
 ]
-const titleOf = (k: DocKind) => LIST.find((x) => x.id === k)!.title
+const titleOf = (k: DocKind) => LIST.find((x) => x.id === k)?.title ?? 'documento'
 type DocValue = MeasureGuideData & PlaqueData & DeckData & { briefingTpl?: string }
-const KEY: Record<DocKind, keyof DocsState | 'briefingTpl'> = { guia: 'guide', placa: 'plaque', apresentacao: 'deck', briefing: 'briefingTpl' }
+const KEY: Record<DocId, keyof DocsState | 'briefingTpl'> = { guia: 'guide', placa: 'plaque', apresentacao: 'deck', briefing: 'briefingTpl' }
 
 export default function Documents({ id }: { id?: string }) {
   const { data } = useStore()
   const { has } = useAccess()
   // o documento aberto fica no endereço (#/documentos/placa): o menu "documentos" e o voltar do navegador levam à lista
   const saved = id ? (data.docs ?? []).find((x) => x.id === id) : undefined
-  if (id && saved) return <DocSession key={saved.id} kind={saved.kind} saved={saved} onBack={() => go('documentos')} />
+  if (id && saved?.kind === 'obra' && saved.work) return <WorkDocEditor key={saved.id} saved={saved} kind={saved.work.kind} onBack={backFromWork(saved.work.projectId)} />
+  if (id && saved && saved.kind !== 'obra') return <DocSession key={saved.id} kind={saved.kind} saved={saved} onBack={() => go('documentos')} />
+  // documento de obra novo: #/documentos/obra-memorial (ou obra-memorial~idDaDemanda, vindo da demanda)
+  const wk = id?.match(/^obra-([a-z]+)(?:~(.+))?$/)
+  if (wk && (WORK_ORDER as string[]).includes(wk[1])) {
+    const node = <WorkDocEditor key={id} kind={wk[1] as WorkKind} projectId={wk[2]} onBack={backFromWork(wk[2])} />
+    return has('documentos') ? node : <LockedView feature="documentos">{node}</LockedView>
+  }
   if (id && (DOC_IDS as string[]).includes(id)) {
     // documentos do estúdio: só no plano que tem (os outros veem a prévia bloqueada)
     if (!has('documentos')) return <LockedView feature="documentos"><DocSession key={id} kind={id as DocId} onBack={() => go('documentos')} /></LockedView>
@@ -60,6 +69,9 @@ export default function Documents({ id }: { id?: string }) {
   }
   return <DocsHome onOpen={(k) => go('documentos', k)} tab={id === 'padroes' ? 'padroes' : 'docs'} />
 }
+
+/** Voltar de um documento de obra: para a demanda (quando veio de lá) ou para a lista de documentos. */
+const backFromWork = (projectId?: string) => () => (projectId ? go('projetos', projectId) : go('documentos'))
 
 function useDocs() {
   const { data, setSettings } = useStore()
@@ -76,7 +88,7 @@ interface EdProps<T> {
 }
 
 /** Um documento aberto: rascunho próprio, "salvar" (na ficha do cliente ou como seu padrão) e "voltar". */
-function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; onBack: () => void }) {
+function DocSession({ kind, saved, onBack }: { kind: DocId; saved?: SavedDoc; onBack: () => void }) {
   const { data, upsert, remove, setSettings } = useStore()
   const defaults = (): DocValue => {
     const d = data.settings.docs ?? {}
@@ -342,6 +354,22 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
                 <b>{d.title}</b>
                 <small>{d.text}</small>
                 <small className="muted">{d.size}</small>
+              </button>
+            ))}
+          </div>
+          <h2 className="docs-group">
+            de obra {!has('documentos') && <em className="lp-plan-tag">plano {lockPlan('documentos')}</em>}
+          </h2>
+          <p className="muted small docs-group-hint">Para cada cliente: escolha o layout (tabela, lista, cartões ou fichas), preencha os itens com valor, quantidade, link e foto, baixe o PDF ou mostre no painel do cliente.</p>
+          <div className="docs-work">
+            {WORK_ORDER.map((w) => (
+              <button key={w} type="button" className="docs-work-card" onClick={() => go('documentos', `obra-${w}`)}>
+                <span className="docs-work-ico">
+                  <Icon name={WORK_KINDS[w].icon} size={18} />
+                </span>
+                <b>{WORK_KINDS[w].label}</b>
+                <small>{WORK_KINDS[w].text}</small>
+                {!has('documentos') && <Icon name="lock" size={13} className="docs-work-lock" />}
               </button>
             ))}
           </div>
