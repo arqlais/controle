@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-leitura-pdf',
+    date: '2026-10-03',
+    kind: 'correcao',
+    title: 'PDF anexado lido do jeito certo',
+    text: 'Contratos, manuais e briefings em PDF (inclusive os feitos no Canva) entram sem números repetidos ou grudados, com as colunas separadas e os títulos no lugar. No briefing, as bolinhas e quadradinhos viram opções de marcar e cada foto vai para a opção dela.',
+  },
+  {
     id: '2026-10-01-aparencia-todos',
     date: '2026-10-01',
     kind: 'melhoria',

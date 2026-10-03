@@ -18,7 +18,7 @@ function tidy(text: string) {
   const tail = /^(contratante|contratad[ao]|testemunhas?|assinatura|nome|cpf|rg)\b[\s:0-9._-]*$/i
   while (out.length && (!out[out.length - 1].trim() || tail.test(out[out.length - 1].trim()))) out.pop()
   // cabeçalho do papel timbrado (nome do estúdio, contatos) antes do título: o modelo já põe o da conta
-  const head = out.findIndex((l, i) => i < 14 && /^\s*(instrumento particular de\s+)?contrato\b/i.test(l))
+  const head = out.findIndex((l, i) => i < 14 && /^\s*(instrumento particular\b|contrato\s+(de|particular)\b)/i.test(l))
   if (head > 0) out.splice(0, head)
   return out
     .join('\n')
@@ -72,20 +72,23 @@ export async function fromPdf(file: File) {
   for (let n = 1; n <= pdf.numPages; n++) {
     const page = await pdf.getPage(n)
     const content = await page.getTextContent()
+    const { uniqueItems, pdfRows } = await import('./pdfText')
+    const rows = pdfRows(
+      uniqueItems(content.items.filter((it) => 'str' in it) as { str: string; transform: number[]; width: number; height: number }[]).map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, size: Math.hypot(it.transform[2], it.transform[3]) || it.height || 12 })),
+    )
     let out = ''
     let lastY: number | null = null
     let lastH = 12
-    for (const item of content.items) {
-      if (!('str' in item)) continue
-      const y = item.transform[5]
-      const h = item.height || lastH
-      if (lastY !== null && Math.abs(y - lastY) > 1) {
-        // linha nova; espaço maior que uma linha e meia = parágrafo novo
-        out = out.replace(/\n+$/, '') + (Math.abs(lastY - y) > lastH * 1.8 ? '\n\n' : '\n')
-      }
-      if (item.str) out += item.str
-      lastY = y
-      lastH = h
+    for (const r of rows) {
+      // linha nova; espaço maior que uma linha e meia = parágrafo novo
+      if (lastY !== null) out = out.replace(/\n+$/, '') + (Math.abs(lastY - r.y) > lastH * 1.8 ? '\n\n' : '\n')
+      out += r.items.reduce((acc, it, k) => {
+        const prev = r.items[k - 1]
+        const gap = prev ? it.x - (prev.x + prev.w) : 0
+        return acc + (prev && (gap > it.size * 0.18 || /^\d{1,2}$/.test(prev.str.trim())) && !/\s$/.test(acc) && !/^\s/.test(it.str) ? ' ' : '') + it.str
+      }, '')
+      lastY = r.y
+      lastH = r.size
     }
     pages.push(out)
   }
@@ -106,6 +109,44 @@ export async function fromPdf(file: File) {
         }, ''),
     )
     .join('\n\n')
+}
+
+/** Linhas do PDF, página por página, com o tamanho da letra (para achar títulos) e sem o que se repete em toda página. */
+export async function pdfPageRows(file: File): Promise<{ text: string; size: number; x: number; y: number; pieces: { str: string; x: number; w: number }[] }[][]> {
+  const pdfjs = await import('pdfjs-dist')
+  const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+  pdfjs.GlobalWorkerOptions.workerSrc = worker
+  const pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise
+  const { uniqueItems, pdfRows } = await import('./pdfText')
+  const pages: { text: string; size: number; x: number; y: number; pieces: { str: string; x: number; w: number }[] }[][] = []
+  for (let n = 1; n <= pdf.numPages; n++) {
+    const content = await (await pdf.getPage(n)).getTextContent()
+    const rows = pdfRows(
+      uniqueItems(content.items.filter((it) => 'str' in it) as { str: string; transform: number[]; width: number; height: number }[]).map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, size: Math.hypot(it.transform[2], it.transform[3]) || it.height || 12 })),
+    )
+    pages.push(
+      rows
+        .map((r) => ({
+          text: r.items
+            .reduce((acc, it, k) => {
+              const prev = r.items[k - 1]
+              const gap = prev ? it.x - (prev.x + prev.w) : 0
+              return acc + (prev && gap > it.size * 0.18 && !/\s$/.test(acc) && !/^\s/.test(it.str) ? ' ' : '') + it.str
+            }, '')
+            .replace(/\s+/g, ' ')
+            .trim(),
+          size: r.size,
+          x: r.x0,
+          y: r.y,
+          pieces: r.items.map((it) => ({ str: it.str, x: it.x, w: it.w })),
+        }))
+        .filter((r) => r.text),
+    )
+  }
+  // cabeçalho/rodapé (marca, site, nº): o mesmo texto curto na mesma altura em várias páginas
+  const seen = new Map<string, number>()
+  for (const pg of pages) for (const r of new Set(pg.map((r) => `${r.text}@${Math.round(r.y / 6)}`))) seen.set(r, (seen.get(r) ?? 0) + 1)
+  return pages.map((pg) => pg.filter((r) => !(pages.length > 1 && r.text.length < 40 && (seen.get(`${r.text}@${Math.round(r.y / 6)}`) ?? 0) >= 2)))
 }
 
 /** Lê o arquivo e devolve o texto pronto para o modelo. */

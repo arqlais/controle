@@ -386,29 +386,30 @@ export async function pdfToHtml(file: File): Promise<string> {
       const fam = (content.styles as Record<string, { fontFamily?: string }>)[name]?.fontFamily ?? ''
       return { bold: !!f?.bold || /bold|black|heavy|semibold|demi/i.test(nm), italic: !!f?.italic || /italic|oblique/i.test(nm), serif: /serif/i.test(fam) && !/sans/i.test(fam) }
     }
-    const items = content.items
-      .filter((it): it is typeof it & { str: string; transform: number[]; width: number; fontName: string } => 'str' in it && !!(it as { str: string }).str)
-      .map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, size: Math.hypot(it.transform[2], it.transform[3]) || 11, font: it.fontName }))
-      .sort((a, b) => b.y - a.y || a.x - b.x)
-    const lines: PdfLine[] = []
-    for (const it of items) {
-      const f = fontInfo(it.font)
-      let line = lines.find((l) => Math.abs(l.y - it.y) < Math.max(2, it.size * 0.45))
-      if (!line) {
-        line = { y: it.y, x0: it.x, x1: it.x + it.w, size: it.size, runs: [], serif: f.serif }
-        lines.push(line)
-      } else {
-        // espaço entre pedaços da mesma linha
-        const gap = it.x - line.x1
-        if (gap > it.size * 0.18 && !/\s$/.test(line.runs[line.runs.length - 1]?.text ?? '') && !/^\s/.test(it.str)) line.runs.push({ text: ' ', bold: false, italic: false })
-      }
-      line.x0 = Math.min(line.x0, it.x)
-      line.x1 = Math.max(line.x1, it.x + it.w)
-      line.size = Math.max(line.size, it.size)
-      const last = line.runs[line.runs.length - 1]
-      if (last && last.bold === f.bold && last.italic === f.italic) last.text += it.str
-      else line.runs.push({ text: it.str, bold: f.bold, italic: f.italic })
-    }
+    const { uniqueItems, pdfRows } = await import('./pdfText')
+    const pieces = uniqueItems(content.items.filter((it): it is typeof it & { str: string; transform: number[]; width: number; fontName: string } => 'str' in it && !!(it as { str: string }).str)).map((it) => ({
+      str: it.str,
+      x: it.transform[4],
+      y: it.transform[5],
+      w: it.width,
+      size: Math.hypot(it.transform[2], it.transform[3]) || 11,
+      font: it.fontName,
+    }))
+    const lines: PdfLine[] = pdfRows(pieces).map((row) => {
+      const runs: PdfRun[] = []
+      let x1 = -Infinity
+      row.items.forEach((it, k) => {
+        const f = fontInfo(it.font ?? '')
+        const last = runs[runs.length - 1]
+        // espaço entre pedaços da mesma linha (e sempre depois do número em destaque)
+        if (k > 0 && (it.x - x1 > it.size * 0.18 || /^\d{1,2}$/.test(row.items[k - 1].str.trim())) && !/\s$/.test(last?.text ?? '') && !/^\s/.test(it.str)) runs.push({ text: ' ', bold: false, italic: false })
+        const prev = runs[runs.length - 1]
+        if (prev && prev.bold === f.bold && prev.italic === f.italic) prev.text += it.str
+        else runs.push({ text: it.str, bold: f.bold, italic: f.italic })
+        x1 = Math.max(x1, it.x + it.w)
+      })
+      return { y: row.y, x0: row.x0, x1: row.x1, size: row.size, runs, serif: fontInfo(row.items[0]?.font ?? '').serif }
+    })
     lines.sort((a, b) => b.y - a.y)
     pages.push({ lines: lines.filter((l) => l.runs.some((r) => r.text.trim())), w })
   }
