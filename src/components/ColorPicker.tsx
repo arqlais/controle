@@ -1,5 +1,6 @@
 import { EXTRA, PAL } from '../palette'
 import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type RefObject } from 'react'
+import { createPortal } from 'react-dom'
 
 /* Seletor de cor do próprio sistema (no lugar da janela do Windows/Mac):
    quadro de tom + barra de cor, HEX, RGB e as últimas cores usadas. */
@@ -51,7 +52,7 @@ function saveRecent(hex: string) {
 }
 
 /** Botão com a cor + o código; abre o seletor. */
-export function ColorPicker({ value, onChange, label }: { value: string; onChange: (hex: string) => void; label?: string }) {
+export function ColorPicker({ value, onChange, label, compact }: { value: string; onChange: (hex: string) => void; label?: string; compact?: boolean }) {
   const [open, setOpen] = useState(false)
   const [hex, setHex] = useState(isHex(value) ? value : '#3e4b57')
   useEffect(() => {
@@ -61,25 +62,27 @@ export function ColorPicker({ value, onChange, label }: { value: string; onChang
     setOpen(false)
     if (isHex(hex)) saveRecent(hex)
   }
+  // no modo compacto (cores dentro de cartões pequenos) o seletor abre no meio da tela, por cima de tudo
+  const panel = (
+    <>
+      <div className="click-away" onClick={close} />
+      <Panel
+        hex={hex}
+        onChange={(h) => {
+          setHex(h)
+          onChange(h)
+        }}
+        onDone={close}
+      />
+    </>
+  )
   return (
-    <div className="cp">
-      <button type="button" className="cp-swatch-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={label ? `Escolher cor: ${label}` : 'Escolher cor'}>
-        <span className="cp-swatch" style={{ background: hex }} />
-        <span className="cp-code">{hex.toUpperCase()}</span>
+    <div className={`clr ${compact ? 'is-compact' : ''}`}>
+      <button type="button" className="clr-swatch-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label={label ? `Escolher cor: ${label}` : 'Escolher cor'}>
+        <span className="clr-swatch" style={{ background: hex }} />
+        {!compact && <span className="clr-code">{hex.toUpperCase()}</span>}
       </button>
-      {open && (
-        <>
-          <div className="click-away" onClick={close} />
-          <Panel
-            hex={hex}
-            onChange={(h) => {
-              setHex(h)
-              onChange(h)
-            }}
-            onDone={close}
-          />
-        </>
-      )}
+      {open && (compact ? createPortal(<div className="clr-float">{panel}</div>, document.body) : panel)}
     </div>
   )
 }
@@ -123,16 +126,16 @@ function Panel({ hex, onChange, onDone }: { hex: string; onChange: (hex: string)
   }
   const pure = hsvToHex({ h: hsv.h, s: 1, v: 1 })
   return (
-    <div className="cp-panel" role="dialog" aria-label="Escolher cor">
-      <div ref={sv} className="cp-sv" style={{ background: pure }} onPointerDown={drag(sv, (x, y) => setFromHsv({ ...hsv, s: x, v: 1 - y }))}>
-        <i className="cp-sv-dot" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hex }} />
+    <div className="clr-panel" role="dialog" aria-label="Escolher cor">
+      <div ref={sv} className="clr-sv" style={{ background: pure }} onPointerDown={drag(sv, (x, y) => setFromHsv({ ...hsv, s: x, v: 1 - y }))}>
+        <i className="clr-sv-dot" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: hex }} />
       </div>
-      <div ref={hue} className="cp-hue" onPointerDown={drag(hue, (x) => setFromHsv({ ...hsv, h: x * 359.9 }))}>
-        <i className="cp-hue-dot" style={{ left: `${(hsv.h / 360) * 100}%`, background: pure }} />
+      <div ref={hue} className="clr-hue" onPointerDown={drag(hue, (x) => setFromHsv({ ...hsv, h: x * 359.9 }))}>
+        <i className="clr-hue-dot" style={{ left: `${(hsv.h / 360) * 100}%`, background: pure }} />
       </div>
-      <div className="cp-fields">
-        <span className="cp-preview" style={{ background: hex }} />
-        <label className="cp-f cp-f-hex">
+      <div className="clr-fields">
+        <span className="clr-preview" style={{ background: hex }} />
+        <label className="clr-f clr-f-hex">
           <span>HEX</span>
           <input
             value={text}
@@ -147,7 +150,7 @@ function Panel({ hex, onChange, onDone }: { hex: string; onChange: (hex: string)
           />
         </label>
         {(['r', 'g', 'b'] as const).map((k) => (
-          <label key={k} className="cp-f">
+          <label key={k} className="clr-f">
             <span>{k.toUpperCase()}</span>
             <input
               type="number"
@@ -164,24 +167,24 @@ function Panel({ hex, onChange, onDone }: { hex: string; onChange: (hex: string)
         ))}
       </div>
       {recent.length > 0 && (
-        <div className="cp-row">
-          <span className="cp-row-label">recentes</span>
-          <div className="cp-dots">
+        <div className="clr-row">
+          <span className="clr-row-label">recentes</span>
+          <div className="clr-dots">
             {recent.map((c) => (
-              <button key={c} type="button" className="cp-dot" style={{ background: c }} onClick={() => setFromHex(c)} aria-label={`Usar ${c}`} title={c.toUpperCase()} />
+              <button key={c} type="button" className="clr-dot" style={{ background: c }} onClick={() => setFromHex(c)} aria-label={`Usar ${c}`} title={c.toUpperCase()} />
             ))}
           </div>
         </div>
       )}
-      <div className="cp-row">
-        <span className="cp-row-label">sugestões</span>
-        <div className="cp-dots">
+      <div className="clr-row">
+        <span className="clr-row-label">sugestões</span>
+        <div className="clr-dots">
           {SUGGESTED.map((c) => (
-            <button key={c} type="button" className="cp-dot" style={{ background: c }} onClick={() => setFromHex(c)} aria-label={`Usar ${c}`} title={c.toUpperCase()} />
+            <button key={c} type="button" className="clr-dot" style={{ background: c }} onClick={() => setFromHex(c)} aria-label={`Usar ${c}`} title={c.toUpperCase()} />
           ))}
         </div>
       </div>
-      <button type="button" className="btn primary small cp-done" onClick={onDone}>
+      <button type="button" className="btn primary small clr-done" onClick={onDone}>
         pronto
       </button>
     </div>

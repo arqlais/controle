@@ -633,8 +633,9 @@ export interface BriefingQuestion {
   hint?: string // explicação curta embaixo da pergunta
   images?: string[] // imagens de referência que o arquiteto mostra (ex.: estilos)
   other?: boolean // escolha com opção "outro" para escrever
-  photoCols?: 2 | 3 | 4 | 6 // opções com foto: quantas fotos por linha (o profissional põe as referências dele)
+  photoCols?: number // opções com foto (qualquer quantidade; a grade se arruma sozinha, sempre equilibrada)
   optionImages?: Record<string, string> // escolha por imagem: foto/ilustração de cada opção ("art:..." = ilustração pronta)
+  optionNotes?: Record<string, string> // explicação curta embaixo da legenda de cada opção com foto
   showIf?: { q: string; is?: string; value?: string } // sub-pergunta: só aparece quando a pergunta `q` tem a resposta `is` (`value` nos links antigos)
   tips?: string[] // fotos sugeridas (perguntas de anexar fotos): "de cada parede", "do teto"…
 }

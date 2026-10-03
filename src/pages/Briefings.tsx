@@ -7,7 +7,8 @@ import { askChoice, askDelete, toast } from '../components/dialog'
 import { BriefingList, BriefingPreview, NewBriefing } from '../components/Briefing'
 import { KIND_LABEL, allTemplates, findTemplate, isBuiltin, templateGroup } from '../briefingTemplates'
 import { referenceImage } from '../briefingApi'
-import { ArtImage } from '../components/BriefingArt'
+import { ArtImage, artColors, artFromColors, balancedCols } from '../components/BriefingArt'
+import { ColorPicker } from '../components/ColorPicker'
 import type { BriefingKind, BriefingQuestion, BriefingSection, BriefingTemplate } from '../types'
 import { uid } from '../utils'
 
@@ -360,6 +361,8 @@ function QuestionEditor({ q, all, n, first, last, sections, onChange, onMove, on
   const hasOptions = q.kind === 'choice' || q.kind === 'multi'
   const opts = q.options ?? []
   const pics = q.optionImages ?? {}
+  const notes = q.optionNotes ?? {}
+  const photoMode = !!q.photoCols || opts.some((o) => pics[o])
   const optFile = useRef<HTMLInputElement>(null)
   const [optTarget, setOptTarget] = useState('')
   const putOptionImage = async (file?: File) => {
@@ -407,55 +410,67 @@ function QuestionEditor({ q, all, n, first, last, sections, onChange, onMove, on
       {hasOptions && (
         <div className="bf-qed-photo-pick">
           <span className="muted small">
-            <Icon name="image" size={13} /> fotos nas opções
+            <Icon name="image" size={13} /> opções com foto
           </span>
-          <div className="segmented">
-            {([0, 2, 3, 4, 6] as const).map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={(q.photoCols ?? 0) === n ? 'active' : ''}
-                onClick={() => onChange(n ? { photoCols: n, options: opts.length >= n ? opts : [...opts, ...Array.from({ length: n - opts.length }, (_, k) => `opção ${opts.length + k + 1}`)] } : { photoCols: undefined })}
-              >
-                {n ? `${n} fotos` : 'sem foto'}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            value={photoMode ? 'sim' : 'nao'}
+            options={[{ value: 'nao', label: 'sem foto' }, { value: 'sim', label: 'com foto' }]}
+            onChange={async (v) => {
+              if (v === 'sim') return onChange({ photoCols: 1, options: opts.length >= 2 ? opts : [...opts, ...Array.from({ length: 2 - opts.length }, (_, k) => `opção ${opts.length + k + 1}`)] })
+              if (Object.keys(pics).length && !(await askDelete('as fotos destas opções'))) return
+              onChange({ photoCols: undefined, optionImages: undefined, optionNotes: undefined })
+            }}
+          />
         </div>
       )}
-      {hasOptions && q.photoCols ? (
-        <div className={`bf-photogrid cols-${q.photoCols}`}>
-          {opts.map((o, i) => (
-            <div key={i} className="bf-photogrid-item">
-              <button type="button" className={`ph-slot ${pics[o] ? 'has-img' : ''}`} onClick={() => (setOptTarget(o), optFile.current?.click())} title={pics[o] ? 'Trocar a foto' : 'Adicionar a sua referência'}>
-                {pics[o] ? <ArtImage src={pics[o]} /> : (
-                  <>
-                    <Icon name="image" size={22} />
-                    <small>adicione sua referência</small>
-                  </>
-                )}
-              </button>
-              <div className="bf-photogrid-row">
-                <input
-                  value={o}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    const nextPics = pics[o] ? Object.fromEntries(Object.entries(pics).map(([k, img]) => [k === o ? v : k, img])) : undefined
-                    onChange({ options: opts.map((x, j) => (j === i ? v : x)), ...(nextPics ? { optionImages: nextPics } : {}) })
-                  }}
-                  aria-label={`Opção ${i + 1}`}
-                />
+      {hasOptions && photoMode ? (
+        <div className="bf-photogrid is-even" style={{ ['--cols' as string]: balancedCols(opts.length + 1) }}>
+          {opts.map((o, i) => {
+            const colors = artColors(pics[o])
+            const rename = (v: string) => {
+              const re = <T,>(m?: Record<string, T>) => (m && o in m ? Object.fromEntries(Object.entries(m).map(([k, x]) => [k === o ? v : k, x])) : undefined)
+              const nextPics = re(pics)
+              const nextNotes = re(notes)
+              onChange({ options: opts.map((x, j) => (j === i ? v : x)), ...(nextPics ? { optionImages: nextPics } : {}), ...(nextNotes ? { optionNotes: nextNotes } : {}) })
+            }
+            return (
+              <div key={i} className="bf-photogrid-item">
+                <button type="button" className={`ph-slot ${pics[o] ? 'has-img' : ''}`} onClick={() => (setOptTarget(o), optFile.current?.click())} title={pics[o] ? 'Trocar pela sua foto' : 'Adicionar a sua referência'}>
+                  {pics[o] ? <ArtImage src={pics[o]} /> : (
+                    <>
+                      <Icon name="image" size={22} />
+                      <small>adicione sua referência</small>
+                    </>
+                  )}
+                </button>
                 {pics[o] && (
-                  <button className="icon-btn subtle" title="Tirar a foto" aria-label="Tirar a foto" onClick={() => onChange({ optionImages: Object.fromEntries(Object.entries(pics).filter(([k]) => k !== o)) })}>
+                  <button type="button" className="bf-photogrid-unpic" title="Tirar a foto" aria-label="Tirar a foto" onClick={() => onChange({ optionImages: Object.fromEntries(Object.entries(pics).filter(([k]) => k !== o)) })}>
                     <Icon name="trash" size={13} />
                   </button>
                 )}
-                <button className="icon-btn subtle" onClick={() => onChange({ options: opts.filter((_, j) => j !== i) })} aria-label="Tirar opção" title="Tirar opção">
-                  <Icon name="x" size={13} />
-                </button>
+                {colors && (
+                  <div className="bf-artcolors" title="Ajustar as cores">
+                    {colors.map((c, k) => (
+                      <ColorPicker key={k} compact value={c} label={`cor ${k + 1} de ${o}`} onChange={(hex) => onChange({ optionImages: { ...pics, [o]: artFromColors(colors.map((x, j) => (j === k ? hex : x))) } })} />
+                    ))}
+                  </div>
+                )}
+                <div className="bf-photogrid-row">
+                  <input value={o} onChange={(e) => rename(e.target.value)} placeholder="legenda" aria-label={`Legenda da opção ${i + 1}`} />
+                  <button className="icon-btn subtle" onClick={() => onChange({ options: opts.filter((_, j) => j !== i) })} aria-label="Tirar opção" title="Tirar opção">
+                    <Icon name="x" size={13} />
+                  </button>
+                </div>
+                <input
+                  className="bf-photogrid-note"
+                  value={notes[o] ?? ''}
+                  onChange={(e) => onChange({ optionNotes: { ...notes, [o]: e.target.value } })}
+                  placeholder="explicação (opcional)"
+                  aria-label={`Explicação da opção ${i + 1}`}
+                />
               </div>
-            </div>
-          ))}
+            )
+          })}
           <button type="button" className="ph-slot ph-add" onClick={() => onChange({ options: [...opts, `opção ${opts.length + 1}`] })}>
             <Icon name="plus" size={18} />
             <small>mais uma opção</small>

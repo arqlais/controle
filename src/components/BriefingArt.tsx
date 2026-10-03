@@ -6,6 +6,23 @@
 
 export const isArt = (src: string) => src.startsWith('art:')
 
+/** Cores de uma ilustração de cor/paleta (para o profissional ajustar); null quando não é cor. */
+export function artColors(src?: string): string[] | null {
+  if (!src?.startsWith('art:')) return null
+  const body = src.slice(4)
+  if (body.startsWith('#')) return [body]
+  if (body.startsWith('pal:')) return body.slice(4).split(',')
+  return null
+}
+export const artFromColors = (colors: string[]) => (colors.length === 1 ? `art:${colors[0]}` : `art:pal:${colors.join(',')}`)
+
+/** Quantas fotos por linha para nunca sobrar uma sozinha num canto (a última linha fica centralizada). */
+export function balancedCols(n: number) {
+  if (n <= 4) return Math.max(2, n)
+  if (n === 5 || n === 6 || n === 9) return 3
+  return 4
+}
+
 export function ArtImage({ src, alt = '' }: { src: string; alt?: string }) {
   if (!isArt(src)) return <img src={src} alt={alt} loading="lazy" />
   const [kind, ...rest] = src.slice(4).split(':')
@@ -18,7 +35,7 @@ export function ArtImage({ src, alt = '' }: { src: string; alt?: string }) {
 
 function Swatch({ color }: { color: string }) {
   return (
-    <svg viewBox="0 0 100 100" className="art" aria-hidden>
+    <svg viewBox="0 0 100 100" className="art" preserveAspectRatio="xMidYMid slice" aria-hidden>
       <rect width="100" height="100" fill={color} />
       <rect x="0" y="74" width="100" height="26" fill="#000" opacity=".06" />
     </svg>
@@ -29,7 +46,7 @@ function Swatch({ color }: { color: string }) {
 function Palette({ colors }: { colors: string[] }) {
   const [wall = '#e8e0d6', arch = '#c9b8a6', floor = '#8c7560', accent = '#3a332d'] = colors
   return (
-    <svg viewBox="0 0 120 100" className="art" aria-hidden>
+    <svg viewBox="0 0 120 100" className="art" preserveAspectRatio="xMidYMid slice" aria-hidden>
       <rect width="120" height="100" fill={wall} />
       <path d="M22 78 V40 a22 22 0 0 1 44 0 V78 Z" fill={arch} />
       <rect y="78" width="120" height="22" fill={floor} />
@@ -50,7 +67,7 @@ function Bed({ size }: { size: string }) {
   const x = (120 - bw) / 2
   const y = 8
   return (
-    <svg viewBox="0 0 120 100" className="art" aria-hidden>
+    <svg viewBox="0 0 120 100" className="art" style={{ background: '#f4efe9' }} aria-hidden>
       <rect width="120" height="100" fill="#f4efe9" />
       <rect x={x} y={y} width={bw} height={bl} rx="3" fill="#fff" stroke="#b9a99a" strokeWidth="1.2" />
       <rect x={x + 3} y={y + 3} width={bw - 6} height={Math.min(10, bl / 5)} rx="2" fill="#e6dccf" />

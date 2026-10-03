@@ -11,7 +11,7 @@ import { allTemplates, templateGroup } from '../briefingTemplates'
 import { attachmentUrls, briefingLink, briefingShortLink, deleteBriefingLink, loadPublicBriefing, packBriefing, publishBriefing, sendPublicAnswers, uploadAttachment, type BriefingPayload, type PublicBriefing } from '../briefingApi'
 import type { Briefing, BriefingAnswers, BriefingQuestion, BriefingSection as BSection, BriefingTemplate, Client, Settings } from '../types'
 import { ANSWER_TAG, findAnswerCode, hashExtra, readShortCode, shortCode } from '../linkPack'
-import { ArtImage, isArt } from './BriefingArt'
+import { ArtImage, balancedCols, isArt } from './BriefingArt'
 import { ClientPicker } from './ClientPicker'
 import { fmtDate, matches, today, whatsappLink } from '../utils'
 import { go } from '../router'
@@ -748,13 +748,16 @@ export function PublicQuestion({ q, value, onChange, missing, previews, uploadin
         </div>
       )}
       {withPics ? (
-        <div className={`bf-imgopts ${q.photoCols ? `cols-${q.photoCols}` : opts.length > 4 ? 'is-many' : ''}`} role={q.kind === 'choice' ? 'radiogroup' : undefined}>
+        <div className="bf-imgopts is-even" style={{ ['--cols' as string]: balancedCols(opts.length) }} role={q.kind === 'choice' ? 'radiogroup' : undefined}>
           {opts.map((o) => (
             <button key={o} type="button" className={`bf-imgopt ${isOn(o) ? 'is-on' : ''}`} onClick={() => toggle(o)} aria-pressed={isOn(o)}>
               <span className="bf-imgopt-pic">{pics[o] ? <ArtImage src={pics[o]} alt={o} /> : <span className="bf-imgopt-none"><b>{o}</b></span>}</span>
               <span className="bf-imgopt-label">
                 <i className={q.kind === 'choice' ? 'bf-radio' : 'bf-box'} aria-hidden />
-                {o}
+                <span className="bf-imgopt-txt">
+                  {o}
+                  {q.optionNotes?.[o]?.trim() && <small>{q.optionNotes[o]}</small>}
+                </span>
               </span>
             </button>
           ))}

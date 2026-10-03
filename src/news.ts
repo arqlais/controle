@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-briefing-fotos',
+    date: '2026-10-03',
+    kind: 'melhoria',
+    title: 'briefing: fotos à vontade, com legenda e explicação',
+    text: 'Nas perguntas com foto, coloque quantas opções quiser: a grade se arruma sozinha, sempre equilibrada. Cada foto tem legenda e uma explicação curta embaixo. E as cores e paletas prontas agora dão para ajustar no tom que você quiser, ou trocar por uma foto sua.',
+    steps: [{ text: 'Abra um modelo em briefings e escolha "com foto" numa pergunta de opções.', page: 'briefings' }],
+  },
+  {
     id: '2026-10-03-seguranca-e-pix',
     date: '2026-10-03',
     kind: 'novo',
@@ -484,7 +492,7 @@ export const NEWS: News[] = [
     kind: 'melhoria',
     title: 'escolher cores ficou mais fácil',
     text: 'Nas cores do seu estúdio e da proposta, agora abre um seletor próprio: arraste para achar o tom, digite o código (HEX ou RGB) e reaproveite as cores que você usou por último.',
-    steps: [{ page: 'config', configTab: 'aparencia', target: '.cp-swatch-btn', text: 'Toque na cor para abrir o seletor. As últimas cores escolhidas ficam guardadas em “recentes”.' }],
+    steps: [{ page: 'config', configTab: 'aparencia', target: '.clr-swatch-btn', text: 'Toque na cor para abrir o seletor. As últimas cores escolhidas ficam guardadas em “recentes”.' }],
   },
   {
     id: '2026-09-29-status-no-quadro',
