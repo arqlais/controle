@@ -67,7 +67,12 @@ export const annualPrice = (monthly: number) => cyclePrice(monthly, 'anual')
 export const annualBadge = () => (ANNUAL_FREE_MONTHS > 0 ? `${ANNUAL_FREE_MONTHS} ${ANNUAL_FREE_MONTHS === 1 ? 'mês grátis' : 'meses grátis'}` : '')
 
 /** Dias de teste grátis (a dona pode mudar no painel → planos). */
-export let TRIAL_DAYS = 7
+export let TRIAL_DAYS = 14
+/** Pré-lançamento: enquanto for false, ninguém consegue assinar (só testar). A dona liga no painel quando lançar. */
+export let LAUNCHED = false
+export const setLaunched = (v: boolean) => {
+  LAUNCHED = v
+}
 export const setTrialDays = (n: number) => {
   TRIAL_DAYS = n
 }

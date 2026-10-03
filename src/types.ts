@@ -537,6 +537,7 @@ export interface Settings {
   website: string
   document: string
   pixKey: string
+  pixType?: PixType // tipo da chave (celular, CPF, CNPJ, e-mail ou aleatória)
   closingRest?: string // texto do restante na mensagem de fechamento
   docLooks?: Record<string, string> // modelo de layout de cada documento (vazio = o mesmo da proposta)
   calendarToken: string // chave secreta do link de agenda para o celular ('' = desligada)
@@ -687,3 +688,5 @@ export interface SocialPost {
   status: PostStatus
   ideaId?: string // de qual ideia pronta veio
 }
+
+export type PixType = 'celular' | 'cpf' | 'cnpj' | 'email' | 'aleatoria'

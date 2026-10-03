@@ -4,9 +4,9 @@ import { PriceTable } from '../components/PriceTable'
 import { LockedView, lockPlan } from '../components/LockedPreview'
 import { ColorPicker } from '../components/ColorPicker'
 import { isQuotePack, mergeQuotePack } from '../importQuotes'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
-import { demoData, emptyData, normalize, useStore } from '../store'
+import { clearLocalCopy, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { DesktopNote, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
@@ -15,14 +15,14 @@ import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, download, paymentMethods, n
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
-import { CLOUD } from '../cloud'
+import { CLOUD, listVersions, restoreVersion, type Version } from '../cloud'
 import { BrandKit } from '../components/BrandKit'
 import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT, OWN_BODY_FONT, OWN_FONT } from '../brand'
 import { useAccess } from '../access'
 import { TEMPLATES, followsBrand, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
 import { WORK_PROFILES } from '../clientDefaults'
-import { PLANS } from '../plans'
+import { PLANS, PLATFORM } from '../plans'
 import { PortfolioSettings, ProcessSettings } from '../components/QuoteSteps'
 
 type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia' | 'dados'
@@ -291,6 +291,7 @@ export default function SettingsPage() {
                   <Icon name="user" size={14} /> abrir perfil
                 </a>
               </Section>
+          {CLOUD && <VersionHistory />}
           <Section title="backup e dados">
             <p className="muted small">
               {CLOUD ? (
@@ -706,5 +707,71 @@ export function ProposalDefaults() {
                 </div>
               </Section>
             </>
+  )
+}
+
+/** Histórico de versões: o sistema guarda sozinho como a conta estava (uma a cada 12 horas e sempre que muita coisa some
+    de uma vez). Dá para voltar para qualquer uma; a versão de agora também fica guardada, então dá para desfazer. */
+function VersionHistory() {
+  const { userId } = useStore()
+  const [list, setList] = useState<Version[] | null>(null)
+  const [error, setError] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const load = async () => {
+    try {
+      setList(await listVersions())
+      setError(false)
+    } catch {
+      setError(true)
+    }
+  }
+  useEffect(() => {
+    void load()
+  }, [])
+  const restore = async (v: Version) => {
+    const when = new Date(v.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+    if (!(await ask(`Voltar a conta para como estava em ${when}? (${v.clients} clientes, ${v.quotes} orçamentos, ${v.projects} demandas). A versão de agora também fica guardada aqui, então dá para desfazer.`, { confirmLabel: 'Voltar para esta versão' }))) return
+    setBusy(true)
+    try {
+      await restoreVersion(v.id)
+      clearLocalCopy(userId ?? undefined)
+      toast('Pronto! Abrindo a versão escolhida…')
+      setTimeout(() => location.reload(), 600)
+    } catch {
+      setBusy(false)
+      toast('Não foi possível voltar agora. Confira a internet e tente de novo.')
+    }
+  }
+  return (
+    <Section title="histórico de versões">
+      <p className="muted small">
+        O {PLATFORM.name} guarda sozinho como a sua conta estava, várias vezes por semana e sempre que muita coisa some de uma vez. Apagou algo sem querer? Volte para uma versão anterior: a de agora também fica guardada.
+      </p>
+      {error ? (
+        <p className="small text-warn">O histórico ainda não foi ativado no banco de dados. Fale com o suporte pelo chat.</p>
+      ) : list === null ? (
+        <p className="muted small">carregando…</p>
+      ) : list.length === 0 ? (
+        <p className="muted small">Ainda não há versões guardadas: a primeira fica pronta depois das próximas alterações.</p>
+      ) : (
+        <ul className="vh-list">
+          {list.map((v) => (
+            <li key={v.id}>
+              <span className="vh-when">
+                <b>{new Date(v.createdAt).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</b>
+                <small>{new Date(v.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</small>
+              </span>
+              <span className="vh-what">
+                {v.clients} clientes · {v.quotes} orçamentos · {v.projects} demandas
+                {v.reason !== 'automática' && <em>{v.reason}</em>}
+              </span>
+              <button className="btn small ghost" disabled={busy} onClick={() => void restore(v)}>
+                voltar para esta
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   )
 }

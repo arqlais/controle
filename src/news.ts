@@ -30,6 +30,17 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-seguranca-e-pix',
+    date: '2026-10-03',
+    kind: 'novo',
+    title: 'histórico de versões e chave Pix com tipo',
+    text: 'O planê agora guarda sozinho como a sua conta estava, várias vezes por semana e sempre que muita coisa some de uma vez. Apagou algo sem querer? Em configurações → dados, volte para uma versão anterior. E a chave Pix ganhou o tipo (celular, CPF, CNPJ, e-mail ou aleatória), com a pontuação certinha.',
+    steps: [
+      { text: 'Histórico de versões em configurações → dados.', page: 'config', configTab: 'dados' },
+      { text: 'Chave Pix no seu perfil.', page: 'perfil' },
+    ],
+  },
+  {
     id: '2026-10-03-plane',
     date: '2026-10-03',
     kind: 'novo',

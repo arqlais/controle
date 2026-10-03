@@ -360,6 +360,14 @@ export function emptyData(): Data {
 }
 
 const cacheKey = (userId?: string) => (userId ? `${KEY}:${userId}` : KEY)
+/** Esquece a cópia deste navegador (usado ao voltar uma versão: a da nuvem passa a valer inteira). */
+export function clearLocalCopy(userId?: string) {
+  try {
+    localStorage.removeItem(cacheKey(userId))
+  } catch {
+    /* ok */
+  }
+}
 
 /** Escolhas do cadastro (nome, estúdio, começar com exemplo), guardadas até a primeira entrada. */
 export const SIGNUP_KEY = 'cadastro-inicio'

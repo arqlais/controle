@@ -434,6 +434,11 @@ const cloud = {
     const { error } = await supabase!.from('support_messages').insert({ client_id: clientId, body, from_owner: fromOwner })
     if (error) throw error
   },
+  /** A dona apaga uma mensagem que mandou sem querer (some para as duas). */
+  async removeMessage(id: string) {
+    const { error } = await supabase!.from('support_messages').delete().eq('id', id)
+    if (error) throw error
+  },
   async markRead(clientId: string) {
     await supabase!.rpc('marcar_lidas', { cliente: clientId })
   },
@@ -822,6 +827,10 @@ const local = {
     const db = readDB()
     writeDB({ ...db, messages: [...db.messages, { id: Math.random().toString(36).slice(2), clientId, fromOwner, body, createdAt: new Date().toISOString(), readAt: null }] })
   },
+  async removeMessage(id: string) {
+    const db = readDB()
+    writeDB({ ...db, messages: db.messages.filter((x) => x.id !== id) })
+  },
   async markRead(clientId: string) {
     const db = readDB()
     const ownerSide = role() === 'dona'
@@ -889,6 +898,9 @@ const asClientGuard = (b: typeof cloud): typeof cloud => ({
   },
   async send(...a: Parameters<typeof cloud.send>) {
     if (!viewingAsClient()) return b.send(...a)
+  },
+  async removeMessage(...a: Parameters<typeof cloud.removeMessage>) {
+    if (!viewingAsClient()) return b.removeMessage(...a)
   },
   async suggest(...a: Parameters<typeof cloud.suggest>) {
     if (!viewingAsClient()) return b.suggest(...a)

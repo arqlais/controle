@@ -2205,3 +2205,12 @@ svg { flex-shrink: 0; }
 .quote-totals .urgency-show { display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 13px; margin-top: -4px; }
 .quote-totals .urgency-show input { width: 16px; height: 16px; flex: none; }
 .closing-btn { margin-bottom: 6px; } .closing-text { font-family: ui-monospace, Menlo, monospace; font-size: 13px; line-height: 1.5; }
+
+/* barra de rolagem da plataforma: fina, arredondada e nas cores da identidade (página, menu lateral, janelas e listas) */
+html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-soft) 70%, transparent) transparent; }
+* { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-soft) 70%, transparent) transparent; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--accent-soft) 65%, transparent); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-soft); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }

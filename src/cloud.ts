@@ -78,3 +78,31 @@ export async function publishPublicBlob(userId: string, name: string, blob: Blob
   if (error) throw error
   return publicFileUrl(userId, name)
 }
+
+/* Histórico de versões da conta (guardadas sozinhas no Supabase, as 14 mais recentes). */
+export interface Version {
+  id: number
+  createdAt: string
+  reason: string
+  clients: number
+  quotes: number
+  projects: number
+  size: number
+}
+export async function listVersions(): Promise<Version[]> {
+  const { data, error } = await supabase!.rpc('minhas_versoes')
+  if (error) throw error
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: Number(r.id),
+    createdAt: String(r.created_at),
+    reason: String(r.reason ?? ''),
+    clients: Number(r.clientes ?? 0),
+    quotes: Number(r.orcamentos ?? 0),
+    projects: Number(r.demandas ?? 0),
+    size: Number(r.tamanho ?? 0),
+  }))
+}
+export async function restoreVersion(id: number) {
+  const { error } = await supabase!.rpc('restaurar_versao', { versao: id })
+  if (error) throw error
+}

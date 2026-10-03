@@ -7,7 +7,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
@@ -90,6 +90,15 @@ export default function Admin() {
       if (msg) toast(msg)
       // assinatura ativada agora: a pessoa recebe o e-mail de confirmação (se a função de avisos estiver publicada)
       if (patch.status === 'ativa' && s.status !== 'ativa') void platform.notice({ tipo: 'ativada', userId: s.userId }).catch(() => undefined)
+      // teste aumentado ou liberado: a pessoa recebe uma mensagem no chat (aparece no sistema e vai por e-mail)
+      if (patch.trialEnds && patch.trialEnds !== s.trialEnds && (patch.status ?? s.status) === 'trial' && new Date(patch.trialEnds).getTime() > Date.now()) {
+        const until = new Date(patch.trialEnds).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        const text = `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! boa notícia: seu teste grátis do ${PLATFORM.name} foi estendido até ${until} 🎉 aproveite para explorar com calma. qualquer dúvida, é só me chamar por aqui.`
+        void platform
+          .send(s.userId, text, true)
+          .then(() => platform.notice({ tipo: 'resposta', userId: s.userId, text }))
+          .catch(() => undefined)
+      }
     } catch {
       toast('Não foi possível salvar. Confira a internet e se o SQL da plataforma foi rodado no Supabase.')
       return false
@@ -841,7 +850,31 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
             </p>
             <small className="pf-msg-time">
               {timeLabel(m.createdAt)}
-              {m.fromOwner && m.readAt ? ' · lida' : ''}
+              {m.fromOwner && (
+                <span className={`pf-ticks ${m.readAt ? 'is-read' : ''}`} title={m.readAt ? `vista em ${timeLabel(m.readAt)}` : 'enviada, ainda não vista'} aria-label={m.readAt ? 'vista' : 'enviada'}>
+                  {m.readAt ? '✓✓' : '✓'}
+                </span>
+              )}
+              {m.fromOwner && (
+                <button
+                  type="button"
+                  className="pf-msg-del"
+                  title="Apagar esta mensagem (some para os dois lados)"
+                  aria-label="Apagar mensagem"
+                  onClick={async () => {
+                    if (!(await askDelete('esta mensagem (ela some também para quem recebeu)'))) return
+                    try {
+                      await platform.removeMessage(m.id)
+                      await onChange()
+                      toast('Mensagem apagada.')
+                    } catch {
+                      toast('Não deu para apagar agora. Confira se o arquivo do Supabase de 03/10 foi rodado.')
+                    }
+                  }}
+                >
+                  <Icon name="trash" size={12} />
+                </button>
+              )}
             </small>
           </div>
         ))}
@@ -1475,6 +1508,8 @@ function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription
 /** Nome, preço, frase, lista e o que cada plano libera + dias de teste: tudo editável pela dona. */
 function PlansEditor() {
   const snap = (): PlanConfig => ({
+    launched: LAUNCHED,
+    trialV2: true,
     trialDays: TRIAL_DAYS,
     annualFreeMonths: ANNUAL_FREE_MONTHS,
     cardFee: CARD_FEE,
@@ -1499,16 +1534,23 @@ function PlansEditor() {
   return (
     <>
       <Section
-        title="teste grátis, semestral e anual"
+        title="lançamento, teste grátis, semestral e anual"
         action={
           <button className={`btn small ${dirty ? 'primary' : 'ghost'}`} disabled={!dirty} onClick={() => void save()}>
             {dirty ? 'salvar planos' : 'salvo'}
           </button>
         }
       >
+        <label className={`launch-toggle ${cfg.launched ? 'is-on' : ''}`}>
+          <input type="checkbox" checked={!!cfg.launched} onChange={(e) => setCfg({ ...cfg, launched: e.target.checked })} />
+          <span>
+            <b>{cfg.launched ? 'assinaturas abertas' : 'pré-lançamento: só teste grátis'}</b>
+            <small>{cfg.launched ? 'Quem testa já consegue assinar e pagar.' : 'Quem se cadastra testa tudo normalmente, mas ainda não consegue assinar: vê o aviso de que as assinaturas abrem no lançamento. Ligue quando a cobrança estiver pronta.'}</small>
+          </span>
+        </label>
         <div className="form-grid">
           <Field label="Dias de teste para quem se cadastra" hint="Vale para os próximos cadastros. Para alguém específico, aumente ou encerre o teste em “assinantes”.">
-            <input type="number" min={1} max={365} value={cfg.trialDays ?? 7} onChange={(e) => setCfg({ ...cfg, trialDays: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
+            <input type="number" min={1} max={365} value={cfg.trialDays ?? 14} onChange={(e) => setCfg({ ...cfg, trialDays: Math.max(1, Math.min(365, Number(e.target.value) || 1)) })} />
           </Field>
           <Field label="Desconto no semestral (%)" hint="Menor que o do anual, para o anual continuar sendo o melhor negócio.">
             <input type="number" min={0} max={50} value={cfg.semesterDiscount ?? 10} onChange={(e) => setCfg({ ...cfg, semesterDiscount: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} />

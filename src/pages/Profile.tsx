@@ -1,3 +1,4 @@
+import { PixKeyInput } from '../components/PixKeyInput'
 import { useRef, useState, type FormEvent } from 'react'
 import { useStore } from '../store'
 import { CLOUD, supabase } from '../cloud'
@@ -200,8 +201,8 @@ export default function Profile() {
               <Field label="Site">
                 <input value={s.website} onChange={(e) => set({ website: e.target.value })} placeholder="seusite.com.br" />
               </Field>
-              <Field label="Chave pix" span={2} hint="Não vai no PDF; entra sozinha nas mensagens de cobrança.">
-                <input value={s.pixKey} onChange={(e) => set({ pixKey: e.target.value })} />
+              <Field group label="Chave pix" span={2} hint="Escolha o tipo e digite: a pontuação entra sozinha. Não vai no PDF; entra nas mensagens de cobrança.">
+                <PixKeyInput value={s.pixKey} type={s.pixType} onChange={(v) => set(v)} />
               </Field>
             </div>
           </Section>

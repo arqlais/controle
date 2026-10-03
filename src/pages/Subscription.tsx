@@ -6,7 +6,7 @@ import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
 import { Badge, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { LAUNCHED, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, trialDaysLeft, trialOver } from '../platform'
 import { go, href } from '../router'
 import { download, today } from '../utils'
@@ -215,12 +215,14 @@ export function BlockedScreen({ onChat }: { onChat: () => void }) {
           )}
         </h1>
         <p className="muted">
-          {expired
+          {expired && !LAUNCHED
+            ? `Obrigada por testar! As assinaturas abrem no lançamento do ${PLATFORM.name}. Quer continuar testando até lá? É só pedir pelo chat. Seus dados estão guardados e nada foi apagado.`
+            : expired
             ? 'Para continuar usando, peça a assinatura de um plano. Seus dados estão guardados e nada foi apagado.'
             : `Seu acesso está pausado no momento. Seus dados estão guardados e nada foi apagado. Fale com ${PLATFORM.supportWith} pelo chat para resolver.`}
         </p>
         <div className="row gap-s wrap center">
-          {expired && (
+          {expired && LAUNCHED && (
             <a className="btn primary" href={href('assinatura')}>
               pedir assinatura
             </a>

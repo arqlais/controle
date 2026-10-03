@@ -1,5 +1,5 @@
 import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
-import { PLANS, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
+import { PLANS, setLaunched, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
    e os dias de teste. Carregados antes de abrir o site, para a página de vendas já
@@ -15,6 +15,8 @@ export interface PlanOverride {
 }
 export interface PlanConfig {
   trialDays?: number
+  trialV2?: boolean // já passou para o padrão de 14 dias (antes: 7)
+  launched?: boolean // assinaturas abertas (fora do pré-lançamento)
   annualDiscount?: number // antigo: % de desconto no anual (hoje é em meses grátis)
   annualFreeMonths?: number // meses grátis no anual
   cardFee?: number // % da taxa do cartão em 12x, embutida no anual parcelado
@@ -28,7 +30,9 @@ const CACHE = 'config-planos'
 export const PREVIEW_KEY = 'previa-config-planos'
 
 export function applyPlanConfig(c: PlanConfig) {
-  if (c.trialDays && c.trialDays > 0) setTrialDays(Math.round(c.trialDays))
+  // 7 dias era o padrão antigo: vira 14 até a dona salvar outro número
+  if (c.trialDays && c.trialDays > 0) setTrialDays(!c.trialV2 && c.trialDays === 7 ? 14 : Math.round(c.trialDays))
+  setLaunched(c.launched === true)
   if (typeof c.annualFreeMonths === 'number' && c.annualFreeMonths >= 0 && c.annualFreeMonths <= 6) setAnnualFreeMonths(c.annualFreeMonths)
   if (typeof c.cardFee === 'number' && c.cardFee >= 0 && c.cardFee <= 40) setCardFee(c.cardFee)
   if (typeof c.cardFee6 === 'number' && c.cardFee6 >= 0 && c.cardFee6 <= 40) setCardFee6(c.cardFee6)

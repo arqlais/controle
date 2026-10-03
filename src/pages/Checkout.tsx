@@ -6,7 +6,7 @@ import { CepInput, EmailInput, Field, PhoneInput, Segmented } from '../component
 import { toast } from '../components/dialog'
 import { TermsModal } from '../components/Terms'
 import { preferredCycle } from '../components/PlanPrice'
-import { CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, annualBadge, cardAllowed, cardPrice, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
+import { LAUNCHED, CYCLES, CYCLE_INSTALLMENTS, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLATFORM, annualBadge, cardAllowed, cardPrice, cycleDiscount, cycleMonthly, cyclePrice, money0, type PlanId } from '../plans'
 import { platform, type Billing, type Cycle, type PayMethod } from '../platform'
 import { go, href } from '../router'
 import { formatDoc, lookupCnpj, money } from '../utils'
@@ -49,7 +49,30 @@ const PAY: { id: PayMethod; label: string; hint: Record<Cycle, string>; icon: st
 ]
 const cycleLabel = (c: Cycle) => (c === 'mensal' ? 'mensal' : c === 'semestral' ? 'semestral' : 'anual')
 
+/** Pré-lançamento: ninguém assina ainda (só testa). A dona libera no painel quando a cobrança estiver pronta. */
 export default function Checkout({ planId }: { planId: string }) {
+  const { isOwner } = useAccess()
+  if (!LAUNCHED && !isOwner)
+    return (
+      <div className="page">
+        <section className="card pf-blocked">
+          <Icon name="clock" size={30} />
+          <h1>
+            assinaturas <em>em breve</em>
+          </h1>
+          <p className="muted">
+            O {PLATFORM.name} ainda está em fase de testes. As assinaturas abrem no lançamento, e quem está testando fica sabendo primeiro, com o preço de lançamento. Enquanto isso, é só continuar usando: tudo o que você cadastrar fica guardado.
+          </p>
+          <a className="btn primary" href={href('inicio')}>
+            continuar testando
+          </a>
+        </section>
+      </div>
+    )
+  return <CheckoutForm planId={planId} />
+}
+
+function CheckoutForm({ planId }: { planId: string }) {
   const { sub, refresh } = useAccess()
   const { data } = useStore()
   const s = data.settings

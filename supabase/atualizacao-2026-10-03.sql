@@ -1,0 +1,92 @@
+-- ============================================================
+-- Atualização de 03/10/2026 (planê)
+-- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
+-- Traz: histórico de versões de cada conta (backup automático, com "voltar como estava"),
+--       apagar mensagem enviada no chat e teste grátis de 14 dias.
+-- ============================================================
+
+-- 1) Histórico de versões: antes de cada gravação, a versão anterior da conta fica guardada
+--    (no máximo uma a cada 12 horas, e sempre que muita coisa some de uma vez). Ficam as 14 mais recentes.
+create table if not exists public.workspace_history (
+  id         bigserial primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  data       jsonb not null,
+  reason     text not null default 'automática',
+  created_at timestamptz not null default now()
+);
+create index if not exists workspace_history_user on public.workspace_history (user_id, created_at desc);
+alter table public.workspace_history enable row level security;
+drop policy if exists "historico: dono vê" on public.workspace_history;
+create policy "historico: dono vê" on public.workspace_history for select using (auth.uid() = user_id);
+
+create or replace function public.contar_itens(d jsonb) returns int
+language sql immutable as $$
+  select coalesce(case when jsonb_typeof(d -> 'clients') = 'array' then jsonb_array_length(d -> 'clients') end, 0)
+       + coalesce(case when jsonb_typeof(d -> 'quotes') = 'array' then jsonb_array_length(d -> 'quotes') end, 0)
+       + coalesce(case when jsonb_typeof(d -> 'projects') = 'array' then jsonb_array_length(d -> 'projects') end, 0)
+$$;
+
+create or replace function public.guardar_versao() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  ultima timestamptz;
+  sumiu boolean;
+begin
+  if old.data is null or old.data = new.data then return new; end if;
+  select max(created_at) into ultima from public.workspace_history where user_id = old.user_id;
+  -- sumiu muita coisa de uma vez (mais da metade dos clientes, orçamentos e demandas): guarda na hora
+  sumiu := public.contar_itens(old.data) >= 6 and public.contar_itens(new.data) * 2 < public.contar_itens(old.data);
+  if ultima is null or ultima < now() - interval '12 hours' or sumiu then
+    insert into public.workspace_history (user_id, data, reason)
+    values (old.user_id, old.data, case when sumiu then 'antes de sumir muita coisa' else 'automática' end);
+    delete from public.workspace_history
+    where user_id = old.user_id
+      and id not in (select h.id from public.workspace_history h where h.user_id = old.user_id order by h.created_at desc limit 14);
+  end if;
+  return new;
+end $$;
+drop trigger if exists workspace_versao on public.workspace;
+create trigger workspace_versao before update on public.workspace for each row execute function public.guardar_versao();
+
+-- lista das versões (só os números, sem baixar tudo)
+create or replace function public.minhas_versoes()
+returns table (id bigint, created_at timestamptz, reason text, clientes int, orcamentos int, demandas int, tamanho int)
+language sql security definer set search_path = public as $$
+  select h.id, h.created_at, h.reason,
+         coalesce(case when jsonb_typeof(h.data -> 'clients') = 'array' then jsonb_array_length(h.data -> 'clients') end, 0),
+         coalesce(case when jsonb_typeof(h.data -> 'quotes') = 'array' then jsonb_array_length(h.data -> 'quotes') end, 0),
+         coalesce(case when jsonb_typeof(h.data -> 'projects') = 'array' then jsonb_array_length(h.data -> 'projects') end, 0),
+         pg_column_size(h.data)
+  from public.workspace_history h
+  where h.user_id = auth.uid()
+  order by h.created_at desc
+$$;
+
+-- voltar a conta para uma versão (a versão atual também fica guardada, dá para desfazer)
+create or replace function public.restaurar_versao(versao bigint) returns void
+language plpgsql security definer set search_path = public as $$
+declare d jsonb;
+begin
+  select data into d from public.workspace_history where id = versao and user_id = auth.uid();
+  if d is null then raise exception 'versão não encontrada'; end if;
+  insert into public.workspace_history (user_id, data, reason)
+  select user_id, data, 'antes de restaurar' from public.workspace where user_id = auth.uid();
+  update public.workspace set data = d, updated_at = now() where user_id = auth.uid();
+end $$;
+
+revoke execute on function public.minhas_versoes(), public.restaurar_versao(bigint) from public, anon;
+grant execute on function public.minhas_versoes(), public.restaurar_versao(bigint) to authenticated;
+
+-- 2) Chat: a dona pode apagar uma mensagem que ela mesma mandou
+drop policy if exists "chat: dona apaga as dela" on public.support_messages;
+create policy "chat: dona apaga as dela" on public.support_messages for delete using (public.sou_dona() and from_owner = true);
+
+-- 3) Teste grátis: 14 dias para quem se cadastrar daqui para frente
+insert into public.platform_settings (id, data) values (1, '{}'::jsonb) on conflict (id) do nothing;
+update public.platform_settings
+set data = jsonb_set(jsonb_set(coalesce(data, '{}'::jsonb), '{trialDays}', '14'::jsonb), '{trialV2}', 'true'::jsonb)
+where id = 1 and coalesce((data ->> 'trialV2')::boolean, false) = false;
+
+-- Conferência
+select (select count(*) from public.workspace_history) as versoes_guardadas,
+       (select data ->> 'trialDays' from public.platform_settings where id = 1) as dias_de_teste;
