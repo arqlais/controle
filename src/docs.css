@@ -565,3 +565,9 @@ button.back:hover { color: var(--text); }
 .dk-look-tpl { flex: none; }
 .docs-daily .docs-thumb { place-items: start center; }
 @media (max-width: 640px) { .docs-daily .docs-thumb { height: 112px; } }
+.dk-bar.is-model { align-items: center; }
+.dk-bar-model { flex: 1 1 260px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-weight: 600; font-size: 14px; min-width: 0; }
+.dk-bar-model small { flex-basis: 100%; font-weight: 400; font-size: 12.5px; }
+.docs-group-hint { margin: -6px 0 12px; max-width: 760px; }
+@media (max-width: 640px) { .dk-bar.is-model .btn { flex: 1 1 auto; justify-content: center; } }
+.dk-look-tpls, .dk-look-tpls { flex-wrap: wrap !important; overflow: visible !important; }

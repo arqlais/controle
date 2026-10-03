@@ -82,6 +82,8 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' },
   { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
 ]
+// o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
+const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
 const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
@@ -229,18 +231,21 @@ export default function App() {
   const [addOpen, setAddOpen] = useState(false)
   const [organizing, setOrganizing] = useState(false)
   const [dragNav, setDragNav] = useState<string | null>(null)
+  // menu enxuto: quem é freelancer não vê o que é de cliente final (dá para mostrar de novo em "organizar menu")
+  const navHidden = useMemo(() => settings.navHidden ?? (settings.workProfile === 'freelancer' && !access.isOwner ? FREELA_HIDDEN : []), [settings.navHidden, settings.workProfile, access.isOwner])
+  const toggleNav = (page: string) => setSettings({ navHidden: navHidden.includes(page) ? navHidden.filter((x) => x !== page) : [...navHidden, page] })
   // ordem do menu escolhida pela usuária (itens novos entram no fim)
   const nav = useMemo(() => {
     const order = settings.navOrder
     const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
     // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
     // o que o plano não tem continua no menu (com cadeado): abre como vitrine, para dar vontade
-    return NAV.filter((n) => (!NEEDS[n.page] || NEEDS[n.page] !== 'painelDona' || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff)).sort((a, b) => {
+    return NAV.filter((n) => (!NEEDS[n.page] || NEEDS[n.page] !== 'painelDona' || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff) && (organizing || !navHidden.includes(n.page))).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
     })
-  }, [settings.navOrder, settings.contracts?.off, settings.instagramOff, access])
+  }, [settings.navOrder, settings.contracts?.off, settings.instagramOff, access, organizing, navHidden])
   // grupos à parte, no fim do menu: plataforma (só a dona), sua conta (clientes) e ajustes e dicas
   const groups = useMemo(
     () =>
@@ -490,13 +495,14 @@ export default function App() {
         <nav className={organizing ? 'organizing' : ''}>
           {nav.map((n, i) => {
             const count = alerts[n.page as keyof typeof alerts]
-            const label = i === 0 || nav[i - 1].group !== n.group ? NAV_GROUPS.find((x) => x.key === n.group)?.label : ''
+            const label = i === 0 || nav[i - 1].group !== n.group ? (n.group === 'estudio' && settings.workProfile === 'freelancer' ? 'ferramentas' : NAV_GROUPS.find((x) => x.key === n.group)?.label) : ''
+            const off = navHidden.includes(n.page)
             return (
               <Fragment key={n.page}>
               {label && <span className="nav-group-label nav-main-label">{label}</span>}
               <a
                 href={href(n.page)}
-                className={`${route.page === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''}`}
+                className={`${route.page === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''} ${organizing && off ? 'is-off' : ''}`}
                 // só dá para arrastar com "organizar menu" ligado (evita mudar sem querer)
                 draggable={organizing}
                 onDragStart={() => organizing && setDragNav(n.page)}
@@ -520,6 +526,9 @@ export default function App() {
                 {count && !organizing ? <em className="nav-alert" title="Itens atrasados">{count}</em> : null}
                 {organizing && (
                   <span className="nav-arrows">
+                    <button type="button" className="icon-btn subtle" onClick={() => toggleNav(n.page)} aria-label={off ? 'Mostrar no menu' : 'Esconder do menu'} title={off ? 'mostrar no menu' : 'esconder do menu'}>
+                      <Icon name={off ? 'eye-off' : 'eye'} size={14} />
+                    </button>
                     <button type="button" className="icon-btn subtle" disabled={i === 0} onClick={() => moveNav(n.page, i - 1)} aria-label="Subir">
                       <Icon name="chevronL" size={14} className="rot-up" />
                     </button>

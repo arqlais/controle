@@ -30,6 +30,17 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-03-menu-e-modelos',
+    date: '2026-10-03',
+    kind: 'melhoria',
+    title: 'menu do seu jeito e documentos como modelos',
+    text: 'O menu se ajusta a como você trabalha: quem só presta serviço para escritórios não vê o que é de cliente final. Em “organizar menu”, toque no olho para esconder ou mostrar cada tela. Em documentos, cada peça agora é o seu modelo: escolha entre os modelos prontos, cores, fontes e fotos e salve como padrão. Para um cliente, use “usar para um cliente”.',
+    steps: [
+      { text: 'Organizar menu fica no fim do menu lateral.', page: 'inicio' },
+      { text: 'Seus modelos em documentos.', page: 'documentos' },
+    ],
+  },
+  {
     id: '2026-10-03-agenda-quadro-capa',
     date: '2026-10-03',
     kind: 'melhoria',

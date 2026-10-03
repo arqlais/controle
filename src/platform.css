@@ -3035,3 +3035,10 @@ body.is-card-dragging, body.is-card-dragging * { cursor: grabbing !important; us
 .cp-cover { overflow: hidden; }
 .cp-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .pn-cover-row .dk-crop { max-width: 560px; }
+/* organizar menu: telas escondidas aparecem apagadas, com o olho para mostrar de novo */
+nav.organizing a.is-off > span, nav.organizing a.is-off > .icon:first-child { opacity: .4; }
+nav.organizing a.is-off > span { text-decoration: line-through; }
+nav.organizing .nav-arrows { gap: 0; }
+nav.organizing .nav-arrows .icon-btn { width: 22px; height: 22px; min-width: 22px; padding: 0; }
+nav.organizing > a { gap: 8px; }
+nav.organizing > a > span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; }

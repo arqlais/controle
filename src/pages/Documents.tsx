@@ -119,7 +119,7 @@ function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; 
     } else {
       const k = KEY[kind]
       if (k !== 'briefingTpl') setSettings({ docs: { ...(data.settings.docs ?? {}), [k]: value } })
-      toast('Salvo como o seu modelo padrão. Para guardar na ficha de um cliente, escolha o cliente acima.')
+      toast('Modelo salvo. Ele vale para os próximos documentos deste tipo.')
     }
     setBaseline(snap(value, clientId, html))
     draft.rebase(value)
@@ -150,7 +150,53 @@ function DocSession({ kind, saved, onBack }: { kind: DocKind; saved?: SavedDoc; 
     const c = data.clients.find((x) => x.id === id)
     if (kind === 'apresentacao' && c && !value.client) set({ client: c.name.split(' ')[0] })
   }
-  const toolbar = (
+  // aberto pela lista de documentos: edita o SEU modelo (vale para todos os clientes)
+  const [useFor, setUseFor] = useState(false)
+  const copyFor = (cid: string) => {
+    const c = data.clients.find((x) => x.id === cid)
+    if (!c) return
+    const now = new Date().toISOString()
+    const doc: SavedDoc = {
+      id: uid(),
+      clientId: cid,
+      kind,
+      title: `${titleOf(kind)}${kind === 'apresentacao' && value.title ? ` · ${value.title}` : ''}`,
+      ...(kind === 'guia' ? { guide: value } : kind === 'placa' ? { plaque: value } : kind === 'apresentacao' ? { deck: { ...value, client: value.client || c.name.split(' ')[0] } } : { briefingTpl: value.briefingTpl }),
+      html: html ?? undefined,
+      createdAt: now,
+      updatedAt: now,
+    }
+    upsert('docs', doc)
+    const shared = withPanelShare(c, 'docs', doc.id)
+    if (shared) upsert('clients', shared)
+    setUseFor(false)
+    toast(`Cópia salva na ficha de ${c.name.split(' ')[0]}. O seu modelo continua igual.`)
+    go('documentos', doc.id)
+  }
+  const toolbar = !savedId ? (
+    <div className={`dk-bar is-model ${dirty ? 'is-dirty' : ''}`}>
+      <span className="dk-bar-model">
+        <Icon name="star" size={14} /> seu modelo
+        <small className="muted">o que você salvar aqui vira o padrão deste documento</small>
+      </span>
+      <span className="dk-bar-state small">{draft.restored && dirty ? 'rascunho recuperado' : dirty ? 'mudanças não salvas' : 'modelo salvo'}</span>
+      <button className="btn ghost small" onClick={() => (setValue(initial), setHtml(null))} disabled={!dirty}>
+        descartar
+      </button>
+      <button className="btn ghost small" onClick={() => setUseFor(true)}>
+        <Icon name="user" size={14} /> usar para um cliente
+      </button>
+      <button className="btn primary small" onClick={save} disabled={!dirty}>
+        <Icon name="check" size={14} /> salvar modelo
+      </button>
+      {useFor && (
+        <Modal title="usar este modelo para qual cliente?" onClose={() => setUseFor(false)}>
+          <p className="muted small">Uma cópia vai para a ficha do cliente, para ajustar só para ele. O seu modelo não muda.</p>
+          <ClientPicker clients={data.clients} value="" onChange={copyFor} placeholder="escolha o cliente" />
+        </Modal>
+      )}
+    </div>
+  ) : (
     <div className={`dk-bar ${dirty ? 'is-dirty' : ''}`}>
       <div className="dk-bar-client">
         <span className="field-label">ficha do cliente</span>
@@ -279,8 +325,9 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
             )}
           </div>
           <h2 className="docs-group">
-            do estúdio {!has('documentos') && <em className="lp-plan-tag">plano {lockPlan('documentos')}</em>}
+            seus modelos {!has('documentos') && <em className="lp-plan-tag">plano {lockPlan('documentos')}</em>}
           </h2>
+          <p className="muted small docs-group-hint">Abra, escolha um dos modelos (coluna, faixa, planilha ou editorial), as cores e as fotos, e salve: fica como o seu padrão. Para um cliente, use “usar para um cliente” dentro do documento.</p>
           <div className="docs-home">
             {LIST.map((d) => (
               <button key={d.id} type="button" className="docs-card" onClick={() => onOpen(d.id)}>

@@ -668,10 +668,10 @@ function WorkProfileSection() {
   const cur = data.settings.workProfile ?? 'freelancer'
   return (
     <Section title="para quem você trabalha">
-      <p className="muted small">Só para freelancer (outros escritórios), só para cliente final ou os dois. Muda o que já vem pronto: o tipo de cliente, a ficha do cliente final (com briefing) e os serviços sugeridos. Nada do que você já cadastrou é apagado.</p>
+      <p className="muted small">Só para freelancer (outros escritórios), só para cliente final ou os dois. Muda o que já vem pronto: o tipo de cliente, a ficha do cliente final (com briefing), os serviços sugeridos e o menu (quem só presta serviço para escritórios não vê painel do cliente e briefings; dá para mostrar de novo em “organizar menu”). Nada do que você já cadastrou é apagado.</p>
       <div className="wp-options">
         {WORK_PROFILES.map((w) => (
-          <button key={w.value} type="button" className={`wp-option ${cur === w.value ? 'is-on' : ''}`} onClick={() => setSettings({ workProfile: w.value })} aria-pressed={cur === w.value}>
+          <button key={w.value} type="button" className={`wp-option ${cur === w.value ? 'is-on' : ''}`} onClick={() => setSettings({ workProfile: w.value, navHidden: undefined })} aria-pressed={cur === w.value}>
             <b>{w.label}</b>
             <small>{w.hint}</small>
           </button>

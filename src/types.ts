@@ -603,6 +603,7 @@ export interface Settings {
   services: ServiceDef[]
   customColumns: BoardColumn[] // colunas extras do quadro de demandas
   navOrder: string[] // ordem do menu lateral
+  navHidden?: string[] // telas escondidas do menu (vazio = o padrão do perfil de trabalho)
   messages: MessageTemplate[] // mensagens padrão para o cliente
   contracts?: ContractSettings // modelos de contrato (plano Completo)
   instagramOff?: boolean // não usa o planejamento do instagram (some do menu)
