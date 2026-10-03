@@ -712,7 +712,7 @@ export function PortalPublic({ token: raw, data, preview, short }: { token: stri
   const wrap = (children: ReactNode) => (
     <div className={`bf-public pt-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
       <div className="bf-card">{children}</div>
-      <p className="bf-foot">feito com planê</p>
+      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê</a></p>
     </div>
   )
   if (d === undefined) return wrap(<p className="muted">carregando…</p>)

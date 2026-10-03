@@ -208,16 +208,14 @@ export function PayNext({ p, compact }: { p: Project; compact?: boolean }) {
   )
 }
 
-/** Status do orçamento direto na lista. Aprovar pergunta o valor fechado e cria a demanda (uma única vez). */
-export function QuoteStatusSelect({ q }: { q: Quote }) {
+/** Mudar o status de um orçamento (lista, cartão ou arrastando no quadro). Aprovar abre o "fechou por quanto?". */
+export function useQuoteStatusChange() {
   const { data, upsert } = useStore()
-  const [closing, setClosing] = useState<string | null>(null) // opção escolhida ('' = sem opções)
-  const info = QUOTE_STATUS[q.status]
-  const multi = q.mode === 'opcoes' && q.options.length > 1
-  const value = q.status === 'aprovado' && multi && q.chosenOption ? `aprovado:${q.chosenOption}` : q.status
-  const change = (v: string) => {
+  const [closing, setClosing] = useState<{ q: Quote; option: string } | null>(null)
+  const change = (q: Quote, v: string) => {
     const [status, optionId] = v.split(':') as [QuoteStatus, string | undefined]
-    if (status === 'aprovado' && !q.projectId) return setClosing(optionId ?? '')
+    if (status === q.status && !optionId) return
+    if (status === 'aprovado' && !q.projectId) return setClosing({ q, option: optionId ?? '' })
     const next = { ...q, status, chosenOption: optionId ?? q.chosenOption, sentAt: status === 'rascunho' ? q.sentAt : q.sentAt || (q.noNumber || q.imported ? q.createdAt : today()) }
     if (status !== 'rascunho' && q.status === 'rascunho' && !q.noNumber) next.number = nextSentNumber(data.quotes, next) // sem número vago
     if (status === 'rascunho' && q.status !== 'rascunho' && !q.noNumber) {
@@ -229,6 +227,22 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
     upsert('quotes', next)
     toast(`Orçamento ${quoteNumber(q)} → ${QUOTE_STATUS[status].label.toLowerCase()}${next.number !== q.number ? ` (agora ${quoteNumber(next)})` : ''}`)
   }
+  const modal = closing && (
+    // a janela fica dentro da linha da tabela: o clique não pode abrir o orçamento
+    <span onClick={(e) => e.stopPropagation()}>
+      <CloseDeal q={{ ...closing.q, chosenOption: closing.option || closing.q.chosenOption }} onClose={() => setClosing(null)} />
+    </span>
+  )
+  return { change, modal }
+}
+
+/** Status do orçamento direto na lista. Aprovar pergunta o valor fechado e cria a demanda (uma única vez). */
+export function QuoteStatusSelect({ q }: { q: Quote }) {
+  const { change: changeQuote, modal } = useQuoteStatusChange()
+  const info = QUOTE_STATUS[q.status]
+  const multi = q.mode === 'opcoes' && q.options.length > 1
+  const value = q.status === 'aprovado' && multi && q.chosenOption ? `aprovado:${q.chosenOption}` : q.status
+  const change = (v: string) => changeQuote(q, v)
   return (
     <>
       <select
@@ -262,12 +276,7 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
               ],
         )}
       </select>
-      {closing !== null && (
-        // a janela fica dentro da linha da tabela: o clique não pode abrir o orçamento
-        <span onClick={(e) => e.stopPropagation()}>
-          <CloseDeal q={{ ...q, chosenOption: closing || q.chosenOption }} onClose={() => setClosing(null)} />
-        </span>
-      )}
+      {modal}
     </>
   )
 }

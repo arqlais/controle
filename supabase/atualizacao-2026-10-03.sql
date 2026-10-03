@@ -2,7 +2,7 @@
 -- Atualização de 03/10/2026 (planê)
 -- Cole TUDO no SQL Editor do Supabase e clique em Run. Pode rodar mais de uma vez: não apaga nada.
 -- Traz: histórico de versões de cada conta (backup automático, com "voltar como estava"),
---       apagar mensagem enviada no chat e teste grátis de 14 dias.
+--       apagar mensagem enviada no chat (fica "mensagem apagada"), indicação e teste grátis de 14 dias.
 -- ============================================================
 
 -- 1) Histórico de versões: antes de cada gravação, a versão anterior da conta fica guardada
@@ -77,9 +77,20 @@ end $$;
 revoke execute on function public.minhas_versoes(), public.restaurar_versao(bigint) from public, anon;
 grant execute on function public.minhas_versoes(), public.restaurar_versao(bigint) to authenticated;
 
--- 2) Chat: a dona pode apagar uma mensagem que ela mesma mandou
+-- 2) Chat: apagar uma mensagem que a própria pessoa mandou. Ela não some: fica "mensagem apagada" para os dois lados.
+alter table public.support_messages add column if not exists deleted_at timestamptz;
 drop policy if exists "chat: dona apaga as dela" on public.support_messages;
-create policy "chat: dona apaga as dela" on public.support_messages for delete using (public.sou_dona() and from_owner = true);
+create or replace function public.apagar_mensagem(msg uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.support_messages
+  set deleted_at = now(), body = 'apagada'
+  where id = msg and deleted_at is null
+    and ((from_owner and public.sou_dona()) or (not from_owner and client_id = auth.uid()));
+  if not found then raise exception 'mensagem não encontrada'; end if;
+end $$;
+revoke execute on function public.apagar_mensagem(uuid) from public, anon;
+grant execute on function public.apagar_mensagem(uuid) to authenticated;
 
 -- 3) Teste grátis: 14 dias para quem se cadastrar daqui para frente
 insert into public.platform_settings (id, data) values (1, '{}'::jsonb) on conflict (id) do nothing;

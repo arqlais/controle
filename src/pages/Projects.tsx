@@ -4,7 +4,7 @@ import { useStore } from '../store'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
 import { waitingDays } from './Quotes'
-import { PayNext, QuoteStatusSelect, StatusSelect, requestStatus, TaskQuick } from '../components/quick'
+import { PayNext, QuoteStatusSelect, useQuoteStatusChange, StatusSelect, requestStatus, TaskQuick } from '../components/quick'
 import { Icon } from '../components/Icon'
 import { ProjectForm } from '../components/forms'
 import { Badge, Empty, Segmented, usePaged } from '../components/ui'
@@ -72,9 +72,13 @@ export default function Projects() {
   const [scope, setScope] = useKeep<Scope>('dem-escopo', 'ativos')
   const [form, setForm] = useState(false)
   // arrastar cartões entre colunas: mouse (arrasta direto) e celular (segura um instante e arrasta)
+  const quoteStatus = useQuoteStatusChange()
   const drag = useCardDrag((id, col) => {
+    // orçamento (rascunho/enviado): entre as duas colunas muda o status; numa coluna de demanda, aprova
+    const qt = data.quotes.find((x) => x.id === id)
+    if (qt) return quoteStatus.change(qt, col === 'rascunho' || col === 'enviado' ? col : 'aprovado')
     const p = data.projects.find((x) => x.id === id)
-    if (p && p.status !== col) move(p, col)
+    if (p && p.status !== col && col !== 'rascunho' && col !== 'enviado') move(p, col)
   })
 
   const changeView = (v: View) => {
@@ -208,7 +212,7 @@ export default function Projects() {
             ).map(([st, label, color, empty]) => {
               const list = quotesIn[st]
               return (
-                <div key={st} className="column column-drafts">
+                <div key={st} data-col={st} className={`column column-drafts ${drag.over === st ? 'drop' : ''}`}>
                   <header>
                     <span className="dot" style={{ background: color }} />
                     <h4>{label}</h4>
@@ -217,7 +221,7 @@ export default function Projects() {
                   <p className="column-kind">orçamento · {st === 'rascunho' ? 'ainda não enviado' : 'esperando o cliente'}</p>
                   <div className="column-body">
                     {list.slice(0, 8).map((x) => (
-                      <div key={x.id} className="kcard kcard-draft" role="link" tabIndex={0} onClick={() => go('orcamentos', x.id)} onKeyDown={(e) => e.key === 'Enter' && go('orcamentos', x.id)}>
+                      <div key={x.id} className="kcard kcard-draft is-draggable" role="link" tabIndex={0} onPointerDown={(e) => drag.start(e, x.id)} onContextMenu={(e) => matchMedia('(pointer: coarse)').matches && e.preventDefault()} onClick={() => !drag.wasDragged() && go('orcamentos', x.id)} onKeyDown={(e) => e.key === 'Enter' && go('orcamentos', x.id)}>
                         <div className="kcard-top">
                           <span className="kcard-client">{x.clientId ? clientName(x.clientId) : 'sem cliente'}</span>
                           {x.number ? <span className="kcard-num">{quoteNumber(x)}</span> : null}
@@ -307,6 +311,7 @@ export default function Projects() {
       )}
 
       {form && <ProjectForm onClose={() => setForm(false)} onSaved={(p) => go('projetos', p.id)} />}
+      {quoteStatus.modal}
     </div>
   )
 }
@@ -527,8 +532,8 @@ function useDragScroll() {
 
 /** Arrastar um cartão para outra coluna, com mouse ou com o dedo.
  *  Mouse: começa a arrastar depois de mover alguns pixels. Toque: segura ~0,35 s (assim a rolagem continua normal). */
-function useCardDrag(onDrop: (id: string, col: ProjectStatus) => void) {
-  const [over, setOver] = useState<ProjectStatus | null>(null)
+function useCardDrag(onDrop: (id: string, col: string) => void) {
+  const [over, setOver] = useState<string | null>(null)
   const dragged = useRef(0)
   const start = (e: React.PointerEvent<HTMLElement>, id: string) => {
     if (e.button !== 0) return
@@ -541,7 +546,7 @@ function useCardDrag(onDrop: (id: string, col: ProjectStatus) => void) {
     let x = sx
     let y = sy
     let ghost: HTMLElement | null = null
-    let col: ProjectStatus | null = null
+    let col: string | null = null
     let timer = 0
     let scroll = 0
     const block = (ev: TouchEvent) => ev.preventDefault()
@@ -549,7 +554,7 @@ function useCardDrag(onDrop: (id: string, col: ProjectStatus) => void) {
       if (!ghost) return
       ghost.style.transform = `translate(${x - sx}px, ${y - sy}px) rotate(1.5deg)`
       const target = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-col]')
-      const next = (target?.dataset.col as ProjectStatus | undefined) ?? null
+      const next = target?.dataset.col ?? null
       if (next !== col) setOver((col = next))
     }
     // perto das bordas do quadro, ele rola sozinho para mostrar as outras colunas

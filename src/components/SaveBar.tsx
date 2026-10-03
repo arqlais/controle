@@ -122,7 +122,33 @@ export function useFormDraft<T>(key: string, initial: T) {
       /* ok */
     }
   }
-  return { value, setValue, restored, clear, restart, rebase }
+  const dirty = JSON.stringify(value) !== base.current
+  /** Fechar a janela (X, tocar fora, Esc) com mudanças: pergunta salvar ou descartar. O rascunho fica guardado até decidir. */
+  const guardClose = (onClose: () => void, save: () => void) => async () => {
+    if (!dirty) return onClose()
+    const c = await askChoice('Há mudanças que não foram salvas.', { confirmLabel: 'Salvar', altLabel: 'Sair sem salvar' })
+    if (c === 'cancel') return
+    if (c === 'confirm') return save()
+    clear()
+    onClose()
+  }
+  return { value, setValue, restored, clear, restart, rebase, dirty, guardClose }
+}
+
+/** Sair da tela (menu, voltar) com mudanças: pergunta "salvar e sair" ou "sair sem salvar". */
+export function useLeaveGuard(dirty: boolean, save: () => void) {
+  const saveRef = useRef(save)
+  saveRef.current = save
+  useEffect(() => {
+    if (!dirty) return
+    setLeaveGuard(async () => {
+      const c = await askChoice('Há mudanças que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
+      if (c === 'cancel') return false
+      if (c === 'confirm') saveRef.current()
+      return true
+    })
+    return () => setLeaveGuard(null)
+  }, [dirty])
 }
 
 /** Aviso de rascunho recuperado, com a opção de começar de novo. */

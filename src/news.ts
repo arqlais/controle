@@ -86,7 +86,7 @@ export const NEWS: News[] = [
     date: '2026-10-03',
     kind: 'novo',
     title: 'agora somos planê',
-    text: 'A plataforma ganhou nome definitivo: planê. Tudo continua igual por dentro, com os seus dados e configurações. Contato: equipe.plane@gmail.com · Instagram @sou.plane.',
+    text: 'A plataforma ganhou nome definitivo: planê. Tudo continua igual por dentro, com os seus dados e configurações. Contato: equipe.plane@gmail.com · Instagram @sou.plane · useplane.com.br.',
   },
   {
     id: '2026-10-03-leitura-pdf',

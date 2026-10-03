@@ -12,6 +12,7 @@ import { AIChat } from './components/AIChat'
 import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
+import { InstallGuide } from './components/InstallHint'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
 import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, setEventLabels, today } from './utils'
 import Dashboard from './pages/Dashboard'
@@ -230,6 +231,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [organizing, setOrganizing] = useState(false)
+  const [installGuide, setInstallGuide] = useState(false)
   const [dragNav, setDragNav] = useState<string | null>(null)
   // menu enxuto: quem é freelancer não vê o que é de cliente final (dá para mostrar de novo em "organizar menu")
   const navHidden = useMemo(() => settings.navHidden ?? (settings.workProfile === 'freelancer' && !access.isOwner ? FREELA_HIDDEN : []), [settings.navHidden, settings.workProfile, access.isOwner])
@@ -560,6 +562,12 @@ export default function App() {
                   <span>ver como cliente</span>
                 </button>
               )}
+              {g.key === 'ajustes' && (
+                <button type="button" className="is-tool nav-tour" onClick={() => setInstallGuide(true)} title="Pôr o planê na tela de início do celular">
+                  <Icon name="smartphone" />
+                  <span>app no celular</span>
+                </button>
+              )}
               {/* atalho para o portfólio: só da dona */}
               {g.key === 'ajustes' && siteUrl && access.isOwner && (
                 <a className="is-tool" href={siteUrl} target="_blank" rel="noreferrer" title="Abre em outra aba">
@@ -802,6 +810,7 @@ export default function App() {
         ))}
       </nav>
 
+      {installGuide && <InstallGuide onClose={() => setInstallGuide(false)} />}
       {quick === 'projeto' && <ProjectForm onClose={() => setQuick(null)} onSaved={(p) => go('projetos', p.id)} />}
       {quick === 'cliente' && <ClientForm onClose={() => setQuick(null)} onSaved={(c) => go('clientes', c.id)} />}
       {quick === 'evento' && <EventForm onClose={() => setQuick(null)} />}

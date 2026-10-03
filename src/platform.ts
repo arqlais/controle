@@ -151,6 +151,7 @@ export interface ChatMessage {
   body: string
   createdAt: string
   readAt?: string | null
+  deletedAt?: string | null // apagada por quem mandou: aparece como "mensagem apagada"
 }
 
 export interface OnlineHours {
@@ -282,6 +283,7 @@ const msgFromRow = (r: Row): ChatMessage => ({
   body: String(r.body ?? ''),
   createdAt: String(r.created_at),
   readAt: (r.read_at as string | null) ?? null,
+  deletedAt: (r.deleted_at as string | null) ?? null,
 })
 
 const cloud = {
@@ -436,7 +438,7 @@ const cloud = {
   },
   /** A dona apaga uma mensagem que mandou sem querer (some para as duas). */
   async removeMessage(id: string) {
-    const { error } = await supabase!.from('support_messages').delete().eq('id', id)
+    const { error } = await supabase!.rpc('apagar_mensagem', { msg: id })
     if (error) throw error
   },
   async markRead(clientId: string) {
@@ -829,7 +831,7 @@ const local = {
   },
   async removeMessage(id: string) {
     const db = readDB()
-    writeDB({ ...db, messages: db.messages.filter((x) => x.id !== id) })
+    writeDB({ ...db, messages: db.messages.map((x) => (x.id === id ? { ...x, body: 'apagada', deletedAt: new Date().toISOString() } : x)) })
   },
   async markRead(clientId: string) {
     const db = readDB()

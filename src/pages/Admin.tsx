@@ -845,9 +845,15 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
       <div className="pf-thread-body">
         {(msgs ?? []).map((m) => (
           <div key={m.id} className={`ai-msg ${m.fromOwner ? 'is-user' : 'is-ai'}`}>
-            <p>
-              <RichText text={m.body} />
-            </p>
+            {m.deletedAt ? (
+              <p className="pf-msg-deleted">
+                <Icon name="x" size={12} /> mensagem apagada
+              </p>
+            ) : (
+              <p>
+                <RichText text={m.body} />
+              </p>
+            )}
             <small className="pf-msg-time">
               {timeLabel(m.createdAt)}
               {m.fromOwner && (
@@ -855,14 +861,14 @@ function Thread({ clientId, sub, onBack, onChange }: { clientId: string; sub?: S
                   {m.readAt ? '✓✓' : '✓'}
                 </span>
               )}
-              {m.fromOwner && (
+              {m.fromOwner && !m.deletedAt && (
                 <button
                   type="button"
                   className="pf-msg-del"
-                  title="Apagar esta mensagem (some para os dois lados)"
+                  title="Apagar esta mensagem (fica “mensagem apagada” para os dois lados)"
                   aria-label="Apagar mensagem"
                   onClick={async () => {
-                    if (!(await askDelete('esta mensagem (ela some também para quem recebeu)'))) return
+                    if (!(await askDelete('esta mensagem (para quem recebeu, fica “mensagem apagada”)'))) return
                     try {
                       await platform.removeMessage(m.id)
                       await onChange()

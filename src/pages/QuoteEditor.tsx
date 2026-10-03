@@ -453,7 +453,10 @@ export default function QuoteEditor({ id }: { id: string }) {
     toast(`Duplicado como ${quoteNumber(copy)} · ${fmtDateLong(copy.createdAt)} (rascunho).`)
   }
 
-  const line = (i: QuoteItem) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` · ${cleanDetail(i.detail)}` : ''} — ${money(i.price)}`
+  // sem PDF no plano: o texto vai completo (o que está incluso, prazo, validade e revisões), pronto para WhatsApp ou e-mail
+  const full = !showPdf
+  const line = (i: QuoteItem) =>
+    `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` · ${cleanDetail(i.detail)}` : ''} — ${money(i.price)}${full && i.description?.trim() ? `\n${i.description.trim().split('\n').map((l) => `   ${l.trim().replace(/^[-•]\s*/, '')}`).join('\n')}` : ''}`
   // enviar: com PDF vai a mensagem curta dela; copiar resumo: sempre o resumo com os valores
   const text = (short = true) => {
     // com PDF: a mensagem curta dela ("te encaminhei o pdf com a proposta…"), editável em configurações → mensagens
@@ -466,7 +469,10 @@ export default function QuoteEditor({ id }: { id: string }) {
           ...(isCombo(q) && q.comboDiscount ? [`*fechando ${allLabel(q).toLowerCase()} juntas: ${money(comboTotal(q))}* (em vez de ${money(comboSeparate(q))})`, ''] : []),
         ]
       : [...(q.urgency && q.urgencyHidden ? q.items.map((it) => ({ ...it, price: Math.round(it.price * (1 + settings.urgencyFee / 100) * 100) / 100 })) : q.items).map(line), q.urgency && !q.urgencyHidden ? `• taxa de urgência (${settings.urgencyFee}%) — ${money((sub * settings.urgencyFee) / 100)}` : '', q.discount ? `• desconto — −${money(q.discount)}` : '', '', `*investimento total: ${money(total)}*`, months ? `(pacote em ${months}× de ${money(Math.round((total / months) * 100) / 100)} por mês)` : '']
-    return [...head, ...body, payText ? `pagamento: ${payText}` : '', q.schedule ? `prazos: ${q.schedule}` : '', '', 'é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre']
+    const extra = full
+      ? [q.deadlineDays && !two ? `prazo de entrega: ${q.deadlineDays} dias` : '', q.revisions ? `revisões inclusas: ${q.revisions}` : '', q.validityDays ? `proposta válida por ${q.validityDays} dias` : '', q.notes?.trim() ? `\n${q.notes.trim()}` : '']
+      : []
+    return [...head, ...body, payText ? `pagamento: ${payText}` : '', q.schedule ? `prazos: ${q.schedule}` : '', ...extra, '', 'é negociável ☺️ fico à disposição caso queira ajustar ou conversar sobre']
       .filter((l, i, arr) => l !== '' || arr[i - 1] !== '')
       .join('\n')
   }
@@ -537,6 +543,25 @@ export default function QuoteEditor({ id }: { id: string }) {
             <button className="btn primary" disabled={pdf.busy} onClick={() => downloadPdf(false)}>
               <Icon name="download" size={16} /> {pdf.busy ? 'gerando…' : 'baixar PDF'}
             </button>
+          )}
+          {!showPdf && (
+            <button
+              className="btn primary"
+              onClick={() =>
+                navigator.clipboard
+                  ?.writeText(text(false))
+                  .then(() => toast('Orçamento copiado, organizado para colar no WhatsApp ou no e-mail.'))
+                  .catch(() => toast('Não deu para copiar aqui.'))
+              }
+              title="Copia o orçamento inteiro, organizado, para colar no WhatsApp, e-mail ou onde quiser"
+            >
+              <Icon name="copy" size={16} /> copiar orçamento
+            </button>
+          )}
+          {!showPdf && client?.email && (
+            <a className="btn ghost" href={`mailto:${client.email}?subject=${encodeURIComponent(`Proposta ${quoteNumber(q)}${q.title ? ` · ${q.title}` : ''}`)}&body=${encodeURIComponent(text(false).replace(/\*/g, ''))}`} onClick={() => q.status === 'rascunho' && save({ status: 'enviado' })}>
+              <Icon name="mail" size={16} /> e-mail
+            </a>
           )}
           {client?.phone && (
             <a

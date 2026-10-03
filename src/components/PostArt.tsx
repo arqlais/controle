@@ -7,14 +7,26 @@ import { Icon } from './Icon'
 import { toast } from './dialog'
 import { ARTIFACT } from '../env'
 import type { PostFormat, Settings } from '../types'
+import { useAccess } from '../access'
 
 /* Artes prontas das postagens, na identidade da marca.
    A mesma descrição de cada slide desenha a prévia, o PNG, o PDF e o PowerPoint (.pptx)
    — o .pptx abre no Canva com os textos editáveis (Criar design → Importar arquivo). */
 
-const C = { slate: '#4a5d6b', rose: '#d0aca3', paper: '#fafaf7', text: '#584f4a', card: '#f5f1ed', line: '#e7e2d9', white: '#ffffff' }
+// cores e fonte da Laís só nas artes dela; quem assina usa as cores da própria marca e uma serifada gratuita
+const OWNER_C = { slate: '#4a5d6b', rose: '#d0aca3', paper: '#fafaf7', text: '#584f4a', card: '#f5f1ed', line: '#e7e2d9', white: '#ffffff' }
+let C = OWNER_C
 const SANS = 'Poppins'
-const SERIF = 'The Seasons'
+let SERIF = 'The Seasons'
+function applyArtLook(s: Settings, exclusive: boolean) {
+  if (exclusive) {
+    C = OWNER_C
+    SERIF = 'The Seasons'
+    return
+  }
+  C = { slate: s.accent || '#3e4b57', rose: s.accentSoft || '#d6b3ab', paper: '#fafaf8', text: s.text || '#3e4b57', card: s.background || '#f5f1ee', line: '#e6e2dc', white: '#ffffff' }
+  SERIF = s.displayFont && s.displayFont !== 'The Seasons' ? s.displayFont : 'Cormorant Garamond'
+}
 
 type Box = { x: number; y: number; w: number; h: number }
 type TextEl = Box & { kind: 'text'; text: string; size: number; color: string; font?: 'sans' | 'serif'; bold?: boolean; italic?: boolean; align?: 'left' | 'center' | 'right'; spacing?: number; upper?: boolean }
@@ -199,6 +211,8 @@ const hex = (c: string) => c.replace('#', '').toUpperCase()
 const fileBase = (t: string) => (t || 'post').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 60)
 
 export function ArtModal({ source, settings, onClose }: { source: ArtSource; settings: Settings; onClose: () => void }) {
+  const { has } = useAccess()
+  applyArtLook(settings, has('fonteExclusiva'))
   const slides = buildSlides(source, settings)
   const { w, h } = size(source.format)
   const stage = useRef<HTMLDivElement>(null)
@@ -208,7 +222,7 @@ export function ArtModal({ source, settings, onClose }: { source: ArtSource; set
   const nodes = () => [...(stage.current?.querySelectorAll<HTMLElement>('.art-slide') ?? [])]
   const guard = () => {
     if (ARTIFACT) {
-      toast('Para baixar, use o sistema publicado (arqlais.github.io/controle).')
+      toast('Para baixar, use o sistema publicado.')
       return false
     }
     return true

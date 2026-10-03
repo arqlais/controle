@@ -60,6 +60,20 @@ export async function renderSheet<T>(el: HTMLElement, fn: (el: HTMLElement, o: R
 
 export const errText = (e: unknown) => (e instanceof Event ? 'uma imagem não carregou' : e instanceof Error ? e.message : String(e)).slice(0, 80)
 
+/** Crédito discreto do planê no pé de cada folha (PDF, imagem e impressão). */
+function madeWith(el: HTMLElement) {
+  const pages = [...el.querySelectorAll<HTMLElement>('.slide, .pdf-page')]
+  const targets = pages.length ? pages : [el]
+  for (const t of targets) {
+    if (t.querySelector(':scope > .made-with')) continue
+    if (getComputedStyle(t).position === 'static') t.style.position = 'relative'
+    const tag = document.createElement('span')
+    tag.className = 'made-with'
+    tag.textContent = 'feito com planê'
+    t.appendChild(tag)
+  }
+}
+
 export function usePdf() {
   const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean; slides?: boolean; page?: [number, number] } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
@@ -76,6 +90,7 @@ export function usePdf() {
         await new Promise((r) => setTimeout(r, 150))
         const el = ref.current?.firstElementChild as HTMLElement | null
         if (!el || cancelled) return
+        madeWith(el)
         if (job.vector) {
           // PDF em vetor: o próprio navegador desenha a folha (textos continuam texto, nítidos e selecionáveis).
           // O nome do arquivo sai do título da página.

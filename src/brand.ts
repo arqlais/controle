@@ -62,8 +62,8 @@ export const EXCLUSIVE_FONT = 'The Seasons'
 export const OWN_FONT = 'Minha fonte'
 /** Fonte do texto enviada pelo próprio cliente. */
 export const OWN_BODY_FONT = 'Minha fonte (texto)'
-/** Padrão dos clientes: serifada elegante em itálico, parecida com a The Seasons. */
-export const CLIENT_DISPLAY = 'Playfair Display'
+/** Padrão dos clientes: a serifada da marca planê (gratuita). */
+export const CLIENT_DISPLAY = 'Cormorant Garamond'
 
 export const DISPLAY_FONTS: { name: string; mood: string }[] = [
   { name: 'Playfair Display', mood: 'elegante, alto contraste' },

@@ -108,7 +108,7 @@ export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?
   return (
     <Modal
       title={initial ? 'Editar cliente' : 'Novo cliente'}
-      onClose={onClose}
+      onClose={draft.guardClose(onClose, () => void save())}
       footer={
         <>
           {initial && (
@@ -416,7 +416,7 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
     <Modal
       wide
       title={initial ? 'Editar projeto' : past ? 'Trabalho antigo' : 'Nova demanda'}
-      onClose={onClose}
+      onClose={draft.guardClose(onClose, () => void save())}
       footer={
         <>
           {initial && (
@@ -584,7 +584,7 @@ export function ExpenseForm({ initial, onClose }: { initial?: Expense; onClose: 
   return (
     <Modal
       title={initial ? 'Editar despesa' : 'Nova despesa'}
-      onClose={onClose}
+      onClose={draft.guardClose(onClose, () => void save())}
       footer={
         <>
           {initial && (
@@ -673,7 +673,7 @@ export function EventForm({ initial, date, isNew, onClose }: { initial?: Calenda
   return (
     <Modal
       title={editing ? 'Editar compromisso' : 'Novo compromisso'}
-      onClose={onClose}
+      onClose={draft.guardClose(onClose, () => void save())}
       footer={
         <>
           {editing && (

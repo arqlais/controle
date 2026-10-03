@@ -5,7 +5,7 @@ import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, MoreMenu, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
-import { useFormDraft } from '../components/SaveBar'
+import { useFormDraft, useLeaveGuard } from '../components/SaveBar'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
@@ -317,6 +317,12 @@ function ContractEditor({ id }: { id: string }) {
   useEffect(() => {
     if (arrived) setC((x) => (x ? { ...x, sign: arrived, status: 'assinado' } : x))
   }, [arrived])
+  useLeaveGuard(!!c && JSON.stringify(c) !== JSON.stringify(found), () => {
+    if (c) {
+      upsert('contracts', c)
+      draft.rebase(c)
+    }
+  })
   if (!c) return <Empty icon="file" title="contrato não encontrado" action={<a className="btn" href={href('contratos')}>ver contratos</a>} />
   const client = data.clients.find((x) => x.id === c.clientId)
   const quote = data.quotes.find((x) => x.id === c.quoteId)

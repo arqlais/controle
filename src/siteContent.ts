@@ -97,6 +97,7 @@ c) Anual: 12 meses com meses grátis (desconto), pagos à vista no Pix ou no car
 5.4 No semestral e no anual parcelados no cartão, a compra é única (o plano de 6 ou 12 meses) e é dividida pela operadora do cartão. Cancelar a assinatura não interrompe as parcelas já contratadas; eventual devolução segue as regras dos itens 6 e 7.
 5.5 Contestação de pagamento junto ao banco ou à operadora do cartão (chargeback) por serviço efetivamente disponibilizado pausa a conta até a regularização, sem prejuízo da cobrança do valor devido.
 5.6 Mudanças de preço são avisadas com antecedência mínima de 30 dias e valem a partir do período seguinte. O período já pago não muda de preço.
+5.7 Preço de fundador: os primeiros assinantes, enquanto a oferta estiver aberta na página de planos, mantêm o valor contratado mesmo com reajustes futuros da tabela, desde que a assinatura continue ativa sem interrupção e no mesmo plano. Se a assinatura for cancelada ou trocada de plano, vale o preço vigente na nova contratação.
 
 6. DIREITO DE ARREPENDIMENTO (7 DIAS)
 6.1 Conforme o art. 49 do Código de Defesa do Consumidor, o USUÁRIO pode desistir da assinatura em até 7 (sete) dias contados do primeiro pagamento, com devolução integral do valor pago, pelo mesmo meio de pagamento (no cartão, com o estorno da compra inteira).
@@ -122,8 +123,12 @@ c) Anual: 12 meses com meses grátis (desconto), pagos à vista no Pix ou no car
 9.2 O USUÁRIO deve manter cópias de segurança (backup) dos seus dados. A plataforma oferece a exportação a qualquer momento.
 9.3 A PLATAFORMA não se responsabiliza pelo conteúdo que o USUÁRIO cria nem pela relação dele com os próprios clientes.
 
-10. PROPRIEDADE INTELECTUAL
-O sistema, a marca e o visual da PLATAFORMA pertencem à PLATAFORMA. O USUÁRIO não pode copiar, revender ou redistribuir o sistema.
+10. PROPRIEDADE INTELECTUAL E PROIBIÇÃO DE CÓPIA
+10.1 O sistema, o nome e a marca ${PLATFORM.name}, o símbolo, o visual das telas, os textos, os modelos de documentos, as funcionalidades, a organização das informações e o código pertencem à PLATAFORMA e são protegidos pela Lei de Direitos Autorais (Lei 9.610/98), pela Lei de Software (Lei 9.609/98) e pela Lei de Propriedade Industrial (Lei 9.279/96).
+10.2 A assinatura dá ao USUÁRIO apenas o direito de usar a plataforma, de forma pessoal e não exclusiva, enquanto estiver ativa. Nenhum direito de propriedade é transferido.
+10.3 É proibido, sem autorização por escrito: copiar, reproduzir, imitar ou adaptar o sistema, as telas, os fluxos, os modelos ou os textos, no todo ou em parte; usar a plataforma como referência para criar produto concorrente; fazer engenharia reversa, extrair dados de forma automatizada ou tentar acessar o código; revender, sublicenciar, alugar ou compartilhar o acesso.
+10.4 O descumprimento permite o encerramento imediato da conta, sem devolução, além das medidas legais cabíveis, inclusive indenização por perdas e danos.
+10.5 Os documentos que o USUÁRIO cria para os próprios clientes (propostas, contratos, recibos) podem ser usados livremente por ele; o crédito discreto “feito com ${PLATFORM.name}” faz parte do serviço.
 
 11. ALTERAÇÕES DESTES TERMOS
 Mudanças importantes são avisadas dentro da plataforma. Continuar usando depois do aviso significa concordar com a nova versão.
@@ -204,6 +209,6 @@ export function freshSite(c: SiteContent): SiteContent {
   for (const [k, v] of Object.entries(OLD_TEXTS) as [keyof SiteContent, string][]) if (out[k] === v) (out as Record<string, unknown>)[k] = DEFAULT_SITE[k]
   // contato da marca planê: entra quando ainda não foi preenchido
   if (!out.instagram?.trim() || /traco/i.test(out.instagram)) out.instagram = DEFAULT_SITE.instagram
-  if (!out.email?.trim()) out.email = DEFAULT_SITE.email
+  if (!out.email?.trim() || /arq\.laisav|traco/i.test(out.email)) out.email = DEFAULT_SITE.email
   return out
 }

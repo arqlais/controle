@@ -1,6 +1,6 @@
 import type { Settings } from '../../types'
 import type { PhotoPos, PlaqueData, PlaqueLayout } from '../../docTypes'
-import { photoStyle } from '../DocKit'
+import { FitBackdrop, photoStyle } from '../DocKit'
 import { QR, linkFrom, useDocLook } from '../DocKit'
 import { DocPage } from './DocPage'
 import { showsLogo } from '../../proposalTemplates'
@@ -23,6 +23,7 @@ export function FramedPhoto({ src, pos, className = '' }: { src: string; pos?: P
   const p = pos ?? { x: 50, y: 50, zoom: 1 }
   return (
     <span className={`pq-ph ${className}`}>
+      <FitBackdrop src={src} pos={p} />
       <img src={src} alt="" style={photoStyle(p)} />
     </span>
   )

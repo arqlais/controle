@@ -20,9 +20,9 @@ const OTHER = 24
 function itemHeight(d: WorkDoc, i: WorkItem) {
   const desc = i.desc?.trim() ? Math.ceil(i.desc.length / 70) * 0.5 : 0
   if (d.layout === 'tabela') return 1 + desc * 0.8 + (i.photo ? 0.4 : 0)
-  if (d.layout === 'lista') return 1.1 + desc + (i.photo ? 2.2 : 0)
-  if (d.layout === 'fichas') return i.photo ? 8.2 : 2.6 + desc
-  return 0 // cartões: medido por par
+  if (d.layout === 'lista') return 1.05 + desc * 0.7
+  if (d.layout === 'fichas') return i.photo ? 7.3 : 2.9 + desc * 0.8
+  return 0 // cartões: medido por trio
 }
 
 function blocks(d: WorkDoc): Block[] {
@@ -30,11 +30,11 @@ function blocks(d: WorkDoc): Block[] {
   for (const g of groupItems(d.items)) {
     if (g.group) out.push({ kind: 'group', label: g.group, h: 1.2 })
     if (d.layout === 'cartoes') {
-      for (let k = 0; k < g.items.length; k += 2) {
-        const pair = g.items.slice(k, k + 2)
-        const anyPhoto = pair.some((x) => x.photo)
-        const text = Math.max(...pair.map((x) => (x.desc?.length ?? 0) / 40))
-        out.push({ kind: 'items', items: pair, h: (anyPhoto ? 5.4 : 1.2) + 1.6 + text * 0.45 })
+      for (let k = 0; k < g.items.length; k += 3) {
+        const row = g.items.slice(k, k + 3)
+        const anyPhoto = row.some((x) => x.photo)
+        const text = Math.max(...row.map((x) => (x.desc?.length ?? 0) / 30))
+        out.push({ kind: 'items', items: row, h: (anyPhoto ? 4.6 : 0.6) + 1.5 + text * 0.42 })
       }
     } else for (const i of g.items) out.push({ kind: 'items', items: [i], h: itemHeight(d, i) })
   }
@@ -64,6 +64,7 @@ export function WorkDocView({ s, doc, clientName, projectName }: { s: Settings; 
   const look = useDocLook(s)
   const k = WORK_KINDS[doc.kind]
   const { pages, tailFits } = paginate(doc)
+  const num = new Map(doc.items.map((x, i) => [x.id, i + 1]))
   const total = pages.length + (tailFits ? 0 : 1)
   const words = doc.title.trim().split(' ')
   const meta: [string, string][] = [
@@ -132,7 +133,7 @@ export function WorkDocView({ s, doc, clientName, projectName }: { s: Settings; 
               {doc.intro?.trim() && <p className="wd-intro">{doc.intro}</p>}
             </header>
           )}
-          <Page doc={doc} blocks={page} />
+          <Page doc={doc} blocks={page} num={num} />
           {n === pages.length - 1 && tailFits && tail}
         </DocPage>
       ))}
@@ -145,16 +146,44 @@ export function WorkDocView({ s, doc, clientName, projectName }: { s: Settings; 
   )
 }
 
-function Page({ doc, blocks }: { doc: WorkDoc; blocks: Block[] }) {
+function Page({ doc, blocks, num }: { doc: WorkDoc; blocks: Block[]; num: Map<string, number> }) {
   if (doc.layout === 'tabela') return <Table doc={doc} blocks={blocks} />
   const out: ReactNode[] = []
   blocks.forEach((b, n) => {
-    if (b.kind === 'group') out.push(<h3 key={`g${n}`} className="wd-group">{b.label}</h3>)
-    else if (doc.layout === 'cartoes') out.push(<div key={n} className="wd-cards">{b.items.map((i) => <Card key={i.id} doc={doc} i={i} />)}</div>)
-    else if (doc.layout === 'fichas') out.push(<Sheet key={n} doc={doc} i={b.items[0]} />)
-    else out.push(<Row key={n} doc={doc} i={b.items[0]} />)
+    if (b.kind === 'group')
+      out.push(
+        <h3 key={`g${n}`} className="wd-group">
+          {b.label}
+        </h3>,
+      )
+    else if (doc.layout === 'cartoes')
+      out.push(
+        <div key={n} className="wd-cards">
+          {b.items.map((i) => (
+            <Card key={i.id} doc={doc} i={i} />
+          ))}
+        </div>,
+      )
+    else if (doc.layout === 'fichas') out.push(<Sheet key={n} doc={doc} i={b.items[0]} n={num.get(b.items[0].id) ?? 0} />)
+    else out.push(<Row key={n} doc={doc} i={b.items[0]} n={num.get(b.items[0].id) ?? 0} />)
   })
   return <div className="wd-body">{out}</div>
+}
+
+const two = (n: number) => String(n).padStart(2, '0')
+
+/** Os dados de um item em pares (rótulo → valor), para a ficha técnica. */
+function pairs(doc: WorkDoc, i: WorkItem): [string, ReactNode][] {
+  const k = WORK_KINDS[doc.kind]
+  const out: [string, ReactNode][] = []
+  if (has(doc.kind, 'qty') && i.qty) out.push(['quantidade', `${i.qty.toLocaleString('pt-BR')} ${i.unit ?? ''}`.trim()])
+  if (has(doc.kind, 'price') && i.price) out.push([has(doc.kind, 'qty') ? 'valor unit.' : k.priceLabel ?? 'valor', brl(i.price)])
+  if (has(doc.kind, 'price') && has(doc.kind, 'qty') && i.price && (i.qty ?? 1) > 1) out.push(['total', brl(itemTotal(doc.kind, i))])
+  if (has(doc.kind, 'who') && i.who?.trim()) out.push([k.whoLabel ?? 'quem', i.who])
+  if (has(doc.kind, 'date') && i.date) out.push([k.dateLabel ?? 'data', fmt(i.date)])
+  if (has(doc.kind, 'done') && k.doneLabel) out.push([k.doneLabel, i.done ? 'sim' : 'ainda não'])
+  if (has(doc.kind, 'link') && i.link?.trim()) out.push(['link', <span className="wd-link">{shortLink(i.link)}</span>])
+  return out
 }
 
 function Mark({ on }: { on?: boolean }) {
@@ -170,7 +199,7 @@ function Mark({ on }: { on?: boolean }) {
 }
 
 /** Linha de detalhes: quantidade, valor, quem, data, link. */
-function Facts({ doc, i }: { doc: WorkDoc; i: WorkItem }) {
+function Facts({ doc, i, inline }: { doc: WorkDoc; i: WorkItem; inline?: boolean }) {
   const k = WORK_KINDS[doc.kind]
   const parts: ReactNode[] = []
   if (has(doc.kind, 'qty') && i.qty) parts.push(`${i.qty.toLocaleString('pt-BR')} ${i.unit ?? ''}`.trim())
@@ -179,6 +208,14 @@ function Facts({ doc, i }: { doc: WorkDoc; i: WorkItem }) {
   if (has(doc.kind, 'date') && i.date) parts.push(`${k.dateLabel ?? ''} ${fmt(i.date)}`.trim())
   if (has(doc.kind, 'link') && i.link?.trim()) parts.push(<span className="wd-link">{shortLink(i.link)}</span>)
   if (!parts.length) return null
+  if (inline)
+    return (
+      <span className="wd-idx-facts">
+        {parts.map((p, n) => (
+          <span key={n}>{p}</span>
+        ))}
+      </span>
+    )
   return (
     <p className="wd-facts">
       {parts.map((p, n) => (
@@ -188,49 +225,66 @@ function Facts({ doc, i }: { doc: WorkDoc; i: WorkItem }) {
   )
 }
 
-function Row({ doc, i }: { doc: WorkDoc; i: WorkItem }) {
+/** Lista: um índice compacto — número, item, pontilhado até os dados, como um sumário. */
+function Row({ doc, i, n }: { doc: WorkDoc; i: WorkItem; n: number }) {
   return (
-    <div className={`wd-row ${i.done ? 'is-done' : ''}`}>
-      {has(doc.kind, 'done') && <Mark on={i.done} />}
-      <div className="wd-row-text">
-        <b>{i.title}</b>
-        {i.desc?.trim() && <p>{i.desc}</p>}
-        <Facts doc={doc} i={i} />
-        {i.photo && <FramedPhoto src={i.photo} pos={i.photoPos} className="wd-row-photo" />}
+    <div className={`wd-idx ${i.done ? 'is-done' : ''}`}>
+      <span className="wd-idx-n">{two(n)}</span>
+      <div className="wd-idx-main">
+        <span className="wd-idx-line">
+          <b>{i.title}</b>
+          <i className="wd-idx-dots" aria-hidden />
+          <Facts doc={doc} i={i} inline />
+          {has(doc.kind, 'done') && <Mark on={i.done} />}
+        </span>
+        {i.desc?.trim() && <small>{i.desc}</small>}
       </div>
+      {i.photo && <FramedPhoto src={i.photo} pos={i.photoPos} className="wd-idx-photo" />}
     </div>
   )
 }
 
+/** Cartões: um painel de referências, três por linha, foto quadrada em destaque. */
 function Card({ doc, i }: { doc: WorkDoc; i: WorkItem }) {
   return (
-    <article className={`wd-card ${i.done ? 'is-done' : ''}`}>
-      {i.photo ? <FramedPhoto src={i.photo} pos={i.photoPos} className="wd-card-photo" /> : <span className="wd-card-photo wd-nophoto" aria-hidden />}
-      <div className="wd-card-text">
+    <figure className={`wd-mood ${i.done ? 'is-done' : ''}`}>
+      {i.photo ? <FramedPhoto src={i.photo} pos={i.photoPos} className="wd-mood-photo" /> : <span className="wd-mood-photo wd-mood-empty" aria-hidden><i>{(i.title || '?').slice(0, 1)}</i></span>}
+      <figcaption>
         <b>
           {has(doc.kind, 'done') && <Mark on={i.done} />}
           {i.title}
         </b>
         {i.desc?.trim() && <p>{i.desc}</p>}
         <Facts doc={doc} i={i} />
-      </div>
-    </article>
+      </figcaption>
+    </figure>
   )
 }
 
-function Sheet({ doc, i }: { doc: WorkDoc; i: WorkItem }) {
+/** Fichas: ficha técnica de cada item — faixa com o número, especificação em pares e a foto grande, alternando os lados. */
+function Sheet({ doc, i, n }: { doc: WorkDoc; i: WorkItem; n: number }) {
+  const list = pairs(doc, i)
   return (
-    <article className={`wd-sheet ${i.photo ? 'has-photo' : ''}`}>
-      {i.photo && <FramedPhoto src={i.photo} pos={i.photoPos} className="wd-sheet-photo" />}
-      <div className="wd-sheet-text">
-        {has(doc.kind, 'date') && i.date && <p className="d-label">{fmt(i.date)}</p>}
-        <b>
-          {has(doc.kind, 'done') && <Mark on={i.done} />}
-          {i.title}
-        </b>
-        {i.desc?.trim() && <p>{i.desc}</p>}
-        <Facts doc={doc} i={{ ...i, date: undefined }} />
+    <article className={`wd-spec ${i.photo ? 'has-photo' : ''} ${n % 2 === 0 ? 'is-flip' : ''}`}>
+      <div className="wd-spec-band">
+        <small>nº</small>
+        <b>{two(n)}</b>
       </div>
+      <div className="wd-spec-body">
+        <h4>{i.title}</h4>
+        {i.desc?.trim() && <p className="wd-spec-desc">{i.desc}</p>}
+        {list.length > 0 && (
+          <dl className="wd-spec-dl">
+            {list.map(([a, b]) => (
+              <div key={a}>
+                <dt>{a}</dt>
+                <dd>{b}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </div>
+      {i.photo && <FramedPhoto src={i.photo} pos={i.photoPos} className="wd-spec-photo" />}
     </article>
   )
 }

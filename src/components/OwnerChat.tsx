@@ -7,7 +7,7 @@ import { PLATFORM } from '../plans'
 import { PREVIEW_CLIENT, hoursSummary, isOnline, nextOnline, platform } from '../platform'
 import { timeLabel, useConversation, useHours } from '../chat'
 import { RichInput, RichText, richPlain } from './RichText'
-import { toast } from './dialog'
+import { askDelete, toast } from './dialog'
 import { systemNotify, useNotifyAsk } from '../notify'
 
 /* Chat dos clientes com a dona (no lugar do assistente de IA).
@@ -19,7 +19,7 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const { msgs, error, send, markRead } = useConversation(clientId)
+  const { msgs, error, send, markRead, reload } = useConversation(clientId)
   const [hours] = useHours()
   const online = isOnline(hours)
   const next = nextOnline(hours)
@@ -123,10 +123,42 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
             ) : (
               msgs.map((m) => (
                 <div key={m.id} className={`ai-msg ${m.fromOwner ? 'is-ai' : 'is-user'}`}>
-                  <p>
-                    <RichText text={m.body} />
-                  </p>
-                  <small className="pf-msg-time">{timeLabel(m.createdAt)}</small>
+                  {m.deletedAt ? (
+                    <p className="pf-msg-deleted">
+                      <Icon name="x" size={12} /> mensagem apagada
+                    </p>
+                  ) : (
+                    <p>
+                      <RichText text={m.body} />
+                    </p>
+                  )}
+                  <small className="pf-msg-time">
+                    {timeLabel(m.createdAt)}
+                    {!m.fromOwner && !m.deletedAt && (
+                      <>
+                        <span className={`pf-ticks ${m.readAt ? 'is-read' : ''}`} aria-label={m.readAt ? 'vista' : 'enviada'} title={m.readAt ? 'vista' : 'enviada'}>
+                          {m.readAt ? '✓✓' : '✓'}
+                        </span>
+                        <button
+                          type="button"
+                          className="pf-msg-del"
+                          title="Apagar esta mensagem"
+                          aria-label="Apagar mensagem"
+                          onClick={async () => {
+                            if (!(await askDelete('esta mensagem'))) return
+                            try {
+                              await platform.removeMessage(m.id)
+                              await reload()
+                            } catch {
+                              toast('Não deu para apagar agora. Tente de novo daqui a pouco.')
+                            }
+                          }}
+                        >
+                          <Icon name="trash" size={12} />
+                        </button>
+                      </>
+                    )}
+                  </small>
                 </div>
               ))
             )}

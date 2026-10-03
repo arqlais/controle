@@ -269,6 +269,11 @@ export function photoStyle(pos?: PhotoPos, defaultFit = false): CSSProperties | 
   return { objectFit: 'cover', objectPosition: `${pos.x}% ${pos.y}%`, transform: pos.zoom > 1 ? `scale(${pos.zoom})` : undefined, transformOrigin: `${pos.x}% ${pos.y}%` }
 }
 
+/** "Encaixar inteira": a mesma foto, desfocada, preenche o espaço de fora a fora (nada de faixa branca nas laterais). */
+export function FitBackdrop({ src, pos }: { src: string; pos?: PhotoPos }) {
+  return pos?.fit ? <img className="ph-backdrop" src={src} alt="" aria-hidden draggable={false} /> : null
+}
+
 /** Ajustar a foto dentro do molde: recortar (arrastar e aproximar) ou encaixar a foto inteira. */
 export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { src: string; pos?: PhotoPos; aspect: number; onChange: (p: PhotoPos) => void; defaultFit?: boolean }) {
   const p: PhotoPos = pos ?? { x: 50, y: 50, zoom: 1, fit: defaultFit }
@@ -305,6 +310,7 @@ export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { 
         onPointerUp={() => (drag.current = null)}
         onPointerCancel={() => (drag.current = null)}
       >
+        <FitBackdrop src={src} pos={p} />
         <img src={src} alt="" draggable={false} style={photoStyle(p) ?? { objectFit: 'cover' }} />
         <span className="dk-crop-hint">
           <Icon name={p.fit ? 'check' : 'grid'} size={13} /> {p.fit ? 'a foto inteira aparece no espaço' : 'arraste para enquadrar'}

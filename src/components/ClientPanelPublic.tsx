@@ -42,7 +42,7 @@ export function ClientPanelPublic({ id, data, preview }: { id: string; data?: Pa
   const wrap = (children: ReactNode) => (
     <div className={`bf-public pn-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
       <div className="bf-card">{children}</div>
-      <p className="bf-foot">feito com planê</p>
+      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê</a></p>
     </div>
   )
   if (d === undefined) return wrap(<p className="muted">carregando…</p>)
@@ -125,6 +125,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
       <header className={`cp-hero ${d.cover ? 'has-cover' : ''}`}>
         {d.cover && (
           <div className="cp-cover">
+            {d.coverPos?.fit && <img className="ph-backdrop" src={d.cover} alt="" aria-hidden />}
             <img src={d.cover} alt="Capa do projeto" style={coverStyle(d.coverPos)} />
           </div>
         )}
