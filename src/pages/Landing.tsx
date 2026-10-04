@@ -4,7 +4,8 @@ import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
 import { readRef } from '../platform'
-import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, REFERRAL, money0, type Feature, type PlanId } from '../plans'
+import { DIRECT_KEY } from '../plans'
+import { LAUNCHED, SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, REFERRAL, money0, type Feature, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -323,6 +324,14 @@ export default function Landing() {
   const final = aud === 'final'
   const heroWords = siteWords
   const signup = (plan?: PlanId) => go('cadastro', plan)
+  // assinar direto: depois de criar a conta, abre o pagamento do plano (sem esperar o teste)
+  const rememberDirect = (plan: PlanId) => {
+    try {
+      localStorage.setItem(DIRECT_KEY, plan)
+    } catch {
+      /* segue para o cadastro normal */
+    }
+  }
   const [cycle, setCycle] = useCycle()
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
@@ -644,9 +653,16 @@ export default function Landing() {
                     </button>
                   )}
                 </div>
-                <button className={`btn ${p.featured ? 'primary' : ''} block`} onClick={() => signup(p.id)}>
-                  começar grátis
-                </button>
+                <div className="lp-plan-cta">
+                  <button className={`btn ${p.featured ? 'primary' : ''} block`} onClick={() => signup(p.id)}>
+                    começar grátis
+                  </button>
+                  {LAUNCHED && (
+                    <button type="button" className="link small" onClick={() => (rememberDirect(p.id), signup(p.id))}>
+                      ou assinar agora, sem teste
+                    </button>
+                  )}
+                </div>
               </article>
             ))}
           </div>

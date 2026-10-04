@@ -70,7 +70,7 @@ async function fetchConfig(timeoutMs: number): Promise<PlanConfig | null> {
     if (!r.ok) return null
     const rows = (await r.json()) as { data?: PlanConfig }[]
     const d = rows[0]?.data ?? {}
-    return { trialDays: d.trialDays, annualFreeMonths: d.annualFreeMonths, cardFee: d.cardFee, cardFee6: d.cardFee6, semesterDiscount: d.semesterDiscount, plans: d.plans }
+    return { trialDays: d.trialDays, trialV2: d.trialV2, launched: d.launched === true, annualFreeMonths: d.annualFreeMonths, cardFee: d.cardFee, cardFee6: d.cardFee6, semesterDiscount: d.semesterDiscount, plans: d.plans }
   } catch {
     return null
   } finally {

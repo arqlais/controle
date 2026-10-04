@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-assinar-direto',
+    date: '2026-10-04',
+    kind: 'melhoria',
+    title: 'assinar quando quiser',
+    text: 'Dá para assinar a qualquer momento, mesmo no meio do teste grátis, em minha assinatura. E quem já conhece o planê pode assinar direto pela página de vendas, sem passar pelo teste.',
+    steps: [{ text: 'Os planos ficam em minha assinatura.', page: 'assinatura' }],
+  },
+  {
     id: '2026-10-04-planos-claros',
     date: '2026-10-04',
     kind: 'melhoria',

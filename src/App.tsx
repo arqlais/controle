@@ -62,7 +62,7 @@ import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './comp
 import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
 import { misdatedOldQuotes } from './quoteActions'
-import { PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
+import { DIRECT_KEY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
@@ -138,6 +138,18 @@ export default function App() {
   const toggleExample = () => (isSample ? showSample(false) : ownDemo ? replaceAll({ ...data, demo: !data.demo }) : showSample(true))
   const { settings } = data
   const access = useAccess()
+  // escolheu "assinar agora, sem teste" na página de vendas: abre o pagamento do plano assim que entra
+  useEffect(() => {
+    if (access.isOwner || !access.sub) return
+    try {
+      const plan = localStorage.getItem(DIRECT_KEY) as PlanId | null
+      if (!plan) return
+      localStorage.removeItem(DIRECT_KEY)
+      if (PLANS[plan]) go('assinatura', plan)
+    } catch {
+      /* sem armazenamento: segue normal */
+    }
+  }, [access.isOwner, access.sub])
   // conta da dona: orçamentos antigos que entraram no mês em que foram lançados vão uma vez para a data do orçamento
   // (cópia de como estava fica guardada neste aparelho em "backup-datas-antigos")
   useEffect(() => {

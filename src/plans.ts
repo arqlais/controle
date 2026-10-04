@@ -69,6 +69,9 @@ export const annualPrice = (monthly: number) => cyclePrice(monthly, 'anual')
 /** Selo do anual: "2 meses grátis". */
 export const annualBadge = () => (ANNUAL_FREE_MONTHS > 0 ? `${ANNUAL_FREE_MONTHS} ${ANNUAL_FREE_MONTHS === 1 ? 'mês grátis' : 'meses grátis'}` : '')
 
+/** Quem escolheu "assinar agora, sem teste" na página de vendas: o plano fica guardado até entrar no sistema. */
+export const DIRECT_KEY = 'plane-assinar-direto'
+
 /** Dias de teste grátis (a dona pode mudar no painel → planos). */
 export let TRIAL_DAYS = 14
 /** Pré-lançamento: enquanto for false, ninguém consegue assinar (só testar). A dona liga no painel quando lançar. */
