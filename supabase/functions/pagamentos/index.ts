@@ -3,7 +3,7 @@
 // IMPORTANTE: nas configurações da função, DESLIGUE "Verify JWT" (o Mercado Pago avisa os pagamentos sem login;
 // quem cria a cobrança é conferido aqui dentro pelo login da pessoa).
 // Segredos (Edge Functions → Secrets): MP_ACCESS_TOKEN (Mercado Pago → Suas integrações → Credenciais de produção → Access Token).
-// Opcional: SITE_URL (padrão https://useplane.com.br/).
+// Opcional: SITE_URL (padrão https://useplane.com.br/). Só no teste: MP_TEST_PAYER_EMAIL (e-mail do comprador de teste).
 //
 // Ações:
 //   criar   → a pessoa logada escolhe plano, ciclo e forma; devolve o link seguro do Mercado Pago
@@ -89,7 +89,8 @@ async function create(req: Request, body: Record<string, any>) {
       body: JSON.stringify({
         reason: title,
         external_reference: ref,
-        payer_email: u.user.email,
+        // no teste, o Mercado Pago exige o e-mail de um comprador de teste (segredo MP_TEST_PAYER_EMAIL)
+        payer_email: env('MP_TEST_PAYER_EMAIL') || u.user.email,
         back_url: back,
         notification_url: `${SELF}?acao=webhook`,
         auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: full, currency_id: 'BRL' },
@@ -105,7 +106,6 @@ async function create(req: Request, body: Record<string, any>) {
     body: JSON.stringify({
       items: [{ id: `${plan}-${cycle}`, title, quantity: 1, unit_price: amount, currency_id: 'BRL' }],
       external_reference: ref,
-      payer: { email: u.user.email },
       back_urls: { success: `${back}?pago=1`, pending: `${back}?pago=pendente`, failure: back },
       auto_return: 'approved',
       notification_url: `${SELF}?acao=webhook`,
