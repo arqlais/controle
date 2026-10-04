@@ -173,7 +173,8 @@ language sql stable security definer set search_path = public as $$
       select sum((p ->> 'amount')::numeric)
       from public.subscriber_admin sa, jsonb_array_elements(coalesce(sa.data -> 'payments', '[]'::jsonb)) p
       where sa.user_id = s.user_id
-        and (p ->> 'date')::date < (s.created_at + make_interval(months => coalesce((select (data ->> 'months')::int from a), 12)))::date
+        and (p ->> 'date')::date < (s.created_at + make_interval(months => coalesce((select (data ->> 'months')::int from a), 6)))::date
+        and (p ->> 'date')::date <= current_date - 30 -- só depois do prazo de estorno
     ), 0) as pago
     from public.subscriptions s, a where s.ref_used = a.code and s.deleted_at is null
   )
@@ -182,7 +183,7 @@ language sql stable security definer set search_path = public as $$
     'code', (select code from a),
     'active', (select active from a),
     'commission', coalesce((select (data ->> 'commission')::numeric from a), 0),
-    'months', coalesce((select (data ->> 'months')::int from a), 12),
+    'months', coalesce((select (data ->> 'months')::int from a), 6),
     'discount', coalesce((select (data ->> 'discount')::int from a), 0),
     'signups', (select count(*) from pessoas),
     'paying', (select count(*) from pessoas where status in ('ativa', 'atrasada')),

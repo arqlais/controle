@@ -61,7 +61,7 @@ export function AffiliatePanel({ token }: { token: string }) {
           <b>{money(due)}</b>
         </div>
       </div>
-      <p className="muted small">Já recebido: {money(st.paidOut)}. Os números atualizam quando cada pagamento é confirmado.</p>
+      <p className="muted small">Já recebido: {money(st.paidOut)}. A comissão entra 30 dias depois de cada pagamento confirmado.</p>
       {st.people.length > 0 && (
         <section className="card">
           <h3>quem veio pelo seu link</h3>

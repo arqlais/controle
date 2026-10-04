@@ -64,6 +64,20 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
           <b>Como assinar:</b> toque em “assinar”, preencha seus dados e a forma de pagamento. O {PLATFORM.support} confirma o pagamento com você e libera a sua conta. Nada é cobrado automaticamente.
         </span>
       </p>
+      {/pago=1/.test(location.hash) && (
+        <p className="pf-note">
+          <Icon name="check" size={16} />
+          <span>
+            <b>Pagamento recebido!</b> A sua conta é liberada sozinha em poucos minutos. Se ainda aparecer como teste, atualize a página daqui a pouco.
+          </span>
+        </p>
+      )}
+      {/pago=pendente/.test(location.hash) && (
+        <p className="pf-note is-warn">
+          <Icon name="clock" size={16} />
+          <span>Pagamento em análise pelo Mercado Pago. Assim que for aprovado, a conta é liberada sozinha.</span>
+        </p>
+      )}
       {sub && (
         <Section title="seu plano">
           <div className="pf-current">

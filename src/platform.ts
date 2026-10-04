@@ -43,6 +43,13 @@ export interface PayConfig {
   pixCity: string
   cardLinks: Record<string, string> // `${plano}-${ciclo}` → link de pagamento
   note: string // recado curto na tela de pagamento
+  mpOn?: boolean // Mercado Pago automático ligado (função "pagamentos" publicada no Supabase)
+}
+/** Aba do navegador: nome, frase e ícone (a dona troca no painel → página de vendas). */
+export interface TabBrand {
+  title: string
+  slogan: string
+  icon: string // imagem (data URL) ou '' = o ícone padrão
 }
 export const EMPTY_PAY: PayConfig = { pixKey: '', pixName: '', pixCity: '', cardLinks: {}, note: '' }
 
@@ -82,7 +89,7 @@ export interface AffiliateStats {
   paidOut: number // já repassado
   people: { name: string; status: SubStatus; since: string }[]
 }
-export const AFFILIATE_DEFAULT = { commission: 20, months: 12, discount: 10 }
+export const AFFILIATE_DEFAULT = { commission: 15, months: 6, discount: 10 }
 /** Comissão: soma o que cada pessoa do link pagou nos primeiros N meses × a %. */
 export function affiliateStats(a: Affiliate, subs: Subscription[], ctrl: Record<string, SubAdmin>): AffiliateStats {
   const people = subs.filter((x) => x.refUsed === a.code && !x.deletedAt)
@@ -90,7 +97,9 @@ export function affiliateStats(a: Affiliate, subs: Subscription[], ctrl: Record<
     const until = new Date(x.createdAt)
     until.setMonth(until.getMonth() + a.months)
     const lim = until.toISOString().slice(0, 10)
-    return t + (ctrl[x.userId]?.payments ?? []).filter((p) => p.date < lim).reduce((n, p) => n + p.amount, 0)
+    // só conta pagamento com mais de 30 dias: já passou o prazo de estorno e de cancelamento
+    const safe = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
+    return t + (ctrl[x.userId]?.payments ?? []).filter((p) => p.date < lim && p.date <= safe).reduce((n, p) => n + p.amount, 0)
   }, 0)
   return {
     name: a.name,
@@ -631,6 +640,29 @@ const cloud = {
   async savePayConfig(payment: PayConfig) {
     await patchCloudSettings({ payment })
   },
+  async tabBrand(): Promise<TabBrand | null> {
+    return (await cloudSettings()).tab ?? null
+  },
+  /** Link seguro do Mercado Pago para pagar (o valor é calculado no servidor). */
+  async mpCheckout(plano: string, ciclo: string, forma: 'pix' | 'cartao'): Promise<string> {
+    const { data, error } = await supabase!.functions.invoke('pagamentos', { body: { acao: 'criar', plano, ciclo, forma } })
+    if (error) {
+      const ctx = (error as { context?: Response }).context
+      let msg = ''
+      try {
+        msg = ctx && typeof ctx.json === 'function' ? ((await ctx.json()) as { erro?: string }).erro ?? '' : ''
+      } catch {
+        /* sem corpo */
+      }
+      throw new Error(msg || 'Não foi possível abrir o pagamento agora.')
+    }
+    const url = (data as { url?: string } | null)?.url
+    if (!url) throw new Error((data as { erro?: string } | null)?.erro || 'Não foi possível abrir o pagamento agora.')
+    return url
+  },
+  async saveTabBrand(tab: TabBrand) {
+    await patchCloudSettings({ tab })
+  },
   async saveCompany(company: Company) {
     await patchCloudSettings({ company })
   },
@@ -650,6 +682,7 @@ interface PlatformData {
   semesterDiscount?: number
   company?: Company
   payment?: PayConfig
+  tab?: TabBrand
 }
 async function cloudSettings(): Promise<PlatformData> {
   const { data } = await supabase!.from('platform_settings').select('data').eq('id', 1).maybeSingle()
@@ -680,6 +713,7 @@ interface LocalDB {
   company?: Company
   affiliates?: Affiliate[]
   payment?: PayConfig
+  tab?: TabBrand
 }
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000).toISOString()
 
@@ -762,7 +796,7 @@ function seed(): LocalDB {
     'ex-5': { cycle: 'mensal', method: 'pix', paidUntil: day(-6), notes: 'pediu para pagar dia 15.', payments: [pay('p4', 64, 39.9, 'pix'), pay('p5', 36, 39.9, 'pix')] },
   }
   const affiliates: Affiliate[] = [
-    { id: 'af-1', code: 'ana-arq', token: 'parceira-exemplo', active: true, createdAt: ago(80), name: 'Ana (perfil de exemplo)', contact: '@perfil.exemplo', pix: 'chave de exemplo', commission: 30, months: 12, discount: 15, notes: 'divulga nos stories uma vez por mês.', payouts: [{ id: 'po1', date: day(-30), amount: 11.97, note: 'pix' }] },
+    { id: 'af-1', code: 'ana-arq', token: 'parceira-exemplo', active: true, createdAt: ago(80), name: 'Ana (perfil de exemplo)', contact: '@perfil.exemplo', pix: 'chave de exemplo', commission: 15, months: 6, discount: 10, notes: 'divulga nos stories uma vez por mês.', payouts: [{ id: 'po1', date: day(-30), amount: 11.97, note: 'pix' }] },
   ]
   const payment: PayConfig = { pixKey: 'pix@exemplo.com.br', pixName: 'Planê Exemplo', pixCity: 'Belo Horizonte', cardLinks: { 'completo-mensal': 'https://www.mercadopago.com.br' }, note: 'Assim que o pagamento cair, sua conta é liberada.' }
   return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks, subAdmin, affiliates, payment }
@@ -1056,6 +1090,15 @@ const local = {
   },
   async savePayConfig(payment: PayConfig) {
     writeDB({ ...readDB(), payment })
+  },
+  async tabBrand(): Promise<TabBrand | null> {
+    return readDB().tab ?? null
+  },
+  async mpCheckout(_plano: string, _ciclo: string, _forma: 'pix' | 'cartao'): Promise<string> {
+    throw new Error('Na prévia o pagamento não abre. No site, abre a página segura do Mercado Pago.')
+  },
+  async saveTabBrand(tab: TabBrand) {
+    writeDB({ ...readDB(), tab })
   },
   async saveCompany(company: Company) {
     writeDB({ ...readDB(), company })

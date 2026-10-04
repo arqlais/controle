@@ -3235,3 +3235,33 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .sidebar nav a.nav-promo:hover { background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 55%, var(--accent-soft)) 100%); }
 .sidebar nav a.nav-promo.active { box-shadow: 0 0 0 2px var(--accent-soft); }
 .ind-hero h1 em { color: inherit; opacity: 0.92; }
+
+/* planos da página de vendas: as mesmas faixas alinhadas nos 3 cartões (nome, perfil, preço, "é para você se", recursos, botão) */
+@media (min-width: 721px) {
+  .pf-plan-cards.lp-plans { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(6, auto); column-gap: 18px; row-gap: 0; }
+  .pf-plan-cards.lp-plans > .pf-plan { display: grid; grid-template-rows: subgrid; grid-row: span 6; row-gap: 12px; align-content: start; }
+  .pf-plan-cards.lp-plans > .pf-plan > .btn { align-self: end; }
+  .pf-plan-cards.lp-plans .lp-who { align-self: stretch; }
+}
+.lp-plan-feats { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.lp-plan-feats .link { font-size: 12.5px; }
+/* indique e ganhe: cor sólida com o mesmo brilho do botão "testar grátis" (no celular, só a cor) */
+.sidebar nav a.nav-promo, .sidebar nav a.nav-promo:hover { background: var(--accent); }
+.nav-promo-icon { animation: none; }
+.ind-hero { background: var(--accent); }
+@media (hover: none), (max-width: 760px) { .nav-promo.lp-shine::after { display: none; } }
+.tab-preview { padding: 10px 12px 0; border-radius: 14px 14px 0 0; background: var(--surface-2); margin-bottom: 12px; }
+.tab-preview-tab { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 8px 14px; border-radius: 12px 12px 0 0; background: var(--surface); font-size: 13px; }
+.tab-preview-tab img { width: 16px; height: 16px; border-radius: 4px; object-fit: contain; }
+.tab-preview-tab b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* cartões de assinantes: mesma altura na linha, dados em grade fixa e a parte de ações sempre alinhada embaixo */
+.pf-subs { align-items: stretch; }
+.pf-sub { height: 100%; }
+.pf-facts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pf-facts .pf-usage { grid-column: 1 / -1; order: 3; }
+.pf-facts dd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-facts .pf-usage dd { white-space: normal; }
+.pf-sub > .proof-link { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; text-align: left; }
+.pay-mp { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--accent-tint); margin: 6px 0 10px; font-size: 13.5px; line-height: 1.5; }
+.pay-mp input { margin-top: 3px; }

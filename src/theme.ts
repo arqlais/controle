@@ -52,6 +52,22 @@ export function useDeviceDark(): [boolean, (dark: boolean) => void] {
   return [dark, setDeviceDark]
 }
 
+/* aba do navegador: "Planê · Nome Do Estúdio" (iniciais maiúsculas só aqui; no sistema o nome fica como foi escrito) */
+let lastBrand = ''
+const capWords = (t: string) => t.replace(/(^|\s)(\p{L})/gu, (_m, sp: string, l: string) => sp + l.toUpperCase())
+export function refreshTitle() {
+  const brand = lastBrand.replace(/\.$/, '').trim()
+  document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.title} · ${capWords(brand)}` : `${PLATFORM.title} · ${PLATFORM.slogan}`
+}
+/** Nome, frase e ícone da aba definidos pela dona no painel. */
+export function setTabBrand(t: { title: string; slogan: string; icon: string } | null) {
+  if (!t) return
+  if (t.title.trim()) PLATFORM.title = t.title.trim()
+  if (t.slogan.trim()) PLATFORM.slogan = t.slogan.trim()
+  if (t.icon) document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((l) => ((l.href = t.icon), l.removeAttribute('type')))
+  refreshTitle()
+}
+
 /** Aplica a identidade visual (Configurações → Identidade visual) nas variáveis CSS. */
 export function applyTheme(s: Settings, dark = false) {
   const root = document.documentElement
@@ -93,9 +109,8 @@ export function applyTheme(s: Settings, dark = false) {
   // cantos em 0: deixa tudo reto, não só os cartões
   root.dataset.square = s.radius <= 0 ? '1' : ''
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
-  // aba do navegador: a plataforma primeiro, depois o estúdio de quem usa
-  const brand = s.brandName.replace(/\.$/, '').trim()
-  document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.title} · ${brand}` : `${PLATFORM.title} · ${PLATFORM.slogan}`
+  lastBrand = s.brandName
+  refreshTitle()
   applyCustomFont(s)
 }
 

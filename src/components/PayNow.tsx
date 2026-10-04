@@ -26,6 +26,7 @@ export function PayNow({ plan, cycle, pixAmount, cardAmount, method }: { plan: P
     return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true })
   }, [code])
   if (!cfg) return null
+  if (cfg.mpOn) return <MpPay plan={plan} cycle={cycle} pixAmount={pixAmount} cardAmount={cardAmount} method={method} note={cfg.note} />
   const link = cfg.cardLinks[`${plan}-${cycle}`] || ''
   const showPix = !!code && method !== 'cartao'
   const showCard = !!link && method !== 'pix'
@@ -79,6 +80,53 @@ export function PayNow({ plan, cycle, pixAmount, cardAmount, method }: { plan: P
       <button type="button" className="btn ghost block" disabled={sent} onClick={() => void paid()}>
         <Icon name="check" size={15} /> {sent ? 'aviso enviado' : 'já paguei, avisar'}
       </button>
+    </section>
+  )
+}
+
+/** Mercado Pago automático: abre a página segura; aprovado, a conta é liberada sozinha. */
+function MpPay({ plan, cycle, pixAmount, cardAmount, method, note }: { plan: PlanId; cycle: BillCycle; pixAmount: number; cardAmount: number; method?: 'pix' | 'cartao'; note: string }) {
+  const [busy, setBusy] = useState<'' | 'pix' | 'cartao'>('')
+  const go = async (forma: 'pix' | 'cartao') => {
+    setBusy(forma)
+    try {
+      window.location.href = await platform.mpCheckout(plan, cycle, forma)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Não foi possível abrir o pagamento agora.')
+      setBusy('')
+    }
+  }
+  const both = !method
+  return (
+    <section className="paynow">
+      {note && <p className="muted small paynow-note">{note}</p>}
+      <div className={`paynow-grid ${both ? 'is-two' : ''}`}>
+        {method !== 'cartao' && (
+          <div className="paynow-box">
+            <span className="paynow-head">
+              <Icon name="wallet" size={16} /> Pix · <b>{money(pixAmount)}</b>
+            </span>
+            <p className="muted small">QR Code na hora. Pagou, a conta é liberada sozinha em poucos minutos.</p>
+            <button type="button" className="btn primary block" disabled={!!busy} onClick={() => void go('pix')}>
+              {busy === 'pix' ? 'abrindo…' : 'pagar com Pix'}
+            </button>
+          </div>
+        )}
+        {method !== 'pix' && (
+          <div className="paynow-box">
+            <span className="paynow-head">
+              <Icon name="lock" size={16} /> cartão de crédito · <b>{money(cardAmount)}</b>
+            </span>
+            <p className="muted small">{cycle === 'mensal' ? 'Cobrança automática todo mês; cancele quando quiser.' : `Em até ${cycle === 'anual' ? 12 : 6}x sem juros.`} Os dados do cartão ficam só com o Mercado Pago.</p>
+            <button type="button" className="btn primary block" disabled={!!busy} onClick={() => void go('cartao')}>
+              {busy === 'cartao' ? 'abrindo…' : 'pagar no cartão'}
+            </button>
+          </div>
+        )}
+      </div>
+      <p className="muted small paynow-note">
+        <Icon name="lock" size={12} /> pagamento seguro pelo Mercado Pago
+      </p>
     </section>
   )
 }

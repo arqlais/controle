@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-planos-claros',
+    date: '2026-10-04',
+    kind: 'melhoria',
+    title: 'planos mais claros e contrato explicado',
+    text: 'Os planos ficaram mais enxutos e alinhados, com a comparação completa logo abaixo. Em contratos, ficou claro como usar o texto do seu contrato: as cláusulas entram no modelo do planê, e para a sua identidade use o papel timbrado ou o PDF pronto.',
+  },
+  {
     id: '2026-10-04-pagar-indicar',
     date: '2026-10-04',
     kind: 'novo',

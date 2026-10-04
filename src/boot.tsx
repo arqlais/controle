@@ -5,8 +5,11 @@ import { DialogHost } from './components/dialog'
 import { FileReadyHost } from './components/saveFile'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { captureRef } from './platform'
+import { captureRef, platform } from './platform'
+import { setTabBrand } from './theme'
 captureRef()
+// nome e ícone da aba escolhidos pela dona
+void platform.tabBrand().then(setTabBrand).catch(() => undefined)
 // fontes embutidas (mesma origem): garantem a tipografia certa no app e no PDF
 import '@fontsource/poppins/latin-300.css'
 import '@fontsource/poppins/latin-400.css'

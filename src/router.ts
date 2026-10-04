@@ -6,7 +6,7 @@ export interface Route {
 }
 
 const parse = (hash: string): Route => {
-  const [page = 'inicio', id] = hash.replace(/^#\/?/, '').split('/')
+  const [page = 'inicio', id] = hash.replace(/^#\/?/, '').split('?')[0].split('/')
   return { page: page || 'inicio', id }
 }
 

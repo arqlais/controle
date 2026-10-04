@@ -8,9 +8,10 @@ import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
 import { pixPayload } from '../pix'
+import { setTabBrand } from '../theme'
 import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { EMPTY_PAY, type PayConfig, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { EMPTY_PAY, type PayConfig, type TabBrand, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid, whatsappLink } from '../utils'
@@ -504,8 +505,8 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
                 </div>
               </dl>
               {billing[s.userId] && <BillingDetails s={s} b={billing[s.userId]} save={(b) => saveBilling(s.userId, b)} />}
-              <button type="button" className="link small proof-link" onClick={() => setProof(s)}>
-                <Icon name="file" size={13} /> comprovante do assinante (para contestação de pagamento)
+              <button type="button" className="link small proof-link" onClick={() => setProof(s)} title="Para contestação de pagamento">
+                <Icon name="file" size={13} /> comprovante do assinante
               </button>
               {!s.deletedAt && <TrialControl s={s} update={update} />}
               {!s.deletedAt && (s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
@@ -1047,7 +1048,13 @@ function PaySettings() {
           </button>
         </p>
       )}
-      <h4 className="ig-h">links de cartão (Mercado Pago)</h4>
+      <label className="check pay-mp">
+        <input type="checkbox" checked={!!cfg.mpOn} onChange={(e) => set({ mpOn: e.target.checked })} />
+        <span>
+          <b>Mercado Pago automático</b> — Pix e cartão pela página segura do Mercado Pago; aprovado, a conta é liberada sozinha e o pagamento entra em assinantes → cobrança. Ligue só depois de publicar a função “pagamentos” no Supabase (passo a passo no chat).
+        </span>
+      </label>
+      <h4 className="ig-h">{cfg.mpOn ? 'links manuais (não usados com o automático ligado)' : 'links de cartão (Mercado Pago)'}</h4>
       <p className="muted small">Crie um link de pagamento para cada plano no Mercado Pago (no mensal, use “assinatura” para cobrar todo mês sozinho) e cole aqui. Em branco: a pessoa vê só o Pix.</p>
       <div className="pay-links">
         {PLAN_LIST.map((p) =>
@@ -1227,6 +1234,87 @@ function SuggestionsAdmin({ sugs, subs, reload }: { sugs: Suggestion[]; subs: Su
 }
 
 /** "Quem criou", redes e contatos da página de vendas: a dona edita aqui, sem mexer no código. */
+/** Aba do navegador: nome, frase e ícone (o ícone vale também para o app no celular). */
+function TabBrandEditor() {
+  const [t, setT] = useState<TabBrand>({ title: PLATFORM.title, slogan: PLATFORM.slogan, icon: '' })
+  const [saved, setSaved] = useState('')
+  useEffect(() => {
+    platform.tabBrand().then((x) => {
+      const v = { title: x?.title || PLATFORM.title, slogan: x?.slogan || PLATFORM.slogan, icon: x?.icon || '' }
+      setT(v)
+      setSaved(JSON.stringify(v))
+    })
+  }, [])
+  const dirty = JSON.stringify(t) !== saved
+  const pick = (f?: File) => {
+    if (!f) return
+    const img = new Image()
+    const url = URL.createObjectURL(f)
+    img.onload = () => {
+      const c = document.createElement('canvas')
+      c.width = c.height = 192
+      const k = Math.min(192 / img.width, 192 / img.height)
+      const w = img.width * k
+      const h = img.height * k
+      c.getContext('2d')!.drawImage(img, (192 - w) / 2, (192 - h) / 2, w, h)
+      URL.revokeObjectURL(url)
+      setT((x) => ({ ...x, icon: c.toDataURL('image/png') }))
+    }
+    img.src = url
+  }
+  const save = async () => {
+    try {
+      await platform.saveTabBrand(t)
+      setSaved(JSON.stringify(t))
+      setTabBrand(t)
+      toast('Aba do navegador atualizada.')
+    } catch {
+      toast('Não foi possível salvar agora.')
+    }
+  }
+  return (
+    <Section
+      title="aba do navegador"
+      action={
+        <button className="btn primary small" disabled={!dirty} onClick={() => void save()}>
+          {dirty ? 'salvar' : 'salvo'}
+        </button>
+      }
+    >
+      <div className="tab-preview" aria-hidden>
+        <span className="tab-preview-tab">
+          <img src={t.icon || './icon-192.png?v=4'} alt="" />
+          <b>
+            {t.title} · {t.slogan}
+          </b>
+          <Icon name="x" size={12} />
+        </span>
+      </div>
+      <div className="form-grid">
+        <Field label="Nome">
+          <input value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="Planê" />
+        </Field>
+        <Field label="Frase da marca" span={2} hint="Na página de vendas aparece “nome · frase”. Dentro do sistema, “nome · estúdio de quem usa”.">
+          <input value={t.slogan} onChange={(e) => setT({ ...t, slogan: e.target.value })} placeholder="Seu estúdio em ordem" />
+        </Field>
+        <Field label="Ícone" span={3} hint="Quadrado, PNG ou SVG. Vale para a aba e para o app no celular.">
+          <div className="row gap-s wrap">
+            <label className="btn small">
+              <Icon name="upload" size={14} /> escolher imagem
+              <input type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
+            </label>
+            {t.icon && (
+              <button className="btn small ghost" onClick={() => setT({ ...t, icon: '' })}>
+                voltar ao ícone padrão
+              </button>
+            )}
+          </div>
+        </Field>
+      </div>
+    </Section>
+  )
+}
+
 function SiteEditor() {
   const [site, setSite] = useState<SiteContent | null>(null)
   const [saved, setSaved] = useState('')
@@ -1252,6 +1340,7 @@ function SiteEditor() {
   }
   return (
     <>
+      <TabBrandEditor />
       <Section
         title="topo da página"
         action={
@@ -1891,7 +1980,7 @@ function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<st
       <p className="pf-note">
         <Icon name="link" size={16} />
         <span>
-          Afiliado é quem divulga o {PLATFORM.name} sem precisar assinar (perfil de arquitetura, professora, influencer). Cada um tem um <b>link próprio</b>: quem chega por ele ganha um desconto no 1º mês, e o afiliado ganha uma <b>% de cada pagamento</b> da pessoa durante os meses combinados. A comissão é calculada com os pagamentos que você registra em cada assinante; o repasse é feito por Pix e anotado aqui.
+          Afiliado é quem divulga o {PLATFORM.name} sem precisar assinar (perfil de arquitetura, professora, influencer). Cada um tem um <b>link próprio</b>: quem chega por ele ganha um desconto no 1º mês, e o afiliado ganha uma <b>% de cada pagamento</b> da pessoa durante os meses combinados. A comissão só conta pagamentos com mais de 30 dias (depois do prazo de estorno), então você nunca paga por quem cancelou. Sugestão segura: 15% por 6 meses e 10% de desconto no 1º mês. O repasse é feito por Pix e anotado aqui.
         </span>
       </p>
       {err && <p className="pf-note is-warn"><Icon name="alert" size={16} /><span>{err}</span></p>}

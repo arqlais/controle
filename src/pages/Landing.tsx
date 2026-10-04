@@ -301,6 +301,7 @@ export default function Landing() {
   useEffect(() => {
     applyTheme(DEFAULT_SETTINGS)
     document.title = `${PLATFORM.title} · ${PLATFORM.slogan}`
+    void platform.tabBrand().then((t) => t && (document.title = `${t.title || PLATFORM.title} · ${t.slogan || PLATFORM.slogan}`)).catch(() => undefined)
     window.scrollTo(0, 0)
   }, [])
   const [scrolled, setScrolled] = useState(false)
@@ -611,7 +612,6 @@ export default function Landing() {
                 </header>
                 <p className="lp-plan-for">{PLAN_FOR[p.id]}</p>
                 <PlanPrice price={p.price} cycle={cycle} />
-                <p className="muted small">{p.pitch}</p>
                 <div className="lp-who">
                   <small>é para você se…</small>
                   <ul>
@@ -620,13 +620,30 @@ export default function Landing() {
                     ))}
                   </ul>
                 </div>
-                <ul className="pf-checks">
-                  {(p.featured ? p.highlights : p.highlights.slice(0, 6)).map((h) => (
-                    <li key={h}>
-                      <Icon name="check" size={14} /> {h}
-                    </li>
-                  ))}
-                </ul>
+                <div className="lp-plan-feats">
+                  <ul className="pf-checks">
+                    {p.highlights.slice(0, 5).map((h) => (
+                      <li key={h}>
+                        <Icon name="check" size={14} /> {h}
+                      </li>
+                    ))}
+                  </ul>
+                  {p.highlights.length > 5 && (
+                    <button
+                      type="button"
+                      className="link small"
+                      onClick={() => {
+                        const d = document.querySelector<HTMLDetailsElement>('.lp-compare')
+                        if (d) {
+                          d.open = true
+                          d.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }
+                      }}
+                    >
+                      + {p.highlights.length - 5} recursos · comparar planos
+                    </button>
+                  )}
+                </div>
                 <button className={`btn ${p.featured ? 'primary' : ''} block`} onClick={() => signup(p.id)}>
                   começar grátis
                 </button>

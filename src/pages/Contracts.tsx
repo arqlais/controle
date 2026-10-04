@@ -130,7 +130,7 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
       <div className="ct-mine">
         <Icon name="pen" size={16} />
         <span>
-          <b>Quer usar o seu próprio contrato?</b> Anexe o arquivo (Word ou PDF) ou cole o texto: ele vira um modelo seu, editável, que sai preenchido com os dados do cliente e do orçamento. Os exemplos podem ser apagados à vontade.
+          <b>Quer usar o texto do seu contrato?</b> Anexe o arquivo (Word ou PDF) ou cole o texto: o planê aproveita as cláusulas e informações e monta tudo no modelo do planê, preenchido com os dados do cliente e do orçamento. O desenho do seu arquivo não vira um modelo editável igual ao original. Para sair com a sua cara, use o <b>papel timbrado</b> (fundo com a sua marca) ou envie o <b>PDF pronto</b>, em “desenho da folha”.
         </span>
         <div className="ct-mine-actions">
           <button className="btn small primary" disabled={upload.busy} onClick={upload.open}>
