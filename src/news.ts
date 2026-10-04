@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-04',
     kind: 'melhoria',
     title: 'instagram mais completo e manual mais simples',
-    text: 'No instagram, cada postagem planejada já vem com um roteiro-modelo (gancho, slides, legenda e chamada) para você só trocar os detalhes, e a estratégia ganhou um montador de bio com contagem de caracteres. O manual agora tem busca no topo e passos mais curtos, com os detalhes guardados em “mais detalhes”.',
+    text: 'No instagram, a IA escreve cada postagem (gancho, slides, legenda e chamada) a partir do seu perfil, e a estratégia ganhou um montador de bio com contagem de caracteres. O manual agora tem busca no topo e passos mais curtos, com os detalhes guardados em “mais detalhes”.',
     steps: [{ text: 'Experimente a busca do manual.', page: 'manual' }],
   },
   {

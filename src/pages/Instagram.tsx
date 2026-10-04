@@ -8,7 +8,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { go } from '../router'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
-import { BIO_LIMIT, CAPTION_LIMIT, clientSkeleton, CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
+import { BIO_LIMIT, CAPTION_LIMIT, CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
 import type { PostFormat, PostStatus, Settings, SocialPost } from '../types'
 import { fmtDate, today, uid } from '../utils'
 
@@ -115,7 +115,7 @@ export default function Instagram() {
       if (date < today()) continue
       const slot = CLIENT_WEEK_PLAN.find((w) => w.weekday === new Date(y, m - 1, d).getDay())
       if (!slot || posts.some((p) => p.date === date && p.format === slot.format)) continue
-      created.push({ ...blank(date), ...clientSkeleton(slot.pillar, slot.format), time: slot.time, format: slot.format, pillar: slot.pillar, title: slot.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })
+      created.push({ ...blank(date), time: slot.time, format: slot.format, pillar: slot.pillar, title: slot.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })
     }
     if (!created.length) return toast('O mês já está planejado (ou já passou).')
     setReview(created)
@@ -547,9 +547,11 @@ function PostEditor({ post, mine, exists, onClose }: { post: SocialPost; mine: b
               <Icon name="trash" size={15} /> excluir
             </button>
           )}
-          <button className="btn ghost" onClick={() => setArt(true)}>
-            <Icon name="sparkle" size={15} /> arte
-          </button>
+          {mine && (
+            <button className="btn ghost" onClick={() => setArt(true)}>
+              <Icon name="sparkle" size={15} /> arte
+            </button>
+          )}
           <button className="btn ghost" onClick={() => copy(fullCaption(p), 'Legenda')}>
             <Icon name="copy" size={15} /> copiar legenda
           </button>
@@ -559,7 +561,7 @@ function PostEditor({ post, mine, exists, onClose }: { post: SocialPost; mine: b
         </>
       }
     >
-      {art && <ArtModal settings={data.settings} source={{ format: p.format, title: p.title, hook: p.hook, script: p.script, cta: p.cta, pillar: pillarLabel(p.pillar, mine) }} onClose={() => setArt(false)} />}
+      {mine && art && <ArtModal settings={data.settings} source={{ format: p.format, title: p.title, hook: p.hook, script: p.script, cta: p.cta, pillar: pillarLabel(p.pillar, mine) }} onClose={() => setArt(false)} />}
       <div className="form-grid">
         <Field label="Título" span={3}>
           <input value={p.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: antes × depois da cozinha" />
@@ -591,22 +593,7 @@ function PostEditor({ post, mine, exists, onClose }: { post: SocialPost; mine: b
             ))}
           </select>
         </Field>
-        {!mine && (
-          <div className="ig-skel span-3">
-            <span className="muted small">Roteiro-modelo: preenche gancho, {label.split(' (')[0].toLowerCase()}, legenda, arte e chamada com a estrutura do tema. Depois é só trocar o que está entre [colchetes].</span>
-            <button
-              type="button"
-              className="btn small"
-              onClick={async () => {
-                const filled = [p.hook, p.script, p.caption, p.art, p.cta].some((x) => x.trim())
-                if (filled && !(await ask('Trocar os textos desta postagem pelo roteiro-modelo?', { confirmLabel: 'Trocar' }))) return
-                set(clientSkeleton(p.pillar, p.format))
-              }}
-            >
-              <Icon name="sparkle" size={14} /> usar roteiro-modelo
-            </button>
-          </div>
-        )}
+        {!mine && <AiWriter post={p} label={label} onFill={(patch) => set(patch)} />}
         <Field label="Gancho (capa / primeira frase)" span={3}>
           <input value={p.hook} onChange={(e) => set({ hook: e.target.value })} />
         </Field>
@@ -619,7 +606,7 @@ function PostEditor({ post, mine, exists, onClose }: { post: SocialPost; mine: b
             {fullCaption(p).length} de {CAPTION_LIMIT} caracteres (com chamada e hashtags){/\[[^\]]+\]/.test(p.caption) ? ' · ainda tem [colchetes] para trocar' : ''}
           </span>
         </Field>
-        <Field label="Ideia de arte" span={3}>
+        <Field label={mine ? 'Ideia de arte' : 'Ideia de imagem'} span={3}>
           <textarea rows={2} value={p.art} onChange={(e) => set({ art: e.target.value })} spellCheck lang="pt-BR" />
         </Field>
         <Field label="Chamada (o que a pessoa deve fazer)" span={3}>
@@ -712,6 +699,63 @@ function ClientStrategyView() {
           ))}
         </ul>
       </Section>
+    </div>
+  )
+}
+
+/** Quem assina: a IA escreve o post a partir do perfil de cada pessoa (nada de texto igual para todo mundo). */
+function AiWriter({ post, label, onFill }: { post: SocialPost; label: string; onFill: (patch: Partial<SocialPost>) => void }) {
+  const { data } = useStore()
+  const s = data.settings
+  const [bio] = useKeep('ig-bio', { what: '', who: '', extra: '', cta: '' })
+  const [busy, setBusy] = useState(false)
+  const key = s.aiKey
+  const write = async () => {
+    if (!key) return
+    const filled = [post.hook, post.script, post.caption, post.cta].some((x) => x.trim())
+    if (filled && !(await ask('Trocar os textos desta postagem pelo que a IA escrever?', { confirmLabel: 'Trocar' }))) return
+    setBusy(true)
+    try {
+      const { askGemini } = await import('../components/AIChat')
+      const profile = [
+        `nome: ${s.ownerName || s.brandName || ''}`,
+        `marca: ${s.brandName || ''}`,
+        bio.what && `o que faz: ${bio.what}`,
+        bio.who && `para quem: ${bio.who}`,
+        bio.extra && `diferencial/cidade: ${bio.extra}`,
+        `atende: ${s.workProfile === 'final' ? 'cliente final' : s.workProfile === 'ambos' ? 'cliente final e escritórios' : 'escritórios e profissionais (freelancer)'}`,
+        `serviços: ${s.services.slice(0, 12).map((x) => x.name).join(', ')}`,
+      ].filter(Boolean).join('\n')
+      const system = 'Você escreve posts de instagram em português do Brasil para profissionais de arquitetura, interiores e 3D. Escreva com a voz da própria pessoa, em letras minúsculas, frases curtas, sem clichês e sem inventar dados (use [colchetes] onde faltar um detalhe real, como nome do projeto). Sem emojis exagerados. Responda só com JSON: {"hook": "...", "script": "uma linha por slide/cena/tela", "caption": "...", "cta": "...", "art": "ideia de imagem em uma frase"}.'
+      const ask1 = `perfil:\n${profile}\n\npostagem: ${post.title || 'tema livre'}\nformato: ${post.format} (${label})\ntema: ${pillarLabel(post.pillar, false)}`
+      const out = await askGemini(key, system, [{ role: 'user', text: ask1 }])
+      const json = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)) as Partial<Record<'hook' | 'script' | 'caption' | 'cta' | 'art', string>>
+      onFill({ hook: json.hook ?? '', script: json.script ?? '', caption: json.caption ?? '', cta: json.cta ?? '', art: json.art ?? '' })
+      toast('Pronto: revise e ajuste com o seu jeito.')
+    } catch (e) {
+      toast(e instanceof Error && !(e instanceof SyntaxError) ? e.message : 'A IA não respondeu direito. Tente de novo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="ig-skel">
+      <span className="muted small">
+        {key ? (
+          <>A IA escreve gancho, {label.split(' (')[0].toLowerCase()}, legenda e chamada a partir do <b>seu</b> perfil (bio da estratégia e seus serviços). Cada pessoa recebe um texto diferente.</>
+        ) : (
+          <>Quer ajuda para escrever? Ligue o assistente em <b>configurações → assistente</b> e a IA escreve este post a partir do seu perfil.</>
+        )}
+      </span>
+      {key ? (
+        <button type="button" className="btn small" disabled={busy} onClick={write}>
+          <Icon name="sparkle" size={14} /> {busy ? 'escrevendo…' : 'escrever com IA'}
+        </button>
+      ) : (
+        <button type="button" className="btn small ghost" onClick={() => go('config')}>
+          ligar assistente
+        </button>
+      )}
     </div>
   )
 }
@@ -907,7 +951,7 @@ function DayPlanner({ date, mine, used, settings, existing, onClose, onPick }: {
                 </button>
               ))
             : themes.map((t) => (
-                <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), ...clientSkeleton(t.pillar, t.format), time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
+                <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
                   <span className="ig-format" style={{ background: FORMATS[t.format].color }}>{FORMATS[t.format].label}</span>
                   <span className="grow">{t.title}</span>
                 </button>

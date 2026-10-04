@@ -65,6 +65,8 @@ export function applyTheme(s: Settings, dark = false) {
     '--bg': bg,
     '--surface': surface,
     '--surface-2': mix(bg, s.accentSoft, dark ? 0.08 : 0.16),
+    // menu lateral: o próprio fundo com um toque da cor de destaque, só para separar do conteúdo
+    '--sidebar-bg': dark ? mix(bg, '#000000', 0.12) : mix(bg, s.accentSoft, 0.08),
     '--text': text,
     '--muted': mix(text, bg, 0.42),
     '--border': mix(bg, s.accentSoft, dark ? 0.22 : 0.3),
