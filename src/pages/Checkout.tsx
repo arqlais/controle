@@ -202,10 +202,10 @@ function CheckoutForm({ planId }: { planId: string }) {
         <div className="stack">
           <Step n={1} title="plano e período">
             {FOUNDER_PRICE && (
-              <p className="lp-founder">
+              <p className="lp-founder co-founder">
                 <Icon name="star" size={15} />
                 <span>
-                  <b>preço de fundador:</b> este valor fica garantido por 12 meses, enquanto a assinatura estiver ativa no mesmo plano. A tabela vai ter reajuste em breve.
+                  <b>preço de fundador:</b> este valor fica garantido por 12 meses, com a assinatura ativa.
                 </span>
               </p>
             )}
