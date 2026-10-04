@@ -2216,3 +2216,26 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 ::-webkit-scrollbar-corner { background: transparent; }
 /* crédito discreto do planê nas folhas (PDF, imagem, impressão) */
 .made-with { position: absolute; right: 14px; bottom: 6px; z-index: 5; font: 500 8px/1 'Poppins', system-ui, sans-serif; letter-spacing: .06em; color: currentColor; opacity: .38; pointer-events: none; }
+
+/* manual: busca e passos enxutos */
+.manual-search { display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; height: 48px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); }
+.manual-search:focus-within { border-color: var(--accent-soft); }
+.manual-search input, .manual .manual-search input:focus { flex: 1; box-shadow: none !important; border: 0 !important; background: none !important; border-radius: 0; min-width: 0; border: 0; background: none; outline: none; font: inherit; font-size: 15px; color: var(--text); padding: 0; height: 100%; }
+.manual-results ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.manual-results li { display: flex; flex-direction: column; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.manual-results li:first-child { padding-top: 0; }
+.manual-results li:last-child { border-bottom: 0; padding-bottom: 0; }
+.manual-results li p { margin: 0 0 6px; }
+.manual-more-link { align-self: flex-start; font-size: 13px; }
+.manual-plans h3 { margin: 0; }
+
+/* instagram: roteiro-modelo, contadores e montador de bio */
+.ig-skel { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--accent-tint); }
+.ig-skel .btn { flex: none; }
+.ig-counter { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.ig-counter.is-over { color: var(--bad); font-weight: 600; }
+.ig-bio-builder { display: flex; flex-direction: column; gap: 12px; }
+.ig-bio-builder .ig-h { margin: 0; }
+.ig-bio-builder > p { margin: 0; }
+.ig-bio-name { font-size: 13.5px; }
+@media (max-width: 640px) { .ig-skel { flex-direction: column; align-items: stretch; } }

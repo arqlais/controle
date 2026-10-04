@@ -48,7 +48,7 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
     if (seen.current && !open) {
       const fresh = msgs.filter((m) => m.fromOwner && !seen.current!.has(m.id))
       if (fresh.length) {
-        toast(`💬 ${PLATFORM.support} respondeu no chat`)
+        toast(`${PLATFORM.support} respondeu no chat`)
         systemNotify(`💬 ${PLATFORM.name}: resposta nova`, richPlain(fresh[fresh.length - 1].body).slice(0, 140), 'chat')
       }
     }

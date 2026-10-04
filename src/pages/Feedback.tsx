@@ -32,7 +32,7 @@ export default function Feedback() {
     try {
       await platform.sendFeedback({ name: name.trim().slice(0, 80), role: role.trim().slice(0, 80), text: text.trim().slice(0, 600), stars, allowPublish: allow })
       setText('')
-      toast('Obrigada pelo depoimento! 💗')
+      toast('Obrigada pelo depoimento!')
       await load()
     } catch {
       toast('Não foi possível enviar agora. Tente de novo em instantes.')

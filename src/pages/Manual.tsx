@@ -262,7 +262,7 @@ const TOOLS: { icon: IconName; name: string; text: string; page: string; feature
 
 const firstPlanWith = (f?: Feature): PlanId => (f ? PLAN_LIST.find((p) => p.features.includes(f))?.id ?? 'estudio' : 'essencial')
 
-const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; plan?: PlanId; top?: boolean }[] = [ // owner: só aparece para a dona; plan: a partir de qual plano
+const CASES: { q: string; a: ReactNode; page?: string; owner?: boolean; notOwner?: boolean; plan?: PlanId; top?: boolean }[] = [ // owner: só aparece para a dona; plan: a partir de qual plano
   {
     q: 'A cliente pediu algo a mais depois de fechar',
     top: true,
@@ -396,6 +396,14 @@ CASES.push(
   },
   {
     q: 'Planejar os posts do Instagram',
+    plan: 'completo',
+    notOwner: true,
+    a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com um tema para cada dia e um <b>roteiro-modelo</b> já preenchido (gancho, slides, legenda e chamada) para você só trocar pelos seus detalhes. Toque num dia para escolher outra ideia. Em <b>estratégia</b> tem o montador de bio, os destaques e as hashtags.</>,
+    page: 'instagram',
+  },
+  {
+    q: 'Planejar os posts do Instagram',
+    owner: true,
     a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com ideias prontas (carrossel, reels, story, post). Cada post tem a arte pronta para baixar em PNG, PDF ou .pptx (abre no Canva para editar). O que é para postar hoje aparece no início.</>,
     page: 'instagram',
   },
@@ -452,11 +460,17 @@ export function manualText() {
   ].join('\n')
 }
 
+/** Tira acentos e maiúsculas para a busca achar "orcamento" e "Orçamento". */
+const norm = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+type Hit = { kind: string; title: string; text: string; page?: string; step?: { track: 'freela' | 'final'; key: string } }
+
 const PLAN_ICON: Record<PlanId, IconName> = { essencial: 'leaf', completo: 'star', estudio: 'crown' }
 const rank = (p: PlanId) => PLAN_LIST.findIndex((x) => x.id === p)
 
 function StepList({ steps, open, setOpen, seen, plan, keyPrefix }: { steps: Step[]; open: string | null; setOpen: (v: string | null) => void; seen: string[]; plan: PlanId; keyPrefix: string }) {
   const goTo = (w?: { page?: string; id?: string }) => w?.page && go(w.page, w.id)
+  const [more, setMore] = useState<string[]>([])
   return (
     <ol className="manual-steps">
       {steps.map((s) => {
@@ -494,14 +508,19 @@ function StepList({ steps, open, setOpen, seen, plan, keyPrefix }: { steps: Step
                   )}
                 </div>
                 <ul className="manual-todo">
-                  {s.todo.map((t, i) => (
+                  {s.todo.slice(0, more.includes(k) ? undefined : 3).map((t, i) => (
                     <li key={i}>{t}</li>
                   ))}
                 </ul>
-                {s.tip && (
+                {more.includes(k) && s.tip && (
                   <p className="manual-tip">
                     <Icon name="sparkle" size={14} /> <span>{s.tip}</span>
                   </p>
+                )}
+                {(s.todo.length > 3 || s.tip) && (
+                  <button className="link manual-more-link" onClick={() => setMore(more.includes(k) ? more.filter((x) => x !== k) : [...more, k])}>
+                    {more.includes(k) ? 'menos detalhes' : 'mais detalhes e dicas'}
+                  </button>
                 )}
               </div>
             )}
@@ -530,8 +549,20 @@ export default function Manual() {
   const done = steps.filter((s) => seen.includes(prefix + s.n)).length
   const finalLocked = isFinal && plan !== 'estudio'
   const [allCases, setAllCases] = useState(false)
+  const [q, setQ] = useState('')
   // as mais procuradas primeiro; o resto em "ver todas"
-  const cases = CASES.filter((c) => (isOwner || !c.owner) && (!c.plan || rank(c.plan) <= rank(plan))).sort((a, b) => Number(!!b.top) - Number(!!a.top))
+  const cases = CASES.filter((c) => (isOwner ? !c.notOwner : !c.owner) && (!c.plan || rank(c.plan) <= rank(plan))).sort((a, b) => Number(!!b.top) - Number(!!a.top))
+  const hits: Hit[] = (() => {
+    const words = norm(q).split(/\s+/).filter(Boolean)
+    if (!words.length) return []
+    const all: Hit[] = [
+      ...STEPS.map((x) => ({ kind: 'passo a passo', title: x.title, text: x.todo.map(plain).join(' '), page: x.where.page, step: { track: 'freela' as const, key: 's' + x.n } })),
+      ...FINAL_STEPS.filter((x) => !x.plan || rank(x.plan) <= rank(plan)).map((x) => ({ kind: 'cliente final', title: x.title, text: x.todo.map(plain).join(' '), page: x.where.page, step: { track: 'final' as const, key: 'f' + x.n } })),
+      ...cases.map((c) => ({ kind: 'quando acontecer', title: c.q, text: plain(c.a), page: c.page })),
+      ...WHERE.map(([what, where, page]) => ({ kind: 'onde fica', title: what, text: where, page: page || undefined })),
+    ]
+    return all.filter((h) => words.every((w) => norm(`${h.title} ${h.text}`).includes(w))).sort((x, y) => Number(words.every((w) => norm(y.title).includes(w))) - Number(words.every((w) => norm(x.title).includes(w)))).slice(0, 12)
+  })()
 
   return (
     <div className="page manual">
@@ -544,40 +575,46 @@ export default function Manual() {
         </div>
       </div>
 
-      <section className="card manual-plans">
-        <p className="muted small">veja o que cada plano tem {!isOwner && <>· o seu é o <b>{PLANS[mine].name}</b></>}</p>
-        <div className="manual-plan-tabs" role="tablist">
-          {PLAN_LIST.map((p) => (
-            <button key={p.id} role="tab" aria-selected={plan === p.id} className={plan === p.id ? 'is-on' : ''} onClick={() => setPlan(p.id)}>
-              <Icon name={PLAN_ICON[p.id]} size={15} />
-              {p.name}
-              {!isOwner && p.id === mine && <small>seu</small>}
-            </button>
-          ))}
-        </div>
-        <div className="manual-tools">
-          {TOOLS.map((t) => {
-            const on = has(t.feature)
-            return (
-              <button key={t.name} className={`manual-tool ${on ? '' : 'is-off'}`} onClick={() => on && go(t.page)} disabled={!on} title={on ? `abrir ${t.name}` : `a partir do ${PLANS[firstPlanWith(t.feature)].name}`}>
-                <span className="manual-tool-icon">
-                  <Icon name={on ? t.icon : 'lock'} size={16} />
-                </span>
-                <span className="manual-tool-text">
-                  <b>{t.name}</b>
-                  <small>{t.text}</small>
-                  {!on && (
-                    <em className="manual-tool-plan">
-                      <Icon name="lock" size={11} /> a partir do {PLANS[firstPlanWith(t.feature)].name}
-                    </em>
-                  )}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </section>
+      <label className="manual-search">
+        <Icon name="search" size={17} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="o que você quer fazer? ex.: recibo, prazo, contrato" aria-label="Buscar no manual" />
+        {q && (
+          <button className="icon-btn" onClick={() => setQ('')} aria-label="Limpar busca">
+            <Icon name="x" size={15} />
+          </button>
+        )}
+      </label>
 
+      {q.trim() ? (
+        <section className="card manual-results">
+          {hits.length ? (
+            <ul>
+              {hits.map((h, n) => (
+                <li key={n}>
+                  <span className="eyebrow">{h.kind}</span>
+                  <b>{h.title}</b>
+                  <p className="muted small">{h.text.length > 220 ? `${h.text.slice(0, 220)}…` : h.text}</p>
+                  <div className="row gap-s">
+                    {h.step && (
+                      <button className="btn small" onClick={() => (setTrack(h.step!.track), toggle(h.step!.key), setQ(''))}>
+                        ver passo
+                      </button>
+                    )}
+                    {h.page && (
+                      <button className="btn small ghost" onClick={() => go(h.page!)}>
+                        ir <Icon name="chevronR" size={13} />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">Nada encontrado. Tente outra palavra, ou pergunte no chat de ajuda (ícone ? no topo).</p>
+          )}
+        </section>
+      ) : (
+        <>
       <section className="card manual-intro">
         <div className="manual-track" role="tablist" aria-label="Jornada">
           <button role="tab" aria-selected={!isFinal} className={!isFinal ? 'is-on' : ''} onClick={() => setTrack('freela')}>
@@ -686,6 +723,43 @@ export default function Manual() {
           </div>
         </section>
       </div>
+      <section className="card manual-plans">
+        <h3>o que cada plano tem</h3>
+        <p className="muted small">toque numa função para abrir a tela {!isOwner && <>· o seu plano é o <b>{PLANS[mine].name}</b></>}</p>
+        <div className="manual-plan-tabs" role="tablist">
+          {PLAN_LIST.map((p) => (
+            <button key={p.id} role="tab" aria-selected={plan === p.id} className={plan === p.id ? 'is-on' : ''} onClick={() => setPlan(p.id)}>
+              <Icon name={PLAN_ICON[p.id]} size={15} />
+              {p.name}
+              {!isOwner && p.id === mine && <small>seu</small>}
+            </button>
+          ))}
+        </div>
+        <div className="manual-tools">
+          {TOOLS.map((t) => {
+            const on = has(t.feature)
+            return (
+              <button key={t.name} className={`manual-tool ${on ? '' : 'is-off'}`} onClick={() => on && go(t.page)} disabled={!on} title={on ? `abrir ${t.name}` : `a partir do ${PLANS[firstPlanWith(t.feature)].name}`}>
+                <span className="manual-tool-icon">
+                  <Icon name={on ? t.icon : 'lock'} size={16} />
+                </span>
+                <span className="manual-tool-text">
+                  <b>{t.name}</b>
+                  <small>{t.text}</small>
+                  {!on && (
+                    <em className="manual-tool-plan">
+                      <Icon name="lock" size={11} /> a partir do {PLANS[firstPlanWith(t.feature)].name}
+                    </em>
+                  )}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+        </>
+      )}
     </div>
   )
 }

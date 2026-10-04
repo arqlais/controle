@@ -214,7 +214,8 @@ export function NewsHistory({ onClose }: { onClose: () => void }) {
 
 /** Boas-vindas para quem acabou de se cadastrar (aparece uma vez, antes do passo a passo). */
 export function WelcomeCard({ name, onTour, onSkip }: { name: string; onTour: () => void; onSkip: () => void }) {
-  const first = (name || '').trim().split(' ')[0]
+  const raw = (name || '').trim().split(' ')[0]
+  const first = /^voc[eê]$/i.test(raw) ? '' : raw
   return (
     <div className="nw-layer" role="dialog" aria-modal="true" aria-label="Boas-vindas">
       <div className="nw-card nw-welcome">
@@ -225,7 +226,7 @@ export function WelcomeCard({ name, onTour, onSkip }: { name: string; onTour: ()
           que bom ter você aqui{first ? `, ${first}` : ''}!
         </h2>
         <p className="nw-lead">
-          Obrigada por escolher o {PLATFORM.name} 💛 Ele nasceu da rotina de uma freelancer que precisava organizar clientes, orçamentos, prazos e dinheiro num lugar só, e agora é seu também.
+          Obrigada por escolher o {PLATFORM.name}. Ele nasceu da rotina de uma freelancer que precisava organizar clientes, orçamentos, prazos e dinheiro num lugar só, e agora é seu também.
         </p>
         <ul className="nw-welcome-list">
           <li>

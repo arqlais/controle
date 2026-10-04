@@ -82,7 +82,7 @@ export default function Suggestions({ unseen = [], onSeen }: { unseen?: string[]
         {list === null ? (
           <p className="muted small">carregando…</p>
         ) : list.length === 0 ? (
-          <Empty icon="flag" title="nenhuma sugestão ainda" text="Sua primeira ideia pode virar a próxima atualização ☺️" />
+          <Empty icon="flag" title="nenhuma sugestão ainda" text="Sua primeira ideia pode virar a próxima atualização." />
         ) : (
           <div className="sg-list">
             {list.map((x) => (

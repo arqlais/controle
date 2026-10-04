@@ -1113,7 +1113,7 @@ function PainelScreen({ compact }: { compact?: boolean }) {
   return (
     <div className="lp-screen">
       <div className="lp-screen-head">
-        <span className="muted small">bom dia, Ana ☀️</span>
+        <span className="muted small">bom dia, Ana</span>
         <b>painel do mês</b>
       </div>
       <div className="lp-mini-stats">

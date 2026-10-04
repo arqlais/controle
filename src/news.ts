@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-instagram-manual',
+    date: '2026-10-04',
+    kind: 'melhoria',
+    title: 'instagram mais completo e manual mais simples',
+    text: 'No instagram, cada postagem planejada já vem com um roteiro-modelo (gancho, slides, legenda e chamada) para você só trocar os detalhes, e a estratégia ganhou um montador de bio com contagem de caracteres. O manual agora tem busca no topo e passos mais curtos, com os detalhes guardados em “mais detalhes”.',
+    steps: [{ text: 'Experimente a busca do manual.', page: 'manual' }],
+  },
+  {
     id: '2026-10-04-app-pdf',
     date: '2026-10-04',
     kind: 'correcao',

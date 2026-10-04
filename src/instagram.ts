@@ -650,3 +650,67 @@ export const CLIENT_FORMAT_IDEAS: Record<'story' | 'reels' | 'post', { title: st
     { title: 'depoimento de cliente em arte', pillar: 'portfolio' },
   ],
 }
+
+type ClientPillar = 'portfolio' | 'dicas' | 'processo' | 'bastidores'
+type Skeleton = { hook: string; caption: string; art: string; cta: string; script: Record<PostFormat, string> }
+
+/** Roteiro-modelo de quem assina: já vem preenchido com a estrutura certa, é só trocar os [colchetes]. */
+export const CLIENT_SKELETONS: Record<ClientPillar, Skeleton> = {
+  portfolio: {
+    hook: 'olha como ficou [nome do projeto]',
+    script: {
+      carrossel: 'capa: a melhor imagem do projeto + título curto\no pedido: o que o cliente precisava\no desafio: o que era difícil\n2 a 4 slides com as imagens/detalhes\nresultado: antes × depois ou a imagem final\nchamada: quer algo assim? me chama',
+      reels: 'cena 1 (0–2s): o resultado final, sem introdução\ncena 2: o antes ou o rascunho\ncenas 3–5: detalhes em movimento\nfinal: texto “quer o seu? link na bio”',
+      story: 'tela 1: imagem final com enquete “gostou?”\ntela 2: um detalhe de perto\ntela 3: antes × depois\ntela 4: caixinha “quer um assim? me conta o seu”',
+      post: 'a imagem mais forte do projeto, sem texto por cima',
+    },
+    caption: '[nome do projeto] ✦\n\n[o que o cliente pediu, em uma frase]\n[o que você fez de diferente, em uma frase]\n\nficha: [local] · [área] · [serviço]',
+    art: 'a imagem mais bonita do projeto, com o nome dele pequeno no canto',
+    cta: 'quer um projeto assim? me chama no direct',
+  },
+  dicas: {
+    hook: '[número] erros comuns em [assunto] (e como evitar)',
+    script: {
+      carrossel: 'capa: a dúvida que seus clientes sempre têm\nslide 2: por que isso importa\nslides 3–5: uma dica por slide, com imagem de exemplo\nslide 6: resumo em uma frase\nchamada: salva para consultar depois',
+      reels: 'cena 1 (0–2s): a dúvida escrita na tela\ncenas 2–4: a resposta em 3 pontos rápidos\nfinal: “salva e manda para quem precisa”',
+      story: 'tela 1: caixinha “qual a sua maior dúvida sobre [assunto]?”\ntela 2: responda uma dúvida que chegou\ntela 3: enquete com duas opções',
+      post: 'uma frase-resposta grande sobre a dúvida, com uma imagem de exemplo',
+    },
+    caption: 'você já se perguntou [dúvida]?\n\n[resposta curta em 2 ou 3 linhas]\n\nsalva este post para consultar depois ✦',
+    art: 'fundo liso nas cores da sua marca, título grande e uma imagem de exemplo por slide',
+    cta: 'salva e manda para quem está precisando',
+  },
+  processo: {
+    hook: 'como é trabalhar comigo, do primeiro contato à entrega',
+    script: {
+      carrossel: 'capa: como funciona contratar [seu serviço]\nslide 2: o que eu preciso receber\nslide 3: etapas e prazo médio\nslide 4: quantas revisões estão incluídas\nslide 5: como é a entrega\nchamada: peça seu orçamento',
+      reels: 'cena 1: “você sabe como funciona contratar [serviço]?”\ncenas 2–4: as etapas, uma por cena\nfinal: “orçamento pelo link da bio”',
+      story: 'tela 1: “agenda de [mês] aberta”\ntela 2: o que está incluído\ntela 3: prazo médio\ntela 4: link para o WhatsApp',
+      post: 'as etapas em uma imagem simples (1, 2, 3, 4)',
+    },
+    caption: 'como funciona trabalhar comigo:\n\n1. [primeiro contato]\n2. [orçamento e aprovação]\n3. [execução e revisões]\n4. [entrega]\n\nprazo médio: [prazo]',
+    art: 'lista numerada em fundo claro, uma etapa por linha, com o seu logo',
+    cta: 'peça seu orçamento pelo link da bio',
+  },
+  bastidores: {
+    hook: 'um dia de trabalho por aqui',
+    script: {
+      carrossel: 'capa: uma foto sua trabalhando\nslide 2: sua mesa e ferramentas\nslide 3: o projeto em andamento\nslide 4: algo que você ama no seu trabalho\nchamada: me conta nos comentários',
+      reels: 'cena 1: o café / o começo do dia\ncenas 2–4: telas do trabalho em andamento, rápidas\nfinal: o resultado do dia',
+      story: 'tela 1: bom dia + foto da mesa\ntela 2: no que você está trabalhando hoje\ntela 3: enquete “qual vocês preferem?”',
+      post: 'foto sua (ou das suas mãos) trabalhando, com luz natural',
+    },
+    caption: 'por trás de cada projeto tem [o que acontece nos bastidores].\n\nhoje estou [o que você está fazendo].\n\ne você, como está o seu dia?',
+    art: 'foto real, sem montagem: luz natural e o trabalho aparecendo',
+    cta: 'me conta nos comentários',
+  },
+}
+
+export const clientSkeleton = (pillar: string, format: PostFormat) => {
+  const sk = CLIENT_SKELETONS[(pillar in CLIENT_SKELETONS ? pillar : 'portfolio') as ClientPillar]
+  return { hook: sk.hook, script: sk.script[format], caption: sk.caption, art: sk.art, cta: sk.cta }
+}
+
+/** Montador de bio: junta as respostas em até 150 caracteres (limite do instagram). */
+export const BIO_LIMIT = 150
+export const CAPTION_LIMIT = 2200

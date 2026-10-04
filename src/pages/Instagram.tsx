@@ -8,7 +8,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { go } from '../router'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
-import { CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
+import { BIO_LIMIT, CAPTION_LIMIT, clientSkeleton, CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
 import type { PostFormat, PostStatus, Settings, SocialPost } from '../types'
 import { fmtDate, today, uid } from '../utils'
 
@@ -23,7 +23,7 @@ const STATUS: Record<PostStatus, { label: string; color: string }> = {
   postado: { label: 'postado', color: '#3e4b57' },
 }
 const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
-const pillarLabel = (id: string) => PILLARS.find((p) => p.id === id)?.label ?? id
+const pillarLabel = (id: string, mine = true) => (mine ? PILLARS : CLIENT_PILLARS).find((p) => p.id === id)?.label ?? id
 
 /** Troca o nome de exemplo pelo nome de quem usa o sistema. */
 const personal = (t: string, s: Settings) => {
@@ -55,6 +55,8 @@ const copy = (text: string, what = 'Texto') =>
     ?.writeText(text)
     .then(() => toast(`${what} copiado.`))
     .catch(() => toast('Selecione o texto e copie.'))
+
+const tagCount = (t: string) => (t.match(/#[^\s#]+/g) ?? []).length
 
 const fullCaption = (p: SocialPost) => [p.caption, p.cta && `→ ${p.cta}`, p.hashtags].filter(Boolean).join('\n\n')
 
@@ -113,7 +115,7 @@ export default function Instagram() {
       if (date < today()) continue
       const slot = CLIENT_WEEK_PLAN.find((w) => w.weekday === new Date(y, m - 1, d).getDay())
       if (!slot || posts.some((p) => p.date === date && p.format === slot.format)) continue
-      created.push({ ...blank(date), time: slot.time, format: slot.format, pillar: slot.pillar, title: slot.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })
+      created.push({ ...blank(date), ...clientSkeleton(slot.pillar, slot.format), time: slot.time, format: slot.format, pillar: slot.pillar, title: slot.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })
     }
     if (!created.length) return toast('O mês já está planejado (ou já passou).')
     setReview(created)
@@ -176,7 +178,7 @@ export default function Instagram() {
               <Icon name="sparkle" size={14} /> Toque num dia para planejar, com sugestões para ele. Quer o mês todo de uma vez? Use “planejar mês”.
             </p>
           )}
-          <MonthGrid month={month} posts={inMonth} onOpen={setEdit} onAdd={setDay} />
+          <MonthGrid month={month} posts={inMonth} mine={mine} onOpen={setEdit} onAdd={setDay} />
           <p className="muted small">{mine ? STRATEGY.times : CLIENT_STRATEGY.times}</p>
         </>
       )}
@@ -213,7 +215,7 @@ export default function Instagram() {
           }}
         />
       )}
-      {edit && <PostEditor post={edit} exists={posts.some((p) => p.id === edit.id)} onClose={() => setEdit(null)} />}
+      {edit && <PostEditor post={edit} mine={mine} exists={posts.some((p) => p.id === edit.id)} onClose={() => setEdit(null)} />}
     </div>
   )
 }
@@ -236,7 +238,7 @@ function nextFree(posts: SocialPost[], format: PostFormat, month: string) {
   return start
 }
 
-function MonthGrid({ month, posts, onOpen, onAdd }: { month: string; posts: SocialPost[]; onOpen: (p: SocialPost) => void; onAdd: (date: string) => void }) {
+function MonthGrid({ month, posts, mine, onOpen, onAdd }: { month: string; posts: SocialPost[]; mine: boolean; onOpen: (p: SocialPost) => void; onAdd: (date: string) => void }) {
   const { upsert } = useStore()
   const [y, m] = month.split('-').map(Number)
   const first = new Date(y, m - 1, 1).getDay()
@@ -312,7 +314,7 @@ function MonthGrid({ month, posts, onOpen, onAdd }: { month: string; posts: Soci
                 </span>
                 <span className="ig-list-title">{p.title || 'sem título'}</span>
                 <span className="muted small">
-                  {pillarLabel(p.pillar)}
+                  {pillarLabel(p.pillar, mine)}
                   {p.time ? ` · ${p.time}` : ''}
                 </span>
               </button>
@@ -512,7 +514,7 @@ function StrategyView() {
   )
 }
 
-function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boolean; onClose: () => void }) {
+function PostEditor({ post, mine, exists, onClose }: { post: SocialPost; mine: boolean; exists: boolean; onClose: () => void }) {
   const { upsert, remove } = useStore()
   const [p, setP] = useState(post)
   const [art, setArt] = useState(false)
@@ -557,7 +559,7 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
         </>
       }
     >
-      {art && <ArtModal settings={data.settings} source={{ format: p.format, title: p.title, hook: p.hook, script: p.script, cta: p.cta, pillar: pillarLabel(p.pillar) }} onClose={() => setArt(false)} />}
+      {art && <ArtModal settings={data.settings} source={{ format: p.format, title: p.title, hook: p.hook, script: p.script, cta: p.cta, pillar: pillarLabel(p.pillar, mine) }} onClose={() => setArt(false)} />}
       <div className="form-grid">
         <Field label="Título" span={3}>
           <input value={p.title} onChange={(e) => set({ title: e.target.value })} placeholder="Ex.: antes × depois da cozinha" />
@@ -582,13 +584,29 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
         </Field>
         <Field label="Tema">
           <select value={p.pillar} onChange={(e) => set({ pillar: e.target.value })}>
-            {PILLARS.map((x) => (
+            {(mine ? PILLARS : CLIENT_PILLARS).map((x) => (
               <option key={x.id} value={x.id}>
                 {x.label}
               </option>
             ))}
           </select>
         </Field>
+        {!mine && (
+          <div className="ig-skel span-3">
+            <span className="muted small">Roteiro-modelo: preenche gancho, {label.split(' (')[0].toLowerCase()}, legenda, arte e chamada com a estrutura do tema. Depois é só trocar o que está entre [colchetes].</span>
+            <button
+              type="button"
+              className="btn small"
+              onClick={async () => {
+                const filled = [p.hook, p.script, p.caption, p.art, p.cta].some((x) => x.trim())
+                if (filled && !(await ask('Trocar os textos desta postagem pelo roteiro-modelo?', { confirmLabel: 'Trocar' }))) return
+                set(clientSkeleton(p.pillar, p.format))
+              }}
+            >
+              <Icon name="sparkle" size={14} /> usar roteiro-modelo
+            </button>
+          </div>
+        )}
         <Field label="Gancho (capa / primeira frase)" span={3}>
           <input value={p.hook} onChange={(e) => set({ hook: e.target.value })} />
         </Field>
@@ -597,6 +615,9 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
         </Field>
         <Field label="Legenda" span={3}>
           <textarea rows={5} value={p.caption} onChange={(e) => set({ caption: e.target.value })} spellCheck lang="pt-BR" />
+          <span className={`ig-counter ${fullCaption(p).length > CAPTION_LIMIT ? 'is-over' : ''}`}>
+            {fullCaption(p).length} de {CAPTION_LIMIT} caracteres (com chamada e hashtags){/\[[^\]]+\]/.test(p.caption) ? ' · ainda tem [colchetes] para trocar' : ''}
+          </span>
         </Field>
         <Field label="Ideia de arte" span={3}>
           <textarea rows={2} value={p.art} onChange={(e) => set({ art: e.target.value })} spellCheck lang="pt-BR" />
@@ -606,6 +627,9 @@ function PostEditor({ post, exists, onClose }: { post: SocialPost; exists: boole
         </Field>
         <Field label="Hashtags" span={3}>
           <textarea rows={2} value={p.hashtags} onChange={(e) => set({ hashtags: e.target.value })} />
+          <span className={`ig-counter ${tagCount(p.hashtags) > 30 ? 'is-over' : ''}`}>
+            {tagCount(p.hashtags)} hashtag(s) · o ideal é de 3 a 8 (o limite é 30)
+          </span>
         </Field>
       </div>
     </Modal>
@@ -654,15 +678,7 @@ function ClientStrategyView() {
         <p className="muted small">{st.times}</p>
       </Section>
       <Section title="perfil">
-        <h4 className="ig-h">modelo de bio</h4>
-        <div className="ig-bio">
-          {st.bio.map((l) => (
-            <div key={l}>{l}</div>
-          ))}
-          <button className="btn small ghost" onClick={() => copy(st.bio.join('\n'), 'Bio')}>
-            <Icon name="copy" size={13} /> copiar modelo
-          </button>
-        </div>
+        <BioBuilder />
         <h4 className="ig-h">destaques</h4>
         <div className="ig-highlights">
           {st.highlights.map((h) => (
@@ -696,6 +712,46 @@ function ClientStrategyView() {
           ))}
         </ul>
       </Section>
+    </div>
+  )
+}
+
+/** Montador de bio: quatro respostas curtas viram a bio, com contagem dos 150 caracteres. */
+function BioBuilder() {
+  const { data } = useStore()
+  const [b, setB] = useKeep('ig-bio', { what: '', who: '', extra: '', cta: 'peça seu orçamento' })
+  const set = (patch: Partial<typeof b>) => setB({ ...b, ...patch })
+  const lines = [[b.what, b.who && `para ${b.who}`].filter(Boolean).join(' '), b.extra, b.cta && `↓ ${b.cta}`].filter((l) => l.trim())
+  const bio = lines.join('\n')
+  const name = (data.settings.ownerName || data.settings.brandName || '').trim().split(' ')[0]
+  return (
+    <div className="ig-bio-builder">
+      <h4 className="ig-h">monte a sua bio</h4>
+      <div className="form-grid">
+        <Field label="O que você faz" span={3}>
+          <input value={b.what} onChange={(e) => set({ what: e.target.value })} placeholder="ex.: projetos de interiores e imagens 3D" />
+        </Field>
+        <Field label="Para quem" span={3}>
+          <input value={b.who} onChange={(e) => set({ who: e.target.value })} placeholder="ex.: quem quer reformar sem dor de cabeça" />
+        </Field>
+        <Field label="Diferencial ou cidade" span={3}>
+          <input value={b.extra} onChange={(e) => set({ extra: e.target.value })} placeholder="ex.: atendo todo o Brasil · online" />
+        </Field>
+        <Field label="Chamada" span={3}>
+          <input value={b.cta} onChange={(e) => set({ cta: e.target.value })} placeholder="ex.: peça seu orçamento" />
+        </Field>
+      </div>
+      <div className="ig-bio">
+        {name && b.what && <b className="ig-bio-name">{name.toLowerCase()} · {b.what.split(/ e |,/)[0].trim()}</b>}
+        {lines.length ? lines.map((l) => <div key={l}>{l}</div>) : <div className="muted">a prévia da bio aparece aqui</div>}
+        <span className={`ig-counter ${bio.length > BIO_LIMIT ? 'is-over' : ''}`}>
+          {bio.length} de {BIO_LIMIT} caracteres{bio.length > BIO_LIMIT ? ': encurte um pouco' : ''}
+        </span>
+        <button className="btn small ghost" disabled={!bio} onClick={() => copy(bio, 'Bio')}>
+          <Icon name="copy" size={13} /> copiar bio
+        </button>
+      </div>
+      <p className="muted small">Na primeira linha em negrito fica o nome do perfil: aparece na busca, então coloque o que você faz junto com o seu nome.</p>
     </div>
   )
 }
@@ -851,7 +907,7 @@ function DayPlanner({ date, mine, used, settings, existing, onClose, onPick }: {
                 </button>
               ))
             : themes.map((t) => (
-                <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
+                <button key={t.title} type="button" className="ig-sug" onClick={() => onPick({ ...blank(date), ...clientSkeleton(t.pillar, t.format), time, format: t.format, pillar: t.pillar, title: t.title, hashtags: CLIENT_STRATEGY.hashtags[0][1] })}>
                   <span className="ig-format" style={{ background: FORMATS[t.format].color }}>{FORMATS[t.format].label}</span>
                   <span className="grow">{t.title}</span>
                 </button>
