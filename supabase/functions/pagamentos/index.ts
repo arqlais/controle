@@ -112,7 +112,8 @@ async function create(req: Request, body: Record<string, any>) {
       statement_descriptor: 'PLANE',
       payment_methods: {
         installments: method === 'cartao' ? INSTALLMENTS[cycle] : 1,
-        excluded_payment_types: method === 'pix' ? [{ id: 'credit_card' }, { id: 'debit_card' }, { id: 'ticket' }, { id: 'atm' }] : [{ id: 'ticket' }, { id: 'atm' }, { id: 'bank_transfer' }],
+        excluded_payment_types: method === 'pix' ? [{ id: 'credit_card' }, { id: 'debit_card' }, { id: 'prepaid_card' }, { id: 'ticket' }, { id: 'atm' }] : [{ id: 'ticket' }, { id: 'atm' }, { id: 'bank_transfer' }],
+        ...(method === 'pix' ? { default_payment_method_id: 'pix' } : {}),
       },
     }),
   })
