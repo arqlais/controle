@@ -97,7 +97,7 @@ c) Anual: 12 meses com meses grátis (desconto), pagos à vista no Pix ou no car
 5.4 No semestral e no anual parcelados no cartão, a compra é única (o plano de 6 ou 12 meses) e é dividida pela operadora do cartão. Cancelar a assinatura não interrompe as parcelas já contratadas; eventual devolução segue as regras dos itens 6 e 7.
 5.5 Contestação de pagamento junto ao banco ou à operadora do cartão (chargeback) por serviço efetivamente disponibilizado pausa a conta até a regularização, sem prejuízo da cobrança do valor devido.
 5.6 Mudanças de preço são avisadas com antecedência mínima de 30 dias e valem a partir do período seguinte. O período já pago não muda de preço.
-5.7 Preço de fundador: os primeiros assinantes, enquanto a oferta estiver aberta na página de planos, mantêm o valor contratado mesmo com reajustes futuros da tabela, desde que a assinatura continue ativa sem interrupção e no mesmo plano. Se a assinatura for cancelada ou trocada de plano, vale o preço vigente na nova contratação.
+5.7 Preço de fundador: os primeiros assinantes, enquanto a oferta estiver aberta na página de planos, mantêm o valor contratado por 12 (doze) meses contados da primeira assinatura, mesmo com reajustes da tabela nesse período, desde que a assinatura continue ativa sem interrupção e no mesmo plano. Depois desse prazo vale o preço vigente, com aviso de 30 dias (item 5.6). Se a assinatura for cancelada ou trocada de plano, vale o preço vigente na nova contratação.
 
 6. DIREITO DE ARREPENDIMENTO (7 DIAS)
 6.1 Conforme o art. 49 do Código de Defesa do Consumidor, o USUÁRIO pode desistir da assinatura em até 7 (sete) dias contados do primeiro pagamento, com devolução integral do valor pago, pelo mesmo meio de pagamento (no cartão, com o estorno da compra inteira).

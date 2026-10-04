@@ -203,7 +203,7 @@ function CheckoutForm({ planId }: { planId: string }) {
               <p className="lp-founder">
                 <Icon name="star" size={15} />
                 <span>
-                  <b>preço de fundador:</b> este valor fica com você para sempre, enquanto a assinatura estiver ativa no mesmo plano. A tabela vai ter reajuste em breve.
+                  <b>preço de fundador:</b> este valor fica garantido por 12 meses, enquanto a assinatura estiver ativa no mesmo plano. A tabela vai ter reajuste em breve.
                 </span>
               </p>
             )}

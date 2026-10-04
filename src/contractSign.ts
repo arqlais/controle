@@ -11,6 +11,8 @@ export interface SignPayload {
   title: string
   body: string
   html?: string // contrato no modelo da pessoa (Word)
+  letterhead?: import('./types').Letterhead // papel timbrado
+  pdfPages?: string[] // PDF pronto, folha por folha
   clientName: string
   studio: string
   owner: string
@@ -72,7 +74,7 @@ export async function publishSign(payload: SignPayload, userId?: string): Promis
       /* segue com a cópia no link */
     }
   }
-  return `${base()}#/assinar/${payload.token}/${await pack({ ...payload, html: undefined })}`
+  return `${base()}#/assinar/${payload.token}/${await pack({ ...payload, html: undefined, letterhead: undefined, pdfPages: undefined })}`
 }
 
 export async function unpublishSign(token: string, userId?: string) {

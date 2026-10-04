@@ -13,7 +13,7 @@ import { setLeaveGuard } from '../router'
 import { withPanelShare } from '../clientPanel'
 import { money, projectTag, today, uid } from '../utils'
 import type { SavedDoc } from '../docTypes'
-import { WORK_KINDS, WORK_LAYOUTS, has, newWorkDoc, workDone, workTotal, type WorkDoc, type WorkItem, type WorkKind } from '../workDocs'
+import { MODEL_LIST_TEXT, WORK_KINDS, has, newWorkDoc, workDone, workTotal, type WorkDoc, type WorkItem, type WorkKind } from '../workDocs'
 
 /* Editor dos documentos de obra: campos à esquerda, a folha ao lado (4 layouts), PDF e painel do cliente.
    Fica salvo na ficha do cliente (e da demanda, quando escolhida). */
@@ -132,23 +132,16 @@ export function WorkDocEditor({ saved, kind, onBack, projectId }: { saved?: Save
 
   const form = (
     <>
-      <Section title="layout">
-        <div className="wd-layouts" role="radiogroup" aria-label="Layout">
-          {WORK_LAYOUTS.map((l) => (
-            <button key={l.id} type="button" role="radio" aria-checked={doc.layout === l.id} className={`wd-layout ${doc.layout === l.id ? 'is-on' : ''}`} onClick={() => set({ layout: l.id })}>
-              <span className={`wd-layout-mini is-${l.id}`} aria-hidden>
-                <i />
-                <i />
-                <i />
-                <i />
-              </span>
-              <b>{l.label}</b>
-              <small>{l.text}</small>
-            </button>
-          ))}
-        </div>
-      </Section>
-      <DocLookPanel fold />
+      <DocLookPanel kind={`obra-${doc.kind}`} />
+      <p className="muted small wd-models-hint">
+        Os mesmos modelos dos seus outros documentos. Aqui eles também arrumam a lista:{' '}
+        {MODEL_LIST_TEXT.map(([m, t], i) => (
+          <span key={m}>
+            <b>{m}</b> = {t}
+            {i < MODEL_LIST_TEXT.length - 1 ? ' · ' : '.'}
+          </span>
+        ))}
+      </p>
       <Section title="dados">
         <div className="form-grid">
           <Field label="Título" span={2}>

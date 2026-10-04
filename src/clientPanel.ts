@@ -49,7 +49,7 @@ export interface PanelPayload {
   message?: string
   s: Record<string, unknown> // o que o desenho das folhas usa (contrato, documentos)
   projects: PanelProject[]
-  contracts: { id: string; title: string; status: string; body: string; html?: string; signLink?: string; sign?: ContractSignature; exclusive: boolean }[]
+  contracts: { id: string; title: string; status: string; body: string; html?: string; letterhead?: import('./types').Letterhead; pdfPages?: string[]; signLink?: string; sign?: ContractSignature; exclusive: boolean }[]
   briefings: { id: string; title: string; answered: boolean; link?: string; answeredAt?: string; questions?: BriefingQuestion[]; sections?: BriefingSection[]; answers?: BriefingAnswers }[]
   quotes: { id: string; number: number; title: string; total: number; status: string; date: string; closedAt?: string; validityDays: number }[]
   docs: PanelDoc[]
@@ -95,7 +95,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
   const shareC = new Set(panel.contracts ?? [])
   const contracts = (d.contracts ?? [])
     .filter((c) => c.clientId === client.id && shareC.has(c.id))
-    .map((c) => ({ id: c.id, title: c.title, status: CONTRACT_STATUS[c.status] ?? c.status, body: c.body, ...(c.html ? { html: c.html } : {}), signLink: c.sign ? undefined : c.signLink, sign: c.sign, exclusive: usesExclusiveContract(has, c.body) }))
+    .map((c) => ({ id: c.id, title: c.title, status: CONTRACT_STATUS[c.status] ?? c.status, body: c.body, ...(c.html ? { html: c.html } : {}), ...(c.letterhead ? { letterhead: c.letterhead } : {}), ...(c.pdfPages?.length ? { pdfPages: c.pdfPages } : {}), signLink: c.sign ? undefined : c.signLink, sign: c.sign, exclusive: usesExclusiveContract(has, c.body) }))
   const briefings = panel.showBriefings
     ? (d.briefings ?? [])
         .filter((b) => b.clientId === client.id)

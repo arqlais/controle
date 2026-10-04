@@ -3,7 +3,7 @@ import type { Settings } from '../../types'
 import { useDocLook } from '../DocKit'
 import { DocPage } from './DocPage'
 import { FramedPhoto } from './Plaque'
-import { WORK_KINDS, groupItems, has, itemTotal, workDone, workTotal, type WorkDoc, type WorkItem } from '../../workDocs'
+import { MODEL_LAYOUT, WORK_KINDS, groupItems, has, itemTotal, workDone, workTotal, type WorkDoc, type WorkItem } from '../../workDocs'
 
 /* Folha dos documentos de obra (A4): a mesma lista de itens em 4 layouts — tabela, lista, cartões ou fichas.
    As folhas se dividem sozinhas conforme a quantidade de itens. */
@@ -60,8 +60,10 @@ function paginate(d: WorkDoc) {
   return { pages, tailFits: tail <= room }
 }
 
-export function WorkDocView({ s, doc, clientName, projectName }: { s: Settings; doc: WorkDoc; clientName?: string; projectName?: string }) {
-  const look = useDocLook(s)
+export function WorkDocView({ s, doc: raw, clientName, projectName }: { s: Settings; doc: WorkDoc; clientName?: string; projectName?: string }) {
+  // o modelo escolhido para este tipo de documento (o mesmo dos outros documentos) define a arrumação da lista
+  const look = useDocLook(s, `obra-${raw.kind}`)
+  const doc: WorkDoc = { ...raw, layout: MODEL_LAYOUT[look.look] ?? 'lista' }
   const k = WORK_KINDS[doc.kind]
   const { pages, tailFits } = paginate(doc)
   const num = new Map(doc.items.map((x, i) => [x.id, i + 1]))

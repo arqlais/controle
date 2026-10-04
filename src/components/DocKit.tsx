@@ -16,7 +16,7 @@ import '../docs.css'
    - qualquer texto pode ser editado direto no documento antes de baixar
    - o PDF sai folha por folha, do tamanho certo */
 
-export type LookKind = 'guia' | 'placa' | 'briefing' | 'apresentacao' | 'recibo'
+export type LookKind = 'guia' | 'placa' | 'briefing' | 'apresentacao' | 'recibo' | `obra-${string}`
 /** Configurações com o modelo de layout escolhido só para este documento (cores, fontes e logo continuam os da conta). */
 export function kindSettings(s: Settings, has: Parameters<typeof resolveTemplate>[1], kind?: LookKind): Settings {
   const id = kind ? s.docLooks?.[kind] : undefined

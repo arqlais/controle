@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from './Icon'
-import type { ContractSignature, Settings } from '../types'
+import type { ContractSignature, Letterhead, Settings } from '../types'
 import { useAccess } from '../access'
 import { sheetColors, showsLogo } from '../proposalTemplates'
 import { SignatureGlyph } from './SignaturePad'
@@ -90,8 +90,12 @@ function SignCertificate({ sign, lais }: { sign?: ContractSignature; lais?: bool
   )
 }
 
-export function ContractDoc({ s, body, html, clientName, exclusive, signed }: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature }) {
+export function ContractDoc({ s, body, html, clientName, exclusive, signed, letterhead, pdfPages }: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature; letterhead?: Letterhead; pdfPages?: string[] }) {
   const { has } = useAccess()
+  // PDF pronto: as folhas exatamente como são + a folha das assinaturas no fim
+  if (pdfPages?.length) return <PdfContract s={s} pages={pdfPages} clientName={clientName} signed={signed} />
+  // papel timbrado: o texto entra por cima do desenho da folha da pessoa
+  if (letterhead?.first) return <LetterheadContract s={s} body={body} html={html} lh={letterhead} clientName={clientName} signed={signed} />
   // contrato no modelo da própria pessoa (do Word): a folha fica igual à dela
   if (html) return <OwnContract s={s} html={html} clientName={clientName} signed={signed} />
   // o contrato da Laís (modelo exclusivo): mesmo desenho dos PDFs dela
@@ -485,3 +489,107 @@ function OwnContract({ s, html, clientName, signed }: { s: Settings; html: strin
     </div>
   )
 }
+
+/* ---------------- quadro de assinaturas (usado pelos desenhos da própria pessoa) ---------------- */
+
+function SignBox({ s, clientName, signed }: { s: Settings; clientName: string; signed?: ContractSignature }) {
+  return (
+    <div className="c-sign ch-sign">
+      <div>
+        {signed?.via === 'link' ? <SignatureGlyph sign={signed} className="c-sign-img" /> : <i className="c-sign-img" />}
+        <span />
+        <b>{clientName || 'contratante'}</b>
+        <small>contratante</small>
+        <SignedMark sign={signed} />
+      </div>
+      <div>
+        {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
+        <span />
+        <b>{s.legalName || s.ownerName || 'contratada'}</b>
+        <small>contratada</small>
+      </div>
+    </div>
+  )
+}
+
+/* ---------------- PDF pronto: as folhas do arquivo, sem mudar nada ---------------- */
+
+function PdfContract({ s, pages, clientName, signed }: { s: Settings; pages: string[]; clientName: string; signed?: ContractSignature }) {
+  return (
+    <div className="contract-doc ch-own">
+      {pages.map((src, n) => (
+        <article key={n} className="contract-page lh-page lh-pdf">
+          <img className="lh-bg" src={src} alt={`Folha ${n + 1} do contrato`} />
+        </article>
+      ))}
+      <article className="contract-page lh-signpage">
+        <p className="lh-sign-title">assinaturas</p>
+        <p className="lh-sign-text">As partes declaram que leram e concordam com as {pages.length} {pages.length === 1 ? 'folha anterior' : 'folhas anteriores'} deste contrato.</p>
+        <SignBox s={s} clientName={clientName} signed={signed} />
+        <span className="ch-pnum">{pages.length + 1}/{pages.length + 1}</span>
+      </article>
+      <SignCertificate sign={signed} />
+    </div>
+  )
+}
+
+/* ---------------- papel timbrado: o texto do contrato por cima do desenho da folha ---------------- */
+
+function LetterheadContract({ s, body, html, lh, clientName, signed }: { s: Settings; body: string; html?: string; lh: Letterhead; clientName: string; signed?: ContractSignature }) {
+  const measure = useRef<HTMLDivElement>(null)
+  const [pages, setPages] = useState<string[][] | null>(null)
+  // o texto vira parágrafos (do desenho do Word, quando tem; senão, do texto com títulos em maiúsculas)
+  const source = html
+    ? cleanHtml(html)
+    : toBlocks(body)
+        .filter((b) => b.kind !== 'sign')
+        .map((b) => (b.kind === 'gap' ? '<div class="c-gap"></div>' : b.kind === 'title' ? `<h2 class="lh-title">${esc(b.text)}</h2>` : b.kind === 'clause' ? `<h3 class="lh-clause">${esc(b.text)}</h3>` : `<p>${esc(b.text)}</p>`))
+        .join('')
+  const key = source + clientName + (signed?.at ?? '') + lh.top + lh.bottom + lh.side
+  useLayoutEffect(() => {
+    setPages(null)
+  }, [key])
+  useLayoutEffect(() => {
+    if (pages || !measure.current) return
+    const root = measure.current.querySelector('.ch-doc') ?? measure.current
+    const els = [...root.children] as HTMLElement[]
+    const room = PAGE_H - lh.top - lh.bottom
+    const out: string[][] = [[]]
+    let used = 0
+    els.forEach((el, i) => {
+      const h = i < els.length - 1 ? els[i + 1].offsetTop - el.offsetTop : el.offsetHeight + 8
+      if (used + h > room && out[out.length - 1].length) {
+        out.push([])
+        used = 0
+      }
+      if (el.classList.contains('c-gap') && used === 0) return
+      out[out.length - 1].push(el.outerHTML)
+      used += h
+    })
+    if (used + 230 > room) out.push([])
+    setPages(out)
+  })
+  const pad = { paddingTop: lh.top, paddingBottom: lh.bottom, paddingLeft: lh.side, paddingRight: lh.side } as CSSProperties
+  if (!pages)
+    return (
+      <div className="contract-doc ch-own">
+        <article className="contract-page lh-page is-measuring" style={pad}>
+          <div ref={measure} className="lh-text" dangerouslySetInnerHTML={{ __html: source }} />
+        </article>
+      </div>
+    )
+  return (
+    <div className="contract-doc ch-own">
+      {pages.map((chunk, n) => (
+        <article key={n} className="contract-page lh-page" style={pad}>
+          <img className="lh-bg" src={n === 0 ? lh.first : lh.rest || lh.first} alt="" />
+          <div className="lh-text" dangerouslySetInnerHTML={{ __html: chunk.join('') }} />
+          {n === pages.length - 1 && <SignBox s={s} clientName={clientName} signed={signed} />}
+        </article>
+      ))}
+      <SignCertificate sign={signed} />
+    </div>
+  )
+}
+
+const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

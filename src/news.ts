@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-contrato-folha',
+    date: '2026-10-04',
+    kind: 'novo',
+    title: 'contrato na sua folha e modelos iguais em tudo',
+    text: 'No contrato, escolha o desenho da folha: o modelo do planê, o seu papel timbrado (anexe a imagem ou o PDF da sua folha e o texto entra por cima, preenchido sozinho) ou um PDF pronto, que o cliente assina exatamente como é. Os 4 modelos (coluna, faixa, planilha e editorial) agora valem em todos os documentos, inclusive os de obra. E no plano sem PDF, o recibo também sai em texto pronto para copiar.',
+    steps: [{ text: 'Abra um contrato e veja “desenho da folha”.', page: 'contratos' }],
+  },
+  {
     id: '2026-10-04-ajustes',
     date: '2026-10-04',
     kind: 'melhoria',

@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, MoreMenu, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import { useFormDraft, useLeaveGuard } from '../components/SaveBar'
+import { LetterheadField } from '../components/Letterhead'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
@@ -63,12 +64,13 @@ function Head({ children }: { children?: ReactNode }) {
 }
 
 /** Contrato novo a partir do modelo: no modelo da pessoa (Word) sai com o desenho dela; senão, o texto. */
-function fromTemplate(tpl: ContractTemplate, vars: Record<string, string>): { body: string; html?: string } {
+function fromTemplate(tpl: ContractTemplate, vars: Record<string, string>): { body: string; html?: string; letterhead?: ContractTemplate['letterhead'] } {
+  const lh = tpl.letterhead ? { letterhead: tpl.letterhead } : {}
   if (tpl.html) {
     const html = fillHtml(tpl.html, vars)
-    return { body: htmlToText(html), html }
+    return { body: htmlToText(html), html, ...lh }
   }
-  return { body: fillContract(tpl.body, vars) }
+  return { body: fillContract(tpl.body, vars), ...lh }
 }
 const swapHtmlLike = (t: ContractTemplate, _body: string) => t.html ?? ''
 
@@ -311,6 +313,8 @@ function ContractEditor({ id }: { id: string }) {
   const c = draft.value
   const setC = draft.setValue
   const [zoom, setZoom] = useState(false)
+  const pdfInput = useRef<HTMLInputElement>(null)
+  const [sheetMode, setSheetMode] = useState<'modelo' | 'timbrado' | 'pdf'>(() => (c?.pdfPages?.length ? 'pdf' : c?.letterhead ? 'timbrado' : 'modelo'))
   const pdf = usePdf()
   // assinatura que chegou sozinha (cliente assinou pelo link) com o contrato aberto: entra na tela também
   const arrived = found?.sign && !c?.sign ? found.sign : undefined
@@ -343,7 +347,7 @@ function ContractEditor({ id }: { id: string }) {
     set({ templateId, html: undefined, ...fromTemplate(tpl, contractVars(data.settings, quote, client)) })
   }
   const missing = [...new Set(c.body.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
-  const doc = <ContractDoc s={data.settings} body={c.body} html={c.html} clientName={client ? client.name : ''} signed={c.sign} />
+  const doc = <ContractDoc s={data.settings} body={c.body} html={c.html} letterhead={c.letterhead} pdfPages={c.pdfPages} clientName={client ? client.name : ''} signed={c.sign} />
   const file = `Contrato - ${client?.name ?? c.title}.pdf`
 
   return (
@@ -431,7 +435,61 @@ function ContractEditor({ id }: { id: string }) {
             )}
           </Section>
           <SignSection c={c} client={client} dirty={dirty} save={save} onPdf={() => pdf.download(doc, file)} />
-          <DocLookPanel fold />
+          <Section title="desenho da folha">
+            <div className="segmented ct-sheet-pick">
+              <button type="button" className={sheetMode === 'modelo' ? 'active' : ''} onClick={() => (setSheetMode('modelo'), set({ letterhead: undefined, pdfPages: undefined }))}>
+                {c.html ? 'do seu arquivo' : 'modelo do planê'}
+              </button>
+              <button type="button" className={sheetMode === 'timbrado' ? 'active' : ''} onClick={() => (setSheetMode('timbrado'), set({ pdfPages: undefined, letterhead: c.letterhead ?? cs.templates.find((t) => t.id === c.templateId)?.letterhead }))}>
+                papel timbrado
+              </button>
+              <button type="button" className={sheetMode === 'pdf' ? 'active' : ''} onClick={() => (setSheetMode('pdf'), c.pdfPages?.length || pdfInput.current?.click())}>
+                PDF pronto
+              </button>
+            </div>
+            {sheetMode === 'pdf' && c.pdfPages?.length ? (
+              <p className="muted small">
+                O cliente vê e assina o seu PDF exatamente como ele é ({c.pdfPages.length} {c.pdfPages.length === 1 ? 'folha' : 'folhas'}), com uma folha de assinaturas no fim. Para mudar o texto, mude no seu arquivo e anexe de novo.{' '}
+                <button type="button" className="link small" onClick={() => pdfInput.current?.click()}>
+                  trocar PDF
+                </button>
+              </p>
+            ) : sheetMode === 'pdf' ? (
+              <button type="button" className="lhf-empty" onClick={() => pdfInput.current?.click()}>
+                <Icon name="upload" size={20} />
+                <b>anexar o PDF do contrato</b>
+                <small>o cliente vê e assina o arquivo exatamente como ele é, com uma folha de assinaturas no fim</small>
+              </button>
+            ) : sheetMode === 'timbrado' ? (
+              <LetterheadField value={c.letterhead} onChange={(letterhead) => set({ letterhead })} />
+            ) : (
+              <p className="muted small">Quer a sua folha com logo e cabeçalho? Escolha “papel timbrado”. Tem o contrato pronto em PDF e quer que o cliente assine exatamente ele? Escolha “PDF pronto”.</p>
+            )}
+            <input
+              ref={pdfInput}
+              type="file"
+              accept=".pdf,application/pdf"
+              hidden
+              onChange={async (e) => {
+                const f = e.target.files?.[0]
+                e.target.value = ''
+                if (!f) return
+                try {
+                  toast('Abrindo o PDF…')
+                  const [{ pdfPageImages }, { importContractFile }] = await Promise.all([import('../pdfPages'), import('../contractImport')])
+                  const pages = await pdfPageImages(f)
+                  const text = await importContractFile(f).catch(() => c.body)
+                  set({ pdfPages: pages, body: text || c.body, letterhead: undefined })
+                  setSheetMode('pdf')
+                  toast(`PDF anexado: ${pages.length} ${pages.length === 1 ? 'folha' : 'folhas'}. Confira a prévia e salve.`)
+                } catch {
+                  toast('Não consegui abrir esse PDF. Tente salvar de novo como PDF e anexar.')
+                }
+              }}
+            />
+          </Section>
+          {!c.pdfPages?.length && !c.letterhead && <DocLookPanel fold />}
+          {!c.pdfPages?.length && (
           <Section title="texto do contrato">
             {c.html ? (
               <>
@@ -445,6 +503,7 @@ function ContractEditor({ id }: { id: string }) {
               </>
             )}
           </Section>
+          )}
           <button
             className="btn ghost danger"
             onClick={async () => {
@@ -669,6 +728,13 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
               <span>Texto do seu arquivo. Confira, ajuste o que quiser e troque os dados fixos pelas etiquetas abaixo. As linhas de assinatura saíram: o quadro de assinatura das duas partes entra sozinho no fim.</span>
             </p>
           )}
+          <details className="ct-swap" open={!!cur.letterhead}>
+            <summary>
+              <Icon name="image" size={15} /> papel timbrado deste modelo
+            </summary>
+            <p className="muted small">Os contratos novos deste modelo já saem na sua folha (logo, cabeçalho, rodapé), com o texto por cima.</p>
+            <LetterheadField value={cur.letterhead} onChange={(letterhead) => patch({ letterhead })} />
+          </details>
           {cur.body.trim().length > 40 && <FieldSwap key={cur.id} body={cur.body} onChange={(body) => patch(cur.html ? { body: htmlToText(swapHtmlLike(cur, body)), html: swapHtmlLike(cur, body) } : { body })} onSwap={cur.html ? (t, k) => patch({ html: swapAll(cur.html!, t, k), body: htmlToText(swapAll(cur.html!, t, k)) }) : undefined} open={cur.id === fresh} />}
           {cur.html ? (
             <>
@@ -683,7 +749,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
               </div>
               {preview && (
                 <DocZoom onClose={() => setPreview(false)}>
-                  <ContractDoc s={data.settings} body={cur.body} html={cur.html} clientName="{contratante}" />
+                  <ContractDoc s={data.settings} body={cur.body} html={cur.html} letterhead={cur.letterhead} clientName="{contratante}" />
                 </DocZoom>
               )}
             </>
@@ -709,7 +775,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
           )}
           {preview && (
             <DocZoom onClose={() => setPreview(false)}>
-              <ContractDoc s={data.settings} body={cur.body} clientName="{contratante}" />
+              <ContractDoc s={data.settings} body={cur.body} letterhead={cur.letterhead} clientName="{contratante}" />
             </DocZoom>
           )}
           </>
@@ -793,6 +859,8 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
         title: c.title,
         body: c.body,
         ...(c.html ? { html: c.html } : {}),
+        ...(c.letterhead ? { letterhead: c.letterhead } : {}),
+        ...(c.pdfPages?.length ? { pdfPages: c.pdfPages } : {}),
         clientName: client?.name ?? '',
         studio: st.brandName || st.ownerName,
         owner: st.ownerName,

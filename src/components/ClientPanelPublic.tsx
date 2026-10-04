@@ -376,7 +376,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
                         ler e assinar
                       </a>
                     ) : (
-                      <button className="btn small" onClick={() => open({ title: k.title, node: <ContractDoc s={s} body={k.body} html={k.html} clientName={d.clientFull} exclusive={k.exclusive} signed={k.sign} />, w: PAGE.a4[0], h: PAGE.a4[1], file: `Contrato - ${k.title}.pdf`, flow: true })}>
+                      <button className="btn small" onClick={() => open({ title: k.title, node: <ContractDoc s={s} body={k.body} html={k.html} letterhead={k.letterhead} pdfPages={k.pdfPages} clientName={d.clientFull} exclusive={k.exclusive} signed={k.sign} />, w: PAGE.a4[0], h: PAGE.a4[1], file: `Contrato - ${k.title}.pdf`, flow: true })}>
                         <Icon name="eye" size={14} /> ver
                       </button>
                     )}

@@ -6,8 +6,10 @@ import { toast } from './dialog'
 import { DocScale, usePdf } from './Print'
 import { BillDoc, type BillCard, type BillInfo } from './Docs'
 import { DocLookPanel } from './DocKit'
+import { useAccess } from '../access'
+import { LockButton } from './LockedPreview'
 import type { Data, Project } from '../types'
-import { money, projectPaid, projectTotal, quoteFiles, today, whatsappLink, lower } from '../utils'
+import { fmtDate, money, projectPaid, projectTotal, quoteFiles, today, whatsappLink, lower } from '../utils'
 
 /* Recibo de cobrança no modelo do estúdio ("recibo serviço"), igual para qualquer serviço:
    mostra o total, o que já foi pago e o que falta, com as condições de entrega.
@@ -71,11 +73,35 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
   const file = `Recibo - ${p.title}`
   const first = client?.name.split(' ')[0] ?? ''
   const message = `Oi${first ? `, ${first}` : ''}! Segue o recibo de ${lower(p.title)}. ${rest > 0 ? `Fica em aberto ${money(rest)}.` : 'Tudo certo, pagamento concluído.'} Qualquer dúvida estou à disposição!`
+  // plano sem PDF: o recibo vai em texto, organizado para WhatsApp ou e-mail
+  const { has } = useAccess()
+  const canPdf = has('propostaPdf')
+  const plain = (t: string) => t.replace(/\*\*/g, '')
+  const paidList = p.payments.filter((x) => x.paidDate)
+  const receipt = [
+    `*recibo · ${info.label}*`,
+    `${s.brandName || s.ownerName || ''}`.trim(),
+    '',
+    client ? `cliente: ${client.name}` : '',
+    `data: ${fmtDate(today())}`,
+    '',
+    `valor total: ${money(info.total)}`,
+    `já pago: ${money(info.paid)}`,
+    ...paidList.map((x) => `   • ${x.description || 'parcela'}: ${money(x.amount)} em ${fmtDate(x.paidDate!)}`),
+    rest > 0 ? `*falta: ${money(rest)}*` : '*pagamento concluído* ✓',
+    '',
+    ...info.cards.filter((c) => c.on).map((c) => `• ${c.title}: ${plain(c.text)}`),
+    '',
+    s.pixKey ? `Pix: ${s.pixKey}` : '',
+  ]
+    .filter((l, i, arr) => l !== '' || (arr[i - 1] !== '' && i > 0))
+    .join('\n')
+    .trim()
 
   return (
     <Modal
       wide
-      title="recibo de cobrança"
+      title={canPdf ? 'recibo de cobrança' : 'recibo de cobrança (texto)'}
       onClose={onClose}
       footer={
         <>
@@ -87,12 +113,27 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
               <Icon name="whatsapp" size={15} /> whatsapp
             </a>
           )}
-          <button className="btn ghost" disabled={pdf.busy} onClick={() => pdf.downloadPng(doc, `${file}.png`)}>
-            <Icon name="download" size={15} /> PNG
-          </button>
-          <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(doc, `${file}.pdf`)}>
-            <Icon name="download" size={15} /> PDF
-          </button>
+          {canPdf ? (
+            <>
+              <button className="btn ghost" disabled={pdf.busy} onClick={() => pdf.downloadPng(doc, `${file}.png`)}>
+                <Icon name="download" size={15} /> PNG
+              </button>
+              <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.download(doc, `${file}.pdf`)}>
+                <Icon name="download" size={15} /> PDF
+              </button>
+            </>
+          ) : (
+            <>
+              {client?.email && (
+                <a className="btn ghost" href={`mailto:${client.email}?subject=${encodeURIComponent(`Recibo · ${info.label}`)}&body=${encodeURIComponent(receipt.replace(/\*/g, ''))}`}>
+                  <Icon name="mail" size={15} /> e-mail
+                </a>
+              )}
+              <button className="btn primary" onClick={() => navigator.clipboard?.writeText(receipt).then(() => toast('Recibo copiado, organizado para WhatsApp ou e-mail.'), () => toast('Não deu para copiar aqui.'))}>
+                <Icon name="copy" size={15} /> copiar recibo
+              </button>
+            </>
+          )}
         </>
       }
     >
@@ -121,10 +162,19 @@ export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
             ))}
             <p className="muted small">Palavras entre **asteriscos** ficam em destaque rosé.</p>
           </div>
-          <DocLookPanel fold kind="recibo" />
+          {canPdf && <DocLookPanel fold kind="recibo" />}
         </div>
         <div className="bill-preview">
-          <DocScale>{doc}</DocScale>
+          {canPdf ? (
+            <DocScale>{doc}</DocScale>
+          ) : (
+            <div className="bill-text">
+              <p className="muted small">
+                No seu plano o recibo vai em texto, pronto para colar no WhatsApp ou no e-mail. <LockButton feature="propostaPdf" label="recibo em PDF" className="link small" />
+              </p>
+              <pre>{receipt}</pre>
+            </div>
+          )}
         </div>
       </div>
       {pdf.portal}

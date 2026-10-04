@@ -193,7 +193,7 @@ const faq = (): [string, ReactNode][] => [
   ['funciona no celular?', 'Sim, no celular, tablet e computador, com os mesmos dados em todos os aparelhos. Dá para instalar como aplicativo na tela inicial.'],
   ['meus dados ficam seguros?', 'Cada conta é separada e protegida pelo seu login: ninguém mais vê seus clientes e valores. E você pode baixar tudo quando quiser.'],
   ['qual plano é o meu?', `Freelancer começando: ${PLANS.essencial.name}. Freelancer profissional, que manda proposta e contrato com a própria marca: ${PLANS.completo.name}. Escritório ou profissional que atende o cliente final (dono do imóvel) e acompanha obra: ${PLANS.estudio.name}. Na dúvida, teste o ${PLANS.estudio.name} grátis: no fim do teste você escolhe, sem perder nada do que cadastrou.`],
-  ['o que é o preço de fundador?', 'Quem assina agora, antes do reajuste da tabela, fica com o valor contratado para sempre, enquanto a assinatura continuar ativa no mesmo plano.'],
+  ['o que é o preço de fundador?', 'Quem assina agora, antes do reajuste da tabela, garante o valor de lançamento por 12 meses, enquanto a assinatura continuar ativa no mesmo plano. Depois disso, entra o preço da tabela daquela época, com aviso antes.'],
   ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para copiar e mandar no WhatsApp ou e-mail), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular e planejamento do instagram. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: painel do cliente, cronograma das etapas, acompanhamento e documentos de obra (memorial, compras, custos, diário, visita, ata e ordem de serviço), lucro de cada projeto e briefing online.`],
   [`o que mudou com o ${PLANS.estudio.name}?`, `Novidade: o ${PLATFORM.name} nasceu para freelancers e agora também é para quem trabalha direto com o cliente final (casas, apartamentos, lojas, obras). Foi um pedido de várias arquitetas. O ${PLANS.estudio.name} está aberto para todos e é o plano do teste grátis.`],
   ['posso cancelar quando quiser?', 'Pode, sem fidelidade. No mensal, o acesso vai até o fim do mês pago. No semestral e no anual, você usa até o fim do período; se pedir devolução antes, os meses usados são cobrados pelo preço do mensal. E nos primeiros 7 dias depois do pagamento, o dinheiro volta inteiro.'],
@@ -586,7 +586,7 @@ export default function Landing() {
             <p className="lp-founder" data-reveal>
               <Icon name="star" size={15} />
               <span>
-                <b>preço de fundador:</b> quem assina agora fica com este valor para sempre, enquanto a assinatura estiver ativa. Os preços vão ter reajuste em breve.
+                <b>preço de fundador:</b> quem assina agora garante este valor por 12 meses. Os preços vão ter reajuste em breve.
               </span>
             </p>
           )}

@@ -213,3 +213,13 @@ export function newWorkDoc(kind: WorkKind, today: string, uid: () => string): Wo
   const k = WORK_KINDS[kind]
   return { kind, title: k.label, date: today, layout: k.layout, items: k.starter.map((x) => ({ ...x, id: uid(), ...(kind === 'diario' ? { date: today } : {}) })) }
 }
+
+/** Os mesmos 4 modelos de todos os documentos (coluna, faixa, planilha, editorial) também arrumam a lista de itens:
+ *  planilha = tabela com totais · coluna = índice numerado · faixa = painel de referências · editorial = ficha técnica. */
+export const MODEL_LAYOUT: Record<string, WorkLayout> = { planilha: 'tabela', coluna: 'lista', faixa: 'cartoes', editorial: 'fichas', lais: 'lista' }
+export const MODEL_LIST_TEXT: [string, string][] = [
+  ['coluna', 'índice numerado, com pontilhado'],
+  ['faixa', 'painel de referências, 3 fotos por linha'],
+  ['planilha', 'tabela, com totais'],
+  ['editorial', 'ficha técnica de cada item, foto grande'],
+]

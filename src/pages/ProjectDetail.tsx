@@ -10,7 +10,7 @@ import { ReceiptDoc } from '../components/Docs'
 import { usePdf } from '../components/Print'
 import { useKeep } from '../keep'
 import { KIND_LABEL, projectKind } from '../processes'
-import { LockButton, LockedView, TrialFeatureNote } from '../components/LockedPreview'
+import { LockedView, TrialFeatureNote } from '../components/LockedPreview'
 import { ClienteTab, CronogramaTab, LucroTab, ObraTab, PROJECT_TABS, ProjectTabs, usePortalSync, type ProjectTab } from '../components/Studio'
 import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, Stat } from '../components/ui'
 import { askDelete, toast } from '../components/dialog'
@@ -284,12 +284,9 @@ export default function ProjectDetail({ id }: { id: string }) {
                     <Icon name="whatsapp" size={14} /> Cobrar
                   </a>
                 )}
-                {!canPdf && <LockButton feature="propostaPdf" label="Recibo" />}
-                {canPdf && (
-                  <button className="btn small ghost" onClick={() => setBill(true)} title="Recibo com o total, o que já foi pago e o que falta (PDF ou PNG)">
-                    <Icon name="file" size={14} /> Recibo
-                  </button>
-                )}
+                <button className="btn small ghost" onClick={() => setBill(true)} title={canPdf ? 'Recibo com o total, o que já foi pago e o que falta (PDF ou PNG)' : 'Recibo em texto, pronto para WhatsApp ou e-mail'}>
+                  <Icon name="file" size={14} /> Recibo
+                </button>
                 {!hasPackage && (
                   <button
                     className="btn small ghost"
@@ -376,6 +373,19 @@ export default function ProjectDetail({ id }: { id: string }) {
                             )}
                           </td>
                           <td className="actions nowrap">
+                            {x.paidDate && !canPdf && (
+                              <button
+                                className="icon-btn"
+                                title="Copiar recibo desta parcela (texto para WhatsApp ou e-mail)"
+                                onClick={() =>
+                                  navigator.clipboard
+                                    ?.writeText([`*recibo*`, `recebi de ${client?.name ?? 'cliente'} o valor de ${money(x.amount)}, referente a ${x.description || 'parcela'} de ${p.title}.`, `data do pagamento: ${fmtDate(x.paidDate!)}`, x.method ? `forma: ${x.method}` : '', '', data.settings.ownerName || data.settings.brandName].filter(Boolean).join('\n'))
+                                    .then(() => toast('Recibo copiado.'), () => toast('Não deu para copiar aqui.'))
+                                }
+                              >
+                                <Icon name="copy" size={16} />
+                              </button>
+                            )}
                             {x.paidDate && canPdf && (
                               <button className="icon-btn" title="Gerar recibo" onClick={() => pdf.download(<ReceiptDoc s={data.settings} client={client} project={p} payment={x} />, `Recibo - ${p.title} - ${x.description}.pdf`)}>
                                 <Icon name="printer" size={16} />

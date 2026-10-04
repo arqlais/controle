@@ -474,6 +474,16 @@ export interface ContractTemplate {
   body: string
   html?: string // modelo da própria pessoa (do Word), com o desenho dela
   fileHtml?: string // desenho do arquivo anexado, guardado (dá para usar depois em "usar o desenho do arquivo")
+  letterhead?: Letterhead // papel timbrado: o texto entra por cima do desenho da folha
+}
+
+/** Papel timbrado: o desenho da folha (logo, cabeçalho, rodapé, fundo) e as margens onde o texto entra (px na folha A4 de 794 × 1123). */
+export interface Letterhead {
+  first: string // imagem da 1ª folha
+  rest?: string // imagem das folhas seguintes (vazio = a mesma da 1ª)
+  top: number
+  bottom: number
+  side: number
 }
 
 export interface ContractSettings {
@@ -511,6 +521,8 @@ export interface Contract {
   templateId: string
   body: string // texto final (já preenchido e editável)
   html?: string // contrato no modelo da pessoa (desenho do Word); o body fica com o texto puro
+  letterhead?: Letterhead // papel timbrado (vem do modelo ou escolhido no contrato)
+  pdfPages?: string[] // PDF pronto: as folhas exatamente como são (o body guarda o texto, para o código da assinatura)
   status: ContractStatus
   createdAt: string
   signToken?: string // identifica o link de assinatura
