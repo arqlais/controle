@@ -10,12 +10,14 @@ import { toast } from './dialog'
    (Salvar em Arquivos, WhatsApp, e-mail…). O toque no botão é o que o iPhone exige. */
 
 const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+/** Aberto como aplicativo (ícone na tela de início): o download comum não funciona, então vai pelo compartilhar do celular. */
+export const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 
 type Ready = { file: File; url: string } | null
 let show: (r: Ready) => void = () => undefined
 
 export function saveFile(blob: Blob, filename: string, done = 'Arquivo baixado.') {
-  if (isIOS()) {
+  if (isIOS() || (isStandalone() && /Android/i.test(navigator.userAgent))) {
     const file = new File([blob], filename, { type: blob.type })
     show({ file, url: URL.createObjectURL(file) })
     return
@@ -63,7 +65,14 @@ export function FileReadyHost() {
     } catch (e) {
       if (e instanceof DOMException && e.name === 'AbortError') return // fechou o compartilhar sem escolher
     }
-    window.open(ready.url, '_blank') // sem compartilhar: abre o arquivo para salvar pelo próprio Safari
+    // sem compartilhar: tenta baixar; no app aberto pelo ícone, abre o arquivo para salvar pelo próprio navegador
+    const a = document.createElement('a')
+    a.href = ready.url
+    a.download = ready.file.name
+    a.target = '_blank'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
   }
   return (
     <Modal

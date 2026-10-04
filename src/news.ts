@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-app-pdf',
+    date: '2026-10-04',
+    kind: 'correcao',
+    title: 'PDF no app do celular',
+    text: 'Com o planê instalado na tela inicial, os PDFs e arquivos agora são salvos ou compartilhados direto do app, sem precisar abrir o site. O menu lateral ganhou um fundo levemente destacado.',
+  },
+  {
     id: '2026-10-04-indique',
     date: '2026-10-04',
     kind: 'novo',

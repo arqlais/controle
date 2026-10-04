@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ARTIFACT } from '../env'
 import { Modal } from './ui'
 import { toast } from './dialog'
-import { dataUrlBlob, saveFile } from './saveFile'
+import { dataUrlBlob, isStandalone, saveFile } from './saveFile'
 
 /** Mostra uma folha A4 (794px) reduzida para caber na largura disponível. */
 export function DocScale({ children, width = 794 }: { children: ReactNode; width?: number }) {
@@ -91,7 +91,8 @@ export function usePdf() {
         const el = ref.current?.firstElementChild as HTMLElement | null
         if (!el || cancelled) return
         madeWith(el)
-        if (job.vector) {
+        // no app aberto pelo ícone, a janela de impressão não abre: sai o PDF normal (pelo compartilhar)
+        if (job.vector && !isStandalone()) {
           // PDF em vetor: o próprio navegador desenha a folha (textos continuam texto, nítidos e selecionáveis).
           // O nome do arquivo sai do título da página.
           const title = document.title

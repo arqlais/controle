@@ -592,7 +592,7 @@ export default function Landing() {
             <p className="lp-founder" data-reveal>
               <Icon name="star" size={15} />
               <span>
-                <b>preço de fundador:</b> quem assina agora garante este valor por 12 meses. Os preços vão ter reajuste em breve.
+                <b>preço de fundador:</b> quem assina agora garante este valor por 12 meses, antes do reajuste.
               </span>
             </p>
           )}

@@ -3166,3 +3166,7 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .ref-status.is-sub { background: var(--accent-tint, #f4e8e5); border-color: var(--accent-soft); }
 .ref-status.is-ok { background: var(--accent); color: #fff; border-color: var(--accent); }
 .lp-ref-banner { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; background: var(--accent); color: #fff; font-size: 14px; text-align: center; }
+
+.lp-founder { width: fit-content; align-items: center; justify-content: center; text-align: center; }
+.lp-founder svg { margin-top: 0; }
+@media (max-width: 640px) { .lp-founder { text-align: left; align-items: flex-start; } .lp-founder svg { margin-top: 3px; } }

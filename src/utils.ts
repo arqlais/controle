@@ -671,15 +671,8 @@ export function download(filename: string, content: string, type = 'application/
       .catch(() => toast('Downloads não funcionam aqui. Use o sistema publicado para baixar arquivos.'))
     return
   }
-  const blob = new Blob([content], { type })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 60_000) // revogar cedo cancelava o download no Safari
+  // o mesmo caminho dos PDFs: no iPhone e no app aberto pelo ícone, vai pelo compartilhar do celular
+  void import('./components/saveFile').then((m) => m.saveFile(new Blob([content], { type }), filename))
 }
 
 /** Formata telefone enquanto digita: (11) 96928-8192 — com +55 fica +55 11 96928-8192. */
