@@ -97,7 +97,7 @@ export async function loadPlanConfig() {
   }
   if (cached) {
     applyPlanConfig(cached)
-    void fetchConfig(8000).then(save)
+    void fetchConfig(8000).then((c) => (c && applyPlanConfig(c), save(c)))
     return
   }
   const c = await fetchConfig(1500)

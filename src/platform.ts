@@ -629,7 +629,7 @@ const cloud = {
     await patchCloudSettings({ terms })
   },
   async savePlanConfig(c: PlanConfig) {
-    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, annualFreeMonths: c.annualFreeMonths, cardFee: c.cardFee, cardFee6: c.cardFee6, semesterDiscount: c.semesterDiscount })
+    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, trialV2: c.trialV2, launched: c.launched === true, annualFreeMonths: c.annualFreeMonths, cardFee: c.cardFee, cardFee6: c.cardFee6, semesterDiscount: c.semesterDiscount })
   },
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
@@ -675,6 +675,8 @@ interface PlatformData {
   terms?: string
   plans?: PlanConfig['plans']
   trialDays?: number
+  trialV2?: boolean
+  launched?: boolean // assinaturas abertas (a função de pagamentos confere isto)
   annualDiscount?: number
   annualFreeMonths?: number
   cardFee?: number
