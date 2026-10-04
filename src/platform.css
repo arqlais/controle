@@ -3277,3 +3277,18 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .lp-founder > span { display: inline; }
 .co-founder { margin-bottom: 14px; }
 @media (max-width: 640px) { .lp-founder { align-items: center; } .lp-founder svg { margin-top: 0; } }
+.aff-links { display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.aff-link-row { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.aff-link-row .connect-link { display: flex; gap: 8px; align-items: center; }
+.aff-link-row .connect-link input { flex: 1; min-width: 0; }
+.aff-preview-label { display: block; margin: 18px 0 8px; }
+.aff-preview { border: 1px solid var(--border); border-radius: 18px; background: var(--bg); max-height: 420px; overflow: auto; }
+.aff-preview .aff-panel { padding: 22px 18px; }
+@media (max-width: 640px) { .aff-link-row .connect-link { flex-wrap: wrap; } }
+.aff-links { margin-top: 12px; min-width: 0; }
+.aff-link-row { min-width: 0; }
+@media (max-width: 640px) {
+  .aff-link-row .connect-link input { flex: 1 1 100%; width: 100%; }
+  .aff-link-row .connect-link .btn { flex: 1; justify-content: center; }
+  .aff-links > .btn { width: 100%; justify-content: center; }
+}

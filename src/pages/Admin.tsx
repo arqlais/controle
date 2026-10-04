@@ -11,10 +11,11 @@ import { pixPayload } from '../pix'
 import { setTabBrand } from '../theme'
 import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, rememberPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { EMPTY_PAY, type PayConfig, type TabBrand, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { AffiliatePanelView } from '../components/AffiliatePanel'
+import { EMPTY_PAY, type PayConfig, type TabBrand, type AffiliateStats, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
-import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid, whatsappLink } from '../utils'
+import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
 import { DateInput } from '../components/DateInput'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
 import { NEWS } from '../news'
@@ -1956,6 +1957,7 @@ function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<st
   const [err, setErr] = useState('')
   const [edit, setEdit] = useState<Affiliate | null>(null)
   const [payFor, setPayFor] = useState<Affiliate | null>(null)
+  const [linksFor, setLinksFor] = useState<Affiliate | null>(null)
   const load = useCallback(() => {
     platform
       .affiliates()
@@ -2033,22 +2035,9 @@ function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<st
                     </p>
                   )}
                   <div className="row gap-s wrap">
-                    <button className="btn small" onClick={() => copyText(refLink(a.code), 'Link de divulgação')}>
-                      <Icon name="copy" size={13} /> link de divulgação
+                    <button className="btn small" onClick={() => setLinksFor(a)}>
+                      <Icon name="link" size={13} /> links e painel do parceiro
                     </button>
-                    <button className="btn small ghost" onClick={() => copyText(panelLink(a.token), 'Link do painel')}>
-                      <Icon name="eye" size={13} /> painel do parceiro
-                    </button>
-                    {a.contact && /\d{8,}/.test(a.contact.replace(/\D/g, '')) && (
-                      <a
-                        className="btn small ghost"
-                        target="_blank"
-                        rel="noreferrer"
-                        href={whatsappLink(a.contact, `oi, ${a.name.split(' ')[0]}! seguem seus links do ${PLATFORM.name}:\n\nlink para divulgar (quem entra por ele ganha ${a.discount}% no 1º mês): ${refLink(a.code)}\n\nseu painel (cadastros e comissão): ${panelLink(a.token)}`)}
-                      >
-                        <Icon name="whatsapp" size={13} /> mandar links
-                      </a>
-                    )}
                     <span className="grow" />
                     <button className={`btn small ${due > 0 ? 'primary' : 'ghost'}`} onClick={() => setPayFor(a)}>
                       registrar repasse
@@ -2080,6 +2069,7 @@ function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<st
           }
         />
       )}
+      {linksFor && <AffiliateLinks aff={linksFor} st={affiliateStats(linksFor, subs, ctrl)} onClose={() => setLinksFor(null)} />}
       {payFor && (
         <PayoutForm
           aff={payFor}
@@ -2093,6 +2083,50 @@ function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<st
         />
       )}
     </>
+  )
+}
+
+/** Links do afiliado (copiar, abrir, mandar no WhatsApp) e a prévia do painel que ele vê. */
+function AffiliateLinks({ aff, st, onClose }: { aff: Affiliate; st: AffiliateStats; onClose: () => void }) {
+  const sample = aff.id === 'af-1' || aff.token === 'parceira-exemplo'
+  const rows: [string, string, string][] = [
+    ['link de divulgação', refLink(aff.code), `quem entra por ele ganha ${aff.discount}% no 1º mês`],
+    ['painel do parceiro', panelLink(aff.token), 'link secreto: o parceiro vê os cadastros e a comissão, sem login'],
+  ]
+  const wa = `oi, ${aff.name.split(' ')[0]}! seguem seus links do ${PLATFORM.name}:\n\nlink para divulgar (quem entra por ele ganha ${aff.discount}% no 1º mês): ${rows[0][1]}\n\nseu painel (cadastros e comissão): ${rows[1][1]}`
+  return (
+    <Modal wide title={`links · ${aff.name}`} onClose={onClose}>
+      {sample && (
+        <p className="pf-note is-warn">
+          <Icon name="alert" size={16} />
+          <span>Este é um afiliado de exemplo: os links servem só para ver como fica. Os afiliados que você cadastrar têm links que funcionam de verdade.</span>
+        </p>
+      )}
+      <div className="aff-links">
+        {rows.map(([label, url, hint]) => (
+          <div key={label} className="aff-link-row">
+            <span className="field-label">{label}</span>
+            <div className="connect-link">
+              <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label={label} />
+              <button className="btn small" onClick={() => copyText(url, label.charAt(0).toUpperCase() + label.slice(1))}>
+                <Icon name="copy" size={14} /> copiar
+              </button>
+              <a className="btn small ghost" href={url} target="_blank" rel="noreferrer">
+                abrir <Icon name="chevronR" size={13} />
+              </a>
+            </div>
+            <small className="muted">{hint}</small>
+          </div>
+        ))}
+        <a className="btn small primary" href={`https://wa.me/${aff.contact.replace(/\D/g, '').length >= 10 ? '55' + aff.contact.replace(/\D/g, '').replace(/^55/, '') : ''}?text=${encodeURIComponent(wa)}`} target="_blank" rel="noreferrer">
+          <Icon name="whatsapp" size={14} /> mandar os dois links no WhatsApp
+        </a>
+      </div>
+      <span className="field-label aff-preview-label">como o parceiro vê o painel</span>
+      <div className="aff-preview">
+        <AffiliatePanelView st={st} />
+      </div>
+    </Modal>
   )
 }
 

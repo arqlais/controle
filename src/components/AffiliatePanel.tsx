@@ -22,6 +22,11 @@ export function AffiliatePanel({ token }: { token: string }) {
         <p className="muted">Confira o link com a equipe do {PLATFORM.name}.</p>
       </div>
     )
+  return <AffiliatePanelView st={st} />
+}
+
+/** O que o parceiro vê (também usado na prévia dentro do painel da dona). */
+export function AffiliatePanelView({ st }: { st: AffiliateStats }) {
   const link = refLink(st.code)
   const due = Math.max(0, st.earned - st.paidOut)
   const copy = () =>
