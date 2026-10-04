@@ -105,6 +105,7 @@ create unique index if not exists subscriptions_ref_code on public.subscriptions
 alter table public.subscriptions add column if not exists referred_by uuid;
 alter table public.subscriptions add column if not exists ref_rewarded_at timestamptz; -- mês grátis de quem indicou já liberado
 alter table public.subscriptions add column if not exists bonus_months int not null default 0; -- meses grátis a usar (quando já paga)
+alter table public.subscriptions add column if not exists ref_used text; -- código do link usado no cadastro (assinante ou afiliado)
 
 create or replace function public.gerar_codigo() returns text
 language sql volatile as $$ select lower(substr(md5(gen_random_uuid()::text), 1, 7)) $$;
@@ -115,12 +116,13 @@ create or replace function public.garantir_assinatura(plano text) returns setof 
 language plpgsql security definer set search_path = public as $$
 begin
   if auth.uid() is null then return; end if;
-  insert into public.subscriptions (user_id, email, name, studio, plan, trial_ends, ref_code, referred_by)
+  insert into public.subscriptions (user_id, email, name, studio, plan, trial_ends, ref_code, referred_by, ref_used)
   select u.id, coalesce(u.email, ''), coalesce(u.raw_user_meta_data ->> 'name', ''), coalesce(u.raw_user_meta_data ->> 'studio', ''),
          'estudio',
          now() + make_interval(days => least(365, greatest(1, coalesce((select (s.data ->> 'trialDays')::int from public.platform_settings s where s.id = 1), 14)))),
          public.gerar_codigo(),
-         (select r.user_id from public.subscriptions r where r.ref_code = lower(nullif(u.raw_user_meta_data ->> 'ref', '')) and r.user_id <> u.id limit 1)
+         (select r.user_id from public.subscriptions r where r.ref_code = lower(nullif(u.raw_user_meta_data ->> 'ref', '')) and r.user_id <> u.id limit 1),
+         lower(nullif(u.raw_user_meta_data ->> 'ref', ''))
   from auth.users u where u.id = auth.uid()
   on conflict (user_id) do nothing;
   update public.subscriptions set ref_code = public.gerar_codigo() where user_id = auth.uid() and ref_code is null;
@@ -141,7 +143,58 @@ $$;
 revoke execute on function public.minhas_indicacoes() from public, anon;
 grant execute on function public.minhas_indicacoes() to authenticated;
 
+-- 5) Afiliados (parceiros que divulgam o planê e ganham comissão em dinheiro).
+--    Só a dona vê e edita. O desconto do link e o painel do parceiro saem por funções seguras.
+create table if not exists public.affiliates (
+  id         uuid primary key default gen_random_uuid(),
+  code       text not null unique,
+  token      text not null unique default lower(substr(md5(gen_random_uuid()::text), 1, 16)),
+  data       jsonb not null default '{}'::jsonb,
+  active     boolean not null default true,
+  created_at timestamptz not null default now()
+);
+alter table public.affiliates enable row level security;
+drop policy if exists "afiliados: dona" on public.affiliates;
+create policy "afiliados: dona" on public.affiliates for all using (public.sou_dona()) with check (public.sou_dona());
+
+-- desconto do link de um afiliado (a página de vendas mostra; 0 = não é afiliado)
+create or replace function public.desconto_afiliado(codigo text) returns int
+language sql stable security definer set search_path = public as $$
+  select coalesce((select (a.data ->> 'discount')::int from public.affiliates a where a.code = lower(codigo) and a.active), 0)
+$$;
+grant execute on function public.desconto_afiliado(text) to anon, authenticated;
+
+-- painel do parceiro (pelo link secreto): só números e primeiros nomes
+create or replace function public.painel_afiliado(chave text) returns jsonb
+language sql stable security definer set search_path = public as $$
+  with a as (select * from public.affiliates where token = chave),
+  pessoas as (
+    select s.*, coalesce((
+      select sum((p ->> 'amount')::numeric)
+      from public.subscriber_admin sa, jsonb_array_elements(coalesce(sa.data -> 'payments', '[]'::jsonb)) p
+      where sa.user_id = s.user_id
+        and (p ->> 'date')::date < (s.created_at + make_interval(months => coalesce((select (data ->> 'months')::int from a), 12)))::date
+    ), 0) as pago
+    from public.subscriptions s, a where s.ref_used = a.code and s.deleted_at is null
+  )
+  select case when not exists (select 1 from a) then null else jsonb_build_object(
+    'name', (select data ->> 'name' from a),
+    'code', (select code from a),
+    'active', (select active from a),
+    'commission', coalesce((select (data ->> 'commission')::numeric from a), 0),
+    'months', coalesce((select (data ->> 'months')::int from a), 12),
+    'discount', coalesce((select (data ->> 'discount')::int from a), 0),
+    'signups', (select count(*) from pessoas),
+    'paying', (select count(*) from pessoas where status in ('ativa', 'atrasada')),
+    'earned', round(coalesce((select sum(pago) from pessoas), 0) * coalesce((select (data ->> 'commission')::numeric from a), 0) / 100, 2),
+    'paidOut', coalesce((select sum((x ->> 'amount')::numeric) from a, jsonb_array_elements(coalesce(a.data -> 'payouts', '[]'::jsonb)) x), 0),
+    'people', coalesce((select jsonb_agg(jsonb_build_object('name', split_part(coalesce(nullif(name, ''), 'alguém'), ' ', 1), 'status', status, 'since', created_at) order by created_at desc) from pessoas), '[]'::jsonb)
+  ) end
+$$;
+grant execute on function public.painel_afiliado(text) to anon, authenticated;
+
 -- Conferência
 select (select count(*) from public.subscriptions where ref_code is not null) as codigos_de_indicacao,
        (select count(*) from public.workspace_history) as versoes_guardadas,
-       (select data ->> 'trialDays' from public.platform_settings where id = 1) as dias_de_teste;
+       (select data ->> 'trialDays' from public.platform_settings where id = 1) as dias_de_teste,
+       (select count(*) from public.affiliates) as afiliados;

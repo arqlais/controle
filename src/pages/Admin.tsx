@@ -2,17 +2,17 @@ import { TermsText } from '../components/Terms'
 import { SubscriberProof } from '../components/SubscriberProof'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { Badge, Empty, Field, MoneyInput, Section, Segmented, Stat } from '../components/ui'
+import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented, Stat } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
 import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
-import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
+import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid, whatsappLink } from '../utils'
 import { DateInput } from '../components/DateInput'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
 import { NEWS } from '../news'
@@ -165,7 +165,7 @@ export default function Admin() {
           <SiteEditor />
         </>
       )}
-      {tab === 'indicacoes' && <ReferralsAdmin subs={subs} update={update} />}
+      {tab === 'indicacoes' && <ReferralsAdmin subs={subs} update={update} ctrl={ctrl} />}
       {tab === 'emails' && <EmailsAdmin subs={subs} />}
       {tab === 'termos' && <TermsEditor />}
       {tab === 'horarios' && <HoursEditor />}
@@ -1747,7 +1747,303 @@ function UsageSummary({ subs, usage }: { subs: Subscription[]; usage: Record<str
 }
 
 /** Indicações: quem indicou quem, como está cada uma e o mês grátis de quem indicou (um toque). */
-function ReferralsAdmin({ subs, update }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean> }) {
+function ReferralsAdmin({ subs, update, ctrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; ctrl: Record<string, SubAdmin> }) {
+  const [view, setView] = useKeep<'assinantes' | 'afiliados'>('painel-indica', 'assinantes')
+  return (
+    <div className="stack">
+      <Segmented<'assinantes' | 'afiliados'>
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'assinantes', label: 'assinantes indicam' },
+          { value: 'afiliados', label: 'afiliados (comissão)' },
+        ]}
+      />
+      {view === 'assinantes' ? <SubReferrals subs={subs} update={update} /> : <AffiliatesAdmin subs={subs} ctrl={ctrl} />}
+    </div>
+  )
+}
+
+const AFF_CODE = /^[a-z0-9-]{3,20}$/
+const blankAff = (): Affiliate => ({ id: '', code: '', token: '', active: true, createdAt: '', name: '', contact: '', pix: '', notes: '', payouts: [], ...AFFILIATE_DEFAULT })
+const panelLink = (token: string) => `${location.origin}${location.pathname}#/parceiro/${token}`
+const copyText = (t: string, what: string) =>
+  navigator.clipboard
+    ?.writeText(t)
+    .then(() => toast(`${what} copiado.`))
+    .catch(() => toast('Selecione e copie.'))
+
+/** Afiliados: parceiros com link próprio, desconto para quem chega e comissão em dinheiro sobre o que a pessoa paga. */
+function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<string, SubAdmin> }) {
+  const [list, setList] = useState<Affiliate[] | null>(null)
+  const [err, setErr] = useState('')
+  const [edit, setEdit] = useState<Affiliate | null>(null)
+  const [payFor, setPayFor] = useState<Affiliate | null>(null)
+  const load = useCallback(() => {
+    platform
+      .affiliates()
+      .then((l) => (setList(l), setErr('')))
+      .catch((e: Error) => (setList([]), setErr(e.message)))
+  }, [])
+  useEffect(load, [load])
+  const save = async (a: Affiliate, msg: string) => {
+    try {
+      const saved = await platform.saveAffiliate(a)
+      setList((l) => [saved, ...(l ?? []).filter((x) => x.id !== saved.id)])
+      toast(msg)
+      return true
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Não foi possível salvar.')
+      return false
+    }
+  }
+  const stats = (list ?? []).map((a) => ({ a, st: affiliateStats(a, subs, ctrl) }))
+  const total = stats.reduce((t, { st }) => ({ due: t.due + Math.max(0, st.earned - st.paidOut), earned: t.earned + st.earned, people: t.people + st.signups, paying: t.paying + st.paying }), { due: 0, earned: 0, people: 0, paying: 0 })
+  return (
+    <>
+      <p className="pf-note">
+        <Icon name="link" size={16} />
+        <span>
+          Afiliado é quem divulga o {PLATFORM.name} sem precisar assinar (perfil de arquitetura, professora, influencer). Cada um tem um <b>link próprio</b>: quem chega por ele ganha um desconto no 1º mês, e o afiliado ganha uma <b>% de cada pagamento</b> da pessoa durante os meses combinados. A comissão é calculada com os pagamentos que você registra em cada assinante; o repasse é feito por Pix e anotado aqui.
+        </span>
+      </p>
+      {err && <p className="pf-note is-warn"><Icon name="alert" size={16} /><span>{err}</span></p>}
+      <div className="stats">
+        <Stat label="afiliados ativos" value={(list ?? []).filter((a) => a.active).length} icon="link" />
+        <Stat label="cadastros pelos links" icon="users" value={total.people} sub={`${total.paying} pagando`} />
+        <Stat label="comissão gerada" icon="trend" value={money(total.earned)} />
+        <Stat label="a repassar" icon="wallet" value={money(total.due)} tone={total.due > 0 ? "warn" : undefined} />
+      </div>
+      <Section
+        title={`afiliados (${list?.length ?? 0})`}
+        action={
+          <button className="btn small primary" onClick={() => setEdit(blankAff())}>
+            <Icon name="plus" size={14} /> afiliado
+          </button>
+        }
+      >
+        {list === null ? (
+          <p className="muted small">carregando…</p>
+        ) : list.length === 0 ? (
+          <Empty icon="link" title="nenhum afiliado ainda" text="Cadastre um parceiro, defina a comissão e mande o link e o painel para ele." />
+        ) : (
+          <ul className="aff-list">
+            {stats.map(({ a, st }) => {
+              const due = Math.max(0, st.earned - st.paidOut)
+              return (
+                <li key={a.id} className={`aff-card ${a.active ? '' : 'is-off'}`}>
+                  <div className="aff-head">
+                    <span className="ref-avatar">{(a.name || '?')[0].toUpperCase()}</span>
+                    <span className="grow">
+                      <b>{a.name || 'sem nome'}</b>
+                      <small className="muted">
+                        {' '}
+                        {a.contact && `${a.contact} · `}código <b>{a.code}</b> · {a.commission}% por {a.months} meses · {a.discount}% de desconto
+                      </small>
+                    </span>
+                    {!a.active && <span className="ref-status">pausado</span>}
+                  </div>
+                  <div className="aff-nums">
+                    <span><b>{st.signups}</b> cadastros</span>
+                    <span><b>{st.paying}</b> pagando</span>
+                    <span><b>{money(st.earned)}</b> gerado</span>
+                    <span><b>{money(st.paidOut)}</b> repassado</span>
+                    <span className={due > 0 ? 'is-due' : ''}><b>{money(due)}</b> a repassar</span>
+                  </div>
+                  {st.people.length > 0 && (
+                    <p className="muted small aff-people">
+                      {st.people.map((p) => `${p.name} (${STATUS_LABEL[p.status]})`).join(' · ')}
+                    </p>
+                  )}
+                  <div className="row gap-s wrap">
+                    <button className="btn small" onClick={() => copyText(refLink(a.code), 'Link de divulgação')}>
+                      <Icon name="copy" size={13} /> link de divulgação
+                    </button>
+                    <button className="btn small ghost" onClick={() => copyText(panelLink(a.token), 'Link do painel')}>
+                      <Icon name="eye" size={13} /> painel do parceiro
+                    </button>
+                    {a.contact && /\d{8,}/.test(a.contact.replace(/\D/g, '')) && (
+                      <a
+                        className="btn small ghost"
+                        target="_blank"
+                        rel="noreferrer"
+                        href={whatsappLink(a.contact, `oi, ${a.name.split(' ')[0]}! seguem seus links do ${PLATFORM.name}:\n\nlink para divulgar (quem entra por ele ganha ${a.discount}% no 1º mês): ${refLink(a.code)}\n\nseu painel (cadastros e comissão): ${panelLink(a.token)}`)}
+                      >
+                        <Icon name="whatsapp" size={13} /> mandar links
+                      </a>
+                    )}
+                    <span className="grow" />
+                    <button className={`btn small ${due > 0 ? 'primary' : 'ghost'}`} onClick={() => setPayFor(a)}>
+                      registrar repasse
+                    </button>
+                    <button className="btn small ghost" onClick={() => setEdit(a)}>
+                      editar
+                    </button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Section>
+      {edit && (
+        <AffiliateForm
+          aff={edit}
+          onClose={() => setEdit(null)}
+          onSave={async (a) => (await save(a, edit.id ? 'Afiliado salvo.' : 'Afiliado criado. Copie o link e mande para ele.')) && setEdit(null)}
+          onRemove={
+            edit.id
+              ? async () => {
+                  if (!(await askDelete(`o afiliado “${edit.name}”`))) return
+                  await platform.removeAffiliate(edit.id).catch(() => toast('Não foi possível excluir.'))
+                  setList((l) => (l ?? []).filter((x) => x.id !== edit.id))
+                  setEdit(null)
+                }
+              : undefined
+          }
+        />
+      )}
+      {payFor && (
+        <PayoutForm
+          aff={payFor}
+          due={Math.max(0, affiliateStats(payFor, subs, ctrl).earned - affiliateStats(payFor, subs, ctrl).paidOut)}
+          onClose={() => setPayFor(null)}
+          onSave={async (p) => (await save({ ...payFor, payouts: [...payFor.payouts, p] }, 'Repasse registrado.')) && setPayFor(null)}
+          onRemove={async (id) => {
+            const next = { ...payFor, payouts: payFor.payouts.filter((x) => x.id !== id) }
+            if (await save(next, 'Repasse removido.')) setPayFor(next)
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+function AffiliateForm({ aff, onClose, onSave, onRemove }: { aff: Affiliate; onClose: () => void; onSave: (a: Affiliate) => void; onRemove?: () => void }) {
+  const [a, setA] = useState(aff)
+  const set = (p: Partial<Affiliate>) => setA((x) => ({ ...x, ...p }))
+  const codeOk = AFF_CODE.test(a.code)
+  const submit = () => {
+    if (!a.name.trim()) return toast('Coloque o nome do afiliado.')
+    if (!codeOk) return toast('O código usa só letras minúsculas, números e hífen (3 a 20).')
+    onSave({ ...a, name: a.name.trim() })
+  }
+  return (
+    <Modal
+      title={aff.id ? 'editar afiliado' : 'novo afiliado'}
+      onClose={onClose}
+      footer={
+        <>
+          {onRemove && (
+            <button className="btn ghost danger" onClick={onRemove}>
+              <Icon name="trash" size={15} /> excluir
+            </button>
+          )}
+          <button className="btn ghost" onClick={onClose}>
+            cancelar
+          </button>
+          <button className="btn primary" onClick={submit}>
+            <Icon name="check" size={15} /> salvar
+          </button>
+        </>
+      }
+    >
+      <div className="form-grid">
+        <Field label="Nome" span={2}>
+          <input value={a.name} onChange={(e) => set({ name: e.target.value, ...(!aff.id && !a.code ? {} : {}) })} placeholder="ex.: Ana Souza" />
+        </Field>
+        <Field label="Código do link" hint={codeOk ? `link: ...?indica=${a.code}` : 'letras minúsculas, números e hífen'}>
+          <input value={a.code} onChange={(e) => set({ code: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} placeholder="ex.: ana-arq" disabled={!!aff.id} />
+        </Field>
+        <Field label="Instagram ou WhatsApp">
+          <input value={a.contact} onChange={(e) => set({ contact: e.target.value })} placeholder="ex.: (31) 99999-9999" />
+        </Field>
+        <Field label="Chave Pix (para o repasse)" span={2}>
+          <input value={a.pix} onChange={(e) => set({ pix: e.target.value })} />
+        </Field>
+        <Field label="Comissão (%)" hint="de cada pagamento">
+          <input type="number" min={0} max={100} value={a.commission} onChange={(e) => set({ commission: Math.max(0, Math.min(100, Number(e.target.value))) })} />
+        </Field>
+        <Field label="Por quantos meses" hint="de cada assinante">
+          <input type="number" min={1} max={60} value={a.months} onChange={(e) => set({ months: Math.max(1, Math.min(60, Number(e.target.value))) })} />
+        </Field>
+        <Field label="Desconto de quem chega (%)" hint="no 1º mês">
+          <input type="number" min={0} max={100} value={a.discount} onChange={(e) => set({ discount: Math.max(0, Math.min(100, Number(e.target.value))) })} />
+        </Field>
+        <Field label="Anotações" span={3}>
+          <textarea rows={2} value={a.notes} onChange={(e) => set({ notes: e.target.value })} />
+        </Field>
+        <label className="check span-3">
+          <input type="checkbox" checked={a.active} onChange={(e) => set({ active: e.target.checked })} /> ativo (pausado: o link para de dar desconto e o painel mostra “pausado”)
+        </label>
+      </div>
+      <p className="muted small">
+        Exemplo: com {a.commission}% por {a.months} meses, cada assinante do plano Completo ({money(PLANS.completo.price)}/mês) rende {money((PLANS.completo.price * a.commission) / 100)} por mês ao afiliado, até {money((PLANS.completo.price * a.commission * a.months) / 100)} no total.
+      </p>
+    </Modal>
+  )
+}
+
+function PayoutForm({ aff, due, onClose, onSave, onRemove }: { aff: Affiliate; due: number; onClose: () => void; onSave: (p: Affiliate['payouts'][number]) => void; onRemove: (id: string) => void }) {
+  const [amount, setAmount] = useState(Math.round(due * 100) / 100)
+  const [date, setDate] = useState(today())
+  const [note, setNote] = useState('pix')
+  return (
+    <Modal
+      title={`repasse · ${aff.name}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn ghost" onClick={onClose}>
+            fechar
+          </button>
+          <button className="btn primary" disabled={amount <= 0} onClick={() => onSave({ id: uid(), date, amount, note })}>
+            <Icon name="check" size={15} /> registrar
+          </button>
+        </>
+      }
+    >
+      <p className="muted small">
+        A repassar agora: <b>{money(due)}</b>
+        {aff.pix && (
+          <>
+            {' '}· Pix: <button className="link" onClick={() => copyText(aff.pix, 'Chave Pix')}>{aff.pix}</button>
+          </>
+        )}
+      </p>
+      <div className="form-grid">
+        <Field label="Valor">
+          <MoneyInput value={amount} onChange={setAmount} />
+        </Field>
+        <Field label="Data">
+          <DateInput value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Anotação">
+          <input value={note} onChange={(e) => setNote(e.target.value)} />
+        </Field>
+      </div>
+      {aff.payouts.length > 0 && (
+        <Section title="repasses feitos">
+          <ul className="ref-list">
+            {[...aff.payouts].reverse().map((p) => (
+              <li key={p.id}>
+                <span className="grow">
+                  {new Date(p.date + 'T12:00').toLocaleDateString('pt-BR')} · <b>{money(p.amount)}</b> {p.note && <small className="muted">· {p.note}</small>}
+                </span>
+                <button className="icon-btn" aria-label="Remover repasse" onClick={() => onRemove(p.id)}>
+                  <Icon name="trash" size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+    </Modal>
+  )
+}
+
+/** Indicações entre assinantes: mês grátis para quem indica. */
+function SubReferrals({ subs, update }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean> }) {
   const byId = new Map(subs.map((s) => [s.userId, s]))
   const referred = subs.filter((s) => s.referredBy && byId.has(s.referredBy)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const ranking = [...referred.reduce((m, s) => m.set(s.referredBy!, (m.get(s.referredBy!) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])

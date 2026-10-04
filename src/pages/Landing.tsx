@@ -283,6 +283,12 @@ export default function Landing() {
   const root = useRef<HTMLDivElement>(null)
   // "quem criou", contatos e redes: a dona edita no painel da plataforma
   const [site, setSite] = useState<SiteContent>(DEFAULT_SITE)
+  // link de afiliado: o desconto é o combinado com ele (link de assinante usa o padrão)
+  const [refDiscount, setRefDiscount] = useState(0)
+  useEffect(() => {
+    const code = readRef()
+    if (code) void platform.affiliateDiscount(code).then(setRefDiscount).catch(() => undefined)
+  }, [])
   const off = (id: string) => (site.hidden ?? []).includes(id)
   const siteWords = (site.heroWords || '').split(',').map((w) => w.trim()).filter(Boolean)
   // depoimentos escolhidos pela dona no painel (sem nenhum, a seção não aparece)
@@ -352,7 +358,7 @@ export default function Landing() {
       </header>
       {readRef() && (
         <p className="lp-ref-banner">
-          <Icon name="heart" size={15} /> Você veio por indicação: testa grátis por {TRIAL_DAYS} dias e ganha {REFERRAL.discount}% de desconto no primeiro mês ao assinar.
+          <Icon name="heart" size={15} /> Você veio por indicação: testa grátis por {TRIAL_DAYS} dias e ganha {refDiscount || REFERRAL.discount}% de desconto no primeiro mês ao assinar.
         </p>
       )}
 

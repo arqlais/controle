@@ -33,6 +33,75 @@ export interface Subscription {
   referredBy?: string | null // quem indicou (userId)
   refRewardedAt?: string | null // mês grátis de quem indicou já liberado
   bonusMonths?: number // meses grátis a usar
+  refUsed?: string | null // código do link usado no cadastro (assinante ou afiliado)
+}
+
+/** Afiliado: parceiro (influencer, professora, perfil de arquitetura) que divulga e ganha comissão em dinheiro. */
+export interface AffiliatePayout {
+  id: string
+  date: string // AAAA-MM-DD
+  amount: number
+  note: string
+}
+export interface Affiliate {
+  id: string
+  code: string // vai no link: ?indica=codigo
+  token: string // link secreto do painel do parceiro
+  active: boolean
+  createdAt: string
+  name: string
+  contact: string // instagram ou WhatsApp
+  pix: string
+  commission: number // % de cada pagamento
+  months: number // por quantos meses de cada assinante
+  discount: number // % de desconto no 1º mês para quem vem pelo link
+  notes: string
+  payouts: AffiliatePayout[]
+}
+/** Números do afiliado (a dona vê tudo; o parceiro vê pelo link secreto). */
+export interface AffiliateStats {
+  name: string
+  code: string
+  active: boolean
+  commission: number
+  months: number
+  discount: number
+  signups: number
+  paying: number
+  earned: number // comissão gerada
+  paidOut: number // já repassado
+  people: { name: string; status: SubStatus; since: string }[]
+}
+export const AFFILIATE_DEFAULT = { commission: 20, months: 12, discount: 10 }
+/** Comissão: soma o que cada pessoa do link pagou nos primeiros N meses × a %. */
+export function affiliateStats(a: Affiliate, subs: Subscription[], ctrl: Record<string, SubAdmin>): AffiliateStats {
+  const people = subs.filter((x) => x.refUsed === a.code && !x.deletedAt)
+  const paid = people.reduce((t, x) => {
+    const until = new Date(x.createdAt)
+    until.setMonth(until.getMonth() + a.months)
+    const lim = until.toISOString().slice(0, 10)
+    return t + (ctrl[x.userId]?.payments ?? []).filter((p) => p.date < lim).reduce((n, p) => n + p.amount, 0)
+  }, 0)
+  return {
+    name: a.name,
+    code: a.code,
+    active: a.active,
+    commission: a.commission,
+    months: a.months,
+    discount: a.discount,
+    signups: people.length,
+    paying: people.filter((x) => x.status === 'ativa' || x.status === 'atrasada').length,
+    earned: Math.round(paid * a.commission) / 100,
+    paidOut: a.payouts.reduce((n, p) => n + p.amount, 0),
+    people: people.map((x) => ({ name: (x.name || 'alguém').split(' ')[0], status: x.status, since: x.createdAt })),
+  }
+}
+const affFromRow = (r: Row): Affiliate => {
+  const d = (r.data ?? {}) as Partial<Affiliate>
+  return {
+    name: '', contact: '', pix: '', notes: '', payouts: [], ...AFFILIATE_DEFAULT, ...d,
+    id: String(r.id), code: String(r.code), token: String(r.token), active: r.active !== false, createdAt: String(r.created_at ?? ''),
+  }
 }
 
 /** Quem a pessoa indicou (visto por ela). */
@@ -280,6 +349,7 @@ const subFromRow = (r: Row): Subscription => ({
   referredBy: (r.referred_by as string | null) ?? null,
   refRewardedAt: (r.ref_rewarded_at as string | null) ?? null,
   bonusMonths: Number(r.bonus_months ?? 0),
+  refUsed: (r.ref_used as string | null) ?? null,
 })
 const sugFromRow = (r: Row): Suggestion => ({
   id: String(r.id),
@@ -467,6 +537,34 @@ const cloud = {
       .subscribe()
     return () => void supabase!.removeChannel(ch)
   },
+  async affiliates(): Promise<Affiliate[]> {
+    const { data, error } = await supabase!.from('affiliates').select('*').order('created_at', { ascending: false })
+    if (error) throw new Error('Rode o SQL de atualização no Supabase para liberar os afiliados.')
+    return ((data ?? []) as Row[]).map(affFromRow)
+  },
+  async saveAffiliate(a: Affiliate) {
+    const { id, code, token, active, createdAt, ...data } = a
+    void createdAt
+    const row: Row = { code, active, data }
+    if (id) row.id = id
+    if (token) row.token = token
+    const { data: saved, error } = await supabase!.from('affiliates').upsert(row).select('*').single()
+    if (error) throw new Error(/duplicate|unique/i.test(error.message) ? 'Esse código já está em uso. Escolha outro.' : error.message)
+    return affFromRow(saved as Row)
+  },
+  async removeAffiliate(id: string) {
+    const { error } = await supabase!.from('affiliates').delete().eq('id', id)
+    if (error) throw error
+  },
+  async affiliateDiscount(code: string): Promise<number> {
+    const { data } = await supabase!.rpc('desconto_afiliado', { codigo: code })
+    return Number(data ?? 0)
+  },
+  async affiliatePanel(token: string): Promise<AffiliateStats | null> {
+    const { data, error } = await supabase!.rpc('painel_afiliado', { chave: token })
+    if (error) throw error
+    return (data as AffiliateStats | null) ?? null
+  },
   async myReferrals(): Promise<MyReferral[]> {
     const { data, error } = await supabase!.rpc('minhas_indicacoes')
     if (error) throw error
@@ -563,6 +661,7 @@ interface LocalDB {
   site?: Partial<SiteContent>
   terms?: string
   company?: Company
+  affiliates?: Affiliate[]
 }
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000).toISOString()
 
@@ -587,7 +686,8 @@ function seed(): LocalDB {
     s('ex-2', 'Rafael Menezes', 'RM Visualização 3D', 'essencial', 'ativa', 44, 1, { refCode: 'raf3m9x', referredBy: 'ex-1', refRewardedAt: ago(30) }),
     s('ex-3', 'Camila Duarte', 'Studio Duarte', 'completo', 'trial', 5, 0, { lastSeen: new Date(Date.now() - 60_000).toISOString(), refCode: 'cam5d1p', referredBy: 'ex-1' }),
     s('ex-4', 'Júlia Prado', 'Prado Arquitetura', 'essencial', 'trial', 6, 2, { requestedPlan: 'completo', requestedAt: ago(0, 5), refCode: 'jul8p4r' }),
-    s('ex-5', 'Thiago Lemos', 'Lemos Arq', 'essencial', 'atrasada', 71, 9),
+    s('ex-5', 'Thiago Lemos', 'Lemos Arq', 'essencial', 'atrasada', 71, 9, { refUsed: 'ana-arq' }),
+    s('ex-7', 'Larissa Costa', 'Costa Interiores', 'completo', 'trial', 3, 0, { refUsed: 'ana-arq' }),
     s('ex-6', 'Marina Faria', 'Faria & Co.', 'completo', 'cancelada', 90, 20, { canceledAt: ago(6) }),
   ]
   const m = (clientId: string, fromOwner: boolean, body: string, daysAgo: number, hoursAgo: number, read = true): ChatMessage => ({
@@ -643,7 +743,10 @@ function seed(): LocalDB {
     'ex-2': { cycle: 'mensal', method: 'pix', paidUntil: day(3), notes: '', payments: [pay('p3', 34, 39.9, 'pix')] },
     'ex-5': { cycle: 'mensal', method: 'pix', paidUntil: day(-6), notes: 'pediu para pagar dia 15.', payments: [pay('p4', 64, 39.9, 'pix'), pay('p5', 36, 39.9, 'pix')] },
   }
-  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks, subAdmin }
+  const affiliates: Affiliate[] = [
+    { id: 'af-1', code: 'ana-arq', token: 'parceira-exemplo', active: true, createdAt: ago(80), name: 'Ana (perfil de exemplo)', contact: '@perfil.exemplo', pix: 'chave de exemplo', commission: 30, months: 12, discount: 15, notes: 'divulga nos stories uma vez por mês.', payouts: [{ id: 'po1', date: day(-30), amount: 11.97, note: 'pix' }] },
+  ]
+  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks, subAdmin, affiliates }
 }
 
 const listeners = new Set<() => void>()
@@ -728,6 +831,7 @@ export function previewSignup(name: string, studio: string, email: string, plan:
     lastSeen: new Date().toISOString(),
     refCode: 'voce123',
     referredBy: db.subs.find((x) => x.refCode && x.refCode === readRef())?.userId ?? null,
+    refUsed: readRef() || null,
   }
   writeDB({ ...db, subs: [sub, ...db.subs.filter((x) => x.userId !== PREVIEW_CLIENT)] })
 }
@@ -866,6 +970,29 @@ const local = {
   subscribe(onChange: () => void) {
     listeners.add(onChange)
     return () => void listeners.delete(onChange)
+  },
+  async affiliates(): Promise<Affiliate[]> {
+    return readDB().affiliates ?? []
+  },
+  async saveAffiliate(a: Affiliate) {
+    const db = readDB()
+    const list = db.affiliates ?? []
+    if (list.some((x) => x.code === a.code && x.id !== a.id) || db.subs.some((x) => x.refCode === a.code)) throw new Error('Esse código já está em uso. Escolha outro.')
+    const saved = { ...a, id: a.id || Math.random().toString(36).slice(2), token: a.token || Math.random().toString(36).slice(2, 14), createdAt: a.createdAt || new Date().toISOString() }
+    writeDB({ ...db, affiliates: [saved, ...list.filter((x) => x.id !== saved.id)] })
+    return saved
+  },
+  async removeAffiliate(id: string) {
+    const db = readDB()
+    writeDB({ ...db, affiliates: (db.affiliates ?? []).filter((x) => x.id !== id) })
+  },
+  async affiliateDiscount(code: string) {
+    return readDB().affiliates?.find((x) => x.code === code.toLowerCase() && x.active)?.discount ?? 0
+  },
+  async affiliatePanel(token: string) {
+    const db = readDB()
+    const a = db.affiliates?.find((x) => x.token === token)
+    return a ? affiliateStats(a, db.subs, db.subAdmin ?? {}) : null
   },
   async myReferrals(): Promise<MyReferral[]> {
     const db = readDB()
@@ -1006,7 +1133,7 @@ const REF_KEY = 'plane-indicacao'
 export function captureRef() {
   try {
     const code = new URLSearchParams(location.search).get('indica') || new URLSearchParams(location.hash.split('?')[1] ?? '').get('indica')
-    if (code && /^[a-z0-9]{4,12}$/i.test(code)) localStorage.setItem(REF_KEY, JSON.stringify({ code: code.toLowerCase(), at: Date.now() }))
+    if (code && /^[a-z0-9-]{3,20}$/i.test(code)) localStorage.setItem(REF_KEY, JSON.stringify({ code: code.toLowerCase(), at: Date.now() }))
   } catch {
     /* sem armazenamento: segue sem indicação */
   }

@@ -16,6 +16,7 @@ const Landing = lazy(() => import('../pages/Landing'))
 const BriefingPublic = lazy(() => import('./Briefing').then((m) => ({ default: m.BriefingPublic })))
 const PortalPublic = lazy(() => import('./Studio').then((m) => ({ default: m.PortalPublic })))
 const ClientPanelPublic = lazy(() => import('./ClientPanelPublic').then((m) => ({ default: m.ClientPanelPublic })))
+const AffiliatePanel = lazy(() => import('./AffiliatePanel').then((m) => ({ default: m.AffiliatePanel })))
 const ContractSignPublic = lazy(() => import('./ContractSignPublic').then((m) => ({ default: m.ContractSignPublic })))
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
@@ -37,6 +38,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (route.page === 'assinar' && route.id) return <Suspense fallback={wait}><ContractSignPublic id={route.id} /></Suspense>
   // painel do cliente final (tudo o que o profissional compartilhou)
   if (route.page === 'cliente' && route.id) return <Suspense fallback={wait}><ClientPanelPublic id={route.id} /></Suspense>
+  // painel do afiliado (link secreto)
+  if (route.page === 'parceiro' && route.id) return <Suspense fallback={wait}><AffiliatePanel token={route.id} /></Suspense>
   return <Gate>{children}</Gate>
 }
 
