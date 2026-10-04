@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-indique',
+    date: '2026-10-04',
+    kind: 'novo',
+    title: 'indique e ganhe',
+    text: 'Em “minha assinatura” você tem um link só seu. Quem se cadastrar por ele ganha 20% de desconto no primeiro mês, e você ganha 1 mês grátis quando a pessoa assinar. Dá para mandar direto no WhatsApp e acompanhar quem já veio.',
+    steps: [{ text: 'Seu link fica em minha assinatura.', page: 'assinatura' }],
+  },
+  {
     id: '2026-10-04-contrato-folha',
     date: '2026-10-04',
     kind: 'novo',

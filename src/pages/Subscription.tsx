@@ -6,8 +6,8 @@ import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
 import { Badge, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { LAUNCHED, PLAN_PROFILE, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
-import { platform, trialDaysLeft, trialOver } from '../platform'
+import { LAUNCHED, PLAN_PROFILE, REFERRAL, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { platform, refLink, trialDaysLeft, trialOver, type MyReferral } from '../platform'
 import { go, href } from '../router'
 import { download, today } from '../utils'
 import { useStore } from '../store'
@@ -90,6 +90,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
           )}
         </Section>
       )}
+      {sub && <ReferralCard code={sub.refCode ?? ''} />}
       <div className="cy-row">
         <CycleToggle value={cycle} onChange={setCycle} />
         <span className="muted small">{cycleHint(cycle)}</span>
@@ -361,6 +362,62 @@ function CloseAccount() {
           </button>
         </div>
       )}
+    </Section>
+  )
+}
+
+/** Indique e ganhe: link próprio, compartilhar e quem já veio pela indicação. */
+function ReferralCard({ code }: { code: string }) {
+  const [list, setList] = useState<MyReferral[] | null>(null)
+  useEffect(() => {
+    platform.myReferrals().then(setList).catch(() => setList([]))
+  }, [])
+  const link = code ? refLink(code) : ''
+  const text = `Uso o ${PLATFORM.name} para organizar clientes, orçamentos, contratos e obra. Testa grátis por ${TRIAL_DAYS} dias pelo meu link e ganha ${REFERRAL.discount}% de desconto no primeiro mês: ${link}`
+  const gained = (list ?? []).filter((x) => x.rewarded).length
+  return (
+    <Section title="indique e ganhe">
+      <div className="ref-card">
+        <p className="ref-lead">
+          Quem você indicar ganha <b>{REFERRAL.discount}% de desconto no primeiro mês</b>. Quando a pessoa assinar, você ganha <b>{REFERRAL.months} {REFERRAL.months === 1 ? 'mês grátis' : 'meses grátis'}</b>. Sem limite de indicações.
+        </p>
+        {link ? (
+          <>
+            <div className="connect-link">
+              <input readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Seu link de indicação" />
+              <button className="btn small" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'), () => toast(link))}>
+                <Icon name="copy" size={14} /> copiar
+              </button>
+            </div>
+            <div className="row gap-s wrap">
+              <a className="btn small primary" href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">
+                <Icon name="whatsapp" size={14} /> mandar no WhatsApp
+              </a>
+              <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(text).then(() => toast('Mensagem copiada.'), () => toast(text))}>
+                <Icon name="copy" size={14} /> copiar mensagem
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="muted small">Seu link aparece aqui assim que a conta terminar de ser configurada.</p>
+        )}
+        {list && list.length > 0 && (
+          <>
+            <p className="ref-count small">
+              <b>{list.length}</b> {list.length === 1 ? 'pessoa veio' : 'pessoas vieram'} pela sua indicação{gained ? ` · ${gained} ${gained === 1 ? 'mês grátis liberado' : 'meses grátis liberados'}` : ''}
+            </p>
+            <ul className="ref-list">
+              {list.map((x, i) => (
+                <li key={i}>
+                  <span className="ref-avatar">{(x.name || '?')[0].toUpperCase()}</span>
+                  <b className="grow">{x.name}</b>
+                  <span className={`ref-status is-${x.rewarded ? 'ok' : x.status === 'assinou' ? 'sub' : 'trial'}`}>{x.rewarded ? 'mês grátis liberado' : x.status}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
     </Section>
   )
 }

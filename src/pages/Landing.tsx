@@ -3,7 +3,8 @@ import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
-import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, money0, type Feature, type PlanId } from '../plans'
+import { readRef } from '../platform'
+import { SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, REFERRAL, money0, type Feature, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -349,6 +350,11 @@ export default function Landing() {
           </div>
         </div>
       </header>
+      {readRef() && (
+        <p className="lp-ref-banner">
+          <Icon name="heart" size={15} /> Você veio por indicação: testa grátis por {TRIAL_DAYS} dias e ganha {REFERRAL.discount}% de desconto no primeiro mês ao assinar.
+        </p>
+      )}
 
       <section className="lp-hero">
         <div className="lp-blobs" aria-hidden>

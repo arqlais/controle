@@ -98,6 +98,50 @@ update public.platform_settings
 set data = jsonb_set(jsonb_set(coalesce(data, '{}'::jsonb), '{trialDays}', '14'::jsonb), '{trialV2}', 'true'::jsonb)
 where id = 1 and coalesce((data ->> 'trialV2')::boolean, false) = false;
 
+-- 4) Indicação: cada assinante tem um código; quem se cadastra pelo link fica ligado a quem indicou.
+--    A dona vê tudo no painel (aba indicações) e libera o mês grátis de quem indicou.
+alter table public.subscriptions add column if not exists ref_code text;
+create unique index if not exists subscriptions_ref_code on public.subscriptions (ref_code) where ref_code is not null;
+alter table public.subscriptions add column if not exists referred_by uuid;
+alter table public.subscriptions add column if not exists ref_rewarded_at timestamptz; -- mês grátis de quem indicou já liberado
+alter table public.subscriptions add column if not exists bonus_months int not null default 0; -- meses grátis a usar (quando já paga)
+
+create or replace function public.gerar_codigo() returns text
+language sql volatile as $$ select lower(substr(md5(gen_random_uuid()::text), 1, 7)) $$;
+
+update public.subscriptions set ref_code = public.gerar_codigo() where ref_code is null;
+
+create or replace function public.garantir_assinatura(plano text) returns setof public.subscriptions
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return; end if;
+  insert into public.subscriptions (user_id, email, name, studio, plan, trial_ends, ref_code, referred_by)
+  select u.id, coalesce(u.email, ''), coalesce(u.raw_user_meta_data ->> 'name', ''), coalesce(u.raw_user_meta_data ->> 'studio', ''),
+         'estudio',
+         now() + make_interval(days => least(365, greatest(1, coalesce((select (s.data ->> 'trialDays')::int from public.platform_settings s where s.id = 1), 14)))),
+         public.gerar_codigo(),
+         (select r.user_id from public.subscriptions r where r.ref_code = lower(nullif(u.raw_user_meta_data ->> 'ref', '')) and r.user_id <> u.id limit 1)
+  from auth.users u where u.id = auth.uid()
+  on conflict (user_id) do nothing;
+  update public.subscriptions set ref_code = public.gerar_codigo() where user_id = auth.uid() and ref_code is null;
+  return query select * from public.subscriptions where user_id = auth.uid();
+end $$;
+
+-- quem eu indiquei (só o primeiro nome e a situação)
+create or replace function public.minhas_indicacoes()
+returns table (nome text, situacao text, criado timestamptz, premiado boolean)
+language sql security definer set search_path = public as $$
+  select split_part(coalesce(nullif(s.name, ''), 'alguém'), ' ', 1),
+         case when s.status = 'ativa' then 'assinou' when s.status = 'trial' then 'testando' else 'não continuou' end,
+         s.created_at, s.ref_rewarded_at is not null
+  from public.subscriptions s
+  where s.referred_by = auth.uid()
+  order by s.created_at desc
+$$;
+revoke execute on function public.minhas_indicacoes() from public, anon;
+grant execute on function public.minhas_indicacoes() to authenticated;
+
 -- Conferência
-select (select count(*) from public.workspace_history) as versoes_guardadas,
+select (select count(*) from public.subscriptions where ref_code is not null) as codigos_de_indicacao,
+       (select count(*) from public.workspace_history) as versoes_guardadas,
        (select data ->> 'trialDays' from public.platform_settings where id = 1) as dias_de_teste;

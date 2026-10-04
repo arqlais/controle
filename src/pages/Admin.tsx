@@ -7,7 +7,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
+import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
@@ -24,7 +24,7 @@ import { href } from '../router'
 
 /* Painel da plataforma: só a conta da dona vê (a nuvem confere pela tabela "admins"). */
 
-type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'depoimentos' | 'site' | 'emails' | 'termos' | 'horarios' | 'ajustes'
+type Tab = 'resumo' | 'assinantes' | 'conversas' | 'sugestoes' | 'depoimentos' | 'site' | 'indicacoes' | 'emails' | 'termos' | 'horarios' | 'ajustes'
 const STATUS_COLOR: Record<SubStatus, string> = { trial: '#7d8c99', ativa: '#4f6475', atrasada: '#b08a7e', cancelada: '#9aa3ab' }
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 const dateBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR') : '—')
@@ -138,6 +138,7 @@ export default function Admin() {
             { value: 'sugestoes', label: <>sugestões{newSugs ? <em className="pf-dot-count">{newSugs}</em> : null}</> },
             { value: 'depoimentos', label: 'depoimentos' },
             { value: 'site', label: 'página de vendas' },
+            { value: 'indicacoes', label: 'indicações' },
             { value: 'emails', label: 'e-mails' },
             { value: 'termos', label: 'termos' },
             { value: 'horarios', label: 'horários' },
@@ -164,6 +165,7 @@ export default function Admin() {
           <SiteEditor />
         </>
       )}
+      {tab === 'indicacoes' && <ReferralsAdmin subs={subs} update={update} />}
       {tab === 'emails' && <EmailsAdmin subs={subs} />}
       {tab === 'termos' && <TermsEditor />}
       {tab === 'horarios' && <HoursEditor />}
@@ -1740,6 +1742,84 @@ function UsageSummary({ subs, usage }: { subs: Subscription[]; usage: Record<str
       <small className="muted">
         {quotes} orçamento(s) feitos no total · só números: o conteúdo de cada conta continua fechado
       </small>
+    </div>
+  )
+}
+
+/** Indicações: quem indicou quem, como está cada uma e o mês grátis de quem indicou (um toque). */
+function ReferralsAdmin({ subs, update }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean> }) {
+  const byId = new Map(subs.map((s) => [s.userId, s]))
+  const referred = subs.filter((s) => s.referredBy && byId.has(s.referredBy)).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const ranking = [...referred.reduce((m, s) => m.set(s.referredBy!, (m.get(s.referredBy!) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
+  const reward = async (r: Subscription) => {
+    const who = byId.get(r.referredBy!)
+    if (!who) return
+    if (!(await ask(`Liberar ${REFERRAL.months} ${REFERRAL.months === 1 ? 'mês grátis' : 'meses grátis'} para ${who.name || who.email}, pela indicação de ${r.name || r.email}?`, { confirmLabel: 'liberar' }))) return
+    const days = 30 * REFERRAL.months
+    const ok =
+      who.status === 'trial'
+        ? await update(who, { trialEnds: new Date(Math.max(Date.now(), new Date(who.trialEnds).getTime()) + days * 86_400_000).toISOString() }, '')
+        : await update(who, { bonusMonths: (who.bonusMonths ?? 0) + REFERRAL.months }, '')
+    if (!ok) return
+    await update(r, { refRewardedAt: new Date().toISOString() }, 'Mês grátis liberado.')
+    const text = `oi, ${(who.name || '').split(' ')[0] || 'tudo bem'}! obrigada por indicar o ${PLATFORM.name} 💛 a ${(r.name || 'pessoa').split(' ')[0]} veio pela sua indicação e você ganhou ${REFERRAL.months} ${REFERRAL.months === 1 ? 'mês grátis' : 'meses grátis'}${who.status === 'trial' ? ' (seu teste foi estendido)' : ', que entra na sua próxima cobrança'}.`
+    void platform
+      .send(who.userId, text, true)
+      .then(() => platform.notice({ tipo: 'resposta', userId: who.userId, text }))
+      .catch(() => undefined)
+  }
+  return (
+    <div className="stack">
+      <p className="pf-note">
+        <Icon name="heart" size={16} />
+        <span>
+          Cada assinante tem um link próprio (em “minha assinatura”). Quem chega por ele aparece aqui. Regra atual: quem indica ganha <b>{REFERRAL.months} mês grátis</b> quando a pessoa indicada assina; quem é indicado ganha <b>{REFERRAL.discount}% no 1º mês</b> (aplique o desconto ao cobrar, até o pagamento automático entrar).
+        </span>
+      </p>
+      {ranking.length > 0 && (
+        <Section title="quem mais indica">
+          <ul className="ref-list">
+            {ranking.slice(0, 8).map(([id, n]) => {
+              const s = byId.get(id)!
+              return (
+                <li key={id}>
+                  <span className="ref-avatar">{(s.name || s.email || '?')[0].toUpperCase()}</span>
+                  <b className="grow">{s.name || s.email}</b>
+                  <span className="ref-status">{n} {n === 1 ? 'indicação' : 'indicações'}</span>
+                  {(s.bonusMonths ?? 0) > 0 && <span className="ref-status is-sub">{s.bonusMonths} mês(es) grátis a usar</span>}
+                </li>
+              )
+            })}
+          </ul>
+        </Section>
+      )}
+      <Section title={`indicações (${referred.length})`}>
+        {referred.length === 0 ? (
+          <p className="muted small">Nenhuma indicação ainda. Quando alguém se cadastrar pelo link de um assinante, aparece aqui.</p>
+        ) : (
+          <ul className="ref-list">
+            {referred.map((r) => {
+              const who = byId.get(r.referredBy!)!
+              const paying = r.status === 'ativa'
+              return (
+                <li key={r.userId} className="ref-row">
+                  <span className="grow">
+                    <b>{r.name || r.email}</b>
+                    <small className="muted"> indicada por {who.name || who.email} · {STATUS_LABEL[r.status]} · desde {new Date(r.createdAt).toLocaleDateString('pt-BR')}</small>
+                  </span>
+                  {r.refRewardedAt ? (
+                    <span className="ref-status is-ok">mês grátis liberado</span>
+                  ) : (
+                    <button className={`btn small ${paying ? 'primary' : 'ghost'}`} onClick={() => void reward(r)} title={paying ? 'A pessoa indicada já assinou' : 'Ainda está testando: dá para liberar antes, se quiser'}>
+                      dar {REFERRAL.months} mês grátis a {(who.name || 'quem indicou').split(' ')[0]}
+                    </button>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Section>
     </div>
   )
 }

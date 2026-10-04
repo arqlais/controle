@@ -151,6 +151,8 @@ export const PLANS: Record<PlanId, Plan> = {
 export const PLAN_LIST = [PLANS.essencial, PLANS.completo, PLANS.estudio]
 /** Para quem é cada plano (aparece na página de vendas, na assinatura e no pagamento). */
 export const PLAN_PROFILE: Record<PlanId, string> = { essencial: 'freelancer começando', completo: 'freelancer profissional', estudio: 'escritório que atende cliente final' }
+/** Indicação: quem indica ganha meses grátis quando a pessoa indicada assina; quem chega pelo link ganha desconto no 1º mês. */
+export const REFERRAL = { months: 1, discount: 20 }
 /** Preço de fundador: quem assina agora mantém o valor (aparece na página de vendas e na assinatura). */
 export const FOUNDER_PRICE = true
 /** Planos que qualquer pessoa assina sozinha (todos). */

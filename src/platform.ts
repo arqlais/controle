@@ -29,6 +29,18 @@ export interface Subscription {
   requestedPlan?: PlanId | null // pediu para assinar (a dona libera)
   requestedAt?: string | null
   requestedCycle?: Cycle | null
+  refCode?: string | null // código de indicação desta pessoa
+  referredBy?: string | null // quem indicou (userId)
+  refRewardedAt?: string | null // mês grátis de quem indicou já liberado
+  bonusMonths?: number // meses grátis a usar
+}
+
+/** Quem a pessoa indicou (visto por ela). */
+export interface MyReferral {
+  name: string
+  status: 'testando' | 'assinou' | 'não continuou'
+  createdAt: string
+  rewarded: boolean
 }
 
 /** Dados de cobrança preenchidos na assinatura (como numa compra). */
@@ -264,6 +276,10 @@ const subFromRow = (r: Row): Subscription => ({
   requestedPlan: (r.requested_plan as PlanId | null) ?? null,
   requestedAt: (r.requested_at as string | null) ?? null,
   requestedCycle: (r.requested_cycle as Cycle | null) ?? null,
+  refCode: (r.ref_code as string | null) ?? null,
+  referredBy: (r.referred_by as string | null) ?? null,
+  refRewardedAt: (r.ref_rewarded_at as string | null) ?? null,
+  bonusMonths: Number(r.bonus_months ?? 0),
 })
 const sugFromRow = (r: Row): Suggestion => ({
   id: String(r.id),
@@ -451,6 +467,11 @@ const cloud = {
       .subscribe()
     return () => void supabase!.removeChannel(ch)
   },
+  async myReferrals(): Promise<MyReferral[]> {
+    const { data, error } = await supabase!.rpc('minhas_indicacoes')
+    if (error) throw error
+    return ((data ?? []) as Row[]).map((r) => ({ name: String(r.nome ?? ''), status: (r.situacao as MyReferral['status']) ?? 'testando', createdAt: String(r.criado ?? ''), rewarded: !!r.premiado }))
+  },
   async subscribers() {
     const { data, error } = await supabase!.from('subscriptions').select('*').order('created_at', { ascending: false })
     if (error) throw error
@@ -466,6 +487,8 @@ const cloud = {
     if (patch.requestedPlan !== undefined) row.requested_plan = patch.requestedPlan
     if (patch.requestedAt !== undefined) row.requested_at = patch.requestedAt
     if (patch.requestedCycle !== undefined) row.requested_cycle = patch.requestedCycle
+    if (patch.refRewardedAt !== undefined) row.ref_rewarded_at = patch.refRewardedAt
+    if (patch.bonusMonths !== undefined) row.bonus_months = patch.bonusMonths
     const { error } = await supabase!.from('subscriptions').update(row).eq('user_id', userId)
     if (error) throw error
   },
@@ -560,10 +583,10 @@ function seed(): LocalDB {
     ...extra,
   })
   const subs = [
-    s('ex-1', 'Beatriz Nogueira', 'Nogueira Interiores', 'completo', 'ativa', 58, 0),
-    s('ex-2', 'Rafael Menezes', 'RM Visualização 3D', 'essencial', 'ativa', 44, 1),
-    s('ex-3', 'Camila Duarte', 'Studio Duarte', 'completo', 'trial', 5, 0, { lastSeen: new Date(Date.now() - 60_000).toISOString() }),
-    s('ex-4', 'Júlia Prado', 'Prado Arquitetura', 'essencial', 'trial', 6, 2, { requestedPlan: 'completo', requestedAt: ago(0, 5) }),
+    s('ex-1', 'Beatriz Nogueira', 'Nogueira Interiores', 'completo', 'ativa', 58, 0, { refCode: 'bea7k2q' }),
+    s('ex-2', 'Rafael Menezes', 'RM Visualização 3D', 'essencial', 'ativa', 44, 1, { refCode: 'raf3m9x', referredBy: 'ex-1', refRewardedAt: ago(30) }),
+    s('ex-3', 'Camila Duarte', 'Studio Duarte', 'completo', 'trial', 5, 0, { lastSeen: new Date(Date.now() - 60_000).toISOString(), refCode: 'cam5d1p', referredBy: 'ex-1' }),
+    s('ex-4', 'Júlia Prado', 'Prado Arquitetura', 'essencial', 'trial', 6, 2, { requestedPlan: 'completo', requestedAt: ago(0, 5), refCode: 'jul8p4r' }),
     s('ex-5', 'Thiago Lemos', 'Lemos Arq', 'essencial', 'atrasada', 71, 9),
     s('ex-6', 'Marina Faria', 'Faria & Co.', 'completo', 'cancelada', 90, 20, { canceledAt: ago(6) }),
   ]
@@ -703,6 +726,8 @@ export function previewSignup(name: string, studio: string, email: string, plan:
     testMode: true,
     createdAt: new Date().toISOString(),
     lastSeen: new Date().toISOString(),
+    refCode: 'voce123',
+    referredBy: db.subs.find((x) => x.refCode && x.refCode === readRef())?.userId ?? null,
   }
   writeDB({ ...db, subs: [sub, ...db.subs.filter((x) => x.userId !== PREVIEW_CLIENT)] })
 }
@@ -842,6 +867,13 @@ const local = {
     listeners.add(onChange)
     return () => void listeners.delete(onChange)
   },
+  async myReferrals(): Promise<MyReferral[]> {
+    const db = readDB()
+    const me = db.subs.find((x) => x.userId === PREVIEW_CLIENT)
+    return db.subs
+      .filter((x) => me && x.referredBy === me.userId)
+      .map((x) => ({ name: (x.name || 'alguém').split(' ')[0], status: x.status === 'ativa' ? 'assinou' : x.status === 'trial' ? 'testando' : 'não continuou', createdAt: x.createdAt, rewarded: !!x.refRewardedAt }))
+  },
   async subscribers() {
     return readDB().subs
   },
@@ -967,6 +999,29 @@ export const onPreviewRole = (l: (r: PreviewRole) => void) => {
   return () => void roleListeners.delete(l)
 }
 
+/* ---------------- indicação ---------------- */
+
+const REF_KEY = 'plane-indicacao'
+/** Guarda o código de quem indicou quando a pessoa chega pelo link (…?indica=código). Vale por 60 dias. */
+export function captureRef() {
+  try {
+    const code = new URLSearchParams(location.search).get('indica') || new URLSearchParams(location.hash.split('?')[1] ?? '').get('indica')
+    if (code && /^[a-z0-9]{4,12}$/i.test(code)) localStorage.setItem(REF_KEY, JSON.stringify({ code: code.toLowerCase(), at: Date.now() }))
+  } catch {
+    /* sem armazenamento: segue sem indicação */
+  }
+}
+export function readRef(): string {
+  try {
+    const v = JSON.parse(localStorage.getItem(REF_KEY) || 'null') as { code: string; at: number } | null
+    return v && Date.now() - v.at < 60 * 86_400_000 ? v.code : ''
+  } catch {
+    return ''
+  }
+}
+/** Link de indicação de quem assina. */
+export const refLink = (code: string) => `${location.origin}${location.pathname}?indica=${code}#/vendas`
+
 /* ---------------- cadastro ---------------- */
 
 export async function signUp(input: { email: string; password: string; name: string; studio: string; plan: PlanId }) {
@@ -977,7 +1032,7 @@ export async function signUp(input: { email: string; password: string; name: str
   const { data, error } = await supabase!.auth.signUp({
     email: input.email,
     password: input.password,
-    options: { data: { name: input.name, studio: input.studio, plan: input.plan }, emailRedirectTo: window.location.origin + window.location.pathname },
+    options: { data: { name: input.name, studio: input.studio, plan: input.plan, ...(readRef() ? { ref: readRef() } : {}) }, emailRedirectTo: window.location.origin + window.location.pathname },
   })
   if (error) throw error
   return { needsConfirm: !data.session }

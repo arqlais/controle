@@ -5,6 +5,8 @@ import { DialogHost } from './components/dialog'
 import { FileReadyHost } from './components/saveFile'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { captureRef } from './platform'
+captureRef()
 // fontes embutidas (mesma origem): garantem a tipografia certa no app e no PDF
 import '@fontsource/poppins/latin-300.css'
 import '@fontsource/poppins/latin-400.css'
