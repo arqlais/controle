@@ -1,6 +1,7 @@
 import { FirstSteps } from '../components/FirstSteps'
 import { InstallHint } from '../components/InstallHint'
 import { useMemo } from 'react'
+import { useAccess } from '../access'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -35,6 +36,7 @@ import {
 
 export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'cliente') => void }) {
   const { data, showSample } = useStore()
+  const access = useAccess()
   const { settings } = data
   const t = today()
   const key = monthKey(t)
@@ -145,6 +147,18 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
           </a>
         </div>
       </section>
+      {!access.isOwner && (
+        <a href={href('indique')} className="dash-promo only-mobile-flex">
+          <span className="nav-promo-icon">
+            <Icon name="gift" size={18} />
+          </span>
+          <span className="grow">
+            <b>indique e ganhe</b>
+            <small>1 mês grátis por amigo que assinar</small>
+          </span>
+          <Icon name="chevronR" size={16} />
+        </a>
+      )}
 
       <TodoList />
 

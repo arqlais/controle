@@ -3265,3 +3265,8 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .pf-sub > .proof-link { margin-top: auto; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; text-align: left; }
 .pay-mp { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 14px; background: var(--accent-tint); margin: 6px 0 10px; font-size: 13.5px; line-height: 1.5; }
 .pay-mp input { margin-top: 3px; }
+/* indique e ganhe no início (celular): o menu fica escondido no ☰, então o destaque aparece aqui */
+.dash-promo { display: none; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--accent); color: var(--accent-contrast); text-decoration: none; }
+.dash-promo b { display: block; font-size: 14.5px; line-height: 1.2; }
+.dash-promo small { display: block; font-size: 12px; opacity: 0.85; }
+@media (max-width: 820px) { .dash-promo.only-mobile-flex { display: flex; } }
