@@ -809,6 +809,8 @@ let memDB: LocalDB | null = null
 /* Exemplo (olhinho) da dona no site de verdade: o painel mostra assinantes, conversas,
    sugestões e depoimentos fictícios, só na memória (nada vai para a nuvem). */
 let sampleMode = false
+/** Ajustes da plataforma que valem de verdade mesmo com o painel mostrando o exemplo (planos, pagamento, aba). */
+const REAL_ALWAYS = new Set(['savePlanConfig', 'payConfig', 'savePayConfig', 'tabBrand', 'saveTabBrand'])
 let sampleDB: LocalDB | null = null
 const modeListeners = new Set<() => void>()
 /** Avisa quem mostra dados da plataforma que o exemplo foi ligado/desligado (recarregar). */
@@ -1156,7 +1158,7 @@ const asClientGuard = (b: typeof cloud): typeof cloud => ({
 const cloudGuarded = CLOUD ? asClientGuard(cloud) : null
 // no site de verdade, com o exemplo ligado pela dona, tudo do painel vem do exemplo em memória
 export const platform: typeof cloud = CLOUD
-  ? (new Proxy(cloudGuarded!, { get: (t, k) => (sampleMode ? (local as unknown as Record<PropertyKey, unknown>)[k] : (t as unknown as Record<PropertyKey, unknown>)[k]) }) as typeof cloud)
+  ? (new Proxy(cloudGuarded!, { get: (t, k) => (sampleMode && !REAL_ALWAYS.has(String(k)) ? (local as unknown as Record<PropertyKey, unknown>)[k] : (t as unknown as Record<PropertyKey, unknown>)[k]) }) as typeof cloud)
   : (local as unknown as typeof cloud)
 
 /* ---------------- perfil da prévia ("ver como") ---------------- */

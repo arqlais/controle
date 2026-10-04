@@ -29,6 +29,15 @@ const NEW_FEATURES: Feature[] = ['briefing', 'cronograma', 'obra', 'lucro', 'por
 const CACHE = 'config-planos'
 export const PREVIEW_KEY = 'previa-config-planos'
 
+/** Depois de salvar no painel: este aparelho já guarda a versão nova (não volta para a antiga ao recarregar). */
+export function rememberPlanConfig(c: PlanConfig) {
+  try {
+    localStorage.setItem(CACHE, JSON.stringify(c))
+  } catch {
+    /* ok */
+  }
+}
+
 export function applyPlanConfig(c: PlanConfig) {
   // 7 dias era o padrão antigo: vira 14 até a dona salvar outro número
   if (c.trialDays && c.trialDays > 0) setTrialDays(!c.trialV2 && c.trialDays === 7 ? 14 : Math.round(c.trialDays))
@@ -95,12 +104,9 @@ export async function loadPlanConfig() {
       /* ok */
     }
   }
-  if (cached) {
-    applyPlanConfig(cached)
-    void fetchConfig(8000).then((c) => (c && applyPlanConfig(c), save(c)))
-    return
-  }
-  const c = await fetchConfig(1500)
+  // a cópia do aparelho abre na hora, mas a versão salva na nuvem sempre vence (lançamento, preços)
+  if (cached) applyPlanConfig(cached)
+  const c = await fetchConfig(cached ? 1500 : 2000)
   if (c) {
     applyPlanConfig(c)
     save(c)

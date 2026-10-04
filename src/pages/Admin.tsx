@@ -10,7 +10,7 @@ import { ARTIFACT } from '../env'
 import { pixPayload } from '../pix'
 import { setTabBrand } from '../theme'
 import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
-import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
+import { applyPlanConfig, rememberPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { EMPTY_PAY, type PayConfig, type TabBrand, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
@@ -1695,6 +1695,7 @@ function PlansEditor() {
     try {
       await platform.savePlanConfig(cfg)
       applyPlanConfig(cfg)
+      rememberPlanConfig(cfg)
       setSaved(JSON.stringify(cfg))
       toast('Planos salvos. A página de vendas e o cadastro já usam os novos valores.')
     } catch {
