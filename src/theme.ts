@@ -83,6 +83,11 @@ export function applyTheme(s: Settings, dark = false) {
     '--font-body': `'${s.bodyFont}', 'Poppins', system-ui, -apple-system, sans-serif`,
     '--label-transform': s.uppercaseLabels ? 'uppercase' : 'lowercase',
   }
+  // cores finas (só a dona): sobrepõem as calculadas, no tema claro
+  const UI_VARS: Record<string, string[]> = { sidebar: ['--sidebar-bg'], sidebarText: ['--sidebar-text'], active: ['--nav-active-bg'], activeText: ['--nav-active-text'], page: ['--bg'], card: ['--surface'], text: ['--text', '--slate'], button: ['--accent'], detail: ['--accent-ink'], border: ['--border'] }
+  for (const v of Object.values(UI_VARS).flat()) root.style.removeProperty(v)
+  if (!dark && s.uiColors) for (const [k, hex] of Object.entries(s.uiColors)) if (hex && UI_VARS[k]) for (const v of UI_VARS[k]) vars[v] = hex
+  if (!dark && s.uiColors?.button) vars['--accent-contrast'] = luminance(s.uiColors.button) > 0.45 ? '#2b343c' : '#ffffff'
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
   // cantos em 0: deixa tudo reto, não só os cartões
@@ -90,7 +95,7 @@ export function applyTheme(s: Settings, dark = false) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg)
   // aba do navegador: a plataforma primeiro, depois o estúdio de quem usa
   const brand = s.brandName.replace(/\.$/, '').trim()
-  document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.name} · ${brand}` : PLATFORM.name
+  document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.title} · ${brand}` : `${PLATFORM.title} · ${PLATFORM.slogan}`
   applyCustomFont(s)
 }
 

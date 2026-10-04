@@ -7,9 +7,10 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { BarChart } from '../components/Charts'
 import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
-import { ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
+import { pixPayload } from '../pix'
+import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
-import { AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
+import { EMPTY_PAY, type PayConfig, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid, whatsappLink } from '../utils'
@@ -165,11 +166,16 @@ export default function Admin() {
           <SiteEditor />
         </>
       )}
-      {tab === 'indicacoes' && <ReferralsAdmin subs={subs} update={update} ctrl={ctrl} />}
+      {tab === 'indicacoes' && <ReferralsAdmin subs={subs} update={update} />}
       {tab === 'emails' && <EmailsAdmin subs={subs} />}
       {tab === 'termos' && <TermsEditor />}
       {tab === 'horarios' && <HoursEditor />}
-      {tab === 'ajustes' && <PlansInfo />}
+      {tab === 'ajustes' && (
+        <div className="stack">
+          <PaySettings />
+          <PlansInfo />
+        </div>
+      )}
     </div>
   )
 }
@@ -989,6 +995,73 @@ function HoursEditor() {
   )
 }
 
+/** Como receber: chave Pix (vira QR Code com o valor certo) e links de cartão por plano e ciclo. */
+function PaySettings() {
+  const [cfg, setCfg] = useState<PayConfig | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    platform.payConfig().then(setCfg).catch(() => setCfg(EMPTY_PAY))
+  }, [])
+  if (!cfg) return null
+  const set = (p: Partial<PayConfig>) => setCfg({ ...cfg, ...p })
+  const save = async () => {
+    setBusy(true)
+    try {
+      await platform.savePayConfig({ ...cfg, pixKey: cfg.pixKey.trim(), pixName: cfg.pixName.trim(), pixCity: cfg.pixCity.trim() })
+      toast('Formas de pagamento salvas.')
+    } catch {
+      toast('Não foi possível salvar agora.')
+    }
+    setBusy(false)
+  }
+  const sample = cfg.pixKey ? pixPayload({ key: cfg.pixKey, name: cfg.pixName || PLATFORM.name, city: cfg.pixCity || 'BRASIL', amount: PLANS.completo.price }) : ''
+  return (
+    <Section
+      title="como você recebe"
+      action={
+        <button className="btn small primary" disabled={busy} onClick={() => void save()}>
+          <Icon name="check" size={14} /> salvar
+        </button>
+      }
+    >
+      <p className="muted small">Quem assina vê na hora o QR Code do Pix já com o valor do plano e o botão do cartão. O dinheiro cai direto na sua conta; você só confirma em assinantes → recebi.</p>
+      <div className="form-grid">
+        <Field label="Chave Pix" hint="celular, CPF/CNPJ, e-mail ou chave aleatória">
+          <input value={cfg.pixKey} onChange={(e) => set({ pixKey: e.target.value })} placeholder="ex.: equipe.plane@gmail.com" />
+        </Field>
+        <Field label="Nome do recebedor" hint="como aparece no banco">
+          <input value={cfg.pixName} onChange={(e) => set({ pixName: e.target.value })} />
+        </Field>
+        <Field label="Cidade">
+          <input value={cfg.pixCity} onChange={(e) => set({ pixCity: e.target.value })} placeholder="ex.: Belo Horizonte" />
+        </Field>
+        <Field label="Recado na tela de pagamento" span={3}>
+          <input value={cfg.note} onChange={(e) => set({ note: e.target.value })} placeholder="ex.: assim que o pagamento cair, sua conta é liberada em até 1 hora" />
+        </Field>
+      </div>
+      {sample && (
+        <p className="muted small">
+          Teste: copie este código e cole no seu banco (Pix copia e cola) para conferir nome e valor, sem pagar.{' '}
+          <button className="link" onClick={() => navigator.clipboard?.writeText(sample).then(() => toast('Código de teste copiado.'))}>
+            copiar código de teste ({money(PLANS.completo.price)})
+          </button>
+        </p>
+      )}
+      <h4 className="ig-h">links de cartão (Mercado Pago)</h4>
+      <p className="muted small">Crie um link de pagamento para cada plano no Mercado Pago (no mensal, use “assinatura” para cobrar todo mês sozinho) e cole aqui. Em branco: a pessoa vê só o Pix.</p>
+      <div className="pay-links">
+        {PLAN_LIST.map((p) =>
+          CYCLES.map((c) => (
+            <Field key={`${p.id}-${c}`} label={`${p.name} · ${c}`}>
+              <input value={cfg.cardLinks[`${p.id}-${c}`] ?? ''} onChange={(e) => set({ cardLinks: { ...cfg.cardLinks, [`${p.id}-${c}`]: e.target.value.trim() } })} placeholder="https://mpago.la/..." />
+            </Field>
+          )),
+        )}
+      </div>
+    </Section>
+  )
+}
+
 function PlansInfo() {
   return (
     <>
@@ -1747,19 +1820,33 @@ function UsageSummary({ subs, usage }: { subs: Subscription[]; usage: Record<str
 }
 
 /** Indicações: quem indicou quem, como está cada uma e o mês grátis de quem indicou (um toque). */
-function ReferralsAdmin({ subs, update, ctrl }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; ctrl: Record<string, SubAdmin> }) {
-  const [view, setView] = useKeep<'assinantes' | 'afiliados'>('painel-indica', 'assinantes')
+function ReferralsAdmin({ subs, update }: { subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean> }) {
+  return <SubReferrals subs={subs} update={update} />
+}
+
+/** Página de afiliados da dona (no menu, logo abaixo do painel). */
+export function AffiliatesPage() {
+  const [subs, setSubs] = useState<Subscription[]>([])
+  const [ctrl, setCtrl] = useState<Record<string, SubAdmin>>({})
+  useEffect(() => {
+    platform.subscribers().then(setSubs).catch(() => undefined)
+    platform.subAdmin().then(setCtrl).catch(() => undefined)
+  }, [])
   return (
-    <div className="stack">
-      <Segmented<'assinantes' | 'afiliados'>
-        value={view}
-        onChange={setView}
-        options={[
-          { value: 'assinantes', label: 'assinantes indicam' },
-          { value: 'afiliados', label: 'afiliados (comissão)' },
-        ]}
-      />
-      {view === 'assinantes' ? <SubReferrals subs={subs} update={update} /> : <AffiliatesAdmin subs={subs} ctrl={ctrl} />}
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">
+            <Icon name="crown" size={13} /> só você vê
+          </p>
+          <h1>
+            afiliados <em>e parcerias</em>
+          </h1>
+        </div>
+      </div>
+      <div className="stack">
+        <AffiliatesAdmin subs={subs} ctrl={ctrl} />
+      </div>
     </div>
   )
 }

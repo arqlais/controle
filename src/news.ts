@@ -30,11 +30,19 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-04-pagar-indicar',
+    date: '2026-10-04',
+    kind: 'novo',
+    title: 'pagar na hora e indicar amigos',
+    text: 'Ao assinar, o Pix aparece com QR Code e código “copia e cola” já com o valor do plano, e o link do cartão quando houver. “Indique e ganhe” ganhou página própria no menu, com o seu link e mensagens prontas. Os dados de exemplo agora preenchem todas as telas, e as barras de rolagem ficaram discretas.',
+    steps: [{ text: 'Seu link de indicação fica aqui.', page: 'indique' }],
+  },
+  {
     id: '2026-10-04-instagram-manual',
     date: '2026-10-04',
     kind: 'melhoria',
     title: 'instagram mais completo e manual mais simples',
-    text: 'No instagram, a IA escreve cada postagem (gancho, slides, legenda e chamada) a partir do seu perfil, e a estratégia ganhou um montador de bio com contagem de caracteres. O manual agora tem busca no topo e passos mais curtos, com os detalhes guardados em “mais detalhes”.',
+    text: 'No instagram, o botão “montar texto” escreve cada postagem (gancho, slides, legenda e chamada) com os seus dados, sem custo, e a estratégia ganhou um montador de bio com contagem de caracteres. O manual agora tem busca no topo e passos mais curtos, com os detalhes guardados em “mais detalhes”.',
     steps: [{ text: 'Experimente a busca do manual.', page: 'manual' }],
   },
   {

@@ -36,6 +36,16 @@ export interface Subscription {
   refUsed?: string | null // código do link usado no cadastro (assinante ou afiliado)
 }
 
+/** Como a dona recebe: Pix (vira QR Code com o valor certo) e links de cartão do Mercado Pago / PagSeguro por plano. */
+export interface PayConfig {
+  pixKey: string
+  pixName: string // nome do recebedor (como está no banco)
+  pixCity: string
+  cardLinks: Record<string, string> // `${plano}-${ciclo}` → link de pagamento
+  note: string // recado curto na tela de pagamento
+}
+export const EMPTY_PAY: PayConfig = { pixKey: '', pixName: '', pixCity: '', cardLinks: {}, note: '' }
+
 /** Afiliado: parceiro (influencer, professora, perfil de arquitetura) que divulga e ganha comissão em dinheiro. */
 export interface AffiliatePayout {
   id: string
@@ -615,6 +625,12 @@ const cloud = {
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
   },
+  async payConfig(): Promise<PayConfig> {
+    return { ...EMPTY_PAY, ...((await cloudSettings()).payment ?? {}) }
+  },
+  async savePayConfig(payment: PayConfig) {
+    await patchCloudSettings({ payment })
+  },
   async saveCompany(company: Company) {
     await patchCloudSettings({ company })
   },
@@ -633,6 +649,7 @@ interface PlatformData {
   cardFee6?: number
   semesterDiscount?: number
   company?: Company
+  payment?: PayConfig
 }
 async function cloudSettings(): Promise<PlatformData> {
   const { data } = await supabase!.from('platform_settings').select('data').eq('id', 1).maybeSingle()
@@ -662,6 +679,7 @@ interface LocalDB {
   terms?: string
   company?: Company
   affiliates?: Affiliate[]
+  payment?: PayConfig
 }
 const ago = (days: number, hours = 0) => new Date(Date.now() - days * 86_400_000 - hours * 3_600_000).toISOString()
 
@@ -746,7 +764,8 @@ function seed(): LocalDB {
   const affiliates: Affiliate[] = [
     { id: 'af-1', code: 'ana-arq', token: 'parceira-exemplo', active: true, createdAt: ago(80), name: 'Ana (perfil de exemplo)', contact: '@perfil.exemplo', pix: 'chave de exemplo', commission: 30, months: 12, discount: 15, notes: 'divulga nos stories uma vez por mês.', payouts: [{ id: 'po1', date: day(-30), amount: 11.97, note: 'pix' }] },
   ]
-  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks, subAdmin, affiliates }
+  const payment: PayConfig = { pixKey: 'pix@exemplo.com.br', pixName: 'Planê Exemplo', pixCity: 'Belo Horizonte', cardLinks: { 'completo-mensal': 'https://www.mercadopago.com.br' }, note: 'Assim que o pagamento cair, sua conta é liberada.' }
+  return { subs, messages, hours: DEFAULT_HOURS, suggestions, billing, feedbacks, subAdmin, affiliates, payment }
 }
 
 const listeners = new Set<() => void>()
@@ -1031,6 +1050,12 @@ const local = {
   },
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...(readDB().company ?? {}) }
+  },
+  async payConfig(): Promise<PayConfig> {
+    return { ...EMPTY_PAY, ...(readDB().payment ?? {}) }
+  },
+  async savePayConfig(payment: PayConfig) {
+    writeDB({ ...readDB(), payment })
   },
   async saveCompany(company: Company) {
     writeDB({ ...readDB(), company })

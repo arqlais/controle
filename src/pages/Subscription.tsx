@@ -1,3 +1,4 @@
+import { PayNow } from '../components/PayNow'
 import { useEffect, useState } from 'react'
 import { signOut } from '../components/Auth'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
@@ -6,7 +7,7 @@ import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
 import { Badge, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { LAUNCHED, PLAN_PROFILE, REFERRAL, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
+import { LAUNCHED, cardPrice, cyclePrice, PLAN_PROFILE, REFERRAL, effectivePlan, PLANS, PLAN_LIST, PLATFORM, STATUS_LABEL, TRIAL_DAYS, money0, type PlanId } from '../plans'
 import { platform, refLink, trialDaysLeft, trialOver, type MyReferral } from '../platform'
 import { go, href } from '../router'
 import { download, today } from '../utils'
@@ -80,6 +81,9 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
               </span>
             </p>
           )}
+          {sub.requestedPlan && sub.status !== 'ativa' && (
+            <PayNow plan={sub.requestedPlan} cycle={sub.requestedCycle ?? 'mensal'} pixAmount={cyclePrice(PLANS[sub.requestedPlan].price, sub.requestedCycle ?? 'mensal')} cardAmount={cardPrice(PLANS[sub.requestedPlan].price, sub.requestedCycle ?? 'mensal')} />
+          )}
           {sub.status === 'trial' && (
             <>
               <div className="pf-trial-bar" aria-label={`${Math.max(0, left)} de ${TRIAL_DAYS} dias`}>
@@ -90,7 +94,16 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
           )}
         </Section>
       )}
-      {sub && <ReferralCard code={sub.refCode ?? ''} />}
+      {sub && (
+        <button className="ref-promo" onClick={() => go('indique')}>
+          <Icon name="gift" size={20} />
+          <span className="grow">
+            <b>indique e ganhe {REFERRAL.months === 1 ? '1 mês grátis' : `${REFERRAL.months} meses grátis`}</b>
+            <small>a cada amigo que assinar · quem você indica ganha {REFERRAL.discount}% no 1º mês</small>
+          </span>
+          <Icon name="chevronR" size={16} />
+        </button>
+      )}
       <div className="cy-row">
         <CycleToggle value={cycle} onChange={setCycle} />
         <span className="muted small">{cycleHint(cycle)}</span>
@@ -367,7 +380,7 @@ function CloseAccount() {
 }
 
 /** Indique e ganhe: link próprio, compartilhar e quem já veio pela indicação. */
-function ReferralCard({ code }: { code: string }) {
+export function ReferralCard({ code, plain }: { code: string; plain?: boolean }) {
   const [list, setList] = useState<MyReferral[] | null>(null)
   useEffect(() => {
     platform.myReferrals().then(setList).catch(() => setList([]))
@@ -375,8 +388,7 @@ function ReferralCard({ code }: { code: string }) {
   const link = code ? refLink(code) : ''
   const text = `Uso o ${PLATFORM.name} para organizar clientes, orçamentos, contratos e obra. Testa grátis por ${TRIAL_DAYS} dias pelo meu link e ganha ${REFERRAL.discount}% de desconto no primeiro mês: ${link}`
   const gained = (list ?? []).filter((x) => x.rewarded).length
-  return (
-    <Section title="indique e ganhe">
+  const body = (
       <div className="ref-card">
         <p className="ref-lead">
           Quem você indicar ganha <b>{REFERRAL.discount}% de desconto no primeiro mês</b>. Quando a pessoa assinar, você ganha <b>{REFERRAL.months} {REFERRAL.months === 1 ? 'mês grátis' : 'meses grátis'}</b>. Sem limite de indicações.
@@ -418,6 +430,6 @@ function ReferralCard({ code }: { code: string }) {
           </>
         )}
       </div>
-    </Section>
   )
+  return plain ? body : <Section title="indique e ganhe">{body}</Section>
 }

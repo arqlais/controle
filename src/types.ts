@@ -530,6 +530,8 @@ export interface Contract {
   sign?: ContractSignature
 }
 
+export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | 'page' | 'card' | 'text' | 'button' | 'detail' | 'border'
+
 export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
@@ -615,6 +617,7 @@ export interface Settings {
   services: ServiceDef[]
   customColumns: BoardColumn[] // colunas extras do quadro de demandas
   navOrder: string[] // ordem do menu lateral
+  uiColors?: Partial<Record<UiColorKey, string>> // cores finas do sistema (só a dona): menu lateral, cartões, botões…
   navHidden?: string[] // telas escondidas do menu (vazio = o padrão do perfil de trabalho)
   messages: MessageTemplate[] // mensagens padrão para o cliente
   contracts?: ContractSettings // modelos de contrato (plano Completo)

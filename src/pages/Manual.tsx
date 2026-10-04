@@ -398,7 +398,7 @@ CASES.push(
     q: 'Planejar os posts do Instagram',
     plan: 'completo',
     notOwner: true,
-    a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com um tema para cada dia. Ao abrir uma postagem, <b>escrever com IA</b> cria gancho, slides, legenda e chamada a partir do seu perfil (com o assistente ligado em configurações). Toque num dia para escolher outra ideia. Em <b>estratégia</b> tem o montador de bio, os destaques e as hashtags.</>,
+    a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com um tema para cada dia. Ao abrir uma postagem, <b>montar texto</b> cria gancho, slides, legenda e chamada com os seus dados (o que você faz, serviços e projetos), sem custo nenhum. Toque num dia para escolher outra ideia. Em <b>estratégia</b> tem o montador de bio, os destaques e as hashtags.</>,
     page: 'instagram',
   },
   {

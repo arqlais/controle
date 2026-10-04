@@ -20,7 +20,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
-const SITE = env('SITE_URL', 'https://arqlais.github.io/controle/')
+const SITE = env('SITE_URL', 'https://useplane.com.br/')
 const SENDER = { email: env('SENDER_EMAIL', 'nao-responda@lais3d.com.br'), name: env('SENDER_NAME', 'planê') }
 // quem responder o e-mail fala direto com a dona
 const REPLY_TO = env('REPLY_TO', 'equipe.plane@gmail.com')

@@ -1,3 +1,4 @@
+import { PayNow } from '../components/PayNow'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useAccess } from '../access'
 import { useStore } from '../store'
@@ -162,15 +163,16 @@ function CheckoutForm({ planId }: { planId: string }) {
             </li>
             <li>
               <b>pagamento</b>
-              <span>o {PLATFORM.support} te manda o Pix ou o link do cartão pelo chat</span>
+              <span>pague logo abaixo, ou o {PLATFORM.support} te manda pelo chat</span>
             </li>
             <li>
               <b>conta liberada</b>
               <span>assim que o pagamento for confirmado</span>
             </li>
           </ol>
+          <PayNow plan={plan} cycle={b.cycle} pixAmount={cyclePrice(p.price, b.cycle)} cardAmount={cardPrice(p.price, b.cycle)} method={b.payMethod === 'boleto' ? undefined : b.payMethod} />
           <div className="row gap-s wrap center">
-            <a className="btn primary" href={href('inicio')}>
+            <a className="btn ghost" href={href('inicio')}>
               voltar para o sistema
             </a>
             <a className="btn ghost" href={href('assinatura')}>

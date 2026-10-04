@@ -8,7 +8,7 @@ import { ask, askDelete, toast } from '../components/dialog'
 import { go } from '../router'
 import { DateInput } from '../components/DateInput'
 import { ArtModal } from '../components/PostArt'
-import { BIO_LIMIT, CAPTION_LIMIT, CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
+import { BIO_LIMIT, CAPTION_LIMIT, writePost, CLIENT_PILLARS, CLIENT_STRATEGY, CLIENT_FORMAT_IDEAS, CLIENT_WEEK_PLAN, FORMATS, IDEAS, PILLARS, STRATEGY, WEEK_PLAN, type Idea } from '../instagram'
 import type { PostFormat, PostStatus, Settings, SocialPost } from '../types'
 import { fmtDate, today, uid } from '../utils'
 
@@ -703,59 +703,37 @@ function ClientStrategyView() {
   )
 }
 
-/** Quem assina: a IA escreve o post a partir do perfil de cada pessoa (nada de texto igual para todo mundo). */
+/** Quem assina: monta o texto com os dados da própria pessoa (bio, serviços, projetos). Sem IA e sem custo. */
 function AiWriter({ post, label, onFill }: { post: SocialPost; label: string; onFill: (patch: Partial<SocialPost>) => void }) {
   const { data } = useStore()
   const s = data.settings
   const [bio] = useKeep('ig-bio', { what: '', who: '', extra: '', cta: '' })
-  const [busy, setBusy] = useState(false)
-  const key = s.aiKey
   const write = async () => {
-    if (!key) return
     const filled = [post.hook, post.script, post.caption, post.cta].some((x) => x.trim())
-    if (filled && !(await ask('Trocar os textos desta postagem pelo que a IA escrever?', { confirmLabel: 'Trocar' }))) return
-    setBusy(true)
-    try {
-      const { askGemini } = await import('../components/AIChat')
-      const profile = [
-        `nome: ${s.ownerName || s.brandName || ''}`,
-        `marca: ${s.brandName || ''}`,
-        bio.what && `o que faz: ${bio.what}`,
-        bio.who && `para quem: ${bio.who}`,
-        bio.extra && `diferencial/cidade: ${bio.extra}`,
-        `atende: ${s.workProfile === 'final' ? 'cliente final' : s.workProfile === 'ambos' ? 'cliente final e escritórios' : 'escritórios e profissionais (freelancer)'}`,
-        `serviços: ${s.services.slice(0, 12).map((x) => x.name).join(', ')}`,
-      ].filter(Boolean).join('\n')
-      const system = 'Você escreve posts de instagram em português do Brasil para profissionais de arquitetura, interiores e 3D. Escreva com a voz da própria pessoa, em letras minúsculas, frases curtas, sem clichês e sem inventar dados (use [colchetes] onde faltar um detalhe real, como nome do projeto). Sem emojis exagerados. Responda só com JSON: {"hook": "...", "script": "uma linha por slide/cena/tela", "caption": "...", "cta": "...", "art": "ideia de imagem em uma frase"}.'
-      const ask1 = `perfil:\n${profile}\n\npostagem: ${post.title || 'tema livre'}\nformato: ${post.format} (${label})\ntema: ${pillarLabel(post.pillar, false)}`
-      const out = await askGemini(key, system, [{ role: 'user', text: ask1 }])
-      const json = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1)) as Partial<Record<'hook' | 'script' | 'caption' | 'cta' | 'art', string>>
-      onFill({ hook: json.hook ?? '', script: json.script ?? '', caption: json.caption ?? '', cta: json.cta ?? '', art: json.art ?? '' })
-      toast('Pronto: revise e ajuste com o seu jeito.')
-    } catch (e) {
-      toast(e instanceof Error && !(e instanceof SyntaxError) ? e.message : 'A IA não respondeu direito. Tente de novo.')
-    } finally {
-      setBusy(false)
-    }
+    if (filled && !(await ask('Trocar os textos desta postagem por uma nova versão?', { confirmLabel: 'Trocar' }))) return
+    onFill(
+      writePost({
+        name: s.ownerName || s.brandName || '',
+        what: bio.what,
+        who: bio.who,
+        extra: bio.extra,
+        services: s.services.map((x) => x.name).slice(0, 12),
+        projects: data.projects.filter((p) => !data.clients.find((c) => c.id === p.clientId)?.archived).map((p) => p.title).slice(0, 12),
+        title: post.title,
+        format: post.format,
+        pillar: post.pillar,
+      }),
+    )
+    toast('Texto montado com os seus dados. Troque o que estiver entre [colchetes].')
   }
   return (
     <div className="ig-skel">
       <span className="muted small">
-        {key ? (
-          <>A IA escreve gancho, {label.split(' (')[0].toLowerCase()}, legenda e chamada a partir do <b>seu</b> perfil (bio da estratégia e seus serviços). Cada pessoa recebe um texto diferente.</>
-        ) : (
-          <>Quer ajuda para escrever? Ligue o assistente em <b>configurações → assistente</b> e a IA escreve este post a partir do seu perfil.</>
-        )}
+        Monta gancho, {label.split(' (')[0].toLowerCase()}, legenda e chamada com os <b>seus</b> dados: o que você faz e para quem (da estratégia), seus serviços e seus projetos. Toque de novo para outra versão.
       </span>
-      {key ? (
-        <button type="button" className="btn small" disabled={busy} onClick={write}>
-          <Icon name="sparkle" size={14} /> {busy ? 'escrevendo…' : 'escrever com IA'}
-        </button>
-      ) : (
-        <button type="button" className="btn small ghost" onClick={() => go('config')}>
-          ligar assistente
-        </button>
-      )}
+      <button type="button" className="btn small" onClick={write}>
+        <Icon name="sparkle" size={14} /> montar texto
+      </button>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 {
-  "name": "planê",
-  "short_name": "planê",
+  "name": "Planê · Seu estúdio em ordem",
+  "short_name": "Planê",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f1ee",

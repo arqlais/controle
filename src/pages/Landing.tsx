@@ -300,7 +300,7 @@ export default function Landing() {
   useReveal(root, quotes.length)
   useEffect(() => {
     applyTheme(DEFAULT_SETTINGS)
-    document.title = `${PLATFORM.name} · ${PLATFORM.tagline}`
+    document.title = `${PLATFORM.title} · ${PLATFORM.slogan}`
     window.scrollTo(0, 0)
   }, [])
   const [scrolled, setScrolled] = useState(false)

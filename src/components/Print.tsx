@@ -206,7 +206,7 @@ export function usePdf() {
         )}
       {preview && (
         <Modal wide title="pré-visualização" onClose={() => setPreview(null)}>
-          <p className="muted small">Para baixar o PDF, use o sistema publicado (arqlais.github.io/controle) — aqui o visualizador do Claude não permite downloads.</p>
+          <p className="muted small">Para baixar o PDF, use o sistema publicado (useplane.com.br) — aqui o visualizador do Claude não permite downloads.</p>
           <div className="doc-preview">
             <DocScale width={previewW}>{preview}</DocScale>
           </div>

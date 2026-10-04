@@ -16,6 +16,7 @@ import { toast } from './components/dialog'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Data, WorkProfile, MessageTemplate, Project, ProposalStyle, ServiceDef, Settings, SocialPost } from './types'
 import { CLIENT_CONTRACTS } from './contractTemplates'
+import { DEFAULT_BRIEFING } from './briefingQuestions'
 import { DEFAULT_TASKS, addDays, payWhen, splitPayments, titleCase, today, uid } from './utils'
 
 const KEY = 'lais3d-controle-v1'
@@ -871,7 +872,7 @@ export function demoData(settings: Settings): Data {
     history: [] as { id: string; date: string; text: string }[],
     createdAt: addDays(t, -120),
   })
-  const clients = [
+  const clients: Data['clients'] = [
     c('Mariana Costa', 'Costa Arquitetura', 'escritorio', 'Belo Horizonte', 'Indicação'),
     c('Rafael Lima', 'Lima Interiores', 'designer', 'Nova Lima', 'Instagram'),
     c('Construtora Horizonte', 'Horizonte Engenharia', 'construtora', 'Contagem', 'Site'),
@@ -933,7 +934,7 @@ export function demoData(settings: Settings): Data {
     }
   }
 
-  const projects = [
+  const projects: Data['projects'] = [
     mk(mari.id, 'Apartamento Savassi — living e cozinha', 'render-vray', 4, 1800, 'producao', 'alta', -6, 3, '50-50', 1),
     mk(rafa.id, 'Suíte master — Casa Vila da Serra', 'render-vray', 3, 1350, 'revisao', 'media', -12, 1, '50-50', 1),
     mk(horiz.id, 'Edifício Aurora — fachada e áreas comuns', 'render-vray', 6, 3300, 'briefing', 'media', 2, 20, '50-50', 0),
@@ -952,14 +953,14 @@ export function demoData(settings: Settings): Data {
     { id: uid(), description: 'Anúncio Instagram', category: 'marketing' as const, amount: 80, date: addDays(t, -4), recurring: false, notes: '' },
   ]
 
-  const events = [
+  const events: Data['events'] = [
     { id: uid(), title: 'Call de briefing — Edifício Aurora', date: addDays(t, 1), time: '10:00', type: 'reuniao' as const, projectId: projects[2].id, notes: '', done: false },
     { id: uid(), title: 'Orientação TCC', date: addDays(t, 2), time: '14:00', type: 'faculdade' as const, projectId: '', notes: '', done: false },
     { id: uid(), title: 'Entrega prévia living', date: addDays(t, 1), time: '18:00', type: 'entrega' as const, projectId: projects[0].id, notes: '', done: false },
     { id: uid(), title: 'Prova — Urbanismo', date: addDays(t, 6), time: '19:00', type: 'faculdade' as const, projectId: '', notes: '', done: false },
   ]
 
-  const quotes = [
+  const quotes: Data['quotes'] = [
     {
       id: uid(),
       number: 1,
@@ -1052,7 +1053,49 @@ export function demoData(settings: Settings): Data {
   const tpl = CLIENT_CONTRACTS[0]
   const contracts = [{ id: uid(), title: `Contrato — ${q0.title}`, quoteId: q0.id, clientId: bia.id, templateId: tpl.id, body: tpl.body.replace(/\{(\w+)\}/g, (m, k: string) => vars[k] ?? m), status: 'enviado' as const, createdAt: addDays(t, -3) }]
 
-  return { version: 1, demo: true, clients, projects, expenses, events, quotes, posts, contracts, settings }
+  // cliente final de exemplo (plano Estúdio): ficha completa, briefing respondido, cronograma, obra, custos e painel
+  const fam: Data['clients'][number] = c('Juliana e Marcos Prado', '', 'final', 'Belo Horizonte', 'Instagram')
+  fam.profile = { profession: 'médica e engenheiro', marital: 'casada(o)', household: 'o casal e a filha Helena, de 4 anos', kids: '1 (4 anos)', pets: 'um gato, o Tom', routine: 'os dois trabalham fora; à noite e no fim de semana cozinham juntos e recebem os pais', style: 'aconchegante, contemporâneo', propertyType: 'apartamento', propertyOwnership: 'próprio', propertyAddress: 'Rua Paraíba, 500 — Funcionários', propertyArea: '120', investment: 'R$ 80 a 100 mil', deadline: 'mudar em março' }
+  fam.panel = { token: 'exemplo-familia', enabled: true, showPayments: true, showVisits: true, showQuotes: true, showBriefings: true, message: 'Estamos no anteprojeto: a apresentação está marcada para quinta.', next: { date: addDays(t, 4), text: 'apresentação do anteprojeto' } }
+  clients.push(fam)
+  const reforma: Data['projects'][number] = mk(fam.id, 'Reforma apartamento Funcionários — interiores', 'render-vray', 1, 14500, 'producao', 'alta', -20, 60, '50-50', 1)
+  reforma.kind = 'final'
+  reforma.phases = [
+    { id: uid(), name: 'Levantamento e briefing', start: addDays(t, -20), due: addDays(t, -15), done: true, doneAt: addDays(t, -15) },
+    { id: uid(), name: 'Estudo preliminar', start: addDays(t, -14), due: addDays(t, -4), done: true, doneAt: addDays(t, -5) },
+    { id: uid(), name: 'Anteprojeto', start: addDays(t, -3), due: addDays(t, 10) },
+    { id: uid(), name: 'Projeto executivo', start: addDays(t, 11), due: addDays(t, 40) },
+    { id: uid(), name: 'Acompanhamento de obra', start: addDays(t, 41), due: addDays(t, 120) },
+  ]
+  reforma.visits = [
+    { id: uid(), date: addDays(t, -18), title: 'Levantamento do apartamento', notes: 'Medidas conferidas com a planta. Pé-direito 2,60 m; viga na sala a 2,35 m.', next: 'Pedir planta elétrica ao condomínio.', photos: [] },
+    { id: uid(), date: addDays(t, -2), title: 'Visita com o marceneiro', notes: 'Conferidos os pontos da cozinha e do home office.', next: 'Orçamento da marcenaria até sexta.', photos: [] },
+  ]
+  reforma.costs = [
+    { id: uid(), date: addDays(t, -18), description: 'Deslocamento (Uber)', category: 'deslocamento', amount: 46 },
+    { id: uid(), date: addDays(t, -10), description: 'Impressão das pranchas A3', category: 'impressão', amount: 38 },
+  ]
+  reforma.portal = { token: 'exemplo-obra', enabled: true, showPayments: true, showFiles: true, showVisits: true, message: 'Anteprojeto em andamento.' }
+  projects.push(reforma)
+  events.push({ id: uid(), title: 'Apresentação do anteprojeto — Prado', date: addDays(t, 4), time: '19:00', type: 'reuniao' as const, projectId: reforma.id, notes: 'levar amostras de piso', done: false })
+  quotes.push({ ...quotes[0], id: uid(), number: 2, clientId: fam.id, title: 'Projeto de interiores — Apartamento Funcionários', area: 120, status: 'aprovado' as const, sentAt: addDays(t, -25), createdAt: addDays(t, -26), projectId: reforma.id, items: [{ id: uid(), service: 'render-vray', title: 'projeto de interiores completo', detail: '120 m²', description: 'estudo, anteprojeto, executivo e acompanhamento', quantity: 1, complexity: 'media' as const, price: 14500, auto: false }], discount: 0 })
+  quotes.push({ ...quotes[0], id: uid(), number: 0, clientId: rafa.id, title: 'Renders — Cozinha gourmet', status: 'rascunho' as const, sentAt: '', createdAt: t, items: [quotes[0].items[0]], discount: 0 })
+  const answers: Record<string, string | string[]> = { nome: fam.name, profissao: 'médica e engenheiro', 'estado-civil': 'casada(o)', moradores: 'nós dois e a Helena, de 4 anos', filhos: '1, de 4 anos', pets: 'um gato', 'trabalho-casa': 'às vezes', visitas: 'muito', cozinha: 'cozinham todo dia', rotina: 'cozinhamos juntos à noite e recebemos a família no domingo', 'tipo-imovel': 'apartamento', posse: 'próprio', metragem: '120', 'endereco-obra': 'Rua Paraíba, 500 — Funcionários', situacao: 'precisa de reforma', ambientes: ['sala de estar', 'cozinha', 'suíte', 'quarto de criança', 'home office'], manter: 'o aparador da avó e a mesa de jantar', precisa: 'bancada grande na cozinha e muito armário', incomoda: 'a cozinha fechada e escura', estilo: ['aconchegante', 'contemporâneo'], cores: 'madeira clara, verde-oliva, linho', 'nao-quer': 'nada muito brilhante' }
+  const briefings = [{ id: 'exemplo-briefing', clientId: fam.id, title: 'Briefing — Apartamento Funcionários', questions: DEFAULT_BRIEFING, answers, status: 'respondido' as const, createdAt: addDays(t, -24), answeredAt: addDays(t, -22) }]
+  const docs = [
+    { id: uid(), clientId: fam.id, kind: 'obra' as const, title: 'Lista de compras — Apartamento Funcionários', work: { kind: 'compras' as const, title: 'Lista de compras', date: t, layout: 'tabela' as const, projectId: reforma.id, items: [
+      { id: uid(), group: 'cozinha', title: 'Cooktop 5 bocas', desc: 'inox, indução', qty: 1, price: 3200, done: true },
+      { id: uid(), group: 'cozinha', title: 'Torneira gourmet', desc: 'monocomando preta', qty: 1, price: 890 },
+      { id: uid(), group: 'sala', title: 'Sofá 3 lugares', desc: 'linho cru, 2,40 m', qty: 1, price: 6900 },
+      { id: uid(), group: 'iluminação', title: 'Pendente bancada', desc: 'cúpula de vidro', qty: 3, price: 420 },
+    ] }, createdAt: addDays(t, -6), updatedAt: addDays(t, -1) },
+  ]
+  const notices = [
+    { id: uid(), at: addDays(t, -22) + 'T10:00:00', kind: 'briefing' as const, title: 'Briefing respondido', text: `${fam.name} respondeu o briefing.`, clientId: fam.id, link: 'briefings', read: true },
+    { id: uid(), at: addDays(t, -1) + 'T18:20:00', kind: 'recado' as const, title: 'Mensagem no painel do cliente', text: 'Podemos trocar a reunião para sexta?', clientId: fam.id, read: false },
+  ]
+
+  return { version: 1, demo: true, clients, projects, expenses, events, quotes, posts, contracts, briefings, docs, notices, settings } as Data
 }
 
 /** Prévia de uma função bloqueada: dá para mexer à vontade, mas tudo fica só na memória desta tela.

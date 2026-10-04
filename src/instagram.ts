@@ -654,3 +654,59 @@ export const CLIENT_FORMAT_IDEAS: Record<'story' | 'reels' | 'post', { title: st
 /** Montador de bio: junta as respostas em até 150 caracteres (limite do instagram). */
 export const BIO_LIMIT = 150
 export const CAPTION_LIMIT = 2200
+
+/* Gerador de texto sem IA (sem custo): mistura frases-base de cada tema com os dados de quem usa
+   (o que faz, para quem, cidade, serviços e projetos reais), sorteando variações a cada toque. */
+export interface WriterInput {
+  name: string
+  what: string // o que faz
+  who: string // para quem
+  extra: string // cidade / diferencial
+  services: string[]
+  projects: string[] // títulos de projetos reais
+  title: string
+  format: PostFormat
+  pillar: string
+}
+const pick = <T,>(l: T[]) => l[Math.floor(Math.random() * l.length)]
+export function writePost(i: WriterInput) {
+  const what = i.what || i.services.slice(0, 2).join(' e ') || 'projetos'
+  const who = i.who || 'quem quer um projeto bem feito'
+  const proj = pick(i.projects.length ? i.projects : ['[nome do projeto]'])
+  const svc = pick(i.services.length ? i.services : [what])
+  const place = i.extra ? ` · ${i.extra}` : ''
+  const theme = i.title.replace(/^[^:]+:\s*/, '') || svc
+  const P: Record<string, { hook: string[]; body: string[]; caption: string[]; cta: string[]; art: string[] }> = {
+    portfolio: {
+      hook: [`olha como ficou: ${proj}`, `${proj}, do pedido ao resultado`, `o antes e o depois de ${proj}`, `esse é um dos meus preferidos: ${proj}`],
+      body: [`o pedido: o que o cliente precisava\no desafio: o que era difícil em ${proj}\nas imagens/detalhes que mostram a solução\no resultado final\nquer algo assim? me chama`, `capa: a melhor imagem de ${proj}\n2 a 4 detalhes de perto\num antes × depois\nficha: ${svc}${place}`],
+      caption: [`${proj}.\n\nfiz ${svc} pensando em ${who}. cada detalhe foi escolhido para [o que o cliente queria].`, `quando chegou o pedido de ${proj}, a ideia era [objetivo]. o resultado está aqui.\n\n${what}${place}`],
+      cta: ['quer um projeto assim? me chama no direct', 'orçamento pelo link da bio', 'salva para se inspirar depois'],
+      art: [`a imagem mais forte de ${proj}, com o nome pequeno no canto`, 'antes × depois lado a lado, sem texto por cima'],
+    },
+    dicas: {
+      hook: [`3 erros comuns em ${theme} (e como evitar)`, `o que eu sempre explico sobre ${theme}`, `antes de contratar ${svc}, saiba disso`, `${theme}: o que ninguém te conta`],
+      body: [`capa: a dúvida que mais escuto sobre ${theme}\npor que isso importa\ndica 1 com exemplo\ndica 2 com exemplo\ndica 3 com exemplo\nresumo em uma frase`, `a dúvida escrita na tela\na resposta em 3 pontos rápidos\num exemplo de projeto meu\n“salva e manda para quem precisa”`],
+      caption: [`essa é a pergunta que mais recebo de ${who}: [dúvida].\n\na resposta curta: [resposta em 2 linhas].\n\nsalva para consultar depois.`, `trabalho com ${what} e vejo isso toda semana: [problema comum].\n\nmeu conselho: [dica principal].`],
+      cta: ['salva e manda para quem está precisando', 'ficou alguma dúvida? me pergunta nos comentários'],
+      art: ['fundo liso nas cores da sua marca, título grande e uma imagem de exemplo por slide'],
+    },
+    processo: {
+      hook: [`como é trabalhar comigo, do primeiro contato à entrega`, `quanto tempo leva ${svc}? te explico`, `o que eu preciso receber para começar`, `${svc}: passo a passo`],
+      body: [`capa: como funciona contratar ${svc}\no que eu preciso receber\netapas e prazo médio\nquantas revisões estão incluídas\ncomo é a entrega\npeça seu orçamento`, `1. conversa e orçamento\n2. aprovação e sinal\n3. execução e revisões\n4. entrega dos arquivos`],
+      caption: [`como funciona trabalhar comigo:\n\n1. você me conta o que precisa\n2. mando o orçamento\n3. faço ${svc} com revisões incluídas\n4. entrego tudo organizado\n\natendo ${who}${place}.`, `muita gente me pergunta como é contratar ${what}. fiz este passo a passo para ficar claro desde o começo.`],
+      cta: ['peça seu orçamento pelo link da bio', 'me chama no direct com a palavra “orçamento”'],
+      art: ['etapas numeradas em fundo claro, uma por linha, com o seu logo'],
+    },
+    bastidores: {
+      hook: [`um dia de trabalho por aqui`, `o que acontece antes da entrega de ${proj}`, `minha mesa hoje`, `bastidores de ${svc}`],
+      body: [`foto sua trabalhando\nsua mesa e ferramentas\n${proj} em andamento\nalgo que você ama no seu trabalho`, `o começo do dia\ntelas do trabalho em andamento\no resultado do dia`],
+      caption: [`por trás de cada entrega tem [o que acontece nos bastidores].\n\nhoje estou cuidando de ${proj}.`, `quem me acompanha vê o resultado; hoje mostro o caminho. ${what}${place}.`],
+      cta: ['me conta nos comentários', 'quer ver mais bastidores? salva o perfil'],
+      art: ['foto real com luz natural, sem montagem'],
+    },
+  }
+  const k = P[i.pillar] ? i.pillar : i.pillar === 'estudantes' ? 'dicas' : 'portfolio'
+  const b = P[k]
+  return { hook: pick(b.hook), script: pick(b.body), caption: pick(b.caption), cta: pick(b.cta), art: pick(b.art) }
+}

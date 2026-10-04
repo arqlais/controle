@@ -10,7 +10,7 @@ import { clearLocalCopy, demoData, emptyData, normalize, useStore } from '../sto
 import { Icon } from '../components/Icon'
 import { DesktopNote, Field, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
-import type { Complexity, Quote } from '../types'
+import type { Complexity, Quote, UiColorKey } from '../types'
 import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, download, paymentMethods, nextQuoteNumber, today, uid } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
@@ -129,6 +129,7 @@ export default function SettingsPage() {
                 </p>
               )}
               <BrandKit />
+              <OwnerColors />
               <Section title="tema deste aparelho">
                 <div className="form-grid">
                   <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
@@ -481,6 +482,65 @@ function ProposalSettings() {
             <QuoteDoc s={s} quote={sample} client={{ id: '', name: 'Mariana Costa', company: 'Costa Arquitetura', type: 'escritorio', email: '', phone: '', instagram: '', city: '', document: '', origin: '', notes: '', favorite: false, archived: false, history: [], createdAt: '' }} />
           </DocScale>
         </div>
+      </div>
+    </Section>
+  )
+}
+
+/** Cores finas do sistema: só a dona. Cada cor vazia segue o tema (identidade visual). */
+const UI_COLORS: [UiColorKey, string, string][] = [
+  ['sidebar', 'Fundo do menu lateral', 'a faixa da esquerda'],
+  ['sidebarText', 'Textos do menu', 'nomes e ícones do menu'],
+  ['active', 'Item escolhido no menu', 'o destaque da tela aberta'],
+  ['activeText', 'Texto do item escolhido', ''],
+  ['page', 'Fundo das telas', 'atrás dos cartões'],
+  ['card', 'Cartões', 'caixas brancas de conteúdo'],
+  ['text', 'Textos', 'títulos e textos principais'],
+  ['button', 'Botões principais', 'salvar, novo, enviar'],
+  ['detail', 'Detalhes e itálicos', 'rótulos, links e palavras em itálico'],
+  ['border', 'Linhas e bordas', 'contornos e separadores'],
+]
+function OwnerColors() {
+  const { isOwner } = useAccess()
+  const { data, setSettings } = useStore()
+  if (!isOwner) return null
+  const ui = data.settings.uiColors ?? {}
+  const css = getComputedStyle(document.documentElement)
+  const VAR: Record<UiColorKey, string> = { sidebar: '--sidebar-bg', sidebarText: '--text', active: '--accent', activeText: '--accent-contrast', page: '--bg', card: '--surface', text: '--text', button: '--accent', detail: '--accent-ink', border: '--border' }
+  const current = (k: UiColorKey) => ui[k] || css.getPropertyValue(VAR[k]).trim() || '#ffffff'
+  const set = (k: UiColorKey, hex: string) => setSettings({ uiColors: { ...ui, [k]: hex } })
+  const reset = (k: UiColorKey) => {
+    const next = { ...ui }
+    delete next[k]
+    setSettings({ uiColors: next })
+  }
+  return (
+    <Section
+      title="cores do sistema · só você"
+      action={
+        Object.keys(ui).length > 0 && (
+          <button className="btn small ghost" onClick={() => setSettings({ uiColors: {} })}>
+            voltar tudo ao tema
+          </button>
+        )
+      }
+    >
+      <p className="muted small">Ajuste cada parte do sistema, inclusive o menu lateral. Vale só para o tema claro; o que ficar sem cor própria segue as cores da identidade acima.</p>
+      <div className="ui-colors">
+        {UI_COLORS.map(([k, label, hint]) => (
+          <div key={k} className={`ui-color ${ui[k] ? 'is-set' : ''}`}>
+            <ColorPicker label={label} value={current(k)} onChange={(hex) => set(k, hex)} />
+            <span className="grow">
+              <b>{label}</b>
+              <small className="muted">{ui[k] ? ui[k] : hint ? `${hint} · segue o tema` : 'segue o tema'}</small>
+            </span>
+            {ui[k] && (
+              <button className="icon-btn" title="Voltar ao tema" aria-label="Voltar ao tema" onClick={() => reset(k)}>
+                <Icon name="x" size={14} />
+              </button>
+            )}
+          </div>
+        ))}
       </div>
     </Section>
   )

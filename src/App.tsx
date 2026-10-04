@@ -34,6 +34,8 @@ const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
 const Admin = lazy(() => import('./pages/Admin'))
+const AffiliatesPage = lazy(() => import('./pages/Admin').then((m) => ({ default: m.AffiliatesPage })))
+const Indique = lazy(() => import('./pages/Indique'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 import Suggestions from './pages/Suggestions'
 import Feedback from './pages/Feedback'
@@ -86,7 +88,7 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
 // o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
 const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
+const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -252,7 +254,7 @@ export default function App() {
   const groups = useMemo(
     () =>
       [
-        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
         { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),
@@ -403,6 +405,10 @@ export default function App() {
         return <Contracts id={route.id} />
       case 'plataforma':
         return <Admin />
+      case 'afiliados':
+        return <AffiliatesPage />
+      case 'indique':
+        return <Indique />
       case 'assinatura':
         return route.id ? <Checkout key={route.id} planId={route.id} /> : <SubscriptionPage onChat={openChat} />
       case 'briefings':
@@ -543,6 +549,17 @@ export default function App() {
               </Fragment>
             )
           })}
+          {!access.isOwner && !organizing && (
+            <a href={href('indique')} className={`nav-promo ${route.page === 'indique' ? 'active' : ''}`}>
+              <span className="nav-promo-icon">
+                <Icon name="gift" size={18} />
+              </span>
+              <span className="grow">
+                <b>indique e ganhe</b>
+                <small>1 mês grátis por amigo</small>
+              </span>
+            </a>
+          )}
           {groups.map((g) => (
             <div key={g.key} className={`nav-group is-${g.key}`}>
               <span className="nav-group-label">{g.label}</span>
