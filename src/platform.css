@@ -3292,3 +3292,4 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
   .aff-link-row .connect-link .btn { flex: 1; justify-content: center; }
   .aff-links > .btn { width: 100%; justify-content: center; }
 }
+.lp-ref-pill { display: inline-flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin: 0 0 14px; padding: 7px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-contrast); font-size: 13px; font-weight: 500; }

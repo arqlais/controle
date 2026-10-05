@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
 import { readRef } from '../platform'
 import { DIRECT_KEY } from '../plans'
-import { LAUNCHED, SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, REFERRAL, money0, type Feature, type PlanId } from '../plans'
+import { LAUNCHED, SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, money0, type Feature, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
 import { TEMPLATES } from '../proposalTemplates'
@@ -366,11 +366,6 @@ export default function Landing() {
           </div>
         </div>
       </header>
-      {readRef() && (
-        <p className="lp-ref-banner">
-          <Icon name="heart" size={15} /> Você veio por indicação: testa grátis por {TRIAL_DAYS} dias e ganha {refDiscount || REFERRAL.discount}% de desconto no primeiro mês ao assinar.
-        </p>
-      )}
 
       <section className="lp-hero">
         <div className="lp-blobs" aria-hidden>
@@ -380,6 +375,12 @@ export default function Landing() {
         </div>
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
+            {/* só quem chegou pelo link de um afiliado vê o desconto (sem faixa por cima do topo) */}
+            {refDiscount > 0 && (
+              <p className="lp-ref-pill">
+                <Icon name="heart" size={14} /> link de parceria: {refDiscount}% de desconto no primeiro mês ao assinar
+              </p>
+            )}
             {site.kicker && (
               <p className="lp-kicker">
                 <span className="lp-dot" /> {site.kicker}
