@@ -3,7 +3,7 @@ import { PREVIEW_KEY, type PlanConfig } from './planConfig'
 import { ARTIFACT } from './env'
 import { CLOUD, supabase } from './cloud'
 import { PLANS, TRIAL_DAYS, previewCreatedAt, type PlanId, type SubStatus } from './plans'
-import { DEFAULT_SITE, DEFAULT_TERMS, EMPTY_COMPANY, type Company, type SiteContent } from './siteContent'
+import { DEFAULT_SITE, DEFAULT_TERMS, EMPTY_COMPANY, freshSite, type Company, type SiteContent } from './siteContent'
 
 /* ============================================================
    Plataforma: assinaturas, chat com a dona e horários online.
@@ -617,7 +617,7 @@ const cloud = {
     await patchCloudSettings({ hours: h })
   },
   async site(): Promise<SiteContent> {
-    return { ...DEFAULT_SITE, ...((await cloudSettings()).site ?? {}) }
+    return freshSite({ ...DEFAULT_SITE, ...((await cloudSettings()).site ?? {}) })
   },
   async saveSite(site: SiteContent) {
     await patchCloudSettings({ site })
@@ -1072,7 +1072,7 @@ const local = {
     writeDB({ ...readDB(), hours: h })
   },
   async site(): Promise<SiteContent> {
-    return { ...DEFAULT_SITE, ...(readDB().site ?? {}) }
+    return freshSite({ ...DEFAULT_SITE, ...(readDB().site ?? {}) })
   },
   async saveSite(site: SiteContent) {
     writeDB({ ...readDB(), site })

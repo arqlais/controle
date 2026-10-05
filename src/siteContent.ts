@@ -39,7 +39,7 @@ Procurei um sistema pensado para o freelancer e não encontrei. Então criei o m
   about: 'o sistema de gestão para quem vive de projeto: arquitetos, designers de interiores, escritórios e freelancers de 3D.',
   banner: '',
   kicker: 'para arquitetos, designers, escritórios e freelancers de projeto',
-  heroTitle: 'seu estúdio,',
+  heroTitle: 'seu escritório,',
   heroWords: 'organizado, mais leve, no seu ritmo, lucrativo',
   lead: 'Clientes, orçamentos, propostas, contratos, prazos e financeiro num lugar só. Do primeiro “oi” à entrega.',
   hidden: [],
@@ -206,6 +206,8 @@ const OLD_TEXTS: Partial<Record<keyof SiteContent, string>> = {
 }
 export function freshSite(c: SiteContent): SiteContent {
   const out = { ...c }
+  // título antigo ("seu estúdio,"): passa para o novo, se a dona não escreveu outro
+  if (out.heroTitle === 'seu estúdio,') out.heroTitle = DEFAULT_SITE.heroTitle
   for (const [k, v] of Object.entries(OLD_TEXTS) as [keyof SiteContent, string][]) if (out[k] === v) (out as Record<string, unknown>)[k] = DEFAULT_SITE[k]
   // contato da marca planê: entra quando ainda não foi preenchido
   if (!out.instagram?.trim() || /traco/i.test(out.instagram)) out.instagram = DEFAULT_SITE.instagram

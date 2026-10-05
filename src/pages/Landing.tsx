@@ -725,7 +725,7 @@ export default function Landing() {
       {!off('depoimentos') && (
       <section className="lp-section">
         <div className="lp-wrap">
-          <SectionHead eyebrow={quotes.length ? 'depoimentos' : 'na prática'} title={<>estúdios mais <em>tranquilos</em></>} />
+          <SectionHead eyebrow={quotes.length ? 'depoimentos' : 'na prática'} title={<>escritórios mais <em>tranquilos</em></>} />
           <div className="lp-testimonials">
             {quotes.length
               ? quotes.map((t, i) => (
