@@ -1,3 +1,4 @@
+import { fitImage } from '../utils'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import qrcode from 'qrcode-generator'
 import { useAccess } from '../access'
@@ -351,13 +352,12 @@ export function DocLookPanel({ fold, kind }: { fold?: boolean; kind?: LookKind }
   }
   const onLogo = (f?: File) => {
     if (!f) return
-    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB.')
-    const r = new FileReader()
-    r.onload = () => {
-      setSettings({ logo: String(r.result), proposal: { ...raw.proposal, showLogo: true } })
-      toast('Logotipo aplicado nos modelos.')
-    }
-    r.readAsDataURL(f)
+    void fitImage(f)
+      .then((logo) => {
+        setSettings({ logo, proposal: { ...raw.proposal, showLogo: true } })
+        toast('Logotipo aplicado nos modelos.')
+      })
+      .catch(() => toast('Não consegui abrir essa imagem. Tente JPG ou PNG.'))
   }
   const body = (
     <div className="dk-look">

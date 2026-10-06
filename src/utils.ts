@@ -941,3 +941,35 @@ export function autoFiles(q: Quote, services: ServiceDef[]) {
 }
 /** O que vai no PDF: automático (pelos serviços) ou o texto escrito à mão. */
 export const quoteFiles = (q: Quote, services: ServiceDef[]) => (q.filesAuto ? autoFiles(q, services) || q.files : q.files)
+
+/** Foto ou logo de qualquer tamanho: se for pesada, reduz sozinha (até ~1000 px), mantendo o
+    fundo transparente (PNG) quando tiver. Imagens leves e SVG ficam como vieram. */
+export function fitImage(file: File, maxKb = 600): Promise<string> {
+  const read = () =>
+    new Promise<string>((resolve, reject) => {
+      const r = new FileReader()
+      r.onload = () => resolve(String(r.result))
+      r.onerror = reject
+      r.readAsDataURL(file)
+    })
+  if (file.size <= maxKb * 1000 || file.type === 'image/svg+xml') return read()
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const alpha = /png|webp|gif/.test(file.type)
+      for (const max of [1000, 800, 600, 400]) {
+        const k = Math.min(1, max / Math.max(img.width, img.height))
+        const c = document.createElement('canvas')
+        c.width = Math.round(img.width * k)
+        c.height = Math.round(img.height * k)
+        c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+        const out = alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.85)
+        if (out.length * 0.75 <= maxKb * 1000 || max === 400) return resolve(out)
+      }
+    }
+    img.onerror = () => (URL.revokeObjectURL(url), reject(new Error('imagem inválida')))
+    img.src = url
+  })
+}

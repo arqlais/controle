@@ -9,7 +9,7 @@ import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
 import { EmailInput, Field, PhoneInput, Section, CepInput } from '../components/ui'
 import { toast } from '../components/dialog'
 import type { Settings } from '../types'
-import { atHandle, cleanSite, docKind, formatDoc, showDoc, typeHandle } from '../utils'
+import { atHandle, cleanSite, docKind, fitImage, formatDoc, showDoc, typeHandle } from '../utils'
 
 /* Perfil do estúdio: quem você é, como aparece nas propostas e recibos, e a sua conta. */
 
@@ -54,10 +54,9 @@ export default function Profile() {
 
   const onLogo = (f?: File) => {
     if (!f) return
-    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB.')
-    const r = new FileReader()
-    r.onload = () => set({ logo: String(r.result) })
-    r.readAsDataURL(f)
+    void fitImage(f)
+      .then((logo) => set({ logo }))
+      .catch(() => toast('Não consegui abrir essa imagem. Tente JPG ou PNG.'))
   }
 
   const contacts = [s.phone, atHandle(s.instagram), cleanSite(s.website), s.email].filter((x) => x.trim())
@@ -167,7 +166,7 @@ export default function Profile() {
                 ))}
               </div>
             </Field>
-            <Field label="Foto ou logo" span={2} hint="Aparece redonda no canto do menu. JPG ou PNG, até 600 KB.">
+            <Field label="Foto ou logo" span={2} hint="Aparece redonda no canto do menu. JPG ou PNG, de qualquer tamanho (a gente ajusta).">
               <div className="row gap-s">
                 {s.logo ? <img src={s.logo} alt="" className="photo-preview" /> : <span className="muted small">Sem foto.</span>}
                 <button className="btn small" onClick={() => logoRef.current?.click()}>

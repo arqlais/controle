@@ -1,3 +1,4 @@
+import { fitImage } from '../utils'
 import { useRef } from 'react'
 import { ColorPicker } from './ColorPicker'
 import { useStore, DEFAULT_SETTINGS } from '../store'
@@ -33,13 +34,12 @@ export function BrandKit() {
   const logoRef = useRef<HTMLInputElement>(null)
   const onLogo = (f?: File) => {
     if (!f) return
-    if (f.size > 600_000) return toast('Use uma imagem menor que 600 KB.')
-    const r = new FileReader()
-    r.onload = () => {
-      setSettings({ logo: String(r.result) })
-      toast('Logotipo aplicado nos modelos.')
-    }
-    r.readAsDataURL(f)
+    void fitImage(f)
+      .then((logo) => {
+        setSettings({ logo })
+        toast('Logotipo aplicado nos modelos.')
+      })
+      .catch(() => toast('Não consegui abrir essa imagem. Tente JPG ou PNG.'))
   }
   const fontRef = useRef<HTMLInputElement>(null)
   const bodyFontRef = useRef<HTMLInputElement>(null)
