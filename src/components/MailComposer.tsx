@@ -210,8 +210,10 @@ export function MailComposer({ subs, onSent }: { subs: Subscription[]; onSent: (
       if (r.erro) toast(`Não foi: ${r.erro}`)
       else toast(teste ? 'Teste enviado para o seu e-mail.' : `Enviado para ${r.enviados ?? 0} pessoa(s).`)
       if (!teste) onSent()
-    } catch {
-      toast('Não foi possível mandar. Confira se a função “avisos” está publicada (atualizada) no Supabase.')
+    } catch (e) {
+      // o motivo de verdade (ex.: "tipo desconhecido" = a função avisos ainda é a versão antiga)
+      const why = e instanceof Error ? e.message : ''
+      toast(/tipo desconhecido/.test(why) ? 'A função “avisos” do Supabase ainda é a antiga: publique a versão nova (passo a passo no chat com o Claude).' : `Não foi possível mandar${why ? `: ${why}` : '.'}`)
     }
     setBusy('')
   }

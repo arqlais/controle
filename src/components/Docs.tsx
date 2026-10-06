@@ -415,6 +415,9 @@ export function ReceiptDoc({ s: s0, client, project, payment }: { s: Settings; c
   const { tpl, p } = useSheet(s)
   const { name: payer, doc: payerDoc } = payerOf(client)
   const date = payment.paidDate ?? today()
+  // adicionais cobrados nesta parcela (somados ao saldo ou cobrados à parte)
+  const extras = (project.extras ?? []).filter((x) => x.paymentId === payment.id)
+  const base = Math.round((payment.amount - extras.reduce((t, x) => t + x.value, 0)) * 100) / 100
   const main = (
     <>
       <div className="p-card">
@@ -424,6 +427,27 @@ export function ReceiptDoc({ s: s0, client, project, payment }: { s: Settings; c
           {payerDoc && <>, {docKind(payerDoc) || 'CPF/CNPJ'} {showDoc(payerDoc)}</>}, a importância de <b>{money(payment.amount)}</b> ({porExtenso(payment.amount)}), referente a{' '}
           {lower(payment.description)} do projeto <b>{project.title}</b>, dando plena quitação deste valor.
         </p>
+        {extras.length > 0 && (
+          <div className="p-rows">
+            {base > 0 && (
+              <div className="p-row">
+                <div className="p-row-main">
+                  <span className="p-row-title">{payment.description.replace(/^adicional · /i, '') || 'parcela'}</span>
+                </div>
+                <span className="p-row-price">{money(base)}</span>
+              </div>
+            )}
+            {extras.map((x) => (
+              <div key={x.id} className="p-row">
+                <div className="p-row-main">
+                  <span className="p-row-title">adicional · {x.title}</span>
+                  {x.quantity && x.unitPrice ? <span className="p-row-desc">{x.quantity} × {money(x.unitPrice)}</span> : null}
+                </div>
+                <span className="p-row-price">{money(x.value)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <p className="p-note">
           {s.city ? `${s.city}, ` : ''}
           {fmt(date)} · {s.legalName || s.ownerName}

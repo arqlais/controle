@@ -53,11 +53,21 @@ export function defaultBill(p: Project, d: Data): BillInfo {
   if (ids.some((id) => ['pranchas', 'diagramacao', 'mapas', 'diagramas', 'planta-hum'].includes(id)))
     cards.push({ icon: 'sparkle', title: 'finalização', text: 'arquivos finais em **alta resolução**, prontos para apresentação e impressão.', on: true })
 
+  // serviços adicionais pedidos depois de fechado: aparecem com o valor
+  const extras = p.extras ?? []
+  if (extras.length)
+    cards.push({
+      icon: 'check',
+      title: extras.length > 1 ? 'adicionais' : 'adicional',
+      text: extras.map((x) => `${x.title}${x.quantity && x.unitPrice ? ` (${x.quantity} × ${money(x.unitPrice)})` : ''}: **${money(x.value)}**`).join(' · '),
+      on: true,
+    })
+
   // título do quadro de valores: serviços do orçamento (ou o nome da demanda)
   const names = [...new Set(items.filter((i) => !i.joined).map((i) => [i.title || svc(i.service)?.name, i.detail].filter(Boolean).join(' · ')))].filter(Boolean)
   const single = ids.length === 1 && isRender(ids[0]) && p.quantity > 0 ? `${p.quantity} ${p.quantity === 1 ? 'imagem' : 'imagens'} · ${svc(ids[0])?.name ?? ''}` : ''
   const label = single || (names.length && names.length <= 2 ? names.join(' + ') : p.title) || svc(p.service)?.name || 'serviço'
-  return { kind: 'servico', label, total: projectTotal(p), paid: projectPaid(p), cards }
+  return { kind: 'servico', label: extras.length ? `${label} + ${extras.length > 1 ? `${extras.length} adicionais` : 'adicional'}` : label, total: projectTotal(p), paid: projectPaid(p), cards }
 }
 
 export function BillModal({ p, onClose }: { p: Project; onClose: () => void }) {
