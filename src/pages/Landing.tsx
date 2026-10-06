@@ -1,6 +1,6 @@
-import { PlaneMark } from '../components/PlaneMark'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, demoData } from '../store'
+import { BrandMark } from '../components/PlaneMark'
 import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
@@ -342,7 +342,7 @@ export default function Landing() {
       <header className={`lp-top ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="lp-wrap lp-top-in">
           <a className="brand-name lp-logo" href="#/vendas" onClick={(e) => (e.preventDefault(), window.scrollTo({ top: 0, behavior: 'smooth' }))}>
-            <PlaneMark size={32} stroke={8.5} />
+            <BrandMark place="topo" size={36} />
             {PLATFORM.name}
           </a>
           <nav className="lp-nav">
@@ -804,7 +804,7 @@ export default function Landing() {
           <div className="lp-foot-grid">
             <div className="lp-foot-brand">
               <span className="brand-name lp-foot-logo">
-                <PlaneMark variant="blush" size={46} stroke={7} />
+                <BrandMark place="rodape" size={46} />
                 {PLATFORM.name}
               </span>
               <p className="muted">{site.about}</p>

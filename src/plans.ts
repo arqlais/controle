@@ -12,7 +12,7 @@ export const PLATFORM = {
   provisional: false, // mostra o aviso "nome provisório" na prévia e no painel
   tagline: 'gestão leve para quem vive de projeto',
   title: 'Planê', // nome na aba do navegador (com maiúscula)
-  slogan: 'Seu estúdio em ordem', // frase curta da marca (aba, compartilhamento)
+  slogan: 'Seu escritório em ordem', // frase curta da marca (aba, compartilhamento)
   url: 'https://useplane.com.br/',
   owner: 'Laís', // só aparece para você (painel, prévia)
   // como os clientes chamam quem responde o chat (troque por 'CEO', 'desenvolvedora'…)

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from './types'
 import { PLATFORM } from './plans'
+import type { TabBrand } from './platform'
+import { DEFAULT_MARKS, markIconUrl, setBrandMarks } from './components/PlaneMark'
 import { DISPLAY_FONTS, EXCLUSIVE_FONT, OWN_BODY_FONT, OWN_FONT } from './brand'
 
 const hexToRgb = (hex: string) => {
@@ -60,11 +62,17 @@ export function refreshTitle() {
   document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.title} · ${capWords(brand)}` : `${PLATFORM.title} · ${PLATFORM.slogan}`
 }
 /** Nome, frase e ícone da aba definidos pela dona no painel. */
-export function setTabBrand(t: { title: string; slogan: string; icon: string } | null) {
+export function setTabBrand(t: TabBrand | null) {
   if (!t) return
   if (t.title.trim()) PLATFORM.title = t.title.trim()
-  if (t.slogan.trim()) PLATFORM.slogan = t.slogan.trim()
-  if (t.icon) document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((l) => ((l.href = t.icon), l.removeAttribute('type')))
+  // frase antiga salva no painel passa para a nova (escritório)
+  if (t.slogan.trim() && t.slogan.trim() !== 'Seu estúdio em ordem') PLATFORM.slogan = t.slogan.trim()
+  setBrandMarks(t.marks)
+  // ícone da aba: imagem antiga do painel ou o logotipo escolhido para a aba
+  const img = t.marks?.icone?.image || t.icon
+  const icon = img || (t.marks?.icone ? markIconUrl({ ...DEFAULT_MARKS.icone, ...t.marks.icone }) : '')
+  // o iPhone não aceita SVG no atalho: só troca quando for imagem
+  if (icon) document.querySelectorAll<HTMLLinkElement>(img ? 'link[rel="icon"], link[rel="apple-touch-icon"]' : 'link[rel="icon"]').forEach((l) => ((l.href = icon), l.removeAttribute('type')))
   refreshTitle()
 }
 

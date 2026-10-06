@@ -50,6 +50,7 @@ export interface TabBrand {
   title: string
   slogan: string
   icon: string // imagem (data URL) ou '' = o ícone padrão
+  marks?: Partial<Record<import('./components/PlaneMark').MarkPlace, import('./components/PlaneMark').MarkSpec>> // logotipo de cada lugar do site
 }
 export const EMPTY_PAY: PayConfig = { pixKey: '', pixName: '', pixCity: '', cardLinks: {}, note: '' }
 

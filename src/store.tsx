@@ -1,5 +1,5 @@
-import { PlaneMark, MARK } from './components/PlaneMark'
 import { PLATFORM } from './plans'
+import { BrandMark } from './components/PlaneMark'
 import { NEWS } from './news'
 
 /** Prévia "ver como cliente": já viu tudo menos a atualização mais recente. */
@@ -839,7 +839,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
     [view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId, agenda, publishAgendaNow, sample, showSample],
   )
   // tela de entrada: sempre com a marca da plataforma (o estúdio de quem usa aparece depois, dentro do sistema)
-  if (sync === 'loading') return <div className="loading-screen"><PlaneMark size={64} line={MARK.rose} stroke={5} className="is-drawing" /><span className="brand-name">{PLATFORM.name}</span><p className="muted small">carregando seus dados…</p></div>
+  if (sync === 'loading') return <div className="loading-screen"><BrandMark place="carregando" size={64} className="is-drawing" /><span className="brand-name">{PLATFORM.name}</span><p className="muted small">carregando seus dados…</p></div>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

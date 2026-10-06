@@ -102,7 +102,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         <div className="hero">
           <p className="eyebrow">{settings.tagline || settings.brandName}</p>
           <h1>
-            seu estúdio, <em>organizado</em>
+            seu escritório, <em>organizado</em>
           </h1>
           <p className="lead">Clientes, demandas, prazos, orçamentos e financeiro num só lugar. Comece cadastrando um cliente ou explore com dados de exemplo.</p>
           <div className="row gap wrap">

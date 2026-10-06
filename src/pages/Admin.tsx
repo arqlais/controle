@@ -9,6 +9,7 @@ import { useKeep } from '../keep'
 import { ARTIFACT } from '../env'
 import { pixPayload } from '../pix'
 import { setTabBrand } from '../theme'
+import { BrandMark, DEFAULT_MARKS, MARK, MARK_PLACES, MARK_VARIANTS, PlaneMark, markIconUrl, type MarkPlace, type MarkSpec } from '../components/PlaneMark'
 import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, rememberPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { AffiliatePanelView } from '../components/AffiliatePanel'
@@ -159,7 +160,7 @@ export default function Admin() {
           <p className="pf-note">
             <Icon name="eye" size={16} />
             <span>
-              Aqui você muda a sua foto, o texto do “quem criou”, os contatos e o rodapé da página de vendas.{' '}
+              Aqui você muda o logotipo, a aba do navegador, a sua foto, o texto do “quem criou”, os contatos e o rodapé da página de vendas.{' '}
               <a className="link" href="#/vendas">
                 ver a página de vendas
               </a>
@@ -1235,84 +1236,165 @@ function SuggestionsAdmin({ sugs, subs, reload }: { sugs: Suggestion[]; subs: Su
 }
 
 /** "Quem criou", redes e contatos da página de vendas: a dona edita aqui, sem mexer no código. */
-/** Aba do navegador: nome, frase e ícone (o ícone vale também para o app no celular). */
+/** Imagem escolhida pela dona, reduzida para um quadrado de 256 px (cabe no ajuste da plataforma). */
+function squareImage(f: File, done: (url: string) => void) {
+  const img = new Image()
+  const url = URL.createObjectURL(f)
+  img.onload = () => {
+    const c = document.createElement('canvas')
+    c.width = c.height = 256
+    const k = Math.min(256 / img.width, 256 / img.height)
+    const w = img.width * k
+    const h = img.height * k
+    c.getContext('2d')!.drawImage(img, (256 - w) / 2, (256 - h) / 2, w, h)
+    URL.revokeObjectURL(url)
+    done(c.toDataURL('image/png'))
+  }
+  img.src = url
+}
+
+const SWATCHES = Object.entries(MARK) as [string, string][]
+/* tons claros da paleta: traço claro sem fundo precisa de fundo escuro na prévia */
+const LIGHT = new Set<string>([MARK.papel, MARK.branco, MARK.blush])
+
+/** Aba do navegador (nome e frase) e o logotipo de cada lugar do site: formato, cores ou imagem própria. */
 function TabBrandEditor() {
-  const [t, setT] = useState<TabBrand>({ title: PLATFORM.title, slogan: PLATFORM.slogan, icon: '' })
+  const [t, setT] = useState<TabBrand>({ title: PLATFORM.title, slogan: PLATFORM.slogan, icon: '', marks: {} })
   const [saved, setSaved] = useState('')
   useEffect(() => {
     platform.tabBrand().then((x) => {
-      const v = { title: x?.title || PLATFORM.title, slogan: x?.slogan || PLATFORM.slogan, icon: x?.icon || '' }
+      const marks = { ...(x?.marks ?? {}) }
+      // ícone enviado antes do editor de logotipos vira a imagem da aba
+      if (x?.icon && !marks.icone) marks.icone = { ...DEFAULT_MARKS.icone, image: x.icon }
+      const v: TabBrand = { title: x?.title || PLATFORM.title, slogan: (x?.slogan !== 'Seu estúdio em ordem' && x?.slogan) || PLATFORM.slogan, icon: '', marks }
       setT(v)
       setSaved(JSON.stringify(v))
     })
   }, [])
   const dirty = JSON.stringify(t) !== saved
-  const pick = (f?: File) => {
-    if (!f) return
-    const img = new Image()
-    const url = URL.createObjectURL(f)
-    img.onload = () => {
-      const c = document.createElement('canvas')
-      c.width = c.height = 192
-      const k = Math.min(192 / img.width, 192 / img.height)
-      const w = img.width * k
-      const h = img.height * k
-      c.getContext('2d')!.drawImage(img, (192 - w) / 2, (192 - h) / 2, w, h)
-      URL.revokeObjectURL(url)
-      setT((x) => ({ ...x, icon: c.toDataURL('image/png') }))
-    }
-    img.src = url
-  }
+  const spec = (p: MarkPlace): MarkSpec => ({ ...DEFAULT_MARKS[p], ...(t.marks?.[p] ?? {}) })
+  const setMark = (p: MarkPlace, patch: Partial<MarkSpec> | null) =>
+    setT((x) => {
+      const marks = { ...(x.marks ?? {}) }
+      if (patch === null) delete marks[p]
+      else marks[p] = { ...DEFAULT_MARKS[p], ...(marks[p] ?? {}), ...patch }
+      return { ...x, marks }
+    })
   const save = async () => {
     try {
       await platform.saveTabBrand(t)
       setSaved(JSON.stringify(t))
       setTabBrand(t)
-      toast('Aba do navegador atualizada.')
+      toast('Aba e logotipos atualizados.')
     } catch {
       toast('Não foi possível salvar agora.')
     }
   }
+  const saveBtn = (
+    <button className="btn primary small" disabled={!dirty} onClick={() => void save()}>
+      {dirty ? 'salvar' : 'salvo'}
+    </button>
+  )
   return (
-    <Section
-      title="aba do navegador"
-      action={
-        <button className="btn primary small" disabled={!dirty} onClick={() => void save()}>
-          {dirty ? 'salvar' : 'salvo'}
-        </button>
-      }
-    >
-      <div className="tab-preview" aria-hidden>
-        <span className="tab-preview-tab">
-          <img src={t.icon || './icon-192.png?v=4'} alt="" />
-          <b>
-            {t.title} · {t.slogan}
-          </b>
-          <Icon name="x" size={12} />
-        </span>
-      </div>
-      <div className="form-grid">
-        <Field label="Nome">
-          <input value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="Planê" />
-        </Field>
-        <Field label="Frase da marca" span={2} hint="Na página de vendas aparece “nome · frase”. Dentro do sistema, “nome · estúdio de quem usa”.">
-          <input value={t.slogan} onChange={(e) => setT({ ...t, slogan: e.target.value })} placeholder="Seu estúdio em ordem" />
-        </Field>
-        <Field label="Ícone" span={3} hint="Quadrado, PNG ou SVG. Vale para a aba e para o app no celular.">
-          <div className="row gap-s wrap">
-            <label className="btn small">
-              <Icon name="upload" size={14} /> escolher imagem
-              <input type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" hidden onChange={(e) => pick(e.target.files?.[0])} />
-            </label>
-            {t.icon && (
-              <button className="btn small ghost" onClick={() => setT({ ...t, icon: '' })}>
-                voltar ao ícone padrão
+    <>
+      <Section title="aba do navegador" action={saveBtn}>
+        <div className="tab-preview" aria-hidden>
+          <span className="tab-preview-tab">
+            <img src={markIconUrl(spec('icone'))} alt="" />
+            <b>
+              {t.title} · {t.slogan}
+            </b>
+            <Icon name="x" size={12} />
+          </span>
+        </div>
+        <div className="form-grid">
+          <Field label="Nome">
+            <input value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="Planê" />
+          </Field>
+          <Field label="Frase da marca" span={2} hint="Na página de vendas aparece “nome · frase”. Dentro do sistema, “nome · estúdio de quem usa”.">
+            <input value={t.slogan} onChange={(e) => setT({ ...t, slogan: e.target.value })} placeholder="Seu escritório em ordem" />
+          </Field>
+        </div>
+      </Section>
+      <Section
+        title="logotipo"
+        action={
+          <div className="row gap-s">
+            {Object.keys(t.marks ?? {}).length > 0 && (
+              <button className="btn small ghost" onClick={() => setT({ ...t, marks: {} })}>
+                tudo no padrão
               </button>
             )}
+            {saveBtn}
           </div>
-        </Field>
-      </div>
-    </Section>
+        }
+      >
+        <p className="muted small">
+          Escolha o formato e as cores do símbolo em cada lugar, ou envie uma imagem sua. Dá para trocar sempre que quiser. O ícone do app já instalado no celular continua o do
+          site.
+        </p>
+        <div className="mk-grid">
+          {MARK_PLACES.map((pl) => {
+            const s = spec(pl.id)
+            return (
+              <div key={pl.id} className="mk-card">
+                <div className="mk-head">
+                  <span className={`mk-preview ${pl.id === 'entrar' || (s.variant === 'solto' && LIGHT.has(s.line)) ? 'is-dark' : ''}`}>
+                    <BrandMark place={pl.id} spec={s} size={64} />
+                  </span>
+                  <div className="grow">
+                    <b>{pl.label}</b>
+                    <p className="muted small">{pl.hint}</p>
+                    <div className="row gap-s wrap">
+                      <label className="btn small">
+                        <Icon name="upload" size={14} /> imagem própria
+                        <input type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" hidden onChange={(e) => (e.target.files?.[0] && squareImage(e.target.files[0], (image) => setMark(pl.id, { image })), (e.target.value = ''))} />
+                      </label>
+                      {t.marks?.[pl.id] && (
+                        <button className="btn small ghost" onClick={() => setMark(pl.id, null)}>
+                          padrão
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {s.image ? (
+                  <button className="link small" onClick={() => setMark(pl.id, { image: undefined })}>
+                    tirar a imagem e voltar ao símbolo
+                  </button>
+                ) : (
+                  <>
+                    <div className="mk-row">
+                      <span className="mk-label">formato</span>
+                      <div className="mk-variants">
+                        {MARK_VARIANTS.map((v) => (
+                          <button key={v.id} type="button" title={v.label} aria-label={v.label} className={`mk-variant ${s.variant === v.id ? 'is-on' : ''} ${v.id === 'solto' && LIGHT.has(s.line) ? 'is-dark' : ''}`} onClick={() => setMark(pl.id, { variant: v.id })}>
+                            {/* fundo e traço iguais somem: a miniatura usa um traço que aparece */}
+                            <PlaneMark variant={v.id} bg={s.bg} line={v.id !== 'solto' && s.bg === s.line ? (LIGHT.has(s.bg) ? MARK.azul : MARK.papel) : s.line} size={30} stroke={9} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {(['bg', 'line'] as const).map((k) =>
+                      k === 'bg' && s.variant === 'solto' ? null : (
+                        <div key={k} className="mk-row">
+                          <span className="mk-label">{k === 'bg' ? 'fundo' : 'traço'}</span>
+                          <div className="mk-swatches">
+                            {SWATCHES.map(([name, c]) => (
+                              <button key={name} type="button" title={name} aria-label={name} className={`mk-swatch ${s[k] === c ? 'is-on' : ''}`} style={{ background: c }} onClick={() => setMark(pl.id, { [k]: c })} />
+                            ))}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </Section>
+    </>
   )
 }
 

@@ -3307,3 +3307,26 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
   .install-hint { flex-wrap: wrap; }
   .install-hint .grow { flex: 1 1 calc(100% - 64px); }
 }
+
+/* painel: logotipo de cada lugar */
+.mk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+@media (max-width: 900px) { .mk-grid { grid-template-columns: 1fr; } }
+.mk-card { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.mk-head { display: flex; gap: 14px; align-items: flex-start; }
+.mk-head p { margin: 2px 0 8px; }
+.mk-preview { flex: none; width: 92px; height: 92px; border-radius: 16px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; }
+.mk-preview.is-dark { background: #3e4b57; }
+.mk-preview .plane-mark-img { object-fit: contain; border-radius: 12px; }
+.mk-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; align-items: center; }
+.mk-label { font-size: 12px; color: var(--muted); }
+.mk-variants, .mk-swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.mk-variant { width: 40px; height: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+.mk-variant.is-on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.mk-swatch { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid rgba(47, 58, 69, 0.18); cursor: pointer; }
+.mk-swatch.is-on { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.mk-variant.is-dark { background: #3e4b57; }
+.mk-variant span { font-size: 11px; }
+@media (max-width: 720px) {
+  .mk-preview { width: 72px; height: 72px; }
+  .mk-row { grid-template-columns: 1fr; gap: 6px; }
+}
