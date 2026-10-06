@@ -2215,7 +2215,7 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-soft); background-clip: padding-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
 /* crédito discreto do planê nas folhas (PDF, imagem, impressão) */
-.made-with { position: absolute; right: 14px; bottom: 6px; z-index: 5; font: 500 8px/1 'Poppins', system-ui, sans-serif; letter-spacing: .06em; color: currentColor; opacity: .38; pointer-events: none; }
+.made-with { position: absolute; left: 0; right: 0; bottom: 6px; text-align: center; white-space: nowrap; z-index: 5; font: 500 8px/1 'Poppins', system-ui, sans-serif; letter-spacing: .06em; color: currentColor; opacity: .38; pointer-events: none; }
 
 /* manual: busca e passos enxutos */
 .manual-search { display: flex; align-items: center; gap: 10px; padding: 0 8px 0 16px; height: 48px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); }

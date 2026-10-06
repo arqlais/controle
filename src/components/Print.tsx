@@ -69,7 +69,7 @@ function madeWith(el: HTMLElement) {
     if (getComputedStyle(t).position === 'static') t.style.position = 'relative'
     const tag = document.createElement('span')
     tag.className = 'made-with'
-    tag.textContent = 'feito com planê'
+    tag.textContent = 'feito com planê · useplane.com.br'
     t.appendChild(tag)
   }
 }

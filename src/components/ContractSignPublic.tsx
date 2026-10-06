@@ -31,7 +31,7 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
   const wrap = (children: React.ReactNode) => (
     <div className={`bf-public cs-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: p?.accent || '#a88a80' }}>
       <div className="bf-card cs-card">{children}</div>
-      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê</a></p>
+      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê · useplane.com.br</a></p>
     </div>
   )
   if (p === undefined) return wrap(<p className="muted">carregando o contrato…</p>)

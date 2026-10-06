@@ -449,7 +449,7 @@ function PublicShell({ accent, children, preview }: { accent: string; children: 
     <div className={`bf-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: accent }}>
       {preview && <p className="bf-preview-bar"><Icon name="eye" size={14} /> pré-visualização · é assim que o cliente vê (nada é enviado)</p>}
       <div className="bf-card">{children}</div>
-      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê</a></p>
+      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê · useplane.com.br</a></p>
     </div>
   )
 }
