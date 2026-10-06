@@ -142,6 +142,25 @@ const MAILS = {
   }),
 }
 
+/** E-mail escrito pela dona no painel (campanha). {nome} vira o primeiro nome de quem recebe. */
+const campanha = (s: Sub, o: { subject: string; eyebrow: string; title: string; text: string; button: string; url: string }): Mail => {
+  const nome = first(s.name)
+  const fill = (t: string) => t.replace(/\{nome\}/g, nome).replace(/,\s*!/g, '!').replace(/\s+([,!?.])/g, '$1')
+  return {
+    subject: fill(o.subject),
+    html: layout({
+      eyebrow: o.eyebrow || 'planê',
+      title: fill(o.title),
+      text: fill(o.text)
+        .split(/\n\s*\n/)
+        .map((p) => `<p style="margin:0 0 12px;">${rich(p.trim())}</p>`)
+        .join(''),
+      button: o.button || undefined,
+      url: o.url || SITE,
+    }),
+  }
+}
+
 const OWNER_MAILS = {
   mensagem: (s: Sub, text: string): Mail => ({
     subject: `💬 ${s.name || s.email} escreveu no chat do planê`,
@@ -297,6 +316,39 @@ Deno.serve(async (req) => {
     let n = 0
     for (const s of (data ?? []) as Sub[]) if (s.email && (await once(s, 'novidade', title, MAILS.novidade(s, title, text)))) n++
     return json({ ok: true, enviados: n })
+  }
+
+  if (tipo === 'campanha') {
+    if (!isOwner) return json({ erro: 'só a dona' }, 403)
+    const o = {
+      subject: String(body.subject ?? '').slice(0, 150),
+      eyebrow: String(body.eyebrow ?? '').slice(0, 40),
+      title: String(body.title ?? '').slice(0, 150),
+      text: String(body.text ?? '').slice(0, 5000),
+      button: String(body.button ?? '').slice(0, 40),
+      url: /^https:\/\//.test(String(body.url ?? '')) ? String(body.url) : SITE,
+    }
+    if (!o.subject || !o.title || !o.text) return json({ erro: 'escreva o assunto, o título e o texto' }, 400)
+    // teste: só para a dona, quantas vezes quiser
+    if (body.teste) {
+      try {
+        const me: Sub = { user_id: uid!, email: OWNER_EMAIL, name: 'Laís', plan: 'estudio', status: 'ativa', trial_ends: '', blocked: false }
+        await send(me, campanha(me, o))
+        return json({ ok: true, enviados: 1 })
+      } catch (e) {
+        return json({ ok: false, erro: String(e instanceof Error ? e.message : e).slice(0, 240) })
+      }
+    }
+    const para = String(body.para ?? 'todos')
+    const status = para === 'teste' ? ['trial'] : para === 'assinantes' ? ['ativa', 'atrasada'] : para === 'saiu' ? ['cancelada'] : ['trial', 'ativa', 'atrasada']
+    let q = db.from('subscriptions').select('*').in('status', status)
+    if (para !== 'saiu') q = q.eq('blocked', false)
+    const { data } = await q
+    // mesmo e-mail não vai duas vezes para a mesma pessoa no mesmo dia
+    const ref = `${o.subject} · ${new Date().toISOString().slice(0, 10)}`
+    let n = 0
+    for (const s of (data ?? []) as Sub[]) if (s.email && (await once(s, 'campanha', ref, campanha(s, o)))) n++
+    return json(lastError && !n ? { ok: false, erro: lastError } : { ok: true, enviados: n })
   }
 
   // janela de 30 minutos: várias mensagens seguidas viram um e-mail só

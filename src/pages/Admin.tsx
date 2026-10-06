@@ -13,13 +13,13 @@ import { BrandMark, DEFAULT_MARKS, MARK, MARK_PLACES, MARK_VARIANTS, PlaneMark, 
 import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, OLD_SLOGANS, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, rememberPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { AffiliatePanelView } from '../components/AffiliatePanel'
+import { MailComposer } from '../components/MailComposer'
 import { EMPTY_PAY, type PayConfig, type TabBrand, type AffiliateStats, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
 import { timeLabel, useConversation, useHours, useInbox } from '../chat'
 import { DEFAULT_TERMS, EMPTY_COMPANY, LP_SECTIONS, freshSite, TERMS_VARS, fillTerms, shrinkPhoto, type Company, type SiteContent } from '../siteContent'
 import { addMonths, daysUntil, download, formatDoc, matches, money, today, uid } from '../utils'
 import { DateInput } from '../components/DateInput'
 import { BillingFields, billingMissing, validDoc } from './Checkout'
-import { NEWS } from '../news'
 import { RichInput, RichText, richPlain } from '../components/RichText'
 import { useNotifyAsk } from '../notify'
 import { draftReply } from '../aiReply'
@@ -663,18 +663,14 @@ function SubControl({ s, c, b, save }: { s: Subscription; c?: SubAdmin; b?: Bill
   )
 }
 
-const MAIL_KIND: Record<string, string> = { 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade', 'dona-mensagem': 'mensagem nova (para você)', 'dona-sugestao': 'sugestão nova (para você)', resposta: 'resposta no chat', sugestao: 'sugestão respondida', briefing: 'briefing respondido' }
-/** E-mails automáticos: o que sai sozinho, o histórico e o envio de novidades para todos. */
+const MAIL_KIND: Record<string, string> = { campanha: 'e-mail seu', 'boas-vindas': 'boas-vindas', 'teste-acabando': 'teste acabando', 'teste-acabou': 'teste acabou', ativada: 'assinatura ativada', 'vence-em-breve': 'Pix vencendo', novidade: 'novidade', 'dona-mensagem': 'mensagem nova (para você)', 'dona-sugestao': 'sugestão nova (para você)', resposta: 'resposta no chat', sugestao: 'sugestão respondida', briefing: 'briefing respondido' }
+/** E-mails: o que sai sozinho, o histórico e os e-mails que a dona escreve (temas prontos ou com IA). */
 function EmailsAdmin({ subs }: { subs: Subscription[] }) {
   const [log, setLog] = useState<Awaited<ReturnType<typeof platform.emailLog>>>([])
-  const [title, setTitle] = useState(NEWS[0]?.title ?? '')
-  const [text, setText] = useState(NEWS[0]?.text ?? '')
-  const [busy, setBusy] = useState(false)
   useEffect(() => {
     void platform.emailLog().then(setLog)
   }, [])
   const who = (id: string) => subs.find((s) => s.userId === id)
-  const reach = subs.filter((s) => s.status !== 'cancelada' && !s.blocked).length
   return (
     <>
       <Section title="o que sai sozinho">
@@ -688,35 +684,7 @@ function EmailsAdmin({ subs }: { subs: Subscription[] }) {
         </ul>
         <p className="muted small">Cada aviso vai uma vez só para cada pessoa. Para funcionar, a função “avisos” precisa estar publicada no Supabase (passo a passo no chat com o Claude).</p>
       </Section>
-      <Section title="mandar uma novidade por e-mail">
-        <p className="muted small">Vai para quem está em teste ou com assinatura ativa ({reach} pessoa(s)). Use pouco: só para novidades que valem a pena. Dentro do sistema, as novidades já aparecem sozinhas.</p>
-        <div className="form-grid">
-          <Field label="Título" span={3}>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} />
-          </Field>
-          <Field label="Texto" span={3} hint="Linha em branco = novo parágrafo.">
-            <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} spellCheck lang="pt-BR" />
-          </Field>
-        </div>
-        <button
-          className="btn primary"
-          disabled={busy || !title.trim() || !text.trim()}
-          onClick={async () => {
-            if (!(await ask(`Mandar “${title}” por e-mail para ${reach} pessoa(s)?`, { confirmLabel: 'Mandar' }))) return
-            setBusy(true)
-            try {
-              const r = await platform.notice({ tipo: 'novidade', title: title.trim(), text: text.trim() })
-              toast(r.erro ? `Não foi: ${r.erro}` : `Enviado para ${r.enviados ?? 0} pessoa(s).`)
-              setLog(await platform.emailLog())
-            } catch {
-              toast('Não foi possível mandar. Confira se a função “avisos” está publicada no Supabase.')
-            }
-            setBusy(false)
-          }}
-        >
-          <Icon name="mail" size={16} /> mandar para todos
-        </button>
-      </Section>
+      <MailComposer subs={subs} onSent={() => void platform.emailLog().then(setLog)} />
       <Section title="últimos e-mails enviados">
         {log.length === 0 ? (
           <p className="muted small">Nenhum aviso enviado ainda.</p>
@@ -724,7 +692,7 @@ function EmailsAdmin({ subs }: { subs: Subscription[] }) {
           log.map((x) => (
             <div key={`${x.userId}-${x.kind}-${x.ref}`} className="pf-plan-line">
               <b>{who(x.userId)?.name || who(x.userId)?.email || 'alguém'}</b>
-              <span className="muted small">{MAIL_KIND[x.kind] ?? x.kind}{x.kind === 'novidade' ? ` · ${x.ref}` : ''}</span>
+              <span className="muted small">{MAIL_KIND[x.kind] ?? x.kind}{x.kind === 'novidade' || x.kind === 'campanha' ? ` · ${x.ref}` : ''}</span>
               <span className="grow" />
               <span className="muted small">{ago(x.sentAt)}</span>
             </div>

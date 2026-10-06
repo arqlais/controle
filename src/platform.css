@@ -3332,3 +3332,16 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 }
 /* fundo transparente: xadrez discreto, como nos editores de imagem */
 .mk-swatch.is-clear { background: repeating-conic-gradient(#e6dfdb 0 25%, #ffffff 0 50%) 50% / 10px 10px; }
+
+/* painel: escrever e-mail */
+.mc-themes { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 16px; }
+.mc-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: stretch; }
+@media (max-width: 960px) { .mc-grid { grid-template-columns: 1fr; } }
+.mc-form { display: flex; flex-direction: column; gap: 12px; }
+.mc-ai { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--radius); background: var(--surface-2); }
+.mc-ai .btn { align-self: flex-start; }
+.mc-preview { display: flex; flex-direction: column; gap: 8px; min-height: 520px; }
+.mc-preview iframe { flex: 1; width: 100%; min-height: 520px; border: 1px solid var(--border); border-radius: var(--radius); background: #f3eae6; }
+.mc-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.mc-theme { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.mc-theme.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }

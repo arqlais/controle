@@ -394,7 +394,7 @@ const msgFromRow = (r: Row): ChatMessage => ({
 
 const cloud = {
   /** Pede um aviso por e-mail à função "avisos" do Supabase (a chave do Brevo fica só lá). */
-  async notice(body: { tipo: 'boas-vindas' | 'ativada' | 'novidade' | 'mensagem' | 'resposta' | 'sugestao' | 'sugestao-atualizada'; userId?: string; id?: string; title?: string; text?: string }): Promise<{ ok?: boolean; enviados?: number; erro?: string; motivo?: string }> {
+  async notice(body: { tipo: 'boas-vindas' | 'ativada' | 'novidade' | 'campanha' | 'mensagem' | 'resposta' | 'sugestao' | 'sugestao-atualizada'; userId?: string; id?: string; title?: string; text?: string; subject?: string; eyebrow?: string; button?: string; url?: string; para?: string; teste?: boolean }): Promise<{ ok?: boolean; enviados?: number; erro?: string; motivo?: string }> {
     const { data, error } = await supabase!.functions.invoke('avisos', { body })
     if (error) {
       // mostra o motivo de verdade (função não publicada, JWT, erro do Brevo…)
@@ -896,7 +896,7 @@ export function previewSignup(name: string, studio: string, email: string, plan:
 
 const local = {
   // prévia: nenhum e-mail sai de verdade
-  async notice(_body: { tipo: string; userId?: string; id?: string; title?: string; text?: string }) {
+  async notice(_body: { tipo: string; userId?: string; id?: string; title?: string; text?: string; subject?: string; eyebrow?: string; button?: string; url?: string; para?: string; teste?: boolean }) {
     return { ok: true, enviados: 0 }
   },
   async emailLog() {
