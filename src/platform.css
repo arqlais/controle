@@ -3345,3 +3345,7 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .mc-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 .mc-theme { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
 .mc-theme.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+.mc-drafts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.mc-draft { display: inline-flex; align-items: center; border: 1px dashed var(--border); border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.mc-draft button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--text); padding: 7px 6px 7px 12px; cursor: pointer; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mc-draft .mc-draft-x { padding: 7px 10px 7px 4px; color: var(--muted); }
