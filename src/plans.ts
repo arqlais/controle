@@ -4,6 +4,9 @@
    ============================================================ */
 
 /** Nome, contatos e endereço da plataforma. */
+/** Frases antigas da marca: se ficaram salvas no painel, dão lugar à oficial. */
+export const OLD_SLOGANS = ['Seu estúdio em ordem', 'Seu escritório em ordem']
+
 export const PLATFORM = {
   name: 'planê',
   domain: 'useplane.com.br', // site oficial
@@ -12,7 +15,7 @@ export const PLATFORM = {
   provisional: false, // mostra o aviso "nome provisório" na prévia e no painel
   tagline: 'gestão leve para quem vive de projeto',
   title: 'Planê', // nome na aba do navegador (com maiúscula)
-  slogan: 'Seu escritório em ordem', // frase curta da marca (aba, compartilhamento)
+  slogan: 'Gestão para quem projeta', // frase curta da marca (aba, compartilhamento)
   url: 'https://useplane.com.br/',
   owner: 'Laís', // só aparece para você (painel, prévia)
   // como os clientes chamam quem responde o chat (troque por 'CEO', 'desenvolvedora'…)

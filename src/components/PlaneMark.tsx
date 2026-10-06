@@ -21,7 +21,7 @@ export const MARK_VARIANTS: { id: MarkVariant; label: string }[] = [
 
 /* posição do traço em cada formato (o desenho original ocupa -4..104) */
 const CUT = 'translate(-7 -5) scale(1.0093) translate(4 4)'
-const INSIDE = 'translate(14.5 14.5) scale(0.657) translate(4 4)'
+const INSIDE = 'translate(50 51) scale(0.8) translate(-50 -50)'
 const FIT: Record<MarkVariant, string> = { solto: 'translate(4 4) scale(0.926)', quadrado: CUT, circulo: CUT, 'quadrado-inteiro': INSIDE, 'circulo-inteiro': INSIDE }
 const isSquare = (v: MarkVariant) => v === 'quadrado' || v === 'quadrado-inteiro'
 const isCut = (v: MarkVariant) => v === 'quadrado' || v === 'circulo'
@@ -76,7 +76,7 @@ export const MARK_PLACES: { id: MarkPlace; label: string; hint: string }[] = [
 export const DEFAULT_MARKS: Record<MarkPlace, MarkSpec> = {
   icone: { variant: 'quadrado', bg: MARK.azul, line: MARK.papel },
   menu: { variant: 'quadrado', bg: MARK.azul, line: MARK.papel },
-  topo: { variant: 'circulo', bg: MARK.azul, line: MARK.papel },
+  topo: { variant: 'circulo-inteiro', bg: MARK.rosa, line: MARK.azul },
   rodape: { variant: 'circulo-inteiro', bg: MARK.blush, line: MARK.azul },
   entrar: { variant: 'solto', bg: MARK.rosa, line: MARK.rosa },
   carregando: { variant: 'quadrado', bg: MARK.azul, line: MARK.papel },

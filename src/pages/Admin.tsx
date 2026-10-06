@@ -10,7 +10,7 @@ import { ARTIFACT } from '../env'
 import { pixPayload } from '../pix'
 import { setTabBrand } from '../theme'
 import { BrandMark, DEFAULT_MARKS, MARK, MARK_PLACES, MARK_VARIANTS, PlaneMark, markIconUrl, type MarkPlace, type MarkSpec } from '../components/PlaneMark'
-import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
+import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, OLD_SLOGANS, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, rememberPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { AffiliatePanelView } from '../components/AffiliatePanel'
 import { EMPTY_PAY, type PayConfig, type TabBrand, type AffiliateStats, AFFILIATE_DEFAULT, affiliateStats, refLink, type Affiliate, DAY_NAMES, SUGGESTION_CATEGORY, SUGGESTION_STATUS, hoursSummary, isOnline, platform, resetPreviewData, trialDaysLeft, usageLevel, type SubAdmin, type Usage, type UsageLevel, type Cycle, type SubPayment, type Billing, type Feedback, type OnlineHours, type Subscription, type Suggestion, type SuggestionStatus } from '../platform'
@@ -1266,7 +1266,7 @@ function TabBrandEditor() {
       const marks = { ...(x?.marks ?? {}) }
       // ícone enviado antes do editor de logotipos vira a imagem da aba
       if (x?.icon && !marks.icone) marks.icone = { ...DEFAULT_MARKS.icone, image: x.icon }
-      const v: TabBrand = { title: x?.title || PLATFORM.title, slogan: (x?.slogan !== 'Seu estúdio em ordem' && x?.slogan) || PLATFORM.slogan, icon: '', marks }
+      const v: TabBrand = { title: x?.title || PLATFORM.title, slogan: (x?.slogan && !OLD_SLOGANS.includes(x.slogan) && x.slogan) || PLATFORM.slogan, icon: '', marks }
       setT(v)
       setSaved(JSON.stringify(v))
     })
@@ -1312,7 +1312,7 @@ function TabBrandEditor() {
             <input value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="Planê" />
           </Field>
           <Field label="Frase da marca" span={2} hint="Na página de vendas aparece “nome · frase”. Dentro do sistema, “nome · estúdio de quem usa”.">
-            <input value={t.slogan} onChange={(e) => setT({ ...t, slogan: e.target.value })} placeholder="Seu escritório em ordem" />
+            <input value={t.slogan} onChange={(e) => setT({ ...t, slogan: e.target.value })} placeholder="Gestão para quem projeta" />
           </Field>
         </div>
       </Section>

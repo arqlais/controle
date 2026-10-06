@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from './types'
-import { PLATFORM } from './plans'
+import { OLD_SLOGANS, PLATFORM } from './plans'
 import type { TabBrand } from './platform'
 import { DEFAULT_MARKS, markIconUrl, setBrandMarks } from './components/PlaneMark'
 import { DISPLAY_FONTS, EXCLUSIVE_FONT, OWN_BODY_FONT, OWN_FONT } from './brand'
@@ -66,7 +66,7 @@ export function setTabBrand(t: TabBrand | null) {
   if (!t) return
   if (t.title.trim()) PLATFORM.title = t.title.trim()
   // frase antiga salva no painel passa para a nova (escritório)
-  if (t.slogan.trim() && t.slogan.trim() !== 'Seu estúdio em ordem') PLATFORM.slogan = t.slogan.trim()
+  if (t.slogan.trim() && !OLD_SLOGANS.includes(t.slogan.trim())) PLATFORM.slogan = t.slogan.trim()
   setBrandMarks(t.marks)
   // ícone da aba: imagem antiga do painel ou o logotipo escolhido para a aba
   const img = t.marks?.icone?.image || t.icon
