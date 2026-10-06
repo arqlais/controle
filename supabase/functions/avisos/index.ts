@@ -1,6 +1,6 @@
 // Avisos por e-mail do planê (roda no Supabase, nunca no site).
 // Cole este arquivo em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "avisos".
-// Segredos (Edge Functions → Secrets): BREVO_API_KEY e CRON_SECRET. Opcionais: SENDER_EMAIL, SENDER_NAME, SITE_URL, REPLY_TO.
+// Segredos (Edge Functions → Secrets): BREVO_API_KEY e CRON_SECRET. Opcionais: SENDER_EMAIL (remetente validado no Brevo), SITE_URL, REPLY_TO.
 //
 // Tipos de aviso:
 //   boas-vindas  → quem acabou de entrar pela primeira vez (o próprio site pede, uma vez só)
@@ -21,7 +21,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
 const SITE = env('SITE_URL', 'https://useplane.com.br/')
-const SENDER = { email: env('SENDER_EMAIL', 'nao-responda@lais3d.com.br'), name: env('SENDER_NAME', 'planê') }
+// remetente: sempre "Planê" (o nome antigo que ficou salvo nos segredos é ignorado)
+const SENDER = { email: env('SENDER_EMAIL', 'equipe.plane@gmail.com'), name: 'Planê' }
 // quem responder o e-mail fala direto com a dona
 const REPLY_TO = env('REPLY_TO', 'equipe.plane@gmail.com')
 // para onde vão os avisos de mensagem e sugestão nova
