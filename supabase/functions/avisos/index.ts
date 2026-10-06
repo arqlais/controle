@@ -21,12 +21,18 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
 const SITE = env('SITE_URL', 'https://useplane.com.br/')
+// e-mails dos segredos: limpa espaço, aspas e quebra de linha; se não for um e-mail válido, usa o padrão
+const isMail = (v: string) => /^[^\s@"'<>]+@[^\s@"'<>]+\.[^\s@"'<>]+$/.test(v)
+const mailEnv = (k: string, d: string) => {
+  const v = env(k).trim().replace(/^["'<\s]+|["'>\s;,]+$/g, '').trim().toLowerCase()
+  return isMail(v) ? v : d
+}
 // remetente: sempre "Planê" (o nome antigo que ficou salvo nos segredos é ignorado)
-const SENDER = { email: env('SENDER_EMAIL', 'equipe.plane@gmail.com'), name: 'Planê' }
+const SENDER = { email: mailEnv('SENDER_EMAIL', 'equipe.plane@gmail.com'), name: 'Planê' }
 // quem responder o e-mail fala direto com a dona
-const REPLY_TO = env('REPLY_TO', 'equipe.plane@gmail.com')
+const REPLY_TO = mailEnv('REPLY_TO', 'equipe.plane@gmail.com')
 // para onde vão os avisos de mensagem e sugestão nova
-const OWNER_EMAIL = env('OWNER_EMAIL', REPLY_TO)
+const OWNER_EMAIL = mailEnv('OWNER_EMAIL', REPLY_TO)
 const SUG_LABEL: Record<string, string> = { recebida: 'recebida', analisando: 'em análise', planejada: 'planejada', feita: 'feita ✓', nao_agora: 'não por agora' }
 const SUG_CAT: Record<string, string> = { nova: 'função nova', melhoria: 'melhoria', problema: 'algo não funciona', outro: 'outra ideia' }
 const PRICES: Record<string, { name: string; price: number }> = {
@@ -254,7 +260,7 @@ async function send(to: Sub, mail: Mail, replyTo?: string) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': env('BREVO_API_KEY'), 'Content-Type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: SENDER, replyTo: { email: replyTo || REPLY_TO, name: SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
+    body: JSON.stringify({ sender: SENDER, replyTo: { email: replyTo && isMail(replyTo.trim()) ? replyTo.trim() : REPLY_TO, name: SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
   })
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${await r.text()}`)
 }
