@@ -3330,3 +3330,5 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
   .mk-preview { width: 72px; height: 72px; }
   .mk-row { grid-template-columns: 1fr; gap: 6px; }
 }
+/* fundo transparente: xadrez discreto, como nos editores de imagem */
+.mk-swatch.is-clear { background: repeating-conic-gradient(#e6dfdb 0 25%, #ffffff 0 50%) 50% / 10px 10px; }

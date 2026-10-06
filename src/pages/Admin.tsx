@@ -1339,7 +1339,7 @@ function TabBrandEditor() {
             return (
               <div key={pl.id} className="mk-card">
                 <div className="mk-head">
-                  <span className={`mk-preview ${pl.id === 'entrar' || (s.variant === 'solto' && LIGHT.has(s.line)) ? 'is-dark' : ''}`}>
+                  <span className={`mk-preview ${pl.id === 'entrar' || ((s.variant === 'solto' || s.bg === 'transparent') && LIGHT.has(s.line)) ? 'is-dark' : ''}`}>
                     <BrandMark place={pl.id} spec={s} size={64} />
                   </span>
                   <div className="grow">
@@ -1368,7 +1368,7 @@ function TabBrandEditor() {
                       <span className="mk-label">formato</span>
                       <div className="mk-variants">
                         {MARK_VARIANTS.map((v) => (
-                          <button key={v.id} type="button" title={v.label} aria-label={v.label} className={`mk-variant ${s.variant === v.id ? 'is-on' : ''} ${v.id === 'solto' && LIGHT.has(s.line) ? 'is-dark' : ''}`} onClick={() => setMark(pl.id, { variant: v.id })}>
+                          <button key={v.id} type="button" title={v.label} aria-label={v.label} className={`mk-variant ${s.variant === v.id ? 'is-on' : ''} ${(v.id === 'solto' || s.bg === 'transparent') && LIGHT.has(s.line) ? 'is-dark' : ''}`} onClick={() => setMark(pl.id, { variant: v.id })}>
                             {/* fundo e traço iguais somem: a miniatura usa um traço que aparece */}
                             <PlaneMark variant={v.id} bg={s.bg} line={v.id !== 'solto' && s.bg === s.line ? (LIGHT.has(s.bg) ? MARK.azul : MARK.papel) : s.line} size={30} stroke={9} />
                           </button>
@@ -1380,8 +1380,8 @@ function TabBrandEditor() {
                         <div key={k} className="mk-row">
                           <span className="mk-label">{k === 'bg' ? 'fundo' : 'traço'}</span>
                           <div className="mk-swatches">
-                            {SWATCHES.map(([name, c]) => (
-                              <button key={name} type="button" title={name} aria-label={name} className={`mk-swatch ${s[k] === c ? 'is-on' : ''}`} style={{ background: c }} onClick={() => setMark(pl.id, { [k]: c })} />
+                            {(k === 'bg' ? [...SWATCHES, ['transparente', 'transparent'] as [string, string]] : SWATCHES).map(([name, c]) => (
+                              <button key={name} type="button" title={name} aria-label={name} className={`mk-swatch ${c === 'transparent' ? 'is-clear' : ''} ${s[k] === c ? 'is-on' : ''}`} style={c === 'transparent' ? undefined : { background: c }} onClick={() => setMark(pl.id, { [k]: c })} />
                             ))}
                           </div>
                         </div>
