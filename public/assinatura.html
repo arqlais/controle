@@ -34,9 +34,9 @@
   <div class="box">
     <p class="label">seus dados</p>
     <div class="fields">
-      <label>Nome <input id="nome" value="Laís"></label>
       <label>Linha de baixo <input id="cargo" value="criadora do Planê"></label>
-      <label>WhatsApp (com DDD) <input id="wpp" inputmode="tel" placeholder="(31) 99999-9999"></label>
+      <label>WhatsApp (com DDD) <input id="wpp" inputmode="tel" value="(11) 96928-8192"></label>
+      <label>Botão <input id="cta" value="conheça o Planê"></label>
     </div>
   </div>
 
@@ -69,34 +69,42 @@
   // lembra o que foi digitado neste aparelho
   try {
     const saved = JSON.parse(localStorage.getItem('plane-assinatura') || '{}')
-    for (const k of ['nome', 'cargo', 'wpp']) if (saved[k] != null) $(k).value = saved[k]
+    for (const k of ['cargo', 'wpp', 'cta']) if (saved[k]) $(k).value = saved[k]
   } catch {}
 
   const icon = (href, img, alt) =>
     `<td style="padding:0 8px 0 0;"><a href="${href}" style="text-decoration:none;"><img src="${SITE}/marca/${img}" width="28" height="28" alt="${alt}" style="display:block;width:28px;height:28px;border:0;"></a></td>`
 
   function build() {
-    const nome = $('nome').value.trim() || 'Laís'
     const cargo = $('cargo').value.trim()
+    const cta = $('cta').value.trim()
     const digits = $('wpp').value.replace(/\D/g, '')
     const wpp = digits ? `https://wa.me/${digits.length <= 11 ? '55' + digits : digits}` : ''
-    try { localStorage.setItem('plane-assinatura', JSON.stringify({ nome, cargo, wpp: $('wpp').value })) } catch {}
-    $('sig').innerHTML = `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;color:#3e4b57;">
-  <tr>
-    <td style="padding:0 20px 0 0;vertical-align:middle;">
-      <a href="${SITE}" style="text-decoration:none;"><img src="${SITE}/marca/assinatura.png" width="80" height="80" alt="Planê" style="display:block;width:80px;height:80px;border:0;"></a>
-    </td>
-    <td style="padding:2px 0 2px 20px;border-left:2px solid #d6b3ab;vertical-align:middle;">
-      <div style="font-size:18px;font-weight:bold;letter-spacing:-0.2px;line-height:1.25;color:#3e4b57;">${esc(nome)}</div>
-      ${cargo ? `<div style="font-size:13px;line-height:1.4;color:#a88a80;padding-top:2px;">${esc(cargo)}</div>` : ''}
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:12px;"><tr>
-        ${wpp ? icon(wpp, 'ic-whatsapp.png', 'WhatsApp') : ''}${icon('https://instagram.com/sou.plane', 'ic-instagram.png', 'Instagram')}${icon(SITE, 'ic-site.png', 'Site')}${icon('mailto:equipe.plane@gmail.com', 'ic-email.png', 'E-mail')}
-      </tr></table>
-    </td>
-  </tr>
+    try { localStorage.setItem('plane-assinatura', JSON.stringify({ cargo, wpp: $('wpp').value, cta })) } catch {}
+    // cartão rosado: símbolo · nome na letra do Planê · ícones · botão (só tabelas e estilos na linha)
+    $('sig').innerHTML = `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;font-family:Helvetica,Arial,sans-serif;color:#3e4b57;">
+  <tr><td style="background:#f4e8e5;border-radius:18px;padding:18px 26px 18px 18px;">
+    <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr>
+      <td style="padding:0 18px 0 0;vertical-align:middle;">
+        <a href="${SITE}" style="text-decoration:none;"><img src="${SITE}/marca/assinatura.png" width="84" height="84" alt="Planê" style="display:block;width:84px;height:84px;border:0;"></a>
+      </td>
+      <td style="vertical-align:middle;">
+        <img src="${SITE}/marca/assinatura-nome.png" width="89" height="56" alt="Laís" style="display:block;width:89px;height:56px;border:0;margin:0 0 0 -4px;">
+        ${cargo ? `<div style="font-size:11px;line-height:1.5;letter-spacing:1.5px;text-transform:uppercase;color:#3e4b57;padding:2px 0 0;">${esc(cargo)}</div>` : ''}
+        <div style="font-size:12px;line-height:1.4;color:#a88a80;font-style:italic;">gestão para quem projeta</div>
+        <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:10px;"><tr>
+          ${wpp ? icon(wpp, 'ic-whatsapp.png', 'WhatsApp') : ''}${icon('https://instagram.com/sou.plane', 'ic-instagram.png', 'Instagram')}${icon(SITE, 'ic-site.png', 'Site')}${icon('mailto:equipe.plane@gmail.com', 'ic-email.png', 'E-mail')}
+        </tr></table>
+      </td>
+    </tr></table>
+  </td></tr>
+  ${cta ? `<tr><td style="padding:10px 0 0 4px;">
+    <a href="${SITE}" style="display:inline-block;background:#3e4b57;color:#ffffff;text-decoration:none;font-size:12px;font-weight:bold;letter-spacing:0.5px;padding:8px 16px;border-radius:999px;">${esc(cta)} &nbsp;→</a>
+    <span style="font-size:11px;color:#a88a80;padding-left:8px;">14 dias grátis</span>
+  </td></tr>` : ''}
 </table>`
   }
-  for (const k of ['nome', 'cargo', 'wpp']) $(k).addEventListener('input', build)
+  for (const k of ['cargo', 'wpp', 'cta']) $(k).addEventListener('input', build)
   build()
 
   const btn = $('copy')
