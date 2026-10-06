@@ -73,7 +73,7 @@
   } catch {}
 
   const icon = (href, img, alt, last) =>
-    `<td style="padding:0 ${last ? 0 : 8}px 0 0;"><a href="${href}" style="text-decoration:none;"><img src="${SITE}/marca/${img}" width="28" height="28" alt="${alt}" style="display:block;width:28px;height:28px;border:0;"></a></td>`
+    `<td style="padding:0 ${last ? 0 : 8}px 0 0;"><a href="${href}" style="text-decoration:none;"><img src="${SITE}/marca/${img}?v=3" width="28" height="28" alt="${alt}" style="display:block;width:28px;height:28px;border:0;"></a></td>`
 
   function build() {
     const cargo = $('cargo').value.trim()
@@ -86,10 +86,10 @@
   <tr><td style="background:#f4e8e5;border-radius:20px;padding:18px 24px 18px 18px;">
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr>
       <td width="96" style="width:96px;padding:0 16px 0 0;vertical-align:middle;">
-        <a href="${SITE}" style="text-decoration:none;"><img src="${SITE}/marca/assinatura.png" width="80" height="80" alt="Planê" style="display:block;width:80px;height:80px;border:0;"></a>
+        <a href="${SITE}" style="text-decoration:none;"><img src="${SITE}/marca/assinatura.png?v=3" width="80" height="80" alt="Planê" style="display:block;width:80px;height:80px;border:0;"></a>
       </td>
       <td style="vertical-align:middle;padding:0 18px 0 0;">
-        <img src="${SITE}/marca/assinatura-nome.png" width="89" height="56" alt="Laís" style="display:block;width:89px;height:56px;border:0;margin:0 0 0 -4px;">
+        <img src="${SITE}/marca/assinatura-nome.png?v=3" width="89" height="56" alt="Laís" style="display:block;width:89px;height:56px;border:0;margin:0 0 0 -4px;">
         ${cargo ? `<div style="font-size:11px;line-height:1.5;letter-spacing:1.5px;text-transform:uppercase;color:#3e4b57;padding:2px 0 0;white-space:nowrap;">${esc(cargo)}</div>` : ''}
         <div style="font-size:12px;line-height:1.4;color:#a88a80;font-style:italic;white-space:nowrap;">gestão para quem projeta</div>
       </td>
