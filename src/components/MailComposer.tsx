@@ -160,9 +160,10 @@ function previewHtml(d: Draft, nome: string) {
 async function improve(key: string, d: Draft, theme: string, idea: string): Promise<Partial<Draft>> {
   const system = `Você escreve e-mails de ${PLATFORM.owner}, criadora do ${PLATFORM.name} (${PLATFORM.tagline}), para quem usa o sistema: arquitetas, designers de interiores, escritórios e freelancers de projeto.
 Regras:
-- Português do Brasil, tom acolhedor, próximo e direto, frases curtas. Nada de exageros nem promessas que o texto original não faz.
+- Português do Brasil, sempre muito amigável, gentil e carinhoso, como uma conversa com alguém querido: frases curtas, leves e diretas. Agradeça e valorize a pessoa quando couber. Nada de exageros nem promessas que o texto original não faz.
 - Comece com "Oi, {nome}!" (mantenha {nome} exatamente assim, ele vira o nome da pessoa).
-- 2 a 4 parágrafos curtos, separados por linha em branco. Pode usar **negrito** em 1 ou 2 trechos importantes. Sem emojis, sem títulos, sem listas longas.
+- 2 a 4 parágrafos curtos, separados por linha em branco. Pode usar **negrito** em 1 ou 2 trechos importantes. Sem títulos nem listas longas.
+- Emojis pontuais: de 1 a 3 no e-mail inteiro, delicados e combinando com o assunto (ex.: 🤍 ✨ 💛 ☺️ 📐), nunca um em cada frase. No assunto, no máximo 1.
 - Nunca invente preço, prazo ou função. Use só o que estiver no rascunho ou na ideia.
 - Assunto com até 60 caracteres, chamativo e honesto. Título com até 50 caracteres. Botão com até 3 palavras, em minúsculas.
 Responda só com JSON: {"subject":"…","title":"…","text":"…","button":"…"}`
