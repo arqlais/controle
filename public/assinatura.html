@@ -7,20 +7,24 @@
 <title>Assinatura de e-mail · Planê</title>
 <link rel="icon" href="./favicon.ico?v=6">
 <style>
-  :root { --azul: #3e4b57; --rose: #a88a80; --rosa: #d6b3ab; --blush: #f4e8e5; --papel: #f5f1ee; --muted: #6b7680; }
+  :root { --azul: #3e4b57; --rose: #a88a80; --rosa: #d6b3ab; --blush: #f4e8e5; --papel: #f5f1ee; --muted: #6b7680; --line: #eadfdb; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--papel); color: var(--azul); font-family: Poppins, 'Segoe UI', Helvetica, Arial, sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; display: flex; flex-direction: column; gap: 28px; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px 64px; display: flex; flex-direction: column; gap: 24px; }
   h1 { margin: 0; font-size: 30px; letter-spacing: -0.02em; }
   h1 em { color: var(--rose); font-weight: 400; }
   .box { background: #fff; border-radius: 20px; padding: 28px; box-shadow: 0 18px 40px -30px rgba(47, 58, 69, .5); }
-  .label { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--rose); margin: 0 0 16px; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--rose); margin: 0 0 18px; }
+  .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } }
+  .fields label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+  .fields input { font: inherit; font-size: 14px; font-weight: 400; color: var(--azul); padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--papel); }
+  .preview { padding: 26px; border: 1px dashed var(--line); border-radius: 16px; overflow-x: auto; }
   .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; background: var(--azul); color: #fff; font: inherit; font-weight: 600; font-size: 15px; padding: 14px 26px; cursor: pointer; }
   .btn.done { background: var(--rose); }
-  ol { margin: 0; padding-left: 22px; line-height: 1.7; }
-  ol b { color: var(--azul); }
-  .muted { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
   .row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 20px; }
+  ol { margin: 0; padding-left: 22px; line-height: 1.7; }
+  .muted { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
 </style>
 </head>
 <body>
@@ -28,58 +32,79 @@
   <h1>assinatura de <em>e-mail</em></h1>
 
   <div class="box">
-    <p class="label">prévia</p>
-    <!-- a assinatura (só tabelas e estilos na linha, como o Gmail aceita) -->
-    <div id="sig">
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;color:#3e4b57;">
-        <tr>
-          <td style="padding:0 18px 0 0;vertical-align:middle;">
-            <a href="https://useplane.com.br" style="text-decoration:none;"><img src="https://useplane.com.br/marca/assinatura.png" width="64" height="64" alt="Planê" style="display:block;width:64px;height:64px;border:0;"></a>
-          </td>
-          <td style="padding:0 0 0 18px;border-left:2px solid #d6b3ab;vertical-align:middle;">
-            <div style="font-size:17px;font-weight:bold;letter-spacing:-0.2px;line-height:1.3;color:#3e4b57;">Laís</div>
-            <div style="font-size:13px;line-height:1.4;color:#a88a80;">criadora do Planê · gestão para quem projeta</div>
-            <div style="font-size:13px;line-height:1.7;padding-top:6px;color:#6b7680;">
-              <a href="https://useplane.com.br" style="color:#3e4b57;text-decoration:none;font-weight:bold;">useplane.com.br</a>
-              <span style="color:#d6b3ab;">&nbsp;·&nbsp;</span>
-              <a href="https://instagram.com/sou.plane" style="color:#6b7680;text-decoration:none;">@sou.plane</a>
-              <span style="color:#d6b3ab;">&nbsp;·&nbsp;</span>
-              <a href="mailto:equipe.plane@gmail.com" style="color:#6b7680;text-decoration:none;">equipe.plane@gmail.com</a>
-            </div>
-          </td>
-        </tr>
-      </table>
+    <p class="label">seus dados</p>
+    <div class="fields">
+      <label>Nome <input id="nome" value="Laís"></label>
+      <label>Linha de baixo <input id="cargo" value="criadora do Planê"></label>
+      <label>WhatsApp (com DDD) <input id="wpp" inputmode="tel" placeholder="(31) 99999-9999"></label>
     </div>
+  </div>
+
+  <div class="box">
+    <p class="label">prévia</p>
+    <div class="preview"><div id="sig"></div></div>
     <div class="row">
       <button class="btn" id="copy" type="button">copiar assinatura</button>
-      <p class="muted">Copia já com o logo, as cores e os links.</p>
+      <p class="muted">Copia com o logo, os ícones e os links.</p>
     </div>
   </div>
 
   <div class="box">
     <p class="label">como colocar no Gmail (computador)</p>
     <ol>
-      <li>Toque em <b>copiar assinatura</b> aqui em cima.</li>
-      <li>Abra o Gmail no computador e clique na <b>engrenagem</b> (canto de cima, à direita) → <b>Ver todas as configurações</b>.</li>
-      <li>Na aba <b>Geral</b>, desça até <b>Assinatura</b> → <b>Criar nova</b> → dê o nome <b>Planê</b>.</li>
-      <li>Clique na caixa de texto ao lado e cole (<b>Ctrl + V</b>, ou <b>Cmd + V</b> no Mac).</li>
-      <li>Logo abaixo, em <b>Padrões de assinatura</b>, escolha <b>Planê</b> em “para novos e-mails” e também em “ao responder/encaminhar”.</li>
-      <li>Marque a opção de <b>inserir a assinatura antes do texto citado</b>, se aparecer.</li>
-      <li>Desça até o fim da página e clique em <b>Salvar alterações</b>.</li>
+      <li>Preencha seu WhatsApp acima e toque em <b>copiar assinatura</b>.</li>
+      <li>No Gmail do computador: <b>engrenagem</b> (canto de cima, à direita) → <b>Ver todas as configurações</b>.</li>
+      <li>Aba <b>Geral</b> → desça até <b>Assinatura</b> → <b>Criar nova</b> → nome <b>Planê</b>.</li>
+      <li>Clique na caixa de texto e cole (<b>Ctrl + V</b>, ou <b>Cmd + V</b> no Mac). Se já tinha uma assinatura, apague a antiga antes.</li>
+      <li>Em <b>Padrões de assinatura</b>, escolha <b>Planê</b> em “para novos e-mails” e em “ao responder/encaminhar”.</li>
+      <li>Desça até o fim e clique em <b>Salvar alterações</b>.</li>
     </ol>
-    <p class="muted" style="margin-top:14px;">No celular, o app do Gmail só aceita assinatura em texto. Para ter a assinatura bonita, configure pelo computador: ela vale também quando você responde pelo Gmail no navegador do celular.</p>
+    <p class="muted" style="margin-top:14px;">O app do Gmail no celular só aceita assinatura em texto; configurando no computador, ela vale nos e-mails enviados pelo Gmail no navegador.</p>
   </div>
 </main>
 <script>
-  const btn = document.getElementById('copy')
+  const SITE = 'https://useplane.com.br'
+  const $ = (id) => document.getElementById(id)
+  const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  // lembra o que foi digitado neste aparelho
+  try {
+    const saved = JSON.parse(localStorage.getItem('plane-assinatura') || '{}')
+    for (const k of ['nome', 'cargo', 'wpp']) if (saved[k] != null) $(k).value = saved[k]
+  } catch {}
+
+  const icon = (href, img, alt) =>
+    `<td style="padding:0 8px 0 0;"><a href="${href}" style="text-decoration:none;"><img src="${SITE}/marca/${img}" width="28" height="28" alt="${alt}" style="display:block;width:28px;height:28px;border:0;"></a></td>`
+
+  function build() {
+    const nome = $('nome').value.trim() || 'Laís'
+    const cargo = $('cargo').value.trim()
+    const digits = $('wpp').value.replace(/\D/g, '')
+    const wpp = digits ? `https://wa.me/${digits.length <= 11 ? '55' + digits : digits}` : ''
+    try { localStorage.setItem('plane-assinatura', JSON.stringify({ nome, cargo, wpp: $('wpp').value })) } catch {}
+    $('sig').innerHTML = `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-family:Helvetica,Arial,sans-serif;color:#3e4b57;">
+  <tr>
+    <td style="padding:0 20px 0 0;vertical-align:middle;">
+      <a href="${SITE}" style="text-decoration:none;"><img src="${SITE}/marca/assinatura.png" width="80" height="80" alt="Planê" style="display:block;width:80px;height:80px;border:0;"></a>
+    </td>
+    <td style="padding:2px 0 2px 20px;border-left:2px solid #d6b3ab;vertical-align:middle;">
+      <div style="font-size:18px;font-weight:bold;letter-spacing:-0.2px;line-height:1.25;color:#3e4b57;">${esc(nome)}</div>
+      ${cargo ? `<div style="font-size:13px;line-height:1.4;color:#a88a80;padding-top:2px;">${esc(cargo)}</div>` : ''}
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:12px;"><tr>
+        ${wpp ? icon(wpp, 'ic-whatsapp.png', 'WhatsApp') : ''}${icon('https://instagram.com/sou.plane', 'ic-instagram.png', 'Instagram')}${icon(SITE, 'ic-site.png', 'Site')}${icon('mailto:equipe.plane@gmail.com', 'ic-email.png', 'E-mail')}
+      </tr></table>
+    </td>
+  </tr>
+</table>`
+  }
+  for (const k of ['nome', 'cargo', 'wpp']) $(k).addEventListener('input', build)
+  build()
+
+  const btn = $('copy')
   btn.addEventListener('click', async () => {
-    const el = document.getElementById('sig')
+    const el = $('sig')
     try {
-      const html = el.innerHTML
-      const text = el.innerText
-      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([text], { type: 'text/plain' }) })])
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([el.innerHTML], { type: 'text/html' }), 'text/plain': new Blob([el.innerText], { type: 'text/plain' }) })])
     } catch {
-      // navegadores antigos: seleciona e copia do jeito clássico
       const r = document.createRange()
       r.selectNodeContents(el)
       const s = getSelection()
