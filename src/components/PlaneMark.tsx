@@ -26,19 +26,38 @@ const FIT: Record<MarkVariant, string> = { solto: 'translate(4 4) scale(0.926)',
 const isSquare = (v: MarkVariant) => v === 'quadrado' || v === 'quadrado-inteiro'
 const isCut = (v: MarkVariant) => v === 'quadrado' || v === 'circulo'
 
+/* traço transparente = P vazado: o desenho recorta o fundo e deixa ver o que está atrás */
+const hollow = (v: MarkVariant, line: string) => line === 'transparent' && v !== 'solto'
+
 /** O símbolo em SVG puro (favicon, ícones, e-mail). */
 export function markSvg(v: MarkVariant, bg: string, line: string, stroke = 6) {
-  const shape = v === 'solto' ? '' : isSquare(v) ? `<rect width="100" height="100" rx="24" fill="${bg}"/>` : `<circle cx="50" cy="50" r="50" fill="${bg}"/>`
+  const shapeOf = (fill: string, extra = '') => (v === 'solto' ? '' : isSquare(v) ? `<rect width="100" height="100" rx="24" fill="${fill}"${extra}/>` : `<circle cx="50" cy="50" r="50" fill="${fill}"${extra}/>`)
   const clip = isSquare(v) ? '<rect x="0.6" y="0.6" width="98.8" height="98.8" rx="23.4"/>' : '<circle cx="50" cy="50" r="49.4"/>'
-  const path = `<path d="${LACO}" fill="none" stroke="${line}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`
+  const path = (color: string) => `<path d="${LACO}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`
+  if (hollow(v, line)) return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><mask id="m"><rect width="100" height="100" fill="#fff"/><g transform="${FIT[v]}">${path('#000')}</g></mask></defs>${shapeOf(bg, ' mask="url(#m)"')}</svg>`
   const cut = isCut(v)
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${cut ? `<defs><clipPath id="c">${clip}</clipPath></defs>` : ''}${shape}<g${cut ? ' clip-path="url(#c)"' : ''}><g transform="${FIT[v]}">${path}</g></g></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${cut ? `<defs><clipPath id="c">${clip}</clipPath></defs>` : ''}${shapeOf(bg)}<g${cut ? ' clip-path="url(#c)"' : ''}><g transform="${FIT[v]}">${path(line)}</g></g></svg>`
 }
 
 /** Símbolo para a interface. */
 export function PlaneMark({ variant = 'quadrado', size = 28, bg = MARK.azul, line = MARK.papel, stroke = 6, className = '' }: { variant?: MarkVariant; size?: number; bg?: string; line?: string; stroke?: number; className?: string }) {
   const id = `pm${useId().replace(/:/g, '')}`
   const cut = isCut(variant)
+  const holed = hollow(variant, line)
+  const shape = (props: Record<string, string>) => (isSquare(variant) ? <rect width="100" height="100" rx="24" {...props} /> : <circle cx="50" cy="50" r="50" {...props} />)
+  const path = (color: string) => <path className="plane-mark-line" d={LACO} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
+  if (holed)
+    return (
+      <svg className={`plane-mark ${className}`} width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <mask id={id}>
+            <rect width="100" height="100" fill="#fff" />
+            <g transform={FIT[variant]}>{path('#000')}</g>
+          </mask>
+        </defs>
+        {shape({ fill: bg, mask: `url(#${id})` })}
+      </svg>
+    )
   return (
     <svg className={`plane-mark ${className}`} width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
       {cut && (
@@ -46,11 +65,9 @@ export function PlaneMark({ variant = 'quadrado', size = 28, bg = MARK.azul, lin
           <clipPath id={id}>{isSquare(variant) ? <rect x="0.6" y="0.6" width="98.8" height="98.8" rx="23.4" /> : <circle cx="50" cy="50" r="49.4" />}</clipPath>
         </defs>
       )}
-      {variant !== 'solto' && (isSquare(variant) ? <rect width="100" height="100" rx="24" fill={bg} /> : <circle cx="50" cy="50" r="50" fill={bg} />)}
+      {variant !== 'solto' && shape({ fill: bg })}
       <g clipPath={cut ? `url(#${id})` : undefined}>
-        <g transform={FIT[variant]}>
-          <path className="plane-mark-line" d={LACO} fill="none" stroke={line} strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" pathLength={1} />
-        </g>
+        <g transform={FIT[variant]}>{path(line)}</g>
       </g>
     </svg>
   )
