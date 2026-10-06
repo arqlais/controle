@@ -1,3 +1,4 @@
+import { PlaneMark, MARK } from './components/PlaneMark'
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { emptyData, hasDemoData, useStore } from './store'
 import { ask, toast } from './components/dialog'
@@ -494,8 +495,8 @@ export default function App() {
       <aside className="sidebar">
         {/* a marca da plataforma fica sempre presente, discreta, acima do estúdio de quem usa */}
         <a className="platform-mark" href={href('inicio')} aria-label={PLATFORM.name}>
+          <PlaneMark size={24} line={MARK.rose} stroke={9} />
           {PLATFORM.name}
-          <i>.</i>
         </a>
         <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('inicio')}>
           <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}><AvatarGlyph s={settings} size={24} /></span>

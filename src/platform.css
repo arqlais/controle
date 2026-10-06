@@ -1149,7 +1149,7 @@
 .lp-rotate-word { grid-area: 1 / 1; opacity: 0; translate: 0 0.25em; transition: opacity 0.5s ease, translate 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); animation: none; }
 .lp-rotate-word.is-on { opacity: 1; translate: 0 0; }
 /* marca da plataforma: pequena, sempre presente, nas cores do sistema */
-.platform-mark { display: inline-flex; align-items: baseline; padding: 2px 14px 14px; font-family: 'Poppins', var(--font-body); font-weight: 700; font-size: 19px; letter-spacing: -0.03em; color: var(--text); text-decoration: none; opacity: 0.92; }
+.platform-mark { display: inline-flex; align-items: center; gap: 8px; padding: 2px 14px 14px; font-family: 'Poppins', var(--font-body); font-weight: 700; font-size: 19px; letter-spacing: -0.03em; color: var(--text); text-decoration: none; opacity: 0.92; }
 .platform-mark i { font-style: normal; color: #d6b3ab; }
 .platform-mark.is-top { padding: 0 4px; font-size: 17px; }
 @media (min-width: 721px) { .platform-mark.is-top { display: none; } }
@@ -3293,3 +3293,17 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
   .aff-links > .btn { width: 100%; justify-content: center; }
 }
 .lp-ref-pill { display: inline-flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin: 0 0 14px; padding: 7px 14px; border-radius: 999px; background: var(--accent); color: var(--accent-contrast); font-size: 13px; font-weight: 500; }
+
+/* símbolo do Planê (P em laço) junto do nome */
+.plane-mark { flex: none; display: block; }
+.lp-logo, .lp-foot-logo, .auth-brand { display: inline-flex; align-items: center; gap: 10px; }
+.lp-foot-logo { gap: 12px; }
+.auth-brand { gap: 14px; }
+.loading-screen .brand-name { animation: none; }
+.plane-mark.is-drawing .plane-mark-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: plane-draw 1.6s ease-in-out infinite alternate; }
+@keyframes plane-draw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) { .plane-mark.is-drawing .plane-mark-line { animation: none; stroke-dashoffset: 0; } }
+@media (max-width: 720px) {
+  .install-hint { flex-wrap: wrap; }
+  .install-hint .grow { flex: 1 1 calc(100% - 64px); }
+}

@@ -1,3 +1,4 @@
+import { PlaneMark } from '../components/PlaneMark'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS, demoData } from '../store'
 import { applyTheme } from '../theme'
@@ -341,8 +342,8 @@ export default function Landing() {
       <header className={`lp-top ${scrolled ? 'is-scrolled' : ''}`}>
         <div className="lp-wrap lp-top-in">
           <a className="brand-name lp-logo" href="#/vendas" onClick={(e) => (e.preventDefault(), window.scrollTo({ top: 0, behavior: 'smooth' }))}>
+            <PlaneMark size={32} stroke={8.5} />
             {PLATFORM.name}
-            <i>.</i>
           </a>
           <nav className="lp-nav">
             {[
@@ -802,9 +803,9 @@ export default function Landing() {
         <div className="lp-wrap">
           <div className="lp-foot-grid">
             <div className="lp-foot-brand">
-              <span className="brand-name">
+              <span className="brand-name lp-foot-logo">
+                <PlaneMark variant="blush" size={46} stroke={7} />
                 {PLATFORM.name}
-                <i>.</i>
               </span>
               <p className="muted">{site.about}</p>
               {(site.email || site.instagram || site.whatsapp) && (

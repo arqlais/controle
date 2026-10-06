@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-06-simbolo',
+    date: '2026-10-06',
+    kind: 'novo',
+    title: 'o planê ganhou símbolo',
+    text: 'O P em laço agora aparece no menu, no ícone do app e na aba do navegador. Se você instalou o planê na tela de início, o ícone novo aparece quando o celular atualizar.',
+  },
+  {
     id: '2026-10-04-assinar-direto',
     date: '2026-10-04',
     kind: 'melhoria',

@@ -1,3 +1,4 @@
+import { PlaneMark, MARK } from './PlaneMark'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { CLOUD, supabase } from '../cloud'
@@ -225,9 +226,9 @@ function AuthLayout({ children }: { children: ReactNode }) {
     <div className="auth">
       <aside className="auth-art">
         <div className="auth-art-inner">
-          <span className="brand-name">
+          <span className="brand-name auth-brand">
+            <PlaneMark variant="circulo" size={52} bg={MARK.rosa} line={MARK.noite} stroke={7} />
             {PLATFORM.name}
-            <i>.</i>
           </span>
           <h2>
             seu estúdio,
