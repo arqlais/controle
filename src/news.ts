@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-07-fotos-assistente',
+    date: '2026-10-07',
+    kind: 'correcao',
+    title: 'fotos no assistente de orçamentos',
+    text: 'Agora dá para anexar fotos do celular (inclusive do iPhone) no assistente sem erro: elas são ajustadas sozinhas antes de ir para a IA.',
+  },
+  {
     id: '2026-10-06-simbolo',
     date: '2026-10-06',
     kind: 'novo',

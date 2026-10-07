@@ -25,21 +25,65 @@ export interface Msg {
 }
 
 // o que o Gemini lê direto: imagens, PDF e texto
-const ACCEPT = 'image/*,application/pdf,text/plain,.txt,.csv'
+const ACCEPT = 'image/*,.heic,.heif,application/pdf,text/plain,.txt,.csv'
 const MAX_BYTES = 15 * 1024 * 1024
+const IMG_EXT = /\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i
+const isImage = (f: File) => f.type.startsWith('image/') || IMG_EXT.test(f.name)
 
-const readFile = (f: File) =>
-  new Promise<Attachment>((resolve, reject) => {
+const dataUrl = (f: Blob) =>
+  new Promise<string>((resolve, reject) => {
     const r = new FileReader()
-    r.onload = () => {
-      const url = String(r.result)
-      resolve({ name: f.name, mime: f.type || 'application/octet-stream', data: url.split(',')[1] ?? '', preview: f.type.startsWith('image/') ? url : undefined })
-    }
+    r.onload = () => resolve(String(r.result))
     r.onerror = () => reject(r.error)
     r.readAsDataURL(f)
   })
 
+/* fotos do celular chegam enormes (e às vezes em HEIC): viram JPEG de até 1600 px antes de ir para a IA */
+const shrinkImage = (f: File) =>
+  new Promise<string | null>((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(f)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height))
+      const c = document.createElement('canvas')
+      c.width = Math.max(1, Math.round(img.width * k))
+      c.height = Math.max(1, Math.round(img.height * k))
+      const g = c.getContext('2d')!
+      g.fillStyle = '#fff'
+      g.fillRect(0, 0, c.width, c.height)
+      g.drawImage(img, 0, 0, c.width, c.height)
+      resolve(c.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = () => (URL.revokeObjectURL(url), resolve(null))
+    img.src = url
+  })
+
+const readFile = async (f: File): Promise<Attachment> => {
+  if (isImage(f)) {
+    const small = await shrinkImage(f)
+    if (small) return { name: f.name, mime: 'image/jpeg', data: small.split(',')[1] ?? '', preview: small }
+    // o navegador não abre (ex.: HEIC no Chrome): vai como está, o Gemini lê HEIC
+    const heic = /\.heif$/i.test(f.name) ? 'image/heif' : 'image/heic'
+    if (!/heic|heif/i.test(f.type + f.name)) throw new Error(`Não consegui abrir a imagem ${f.name}.`)
+    const url = await dataUrl(f)
+    return { name: f.name, mime: f.type || heic, data: url.split(',')[1] ?? '' }
+  }
+  const url = await dataUrl(f)
+  return { name: f.name, mime: f.type || (/\.csv$/i.test(f.name) ? 'text/csv' : 'text/plain'), data: url.split(',')[1] ?? '' }
+}
+
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+
+/** Anexos antigos não vão de novo a cada pergunta (só os das 2 últimas mensagens com arquivo): evita estourar o limite. */
+const keepRecentFiles = (history: Msg[]) => {
+  let left = 2
+  return [...history].reverse().map((m) => {
+    if (!m.files?.some((f) => f.data)) return m
+    if (left-- > 0) return m
+    return { ...m, files: m.files.map((f) => ({ ...f, data: '' })) }
+  }).reverse()
+}
 
 export async function askGemini(key: string, system: string, history: Msg[]) {
   for (const model of MODELS) {
@@ -48,7 +92,7 @@ export async function askGemini(key: string, system: string, history: Msg[]) {
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
-        contents: history.map((m) => ({
+        contents: keepRecentFiles(history).map((m) => ({
           role: m.role,
           parts: [
             ...(m.files ?? []).filter((f) => f.data).map((f) => ({ inlineData: { mimeType: f.mime, data: f.data } })),
@@ -157,11 +201,12 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
   const addFiles = async (list: FileList | File[] | null) => {
     if (!list) return
     const arr = [...list]
-    const ok = arr.filter((f) => /^(image\/|application\/pdf|text\/)/.test(f.type) || /\.(txt|csv)$/i.test(f.name))
+    const ok = arr.filter((f) => isImage(f) || /^(application\/pdf|text\/)/.test(f.type) || /\.(pdf|txt|csv)$/i.test(f.name))
     if (ok.length < arr.length) toast('Dá para anexar fotos, PDF e texto. Outros arquivos (DWG, SKP…) a IA não consegue ler.')
-    const total = [...files.map((f) => (f.data.length * 3) / 4), ...ok.map((f) => f.size)].reduce((a, b) => a + b, 0)
-    if (total > MAX_BYTES) return toast('Os anexos passam de 15 MB. Mande menos arquivos ou imagens menores.')
-    const read = await Promise.all(ok.map(readFile))
+    if (!ok.length) return
+    const read = (await Promise.all(ok.map((f) => readFile(f).catch((e: Error) => (toast(e.message), null))))).filter((f): f is Attachment => !!f)
+    const total = [...files, ...read].reduce((a, f) => a + (f.data.length * 3) / 4, 0)
+    if (total > MAX_BYTES) return toast('Os anexos passam de 15 MB. Mande menos arquivos ou um PDF menor.')
     setFiles((cur) => [...cur, ...read])
   }
   const current = quoteId ? data.quotes.find((q) => q.id === quoteId) : undefined
