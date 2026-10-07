@@ -38,14 +38,14 @@ const dataUrl = (f: Blob) =>
     r.readAsDataURL(f)
   })
 
-/* fotos do celular chegam enormes (e às vezes em HEIC): viram JPEG de até 1600 px antes de ir para a IA */
+/* fotos do celular chegam enormes (e às vezes em HEIC): viram JPEG de até 1400 px antes de ir para a IA */
 const shrinkImage = (f: File) =>
   new Promise<string | null>((resolve) => {
     const img = new Image()
     const url = URL.createObjectURL(f)
     img.onload = () => {
       URL.revokeObjectURL(url)
-      const k = Math.min(1, 1600 / Math.max(img.width, img.height))
+      const k = Math.min(1, 1400 / Math.max(img.width, img.height))
       const c = document.createElement('canvas')
       c.width = Math.max(1, Math.round(img.width * k))
       c.height = Math.max(1, Math.round(img.height * k))
@@ -75,9 +75,9 @@ const readFile = async (f: File): Promise<Attachment> => {
 
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
 
-/** Anexos antigos não vão de novo a cada pergunta (só os das 2 últimas mensagens com arquivo): evita estourar o limite. */
+/** Anexos antigos não vão de novo a cada pergunta (só os da última mensagem com arquivo): evita estourar o limite. */
 const keepRecentFiles = (history: Msg[]) => {
-  let left = 2
+  let left = 1
   return [...history].reverse().map((m) => {
     if (!m.files?.some((f) => f.data)) return m
     if (left-- > 0) return m
@@ -85,34 +85,79 @@ const keepRecentFiles = (history: Msg[]) => {
   }).reverse()
 }
 
-export async function askGemini(key: string, system: string, history: Msg[]) {
-  for (const model of MODELS) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: keepRecentFiles(history).map((m) => ({
-          role: m.role,
-          parts: [
-            ...(m.files ?? []).filter((f) => f.data).map((f) => ({ inlineData: { mimeType: f.mime, data: f.data } })),
-            { text: (m.text || 'Veja o anexo.') + ((m.files ?? []).some((f) => !f.data) ? ` (anexos enviados antes: ${(m.files ?? []).map((f) => f.name).join(', ')})` : '') },
-          ],
-        })),
-        generationConfig: { temperature: 0.6 },
-      }),
-    })
+const NET_ERROR = 'A conexão caiu antes da resposta chegar. Tente de novo, de preferência sem sair desta tela (no celular, trocar de app derruba a conexão).'
+const isNetError = (e: unknown) => e instanceof TypeError || /load failed|failed to fetch|network/i.test(String((e as Error)?.message ?? e))
+
+/** Uma chamada ao Gemini, recebendo a resposta aos pouquinhos (assim o celular não derruba a conexão enquanto a IA pensa). */
+async function callGemini(model: string, key: string, body: string, onText?: (t: string) => void) {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body,
+  })
+  if (!res.ok || !res.body) {
     const json = await res.json().catch(() => ({}))
-    if (res.ok) {
-      const parts: { text?: string }[] = json.candidates?.[0]?.content?.parts ?? []
-      return parts.map((p) => p.text ?? '').join('').trim() || 'Não consegui responder agora. Tente reformular a pergunta.'
+    return { status: res.status, error: String((Array.isArray(json) ? json[0] : json)?.error?.message ?? ''), text: '' }
+  }
+  const reader = res.body.getReader()
+  const dec = new TextDecoder()
+  let buf = ''
+  let text = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += dec.decode(value, { stream: true })
+    const lines = buf.split('\n')
+    buf = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue
+      try {
+        const parts: { text?: string; thought?: boolean }[] = JSON.parse(line.slice(5)).candidates?.[0]?.content?.parts ?? []
+        text += parts.filter((x) => !x.thought).map((x) => x.text ?? '').join('')
+        onText?.(text)
+      } catch {
+        /* pedaço incompleto: ignora */
+      }
     }
-    if (res.status === 404) continue // modelo indisponível: tenta o próximo
-    const msg = String(json.error?.message ?? '')
-    if (res.status === 400 && /api key/i.test(msg)) throw new Error('A chave do Gemini não é válida. Confira em configurações → assistente.')
-    if (res.status === 429) throw new Error('Limite de uso do Gemini atingido por agora. Tente de novo em alguns minutos.')
-    if (res.status === 403) throw new Error('A chave não tem permissão para o Gemini. Crie uma nova no Google AI Studio.')
-    throw new Error(msg || `Erro ${res.status} ao falar com o Gemini.`)
+  }
+  return { status: 200, error: '', text }
+}
+
+export async function askGemini(key: string, system: string, history: Msg[], onText?: (t: string) => void) {
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: keepRecentFiles(history).map((m) => ({
+      role: m.role,
+      parts: [
+        ...(m.files ?? []).filter((f) => f.data).map((f) => ({ inlineData: { mimeType: f.mime, data: f.data } })),
+        { text: (m.text || 'Veja o anexo.') + ((m.files ?? []).some((f) => !f.data) ? ` (anexos enviados antes: ${(m.files ?? []).map((f) => f.name).join(', ')})` : '') },
+      ],
+    })),
+    generationConfig: { temperature: 0.6 },
+  })
+  for (const model of MODELS) {
+    let r: Awaited<ReturnType<typeof callGemini>> | undefined
+    // a conexão do celular às vezes cai: tenta mais uma vez sozinha
+    for (let attempt = 0; attempt < 2 && !r; attempt++) {
+      try {
+        r = await callGemini(model, key, body, onText)
+      } catch (e) {
+        if (!isNetError(e)) throw e
+        if (attempt === 1) throw new Error(NET_ERROR)
+        await new Promise((ok) => setTimeout(ok, 1200))
+      }
+    }
+    if (!r) throw new Error(NET_ERROR)
+    if (r.status === 200) return r.text.trim() || 'Não consegui responder agora. Tente reformular a pergunta.'
+    if (r.status === 404) continue // modelo indisponível: tenta o próximo
+    const msg = r.error
+    if (r.status === 400 && /api key/i.test(msg)) throw new Error('A chave do Gemini não é válida. Confira em configurações → assistente.')
+    if (r.status === 400 && /image|mime|inline/i.test(msg)) throw new Error('A IA não conseguiu ler esse anexo. Tente mandar como foto (JPG) ou PDF.')
+    if (r.status === 429) throw new Error('Limite de uso do Gemini atingido por agora. Tente de novo em alguns minutos.')
+    if (r.status === 403) throw new Error('A chave não tem permissão para o Gemini. Crie uma nova no Google AI Studio.')
+    if (r.status === 413) throw new Error('Os anexos ficaram grandes demais. Mande menos arquivos de uma vez.')
+    if (r.status >= 500) throw new Error('O Gemini está instável agora. Tente de novo em instantes.')
+    throw new Error(msg || `Erro ${r.status} ao falar com o Gemini.`)
   }
   throw new Error('Nenhum modelo do Gemini disponível para esta chave.')
 }
@@ -194,6 +239,7 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
   }
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [live, setLive] = useState('') // resposta chegando aos poucos
   const [files, setFiles] = useState<Attachment[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
@@ -213,7 +259,7 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
-  }, [msgs, busy, open])
+  }, [msgs, busy, open, live])
 
   const send = async (content?: string) => {
     const q = (content ?? text).trim()
@@ -225,12 +271,13 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
     setFiles([])
     setBusy(true)
     try {
-      const answer = await askGemini(s.aiKey, buildAIPrompt(data, '', current, !!s.aiShareNames, 'chat'), history)
+      const answer = await askGemini(s.aiKey, buildAIPrompt(data, '', current, !!s.aiShareNames, 'chat'), history, setLive)
       setMsgs((m) => [...m, { role: 'model', text: s.aiLowercase !== false ? lowerKeepRS(answer) : answer }])
     } catch (e) {
       setMsgs((m) => [...m, { role: 'model', text: `⚠ ${e instanceof Error ? e.message : 'Não foi possível responder agora.'}` }])
     } finally {
       setBusy(false)
+      setLive('')
     }
   }
 
@@ -371,7 +418,11 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
                     )}
                   </div>
                 ))}
-                {busy && (
+                {busy && live.split('```')[0].trim() ? (
+                  <div className="ai-msg is-ai">
+                    <Rich text={(s.aiLowercase !== false ? lowerKeepRS(live) : live).split('```')[0]} />
+                  </div>
+                ) : busy && (
                   <div className="ai-msg is-ai ai-typing" aria-label="Pensando">
                     <i />
                     <i />

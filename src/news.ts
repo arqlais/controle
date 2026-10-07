@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-07',
     kind: 'correcao',
     title: 'fotos no assistente de orçamentos',
-    text: 'Agora dá para anexar fotos do celular (inclusive do iPhone) no assistente sem erro: elas são ajustadas sozinhas antes de ir para a IA.',
+    text: 'Fotos do celular (inclusive do iPhone) agora vão sem erro, a resposta aparece enquanto é escrita e, se a internet oscilar, o assistente tenta de novo sozinho.',
   },
   {
     id: '2026-10-06-simbolo',
