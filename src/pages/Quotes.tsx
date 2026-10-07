@@ -11,6 +11,7 @@ import type { Quote, QuoteStatus } from '../types'
 import { QUOTE_STATUS, daysUntil, fmtDate, money, quoteDeal, quoteNumber, quoteTotal, sum, templateText, whatsappLink, matches, businessDaysUntil, today } from '../utils'
 import { QuoteStatusSelect } from '../components/quick'
 import { AskAIButton } from '../components/AskAI'
+import { PartnerQuotes } from '../components/PartnerTable'
 import { ask, askChoice, toast } from '../components/dialog'
 
 type Filter = QuoteStatus | 'todos' | 'cobrar'
@@ -42,6 +43,7 @@ export const needsFollowUp = (q: Quote) => q.status === 'enviado' && !!q.sentAt 
 export default function Quotes() {
   const { data, upsert, remove } = useStore()
   const { isOwner } = useAccess()
+  const [partnerOpen, setPartnerOpen] = useState(false)
   const [numbering, setNumbering] = useState(false)
   const [picked, setPicked] = useState<Set<string>>(new Set())
 
@@ -164,6 +166,9 @@ export default function Quotes() {
               <button className="btn ghost" onClick={() => setNumbering(true)} title="Coloca os rascunhos em sequência depois do último número (enviados não mudam)">
                 <Icon name="list" size={16} /> organizar nº
               </button>
+              <button className="btn ghost" onClick={() => setPartnerOpen(true)} title="Tabela com valores especiais para um escritório parceiro (PDF no seu modelo)">
+                <Icon name="briefcase" size={16} /> orçamento parceria
+              </button>
               <button id="btn-orcamento-antigo" className="btn ghost" onClick={() => go('orcamentos', 'antigo')} title="Trabalho feito antes do sistema: orçamento completo, sem número, na data real">
                 <Icon name="clock" size={16} /> Orçamento antigo
               </button>
@@ -190,6 +195,8 @@ export default function Quotes() {
       </div>
 
       <Funnel />
+
+      <PartnerQuotes open={partnerOpen} onOpen={setPartnerOpen} />
 
       {data.quotes.length > 0 && (
         <section className="card status-mix" aria-label="Orçamentos por status">

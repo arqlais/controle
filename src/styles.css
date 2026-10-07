@@ -2289,3 +2289,7 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .pt-area-tier > .pt-area-label { display: flex !important; flex-wrap: nowrap; align-items: center; }
 .pt-area-tier .pt-area-label .nowrap { display: inline !important; }
 @media (max-width: 640px) { .pt-area-tier input[type='number'] { width: 64px; padding-left: 8px; padding-right: 6px; } .pt-area-tier .pt-area-label { gap: 6px; } }
+.pp-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.pp-list-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.pp-list-row span { display: flex; flex-direction: column; gap: 2px; }
+.pp-list-row:hover { border-color: var(--accent); }

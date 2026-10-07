@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
 import { Field, Modal, MoneyInput, Section } from './ui'
+import { ClientForm } from './forms'
 import { toast } from './dialog'
 import { AreaTiers } from './PriceTable'
 import { PartnerSheet } from './Docs'
@@ -65,7 +66,7 @@ export function PartnerSection({ client }: { client: Client }) {
   )
 }
 
-function PartnerEditor({ client, onClose }: { client: Client; onClose: () => void }) {
+export function PartnerEditor({ client, onClose }: { client: Client; onClose: () => void }) {
   const { data, upsert } = useStore()
   const st = data.settings
   const [t, setT] = useState<PartnerTable>(() => client.partner ?? { on: true, services: {}, title: 'exclusivo parceria', number: nextQuoteNumber(data), date: today() })
@@ -191,5 +192,87 @@ function PartnerEditor({ client, onClose }: { client: Client; onClose: () => voi
       {base('executivo') && !picked && <p className="muted small">Dica: marque o executivo e as renderizações para montar a tabela como a que você já manda.</p>}
       {pdf.portal}
     </Modal>
+  )
+}
+
+/** Orçamentos → "orçamento parceria" (só a dona): escolhe o parceiro e monta a tabela dele. Lista as tabelas já feitas. */
+export function PartnerQuotes({ open, onOpen }: { open: boolean; onOpen: (v: boolean) => void }) {
+  const { data } = useStore()
+  const { isOwner } = useAccess()
+  const [clientId, setClientId] = useState('')
+  const [editing, setEditing] = useState<string | null>(null)
+  const [newClient, setNewClient] = useState(false)
+  if (!isOwner) return null
+  const partners = data.clients.filter((c) => !c.archived && c.type !== 'final').sort((a, b) => a.name.localeCompare(b.name))
+  const withTable = data.clients.filter((c) => c.partner && Object.keys(c.partner.services).length)
+  const editingClient = editing ? data.clients.find((c) => c.id === editing) : undefined
+  return (
+    <>
+      {withTable.length > 0 && (
+        <Section title="tabelas de parceria">
+          <ul className="pp-list">
+            {withTable.map((c) => (
+              <li key={c.id}>
+                <button type="button" className="pp-list-row" onClick={() => setEditing(c.id)}>
+                  <span>
+                    <b>{c.name}</b>
+                    <small className="muted">
+                      {Object.keys(c.partner!.services).length} serviço(s){c.partner!.number ? ` · #${String(c.partner!.number).padStart(3, '0')}` : ''}{c.partner!.on ? '' : ' · desligada'}
+                    </small>
+                  </span>
+                  <Icon name="chevronR" size={16} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+      {open && (
+        <Modal
+          title="orçamento para parceiro"
+          onClose={() => onOpen(false)}
+          footer={
+            <>
+              <button className="btn ghost" onClick={() => onOpen(false)}>
+                cancelar
+              </button>
+              <button className="btn primary" disabled={!clientId} onClick={() => (onOpen(false), setEditing(clientId))}>
+                <Icon name="check" size={16} /> montar tabela
+              </button>
+            </>
+          }
+        >
+          <p className="muted small" style={{ marginTop: 0 }}>
+            Escolha o escritório parceiro. Você marca os serviços, ajusta os valores especiais e sai a tabela em PDF. Os próximos orçamentos dele já usam esses valores.
+          </p>
+          <Field label="parceiro">
+            <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+              <option value="">escolha…</option>
+              {partners.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {c.partner ? ' (já tem tabela)' : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <button type="button" className="link small" onClick={() => setNewClient(true)}>
+            + novo parceiro
+          </button>
+        </Modal>
+      )}
+      {newClient && (
+        <ClientForm
+          type="escritorio"
+          onClose={() => setNewClient(false)}
+          onSaved={(c) => {
+            setNewClient(false)
+            onOpen(false)
+            setEditing(c.id)
+          }}
+        />
+      )}
+      {editingClient && <PartnerEditor client={editingClient} onClose={() => setEditing(null)} />}
+    </>
   )
 }

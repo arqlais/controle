@@ -30,6 +30,15 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-07-orcamento-parceria',
+    date: '2026-10-07',
+    kind: 'novo',
+    title: 'orçamento para parceiros',
+    text: 'Em orçamentos, “orçamento parceria” monta a tabela de valores especiais de um escritório parceiro (executivo por faixa de m², detalhamento por m², por peça ou por ambiente, pacotes de imagens) e gera o PDF para enviar.',
+    feature: 'painelDona',
+    steps: [{ text: 'Orçamentos → orçamento parceria.', page: 'orcamentos' }],
+  },
+  {
     id: '2026-10-07-faixas-m2',
     date: '2026-10-07',
     kind: 'novo',
