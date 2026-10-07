@@ -5,8 +5,8 @@ import { PAYMENT_TERMS } from '../store'
 import { useAccess } from '../access'
 import { resolveTemplate, sheetColors, showsLogo } from '../proposalTemplates'
 import { ProposalSlides } from './Slides'
-import type { Client, Payment, Project, Quote, QuoteItem, QuoteOption, Settings, SiteVisit } from '../types'
-import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower } from '../utils'
+import type { Client, PartnerTable, Payment, Project, Quote, QuoteItem, QuoteOption, ServiceDef, Settings, SiteVisit } from '../types'
+import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower, sortedTiers } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -625,6 +625,98 @@ export function VisitReportDoc({ s, client, project, visit, urls }: { s: Setting
       <Fields name={who} date={visit.date} label="projeto" value={project.title} />
       <Title s={s} eyebrow="relatório de" title="visita de obra" />
       {main}
+      <Contacts s={s} />
+    </Sheet>
+  )
+}
+
+/* ============================================================
+   Tabela de parceria: valores combinados com um escritório parceiro
+   (pacotes por m² num quadro, imagens/unidades no outro), no modelo da proposta.
+   ============================================================ */
+const plural = (n: number, unit: string) => (n === 1 ? unit : unit.endsWith('m') ? `${unit.slice(0, -1)}ns` : unit.endsWith('l') ? `${unit.slice(0, -1)}is` : `${unit}s`)
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const brl = (n: number) => money(n)
+
+export function PartnerSheet({ s, client, table, services }: { s: Settings; client?: Client; table: PartnerTable; services: ServiceDef[] }) {
+  const picked = services.filter((x) => table.services[x.id])
+  const area = picked.filter((x) => x.pricing === 'm2')
+  const units = picked.filter((x) => x.pricing !== 'm2' && x.pricing !== 'livre')
+  const infos = [
+    { icon: 'pay' as const, label: 'Pagamento', text: table.payment ?? s.defaultPaymentTerms ?? PAYMENT_TERMS },
+    { icon: 'calendar' as const, label: 'Prazos e cronograma', text: table.schedule ?? s.proposal.schedule },
+    { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: table.files ?? s.proposal.files },
+  ].filter((x) => x.text?.trim())
+  const date = table.date || today()
+  const tiersOf = (x: ServiceDef) => {
+    const t = sortedTiers(x.areaTiers).filter((y) => y.price > 0)
+    return t.length ? t : [{ upTo: 0, price: x.price }]
+  }
+  return (
+    <Sheet s={s} year={date.slice(0, 4)} fit={JSON.stringify([table, picked.map((x) => x.id)])}>
+      <Fields name={client?.name || '[nome do cliente]'} date={date} label="orçamento" value={table.number ? `#${pad2(table.number).padStart(3, '0')}` : '—'} />
+      <Title s={s} eyebrow="orçamento" title={table.title || 'exclusivo parceria'} />
+      <section className={`pp-grid ${area.length && units.length ? 'is-two' : ''}`}>
+        {area.length > 0 && (
+          <div className="pp-dark">
+            {area.map((x) => (
+              <div key={x.id} className="pp-block">
+                <h3 className="pp-name">{x.name}</h3>
+                {tiersOf(x).map((t, i, all) => {
+                  const prev = all[i - 1]?.upTo
+                  const range = all.length === 1 ? '' : t.upTo ? (prev ? `de ${prev + 1} a ${t.upTo} m²` : `até ${t.upTo} m²`) : `acima de ${prev} m²`
+                  return (
+                    <div key={i} className="pp-tier">
+                      {all.length > 1 && (
+                        <p className="pp-pack">
+                          <b>pacote {i + 1}</b> <span>{range}</span>
+                        </p>
+                      )}
+                      <p className="pp-box">
+                        <small>a partir de</small> <b>{brl(t.price)} / m²</b>
+                      </p>
+                    </div>
+                  )
+                })}
+                {table.services[x.id]?.incluso?.trim() && (
+                  <p className="pp-incl">
+                    <b>incluso:</b> {table.services[x.id]!.incluso}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {units.length > 0 && (
+          <div className="pp-light">
+            {units.map((x) => {
+              const unit = x.unit || 'unidade'
+              const rows: [string, number][] =
+                x.pricing === 'pacote'
+                  ? [[`${pad2(1)} ${unit}`, x.price] as [string, number], ...[...x.tiers].filter((t) => t.qty > 1 && t.price > 0).sort((a, b) => a.qty - b.qty).map((t): [string, number] => [`${pad2(t.qty)} ${plural(t.qty, unit)}`, t.price])]
+                  : [[`${x.pricing === 'hora' ? 'hora' : `por ${unit}`}`, x.price]]
+              return (
+                <div key={x.id} className="pp-block">
+                  <h3 className="pp-name">{x.name}</h3>
+                  {rows.map(([l, v]) => (
+                    <p key={l} className="pp-row">
+                      <span>{l}</span>
+                      <i />
+                      <b>{brl(v)}</b>
+                    </p>
+                  ))}
+                  {table.services[x.id]?.incluso?.trim() && (
+                    <p className="pp-incl">
+                      <b>incluso:</b> {table.services[x.id]!.incluso}
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+      {infos.length > 0 && <InfoRow items={infos} color="var(--p-bar)" />}
       <Contacts s={s} />
     </Sheet>
   )

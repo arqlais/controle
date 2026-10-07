@@ -1,9 +1,10 @@
 import { Fragment, useState } from 'react'
-import type { Pricing, ServiceDef, WorkProfile } from '../types'
+import type { AreaTier, Pricing, ServiceDef, WorkProfile } from '../types'
 import { Icon } from './Icon'
 import { Field, Modal, MoneyInput } from './ui'
-import { askDelete } from './dialog'
-import { groupServices, money, serviceAsk, uid } from '../utils'
+import { askDelete, toast } from './dialog'
+import { areaRate, calibrateTiers, groupServices, hasAreaTiers, money, serviceAsk, sortedTiers, uid } from '../utils'
+import { useStore } from '../store'
 import { serviceAudience } from '../processes'
 import { ARCH_SERVICES } from '../clientDefaults'
 import { CATALOG, OWNER_ONLY, type CatalogKind } from '../serviceCatalog'
@@ -33,6 +34,10 @@ export function priceSummary(x: ServiceDef) {
   const min = x.min > 0 ? ` · mínimo ${money(x.min)}` : ''
   if (x.pricing === 'livre') return 'você digita o valor no orçamento'
   if (x.pricing === 'hora') return `${money(x.price)} por hora${min}`
+  if (hasAreaTiers(x)) {
+    const t = sortedTiers(x.areaTiers).filter((y) => y.price > 0)
+    return `por faixa de área: ${t.map((y) => `${y.upTo ? `até ${y.upTo} m²` : 'acima'} ${money(y.price)}/m²`).join(' · ')}${min}`
+  }
   if (x.pricing === 'm2' && !x.price && x.checklistPrices && Object.keys(x.checklistPrices).length) return `valor por m² de cada opção marcada${min}`
   if (x.pricing === 'm2') return `${money(x.price)}/m²${x.base ? ` + ${money(x.base)} fixo` : ''}${min}`
   if (x.pricing === 'pacote') {
@@ -48,6 +53,10 @@ function example(x: ServiceDef) {
   const floor = (n: number) => Math.max(n, x.min || 0)
   if (x.pricing === 'livre') return 'No orçamento aparece um campo para você digitar o valor combinado.'
   if (x.pricing === 'hora') return `Ex.: 3 horas = ${money(floor(x.price * 3))}`
+  if (hasAreaTiers(x)) {
+    const ex = [40, 90, 160].map((a) => `${a} m² = ${money(floor((x.base || 0) + areaRate(x, a) * a))}`).join(' · ')
+    return `Ex. (complexidade média, projeto completo): ${ex}. Complexidade simples ou alta e as plantas escolhidas ajustam o valor.`
+  }
   if (x.pricing === 'm2') {
     const v = (x.base || 0) + x.price * 60
     return `Ex.: 60 m² = ${money(floor(v))}${floor(v) !== v ? ' (vale o mínimo)' : ''}. A complexidade do projeto ajusta para mais ou para menos.`
@@ -110,11 +119,14 @@ export function PriceFields({ x, set }: { x: ServiceDef; set: (patch: Partial<Se
           <MoneyInput value={x.price} onChange={(n) => set({ price: n })} />
         </Field>
       )}
+      {x.pricing === 'm2' && <AreaTiers x={x} set={set} />}
       {x.pricing === 'm2' && (
         <>
-          <Field label="Valor por m²">
-            <MoneyInput value={x.price} onChange={(n) => set({ price: n })} />
-          </Field>
+          {!hasAreaTiers(x) && (
+            <Field label="Valor por m²">
+              <MoneyInput value={x.price} onChange={(n) => set({ price: n })} />
+            </Field>
+          )}
           <Field label="Valor fixo somado" hint="Opcional. Ex.: deslocamento ou taxa de abertura.">
             <MoneyInput value={x.base ?? 0} onChange={(n) => set({ base: n })} />
           </Field>
@@ -242,6 +254,76 @@ function ServiceCard({ x, open, onToggle, set, onRemove, audience, onAddWay }: {
   )
 }
 
+/** Faixas de área: quanto maior o espaço, menor o R$/m². Dá para calcular pelos orçamentos recentes. */
+const DEFAULT_TIERS: AreaTier[] = [
+  { upTo: 50, price: 0 },
+  { upTo: 120, price: 0 },
+  { upTo: 0, price: 0 },
+]
+export function AreaTiers({ x, set, calibrate = true }: { x: ServiceDef; set: (patch: Partial<ServiceDef>) => void; calibrate?: boolean }) {
+  const { data } = useStore()
+  const on = !!x.areaTiers?.length
+  const tiers = sortedTiers(x.areaTiers)
+  const put = (list: AreaTier[]) => set({ areaTiers: list })
+  if (!on)
+    return (
+      <button type="button" className="link small span-all" onClick={() => put(DEFAULT_TIERS.map((t, i) => ({ ...t, price: Math.max(0, Math.round((x.price || 0) * [1.2, 1, 0.8][i] * 2) / 2) })))}>
+        + preço por faixa de área (quanto maior o espaço, menor o valor do m²)
+      </button>
+    )
+  const fromQuotes = () => {
+    const r = calibrateTiers(x, data.quotes, data.settings)
+    if (!r.used.some(Boolean)) return toast('Não achei orçamentos enviados deste serviço com área nos últimos 6 meses.')
+    put(r.tiers)
+    toast(`Faixas calculadas por ${r.used.reduce((a, b) => a + b, 0)} orçamento(s) dos últimos 6 meses. Confira e ajuste.`)
+  }
+  return (
+    <div className="pt-tiers span-all">
+      <span className="field-label">valor do m² por faixa de área (complexidade média)</span>
+      {tiers.map((t, i) => {
+        const last = !t.upTo
+        const prev = tiers[i - 1]?.upTo
+        return (
+          <div key={i} className="pt-tier pt-area-tier">
+            {last ? (
+              <span className="muted small pt-area-label">acima de {prev || 0} m²</span>
+            ) : (
+              <span className="row gap-s pt-area-label">
+                <span className="muted small nowrap">{prev ? `${prev + 1} a` : 'até'}</span>
+                <input type="number" min={1} value={t.upTo} onChange={(e) => put(tiers.map((y, j) => (j === i ? { ...y, upTo: Math.max(1, Number(e.target.value) || 1) } : y)))} aria-label="Até quantos m²" />
+                <span className="muted small">m²</span>
+              </span>
+            )}
+            <MoneyInput value={t.price} onChange={(n) => put(tiers.map((y, j) => (j === i ? { ...y, price: n } : y)))} />
+            <span className="muted small nowrap">/m²</span>
+            {!last && tiers.length > 2 ? (
+              <button type="button" className="icon-btn subtle" onClick={() => put(tiers.filter((_, j) => j !== i))} aria-label="Tirar faixa">
+                <Icon name="x" size={14} />
+              </button>
+            ) : (
+              <span />
+            )}
+          </div>
+        )
+      })}
+      <div className="row gap-s wrap">
+        <button type="button" className="btn small ghost" onClick={() => put([...tiers.filter((t) => t.upTo), { upTo: (tiers.filter((t) => t.upTo).at(-1)?.upTo ?? 0) + 50, price: tiers.at(-1)?.price ?? 0 }, ...tiers.filter((t) => !t.upTo)])}>
+          <Icon name="plus" size={14} /> faixa
+        </button>
+        {calibrate && (
+          <button type="button" className="btn small ghost" onClick={fromQuotes} title="Usa a mediana do valor do m² dos seus orçamentos enviados nos últimos 6 meses">
+            <Icon name="sparkle" size={14} /> calcular pelos meus orçamentos
+          </button>
+        )}
+        <button type="button" className="link small" onClick={() => set({ areaTiers: undefined, price: x.price || tiers[1]?.price || tiers[0]?.price || 0 })}>
+          voltar a um valor só
+        </button>
+      </div>
+      <small className="muted">Simples e alta complexidade ajustam a partir da média (configurações → complexidade). Se o serviço tem lista de plantas, cada uma tem um peso: marcando menos plantas, o valor cai na mesma proporção.</small>
+    </div>
+  )
+}
+
 /** Detalhes que quase ninguém precisa mexer no começo. */
 function MoreOptions({ x, set }: { x: ServiceDef; set: (patch: Partial<ServiceDef>) => void }) {
   return (
@@ -283,7 +365,7 @@ function Checklist({ x, set }: { x: ServiceDef; set: (patch: Partial<ServiceDef>
         <input value={x.askText ?? ''} onChange={(e) => set({ askText: e.target.value })} placeholder={serviceAsk({ ...x, askText: '' })} />
       </Field>
       <div className="checklist-rows">
-        <span className="field-label">opções e valor de cada uma {x.pricing === 'm2' ? '(por m²)' : '(cada)'}</span>
+        <span className="field-label">{hasAreaTiers(x) ? 'opções e o peso de cada uma (%) — o conjunto completo soma 100' : `opções e valor de cada uma ${x.pricing === 'm2' ? '(por m²)' : '(cada)'}`}</span>
         {x.checklist.map((c, i) => (
           <div key={i} className="checklist-row">
             <input

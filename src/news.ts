@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-07-faixas-m2',
+    date: '2026-10-07',
+    kind: 'novo',
+    title: 'preço do m² por faixa de área',
+    text: 'Nos serviços por m², dá para cobrar por faixa de área (quanto maior o espaço, menor o valor do m²), com a complexidade e o peso de cada planta ajustando o valor. E um botão calcula as faixas pelos seus orçamentos dos últimos 6 meses.',
+    steps: [{ text: 'Configurações → serviços e preços → abra um serviço por m² → “preço por faixa de área”.', page: 'config' }],
+  },
+  {
     id: '2026-10-07-enviar-pdf',
     date: '2026-10-07',
     kind: 'melhoria',

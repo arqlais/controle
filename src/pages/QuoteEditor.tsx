@@ -1,5 +1,5 @@
 import { withPanelShare } from '../clientPanel'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
 import type { ReactNode } from 'react'
@@ -44,6 +44,10 @@ import {
   checklistMatch,
   checklistPrice,
   checklistRate,
+  withPartner,
+  areaRate,
+  hasAreaTiers,
+  listShare,
   pricedByList,
   parseScopeReply,
   scopeQuestion,
@@ -103,10 +107,14 @@ const newOption = (): QuoteOption => ({ id: uid(), name: '', items: [newItem()],
 
 export default function QuoteEditor({ id }: { id: string }) {
   const { data, upsert, remove, setSettings } = useStore()
-  const { settings } = data
+  const rawSettings = data.settings
   const found = data.quotes.find((q) => q.id === id)
   // rascunho: serviços que seguem a tabela abrem com o valor atual da tabela (enviados ficam como foram mandados)
-  const [fresh] = useState(() => (found ? freshPrices(found, data.settings, isStudent(data.clients.find((c) => c.id === found.clientId))) : undefined))
+  const [fresh] = useState(() => {
+    if (!found) return undefined
+    const c = data.clients.find((x) => x.id === found.clientId)
+    return freshPrices(found, withPartner(data.settings, c), isStudent(c))
+  })
   const [showFile, setShowFile] = useState(false) // "arquivo final" fica recolhido até ser usado
   const existing = fresh ?? found
   // sugestão da IA ("jogar pro orçamento"): entra no orçamento novo, tudo editável
@@ -137,14 +145,14 @@ export default function QuoteEditor({ id }: { id: string }) {
         chosenOption: '',
         discount: 0,
         discountNote: '',
-        files: settings.proposal.files,
+        files: rawSettings.proposal.files,
         filesAuto: true,
-        schedule: settings.proposal.schedule,
+        schedule: rawSettings.proposal.schedule,
         urgency: false,
         deadlineDays: 10,
         validityDays: 15,
-        revisions: settings.defaultRevisions,
-        paymentTerms: settings.defaultPaymentTerms,
+        revisions: rawSettings.defaultRevisions,
+        paymentTerms: rawSettings.defaultPaymentTerms,
         notes: '',
         status: 'rascunho',
         sentAt: '',
@@ -152,6 +160,10 @@ export default function QuoteEditor({ id }: { id: string }) {
         projectId: '',
       }, aiFill),
   )
+  // parceiro com tabela de parceria: os serviços seguem os valores combinados com ele
+  const partnerClient = data.clients.find((c) => c.id === q.clientId)
+  const settings = useMemo(() => withPartner(rawSettings, partnerClient), [rawSettings, partnerClient])
+  const partnerOn = !!partnerClient?.partner?.on
   // rascunho renumerado automaticamente (ex.: outro orçamento foi enviado): mostra o número novo
   const storedNumber = data.quotes.find((x) => x.id === q.id)?.number
   useEffect(() => {
@@ -314,7 +326,7 @@ export default function QuoteEditor({ id }: { id: string }) {
       const proc = processId === '' ? undefined : processesOf(settings).find((x) => x.id === processId) ?? processesOf(settings)[0]
       const steps = processId !== undefined ? { steps: proc ? cloneSteps(proc.steps) : [], processId: proc?.id } : !q.steps?.length && proc ? { steps: cloneSteps(proc.steps), processId: proc.id } : {}
       // serviços de cliente final: se a tabela só tem serviços de freelancer, entra a tabela de arquitetura (editável em configurações → preços)
-      let services = settings.services
+      let services = rawSettings.services
       if (!services.some((sv) => sv.id !== 'personalizado' && serviceAudience(sv) === 'final')) {
         services = [...services, ...ARCH_SERVICES.filter((x) => !services.some((y) => y.id === x.id))]
         setSettings({ services })
@@ -704,7 +716,7 @@ export default function QuoteEditor({ id }: { id: string }) {
           <Section title="dados">
             <div className="form-grid">
               <AudienceSwitch value={audience} onChange={pickAudience} />
-              <Field label="Cliente" span={2} hint="O nome do cliente vai no campo “nome” da proposta.">
+              <Field label="Cliente" span={2} hint={partnerOn ? `Valores de parceria de ${partnerClient?.name} aplicados (ficha do cliente → valores de parceria).` : "O nome do cliente vai no campo “nome” da proposta."}>
                 <div className="row gap-s">
                   <ClientPicker
                     id="q-client"
@@ -1182,7 +1194,7 @@ function ScopeChips({ s, text, onChange }: { s: ServiceDef; text: string; onChan
   const options = s.checklist!.filter((c) => c.trim())
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
   const unit = s.pricing === 'm2' ? '/m²' : ''
-  const priceTag = (v: number) => (v ? `${money(v)}${unit}` : '')
+  const priceTag = (v: number) => (v ? (hasAreaTiers(s) ? `peso ${v}%` : `${money(v)}${unit}`) : '')
   const own = lines.filter((l) => !checklistMatch(s, l))
   // remonta na ordem da lista, mantendo o jeito que você escreveu cada item
   const rebuild = (on: (c: string) => boolean, extra: string[]) =>
@@ -1499,7 +1511,9 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, aud
               <Field
                 label="Valor"
                 hint={
-                  s && byList
+                  s && hasAreaTiers(s)
+                    ? `tabela: ${money(suggestion)} · faixa ${money(areaRate(s, it.quantity))}/m² × ${it.quantity} m² × complexidade ${it.complexity}${byList ? ` × ${Math.round(listShare(s, lines) * 100)}% das plantas` : ''}${s.base ? ` + base ${money(s.base)}` : ''}${s.min && suggestion <= s.min ? ` (valor mínimo ${money(s.min)})` : ''}${openNote}`
+                    : s && byList
                     ? (() => {
                         const { rate: r, count } = checklistRate(s, lines)
                         const base = `${s.base && s.pricing === 'm2' ? `base ${money(s.base)} + ` : ''}${count} ${count === 1 ? 'item' : 'itens'} = ${money(r)}${s.pricing === 'm2' ? `/m² × ${it.quantity} m²` : ''} × ${settings.complexity[it.complexity]}`

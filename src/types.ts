@@ -59,8 +59,29 @@ export interface Client {
   history: ClientNote[] // conversas e combinados, com data
   profile?: ClientProfile // só para cliente final
   panel?: ClientPanel // painel do cliente (link com tudo o que o profissional compartilhar)
+  partner?: PartnerTable // valores especiais de parceria (só a dona): valem nos orçamentos deste cliente
   archived: boolean
   createdAt: string
+}
+
+/** Valor especial de um serviço para um parceiro (o que não for preenchido segue a tabela). */
+export interface PartnerPrice {
+  price?: number // R$ por unidade / por m²
+  tiers?: PriceTier[] // pacotes
+  areaTiers?: AreaTier[] // faixas de área (por m²)
+  min?: number
+  incluso?: string // texto "incluso" na tabela de parceria
+}
+/** Tabela de parceria: valores combinados com um escritório parceiro, usados nos orçamentos dele e na tabela em PDF. */
+export interface PartnerTable {
+  on: boolean
+  services: Record<string, PartnerPrice> // por id do serviço (só os que entram na parceria)
+  title?: string // "exclusivo parceria"
+  payment?: string
+  schedule?: string
+  files?: string
+  number?: number // nº que aparece na tabela (opcional)
+  date?: string
 }
 
 /** Painel do cliente: uma página só dele, pelo link, com projetos, etapas, pagamentos e documentos. */
@@ -411,6 +432,12 @@ export interface ProjectProcess {
 
 export type Pricing = 'unidade' | 'pacote' | 'm2' | 'hora' | 'livre'
 
+/** Faixa de área (serviços por m²): até tantos m², tantos R$/m². upTo 0 = acima da última faixa. */
+export interface AreaTier {
+  upTo: number
+  price: number
+}
+
 export interface PriceTier {
   qty: number // a partir desta quantidade
   price: number // valor do pacote (ex.: 5 imagens = 370)
@@ -438,6 +465,7 @@ export interface ServiceDef {
   deliveryOpen?: string // como é entregue quando o cliente quer o arquivo aberto ('' = não se aplica)
   audience?: 'final' | 'parceiro' | 'ambos' // para quem este serviço aparece no orçamento (vazio = pelo tipo do serviço)
   perFloor?: boolean // encarece a cada pavimento a mais (pranchas, arquivos e modelos em dobro, triplo…)
+  areaTiers?: AreaTier[] // por m² com faixas: quanto maior a área, menor o R$/m² (valor para complexidade média); a lista vira peso (%) de cada planta
 }
 
 export interface MessageTemplate {
@@ -610,6 +638,7 @@ export interface Settings {
   imagesV1?: boolean // migração: imagens deixaram de encarecer por pavimento
   servicesGroupsV1?: boolean // migração: serviços sem área organizados nas áreas do catálogo
   slidesV1?: boolean // migração: serviço de apresentação em slides
+  pricingV2?: boolean // migração (só a dona): faixas de área, peso das plantas, detalhamento por peça/ambiente
   aiLowercase?: boolean // respostas da IA em minúsculas (R$ sempre maiúsculo); padrão ligado
   aiNotes?: string // regras e jeito de trabalhar, escritas por você, para a IA seguir
   notDuplicates?: string[] // pares de clientes marcados como pessoas diferentes (ids "a|b")

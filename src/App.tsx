@@ -1,4 +1,5 @@
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { upgradeOwnerServices } from './pricingV2'
 import { emptyData, hasDemoData, useStore } from './store'
 import { BrandMark } from './components/PlaneMark'
 import { ask, toast } from './components/dialog'
@@ -168,6 +169,11 @@ export default function App() {
     }
     toast(`${list.length} ${list.length === 1 ? 'orçamento antigo foi para a data certa' : 'orçamentos antigos foram para as datas certas'} no financeiro.`)
   }, [data, sync, isSample, access.isOwner, upsert])
+  // conta da dona: tabela nova (faixas de área, peso das plantas, detalhamento por peça/ambiente), uma vez só
+  useEffect(() => {
+    if (sync === 'loading' || isSample || !access.isOwner || settings.pricingV2) return
+    setSettings({ services: upgradeOwnerServices(settings.services), pricingV2: true })
+  }, [sync, isSample, access.isOwner, settings.pricingV2, settings.services, setSettings])
   // aparelho da dona: vê as novidades ainda em teste (inclusive em "ver como cliente")
   useEffect(() => {
     if (access.isOwner) markBetaDevice()

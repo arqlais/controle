@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useAccess } from '../access'
 import { useStore } from '../store'
-import type { Data, Quote, QuoteItem } from '../types'
-import { QUOTE_STATUS, money, nextQuoteNumber, quoteDeal, quoteFiles, quoteNumber } from '../utils'
+import type { Data, Quote, QuoteItem, ServiceDef } from '../types'
+import { QUOTE_STATUS, hasAreaTiers, money, nextQuoteNumber, quoteDeal, quoteFiles, quoteNumber, sortedTiers, withPartner } from '../utils'
 import { Icon } from './Icon'
 import { Modal } from './ui'
 import { toast } from './dialog'
@@ -62,25 +62,36 @@ ${s.aiNotes.trim()}` : ''}`
 }
 
 export function buildAIPrompt(d: Data, request: string, current?: Quote, names = true, mode: 'copiar' | 'chat' = 'copiar', limit = 80, max = 8) {
-  const s = d.settings
-  const services = s.services
-    .map((x) => {
+  // orçamento de um parceiro com tabela de parceria: a tabela que vale é a combinada com ele
+  const curClient = current ? d.clients.find((c) => c.id === current.clientId) : undefined
+  const s = withPartner(d.settings, curClient)
+  const r2 = (n: number) => Math.round(n * 100) / 100
+  const describe = (x: ServiceDef) => {
       const price =
         x.pricing === 'livre'
           ? 'valor livre'
+          : hasAreaTiers(x)
+            ? `por faixa de área (R$/m² para complexidade média): ${sortedTiers(x.areaTiers).filter((t) => t.price > 0).map((t, i, all) => `${t.upTo ? `até ${t.upTo} m²` : `acima de ${all[i - 1]?.upTo ?? 0} m²`} ${money(t.price)}`).join('; ')}${x.base ? ` + base ${money(x.base)}` : ''} × complexidade (simples ${r2((s.complexity.simples ?? 1) / (s.complexity.media || 1))}, média 1, alta ${r2((s.complexity.alta ?? 1) / (s.complexity.media || 1))})${x.checklistPrices && Object.keys(x.checklistPrices).length ? ' × soma dos pesos das plantas escolhidas ÷ 100' : ''}`
           : x.pricing === 'm2'
             ? `${x.base ? `base ${money(x.base)} + ` : ''}${money(x.price)}/m² × complexidade`
             : x.pricing === 'pacote'
               ? `${money(x.price)}/${x.unit}; pacotes ${x.tiers.map((t) => `${t.qty} por ${money(t.price)}`).join(', ')}`
               : `${money(x.price)}/${x.unit}`
       const list = x.checklist?.filter((c) => c.trim()).length
-        ? `\n    ${x.checklistTitle || 'itens'} (valor ${x.pricing === 'm2' ? 'por m²' : 'cada'}): ${x.checklist
+        ? hasAreaTiers(x)
+          ? `\n    ${x.checklistTitle || 'plantas'} (peso %, o conjunto completo soma 100): ${x.checklist.filter((c) => c.trim()).map((c) => `${c} ${x.checklistPrices?.[c] ?? x.customRate ?? 0}%`).join(', ')}`
+          : `\n    ${x.checklistTitle || 'itens'} (valor ${x.pricing === 'm2' ? 'por m²' : 'cada'}): ${x.checklist
             .filter((c) => c.trim())
             .map((c) => `${c} ${money(x.checklistPrices?.[c] ?? x.customRate ?? 0)}`)
             .join(', ')}`
         : ''
       return `- ${x.name} [id: ${x.id}]: ${price}${x.min ? `, mínimo ${money(x.min)}` : ''}${x.delivery ? `; entrega: ${x.delivery}` : ''}${list}`
-    })
+  }
+  const services = s.services.map(describe).join('\n')
+  // tabelas de parceria combinadas com escritórios parceiros (valores especiais só para eles)
+  const partners = d.clients
+    .filter((c) => c.partner?.on && Object.keys(c.partner.services).length && c.id !== curClient?.id)
+    .map((c, i) => `### ${names ? c.name : `parceiro ${i + 1}`}\n${withPartner(d.settings, c).services.filter((x) => c.partner!.services[x.id]).map(describe).join('\n')}`)
     .join('\n')
   const cx = Object.entries(s.complexity)
     .map(([k, v]) => `${k} ×${v}`)
@@ -95,8 +106,14 @@ export function buildAIPrompt(d: Data, request: string, current?: Quote, names =
   const intro = `Você é minha assistente de orçamentos. Sou ${s.ownerName || s.legalName || 'freelancer'}, do estúdio "${s.brandName}" (${s.tagline || 'arquitetura: renderização, modelagem, executivo e detalhamento'}). Responda em português, de forma direta e organizada.`
   const studio = `${current ? `## Orçamento que estou montando agora\n${quoteLine(current, d, names)}\nformatos de entrega: ${quoteFiles(current, s.services) || '—'}\n\n` : ''}${processBriefing(d)}
 
-## Minha tabela de preços (configurada no meu sistema)
-${services}
+## Minha tabela de preços (configurada no meu sistema)${curClient?.partner?.on ? ` — valores de PARCERIA combinados com ${names ? curClient.name : 'este cliente'}` : ''}
+${services}${partners ? `\n\n## Tabelas de parceria (valores especiais combinados com escritórios parceiros: use a do parceiro quando o pedido for dele)\n${partners}` : ''}
+
+## Como calcular executivo, modelagem e detalhamento
+- Serviços por faixa de área: pegue o R$/m² da faixa em que a área cai × a área × a complexidade × (soma dos pesos das plantas pedidas ÷ 100). Projeto completo = 100%.
+- Complexidade: simples (poucos ambientes, planta retangular, pouco detalhe), média (o comum), alta (muitos ambientes, curvas, muita marcenaria, vários pavimentos, prazo curto).
+- Detalhamento: por peça (marcenaria, marmoraria, serralheria…) ou por ambiente (banheiro, cozinha, sala…): conte quantas peças/ambientes.
+- Se eu mandar a planta ou o PDF do cliente: leia a planta, estime a área (cotas ou escala), conte ambientes e peças a detalhar, diga quais plantas serão necessárias e o nível de detalhe, e mostre a conta. Se não der para ler alguma medida, diga o que assumiu.
 Complexidade: ${cx}. Pavimento a mais: +${s.floorFee ?? 50}% por pavimento. Arquivo aberto (editável): +${s.openFileFee ?? 30}% embutido no valor (não aparece na proposta). Urgência: +${s.urgencyFee}%. Estudante: -${s.studentDiscount}%.
 
 ## Meus orçamentos anteriores (mais recentes primeiro — os de julho em diante refletem meus preços atuais)${names ? '' : ' (nomes de clientes omitidos)'}

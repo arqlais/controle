@@ -2,6 +2,7 @@ import { EXTRA, harmonize } from './palette'
 import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
 import type {
+  AreaTier,
   BoardColumn,
   Client,
   Complexity,
@@ -497,11 +498,27 @@ export const pricedByList = (s: ServiceDef | undefined, lines: string[]) =>
 /** Serviço que já é entregue aberto (ex.: modelagem em SketchUp): a taxa de arquivo aberto não se aplica. */
 export const alreadyOpen = (s?: ServiceDef) => !!s && !s.deliveryOpen && /aberto|sketchup|\bskp\b/i.test(s.delivery ?? '')
 
+/** Serviço por m² com faixas de área (o R$/m² cai conforme a área cresce). */
+export const hasAreaTiers = (s?: ServiceDef) => !!s && s.pricing === 'm2' && !!s.areaTiers?.some((t) => t.price > 0)
+/** Faixas em ordem (a "acima de" por último). */
+export const sortedTiers = (t: AreaTier[] = []) => [...t].sort((a, b) => (a.upTo || Infinity) - (b.upTo || Infinity))
+/** R$/m² da faixa em que a área cai. */
+export function areaRate(s: ServiceDef, area: number) {
+  const t = sortedTiers(s.areaTiers).filter((x) => x.price > 0)
+  if (!t.length) return s.price
+  return (t.find((x) => !x.upTo || area <= x.upTo) ?? t[t.length - 1]).price
+}
+/** Peso (%) das plantas marcadas, num serviço com faixas: 100 = o conjunto completo. Sem lista marcada = 100. */
+export const listShare = (s: ServiceDef, lines: string[]) => (pricedByList(s, lines) ? checklistRate(s, lines).rate / 100 : 1)
+
 export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = [], openFile = false, floors = 1) {
   if (!s || s.pricing === 'livre') return 0
   const cx = st.complexity[complexity] ?? 1
   let v: number
-  if (pricedByList(s, lines)) {
+  if (hasAreaTiers(s)) {
+    // faixa de área × m² × complexidade (o valor da faixa é o da complexidade média) × peso das plantas marcadas
+    v = (s.base || 0) + areaRate(s, qty) * qty * (cx / (st.complexity.media || 1)) * listShare(s, lines)
+  } else if (pricedByList(s, lines)) {
     // cada planta/detalhamento marcado soma: R$/m² × área × complexidade, ou R$ cada × complexidade
     const { rate } = checklistRate(s, lines)
     v = s.pricing === 'm2' ? (s.base || 0) + rate * qty * cx : rate * cx
@@ -972,4 +989,55 @@ export function fitImage(file: File, maxKb = 600): Promise<string> {
     img.onerror = () => (URL.revokeObjectURL(url), reject(new Error('imagem inválida')))
     img.src = url
   })
+}
+
+/** Faixas de área calculadas pelos orçamentos recentes (mediana do R$/m² em cada faixa, já tirando complexidade e plantas).
+    Devolve as faixas novas e quantos orçamentos entraram em cada uma (0 = ficou como estava). */
+export function calibrateTiers(s: ServiceDef, quotes: Quote[], st: Settings, months = 6) {
+  const bands = sortedTiers(s.areaTiers?.length ? s.areaTiers : [{ upTo: 50, price: 0 }, { upTo: 120, price: 0 }, { upTo: 0, price: 0 }])
+  const since = new Date()
+  since.setMonth(since.getMonth() - months)
+  const from = since.toISOString().slice(0, 10)
+  const rates: number[][] = bands.map(() => [])
+  for (const q of quotes) {
+    if (q.status === 'rascunho' || (q.createdAt || '') < from) continue
+    const boxes = q.mode === 'opcoes' ? q.options.map((o) => ({ items: o.items, area: optionArea(q, o).area })) : [{ items: q.items, area: q.area }]
+    for (const b of boxes)
+      for (const it of b.items) {
+        if (it.service !== s.id || !(it.price > 0) || !(b.area > 0)) continue
+        const cx = (st.complexity[it.complexity] ?? 1) / (st.complexity.media || 1)
+        const share = listShare(s, (it.description || '').split('\n')) || 1
+        const r = (it.price - (s.base || 0)) / b.area / cx / share
+        const at = bands.findIndex((x) => !x.upTo || b.area <= x.upTo)
+        if (r > 0 && Number.isFinite(r)) rates[at < 0 ? bands.length - 1 : at].push(r)
+      }
+  }
+  const median = (a: number[]) => {
+    const v = [...a].sort((x, y) => x - y)
+    return v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2
+  }
+  return {
+    tiers: bands.map((b, i) => (rates[i].length ? { ...b, price: Math.round(median(rates[i]) * 2) / 2 } : b)),
+    used: rates.map((r) => r.length),
+  }
+}
+
+/** Serviços com os valores de parceria do cliente (quando ele tem tabela de parceria ligada). */
+export function withPartner(st: Settings, client?: Client | null): Settings {
+  const pt = client?.partner
+  if (!pt?.on || !Object.keys(pt.services).length) return st
+  return {
+    ...st,
+    services: st.services.map((x) => {
+      const o = pt.services[x.id]
+      if (!o) return x
+      return {
+        ...x,
+        ...(o.price !== undefined ? { price: o.price } : {}),
+        ...(o.tiers?.length ? { tiers: o.tiers } : {}),
+        ...(o.areaTiers?.length ? { areaTiers: o.areaTiers, base: 0 } : {}),
+        ...(o.min !== undefined ? { min: o.min } : {}),
+      }
+    }),
+  }
 }

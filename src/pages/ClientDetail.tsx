@@ -9,6 +9,7 @@ import type { Client, ClientProfile } from '../types'
 import { BriefingSection } from '../components/Briefing'
 import { SavedDocs } from '../components/SavedDocs'
 import { ClientPanelSection } from '../components/ClientPanel'
+import { PartnerSection } from '../components/PartnerTable'
 import { askDelete } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import { MergeClients } from '../components/MergeClients'
@@ -198,6 +199,7 @@ export default function ClientDetail({ id }: { id: string }) {
             {c.notes && <p className="notes">{c.notes}</p>}
           </Section>
 
+          <PartnerSection client={c} />
           <ClientPanelSection client={c} />
           {c.type === 'final' && <FinalProfileCard client={c} onEdit={() => setEdit(true)} />}
           {(c.type === 'final' || (data.briefings ?? []).some((b) => b.clientId === c.id)) && <BriefingSection client={c} />}
