@@ -6,11 +6,13 @@ import { Icon } from './Icon'
 import { Field, MoneyInput, Section } from './ui'
 import { AreaTiers } from './PriceTable'
 import { money, quoteNumber, sortedTiers, tableServices } from '../utils'
+import { serviceAudience } from '../processes'
 
 /* Tabela de valores dentro do orçamento de terceirização (só a dona): tabelinha de m² por faixa,
    valores de render em pacotes, detalhamento… O PDF do orçamento sai como a tabela "exclusivo parceria". */
 
-const usable = (x: ServiceDef) => x.pricing !== 'livre' && x.id !== 'personalizado'
+// só serviços que você usa com escritórios parceiros (configurações → serviços → "aparece no orçamento para")
+const usable = (x: ServiceDef) => x.pricing !== 'livre' && x.id !== 'personalizado' && serviceAudience(x) !== 'final'
 
 
 import { askAI } from '../aiQuote'
@@ -33,6 +35,7 @@ function summary(x: ServiceDef) {
 export function QuoteTableSection({ q, settings, client, set }: { q: Quote; settings: Settings; client?: Client; set: (patch: Partial<Quote>) => void }) {
   const { isOwner } = useAccess()
   const { data } = useStore()
+  const [adding, setAdding] = useState(false)
   if (!isOwner || q.audience === 'final') return null
   // cada parceiro guarda os seus valores: a tabela nova começa pela última dele (ou pela sua tabela base)
   const last = q.clientId
@@ -114,7 +117,8 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
             ajuste o que for diferente para esta parceria. Pagamento, prazos e formatos vêm dos campos do orçamento.
           </p>
           <div className="pp-edit">
-            {list.map((x) => {
+            {!Object.keys(t.services).length && <p className="muted small" style={{ margin: 0 }}>Nenhum serviço na tabela ainda: inclua abaixo ou use o pedido do cliente.</p>}
+            {list.filter((x) => t.services[x.id]).map((x) => {
               const on = !!t.services[x.id]
               const m = merged.find((y) => y.id === x.id) ?? x
               const o = t.services[x.id] ?? {}
@@ -176,6 +180,31 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
               )
             })}
           </div>
+          {list.some((x) => !t.services[x.id]) && (
+            <div className="pp-add">
+              {adding ? (
+                <>
+                  <span className="field-label">incluir na tabela</span>
+                  <div className="scope-chips">
+                    {list
+                      .filter((x) => !t.services[x.id])
+                      .map((x) => (
+                        <button key={x.id} type="button" className="scope-chip" onClick={() => include(x)} title={summary(x)}>
+                          <Icon name="plus" size={12} /> {x.name}
+                        </button>
+                      ))}
+                  </div>
+                  <button type="button" className="link small" onClick={() => setAdding(false)}>
+                    pronto
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="btn small ghost" onClick={() => setAdding(true)}>
+                  <Icon name="plus" size={14} /> incluir serviço na tabela
+                </button>
+              )}
+            </div>
+          )}
         </>
       )}
     </Section>
