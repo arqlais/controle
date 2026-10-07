@@ -71,8 +71,8 @@ export function upgradeOwnerServices(list: ServiceDef[]): ServiceDef[] {
         ],
         base: 0,
       }
-    // o detalhamento antigo (por m²) fica para os orçamentos já feitos; os novos são por peça e por ambiente
-    if (x.id === 'detalhamento' && x.pricing === 'm2' && !/antigo/.test(x.name)) return { ...x, name: `${x.name} por m² (antigo)` }
+    // detalhamento: por m² (este), por peça e por ambiente — escolhe no orçamento
+    if (x.id === 'detalhamento' && x.pricing === 'm2' && x.name === 'detalhamento') return { ...x, name: 'detalhamento (por m²)' }
     return x
   })
   const add: ServiceDef[] = []
@@ -99,7 +99,7 @@ export function upgradeOwnerServices(list: ServiceDef[]): ServiceDef[] {
   if (!out.some((x) => x.id === 'detalhamento-itens'))
     add.push({
       id: 'detalhamento-itens',
-      name: 'detalhamento de itens',
+      name: 'detalhamento (por peça)',
       unit: 'peça',
       group,
       pricing: 'unidade',
@@ -116,7 +116,7 @@ export function upgradeOwnerServices(list: ServiceDef[]): ServiceDef[] {
   if (!out.some((x) => x.id === 'detalhamento-amb'))
     add.push({
       id: 'detalhamento-amb',
-      name: 'detalhamento de ambientes',
+      name: 'detalhamento (por ambiente)',
       unit: 'ambiente',
       group,
       pricing: 'unidade',

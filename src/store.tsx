@@ -188,6 +188,12 @@ function migrateServices(list: ServiceDef[]): ServiceDef[] {
   const old = new Set(['Renderização V-Ray', 'Renderização I.A', 'Modelagem 3D', 'Detalhamento', 'Projeto executivo', 'Mapas urbanos', 'Pranchas e monografia', 'Planta humanizada', 'Serviço personalizado'])
   const out = list.map((x) => (renamed[x.id] && old.has(x.name) ? { ...x, name: renamed[x.id] } : x))
   for (const d of DEFAULT_SERVICES) if (!out.some((x) => x.id === d.id) && ['diagramas', 'diagramacao', 'planta-hum'].includes(d.id)) out.splice(out.length - 1, 0, d)
+  // detalhamento: as três formas de cobrar lado a lado (por m², por peça, por ambiente)
+  const DETALH: Record<string, [string, string]> = { detalhamento: ['detalhamento por m² (antigo)', 'detalhamento (por m²)'], 'detalhamento-itens': ['detalhamento de itens', 'detalhamento (por peça)'], 'detalhamento-amb': ['detalhamento de ambientes', 'detalhamento (por ambiente)'] }
+  for (let i = 0; i < out.length; i++) {
+    const r = DETALH[out[i].id]
+    if (r && out[i].name === r[0]) out[i] = { ...out[i], name: r[1] }
+  }
   return out.map((w) => {
     const y = recalibrate(w)
     const y2 = y.noteHints === undefined && DEFAULT_NOTE_HINTS[y.id] ? { ...y, noteHints: DEFAULT_NOTE_HINTS[y.id] } : y
