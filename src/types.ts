@@ -78,7 +78,7 @@ export interface PartnerPrice {
 export interface PartnerTable {
   on: boolean
   services: Record<string, PartnerPrice> // por id do serviço (só os que entram na parceria)
-  title?: string // "exclusivo parceria"
+  title?: string // "parceria"
   payment?: string
   schedule?: string
   files?: string
@@ -404,7 +404,7 @@ export interface Quote {
   closedValue?: number // valor fechado depois da negociação (0 = o da proposta)
   projectRemoved?: boolean // a demanda deste orçamento foi apagada de propósito (não pede para lançar de novo)
   closedNote?: string // o que mudou no fechamento (escopo, valor…)
-  table?: PartnerTable // tabela de valores (terceirização, só a dona): o PDF sai como a tabela "exclusivo parceria"
+  table?: PartnerTable // tabela de valores (terceirização, só a dona): o PDF sai como a tabela "proposta parceria"
   audience?: QuoteAudience // para quem é: cliente final (proposta em slides, etapas) ou escritório parceiro (vazio = parceiro)
   processId?: string // processo de trabalho usado como base das etapas
   steps?: ProcessStep[] // etapas do projeto (cliente final): o que inclui, prazo e % do pagamento

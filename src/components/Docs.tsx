@@ -308,7 +308,7 @@ const discountText = (value: number) => (value > 0 ? `com ${money(value)} de des
 export const isSlides = (q: Quote) => q.audience === 'final' && q.layout !== 'folha'
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
-  // terceirização com tabela de valores: sai a tabela "exclusivo parceria", com o nº, a data e os combinados do orçamento
+  // terceirização com tabela de valores: sai a tabela "proposta parceria", com o nº, a data e os combinados do orçamento
   const tb = quote.table
   if (tb?.on && Object.keys(tb.services).length)
     return (
@@ -668,8 +668,8 @@ export function PartnerSheet({ s, client, table, services }: { s: Settings; clie
   }
   return (
     <Sheet s={s} year={date.slice(0, 4)} fit={JSON.stringify([table, picked.map((x) => x.id)])}>
-      <Fields name={client?.name || '[nome do cliente]'} date={date} label="orçamento" value={table.number ? `#${pad2(table.number).padStart(3, '0')}` : '—'} />
-      <Title s={s} eyebrow="orçamento" title={table.title || 'exclusivo parceria'} />
+      <Fields name={client?.name || '[nome do cliente]'} date={date} label="proposta nº" value={table.number ? `#${pad2(table.number).padStart(3, '0')}` : '—'} />
+      <Title s={s} eyebrow="proposta" title={!table.title || table.title === 'exclusivo parceria' ? 'parceria' : table.title} />
       <section className={`pp-grid ${area.length && units.length ? 'is-two' : ''}`}>
         {area.length > 0 && (
           <div className="pp-dark">

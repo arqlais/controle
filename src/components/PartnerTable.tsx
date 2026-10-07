@@ -9,7 +9,7 @@ import { money, quoteNumber, sortedTiers, tableServices } from '../utils'
 import { serviceAudience } from '../processes'
 
 /* Tabela de valores dentro do orçamento de terceirização (só a dona): tabelinha de m² por faixa,
-   valores de render em pacotes, detalhamento… O PDF do orçamento sai como a tabela "exclusivo parceria". */
+   valores de render em pacotes, detalhamento… O PDF do orçamento sai como a tabela "proposta parceria". */
 
 // só serviços que você usa com escritórios parceiros (configurações → serviços → "aparece no orçamento para")
 const usable = (x: ServiceDef) => x.pricing !== 'livre' && x.id !== 'personalizado' && serviceAudience(x) !== 'final'
@@ -43,7 +43,7 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
         .filter((x) => x.id !== q.id && x.clientId === q.clientId && x.table && Object.keys(x.table.services).length)
         .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))[0]
     : undefined
-  const t: PartnerTable = q.table ?? { on: false, services: {}, title: 'exclusivo parceria' }
+  const t: PartnerTable = q.table ?? { on: false, services: {}, title: 'parceria' }
   const put = (patch: Partial<PartnerTable>) => set({ table: { ...t, ...patch } })
   const list = settings.services.filter(usable)
   const merged = tableServices(settings, t)
@@ -87,7 +87,7 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
       </label>
       {!t.on ? (
         <p className="muted small" style={{ margin: 0 }}>
-          Ligando, o PDF sai como a tabela “orçamento exclusivo parceria”: executivo por faixa de m², detalhamento, pacotes de render, com o que está incluso. O número, o envio e o status seguem como em qualquer orçamento.
+          Ligando, o PDF sai como a tabela “proposta parceria”: executivo por faixa de m², detalhamento, pacotes de render, com o que está incluso. O número, o envio e o status seguem como em qualquer orçamento.
         </p>
       ) : (
         <>
@@ -110,7 +110,7 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
             }}
           />
           <Field label="título">
-            <input value={t.title ?? ''} onChange={(e) => put({ title: e.target.value })} placeholder="exclusivo parceria" />
+            <input value={t.title ?? ''} onChange={(e) => put({ title: e.target.value })} placeholder="parceria" />
           </Field>
           <p className="muted small" style={{ margin: 0 }}>
             {last ? `Os valores começam pelos combinados com ${client?.name ?? 'este parceiro'} na tabela ${quoteNumber(last)}; ` : 'Os valores começam pela sua tabela base; '}

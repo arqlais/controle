@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-07',
     kind: 'novo',
     title: 'tabela de valores no orçamento de terceirização',
-    text: 'No orçamento de terceirização dá para ligar a “tabela de valores”: executivo por faixa de m², detalhamento, pacotes de render, e o PDF sai como “orçamento exclusivo parceria”. E “analisar arquivo com a IA” ajuda a ver plantas, complexidade e o m² certo.',
+    text: 'No orçamento de terceirização dá para ligar a “tabela de valores”: executivo por faixa de m², detalhamento, pacotes de render, e o PDF sai como “proposta parceria”. E “analisar arquivo com a IA” ajuda a ver plantas, complexidade e o m² certo.',
     feature: 'painelDona',
     steps: [{ text: 'Orçamentos → novo orçamento → terceirização → tabela de valores.', page: 'orcamentos' }],
   },
