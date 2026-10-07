@@ -71,6 +71,8 @@ export interface PartnerPrice {
   areaTiers?: AreaTier[] // faixas de área (por m²)
   min?: number
   incluso?: string // texto "incluso" na tabela de parceria
+  plantas?: string[] // plantas inclusas (serviço por m²): ajustam o valor pelo peso de cada uma e aparecem na tabela
+  complexity?: Complexity // complexidade do projeto deste parceiro (ajusta o m²)
 }
 /** Tabela de parceria: valores combinados com um escritório parceiro, usados nos orçamentos dele e na tabela em PDF. */
 export interface PartnerTable {

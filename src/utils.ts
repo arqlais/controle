@@ -3,6 +3,7 @@ import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
 import type {
   AreaTier,
+  PartnerTable,
   BoardColumn,
   Client,
   Complexity,
@@ -1040,4 +1041,21 @@ export function withPartner(st: Settings, client?: Client | null): Settings {
       }
     }),
   }
+}
+
+/** Serviços com os valores da tabela de valores de um orçamento (terceirização): no m², a faixa
+    vale para o projeto completo e média complexidade; plantas marcadas e complexidade ajustam. */
+export function tableServices(st: Settings, t: PartnerTable) {
+  const merged = withPartner(st, { partner: { ...t, on: true } } as Client).services
+  return merged.map((x) => {
+    const o = t.services[x.id]
+    if (!o || x.pricing !== 'm2') return x
+    const base = st.services.find((y) => y.id === x.id)
+    const cx = o.complexity ? (st.complexity[o.complexity] ?? 1) / (st.complexity.media || 1) : 1
+    const share = o.plantas?.length && base && hasAreaTiers(base) ? listShare(base, o.plantas) : 1
+    const k = cx * share
+    if (k === 1) return x
+    const tiers = x.areaTiers?.length ? x.areaTiers : [{ upTo: 0, price: x.price }]
+    return { ...x, areaTiers: tiers.map((y) => ({ ...y, price: Math.round(y.price * k * 2) / 2 })) }
+  })
 }

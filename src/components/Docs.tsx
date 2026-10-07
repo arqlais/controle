@@ -6,7 +6,7 @@ import { useAccess } from '../access'
 import { resolveTemplate, sheetColors, showsLogo } from '../proposalTemplates'
 import { ProposalSlides } from './Slides'
 import type { Client, PartnerTable, Payment, Project, Quote, QuoteItem, QuoteOption, ServiceDef, Settings, SiteVisit } from '../types'
-import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower, sortedTiers, withPartner } from '../utils'
+import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower, sortedTiers, tableServices } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -316,7 +316,7 @@ export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; q
         s={s}
         client={client}
         table={{ ...tb, number: quote.noNumber ? undefined : quote.number, date: quote.createdAt, payment: quote.paymentTerms, schedule: quote.schedule, files: quoteFiles(quote, s.services) }}
-        services={withPartner(s, { partner: { ...tb, on: true } } as Client).services}
+        services={tableServices(s, tb)}
       />
     )
   // cliente final: proposta em slides 16:9 (ou a folha única, se escolheu)
@@ -649,6 +649,9 @@ const plural = (n: number, unit: string) => (n === 1 ? unit : unit.endsWith('m')
 const pad2 = (n: number) => String(n).padStart(2, '0')
 const brl = (n: number) => money(n)
 
+/** "incluso" da tabela: plantas marcadas + o texto escrito. */
+const inclusoText = (o?: { plantas?: string[]; incluso?: string }) => [o?.plantas?.length ? `plantas: ${o.plantas.join('; ')}.` : '', o?.incluso?.trim() ?? ''].filter(Boolean).join(' ')
+
 export function PartnerSheet({ s, client, table, services }: { s: Settings; client?: Client; table: PartnerTable; services: ServiceDef[] }) {
   const picked = services.filter((x) => table.services[x.id])
   const area = picked.filter((x) => x.pricing === 'm2')
@@ -689,9 +692,9 @@ export function PartnerSheet({ s, client, table, services }: { s: Settings; clie
                     </div>
                   )
                 })}
-                {table.services[x.id]?.incluso?.trim() && (
+                {inclusoText(table.services[x.id]) && (
                   <p className="pp-incl">
-                    <b>incluso:</b> {table.services[x.id]!.incluso}
+                    <b>incluso:</b> {inclusoText(table.services[x.id])}
                   </p>
                 )}
               </div>
@@ -716,9 +719,9 @@ export function PartnerSheet({ s, client, table, services }: { s: Settings; clie
                       <b>{brl(v)}</b>
                     </p>
                   ))}
-                  {table.services[x.id]?.incluso?.trim() && (
+                  {inclusoText(table.services[x.id]) && (
                     <p className="pp-incl">
-                      <b>incluso:</b> {table.services[x.id]!.incluso}
+                      <b>incluso:</b> {inclusoText(table.services[x.id])}
                     </p>
                   )}
                 </div>

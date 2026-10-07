@@ -1,17 +1,16 @@
-import type { Client, PartnerPrice, PartnerTable, Quote, ServiceDef, Settings } from '../types'
+import { useState } from 'react'
+import type { Client, Complexity, PartnerPrice, PartnerTable, Quote, ServiceDef, Settings } from '../types'
 import { useAccess } from '../access'
 import { Icon } from './Icon'
 import { Field, MoneyInput, Section } from './ui'
 import { AreaTiers } from './PriceTable'
-import { money, sortedTiers, withPartner } from '../utils'
+import { money, sortedTiers, tableServices } from '../utils'
 
 /* Tabela de valores dentro do orçamento de terceirização (só a dona): tabelinha de m² por faixa,
    valores de render em pacotes, detalhamento… O PDF do orçamento sai como a tabela "exclusivo parceria". */
 
 const usable = (x: ServiceDef) => x.pricing !== 'livre' && x.id !== 'personalizado'
 
-/** Serviços com os valores da tabela deste orçamento. */
-export const tableServices = (st: Settings, t: PartnerTable) => withPartner(st, { partner: { ...t, on: true } } as Client).services
 
 /** Abre o assistente com uma pergunta pronta (o arquivo do cliente vai anexado lá). */
 export const AI_ASK_EVENT = 'ia-perguntar'
@@ -98,6 +97,12 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
                           calibrate={false}
                         />
                       )}
+                      {x.pricing === 'm2' && <PlantasPicker x={x} o={o} onChange={(patch) => setSvc(x.id, patch)} />}
+                      {x.pricing === 'm2' && (o.plantas?.length || (o.complexity && o.complexity !== 'media')) ? (
+                        <p className="pp-final small">
+                          <Icon name="check" size={13} /> na tabela vai: <b>{summary(m)}</b>
+                        </p>
+                      ) : null}
                       {x.pricing !== 'm2' && (
                         <Field label={x.pricing === 'pacote' ? `1 ${x.unit} (avulso)` : x.pricing === 'hora' ? 'valor da hora' : `cada ${x.unit || 'unidade'}`}>
                           <MoneyInput value={o.price ?? x.price} onChange={(n) => setSvc(x.id, { price: n })} />
@@ -134,5 +139,54 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
         </>
       )}
     </Section>
+  )
+}
+
+const CX: { id: Complexity; label: string }[] = [
+  { id: 'simples', label: 'simples' },
+  { id: 'media', label: 'média' },
+  { id: 'alta', label: 'alta' },
+]
+/** Plantas inclusas (toque para marcar, ou escreva) e complexidade: ajustam o m² da tabela. */
+function PlantasPicker({ x, o, onChange }: { x: ServiceDef; o: PartnerPrice; onChange: (patch: Partial<PartnerPrice>) => void }) {
+  const [custom, setCustom] = useState('')
+  const picked = o.plantas ?? []
+  const options = [...(x.checklist ?? []).filter((c) => c.trim()), ...picked.filter((p) => !(x.checklist ?? []).includes(p))]
+  const toggle = (c: string) => onChange({ plantas: picked.includes(c) ? picked.filter((y) => y !== c) : [...picked, c] })
+  const add = () => {
+    const v = custom.trim()
+    if (v && !picked.includes(v)) onChange({ plantas: [...picked, v] })
+    setCustom('')
+  }
+  const weight = (c: string) => x.checklistPrices?.[c]
+  return (
+    <div className="pp-plantas">
+      <span className="field-label">complexidade do projeto</span>
+      <div className="pt-aud-pick" role="radiogroup">
+        {CX.map((c) => (
+          <button key={c.id} type="button" role="radio" aria-checked={(o.complexity ?? 'media') === c.id} className={(o.complexity ?? 'media') === c.id ? 'is-on' : ''} onClick={() => onChange({ complexity: c.id })}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+      <span className="field-label">plantas inclusas {picked.length ? `(${picked.length})` : '(nenhuma marcada = projeto completo)'}</span>
+      <div className="scope-chips">
+        {options.map((c) => {
+          const on = picked.includes(c)
+          return (
+            <button key={c} type="button" className={`scope-chip ${on ? 'on' : ''}`} aria-pressed={on} onClick={() => toggle(c)} title={weight(c) ? `peso ${weight(c)}%` : undefined}>
+              {on && <Icon name="check" size={12} />}
+              {c}
+            </button>
+          )
+        })}
+      </div>
+      <div className="row gap-s">
+        <input value={custom} onChange={(e) => setCustom(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="outra planta ou item (ex.: planta de pontos de tomada)" aria-label="Outra planta" />
+        <button type="button" className="btn small ghost" onClick={add} disabled={!custom.trim()}>
+          <Icon name="plus" size={14} /> incluir
+        </button>
+      </div>
+    </div>
   )
 }
