@@ -639,83 +639,53 @@ const pad2 = (n: number) => String(n).padStart(2, '0')
 const brl = (n: number) => money(n)
 
 export function PartnerSheet({ s, client, table, services }: { s: Settings; client?: Client; table: PartnerTable; services: ServiceDef[] }) {
-  const picked = services.filter((x) => table.services[x.id])
-  const area = picked.filter((x) => x.pricing === 'm2')
-  const units = picked.filter((x) => x.pricing !== 'm2' && x.pricing !== 'livre')
+  // mesmo modelo das propostas: quadro com os serviços em linhas (nº, serviço, faixas/pacotes, valor)
+  const picked = services.filter((x) => table.services[x.id] && x.pricing !== 'livre')
   const infos = [
-    { icon: 'pay' as const, label: 'Pagamento', text: table.payment ?? s.defaultPaymentTerms ?? PAYMENT_TERMS },
-    { icon: 'calendar' as const, label: 'Prazos e cronograma', text: table.schedule ?? s.proposal.schedule },
-    { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: table.files ?? s.proposal.files },
+    { icon: 'pay' as const, label: 'Pagamento', text: table.payment || s.defaultPaymentTerms || PAYMENT_TERMS },
+    { icon: 'calendar' as const, label: 'Prazos e cronograma', text: table.schedule || s.proposal.schedule },
+    { icon: 'folder' as const, label: 'Formatos de arquivos entregues', text: table.files || s.proposal.files },
   ].filter((x) => x.text?.trim())
   const date = table.date || today()
-  const tiersOf = (x: ServiceDef) => {
-    const t = sortedTiers(x.areaTiers).filter((y) => y.price > 0)
-    return t.length ? t : [{ upTo: 0, price: x.price }]
-  }
+  const rows = picked.map((x) => {
+    const unit = x.unit || 'unidade'
+    let lines: string[] = []
+    let price = ''
+    if (x.pricing === 'm2') {
+      const t = sortedTiers(x.areaTiers).filter((y) => y.price > 0)
+      const all = t.length ? t : [{ upTo: 0, price: x.price }]
+      lines = all.length > 1 ? all.map((y, i) => `${y.upTo ? (all[i - 1]?.upTo ? `de ${all[i - 1].upTo! + 1} a ${y.upTo} m²` : `até ${y.upTo} m²`) : `acima de ${all[i - 1]?.upTo ?? 0} m²`}: ${brl(y.price)}/m²`) : []
+      price = `a partir de ${brl(Math.min(...all.map((y) => y.price)))}/m²`
+    } else if (x.pricing === 'pacote') {
+      const tiers = [...x.tiers].filter((t) => t.qty > 1 && t.price > 0).sort((a, b) => a.qty - b.qty)
+      lines = tiers.map((t) => `${pad2(t.qty)} ${plural(t.qty, unit)}: ${brl(t.price)}`)
+      price = `${brl(x.price)} / ${unit}`
+    } else price = `${brl(x.price)} / ${x.pricing === 'hora' ? 'hora' : unit}`
+    const inc = table.services[x.id]?.incluso?.trim()
+    return { id: x.id, title: x.name, lines: [...lines, ...(inc ? [`incluso: ${inc}`] : [])], price }
+  })
   return (
     <Sheet s={s} year={date.slice(0, 4)} fit={JSON.stringify([table, picked.map((x) => x.id)])}>
-      <Fields name={client?.name || '[nome do cliente]'} date={date} label="orçamento" value={table.number ? `#${pad2(table.number).padStart(3, '0')}` : '—'} />
-      <Title s={s} eyebrow="orçamento" title={table.title || 'exclusivo parceria'} />
-      <section className={`pp-grid ${area.length && units.length ? 'is-two' : ''}`}>
-        {area.length > 0 && (
-          <div className="pp-dark">
-            {area.map((x) => (
-              <div key={x.id} className="pp-block">
-                <h3 className="pp-name">{x.name}</h3>
-                {tiersOf(x).map((t, i, all) => {
-                  const prev = all[i - 1]?.upTo
-                  const range = all.length === 1 ? '' : t.upTo ? (prev ? `de ${prev + 1} a ${t.upTo} m²` : `até ${t.upTo} m²`) : `acima de ${prev} m²`
-                  return (
-                    <div key={i} className="pp-tier">
-                      {all.length > 1 && (
-                        <p className="pp-pack">
-                          <b>pacote {i + 1}</b> <span>{range}</span>
-                        </p>
-                      )}
-                      <p className="pp-box">
-                        <small>a partir de</small> <b>{brl(t.price)} / m²</b>
-                      </p>
-                    </div>
-                  )
-                })}
-                {table.services[x.id]?.incluso?.trim() && (
-                  <p className="pp-incl">
-                    <b>incluso:</b> {table.services[x.id]!.incluso}
-                  </p>
-                )}
+      <Fields name={client?.name || '[nome do cliente]'} date={date} label="orçamento nº" value={table.number ? `#${String(table.number).padStart(3, '0')}` : '—'} />
+      <Title s={s} title={table.title || 'parceria exclusiva'} />
+      <div className="p-card">
+        <div className="p-card-head">
+          <h3 className="p-card-title">valores de parceria</h3>
+          <span className="p-label">valor</span>
+        </div>
+        <div className="p-rows">
+          {rows.map((r, i) => (
+            <div key={r.id} className="p-row">
+              <b className="p-row-n">{rows.length === 1 ? '—' : pad2(i + 1)}</b>
+              <div className="p-row-main">
+                <span className="p-row-title">{r.title}</span>
+                <Desc text={r.lines.join('\n')} />
               </div>
-            ))}
-          </div>
-        )}
-        {units.length > 0 && (
-          <div className="pp-light">
-            {units.map((x) => {
-              const unit = x.unit || 'unidade'
-              const rows: [string, number][] =
-                x.pricing === 'pacote'
-                  ? [[`${pad2(1)} ${unit}`, x.price] as [string, number], ...[...x.tiers].filter((t) => t.qty > 1 && t.price > 0).sort((a, b) => a.qty - b.qty).map((t): [string, number] => [`${pad2(t.qty)} ${plural(t.qty, unit)}`, t.price])]
-                  : [[`${x.pricing === 'hora' ? 'hora' : `por ${unit}`}`, x.price]]
-              return (
-                <div key={x.id} className="pp-block">
-                  <h3 className="pp-name">{x.name}</h3>
-                  {rows.map(([l, v]) => (
-                    <p key={l} className="pp-row">
-                      <span>{l}</span>
-                      <i />
-                      <b>{brl(v)}</b>
-                    </p>
-                  ))}
-                  {table.services[x.id]?.incluso?.trim() && (
-                    <p className="pp-incl">
-                      <b>incluso:</b> {table.services[x.id]!.incluso}
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </section>
+              <span className="p-row-price">{r.price}</span>
+            </div>
+          ))}
+        </div>
+      </div>
       {infos.length > 0 && <InfoRow items={infos} color="var(--p-bar)" />}
       <Contacts s={s} />
     </Sheet>

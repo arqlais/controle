@@ -11,7 +11,7 @@ import { usePdf } from './Print'
 import { money, nextQuoteNumber, sortedTiers, today, withPartner } from '../utils'
 
 /* Valores de parceria (só a dona): preços especiais combinados com um escritório parceiro.
-   Valem sozinhos nos orçamentos dele e viram a "tabela exclusiva parceria" em PDF. */
+   Valem sozinhos nos orçamentos dele e viram a tabela de parceria em PDF. */
 
 const usable = (x: ServiceDef) => x.pricing !== 'livre' && x.id !== 'personalizado'
 
@@ -57,7 +57,7 @@ export function PartnerSection({ client }: { client: Client }) {
         </div>
       ) : (
         <p className="muted small" style={{ margin: 0 }}>
-          Preços especiais para este parceiro (ex.: executivo por faixa de m², pacotes de imagens). Entram sozinhos nos orçamentos dele e viram a tabela “exclusivo parceria” em PDF.
+          Preços especiais para este parceiro (ex.: executivo por faixa de m², pacotes de imagens). Entram sozinhos nos orçamentos dele e viram a tabela de parceria em PDF (no seu modelo de proposta).
         </p>
       )}
       {edit && <PartnerEditor client={client} onClose={() => setEdit(false)} />}
@@ -68,7 +68,7 @@ export function PartnerSection({ client }: { client: Client }) {
 function PartnerEditor({ client, onClose }: { client: Client; onClose: () => void }) {
   const { data, upsert } = useStore()
   const st = data.settings
-  const [t, setT] = useState<PartnerTable>(() => client.partner ?? { on: true, services: {}, title: 'exclusivo parceria', number: nextQuoteNumber(data), date: today() })
+  const [t, setT] = useState<PartnerTable>(() => client.partner ?? { on: true, services: {}, title: 'parceria exclusiva', number: nextQuoteNumber(data), date: today() })
   const pdf = usePdf()
   const list = st.services.filter(usable)
   const base = (id: string) => st.services.find((x) => x.id === id)!
@@ -173,7 +173,7 @@ function PartnerEditor({ client, onClose }: { client: Client; onClose: () => voi
       </div>
       <div className="form-grid">
         <Field label="título da tabela">
-          <input value={t.title ?? ''} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="exclusivo parceria" />
+          <input value={t.title ?? ''} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="parceria exclusiva" />
         </Field>
         <Field label="nº (opcional)">
           <input type="number" min={0} value={t.number ?? ''} onChange={(e) => setT({ ...t, number: Number(e.target.value) || undefined })} />
