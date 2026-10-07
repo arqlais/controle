@@ -1,4 +1,5 @@
 import { withPanelShare } from '../clientPanel'
+import { QuoteTableSection } from '../components/PartnerTable'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
@@ -879,6 +880,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             </Section>
           )}
           {pdfOn && <DocLookPanel fold />}
+          <QuoteTableSection q={q} settings={settings} client={client} set={set} />
           {!two ? (
             <Section title="serviços" action={<ScopeTools q={q} settings={settings} phone={client?.phone ?? ''} student={student} onApply={(items) => set({ items })} />}>
               <ItemsEditor audience={audience} items={q.items} student={student} openFile={!!q.openFile} floors={floors} area={q.area} settings={settings} onChange={(items) => set({ items })} />

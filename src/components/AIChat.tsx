@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { AI_ASK_EVENT } from './PartnerTable'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from './Icon'
@@ -258,6 +259,17 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
     setFiles((cur) => [...cur, ...read])
   }
   const current = quoteId ? data.quotes.find((q) => q.id === quoteId) : undefined
+  // "analisar arquivo com a IA" no orçamento: abre o chat com a pergunta pronta (o arquivo ela anexa)
+  useEffect(() => {
+    const on = (e: Event) => {
+      const t = (e as CustomEvent<string>).detail
+      setOpen(true)
+      if (t) setText(t)
+      setTimeout(() => toast('Anexe a planta ou o PDF do cliente (clipe) e envie.'), 300)
+    }
+    window.addEventListener(AI_ASK_EVENT, on)
+    return () => window.removeEventListener(AI_ASK_EVENT, on)
+  }, [])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })

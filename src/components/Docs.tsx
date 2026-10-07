@@ -6,7 +6,7 @@ import { useAccess } from '../access'
 import { resolveTemplate, sheetColors, showsLogo } from '../proposalTemplates'
 import { ProposalSlides } from './Slides'
 import type { Client, PartnerTable, Payment, Project, Quote, QuoteItem, QuoteOption, ServiceDef, Settings, SiteVisit } from '../types'
-import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower, sortedTiers } from '../utils'
+import { packageMonths, packageText, allLabel, atHandle, optionArea, comboSeparate, comboTotal, isCombo, quoteFiles, cleanDetail, cleanSite, itemDiscount, money, optionTotal, quoteNumber, quoteSubtotal, quoteTotal, today, docKind, showDoc, payerOf, lower, sortedTiers, withPartner } from '../utils'
 /* ---------- valor por extenso (pt-BR) ---------- */
 
 const U = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove']
@@ -308,6 +308,17 @@ const discountText = (value: number) => (value > 0 ? `com ${money(value)} de des
 export const isSlides = (q: Quote) => q.audience === 'final' && q.layout !== 'folha'
 
 export function QuoteDoc({ s, client, quote }: { s: Settings; client?: Client; quote: Quote }) {
+  // terceirização com tabela de valores: sai a tabela "exclusivo parceria", com o nº, a data e os combinados do orçamento
+  const tb = quote.table
+  if (tb?.on && Object.keys(tb.services).length)
+    return (
+      <PartnerSheet
+        s={s}
+        client={client}
+        table={{ ...tb, number: quote.noNumber ? undefined : quote.number, date: quote.createdAt, payment: quote.paymentTerms, schedule: quote.schedule, files: quoteFiles(quote, s.services) }}
+        services={withPartner(s, { partner: { ...tb, on: true } } as Client).services}
+      />
+    )
   // cliente final: proposta em slides 16:9 (ou a folha única, se escolheu)
   if (isSlides(quote)) return <ProposalSlides s={s} client={client} quote={quote} />
   return <QuoteSheet s={s} client={client} quote={quote} />

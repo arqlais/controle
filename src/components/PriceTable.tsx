@@ -36,6 +36,7 @@ export function priceSummary(x: ServiceDef) {
   if (x.pricing === 'hora') return `${money(x.price)} por hora${min}`
   if (hasAreaTiers(x)) {
     const t = sortedTiers(x.areaTiers).filter((y) => y.price > 0)
+    if (t.length === 1) return `${money(t[0].price)}/m²${min}`
     return `por faixa de área: ${t.map((y) => `${y.upTo ? `até ${y.upTo} m²` : 'acima'} ${money(y.price)}/m²`).join(' · ')}${min}`
   }
   if (x.pricing === 'm2' && !x.price && x.checklistPrices && Object.keys(x.checklistPrices).length) return `valor por m² de cada opção marcada${min}`
