@@ -1,4 +1,3 @@
-import './partnerTable.css'
 import { useState } from 'react'
 import type { Client, Complexity, PartnerPrice, PartnerTable, Quote, ServiceDef, Settings } from '../types'
 import { useAccess } from '../access'
