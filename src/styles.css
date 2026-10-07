@@ -2257,9 +2257,9 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 @media (max-width: 640px) { .pt-area-tier { grid-template-columns: minmax(0, 1fr) minmax(100px, 130px) 30px; } .pt-area-tier > .nowrap { display: none; } }
 
 /* tabela de parceria: mesmo visual da proposta (quadros claros com borda, valor na faixa do total) */
-.pp-grid { display: grid; gap: 16px; margin-top: 4px; }
+.pp-grid { display: grid; gap: 16px; }
 .pp-grid.is-two { grid-template-columns: 1fr 1fr; }
-.pp-dark, .pp-light { border: 1px solid var(--p-line); border-radius: 9px; padding: 24px 26px 26px; display: flex; flex-direction: column; gap: 24px; color: var(--p-ink); }
+.pp-dark, .pp-light { border: 1px solid var(--p-line); border-radius: 9px; padding: 22px 32px 24px 36px; display: flex; flex-direction: column; gap: 24px; color: var(--p-ink); }
 .pp-block { display: flex; flex-direction: column; gap: 10px; }
 .pp-name { margin: 0; font-size: 16.7px; font-weight: 600; letter-spacing: 0.1em; color: var(--p-rose); text-transform: lowercase; line-height: 1.35; }
 .pp-tier { display: flex; flex-direction: column; gap: 6px; }

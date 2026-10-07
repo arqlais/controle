@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import type { Client, Complexity, PartnerPrice, PartnerTable, Quote, ServiceDef, Settings } from '../types'
 import { useAccess } from '../access'
+import { useStore } from '../store'
 import { Icon } from './Icon'
 import { Field, MoneyInput, Section } from './ui'
 import { AreaTiers } from './PriceTable'
-import { money, sortedTiers, tableServices } from '../utils'
+import { money, quoteNumber, sortedTiers, tableServices } from '../utils'
 
 /* Tabela de valores dentro do orçamento de terceirização (só a dona): tabelinha de m² por faixa,
    valores de render em pacotes, detalhamento… O PDF do orçamento sai como a tabela "exclusivo parceria". */
@@ -31,7 +32,14 @@ function summary(x: ServiceDef) {
 /** No orçamento de terceirização: liga a tabela de valores e edita cada serviço dela. */
 export function QuoteTableSection({ q, settings, client, set }: { q: Quote; settings: Settings; client?: Client; set: (patch: Partial<Quote>) => void }) {
   const { isOwner } = useAccess()
+  const { data } = useStore()
   if (!isOwner || q.audience === 'final') return null
+  // cada parceiro guarda os seus valores: a tabela nova começa pela última dele (ou pela sua tabela base)
+  const last = q.clientId
+    ? data.quotes
+        .filter((x) => x.id !== q.id && x.clientId === q.clientId && x.table && Object.keys(x.table.services).length)
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))[0]
+    : undefined
   const t: PartnerTable = q.table ?? { on: false, services: {}, title: 'exclusivo parceria' }
   const put = (patch: Partial<PartnerTable>) => set({ table: { ...t, ...patch } })
   const list = settings.services.filter(usable)
@@ -42,14 +50,14 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
     else services[id] = { ...(services[id] ?? {}), ...patch }
     put({ services })
   }
-  const include = (x: ServiceDef) =>
-    setSvc(x.id, {
-      // começa com os valores da sua tabela, para só ajustar
+  const baseValues = (x: ServiceDef): PartnerPrice => ({
       price: x.price,
       ...(x.pricing === 'pacote' ? { tiers: x.tiers.map((y) => ({ ...y })) } : {}),
       ...(x.pricing === 'm2' ? { areaTiers: x.areaTiers?.length ? x.areaTiers.map((y) => ({ ...y })) : [{ upTo: 0, price: x.price }] } : {}),
-      incluso: '',
     })
+  const copy = (o: PartnerPrice): PartnerPrice => JSON.parse(JSON.stringify(o))
+  // marcar: os valores combinados com este parceiro na última tabela; se não tiver, os da tabela base
+  const include = (x: ServiceDef) => setSvc(x.id, last?.table?.services[x.id] ? copy(last.table.services[x.id]) : { ...baseValues(x), incluso: '' })
   const ask = () =>
     askAI(
       `Vou anexar o arquivo do cliente${client ? ` (${client.name})` : ''}. Analise e me diga: a área aproximada, quais plantas ele vai precisar, o nível de detalhamento e de complexidade, e quanto cobrar por m² pela minha tabela (sem cobrar a mais nem a menos), mostrando a conta. Se tiver detalhamento, conte as peças e os ambientes. No fim, monte a sugestão de orçamento.`,
@@ -64,7 +72,15 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
       }
     >
       <label className="check toggle">
-        <input type="checkbox" checked={t.on} onChange={(e) => set({ table: { ...t, on: e.target.checked }, ...(e.target.checked ? { pdf: true } : {}) })} /> mandar este orçamento como tabela de valores (m², renders…)
+        <input
+          type="checkbox"
+          checked={t.on}
+          onChange={(e) => {
+            const on = e.target.checked
+            const fresh = on && !Object.keys(t.services).length && last?.table ? { services: JSON.parse(JSON.stringify(last.table.services)) as PartnerTable['services'], title: last.table.title } : {}
+            set({ table: { ...t, ...fresh, on }, ...(on ? { pdf: true } : {}) })
+          }}
+        /> mandar este orçamento como tabela de valores (m², renders…)
       </label>
       {!t.on ? (
         <p className="muted small" style={{ margin: 0 }}>
@@ -75,7 +91,10 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
           <Field label="título">
             <input value={t.title ?? ''} onChange={(e) => put({ title: e.target.value })} placeholder="exclusivo parceria" />
           </Field>
-          <p className="muted small" style={{ margin: 0 }}>Marque o que entra na tabela e ajuste os valores para este parceiro. Pagamento, prazos e formatos vêm dos campos do orçamento.</p>
+          <p className="muted small" style={{ margin: 0 }}>
+            {last ? `Os valores começam pelos combinados com ${client?.name ?? 'este parceiro'} na tabela ${quoteNumber(last)}; ` : 'Os valores começam pela sua tabela base; '}
+            ajuste o que for diferente para esta parceria. Pagamento, prazos e formatos vêm dos campos do orçamento.
+          </p>
           <div className="pp-edit">
             {list.map((x) => {
               const on = !!t.services[x.id]
@@ -127,6 +146,9 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
                           </button>
                         </div>
                       )}
+                      <button type="button" className="link small" onClick={() => setSvc(x.id, baseValues(x))} title="Volta os valores deste serviço para a sua tabela base (configurações → serviços e preços); plantas e incluso ficam">
+                        voltar para a tabela base
+                      </button>
                       <Field label="incluso (aparece na tabela)">
                         <textarea rows={2} value={o.incluso ?? ''} onChange={(e) => setSvc(x.id, { incluso: e.target.value })} placeholder={x.pricing === 'm2' ? 'Ex.: plantas: layout cotado; demolir e construir; hidráulica, elétrica…' : 'Ex.: uma revisão pontual por imagem.'} spellCheck lang="pt-BR" />
                       </Field>
