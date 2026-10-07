@@ -124,7 +124,7 @@ async function callGemini(model: string, key: string, body: string, onText?: (t:
 }
 
 export async function askGemini(key: string, system: string, history: Msg[], onText?: (t: string) => void) {
-  const body = JSON.stringify({
+  const payload = {
     systemInstruction: { parts: [{ text: system }] },
     contents: keepRecentFiles(history).map((m) => ({
       role: m.role,
@@ -134,8 +134,10 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
       ],
     })),
     generationConfig: { temperature: 0.6 },
-  })
+  }
   for (const model of MODELS) {
+    // o 2.5 "pensa" antes de responder: limitado para a resposta começar logo
+    const body = JSON.stringify(model.startsWith('gemini-2.5') ? { ...payload, generationConfig: { ...payload.generationConfig, thinkingConfig: { thinkingBudget: 1024 } } } : payload)
     let r: Awaited<ReturnType<typeof callGemini>> | undefined
     // a conexão do celular às vezes cai: tenta mais uma vez sozinha
     for (let attempt = 0; attempt < 2 && !r; attempt++) {
