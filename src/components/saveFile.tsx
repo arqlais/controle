@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Modal } from './ui'
 import { Icon } from './Icon'
 import { toast } from './dialog'
+import { whatsappLink } from '../utils'
 
 /* Entregar um arquivo gerado (PDF, PNG) para a pessoa.
    Computador/Android: baixa direto.
@@ -13,7 +14,9 @@ const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.pla
 /** Aberto como aplicativo (ícone na tela de início): o download comum não funciona, então vai pelo compartilhar do celular. */
 export const isStandalone = () => window.matchMedia?.('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 
-type Ready = { file: File; url: string } | null
+/** Enviar ao cliente: o PDF vai junto com a mensagem pelo compartilhar do aparelho (WhatsApp, e-mail…). */
+export type SendInfo = { text: string; phone?: string }
+type Ready = { file: File; url: string; send?: SendInfo } | null
 let show: (r: Ready) => void = () => undefined
 
 export function saveFile(blob: Blob, filename: string, done = 'Arquivo baixado.') {
@@ -31,6 +34,12 @@ export function saveFile(blob: Blob, filename: string, done = 'Arquivo baixado.'
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 60_000) // revogar na hora cancelava o download em alguns navegadores
   toast(done)
+}
+
+/** PDF pronto para mandar ao cliente: abre a janela "proposta pronta" com o botão de enviar (o toque é exigido pelo celular para compartilhar). */
+export function sendFile(blob: Blob, filename: string, send: SendInfo) {
+  const file = new File([blob], filename, { type: blob.type || 'application/pdf' })
+  show({ file, url: URL.createObjectURL(file), send })
 }
 
 /** Converte data URL (ex.: PNG do html-to-image) em arquivo. */
@@ -55,6 +64,33 @@ export function FileReadyHost() {
     URL.revokeObjectURL(ready.url)
     setReady(null)
   }
+  const send = ready.send
+  const download = () => {
+    const a = document.createElement('a')
+    a.href = ready.url
+    a.download = ready.file.name
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  }
+  // enviar ao cliente: PDF + mensagem pelo compartilhar; sem ele (computador), baixa o PDF e abre o WhatsApp com a mensagem
+  const sendNow = async () => {
+    if (!send) return
+    void navigator.clipboard?.writeText(send.text).catch(() => undefined) // alguns apps só levam o arquivo: a mensagem fica copiada
+    try {
+      if (navigator.canShare?.({ files: [ready.file] })) {
+        await navigator.share({ files: [ready.file], text: send.text, title: ready.file.name })
+        close()
+        return
+      }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
+    }
+    download()
+    if (send.phone) window.open(whatsappLink(send.phone, send.text), '_blank', 'noopener')
+    toast(send.phone ? 'PDF baixado e WhatsApp aberto com a mensagem: anexe o PDF na conversa (clipe → documento).' : 'PDF baixado e mensagem copiada: anexe o PDF e cole a mensagem na conversa.')
+    close()
+  }
   const share = async () => {
     try {
       if (navigator.canShare?.({ files: [ready.file] })) {
@@ -74,6 +110,30 @@ export function FileReadyHost() {
     a.click()
     a.remove()
   }
+  if (send)
+    return (
+      <Modal
+        title="proposta pronta"
+        onClose={close}
+        footer={
+          <>
+            <button className="btn ghost" onClick={() => (download(), toast('PDF baixado.'))}>
+              <Icon name="download" size={16} /> só baixar
+            </button>
+            <button className="btn primary" onClick={sendNow}>
+              <Icon name="whatsapp" size={16} /> enviar ao cliente
+            </button>
+          </>
+        }
+      >
+        <p>
+          <b>{ready.file.name}</b>
+        </p>
+        <p className="muted small">
+          Toque em <b>enviar ao cliente</b> e escolha o WhatsApp (ou e-mail): o PDF vai junto com a mensagem. A mensagem também fica copiada, caso o app mande só o arquivo.
+        </p>
+      </Modal>
+    )
   return (
     <Modal
       title="arquivo pronto"

@@ -9,7 +9,7 @@ import { CLIENT_SCHEDULE } from '../clientDefaults'
 import { duplicateQuote, moveProjectDate } from '../quoteActions'
 import { DocLookPanel } from '../components/DocKit'
 import { ClosingMessage } from '../components/ClosingMessage'
-import { AI_APPLY_EVENT, AI_PREFILL_KEY, aiPrefill, type AIQuote } from '../aiQuote'
+import { AI_APPLY_EVENT, AI_PREFILL_EVENT, AI_PREFILL_KEY, aiPrefill, type AIQuote } from '../aiQuote'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { afterDeleteDrafts, draftRenumber, nextSentNumber, renumberPlan } from '../numbering'
 import { go, href, setLeaveGuard } from '../router'
@@ -169,6 +169,25 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   // orçamento novo: pergunta para quem é (quem só atende escritórios não precisa escolher)
   const [asking, setAsking] = useState(() => !existing && id === 'novo' && data.settings.workProfile !== 'freelancer' && !aiFill?.audience)
+  // "criar orçamento com isso" com este orçamento novo já aberto: preenche aqui mesmo
+  useEffect(() => {
+    if (id !== 'novo') return
+    const on = () => {
+      try {
+        const raw = sessionStorage.getItem(AI_PREFILL_KEY)
+        sessionStorage.removeItem(AI_PREFILL_KEY)
+        const fill = raw ? (JSON.parse(raw) as Partial<Quote>) : null
+        if (!fill) return
+        setQ((x) => withAI(x, fill))
+        setAsking(false)
+        setDirty(true)
+      } catch {
+        /* sugestão ilegível: fica como está */
+      }
+    }
+    window.addEventListener(AI_PREFILL_EVENT, on)
+    return () => window.removeEventListener(AI_PREFILL_EVENT, on)
+  }, [id])
   // "pôr neste orçamento" no chat da IA: troca os serviços pelos sugeridos (dá para desfazer editando)
   useEffect(() => {
     const on = (e: Event) => {
@@ -444,6 +463,12 @@ export default function QuoteEditor({ id }: { id: string }) {
     if (isSlides(cur)) return pdf.downloadSlides(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
     ;(vector ? pdf.downloadVector : pdf.download)(doc, `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`)
   }
+  // enviar ao cliente: marca como enviado, gera o PDF e manda junto com a mensagem (WhatsApp, e-mail…)
+  const sendPdf = () => {
+    const cur = q.status === 'rascunho' && q.clientId && !q.imported ? save({ status: 'enviado', pdfAt: q.pdfAt || new Date().toISOString() }) ?? q : q
+    const name = `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`
+    pdf.send(<QuoteDoc s={settings} client={client} quote={cur} />, name, { text: text(), phone: client?.phone }, isSlides(cur))
+  }
   const duplicate = () => {
     if (unsaved && q.clientId) save() // guarda o que foi mexido neste antes de copiar
     const copy = duplicateQuote(q, data)
@@ -563,14 +588,19 @@ export default function QuoteEditor({ id }: { id: string }) {
               <Icon name="mail" size={16} /> e-mail
             </a>
           )}
-          {client?.phone && (
+          {showPdf && (
+            <button className="btn ghost" disabled={pdf.busy} onClick={sendPdf} title="Gera o PDF e manda para o cliente junto com a mensagem (WhatsApp, e-mail…)">
+              <Icon name="whatsapp" size={16} /> enviar
+            </button>
+          )}
+          {!showPdf && client?.phone && (
             <a
               className="btn ghost"
               href={whatsappLink(client.phone, text())}
               target="_blank"
               rel="noreferrer"
               onClick={() => q.status === 'rascunho' && save({ status: 'enviado' })}
-              title="Abre o WhatsApp com o resumo; anexe o PDF na conversa"
+              title="Abre o WhatsApp com o orçamento escrito"
             >
               <Icon name="whatsapp" size={16} /> enviar
             </a>

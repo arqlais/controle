@@ -5,7 +5,7 @@ import { Icon } from './Icon'
 import { buildAIPrompt, claudeLink } from './AskAI'
 import { toast } from './dialog'
 import { lowerKeepRS, money, quoteNumber } from '../utils'
-import { AI_APPLY_EVENT, AI_PREFILL_KEY, aiPrefill, aiTotal, parseAIQuote, type AIQuote } from '../aiQuote'
+import { AI_APPLY_EVENT, AI_PREFILL_EVENT, AI_PREFILL_KEY, aiPrefill, aiTotal, parseAIQuote, type AIQuote } from '../aiQuote'
 import { go } from '../router'
 import type { Quote, QuoteAudience } from '../types'
 
@@ -522,7 +522,9 @@ function QuoteSuggestion({ q, current, onClose }: { q: AIQuote; current?: Quote;
       /* sem espaço: abre em branco */
     }
     onClose()
-    go('orcamentos', 'novo')
+    // o orçamento novo já está aberto: a tela não recarrega, então avisa para ela preencher
+    if (/^#\/orcamentos\/novo\b/.test(window.location.hash)) window.dispatchEvent(new Event(AI_PREFILL_EVENT))
+    else go('orcamentos', 'novo')
     toast('Orçamento montado com a sugestão da IA. Confira e edite o que quiser.')
   }
   const toCurrent = () => {

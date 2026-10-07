@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { ARTIFACT } from '../env'
 import { Modal } from './ui'
 import { toast } from './dialog'
-import { dataUrlBlob, isStandalone, saveFile } from './saveFile'
+import { dataUrlBlob, isStandalone, saveFile, sendFile, type SendInfo } from './saveFile'
 
 /** Mostra uma folha A4 (794px) reduzida para caber na largura disponível. */
 export function DocScale({ children, width = 794 }: { children: ReactNode; width?: number }) {
@@ -75,7 +75,7 @@ function madeWith(el: HTMLElement) {
 }
 
 export function usePdf() {
-  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean; slides?: boolean; page?: [number, number] } | null>(null)
+  const [job, setJob] = useState<{ doc: ReactNode; filename: string; png?: boolean; vector?: boolean; slides?: boolean; page?: [number, number]; send?: SendInfo } | null>(null)
   const [preview, setPreview] = useState<ReactNode>(null)
   const [previewW, setPreviewW] = useState(794)
   const ref = useRef<HTMLDivElement>(null)
@@ -88,6 +88,7 @@ export function usePdf() {
       try {
         await document.fonts.ready
         await new Promise((r) => setTimeout(r, 150))
+        const deliver = (blob: Blob) => (job.send ? sendFile(blob, job.filename, job.send) : saveFile(blob, job.filename, 'PDF baixado.'))
         const el = ref.current?.firstElementChild as HTMLElement | null
         if (!el || cancelled) return
         madeWith(el)
@@ -126,7 +127,7 @@ export function usePdf() {
             if (i) pdf.addPage([w, h], orientation)
             pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h, undefined, 'FAST')
           }
-          saveFile(pdf.output('blob'), job.filename, 'PDF baixado.')
+          deliver(pdf.output('blob'))
           return
         }
         const canvas = await renderSheet(el, toCanvas, { pixelRatio: 3 })
@@ -144,7 +145,7 @@ export function usePdf() {
           // PNG (sem perda): o JPEG desbotava as cores chapadas do modelo
           pdf.addImage(slice.toDataURL('image/png'), 'PNG', 0, 0, pageW, (slice.height * pageW) / canvas.width, undefined, 'FAST')
         }
-        saveFile(pdf.output('blob'), job.filename, 'PDF baixado.')
+        deliver(pdf.output('blob'))
       } catch (err) {
         console.error('PDF', err)
         toast(`Não foi possível gerar o ${job.png ? 'arquivo' : 'PDF'} (${errText(err)}). Tente de novo ou me mande um print desta mensagem.`)
@@ -189,6 +190,13 @@ export function usePdf() {
     toast('Gerando PDF…')
     setJob({ doc, filename: clean(filename), page: [w, h] })
   }
+  /** Gera o PDF e abre "proposta pronta" para mandar ao cliente (PDF + mensagem). */
+  const send = (doc: ReactNode, filename: string, info: SendInfo, slides = false) => {
+    setPreviewW(slides ? 1280 : 794)
+    if (ARTIFACT) return setPreview(doc)
+    toast('Gerando PDF…')
+    setJob({ doc, filename: clean(filename), slides, send: info })
+  }
   const downloadPng = (doc: ReactNode, filename: string) => {
     if (ARTIFACT) return setPreview(doc)
     toast('Gerando imagem…')
@@ -214,7 +222,7 @@ export function usePdf() {
       )}
     </>
   )
-  return { download, downloadVector, downloadSlides, downloadPages, downloadPng, busy: !!job && !job.vector, portal }
+  return { download, downloadVector, downloadSlides, downloadPages, downloadPng, send, busy: !!job && !job.vector, portal }
 }
 
 /** Prévia do documento em tamanho grande, por cima da tela (fecha no X, no Esc ou clicando fora). */

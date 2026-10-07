@@ -65,7 +65,7 @@ const STEPS: Step[] = [
     where: { path: ['orçamentos', 'abrir o orçamento', 'baixar PDF / enviar'], page: 'orcamentos' },
     todo: [
       <><b>baixar PDF</b> salva “Proposta #001 - Nome do cliente.pdf”.</>,
-      <><b>enviar</b> abre o WhatsApp com a sua mensagem (“te encaminhei o pdf com a proposta, é negociável ☺️…”); anexe o PDF na conversa. Sem PDF, vai o resumo com os valores. O status muda sozinho para <b>enviado</b>.</>,
+      <><b>enviar</b> gera o PDF e abre <b>proposta pronta</b>: toque em <b>enviar ao cliente</b> e escolha o WhatsApp (ou e-mail) — o PDF vai junto com a sua mensagem. No computador, o PDF baixa e o WhatsApp abre com a mensagem para você anexar. Sem PDF, vai o resumo com os valores. O status muda sozinho para <b>enviado</b>.</>,
       <>No botão <b>mais ⋯</b> ficam <b>mensagens</b> (textos prontos), <b>copiar resumo</b>, <b>duplicar</b> (cópia com a data de hoje e o próximo número) e <b>perguntar à IA</b>.</>,
     ],
   },

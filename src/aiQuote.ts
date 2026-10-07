@@ -95,3 +95,5 @@ export function aiPrefill(q: AIQuote, audience: QuoteAudience, services: Service
 
 export const AI_PREFILL_KEY = 'ia-orcamento-novo'
 export const AI_APPLY_EVENT = 'ia-aplicar-orcamento'
+/** "criar orçamento com isso" com o orçamento novo já aberto na tela: preenche sem precisar reabrir */
+export const AI_PREFILL_EVENT = 'ia-orcamento-novo-pronto'

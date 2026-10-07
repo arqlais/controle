@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-07-enviar-pdf',
+    date: '2026-10-07',
+    kind: 'melhoria',
+    title: 'proposta em PDF direto para o cliente',
+    text: 'O botão enviar do orçamento agora gera o PDF e manda junto com a sua mensagem, pelo WhatsApp ou e-mail. E “criar orçamento com isso”, no assistente, preenche o orçamento mesmo se ele já estiver aberto.',
+  },
+  {
     id: '2026-10-07-fotos-assistente',
     date: '2026-10-07',
     kind: 'correcao',
