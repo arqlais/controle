@@ -1,3 +1,4 @@
+import './partnerTable.css'
 import { useState } from 'react'
 import type { Client, Complexity, PartnerPrice, PartnerTable, Quote, ServiceDef, Settings } from '../types'
 import { useAccess } from '../access'
@@ -13,9 +14,9 @@ import { money, quoteNumber, sortedTiers, tableServices } from '../utils'
 const usable = (x: ServiceDef) => x.pricing !== 'livre' && x.id !== 'personalizado'
 
 
-/** Abre o assistente com uma pergunta pronta (o arquivo do cliente vai anexado lá). */
-export const AI_ASK_EVENT = 'ia-perguntar'
-export const askAI = (text: string) => window.dispatchEvent(new CustomEvent(AI_ASK_EVENT, { detail: text }))
+import { askAI } from '../aiQuote'
+import { askGemini, readFile, type Attachment } from './AIChat'
+import { toast } from './dialog'
 
 /** Resumo de uma linha do valor. */
 function summary(x: ServiceDef) {
@@ -88,6 +89,24 @@ export function QuoteTableSection({ q, settings, client, set }: { q: Quote; sett
         </p>
       ) : (
         <>
+          <ClientAsk
+            settings={settings}
+            onFill={(r) => {
+              const services = { ...t.services }
+              for (const it of r.servicos ?? []) {
+                const x = list.find((y) => y.id === it.id)
+                if (!x) continue
+                const cur = services[x.id] ?? (last?.table?.services[x.id] ? copy(last.table.services[x.id]) : { ...baseValues(x), incluso: '' })
+                const cx = (['simples', 'media', 'alta'] as const).find((c) => c === it.complexidade)
+                services[x.id] = {
+                  ...cur,
+                  ...(x.pricing === 'm2' ? { plantas: (it.plantas ?? []).map((p) => p.trim()).filter(Boolean), ...(cx ? { complexity: cx } : {}) } : {}),
+                  ...(it.incluso?.trim() && !cur.incluso?.trim() ? { incluso: it.incluso.trim() } : {}),
+                }
+              }
+              put({ services })
+            }}
+          />
           <Field label="título">
             <input value={t.title ?? ''} onChange={(e) => put({ title: e.target.value })} placeholder="exclusivo parceria" />
           </Field>
@@ -209,6 +228,79 @@ function PlantasPicker({ x, o, onChange }: { x: ServiceDef; o: PartnerPrice; onC
           <Icon name="plus" size={14} /> incluir
         </button>
       </div>
+    </div>
+  )
+}
+
+/** "o que o cliente pediu": texto colado e/ou print/PDF → a IA marca serviços, plantas e complexidade na tabela. */
+type AIFill = { servicos?: { id: string; plantas?: string[]; complexidade?: string; incluso?: string }[]; area?: number | null; resumo?: string }
+function ClientAsk({ settings, onFill }: { settings: Settings; onFill: (r: AIFill) => void }) {
+  const [text, setText] = useState('')
+  const [files, setFiles] = useState<Attachment[]>([])
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const key = settings.aiKey
+  const add = async (list: FileList | null) => {
+    if (!list) return
+    const read = (await Promise.all([...list].map((f) => readFile(f).catch(() => null)))).filter((f): f is Attachment => !!f)
+    setFiles((cur) => [...cur, ...read])
+  }
+  const run = async () => {
+    if (!key) return toast('Coloque a chave do Gemini em configurações → assistente.')
+    if (!text.trim() && !files.length) return toast('Cole o que o cliente pediu ou anexe o print/arquivo.')
+    setBusy(true)
+    setNote('')
+    const svcs = settings.services
+      .filter(usable)
+      .map((x) => `- ${x.id}: ${x.name} (${x.pricing === 'm2' ? 'por m²' : x.pricing === 'pacote' ? `pacotes de ${x.unit}` : `por ${x.unit}`})${x.checklist?.filter((c) => c.trim()).length ? ` — opções: ${x.checklist!.filter((c) => c.trim()).join('; ')}` : ''}`)
+      .join('\n')
+    const system = `Você ajuda uma arquiteta freelancer a montar a tabela de valores de um orçamento de terceirização para um escritório parceiro.
+Serviços dela (id: nome — forma de cobrar — opções):
+${svcs}
+
+Leia o pedido do cliente (texto, print ou PDF/planta) e responda SÓ com um JSON, sem nada antes ou depois:
+{"servicos":[{"id":"<id da lista>","plantas":["<plantas/itens pedidos>"],"complexidade":"simples|media|alta","incluso":"<observação curta opcional>"}],"area":<m² aproximado ou null>,"resumo":"<1 ou 2 frases do que você entendeu do pedido>"}
+Regras: use só ids da lista. Em "plantas", use os nomes das opções da lista quando corresponderem e escreva outros itens quando o cliente pedir algo fora da lista (ex.: "planta de pontos de tomada"). Complexidade: simples (pouco detalhe, poucos ambientes), media (o comum), alta (muitos ambientes, muito detalhe, curvas, vários pavimentos). Se o pedido não citar plantas, deixe "plantas" vazio (vale o projeto completo).`
+    try {
+      const out = await askGemini(key, system, [{ role: 'user', text: text.trim() || 'Veja o anexo com o pedido do cliente.', files }])
+      const m = out.match(/\{[\s\S]*\}/)
+      const r = m ? (JSON.parse(m[0]) as AIFill) : null
+      if (!r?.servicos?.length) throw new Error('A IA não identificou serviços no pedido. Tente colar o texto com mais detalhes.')
+      onFill(r)
+      setNote(`${r.resumo ?? ''}${r.area ? ` · área aproximada: ${r.area} m²` : ''}`)
+      toast('Tabela preenchida pelo pedido do cliente. Confira e ajuste o que quiser.')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Não deu para ler o pedido agora.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="pp-ask">
+      <span className="field-label">o que o cliente pediu</span>
+      <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} onPaste={(e) => e.clipboardData.files.length && (e.preventDefault(), void add(e.clipboardData.files))} placeholder="Cole aqui a mensagem do cliente (ou cole/anexe o print, a planta ou o PDF)" spellCheck lang="pt-BR" />
+      {files.length > 0 && (
+        <div className="scope-chips">
+          {files.map((f, i) => (
+            <span key={i} className="scope-chip on">
+              <Icon name="file" size={12} /> {f.name}
+              <button type="button" className="link small" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={`Tirar ${f.name}`}>
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="row gap-s wrap">
+        <label className="btn small ghost">
+          <Icon name="clip" size={14} /> anexar print ou arquivo
+          <input type="file" accept="image/*,.heic,.heif,application/pdf" multiple hidden onChange={(e) => (void add(e.target.files), (e.target.value = ''))} />
+        </label>
+        <button type="button" className="btn small primary" disabled={busy} onClick={run}>
+          <Icon name="sparkle" size={14} /> {busy ? 'lendo o pedido…' : 'preencher a tabela com a IA'}
+        </button>
+      </div>
+      {note && <p className="muted small" style={{ margin: 0 }}>{note}</p>}
     </div>
   )
 }

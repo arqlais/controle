@@ -1,0 +1,2 @@
+.pp-ask { display: grid; gap: 8px; padding: 14px; border: 1px dashed var(--border); border-radius: 14px; }
+.pp-ask .scope-chip .link { margin-left: 4px; }

@@ -1,19 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { AI_ASK_EVENT } from './PartnerTable'
 import { useStore } from '../store'
 import { href } from '../router'
 import { Icon } from './Icon'
 import { buildAIPrompt, claudeLink } from './AskAI'
 import { toast } from './dialog'
 import { lowerKeepRS, money, quoteNumber } from '../utils'
-import { AI_APPLY_EVENT, AI_PREFILL_EVENT, AI_PREFILL_KEY, aiPrefill, aiTotal, parseAIQuote, type AIQuote } from '../aiQuote'
+import { AI_APPLY_EVENT, AI_ASK_EVENT, AI_PREFILL_EVENT, AI_PREFILL_KEY, aiPrefill, aiTotal, parseAIQuote, type AIQuote } from '../aiQuote'
 import { go } from '../router'
 import type { Quote, QuoteAudience } from '../types'
 
 /* Assistente de orçamentos (chat) com o Gemini do Google, usando a chave da própria usuária.
    A cada pergunta vai junto o "briefing" do estúdio: processo, regras, tabela e histórico. */
 
-interface Attachment {
+export interface Attachment {
   name: string
   mime: string
   data: string // base64
@@ -60,7 +59,7 @@ const shrinkImage = (f: File) =>
     img.src = url
   })
 
-const readFile = async (f: File): Promise<Attachment> => {
+export const readFile = async (f: File): Promise<Attachment> => {
   if (isImage(f)) {
     const small = await shrinkImage(f)
     if (small) return { name: f.name, mime: 'image/jpeg', data: small.split(',')[1] ?? '', preview: small }
