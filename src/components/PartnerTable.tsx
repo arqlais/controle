@@ -68,7 +68,7 @@ export function PartnerSection({ client }: { client: Client }) {
 function PartnerEditor({ client, onClose }: { client: Client; onClose: () => void }) {
   const { data, upsert } = useStore()
   const st = data.settings
-  const [t, setT] = useState<PartnerTable>(() => client.partner ?? { on: true, services: {}, title: 'parceria exclusiva', number: nextQuoteNumber(data), date: today() })
+  const [t, setT] = useState<PartnerTable>(() => client.partner ?? { on: true, services: {}, title: 'exclusivo parceria', number: nextQuoteNumber(data), date: today() })
   const pdf = usePdf()
   const list = st.services.filter(usable)
   const base = (id: string) => st.services.find((x) => x.id === id)!
@@ -173,7 +173,7 @@ function PartnerEditor({ client, onClose }: { client: Client; onClose: () => voi
       </div>
       <div className="form-grid">
         <Field label="título da tabela">
-          <input value={t.title ?? ''} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="parceria exclusiva" />
+          <input value={t.title ?? ''} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="exclusivo parceria" />
         </Field>
         <Field label="nº (opcional)">
           <input type="number" min={0} value={t.number ?? ''} onChange={(e) => setT({ ...t, number: Number(e.target.value) || undefined })} />

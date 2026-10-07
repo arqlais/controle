@@ -42,7 +42,7 @@ export const NEWS: News[] = [
     date: '2026-10-07',
     kind: 'melhoria',
     title: 'proposta em PDF direto para o cliente',
-    text: 'O botão enviar do orçamento agora gera o PDF e manda junto com a sua mensagem, pelo WhatsApp ou e-mail. E “criar orçamento com isso”, no assistente, preenche o orçamento mesmo se ele já estiver aberto. Se faltar o cliente para salvar, o sistema avisa e leva direto ao campo.',
+    text: 'O botão enviar do orçamento agora gera o PDF e manda junto com a sua mensagem, pelo WhatsApp ou e-mail. E “criar orçamento com isso”, no assistente, preenche o orçamento mesmo se ele já estiver aberto. Orçamento ainda sem cliente fica salvo como rascunho; o cliente só é pedido na hora de enviar ou aprovar.',
   },
   {
     id: '2026-10-07-fotos-assistente',

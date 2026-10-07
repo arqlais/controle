@@ -225,8 +225,6 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [touched, setTouched] = useState(false)
   const unsaved = dirty && touched
   const saveRef = useRef<() => Quote | null>(() => null)
-  const hasClientRef = useRef(false)
-  hasClientRef.current = !!q.clientId
   const deletingRef = useRef(false)
   const draftKey = `orcamento-em-edicao:${id}`
   // cópia de segurança no aparelho enquanto edita (fechou/travou/recarregou: dá para recuperar)
@@ -248,7 +246,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   }, [q, unsaved, draftKey, recover])
   // falta o cliente para salvar: avisa e leva até o campo
   const focusClient = () => {
-    toast('Para salvar, escolha o cliente deste orçamento.')
+    toast('Para enviar ou aprovar, escolha o cliente deste orçamento.')
     const el = document.getElementById('q-client') as HTMLInputElement | null
     if (!el) return
     el.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -265,19 +263,6 @@ export default function QuoteEditor({ id }: { id: string }) {
     // sair pelo menu, por um link ou pela setinha sem salvar: pergunta
     const confirmLeave = async () => {
       if (deletingRef.current) return true
-      // sem cliente não dá para salvar: explica e leva até o campo, em vez de perguntar de novo
-      if (!hasClientRef.current) {
-        const c = await askChoice('Este orçamento ainda não tem cliente, por isso não dá para salvar. Escolha o cliente para salvar, ou saia sem salvar.', { confirmLabel: 'Escolher cliente', altLabel: 'Sair sem salvar' })
-        if (c === 'confirm') focusClient()
-        if (c !== 'alt') return false
-        try {
-          localStorage.removeItem(draftKey)
-        } catch {
-          /* ok */
-        }
-        setTouched(false)
-        return true
-      }
       const choice = await askChoice('Este orçamento tem alterações que não foram salvas.', { confirmLabel: 'Salvar e sair', altLabel: 'Sair sem salvar' })
       if (choice === 'cancel') return false
       if (choice === 'confirm' && !saveRef.current()) return false // sem cliente: fica para completar
@@ -404,10 +389,12 @@ export default function QuoteEditor({ id }: { id: string }) {
     const next = { ...q, ...patch }
     // orçamento antigo: "enviado" na data do orçamento, não no dia em que foi lançado
     if (next.status !== 'rascunho' && !next.sentAt) next.sentAt = next.noNumber || next.imported ? next.createdAt : today()
-    if (!next.clientId) {
+    // sem cliente: fica como rascunho (para enviar ou aprovar, aí precisa do cliente)
+    if (!next.clientId && next.status !== 'rascunho') {
       focusClient()
       return null
     }
+    if (!next.clientId && !q.clientId && dirty) toast('Salvo como rascunho, ainda sem cliente. Escolha o cliente antes de enviar.')
     if (next.noNumber) {
       // orçamento antigo sem número: fica fora da numeração
       next.number = 0
