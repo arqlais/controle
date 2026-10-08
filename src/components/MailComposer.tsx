@@ -20,7 +20,22 @@ interface Draft {
   text: string
   button: string
   para: Para
+  link?: LinkId // para onde o botão leva
 }
+
+/** Para onde o botão do e-mail leva (a IA escolhe pelo texto; dá para trocar). */
+type LinkId = 'inicio' | 'avaliar' | 'sugestoes' | 'assinatura' | 'indique' | 'orcamento' | 'manual'
+const LINKS: { id: LinkId; label: string; hash: string; hint: string }[] = [
+  { id: 'inicio', label: 'início do planê', hash: '', hint: 'abrir o sistema, novidades, voltar a usar' },
+  { id: 'avaliar', label: 'dar feedback / avaliar', hash: '#/avaliar', hint: 'opinião, avaliação, depoimento' },
+  { id: 'sugestoes', label: 'sugestões', hash: '#/sugestoes', hint: 'pedir ideias, sugerir funções' },
+  { id: 'assinatura', label: 'planos e assinatura', hash: '#/assinatura', hint: 'assinar, fim do teste, preço de fundador' },
+  { id: 'indique', label: 'indique e ganhe', hash: '#/indique', hint: 'indicar amigas' },
+  { id: 'orcamento', label: 'novo orçamento', hash: '#/orcamentos/novo', hint: 'dica de uso de orçamento' },
+  { id: 'manual', label: 'manual', hash: '#/manual', hint: 'tutorial, como usar' },
+]
+const linkUrl = (id?: LinkId) => `${PLATFORM.url.replace(/\/$/, '')}/${LINKS.find((l) => l.id === id)?.hash ?? ''}`.replace(/\/$/, '')
+
 
 const PARA: { id: Para; label: string; who: (s: Subscription) => boolean }[] = [
   { id: 'todos', label: 'todos (teste e assinantes)', who: (s) => s.status !== 'cancelada' && !s.blocked },
@@ -39,7 +54,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'novidade',
       title: news?.title ?? 'Tem novidade no planê',
       text: `Oi, {nome}!\n\n${news?.text ?? ''}\n\nQualquer dúvida, é só chamar no chat dentro do planê.`,
-      button: 'ver no planê',
+      button: 'ver no planê', link: 'inicio',
       para: 'todos',
     },
   },
@@ -51,7 +66,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'dica',
       title: 'Orçamento pronto em 2 minutos',
       text: 'Oi, {nome}!\n\nSabia que o orçamento do planê já calcula o valor pelo seu jeito de cobrar (por hora, m², unidade ou pacote)? Você escolhe o cliente e os serviços, e a proposta em PDF sai com a sua marca, pronta para enviar.\n\nDepois de aprovado, o contrato já vem preenchido com os dados do orçamento.',
-      button: 'fazer um orçamento',
+      button: 'fazer um orçamento', link: 'orcamento',
       para: 'todos',
     },
   },
@@ -63,7 +78,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'teste grátis',
       title: 'Seu teste está chegando ao fim',
       text: `Oi, {nome}!\n\nSeu teste grátis de ${TRIAL_DAYS} dias está acabando. Tudo o que você criou continua guardado: clientes, orçamentos, contratos e financeiro.\n\nAssinando agora, você garante o **preço de fundador** por 12 meses, no Pix ou no cartão, sem fidelidade.`,
-      button: 'escolher meu plano',
+      button: 'escolher meu plano', link: 'assinatura',
       para: 'teste',
     },
   },
@@ -75,7 +90,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'preço de fundador',
       title: 'Garanta o valor de lançamento',
       text: 'Oi, {nome}!\n\nQuem assina agora mantém o **preço de fundador por 12 meses**, mesmo quando a tabela mudar. É a forma de agradecer quem acreditou no planê desde o começo.\n\nSem fidelidade: dá para cancelar quando quiser.',
-      button: 'assinar agora',
+      button: 'assinar agora', link: 'assinatura',
       para: 'teste',
     },
   },
@@ -87,7 +102,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'sua opinião',
       title: 'Posso te pedir 1 minutinho?',
       text: 'Oi, {nome}!\n\nO planê está crescendo junto com quem usa, e a sua opinião faz muita diferença. O que está funcionando bem? O que poderia ser mais fácil?\n\nÉ só responder pelo chat dentro do sistema ou deixar uma sugestão no menu **sugestões**.',
-      button: 'mandar minha opinião',
+      button: 'mandar minha opinião', link: 'avaliar',
       para: 'todos',
     },
   },
@@ -99,7 +114,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'depoimento',
       title: 'O planê te ajudou?',
       text: 'Oi, {nome}!\n\nSe o planê tem deixado a sua rotina mais leve, um depoimento seu ajuda muito outras arquitetas, designers e freelancers a conhecerem o sistema.\n\nLeva menos de 1 minuto, no menu **deixar depoimento**.',
-      button: 'deixar meu depoimento',
+      button: 'deixar meu depoimento', link: 'avaliar',
       para: 'assinantes',
     },
   },
@@ -111,7 +126,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       eyebrow: 'volta?',
       title: 'Seus dados continuam guardados',
       text: 'Oi, {nome}!\n\nDesde que você saiu, o planê ganhou várias novidades: nome e marca novos, endereço próprio (useplane.com.br) e muitos ajustes que vocês pediram.\n\nSeus clientes, orçamentos e documentos continuam guardados. Se quiser voltar, é só entrar com o mesmo e-mail.',
-      button: 'voltar para o planê',
+      button: 'voltar para o planê', link: 'inicio',
       para: 'saiu',
     },
   },
@@ -165,15 +180,19 @@ Regras:
 - 2 a 4 parágrafos curtos, separados por linha em branco. Pode usar **negrito** em 1 ou 2 trechos importantes. Sem títulos nem listas longas.
 - Emojis pontuais: de 1 a 3 no e-mail inteiro, delicados e combinando com o assunto (ex.: 🤍 ✨ 💛 ☺️ 📐), nunca um em cada frase. No assunto, no máximo 1.
 - Nunca invente preço, prazo ou função. Use só o que estiver no rascunho ou na ideia.
-- Assunto com até 60 caracteres, chamativo e honesto. Título com até 50 caracteres. Botão com até 3 palavras, em minúsculas.
-Responda só com JSON: {"subject":"…","title":"…","text":"…","button":"…"}`
+- Assunto com até 60 caracteres que desperte curiosidade e dê vontade de abrir (pergunta, novidade pela metade, benefício concreto), sem cara de spam: nada de TUDO EM MAIÚSCULAS, "urgente", "grátis!!!" nem promessa falsa.
+- Legenda (eyebrow): 1 ou 2 palavras em minúsculas que resumem o tema (ex.: novidade, dica, sua opinião).
+- Título com até 50 caracteres. Botão com até 3 palavras, em minúsculas, com a ação que o texto pede (ex.: "dar meu feedback", "ver a novidade").
+- "link": para onde o botão leva, combinando com o que o texto pede. Use um destes: ${LINKS.map((l) => `${l.id} (${l.hint})`).join('; ')}.
+Responda só com JSON: {"subject":"…","eyebrow":"…","title":"…","text":"…","button":"…","link":"…"}`
   const prompt = `Tema: ${theme}.\n${idea.trim() ? `O que eu quero dizer: ${idea.trim()}\n` : ''}Rascunho atual:\nAssunto: ${d.subject}\nTítulo: ${d.title}\nTexto:\n${d.text}\nBotão: ${d.button}\n\n${d.text.replace(/oi,?\s*\{nome\}!?/i, '').trim() ? 'Melhore este e-mail.' : 'Escreva este e-mail.'}`
   const out = await askGemini(key, system, [{ role: 'user', text: prompt }])
   const m = out.match(/\{[\s\S]*\}/)
   if (!m) throw new Error('resposta sem JSON')
   const j = JSON.parse(m[0]) as Partial<Draft>
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : undefined)
-  return { subject: str(j.subject), title: str(j.title), text: str(j.text), button: str(j.button) }
+  const link = LINKS.find((l) => l.id === str((j as { link?: string }).link))?.id
+  return { subject: str(j.subject), eyebrow: str(j.eyebrow), title: str(j.title), text: str(j.text), button: str(j.button), link }
 }
 
 /* rascunhos: o que está sendo escrito fica guardado sozinho neste aparelho, e dá para salvar vários */
@@ -229,12 +248,18 @@ export function MailComposer({ subs, onSent }: { subs: Subscription[]; onSent: (
     setTheme(id)
     setD(THEMES.find((t) => t.id === id)!.draft)
   }
+  // limpar texto e legendas de uma vez (a IA escreve do zero, sem misturar com o que estava escrito)
+  const clear = async () => {
+    if ((d.subject.trim() || d.title.trim() || d.text.replace(/oi,?\s*\{nome\}!?/i, '').trim()) && !(await ask('Limpar assunto, legenda, título, texto e botão?', { confirmLabel: 'Limpar' }))) return
+    setD((x) => ({ ...x, subject: '', eyebrow: '', title: '', text: '', button: '', link: 'inicio' }))
+    toast('Limpo. Escreva a ideia e toque em “escrever com IA”.')
+  }
   const runAI = async () => {
     if (!aiKey) return toast('Para a IA escrever, coloque sua chave do Gemini em configurações → assistente.')
     setBusy('ia')
     try {
       const r = await improve(aiKey, d, THEMES.find((t) => t.id === theme)!.label, idea)
-      setD((x) => ({ ...x, subject: r.subject || x.subject, title: r.title || x.title, text: r.text || x.text, button: r.button ?? x.button }))
+      setD((x) => ({ ...x, subject: r.subject || x.subject, eyebrow: r.eyebrow || x.eyebrow, title: r.title || x.title, text: r.text || x.text, button: r.button ?? x.button, link: r.link ?? x.link }))
       toast('Pronto! Confira e ajuste o que quiser.')
     } catch {
       toast('A IA não respondeu agora. Tente de novo em instantes.')
@@ -245,7 +270,8 @@ export function MailComposer({ subs, onSent }: { subs: Subscription[]; onSent: (
     if (!teste && !(await ask(`Mandar “${d.subject}” para ${reach} pessoa(s)?`, { confirmLabel: 'Mandar' }))) return
     setBusy(teste ? 'teste' : 'envio')
     try {
-      const r = await platform.notice({ tipo: 'campanha', ...d, subject: d.subject.trim(), title: d.title.trim(), text: d.text.trim(), teste })
+      const { link, ...rest } = d
+      const r = await platform.notice({ tipo: 'campanha', ...rest, url: linkUrl(link), subject: d.subject.trim(), title: d.title.trim(), text: d.text.trim(), teste })
       if (r.erro) toast(`Não foi: ${r.erro}`)
       else toast(teste ? 'Teste enviado para o seu e-mail.' : `Enviado para ${r.enviados ?? 0} pessoa(s).`)
       if (!teste) onSent()
@@ -296,21 +322,38 @@ export function MailComposer({ subs, onSent }: { subs: Subscription[]; onSent: (
           <Field label="Assunto">
             <input value={d.subject} onChange={(e) => set({ subject: e.target.value })} maxLength={150} />
           </Field>
+          <Field label="Legenda" hint="A palavrinha acima do título (ex.: novidade, dica).">
+            <input value={d.eyebrow} onChange={(e) => set({ eyebrow: e.target.value })} maxLength={40} />
+          </Field>
           <Field label="Título dentro do e-mail">
             <input value={d.title} onChange={(e) => set({ title: e.target.value })} maxLength={150} />
           </Field>
           <Field label="Texto" hint="Linha em branco = novo parágrafo.">
             <textarea rows={9} value={d.text} onChange={(e) => set({ text: e.target.value })} spellCheck lang="pt-BR" />
           </Field>
-          <Field label="Botão" hint="Deixe vazio para não ter botão. Ele abre o planê.">
+          <Field label="Botão" hint="Deixe vazio para não ter botão.">
             <input value={d.button} onChange={(e) => set({ button: e.target.value })} maxLength={40} />
           </Field>
+          {d.button.trim() && (
+            <Field label="O botão leva para">
+              <select value={d.link ?? 'inicio'} onChange={(e) => set({ link: e.target.value as LinkId })}>
+                {LINKS.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <div className="mc-ai">
             <Field label="Ideia para a IA (opcional)" hint="Ex.: avisar que agora dá para assinar o contrato pelo link, tom animado.">
               <input value={idea} onChange={(e) => setIdea(e.target.value)} placeholder="o que você quer dizer, do seu jeito" />
             </Field>
             <button className="btn" disabled={!!busy} onClick={() => void runAI()} title={aiKey ? 'A IA escreve ou melhora o texto. Você confere antes de mandar.' : 'Coloque sua chave do Gemini em configurações → assistente'}>
-              <Icon name="sparkle" size={15} /> {busy === 'ia' ? 'escrevendo…' : 'melhorar com IA'}
+              <Icon name="sparkle" size={15} /> {busy === 'ia' ? 'escrevendo…' : d.text.replace(/oi,?\s*\{nome\}!?/i, '').trim() ? 'melhorar com IA' : 'escrever com IA'}
+            </button>
+            <button className="btn ghost" disabled={!!busy} onClick={() => void clear()} title="Apaga assunto, legenda, título, texto e botão para a IA escrever do zero">
+              <Icon name="trash" size={15} /> limpar
             </button>
           </div>
         </div>

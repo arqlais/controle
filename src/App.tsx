@@ -1,4 +1,5 @@
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { photoModeOn, setPhotoMode } from './photoMode'
 import { upgradeOwnerServices } from './pricingV2'
 import { emptyData, hasDemoData, useStore } from './store'
 import { BrandMark } from './components/PlaneMark'
@@ -174,6 +175,18 @@ export default function App() {
     if (sync === 'loading' || isSample || !access.isOwner || settings.pricingV2) return
     setSettings({ services: upgradeOwnerServices(settings.services), pricingV2: true })
   }, [sync, isSample, access.isOwner, settings.pricingV2, settings.services, setSettings])
+  // modo foto (só a dona): valores desfocados e sobrenome dos clientes escondido, para print
+  const [photo, setPhoto] = useState(() => photoModeOn())
+  const clientNames = data.clients.map((c) => c.name)
+  useEffect(() => {
+    if (!access.isOwner) return
+    setPhotoMode(photo, clientNames)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo, access.isOwner, clientNames.join('|')])
+  const togglePhoto = () => {
+    setPhoto((v) => !v)
+    toast(photo ? 'Modo foto desligado.' : 'Modo foto: valores desfocados e só o primeiro nome dos clientes. Pode tirar o print.')
+  }
   // aparelho da dona: vê as novidades ainda em teste (inclusive em "ver como cliente")
   useEffect(() => {
     if (access.isOwner) markBetaDevice()
@@ -592,6 +605,12 @@ export default function App() {
                   </a>
                 )
               })}
+              {g.key === 'plataforma' && access.isOwner && (
+                <button type="button" className={`is-tool nav-tour ${photo ? 'active' : ''}`} onClick={togglePhoto} title="Para tirar print e postar: desfoca os valores e mostra só o primeiro nome dos clientes. Toque de novo para voltar.">
+                  <Icon name="camera" />
+                  <span>{photo ? 'modo foto ligado' : 'modo foto'}</span>
+                </button>
+              )}
               {g.key === 'plataforma' && (
                 <button type="button" className="is-tool nav-tour" onClick={() => openClientView()} title="Abrir o sistema como um cliente novo em teste grátis (nada é salvo)">
                   <Icon name="user" />

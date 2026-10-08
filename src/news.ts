@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-08-modo-foto-emails',
+    date: '2026-10-08',
+    kind: 'novo',
+    title: 'modo foto e e-mails mais espertos',
+    text: 'Modo foto no menu (plataforma): desfoca os valores e mostra só o primeiro nome dos clientes, para tirar print. Nos e-mails: botão limpar, assunto que dá vontade de abrir e o botão leva para a página certa (feedback, sugestões, planos…).',
+    feature: 'painelDona',
+  },
+  {
     id: '2026-10-07-orcamento-parceria',
     date: '2026-10-07',
     kind: 'novo',
