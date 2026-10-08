@@ -844,8 +844,17 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
     () => ({ data: view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId: userId ?? '', agenda, publishAgendaNow, isSample: !!sample, showSample }),
     [view, upsert, remove, setSettings, replaceAll, lastSaved, sync, userEmail, userId, agenda, publishAgendaNow, sample, showSample],
   )
+  // a tela de entrada fica até o P terminar de se desenhar (1,2 s + um respiro), mesmo que os dados cheguem antes
+  const introShown = useRef(false)
+  const [introHold, setIntroHold] = useState(false)
+  useEffect(() => {
+    if (sync !== 'loading' || introShown.current) return
+    introShown.current = true
+    setIntroHold(true)
+    setTimeout(() => setIntroHold(false), 1400)
+  }, [sync])
   // tela de entrada: sempre com a marca da plataforma (o estúdio de quem usa aparece depois, dentro do sistema)
-  if (sync === 'loading') return <div className="loading-screen"><BrandMark place="carregando" size={64} className="is-drawing" /><span className="brand-name">{PLATFORM.name}</span><p className="muted small">carregando seus dados…</p></div>
+  if (sync === 'loading' || introHold) return <div className="loading-screen"><BrandMark place="carregando" size={64} className="is-drawing" /><span className="brand-name">{PLATFORM.name}</span><p className="muted small">carregando seus dados…</p></div>
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
