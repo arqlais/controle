@@ -96,14 +96,39 @@ export const DEFAULT_MARKS: Record<MarkPlace, MarkSpec> = {
   topo: { variant: 'circulo-inteiro', bg: MARK.rosa, line: MARK.azul },
   rodape: { variant: 'circulo-inteiro', bg: MARK.blush, line: MARK.azul },
   entrar: { variant: 'solto', bg: MARK.rosa, line: MARK.rosa },
-  carregando: { variant: 'quadrado', bg: MARK.azul, line: MARK.papel },
+  carregando: { variant: 'quadrado', bg: MARK.rosa, line: MARK.azul },
 }
 
-let marks: Record<MarkPlace, MarkSpec> = DEFAULT_MARKS
+/* a escolha do painel fica guardada no aparelho: ao abrir, o símbolo já vem certo (sem trocar de cor no meio) */
+const CACHE = 'plane-marcas'
+const OLD_LOADING = { variant: 'quadrado', bg: MARK.azul, line: MARK.papel }
+function clean(m?: Partial<Record<MarkPlace, MarkSpec>> | null) {
+  const out = { ...(m ?? {}) }
+  // o "carregando" azul antigo (padrão de antes) vira o rosa
+  const c = out.carregando
+  if (c && !c.image && c.variant === OLD_LOADING.variant && c.bg === OLD_LOADING.bg && c.line === OLD_LOADING.line) delete out.carregando
+  return { ...DEFAULT_MARKS, ...out }
+}
+function cached(): Record<MarkPlace, MarkSpec> {
+  try {
+    return clean(JSON.parse(localStorage.getItem(CACHE) || 'null'))
+  } catch {
+    return DEFAULT_MARKS
+  }
+}
+
+let marks: Record<MarkPlace, MarkSpec> = cached()
 const listeners = new Set<() => void>()
 /** Troca os logotipos (vindos do painel). Lugar sem escolha fica com o padrão. */
 export function setBrandMarks(m?: Partial<Record<MarkPlace, MarkSpec>> | null) {
-  marks = { ...DEFAULT_MARKS, ...(m ?? {}) }
+  marks = clean(m)
+  try {
+    // imagens próprias ficam de fora (podem ser grandes demais para guardar)
+    const light = Object.fromEntries(Object.entries(m ?? {}).filter(([, v]) => !v?.image))
+    localStorage.setItem(CACHE, JSON.stringify(light))
+  } catch {
+    /* sem armazenamento: usa o padrão */
+  }
   listeners.forEach((f) => f())
 }
 const subscribe = (f: () => void) => (listeners.add(f), () => void listeners.delete(f))

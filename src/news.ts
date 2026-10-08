@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-08-carregando',
+    date: '2026-10-08',
+    kind: 'melhoria',
+    title: 'abertura mais suave',
+    text: 'Ao abrir o sistema, o símbolo do planê aparece em rosa e se desenha uma vez só, rapidinho, sem ficar piscando.',
+  },
+  {
     id: '2026-10-08-modo-foto-emails',
     date: '2026-10-08',
     kind: 'novo',
