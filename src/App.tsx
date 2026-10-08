@@ -178,14 +178,15 @@ export default function App() {
   // modo foto (só a dona): valores desfocados e sobrenome dos clientes escondido, para print
   const [photo, setPhoto] = useState(() => photoModeOn())
   const clientNames = data.clients.map((c) => c.name)
+  const clientData = data.clients.flatMap((c) => [c.email, c.phone, c.company, c.companyLegal, c.document, c.companyDoc, c.address, c.instagram, c.cep].filter((x): x is string => !!x && x.trim().length >= 5))
   useEffect(() => {
     if (!access.isOwner) return
-    setPhotoMode(photo, clientNames)
+    setPhotoMode(photo, clientNames, clientData)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photo, access.isOwner, clientNames.join('|')])
+  }, [photo, access.isOwner, clientNames.join('|'), clientData.join('|')])
   const togglePhoto = () => {
     setPhoto((v) => !v)
-    toast(photo ? 'Modo foto desligado.' : 'Modo foto: valores desfocados e só o primeiro nome dos clientes. Pode tirar o print.')
+    toast(photo ? 'Modo foto desligado.' : 'Modo foto: valores, sobrenomes e dados dos clientes escondidos. Pode tirar o print.')
   }
   // aparelho da dona: vê as novidades ainda em teste (inclusive em "ver como cliente")
   useEffect(() => {
@@ -605,12 +606,6 @@ export default function App() {
                   </a>
                 )
               })}
-              {g.key === 'plataforma' && access.isOwner && (
-                <button type="button" className={`is-tool nav-tour ${photo ? 'active' : ''}`} onClick={togglePhoto} title="Para tirar print e postar: desfoca os valores e mostra só o primeiro nome dos clientes. Toque de novo para voltar.">
-                  <Icon name="camera" />
-                  <span>{photo ? 'modo foto ligado' : 'modo foto'}</span>
-                </button>
-              )}
               {g.key === 'plataforma' && (
                 <button type="button" className="is-tool nav-tour" onClick={() => openClientView()} title="Abrir o sistema como um cliente novo em teste grátis (nada é salvo)">
                   <Icon name="user" />
@@ -688,6 +683,11 @@ export default function App() {
             </button>
           )}
           <GlobalSearch />
+          {access.isOwner && (
+            <button className={`icon-btn photo-btn ${photo ? 'is-on' : ''}`} onClick={togglePhoto} aria-pressed={photo} aria-label="Modo foto" title={photo ? 'Modo foto ligado: toque para voltar ao normal' : 'Modo foto: esconde valores, sobrenomes e dados dos clientes para tirar print'}>
+              <Icon name="camera" />
+            </button>
+          )}
           {!access.legacy && <NoticesButton />}
           {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => (news.unseen.length ? setNewsOpen(true) : setHistoryOpen(true))} />}
           <ScreenHelp onTour={!access.isOwner ? () => (go('inicio'), setTourOpen(true)) : undefined} />

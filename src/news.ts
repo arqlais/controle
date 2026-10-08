@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-08',
     kind: 'novo',
     title: 'modo foto e e-mails mais espertos',
-    text: 'Modo foto no menu (plataforma): desfoca os valores e mostra só o primeiro nome dos clientes, para tirar print. Nos e-mails: botão limpar, assunto que dá vontade de abrir e o botão leva para a página certa (feedback, sugestões, planos…).',
+    text: 'Câmera no topo: em todas as páginas desfoca valores e dados dos clientes (telefone, e-mail, empresa…) e esconde o sobrenome, para tirar print. Nos e-mails: botão limpar, assunto que dá vontade de abrir e o botão leva para a página certa (feedback, sugestões, planos…).',
     feature: 'painelDona',
   },
   {

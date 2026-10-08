@@ -4,7 +4,8 @@
 const KEY = 'modo-foto'
 const MONEY = /R\$\s?-?\d/
 let observer: MutationObserver | null = null
-let names: [string, string][] = [] // [nome completo, nome mascarado]
+let names: [RegExp, (m: string) => string][] = [] // nome completo (sem diferenciar maiúsculas) → só o primeiro nome + inicial
+let secrets: string[] = [] // e-mail, telefone, CPF, endereço… dos clientes: o trecho fica desfocado
 const masked = new Map<Text, { orig: string; shown: string }>()
 
 const maskName = (full: string) => {
@@ -18,11 +19,11 @@ function touch(node: Text) {
   const el = node.parentElement
   if (!el || el.closest('script, style, textarea, .no-photo-mask')) return
   let v = node.nodeValue ?? ''
-  if (MONEY.test(v)) el.setAttribute('data-pv-blur', '')
+  if (MONEY.test(v) || secrets.some((x) => v.includes(x))) el.setAttribute('data-pv-blur', '')
   const had = masked.get(node)
   if (had && v === had.shown) return
   const orig = v
-  for (const [full, short] of names) if (v.includes(full)) v = v.split(full).join(short)
+  for (const [re, short] of names) v = v.replace(re, short)
   if (v !== orig) {
     masked.set(node, { orig, shown: v })
     node.nodeValue = v
@@ -44,7 +45,7 @@ export const photoModeOn = () => {
 }
 
 /** Liga/desliga. `clientNames`: nomes completos dos clientes (o sobrenome vira inicial). */
-export function setPhotoMode(on: boolean, clientNames: string[] = []) {
+export function setPhotoMode(on: boolean, clientNames: string[] = [], clientData: string[] = []) {
   try {
     if (on) sessionStorage.setItem(KEY, '1')
     else sessionStorage.removeItem(KEY)
@@ -60,9 +61,11 @@ export function setPhotoMode(on: boolean, clientNames: string[] = []) {
     document.querySelectorAll('[data-pv-blur]').forEach((el) => el.removeAttribute('data-pv-blur'))
     return
   }
+  const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')
   names = [...new Set(clientNames.map((n) => n.trim()).filter((n) => n.split(/\s+/).length > 1))]
     .sort((a, b) => b.length - a.length)
-    .map((n) => [n, maskName(n)])
+    .map((n) => [new RegExp(esc(n), 'gi'), (m: string) => maskName(m)])
+  secrets = [...new Set(clientData.map((x) => x.trim()))]
   document.body.classList.add('modo-foto')
   scan(document.body)
   observer = new MutationObserver((list) => {

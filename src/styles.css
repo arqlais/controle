@@ -2186,6 +2186,15 @@ svg { flex-shrink: 0; }
   .topbar > .icon-btn, .topbar > .back-btn, .topbar .news-btn, .topbar .screen-help > .icon-btn, .topbar > .search:not(:focus-within) { flex-basis: 36px; width: 36px; min-width: 36px; height: 36px; }
   .topbar .add-menu > .btn { width: 40px; height: 40px; min-width: 40px; }
 }
+/* dona: a câmera do modo foto entra no topo, então os botões encolhem um pouco nos celulares menores */
+@media (max-width: 400px) {
+  .topbar:has(.photo-btn) { gap: 4px; padding-left: 10px; padding-right: 10px; }
+  .topbar:has(.photo-btn) > .icon-btn, .topbar:has(.photo-btn) > .back-btn, .topbar:has(.photo-btn) .news-btn, .topbar:has(.photo-btn) .screen-help > .icon-btn, .topbar:has(.photo-btn) > .search:not(:focus-within) { flex-basis: 36px; width: 36px; min-width: 36px; height: 36px; }
+  .topbar:has(.photo-btn) .add-menu > .btn { width: 40px; height: 40px; min-width: 40px; }
+}
+@media (max-width: 350px) {
+  .topbar:has(.photo-btn) > .icon-btn, .topbar:has(.photo-btn) > .back-btn, .topbar:has(.photo-btn) .news-btn, .topbar:has(.photo-btn) .screen-help > .icon-btn, .topbar:has(.photo-btn) > .search:not(:focus-within) { flex-basis: 32px; width: 32px; min-width: 32px; height: 32px; }
+}
 @media (max-width: 820px) { .more-menu .btn.only-mobile, .dropdown .btn.only-mobile { display: inline-flex !important; } }
 
 /* catálogo de serviços: busca + áreas que abrem e fecham */
@@ -2291,4 +2300,6 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .pp-ask .scope-chip .link { margin-left: 4px; }
 .pp-add { display: grid; gap: 8px; justify-items: start; }
 /* modo foto (só a dona): valores desfocados para print */
-.modo-foto [data-pv-blur], .modo-foto .money-input input, .modo-foto #q-client { filter: blur(6px); }
+.modo-foto [data-pv-blur], .modo-foto .money-input input, .modo-foto #q-client { filter: blur(4px); }
+.photo-btn.is-on { background: var(--accent); color: var(--accent-contrast, #fff); }
+.modo-foto input[type='email'], .modo-foto input[type='tel'], .modo-foto input[inputmode='tel'] { filter: blur(4px); }
