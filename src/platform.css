@@ -3300,9 +3300,9 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .lp-foot-logo { gap: 12px; }
 .auth-brand { gap: 14px; }
 .loading-screen .brand-name { animation: none; }
-.plane-mark.is-drawing .plane-mark-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: plane-draw 1.2s ease-in-out forwards; }
+.plane-mark.is-drawing .plane-mark-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: plane-draw 0.8s ease-in-out forwards; }
 @keyframes plane-draw { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) { .plane-mark.is-drawing .plane-mark-line { animation: none; stroke-dashoffset: 0; } }
+/* o desenho roda uma vez só e é curto: vale também no Windows com "efeitos de animação" desligados */
 @media (max-width: 720px) {
   .install-hint { flex-wrap: wrap; }
   .install-hint .grow { flex: 1 1 calc(100% - 64px); }

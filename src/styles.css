@@ -95,7 +95,7 @@ input[type='checkbox'] { width: 17px; height: 17px; accent-color: var(--accent);
 input[type='color'] { padding: 3px; width: 42px; height: 40px; flex: none; }
 input[type='range'] { padding: 0; accent-color: var(--accent); border: 0; }
 /* quem pediu menos movimento no aparelho: o sistema fica parado; a página de vendas (.lp) segue animada, como a dona quer */
-@media (prefers-reduced-motion: reduce) { :not(.lp, .lp *), :not(.lp *)::before, :not(.lp *)::after { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { :not(.lp, .lp *, .is-drawing *), :not(.lp *)::before, :not(.lp *)::after { animation: none !important; transition: none !important; } }
 
 /* ---------- layout ---------- */
 .app { display: flex; min-height: 100vh; }
