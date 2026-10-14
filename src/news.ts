@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-15-importar-planilha',
+    date: '2026-10-15',
+    kind: 'novo',
+    title: 'importar clientes e projetos de planilha',
+    text: 'Em clientes → importar planilha: traga tudo do Excel, Google Planilhas, Notion ou Trello (ou cole as células). O sistema reconhece as colunas, mostra o que vai entrar e não duplica quem já existe. Projetos entram com valor, prazo, etapa e o que já foi pago.',
+    steps: [{ page: 'clientes', text: 'Toque em importar planilha e escolha o arquivo.' }],
+  },
+  {
     id: '2026-10-14-lembrete-parcela',
     date: '2026-10-14',
     kind: 'novo',

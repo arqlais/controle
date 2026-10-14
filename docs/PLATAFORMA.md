@@ -76,8 +76,15 @@ Mandar sempre prints/prévia de cada parte pronta.
 - [x] 1. Cliente aprova a proposta pelo link (escolhe a opção, aprova; vira demanda com parcelas; avisa a dona)
 - [x] 2. Pix com valor certo e QR Code em cada parcela do painel do cliente
 - [x] 3. Lembrete automático de parcela para a cliente final (antes de vencer e quando atrasar)
-- [ ] 4. Importar clientes e projetos de planilha (Excel, Google Planilhas, Trello)
+- [x] 4. Importar clientes e projetos de planilha (Excel, Google Planilhas, Trello)
 - [ ] 5. Retrospectiva do ano (faturamento, melhores clientes, serviços mais lucrativos, limite do MEI; versão para postar)
 - [ ] 6. Equipe no plano Estúdio (convidar pessoas, escolher o que cada uma vê)
 - [ ] 7. Modelos de projeto prontos (etapas, prazos e checklist com um clique)
 - [ ] 8. Nota fiscal automática das assinaturas pelo Asaas (depois da conta aprovada)
+
+## O que a Laís precisa fazer (lembrar quando ela perguntar)
+
+- [ ] Asaas: criar a conta (CNPJ do MEI), cadastrar o site em Informações comerciais, gerar a chave de API; no Supabase, segredos ASAAS_API_KEY e ASAAS_WEBHOOK_TOKEN, publicar a função "pagamentos" (Verify JWT desligado), cadastrar o webhook no Asaas e marcar "Asaas automático" no painel da dona. Passo a passo: docs/PLATAFORMA-SUPABASE.md.
+- [ ] Publicar de novo a função "avisos" com o arquivo novo (aprovação da proposta pelo link e lembrete de parcela dependem dela).
+- [ ] Rodar supabase/agendar-avisos-diarios.sql uma vez (ligar pg_cron e pg_net antes; trocar projeto, chave pública e senha do cron).
+- [ ] Ligar o lembrete de pagamento em configurações → propostas (se quiser) e conferir se as clientes têm e-mail na ficha.

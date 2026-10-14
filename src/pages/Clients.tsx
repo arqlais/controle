@@ -1,3 +1,4 @@
+import { ImportSheet } from '../components/ImportSheet'
 import { useMemo, useState } from 'react'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -21,6 +22,7 @@ export default function Clients() {
   const [sort, setSort] = useKeep<Sort>('cli-ordem', 'faturamento')
   const [archived, setArchived] = useKeep('cli-arquivados', false)
   const [form, setForm] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [merging, setMerging] = useState<[Client, Client] | null>(null)
   const pairKey = (a: Client, b: Client) => [a.id, b.id].sort().join('|')
   const dupes = useMemo(() => duplicatePairs(data.clients).filter(([a, b]) => !(data.settings.notDuplicates ?? []).includes(pairKey(a, b))), [data.clients, data.settings.notDuplicates])
@@ -67,10 +69,16 @@ export default function Clients() {
             meus <em>clientes</em>
           </h1>
         </div>
-        <button className="btn primary" onClick={() => setForm(true)}>
-          <Icon name="plus" size={16} /> Novo cliente
-        </button>
+        <div className="row gap-s wrap">
+          <button className="btn ghost" onClick={() => setImporting(true)} title="Excel, Google Planilhas, Notion ou Trello">
+            <Icon name="download" size={16} /> importar planilha
+          </button>
+          <button className="btn primary" onClick={() => setForm(true)}>
+            <Icon name="plus" size={16} /> Novo cliente
+          </button>
+        </div>
       </div>
+      {importing && <ImportSheet onClose={() => setImporting(false)} />}
 
       {dupes.slice(0, 3).map(([a, b]) => (
         <div key={pairKey(a, b)} className="dupe-note">
