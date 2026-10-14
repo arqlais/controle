@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useKeep } from '../keep'
-import { useStore } from '../store'
+import { isNetworkError, useStore } from '../store'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { EventForm } from '../components/forms'
@@ -367,7 +367,24 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
           </>
         ) : (
           <>
-            {agenda.state === 'erro' ? (
+            {agenda.state === 'erro' && isNetworkError(agenda.error) ? (
+              <div className="sync-error">
+                <b>Não consegui falar com o servidor agora.</b>
+                <p className="small">Não é configuração: a conexão foi bloqueada ou caiu. Tento de novo sozinha a cada minuto. Se continuar:</p>
+                <ul className="small sync-why">
+                  <li>confira a internet (ou troque do Wi-Fi para os dados móveis);</li>
+                  <li>no Firefox, toque no escudo ao lado do endereço e desligue a proteção contra rastreamento para este site;</li>
+                  <li>se usa bloqueador de anúncios (uBlock, AdGuard…), pause para este site;</li>
+                  <li>ou abra em outro navegador ou no celular.</li>
+                </ul>
+                <div className="row gap-s">
+                  <button className="btn small primary" onClick={() => void publishAgendaNow()}>
+                    tentar de novo
+                  </button>
+                </div>
+                <p className="muted small">detalhe: {agenda.error}</p>
+              </div>
+            ) : agenda.state === 'erro' ? (
               <div className="sync-error">
                 <b>A agenda ainda não pode ser publicada.</b>
                 <p className="small">

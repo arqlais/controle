@@ -626,6 +626,9 @@ export interface AgendaStatus {
   error?: string
 }
 
+/** Erro de conexão (não chegou a falar com o servidor), e não de permissão. */
+export const isNetworkError = (msg?: string) => /networkerror|failed to fetch|load failed|network ?request failed|fetch resource|err_|timeout|aborted/i.test(msg ?? '')
+
 // só republica quando o conteúdo da agenda muda (a hora de geração não conta)
 const agendaSignature = (ics: string) => ics.replace(/^DTSTAMP:.*$/gm, '')
 
@@ -655,12 +658,30 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
         setAgenda({ state: 'ok', at: new Date() })
         return true
       } catch (e) {
-        setAgenda({ state: 'erro', error: e instanceof Error ? e.message : String(e) })
+        const error = e instanceof Error ? e.message : String(e)
+        setAgenda({ state: 'erro', error })
+        // falha de conexão (internet, bloqueador, rede instável): tenta de novo sozinha daqui a 1 minuto
+        if (isNetworkError(error) && !agendaRetry.current)
+          agendaRetry.current = setTimeout(() => {
+            agendaRetry.current = undefined
+            void latestPublish.current(latestData.current, true)
+          }, 60_000)
         return false
       }
     },
     [cloud, userId],
   )
+  const agendaRetry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const latestPublish = useRef(publishAgendaFor)
+  latestPublish.current = publishAgendaFor
+  const latestData = useRef(data)
+  latestData.current = data
+  // voltou a internet: publica na hora
+  useEffect(() => {
+    const on = () => void latestPublish.current(latestData.current)
+    window.addEventListener('online', on)
+    return () => window.removeEventListener('online', on)
+  }, [])
   // modo exemplo: dados fictícios só em memória — nada é salvo nem enviado para a nuvem
   const [sample, setSample] = useState<Data | null>(null)
   const sampleOn = useRef(false)
