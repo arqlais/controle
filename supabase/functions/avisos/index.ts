@@ -230,6 +230,7 @@ const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   assinatura: { eyebrow: 'contrato', did: 'assinou o contrato' },
   recado: { eyebrow: 'painel do cliente', did: 'mandou um recado' },
   briefing: { eyebrow: 'briefing', did: 'respondeu o briefing' },
+  aprovacao: { eyebrow: 'proposta aprovada', did: 'aprovou a proposta' },
 }
 const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string): Mail => {
   const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado
@@ -238,17 +239,17 @@ const clientEventMail = (s: Sub, kind: string, client: string, title: string, te
     html: layout({
       eyebrow: k.eyebrow,
       title: `${esc(client || 'Seu cliente')} ${k.did}`,
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : ''}.</p>`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : ''}.</p>`,
       button: 'abrir o planê',
-      url: `${SITE}#/clientes`,
+      url: `${SITE}#/${kind === 'aprovacao' ? 'orcamentos' : 'clientes'}`,
     }),
   }
 }
 const clientCopyMail = (kind: string, studio: string, title: string): Mail => ({
-  subject: kind === 'assinatura' ? `Cópia: você assinou "${title}"` : `Recebemos: ${title || 'sua mensagem'}`,
+  subject: kind === 'assinatura' ? `Cópia: você assinou "${title}"` : kind === 'aprovacao' ? `Você aprovou: ${title}` : `Recebemos: ${title || 'sua mensagem'}`,
   html: layout({
     eyebrow: CLIENT_KIND[kind]?.eyebrow ?? 'aviso',
-    title: kind === 'assinatura' ? 'Contrato assinado' : 'Recebido!',
+    title: kind === 'assinatura' ? 'Contrato assinado' : kind === 'aprovacao' ? 'Proposta aprovada' : 'Recebido!',
     text:
       kind === 'assinatura'
         ? `<p style="margin:0 0 12px;">Sua assinatura de <b>${esc(title)}</b> foi registrada e ${esc(studio || 'o profissional')} já foi avisado(a).</p><p style="margin:0;">Guarde este e-mail como comprovante. A via assinada, com o certificado de assinatura, fica disponível com ${esc(studio || 'o profissional')}.</p>`
@@ -423,6 +424,7 @@ Deno.serve(async (req) => {
       code: String(body.code ?? '').slice(0, 20000),
       contato: String(body.clienteEmail ?? '').slice(0, 160),
       painel: String(body.painel ?? '').slice(0, 80),
+      opcao: String(body.opcao ?? '').slice(0, 80),
     }
     const { error } = await db.from('client_events').insert({ user_id: user, kind, ref, payload })
     if (error) return json({ ok: false, motivo: 'já recebido' })

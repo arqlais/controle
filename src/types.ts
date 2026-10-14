@@ -131,7 +131,7 @@ export interface PanelFile {
 export interface Notice {
   id: string
   at: string
-  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso'
+  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao'
   title: string
   text?: string
   clientId?: string
@@ -410,6 +410,17 @@ export interface Quote {
   steps?: ProcessStep[] // etapas do projeto (cliente final): o que inclui, prazo e % do pagamento
   intro?: string // texto de abertura da proposta (cliente final)
   layout?: 'slides' | 'folha' // cliente final: proposta em slides (padrão) ou folha única objetiva
+  shareToken?: string // link da proposta para a cliente ver e aprovar (arquivo público)
+  clientApproval?: QuoteApproval // a cliente aprovou pelo link
+}
+
+/** Aprovação feita pela cliente no link da proposta. */
+export interface QuoteApproval {
+  at: string // quando aprovou
+  option: string // opção escolhida ('' = valor único; 'ambas' = juntas)
+  label?: string // nome da opção, como ela viu
+  name?: string // nome que ela digitou
+  note?: string // recado junto com a aprovação
 }
 
 export type QuoteAudience = 'final' | 'parceiro'

@@ -3349,3 +3349,41 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .mc-draft { display: inline-flex; align-items: center; border: 1px dashed var(--border); border-radius: 999px; background: var(--surface-2); overflow: hidden; }
 .mc-draft button { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; font: inherit; font-size: 13px; color: var(--text); padding: 7px 6px 7px 12px; cursor: pointer; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mc-draft .mc-draft-x { padding: 7px 10px 7px 4px; color: var(--muted); }
+
+/* proposta pelo link (a cliente vê e aprova) */
+.pp-public .bf-card { max-width: 860px; width: 100%; }
+.pp { display: grid; gap: 18px; min-width: 0; }
+.pp-head { display: grid; gap: 6px; justify-items: start; }
+.pp-logo { max-height: 44px; max-width: 180px; object-fit: contain; margin-bottom: 6px; }
+.pp-studio { font-size: 15px; letter-spacing: .02em; margin-bottom: 6px; }
+.pp-kick { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--bf-accent); font-weight: 600; }
+.pp-head h1 { margin: 0; font-size: clamp(28px, 6vw, 40px); line-height: 1.1; font-weight: 600; }
+.pp-head h1 em { font-style: italic; font-family: var(--font-display, 'The Seasons', Georgia, serif); font-weight: 400; color: var(--bf-accent); }
+.pp-head p { margin: 0; }
+.pp-doc { border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(47, 58, 69, .12); background: #fff; min-width: 0; }
+.pp-tools { justify-content: flex-start; }
+.pp-approve { display: grid; gap: 12px; border: 1.5px solid color-mix(in srgb, var(--bf-accent) 45%, transparent); }
+.pp-approve h2 { margin: 0; font-size: 20px; }
+.pp-choices { display: grid; gap: 8px; }
+.pp-choice { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px solid var(--line, #e6dfda); border-radius: 12px; cursor: pointer; background: #fff; min-width: 0; }
+.pp-choice input { accent-color: var(--bf-accent); width: 18px; height: 18px; flex: none; margin: 0; }
+.pp-choice .grow { min-width: 0; overflow-wrap: anywhere; }
+.pp-choice b { white-space: nowrap; }
+.pp-choice.is-on { border-color: var(--bf-accent); background: color-mix(in srgb, var(--bf-accent) 8%, #fff); }
+.pp-field { display: grid; gap: 4px; font-size: 13px; }
+.pp-field input, .pp-field textarea { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1.5px solid var(--line, #e6dfda); border-radius: 10px; background: #fff; color: inherit; box-sizing: border-box; }
+.pp-go { min-height: 48px; font-size: 16px; }
+.pp-done { display: flex; gap: 14px; align-items: flex-start; }
+.pp-done h2 { margin: 0 0 4px; }
+.pp-done p { margin: 0; }
+.pp-done-ico { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--bf-accent); color: #fff; }
+.quote-approved { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, #5f8f6f 12%, var(--surface, #fff)); border: 1px solid color-mix(in srgb, #5f8f6f 35%, transparent); color: #34513f; margin-bottom: 12px; }
+.quote-approved .grow { min-width: 200px; flex: 1; }
+.quote-approved p { margin: 2px 0 0; }
+.share-url { margin: 8px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2, rgba(0,0,0,.04)); overflow-wrap: anywhere; font-size: 13px; }
+.mini-tag.is-ok { background: color-mix(in srgb, #5f8f6f 16%, transparent); color: #3f6d4f; }
+.text-ok { color: #3f6d4f; font-weight: 500; }
+.pp-approve { border-radius: 18px; padding: 20px; background: #fff; }
+.pp-approve h2, .pp-done h2 { text-transform: none; letter-spacing: 0; font-size: 21px; font-weight: 600; line-height: 1.2; }
+.pp-go-val { text-transform: none; }
+.pp-field > span { font-weight: 500; }

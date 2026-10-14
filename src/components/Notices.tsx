@@ -7,7 +7,7 @@ import type { Notice } from '../types'
 
 /* Central de avisos: o que os clientes preencheram, assinaram ou mandaram (fica no topo, ícone de caixa). */
 
-const ICON: Record<Notice['kind'], 'clip' | 'pen' | 'chat' | 'bell'> = { briefing: 'clip', assinatura: 'pen', recado: 'chat', aviso: 'bell' }
+const ICON: Record<Notice['kind'], 'clip' | 'pen' | 'chat' | 'bell' | 'check'> = { briefing: 'clip', assinatura: 'pen', recado: 'chat', aviso: 'bell', aprovacao: 'check' }
 
 const when = (iso: string) => {
   const d = new Date(iso)

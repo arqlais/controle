@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { DEFAULT_SETTINGS } from '../store'
 import { money, uid, whatsappLink } from '../utils'
 import { avisar } from '../avisar'
-import { readShortCode } from '../linkPack'
+import { readShortCode, shortCode } from '../linkPack'
 import type { PanelDoc, PanelPayload, PanelProject } from '../clientPanel'
 import type { Settings } from '../types'
 import { Icon } from './Icon'
@@ -440,6 +440,11 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
                       {q.status}
                     </small>
                     <span className="cp-doc-val">{money(q.total)}</span>
+                    {q.share && (
+                      <a className={`btn small ${q.open ? 'primary' : ''}`} href={`${location.pathname}#/proposta/${(owner && shortCode(owner, q.share)) || q.share}`} target={preview ? '_blank' : undefined} rel="noreferrer">
+                        {q.open ? 'ver e aprovar' : 'ver proposta'}
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>

@@ -4,8 +4,9 @@ import { useStore } from './store'
 import { toast } from './components/dialog'
 import { notifyDevice } from './briefingSync'
 import { checkSignMessage } from './contractSign'
-import type { Notice } from './types'
-import { today, uid } from './utils'
+import type { Notice, QuoteApproval } from './types'
+import { proposalChoices } from './proposalLink'
+import { BOTH, quoteNumber, today, uid } from './utils'
 
 /* Avisos do cliente final para o profissional: assinatura de contrato e recado pelo painel.
    A página pública (sem login) manda para a função "avisos": ela guarda o aviso, manda o e-mail
@@ -13,19 +14,20 @@ import { today, uid } from './utils'
 
 export interface ClientEvent {
   user: string // conta do profissional
-  kind: 'assinatura' | 'recado'
+  kind: 'assinatura' | 'recado' | 'aprovacao'
   ref: string // o que é (token do contrato, id do recado): não repete
   cliente: string
   titulo: string
   texto?: string
   code?: string // assinatura: o código que confere com o texto do contrato
   clienteEmail?: string
-  painel?: string // token do painel (recados)
+  painel?: string // token do painel (recados) ou da proposta (aprovação)
+  opcao?: string // aprovação: opção escolhida
   studio?: string
 }
 
 const LOCAL = 'avisos-de-clientes'
-type Row = { id: string | number; kind: string; ref: string; payload: { cliente?: string; titulo?: string; texto?: string; code?: string; painel?: string; contato?: string }; created_at: string }
+type Row = { id: string | number; kind: string; ref: string; payload: { cliente?: string; titulo?: string; texto?: string; code?: string; painel?: string; contato?: string; opcao?: string }; created_at: string }
 
 /** Manda o aviso (página pública). Sem nuvem (prévia), fica neste navegador. Nunca trava a página. */
 export async function avisar(ev: ClientEvent): Promise<boolean> {
@@ -40,7 +42,7 @@ export async function avisar(ev: ClientEvent): Promise<boolean> {
   try {
     const all = JSON.parse(localStorage.getItem(LOCAL) || '[]') as Row[]
     if (!all.some((r) => r.kind === ev.kind && r.ref === ev.ref)) {
-      all.push({ id: uid(), kind: ev.kind, ref: ev.ref, payload: { cliente: ev.cliente, titulo: ev.titulo, texto: ev.texto, code: ev.code, painel: ev.painel, contato: ev.clienteEmail }, created_at: new Date().toISOString() })
+      all.push({ id: uid(), kind: ev.kind, ref: ev.ref, payload: { cliente: ev.cliente, titulo: ev.titulo, texto: ev.texto, code: ev.code, painel: ev.painel, contato: ev.clienteEmail, opcao: ev.opcao }, created_at: new Date().toISOString() })
       localStorage.setItem(LOCAL, JSON.stringify(all.slice(-50)))
     }
     return true
@@ -125,6 +127,23 @@ export function useClientInbox(enabled: boolean) {
           toast(`${client?.name.split(' ')[0] ?? 'O cliente'} assinou o contrato`)
           notifyDevice(`${client?.name ?? 'Cliente'} assinou o contrato`, `“${c.title}” está assinado.`)
         }
+      } else if (r.kind === 'aprovacao') {
+        const q = d.quotes.find((x) => x.shareToken && x.shareToken === p.painel)
+        if (!q) continue // orçamento de outro aparelho ainda não sincronizado: tenta depois
+        const client = d.clients.find((x) => x.id === q.clientId)
+        const opt = p.opcao ?? ''
+        const valid = !opt || opt === BOTH || q.options.some((o) => o.id === opt)
+        const label = proposalChoices(q).find((c) => c.id === opt)?.label
+        const note = label && p.texto?.startsWith(label) ? p.texto.slice(label.length).replace(/^\s*·\s*/, '') : p.texto
+        if (!q.clientApproval && q.status !== 'aprovado') {
+          const approval: QuoteApproval = { at: r.created_at, option: valid ? opt : '', ...(label ? { label } : {}), ...(p.cliente ? { name: p.cliente } : {}), ...(note ? { note } : {}) }
+          upsert('quotes', { ...q, clientApproval: approval, ...(valid && opt ? { chosenOption: opt } : {}) })
+          if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `aprovou a proposta ${quoteNumber(q)} pelo link${label ? ` (${label})` : ''}${note ? `: ${note}` : ''}` }] })
+        }
+        const who = client?.name ?? p.cliente ?? 'A cliente'
+        upsert('notices', makeNotice({ kind: 'aprovacao', ref: key, clientId: q.clientId, link: `orcamentos/${q.id}`, title: `${who} aprovou a proposta ${quoteNumber(q)}`, text: [label, note].filter(Boolean).join(' · ') || 'Abra o orçamento para fechar: cria a demanda e lança os pagamentos.' }))
+        toast(`${who.split(' ')[0]} aprovou a proposta ${quoteNumber(q)}`)
+        notifyDevice(`${who} aprovou a proposta`, label ?? quoteNumber(q))
       } else if (r.kind === 'recado') {
         const client = d.clients.find((x) => x.panel?.token === p.painel)
         if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `recado pelo painel: ${p.texto ?? ''}` }] })

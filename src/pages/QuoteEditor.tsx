@@ -3,6 +3,7 @@ import { QuoteTableSection } from '../components/PartnerTable'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
+import { proposalLink, proposalPayload, publishProposal } from '../proposalLink'
 import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
@@ -107,7 +108,7 @@ function freshPrices(q: Quote, st: Settings, student: boolean): Quote {
 const newOption = (): QuoteOption => ({ id: uid(), name: '', items: [newItem()], note: '', discount: 0, discountNote: '', deadlineDays: 10 })
 
 export default function QuoteEditor({ id }: { id: string }) {
-  const { data, upsert, remove, setSettings } = useStore()
+  const { data, upsert, remove, setSettings, userId } = useStore()
   const rawSettings = data.settings
   const found = data.quotes.find((q) => q.id === id)
   // rascunho: serviços que seguem a tabela abrem com o valor atual da tabela (enviados ficam como foram mandados)
@@ -492,6 +493,39 @@ export default function QuoteEditor({ id }: { id: string }) {
     const name = `Proposta ${quoteNumber(cur)} - ${displayName}.pdf`
     pdf.send(<QuoteDoc s={settings} client={client} quote={cur} />, name, { text: text(), phone: client?.phone }, isSlides(cur))
   }
+  // link da proposta: a cliente vê, escolhe a opção e aprova (sem conta); atualiza sozinho quando o orçamento muda
+  const [shareUrl, setShareUrl] = useState('')
+  const shareLink = async () => {
+    if (!q.clientId) return focusClient()
+    const token = q.shareToken || crypto.randomUUID()
+    const patch: Partial<Quote> = { shareToken: token, ...(q.status === 'rascunho' && !q.imported ? { status: 'enviado' as const, pdfAt: q.pdfAt || new Date().toISOString() } : {}) }
+    const cur = save(patch) ?? { ...q, ...patch }
+    try {
+      await publishProposal(userId, proposalPayload(settings, client, cur, has))
+      setShareUrl(proposalLink(userId, token))
+    } catch {
+      toast('Não foi possível publicar o link agora. Confira a internet e tente de novo.')
+    }
+  }
+  // a cliente aprovou pelo link enquanto este orçamento estava aberto: traz a aprovação e a opção escolhida
+  useEffect(() => {
+    const a = found?.clientApproval
+    if (!a || q.clientApproval?.at === a.at) return
+    setQ((prev) => ({ ...prev, clientApproval: a, chosenOption: found.chosenOption || prev.chosenOption }))
+  }, [found?.clientApproval, found?.chosenOption, q.clientApproval?.at])
+  const lastShared = useRef('')
+  useEffect(() => {
+    if (!existing?.shareToken || !existing.clientId) return
+    const c = data.clients.find((x) => x.id === existing.clientId)
+    const payload = proposalPayload(settings, c, existing, has)
+    const sig = JSON.stringify({ ...payload, updatedAt: '' })
+    if (sig === lastShared.current) return
+    const first = !lastShared.current
+    lastShared.current = sig
+    if (first) return // abriu o orçamento: o link já está como foi publicado
+    const t = setTimeout(() => void publishProposal(userId, payload).catch(() => undefined), 1200)
+    return () => clearTimeout(t)
+  }, [existing, settings, data.clients, has, userId])
   const duplicate = () => {
     if (unsaved && q.clientId) save() // guarda o que foi mexido neste antes de copiar
     const copy = duplicateQuote(q, data)
@@ -640,6 +674,11 @@ export default function QuoteEditor({ id }: { id: string }) {
               </button>
             )}
             {!has('contratos') && <LockButton feature="contratos" label="gerar contrato" className="btn ghost" to="contratos" />}
+            {q.status !== 'aprovado' && (
+              <button className="btn ghost" onClick={() => void shareLink()} title="Link para a cliente ver a proposta, escolher a opção e aprovar pelo celular">
+                <Icon name="link" size={16} /> link para aprovar
+              </button>
+            )}
             <MessagesButton client={client} quote={q} project={data.projects.find((p) => p.id === q.projectId)} />
             <button
               className="btn ghost"
@@ -687,6 +726,21 @@ export default function QuoteEditor({ id }: { id: string }) {
         )}
       </div>
 
+      {q.clientApproval && q.status !== 'aprovado' && (
+        <div className="quote-approved">
+          <Icon name="check" size={18} />
+          <div className="grow">
+            <b>
+              {client?.name.split(' ')[0] ?? 'A cliente'} aprovou pelo link em {fmtDate(q.clientApproval.at.slice(0, 10))}
+              {q.clientApproval.label ? ` · ${q.clientApproval.label}` : ''}
+            </b>
+            {q.clientApproval.note && <p className="muted small">“{q.clientApproval.note}”</p>}
+          </div>
+          <button className="btn primary small" onClick={approve}>
+            fechar: criar demanda e pagamentos
+          </button>
+        </div>
+      )}
       <div className={`mobile-switch ${showPdf ? '' : 'is-hidden'}`}>
         <Segmented
           value={view}
@@ -1160,6 +1214,39 @@ export default function QuoteEditor({ id }: { id: string }) {
             setAsking(false)
           }}
         />
+      )}
+      {shareUrl && (
+        <Modal
+          title="link para aprovar"
+          onClose={() => setShareUrl('')}
+          footer={
+            <>
+              <button
+                className="btn ghost"
+                onClick={() =>
+                  navigator.clipboard
+                    ?.writeText(shareUrl)
+                    .then(() => toast('Link copiado.'))
+                    .catch(() => toast('Selecione o link e copie.'))
+                }
+              >
+                <Icon name="copy" size={15} /> copiar link
+              </button>
+              {client?.phone && (
+                <a className="btn primary" href={whatsappLink(client.phone, templateText(settings, 'link-aprovacao', 'oii, {cliente}! aqui está a sua proposta, é só abrir, escolher a opção e aprovar por lá mesmo. qualquer dúvida me chama', client, undefined, q) + `\n\n${shareUrl}`)} target="_blank" rel="noreferrer" onClick={() => setShareUrl('')}>
+                  <Icon name="whatsapp" size={15} /> mandar no WhatsApp
+                </a>
+              )}
+            </>
+          }
+        >
+          <p className="muted small">A cliente abre no celular, vê a proposta, escolhe a opção e aprova. Você recebe o aviso na hora e o link se atualiza sozinho quando você muda o orçamento.</p>
+          <p className="share-url">
+            <a href={shareUrl} target="_blank" rel="noreferrer">
+              {shareUrl}
+            </a>
+          </p>
+        </Modal>
       )}
       {closing && <CloseDeal q={closing} onClose={() => setClosing(null)} onDone={(id) => go('projetos', id)} />}
       {freeEdit && (

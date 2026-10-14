@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-14-aprovar-pelo-link',
+    date: '2026-10-14',
+    kind: 'novo',
+    title: 'a cliente aprova a proposta pelo link',
+    text: 'No orçamento, em mais → link para aprovar. A cliente abre no celular, vê a proposta, escolhe a opção e aprova. Você recebe o aviso na hora e, no orçamento, é só tocar em fechar para criar a demanda e lançar os pagamentos.',
+    steps: [{ page: 'orcamentos', text: 'Abra um orçamento enviado e toque em mais → link para aprovar.' }],
+  },
+  {
     id: '2026-10-08-carregando',
     date: '2026-10-08',
     kind: 'melhoria',

@@ -51,7 +51,7 @@ export interface PanelPayload {
   projects: PanelProject[]
   contracts: { id: string; title: string; status: string; body: string; html?: string; letterhead?: import('./types').Letterhead; pdfPages?: string[]; signLink?: string; sign?: ContractSignature; exclusive: boolean }[]
   briefings: { id: string; title: string; answered: boolean; link?: string; answeredAt?: string; questions?: BriefingQuestion[]; sections?: BriefingSection[]; answers?: BriefingAnswers }[]
-  quotes: { id: string; number: number; title: string; total: number; status: string; date: string; closedAt?: string; validityDays: number }[]
+  quotes: { id: string; number: number; title: string; total: number; status: string; date: string; closedAt?: string; validityDays: number; share?: string; open?: boolean }[]
   docs: PanelDoc[]
   files: Omit<PanelFile, 'path'>[]
   links?: { label: string; url: string }[]
@@ -110,7 +110,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
     ? d.quotes
         .filter((q) => q.clientId === client.id && q.status !== 'rascunho')
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-        .map((q) => ({ id: q.id, number: q.number, title: q.title, total: q.closedValue || quoteTotal(q, st.urgencyFee), status: QUOTE_STATUS[q.status] ?? q.status, date: (q.sentAt || q.createdAt).slice(0, 10), closedAt: q.closedAt, validityDays: q.validityDays }))
+        .map((q) => ({ id: q.id, number: q.number, title: q.title, total: q.closedValue || quoteTotal(q, st.urgencyFee), status: q.clientApproval && q.status === 'enviado' ? 'aprovada por você' : QUOTE_STATUS[q.status] ?? q.status, date: (q.sentAt || q.createdAt).slice(0, 10), closedAt: q.closedAt, validityDays: q.validityDays, ...(q.shareToken ? { share: q.shareToken, open: q.status === 'enviado' && !q.clientApproval } : {}) }))
     : []
   const shareD = new Set(panel.docs ?? [])
   const docs = (d.docs ?? [])

@@ -37,7 +37,7 @@ export function numberKey(quotes: Quote[]): Num {
 /** Dias desde o envio (orçamentos enviados e ainda sem resposta). */
 export const waitingDays = (q: Quote) => (q.status === 'enviado' && q.sentAt ? -daysUntil(q.sentAt) : 0)
 /** Cobrar resposta: já passou 1 dia útil desde o envio (fim de semana e feriado não contam). */
-export const needsFollowUp = (q: Quote) => q.status === 'enviado' && !!q.sentAt && businessDaysUntil(today(), q.sentAt) >= 1
+export const needsFollowUp = (q: Quote) => q.status === 'enviado' && !q.clientApproval && !!q.sentAt && businessDaysUntil(today(), q.sentAt) >= 1
 
 export default function Quotes() {
   const { data, upsert, remove } = useStore()
@@ -314,6 +314,7 @@ export default function Quotes() {
                       <div className="list-title">
                         {x.title || 'Sem título'}
                         {x.mode === 'opcoes' && <span className="mini-tag">{`${Math.min(3, x.options.length)} ${x.combo ? 'propostas' : 'opções'}`}</span>}
+                        {x.clientApproval && x.status !== 'aprovado' && <span className="mini-tag is-ok">aprovou pelo link</span>}
                       </div>
                       <div className="list-sub">
                         {c?.name ?? '—'} · {fmtDate(x.createdAt)}
@@ -324,7 +325,9 @@ export default function Quotes() {
                       <QuoteStatusSelect q={x} />
                     </td>
                     <td className="hide-mobile">
-                      {x.status === 'enviado' ? (
+                      {x.clientApproval && x.status !== 'aprovado' ? (
+                        <span className="text-ok">aprovou em {fmtDate(x.clientApproval.at.slice(0, 10))} · falta fechar</span>
+                      ) : x.status === 'enviado' ? (
                         <span className={needsFollowUp(x) ? 'text-warn' : 'muted'}>
                           {wait === 0 ? 'enviado hoje' : `aguardando há ${wait} dia${wait > 1 ? 's' : ''}`}
                         </span>
