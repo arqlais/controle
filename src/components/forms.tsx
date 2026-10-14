@@ -37,7 +37,7 @@ import {
 import { EmailInput, Field, Modal, MoneyInput, PhoneInput, Segmented, CepInput, ServiceOptions } from './ui'
 import { Icon } from './Icon'
 import { DraftNote, useFormDraft } from './SaveBar'
-import { tasksFor, workKind } from '../processes'
+import { dayLabel, planFromSteps, processesOf, tasksFor, workKind } from '../processes'
 
 /* ---------------- Cliente ---------------- */
 
@@ -352,6 +352,10 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
   const [past, setPast] = useState(!!startPast)
   const [pastDates, setPastDates] = useState<Record<number, string>>({})
   const [pastMethod, setPastMethod] = useState('Pix')
+  // processo de trabalho (etapas de trabalho): a demanda nasce com o cronograma, o checklist de cada etapa e as parcelas por etapa
+  const processes = processesOf(settings)
+  const [processId, setProcessId] = useState('')
+  const proc = !initial && !past ? processes.find((x) => x.id === processId) : undefined
   const set = <K extends keyof Project>(k: K, v: Project[K]) => setP((x) => ({ ...x, [k]: v }))
   const client = data.clients.find((c) => c.id === p.clientId)
   const service = settings.services.find((s) => s.id === p.service)
@@ -373,7 +377,16 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
     if (!p.title.trim()) return toast('Dê um nome para o projeto.')
     if (!p.clientId) return toast('Escolha o cliente.')
     let final = p
-    if (payMode !== 'manter') {
+    if (proc) {
+      const plan = planFromSteps(proc.steps, total, p.startDate || today())
+      final = {
+        ...p,
+        phases: plan.phases,
+        payments: plan.payments.length ? plan.payments : total > 0 ? splitPayments(total, payMode === 'manter' ? '50-50' : payMode, p.startDate, plan.due || p.dueDate) : [],
+        dueDate: plan.due || p.dueDate,
+        tasks: plan.phases.map((x) => ({ id: uid(), text: x.name, done: false })),
+      }
+    } else if (payMode !== 'manter') {
       const paidSum = p.payments.filter((x) => x.paidDate).reduce((s, x) => s + x.amount, 0)
       if (paidSum > 0 && !(await ask('Recriar as parcelas vai apagar os pagamentos já registrados deste projeto. Continuar?', { confirmLabel: 'Recriar parcelas', danger: true }))) return
       final = { ...p, payments: total > 0 ? splitPayments(total, payMode, p.startDate, p.dueDate) : [] }
@@ -519,6 +532,32 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
           <div className="readonly">{money(total)}</div>
         </Field>
 
+        {!initial && !past && processes.length > 0 && (
+          <Field label="Etapas de trabalho" span={3} hint={proc ? 'A demanda já nasce com o cronograma, o checklist de cada etapa e as parcelas por etapa. Dá para ajustar tudo depois.' : 'Opcional: escolha um processo seu e a demanda já vem com etapas, prazos e parcelas.'}>
+            <select className="proc-pick" value={processId} onChange={(e) => setProcessId(e.target.value)}>
+              <option value="">sem processo (do jeito simples)</option>
+              {processes.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                </option>
+              ))}
+            </select>
+            {proc && (
+              <ol className="proc-preview">
+                {proc.steps
+                  .filter((x) => x.name.trim())
+                  .map((x) => (
+                    <li key={x.id}>
+                      <b>{x.name}</b>
+                      <small>{[dayLabel(x), x.percent ? `${x.percent}%${total > 0 ? ` · ${money(Math.round(total * x.percent) / 100)}` : ''}` : '', x.items.length ? `${x.items.length} item(ns) no checklist` : ''].filter(Boolean).join(' · ')}</small>
+                    </li>
+                  ))}
+              </ol>
+            )}
+          </Field>
+        )}
+
+        {!(proc && proc.steps.some((x) => x.percent > 0)) && (
         <Field group label="Forma de pagamento" span={3} hint="Gera as parcelas automaticamente. Você pode ajustar cada uma depois, na página do projeto.">
           <Segmented<PayChoice>
             value={payMode}
@@ -529,6 +568,7 @@ export function ProjectForm({ initial, clientId, past: startPast, onClose, onSav
             onChange={setPayMode}
           />
         </Field>
+        )}
 
         {past && !initial && total > 0 && payMode !== 'manter' && (
           <div className="past-pays" style={{ gridColumn: '1 / -1' }}>

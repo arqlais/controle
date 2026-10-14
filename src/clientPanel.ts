@@ -24,7 +24,7 @@ export interface PanelProject {
   startDate?: string
   dueDate?: string
   deliveredDate?: string | null
-  phases: { name: string; start?: string; due?: string; done?: boolean; note?: string }[]
+  phases: { name: string; start?: string; due?: string; done?: boolean; note?: string; items?: { text: string; done: boolean }[] }[]
   payments?: { description: string; amount: number; when: string; paid: boolean; paidDate?: string | null; due?: string }[]
   total?: number
   paid?: number
@@ -83,7 +83,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
       dueDate: p.dueDate || undefined,
       deliveredDate: p.deliveredDate,
       // cronograma; sem cronograma, as etapas de trabalho da demanda
-      phases: p.phases?.length ? p.phases.map((x) => ({ name: x.name, start: x.start, due: x.due, done: x.done, note: x.note || undefined })) : p.tasks.map((t) => ({ name: t.text, done: t.done })),
+      phases: p.phases?.length ? p.phases.map((x) => ({ name: x.name, start: x.start, due: x.due, done: x.done, note: x.note || undefined, ...(x.checklist?.length ? { items: x.checklist.map((t) => ({ text: t.text, done: t.done || !!x.done })) } : {}) })) : p.tasks.map((t) => ({ name: t.text, done: t.done })),
       ...(panel.showPayments
         ? {
             payments: p.payments.map((x) => ({ description: x.description, amount: x.amount, when: payWhen(x) === 'conclusao' ? 'na conclusão' : 'no fechamento', paid: !!x.paidDate, paidDate: x.paidDate, due: x.dueDate || undefined })),

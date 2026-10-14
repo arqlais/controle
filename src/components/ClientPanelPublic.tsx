@@ -545,6 +545,15 @@ function Journey({ p: raw }: { p: PanelProject }) {
                 <b>{x.name}</b>
                 <small>{x.done ? 'pronta' : x === now ? `acontecendo agora${x.due ? ` · até ${fmt(x.due)}` : ''}` : x.due ? `até ${fmt(x.due)}` : 'depois'}</small>
                 {x.note && <small className="cp-note">{x.note}</small>}
+                {x === now && x.items && x.items.length > 0 && (
+                  <ul className="cp-step-items">
+                    {x.items.map((t, k) => (
+                      <li key={k} className={t.done ? 'is-done' : ''}>
+                        <Icon name={t.done ? 'check' : 'clock'} size={12} /> {t.text}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </span>
             </li>
           ))}

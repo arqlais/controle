@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-15-processo-na-demanda',
+    date: '2026-10-15',
+    kind: 'novo',
+    title: 'demanda nova já com etapas, checklist e parcelas',
+    text: 'Ao criar uma demanda, escolha um dos seus processos (etapas de trabalho): ela já nasce com o cronograma, o checklist de cada etapa e as parcelas por etapa. No cronograma, cada etapa tem o seu checklist, e o cliente vê no painel o que já foi feito na etapa atual. Novos modelos prontos para freelancer: imagens 3D (renders) e executivo terceirizado.',
+    steps: [{ page: 'projetos', text: 'Toque em nova demanda e escolha as etapas de trabalho.' }],
+  },
+  {
     id: '2026-10-15-retrospectiva',
     date: '2026-10-15',
     kind: 'novo',

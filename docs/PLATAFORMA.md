@@ -79,7 +79,7 @@ Mandar sempre prints/prévia de cada parte pronta.
 - [x] 4. Importar clientes e projetos de planilha (Excel, Google Planilhas, Trello)
 - [x] 5. Retrospectiva do ano (faturamento, melhores clientes, serviços mais lucrativos, limite do MEI; versão para postar)
 - [ ] 6. Equipe no plano Estúdio (convidar pessoas, escolher o que cada uma vê)
-- [ ] 7. Modelos de projeto prontos (etapas, prazos e checklist com um clique)
+- [x] 7. Processo ao criar demanda direta (etapas, prazos e parcelas), checklist por etapa na demanda (visível no painel) e processos prontos para freelancer (renders, executivo terceirizado)
 - [ ] 8. Nota fiscal automática das assinaturas pelo Asaas (depois da conta aprovada)
 
 ## O que a Laís precisa fazer (lembrar quando ela perguntar)

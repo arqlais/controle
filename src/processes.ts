@@ -1,5 +1,6 @@
 import type { Client, Data, Project, ProcessStep, ProjectProcess, Quote, QuoteAudience, ServiceDef, Settings } from './types'
-import { DEFAULT_TASKS, isStudent, uid } from './utils'
+import { DEFAULT_TASKS, addBusinessDays, addDays, isStudent, uid } from './utils'
+import type { Payment, ProjectPhase } from './types'
 
 /* Processos de trabalho para cliente final. São só pontos de partida:
    cada pessoa muda nomes, o que inclui, prazos e a divisão do pagamento (Configurações → propostas). */
@@ -52,6 +53,29 @@ export const DEFAULT_PROCESSES = (): ProjectProcess[] => [
       step('protocolo na prefeitura', 'Entrada do processo e acompanhamento até a análise.', ['protocolo do processo', 'guias e taxas', 'acompanhamento do andamento'], 15, 20),
       step('exigências e ajustes', 'Se a prefeitura pedir correções (comunique-se), a gente resolve.', ['resposta às exigências', 'ajustes no projeto'], 0, 0),
       step('aprovação e averbação', 'Imóvel regular: habite-se ou certidão e registro no cartório.', ['habite-se / certidão de regularização', 'orientação para a averbação no cartório'], 20, 20),
+    ],
+  },
+  {
+    id: 'renders',
+    name: 'imagens 3D (renders)',
+    description: 'Para escritório parceiro: da modelagem à imagem final.',
+    steps: [
+      step('arquivos e briefing', 'Receber os arquivos, referências e combinar as câmeras.', ['receber DWG / SKP e referências', 'definir câmeras e quantidade de imagens', 'sinal recebido'], 2, 50, 'uteis'),
+      step('modelagem', 'Modelo 3D completo dos ambientes.', ['modelagem dos ambientes', 'mobiliário e objetos'], 3, 0, 'uteis'),
+      step('materiais e iluminação', 'Texturas, luz e enquadramento das câmeras.', ['materiais e texturas', 'iluminação', 'prévia das câmeras para aprovar'], 2, 0, 'uteis'),
+      step('render e pós-produção', 'Imagens finais em alta, com pós-produção.', ['render em alta', 'pós-produção', 'envio das imagens'], 2, 0, 'uteis'),
+      step('ajustes e entrega', 'Rodada de ajustes combinada e arquivos finais.', ['ajustes pedidos', 'entrega final', 'saldo recebido'], 2, 50, 'uteis'),
+    ],
+  },
+  {
+    id: 'executivo-terceirizado',
+    name: 'executivo terceirizado',
+    description: 'Para escritório parceiro: detalhamento a partir do projeto aprovado.',
+    steps: [
+      step('recebimento do projeto', 'Arquivos aprovados, padrão de desenho e lista de pranchas.', ['receber arquivos e padrão do escritório', 'lista de pranchas combinada', 'sinal recebido'], 2, 50, 'uteis'),
+      step('plantas executivas', 'Layout, demolir × construir, forro, piso e pontos.', ['planta de layout', 'demolir × construir', 'forro e iluminação', 'paginação de piso', 'pontos elétricos e hidráulicos'], 7, 0, 'uteis'),
+      step('detalhamentos', 'Marcenaria, cortes e vistas.', ['detalhamento de marcenaria', 'cortes e vistas', 'detalhes construtivos'], 5, 0, 'uteis'),
+      step('revisão e entrega', 'Conferência, ajustes e pranchas finais.', ['revisão do escritório', 'ajustes', 'entrega em PDF e DWG', 'saldo recebido'], 3, 50, 'uteis'),
     ],
   },
 ]
@@ -148,3 +172,30 @@ export function projectKind(p: Project, d: Pick<Data, 'clients' | 'quotes'>): Wo
   return 'freela'
 }
 export const KIND_LABEL: Record<WorkKind, string> = { final: 'cliente final', freela: 'freelancer / parceiro', estudante: 'estudante' }
+
+/** Etapas de um processo → cronograma da demanda (com checklist de cada etapa) e parcelas ligadas às etapas.
+ *  Sem nenhuma % no processo, volta só o cronograma (as parcelas ficam como a pessoa escolher). */
+export function planFromSteps(raw: ProcessStep[], value: number, start: string, method = 'Pix'): { phases: ProjectPhase[]; payments: Payment[]; due: string } {
+  const steps = raw.filter((x) => x.name.trim())
+  const pct = steps.reduce((n, x) => n + (x.percent || 0), 0)
+  let cursor = start
+  const payments: Payment[] = []
+  const phases: ProjectPhase[] = steps.map((x) => {
+    const due = x.days > 0 ? (x.dayType === 'uteis' ? addBusinessDays(cursor, x.days) : addDays(cursor, x.days)) : ''
+    const phase: ProjectPhase = { id: uid(), name: x.name, start: cursor, due: due || undefined, ...(x.items.some((t) => t.trim()) ? { checklist: x.items.filter((t) => t.trim()).map((text) => ({ id: uid(), text, done: false })) } : {}) }
+    if (value > 0 && x.percent > 0 && pct > 0) {
+      const amount = Math.round(((value * x.percent) / pct) * 100) / 100
+      const pay: Payment = { id: uid(), description: `${x.name} (${x.percent}%)`, amount, dueDate: payments.length === 0 ? start : due || cursor, paidDate: null, method, ...(payments.length === 0 ? { on: 'fechamento' as const } : {}) }
+      payments.push(pay)
+      if (payments.length > 1) phase.paymentId = pay.id
+    }
+    if (due) cursor = due
+    return phase
+  })
+  if (payments.length) {
+    // arredondamento: a diferença de centavos vai para a última parcela
+    const diff = Math.round((value - payments.reduce((n, x) => n + x.amount, 0)) * 100) / 100
+    payments[payments.length - 1].amount = Math.round((payments[payments.length - 1].amount + diff) * 100) / 100
+  }
+  return { phases, payments, due: cursor !== start ? cursor : '' }
+}

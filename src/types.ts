@@ -251,6 +251,7 @@ export interface ProjectPhase {
   doneAt?: string
   paymentId?: string // parcela que é cobrada quando esta etapa termina
   note?: string
+  checklist?: Task[] // o que fazer nesta etapa (vem do processo; o cliente vê o andamento)
 }
 export interface VisitPhoto {
   id: string

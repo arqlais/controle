@@ -14,6 +14,7 @@ import { hashExtra, readShortCode, shortCode } from '../linkPack'
 import { usePdf } from './Print'
 import { VisitReportDoc } from './Docs'
 import { WORK_KINDS, WORK_ORDER } from '../workDocs'
+import { planFromSteps, processesOf } from '../processes'
 
 /* Plano Estúdio, dentro de cada demanda: abas para o cronograma das etapas, a obra,
    os custos e o lucro, e a página que o cliente acompanha pelo link. */
@@ -103,6 +104,14 @@ export function CronogramaTab({ p, save }: { p: Project; save: (patch: Partial<P
     const at = (k: number) => new Date(Date.parse(a) + Math.round(k * step) * 86_400_000).toISOString().slice(0, 10)
     setPhases(names.map((name, k) => ({ id: uid(), name, start: at(k), due: at(k + 1) })))
   }
+  // processo de trabalho da conta: etapas com prazo e o checklist de cada uma (as parcelas continuam como estão)
+  const { data } = useStore()
+  const procs = processesOf(data.settings)
+  const fromProcess = (id: string) => {
+    const pr = procs.find((x) => x.id === id)
+    if (pr) setPhases(planFromSteps(pr.steps, 0, p.startDate || today()).phases)
+  }
+  const setCheck = (ph: ProjectPhase, list: NonNullable<ProjectPhase['checklist']>) => setOne(ph.id, { checklist: list })
   const done = phases.filter((x) => x.done).length
   const current = phases.find((x) => !x.done)
 
@@ -112,8 +121,18 @@ export function CronogramaTab({ p, save }: { p: Project; save: (patch: Partial<P
         <Icon name="calendar" size={26} />
         <h3>monte o cronograma do projeto</h3>
         <p className="muted">Cada etapa tem prazo e, se quiser, a parcela que é cobrada quando ela termina. O cliente vê tudo na página de acompanhamento.</p>
+        {procs.length > 0 && (
+          <div className="st-empty-actions st-procs">
+            {procs.map((x) => (
+              <button key={x.id} className="btn primary" onClick={() => fromProcess(x.id)}>
+                <Icon name="layers" size={15} /> {x.name}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="muted small">ou comece com etapas simples:</p>
         <div className="st-empty-actions">
-          <button className="btn primary" onClick={() => start(ARCH_PHASES)}>
+          <button className="btn" onClick={() => start(ARCH_PHASES)}>
             <Icon name="building" size={15} /> etapas de arquitetura
           </button>
           <button className="btn" onClick={() => start(INTERIOR_PHASES)}>
@@ -182,6 +201,7 @@ export function CronogramaTab({ p, save }: { p: Project; save: (patch: Partial<P
                     </select>
                   </label>
                 </div>
+                <PhaseChecklist phase={x} onChange={(list) => setCheck(x, list)} />
                 <input className="st-phase-note" value={x.note ?? ''} onChange={(e) => setOne(x.id, { note: e.target.value })} placeholder="observação (opcional, o cliente também vê)" />
                 {x.done && pay && !pay.paidDate && <p className="st-hint warn">Etapa concluída: hora de cobrar {lower(pay.description)} ({money(pay.amount)}).</p>}
               </div>
@@ -817,5 +837,47 @@ export function PortalPublic({ token: raw, data, preview, short }: { token: stri
         </a>
       )}
     </>,
+  )
+}
+
+/** Checklist de uma etapa: o que fazer nela (marcar, escrever, tirar). O cliente vê quantos já foram. */
+function PhaseChecklist({ phase, onChange }: { phase: ProjectPhase; onChange: (list: NonNullable<ProjectPhase['checklist']>) => void }) {
+  const list = phase.checklist ?? []
+  const [text, setText] = useState('')
+  const [open, setOpen] = useState(list.length > 0 && !phase.done)
+  const add = () => {
+    if (!text.trim()) return
+    onChange([...list, { id: uid(), text: text.trim(), done: false }])
+    setText('')
+  }
+  const n = list.filter((t) => t.done).length
+  return (
+    <div className="st-check">
+      <button type="button" className="st-check-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <Icon name="check" size={13} /> checklist {list.length ? `· ${n}/${list.length}` : ''}
+        <Icon name={open ? 'chevronL' : 'chevronR'} size={12} className={open ? 'rot-90' : ''} />
+      </button>
+      {open && (
+        <ul className="st-check-list">
+          {list.map((t) => (
+            <li key={t.id} className={t.done ? 'is-done' : ''}>
+              <label>
+                <input type="checkbox" checked={t.done} onChange={() => onChange(list.map((y) => (y.id === t.id ? { ...y, done: !y.done } : y)))} />
+                <span>{t.text}</span>
+              </label>
+              <button type="button" className="icon-btn subtle" onClick={() => onChange(list.filter((y) => y.id !== t.id))} aria-label="Tirar item">
+                <Icon name="x" size={12} />
+              </button>
+            </li>
+          ))}
+          <li className="st-check-add">
+            <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())} placeholder="novo item…" aria-label="Novo item do checklist" />
+            <button type="button" className="btn small ghost" onClick={add} disabled={!text.trim()}>
+              <Icon name="plus" size={13} />
+            </button>
+          </li>
+        </ul>
+      )}
+    </div>
   )
 }

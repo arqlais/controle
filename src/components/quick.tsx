@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { DateInput } from './DateInput'
 import { useStore } from '../store'
 import { Field, Modal, MoneyInput, Segmented } from './ui'
-import type { Payment, Project, ProjectPhase, Quote, QuoteStatus } from '../types'
-import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday, uid, lower } from '../utils'
+import type { Project, Quote, QuoteStatus } from '../types'
+import { DEFAULT_CARD_FEE, QUOTE_STATUS, isCard, splitPayments, monthlyPayments, packageMonths, fmtDate, allStatuses, money, paymentState, quoteNumber, quoteTotal, statusInfo, today, addBusinessDays, addDays, fmtWeekday, lower } from '../utils'
 import { projectFromQuote } from '../quoteActions'
-import { tasksFor, workKind } from '../processes'
+import { planFromSteps, tasksFor, workKind } from '../processes'
 import { Icon } from './Icon'
 import { toast } from './dialog'
 
@@ -286,26 +286,8 @@ export function QuoteStatusSelect({ q }: { q: Quote }) {
 function stagedPlan(q: Quote, value: number, start: string, method: string) {
   const steps = (q.steps ?? []).filter((x) => x.name.trim())
   if (q.audience !== 'final' || !steps.length) return null
-  const pct = steps.reduce((n, x) => n + (x.percent || 0), 0)
-  let cursor = start
-  const payments: Payment[] = []
-  const phases: ProjectPhase[] = steps.map((x) => {
-    const due = x.days > 0 ? (x.dayType === 'uteis' ? addBusinessDays(cursor, x.days) : addDays(cursor, x.days)) : ''
-    const phase: ProjectPhase = { id: uid(), name: x.name, start: cursor, due: due || undefined }
-    if (x.percent > 0 && pct > 0) {
-      const amount = Math.round(((value * x.percent) / pct) * 100) / 100
-      const pay: Payment = { id: uid(), description: `${x.name} (${x.percent}%)`, amount, dueDate: payments.length === 0 ? start : due || cursor, paidDate: null, method, ...(payments.length === 0 ? { on: 'fechamento' as const } : {}) }
-      payments.push(pay)
-      if (payments.length > 1) phase.paymentId = pay.id
-    }
-    if (due) cursor = due
-    return phase
-  })
-  if (!payments.length) return null
-  // arredondamento: a diferença de centavos vai para a última parcela
-  const diff = Math.round((value - payments.reduce((n, x) => n + x.amount, 0)) * 100) / 100
-  payments[payments.length - 1].amount = Math.round((payments[payments.length - 1].amount + diff) * 100) / 100
-  return { phases, payments, due: cursor !== start ? cursor : '' }
+  const plan = planFromSteps(steps, value, start, method)
+  return plan.payments.length ? plan : null
 }
 
 export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => void; onDone?: (projectId: string) => void }) {

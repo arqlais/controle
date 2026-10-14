@@ -3448,3 +3448,21 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .ra-foot { margin: 0; display: flex; justify-content: space-between; font-size: 26px; font-weight: 600; }
 .ra-foot span { font-weight: 400; opacity: .6; }
 .ra-item.is-money b { font-size: 50px; letter-spacing: -1px; white-space: nowrap; }
+
+/* processo na demanda nova e checklist por etapa */
+.proc-pick { width: 100%; }
+.proc-preview { margin: 8px 0 0; padding: 10px 12px 10px 30px; border-radius: 12px; background: var(--accent-tint); display: grid; gap: 6px; font-size: 13.5px; }
+.proc-preview small { display: block; color: var(--muted); font-size: 12px; }
+.st-procs { margin-bottom: 4px; }
+.st-check { margin: 6px 0 4px; }
+.st-check-head { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.st-check-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; }
+.st-check-list li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.st-check-list label { display: flex; align-items: flex-start; gap: 8px; flex: 1; min-width: 0; font-size: 14px; cursor: pointer; }
+.st-check-list label input { margin-top: 3px; flex: none; }
+.st-check-list label span { overflow-wrap: anywhere; }
+.st-check-list li.is-done span { text-decoration: line-through; color: var(--muted); }
+.st-check-add input { flex: 1; min-width: 0; font-size: 14px; padding: 6px 10px; }
+.cp-step-items { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; font-size: 13px; }
+.cp-step-items li { display: flex; gap: 6px; align-items: center; color: color-mix(in srgb, var(--cp-text, #3e4b57) 75%, transparent); }
+.cp-step-items li.is-done { color: color-mix(in srgb, var(--cp-text, #3e4b57) 45%, transparent); text-decoration: line-through; }
