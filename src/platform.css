@@ -3387,3 +3387,9 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .pp-approve h2, .pp-done h2 { text-transform: none; letter-spacing: 0; font-size: 21px; font-weight: 600; line-height: 1.2; }
 .pp-go-val { text-transform: none; }
 .pp-field > span { font-weight: 500; }
+.pn-pix { display: grid; gap: 12px; justify-items: center; text-align: center; }
+.pn-pix-qr { display: block; width: min(240px, 70vw); background: #fff; padding: 8px; border-radius: 12px; border: 1px solid var(--line, #e6dfda); }
+.pn-pix-qr svg { display: block; width: 100%; height: auto; }
+.pn-pix .btn.block { width: 100%; }
+.pn-pix-key { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.cp-pays li .cp-pay-pix { grid-column: 1 / -1; justify-self: stretch; justify-content: center; }

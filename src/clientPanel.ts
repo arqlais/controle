@@ -44,6 +44,8 @@ export interface PanelPayload {
   instagram?: string
   website?: string
   pix?: string // chave Pix (só quando os pagamentos aparecem)
+  pixName?: string // nome de quem recebe (vai no código Pix)
+  pixCity?: string
   client: string // primeiro nome
   clientFull: string
   message?: string
@@ -142,6 +144,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
     instagram: st.instagram || undefined,
     website: st.website || undefined,
     pix: panel.showPayments && st.pixKey ? st.pixKey : undefined,
+    ...(panel.showPayments && st.pixKey ? { pixName: st.legalName || st.ownerName || st.brandName || '', pixCity: st.city || '' } : {}),
     client: client.name.split(' ')[0] ?? '',
     clientFull: client.name,
     message: panel.message?.trim() || undefined,

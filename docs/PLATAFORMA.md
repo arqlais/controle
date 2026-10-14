@@ -73,8 +73,8 @@ Na prévia (Artifact), o botão "prévia · ver como" troca entre página de ven
 
 Mandar sempre prints/prévia de cada parte pronta.
 
-- [ ] 1. Cliente aprova a proposta pelo link (escolhe a opção, aprova; vira demanda com parcelas; avisa a dona)
-- [ ] 2. Pix com valor certo e QR Code em cada parcela do painel do cliente
+- [x] 1. Cliente aprova a proposta pelo link (escolhe a opção, aprova; vira demanda com parcelas; avisa a dona)
+- [x] 2. Pix com valor certo e QR Code em cada parcela do painel do cliente
 - [ ] 3. Lembrete automático de parcela para a cliente final (antes de vencer e quando atrasar)
 - [ ] 4. Importar clientes e projetos de planilha (Excel, Google Planilhas, Trello)
 - [ ] 5. Retrospectiva do ano (faturamento, melhores clientes, serviços mais lucrativos, limite do MEI; versão para postar)

@@ -1,4 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import qrcode from 'qrcode-generator'
+import { pixPayload } from '../pix'
 import { DEFAULT_SETTINGS } from '../store'
 import { money, uid, whatsappLink } from '../utils'
 import { avisar } from '../avisar'
@@ -58,7 +60,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   const s = { ...DEFAULT_SETTINGS, ...(d.s as Partial<Settings>) } as Settings
   const pdf = usePdf()
   const [view, setView] = useState<Viewer | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [payPix, setPayPix] = useState<{ description: string; amount: number; project?: string } | null>(null)
   const docsCount = d.docs.length + d.files.length
   const unpaid = d.projects.flatMap((p) => (p.payments ?? []).filter((x) => !x.paid).map((x) => ({ ...x, project: p.title })))
   const toSign = d.contracts.filter((c) => !c.sign && c.signLink)
@@ -88,12 +90,6 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
       <BriefingSheetDoc s={s} tpl={x.tpl} client={d.clientFull} />
     ) : null
     if (node) open({ title: x.title, node, w: w[0], h: w[1], file: `${x.title}.pdf` })
-  }
-  const copyPix = () => {
-    if (!d.pix) return
-    void navigator.clipboard?.writeText(d.pix)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2200)
   }
 
   // resumo: a demanda em andamento (ou a mais recente)
@@ -255,11 +251,11 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
                   <b>
                     {nextPay.description} · {money(nextPay.amount)}
                   </b>
-                  <small>{nextPay.due ? (daysTo(nextPay.due)! < 0 ? `venceu em ${fmt(nextPay.due)}` : `vence em ${fmt(nextPay.due)}`) : `pagamento ${nextPay.when}`}{d.pix ? ` · Pix: ${d.pix}` : ''}</small>
+                  <small>{nextPay.due ? (daysTo(nextPay.due)! < 0 ? `venceu em ${fmt(nextPay.due)}` : `vence em ${fmt(nextPay.due)}`) : `pagamento ${nextPay.when}`}{d.pix ? ' · QR Code com o valor certo' : ''}</small>
                 </span>
                 {d.pix ? (
-                  <button type="button" className="btn primary" onClick={copyPix}>
-                    <Icon name={copied ? 'check' : 'copy'} size={15} /> {copied ? 'Pix copiado' : 'copiar Pix'}
+                  <button type="button" className="btn primary" onClick={() => setPayPix(nextPay)}>
+                    <Icon name="wallet" size={15} /> pagar com Pix
                   </button>
                 ) : (
                   <a className="btn" href="#pn-pagamentos" onClick={(e) => jump(e, 'pn-pagamentos')}>
@@ -341,18 +337,15 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
                               <small>{x.paid ? `pago${x.paidDate ? ` em ${fmt(x.paidDate)}` : ''}` : x.due ? `${late ? 'venceu' : 'vence'} em ${fmt(x.due)}` : x.when}</small>
                             </span>
                             <span className="cp-pay-val">{money(x.amount)}</span>
+                            {!x.paid && d.pix && (
+                              <button type="button" className="btn small cp-pay-pix" onClick={() => setPayPix({ ...x, project: p.title })}>
+                                <Icon name="wallet" size={13} /> pagar com Pix
+                              </button>
+                            )}
                           </li>
                         )
                       })}
                     </ul>
-                    {d.pix && (p.payments ?? []).some((x) => !x.paid) && (
-                      <p className="cp-pix">
-                        <Icon name="wallet" size={14} /> Pix: <b>{d.pix}</b>
-                        <button type="button" className="link small" onClick={copyPix}>
-                          {copied ? 'copiado' : 'copiar'}
-                        </button>
-                      </p>
-                    )}
                   </div>
                 ))}
             </section>
@@ -487,6 +480,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
         </a>
       )}
 
+      {payPix && d.pix && <PixModal d={d} pay={payPix} onClose={() => setPayPix(null)} />}
       {view && (
         <Modal wide title={view.title} onClose={() => setView(null)}>
           <div className="pn-viewer">
@@ -680,4 +674,43 @@ function coverStyle(p?: PanelPayload['coverPos']) {
   if (!p) return undefined
   if (p.fit) return { objectFit: 'contain' as const }
   return { objectPosition: `${p.x}% ${p.y}%`, transform: p.zoom > 1 ? `scale(${p.zoom})` : undefined, transformOrigin: `${p.x}% ${p.y}%` }
+}
+
+/** Pix com o valor da parcela: QR Code e "copia e cola" que já preenchem chave, nome e valor no app do banco. */
+function PixModal({ d, pay, onClose }: { d: PanelPayload; pay: { description: string; amount: number; project?: string }; onClose: () => void }) {
+  const [copied, setCopied] = useState('')
+  const code = useMemo(() => pixPayload({ key: d.pix!, name: d.pixName || d.studio || 'RECEBEDOR', city: d.pixCity || 'BRASIL', amount: pay.amount, message: pay.description.normalize('NFD').replace(/[^A-Za-z0-9 ]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30) }), [d, pay])
+  const qr = useMemo(() => {
+    const q = qrcode(0, 'M')
+    q.addData(code)
+    q.make()
+    return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true })
+  }, [code])
+  const copy = (text: string, what: string) =>
+    navigator.clipboard
+      ?.writeText(text)
+      .then(() => setCopied(what))
+      .catch(() => setCopied(''))
+  return (
+    <Modal title={`pagar com Pix · ${money(pay.amount)}`} onClose={onClose}>
+      <div className="pn-pix">
+        <p className="muted small">
+          {pay.description}
+          {pay.project ? ` · ${pay.project}` : ''}
+        </p>
+        <span className="pn-pix-qr" dangerouslySetInnerHTML={{ __html: qr }} />
+        <button type="button" className="btn primary block" onClick={() => copy(code, 'codigo')}>
+          <Icon name={copied === 'codigo' ? 'check' : 'copy'} size={15} /> {copied === 'codigo' ? 'código copiado' : 'copiar código Pix'}
+        </button>
+        <small className="muted">No app do banco: Pix → copia e cola (ou leia o QR Code). O valor já vem preenchido.</small>
+        <p className="pn-pix-key">
+          ou pela chave: <b>{d.pix}</b>{' '}
+          <button type="button" className="link small" onClick={() => copy(d.pix!, 'chave')}>
+            {copied === 'chave' ? 'copiada' : 'copiar chave'}
+          </button>
+        </p>
+        <small className="muted">Depois de pagar, {d.owner || d.studio} confirma e a parcela aparece como paga aqui.</small>
+      </div>
+    </Modal>
+  )
 }

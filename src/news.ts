@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-14-pix-no-painel',
+    date: '2026-10-14',
+    kind: 'novo',
+    title: 'Pix com valor certo no painel do cliente',
+    text: 'Cada parcela em aberto no painel do cliente tem o botão pagar com Pix: abre o QR Code e o copia e cola já com o valor e a sua chave. A cliente paga em segundos, sem digitar nada.',
+    steps: [{ page: 'paineis', text: 'Abra um painel e veja como o cliente vê: em pagamentos, cada parcela tem pagar com Pix.' }],
+  },
+  {
     id: '2026-10-14-aprovar-pelo-link',
     date: '2026-10-14',
     kind: 'novo',
