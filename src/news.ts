@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-15-retrospectiva',
+    date: '2026-10-15',
+    kind: 'novo',
+    title: 'retrospectiva do ano',
+    text: 'Em financeiro → retrospectiva: quanto entrou e quanto sobrou, mês mais forte, melhores clientes, serviços que mais renderam, aprovação dos orçamentos, horas, meta do ano e limite do MEI. E uma arte pronta para postar (os valores só aparecem se você quiser).',
+    steps: [{ page: 'retrospectiva', text: 'Veja o seu ano e baixe a arte para postar.' }],
+  },
+  {
     id: '2026-10-15-importar-planilha',
     date: '2026-10-15',
     kind: 'novo',

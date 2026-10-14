@@ -32,6 +32,7 @@ const Manual = lazy(() => import('./pages/Manual'))
 const Instagram = lazy(() => import('./pages/Instagram'))
 const Briefings = lazy(() => import('./pages/Briefings'))
 const Panels = lazy(() => import('./pages/Panels'))
+const Retro = lazy(() => import('./pages/Retro'))
 const Processes = lazy(() => import('./pages/Processes'))
 const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
@@ -462,6 +463,8 @@ export default function App() {
         return route.id ? <ProjectDetail key={route.id} id={route.id} /> : <Projects />
       case 'financeiro':
         return <Finance />
+      case 'retrospectiva':
+        return <Retro />
       case 'agenda':
         return <Agenda />
       case 'orcamentos':

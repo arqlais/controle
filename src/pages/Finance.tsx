@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useAccess } from '../access'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
-import { href } from '../router'
+import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { ExpenseForm } from '../components/forms'
 import { BarChart, Donut, PALETTE } from '../components/Charts'
@@ -121,6 +121,9 @@ export default function Finance() {
           </div>
         </div>
         <div className="row gap-s">
+          <button className="btn ghost" onClick={() => go('retrospectiva')}>
+            <Icon name="star" size={16} /> retrospectiva {month.slice(0, 4)}
+          </button>
           <button className="btn ghost" onClick={exportCSV}>
             <Icon name="download" size={16} /> CSV
           </button>
