@@ -17,7 +17,8 @@ select cron.schedule(
       'apikey', 'SUA-CHAVE-PUBLICA',
       'x-cron-secret', 'A-SENHA-DO-CRON'
     ),
-    body := '{"tipo":"diario"}'::jsonb
+    body := '{"tipo":"diario"}'::jsonb,
+    timeout_milliseconds := 120000 -- o envio pode levar mais que os 5 s padrão
   );
   $$
 );
