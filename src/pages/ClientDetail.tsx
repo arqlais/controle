@@ -249,6 +249,12 @@ export default function ClientDetail({ id }: { id: string }) {
                 })}
               </ul>
             )}
+            {data.settings.clientReminders?.on && payments.some(({ pay }) => !pay.paidDate) && (
+              <label className="check small cd-reminders">
+                <input type="checkbox" checked={!c.noReminders} onChange={(e) => upsert('clients', { ...c, noReminders: !e.target.checked || undefined })} />
+                <span>{c.email?.includes('@') ? 'lembrete automático de parcela por e-mail' : 'lembrete automático de parcela (precisa do e-mail na ficha)'}</span>
+              </label>
+            )}
           </Section>
 
           {quotes.length > 0 && (

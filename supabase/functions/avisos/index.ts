@@ -82,6 +82,35 @@ ${o.small ? `<p style="margin:26px 0 0;font-size:12px;line-height:1.6;color:#8b9
 </table></td></tr></table></body></html>`
 }
 
+
+/** E-mail para a cliente final, com o nome do escritório (não o do planê). */
+function studioLayout(o: { studio: string; accent?: string; eyebrow: string; title: string; text: string; button?: string; url?: string }) {
+  const accent = /^#[0-9a-f]{3,8}$/i.test(o.accent ?? '') ? o.accent! : '#a88a80'
+  const btn = o.button
+    ? `<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:999px;background:#3e4b57;"><a href="${o.url}" style="display:inline-block;padding:14px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">${esc(o.button)}</a></td></tr></table>`
+    : ''
+  return `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:0;background:#f5f1ee;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f1ee;padding:32px 12px;font-family:Poppins,Helvetica,Arial,sans-serif;color:#3e4b57;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+<tr><td style="padding:0 8px 18px;font-size:20px;font-weight:600;">${esc(o.studio)}</td></tr>
+<tr><td style="background:#ffffff;border-radius:22px;padding:34px 30px;">
+<p style="margin:0 0 6px;font-size:12px;letter-spacing:3px;color:${accent};">${esc(o.eyebrow)}</p>
+<h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;font-weight:700;color:#3e4b57;">${esc(o.title)}</h1>
+<div style="margin:0 0 26px;font-size:15px;line-height:1.6;color:#5b6670;">${o.text}</div>
+${btn}
+</td></tr>
+<tr><td style="padding:18px 8px 0;font-size:12px;line-height:1.6;color:#8b939a;text-align:center;">Para responder, é só responder este e-mail.<br><span style="color:${accent};">enviado por ${esc(o.studio)} · planê</span></td></tr>
+</table></td></tr></table></body></html>`
+}
+const b64u = (u: string) => {
+  const hex = u.replace(/-/g, '')
+  let bin = ''
+  for (let i = 0; i < 16; i++) bin += String.fromCharCode(parseInt(hex.slice(i * 2, i * 2 + 2), 16))
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+const brDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
+
 type Sub = { user_id: string; email: string; name: string; plan: string; status: string; trial_ends: string; blocked: boolean }
 type Mail = { subject: string; html: string }
 
@@ -257,11 +286,11 @@ const clientCopyMail = (kind: string, studio: string, title: string): Mail => ({
   }),
 })
 
-async function send(to: Sub, mail: Mail, replyTo?: string) {
+async function send(to: Sub, mail: Mail, replyTo?: string, fromName?: string) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': env('BREVO_API_KEY'), 'Content-Type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: SENDER, replyTo: { email: replyTo && isMail(replyTo.trim()) ? replyTo.trim() : REPLY_TO, name: SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
+    body: JSON.stringify({ sender: { ...SENDER, ...(fromName ? { name: fromName.slice(0, 60) } : {}) }, replyTo: { email: replyTo && isMail(replyTo.trim()) ? replyTo.trim() : REPLY_TO, name: fromName || SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
   })
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${await r.text()}`)
 }
@@ -465,7 +494,58 @@ Deno.serve(async (req) => {
         if (c?.paidUntil && c.method !== 'cartao' && day(c.paidUntil) === 3 && (await once(s, 'vence-em-breve', c.paidUntil, MAILS['vence-em-breve'](s, c.paidUntil)))) n++
       }
     }
-    return json({ ok: true, enviados: n })
+    // lembrete de parcela para a cliente final (quem ligou em configurações → propostas)
+    const blocked = new Set(((data ?? []) as Sub[]).filter((s) => s.blocked || s.status === 'cancelada').map((s) => s.user_id))
+    const { data: all } = await db.from('subscriptions').select('user_id, blocked, status')
+    for (const r of all ?? []) if (r.blocked || r.status === 'cancelada') blocked.add(String(r.user_id))
+    const { data: cfgs } = await db.from('workspace').select('user_id, cfg:data->settings->clientReminders')
+    let c = 0
+    for (const w of (cfgs ?? []) as { user_id: string; cfg?: { on?: boolean; before?: number; late?: boolean } }[]) {
+      if (!w.cfg?.on || blocked.has(w.user_id)) continue
+      const before = Math.min(10, Math.max(0, Number(w.cfg.before ?? 2)))
+      const { data: ws } = await db.from('workspace').select('settings:data->settings, projects:data->projects, clients:data->clients').eq('user_id', w.user_id).maybeSingle()
+      if (!ws) continue
+      const st = (ws.settings ?? {}) as Record<string, any>
+      const studio = String(st.brandName || st.ownerName || 'seu escritório')
+      const reply = String(st.email || '')
+      const clients = new Map(((ws.clients ?? []) as Record<string, any>[]).map((x) => [String(x.id), x]))
+      for (const p of (ws.projects ?? []) as Record<string, any>[]) {
+        const cl = clients.get(String(p.clientId))
+        const to = String(cl?.email ?? '').trim()
+        if (!cl || cl.noReminders || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) continue
+        for (const pay of (p.payments ?? []) as Record<string, any>[]) {
+          if (pay.paidDate || !pay.dueDate || !(pay.amount > 0)) continue
+          const d = day(String(pay.dueDate))
+          const kind = d === before ? 'parcela-vence' : w.cfg.late !== false && d === -1 ? 'parcela-atrasada' : ''
+          if (!kind) continue
+          const panel = cl.panel?.enabled && isUuid(String(cl.panel.token ?? '')) && isUuid(w.user_id) ? `${SITE}#/cliente/${b64u(w.user_id)}.${b64u(String(cl.panel.token))}` : ''
+          const pix = st.pixKey ? `<p style="margin:12px 0 0;">Pix: <b>${esc(String(st.pixKey))}</b>${panel ? ' · ou pelo QR Code com o valor certo, no seu painel' : ''}</p>` : ''
+          const late = kind === 'parcela-atrasada'
+          const mail: Mail = {
+            subject: late ? `${studio}: a parcela de ${brDate(pay.dueDate)} ficou em aberto` : `${studio}: parcela ${d === 0 ? 'vence hoje' : `vence em ${brDate(pay.dueDate)}`}`,
+            html: studioLayout({
+              studio,
+              accent: st.accent,
+              eyebrow: late ? 'lembrete' : 'pagamento',
+              title: late ? 'Ficou uma parcela em aberto' : d === 0 ? 'Sua parcela vence hoje' : `Sua parcela vence em ${brDate(pay.dueDate)}`,
+              text: `<p style="margin:0 0 12px;">Oi${first(cl.name) ? `, ${esc(first(cl.name))}` : ''}! ${late ? 'Passando para lembrar, com carinho, desta parcela do seu projeto:' : 'Só um lembrete da próxima parcela do seu projeto:'}</p>${quote(`<b>${esc(String(pay.description || 'parcela'))}</b> · ${money(Number(pay.amount))}<br><span style="color:#8b939a;">${esc(String(p.title || 'projeto'))} · ${late ? 'venceu' : 'vence'} em ${brDate(pay.dueDate)}</span>`)}${pix}<p style="margin:12px 0 0;">${late ? 'Se já pagou, desconsidere e me avise para eu dar baixa.' : 'Se já pagou, pode desconsiderar.'}</p>`,
+              ...(panel ? { button: late ? 'ver e pagar' : 'ver no meu painel', url: panel } : {}),
+            }),
+          }
+          const ref = `${pay.id}|${pay.dueDate}`
+          const { error } = await db.from('email_log').insert({ user_id: w.user_id, kind, ref })
+          if (error) continue // já mandou
+          try {
+            await send({ user_id: w.user_id, email: to, name: String(cl.name || ''), plan: '', status: '', trial_ends: '', blocked: false }, mail, reply, studio)
+            c++
+          } catch (e) {
+            await db.from('email_log').delete().match({ user_id: w.user_id, kind, ref })
+            console.error(e)
+          }
+        }
+      }
+    }
+    return json({ ok: true, enviados: n, lembretesClientes: c })
   }
 
   return json({ erro: 'tipo desconhecido' }, 400)

@@ -29,7 +29,7 @@ type TabId = 'aparencia' | 'precos' | 'propostas' | 'mensagens' | 'metas' | 'ia'
 const TABS: { id: TabId; label: string; hint: string; icon: string; desktop?: boolean }[] = [
   { id: 'aparencia', label: 'aparência', hint: 'cores, fontes e tema', icon: 'star' },
   { id: 'precos', label: 'serviços e preços', hint: 'para quem você trabalha, tabela e regras', icon: 'wallet' },
-  { id: 'propostas', label: 'propostas', hint: 'modelo do PDF, contratos e padrões', icon: 'file' },
+  { id: 'propostas', label: 'propostas', hint: 'modelo do PDF, contratos, padrões e lembretes', icon: 'file' },
   { id: 'mensagens', label: 'mensagens', hint: 'textos para a cliente', icon: 'whatsapp', desktop: true },
   { id: 'metas', label: 'metas', hint: 'faturamento do mês e do ano', icon: 'target', desktop: true },
   { id: 'ia', label: 'assistente', hint: 'chat com IA sobre orçamentos', icon: 'sparkle' },
@@ -195,6 +195,7 @@ export default function SettingsPage() {
                 </span>
               </p>
               <ProposalDefaults />
+              <ClientReminders />
             </>
           )}
 
@@ -832,6 +833,45 @@ function VersionHistory() {
           ))}
         </ul>
       )}
+    </Section>
+  )
+}
+
+/** Lembrete de pagamento por e-mail para a cliente final (enviado pelo planê, com o nome do escritório). */
+function ClientReminders() {
+  const { data, setSettings } = useStore()
+  const r = data.settings.clientReminders ?? { on: false, before: 2, late: true }
+  const set = (patch: Partial<typeof r>) => setSettings({ clientReminders: { ...r, ...patch } })
+  const noMail = data.clients.filter((c) => !c.email?.includes('@') && data.projects.some((p) => p.clientId === c.id && p.payments.some((x) => !x.paidDate))).length
+  return (
+    <Section title="lembrete de pagamento para a cliente" className="cfg-reminders">
+      <label className="check">
+        <input type="checkbox" checked={r.on} onChange={(e) => set({ on: e.target.checked })} />
+        <span>
+          <b>mandar lembrete automático por e-mail</b> — antes da parcela vencer, com o valor, a sua chave Pix e o link do painel. Sai com o nome do seu escritório; se a cliente responder, cai no seu e-mail.
+        </span>
+      </label>
+      {r.on && (
+        <div className="form-grid">
+          <Field label="Quando avisar">
+            <select value={r.before} onChange={(e) => set({ before: Number(e.target.value) })}>
+              {[0, 1, 2, 3, 5, 7].map((n) => (
+                <option key={n} value={n}>
+                  {n === 0 ? 'no dia' : `${n} dia${n > 1 ? 's' : ''} antes`}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Se atrasar">
+            <label className="check">
+              <input type="checkbox" checked={r.late} onChange={(e) => set({ late: e.target.checked })} />
+              <span>lembrar de novo 1 dia depois, com jeitinho</span>
+            </label>
+          </Field>
+        </div>
+      )}
+      {r.on && noMail > 0 && <p className="pf-note is-warn">{noMail === 1 ? '1 cliente com parcela em aberto está sem e-mail' : `${noMail} clientes com parcela em aberto estão sem e-mail`} na ficha: para ela{noMail > 1 ? 's' : ''} o lembrete não sai.</p>}
+      <p className="muted small">Vale para as parcelas com data de vencimento. Para não mandar para uma cliente específica, desligue na ficha dela.</p>
     </Section>
   )
 }

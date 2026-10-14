@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-14-lembrete-parcela',
+    date: '2026-10-14',
+    kind: 'novo',
+    title: 'lembrete de parcela automático para a cliente',
+    text: 'Ligue em configurações → propostas: a cliente recebe um e-mail antes da parcela vencer (com o valor, a sua chave Pix e o link do painel) e outro um dia depois, se ficou em aberto. Sai com o nome do seu escritório. Dá para desligar por cliente, na ficha dela.',
+    steps: [{ page: 'config', configTab: 'propostas', target: '.cfg-reminders', text: 'Ligue o lembrete e escolha quantos dias antes avisar.' }],
+  },
+  {
     id: '2026-10-14-pix-no-painel',
     date: '2026-10-14',
     kind: 'novo',

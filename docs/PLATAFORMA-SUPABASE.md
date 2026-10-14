@@ -65,3 +65,11 @@ Para ligar (uma vez só):
 Para testar antes sem dinheiro de verdade: crie uma conta em sandbox.asaas.com, use a chave de lá e adicione o segredo `ASAAS_SANDBOX` = `1`. Para valer, apague esse segredo e troque a chave pela da conta real.
 
 As chaves ficam só no Supabase, nunca no site.
+
+## Avisos diários e lembrete de parcela para a cliente final
+
+A função `avisos` tem um envio diário: teste acabando, Pix da assinatura vencendo e, para quem ligou em **configurações → propostas → lembrete de pagamento**, o e-mail para a cliente final antes da parcela vencer e um dia depois, se ficou em aberto. O e-mail sai com o nome do escritório e, ao responder, cai no e-mail de quem atende.
+
+Para agendar (uma vez só): rode `supabase/agendar-avisos-diarios.sql` no SQL Editor, depois de ligar as extensões `pg_cron` e `pg_net` e trocar os três campos indicados no topo do arquivo.
+
+Cada lembrete vai uma vez só por parcela (tabela `email_log`). A cliente precisa ter e-mail na ficha; dá para desligar para uma cliente específica na ficha dela.

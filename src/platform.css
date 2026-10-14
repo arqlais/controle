@@ -3393,3 +3393,4 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .pn-pix .btn.block { width: 100%; }
 .pn-pix-key { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 .cp-pays li .cp-pay-pix { grid-column: 1 / -1; justify-self: stretch; justify-content: center; }
+.cd-reminders { margin-top: 10px; }

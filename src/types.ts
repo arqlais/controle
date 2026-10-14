@@ -59,6 +59,7 @@ export interface Client {
   history: ClientNote[] // conversas e combinados, com data
   profile?: ClientProfile // só para cliente final
   panel?: ClientPanel // painel do cliente (link com tudo o que o profissional compartilhar)
+  noReminders?: boolean // não manda lembrete automático de parcela para esta cliente
   partner?: PartnerTable // valores especiais de parceria (só a dona): valem nos orçamentos deste cliente
   archived: boolean
   createdAt: string
@@ -639,6 +640,7 @@ export interface Settings {
   defaultPaymentTerms: string
   paymentMethods?: string[] // formas de receber (lista editável)
   cardFee?: number // % de taxa no cartão de crédito (Mercado Pago, receber na hora)
+  clientReminders?: { on: boolean; before: number; late: boolean } // e-mail automático para a cliente: parcela vencendo / em aberto
   signature?: string // imagem da assinatura (data URL), vai no contrato
   firstStepsHidden?: boolean // cartão "primeiros passos" escondido
   tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"
