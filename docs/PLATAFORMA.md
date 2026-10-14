@@ -68,3 +68,16 @@ Mesmo endereço e mesmo login de hoje. Na conta dela aparece o item **painel da 
 
 Enquanto o SQL da plataforma não for rodado, a conta da Laís continua exatamente como hoje (tudo liberado).
 Na prévia (Artifact), o botão "prévia · ver como" troca entre página de vendas, cliente e dona; assinantes e conversas são fictícios.
+
+## Próximas funcionalidades (aprovadas pela Laís, fazer por partes, nenhuma pode ser esquecida)
+
+Mandar sempre prints/prévia de cada parte pronta.
+
+- [ ] 1. Cliente aprova a proposta pelo link (escolhe a opção, aprova; vira demanda com parcelas; avisa a dona)
+- [ ] 2. Pix com valor certo e QR Code em cada parcela do painel do cliente
+- [ ] 3. Lembrete automático de parcela para a cliente final (antes de vencer e quando atrasar)
+- [ ] 4. Importar clientes e projetos de planilha (Excel, Google Planilhas, Trello)
+- [ ] 5. Retrospectiva do ano (faturamento, melhores clientes, serviços mais lucrativos, limite do MEI; versão para postar)
+- [ ] 6. Equipe no plano Estúdio (convidar pessoas, escolher o que cada uma vê)
+- [ ] 7. Modelos de projeto prontos (etapas, prazos e checklist com um clique)
+- [ ] 8. Nota fiscal automática das assinaturas pelo Asaas (depois da conta aprovada)
