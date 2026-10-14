@@ -70,7 +70,7 @@ export function PayNow({ plan, cycle, pixAmount, cardAmount, method }: { plan: P
             <span className="paynow-head">
               <Icon name="lock" size={16} /> cartão de crédito · <b>{money(cardAmount)}</b>
             </span>
-            <p className="muted small">Pagamento em ambiente seguro do Mercado Pago. Os dados do cartão nunca passam pelo {PLATFORM.name}.</p>
+            <p className="muted small">Pagamento em ambiente seguro. Os dados do cartão nunca passam pelo {PLATFORM.name}.</p>
             <a className="btn primary block" href={link} target="_blank" rel="noreferrer">
               pagar no cartão <Icon name="chevronR" size={14} />
             </a>
@@ -84,7 +84,7 @@ export function PayNow({ plan, cycle, pixAmount, cardAmount, method }: { plan: P
   )
 }
 
-/** Mercado Pago automático: abre a página segura; aprovado, a conta é liberada sozinha. */
+/** Pagamento automático (Asaas): abre a página segura; aprovado, a conta é liberada sozinha. */
 function MpPay({ plan, cycle, pixAmount, cardAmount, method, note }: { plan: PlanId; cycle: BillCycle; pixAmount: number; cardAmount: number; method?: 'pix' | 'cartao'; note: string }) {
   const [busy, setBusy] = useState<'' | 'pix' | 'cartao'>('')
   const go = async (forma: 'pix' | 'cartao') => {
@@ -117,7 +117,7 @@ function MpPay({ plan, cycle, pixAmount, cardAmount, method, note }: { plan: Pla
             <span className="paynow-head">
               <Icon name="lock" size={16} /> cartão de crédito · <b>{money(cardAmount)}</b>
             </span>
-            <p className="muted small">{cycle === 'mensal' ? 'Cobrança automática todo mês; cancele quando quiser.' : `Em até ${cycle === 'anual' ? 12 : 6}x sem juros.`} Os dados do cartão ficam só com o Mercado Pago.</p>
+            <p className="muted small">{cycle === 'mensal' ? 'Cobrança automática todo mês; cancele quando quiser.' : `Em até ${cycle === 'anual' ? 12 : 6}x sem juros.`} Os dados do cartão ficam só com o Asaas.</p>
             <button type="button" className="btn primary block" disabled={!!busy} onClick={() => void go('cartao')}>
               {busy === 'cartao' ? 'abrindo…' : 'pagar no cartão'}
             </button>
@@ -125,7 +125,7 @@ function MpPay({ plan, cycle, pixAmount, cardAmount, method, note }: { plan: Pla
         )}
       </div>
       <p className="muted small paynow-note">
-        <Icon name="lock" size={12} /> pagamento seguro pelo Mercado Pago
+        <Icon name="lock" size={12} /> pagamento seguro pelo Asaas
       </p>
     </section>
   )

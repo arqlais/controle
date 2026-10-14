@@ -1,23 +1,29 @@
-// Pagamentos do planê pelo Mercado Pago (roda no Supabase, nunca no site).
+// Pagamentos do planê pelo Asaas (roda no Supabase, nunca no site).
 // Cole em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "pagamentos".
-// IMPORTANTE: nas configurações da função, DESLIGUE "Verify JWT" (o Mercado Pago avisa os pagamentos sem login;
+// IMPORTANTE: nas configurações da função, DESLIGUE "Verify JWT" (o Asaas avisa os pagamentos sem login;
 // quem cria a cobrança é conferido aqui dentro pelo login da pessoa).
-// Segredos (Edge Functions → Secrets): MP_ACCESS_TOKEN (Mercado Pago → Suas integrações → Credenciais de produção → Access Token).
-// Opcional: SITE_URL (padrão https://useplane.com.br/). Só no teste: MP_TEST_PAYER_EMAIL (e-mail do comprador de teste).
+// Segredos (Edge Functions → Secrets):
+//   ASAAS_API_KEY        → Asaas → Integrações → Chave de API (começa com $aact_)
+//   ASAAS_WEBHOOK_TOKEN  → uma senha inventada por você; a mesma vai no webhook do Asaas (campo "Token de autenticação")
+// Opcionais: SITE_URL (padrão https://useplane.com.br/); ASAAS_SANDBOX=1 para testar na conta de testes do Asaas.
+// Webhook (Asaas → Integrações → Webhooks → Adicionar): URL https://<seu-projeto>.supabase.co/functions/v1/pagamentos?acao=webhook,
+//   eventos "Cobrança confirmada" e "Cobrança recebida", com o mesmo token do segredo ASAAS_WEBHOOK_TOKEN.
 //
 // Ações:
-//   criar   → a pessoa logada escolhe plano, ciclo e forma; devolve o link seguro do Mercado Pago
+//   criar   → a pessoa logada escolhe plano, ciclo e forma; devolve o link seguro do Asaas (a pessoa preenche os dados lá)
 //             · mensal no cartão = assinatura recorrente (cobra todo mês sozinho)
-//             · o resto = Checkout Pro (Pix, ou cartão em até 6x/12x sem juros com a taxa já embutida no preço)
-//   webhook → o Mercado Pago avisa cada pagamento; se aprovado, a conta é liberada sozinha,
+//             · cartão no semestral/anual = parcelado em até 6x/12x sem juros (taxa já embutida no preço)
+//             · Pix = QR Code na hora
+//   webhook → o Asaas avisa cada pagamento; tudo é conferido de novo direto no Asaas. Confirmado, a conta é liberada sozinha,
 //             o pagamento entra no controle da dona (assinantes → cobrança) e a pessoa recebe uma mensagem no chat.
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
 const SITE = env('SITE_URL', 'https://useplane.com.br/')
-const TOKEN = env('MP_ACCESS_TOKEN')
-const SELF = `${env('SUPABASE_URL')}/functions/v1/pagamentos`
+const TOKEN = env('ASAAS_API_KEY')
+const HOOK_TOKEN = env('ASAAS_WEBHOOK_TOKEN')
+const API = env('ASAAS_SANDBOX') ? 'https://api-sandbox.asaas.com/v3' : 'https://api.asaas.com/v3'
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } })
 
 const cors = {
@@ -46,13 +52,13 @@ async function priceOf(plan: Plan, cycle: Cycle, method: 'pix' | 'cartao') {
   return { amount: method === 'cartao' ? cents(pix * (1 + fee / 100)) : pix, launched: cfg.launched === true, cfg }
 }
 
-async function mp(path: string, init?: RequestInit) {
-  const r = await fetch(`https://api.mercadopago.com${path}`, {
+async function asaas(path: string, init?: RequestInit) {
+  const r = await fetch(`${API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    headers: { access_token: TOKEN, 'Content-Type': 'application/json', 'User-Agent': 'plane', ...(init?.headers ?? {}) },
   })
   const body = await r.json().catch(() => ({}))
-  if (!r.ok) throw new Error(`Mercado Pago ${r.status}: ${JSON.stringify(body).slice(0, 300)}`)
+  if (!r.ok) throw new Error(`Asaas ${r.status}: ${JSON.stringify(body?.errors ?? body).slice(0, 300)}`)
   return body as Record<string, any>
 }
 
@@ -80,44 +86,38 @@ async function create(req: Request, body: Record<string, any>) {
   const { data: sub } = await db.from('subscriptions').select('*').eq('user_id', u.user.id).maybeSingle()
   if (!sub) return json({ erro: 'Conta não encontrada.' }, 404)
   const ref = `${u.user.id}|${plan}|${cycle}|${method}`
-  const title = `planê ${NAMES[plan]} · ${cycle}`
-  const back = `${SITE}#/assinatura`
-  // mensal no cartão: assinatura que cobra todo mês sozinha
-  if (cycle === 'mensal' && method === 'cartao') {
-    const pre = await mp('/preapproval', {
-      method: 'POST',
-      body: JSON.stringify({
-        reason: title,
-        external_reference: ref,
-        // no teste, o Mercado Pago exige o e-mail de um comprador de teste (segredo MP_TEST_PAYER_EMAIL)
-        payer_email: env('MP_TEST_PAYER_EMAIL') || u.user.email,
-        back_url: back,
-        notification_url: `${SELF}?acao=webhook`,
-        auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: full, currency_id: 'BRL' },
-        status: 'pending',
-      }),
-    })
-    return json({ url: pre.init_point })
-  }
-  const off = cycle === 'mensal' ? await firstDiscount(u.user.id, sub) : 0
+  const recurring = cycle === 'mensal' && method === 'cartao' // assinatura: cobra todo mês sozinha
+  const off = cycle === 'mensal' && !recurring ? await firstDiscount(u.user.id, sub) : 0
   const amount = cents(full * (1 - off / 100))
-  const pref = await mp('/checkout/preferences', {
-    method: 'POST',
-    body: JSON.stringify({
-      items: [{ id: `${plan}-${cycle}`, title, quantity: 1, unit_price: amount, currency_id: 'BRL' }],
-      external_reference: ref,
-      back_urls: { success: `${back}?pago=1`, pending: `${back}?pago=pendente`, failure: back },
-      auto_return: 'approved',
-      notification_url: `${SELF}?acao=webhook`,
-      statement_descriptor: 'PLANE',
-      payment_methods: {
-        installments: method === 'cartao' ? INSTALLMENTS[cycle] : 1,
-        excluded_payment_types: method === 'pix' ? [{ id: 'credit_card' }, { id: 'debit_card' }, { id: 'prepaid_card' }, { id: 'ticket' }, { id: 'atm' }] : [{ id: 'ticket' }, { id: 'atm' }, { id: 'bank_transfer' }],
-        ...(method === 'pix' ? { default_payment_method_id: 'pix' } : {}),
-      },
-    }),
-  })
-  return json({ url: pref.init_point, desconto: off })
+  const end = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10) // link vale 7 dias
+  const link: Record<string, any> = {
+    name: `planê ${NAMES[plan]} · ${cycle}`,
+    description: recurring ? 'Cobrança automática todo mês. Cancele quando quiser.' : method === 'cartao' ? `Em até ${INSTALLMENTS[cycle]}x sem juros.` : 'Pix com QR Code na hora.',
+    value: amount,
+    billingType: method === 'cartao' ? 'CREDIT_CARD' : 'PIX',
+    chargeType: recurring ? 'RECURRENT' : method === 'cartao' && INSTALLMENTS[cycle] > 1 ? 'INSTALLMENT' : 'DETACHED',
+    dueDateLimitDays: 3,
+    endDate: end,
+    externalReference: ref,
+    notificationEnabled: false,
+    callback: { successUrl: `${SITE}#/assinatura?pago=1`, autoRedirect: true },
+  }
+  if (recurring) link.subscriptionCycle = 'MONTHLY'
+  if (link.chargeType === 'INSTALLMENT') link.maxInstallmentCount = INSTALLMENTS[cycle]
+  let made: Record<string, any>
+  try {
+    made = await asaas('/paymentLinks', { method: 'POST', body: JSON.stringify(link) })
+  } catch (e) {
+    // o Asaas só aceita voltar para o site cadastrado em "Minha conta → Informações comerciais"; sem isso, cria sem voltar
+    if (!/callback|successUrl|dom[ií]nio|domain/i.test(String(e))) throw e
+    delete link.callback
+    made = await asaas('/paymentLinks', { method: 'POST', body: JSON.stringify(link) })
+  }
+  // guarda de quem é o link: o aviso de pagamento traz o link, e assim a conta certa é liberada
+  const { data: ctrl } = await db.from('subscriber_admin').select('data').eq('user_id', u.user.id).maybeSingle()
+  const cur = (ctrl?.data ?? {}) as Record<string, any>
+  await db.from('subscriber_admin').upsert({ user_id: u.user.id, data: { ...cur, asaasLinks: { ...(cur.asaasLinks ?? {}), [made.id]: ref } }, updated_at: new Date().toISOString() })
+  return json({ url: made.url, desconto: off })
 }
 
 const addMonths = (iso: string, n: number) => {
@@ -127,16 +127,16 @@ const addMonths = (iso: string, n: number) => {
 }
 
 /** Pagamento aprovado: libera a conta, registra no controle da dona e avisa no chat (uma vez por pagamento). */
-async function approve(ref: string, payId: string, amount: number, method: 'pix' | 'cartao') {
+async function approve(ref: string, payId: string, amount: number, method: 'pix' | 'cartao', subscription?: string) {
   const [userId, plan, cycle] = ref.split('|') as [string, Plan, Cycle]
   if (!userId || !NAMES[plan] || !MONTHS[cycle]) return
   const { data: ctrl } = await db.from('subscriber_admin').select('data').eq('user_id', userId).maybeSingle()
   const cur = (ctrl?.data ?? {}) as Record<string, any>
   const payments = (cur.payments ?? []) as { id: string }[]
-  if (payments.some((p) => p.id === `mp-${payId}`)) return // já registrado
+  if (payments.some((p) => p.id === payId)) return // já registrado
   const today = new Date().toISOString().slice(0, 10)
   const base = cur.paidUntil && cur.paidUntil > today ? cur.paidUntil : today
-  const next = { ...cur, cycle, method, paidUntil: addMonths(base, MONTHS[cycle]), payments: [...payments, { id: `mp-${payId}`, date: today, amount, method, note: 'Mercado Pago' }] }
+  const next = { ...cur, cycle, method, paidUntil: addMonths(base, MONTHS[cycle]), payments: [...payments, { id: payId, date: today, amount, method, note: 'Asaas' }], ...(subscription ? { asaasSubscription: subscription } : {}) }
   await db.from('subscriber_admin').upsert({ user_id: userId, data: next, updated_at: new Date().toISOString() })
   await db.from('subscriptions').update({ status: 'ativa', plan, requested_plan: null, requested_at: null, canceled_at: null }).eq('user_id', userId)
   await db.from('support_messages').insert({
@@ -146,31 +146,50 @@ async function approve(ref: string, payId: string, amount: number, method: 'pix'
   })
 }
 
-async function webhook(req: Request, url: URL) {
-  const body = (await req.json().catch(() => ({}))) as Record<string, any>
-  const type = String(body.type ?? body.topic ?? url.searchParams.get('type') ?? url.searchParams.get('topic') ?? '')
-  const id = String(body.data?.id ?? url.searchParams.get('data.id') ?? url.searchParams.get('id') ?? '')
-  if (!id) return json({ ok: true })
-  // tudo é conferido direto no Mercado Pago (um aviso falso não libera nada)
-  if (type === 'payment') {
-    const p = await mp(`/v1/payments/${id}`)
-    if (p.status === 'approved' && p.external_reference) await approve(String(p.external_reference), String(p.id), Number(p.transaction_amount), p.payment_type_id === 'credit_card' ? 'cartao' : 'pix')
-  } else if (type === 'subscription_authorized_payment') {
-    const a = await mp(`/authorized_payments/${id}`)
-    if (a.payment?.status === 'approved' && a.preapproval_id) {
-      const pre = await mp(`/preapproval/${a.preapproval_id}`)
-      if (pre.external_reference) await approve(String(pre.external_reference), String(a.payment.id ?? id), Number(a.transaction_amount), 'cartao')
-    }
+/** De quem é o pagamento: pela referência, pelo link de pagamento ou pela assinatura (meses seguintes). */
+async function refOf(p: Record<string, any>) {
+  if (String(p.externalReference ?? '').includes('|')) return String(p.externalReference)
+  if (p.paymentLink) {
+    const { data } = await db.from('subscriber_admin').select('data').not(`data->asaasLinks->>${p.paymentLink}`, 'is', null).limit(1).maybeSingle()
+    const ref = data?.data?.asaasLinks?.[p.paymentLink]
+    if (ref) return String(ref)
   }
+  if (p.subscription) {
+    const s = await asaas(`/subscriptions/${p.subscription}`).catch(() => ({}) as Record<string, any>)
+    if (String(s.externalReference ?? '').includes('|')) return String(s.externalReference)
+    const { data } = await db.from('subscriber_admin').select('user_id, data').eq('data->>asaasSubscription', p.subscription).limit(1).maybeSingle()
+    const c = data?.data as Record<string, any> | undefined
+    if (data && c?.cycle) return `${data.user_id}|${(await db.from('subscriptions').select('plan').eq('user_id', data.user_id).maybeSingle()).data?.plan}|${c.cycle}|cartao`
+  }
+  return ''
+}
+
+async function webhook(req: Request) {
+  // só aceita aviso com o token combinado; e mesmo assim tudo é conferido direto no Asaas (um aviso falso não libera nada)
+  if (!HOOK_TOKEN || req.headers.get('asaas-access-token') !== HOOK_TOKEN) return json({ erro: 'não autorizado' }, 401)
+  const body = (await req.json().catch(() => ({}))) as Record<string, any>
+  const id = String(body.payment?.id ?? '')
+  if (!id || !/^PAYMENT_(CONFIRMED|RECEIVED)$/.test(String(body.event ?? ''))) return json({ ok: true })
+  const p = await asaas(`/payments/${id}`)
+  if (!['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(p.status))) return json({ ok: true })
+  const ref = await refOf(p)
+  if (!ref) return json({ ok: true })
+  const method = p.billingType === 'CREDIT_CARD' ? 'cartao' : 'pix'
+  if (p.installment) {
+    // parcelado: o Asaas avisa cada parcela; conta uma vez só, pelo valor total
+    const inst = await asaas(`/installments/${p.installment}`).catch(() => ({}) as Record<string, any>)
+    const total = Number(inst.value ?? 0) || Number(inst.paymentValue ?? p.value) * Number(inst.installmentCount ?? 1)
+    await approve(ref, `asaas-parc-${p.installment}`, total, method)
+  } else await approve(ref, `asaas-${p.id}`, Number(p.value), method, p.subscription ? String(p.subscription) : undefined)
   return json({ ok: true })
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
-  if (!TOKEN) return json({ erro: 'Falta o segredo MP_ACCESS_TOKEN no Supabase.' }, 500)
+  if (!TOKEN) return json({ erro: 'Falta o segredo ASAAS_API_KEY no Supabase.' }, 500)
   const url = new URL(req.url)
   try {
-    if (url.searchParams.get('acao') === 'webhook' || req.headers.get('user-agent')?.includes('MercadoPago')) return await webhook(req, url)
+    if (url.searchParams.get('acao') === 'webhook' || req.headers.has('asaas-access-token')) return await webhook(req)
     const body = (await req.json().catch(() => ({}))) as Record<string, any>
     if (body.acao === 'criar') return await create(req, body)
     return json({ erro: 'Ação desconhecida.' }, 400)

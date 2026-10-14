@@ -1021,16 +1021,16 @@ function PaySettings() {
       <label className="check pay-mp">
         <input type="checkbox" checked={!!cfg.mpOn} onChange={(e) => set({ mpOn: e.target.checked })} />
         <span>
-          <b>Mercado Pago automático</b> — Pix e cartão pela página segura do Mercado Pago; aprovado, a conta é liberada sozinha e o pagamento entra em assinantes → cobrança. Ligue só depois de publicar a função “pagamentos” no Supabase (passo a passo no chat).
+          <b>Asaas automático</b> — Pix e cartão pela página segura do Asaas (mensal no cartão cobra todo mês sozinho); pago, a conta é liberada sozinha e o pagamento entra em assinantes → cobrança. Ligue só depois de publicar a função “pagamentos” no Supabase e cadastrar o webhook no Asaas (passo a passo no topo do arquivo da função).
         </span>
       </label>
-      <h4 className="ig-h">{cfg.mpOn ? 'links manuais (não usados com o automático ligado)' : 'links de cartão (Mercado Pago)'}</h4>
-      <p className="muted small">Crie um link de pagamento para cada plano no Mercado Pago (no mensal, use “assinatura” para cobrar todo mês sozinho) e cole aqui. Em branco: a pessoa vê só o Pix.</p>
+      <h4 className="ig-h">{cfg.mpOn ? 'links manuais (não usados com o automático ligado)' : 'links de cartão (manuais)'}</h4>
+      <p className="muted small">Crie um link de pagamento para cada plano no Asaas (no mensal, use “assinatura” para cobrar todo mês sozinho) e cole aqui. Em branco: a pessoa vê só o Pix.</p>
       <div className="pay-links">
         {PLAN_LIST.map((p) =>
           CYCLES.map((c) => (
             <Field key={`${p.id}-${c}`} label={`${p.name} · ${c}`}>
-              <input value={cfg.cardLinks[`${p.id}-${c}`] ?? ''} onChange={(e) => set({ cardLinks: { ...cfg.cardLinks, [`${p.id}-${c}`]: e.target.value.trim() } })} placeholder="https://mpago.la/..." />
+              <input value={cfg.cardLinks[`${p.id}-${c}`] ?? ''} onChange={(e) => set({ cardLinks: { ...cfg.cardLinks, [`${p.id}-${c}`]: e.target.value.trim() } })} placeholder="https://www.asaas.com/c/..." />
             </Field>
           )),
         )}

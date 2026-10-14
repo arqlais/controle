@@ -75,7 +75,7 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
       {/pago=pendente/.test(location.hash) && (
         <p className="pf-note is-warn">
           <Icon name="clock" size={16} />
-          <span>Pagamento em análise pelo Mercado Pago. Assim que for aprovado, a conta é liberada sozinha.</span>
+          <span>Pagamento em análise. Assim que for aprovado, a conta é liberada sozinha.</span>
         </p>
       )}
       {sub && (

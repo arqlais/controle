@@ -51,4 +51,17 @@ O que acontece no aparelho de cada cliente (por exemplo, o Essencial não mostra
 
 ## Fase 2 (cobrança de verdade)
 
-Hoje você ativa cada assinatura à mão, depois de confirmar o pagamento. Na Fase 2 isso passa a ser automático pelo pagamento (Asaas, Mercado Pago ou Stripe) com uma Edge Function; os segredos do pagamento ficam no painel do Supabase, nunca no site.
+A cobrança automática é pelo **Asaas** (Pix, cartão recorrente no mensal e cartão parcelado no semestral e anual). Enquanto ela não estiver ligada, você ativa cada assinatura à mão no painel, depois de confirmar o pagamento.
+
+Para ligar (uma vez só):
+
+1. **Asaas:** crie a conta (de preferência com o CNPJ do MEI) e espere a aprovação dos documentos. Em *Minha conta → Informações comerciais*, coloque o site `useplane.com.br` (é para onde a pessoa volta depois de pagar).
+2. **Chave de API:** no Asaas, *Integrações → Chave de API → Gerar*. Copie (começa com `$aact_`). Ela só aparece uma vez.
+3. **Supabase → Edge Functions → Secrets:** crie `ASAAS_API_KEY` com a chave e `ASAAS_WEBHOOK_TOKEN` com uma senha que você inventar (só letras e números, longa).
+4. **Supabase → Edge Functions → Deploy a new function → Via Editor:** nome `pagamentos`, cole o conteúdo de `supabase/functions/pagamentos/index.ts` e publique. Depois, nas configurações da função, **desligue "Verify JWT"**.
+5. **Asaas → Integrações → Webhooks → Adicionar:** URL `https://SEU-PROJETO.supabase.co/functions/v1/pagamentos?acao=webhook`, eventos *Cobrança confirmada* e *Cobrança recebida*, e no campo de token de autenticação a mesma senha do passo 3.
+6. **Painel da dona → pagamentos:** marque **Asaas automático**.
+
+Para testar antes sem dinheiro de verdade: crie uma conta em sandbox.asaas.com, use a chave de lá e adicione o segredo `ASAAS_SANDBOX` = `1`. Para valer, apague esse segredo e troque a chave pela da conta real.
+
+As chaves ficam só no Supabase, nunca no site.

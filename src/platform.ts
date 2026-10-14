@@ -43,7 +43,7 @@ export interface PayConfig {
   pixCity: string
   cardLinks: Record<string, string> // `${plano}-${ciclo}` → link de pagamento
   note: string // recado curto na tela de pagamento
-  mpOn?: boolean // Mercado Pago automático ligado (função "pagamentos" publicada no Supabase)
+  mpOn?: boolean // pagamento automático (Asaas) ligado (função "pagamentos" publicada no Supabase)
 }
 /** Aba do navegador: nome, frase e ícone (a dona troca no painel → página de vendas). */
 export interface TabBrand {
@@ -644,7 +644,7 @@ const cloud = {
   async tabBrand(): Promise<TabBrand | null> {
     return (await cloudSettings()).tab ?? null
   },
-  /** Link seguro do Mercado Pago para pagar (o valor é calculado no servidor). */
+  /** Link seguro do Asaas para pagar (o valor é calculado no servidor). */
   async mpCheckout(plano: string, ciclo: string, forma: 'pix' | 'cartao'): Promise<string> {
     const { data, error } = await supabase!.functions.invoke('pagamentos', { body: { acao: 'criar', plano, ciclo, forma } })
     if (error) {
@@ -1100,7 +1100,7 @@ const local = {
     return readDB().tab ?? null
   },
   async mpCheckout(_plano: string, _ciclo: string, _forma: 'pix' | 'cartao'): Promise<string> {
-    throw new Error('Na prévia o pagamento não abre. No site, abre a página segura do Mercado Pago.')
+    throw new Error('Na prévia o pagamento não abre. No site, abre a página segura do Asaas.')
   },
   async saveTabBrand(tab: TabBrand) {
     writeDB({ ...readDB(), tab })
