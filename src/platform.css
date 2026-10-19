@@ -3560,3 +3560,56 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
   .bottom-nav a.active svg { color: var(--accent-ink); }
 }
 :root[data-app-theme='dark'] { --nav-on-bg: color-mix(in srgb, var(--accent-soft) 30%, transparent); --nav-on-text: #fff; }
+
+/* ===== contenção (pedido da Laís: nada poluído, nada colorido demais) =====
+   fundo: liso, só um calor quase imperceptível atrás do menu.
+   vidro: só onde algo passa por trás (menu lateral e barra de baixo). O resto é sólido e limpo. */
+.app::before {
+  background:
+    radial-gradient(28rem 22rem at 0% 0%, color-mix(in srgb, var(--accent-soft) 14%, transparent), transparent 72%),
+    var(--bg);
+}
+/* avisos de uma linha: cartão simples, sem efeito */
+.slim-banner {
+  background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 1px solid var(--border); box-shadow: none;
+}
+.slim-banner.is-urgent { background: color-mix(in srgb, var(--warn) 8%, var(--surface)); }
+/* menus suspensos, avisos e ajuda: brancos e sólidos, sombra suave (leitura em primeiro lugar) */
+.dropdown, .nt-panel, .screen-help-pop, .topbar .dropdown, .topbar .nt-panel, .topbar .screen-help-pop {
+  background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 40px -18px rgba(20, 24, 32, 0.28), 0 2px 6px -3px rgba(20, 24, 32, 0.08);
+}
+/* menu lateral: vidro discreto — quase branco, brilho leve só na borda */
+.sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.6));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 0.5px rgba(20, 20, 20, 0.07), 0 10px 30px -16px rgba(20, 24, 32, 0.2);
+}
+/* barra de baixo: vidro claro, separada do conteúdo por uma linha fina */
+.bottom-nav {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.7));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 0 0 0.5px rgba(20, 20, 20, 0.1), 0 8px 24px -12px rgba(20, 24, 32, 0.25);
+}
+/* item aberto: rosé suave, sem sombra colorida */
+:root { --nav-on-bg: color-mix(in srgb, var(--accent-soft) 45%, var(--surface)); }
+.sidebar nav a.active { box-shadow: none; }
+@media (max-width: 820px) { .bottom-nav a.active, .bottom-nav button.active { box-shadow: none; } }
+:root[data-app-theme='dark'] .slim-banner, :root[data-app-theme='dark'] .dropdown, :root[data-app-theme='dark'] .nt-panel, :root[data-app-theme='dark'] .screen-help-pop { background: var(--surface); border-color: var(--border); }
+
+/* ===== acabamento ===== */
+/* etiqueta de plano no menu: só aparece ao passar o mouse (o nome nunca fica cortado); no celular, some */
+.sidebar nav a .nav-plan { display: none; }
+.sidebar nav a:hover .nav-plan { display: inline-block; }
+/* "indique e ganhe": discreto, no mesmo tom do menu */
+.sidebar nav a.nav-promo, .sidebar nav a.nav-promo:hover, .nav-promo {
+  background: color-mix(in srgb, var(--surface) 70%, transparent); color: var(--text);
+  border: 1px solid var(--border); box-shadow: none;
+}
+.sidebar nav a.nav-promo small { color: var(--muted); }
+.nav-promo-icon { background: color-mix(in srgb, var(--accent-soft) 35%, var(--surface)); color: var(--accent-ink); animation: none; }
+.sidebar nav a.nav-promo.active { box-shadow: 0 0 0 1px var(--accent-soft); }
+/* grupo "plataforma" (só a dona): só o contorno, sem fundo colorido */
+.nav-group.is-plataforma { background: transparent; border-color: var(--border); }
+/* barra do topo: quase sólida, para o texto da página não aparecer por trás ao rolar */
+.topbar { background: color-mix(in srgb, var(--bg) 94%, transparent); }

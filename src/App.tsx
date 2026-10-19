@@ -625,7 +625,7 @@ export default function App() {
             </button>
           )}
           {!access.isOwner && !organizing && !simple && (
-            <a href={href('indique')} className={`nav-promo lp-shine ${route.page === 'indique' ? 'active' : ''}`}>
+            <a href={href('indique')} className={`nav-promo ${route.page === 'indique' ? 'active' : ''}`}>
               <span className="nav-promo-icon">
                 <Icon name="gift" size={18} />
               </span>
