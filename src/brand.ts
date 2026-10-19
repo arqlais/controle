@@ -114,10 +114,10 @@ export interface Palette {
   owner?: boolean // exclusiva da dona
 }
 
-export const PALETTES: Palette[] = [
+const RAW_PALETTES: Palette[] = [
   { name: 'laís (site)', accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57', owner: true },
   // padrão de quem assina: fundo quase branco, texto e botões em preto, detalhes em rosé (contraste só onde importa)
-  { name: 'clássico', accent: '#151515', accentSoft: '#eab4ad', accentInk: '#c46f72', background: '#fbfbfa', surface: '#ffffff', text: '#151515' },
+  { name: 'clássico', accent: '#2b3138', accentSoft: '#eab4ad', accentInk: '#b35f66', background: '#fbfbfa', surface: '#ffffff', text: '#1d2125' },
   { name: 'areia & carvão', accent: '#2f2f2f', accentSoft: '#cdb89c', accentInk: '#9b8264', background: '#f6f2ec', surface: '#ffffff', text: '#2a2a2a' },
   { name: 'galeria', accent: '#111111', accentSoft: '#b5b5b5', accentInk: '#6f6f6f', background: '#fafafa', surface: '#ffffff', text: '#111111' },
   { name: 'terracota', accent: '#a4553a', accentSoft: '#e0bfa6', accentInk: '#b06a4f', background: '#f7f0ea', surface: '#fffdfb', text: '#2b211c' },
@@ -148,6 +148,14 @@ const mixHex = (a: string, b: string, t: number) =>
     .map((v, i) => Math.round(v + (hex(b)[i] - v) * t))
     .map((v) => v.toString(16).padStart(2, '0'))
     .join('')
+
+/** Paletas prontas com contraste firme: texto quase preto, rótulos e botões um tom mais fundos.
+ *  (Nada de tudo pastel.) Cada pessoa ainda ajusta cada cor como quiser em configurações → aparência. */
+const deepen = (p: Palette): Palette =>
+  p.owner
+    ? p
+    : { ...p, text: mixHex(p.text, '#111111', 0.4), accent: mixHex(p.accent, '#111111', 0.12), accentInk: mixHex(p.accentInk, '#111111', 0.22) }
+export const PALETTES: Palette[] = RAW_PALETTES.map(deepen)
 
 /** Cores da proposta a partir de uma paleta (faixa, rótulos, total, fundo e texto). */
 export const paletteToProposal = (p: Pick<Palette, 'accent' | 'accentSoft' | 'accentInk' | 'background' | 'text'>): Pick<ProposalStyle, 'ink' | 'rose' | 'arch' | 'paper' | 'bar'> => ({
