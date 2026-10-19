@@ -20,6 +20,7 @@ const ClientPanelPublic = lazy(() => import('./ClientPanelPublic').then((m) => (
 const AffiliatePanel = lazy(() => import('./AffiliatePanel').then((m) => ({ default: m.AffiliatePanel })))
 const ProposalPublic = lazy(() => import('./ProposalPublic').then((m) => ({ default: m.ProposalPublic })))
 const ContractSignPublic = lazy(() => import('./ContractSignPublic').then((m) => ({ default: m.ContractSignPublic })))
+const StudioPagePublic = lazy(() => import('./StudioPagePublic').then((m) => ({ default: m.StudioPagePublic })))
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
@@ -42,6 +43,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (route.page === 'proposta' && route.id) return <Suspense fallback={wait}><ProposalPublic id={route.id} /></Suspense>
   // painel do cliente final (tudo o que o profissional compartilhou)
   if (route.page === 'cliente' && route.id) return <Suspense fallback={wait}><ClientPanelPublic id={route.id} /></Suspense>
+  // página do profissional (link da bio) com pedido de orçamento
+  if (route.page === 'pagina' && route.id) return <Suspense fallback={wait}><StudioPagePublic code={route.id} /></Suspense>
   // painel do afiliado (link secreto)
   if (route.page === 'parceiro' && route.id) return <Suspense fallback={wait}><AffiliatePanel token={route.id} /></Suspense>
   return <Gate>{children}</Gate>

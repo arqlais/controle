@@ -9,6 +9,7 @@ import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
 import { EmailInput, Field, PhoneInput, Section, CepInput } from '../components/ui'
 import { toast } from '../components/dialog'
 import type { Settings } from '../types'
+import { DEFAULT_PAGE, pageLink, pagePayload, publishPage, unpublishPage, type StudioPageCfg } from '../studioPage'
 import { atHandle, cleanSite, docKind, fitImage, formatDoc, showDoc, typeHandle } from '../utils'
 
 /* Perfil do estúdio: quem você é, como aparece nas propostas e recibos, e a sua conta. */
@@ -226,6 +227,7 @@ export default function Profile() {
         </div>
       </div>
 
+      <StudioPageSection />
       <AccountSection email={userEmail} />
     </div>
   )
@@ -279,5 +281,87 @@ function AccountSection({ email }: { email: string }) {
       )}
     </Section>
     </>
+  )
+}
+
+/** Página do profissional (link da bio): liga, escreve a apresentação, escolhe os serviços e publica. */
+function StudioPageSection() {
+  const { data, setSettings, userId } = useStore()
+  const s = data.settings
+  const cfg = { ...DEFAULT_PAGE, ...(s.page ?? {}) }
+  const set = (patch: Partial<StudioPageCfg>) => setSettings({ page: { ...cfg, ...patch } })
+  const [busy, setBusy] = useState(false)
+  const link = pageLink(userId)
+  const services = s.services.filter((x) => x.id !== 'personalizado' && x.name.trim())
+  const shown = (id: string) => !cfg.services.length || cfg.services.includes(id)
+  const toggleService = (id: string) => {
+    const cur = cfg.services.length ? cfg.services : services.map((x) => x.id)
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]
+    set({ services: next.length === services.length ? [] : next })
+  }
+  const publish = async (on = true) => {
+    setBusy(true)
+    try {
+      if (on) await publishPage(userId, pagePayload(s, { ...cfg, on: true }))
+      else await unpublishPage(userId)
+      set({ on })
+      toast(on ? 'Página no ar. Coloque o link na bio do Instagram.' : 'Página tirada do ar.')
+    } catch {
+      toast('Não foi possível agora. Confira a internet e tente de novo.')
+    }
+    setBusy(false)
+  }
+  return (
+    <Section
+      title="sua página (link da bio)"
+      action={
+        cfg.on ? (
+          <button className="btn small ghost" disabled={busy} onClick={() => void publish(false)}>
+            <Icon name="eye-off" size={14} /> tirar do ar
+          </button>
+        ) : undefined
+      }
+    >
+      <p className="muted small">Uma página simples com o que você faz e um botão de pedir orçamento. O pedido chega aqui como aviso, com o cliente cadastrado e o rascunho do orçamento pronto.</p>
+      <div className="form-grid">
+        <Field label="Frase de abertura" hint="O que você faz, em uma linha.">
+          <input value={cfg.headline} onChange={(e) => set({ headline: e.target.value })} placeholder="imagens 3D e executivo para escritórios de arquitetura" />
+        </Field>
+        <Field label="Sobre você" span={2}>
+          <textarea rows={3} value={cfg.bio} onChange={(e) => set({ bio: e.target.value })} placeholder="como você trabalha, prazos, para quem…" spellCheck lang="pt-BR" />
+        </Field>
+      </div>
+      <span className="field-label">serviços que aparecem</span>
+      <div className="row gap-s wrap">
+        {services.map((x) => (
+          <button key={x.id} type="button" className={`chip ${shown(x.id) ? 'active' : ''}`} onClick={() => toggleService(x.id)} aria-pressed={shown(x.id)}>
+            {shown(x.id) && <Icon name="check" size={12} />} {x.name}
+          </button>
+        ))}
+      </div>
+      <label className="check">
+        <input type="checkbox" checked={cfg.showPrices} onChange={(e) => set({ showPrices: e.target.checked })} /> mostrar “a partir de R$” em cada serviço
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={cfg.photos} onChange={(e) => set({ photos: e.target.checked })} /> mostrar as fotos do portfólio (as mesmas da proposta)
+      </label>
+      {cfg.on && (
+        <div className="sg-link">
+          <input readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Link da sua página" />
+          <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'))}>
+            <Icon name="copy" size={14} />
+          </button>
+          <a className="btn ghost small" href={link} target="_blank" rel="noreferrer">
+            ver
+          </a>
+        </div>
+      )}
+      <div className="row gap-s">
+        <button className="btn primary small" disabled={busy} onClick={() => void publish(true)}>
+          {cfg.on ? 'atualizar a página' : 'colocar a página no ar'}
+        </button>
+      </div>
+      {cfg.on && <p className="muted small">Mudou algo aqui, no perfil ou na tabela de preços? Toque em “atualizar a página”.</p>}
+    </Section>
   )
 }

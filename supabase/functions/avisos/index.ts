@@ -261,6 +261,7 @@ const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   briefing: { eyebrow: 'briefing', did: 'respondeu o briefing' },
   aprovacao: { eyebrow: 'proposta aprovada', did: 'aprovou a proposta' },
   visualizou: { eyebrow: 'proposta', did: 'abriu a sua proposta' },
+  pedido: { eyebrow: 'pedido de orçamento', did: 'pediu um orçamento pela sua página' },
 }
 const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string): Mail => {
   const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado
@@ -269,9 +270,9 @@ const clientEventMail = (s: Sub, kind: string, client: string, title: string, te
     html: layout({
       eyebrow: k.eyebrow,
       title: `${esc(client || 'Seu cliente')} ${k.did}`,
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : kind === 'visualizou' ? '. Bom momento para mandar uma mensagem: ela acabou de ver' : ''}.</p>`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : kind === 'visualizou' ? '. Bom momento para mandar uma mensagem: ela acabou de ver' : kind === 'pedido' ? '. O rascunho do orçamento já está pronto, com o cliente e os serviços' : ''}.</p>`,
       button: 'abrir o planê',
-      url: `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' ? 'orcamentos' : 'clientes'}`,
+      url: `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' || kind === 'pedido' ? 'orcamentos' : 'clientes'}`,
     }),
   }
 }
@@ -467,7 +468,18 @@ Deno.serve(async (req) => {
     }
     // proposta aberta: e-mail só na primeira vez (as outras aparecem no sistema)
     if (kind === 'visualizou') return json({ ok: true, email: await once(s, 'cliente-visualizou', payload.painel || ref, clientEventMail(s, kind, payload.cliente, payload.titulo, '')) })
-    const sent = await once(s, `cliente-${kind}`, ref, clientEventMail(s, kind, payload.cliente, payload.titulo, payload.texto))
+    // pedido pela página: o contato vai junto no e-mail (para responder sem abrir o sistema)
+    let text = payload.texto
+    if (kind === 'pedido') {
+      let req: { phone?: string; area?: number } = {}
+      try {
+        req = JSON.parse(payload.code || '{}')
+      } catch {
+        /* sem detalhes */
+      }
+      text = [payload.texto, req.area ? `área: ${req.area} m²` : '', req.phone ? `WhatsApp: ${String(req.phone).slice(0, 30)}` : '', payload.contato ? `e-mail: ${payload.contato}` : ''].filter(Boolean).join('\n')
+    }
+    const sent = await once(s, `cliente-${kind}`, ref, clientEventMail(s, kind, payload.cliente, payload.titulo, text))
     // cópia para o cliente (só se deixou um e-mail); responder cai no e-mail do profissional
     const to = payload.contato.trim()
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {

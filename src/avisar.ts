@@ -6,6 +6,9 @@ import { notifyDevice } from './briefingSync'
 import { checkSignMessage } from './contractSign'
 import type { Notice, QuoteApproval } from './types'
 import { proposalChoices } from './proposalLink'
+import { draftQuote } from './quoteActions'
+import type { PageRequest } from './studioPage'
+import type { Client } from './types'
 import { BOTH, quoteNumber, today, uid } from './utils'
 
 /* Avisos do cliente final para o profissional: assinatura de contrato e recado pelo painel.
@@ -14,7 +17,7 @@ import { BOTH, quoteNumber, today, uid } from './utils'
 
 export interface ClientEvent {
   user: string // conta do profissional
-  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou'
+  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou' | 'pedido'
   ref: string // o que é (token do contrato, id do recado): não repete
   cliente: string
   titulo: string
@@ -157,6 +160,42 @@ export function useClientInbox(enabled: boolean) {
           toast(title)
           notifyDevice(title, q.title || '')
         }
+      } else if (r.kind === 'pedido') {
+        // pedido pela página do profissional: cliente novo (ou o mesmo, pelo WhatsApp/e-mail) + rascunho de orçamento
+        let req: PageRequest = { phone: '', services: [] }
+        try {
+          req = { ...req, ...(JSON.parse(p.code || '{}') as PageRequest) }
+        } catch {
+          /* pedido sem detalhes */
+        }
+        const digits = (v: string) => v.replace(/\D/g, '').slice(-9)
+        const mail = (p.contato ?? '').trim().toLowerCase()
+        const same = d.clients.find((c) => (req.phone && digits(c.phone) && digits(c.phone) === digits(req.phone)) || (mail && c.email.trim().toLowerCase() === mail))
+        const client: Client = same ?? {
+          id: uid(),
+          name: p.cliente || 'Contato da página',
+          company: '',
+          type: d.settings.workProfile === 'final' ? 'final' : 'outro',
+          email: mail,
+          phone: req.phone,
+          instagram: '',
+          city: req.city ?? '',
+          document: '',
+          origin: 'página (link da bio)',
+          notes: '',
+          favorite: false,
+          history: [],
+          archived: false,
+          createdAt: today(),
+        }
+        const what = p.titulo || 'pedido de orçamento'
+        upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `pediu orçamento pela página: ${what}${req.area ? ` · ${req.area} m²` : ''}${p.texto ? ` · “${p.texto}”` : ''}` }] })
+        const q = draftQuote(d, client.id, what === 'pedido de orçamento' ? '' : what, req.services ?? [], req.area ?? 0)
+        upsert('quotes', q)
+        const who = client.name
+        upsert('notices', makeNotice({ kind: 'pedido', ref: key, clientId: client.id, link: `orcamentos/${q.id}`, title: `${who} pediu um orçamento`, text: [what, req.area ? `${req.area} m²` : '', p.texto].filter(Boolean).join(' · ') + ' · o rascunho já está pronto.' }))
+        toast(`${who.split(' ')[0]} pediu um orçamento pela sua página`)
+        notifyDevice(`${who} pediu um orçamento`, what)
       } else if (r.kind === 'recado') {
         const client = d.clients.find((x) => x.panel?.token === p.painel)
         if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `recado pelo painel: ${p.texto ?? ''}` }] })

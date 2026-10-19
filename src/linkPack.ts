@@ -59,13 +59,13 @@ export const ANSWER_TAG = 'código das respostas:'
 export const findAnswerCode = (msg: string) => msg.match(/c[óo]digo das respostas:\s*([zj][A-Za-z0-9_-]+)/i)?.[1] ?? ''
 
 /* Código curto do link: a conta (uuid) + o item (uuid), 22 + 22 letras. */
-const uuidToB64 = (u: string) => {
+export const uuidToB64 = (u: string) => {
   const hex = u.replace(/-/g, '')
   const bytes = new Uint8Array(16)
   for (let i = 0; i < 16; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
   return toB64(bytes)
 }
-const b64ToUuid = (s: string) => {
+export const b64ToUuid = (s: string) => {
   const h = [...fromB64(s)].map((b) => b.toString(16).padStart(2, '0')).join('')
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
 }

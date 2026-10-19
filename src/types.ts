@@ -132,7 +132,7 @@ export interface PanelFile {
 export interface Notice {
   id: string
   at: string
-  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao' | 'visualizou'
+  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao' | 'visualizou' | 'pedido'
   title: string
   text?: string
   clientId?: string
@@ -583,6 +583,7 @@ export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços
+  page?: import('./studioPage').StudioPageCfg // página do profissional (link da bio)
   processes?: ProjectProcess[] // processos de trabalho para cliente final (vazio = os prontos)
   servicesSetup?: boolean // já fez o primeiro passo "o que você faz e quanto cobra"
   processesKnown?: string[] // processos prontos que a pessoa já recebeu (um novo entra uma vez; apagou, não volta)

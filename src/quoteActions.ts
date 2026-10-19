@@ -141,3 +141,43 @@ export function misdatedOldQuotes(d: Data) {
   }
   return out
 }
+
+/** Rascunho de orçamento já com o cliente e os serviços (pedido pela página do profissional).
+ *  Os valores saem da tabela quando o orçamento é aberto. */
+export function draftQuote(d: Data, clientId: string, title: string, serviceIds: string[], area = 0): Quote {
+  const st = d.settings
+  const item = (service = '') => {
+    const sv = st.services.find((x) => x.id === service)
+    return { id: uid(), service, title: sv?.name ?? '', detail: '', description: '', quantity: sv?.pricing === 'm2' && area > 0 ? area : 1, complexity: 'media' as const, price: 0, auto: true }
+  }
+  const items = serviceIds.filter((id) => st.services.some((x) => x.id === id)).map(item)
+  const option = () => ({ id: uid(), name: '', items: [item()], note: '', discount: 0, discountNote: '', deadlineDays: 10 })
+  return {
+    id: uid(),
+    number: nextQuoteNumber(d),
+    clientId,
+    title,
+    mode: 'escopo',
+    pdf: false,
+    area: area > 0 ? area : 0,
+    clientLabel: '',
+    items: items.length ? items : [item()],
+    options: [option(), option()],
+    chosenOption: '',
+    discount: 0,
+    discountNote: '',
+    files: st.proposal.files,
+    filesAuto: true,
+    schedule: st.proposal.schedule,
+    urgency: false,
+    deadlineDays: 10,
+    validityDays: 15,
+    revisions: st.defaultRevisions,
+    paymentTerms: st.defaultPaymentTerms,
+    notes: '',
+    status: 'rascunho',
+    sentAt: '',
+    createdAt: today(),
+    projectId: '',
+  }
+}
