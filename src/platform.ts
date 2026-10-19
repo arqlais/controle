@@ -630,7 +630,7 @@ const cloud = {
     await patchCloudSettings({ terms })
   },
   async savePlanConfig(c: PlanConfig) {
-    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, trialV2: c.trialV2, launched: c.launched === true, annualFreeMonths: c.annualFreeMonths, cardFee: c.cardFee, cardFee6: c.cardFee6, semesterDiscount: c.semesterDiscount })
+    await patchCloudSettings({ plans: c.plans, trialDays: c.trialDays, trialV2: c.trialV2, launched: c.launched === true, annualFreeMonths: c.annualFreeMonths, cardFee: c.cardFee, cardFee6: c.cardFee6, semesterDiscount: c.semesterDiscount, google: c.google === true, invite: c.invite === true, inviteCode: c.inviteCode ?? '' })
   },
   async company(): Promise<Company> {
     return { ...EMPTY_COMPANY, ...((await cloudSettings()).company ?? {}) }
@@ -683,6 +683,9 @@ interface PlatformData {
   cardFee?: number
   cardFee6?: number
   semesterDiscount?: number
+  google?: boolean
+  invite?: boolean
+  inviteCode?: string
   company?: Company
   payment?: PayConfig
   tab?: TabBrand

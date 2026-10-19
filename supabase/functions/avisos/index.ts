@@ -260,6 +260,7 @@ const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   recado: { eyebrow: 'painel do cliente', did: 'mandou um recado' },
   briefing: { eyebrow: 'briefing', did: 'respondeu o briefing' },
   aprovacao: { eyebrow: 'proposta aprovada', did: 'aprovou a proposta' },
+  visualizou: { eyebrow: 'proposta', did: 'abriu a sua proposta' },
 }
 const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string): Mail => {
   const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado
@@ -268,9 +269,9 @@ const clientEventMail = (s: Sub, kind: string, client: string, title: string, te
     html: layout({
       eyebrow: k.eyebrow,
       title: `${esc(client || 'Seu cliente')} ${k.did}`,
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : ''}.</p>`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : kind === 'visualizou' ? '. Bom momento para mandar uma mensagem: ela acabou de ver' : ''}.</p>`,
       button: 'abrir o planê',
-      url: `${SITE}#/${kind === 'aprovacao' ? 'orcamentos' : 'clientes'}`,
+      url: `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' ? 'orcamentos' : 'clientes'}`,
     }),
   }
 }
@@ -464,6 +465,8 @@ Deno.serve(async (req) => {
       if (!u?.user?.email) return json({ ok: true, email: false })
       s = { user_id: user, email: u.user.email, name: '', plan: '', status: '', trial_ends: '', blocked: false }
     }
+    // proposta aberta: e-mail só na primeira vez (as outras aparecem no sistema)
+    if (kind === 'visualizou') return json({ ok: true, email: await once(s, 'cliente-visualizou', payload.painel || ref, clientEventMail(s, kind, payload.cliente, payload.titulo, '')) })
     const sent = await once(s, `cliente-${kind}`, ref, clientEventMail(s, kind, payload.cliente, payload.titulo, payload.texto))
     // cópia para o cliente (só se deixou um e-mail); responder cai no e-mail do profissional
     const to = payload.contato.trim()
@@ -545,7 +548,52 @@ Deno.serve(async (req) => {
         }
       }
     }
-    return json({ ok: true, enviados: n, lembretesClientes: c })
+    // proposta sem resposta: um lembrete educado para a cliente, X dias depois do envio (uma vez por proposta)
+    const { data: qcfgs } = await db.from('workspace').select('user_id, cfg:data->settings->quoteReminders')
+    let qn = 0
+    for (const w of (qcfgs ?? []) as { user_id: string; cfg?: { on?: boolean; days?: number } }[]) {
+      if (!w.cfg?.on || blocked.has(w.user_id) || !isUuid(w.user_id)) continue
+      const wait = Math.min(15, Math.max(2, Number(w.cfg.days ?? 3)))
+      const { data: ws } = await db.from('workspace').select('settings:data->settings, quotes:data->quotes, clients:data->clients').eq('user_id', w.user_id).maybeSingle()
+      if (!ws) continue
+      const st = (ws.settings ?? {}) as Record<string, any>
+      const studio = String(st.brandName || st.ownerName || 'seu escritório').replace(/\.$/, '')
+      const reply = String(st.email || '')
+      const clients = new Map(((ws.clients ?? []) as Record<string, any>[]).map((x) => [String(x.id), x]))
+      for (const q of (ws.quotes ?? []) as Record<string, any>[]) {
+        if (q.status !== 'enviado' || q.clientApproval || !q.sentAt || !isUuid(String(q.shareToken ?? ''))) continue
+        if (q.validUntil && day(String(q.validUntil)) < 0) continue
+        if (-day(String(q.sentAt)) !== wait) continue
+        const cl = clients.get(String(q.clientId))
+        const to = String(cl?.email ?? '').trim()
+        if (!cl || cl.noReminders || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) continue
+        const link = `${SITE}#/proposta/${b64u(w.user_id)}.${b64u(String(q.shareToken))}`
+        const num = `#${String(q.number ?? '').padStart(3, '0')}`
+        const mail: Mail = {
+          subject: `${studio}: conseguiu ver a proposta ${num}?`,
+          html: studioLayout({
+            studio,
+            accent: st.accent,
+            eyebrow: 'proposta',
+            title: 'Conseguiu ver a proposta?',
+            text: `<p style="margin:0 0 12px;">Oi${first(cl.name) ? `, ${esc(first(cl.name))}` : ''}! Passando para saber se você conseguiu ver a proposta${q.title ? ` <b>${esc(String(q.title))}</b>` : ''}.</p><p style="margin:0;">Se quiser ajustar alguma coisa, é só responder este e-mail. E se estiver tudo certo, dá para aprovar direto pelo link.</p>`,
+            button: 'ver a proposta',
+            url: link,
+          }),
+        }
+        const ref = String(q.id)
+        const { error } = await db.from('email_log').insert({ user_id: w.user_id, kind: 'proposta-sem-resposta', ref })
+        if (error) continue // já mandou
+        try {
+          await send({ user_id: w.user_id, email: to, name: String(cl.name || ''), plan: '', status: '', trial_ends: '', blocked: false }, mail, reply, studio)
+          qn++
+        } catch (e) {
+          await db.from('email_log').delete().match({ user_id: w.user_id, kind: 'proposta-sem-resposta', ref })
+          console.error(e)
+        }
+      }
+    }
+    return json({ ok: true, enviados: n, lembretesClientes: c, lembretesPropostas: qn })
   }
 
   return json({ erro: 'tipo desconhecido' }, 400)

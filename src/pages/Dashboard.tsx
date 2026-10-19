@@ -400,7 +400,7 @@ function TodoList() {
         tone: 'info',
         icon: 'file',
         title: `Pedir retorno: orçamento #${String(q.number).padStart(3, '0')}`,
-        sub: `${c?.name ?? ''} · sem resposta há ${waitingDays(q)} dias`,
+        sub: `${c?.name ?? ''} · sem resposta há ${waitingDays(q)} dias${q.viewedAt ? ` · ${(q.views ?? 1) > 1 ? `abriu ${q.views}x` : 'já abriu o link'}` : q.shareToken ? ' · ainda não abriu o link' : ''}`,
         link: href('orcamentos', q.id),
         action: c?.phone ? { label: 'mensagem', href: whatsappLink(c.phone, text), icon: 'whatsapp' } : undefined,
       })

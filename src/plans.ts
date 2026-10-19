@@ -82,6 +82,9 @@ export let LAUNCHED = false
 export const setLaunched = (v: boolean) => {
   LAUNCHED = v
 }
+/** Entrada na plataforma (a dona muda no painel → planos): entrar com Google e lançamento fechado (só com convite). */
+export const ACCESS_CFG = { google: false, invite: false, inviteCode: '' }
+export const setAccessCfg = (c: Partial<typeof ACCESS_CFG>) => Object.assign(ACCESS_CFG, c)
 export const setTrialDays = (n: number) => {
   TRIAL_DAYS = n
 }

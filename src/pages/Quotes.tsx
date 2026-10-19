@@ -315,6 +315,7 @@ export default function Quotes() {
                         {x.title || 'Sem título'}
                         {x.mode === 'opcoes' && <span className="mini-tag">{`${Math.min(3, x.options.length)} ${x.combo ? 'propostas' : 'opções'}`}</span>}
                         {x.clientApproval && x.status !== 'aprovado' && <span className="mini-tag is-ok">aprovou pelo link</span>}
+                        {!x.clientApproval && x.status === 'enviado' && x.viewedAt && <span className="mini-tag" title={`Abriu pela última vez em ${x.lastViewedAt?.slice(0, 10).split('-').reverse().join('/')}`}>{(x.views ?? 1) > 1 ? `abriu ${x.views}x` : 'visualizada'}</span>}
                       </div>
                       <div className="list-sub">
                         {c?.name ?? '—'} · {fmtDate(x.createdAt)}

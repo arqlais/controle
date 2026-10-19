@@ -132,7 +132,7 @@ export interface PanelFile {
 export interface Notice {
   id: string
   at: string
-  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao'
+  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao' | 'visualizou'
   title: string
   text?: string
   clientId?: string
@@ -414,6 +414,9 @@ export interface Quote {
   layout?: 'slides' | 'folha' // cliente final: proposta em slides (padrão) ou folha única objetiva
   shareToken?: string // link da proposta para a cliente ver e aprovar (arquivo público)
   clientApproval?: QuoteApproval // a cliente aprovou pelo link
+  viewedAt?: string // a cliente abriu o link da proposta pela primeira vez
+  lastViewedAt?: string // última vez que abriu
+  views?: number // em quantos dias diferentes abriu
 }
 
 /** Aprovação feita pela cliente no link da proposta. */
@@ -642,6 +645,7 @@ export interface Settings {
   paymentMethods?: string[] // formas de receber (lista editável)
   cardFee?: number // % de taxa no cartão de crédito (Mercado Pago, receber na hora)
   clientReminders?: { on: boolean; before: number; late: boolean } // e-mail automático para a cliente: parcela vencendo / em aberto
+  quoteReminders?: { on: boolean; days: number } // e-mail automático para a cliente: proposta sem resposta depois de X dias (uma vez)
   signature?: string // imagem da assinatura (data URL), vai no contrato
   firstStepsHidden?: boolean // cartão "primeiros passos" escondido
   tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"

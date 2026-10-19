@@ -8,9 +8,9 @@ import { onViewAsClient, viewPlan, viewingAsClient, type ViewPlan } from '../vie
 import { TRIAL_DAYS, previewCreatedAt } from '../plans'
 import type { AccessInfo } from '../platform'
 import { PREVIEW_CLIENT, getPreviewRole, onPreviewRole, setPreviewRole, type PreviewRole } from '../platform'
-import { PLATFORM, type PlanId } from '../plans'
+import { ACCESS_CFG, PLATFORM, type PlanId } from '../plans'
 import { go, useRoute } from '../router'
-import { Signup } from './Signup'
+import { GoogleButton, Signup, googleLogin } from './Signup'
 import { lazy, Suspense } from 'react'
 // páginas públicas e de vendas: só carregam quando alguém abre (o sistema fica mais leve)
 const Landing = lazy(() => import('../pages/Landing'))
@@ -319,6 +319,14 @@ function Login({ onEnter }: { onEnter?: () => void }) {
           {busy ? 'aguarde…' : forgot ? 'enviar link por e-mail' : 'entrar'}
           {!busy && <Icon name="chevronR" size={16} />}
         </button>
+        {ACCESS_CFG.google && CLOUD && !forgot && (
+          <GoogleButton
+            onClick={() =>
+              void googleLogin().catch(() => setError('Não foi possível entrar com o Google agora. Use e-mail e senha.'))
+            }
+            label="entrar com o Google"
+          />
+        )}
         <button type="button" className="link" onClick={() => (setForgot(!forgot), setError(''))}>
           {forgot ? '← voltar para o login' : 'esqueci minha senha'}
         </button>

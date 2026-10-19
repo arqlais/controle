@@ -10,7 +10,7 @@ import { ARTIFACT } from '../env'
 import { pixPayload } from '../pix'
 import { setTabBrand } from '../theme'
 import { BrandMark, DEFAULT_MARKS, MARK, MARK_PLACES, MARK_VARIANTS, PlaneMark, markIconUrl, type MarkPlace, type MarkSpec } from '../components/PlaneMark'
-import { CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, OLD_SLOGANS, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
+import { ACCESS_CFG, CYCLES, ANNUAL_FREE_MONTHS, CARD_FEE, CARD_FEE_6, CYCLE_MONTHS, CYCLE_UNIT, PLANS, PLAN_LIST, PLAN_TOGGLES, PLATFORM, OLD_SLOGANS, REFERRAL, SEMESTER_DISCOUNT, STATUS_LABEL, TRIAL_DAYS, LAUNCHED, cardPrice, cyclePrice, effectivePlan, money0, type PlanId, type SubStatus } from '../plans'
 import { applyPlanConfig, rememberPlanConfig, type PlanConfig, type PlanOverride } from '../planConfig'
 import { AffiliatePanelView } from '../components/AffiliatePanel'
 import { MailComposer } from '../components/MailComposer'
@@ -1730,6 +1730,9 @@ function TrialControl({ s, update }: { s: Subscription; update: (s: Subscription
 function PlansEditor() {
   const snap = (): PlanConfig => ({
     launched: LAUNCHED,
+    google: ACCESS_CFG.google,
+    invite: ACCESS_CFG.invite,
+    inviteCode: ACCESS_CFG.inviteCode,
     trialV2: true,
     trialDays: TRIAL_DAYS,
     annualFreeMonths: ANNUAL_FREE_MONTHS,
@@ -1768,6 +1771,35 @@ function PlansEditor() {
           <span>
             <b>{cfg.launched ? 'assinaturas abertas' : 'pré-lançamento: só teste grátis'}</b>
             <small>{cfg.launched ? 'Quem testa já consegue assinar e pagar.' : 'Quem se cadastra testa tudo normalmente, mas ainda não consegue assinar: vê o aviso de que as assinaturas abrem no lançamento. Ligue quando a cobrança estiver pronta.'}</small>
+          </span>
+        </label>
+        <label className={`launch-toggle ${cfg.invite ? 'is-on' : ''}`}>
+          <input type="checkbox" checked={!!cfg.invite} onChange={(e) => setCfg({ ...cfg, invite: e.target.checked, inviteCode: cfg.inviteCode || Math.random().toString(36).slice(2, 8) })} />
+          <span>
+            <b>{cfg.invite ? 'lançamento fechado: só com convite' : 'cadastro aberto para todos'}</b>
+            <small>{cfg.invite ? 'A página de vendas troca “testar grátis” por “pedir convite”. Para convidar, mande o link abaixo: o código já vai junto.' : 'Ligue para começar com poucas pessoas escolhidas, antes de abrir para todo mundo.'}</small>
+          </span>
+        </label>
+        {cfg.invite && (
+          <div className="form-grid">
+            <Field label="Código do convite" hint="Troque quando quiser fechar os convites antigos.">
+              <input value={cfg.inviteCode ?? ''} onChange={(e) => setCfg({ ...cfg, inviteCode: e.target.value.replace(/\s/g, '') })} />
+            </Field>
+            <Field label="Link do convite">
+              <div className="sg-link">
+                <input readOnly value={`${PLATFORM.url}?convite=${cfg.inviteCode ?? ''}#/cadastro`} onFocus={(e) => e.target.select()} />
+                <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(`${PLATFORM.url}?convite=${cfg.inviteCode ?? ''}#/cadastro`).then(() => toast('Link copiado.'))}>
+                  <Icon name="copy" size={14} />
+                </button>
+              </div>
+            </Field>
+          </div>
+        )}
+        <label className={`launch-toggle ${cfg.google ? 'is-on' : ''}`}>
+          <input type="checkbox" checked={!!cfg.google} onChange={(e) => setCfg({ ...cfg, google: e.target.checked })} />
+          <span>
+            <b>{cfg.google ? 'entrar com Google ligado' : 'entrar com Google desligado'}</b>
+            <small>Mostra “continuar com Google” no cadastro e no login. Só ligue depois de ativar o Google no Supabase (passo a passo em docs/PLATAFORMA-SUPABASE.md).</small>
           </span>
         </label>
         <div className="form-grid">

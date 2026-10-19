@@ -754,6 +754,14 @@ export default function QuoteEditor({ id }: { id: string }) {
           </button>
         </div>
       )}
+      {!q.clientApproval && q.status === 'enviado' && q.shareToken && (
+        <p className="quote-seen muted small">
+          <Icon name="eye" size={14} />{' '}
+          {q.viewedAt
+            ? `${client?.name.split(' ')[0] ?? 'A cliente'} abriu o link em ${fmtDate(q.viewedAt.slice(0, 10))}${(q.views ?? 1) > 1 ? ` e voltou ${(q.views ?? 1) - 1}x (última em ${fmtDate((q.lastViewedAt ?? q.viewedAt).slice(0, 10))})` : ''}`
+            : 'O link ainda não foi aberto.'}
+        </p>
+      )}
       <div className={`mobile-switch ${showPdf ? '' : 'is-hidden'}`}>
         <Segmented
           value={view}

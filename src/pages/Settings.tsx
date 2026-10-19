@@ -841,9 +841,11 @@ function ClientReminders() {
   const { data, setSettings } = useStore()
   const r = data.settings.clientReminders ?? { on: false, before: 2, late: true }
   const set = (patch: Partial<typeof r>) => setSettings({ clientReminders: { ...r, ...patch } })
+  const qr = data.settings.quoteReminders ?? { on: false, days: 3 }
+  const setQr = (patch: Partial<typeof qr>) => setSettings({ quoteReminders: { ...qr, ...patch } })
   const noMail = data.clients.filter((c) => !c.email?.includes('@') && data.projects.some((p) => p.clientId === c.id && p.payments.some((x) => !x.paidDate))).length
   return (
-    <Section title="lembrete de pagamento para a cliente" className="cfg-reminders">
+    <Section title="lembretes automáticos para a cliente" className="cfg-reminders">
       <label className="check">
         <input type="checkbox" checked={r.on} onChange={(e) => set({ on: e.target.checked })} />
         <span>
@@ -871,6 +873,23 @@ function ClientReminders() {
       )}
       {r.on && noMail > 0 && <p className="pf-note is-warn">{noMail === 1 ? '1 cliente com parcela em aberto está sem e-mail' : `${noMail} clientes com parcela em aberto estão sem e-mail`} na ficha: para ela{noMail > 1 ? 's' : ''} o lembrete não sai.</p>}
       <p className="muted small">Vale para as parcelas com data de vencimento. Para não mandar para uma cliente específica, desligue na ficha dela.</p>
+      <label className="check">
+        <input type="checkbox" checked={!!qr.on} onChange={(e) => setQr({ on: e.target.checked })} />
+        <span>
+          <b>lembrar a cliente da proposta sem resposta</b> — um e-mail só, educado, com o link para ver e aprovar. Vale para as propostas mandadas pelo link.
+        </span>
+      </label>
+      {qr.on && (
+        <Field label="Depois de quantos dias sem resposta">
+          <select value={qr.days} onChange={(e) => setQr({ days: Number(e.target.value) })}>
+            {[2, 3, 5, 7, 10].map((n) => (
+              <option key={n} value={n}>
+                {n} dias
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
     </Section>
   )
 }

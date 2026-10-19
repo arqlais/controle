@@ -1,5 +1,5 @@
 import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
-import { OWNER_ONLY, PLANS, setLaunched, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
+import { OWNER_ONLY, PLANS, setAccessCfg, setLaunched, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
    e os dias de teste. Carregados antes de abrir o site, para a página de vendas já
@@ -22,6 +22,9 @@ export interface PlanConfig {
   cardFee?: number // % da taxa do cartão em 12x, embutida no anual parcelado
   cardFee6?: number // % da taxa do cartão em 6x, embutida no semestral parcelado
   semesterDiscount?: number // % de desconto no semestral
+  google?: boolean // botão "continuar com Google" (precisa do Google ligado no Supabase)
+  invite?: boolean // lançamento fechado: cadastro só com o código do convite
+  inviteCode?: string
   plans?: Partial<Record<PlanId, PlanOverride>>
 }
 
@@ -42,6 +45,7 @@ export function applyPlanConfig(c: PlanConfig) {
   // 7 dias era o padrão antigo: vira 14 até a dona salvar outro número
   if (c.trialDays && c.trialDays > 0) setTrialDays(!c.trialV2 && c.trialDays === 7 ? 14 : Math.round(c.trialDays))
   setLaunched(c.launched === true)
+  setAccessCfg({ google: c.google === true, invite: c.invite === true, inviteCode: String(c.inviteCode ?? '').trim() })
   if (typeof c.annualFreeMonths === 'number' && c.annualFreeMonths >= 0 && c.annualFreeMonths <= 6) setAnnualFreeMonths(c.annualFreeMonths)
   if (typeof c.cardFee === 'number' && c.cardFee >= 0 && c.cardFee <= 40) setCardFee(c.cardFee)
   if (typeof c.cardFee6 === 'number' && c.cardFee6 >= 0 && c.cardFee6 <= 40) setCardFee6(c.cardFee6)
@@ -79,7 +83,7 @@ async function fetchConfig(timeoutMs: number): Promise<PlanConfig | null> {
     if (!r.ok) return null
     const rows = (await r.json()) as { data?: PlanConfig }[]
     const d = rows[0]?.data ?? {}
-    return { trialDays: d.trialDays, trialV2: d.trialV2, launched: d.launched === true, annualFreeMonths: d.annualFreeMonths, cardFee: d.cardFee, cardFee6: d.cardFee6, semesterDiscount: d.semesterDiscount, plans: d.plans }
+    return { trialDays: d.trialDays, trialV2: d.trialV2, launched: d.launched === true, annualFreeMonths: d.annualFreeMonths, cardFee: d.cardFee, cardFee6: d.cardFee6, semesterDiscount: d.semesterDiscount, google: d.google, invite: d.invite, inviteCode: d.inviteCode, plans: d.plans }
   } catch {
     return null
   } finally {

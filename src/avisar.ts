@@ -14,7 +14,7 @@ import { BOTH, quoteNumber, today, uid } from './utils'
 
 export interface ClientEvent {
   user: string // conta do profissional
-  kind: 'assinatura' | 'recado' | 'aprovacao'
+  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou'
   ref: string // o que é (token do contrato, id do recado): não repete
   cliente: string
   titulo: string
@@ -144,6 +144,19 @@ export function useClientInbox(enabled: boolean) {
         upsert('notices', makeNotice({ kind: 'aprovacao', ref: key, clientId: q.clientId, link: `orcamentos/${q.id}`, title: `${who} aprovou a proposta ${quoteNumber(q)}`, text: [label, note].filter(Boolean).join(' · ') || 'Abra o orçamento para fechar: cria a demanda e lança os pagamentos.' }))
         toast(`${who.split(' ')[0]} aprovou a proposta ${quoteNumber(q)}`)
         notifyDevice(`${who} aprovou a proposta`, label ?? quoteNumber(q))
+      } else if (r.kind === 'visualizou') {
+        const q = d.quotes.find((x) => x.shareToken && x.shareToken === p.painel)
+        if (!q) continue // orçamento de outro aparelho ainda não sincronizado: tenta depois
+        const views = (q.views ?? 0) + 1
+        upsert('quotes', { ...q, viewedAt: q.viewedAt || r.created_at, lastViewedAt: r.created_at, views })
+        if (!q.clientApproval && q.status !== 'aprovado') {
+          const client = d.clients.find((x) => x.id === q.clientId)
+          const who = client?.name ?? p.cliente ?? 'A cliente'
+          const title = views === 1 ? `${who} abriu a proposta ${quoteNumber(q)}` : `${who} abriu de novo a proposta ${quoteNumber(q)} (${views}ª vez)`
+          upsert('notices', makeNotice({ kind: 'visualizou', ref: key, clientId: q.clientId, link: `orcamentos/${q.id}`, title, text: views === 1 ? 'Bom momento para uma mensagem: ela acabou de ver.' : 'Voltar à proposta é sinal de interesse. Que tal perguntar se ficou alguma dúvida?' }))
+          toast(title)
+          notifyDevice(title, q.title || '')
+        }
       } else if (r.kind === 'recado') {
         const client = d.clients.find((x) => x.panel?.token === p.painel)
         if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `recado pelo painel: ${p.texto ?? ''}` }] })

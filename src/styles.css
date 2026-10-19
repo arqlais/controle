@@ -2304,3 +2304,6 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .modo-foto [data-pv-blur], .modo-foto .money-input input, .modo-foto #q-client { filter: blur(max(4px, 0.34em)); }
 .photo-btn.is-on { background: var(--accent); color: var(--accent-contrast, #fff); }
 .modo-foto input[type='email'], .modo-foto input[type='tel'], .modo-foto input[inputmode='tel'] { filter: blur(max(4px, 0.34em)); }
+.quote-seen { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; }
+.auth-google { width: 100%; justify-content: center; gap: 8px; }
+.auth-or { text-align: center; margin: 4px 0; }

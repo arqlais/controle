@@ -73,3 +73,16 @@ A função `avisos` tem um envio diário: teste acabando, Pix da assinatura venc
 Para agendar (uma vez só): rode `supabase/agendar-avisos-diarios.sql` no SQL Editor, depois de ligar as extensões `pg_cron` e `pg_net` e trocar os três campos indicados no topo do arquivo.
 
 Cada lembrete vai uma vez só por parcela (tabela `email_log`). A cliente precisa ter e-mail na ficha; dá para desligar para uma cliente específica na ficha dela.
+
+## Entrar com o Google (opcional)
+
+1. **Google Cloud** (console.cloud.google.com): crie um projeto → *APIs e serviços → Tela de consentimento OAuth* (tipo externo, nome "planê", e-mail de suporte) → *Credenciais → Criar credenciais → ID do cliente OAuth* (aplicativo da Web).
+2. Em *URIs de redirecionamento autorizados*, cole `https://SEU-PROJETO.supabase.co/auth/v1/callback`.
+3. Copie o **ID do cliente** e a **chave secreta**.
+4. **Supabase → Authentication → Sign In / Providers → Google**: ligue, cole os dois e salve.
+5. **Supabase → Authentication → URL Configuration**: em *Redirect URLs*, confira se `https://useplane.com.br/` está na lista.
+6. **Painel da dona → planos**: ligue "entrar com Google".
+
+## Lançamento fechado (convite)
+
+No **painel da dona → planos**, ligue "lançamento fechado". A página de vendas troca "testar grátis" por "pedir convite" (abre o WhatsApp da página de vendas, ou o Instagram, ou o e-mail). Para convidar, copie o "link do convite" ali mesmo e mande para a pessoa: o código já vai junto. Para fechar os convites antigos, troque o código.

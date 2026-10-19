@@ -68,6 +68,19 @@ function Proposal({ d, owner, preview, token }: { d: ProposalPayload; owner: str
   const [name, setName] = useState(d.clientFull)
   const [note, setNote] = useState('')
   const [state, setState] = useState<'idle' | 'busy' | 'erro'>('idle')
+  // avisa quem mandou que a cliente abriu (uma vez por dia neste navegador; nunca no aparelho de quem mandou)
+  useEffect(() => {
+    if (preview || !owner) return
+    const day = new Date().toISOString().slice(0, 10)
+    const seenKey = `proposta-vista:${key}:${day}`
+    try {
+      if (localStorage.getItem(`lais3d-controle-v1:${owner}`) || localStorage.getItem(seenKey)) return
+      localStorage.setItem(seenKey, '1')
+    } catch {
+      /* navegador sem espaço: avisa mesmo assim */
+    }
+    void avisar({ user: owner, kind: 'visualizou', ref: `${key}|${day}`, cliente: d.clientFull, titulo: `proposta ${d.number}${d.title ? ` · ${d.title}` : ''}`, painel: key, studio: d.studio })
+  }, [owner, key, preview, d.clientFull, d.number, d.title, d.studio])
   const [done, setDone] = useState(() => (d.approval ? { at: d.approval.at, label: d.approval.label } : doneHere(key)))
   const who = d.owner || d.studio
   const expired = !!d.validUntil && d.validUntil < new Date().toISOString().slice(0, 10)

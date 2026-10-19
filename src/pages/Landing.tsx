@@ -5,7 +5,7 @@ import { applyTheme } from '../theme'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
 import { readRef } from '../platform'
-import { DIRECT_KEY } from '../plans'
+import { ACCESS_CFG, DIRECT_KEY } from '../plans'
 import { LAUNCHED, SEMESTER_DISCOUNT, annualBadge, cardInstallment, compareRows, planLabel, PLANS, PLAN_LIST, PLATFORM, TRIAL_DAYS, FOUNDER_PRICE, PLAN_PROFILE, money0, type Feature, type PlanId } from '../plans'
 import { platform, type PublicFeedback } from '../platform'
 import { DEFAULT_SITE, extraFaq, freshSite, type SiteContent } from '../siteContent'
@@ -15,7 +15,7 @@ import type { Settings } from '../types'
 import { go } from '../router'
 import { CycleToggle, PlanPrice, cycleHint, useCycle } from '../components/PlanPrice'
 
-import { LANDING_PROFILE_KEY } from '../components/Signup'
+import { LANDING_PROFILE_KEY, inviteFromUrl } from '../components/Signup'
 
 /* Página de vendas (pública, sem login): leve, animada e direta.
    As telas de exemplo usam os mesmos componentes do sistema, com dados fictícios. */
@@ -324,7 +324,16 @@ export default function Landing() {
   }
   const final = aud === 'final'
   const heroWords = siteWords
-  const signup = (plan?: PlanId) => go('cadastro', plan)
+  // lançamento fechado: sem o link do convite, o botão vira "pedir convite" (WhatsApp, Instagram ou e-mail)
+  const closed = ACCESS_CFG.invite && !inviteFromUrl()
+  const askInvite = () => {
+    const msg = `oi! quero um convite para testar o ${PLATFORM.name}`
+    const wa = (site.whatsapp || PLATFORM.whatsapp || '').replace(/\D/g, '')
+    const ig = (site.instagram || PLATFORM.instagram || '').replace(/^@/, '')
+    const url = wa ? `https://wa.me/${wa.length <= 11 ? `55${wa}` : wa}?text=${encodeURIComponent(msg)}` : ig ? `https://ig.me/m/${ig}` : `mailto:${PLATFORM.email}?subject=${encodeURIComponent('quero um convite')}&body=${encodeURIComponent(msg)}`
+    window.open(url, '_blank', 'noopener')
+  }
+  const signup = (plan?: PlanId) => (closed ? askInvite() : go('cadastro', plan))
   // assinar direto: depois de criar a conta, abre o pagamento do plano (sem esperar o teste)
   const rememberDirect = (plan: PlanId) => {
     try {
@@ -362,7 +371,7 @@ export default function Landing() {
               entrar
             </button>
             <button className="btn primary small" onClick={() => signup()}>
-              testar grátis
+              {closed ? 'pedir convite' : 'testar grátis'}
             </button>
           </div>
         </div>
@@ -396,14 +405,14 @@ export default function Landing() {
             </p>
             <div className="row gap-s wrap">
               <button className="btn primary lp-cta lp-shine" onClick={() => signup()}>
-                testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={16} />
+                {closed ? 'pedir meu convite' : `testar grátis por ${TRIAL_DAYS} dias`} <Icon name="arrowRight" size={16} />
               </button>
               <button className="btn ghost lp-cta" onClick={() => scrollTo(off('jornada') ? (off('telas') ? 'planos' : 'telas') : 'jornada')}>
                 ver como funciona
               </button>
             </div>
             <p className="muted small">
-              sem cartão · cancele quando quiser
+              {closed ? `lançamento fechado · vagas por convite` : "sem cartão · cancele quando quiser"}
             </p>
 
           </div>
@@ -794,7 +803,7 @@ export default function Landing() {
           </h2>
           <p>{TRIAL_DAYS} dias grátis para experimentar com calma.</p>
           <button className="btn light lp-cta lp-shine" onClick={() => signup()}>
-            criar minha conta <Icon name="arrowRight" size={16} />
+            {closed ? 'pedir meu convite' : 'criar minha conta'} <Icon name="arrowRight" size={16} />
           </button>
         </div>
       </section>
@@ -828,7 +837,7 @@ export default function Landing() {
                 </div>
               )}
               <button className="btn primary small" onClick={() => signup()}>
-                testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={14} />
+                {closed ? 'pedir meu convite' : `testar grátis por ${TRIAL_DAYS} dias`} <Icon name="arrowRight" size={14} />
               </button>
             </div>
             <nav className="lp-foot-col" aria-label="Navegação">
@@ -1047,7 +1056,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
               </span>
             </div>
             <button className="btn primary lp-all-cta" onClick={onTry}>
-              testar grátis por {TRIAL_DAYS} dias <Icon name="arrowRight" size={15} />
+              {ACCESS_CFG.invite && !inviteFromUrl() ? 'pedir meu convite' : `testar grátis por ${TRIAL_DAYS} dias`} <Icon name="arrowRight" size={15} />
             </button>
           </div>
         </div>
