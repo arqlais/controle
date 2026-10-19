@@ -3613,3 +3613,15 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .nav-group.is-plataforma { background: transparent; border-color: var(--border); }
 /* barra do topo: quase sólida, para o texto da página não aparecer por trás ao rolar */
 .topbar { background: color-mix(in srgb, var(--bg) 94%, transparent); }
+
+/* ===== ajuste fino (19/10): manchas de volta, suaves; grupo da dona com fundo; menu com leitura firme ===== */
+.app::before {
+  background:
+    radial-gradient(34rem 26rem at 2% 4%, color-mix(in srgb, var(--accent-soft) 30%, transparent), transparent 72%),
+    radial-gradient(28rem 24rem at 10% 96%, color-mix(in srgb, #a9bccd 20%, transparent), transparent 72%),
+    radial-gradient(36rem 28rem at 98% 100%, color-mix(in srgb, var(--accent-soft) 16%, transparent), transparent 72%),
+    var(--bg);
+}
+.nav-group.is-plataforma { background: var(--accent-tint); border-color: var(--accent-soft); }
+.sidebar nav a { opacity: 0.88; }
+.sidebar nav a.is-tool { opacity: 0.7; }
