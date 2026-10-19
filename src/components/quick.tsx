@@ -312,7 +312,7 @@ export function CloseDeal({ q, onClose, onDone }: { q: Quote; onClose: () => voi
   const confirm = () => {
     if (value <= 0) return toast('Informe o valor fechado.')
     const approved: Quote = { ...q, status: 'aprovado', closedValue: value !== proposed ? value : 0, closedNote: note.trim(), sentAt: q.sentAt || closedOn, closedAt: closedOn }
-    const built = projectFromQuote(approved, fee, due, closedOn, tasksFor(data.settings, workKind(data.clients.find((c) => c.id === q.clientId), q.audience), q.steps))
+    const built = projectFromQuote(approved, fee, due, closedOn, tasksFor(data.settings, workKind(data.clients.find((c) => c.id === q.clientId), q.audience), q.steps), data.settings.services)
     // o que mudou no fechamento fica anotado na demanda
     const change = note.trim()
     const base = change ? { ...built, notes: [`Fechado com mudança: ${change}${value !== proposed ? ` (proposta ${money(proposed)} → fechado ${money(value)})` : ''}`, built.notes].filter(Boolean).join('\n\n') } : built

@@ -143,6 +143,11 @@ export function PriceFields({ x, set }: { x: ServiceDef; set: (patch: Partial<Se
           </Field>
         </>
       )}
+      {x.pricing !== 'livre' && x.pricing !== 'hora' && (
+        <Field label={`Horas de trabalho por ${x.pricing === 'm2' ? 'm²' : unit}`} hint="Uma média sua. Serve para mostrar no orçamento quanto vale a sua hora nesse valor.">
+          <input type="number" min={0} step={x.pricing === 'm2' ? 0.01 : 0.25} value={x.hours || ''} onChange={(e) => set({ hours: Math.max(0, Number(e.target.value) || 0) })} placeholder="ex.: 4" />
+        </Field>
+      )}
       {x.pricing !== 'livre' && x.pricing !== 'pacote' && (
         <Field label="Valor mínimo" hint="Opcional. O orçamento nunca fica abaixo disso.">
           <MoneyInput value={x.min} onChange={(n) => set({ min: n })} />

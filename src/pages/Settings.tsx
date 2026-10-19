@@ -8,10 +8,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useDeviceDark } from '../theme'
 import { clearLocalCopy, demoData, emptyData, normalize, useStore } from '../store'
 import { Icon } from '../components/Icon'
-import { DesktopNote, Field, MoneyInput, Section, Segmented } from '../components/ui'
+import { DesktopNote, Field, Modal, MoneyInput, Section, Segmented } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
 import type { Complexity, Quote, UiColorKey } from '../types'
-import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, download, paymentMethods, nextQuoteNumber, today, uid } from '../utils'
+import { COMPLEXITY, DEFAULT_CARD_FEE, MESSAGE_VARS, download, fmtDate, paymentMethods, nextQuoteNumber, today, uid } from '../utils'
 import { DEFAULT_MESSAGES, DEFAULT_PROPOSAL } from '../store'
 import { QuoteDoc } from '../components/Docs'
 import { DocScale } from '../components/Print'
@@ -150,8 +150,13 @@ export default function SettingsPage() {
           {tab === 'precos' && (
             <>
             <WorkProfileSection />
-            <Section title="tabela de preços">
+            <Section title="tabela de preços" action={<RaiseTable />}>
               <PriceTable services={s.services} profile={s.workProfile} onChange={(services) => setSettings({ services })} onRestart={() => setSettings({ servicesSetup: false })} />
+            </Section>
+            <Section title="o valor da sua hora">
+              <Field label="Quanto vale uma hora sua" hint="O orçamento mostra quanto a sua hora vale naquele valor (pelas horas médias de cada serviço) e avisa quando fica abaixo disso.">
+                <MoneyInput value={s.hourlyCost ?? 0} onChange={(n) => setSettings({ hourlyCost: n })} />
+              </Field>
             </Section>
               <Section title="regras de preço" className="desktop-only">
                 <div className="form-grid">
@@ -210,7 +215,7 @@ export default function SettingsPage() {
                 <Field label="Meta do ano" hint="Quanto você quer receber no ano. Vale para qualquer formato: autônomo, MEI, ME ou escritório. Com 0, fica escondida.">
                   <MoneyInput value={s.yearGoal ?? 0} onChange={(n) => setSettings({ yearGoal: n })} />
                 </Field>
-                <Field label="Teto do MEI (opcional)" hint="Só para quem é MEI: mostra quanto do limite anual já usou. Com 0, fica escondido.">
+                <Field label="Teto do MEI (opcional)" hint="Só para quem é MEI (em 2026, R$ 81.000 por ano). Mostra no início quanto do limite já usou e lembra do DAS todo mês. Com 0, fica escondido.">
                   <MoneyInput value={s.meiLimit} onChange={(n) => setSettings({ meiLimit: n })} />
                 </Field>
               </div>
@@ -891,5 +896,55 @@ function ClientReminders() {
         </Field>
       )}
     </Section>
+  )
+}
+
+/** Reajuste de toda a tabela de uma vez (ex.: +8% no começo do ano): valores, pacotes, faixas, mínimos e listas. */
+function RaiseTable() {
+  const { data, setSettings } = useStore()
+  const [open, setOpen] = useState(false)
+  const [pct, setPct] = useState(8)
+  const k = 1 + pct / 100
+  const r = (n?: number) => (typeof n === 'number' && n > 0 ? Math.round(n * k * 100) / 100 : n)
+  const apply = async () => {
+    if (!pct) return
+    if (!(await ask(`Reajustar todos os serviços da tabela em ${pct > 0 ? '+' : ''}${pct}%? Os orçamentos já feitos não mudam.`, { confirmLabel: 'Reajustar' }))) return
+    const services = data.settings.services.map((x) => ({
+      ...x,
+      price: r(x.price) ?? 0,
+      min: r(x.min) ?? 0,
+      base: r(x.base),
+      customRate: r(x.customRate),
+      tiers: x.tiers.map((t) => ({ ...t, price: r(t.price) ?? 0 })),
+      areaTiers: x.areaTiers?.map((t) => ({ ...t, price: r(t.price) ?? 0 })),
+      checklistPrices: x.checklistPrices ? Object.fromEntries(Object.entries(x.checklistPrices).map(([a, b]) => [a, r(b) ?? 0])) : undefined,
+    }))
+    setSettings({ services, lastRaise: { at: today(), pct } })
+    setOpen(false)
+    toast(`Tabela reajustada em ${pct}%.`)
+  }
+  const last = data.settings.lastRaise
+  return (
+    <>
+      <button className="btn small ghost" onClick={() => setOpen(true)} title={last ? `Último reajuste: ${last.pct}% em ${fmtDate(last.at)}` : 'Reajustar todos os valores de uma vez'}>
+        <Icon name="trend" size={14} /> reajustar
+      </button>
+      {open && (
+        <Modal
+          title="reajustar a tabela"
+          onClose={() => setOpen(false)}
+          footer={
+            <button className="btn primary" onClick={() => void apply()}>
+              reajustar
+            </button>
+          }
+        >
+          <Field label="Reajuste (%)" hint="Vale para valores, pacotes, faixas de m², mínimos e listas de plantas. Orçamentos já feitos continuam como estão.">
+            <input type="number" step={0.5} min={-50} max={100} value={pct} onFocus={(e) => e.target.select()} onChange={(e) => setPct(Number(e.target.value) || 0)} />
+          </Field>
+          {last && <p className="muted small">Último reajuste: {last.pct}% em {fmtDate(last.at)}.</p>}
+        </Modal>
+      )}
+    </>
   )
 }

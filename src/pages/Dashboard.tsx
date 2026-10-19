@@ -321,7 +321,7 @@ interface Todo {
 
 /** O que precisa de atenção agora, com a ação a um clique. */
 function TodoList() {
-  const { data, upsert } = useStore()
+  const { data, upsert, setSettings } = useStore()
   const igOn = useAccess().has('instagram') && !data.settings.instagramOff
   const todos = useMemo(() => {
     const out: Todo[] = []
@@ -405,9 +405,39 @@ function TodoList() {
         action: c?.phone ? { label: 'mensagem', href: whatsappLink(c.phone, text), icon: 'whatsapp' } : undefined,
       })
     }
+    // MEI: quanto do limite do ano já foi usado (e se o ritmo passa do limite) e o DAS do mês
+    const mei = data.settings.meiLimit
+    if (mei > 0) {
+      const t = today()
+      const got = allPayments(data)
+        .filter((x) => x.pay.paidDate?.startsWith(t.slice(0, 4)))
+        .reduce((s, x) => s + x.pay.amount, 0)
+      const monthN = Number(t.slice(5, 7))
+      const pace = monthN >= 3 ? (got / monthN) * 12 : 0
+      if (got >= mei * 0.7 || pace > mei)
+        out.push({
+          key: `mei-${t.slice(0, 7)}`,
+          tone: got >= mei * 0.9 ? 'bad' : 'warn',
+          icon: 'alert',
+          title: `MEI: você já usou ${Math.round((got / mei) * 100)}% do limite do ano`,
+          sub: `${money(got)} de ${money(mei)}${pace > mei && got < mei ? ` · no ritmo atual, passa do limite antes de dezembro` : got >= mei ? ' · passou do limite: fale com a contadora' : ''}`,
+          link: href('financeiro'),
+        })
+      const day = Number(t.slice(8, 10))
+      if (data.settings.dasPaid !== t.slice(0, 7) && day <= 20)
+        out.push({
+          key: `das-${t.slice(0, 7)}`,
+          tone: day >= 15 ? 'warn' : 'info',
+          icon: 'wallet',
+          title: day === 20 ? 'O DAS do MEI vence hoje' : `Pagar o DAS do MEI até dia 20`,
+          sub: 'a guia sai no app MEI ou no portal do Simples Nacional',
+          link: 'https://www8.receita.fazenda.gov.br/SimplesNacional/Aplicacoes/ATSPO/pgmei.app/Identificacao',
+          action: { label: 'paguei', onClick: () => setSettings({ dasPaid: t.slice(0, 7) }) },
+        })
+    }
     const order = { bad: 0, warn: 1, info: 2 }
     return out.sort((a, b) => order[a.tone] - order[b.tone])
-  }, [data, upsert, igOn])
+  }, [data, upsert, igOn, setSettings])
 
   const { visible, more } = usePaged(todos, 6, 'inicio-afazer')
   if (!todos.length) return null
@@ -419,7 +449,7 @@ function TodoList() {
             <span className="todo-icon">
               <Icon name={t.icon} size={16} />
             </span>
-            <a href={t.link} className="grow">
+            <a href={t.link} className="grow" {...(t.link.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>
               <div className="list-title">{t.title}</div>
               <div className="list-sub">{t.sub}</div>
             </a>

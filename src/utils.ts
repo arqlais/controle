@@ -329,6 +329,16 @@ export const projectExtras = (p: Project) => (p.extras ?? []).reduce((s, x) => s
 export const projectTotal = (p: Project) => Math.max(0, p.value - p.discount) + projectExtras(p)
 export const projectPaid = (p: Project) => p.payments.filter((x) => x.paidDate).reduce((s, x) => s + x.amount, 0)
 export const projectOpen = (p: Project) => projectTotal(p) - projectPaid(p)
+/** Horas estimadas de um orçamento pela tabela (horas por unidade de cada serviço × quantidade). 0 = sem estimativa. */
+export function estimateHours(items: { service: string; quantity: number; price: number }[], services: { id: string; hours: number; pricing: string }[]) {
+  let h = 0
+  for (const i of items) {
+    const s = services.find((x) => x.id === i.service)
+    if (!s || !(s.hours > 0) || !(i.price > 0)) continue
+    h += s.pricing === 'livre' ? s.hours : s.hours * Math.max(1, i.quantity || 1)
+  }
+  return Math.round(h * 10) / 10
+}
 export const projectHours = (p: Project) => p.timeLogs.reduce((s, t) => s + t.hours, 0)
 export const isOpen = (p: Project) => p.status !== 'entregue' && p.status !== 'cancelado'
 export const isLate = (p: Project) => isOpen(p) && !!p.dueDate && daysUntil(p.dueDate) < 0

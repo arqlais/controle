@@ -77,6 +77,7 @@ import {
   unitRate,
   whatsappLink,
   templateText,
+  estimateHours,
 } from '../utils'
 
 /** Serviço da tabela que corresponde a cada tipo de projeto (cliente final). */
@@ -986,6 +987,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <span>investimento total</span>
                   <b>{money(total)}</b>
                 </div>
+                <HourValue total={total} hours={estimateHours(q.items, settings.services)} cost={settings.hourlyCost ?? 0} />
                 {months > 0 && (
                   <p className="package-line">
                     pacote em <b>{months}× de {money(Math.round((total / months) * 100) / 100)}</b> por mês{!q.discount ? ' · dica: pacote fechado costuma ter 5% a 10% de desconto (botões acima)' : ''}
@@ -1764,5 +1766,18 @@ function NumberInput({ id, value, onChange }: { id: string; value: number; onCha
       aria-label="Número do orçamento"
       title="Número do orçamento (vazio ou 0 = o sistema escolhe pela data)"
     />
+  )
+}
+
+/** Quanto vale a sua hora neste orçamento (pelas horas médias da tabela) e aviso se ficou abaixo do valor da sua hora. */
+function HourValue({ total, hours, cost }: { total: number; hours: number; cost: number }) {
+  if (!(hours > 0) || !(total > 0)) return null
+  const perHour = total / hours
+  const low = cost > 0 && perHour < cost
+  return (
+    <p className={`hour-value ${low ? 'is-low' : ''}`}>
+      <Icon name="clock" size={14} /> ≈ {hours.toLocaleString('pt-BR')} h de trabalho · <b>{money(perHour)} por hora</b>
+      {low ? ` · abaixo do valor da sua hora (${money(cost)})` : cost > 0 ? ` · acima do valor da sua hora (${money(cost)})` : ''}
+    </p>
   )
 }

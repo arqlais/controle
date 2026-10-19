@@ -2307,3 +2307,5 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .quote-seen { display: flex; align-items: center; gap: 6px; margin: 0 0 12px; }
 .auth-google { width: 100%; justify-content: center; gap: 8px; }
 .auth-or { text-align: center; margin: 4px 0; }
+.hour-value { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.hour-value.is-low { color: var(--bad); }

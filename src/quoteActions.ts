@@ -1,12 +1,12 @@
-import type { Data, Project, Quote } from './types'
-import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteDeal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber, addDays } from './utils'
+import type { Data, Project, Quote, ServiceDef } from './types'
+import { BOTH, shownOptions, DEFAULT_TASKS, cleanDetail, comboTotal, isCombo, optionTotal, quoteDeal, quoteNumber, quoteTotal, splitPayments, today, uid, nextQuoteNumber, addDays, estimateHours } from './utils'
 
 /** Monta a demanda a partir de um orçamento aprovado (opção escolhida, se houver). */
 /** "O que está incluso" com várias linhas vira subitens embaixo do serviço. */
 const sub = (d: string) => (d.trim() ? '\n' + d.split('\n').filter((l) => l.trim()).map((l) => `   · ${l.trim()}`).join('\n') : '')
 
 /** Prazo combinado no fechamento (vazio = sem prazo definido ainda). */
-export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = '', taskList: string[] = DEFAULT_TASKS): Project {
+export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedOn = '', taskList: string[] = DEFAULT_TASKS, services: ServiceDef[] = []): Project {
   // propostas fechadas juntas: vira uma demanda só, com os serviços de todas (pacote com o desconto)
   const both = isCombo(q) && q.chosenOption === BOTH
   const pair = shownOptions(q)
@@ -48,7 +48,7 @@ export function projectFromQuote(q: Quote, urgencyFee: number, due = '', closedO
     payments: splitPayments(value, '50-50', start, due),
     revisionsIncluded: q.revisions,
     revisionsUsed: 0,
-    estimatedHours: 0,
+    estimatedHours: estimateHours(useOption ? chosen.items : q.items, services),
     timeLogs: [],
     tasks: taskList.map((t) => ({ id: uid(), text: t, done: false })),
     filesLink: '',

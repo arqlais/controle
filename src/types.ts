@@ -582,6 +582,7 @@ export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | '
 export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
+  lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços
   processes?: ProjectProcess[] // processos de trabalho para cliente final (vazio = os prontos)
   servicesSetup?: boolean // já fez o primeiro passo "o que você faz e quanto cobra"
   processesKnown?: string[] // processos prontos que a pessoa já recebeu (um novo entra uma vez; apagou, não volta)
@@ -633,6 +634,7 @@ export interface Settings {
   legalName: string // nome completo (proposta, recibo)
   proposal: ProposalStyle
   meiLimit: number // teto anual do MEI
+  dasPaid?: string // AAAA-MM do último DAS marcado como pago (lembrete no início)
   yearGoal?: number // meta de faturamento do ano (para qualquer tipo de empresa ou autônomo)
   hourlyTarget: number
   urgencyFee: number // %
