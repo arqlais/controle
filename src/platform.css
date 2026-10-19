@@ -3625,8 +3625,3 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .nav-group.is-plataforma { background: var(--accent-tint); border-color: var(--accent-soft); }
 .sidebar nav a { opacity: 0.88; }
 .sidebar nav a.is-tool { opacity: 0.7; }
-
-/* menu: volta o tom do tema (o bege-rosado da dona; nos assinantes, o fundo da paleta deles), ainda flutuante e com vidro leve */
-.sidebar {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--sidebar-bg, var(--bg)) 92%, transparent), color-mix(in srgb, var(--sidebar-bg, var(--bg)) 84%, transparent));
-}
