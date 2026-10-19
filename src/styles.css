@@ -2359,3 +2359,7 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .hint-tip:hover, .hint-tip.is-open { background: var(--accent-tint); color: var(--accent-ink); border-color: transparent; }
 .card-head h3 { display: inline-flex; align-items: center; gap: 8px; }
 .section-hint { display: block; margin: -4px 0 12px; font-size: 12.5px; }
+/* fim do menu: texto neutro e discreto; a cor fica só nos rótulos e no item aberto */
+.sidebar nav a.is-tool { color: var(--sidebar-text, var(--text)); opacity: 0.62; }
+.sidebar nav a.is-tool:hover { opacity: 0.9; }
+.sidebar nav a.is-tool.active { opacity: 1; color: var(--text); }

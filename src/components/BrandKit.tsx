@@ -223,7 +223,7 @@ export function BrandKit() {
         <button
           className="btn small ghost"
           onClick={() => {
-            const base = exclusive ? PALETTES[0] : PALETTES.find((p) => p.name === 'areia & carvão')!
+            const base = exclusive ? PALETTES[0] : PALETTES.find((p) => p.name === 'clássico')!
             setSettings({
               accent: base.accent,
               accentSoft: base.accentSoft,
