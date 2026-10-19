@@ -117,7 +117,7 @@ export interface Palette {
 const RAW_PALETTES: Palette[] = [
   { name: 'laís (site)', accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57', owner: true },
   // padrão de quem assina: fundo quase branco, texto e botões em preto, detalhes em rosé (contraste só onde importa)
-  { name: 'clássico', accent: '#4f5f70', accentSoft: '#e6c2ba', accentInk: '#ad766d', background: '#faf8f6', surface: '#ffffff', text: '#262b31' },
+  { name: 'clássico', accent: '#4f5f70', accentSoft: '#e6c2ba', accentInk: '#ad766d', background: '#f3ece5', surface: '#ffffff', text: '#262b31' },
   { name: 'areia & carvão', accent: '#2f2f2f', accentSoft: '#cdb89c', accentInk: '#9b8264', background: '#f6f2ec', surface: '#ffffff', text: '#2a2a2a' },
   { name: 'galeria', accent: '#111111', accentSoft: '#b5b5b5', accentInk: '#6f6f6f', background: '#fafafa', surface: '#ffffff', text: '#111111' },
   { name: 'terracota', accent: '#a4553a', accentSoft: '#e0bfa6', accentInk: '#b06a4f', background: '#f7f0ea', surface: '#fffdfb', text: '#2b211c' },

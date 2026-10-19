@@ -3625,3 +3625,8 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .nav-group.is-plataforma { background: var(--accent-tint); border-color: var(--accent-soft); }
 .sidebar nav a { opacity: 0.88; }
 .sidebar nav a.is-tool { opacity: 0.7; }
+
+/* fundo escolhido pela Laís (opção D): bege quente uniforme, só uma luz branca suave no canto, sem manchas coloridas */
+.app::before {
+  background: radial-gradient(40rem 30rem at 0% 0%, rgba(255, 255, 255, 0.65), transparent 70%), var(--bg);
+}
