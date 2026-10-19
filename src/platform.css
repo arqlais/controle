@@ -3630,3 +3630,9 @@ nav.organizing > a > span { white-space: normal; overflow: visible; text-overflo
 .app::before {
   background: radial-gradient(40rem 30rem at 0% 0%, rgba(255, 255, 255, 0.65), transparent 70%), var(--bg);
 }
+
+/* celular: o menu lateral com a mesma cara do computador (branco leitoso), sem o cinza do que está atrás */
+@media (max-width: 820px) {
+  .sidebar { background: linear-gradient(180deg, rgba(255, 255, 255, 0.985), rgba(255, 255, 255, 0.96)); }
+  .menu-open .scrim { background: rgba(40, 36, 32, 0.16); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+}
