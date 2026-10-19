@@ -15,7 +15,7 @@ import { AIChat } from './components/AIChat'
 import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
-import { Segmented } from './components/ui'
+import { Segmented, useDismiss } from './components/ui'
 import { InstallGuide } from './components/InstallHint'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
 import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, setEventLabels, today } from './utils'
@@ -277,6 +277,7 @@ export default function App() {
   const [quick, setQuick] = useState<Quick>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
+  const addRef = useDismiss(addOpen, () => setAddOpen(false))
   const [organizing, setOrganizing] = useState(false)
   const [installGuide, setInstallGuide] = useState(false)
   const [dragNav, setDragNav] = useState<string | null>(null)
@@ -723,7 +724,7 @@ export default function App() {
           {!access.legacy && <NoticesButton />}
           {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => (news.unseen.length ? setNewsOpen(true) : setHistoryOpen(true))} />}
           <ScreenHelp onTour={!access.isOwner ? () => (go('inicio'), setTourOpen(true)) : undefined} />
-          <div className="add-menu">
+          <div className="add-menu" ref={addRef}>
             <button className="btn primary" onClick={() => setAddOpen((v) => !v)}>
               <Icon name="plus" size={16} /> <span className="hide-mobile">Novo</span>
             </button>

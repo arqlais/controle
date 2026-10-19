@@ -376,3 +376,26 @@ export function DesktopNote({ children }: { children: ReactNode }) {
     </p>
   )
 }
+
+/** Fecha um menu suspenso ao tocar fora dele, apertar Esc ou trocar de tela.
+ *  (Dentro da barra do topo o "click-away" de tela cheia não funciona: o desfoque da barra prende o fundo nela.) */
+export function useDismiss(open: boolean, close: () => void) {
+  const ref = useRef<HTMLDivElement>(null)
+  const latest = useRef(close)
+  latest.current = close
+  useEffect(() => {
+    if (!open) return
+    const down = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && latest.current()
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && latest.current()
+    const nav = () => latest.current()
+    document.addEventListener('pointerdown', down)
+    document.addEventListener('keydown', key)
+    window.addEventListener('hashchange', nav)
+    return () => {
+      document.removeEventListener('pointerdown', down)
+      document.removeEventListener('keydown', key)
+      window.removeEventListener('hashchange', nav)
+    }
+  }, [open])
+  return ref
+}

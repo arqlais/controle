@@ -475,6 +475,32 @@ Deno.serve(async (req) => {
     return json(result(await once(s, 'briefing', String(b.id), briefingMail(s, String(p.clientName ?? ''), String(p.title ?? 'briefing')))))
   }
 
+  if (tipo === 'apagar-conta') {
+    // só a dona: exclui de vez a conta de um assinante (login, assinatura, dados e arquivos). Nunca a conta de uma dona.
+    if (!isOwner) return json({ ok: false, erro: 'sem permissão' }, 403)
+    const target = String(body.userId ?? '')
+    if (!isUuid(target) || target === uid) return json({ ok: false, erro: 'conta inválida' }, 400)
+    if ((await db.from('admins').select('user_id').eq('user_id', target).maybeSingle()).data) return json({ ok: false, erro: 'conta de dona' }, 400)
+    // arquivos públicos da conta (agenda, links, fotos)
+    const st = db.storage.from('agenda')
+    for (let i = 0; i < 20; i++) {
+      const { data: files } = await st.list(target, { limit: 1000 })
+      if (!files?.length) break
+      await st.remove(files.map((f) => `${target}/${f.name}`))
+      if (files.length < 1000) break
+    }
+    // o resto sai junto com o login (tabelas ligadas à conta apagam em cascata); o que não tiver cascata, sai antes
+    for (const t of ['workspace', 'workspace_history', 'briefing_links', 'portal_links', 'subscriber_admin', 'billing_info', 'usage_stats', 'client_events', 'access_log', 'email_log', 'support_messages', 'suggestions', 'feedbacks', 'subscriptions']) {
+      await db.from(t).delete().eq(t === 'support_messages' ? 'client_id' : 'user_id', target).then(
+        () => undefined,
+        () => undefined,
+      )
+    }
+    const { error } = await db.auth.admin.deleteUser(target)
+    if (error) return json({ ok: false, erro: error.message }, 500)
+    return json({ ok: true })
+  }
+
   if (tipo === 'cliente') {
     // página pública (sem login): o cliente final assinou ou mandou algo. Um registro por coisa (não repete).
     const user = String(body.user ?? '')

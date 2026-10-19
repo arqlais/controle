@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type CSSProperties } from 'react'
 import { Icon } from './Icon'
+import { useDismiss } from './ui'
 import { go, useRoute } from '../router'
 import { PLATFORM } from '../plans'
 
@@ -143,10 +144,11 @@ export function Tour({ has, onClose }: { has: (f: 'contratos') => boolean; onClo
 export function ScreenHelp({ onTour }: { onTour?: () => void }) {
   const route = useRoute()
   const [open, setOpen] = useState(false)
+  const ref = useDismiss(open, () => setOpen(false))
   const help = SCREEN_HELP[route.page]
   if (!help) return null
   return (
-    <div className="screen-help">
+    <div className="screen-help" ref={ref}>
       <button className="icon-btn" onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label="Entender esta tela" title="Entender esta tela">
         <Icon name="help" />
       </button>

@@ -167,6 +167,7 @@ export interface SubAdmin {
   paidUntil?: string // AAAA-MM-DD: vale até (a próxima cobrança)
   notes?: string
   payments?: SubPayment[]
+  archived?: boolean // a dona tirou da lista (conta de teste, cadastro antigo): some das contas e dos números
 }
 
 /** Um acesso registrado (data e hora, IP e aparelho). */
@@ -473,6 +474,12 @@ const cloud = {
   async saveSubAdmin(userId: string, d: SubAdmin) {
     const { error } = await supabase!.from('subscriber_admin').upsert({ user_id: userId, data: d, updated_at: new Date().toISOString() })
     if (error) throw error
+  },
+  /** Exclui de vez a conta de um assinante (login, assinatura, dados e arquivos). Só a dona; nunca a conta de uma dona. */
+  async deleteAccount(userId: string) {
+    const { data, error } = await supabase!.functions.invoke('avisos', { body: { tipo: 'apagar-conta', userId } })
+    if (error) throw error
+    if (!(data as { ok?: boolean })?.ok) throw new Error((data as { erro?: string })?.erro || 'não apagou')
   },
   /** A própria conta manda as contagens (tabela ainda não criada: ignora em silêncio). */
   async reportUsage(u: Omit<Usage, 'updatedAt'>) {
@@ -954,6 +961,11 @@ const local = {
   async saveSubAdmin(userId: string, d: SubAdmin) {
     const db = readDB()
     writeDB({ ...db, subAdmin: { ...(db.subAdmin ?? {}), [userId]: d } })
+  },
+  async deleteAccount(userId: string) {
+    const db = readDB()
+    const { [userId]: _gone, ...rest } = db.subAdmin ?? {}
+    writeDB({ ...db, subs: db.subs.filter((x) => x.userId !== userId), messages: db.messages.filter((m) => m.clientId !== userId), subAdmin: rest })
   },
   async reportUsage(_u: Omit<Usage, 'updatedAt'>) {
     /* prévia: nada é enviado */

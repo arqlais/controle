@@ -85,6 +85,14 @@ export default function Admin() {
     return () => window.clearInterval(t)
   }, [reload])
   const newSugs = sugs.filter((x) => x.status === 'recebida').length
+  // contas arquivadas (teste da dona, cadastros antigos) não entram nos números nem nas listas
+  const live = subs.filter((s) => !ctrl[s.userId]?.archived)
+  const archivedN = subs.length - live.length
+  // excluída de vez: some da lista na hora
+  const dropSub = (id: string) => {
+    setSubs((list) => list.filter((x) => x.userId !== id))
+    setCtrl(({ [id]: _gone, ...rest }) => rest)
+  }
   const [chatWith, setChatWith] = useState('')
 
   const update = async (s: Subscription, patch: Partial<Subscription>, msg: string) => {
@@ -137,7 +145,7 @@ export default function Admin() {
           onChange={setTab}
           options={[
             { value: 'resumo', label: 'vendas' },
-            { value: 'assinantes', label: `assinantes (${subs.length})` },
+            { value: 'assinantes', label: `assinantes (${live.length})` },
             { value: 'conversas', label: <>conversas{unread ? <em className="pf-dot-count">{unread}</em> : null}</> },
             { value: 'sugestoes', label: <>sugestões{newSugs ? <em className="pf-dot-count">{newSugs}</em> : null}</> },
             { value: 'depoimentos', label: 'depoimentos' },
@@ -150,8 +158,8 @@ export default function Admin() {
           ]}
         />
       </div>
-      {tab === 'resumo' && <Summary subs={subs} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} usage={usage} />}
-      {tab === 'assinantes' && <Subscribers subs={subs} update={update} openChat={openChat} billing={billing} saveBilling={saveBilling} ctrl={ctrl} saveCtrl={saveCtrl} usage={usage} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
+      {tab === 'resumo' && <Summary subs={live} update={update} openChat={openChat} billing={billing} ctrl={ctrl} saveCtrl={saveCtrl} usage={usage} />}
+      {tab === 'assinantes' && <Subscribers subs={subs} archivedN={archivedN} onDeleted={dropSub} update={update} openChat={openChat} billing={billing} saveBilling={saveBilling} ctrl={ctrl} saveCtrl={saveCtrl} usage={usage} unreadOf={(id) => msgs.filter((m) => m.clientId === id && !m.fromOwner && !m.readAt).length} />}
       {tab === 'conversas' && <Inbox subs={subs} msgs={msgs} current={chatWith} setCurrent={setChatWith} reload={reload} />}
       {tab === 'sugestoes' && <SuggestionsAdmin sugs={sugs} subs={subs} reload={loadExtra} />}
       {tab === 'depoimentos' && <FeedbackAdmin />}
@@ -383,15 +391,18 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
   )
 }
 
-function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
+function Subscribers({ subs, archivedN, onDeleted, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { archivedN: number; onDeleted: (id: string) => void; usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
   const [proof, setProof] = useState<Subscription | null>(null)
-  const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos'>('painel-filtro', 'todos')
+  const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos' | 'arquivados'>('painel-filtro', 'todos')
   const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
   const idle = (s: Subscription) => !s.lastSeen || Date.now() - new Date(s.lastSeen).getTime() > 14 * 86_400_000
   const rows = subs
     .filter((s) => matches(q, s.name, s.email, s.studio, ctrl[s.userId]?.notes))
     .filter((s) => {
+      const archived = !!ctrl[s.userId]?.archived
+      if (filter === 'arquivados') return archived
+      if (archived) return false
       if (filter === 'todos') return true
       if (filter === 'bloqueados') return s.blocked
       if (filter === 'vencendo') return (dueDays(s, ctrl[s.userId]) ?? 99) <= 7
@@ -408,6 +419,20 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
             ? (b.lastSeen || '').localeCompare(a.lastSeen || '')
             : b.createdAt.localeCompare(a.createdAt),
     )
+  // excluir de vez: login, assinatura, dados e arquivos (não tem volta). Para conta de teste ou cadastro que não vai voltar.
+  const removeForever = async (s: Subscription) => {
+    const who = s.name || s.email
+    if (!(await ask(`Excluir de vez a conta de ${who}? Apaga o login, a assinatura, os clientes, orçamentos e arquivos dessa conta. Não dá para desfazer. Se for só para tirar da lista, use “arquivar”.`, { confirmLabel: 'Excluir de vez', danger: true }))) return
+    if (s.status === 'ativa' && !(await ask(`${who} tem uma assinatura ativa. Excluir mesmo assim?`, { confirmLabel: 'Excluir', danger: true }))) return
+    try {
+      await platform.deleteAccount(s.userId)
+      onDeleted(s.userId)
+      toast('Conta excluída.')
+    } catch (e) {
+      const m = e instanceof Error ? e.message : ''
+      toast(/dona/.test(m) ? 'Essa é uma conta de dona: não dá para excluir por aqui.' : 'Não consegui excluir. Confira se a função “avisos” foi publicada de novo no Supabase.')
+    }
+  }
   // todos que estão no teste grátis passam a testar o Estúdio (o plano mais completo)
   const allTrialsToStudio = async () => {
     const list = subs.filter((x) => x.status === 'trial' && !x.deletedAt && x.plan !== 'estudio')
@@ -448,6 +473,7 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
           <option value="vencendo">vencendo em 7 dias / vencidas</option>
           <option value="teste_acabando">teste acabando (3 dias)</option>
           <option value="sumidos">sem entrar há 14 dias</option>
+          {archivedN > 0 && <option value="arquivados">arquivados ({archivedN})</option>}
         </select>
         <select value={order} onChange={(e) => setOrder(e.target.value as typeof order)} aria-label="Ordem">
           <option value="recentes">mais recentes</option>
@@ -464,8 +490,18 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
           <Icon name="download" size={14} /> CSV
         </button>
       </div>
-      <p className="muted small">{rows.length} de {subs.length} assinante(s)</p>
-      <UsageSummary subs={subs.filter((x) => !x.deletedAt)} usage={usage} />
+      <p className="muted small">
+        {rows.length} de {subs.length - archivedN} assinante(s)
+        {archivedN > 0 && filter !== 'arquivados' && (
+          <>
+            {' '}·{' '}
+            <button className="link small" onClick={() => setFilter('arquivados')}>
+              {archivedN} arquivado(s)
+            </button>
+          </>
+        )}
+      </p>
+      <UsageSummary subs={subs.filter((x) => !x.deletedAt && !ctrl[x.userId]?.archived)} usage={usage} />
       <div className="pf-subs">
         {rows.map((s) => {
           const left = trialDaysLeft(s)
@@ -564,6 +600,18 @@ function Subscribers({ subs, update, openChat, unreadOf, billing, saveBilling, c
               </div>
               </>
               )}
+              <div className="row gap-s wrap pf-sub-house">
+                <button
+                  className="btn small ghost"
+                  onClick={() => void saveCtrl(s.userId, { ...ctrl[s.userId], archived: !ctrl[s.userId]?.archived }, ctrl[s.userId]?.archived ? 'Conta de volta na lista.' : 'Conta arquivada: saiu da lista e dos números. Fica em “arquivados”.')}
+                  title="Tira da lista e dos números sem apagar nada (ex.: conta de teste)"
+                >
+                  <Icon name="box" size={14} /> {ctrl[s.userId]?.archived ? 'desarquivar' : 'arquivar'}
+                </button>
+                <button className="btn small ghost danger" onClick={() => void removeForever(s)} title="Apaga o login, a assinatura e todos os dados da conta">
+                  <Icon name="trash" size={14} /> excluir de vez
+                </button>
+              </div>
             </article>
           )
         })}

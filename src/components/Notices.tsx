@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from './Icon'
+import { useDismiss } from './ui'
 import { useNotifyAsk } from '../notify'
 import type { Notice } from '../types'
 
@@ -21,6 +22,7 @@ export function NoticesButton() {
   const { data, upsert, remove } = useStore()
   const [open, setOpen] = useState(false)
   const notify = useNotifyAsk()
+  const wrap = useDismiss(open, () => setOpen(false))
   const list = [...(data.notices ?? [])].sort((a, b) => b.at.localeCompare(a.at))
   const unread = list.filter((n) => !n.read)
   const markAll = () => unread.forEach((n) => upsert('notices', { ...n, read: true }))
@@ -33,7 +35,7 @@ export function NoticesButton() {
     }
   }
   return (
-    <div className="nt-wrap">
+    <div className="nt-wrap" ref={wrap}>
       <button className="icon-btn news-btn" onClick={() => setOpen((v) => !v)} aria-label={unread.length ? `${unread.length} aviso(s) de clientes` : 'Avisos de clientes'} title="Avisos de clientes">
         <Icon name="inbox" />
         {unread.length > 0 && <span className="nt-count">{unread.length > 9 ? '9+' : unread.length}</span>}
