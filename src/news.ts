@@ -30,6 +30,30 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-19-pagina-e-propostas',
+    date: '2026-10-19',
+    kind: 'novo',
+    title: 'sua página com pedido de orçamento',
+    text: 'No perfil, em “sua página”, publique uma página com o que você faz e um botão de pedir orçamento, para colocar na bio do Instagram. Cada pedido chega como aviso, com o cliente cadastrado e o rascunho do orçamento pronto.',
+    steps: [{ page: 'perfil', text: 'Sua página fica no fim do perfil.' }],
+  },
+  {
+    id: '2026-10-19-proposta-vista',
+    date: '2026-10-19',
+    kind: 'novo',
+    title: 'saiba quando a cliente abriu a proposta',
+    text: 'Mandou a proposta pelo link? Você recebe um aviso quando a cliente abrir (e quando voltar a abrir), e o orçamento mostra “visualizada”. Também dá para ligar um lembrete automático para a proposta que ficou sem resposta.',
+    steps: [{ page: 'config', configTab: 'propostas', text: 'Lembretes em configurações → propostas.' }],
+  },
+  {
+    id: '2026-10-19-hora-e-tabela',
+    date: '2026-10-19',
+    kind: 'melhoria',
+    title: 'valor da sua hora, reajuste da tabela e MEI',
+    text: 'O orçamento mostra quanto vale a sua hora naquele valor e avisa quando fica abaixo do que você definiu. A tabela de preços ganhou o botão “reajustar”, para subir todos os valores de uma vez. E quem é MEI vê no início quanto do limite do ano já usou, com o lembrete do DAS todo mês.',
+    steps: [{ page: 'config', configTab: 'precos', text: 'Valor da hora e reajuste em configurações → preços.' }],
+  },
+  {
     id: '2026-10-19-menu-e-seguranca',
     date: '2026-10-19',
     kind: 'melhoria',

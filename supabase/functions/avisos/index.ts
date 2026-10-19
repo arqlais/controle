@@ -111,7 +111,7 @@ const b64u = (u: string) => {
 const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
 const brDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
 
-type Sub = { user_id: string; email: string; name: string; plan: string; status: string; trial_ends: string; blocked: boolean }
+type Sub = { user_id: string; email: string; name: string; plan: string; status: string; trial_ends: string; blocked: boolean; created_at?: string }
 type Mail = { subject: string; html: string }
 
 const MAILS = {
@@ -120,9 +120,42 @@ const MAILS = {
     html: layout({
       eyebrow: 'boas-vindas',
       title: `Que bom ter você aqui${first(s.name) ? `, ${esc(first(s.name))}` : ''}!`,
-      text: `<p style="margin:0 0 12px;">Seu teste grátis do plano ${PRICES[s.plan]?.name ?? ''} já começou e vai até <b>${br(s.trial_ends)}</b>.</p><p style="margin:0;">Para começar com o pé direito: coloque seus dados e sua tabela de preços em <b>configurações</b>, cadastre um cliente e faça o primeiro orçamento. O passo a passo dentro do sistema te guia.</p>`,
+      text: `<p style="margin:0 0 12px;">Seu teste grátis do plano ${PRICES[s.plan]?.name ?? ''} já começou e vai até <b>${br(s.trial_ends)}</b>.</p><p style="margin:0;">Para começar com o pé direito: faça sua primeira proposta em <b>orçamentos → novo</b>. A tabela de preços já vem pronta para o seu jeito de trabalhar, e o cliente você cadastra ali mesmo. Os primeiros passos, no início, te guiam.</p>`,
       button: 'abrir o planê',
       small: 'Ficou com dúvida? Fale com a gente pelo balão de conversa no canto da tela.',
+    }),
+  }),
+  // sequência do teste grátis: um passo por e-mail, puxando para o que faz a pessoa ficar
+  'teste-dia1': (s: Sub, quotes: number): Mail => ({
+    subject: quotes ? 'Agora mande a proposta pelo link' : 'Sua primeira proposta em 5 minutos',
+    html: layout({
+      eyebrow: 'primeiros passos',
+      title: quotes ? 'Mande a proposta pelo link' : 'Faça sua primeira proposta',
+      text: quotes
+        ? `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Você já montou um orçamento. O próximo passo é o que mais impressiona o cliente: no orçamento, toque em <b>link para aprovar</b>.</p><p style="margin:0;">A cliente abre no celular, escolhe a opção e aprova. Você fica sabendo na hora quando ela abrir e quando aprovar.</p>`
+        : `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! A sua tabela de preços já veio pronta para o seu jeito de trabalhar. Em <b>orçamentos → novo</b>, escolha os serviços e o cliente: o valor sai sozinho.</p><p style="margin:0;">Em 5 minutos você tem uma proposta bonita, com a sua marca, pronta para mandar.</p>`,
+      button: quotes ? 'abrir meus orçamentos' : 'fazer minha proposta',
+      url: `${SITE}#/orcamentos${quotes ? '' : '/novo'}`,
+    }),
+  }),
+  'teste-dia3': (s: Sub): Mail => ({
+    subject: 'Deixe o planê cobrar por você',
+    html: layout({
+      eyebrow: 'dica',
+      title: 'Lembretes que trabalham sozinhos',
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Em <b>configurações → propostas → lembretes automáticos</b>, ligue os e-mails para a cliente: quando a proposta fica sem resposta e quando a parcela vai vencer, com a sua chave Pix.</p><p style="margin:0;">Sai com o nome do seu estúdio e, se a cliente responder, cai no seu e-mail.</p>`,
+      button: 'ligar os lembretes',
+      url: `${SITE}#/config`,
+    }),
+  }),
+  'teste-dia7': (s: Sub): Mail => ({
+    subject: 'Um link para a bio que traz pedidos de orçamento',
+    html: layout({
+      eyebrow: 'dica',
+      title: 'Sua página com pedido de orçamento',
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! No seu <b>perfil</b>, em “sua página”, você publica uma página simples com o que faz e um botão de pedir orçamento.</p><p style="margin:0;">Coloque o link na bio do Instagram: cada pedido chega no planê com o cliente cadastrado e o rascunho do orçamento pronto.</p>`,
+      button: 'montar minha página',
+      url: `${SITE}#/perfil`,
     }),
   }),
   'teste-acabando': (s: Sub): Mail => ({
@@ -502,6 +535,13 @@ Deno.serve(async (req) => {
       if (!s.email) continue
       if (s.status === 'trial') {
         const d = day(s.trial_ends)
+        const since = s.created_at ? -day(s.created_at) : -1
+        if (since === 1) {
+          const { data: u } = await db.from('usage_stats').select('quotes').eq('user_id', s.user_id).maybeSingle()
+          if (await once(s, 'teste-dia1', '1', MAILS['teste-dia1'](s, Number(u?.quotes ?? 0)))) n++
+        }
+        if (since === 3 && d > 3 && (await once(s, 'teste-dia3', '1', MAILS['teste-dia3'](s)))) n++
+        if (since === 7 && d > 3 && (await once(s, 'teste-dia7', '1', MAILS['teste-dia7'](s)))) n++
         if (d === 3 && (await once(s, 'teste-acabando', s.trial_ends.slice(0, 10), MAILS['teste-acabando'](s)))) n++
         if (d <= 0 && d >= -2 && (await once(s, 'teste-acabou', s.trial_ends.slice(0, 10), MAILS['teste-acabou'](s)))) n++
       } else if (s.status === 'ativa' || s.status === 'atrasada') {

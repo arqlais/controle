@@ -259,6 +259,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
   return (
     <>
       <UsageSummary subs={subs.filter((x) => !x.deletedAt)} usage={usage} />
+      <Stuck subs={subs} usage={usage} openChat={openChat} />
       <div className="stats">
         <Stat label="Online agora" value={subs.filter(isOnline5).length} sub={subs.filter(isOnline5).map((x) => first(x)).join(', ') || 'ninguém usando neste momento'} icon="users" />
         <Stat label="Recebido este mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s) registrado(s)` : 'registre em assinantes → cobrança'} icon="check" tone="good" />
@@ -2410,5 +2411,33 @@ function SubReferrals({ subs, update }: { subs: Subscription[]; update: (s: Subs
         )}
       </Section>
     </div>
+  )
+}
+
+/** Quem está no teste há 3 dias ou mais e ainda não fez nenhum orçamento: uma mensagem pronta para puxar a conversa. */
+function Stuck({ subs, usage, openChat }: { subs: Subscription[]; usage: Record<string, Usage>; openChat: (id: string) => void }) {
+  const days = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  const list = subs.filter((s) => !s.deletedAt && s.status === 'trial' && trialDaysLeft(s) > 0 && s.createdAt && days(s.createdAt) >= 3 && !(usage[s.userId]?.quotes > 0))
+  if (!list.length) return null
+  const text = (s: Subscription) => `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! vi que você começou o teste do ${PLATFORM.name} e ainda não montou um orçamento. quer que eu te mostre em 5 minutinhos? me conta o serviço que você mais faz que eu te ajudo a deixar a primeira proposta pronta.`
+  return (
+    <Section title={`ainda não engataram (${list.length})`}>
+      <p className="muted small">No teste há 3 dias ou mais e sem nenhum orçamento. Uma mensagem sua agora faz muita diferença.</p>
+      {list.map((s) => (
+        <div key={s.userId} className="pf-plan-line">
+          <b>{s.name || s.email}</b>
+          <span className="muted small">
+            há {days(s.createdAt)} dias no teste · faltam {trialDaysLeft(s)}
+          </span>
+          <span className="grow" />
+          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(text(s)).then(() => toast('Mensagem copiada.'))}>
+            <Icon name="copy" size={14} /> copiar mensagem
+          </button>
+          <button className="btn small" onClick={() => openChat(s.userId)}>
+            <Icon name="chat" size={14} /> conversar
+          </button>
+        </div>
+      ))}
+    </Section>
   )
 }

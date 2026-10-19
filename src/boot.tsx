@@ -1,9 +1,10 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthGate } from './components/Auth'
 import { DialogHost } from './components/dialog'
 import { FileReadyHost } from './components/saveFile'
-import App from './App'
+// o sistema em si só baixa depois do login: a página de vendas e os links públicos (proposta, página, painel) abrem leves
+const App = lazy(() => import('./App'))
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { captureRef, platform } from './platform'
 import { setTabBrand } from './theme'
@@ -41,7 +42,9 @@ export const renderApp = () =>
   <StrictMode>
     <ErrorBoundary full>
       <AuthGate>
-        <App />
+        <Suspense fallback={<div className="loading-screen" />}>
+          <App />
+        </Suspense>
       </AuthGate>
     </ErrorBoundary>
     <DialogHost />
