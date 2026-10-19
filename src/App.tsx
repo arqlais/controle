@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { photoModeOn, setPhotoMode } from './photoMode'
 import { upgradeOwnerServices } from './pricingV2'
 import { emptyData, hasDemoData, useStore } from './store'
@@ -15,6 +15,7 @@ import { AIChat } from './components/AIChat'
 import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
+import { Segmented } from './components/ui'
 import { InstallGuide } from './components/InstallHint'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
 import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, setEventLabels, today } from './utils'
@@ -66,7 +67,7 @@ import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './comp
 import { useInbox, useSuggestionUpdates } from './chat'
 import { trialOver } from './platform'
 import { misdatedOldQuotes } from './quoteActions'
-import { DIRECT_KEY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
+import { DIRECT_KEY, OWNER_ONLY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
@@ -82,13 +83,23 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'financeiro', label: 'financeiro', icon: 'wallet', group: 'dia' },
   { page: 'orcamentos', label: 'orçamentos', icon: 'file', group: 'vendas' },
   { page: 'clientes', label: 'clientes', icon: 'users', group: 'vendas' },
-  { page: 'paineis', label: 'painel do cliente', icon: 'link', group: 'vendas' },
-  { page: 'briefings', label: 'briefings', icon: 'clip', group: 'vendas' },
-  { page: 'contratos', label: 'contratos', icon: 'briefcase', group: 'vendas' },
-  { page: 'documentos', label: 'documentos', icon: 'file', group: 'vendas' },
+  { page: 'paineis', label: 'cliente final', icon: 'link', group: 'vendas' },
+  { page: 'documentos', label: 'documentos', icon: 'briefcase', group: 'vendas' },
   { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' },
   { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
 ]
+// telas que dividem um item do menu: abas no topo da tela (menu mais curto)
+const SUBPAGES: Record<string, { page: string; label: string }[]> = {
+  documentos: [
+    { page: 'documentos', label: 'documentos' },
+    { page: 'contratos', label: 'contratos' },
+  ],
+  paineis: [
+    { page: 'paineis', label: 'painel do cliente' },
+    { page: 'briefings', label: 'briefings' },
+  ],
+}
+const menuItemOf = (page: string) => Object.keys(SUBPAGES).find((k) => SUBPAGES[k].some((s) => s.page === page)) ?? page
 // o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
 const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
@@ -278,7 +289,7 @@ export default function App() {
     const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
     // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
     // o que o plano não tem continua no menu (com cadeado): abre como vitrine, para dar vontade
-    return NAV.filter((n) => (!NEEDS[n.page] || NEEDS[n.page] !== 'painelDona' || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff) && (organizing || !navHidden.includes(n.page))).sort((a, b) => {
+    return NAV.filter((n) => (!NEEDS[n.page] || !OWNER_ONLY.includes(NEEDS[n.page]) || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff) && (organizing || !navHidden.includes(n.page))).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
@@ -428,10 +439,28 @@ export default function App() {
     if (locked && (route.page !== 'assinatura' || access.sub?.blocked)) return <BlockedScreen onChat={openChat} />
     const need = NEEDS[route.page]
     if (need === 'painelDona' && !access.has(need)) return <Upgrade onChat={openChat} />
-    const inner = pageFor()
+    // ferramenta só da dona (instagram): quem assina cai no início
+    if (need && OWNER_ONLY.includes(need) && !access.has(need)) return <Dashboard onQuick={setQuick} />
+    const inner = withTabs(pageFor())
     if (need && !access.has(need)) return <LockedView feature={need}>{inner}</LockedView>
-    return need && need !== 'painelDona' ? <TrialFeatureNote feature={need}>{inner}</TrialFeatureNote> : inner
+    return need && !OWNER_ONLY.includes(need) ? <TrialFeatureNote feature={need}>{inner}</TrialFeatureNote> : inner
   })()
+
+  // abas das telas agrupadas (documentos | contratos, painel do cliente | briefings), só na lista
+  function withTabs(el: ReactNode) {
+    const group = SUBPAGES[menuItemOf(route.page)]
+    if (!group || route.id) return el
+    const tabs = group.filter((t) => !(t.page === 'contratos' && settings.contracts?.off))
+    if (tabs.length < 2) return el
+    return (
+      <>
+        <div className="tabs page-tabs">
+          <Segmented<string> value={route.page} onChange={(v) => go(v)} options={tabs.map((t) => ({ value: t.page, label: t.label }))} />
+        </div>
+        {el}
+      </>
+    )
+  }
 
   function pageFor() {
     switch (route.page) {
@@ -546,7 +575,7 @@ export default function App() {
               {label && <span className="nav-group-label nav-main-label">{label}</span>}
               <a
                 href={href(n.page)}
-                className={`${route.page === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''} ${organizing && off ? 'is-off' : ''}`}
+                className={`${menuItemOf(route.page) === n.page ? 'active' : ''} ${dragNav === n.page ? 'dragging' : ''} ${organizing && off ? 'is-off' : ''}`}
                 // só dá para arrastar com "organizar menu" ligado (evita mudar sem querer)
                 draggable={organizing}
                 onDragStart={() => organizing && setDragNav(n.page)}
@@ -861,7 +890,7 @@ export default function App() {
       <nav className="bottom-nav">
         {/* 5 atalhos do dia a dia; o resto (orçamentos, manual, configurações, perfil) fica no menu do canto superior */}
         {nav.slice(0, 5).map((n) => (
-          <a key={n.page} href={href(n.page)} className={route.page === n.page ? 'active' : ''}>
+          <a key={n.page} href={href(n.page)} className={menuItemOf(route.page) === n.page ? 'active' : ''}>
             <Icon name={n.icon} />
             <span>{n.label}</span>
           </a>

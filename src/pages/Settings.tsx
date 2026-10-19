@@ -683,7 +683,6 @@ function ProposalChooser() {
           </p>
         </>
       )}
-      {!has('instagram') && <p className="pf-note"><Icon name="lock" size={16} /><span>Planejamento do instagram: plano <a className="link" href="#/assinatura">{lockPlan('instagram')}</a>.</span></p>}
       {has('instagram') && (
         <>
           <label className="check toggle">

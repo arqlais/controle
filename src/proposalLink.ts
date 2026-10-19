@@ -1,4 +1,4 @@
-import { CLOUD, publishPublicFile, readPublicFile } from './cloud'
+import { CLOUD, publishPublicFile, readPublicFile, removePublicFile } from './cloud'
 import { readShortCode, shortCode } from './linkPack'
 import { viewingAsClient } from './viewAs'
 import { BOTH, allLabel, comboTotal, isCombo, optionTotal, quoteNumber, quoteTotal, shownOptions } from './utils'
@@ -132,6 +132,21 @@ export async function publishProposal(userId: string, payload: ProposalPayload):
   }
   await publishPublicFile(userId, fileName(payload.token), payload)
   return true
+}
+
+/** Tira o link do ar: quem tiver o endereço passa a ver "proposta indisponível". */
+export async function unpublishProposal(userId: string, token: string) {
+  if (!useCloud()) {
+    const all = readLocal()
+    delete all[token]
+    try {
+      localStorage.setItem(LOCAL, JSON.stringify(all))
+    } catch {
+      /* ok */
+    }
+    return
+  }
+  await removePublicFile(userId, fileName(token))
 }
 
 export async function loadProposal(raw: string): Promise<{ data: ProposalPayload; userId?: string } | null> {

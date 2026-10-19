@@ -16,7 +16,7 @@ import type { Client, Contract, ContractStatus, ContractTemplate } from '../type
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { DocRich, type DocRichHandle } from '../components/DocRich'
-import { SIGN_SITES, checkSignMessage, publishSign, type SignPayload } from '../contractSign'
+import { SIGN_SITES, checkSignMessage, publishSign, unpublishSign, type SignPayload } from '../contractSign'
 import { SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
 
@@ -975,6 +975,19 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
                 )}
                 <button className="btn ghost small" disabled={busy} onClick={() => void makeLink()} title="Atualiza o link com o texto atual do contrato">
                   atualizar link
+                </button>
+                <button
+                  className="btn ghost small"
+                  disabled={busy}
+                  title="O link para de abrir"
+                  onClick={async () => {
+                    if (!(await ask('Tirar o link de assinatura do ar? Quem tiver o endereço não consegue mais abrir o contrato.', { confirmLabel: 'Tirar do ar' }))) return
+                    if (c.signToken) await unpublishSign(c.signToken, userId)
+                    save({ signToken: undefined, signLink: undefined })
+                    toast('Link tirado do ar.')
+                  }}
+                >
+                  <Icon name="eye-off" size={14} /> tirar do ar
                 </button>
               </div>
               <label className="sg-paste">

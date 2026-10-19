@@ -1,5 +1,5 @@
 import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
-import { PLANS, setLaunched, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
+import { OWNER_ONLY, PLANS, setLaunched, setAnnualFreeMonths, setCardFee, setCardFee6, setSemesterDiscount, setTrialDays, type Feature, type PlanId } from './plans'
 
 /* Planos editáveis pela dona no painel (nome, preço, frase, lista e o que cada um libera)
    e os dias de teste. Carregados antes de abrir o site, para a página de vendas já
@@ -53,12 +53,12 @@ export function applyPlanConfig(c: PlanConfig) {
     if (o.name?.trim()) p.name = o.name.trim()
     if (typeof o.price === 'number' && o.price > 0) p.price = o.price
     if (o.pitch !== undefined) p.pitch = o.pitch
-    if (o.highlights?.length) p.highlights = o.highlights.filter((h) => h.trim())
+    if (o.highlights?.length) p.highlights = o.highlights.filter((h) => h.trim() && !/instagram/i.test(h))
     // o chat com a administração fica sempre ligado
     if (o.features) {
       // função lançada depois que a dona salvou os planos: segue o padrão do plano até ela decidir
       const fresh = p.features.filter((f) => !o.features!.includes(f) && !(o.decided ?? []).includes(f) && NEW_FEATURES.includes(f))
-      p.features = [...new Set<Feature>(['chatDona', ...o.features, ...fresh])]
+      p.features = [...new Set<Feature>(['chatDona', ...o.features, ...fresh])].filter((f) => !OWNER_ONLY.includes(f))
     }
   }
 }

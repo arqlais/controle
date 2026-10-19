@@ -3,7 +3,7 @@ import { QuoteTableSection } from '../components/PartnerTable'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LockButton } from '../components/LockedPreview'
 import { useAccess } from '../access'
-import { proposalLink, proposalPayload, publishProposal } from '../proposalLink'
+import { proposalLink, proposalPayload, publishProposal, unpublishProposal } from '../proposalLink'
 import type { ReactNode } from 'react'
 import { DateInput } from '../components/DateInput'
 import { DEFAULT_PROPOSAL, GENERAL_NOTE_HINTS, useStore } from '../store'
@@ -21,7 +21,7 @@ import { ClientPicker } from '../components/ClientPicker'
 import { QuoteDoc, isSlides } from '../components/Docs'
 import { DocZoom, DocScale, usePdf } from '../components/Print'
 import { Badge, DesktopNote, Empty, Field, Modal, MoneyInput, MoreMenu, Section, Segmented, ServiceOptions } from '../components/ui'
-import { askChoice, askDelete, toast } from '../components/dialog'
+import { ask, askChoice, askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import type { Complexity, Contract, QuoteAudience, Quote, QuoteItem, QuoteOption, QuoteStatus, ServiceDef, Settings } from '../types'
 import { contractSettings, contractVars, fillContract, suggestTemplate } from '../contracts'
@@ -506,6 +506,19 @@ export default function QuoteEditor({ id }: { id: string }) {
     } catch {
       toast('Não foi possível publicar o link agora. Confira a internet e tente de novo.')
     }
+  }
+  // tirar o link do ar: o endereço para de abrir (dá para gerar outro depois, com endereço novo)
+  const unshareLink = async () => {
+    if (!q.shareToken) return setShareUrl('')
+    if (!(await ask('Tirar o link do ar? Quem tiver o endereço não consegue mais abrir a proposta. Dá para gerar um link novo depois.', { confirmLabel: 'Tirar do ar' }))) return
+    try {
+      await unpublishProposal(userId, q.shareToken)
+    } catch {
+      return toast('Não foi possível tirar do ar agora. Confira a internet e tente de novo.')
+    }
+    save({ shareToken: undefined })
+    setShareUrl('')
+    toast('Link tirado do ar.')
   }
   // a cliente aprovou pelo link enquanto este orçamento estava aberto: traz a aprovação e a opção escolhida
   useEffect(() => {
@@ -1221,6 +1234,9 @@ export default function QuoteEditor({ id }: { id: string }) {
           onClose={() => setShareUrl('')}
           footer={
             <>
+              <button className="btn ghost" onClick={() => void unshareLink()} title="O link para de abrir">
+                <Icon name="eye-off" size={15} /> tirar do ar
+              </button>
               <button
                 className="btn ghost"
                 onClick={() =>

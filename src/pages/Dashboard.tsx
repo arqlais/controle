@@ -322,6 +322,7 @@ interface Todo {
 /** O que precisa de atenção agora, com a ação a um clique. */
 function TodoList() {
   const { data, upsert } = useStore()
+  const igOn = useAccess().has('instagram') && !data.settings.instagramOff
   const todos = useMemo(() => {
     const out: Todo[] = []
     const client = (id: string) => data.clients.find((c) => c.id === id)
@@ -380,7 +381,7 @@ function TodoList() {
       }
     }
     // instagram: postagens de hoje (ou atrasadas) ainda não postadas
-    for (const post of (data.settings.instagramOff ? [] : data.posts ?? []).filter((x) => x.date && x.date <= today() && x.date >= addDays(today(), -3) && x.status !== 'postado')) {
+    for (const post of (igOn ? data.posts ?? [] : []).filter((x) => x.date && x.date <= today() && x.date >= addDays(today(), -3) && x.status !== 'postado')) {
       out.push({
         key: `ig-${post.id}`,
         tone: post.date < today() ? 'warn' : 'info',
@@ -406,7 +407,7 @@ function TodoList() {
     }
     const order = { bad: 0, warn: 1, info: 2 }
     return out.sort((a, b) => order[a.tone] - order[b.tone])
-  }, [data, upsert])
+  }, [data, upsert, igOn])
 
   const { visible, more } = usePaged(todos, 6, 'inicio-afazer')
   if (!todos.length) return null

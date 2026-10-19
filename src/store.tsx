@@ -10,7 +10,8 @@ const previewSeenNews = () => {
 import { organizeServices } from './serviceCatalog'
 import { CLIENT_MESSAGES, CLIENT_PAYMENT_TERMS, CLIENT_SCHEDULE, CLIENT_SERVICES, DEFAULT_PAYMENT_METHODS, servicesFor } from './clientDefaults'
 import { ARTIFACT } from './env'
-import { CLOUD, fetchRemote, publishAgenda, pushRemote } from './cloud'
+import { CLOUD, SaveConflict, fetchRemote, publishAgenda, pushRemote, pushRemoteIf } from './cloud'
+import { merge3 } from './merge'
 import { buildICS } from './ics'
 import { CLIENT_DISPLAY, PALETTES } from './brand'
 import { toast } from './components/dialog'
@@ -693,6 +694,36 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
   const fromRemote = useRef(false) // mudança veio da nuvem: não reenviar
   const remoteAt = useRef<string>('') // updated_at da última versão conhecida da nuvem
   const pending = useRef(false)
+  const baseRef = useRef<Data | null>(null) // última versão que este aparelho sabe que está na nuvem
+
+  /* Salva na nuvem sem apagar o que outro aparelho salvou nesse meio-tempo:
+     se a nuvem mudou, junta as duas versões (merge3) e tenta de novo. Devolve o que ficou salvo. */
+  const saveToCloud = async (d: Data): Promise<Data> => {
+    for (let i = 0; i < 4; i++) {
+      try {
+        remoteAt.current = await pushRemoteIf(userId!, d, remoteAt.current)
+        baseRef.current = d
+        return d
+      } catch (e) {
+        if (!(e instanceof SaveConflict)) throw e
+        const remote = await fetchRemote(userId!)
+        if (!remote) throw e
+        const theirs = normalize(withDeleted(remote.data, d))
+        d = normalize(merge3(baseRef.current ?? theirs, d, theirs))
+        baseRef.current = theirs
+        remoteAt.current = remote.updatedAt
+      }
+    }
+    throw new Error('não foi possível salvar: a conta mudou várias vezes seguidas')
+  }
+  // depois de juntar com outro aparelho: mostra a versão junta sem perder o que foi digitado enquanto isso
+  const applySaved = (sent: Data, saved: Data) => {
+    if (saved === sent) return
+    if (dataRef.current === sent) {
+      fromRemote.current = true
+      setData(saved)
+    } else setData((cur) => normalize(merge3(sent, cur, saved)))
+  }
 
   // 1) ao entrar: busca a versão da nuvem antes de qualquer envio
   useEffect(() => {
@@ -708,6 +739,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
           const merged = withDeleted(remote.data, load(userId))
           fromRemote.current = (merged.deleted?.length ?? 0) === (remote.data.deleted?.length ?? 0)
           const d = normalize(merged)
+          baseRef.current = d
           setData(d)
           // ao entrar, garante que a agenda do celular está em dia (ex.: se a última publicação falhou)
           if (d.settings.calendarToken) void publishAgendaFor(d)
@@ -718,6 +750,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
           const fresh = firstRunData(local.settings)
           const start = hasContent(local) ? local : hasContent(legacy) ? legacy : fresh
           remoteAt.current = await pushRemote(userId!, start)
+          baseRef.current = start
           fromRemote.current = true
           setData(start)
         }
@@ -760,7 +793,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
     setSync('saving')
     const t = setTimeout(async () => {
       try {
-        remoteAt.current = await pushRemote(userId!, data)
+        applySaved(data, await saveToCloud(data))
         pending.current = false
         setSync('saved')
         setLastSaved(new Date())
@@ -781,19 +814,22 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
       try {
         if (pending.current) {
           // havia algo não enviado (ex.: sem internet): reenvia
-          remoteAt.current = await pushRemote(userId!, dataRef.current)
+          const sent = dataRef.current
+          applySaved(sent, await saveToCloud(sent))
           pending.current = false
           setSync('saved')
           setLastSaved(new Date())
           return
         }
         const remote = await fetchRemote(userId!)
-        if (remote && remote.updatedAt > remoteAt.current) {
+        if (remote && Date.parse(remote.updatedAt) > Date.parse(remoteAt.current || '0')) {
           remoteAt.current = remote.updatedAt
-          // outro aparelho salvou por cima com uma versão antiga: o que foi apagado aqui continua apagado (e a nuvem é corrigida)
-          const merged = withDeleted(remote.data, dataRef.current)
-          fromRemote.current = (merged.deleted?.length ?? 0) === (remote.data.deleted?.length ?? 0)
-          setData(normalize(merged))
+          // junta o que mudou lá com o que mudou aqui (nada se perde); o que foi apagado aqui continua apagado
+          const theirs = normalize(withDeleted(remote.data, dataRef.current))
+          const merged = normalize(merge3(baseRef.current ?? theirs, dataRef.current, theirs))
+          baseRef.current = theirs
+          fromRemote.current = JSON.stringify(merged) === JSON.stringify(theirs)
+          setData(merged)
         }
         setSync('saved')
       } catch {

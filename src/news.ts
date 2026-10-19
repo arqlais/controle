@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-19-menu-e-seguranca',
+    date: '2026-10-19',
+    kind: 'melhoria',
+    title: 'menu mais curto, dois aparelhos juntos e links que saem do ar',
+    text: 'Contratos agora ficam junto com documentos, e briefings junto com o painel do cliente, em abas no topo da tela. Com o celular e o computador abertos ao mesmo tempo, o que você salva num não apaga mais o que salvou no outro: as duas versões se juntam. E os links da proposta e do contrato ganharam o botão "tirar do ar".',
+    steps: [{ page: 'documentos', text: 'Documentos e contratos, nas abas do topo.' }],
+  },
+  {
     id: '2026-10-15-processo-na-demanda',
     date: '2026-10-15',
     kind: 'novo',

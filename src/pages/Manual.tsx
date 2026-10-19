@@ -3,7 +3,7 @@ import { useKeep } from '../keep'
 import { useAccess } from '../access'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
-import { PLANS, PLAN_LIST, type Feature, type PlanId } from '../plans'
+import { OWNER_ONLY, PLANS, PLAN_LIST, type Feature, type PlanId } from '../plans'
 
 type IconName = string
 
@@ -396,13 +396,6 @@ CASES.push(
   },
   {
     q: 'Planejar os posts do Instagram',
-    plan: 'completo',
-    notOwner: true,
-    a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com um tema para cada dia. Ao abrir uma postagem, <b>montar texto</b> cria gancho, slides, legenda e chamada com os seus dados (o que você faz, serviços e projetos), sem custo nenhum. Toque num dia para escolher outra ideia. Em <b>estratégia</b> tem o montador de bio, os destaques e as hashtags.</>,
-    page: 'instagram',
-  },
-  {
-    q: 'Planejar os posts do Instagram',
     owner: true,
     a: <>Em <b>instagram</b>: <b>planejar mês</b> monta o calendário com ideias prontas (carrossel, reels, story, post). Cada post tem a arte pronta para baixar em PNG, PDF ou .pptx (abre no Canva para editar). O que é para postar hoje aparece no início.</>,
     page: 'instagram',
@@ -736,7 +729,7 @@ export default function Manual() {
           ))}
         </div>
         <div className="manual-tools">
-          {TOOLS.map((t) => {
+          {TOOLS.filter((t) => !t.feature || !OWNER_ONLY.includes(t.feature)).map((t) => {
             const on = has(t.feature)
             return (
               <button key={t.name} className={`manual-tool ${on ? '' : 'is-off'}`} onClick={() => on && go(t.page)} disabled={!on} title={on ? `abrir ${t.name}` : `a partir do ${PLANS[firstPlanWith(t.feature)].name}`}>

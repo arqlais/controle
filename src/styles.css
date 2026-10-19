@@ -348,6 +348,7 @@ kbd { white-space: nowrap; font-family: inherit; font-size: 10px; border: 1px so
 .segmented button:hover { color: var(--text); }
 .segmented button.active { background: var(--surface); color: var(--text); box-shadow: 0 4px 12px -4px rgba(62, 75, 87, 0.18); }
 .tabs { overflow-x: auto; }
+.page-tabs { margin: 0 0 16px; }
 
 .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 18px; }
 .field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }

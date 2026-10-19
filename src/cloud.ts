@@ -28,6 +28,20 @@ export async function pushRemote(userId: string, payload: Data): Promise<string>
   return updatedAt
 }
 
+/** Outro aparelho salvou depois da última versão que este conhecia. */
+export class SaveConflict extends Error {}
+
+/** Salva só se a nuvem ainda estiver na versão `expectedAt` (a última que este aparelho conhece).
+ *  Se outro aparelho salvou antes, nada é gravado e vem um SaveConflict (para juntar as duas versões). */
+export async function pushRemoteIf(userId: string, payload: Data, expectedAt: string): Promise<string> {
+  if (!expectedAt) return pushRemote(userId, payload)
+  const updatedAt = new Date(Math.max(Date.now(), Date.parse(expectedAt) + 1)).toISOString()
+  const { data, error } = await supabase!.from(TABLE).update({ data: payload, updated_at: updatedAt }).eq('user_id', userId).eq('updated_at', expectedAt).select('updated_at')
+  if (error) throw error
+  if (!data?.length) throw new SaveConflict('outro aparelho salvou antes')
+  return data[0].updated_at as string
+}
+
 /* Agenda do celular: o sistema publica um arquivo .ics (formato de calendário) no
    Storage do Supabase, num endereço secreto. O iPhone, o Google Agenda e outros
    "assinam" esse endereço e buscam as novidades sozinhos. Nada de servidor extra:

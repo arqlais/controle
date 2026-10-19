@@ -95,7 +95,7 @@ export type Feature =
   | 'fonteExclusiva' // fonte The Seasons (identidade da Laís)
   | 'propostaPdf' // gerar PDF (proposta e recibos); sem isso, só o texto pronto
   | 'contratos' // contratos a partir do orçamento
-  | 'instagram' // planejamento do instagram
+  | 'instagram' // planejamento do instagram (só a dona)
   | 'agendaCelular' // agenda sincronizada no celular
   | 'identidade' // logo, cores e fontes próprias
   | 'briefing' // briefing online para o cliente final responder por link
@@ -143,15 +143,15 @@ export const PLANS: Record<PlanId, Plan> = {
     name: 'Completo',
     price: 59.9,
     pitch: 'tudo do Essencial + PDF, contratos e ferramentas extras',
-    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade'],
-    highlights: ['tudo do Essencial', 'sua identidade visual nos documentos: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular', 'planejamento do instagram'],
+    features: ['chatDona', 'propostaPdf', 'contratos', 'agendaCelular', 'identidade'],
+    highlights: ['tudo do Essencial', 'sua identidade visual nos documentos: logo, cores e fontes', 'proposta em PDF com modelos prontos e a sua identidade', 'recibos em PDF', 'contratos que puxam os dados do orçamento', 'agenda sincronizada no celular'],
   },
   estudio: {
     id: 'estudio',
     name: 'Estúdio',
     price: 89.9,
     pitch: 'tudo do Completo + briefing online, painel do cliente e obra',
-    features: ['chatDona', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
+    features: ['chatDona', 'propostaPdf', 'contratos', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos'],
     highlights: ['tudo do Completo', 'documentos de obra: memorial, compras, custos, diário, visita, ata e OS', 'guia de medição, placa de obra com QR code e apresentação de projeto', 'painel do cliente: etapas, pagamentos, contratos e documentos num link', 'cronograma das etapas com prazo e parcela', 'acompanhamento de obra com fotos e relatório', 'custos e lucro de cada projeto', 'briefing online com modelos e fotos'],
     featured: true,
   },
@@ -170,13 +170,16 @@ export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
 export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos']
 
+/** Só da dona, nunca entram num plano (mesmo que estejam salvos no painel → planos).
+ *  O planejamento do instagram é ferramenta da dona: foge do que o planê promete aos assinantes. */
+export const OWNER_ONLY: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'instagram']
+
 /** O que a dona pode ligar/desligar em cada plano (painel → planos). */
 export const PLAN_TOGGLES: [Feature, string][] = [
   ['propostaPdf', 'proposta e recibos em PDF'],
   ['identidade', 'logo, cores e fontes próprias'],
   ['contratos', 'contratos'],
   ['agendaCelular', 'agenda no celular'],
-  ['instagram', 'planejamento do instagram'],
   ['briefing', 'briefing online (cliente final)'],
   ['cronograma', 'cronograma das etapas'],
   ['obra', 'acompanhamento de obra'],
@@ -216,7 +219,6 @@ export function compareRows(): CompareRow[] {
     row('proposta e recibos em PDF', 'propostaPdf', 'todos os modelos'),
     row('contratos com os dados do orçamento', 'contratos'),
     row('agenda sincronizada no celular', 'agendaCelular'),
-    row('planejamento do instagram', 'instagram'),
     row('painel do cliente (etapas, pagamentos, contratos e documentos)', 'portal'),
     row('cronograma das etapas com prazo e parcela', 'cronograma'),
     row('acompanhamento de obra com fotos e relatório', 'obra'),
