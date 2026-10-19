@@ -274,8 +274,8 @@ export default function Quotes() {
               <button className="btn small ghost" onClick={bulkDuplicate} title="Cópias com a data de hoje e os próximos números">
                 <Icon name="copy" size={14} /> duplicar
               </button>
-              <button className="btn small ghost danger" onClick={bulkDelete}>
-                <Icon name="trash" size={14} /> excluir
+              <button aria-label="Excluir" title="excluir" className="btn small ghost danger" onClick={bulkDelete}>
+                <Icon name="trash" size={14} />
               </button>
               <button className="link small" onClick={() => setPicked(new Set())}>
                 limpar seleção

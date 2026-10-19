@@ -2,8 +2,7 @@ import { useRef, type ReactNode, type SyntheticEvent } from 'react'
 import { toast } from './dialog'
 import { Icon } from './Icon'
 import { go } from '../router'
-import { PLAN_LIST, plansWith, type Feature } from '../plans'
-import { useAccess } from '../access'
+import { plansWith, type Feature } from '../plans'
 
 /* Vitrine do que o plano não tem: a pessoa abre e vê a tela de verdade (para dar vontade),
    mas nada funciona até assinar o plano que libera. */
@@ -74,21 +73,7 @@ export function LockButton({ feature, label, icon = 'lock', className = 'btn sma
 }
 
 /** No teste grátis tudo fica aberto: avisa de que plano é a função, para não ter surpresa depois. */
-export function TrialFeatureNote({ feature, children }: { feature: Feature; children: ReactNode }) {
-  const { sub, isOwner } = useAccess()
-  const show = !isOwner && sub?.status === 'trial' && plansWith(feature).length < PLAN_LIST.length
-  return (
-    <>
-      {show && (
-        <p className="lk-trial" role="note">
-          <Icon name="lock" size={13} />
-          <span>
-            Função do plano <b>{lockPlan(feature)}</b>
-            {plansWith(feature).length > 1 ? ' (ou acima)' : ''}: liberada no teste grátis. Depois do teste, nos outros planos, ela fica só para ver.
-          </span>
-        </p>
-      )}
-      {children}
-    </>
-  )
+/** No teste grátis tudo fica liberado: a etiqueta do plano no menu já avisa de qual plano é cada tela. */
+export function TrialFeatureNote({ children }: { feature: Feature; children: ReactNode }) {
+  return <>{children}</>
 }

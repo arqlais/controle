@@ -174,32 +174,20 @@ export default function SubscriptionPage({ onChat }: { onChat: () => void }) {
 }
 
 /** Aviso no topo durante o teste grátis (e quando ele termina). */
-export function TrialBanner() {
+/** Teste grátis: uma linha só. Aparece no início (e em todas as telas nos 3 últimos dias). */
+export function TrialBanner({ page }: { page?: string }) {
   const { sub, isOwner } = useAccess()
   if (isOwner || !sub || sub.status !== 'trial') return null
   const left = trialDaysLeft(sub)
+  if (left > 3 && page && page !== 'inicio') return null
   return (
-    <div className={`demo-banner pf-trial-banner ${left <= 3 ? 'is-urgent' : ''}`}>
-      <span>
-        {left > 0 ? (
-          <>
-            <b>Teste grátis:</b> faltam {left} dia(s) · plano {PLANS[effectivePlan(sub)].name}
-            {effectivePlan(sub) === 'estudio' && (
-              <small className="pf-trial-note">
-                <Icon name="lock" size={12} /> No teste tudo fica liberado. Depois, o que tem etiqueta de plano no menu só continua aberto nesse plano; nos outros, fica com cadeado (dá para ver, mas não usar).
-              </small>
-            )}
-          </>
-        ) : (
-          <>
-            <b>Seu teste grátis terminou.</b> Peça a assinatura para continuar.
-          </>
-        )}
+    <a className={`slim-banner pf-trial-banner ${left <= 3 ? 'is-urgent' : ''}`} href={href('assinatura')} title={`Teste do plano ${PLANS[effectivePlan(sub)].name}: tudo liberado até o fim do teste`}>
+      <Icon name="star" size={14} />
+      <span className="grow">{left > 0 ? <>teste grátis · <b>{left} {left === 1 ? 'dia' : 'dias'}</b></> : <b>teste encerrado</b>}</span>
+      <span className="slim-cta">
+        planos <Icon name="chevronR" size={13} />
       </span>
-      <a className="btn small" href={href('assinatura')}>
-        ver planos
-      </a>
-    </div>
+    </a>
   )
 }
 
@@ -411,8 +399,8 @@ export function ReferralCard({ code, plain }: { code: string; plain?: boolean })
           <>
             <div className="connect-link">
               <input readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Seu link de indicação" />
-              <button className="btn small" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'), () => toast(link))}>
-                <Icon name="copy" size={14} /> copiar
+              <button aria-label="Copiar" title="copiar" className="btn small" onClick={() => navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'), () => toast(link))}>
+                <Icon name="copy" size={14} />
               </button>
             </div>
             <div className="row gap-s wrap">

@@ -329,8 +329,8 @@ export function ObraTab({ p, save, client }: { p: Project; save: (patch: Partial
                 <button className="btn small" onClick={() => void report(v)}>
                   <Icon name="file" size={14} /> relatório em PDF
                 </button>
-                <button className="btn small ghost" onClick={() => setEdit(v)}>
-                  <Icon name="edit" size={14} /> editar
+                <button aria-label="Editar" title="editar" className="btn small ghost" onClick={() => setEdit(v)}>
+                  <Icon name="edit" size={14} />
                 </button>
                 <button
                   className="icon-btn subtle"

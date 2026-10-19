@@ -417,6 +417,7 @@ function firstRunData(settings: Settings): Data {
     ...(info.studio ? { brandName: info.studio } : {}),
     ...(info.name ? { ownerName: info.name } : {}),
     ...(info.profile ? { workProfile: info.profile, services: servicesFor(info.profile) } : {}),
+    simpleMenu: true, // conta nova: menu só com o essencial até a pessoa pedir "todas as funções"
   }
   return info.demo ? demoData(st) : { ...emptyData(), settings: st }
 }

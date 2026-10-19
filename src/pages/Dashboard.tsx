@@ -98,23 +98,24 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
   if (!data.clients.length && !data.projects.length) {
     return (
       <div className="page">
+        <h1 className="hello-title">
+          {hello.toLowerCase()}
+          {settings.ownerName ? <em>, {settings.ownerName.split(' ')[0]}</em> : ''}
+        </h1>
         <FirstSteps />
-        <div className="hero">
-          <p className="eyebrow">{settings.tagline || settings.brandName}</p>
-          <h1>
-            seu escritório, <em>organizado</em>
-          </h1>
-          <p className="lead">Clientes, demandas, prazos, orçamentos e financeiro num só lugar. Comece cadastrando um cliente ou explore com dados de exemplo.</p>
-          <div className="row gap wrap">
-            <button className="btn primary" onClick={() => onQuick('cliente')}>
-              <Icon name="plus" size={16} /> Cadastrar primeiro cliente
+        {(settings.firstStepsHidden || access.isOwner) && (
+          <div className="row gap-s wrap">
+            <a className="btn primary" href={href('orcamentos', 'novo')}>
+              <Icon name="plus" size={16} /> orçamento
+            </a>
+            <button className="btn" onClick={() => onQuick('cliente')}>
+              <Icon name="plus" size={16} /> cliente
             </button>
-            <button className="btn ghost" onClick={() => showSample(true)}>
-              Ver com dados de exemplo
+            <button className="btn ghost" onClick={() => showSample(true)} title="Ver tudo preenchido com dados fictícios">
+              <Icon name="eye" size={16} /> exemplo
             </button>
           </div>
-          <p className="muted small">Dica: personalize logo, cores e sua tabela de preços em Configurações.</p>
-        </div>
+        )}
       </div>
     )
   }

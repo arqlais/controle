@@ -100,6 +100,8 @@ const SUBPAGES: Record<string, { page: string; label: string }[]> = {
   ],
 }
 const menuItemOf = (page: string) => Object.keys(SUBPAGES).find((k) => SUBPAGES[k].some((s) => s.page === page)) ?? page
+// menu enxuto da conta nova: o essencial do dia a dia
+const SIMPLE_NAV = ['inicio', 'orcamentos', 'clientes', 'projetos', 'financeiro', 'agenda']
 // o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
 const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
@@ -283,6 +285,8 @@ export default function App() {
   const [dragNav, setDragNav] = useState<string | null>(null)
   // menu enxuto: quem é freelancer não vê o que é de cliente final (dá para mostrar de novo em "organizar menu")
   const navHidden = useMemo(() => settings.navHidden ?? (settings.workProfile === 'freelancer' && !access.isOwner ? FREELA_HIDDEN : []), [settings.navHidden, settings.workProfile, access.isOwner])
+  // menu enxuto: some sozinho quando a pessoa já usa de verdade (3 orçamentos) ou pede "todas as funções"
+  const simple = !!settings.simpleMenu && !access.isOwner && data.quotes.length < 3 && !organizing
   const toggleNav = (page: string) => setSettings({ navHidden: navHidden.includes(page) ? navHidden.filter((x) => x !== page) : [...navHidden, page] })
   // ordem do menu escolhida pela usuária (itens novos entram no fim)
   const nav = useMemo(() => {
@@ -290,21 +294,21 @@ export default function App() {
     const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
     // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
     // o que o plano não tem continua no menu (com cadeado): abre como vitrine, para dar vontade
-    return NAV.filter((n) => (!NEEDS[n.page] || !OWNER_ONLY.includes(NEEDS[n.page]) || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff) && (organizing || !navHidden.includes(n.page))).sort((a, b) => {
+    return NAV.filter((n) => (!NEEDS[n.page] || !OWNER_ONLY.includes(NEEDS[n.page]) || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff) && (organizing || !navHidden.includes(n.page)) && (!simple || SIMPLE_NAV.includes(n.page))).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
     })
-  }, [settings.navOrder, settings.contracts?.off, settings.instagramOff, access, organizing, navHidden])
+  }, [settings.navOrder, settings.contracts?.off, settings.instagramOff, access, organizing, navHidden, simple])
   // grupos à parte, no fim do menu: plataforma (só a dona), sua conta (clientes) e ajustes e dicas
   const groups = useMemo(
     () =>
       [
         { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
-        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, { page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }] : [] },
+        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, ...(settings.simpleMenu && data.quotes.length < 3 ? [] : [{ page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }])] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),
-    [access],
+    [access, settings.simpleMenu, data.quotes.length],
   )
   // portfólio / site (do perfil): abre em outra aba
   const siteUrl = (() => {
@@ -358,9 +362,8 @@ export default function App() {
   const [welcomeOpen, setWelcomeOpen] = useState(false)
   useEffect(() => {
     if (sync !== 'loading' && !access.isOwner && !access.legacy && !settings.tour) {
-      // conta nova: primeiro o cartão de boas-vindas; depois, o passo a passo
-      if (!settings.welcomed && !settings.tour) setWelcomeOpen(true)
-      else setTourOpen(true)
+      // conta nova: só o cartão de boas-vindas (curto). O passo a passo fica no "?" do topo, para quem quiser.
+      if (!settings.welcomed) setWelcomeOpen(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sync === 'loading', access.isOwner])
@@ -615,7 +618,13 @@ export default function App() {
               </Fragment>
             )
           })}
-          {!access.isOwner && !organizing && (
+          {simple && (
+            <button type="button" className="nav-more" onClick={() => setSettings({ simpleMenu: false })}>
+              <Icon name="plus" />
+              <span>todas as funções</span>
+            </button>
+          )}
+          {!access.isOwner && !organizing && !simple && (
             <a href={href('indique')} className={`nav-promo lp-shine ${route.page === 'indique' ? 'active' : ''}`}>
               <span className="nav-promo-icon">
                 <Icon name="gift" size={18} />
@@ -789,8 +798,8 @@ export default function App() {
             name={access.sub?.name || settings.ownerName || ''}
             onTour={() => {
               setWelcomeOpen(false)
-              setSettings({ welcomed: true })
-              setTourOpen(true)
+              setSettings({ welcomed: true, tour: 'feito' })
+              go('orcamentos', 'novo')
             }}
             onSkip={() => {
               setWelcomeOpen(false)
@@ -844,35 +853,31 @@ export default function App() {
           </div>
         )}
           {isSample && (
-            <div className="demo-banner">
-              <span>
-                <b>Exemplo preenchido.</b> Só para visualizar: seus dados estão guardados e nada feito aqui é salvo.
-              </span>
+            <div className="slim-banner" title="Só para ver: nada feito aqui é salvo">
+              <Icon name="eye" size={14} />
+              <span className="grow">exemplo · nada é salvo</span>
               <button className="btn small" onClick={() => showSample(false)}>
-                voltar para meus dados
+                meus dados
               </button>
             </div>
           )}
-          <TrialBanner />
+          <TrialBanner page={route.page} />
           {data.demo && (
-            <div className="demo-banner">
-              <span>
-                <b>Dados de exemplo.</b> Clientes e valores fictícios para você explorar. Pode editar à vontade.
-              </span>
-              <div className="row gap-s">
-                <button
-                  className="btn small"
-                  onClick={async () =>
-                    (await ask('Apagar os dados de exemplo e começar com o sistema vazio? Suas configurações ficam.', { confirmLabel: 'Começar do zero', danger: true })) &&
-                    replaceAll({ ...emptyData(), settings: data.settings })
-                  }
-                >
-                  Começar do zero
-                </button>
-                <button className="btn small ghost" onClick={() => replaceAll({ ...data, demo: false })}>
-                  Ocultar aviso
-                </button>
-              </div>
+            <div className="slim-banner" title="Clientes e valores fictícios para explorar">
+              <Icon name="eye" size={14} />
+              <span className="grow">dados de exemplo</span>
+              <button
+                className="btn small"
+                onClick={async () =>
+                  (await ask('Apagar os dados de exemplo e começar do zero? Suas configurações ficam.', { confirmLabel: 'Começar do zero', danger: true })) &&
+                  replaceAll({ ...emptyData(), settings: data.settings })
+                }
+              >
+                começar do zero
+              </button>
+              <button className="icon-btn subtle" aria-label="Ocultar aviso" title="ocultar" onClick={() => replaceAll({ ...data, demo: false })}>
+                <Icon name="x" size={14} />
+              </button>
             </div>
           )}
           <Fragment key={isSample ? 'exemplo' : 'real'}>

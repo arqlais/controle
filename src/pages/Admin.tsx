@@ -2239,8 +2239,8 @@ function AffiliateLinks({ aff, st, onClose }: { aff: Affiliate; st: AffiliateSta
             <span className="field-label">{label}</span>
             <div className="connect-link">
               <input readOnly value={url} onFocus={(e) => e.target.select()} aria-label={label} />
-              <button className="btn small" onClick={() => copyText(url, label.charAt(0).toUpperCase() + label.slice(1))}>
-                <Icon name="copy" size={14} /> copiar
+              <button aria-label="Copiar" title="copiar" className="btn small" onClick={() => copyText(url, label.charAt(0).toUpperCase() + label.slice(1))}>
+                <Icon name="copy" size={14} />
               </button>
               <a className="btn small ghost" href={url} target="_blank" rel="noreferrer">
                 abrir <Icon name="chevronR" size={13} />
@@ -2277,8 +2277,8 @@ function AffiliateForm({ aff, onClose, onSave, onRemove }: { aff: Affiliate; onC
       footer={
         <>
           {onRemove && (
-            <button className="btn ghost danger" onClick={onRemove}>
-              <Icon name="trash" size={15} /> excluir
+            <button aria-label="Excluir" title="excluir" className="btn ghost danger" onClick={onRemove}>
+              <Icon name="trash" size={15} />
             </button>
           )}
           <button className="btn ghost" onClick={onClose}>

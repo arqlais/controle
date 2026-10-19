@@ -583,6 +583,8 @@ export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços
+  simpleMenu?: boolean // menu enxuto (conta nova): só o essencial, com "todas as funções" no fim
+  pricesTouched?: boolean // a pessoa já mexeu na tabela de preços (primeiros passos)
   page?: import('./studioPage').StudioPageCfg // página do profissional (link da bio)
   processes?: ProjectProcess[] // processos de trabalho para cliente final (vazio = os prontos)
   servicesSetup?: boolean // já fez o primeiro passo "o que você faz e quanto cobra"

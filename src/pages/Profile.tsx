@@ -260,7 +260,6 @@ function AccountSection({ email }: { email: string }) {
           <div>
             <span className="field-label">e-mail de login</span>
             <p className="account-email">{email}</p>
-            <p className="muted small">Seus dados ficam guardados na nuvem, protegidos por este login, e aparecem iguais no computador e no celular.</p>
             <button className="btn ghost small" onClick={() => signOut()}>
               <Icon name="x" size={14} /> sair desta conta
             </button>
@@ -314,6 +313,7 @@ function StudioPageSection() {
   return (
     <Section
       title="sua página (link da bio)"
+      hint="Uma página com o que você faz e um botão de pedir orçamento. O pedido chega como aviso, com o cliente e o rascunho do orçamento prontos."
       action={
         cfg.on ? (
           <button className="btn small ghost" disabled={busy} onClick={() => void publish(false)}>
@@ -322,7 +322,6 @@ function StudioPageSection() {
         ) : undefined
       }
     >
-      <p className="muted small">Uma página simples com o que você faz e um botão de pedir orçamento. O pedido chega aqui como aviso, com o cliente cadastrado e o rascunho do orçamento pronto.</p>
       <div className="form-grid">
         <Field label="Frase de abertura" hint="O que você faz, em uma linha.">
           <input value={cfg.headline} onChange={(e) => set({ headline: e.target.value })} placeholder="imagens 3D e executivo para escritórios de arquitetura" />
@@ -340,10 +339,10 @@ function StudioPageSection() {
         ))}
       </div>
       <label className="check">
-        <input type="checkbox" checked={cfg.showPrices} onChange={(e) => set({ showPrices: e.target.checked })} /> mostrar “a partir de R$” em cada serviço
+        <input type="checkbox" checked={cfg.showPrices} onChange={(e) => set({ showPrices: e.target.checked })} /> mostrar “a partir de R$”
       </label>
       <label className="check">
-        <input type="checkbox" checked={cfg.photos} onChange={(e) => set({ photos: e.target.checked })} /> mostrar as fotos do portfólio (as mesmas da proposta)
+        <input type="checkbox" checked={cfg.photos} onChange={(e) => set({ photos: e.target.checked })} /> mostrar as fotos do portfólio
       </label>
       {cfg.on && (
         <div className="sg-link">
@@ -361,7 +360,6 @@ function StudioPageSection() {
           {cfg.on ? 'atualizar a página' : 'colocar a página no ar'}
         </button>
       </div>
-      {cfg.on && <p className="muted small">Mudou algo aqui, no perfil ou na tabela de preços? Toque em “atualizar a página”.</p>}
     </Section>
   )
 }

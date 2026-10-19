@@ -369,8 +369,8 @@ function ContractEditor({ id }: { id: string }) {
             </a>
           )}
           <MoreMenu>
-            <button className="btn ghost" onClick={() => pdf.downloadVector(doc, file)} title="Imprimir em folhas A4 (ou salvar como PDF pela impressão)">
-              <Icon name="printer" size={16} /> imprimir
+            <button aria-label="Imprimir" className="btn ghost" onClick={() => pdf.downloadVector(doc, file)} title="Imprimir em folhas A4 (ou salvar como PDF pela impressão)">
+              <Icon name="printer" size={16} />
             </button>
             <button className="btn ghost" onClick={() => setZoom(true)} title="Ver o contrato em tamanho grande">
               <Icon name="eye" size={16} /> ver maior

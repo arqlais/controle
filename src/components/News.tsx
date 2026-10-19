@@ -223,28 +223,15 @@ export function WelcomeCard({ name, onTour, onSkip }: { name: string; onTour: ()
           <span className="nw-pulse" /> boas-vindas
         </p>
         <h2 className="nw-title">
-          que bom ter você aqui{first ? `, ${first}` : ''}!
+          oi{first ? `, ${first}` : ''}!
         </h2>
-        <p className="nw-lead">
-          Obrigada por escolher o {PLATFORM.name}. Ele nasceu da rotina de uma freelancer que precisava organizar clientes, orçamentos, prazos e dinheiro num lugar só, e agora é seu também.
-        </p>
-        <ul className="nw-welcome-list">
-          <li>
-            <Icon name="check" size={15} /> seus dias grátis já começaram, com tudo liberado
-          </li>
-          <li>
-            <Icon name="check" size={15} /> em 2 minutos o passo a passo mostra onde fica cada coisa
-          </li>
-          <li>
-            <Icon name="check" size={15} /> dúvida ou ideia? o balão de conversa no canto fala direto com a gente
-          </li>
-        </ul>
+        <p className="nw-lead">Sua primeira proposta, com a sua marca, sai em 5 minutos. A tabela de preços já está pronta.</p>
         <div className="nw-actions">
           <button className="link" onClick={onSkip}>
-            explorar sozinha(o)
+            explorar
           </button>
           <button className="btn primary" onClick={onTour}>
-            começar o passo a passo <Icon name="arrowRight" size={15} />
+            fazer minha proposta <Icon name="arrowRight" size={15} />
           </button>
         </div>
         <p className="nw-sign">— {PLATFORM.owner}, criadora do {PLATFORM.name}</p>

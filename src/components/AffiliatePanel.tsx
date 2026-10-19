@@ -44,8 +44,8 @@ export function AffiliatePanelView({ st }: { st: AffiliateStats }) {
       </p>
       <div className="aff-link">
         <span className="grow">{link}</span>
-        <button className="btn small" onClick={copy}>
-          <Icon name="copy" size={13} /> copiar
+        <button aria-label="Copiar" title="copiar" className="btn small" onClick={copy}>
+          <Icon name="copy" size={13} />
         </button>
       </div>
       <div className="aff-big">

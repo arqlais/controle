@@ -151,7 +151,7 @@ export default function SettingsPage() {
             <>
             <WorkProfileSection />
             <Section title="tabela de preços" action={<RaiseTable />}>
-              <PriceTable services={s.services} profile={s.workProfile} onChange={(services) => setSettings({ services })} onRestart={() => setSettings({ servicesSetup: false })} />
+              <PriceTable services={s.services} profile={s.workProfile} onChange={(services) => setSettings({ services, pricesTouched: true })} onRestart={() => setSettings({ servicesSetup: false })} />
             </Section>
             <Section title="o valor da sua hora">
               <Field label="Quanto vale uma hora sua" hint="O orçamento mostra quanto a sua hora vale naquele valor (pelas horas médias de cada serviço) e avisa quando fica abaixo disso.">
@@ -293,7 +293,6 @@ export default function SettingsPage() {
           {tab === 'dados' && (
             <>
               <Section title="seus dados">
-                <p className="muted small">Nome, foto, contatos, pix e CPF/CNPJ ficam no <b>perfil do estúdio</b>, junto com a sua conta.</p>
                 <a className="btn small" href="#/perfil">
                   <Icon name="user" size={14} /> abrir perfil
                 </a>
@@ -531,7 +530,6 @@ function OwnerColors() {
         )
       }
     >
-      <p className="muted small">Ajuste cada parte do sistema, inclusive o menu lateral. Vale só para o tema claro; o que ficar sem cor própria segue as cores da identidade acima.</p>
       <div className="ui-colors">
         {UI_COLORS.map(([k, label, hint]) => (
           <div key={k} className={`ui-color ${ui[k] ? 'is-set' : ''}`}>
@@ -732,8 +730,7 @@ function WorkProfileSection() {
   const { data, setSettings } = useStore()
   const cur = data.settings.workProfile ?? 'freelancer'
   return (
-    <Section title="para quem você trabalha">
-      <p className="muted small">Só para freelancer (outros escritórios), só para cliente final ou os dois. Muda o que já vem pronto: o tipo de cliente, a ficha do cliente final (com briefing), os serviços sugeridos e o menu (quem só presta serviço para escritórios não vê painel do cliente e briefings; dá para mostrar de novo em “organizar menu”). Nada do que você já cadastrou é apagado.</p>
+    <Section title="para quem você trabalha" hint="Muda o que já vem pronto: tipo de cliente, ficha, serviços sugeridos e menu. Nada do que você cadastrou é apagado.">
       <div className="wp-options">
         {WORK_PROFILES.map((w) => (
           <button key={w.value} type="button" className={`wp-option ${cur === w.value ? 'is-on' : ''}`} onClick={() => setSettings({ workProfile: w.value, navHidden: undefined })} aria-pressed={cur === w.value}>
@@ -850,11 +847,11 @@ function ClientReminders() {
   const setQr = (patch: Partial<typeof qr>) => setSettings({ quoteReminders: { ...qr, ...patch } })
   const noMail = data.clients.filter((c) => !c.email?.includes('@') && data.projects.some((p) => p.clientId === c.id && p.payments.some((x) => !x.paidDate))).length
   return (
-    <Section title="lembretes automáticos para a cliente" className="cfg-reminders">
+    <Section title="lembretes automáticos para a cliente" className="cfg-reminders" hint="Saem com o nome do seu estúdio; se a cliente responder, cai no seu e-mail. Para não mandar para alguém, desligue na ficha da cliente.">
       <label className="check">
         <input type="checkbox" checked={r.on} onChange={(e) => set({ on: e.target.checked })} />
         <span>
-          <b>mandar lembrete automático por e-mail</b> — antes da parcela vencer, com o valor, a sua chave Pix e o link do painel. Sai com o nome do seu escritório; se a cliente responder, cai no seu e-mail.
+          <b>parcela vencendo</b> <span className="muted">· e-mail com o valor e o Pix</span>
         </span>
       </label>
       {r.on && (
@@ -877,11 +874,10 @@ function ClientReminders() {
         </div>
       )}
       {r.on && noMail > 0 && <p className="pf-note is-warn">{noMail === 1 ? '1 cliente com parcela em aberto está sem e-mail' : `${noMail} clientes com parcela em aberto estão sem e-mail`} na ficha: para ela{noMail > 1 ? 's' : ''} o lembrete não sai.</p>}
-      <p className="muted small">Vale para as parcelas com data de vencimento. Para não mandar para uma cliente específica, desligue na ficha dela.</p>
       <label className="check">
         <input type="checkbox" checked={!!qr.on} onChange={(e) => setQr({ on: e.target.checked })} />
         <span>
-          <b>lembrar a cliente da proposta sem resposta</b> — um e-mail só, educado, com o link para ver e aprovar. Vale para as propostas mandadas pelo link.
+          <b>proposta sem resposta</b> <span className="muted">· um e-mail só, com o link</span>
         </span>
       </label>
       {qr.on && (

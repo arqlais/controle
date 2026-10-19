@@ -460,8 +460,8 @@ function ConnectCalendar({ onClose }: { onClose: () => void }) {
             )}
             <div className="connect-link">
               <input id="calendar-url" readOnly value={url} onFocus={(e) => e.target.select()} />
-              <button className="btn small" onClick={copy}>
-                <Icon name="copy" size={14} /> copiar
+              <button aria-label="Copiar" title="copiar" className="btn small" onClick={copy}>
+                <Icon name="copy" size={14} />
               </button>
             </div>
             {options}

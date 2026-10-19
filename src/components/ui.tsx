@@ -73,13 +73,40 @@ export function KeepRS({ text }: { text: string }) {
 export function Field({ label, children, hint, span, className = '', group }: { label: string; children: ReactNode; hint?: ReactNode; span?: 1 | 2 | 3; className?: string; group?: boolean }) {
   // group: campo com vários botões (ex.: escolhas) — não pode ser <label>, senão clicar no título aciona o 1º botão
   const Tag = group ? 'div' : 'label'
+  // explicação curta (ou aviso) fica à vista; explicação longa vira um "?" ao lado do nome, que abre ao tocar
+  const plain = typeof hint === 'string' ? hint : ''
+  const inline = !!hint && (className.includes('field-warn') || (typeof hint === 'string' && plain.length <= 42))
+  const [open, setOpen] = useState(false)
   return (
     <Tag className={`field ${span ? `span-${span}` : ''} ${className}`}>
       <span className="field-label">
         <KeepRS text={label} />
+        {hint && !inline && (
+          // não é <button>: dentro do <label>, um botão "roubaria" o nome do campo
+          <span
+            role="button"
+            tabIndex={0}
+            className={`hint-tip ${open ? 'is-open' : ''}`}
+            aria-label="Explicação"
+            aria-expanded={open}
+            title={plain || undefined}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setOpen((v) => !v)
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              setOpen((v) => !v)
+            }}
+          >
+            ?
+          </span>
+        )}
       </span>
       {children}
-      {hint && <span className="field-hint">{hint}</span>}
+      {hint && (inline || open) && <span className="field-hint">{hint}</span>}
     </Tag>
   )
 }
@@ -148,15 +175,23 @@ export function Empty({ icon = 'inbox', title, text, action }: { icon?: string; 
   )
 }
 
-export function Section({ title, action, children, className = '' }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
+export function Section({ title, action, children, className = '', hint }: { title: string; action?: ReactNode; children: ReactNode; className?: string; hint?: ReactNode }) {
+  // hint: a explicação da seção fica num "?" ao lado do título (abre ao tocar), sem textão na tela
+  const [open, setOpen] = useState(false)
   return (
     <section className={`card ${className}`}>
       <header className="card-head">
         <h3>
           <KeepRS text={title} />
+          {hint && (
+            <button type="button" className={`hint-tip ${open ? 'is-open' : ''}`} aria-label="Explicação" aria-expanded={open} title={typeof hint === 'string' ? hint : undefined} onClick={() => setOpen((v) => !v)}>
+              ?
+            </button>
+          )}
         </h3>
         {action}
       </header>
+      {hint && open && <p className="field-hint section-hint">{hint}</p>}
       {children}
     </section>
   )

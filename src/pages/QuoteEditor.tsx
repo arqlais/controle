@@ -1090,7 +1090,6 @@ export default function QuoteEditor({ id }: { id: string }) {
                   <b>{money(comboTotal(q))}</b>
                 </div>
               </div>
-              <p className="muted small">Na proposta aparece o valor de cada uma e, embaixo, quanto fica fechando {allLabel(q)} juntas.</p>
             </Section>
           )}
 
@@ -1196,8 +1195,8 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </button>
               )}
               {existing && (
-                <button className="btn ghost danger small" onClick={deleteQuote}>
-                  <Icon name="trash" size={14} /> excluir
+                <button aria-label="Excluir" title="excluir" className="btn ghost danger small" onClick={deleteQuote}>
+                  <Icon name="trash" size={14} />
                 </button>
               )}
             </div>
@@ -1266,7 +1265,7 @@ export default function QuoteEditor({ id }: { id: string }) {
             </>
           }
         >
-          <p className="muted small">A cliente abre no celular, vê a proposta, escolhe a opção e aprova. Você recebe o aviso na hora e o link se atualiza sozinho quando você muda o orçamento.</p>
+          <p className="muted small">A cliente abre, escolhe e aprova pelo celular. Você é avisada quando ela abrir.</p>
           <p className="share-url">
             <a href={shareUrl} target="_blank" rel="noreferrer">
               {shareUrl}
@@ -1413,8 +1412,8 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
           onClose={() => setOpen('')}
           footer={
             <>
-              <button className="btn ghost" onClick={copy}>
-                <Icon name="copy" size={14} /> copiar
+              <button aria-label="Copiar" title="copiar" className="btn ghost" onClick={copy}>
+                <Icon name="copy" size={14} />
               </button>
               {phone && (
                 <a className="btn primary" href={whatsappLink(phone, question)} target="_blank" rel="noreferrer">
@@ -1428,7 +1427,6 @@ function ScopeTools({ q, settings, phone, student, onApply }: { q: Quote; settin
             Mande esta lista. Quando o cliente responder apagando o que não quer, cole a resposta em <b>colar resposta</b> e o orçamento se monta sozinho.
           </p>
           <textarea className="scope-text" readOnly rows={Math.min(22, question.split('\n').length + 1)} value={question} onFocus={(e) => e.target.select()} />
-          <p className="muted small">A lista é editável em configurações → preços, em cada serviço.</p>
         </Modal>
       )}
       {open === 'resposta' && (

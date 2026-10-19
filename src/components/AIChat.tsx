@@ -425,8 +425,8 @@ export function AIChat({ quoteId }: { quoteId?: string }) {
                       return sug ? <QuoteSuggestion q={sug} current={current} onClose={() => setOpen(false)} /> : null
                     })()}
                     {m.role === 'model' && !m.text.startsWith('⚠') && (
-                      <button className="link small ai-copy" onClick={() => copy(parseAIQuote(m.text).clean)}>
-                        <Icon name="copy" size={12} /> copiar
+                      <button aria-label="Copiar" title="copiar" className="link small ai-copy" onClick={() => copy(parseAIQuote(m.text).clean)}>
+                        <Icon name="copy" size={12} />
                       </button>
                     )}
                   </div>

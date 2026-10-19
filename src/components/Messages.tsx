@@ -64,8 +64,8 @@ function MessagesModal({ client, project, quote, onClose }: { client?: Client; p
               <Icon name="chevronL" size={14} /> voltar
             </button>
             <span className="spacer" />
-            <button className="btn small" onClick={copy}>
-              <Icon name="copy" size={14} /> copiar
+            <button aria-label="Copiar" title="copiar" className="btn small" onClick={copy}>
+              <Icon name="copy" size={14} />
             </button>
             {client?.phone && (
               <a className="btn primary small" href={whatsappLink(client.phone, text)} target="_blank" rel="noreferrer">

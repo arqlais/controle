@@ -497,8 +497,8 @@ function StrategyView() {
           <div key={k} className="ig-tags">
             <b>{k === 'arquitetos' ? 'arquitetos e interiores' : k === 'tecnico' ? 'executivo e detalhamento' : 'estudantes'}</b>
             <p className="muted small">{STRATEGY.hashtags[k]}</p>
-            <button className="btn small ghost" onClick={() => copy(STRATEGY.hashtags[k], 'Hashtags')}>
-              <Icon name="copy" size={13} /> copiar
+            <button aria-label="Copiar" title="copiar" className="btn small ghost" onClick={() => copy(STRATEGY.hashtags[k], 'Hashtags')}>
+              <Icon name="copy" size={13} />
             </button>
           </div>
         ))}
@@ -686,8 +686,8 @@ function ClientStrategyView() {
           <div key={label} className="ig-tags">
             <b>{label}</b>
             <p className="muted small">{tags}</p>
-            <button className="btn small ghost" onClick={() => copy(tags, 'Hashtags')}>
-              <Icon name="copy" size={13} /> copiar
+            <button aria-label="Copiar" title="copiar" className="btn small ghost" onClick={() => copy(tags, 'Hashtags')}>
+              <Icon name="copy" size={13} />
             </button>
           </div>
         ))}

@@ -319,8 +319,8 @@ export function PanelEditor({ id }: { id: string }) {
       </div>
 
       <div className="pe-tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'editar'} className={tab === 'editar' ? 'is-on' : ''} onClick={() => setTab('editar')}>
-          <Icon name="edit" size={14} /> editar
+        <button aria-label="Editar" title="editar" role="tab" aria-selected={tab === 'editar'} className={tab === 'editar' ? 'is-on' : ''} onClick={() => setTab('editar')}>
+          <Icon name="edit" size={14} />
         </button>
         <button role="tab" aria-selected={tab === 'ver'} className={tab === 'ver' ? 'is-on' : ''} onClick={() => setTab('ver')}>
           <Icon name="eye" size={14} /> ver como o cliente
