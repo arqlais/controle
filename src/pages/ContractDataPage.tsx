@@ -200,9 +200,13 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
   const { data, upsert, userId } = useStore()
   const [busy, setBusy] = useState(false)
   const pending = client.dataLink?.status === 'enviado'
-  const url = pending ? dataLinkUrl(client.dataLink!.id) : ''
+  const url = pending ? dataLinkUrl(client.dataLink!.id, userId) : ''
   const first = client.name.split(' ')[0]
-  const msg = (u: string) => `Oi, ${first}! Para eu preparar o seu contrato, preenche seus dados por aqui? Leva uns 3 minutos e o que eu já tinha aparece preenchido: ${u}`
+  const { setSettings } = useStore()
+  const DEFAULT_MSG = 'Oi, {nome}! Segue o link para preencher os seus dados e gerarmos o contrato. Leva uns 3 minutos e o que eu já tinha aparece preenchido: {link}'
+  const [withMsg, setWithMsg] = useState(true)
+  const [text, setText] = useState(data.settings.dataMessage || DEFAULT_MSG)
+  const msg = (u: string) => (withMsg ? (text.includes('{link}') ? text : `${text.trim()} {link}`).replace(/\{nome\}/g, first).replace(/\{link\}/g, u) : u)
   // o formulário segue o orçamento: o serviço e para quem (cliente final ou escritório)
   const quotes = data.quotes.filter((q) => q.clientId === client.id && q.status !== 'recusado')
   const [quoteId, setQuoteId] = useState(client.dataLink?.quoteId ?? quoteFor(data, client.id)?.id ?? '')
@@ -213,10 +217,10 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
     const linkId = newLinkId()
     try {
       if (client.dataLink?.status === 'enviado') await cancelDataLink(client.dataLink.id, userId)
-      await publishDataLink(linkId, dataPayload(data.settings, client, quote))
+      await publishDataLink(linkId, dataPayload(data.settings, client, quote), userId)
       upsert('clients', { ...client, dataLink: { id: linkId, sentAt: today(), status: 'enviado', audience: aud, ...(quote ? { quoteId: quote.id } : {}) }, history: [...client.history, { id: uid(), date: today(), text: 'pedido de dados para o contrato enviado por link' }] })
-    } catch {
-      toast('Não foi possível criar o link agora. Tente de novo.')
+    } catch (e) {
+      toast(`Não foi possível criar o link agora (${(e as Error)?.message || 'sem conexão'}). Tente de novo.`)
     } finally {
       setBusy(false)
     }
@@ -274,15 +278,35 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
             <Icon name="link" size={15} />
             <span>{url}</span>
           </p>
+          <label className="check">
+            <input type="checkbox" checked={withMsg} onChange={(e) => setWithMsg(e.target.checked)} />
+            <span>mandar com mensagem</span>
+          </label>
+          {withMsg && (
+            <div className="cd-msg">
+              <textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} aria-label="Mensagem" />
+              <div className="cd-msg-foot">
+                <small className="muted">{'{nome}'} vira o nome e {'{link}'} o link</small>
+                {text !== (data.settings.dataMessage || DEFAULT_MSG) && (
+                  <button
+                    className="link small"
+                    onClick={() => {
+                      setSettings({ dataMessage: text })
+                      toast('Mensagem salva como padrão.')
+                    }}
+                  >
+                    salvar como padrão
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="cd-send-acts">
             <a className="btn primary" href={whatsappLink(client.phone, msg(url))} target="_blank" rel="noreferrer">
               <Icon name="whatsapp" size={15} /> WhatsApp
             </a>
-            <button className="btn ghost" onClick={() => copy(msg(url), 'Mensagem')}>
-              <Icon name="copy" size={15} /> mensagem
-            </button>
-            <button className="icon-btn" onClick={() => copy(url, 'Link')} aria-label="Copiar só o link" title="Copiar só o link">
-              <Icon name="link" size={16} />
+            <button className="icon-btn" onClick={() => copy(msg(url), withMsg ? 'Mensagem' : 'Link')} aria-label={withMsg ? 'Copiar mensagem com o link' : 'Copiar o link'} title={withMsg ? 'Copiar mensagem com o link' : 'Copiar o link'}>
+              <Icon name="copy" size={16} />
             </button>
             <a className="icon-btn" href={url} target="_blank" rel="noreferrer" aria-label="Abrir como o cliente vê" title="Abrir como o cliente vê">
               <Icon name="eye" size={16} />
@@ -531,7 +555,7 @@ function FormSettings({ value, clients, onClose, onSave }: { value: Record<Audie
           </p>
           <div className="cdp is-preview">
             <main className="cdp-card">
-              <DataWizard key={`${aud}${JSON.stringify(clean)}`} id="previa" preview cloud={false} payload={{ ...dataPayload(data.settings, previewClient), form: clean, audience: aud }} />
+              <DataWizard key={`${aud}${JSON.stringify(clean)}`} id="previa" preview payload={{ ...dataPayload(data.settings, previewClient), form: clean, audience: aud }} />
             </main>
           </div>
         </div>

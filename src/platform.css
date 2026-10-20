@@ -4054,3 +4054,16 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
 .proposal.is-xlong .p-row-list { display: grid; columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 1), auto); grid-auto-flow: column; column-gap: 24px; row-gap: 2px; }
 .proposal.is-xlong .p-option .p-row-list { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-flow: row; }
 .proposal .p-row-main { min-width: 0; overflow: hidden; }
+.cd-pick-row > * { grid-area: auto !important; }
+.cd-pick-row { grid-template-columns: 44px minmax(0, 1fr) 20px; text-align: left; }
+.cd-pick > .link { justify-self: start; }
+.cd-msg { display: grid; gap: 6px; }
+.cd-msg textarea { width: 100%; }
+.cd-msg-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cd-send-acts { flex-wrap: nowrap; }
+.cd-send-acts .btn.primary { flex: 1; justify-content: center; }
+.cd-pick-search input, .modal .search > input { border: 0 !important; box-shadow: none !important; background: transparent !important; outline: 0; }
+.cd-send { grid-template-columns: minmax(0, 1fr); }
+.cd-send > * { min-width: 0; }
+.cd-link { overflow: hidden; }
+.cd-link span { flex: 1; min-width: 0; }

@@ -8,7 +8,8 @@ import type { Notice, QuoteApproval } from './types'
 import { proposalChoices } from './proposalLink'
 import { draftQuote } from './quoteActions'
 import type { PageRequest } from './studioPage'
-import type { Client } from './types'
+import type { Client, ContractData } from './types'
+import { applyToClient, cancelDataLink } from './contractData'
 import { BOTH, quoteNumber, today, uid } from './utils'
 
 /* Avisos do cliente final para o profissional: assinatura de contrato e recado pelo painel.
@@ -17,7 +18,7 @@ import { BOTH, quoteNumber, today, uid } from './utils'
 
 export interface ClientEvent {
   user: string // conta do profissional
-  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou' | 'pedido'
+  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou' | 'pedido' | 'dados'
   ref: string // o que é (token do contrato, id do recado): não repete
   cliente: string
   titulo: string
@@ -196,6 +197,24 @@ export function useClientInbox(enabled: boolean) {
         upsert('notices', makeNotice({ kind: 'pedido', ref: key, clientId: client.id, link: `orcamentos/${q.id}`, title: `${who} pediu um orçamento`, text: [what, req.area ? `${req.area} m²` : '', p.texto].filter(Boolean).join(' · ') + ' · o rascunho já está pronto.' }))
         toast(`${who.split(' ')[0]} pediu um orçamento pela sua página`)
         notifyDevice(`${who} pediu um orçamento`, what)
+      } else if (r.kind === 'dados') {
+        // dados para o contrato que vieram pelo plano B do link (arquivo público): entram no cadastro
+        const c = d.clients.find((x) => x.dataLink?.id === r.ref)
+        if (!c) continue // cliente de outro aparelho ainda não sincronizado: tenta depois
+        let got: ContractData | null = null
+        try {
+          got = JSON.parse(p.code || 'null') as ContractData
+        } catch {
+          got = null
+        }
+        if (got?.person) {
+          const next = applyToClient(c, { ...got, by: 'cliente', updatedAt: r.created_at })
+          upsert('clients', { ...next, dataLink: { ...c.dataLink!, status: 'respondido', answeredAt: r.created_at }, history: [...next.history, { id: uid(), date: today(), text: 'mandou os dados para o contrato pelo link' }] })
+          upsert('notices', makeNotice({ kind: 'briefing', ref: key, clientId: c.id, link: 'dados-contrato', title: `${c.name} mandou os dados do contrato`, text: 'Já estão no cadastro e entram sozinhos no contrato.' }))
+          toast(`${c.name.split(' ')[0]} mandou os dados do contrato`)
+          notifyDevice(`${c.name} mandou os dados do contrato`, 'Já estão no cadastro.')
+          void cancelDataLink(r.ref, userId)
+        }
       } else if (r.kind === 'recado') {
         const client = d.clients.find((x) => x.panel?.token === p.painel)
         if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `recado pelo painel: ${p.texto ?? ''}` }] })

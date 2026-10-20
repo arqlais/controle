@@ -306,6 +306,7 @@ const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   aprovacao: { eyebrow: 'proposta aprovada', did: 'aprovou a proposta' },
   visualizou: { eyebrow: 'proposta', did: 'abriu a sua proposta' },
   pedido: { eyebrow: 'pedido de orçamento', did: 'pediu um orçamento pela sua página' },
+  dados: { eyebrow: 'dados para contrato', did: 'mandou os dados do contrato' },
 }
 const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string): Mail => {
   const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado

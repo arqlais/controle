@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from './Icon'
 import { AddressFields, Block, CompanyFields, DataSummary, ExtraFields, PartnersFields, PersonFields, PropertyFields, SignFields } from './ContractDataForm'
-import { emptyAddress, loadDataLink, missingFor, ruleOf, sendData, type DataPayload } from '../contractData'
+import { emptyAddress, loadDataLink, type DataLinkSource, missingFor, ruleOf, sendData, type DataPayload } from '../contractData'
 import type { ContractData, ContractPerson, DataFieldKey, DataFormConfig, DataQuestion } from '../types'
 
 /* Link que o cliente abre para mandar os dados do contrato: passo a passo, sem login, em qualquer aparelho.
@@ -53,7 +53,7 @@ function Shell({ p, children }: { p?: DataPayload; children: ReactNode }) {
 }
 
 export function ContractDataPublic({ id }: { id: string }) {
-  const [link, setLink] = useState<{ payload: DataPayload; answered: boolean; cloud: boolean } | null | undefined>(undefined)
+  const [link, setLink] = useState<{ payload: DataPayload; answered: boolean; cloud: boolean; via: DataLinkSource; user: string } | null | undefined>(undefined)
   useEffect(() => {
     loadDataLink(id).then(setLink, () => setLink(null))
   }, [id])
@@ -85,7 +85,7 @@ export function ContractDataPublic({ id }: { id: string }) {
     )
   return (
     <Shell p={link.payload}>
-      <DataWizard id={id} payload={link.payload} cloud={link.cloud} />
+      <DataWizard id={id} payload={link.payload} via={link.via} user={link.user} />
     </Shell>
   )
 }
@@ -116,7 +116,7 @@ function Done({ p }: { p: DataPayload }) {
 }
 
 /** O passo a passo. Com `preview`, é só para ver: nada é guardado nem enviado. */
-export function DataWizard({ id, payload: p, cloud, preview }: { id: string; payload: DataPayload; cloud: boolean; preview?: boolean }) {
+export function DataWizard({ id, payload: p, via = 'local', user = '', preview }: { id: string; payload: DataPayload; via?: DataLinkSource; user?: string; preview?: boolean }) {
   const cfg: DataFormConfig | undefined = p.form
   const aud = p.audience ?? 'b2b'
   const r = ruleOf(cfg, aud)
@@ -178,7 +178,7 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
     if (m.length) return setMiss(m)
     if (preview) return setState('ok')
     setState('busy')
-    const ok = await sendData(id, { ...d, contractName: d.contractName.trim(), updatedAt: new Date().toISOString(), by: 'cliente' }, cloud)
+    const ok = await sendData(id, { ...d, contractName: d.contractName.trim(), updatedAt: new Date().toISOString(), by: 'cliente' }, via, user)
     setState(ok ? 'ok' : 'erro')
     if (ok)
       try {

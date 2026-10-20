@@ -661,6 +661,7 @@ export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | '
 export interface Settings {
   dataForm?: DataFormConfig // formulário de dados para contrato: escritórios e profissionais (só a dona, por enquanto)
   dataFormFinal?: DataFormConfig // formulário de dados para contrato: cliente final
+  dataMessage?: string // mensagem que vai junto com o link de dados ({nome} e {link})
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços

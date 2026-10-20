@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { CLOUD, supabase } from './cloud'
+import { CLOUD, publishPublicFile, readPublicFile, removePublicFile, supabase } from './cloud'
+import { avisar } from './avisar'
+import { b64ToUuid, isUuid, uuidToB64 } from './linkPack'
 import { deleteBriefingLink, fetchAnswers } from './briefingApi'
 import { viewingAsClient } from './viewAs'
 import { useStore } from './store'
@@ -316,7 +318,19 @@ const writeLocal = (v: Record<string, LocalRow>) => {
 }
 const useCloud = () => CLOUD && !viewingAsClient()
 
-export const dataLinkUrl = (id: string) => `${location.origin}${location.pathname}#/dados/${id}`
+/** Endereço do link: a conta (em 22 letras) + o código. A conta deixa o link abrir mesmo sem a tabela do briefing. */
+export const dataLinkUrl = (id: string, userId?: string) => `${location.origin}${location.pathname}#/dados/${userId && isUuid(userId) && useCloud() ? `${uuidToB64(userId)}.${id}` : id}`
+/** "conta.código" ou só "código". */
+export function parseDataCode(code: string): { id: string; user: string } {
+  const [a, b] = code.includes('.') ? code.split('.') : ['', code]
+  let user = ''
+  try {
+    user = a ? b64ToUuid(a) : ''
+  } catch {
+    user = ''
+  }
+  return { id: b, user: isUuid(user) ? user : '' }
+}
 export const newLinkId = () => (crypto.randomUUID ? crypto.randomUUID() : `${uid()}-${uid()}`)
 
 export const formOf = (s: Settings, aud: Audience) => (aud === 'final' ? s.dataFormFinal : s.dataForm) ?? DEFAULT_FORM
@@ -341,52 +355,83 @@ export function dataPayload(s: Settings, c: Client, q?: Quote): DataPayload {
   }
 }
 
-export async function publishDataLink(id: string, payload: DataPayload) {
+const FILE = (id: string) => `dados-${id}.json`
+
+/** Publica o link: na tabela do briefing (a resposta volta sozinha) e como arquivo público da conta
+ *  (plano B: abre mesmo se a tabela não existir; a resposta volta como aviso). Só falha se os dois falharem. */
+export async function publishDataLink(id: string, payload: DataPayload, userId?: string) {
   if (!useCloud()) {
     const all = readLocal()
     all[id] = { payload }
     writeLocal(all)
     return
   }
-  const { error } = await supabase!.from('briefing_links').upsert({ id, payload })
-  if (error) throw error
+  const [t, f] = await Promise.allSettled([
+    supabase!
+      .from('briefing_links')
+      .upsert({ id, payload })
+      .then(({ error }) => {
+        if (error) throw error
+      }),
+    userId ? publishPublicFile(userId, FILE(id), payload) : Promise.reject(new Error('sem conta')),
+  ])
+  if (t.status === 'rejected' && f.status === 'rejected') {
+    const why = (t.reason as { message?: string })?.message || (f.reason as { message?: string })?.message || 'nuvem'
+    throw new Error(why)
+  }
 }
 
-export async function loadDataLink(id: string): Promise<{ payload: DataPayload; answered: boolean; cloud: boolean } | null> {
+export type DataLinkSource = 'tabela' | 'arquivo' | 'local'
+export async function loadDataLink(code: string): Promise<{ payload: DataPayload; answered: boolean; cloud: boolean; via: DataLinkSource; user: string } | null> {
+  const { id, user } = parseDataCode(code)
   if (CLOUD) {
     try {
       const { data, error } = await supabase!.rpc('briefing_publico', { p_id: id })
       if (!error && data) {
         const d = data as { payload: DataPayload; respondido: boolean }
-        if (d.payload?.kind === 'dados') return { payload: d.payload, answered: d.respondido, cloud: true }
+        if (d.payload?.kind === 'dados') return { payload: d.payload, answered: d.respondido, cloud: true, via: 'tabela', user }
       }
     } catch {
-      /* tenta neste navegador */
+      /* tenta o arquivo */
+    }
+    if (user) {
+      const file = await readPublicFile<DataPayload>(user, FILE(id))
+      if (file?.kind === 'dados') return { payload: file, answered: false, cloud: true, via: 'arquivo', user }
     }
   }
   const row = readLocal()[id]
-  return row?.payload?.kind === 'dados' ? { payload: row.payload, answered: !!row.answeredAt, cloud: false } : null
+  return row?.payload?.kind === 'dados' ? { payload: row.payload, answered: !!row.answeredAt, cloud: false, via: 'local', user: '' } : null
 }
 
-export async function sendData(id: string, data: ContractData, cloud: boolean) {
-  if (!cloud) {
+/** Manda os dados. Pela tabela quando dá; senão (ou se falhar), como aviso para a conta. */
+export async function sendData(code: string, data: ContractData, via: DataLinkSource, user: string) {
+  const { id } = parseDataCode(code)
+  if (via === 'local') {
     const all = readLocal()
     if (!all[id] || all[id].answeredAt) return false
     all[id] = { ...all[id], answers: data, answeredAt: new Date().toISOString() }
     writeLocal(all)
     return true
   }
-  try {
-    const { data: ok, error } = await supabase!.rpc('responder_briefing', { p_id: id, p_answers: data })
-    if (error || !ok) return false
-  } catch {
-    return false
+  if (via === 'tabela') {
+    try {
+      const { data: ok, error } = await supabase!.rpc('responder_briefing', { p_id: id, p_answers: data })
+      if (!error && ok) {
+        void supabase!.functions.invoke('avisos', { body: { tipo: 'briefing', id } }).catch(() => undefined)
+        return true
+      }
+    } catch {
+      /* tenta como aviso */
+    }
   }
-  void supabase!.functions.invoke('avisos', { body: { tipo: 'briefing', id } }).catch(() => undefined)
-  return true
+  if (!user) return false
+  return avisar({ user, kind: 'dados', ref: id, cliente: data.person.name || 'cliente', titulo: 'dados para o contrato', code: JSON.stringify(data), clienteEmail: data.person.email })
 }
 
-export const cancelDataLink = (id: string, userId?: string) => deleteBriefingLink(id, userId).catch(() => undefined)
+export const cancelDataLink = async (id: string, userId?: string) => {
+  if (userId && useCloud()) void removePublicFile(userId, FILE(id)).catch(() => undefined)
+  await deleteBriefingLink(id, userId).catch(() => undefined)
+}
 
 /** Confere se algum cliente mandou os dados (ao abrir e de tempos em tempos). */
 export function useContractDataSync(enabled: boolean) {
