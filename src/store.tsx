@@ -383,7 +383,7 @@ export const SIGNUP_KEY = 'cadastro-inicio'
 /** Padrões de uma conta nova de cliente: visual próprio (a fonte e a paleta da Laís são exclusivas dela)
  *  e serviços, mensagens e pagamento genéricos. */
 export function clientSettings(settings: Settings): Settings {
-  const kit = PALETTES.find((p) => p.name === 'clássico')!
+  const kit = PALETTES.find((p) => p.name === 'grafite')!
   return {
     ...settings,
     accent: kit.accent,

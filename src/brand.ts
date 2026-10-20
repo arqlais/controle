@@ -116,8 +116,14 @@ export interface Palette {
 
 const RAW_PALETTES: Palette[] = [
   { name: 'laís (site)', accent: '#3e4b57', accentSoft: '#d6b3ab', accentInk: '#a88a80', background: '#f5f1ee', surface: '#ffffff', text: '#3e4b57', owner: true },
-  // padrão de quem assina: fundo quase branco, texto e botões em preto, detalhes em rosé (contraste só onde importa)
-  { name: 'clássico', accent: '#4f5f70', accentSoft: '#e6c2ba', accentInk: '#ad766d', background: '#f3ece5', surface: '#ffffff', text: '#262b31' },
+  // identidade da Laís (planê): variações só dela, em número par para a grade ficar alinhada
+  { name: 'planê', accent: '#4f5f70', accentSoft: '#e6c2ba', accentInk: '#ad766d', background: '#f3ece5', surface: '#ffffff', text: '#262b31', owner: true },
+  { name: 'laís rosé', accent: '#8f6d64', accentSoft: '#ead0c9', accentInk: '#a88a80', background: '#f7f1ee', surface: '#ffffff', text: '#3e4b57', owner: true },
+  { name: 'laís noite', accent: '#2f3a45', accentSoft: '#d6b3ab', accentInk: '#b08d82', background: '#eef0f2', surface: '#ffffff', text: '#26303a', owner: true },
+  { name: 'laís areia', accent: '#3e4b57', accentSoft: '#dcc8b8', accentInk: '#a08672', background: '#f4eee7', surface: '#ffffff', text: '#2f3a45', owner: true },
+  { name: 'laís névoa', accent: '#566779', accentSoft: '#c9d3dc', accentInk: '#a88a80', background: '#f1f3f5', surface: '#ffffff', text: '#2c3640', owner: true },
+  // padrão de quem assina: grafite médio nos botões, detalhes em azul-acinzentado, fundo bege claro (nada da identidade da Laís)
+  { name: 'grafite', accent: '#4b525b', accentSoft: '#d5d9df', accentInk: '#6b7a8b', background: '#f3efea', surface: '#ffffff', text: '#24282d' },
   { name: 'areia & carvão', accent: '#2f2f2f', accentSoft: '#cdb89c', accentInk: '#9b8264', background: '#f6f2ec', surface: '#ffffff', text: '#2a2a2a' },
   { name: 'galeria', accent: '#111111', accentSoft: '#b5b5b5', accentInk: '#6f6f6f', background: '#fafafa', surface: '#ffffff', text: '#111111' },
   { name: 'terracota', accent: '#a4553a', accentSoft: '#e0bfa6', accentInk: '#b06a4f', background: '#f7f0ea', surface: '#fffdfb', text: '#2b211c' },
@@ -135,7 +141,6 @@ const RAW_PALETTES: Palette[] = [
   { name: 'linho', accent: '#6d6152', accentSoft: '#e4d8c6', accentInk: '#a08d72', background: '#faf7f1', surface: '#ffffff', text: '#3a3229' },
   { name: 'menta', accent: '#2f6b5a', accentSoft: '#bfe0d3', accentInk: '#4f9580', background: '#f0f7f4', surface: '#ffffff', text: '#18332b' },
   { name: 'noite', accent: '#23283a', accentSoft: '#c9a96e', accentInk: '#a8884f', background: '#f3f1ec', surface: '#ffffff', text: '#1b1f2c' },
-  { name: 'coral', accent: '#c4604f', accentSoft: '#f4c9bd', accentInk: '#b0584a', background: '#fbf3f0', surface: '#ffffff', text: '#3a2420' },
 ]
 
 const hex = (h: string) => {
@@ -152,7 +157,7 @@ const mixHex = (a: string, b: string, t: number) =>
 /** Paletas prontas com contraste firme: texto quase preto, rótulos e botões um tom mais fundos.
  *  (Nada de tudo pastel.) Cada pessoa ainda ajusta cada cor como quiser em configurações → aparência. */
 const deepen = (p: Palette): Palette =>
-  p.owner || p.name === 'clássico'
+  p.owner || p.name === 'grafite'
     ? p
     : { ...p, text: mixHex(p.text, '#111111', 0.25), accentInk: mixHex(p.accentInk, '#111111', 0.1) }
 export const PALETTES: Palette[] = RAW_PALETTES.map(deepen)

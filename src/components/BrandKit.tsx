@@ -1,5 +1,5 @@
 import { fitImage } from '../utils'
-import { useRef } from 'react'
+import { useRef, type CSSProperties } from 'react'
 import { ColorPicker } from './ColorPicker'
 import { useStore, DEFAULT_SETTINGS } from '../store'
 import { useAccess } from '../access'
@@ -84,10 +84,10 @@ export function BrandKit() {
     }
     r.readAsDataURL(f)
   }
-  const bodies = [...(raw.customBodyFont ? [{ name: OWN_BODY_FONT, mood: 'arquivo enviado por você' }] : []), ...BODY_FONTS]
+  const bodies = even([...(raw.customBodyFont ? [{ name: OWN_BODY_FONT, mood: 'arquivo enviado por você' }] : []), ...BODY_FONTS])
 
-  const palettes = PALETTES.filter((p) => !p.owner || exclusive)
-  const displays = [...(exclusive ? [{ name: EXCLUSIVE_FONT, mood: 'sua fonte exclusiva' }] : []), ...(raw.customFont && !exclusive ? [{ name: OWN_FONT, mood: 'arquivo enviado por você' }] : []), ...DISPLAY_FONTS]
+  const palettes = even(PALETTES.filter((p) => (exclusive ? p.owner : !p.owner)))
+  const displays = even([...(exclusive ? [{ name: EXCLUSIVE_FONT, mood: 'sua fonte exclusiva' }] : []), ...(raw.customFont && !exclusive ? [{ name: OWN_FONT, mood: 'arquivo enviado por você' }] : []), ...DISPLAY_FONTS])
   const same = (p: Palette) => p.accent === s.accent && p.accentSoft === s.accentSoft && p.background === s.background
 
   return (
@@ -125,7 +125,7 @@ export function BrandKit() {
       </div>
 
       <h4 className="bk-sub">paletas prontas</h4>
-      <div className="bk-grid">
+      <div className="bk-grid" style={cols(palettes.length)}>
         {palettes.map((p) => (
           <button key={p.name} className={`bk-palette ${same(p) ? 'active' : ''}`} onClick={() => pickPalette(p)}>
             <span className="bk-swatch" style={{ background: p.background }}>
@@ -139,7 +139,7 @@ export function BrandKit() {
       </div>
 
       <h4 className="bk-sub">combinações de fontes</h4>
-      <div className="bk-fonts">
+      <div className="bk-fonts" style={cols(FONT_PAIRS.length)}>
         {FONT_PAIRS.map((p) => (
           <button key={p.name} className={`bk-font ${s.displayFont === p.display && s.bodyFont === p.body ? 'active' : ''}`} onClick={() => pickPair(p.display, p.body)}>
             <span className="bk-font-sample" style={{ fontFamily: `'${p.display}'` }}>
@@ -156,7 +156,7 @@ export function BrandKit() {
       </div>
 
       <h4 className="bk-sub">fonte dos títulos (itálicos)</h4>
-      <div className="bk-fonts">
+      <div className="bk-fonts" style={cols(displays.length)}>
         {displays.map((f) => (
           <button key={f.name} className={`bk-font ${s.displayFont === f.name ? 'active' : ''}`} onClick={() => pickDisplay(f.name)}>
             <span className="bk-font-sample" style={{ fontFamily: `'${f.name}'` }}>
@@ -182,7 +182,7 @@ export function BrandKit() {
       <p className="muted small">Use só fontes que você tem licença para usar no seu negócio.</p>
 
       <h4 className="bk-sub">fonte do texto</h4>
-      <div className="bk-fonts">
+      <div className="bk-fonts" style={cols(bodies.length)}>
         {bodies.map((f) => (
           <button key={f.name} className={`bk-font ${s.bodyFont === f.name ? 'active' : ''}`} onClick={() => pickBody(f.name)}>
             <span className="bk-font-sample is-body" style={{ fontFamily: `'${f.name}'` }}>
@@ -223,7 +223,7 @@ export function BrandKit() {
         <button
           className="btn small ghost"
           onClick={() => {
-            const base = exclusive ? PALETTES[0] : PALETTES.find((p) => p.name === 'clássico')!
+            const base = exclusive ? PALETTES[0] : PALETTES.find((p) => p.name === 'grafite')!
             setSettings({
               accent: base.accent,
               accentSoft: base.accentSoft,
@@ -242,4 +242,14 @@ export function BrandKit() {
       </div>
     </Section>
   )
+}
+
+/** Opções sempre em número par (a última genérica sai se sobrar uma). */
+function even<T>(list: T[]): T[] {
+  return list.length % 2 ? list.slice(0, -1) : list
+}
+/** Colunas que fecham as fileiras sem sobrar uma sozinha: computador até 6, tablet até 3, celular 2. */
+function cols(n: number): CSSProperties {
+  const best = (max: number) => [max, max - 1, max - 2, max - 3].find((c) => c >= 2 && n % c === 0) ?? 2
+  return { ['--cols-lg' as string]: best(6), ['--cols-md' as string]: best(3) }
 }
