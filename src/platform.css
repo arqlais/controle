@@ -4050,3 +4050,7 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
 .cd-project { display: flex; align-items: center; gap: 12px; margin: 0; padding: 12px 14px; border-radius: 18px; background: rgba(255, 255, 255, .7); border: 1px solid rgba(255, 255, 255, .95); }
 .cd-project small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #9b7a72; }
 .cd-project b { display: block; font-size: 15px; font-weight: 600; }
+/* escopo grande: duas colunas certinhas, de cima para baixo, sem invadir a coluna do valor */
+.proposal.is-xlong .p-row-list { display: grid; columns: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 1), auto); grid-auto-flow: column; column-gap: 24px; row-gap: 2px; }
+.proposal.is-xlong .p-option .p-row-list { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-flow: row; }
+.proposal .p-row-main { min-width: 0; overflow: hidden; }

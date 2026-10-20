@@ -259,7 +259,7 @@ function Desc({ text }: { text: string }) {
   if (!lines.length) return null
   if (lines.length === 1) return <span className="p-row-desc">{lines[0]}</span>
   return (
-    <ul className="p-row-desc p-row-list">
+    <ul className="p-row-desc p-row-list" style={{ ['--rows' as string]: Math.ceil(lines.length / 2) }}>
       {lines.map((l, i) => (
         <li key={i}>{l}</li>
       ))}

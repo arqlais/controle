@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-20-escopo-colunas',
+    date: '2026-10-20',
+    kind: 'correcao',
+    title: 'escopo grande organizado na proposta',
+    text: 'Quando a lista do que está incluso é longa, a proposta divide em duas colunas certinhas, sem invadir a coluna do valor.',
+  },
+  {
     id: '2026-10-20-dados-contrato',
     date: '2026-10-20',
     kind: 'novo',
