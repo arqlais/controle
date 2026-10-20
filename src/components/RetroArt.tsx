@@ -3,19 +3,20 @@ import type { Settings } from '../types'
 import { MONTHS, money } from '../utils'
 import type { RetroStats } from '../pages/Retro'
 
-/* Arte da retrospectiva para postar: três modelos (editorial, noite e mosaico), cada um em feed (1080 × 1350)
-   e story (1080 × 1920). Nas cores e fontes da marca de quem baixa; a Laís usa as dela. */
+/* Arte da retrospectiva para postar: quatro modelos (cupom, gigante, mês a mês e painel), cada um em feed
+   (1080 × 1350) e story (1080 × 1920). Nas cores e fontes da marca de quem baixa; a Laís usa as dela. */
 
-export type RetroModel = 'editorial' | 'noite' | 'mosaico'
+export type RetroModel = 'cupom' | 'gigante' | 'meses' | 'painel'
 export type RetroFormat = 'feed' | 'story'
 export const RETRO_MODELS: { value: RetroModel; label: string }[] = [
-  { value: 'editorial', label: 'editorial' },
-  { value: 'noite', label: 'noite' },
-  { value: 'mosaico', label: 'mosaico' },
+  { value: 'cupom', label: 'cupom do ano' },
+  { value: 'gigante', label: 'número gigante' },
+  { value: 'meses', label: 'mês a mês' },
+  { value: 'painel', label: 'painel' },
 ]
 export const retroSize = (f: RetroFormat) => ({ w: 1080, h: f === 'story' ? 1920 : 1350 })
 
-const OWNER = { a: '#4a5d6b', r: '#d0aca3', i: '#584f4a', p: '#fafaf7', c: '#f5f1ed' }
+const OWNER = { a: '#4a5d6b', r: '#d0aca3', i: '#584f4a' }
 
 function hexRgb(h: string): [number, number, number] | null {
   const m = h.trim().replace('#', '')
@@ -23,191 +24,306 @@ function hexRgb(h: string): [number, number, number] | null {
   if (!/^[0-9a-f]{6}$/i.test(x)) return null
   return [0, 2, 4].map((i) => parseInt(x.slice(i, i + 2), 16)) as [number, number, number]
 }
-/** mistura duas cores (t = quanto da segunda) — feito aqui para o PNG sair igual em qualquer navegador */
+/** mistura duas cores (t = quanto da segunda) — calculado aqui para o PNG sair igual em qualquer navegador */
 function mix(a: string, b: string, t: number) {
   const x = hexRgb(a)
   const y = hexRgb(b)
   if (!x || !y) return a
   return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(',')})`
 }
+/** tamanho da fonte para o texto caber na largura */
+const fit = (text: string, base: number, chars: number) => Math.round(base * Math.min(1, chars / Math.max(1, text.length)))
+const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
 
-interface Item {
-  n: string
-  t: string
+function Check({ size = 30, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M5 12.5 10 17.5 19 7" />
+    </svg>
+  )
 }
-function itemsOf(st: RetroStats): Item[] {
-  return [
-    { n: String(st.started), t: st.started === 1 ? 'projeto' : 'projetos' },
-    { n: String(st.served), t: st.served === 1 ? 'cliente atendido' : 'clientes atendidos' },
-    ...(st.delivered ? [{ n: String(st.delivered), t: st.delivered === 1 ? 'entrega' : 'entregas' }] : []),
-    ...(st.quotes ? [{ n: `${st.rate}%`, t: 'das propostas aprovadas' }] : []),
-    ...(st.hours ? [{ n: `${Math.round(st.hours)}h`, t: 'de projeto' }] : []),
-  ]
+/** sinal pequeno antes do nome da marca */
+function Mark({ color }: { color: string }) {
+  return (
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round" aria-hidden>
+      <path d="M12 3v18M3 12h18M6 6l12 12M18 6 6 18" />
+    </svg>
+  )
 }
-/** tamanho da fonte para o texto caber na largura (números longos diminuem) */
-const fitSize = (text: string, base: number, chars: number) => Math.round(base * Math.min(1, chars / Math.max(1, text.length)))
 
 export function RetroArt({ s, year, st, values, model, format, exclusive }: { s: Settings; year: string; st: RetroStats; values: boolean; model: RetroModel; format: RetroFormat; exclusive: boolean }) {
-  const c = exclusive ? OWNER : { a: s.accent || '#3e4b57', r: s.accentSoft || '#d6b3ab', i: s.text || '#3e4b57', p: '#fafaf8', c: s.background || '#f5f1ee' }
+  const c = exclusive ? OWNER : { a: s.accent || '#3e4b57', r: s.accentSoft || '#d6b3ab', i: s.text || '#3e4b57' }
   const serif = exclusive ? 'The Seasons' : s.displayFont && s.displayFont !== 'The Seasons' ? s.displayFont : 'Cormorant Garamond'
   const { w, h } = retroSize(format)
-  const brand = (s.brandName || s.ownerName || 'meu estúdio').replace(/\.$/, '')
-  const handle = s.instagram ? `@${s.instagram.replace(/^@/, '')}` : brand
   const story = format === 'story'
-  const items = itemsOf(st)
+  const brand = (s.brandName || s.ownerName || 'meu estúdio').replace(/\.$/, '')
+  const first = (s.ownerName || brand).split(' ')[0]
+  const handle = s.instagram ? `@${s.instagram.replace(/^@/, '')}` : brand
   const cash = values && st.received ? money(st.received).replace(',00', '') : ''
   const best = st.best >= 0 ? MONTHS[st.best].toLowerCase() : ''
   const top = st.topServices[0]?.name ?? ''
+  const hours = Math.round(st.hours)
+  const active = st.months.filter((m) => m.got > 0).length
   const vars = {
     width: w,
     height: h,
     '--a': c.a,
     '--r': c.r,
-    '--r2': mix(c.r, c.a, 0.28), // rosé mais firme para números grandes no fundo claro
     '--i': c.i,
-    '--p': c.p,
-    '--c': c.c,
-    '--line': mix(c.p, c.a, 0.16),
-    '--soft-on-dark': mix(c.a, '#ffffff', 0.62),
+    '--a-deep': mix(c.a, '#000000', 0.4),
+    '--a-soft': mix(c.a, '#ffffff', 0.86),
+    '--a-mid': mix(c.a, '#ffffff', 0.62),
+    '--r-soft': mix(c.r, '#ffffff', 0.42),
+    '--r-deep': mix(c.r, c.a, 0.3),
+    '--r-glow': mix(c.a, c.r, 0.5),
     '--serif': `'${serif}', 'Cormorant Garamond', Georgia, serif`,
   } as CSSProperties
-  const foot = (
-    <footer className="rx-foot">
-      <span>{handle}</span>
-      <span className="rx-made">feito com planê</span>
-    </footer>
-  )
+  const cls = `ry ry-${model} ${story ? 'is-story' : ''}`
 
-  if (model === 'noite') {
-    const [hero, ...rest] = items
-    const small = rest.slice(0, story ? 4 : 3)
+  /* ---------- cupom do ano: um cupom fiscal do ano, com carimbo ---------- */
+  if (model === 'cupom') {
+    const rows: [string, string][] = (
+      [
+        ['projetos', String(st.started)],
+        ['clientes atendidos', String(st.served)],
+        st.delivered ? ['entregas', String(st.delivered)] : null,
+        st.quotes ? ['propostas aprovadas', `${st.rate}%`] : null,
+        hours ? ['horas de projeto', `${hours}h`] : null,
+        st.newClients ? ['clientes novos', String(st.newClients)] : null,
+      ].filter(Boolean) as [string, string][]
+    ).slice(0, story ? 6 : 5)
+    const bars = Array.from(`${brand}${year}retrospectiva-do-ano`).map((ch, i) => 3 + ((ch.charCodeAt(0) * (i + 7)) % 8))
     return (
-      <div className={`rx rx-noite ${story ? 'is-story' : ''}`} style={vars}>
-        <i className="rx-ring" />
-        <p className="rx-kick">
-          retrospectiva <b>{year}</b>
-        </p>
-        <div className="rx-hero">
-          <span className="rx-hero-n">{hero?.n ?? '0'}</span>
-          <span className="rx-hero-t">{hero?.t ?? 'projetos'} em {year}</span>
-        </div>
-        {cash && (
-          <p className="rx-cash" style={{ fontSize: fitSize(cash, story ? 96 : 84, 12) }}>
-            {cash} <small>recebidos</small>
-          </p>
-        )}
-        <div className={`rx-row n${small.length}`}>
-          {small.map((x) => (
-            <div key={x.t}>
-              <b>{x.n}</b>
-              <span>{x.t}</span>
-            </div>
-          ))}
-        </div>
-        {(best || top) && (
-          <p className="rx-facts">
-            {best && (
-              <span>
-                mês mais forte <b>{best}</b>
-              </span>
-            )}
-            {top && (
-              <span>
-                o que mais fiz <b>{top}</b>
-              </span>
-            )}
-          </p>
-        )}
-        <p className="rx-thanks">gratidão a cada cliente que confiou no meu trabalho.</p>
-        {foot}
-      </div>
-    )
-  }
-
-  if (model === 'mosaico') {
-    const tiles = items.slice(0, (story ? 5 : 4) - (values && st.received ? 1 : 0))
-    return (
-      <div className={`rx rx-mosaico ${story ? 'is-story' : ''}`} style={vars}>
-        <header className="rx-mhead">
-          <h2>
-            {year} <em>em números</em>
-          </h2>
-          <span>{brand}</span>
-        </header>
-        <div className={`rx-bento n${tiles.length}${cash ? ' has-cash' : ''}`}>
-          {tiles.map((x, i) => (
-            <div key={x.t} className={`rx-tile t${i}`}>
-              <b style={{ fontSize: fitSize(x.n, i === 0 ? 230 : 120, i === 0 ? 3 : 4) }}>{x.n}</b>
-              <span>{x.t}</span>
-            </div>
-          ))}
-          {(best || top) && (
-            <div className="rx-tile is-facts" style={{ gridColumn: (tiles.length + 1) % 2 ? 'auto' : 'span 2' }}>
+      <div className={cls} style={vars}>
+        <div className="ry-c-wrap">
+          <div className="ry-c-ticket">
+            <div className="ry-c-in">
+              <p className="ry-c-brand">
+                <Mark color={c.a} /> {brand}
+              </p>
+              <p className="ry-c-sub">cupom do ano · {year}</p>
+              <p className="ry-c-sub">emitido em 31 dez {year}</p>
+              <hr />
+              {rows.map(([l, v]) => (
+                <p key={l} className="ry-c-row">
+                  <span>{l}</span>
+                  <b>{v}</b>
+                </p>
+              ))}
+              {(best || top) && <hr />}
               {best && (
-                <p>
-                  <small>mês mais forte</small>
+                <p className="ry-c-row">
+                  <span>mês mais forte</span>
                   <b>{best}</b>
                 </p>
               )}
               {top && (
-                <p>
-                  <small>o que mais fiz</small>
+                <p className="ry-c-row is-txt">
+                  <span>mais feito</span>
                   <b>{top}</b>
                 </p>
               )}
+              <hr className="is-strong" />
+              <p className="ry-c-total">
+                <span>total</span>
+                <b style={{ fontSize: fit(cash || `${st.started} proj.`, 92, 10) }}>{cash || `${st.started} ${plural(st.started, 'projeto', 'projetos')}`}</b>
+              </p>
+              <div className="ry-c-code">
+                {bars.map((b, i) => (
+                  <i key={i} style={{ width: b }} />
+                ))}
+              </div>
+              <p className="ry-c-thanks">gratidão a cada cliente</p>
+              <p className="ry-c-sub">{handle}</p>
             </div>
-          )}
-          {cash && (
-            <div className="rx-tile is-cash">
-              <b style={{ fontSize: fitSize(cash, 104, 13) }}>{cash}</b>
-              <span>recebidos no ano</span>
-            </div>
-          )}
+            <div className="ry-c-teeth" />
+          </div>
+          <div className="ry-c-stamp">
+            <span>
+              ano
+              <br />
+              fechado
+            </span>
+          </div>
         </div>
-        {foot}
+        <p className="ry-made is-light">feito com planê</p>
       </div>
     )
   }
 
-  // editorial
-  const rows = items.slice(0, (story ? 5 : 4) - (cash && !story ? 1 : 0))
+  /* ---------- número gigante: um número enorme, a palavra vazada e etiquetas ---------- */
+  if (model === 'gigante') {
+    const word = plural(st.started, 'projeto', 'projetos')
+    const boxes = [
+      hours ? { n: `${hours}h`, t: 'de projeto' } : null,
+      st.quotes ? { n: `${st.rate}%`, t: 'aprovação' } : null,
+      st.delivered ? { n: String(st.delivered), t: plural(st.delivered, 'entrega', 'entregas') } : null,
+      { n: String(st.newClients), t: plural(st.newClients, 'cliente novo', 'clientes novos') },
+    ]
+      .filter((x): x is { n: string; t: string } => !!x)
+      .slice(0, 3)
+    return (
+      <div className={cls} style={vars}>
+        <header className="ry-top">
+          <span>
+            <Mark color={c.a} /> {brand}
+          </span>
+          <span>{year}</span>
+        </header>
+        <p className="ry-g-kick">{first} fechou o ano com</p>
+        <p className="ry-g-num" style={{ fontSize: fit(String(st.started), story ? 620 : 500, 2) }}>
+          {st.started}
+        </p>
+        <p className="ry-g-word" style={{ fontSize: fit(word, story ? 160 : 150, 8) }}>
+          {word}
+        </p>
+        <div className="ry-g-pills">
+          {cash && <span className="is-solid">{cash} recebidos</span>}
+          <span className={cash ? '' : 'is-solid'}>
+            {st.served} {plural(st.served, 'cliente atendido', 'clientes atendidos')}
+          </span>
+          {best && <span>+ mês mais forte: {best}</span>}
+          {story && top && <span>+ mais feito: {top}</span>}
+        </div>
+        <div className={`ry-g-boxes n${boxes.length}`}>
+          {boxes.map((b) => (
+            <div key={b.t}>
+              <b>{b.n}</b>
+              <span>{b.t}</span>
+            </div>
+          ))}
+        </div>
+        <footer className="ry-foot">
+          <span>retrospectiva {year}</span>
+          <span>{handle}</span>
+        </footer>
+      </div>
+    )
+  }
+
+  /* ---------- mês a mês: as 12 barras do ano, com check nos meses em que entrou projeto ---------- */
+  if (model === 'meses') {
+    const max = Math.max(1, ...st.months.map((m) => m.got))
+    const sub = [st.delivered ? `${st.delivered} ${plural(st.delivered, 'entrega', 'entregas')}` : '', hours ? `${hours}h de projeto` : '', top ? `mais feito: ${top}` : ''].filter(Boolean).join(' · ')
+    return (
+      <div className={cls} style={vars}>
+        <header className="ry-top">
+          <span>
+            <Mark color={c.a} /> {brand}
+          </span>
+          <span className="ry-pill">{year}</span>
+        </header>
+        <h2 className="ry-m-title">
+          {best ? (
+            <>
+              melhor mês:
+              <br />
+              {best}
+            </>
+          ) : (
+            <>
+              meu {year}
+              <br />
+              mês a mês
+            </>
+          )}
+        </h2>
+        <p className="ry-m-sub">
+          {active} {plural(active, 'mês', 'meses')} com projeto entrando
+        </p>
+        <div className="ry-m-chart">
+          {st.months.map((m, i) => {
+            const on = m.got > 0
+            const pct = on ? Math.max(16, (m.got / max) * 100) : 8
+            return (
+              <div key={m.key} className="ry-m-col">
+                <div className={`ry-m-bar ${on ? 'is-on' : ''} ${i === st.best ? 'is-best' : ''}`} style={{ height: `${pct}%` }}>
+                  {on && <Check size={story ? 34 : 28} color={i === st.best ? c.a : '#ffffff'} />}
+                </div>
+                <span>{MONTHS[i].slice(0, 1).toLowerCase()}</span>
+              </div>
+            )
+          })}
+        </div>
+        <div className="ry-m-foot">
+          <b style={{ fontSize: fit(cash || `${st.started} projetos`, 100, 11) }}>{cash || `${st.started} ${plural(st.started, 'projeto', 'projetos')}`}</b>
+          <span>{cash ? `recebidos em ${year} · ${st.started} ${plural(st.started, 'projeto', 'projetos')}` : `${st.served} ${plural(st.served, 'cliente', 'clientes')}${sub ? ` · ${sub}` : ''}`}</span>
+        </div>
+        <footer className="ry-foot">
+          <span>{handle}</span>
+          <span className="ry-made">feito com planê</span>
+        </footer>
+      </div>
+    )
+  }
+
+  /* ---------- painel: fundo escuro, ano vazado e um cartão de vidro com o medidor de aprovação ---------- */
+  const R = 110
+  const arc = Math.PI * R
+  const rate = Math.max(0, Math.min(100, st.rate))
   return (
-    <div className={`rx rx-editorial ${story ? 'is-story' : ''} ${cash ? 'has-cash' : ''}`} style={vars}>
-      <p className="rx-kick">
-        <i /> retrospectiva
-      </p>
-      <h2 className="rx-title">
-        <span>meu</span>
-        <em>{year}</em>
-      </h2>
-      {cash && (
-        <p className="rx-cash">
-          <b style={{ fontSize: fitSize(cash, story ? 104 : 92, 11) }}>{cash}</b> <span>recebidos no ano</span>
+    <div className={cls} style={vars}>
+      <header className="ry-top is-light">
+        <span>
+          <Mark color="#ffffff" /> {brand}
+        </span>
+        <span className="ry-pill is-light">retrospectiva</span>
+      </header>
+      <p className="ry-p-year">{year}</p>
+      <div className="ry-p-card">
+        <p className="ry-p-who">
+          {first} · {year}
         </p>
-      )}
-      <ul className="rx-list">
-        {rows.map((x) => (
-          <li key={x.t}>
-            <b>{x.n}</b>
-            <span>{x.t}</span>
-          </li>
-        ))}
-      </ul>
-      {(best || top) && (
-        <p className="rx-facts">
-          {best && (
-            <span>
-              mês mais forte <b>{best}</b>
-            </span>
+        <div className="ry-p-main">
+          <div className="ry-p-left">
+            <b className="ry-p-big" style={{ fontSize: fit(cash || String(st.started), cash ? 104 : 200, cash ? 9 : 2) }}>
+              {cash || st.started}
+            </b>
+            <span className="ry-p-unit">{cash ? 'recebidos no ano' : plural(st.started, 'projeto no ano', 'projetos no ano')}</span>
+          </div>
+          {st.quotes > 0 && (
+            <div className="ry-p-gauge">
+              <svg width="260" height="150" viewBox="0 0 260 150" aria-hidden>
+                <path d={`M 20 135 A ${R} ${R} 0 0 1 240 135`} fill="none" stroke="rgba(255,255,255,.16)" strokeWidth="20" strokeLinecap="round" />
+                <path d={`M 20 135 A ${R} ${R} 0 0 1 240 135`} fill="none" stroke={c.r} strokeWidth="20" strokeLinecap="round" strokeDasharray={`${(arc * rate) / 100} ${arc}`} />
+              </svg>
+              <b>{rate}%</b>
+              <span>aprovação</span>
+            </div>
           )}
-          {top && (
-            <span>
-              o que mais fiz <b>{top}</b>
-            </span>
+        </div>
+        <div className="ry-p-stats">
+          {cash && (
+            <p>
+              <i /> projetos <b>{st.started}</b>
+            </p>
           )}
-        </p>
-      )}
-      {foot}
+          <p>
+            <i /> clientes <b>{st.served}</b>
+          </p>
+          {st.delivered > 0 && (
+            <p>
+              <i /> entregas <b>{st.delivered}</b>
+            </p>
+          )}
+          {hours > 0 && !cash && (
+            <p>
+              <i /> horas <b>{hours}h</b>
+            </p>
+          )}
+        </div>
+        {(best || top) && (
+          <p className="ry-p-note">
+            {best && <>mês mais forte: {best}</>}
+            {best && top && '  ·  '}
+            {top && <>mais feito: {top}</>}
+          </p>
+        )}
+      </div>
+      <footer className="ry-foot is-light">
+        <span>{handle}</span>
+        <span className="ry-made">feito com planê</span>
+      </footer>
     </div>
   )
 }
