@@ -288,6 +288,17 @@ const briefingMail = (s: Sub, client: string, title: string): Mail => ({
   }),
 })
 
+const dataMail = (s: Sub, client: string): Mail => ({
+  subject: `${client || 'Seu cliente'} mandou os dados do contrato`,
+  html: layout({
+    eyebrow: 'dados para contrato',
+    title: `${esc(client || 'Seu cliente')} mandou os dados!`,
+    text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Os dados para o contrato chegaram: empresa, dados pessoais, sócios e quem assina.</p><p style="margin:0;">Ao abrir o planê, eles entram sozinhos no cadastro e no contrato. Dá para conferir e corrigir em clientes → dados para contrato.</p>`,
+    button: 'ver os dados',
+    url: `${SITE}#/dados-contrato`,
+  }),
+})
+
 const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   assinatura: { eyebrow: 'contrato', did: 'assinou o contrato' },
   recado: { eyebrow: 'painel do cliente', did: 'mandou um recado' },
@@ -471,7 +482,8 @@ Deno.serve(async (req) => {
     if (!b?.answered_at || Date.now() - Date.parse(b.answered_at) > 2 * 3_600_000) return json({ ok: false })
     const s = await subOf(String(b.user_id))
     if (!s?.email) return json({ ok: false })
-    const p = (b.payload ?? {}) as { clientName?: string; title?: string }
+    const p = (b.payload ?? {}) as { clientName?: string; title?: string; kind?: string }
+    if (p.kind === 'dados') return json(result(await once(s, 'dados', String(b.id), dataMail(s, String(p.clientName ?? '')))))
     return json(result(await once(s, 'briefing', String(b.id), briefingMail(s, String(p.clientName ?? ''), String(p.title ?? 'briefing')))))
   }
 

@@ -296,6 +296,15 @@ function NewContract({ onClose }: { onClose: () => void }) {
                 perfil
               </a>
               .
+              {isOwner && (
+                <>
+                  {' '}
+                  <a className="link" href={href('dados-contrato', clientId)} onClick={onClose}>
+                    Pedir os dados ao cliente por link
+                  </a>
+                  .
+                </>
+              )}
             </span>
           </p>
         )}

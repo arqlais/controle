@@ -107,6 +107,7 @@ export type Feature =
   | 'lucro' // custos e lucro por projeto
   | 'portal' // página de acompanhamento para o cliente
   | 'documentos' // guia de medição, placa de obra com QR e apresentação de projeto
+  | 'dadosContrato' // link para o cliente preencher os dados do contrato (só a dona, por enquanto)
 
 export type PlanId = 'essencial' | 'completo' | 'estudio'
 
@@ -171,11 +172,11 @@ export const FOUNDER_PRICE = true
 export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
-export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos']
+export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos', 'dadosContrato']
 
 /** Só da dona, nunca entram num plano (mesmo que estejam salvos no painel → planos).
  *  O planejamento do instagram é ferramenta da dona: foge do que o planê promete aos assinantes. */
-export const OWNER_ONLY: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'instagram']
+export const OWNER_ONLY: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'instagram', 'dadosContrato']
 
 /** O que a dona pode ligar/desligar em cada plano (painel → planos). */
 export const PLAN_TOGGLES: [Feature, string][] = [

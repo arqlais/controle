@@ -3,6 +3,7 @@ import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS } from './contractTemp
 import { dayLabel } from './processes'
 import { porExtenso } from './components/Docs'
 import { PAYMENT_TERMS } from './store'
+import { addressText, contractantName, qualification, signersOf } from './contractData'
 import { cleanDetail, docKind, money, optionTotal, payerOf, quoteDeal, quoteNumber, shownOptions, showDoc, today, BOTH } from './utils'
 
 /* Contratos: modelos com {variáveis} que o sistema preenche com os dados do
@@ -15,6 +16,8 @@ export const CONTRACT_VARS: [string, string][] = [
   ['endereco_contratante', 'endereço do cliente'],
   ['email_contratante', 'e-mail do cliente'],
   ['telefone_contratante', 'telefone do cliente'],
+  ['qualificacao_contratante', 'qualificação completa do cliente (empresa, CNPJ, sede e quem representa)'],
+  ['representante', 'quem assina pelo cliente'],
   ['contratada', 'seu nome completo'],
   ['doc_contratada', 'seu CPF/CNPJ'],
   ['endereco_contratada', 'seu endereço'],
@@ -146,7 +149,28 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
     entrada: total ? money(Math.round((total * (first ?? 50)) / 100 * 100) / 100) : blank('entrada'),
     saldo: total ? money(total - Math.round((total * (first ?? 50)) / 100 * 100) / 100) : blank('saldo'),
     foro: (s.city || '').replace(/\s*-\s*/, '/') || blank('cidade/UF do foro'),
+    qualificacao_contratante: client ? payer.name : blank('qualificação do cliente'),
+    representante: client?.name || blank('quem assina pelo cliente'),
+    // dados completos que o cliente mandou (ou que você corrigiu): valem por cima do cadastro
+    ...(client?.contractData ? fromData(client.contractData) : {}),
   }
+}
+
+/** Variáveis do contratante a partir dos dados para contrato (o que estiver vazio fica de fora). */
+function fromData(d: NonNullable<Client['contractData']>): Record<string, string> {
+  const out: Record<string, string> = {}
+  const put = (k: string, v?: string) => {
+    if (v && v.trim()) out[k] = v.trim()
+  }
+  const company = d.signAs === 'empresa'
+  put('contratante', contractantName(d))
+  put('doc_contratante', company ? (d.company.cnpj ? `CNPJ ${d.company.cnpj}` : '') : d.person.cpf ? `CPF ${d.person.cpf}` : '')
+  put('endereco_contratante', addressText(company ? d.company.address : d.person.address))
+  put('email_contratante', company ? d.company.email || d.person.email : d.person.email)
+  put('telefone_contratante', company ? d.company.phone || d.person.phone : d.person.phone)
+  put('qualificacao_contratante', qualification(d))
+  put('representante', signersOf(d).map((p) => p.name).join(' e '))
+  return out
 }
 
 /** Troca {variáveis}; as que não existem ficam como estão (para a pessoa ver e completar). */

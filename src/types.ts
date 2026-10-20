@@ -61,8 +61,84 @@ export interface Client {
   panel?: ClientPanel // painel do cliente (link com tudo o que o profissional compartilhar)
   noReminders?: boolean // não manda lembrete automático de parcela para esta cliente
   partner?: PartnerTable // valores especiais de parceria (só a dona): valem nos orçamentos deste cliente
+  contractData?: ContractData // dados completos para o contrato (preenchidos pelo cliente no link ou à mão)
+  dataLink?: ContractDataLink // pedido de dados por link
   archived: boolean
   createdAt: string
+}
+
+/** Endereço completo (contrato). */
+export interface FullAddress {
+  cep: string
+  street: string
+  number: string
+  complement: string
+  district: string
+  city: string
+  uf: string
+}
+/** Pessoa que aparece no contrato: o próprio cliente ou um sócio. */
+export interface ContractPerson {
+  id: string
+  name: string
+  cpf: string
+  rg: string
+  rgIssuer: string // órgão emissor (SSP/SP)
+  nationality: string
+  civilState: string // solteira(o), casada(o)…
+  profession: string
+  email: string
+  phone: string
+  role: string // sócio, sócia administradora, representante…
+  address?: FullAddress // residência (o titular sempre tem; sócio, se quiser)
+}
+/** Tudo o que o contrato precisa sobre quem contrata. */
+export interface ContractData {
+  signAs: 'empresa' | 'pessoa' // em nome de quem sai o contrato
+  company: {
+    legalName: string // razão social
+    tradeName: string // nome fantasia
+    cnpj: string
+    kind: string // MEI, ME, LTDA…
+    stateReg: string // inscrição estadual / municipal (opcional)
+    email: string
+    phone: string
+    address: FullAddress
+  }
+  person: ContractPerson // quem preenche (titular / responsável)
+  partners: ContractPerson[]
+  signers: string[] // ids de quem assina (titular e/ou sócios)
+  contractName: string // nome que aparece como contratante
+  notes: string
+  extra?: { id: string; label: string; value: string }[] // perguntas a mais que você criou
+  updatedAt: string
+  by: 'cliente' | 'voce'
+}
+/** Formulário de dados para contrato: o que é obrigatório, opcional ou não é pedido, e perguntas a mais. */
+export type DataFieldRule = 'obrigatorio' | 'opcional' | 'oculto'
+export type DataFieldKey =
+  | 'cnpj' | 'legalName' | 'tradeName' | 'kind' | 'companyEmail' | 'companyPhone' | 'stateReg' | 'companyAddress'
+  | 'name' | 'cpf' | 'rg' | 'rgIssuer' | 'nationality' | 'civilState' | 'profession' | 'role' | 'email' | 'phone' | 'personAddress' | 'repAddress'
+  | 'partners' | 'signers' | 'contractName' | 'notes'
+export interface DataQuestion {
+  id: string
+  label: string
+  kind: 'texto' | 'longo' | 'simnao' | 'escolha'
+  options: string[]
+  required: boolean
+  step: 'empresa' | 'voce' | 'final'
+}
+export interface DataFormConfig {
+  intro: string
+  rules: Partial<Record<DataFieldKey, DataFieldRule>>
+  extra: DataQuestion[]
+}
+/** Link para o cliente preencher os dados do contrato. */
+export interface ContractDataLink {
+  id: string
+  sentAt: string
+  status: 'enviado' | 'respondido'
+  answeredAt?: string
 }
 
 /** Valor especial de um serviço para um parceiro (o que não for preenchido segue a tabela). */
@@ -580,6 +656,7 @@ export interface Contract {
 export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | 'page' | 'card' | 'text' | 'button' | 'detail' | 'border'
 
 export interface Settings {
+  dataForm?: DataFormConfig // formulário de dados para contrato (só a dona, por enquanto)
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços

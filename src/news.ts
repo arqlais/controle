@@ -30,6 +30,15 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-20-dados-contrato',
+    date: '2026-10-20',
+    kind: 'novo',
+    title: 'dados para contrato por link',
+    text: 'Mande um link e o cliente preenche tudo o que o contrato precisa: empresa, dados pessoais, sócios, quem assina e o nome que vai no contrato. Os dados entram no cadastro e no contrato, e você confere e corrige numa tela só.',
+    steps: [{ page: 'dados-contrato', text: 'Em clientes, aba “dados para contrato”: toque em “pedir dados” e escolha o cliente.' }],
+    feature: 'dadosContrato',
+  },
+  {
     id: '2026-10-19-retrospectiva-arte',
     date: '2026-10-19',
     kind: 'novo',

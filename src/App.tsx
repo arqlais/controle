@@ -38,6 +38,7 @@ const Processes = lazy(() => import('./pages/Processes'))
 const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
+const ContractDataPage = lazy(() => import('./pages/ContractDataPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const AffiliatesPage = lazy(() => import('./pages/Admin').then((m) => ({ default: m.AffiliatesPage })))
 const Indique = lazy(() => import('./pages/Indique'))
@@ -47,6 +48,7 @@ import Feedback from './pages/Feedback'
 import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscription'
 import { OwnerChat } from './components/OwnerChat'
 import { useBriefingSync } from './briefingSync'
+import { useContractDataSync } from './contractData'
 import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -94,6 +96,10 @@ const SUBPAGES: Record<string, { page: string; label: string }[]> = {
     { page: 'documentos', label: 'documentos' },
     { page: 'contratos', label: 'contratos' },
   ],
+  clientes: [
+    { page: 'clientes', label: 'clientes' },
+    { page: 'dados-contrato', label: 'dados para contrato' },
+  ],
   paineis: [
     { page: 'paineis', label: 'painel do cliente' },
     { page: 'briefings', label: 'briefings' },
@@ -105,7 +111,7 @@ const SIMPLE_NAV = ['inicio', 'orcamentos', 'clientes', 'projetos', 'financeiro'
 // o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
 const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
+const NEEDS: Record<string, Feature> = { 'dados-contrato': 'dadosContrato', contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -230,6 +236,8 @@ export default function App() {
   const sugUpdates = useSuggestionUpdates(!access.isOwner && !access.legacy)
   // respostas de briefing que chegaram enquanto estava fora
   useBriefingSync(access.has('briefing'))
+  // dados para contrato que os clientes mandaram pelo link
+  useContractDataSync(access.has('dadosContrato'))
   // assinaturas e recados que os clientes mandaram pelas páginas públicas
   useClientInbox(!access.legacy)
   const [chatSignal, setChatSignal] = useState(0)
@@ -454,7 +462,7 @@ export default function App() {
   function withTabs(el: ReactNode) {
     const group = SUBPAGES[menuItemOf(route.page)]
     if (!group || route.id) return el
-    const tabs = group.filter((t) => !(t.page === 'contratos' && settings.contracts?.off))
+    const tabs = group.filter((t) => !(t.page === 'contratos' && settings.contracts?.off) && !(NEEDS[t.page] && OWNER_ONLY.includes(NEEDS[t.page]) && !access.has(NEEDS[t.page])))
     if (tabs.length < 2) return el
     return (
       <>
@@ -470,6 +478,8 @@ export default function App() {
     switch (route.page) {
       case 'contratos':
         return <Contracts id={route.id} />
+      case 'dados-contrato':
+        return <ContractDataPage id={route.id} />
       case 'plataforma':
         return <Admin />
       case 'afiliados':
