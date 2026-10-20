@@ -34,8 +34,15 @@ export const NEWS: News[] = [
     date: '2026-10-19',
     kind: 'novo',
     title: 'retrospectiva com artes novas',
-    text: 'A arte da retrospectiva ganhou quatro modelos com cartões de vidro (widgets, notificações, listrado e mês a mês), cada um para feed e para story, nas cores da sua marca. E os números grandes agora aparecem inteiros nos cartões.',
+    text: 'A arte da retrospectiva ganhou quatro modelos bem diferentes (papel, vidro, listrado e blocos), cada um para feed e para story, nas cores da sua marca. E os números grandes agora aparecem inteiros nos cartões.',
     steps: [{ page: 'retrospectiva', text: 'As artes ficam no fim da retrospectiva.' }],
+  },
+  {
+    id: '2026-10-20-previa-link',
+    date: '2026-10-20',
+    kind: 'melhoria',
+    title: 'link do planê com prévia nova',
+    text: 'Ao mandar o endereço do planê no WhatsApp ou no Instagram, aparece uma prévia nova, com a imagem e a descrição da plataforma.',
   },
   {
     id: '2026-10-19-celular-simbolos',
