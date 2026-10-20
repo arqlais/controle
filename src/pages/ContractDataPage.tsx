@@ -6,18 +6,18 @@ import { Empty, Modal, Segmented } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { DataEditor, DataSummary } from '../components/ContractDataForm'
 import { DataWizard } from '../components/ContractDataPublic'
-import { AUDIENCES, DATA_FIELDS, DEFAULT_FORM, audienceOf, formOf, type Audience, applyToClient, cancelDataLink, completeness, dataFromClient, dataLinkUrl, dataPayload, missingOf, newLinkId, publishDataLink, qualification } from '../contractData'
-import type { Client, ContractData, DataFieldRule, DataFormConfig, DataQuestion, Settings } from '../types'
-import { fmtDate, today, uid, whatsappLink } from '../utils'
+import { AUDIENCES, DATA_FIELDS, DEFAULT_FORM, audienceOf, audienceOfQuote, formOf, quoteFor, type Audience, applyToClient, cancelDataLink, completeness, dataFromClient, dataLinkUrl, dataPayload, missingOf, newLinkId, publishDataLink, qualification } from '../contractData'
+import type { Client, ContractData, Data, DataFieldRule, DataFormConfig, DataQuestion, Settings } from '../types'
+import { fmtDate, quoteNumber, today, uid, whatsappLink } from '../utils'
 
 /* Dados para contrato (só a dona, por enquanto): pede por link os dados completos de quem contrata
    (empresa, pessoa, sócios, quem assina e o nome no contrato), acompanha quem já mandou e corrige. */
 
 type Filter = 'todos' | 'aguardando' | 'faltando' | 'completos'
 
-const statusOf = (c: Client, s: Settings) => {
+const statusOf = (c: Client, s: Settings, d: Data) => {
   if (c.dataLink?.status === 'enviado') return 'aguardando'
-  if (c.contractData && !missingOf(c.contractData, formOf(s, audienceOf(c)), audienceOf(c)).length) return 'completo'
+  if (c.contractData && !missingOf(c.contractData, formOf(s, audienceOf(c, d)), audienceOf(c, d)).length) return 'completo'
   return 'faltando'
 }
 
@@ -37,10 +37,10 @@ export default function ContractDataPage({ id }: { id?: string }) {
     const term = norm(q.trim())
     return clients
       .filter((c) => (term ? norm(`${c.name} ${c.company}`).includes(term) : !!(c.dataLink || c.contractData)))
-      .filter((c) => filter === 'todos' || (filter === 'aguardando' && statusOf(c, ss) === 'aguardando') || (filter === 'faltando' && statusOf(c, ss) === 'faltando') || (filter === 'completos' && statusOf(c, ss) === 'completo'))
+      .filter((c) => filter === 'todos' || (filter === 'aguardando' && statusOf(c, ss, data) === 'aguardando') || (filter === 'faltando' && statusOf(c, ss, data) === 'faltando') || (filter === 'completos' && statusOf(c, ss, data) === 'completo'))
       .sort((a, b) => (b.dataLink?.answeredAt || b.dataLink?.sentAt || b.contractData?.updatedAt || '').localeCompare(a.dataLink?.answeredAt || a.dataLink?.sentAt || a.contractData?.updatedAt || ''))
   }, [clients, q, filter])
-  const count = (f: Filter) => clients.filter((c) => (c.dataLink || c.contractData) && (f === 'aguardando' ? statusOf(c, ss) === 'aguardando' : f === 'faltando' ? statusOf(c, ss) === 'faltando' : statusOf(c, ss) === 'completo')).length
+  const count = (f: Filter) => clients.filter((c) => (c.dataLink || c.contractData) && (f === 'aguardando' ? statusOf(c, ss, data) === 'aguardando' : f === 'faltando' ? statusOf(c, ss, data) === 'faltando' : statusOf(c, ss, data) === 'completo')).length
 
   const sendClient = sending ? data.clients.find((c) => c.id === sending) : undefined
   const editClient = editing ? data.clients.find((c) => c.id === editing) : undefined
@@ -90,10 +90,10 @@ export default function ContractDataPage({ id }: { id?: string }) {
       ) : (
         <div className="cd-list">
           {list.map((c) => {
-            const st = statusOf(c, ss)
+            const st = statusOf(c, ss, data)
             const d = c.contractData
-            const miss = d ? missingOf(d, formOf(ss, audienceOf(c)), audienceOf(c)) : []
-            const pct = completeness(d, formOf(ss, audienceOf(c)), audienceOf(c))
+            const miss = d ? missingOf(d, formOf(ss, audienceOf(c, data)), audienceOf(c, data)) : []
+            const pct = completeness(d, formOf(ss, audienceOf(c, data)), audienceOf(c, data))
             return (
               <div key={c.id} className="cd-row card">
                 <button className="cd-row-main" onClick={() => setEditing(c.id)} title="Ver e corrigir os dados">
@@ -203,13 +203,18 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
   const url = pending ? dataLinkUrl(client.dataLink!.id) : ''
   const first = client.name.split(' ')[0]
   const msg = (u: string) => `Oi, ${first}! Para eu preparar o seu contrato, preenche seus dados por aqui? Leva uns 3 minutos e o que eu já tinha aparece preenchido: ${u}`
+  // o formulário segue o orçamento: o serviço e para quem (cliente final ou escritório)
+  const quotes = data.quotes.filter((q) => q.clientId === client.id && q.status !== 'recusado')
+  const [quoteId, setQuoteId] = useState(client.dataLink?.quoteId ?? quoteFor(data, client.id)?.id ?? '')
+  const quote = quotes.find((q) => q.id === quoteId)
+  const aud = audienceOfQuote(quote, client)
   const create = async () => {
     setBusy(true)
     const linkId = newLinkId()
     try {
       if (client.dataLink?.status === 'enviado') await cancelDataLink(client.dataLink.id, userId)
-      await publishDataLink(linkId, dataPayload(data.settings, client))
-      upsert('clients', { ...client, dataLink: { id: linkId, sentAt: today(), status: 'enviado' }, history: [...client.history, { id: uid(), date: today(), text: 'pedido de dados para o contrato enviado por link' }] })
+      await publishDataLink(linkId, dataPayload(data.settings, client, quote))
+      upsert('clients', { ...client, dataLink: { id: linkId, sentAt: today(), status: 'enviado', audience: aud, ...(quote ? { quoteId: quote.id } : {}) }, history: [...client.history, { id: uid(), date: today(), text: 'pedido de dados para o contrato enviado por link' }] })
     } catch {
       toast('Não foi possível criar o link agora. Tente de novo.')
     } finally {
@@ -227,7 +232,7 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
     upsert('clients', { ...client, dataLink: undefined })
     onClose()
   }
-  const missing = client.contractData ? missingOf(client.contractData, formOf(data.settings, audienceOf(client)), audienceOf(client)) : []
+  const missing = client.contractData ? missingOf(client.contractData, formOf(data.settings, audienceOf(client, data)), audienceOf(client, data)) : []
   return (
     <Modal title={`dados de ${first}`} onClose={onClose}>
       {!pending ? (
@@ -236,6 +241,29 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
             O link já vai com o que você tem no cadastro{client.contractData ? ' e os dados que ele mandou antes' : ''}. {first} completa o resto: empresa, dados pessoais, sócios, quem assina e o nome que vai no contrato.
           </p>
           {client.contractData && missing.length > 0 && <p className="small">Falta hoje: {missing.join(', ')}.</p>}
+          {quotes.length > 0 && (
+            <label className="field">
+              <span className="field-label">orçamento do contrato</span>
+              <select value={quoteId} onChange={(e) => setQuoteId(e.target.value)}>
+                {quotes.map((q) => (
+                  <option key={q.id} value={q.id}>
+                    {[quoteNumber(q), q.title].filter(Boolean).join(' · ')}
+                    {q.status === 'aprovado' ? ' (aprovado)' : ''}
+                  </option>
+                ))}
+                <option value="">sem orçamento</option>
+              </select>
+            </label>
+          )}
+          <p className="cd-form-kind">
+            <span className="cd-ico">
+              <Icon name={aud === 'final' ? 'home' : 'briefcase'} size={15} />
+            </span>
+            <span>
+              formulário de <b>{AUDIENCES.find((a) => a.value === aud)?.label}</b>
+              <small>{quote ? 'pelo orçamento escolhido' : 'pelo tipo do cliente'}: {AUDIENCES.find((a) => a.value === aud)?.text}</small>
+            </span>
+          </p>
           <button className="btn primary" disabled={busy} onClick={() => void create()}>
             <Icon name="link" size={15} /> {busy ? 'criando…' : 'criar link'}
           </button>
@@ -279,7 +307,7 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
 
 function EditData({ client, onClose, onSave, onLink }: { client: Client; onClose: () => void; onSave: (d: ContractData) => void; onLink: () => void; userId: string }) {
   const { data } = useStore()
-  const aud = audienceOf(client)
+  const aud = audienceOf(client, data)
   const cfg = formOf(data.settings, aud)
   const [d, setD] = useState<ContractData>(() => dataFromClient(client))
   const [view, setView] = useState<'ver' | 'editar'>(client.contractData ? 'ver' : 'editar')
@@ -382,7 +410,7 @@ function FormSettings({ value, clients, onClose, onSave }: { value: Record<Audie
   const delQ = (id: string) => setV({ ...v, extra: v.extra.filter((q) => q.id !== id) })
   const tidy = (c: DataFormConfig): DataFormConfig => ({ ...c, extra: c.extra.filter((q) => q.label.trim()) })
   const clean = tidy(v)
-  const sample = clients.find((c) => audienceOf(c) === aud)
+  const sample = clients.find((c) => audienceOf(c, data) === aud)
   const previewClient: Client = sample ?? ({ id: 'x', name: 'Cliente Exemplo', company: '', type: aud === 'final' ? 'final' : 'arquiteto', email: '', phone: '', instagram: '', city: '', document: '', origin: '', notes: '', favorite: false, history: [], archived: false, createdAt: today() } as Client)
   return (
     <Modal

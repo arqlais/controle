@@ -199,26 +199,38 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
         <h1>
           oi{first ? ',' : ''} <em>{first || 'tudo bem?'}</em>
         </h1>
+        {p.project && (
+          <p className="cd-project">
+            <span className="cd-ico">
+              <Icon name="file" size={15} />
+            </span>
+            <span>
+              <small>contrato de</small>
+              <b>{p.project}</b>
+            </span>
+          </p>
+        )}
         <p className="cd-lead">{cfg?.intro?.trim() || `Para preparar o seu contrato, ${who} precisa de alguns dados. O que já tínhamos aparece preenchido: é só completar.`}</p>
         <div className="cd-tiles">
-          <span>
-            <i>
-              <Icon name="building" size={18} />
-            </i>
-            CNPJ, se for empresa
-          </span>
-          <span>
-            <i>
-              <Icon name="user" size={18} />
-            </i>
-            RG e CPF
-          </span>
-          <span>
-            <i>
-              <Icon name="home" size={18} />
-            </i>
-            endereço com CEP
-          </span>
+          {(aud === 'final'
+            ? [
+                ['user', 'RG e CPF'],
+                ['home', 'seu endereço com CEP'],
+                ['building', 'endereço do imóvel'],
+              ]
+            : [
+                ['building', 'CNPJ da empresa'],
+                ['user', 'CPF de quem assina'],
+                ['home', 'endereço com CEP'],
+              ]
+          ).map(([icon, text]) => (
+            <span key={text}>
+              <i>
+                <Icon name={icon} size={18} />
+              </i>
+              {text}
+            </span>
+          ))}
         </div>
         <button className="cd-go" onClick={() => go('tipo')}>
           começar <Icon name="arrowRight" size={16} />

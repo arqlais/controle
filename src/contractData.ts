@@ -5,8 +5,8 @@ import { viewingAsClient } from './viewAs'
 import { useStore } from './store'
 import { toast } from './components/dialog'
 import { notifyDevice } from './briefingSync'
-import type { Client, ContractData, ContractPerson, DataFieldKey, DataFieldRule, DataFormConfig, FullAddress, Settings } from './types'
-import { formatCep, formatDoc, today, uid } from './utils'
+import type { Client, Data, Quote, ContractData, ContractPerson, DataFieldKey, DataFieldRule, DataFormConfig, FullAddress, Settings } from './types'
+import { formatCep, formatDoc, quoteNumber, today, uid } from './utils'
 
 /* Dados para o contrato: um link para o cliente preencher tudo (empresa, dados pessoais, sócios,
    quem assina e o nome que vai no contrato). As respostas entram no cadastro do cliente e nas
@@ -79,7 +79,20 @@ export const AUDIENCES: { value: Audience; label: string; text: string }[] = [
   { value: 'b2b', label: 'escritórios e profissionais', text: 'prestação de serviço para escritório, arquiteto, designer ou construtora: o essencial da empresa e de quem assina' },
   { value: 'final', label: 'cliente final', text: 'projeto para a casa ou o negócio do cliente: dados pessoais completos e o endereço do imóvel' },
 ]
-export const audienceOf = (c?: Client): Audience => (c?.type === 'final' ? 'final' : 'b2b')
+/** Orçamento que vale para o contrato: o aprovado mais recente; senão, o último enviado ou feito. */
+export function quoteFor(d: Pick<Data, 'quotes'>, clientId: string): Quote | undefined {
+  const list = d.quotes.filter((q) => q.clientId === clientId && q.status !== 'recusado')
+  const by = (q: Quote) => q.closedAt || q.sentAt || q.createdAt || ''
+  const approved = list.filter((q) => q.status === 'aprovado').sort((a, b) => by(b).localeCompare(by(a)))
+  return approved[0] ?? [...list].sort((a, b) => by(b).localeCompare(by(a)))[0]
+}
+/** Para quem é o serviço: pelo orçamento (proposta de cliente final ou de parceiro); sem orçamento, pelo tipo do cliente. */
+export const audienceOfQuote = (q?: Quote, c?: Client): Audience => {
+  if (q?.audience) return q.audience === 'final' ? 'final' : 'b2b'
+  // orçamento antigo, sem o campo: cliente final ou proposta com etapas de projeto
+  return c?.type === 'final' || (q?.steps?.length ?? 0) > 0 ? 'final' : 'b2b'
+}
+export const audienceOf = (c?: Client, d?: Pick<Data, 'quotes'>): Audience => c?.dataLink?.audience ?? (c && d ? audienceOfQuote(quoteFor(d, c.id), c) : c?.type === 'final' ? 'final' : 'b2b')
 type Def = { b2b: DataFieldRule; final: DataFieldRule }
 const o = 'obrigatorio' as const
 const p = 'opcional' as const
@@ -283,6 +296,7 @@ export interface DataPayload {
   prefill: ContractData
   form?: DataFormConfig
   audience?: Audience
+  project?: string // orçamento do contrato (aparece no começo do link)
 }
 const LOCAL = 'briefings-publicos' // mesma gaveta da prévia do briefing (as respostas voltam pelo mesmo caminho)
 type LocalRow = { payload: DataPayload; answers?: ContractData; answeredAt?: string }
@@ -307,8 +321,8 @@ export const newLinkId = () => (crypto.randomUUID ? crypto.randomUUID() : `${uid
 
 export const formOf = (s: Settings, aud: Audience) => (aud === 'final' ? s.dataFormFinal : s.dataForm) ?? DEFAULT_FORM
 
-export function dataPayload(s: Settings, c: Client): DataPayload {
-  const aud = audienceOf(c)
+export function dataPayload(s: Settings, c: Client, q?: Quote): DataPayload {
+  const aud = audienceOfQuote(q, c)
   const prefill = dataFromClient(c)
   return {
     kind: 'dados',
@@ -323,6 +337,7 @@ export function dataPayload(s: Settings, c: Client): DataPayload {
     prefill: c.contractData ? prefill : { ...prefill, signAs: c.companyDoc ? 'empresa' : c.billTo === 'pessoa' || aud === 'final' ? 'pessoa' : 'empresa' },
     form: formOf(s, aud),
     audience: aud,
+    project: q ? [quoteNumber(q), q.title].filter((x) => x && x !== 'sem nº').join(' · ') : '',
   }
 }
 

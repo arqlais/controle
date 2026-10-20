@@ -4045,3 +4045,8 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
 .cdf-aud .cd-type { grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; padding: 14px 16px; }
 .cdf-aud .cd-type small { grid-column: 1 / -1; line-height: 1.35; }
 @media (max-width: 560px) { .cdf-aud { grid-template-columns: 1fr; } }
+.cd-form-kind { display: flex; gap: 12px; align-items: flex-start; margin: 0; padding: 12px 14px; border-radius: calc(14px * var(--rs, 1)); background: var(--surface-2, #f3efea); font-size: 13.5px; }
+.cd-form-kind small { display: block; margin-top: 2px; color: var(--muted); line-height: 1.4; }
+.cd-project { display: flex; align-items: center; gap: 12px; margin: 0; padding: 12px 14px; border-radius: 18px; background: rgba(255, 255, 255, .7); border: 1px solid rgba(255, 255, 255, .95); }
+.cd-project small { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #9b7a72; }
+.cd-project b { display: block; font-size: 15px; font-weight: 600; }

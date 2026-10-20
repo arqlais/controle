@@ -137,6 +137,8 @@ export interface DataFormConfig {
 /** Link para o cliente preencher os dados do contrato. */
 export interface ContractDataLink {
   id: string
+  quoteId?: string // orçamento que define o formulário (serviço e para quem)
+  audience?: 'b2b' | 'final'
   sentAt: string
   status: 'enviado' | 'respondido'
   answeredAt?: string
