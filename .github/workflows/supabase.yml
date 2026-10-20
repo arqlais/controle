@@ -1,16 +1,17 @@
 name: Publicar no Supabase
 
-# Publica a função "avisos" sempre que ela muda no main, e roda um arquivo .sql de supabase/ quando pedido.
-# Precisa do segredo SUPABASE_ACCESS_TOKEN (Settings → Secrets and variables → Actions → Secrets).
-# Sem ele, não faz nada (o site continua publicando normalmente pelo outro fluxo).
+# Tudo automático a cada envio no main:
+#  - função "avisos" ou "pagamentos" mudou → publica a função;
+#  - arquivo supabase/atualizacao-*.sql novo ou mudado → roda no banco (os arquivos de atualização podem rodar mais de uma vez).
+# Precisa do segredo SUPABASE_ACCESS_TOKEN (uma vez só). Sem ele, não faz nada.
 on:
   push:
     branches: [main]
-    paths: ['supabase/functions/avisos/**']
+    paths: ['supabase/functions/**', 'supabase/atualizacao-*.sql']
   workflow_dispatch:
     inputs:
       sql:
-        description: 'arquivo .sql da pasta supabase/ para rodar (opcional, ex.: atualizacao-2026-10-20.sql)'
+        description: 'arquivo .sql da pasta supabase/ para rodar (opcional)'
         required: false
         default: ''
 
@@ -26,24 +27,45 @@ jobs:
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      - name: Função avisos
+      - name: O que mudou
+        id: mudou
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "Sem o segredo SUPABASE_ACCESS_TOKEN: nada publicado."; exit 0; fi
-          REF=$(echo "$SUPABASE_URL" | sed -E 's#^https?://([^.]+)\..*#\1#')
-          # páginas públicas (sem login) chamam esta função: ela mesma confere quem pode o quê
-          supabase functions deploy avisos --project-ref "$REF" --no-verify-jwt
-      - name: SQL pedido
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.sql != '' }}
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "Sem o segredo SUPABASE_ACCESS_TOKEN: nada publicado."; echo "pular=1" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "ref=$(echo "$SUPABASE_URL" | sed -E 's#^https?://([^.]+)\..*#\1#')" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" > changed.txt
+          else
+            # manual: publica as duas funções e roda o arquivo pedido
+            printf 'supabase/functions/avisos/index.ts\nsupabase/functions/pagamentos/index.ts\n' > changed.txt
+            [ -n "${{ inputs.sql }}" ] && echo "supabase/$(basename '${{ inputs.sql }}')" >> changed.txt
+          fi
+          cat changed.txt
+      - name: SQL
+        if: steps.mudou.outputs.pular != '1'
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "Sem o segredo SUPABASE_ACCESS_TOKEN."; exit 1; fi
-          FILE="supabase/$(basename '${{ inputs.sql }}')"
-          [ -f "$FILE" ] || { echo "Arquivo $FILE não existe."; exit 1; }
-          REF=$(echo "$SUPABASE_URL" | sed -E 's#^https?://([^.]+)\..*#\1#')
-          jq -Rs '{query: .}' "$FILE" > body.json
-          CODE=$(curl -sS -o out.json -w '%{http_code}' -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
-            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @body.json)
-          cat out.json; echo
-          [ "$CODE" -lt 300 ] || { echo "Falhou ($CODE)"; exit 1; }
+          REF='${{ steps.mudou.outputs.ref }}'
+          for FILE in $(grep -E '^supabase/[^/]+\.sql$' changed.txt | sort); do
+            [ -f "$FILE" ] || continue
+            echo "→ rodando $FILE"
+            jq -Rs '{query: .}' "$FILE" > body.json
+            CODE=$(curl -sS -o out.json -w '%{http_code}' -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @body.json)
+            cat out.json; echo
+            [ "$CODE" -lt 300 ] || { echo "Falhou ($CODE) em $FILE"; exit 1; }
+          done
+      - name: Funções
+        if: steps.mudou.outputs.pular != '1'
+        run: |
+          REF='${{ steps.mudou.outputs.ref }}'
+          # páginas públicas e o Asaas chamam estas funções sem login: elas mesmas conferem quem pode o quê
+          for FN in avisos pagamentos; do
+            if grep -q "^supabase/functions/$FN/" changed.txt; then
+              echo "→ publicando $FN"
+              supabase functions deploy "$FN" --project-ref "$REF" --no-verify-jwt
+            fi
+          done
