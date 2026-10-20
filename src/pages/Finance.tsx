@@ -120,11 +120,11 @@ export default function Finance() {
             )}
           </div>
         </div>
-        <div className="row gap-s">
-          <button className="btn ghost" onClick={() => go('retrospectiva')}>
+        <div className="row gap-s head-acts">
+          <button className="btn ghost" onClick={() => go('retrospectiva')} title={`retrospectiva ${month.slice(0, 4)}`}>
             <Icon name="star" size={16} /> retrospectiva {month.slice(0, 4)}
           </button>
-          <button className="btn ghost" onClick={exportCSV}>
+          <button className="btn ghost" onClick={exportCSV} title="baixar planilha (CSV)">
             <Icon name="download" size={16} /> CSV
           </button>
           <button className="btn primary" onClick={() => setExpForm('new')}>

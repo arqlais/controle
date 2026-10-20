@@ -132,11 +132,11 @@ export default function Instagram() {
             planejamento <em>instagram</em>
           </h1>
         </div>
-        <div className="row gap-s wrap">
-          <button className="btn ghost" onClick={async () => (await ask('Esconder o instagram do menu? Nada é apagado; dá para ligar de novo em configurações → propostas.', { confirmLabel: 'Não uso o instagram' })) && (setSettings({ instagramOff: true }), go('inicio'))}>
+        <div className="row gap-s wrap head-acts">
+          <button className="btn ghost hide-phone" onClick={async () => (await ask('Esconder o instagram do menu? Nada é apagado; dá para ligar de novo em configurações → propostas.', { confirmLabel: 'Não uso o instagram' })) && (setSettings({ instagramOff: true }), go('inicio'))}>
             não uso
           </button>
-          <button className="btn ghost" onClick={() => setEdit(blank(month === today().slice(0, 7) ? today() : `${month}-01`))}>
+          <button className="btn ghost" title="nova postagem" onClick={() => setEdit(blank(month === today().slice(0, 7) ? today() : `${month}-01`))}>
             <Icon name="plus" size={16} /> postagem
           </button>
           <button className="btn primary" onClick={mine ? planMonth : planClientMonth}>

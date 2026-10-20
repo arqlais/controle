@@ -114,9 +114,9 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
   return (
     <div className="page">
       <Head>
-        <div className="row gap-s wrap">
+        <div className="row gap-s wrap head-acts">
           <button
-            className="btn ghost"
+            className="btn ghost hide-phone"
             onClick={async () => (await ask('Esconder os contratos do menu? Nada é apagado; dá para ligar de novo em configurações → propostas.', { confirmLabel: 'Não uso contratos' })) && setSettings({ contracts: { ...cs, off: true } })}
           >
             não uso contratos

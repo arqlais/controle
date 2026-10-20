@@ -3,9 +3,11 @@ import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { BarChart } from '../components/Charts'
-import { Empty, Progress, Section, Stat } from '../components/ui'
+import { Empty, Progress, Section, Segmented, Stat } from '../components/ui'
 import { DocScale, usePdf } from '../components/Print'
-import type { Data, Settings } from '../types'
+import { RETRO_MODELS, RetroArt, type RetroFormat, type RetroModel } from '../components/RetroArt'
+import { useAccess } from '../access'
+import type { Data } from '../types'
 import { CLIENT_TYPES, MONTHS, allPayments, expensesInMonth, money, paymentFee, projectTotal, today } from '../utils'
 
 /* Retrospectiva do ano: quanto entrou, melhores clientes, serviços que mais renderam, mês mais forte,
@@ -78,7 +80,7 @@ export function retroStats(data: Data, year: string) {
     ticket,
   }
 }
-type Stats = ReturnType<typeof retroStats>
+export type RetroStats = ReturnType<typeof retroStats>
 
 export default function Retro() {
   const { data } = useStore()
@@ -93,7 +95,11 @@ export default function Retro() {
   const st = useMemo(() => retroStats(data, year), [data, year])
   const [showValues, setShowValues] = useState(false)
   const pdf = usePdf()
-  const art = <RetroArt s={s0} year={year} st={st} values={showValues} />
+  const [model, setModel] = useState<RetroModel>('editorial')
+  const [format, setFormat] = useState<RetroFormat>('feed')
+  const exclusive = useAccess().has('fonteExclusiva')
+  const artOf = (m: RetroModel) => <RetroArt s={s0} year={year} st={st} values={showValues} model={m} format={format} exclusive={exclusive} />
+  const art = artOf(model)
   const prev = useMemo(() => (years.includes(String(Number(year) - 1)) ? retroStats(data, String(Number(year) - 1)) : null), [data, year, years])
   const growth = prev && prev.received > 0 ? Math.round(((st.received - prev.received) / prev.received) * 100) : null
   const nothing = !st.received && !st.started && !st.quotes
@@ -214,65 +220,37 @@ export default function Retro() {
           </div>
 
           <Section title="arte para postar">
-            <p className="muted small">Pronta para o feed ou para os stories. Os valores ficam escondidos, a menos que você queira mostrar.</p>
-            <label className="check">
-              <input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} />
-              <span>mostrar quanto recebi</span>
-            </label>
-            <div className="retro-art-wrap">
+            <div className="rx-opts">
+              <Segmented<RetroFormat>
+                value={format}
+                onChange={setFormat}
+                options={[
+                  { value: 'feed', label: 'feed' },
+                  { value: 'story', label: 'story' },
+                ]}
+              />
+              <label className="check">
+                <input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} />
+                <span>mostrar quanto recebi</span>
+              </label>
+            </div>
+            <div className="rx-pick" role="radiogroup" aria-label="Modelo da arte">
+              {RETRO_MODELS.map((m) => (
+                <button key={m.value} type="button" role="radio" aria-checked={model === m.value} aria-label={`modelo ${m.label}`} title={m.label} className={model === m.value ? 'is-on' : ''} onClick={() => setModel(m.value)}>
+                  <DocScale width={1080}>{artOf(m.value)}</DocScale>
+                </button>
+              ))}
+            </div>
+            <div className={`rx-big ${format === 'story' ? 'is-story' : ''}`}>
               <DocScale width={1080}>{art}</DocScale>
             </div>
-            <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.downloadPng(art, `retrospectiva-${year}.png`)}>
+            <button className="btn primary" disabled={pdf.busy} onClick={() => pdf.downloadPng(art, `retrospectiva-${year}-${model}-${format}.png`)}>
               <Icon name="download" size={15} /> {pdf.busy ? 'gerando…' : 'baixar imagem'}
             </button>
           </Section>
         </>
       )}
       {pdf.portal}
-    </div>
-  )
-}
-
-/** Arte 1080 × 1350 com as cores da pessoa. */
-function RetroArt({ s, year, st, values }: { s: Settings; year: string; st: Stats; values: boolean }) {
-  const brand = s.brandName || s.ownerName || 'meu estúdio'
-  const items = [
-    { n: String(st.started), t: st.started === 1 ? 'projeto' : 'projetos' },
-    { n: String(st.served), t: st.served === 1 ? 'cliente atendido' : 'clientes atendidos' },
-    ...(st.delivered ? [{ n: String(st.delivered), t: st.delivered === 1 ? 'entrega' : 'entregas' }] : []),
-    ...(st.quotes ? [{ n: `${st.rate}%`, t: 'dos orçamentos aprovados' }] : []),
-    ...(st.hours ? [{ n: `${Math.round(st.hours)}h`, t: 'de projeto' }] : []),
-    ...(values && st.received ? [{ n: money(st.received).replace(',00', ''), t: 'recebidos', money: true }] : []),
-  ].slice(0, 6)
-  return (
-    <div className="retro-art" style={{ ['--ra-accent' as string]: s.accent, ['--ra-soft' as string]: s.accentSoft || '#d6b3ab', ['--ra-ink' as string]: s.text || '#3e4b57', ['--ra-bg' as string]: s.background || '#f5f1ee' }}>
-      <div className="ra-glow" />
-      <p className="ra-kick">retrospectiva</p>
-      <h2 className="ra-year">{year}</h2>
-      <p className="ra-brand">{brand}</p>
-      <div className="ra-grid">
-        {items.map((x) => (
-          <div key={x.t} className={`ra-item ${'money' in x ? 'is-money' : ''}`}>
-            <b>{x.n}</b>
-            <span>{x.t}</span>
-          </div>
-        ))}
-      </div>
-      {st.best >= 0 && (
-        <p className="ra-line">
-          mês mais forte: <b>{MONTHS[st.best].toLowerCase()}</b>
-        </p>
-      )}
-      {st.topServices[0] && (
-        <p className="ra-line">
-          o que mais fiz: <b>{st.topServices[0].name}</b>
-        </p>
-      )}
-      <p className="ra-thanks">gratidão a cada cliente que confiou no meu trabalho.</p>
-      <p className="ra-foot">
-        {s.instagram ? `@${s.instagram.replace(/^@/, '')}` : brand}
-        <span>feito com planê</span>
-      </p>
     </div>
   )
 }

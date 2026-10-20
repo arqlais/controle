@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useKeep } from '../keep'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
@@ -126,6 +126,32 @@ export function Dot({ color }: { color: string }) {
   return <span className="dot" style={{ background: color }} />
 }
 
+/** Número grande que diminui a fonte até caber inteiro no card (nada de "R$ 1.247.4…"). */
+export function FitValue({ children, className = 'stat-value' }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => {
+      el.style.fontSize = ''
+      let size = parseFloat(getComputedStyle(el).fontSize)
+      while (el.scrollWidth > el.clientWidth + 0.5 && size > 13) {
+        size -= 1
+        el.style.fontSize = `${size}px`
+      }
+    }
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [children])
+  return (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  )
+}
+
 export function Stat({
   label,
   value,
@@ -149,7 +175,7 @@ export function Stat({
         </span>
         {icon && <Icon name={icon} size={16} />}
       </div>
-      <div className="stat-value">{value}</div>
+      <FitValue>{value}</FitValue>
       {sub && <div className="stat-sub">{sub}</div>}
     </div>
   )

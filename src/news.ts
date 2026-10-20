@@ -30,6 +30,21 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-19-retrospectiva-arte',
+    date: '2026-10-19',
+    kind: 'novo',
+    title: 'retrospectiva com artes novas',
+    text: 'A arte da retrospectiva ganhou três modelos, cada um para feed e para story, nas cores da sua marca. E os números grandes agora aparecem inteiros nos cartões.',
+    steps: [{ page: 'retrospectiva', text: 'As artes ficam no fim da retrospectiva.' }],
+  },
+  {
+    id: '2026-10-19-celular-simbolos',
+    date: '2026-10-19',
+    kind: 'melhoria',
+    title: 'celular mais limpo',
+    text: 'No celular, os botões secundários do topo das telas viraram símbolos ao lado da ação principal, tudo numa linha só.',
+  },
+  {
     id: '2026-10-19-pagina-e-propostas',
     date: '2026-10-19',
     kind: 'novo',

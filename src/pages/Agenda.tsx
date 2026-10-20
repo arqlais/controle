@@ -145,8 +145,8 @@ export default function Agenda() {
             </button>
           </div>
         </div>
-        <div className="row gap-s wrap">
-          <button className="btn ghost" onClick={() => setConnect(true)}>
+        <div className="row gap-s wrap head-acts">
+          <button className="btn ghost" onClick={() => setConnect(true)} aria-label={data.settings.calendarToken ? 'agenda no celular' : 'conectar ao celular'}>
             <Icon name="smartphone" size={16} /> {data.settings.calendarToken ? 'agenda no celular' : 'conectar ao celular'}
             {data.settings.calendarToken && <span className={`sync-dot${agenda.state === 'erro' ? ' is-error' : ''}`} title={agenda.state === 'erro' ? 'a agenda não está sendo publicada — toque para ver' : 'ligada'} />}
           </button>

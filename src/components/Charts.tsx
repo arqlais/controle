@@ -20,9 +20,13 @@ export function BarChart({ labels, series, goal, height = 220, selected, onSelec
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  const max = Math.max(1, goal ?? 0, ...series.flatMap((s) => s.values)) * 1.1
+  // teto "redondo" para as linhas do eixo caírem em números limpos (250 mil, 500 mil…)
+  const raw = Math.max(1, goal ?? 0, ...series.flatMap((s) => s.values)) * 1.05
+  const mag = 10 ** Math.floor(Math.log10(raw / 4))
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((x) => x * 4 >= raw) ?? 10 * mag
+  const max = step * 4
   const H = height
-  const padL = 44
+  const padL = 52
   const padB = 26
   const padT = 10
   const innerW = W - padL - 8
@@ -39,7 +43,7 @@ export function BarChart({ labels, series, goal, height = 220, selected, onSelec
           <g key={i}>
             <line x1={padL} x2={W - 8} y1={y(t)} y2={y(t)} className="grid-line" />
             <text x={padL - 6} y={y(t) + 4} textAnchor="end" className="axis-label">
-              {t >= 1000 ? `${(t / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k` : Math.round(t)}
+              {t >= 1e6 ? `${(t / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} mi` : t >= 1000 ? `${(t / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil` : Math.round(t)}
             </text>
           </g>
         ))}

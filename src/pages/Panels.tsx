@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
-import { Empty, Modal } from '../components/ui'
+import { Empty, FitValue, Modal } from '../components/ui'
 import { DateInput } from '../components/DateInput'
 import { toast } from '../components/dialog'
 import { ClientPanelPublic } from '../components/ClientPanelPublic'
@@ -194,7 +194,7 @@ function PanelList() {
           <span className="pnl-stat-ico">
             <Icon name="wallet" size={16} />
           </span>
-          <b>{money(toReceive)}</b>
+          <FitValue className="pnl-num">{money(toReceive)}</FitValue>
           <small>a receber de quem tem painel</small>
         </div>
       </div>

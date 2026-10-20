@@ -698,6 +698,11 @@ export default function App() {
             <Icon name={exampleOn ? 'eye' : 'eye-off'} size={16} />
             <span>exemplo</span>
           </button>
+          {access.isOwner && (
+            <button className={`icon-btn photo-btn only-phone ${photo ? 'is-on' : ''}`} onClick={togglePhoto} aria-pressed={photo} aria-label="Modo foto" title="Modo foto: esconde valores e dados dos clientes para tirar print">
+              <Icon name="camera" />
+            </button>
+          )}
           <SyncBadge sync={sync} lastSaved={lastSaved} />
           {CLOUD && (
             <button
@@ -726,7 +731,7 @@ export default function App() {
           )}
           <GlobalSearch />
           {access.isOwner && (
-            <button className={`icon-btn photo-btn ${photo ? 'is-on' : ''}`} onClick={togglePhoto} aria-pressed={photo} aria-label="Modo foto" title={photo ? 'Modo foto ligado: toque para voltar ao normal' : 'Modo foto: esconde valores, sobrenomes e dados dos clientes para tirar print'}>
+            <button className={`icon-btn photo-btn hide-phone ${photo ? 'is-on' : ''}`} onClick={togglePhoto} aria-pressed={photo} aria-label="Modo foto" title={photo ? 'Modo foto ligado: toque para voltar ao normal' : 'Modo foto: esconde valores, sobrenomes e dados dos clientes para tirar print'}>
               <Icon name="camera" />
             </button>
           )}

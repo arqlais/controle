@@ -69,8 +69,8 @@ export default function Clients() {
             meus <em>clientes</em>
           </h1>
         </div>
-        <div className="row gap-s wrap">
-          <button className="btn ghost" onClick={() => setImporting(true)} title="Excel, Google Planilhas, Notion ou Trello">
+        <div className="row gap-s wrap head-acts">
+          <button className="btn ghost" onClick={() => setImporting(true)} title="importar planilha (Excel, Google Planilhas, Notion ou Trello)">
             <Icon name="download" size={16} /> importar planilha
           </button>
           <button className="btn primary" onClick={() => setForm(true)}>

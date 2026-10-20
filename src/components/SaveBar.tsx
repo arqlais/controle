@@ -57,11 +57,11 @@ export function SaveBar({ d }: { d: { dirty: boolean; canUndo: boolean; undo: ()
   return (
     <div className={`bf-ed-bar save-bar ${d.dirty ? 'is-dirty' : ''}`}>
       <span className="grow small">{d.dirty ? 'mudanças não salvas' : 'tudo salvo'}</span>
-      <button className="btn small ghost" onClick={d.undo} disabled={!d.canUndo} title="Desfazer a última mudança">
-        <Icon name="chevronL" size={14} /> desfazer
+      <button className="icon-btn" onClick={d.undo} disabled={!d.canUndo} title="Desfazer a última mudança" aria-label="Desfazer">
+        <Icon name="undo" size={16} />
       </button>
-      <button className="btn small ghost" onClick={d.discard} disabled={!d.dirty}>
-        descartar
+      <button className="icon-btn" onClick={d.discard} disabled={!d.dirty} title="Descartar as mudanças" aria-label="Descartar">
+        <Icon name="x" size={16} />
       </button>
       <button className="btn small primary" onClick={d.save} disabled={!d.dirty}>
         <Icon name="check" size={14} /> salvar
