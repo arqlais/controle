@@ -1,5 +1,5 @@
 import { fitImage } from '../utils'
-import { useRef, type CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { ColorPicker } from './ColorPicker'
 import { useStore, DEFAULT_SETTINGS } from '../store'
 import { useAccess } from '../access'
@@ -42,6 +42,7 @@ export function BrandKit() {
       .catch(() => toast('Não consegui abrir essa imagem. Tente JPG ou PNG.'))
   }
   const fontRef = useRef<HTMLInputElement>(null)
+  const [fineOpen, setFineOpen] = useState(false)
   const bodyFontRef = useRef<HTMLInputElement>(null)
   const exclusive = has('fonteExclusiva')
   const tpl = resolveTemplate(raw.proposal, has)
@@ -88,17 +89,21 @@ export function BrandKit() {
 
   const palettes = even(PALETTES.filter((p) => (exclusive ? p.owner : !p.owner)))
   const displays = even([...(exclusive ? [{ name: EXCLUSIVE_FONT, mood: 'sua fonte exclusiva' }] : []), ...(raw.customFont && !exclusive ? [{ name: OWN_FONT, mood: 'arquivo enviado por você' }] : []), ...DISPLAY_FONTS])
+  // dona: o padrão é a identidade dela (paleta "laís", The Seasons e Poppins)
+  const own = PALETTES[0]
+  const colorsDefault = (['accent', 'accentSoft', 'accentInk', 'background', 'surface', 'text'] as const).every((k) => String(raw[k]).toLowerCase() === String(own[k]).toLowerCase())
+  const displayDefault = !raw.customFont && raw.displayFont === DEFAULT_SETTINGS.displayFont
+  const bodyDefault = !raw.customBodyFont && raw.bodyFont === DEFAULT_SETTINGS.bodyFont
+  const restoreColors = () => setSettings({ accent: own.accent, accentSoft: own.accentSoft, accentInk: own.accentInk, background: own.background, surface: own.surface, text: own.text })
   const same = (p: Palette) => p.accent === s.accent && p.accentSoft === s.accentSoft && p.background === s.background
 
   return (
     <Section title="identidade visual">
-      <p className="muted small">
-        Escolha uma paleta e uma combinação de fontes prontas, ou monte a sua. Seu logo, nome e contatos ficam no{' '}
-        <a href="#/perfil" className="link">
-          perfil
-        </a>
-        . Tudo vale só para a sua conta.
-      </p>
+      {!exclusive && (
+        <p className="muted small">
+          Escolha uma paleta e fontes prontas, ou monte a sua. Vale só para a sua conta.
+        </p>
+      )}
       {pdf && tpl.id !== 'lais' && (
         <label className="check toggle">
           <input type="checkbox" checked={follow} onChange={(e) => setSettings({ proposal: { ...raw.proposal, followBrand: e.target.checked, template: tpl.id } })} /> os modelos (proposta, contrato, documentos e slides) usam estas cores e fontes
@@ -124,6 +129,70 @@ export function BrandKit() {
         )}
       </div>
 
+      {exclusive ? (
+        <>
+          {/* dona: a identidade dela é o padrão; só dá para substituir e voltar ao padrão */}
+          <h4 className="bk-sub">sua identidade</h4>
+          <div className="bk-own">
+            <div className={`bk-own-card ${colorsDefault ? '' : 'is-changed'}`}>
+              <span className="bk-swatch bk-own-swatch" style={{ background: raw.background }}>
+                {(['accent', 'accentSoft', 'accentInk', 'background'] as const).map((k) => (
+                  <i key={k} style={{ background: raw[k] as string }} />
+                ))}
+              </span>
+              <span className="bk-own-name">cores</span>
+              <small className="muted">{colorsDefault ? 'padrão' : 'ajustadas'}</small>
+              <div className="row gap-s">
+                <button className="btn small" onClick={() => setFineOpen((v) => !v)} aria-expanded={fineOpen}>
+                  <Icon name="edit" size={13} /> ajustar
+                </button>
+                {!colorsDefault && (
+                  <button className="btn small ghost" onClick={restoreColors}>
+                    padrão
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className={`bk-own-card ${displayDefault ? '' : 'is-changed'}`}>
+              <span className="bk-font-sample bk-own-sample" style={{ fontFamily: `'${s.displayFont}'` }}>
+                você projeta
+              </span>
+              <span className="bk-own-name">títulos</span>
+              <small className="muted">{displayDefault ? `${EXCLUSIVE_FONT} · padrão` : 'arquivo substituído'}</small>
+              <div className="row gap-s">
+                <button className="btn small" onClick={() => fontRef.current?.click()}>
+                  <Icon name="upload" size={13} /> substituir
+                </button>
+                {!displayDefault && (
+                  <button className="btn small ghost" onClick={() => setSettings({ customFont: '', displayFont: DEFAULT_SETTINGS.displayFont })}>
+                    padrão
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className={`bk-own-card ${bodyDefault ? '' : 'is-changed'}`}>
+              <span className="bk-font-sample is-body bk-own-sample" style={{ fontFamily: `'${s.bodyFont}'` }}>
+                Aa 123 R$
+              </span>
+              <span className="bk-own-name">texto</span>
+              <small className="muted">{bodyDefault ? `${DEFAULT_SETTINGS.bodyFont} · padrão` : 'arquivo substituído'}</small>
+              <div className="row gap-s">
+                <button className="btn small" onClick={() => bodyFontRef.current?.click()}>
+                  <Icon name="upload" size={13} /> substituir
+                </button>
+                {!bodyDefault && (
+                  <button className="btn small ghost" onClick={() => setSettings({ customBodyFont: '', bodyFont: DEFAULT_SETTINGS.bodyFont })}>
+                    padrão
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <input ref={fontRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" hidden onChange={(e) => (onFont(e.target.files?.[0]), (e.target.value = ''))} />
+          <input ref={bodyFontRef} type="file" accept=".otf,.ttf,.woff,.woff2,font/*" hidden onChange={(e) => (onBodyFont(e.target.files?.[0]), (e.target.value = ''))} />
+        </>
+      ) : (
+        <>
       <h4 className="bk-sub">paletas prontas</h4>
       <div className="bk-grid" style={cols(palettes.length)}>
         {palettes.map((p) => (
@@ -208,6 +277,25 @@ export function BrandKit() {
       </div>
       <p className="muted small">Arquivos .woff2, .woff, .otf ou .ttf de até 900 KB. Use só fontes que você tem licença para usar no seu negócio.</p>
 
+        </>
+      )}
+
+      {exclusive ? (
+        <details className="bk-fine" open={fineOpen} onToggle={(e) => setFineOpen((e.target as HTMLDetailsElement).open)}>
+          <summary>ajustar cores</summary>
+      <div className="form-grid">
+        {COLOR_FIELDS.map(([k, label]) => (
+          <Field group key={k} label={label}>
+            <ColorPicker label={label} value={raw[k] as string} onChange={(hex) => setSettings({ [k]: hex })} />
+          </Field>
+        ))}
+        <Field label={`Cantos · ${raw.radius === 0 ? 'retos' : raw.radius >= 30 ? 'bem arredondados' : raw.radius === 18 ? 'padrão' : `${raw.radius}`}`}>
+          <input type="range" min={0} max={36} step={1} value={raw.radius} onChange={(e) => setSettings({ radius: Number(e.target.value) })} />
+        </Field>
+      </div>
+        </details>
+      ) : (
+        <>
       <h4 className="bk-sub">cores personalizadas</h4>
       <div className="form-grid">
         {COLOR_FIELDS.map(([k, label]) => (
@@ -219,6 +307,9 @@ export function BrandKit() {
           <input type="range" min={0} max={20} value={raw.radius} onChange={(e) => setSettings({ radius: Number(e.target.value) })} />
         </Field>
       </div>
+        </>
+      )}
+      {(!exclusive || !colorsDefault || !displayDefault || !bodyDefault || raw.radius !== DEFAULT_SETTINGS.radius) && (
       <div className="row gap-s">
         <button
           className="btn small ghost"
@@ -237,9 +328,10 @@ export function BrandKit() {
             })
           }}
         >
-          restaurar padrão
+          {exclusive ? 'restaurar tudo ao padrão' : 'restaurar padrão'}
         </button>
       </div>
+      )}
     </Section>
   )
 }

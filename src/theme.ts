@@ -101,6 +101,8 @@ export function applyTheme(s: Settings, dark = false) {
     '--accent-tint': mix(surface, s.accentSoft, dark ? 0.18 : 0.26),
     '--slate': dark ? '#141a20' : s.text,
     '--radius': `${s.radius}px`,
+    // escala de todos os cantos do sistema (18 = padrão; 0 = quadrado; 36 = bem arredondado)
+    '--rs': String(Math.max(0, s.radius) / 18),
     // botões, etiquetas e campos arredondam junto com a régua (no máximo ficam em pílula)
     '--pill': s.radius >= 18 ? '999px' : `${Math.round(s.radius * 1.4)}px`,
     '--font-display': `'${s.displayFont}', 'Cormorant Garamond', Georgia, serif`,
