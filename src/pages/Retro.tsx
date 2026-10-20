@@ -95,7 +95,7 @@ export default function Retro() {
   const st = useMemo(() => retroStats(data, year), [data, year])
   const [showValues, setShowValues] = useState(false)
   const pdf = usePdf()
-  const [model, setModel] = useState<RetroModel>('papel')
+  const [model, setModel] = useState<RetroModel>('lancamento')
   const [format, setFormat] = useState<RetroFormat>('feed')
   const exclusive = useAccess().has('fonteExclusiva')
   const artOf = (m: RetroModel) => <RetroArt s={s0} year={year} st={st} values={showValues} model={m} format={format} exclusive={exclusive} />
