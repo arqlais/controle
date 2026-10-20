@@ -6,8 +6,8 @@ import { Empty, Modal, Segmented } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { DataEditor, DataSummary } from '../components/ContractDataForm'
 import { DataWizard } from '../components/ContractDataPublic'
-import { DATA_FIELDS, DEFAULT_FORM, applyToClient, cancelDataLink, completeness, dataFromClient, dataLinkUrl, dataPayload, missingOf, newLinkId, publishDataLink, qualification } from '../contractData'
-import type { Client, ContractData, DataFieldRule, DataFormConfig, DataQuestion } from '../types'
+import { AUDIENCES, DATA_FIELDS, DEFAULT_FORM, audienceOf, formOf, type Audience, applyToClient, cancelDataLink, completeness, dataFromClient, dataLinkUrl, dataPayload, missingOf, newLinkId, publishDataLink, qualification } from '../contractData'
+import type { Client, ContractData, DataFieldRule, DataFormConfig, DataQuestion, Settings } from '../types'
 import { fmtDate, today, uid, whatsappLink } from '../utils'
 
 /* Dados para contrato (só a dona, por enquanto): pede por link os dados completos de quem contrata
@@ -15,15 +15,15 @@ import { fmtDate, today, uid, whatsappLink } from '../utils'
 
 type Filter = 'todos' | 'aguardando' | 'faltando' | 'completos'
 
-const statusOf = (c: Client, cfg?: DataFormConfig) => {
+const statusOf = (c: Client, s: Settings) => {
   if (c.dataLink?.status === 'enviado') return 'aguardando'
-  if (c.contractData && !missingOf(c.contractData, cfg).length) return 'completo'
+  if (c.contractData && !missingOf(c.contractData, formOf(s, audienceOf(c)), audienceOf(c)).length) return 'completo'
   return 'faltando'
 }
 
 export default function ContractDataPage({ id }: { id?: string }) {
   const { data, upsert, userId, setSettings } = useStore()
-  const cfg = data.settings.dataForm
+  const ss = data.settings
   const [formOpen, setFormOpen] = useState(false)
   const [filter, setFilter] = useState<Filter>('todos')
   const [q, setQ] = useState('')
@@ -37,10 +37,10 @@ export default function ContractDataPage({ id }: { id?: string }) {
     const term = norm(q.trim())
     return clients
       .filter((c) => (term ? norm(`${c.name} ${c.company}`).includes(term) : !!(c.dataLink || c.contractData)))
-      .filter((c) => filter === 'todos' || (filter === 'aguardando' && statusOf(c, cfg) === 'aguardando') || (filter === 'faltando' && statusOf(c, cfg) === 'faltando') || (filter === 'completos' && statusOf(c, cfg) === 'completo'))
+      .filter((c) => filter === 'todos' || (filter === 'aguardando' && statusOf(c, ss) === 'aguardando') || (filter === 'faltando' && statusOf(c, ss) === 'faltando') || (filter === 'completos' && statusOf(c, ss) === 'completo'))
       .sort((a, b) => (b.dataLink?.answeredAt || b.dataLink?.sentAt || b.contractData?.updatedAt || '').localeCompare(a.dataLink?.answeredAt || a.dataLink?.sentAt || a.contractData?.updatedAt || ''))
   }, [clients, q, filter])
-  const count = (f: Filter) => clients.filter((c) => (c.dataLink || c.contractData) && (f === 'aguardando' ? statusOf(c, cfg) === 'aguardando' : f === 'faltando' ? statusOf(c, cfg) === 'faltando' : statusOf(c, cfg) === 'completo')).length
+  const count = (f: Filter) => clients.filter((c) => (c.dataLink || c.contractData) && (f === 'aguardando' ? statusOf(c, ss) === 'aguardando' : f === 'faltando' ? statusOf(c, ss) === 'faltando' : statusOf(c, ss) === 'completo')).length
 
   const sendClient = sending ? data.clients.find((c) => c.id === sending) : undefined
   const editClient = editing ? data.clients.find((c) => c.id === editing) : undefined
@@ -90,10 +90,10 @@ export default function ContractDataPage({ id }: { id?: string }) {
       ) : (
         <div className="cd-list">
           {list.map((c) => {
-            const st = statusOf(c, cfg)
+            const st = statusOf(c, ss)
             const d = c.contractData
-            const miss = d ? missingOf(d, cfg) : []
-            const pct = completeness(d, cfg)
+            const miss = d ? missingOf(d, formOf(ss, audienceOf(c)), audienceOf(c)) : []
+            const pct = completeness(d, formOf(ss, audienceOf(c)), audienceOf(c))
             return (
               <div key={c.id} className="cd-row card">
                 <button className="cd-row-main" onClick={() => setEditing(c.id)} title="Ver e corrigir os dados">
@@ -127,11 +127,11 @@ export default function ContractDataPage({ id }: { id?: string }) {
 
       {formOpen && (
         <FormSettings
-          value={cfg ?? DEFAULT_FORM}
-          sample={clients[0]}
+          value={{ b2b: formOf(ss, 'b2b'), final: formOf(ss, 'final') }}
+          clients={clients}
           onClose={() => setFormOpen(false)}
           onSave={(v) => {
-            setSettings({ dataForm: v })
+            setSettings({ dataForm: v.b2b, dataFormFinal: v.final })
             toast('Formulário salvo: vale para os próximos links.')
             setFormOpen(false)
           }}
@@ -227,7 +227,7 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
     upsert('clients', { ...client, dataLink: undefined })
     onClose()
   }
-  const missing = client.contractData ? missingOf(client.contractData, data.settings.dataForm) : []
+  const missing = client.contractData ? missingOf(client.contractData, formOf(data.settings, audienceOf(client)), audienceOf(client)) : []
   return (
     <Modal title={`dados de ${first}`} onClose={onClose}>
       {!pending ? (
@@ -279,11 +279,12 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
 
 function EditData({ client, onClose, onSave, onLink }: { client: Client; onClose: () => void; onSave: (d: ContractData) => void; onLink: () => void; userId: string }) {
   const { data } = useStore()
-  const cfg = data.settings.dataForm
+  const aud = audienceOf(client)
+  const cfg = formOf(data.settings, aud)
   const [d, setD] = useState<ContractData>(() => dataFromClient(client))
   const [view, setView] = useState<'ver' | 'editar'>(client.contractData ? 'ver' : 'editar')
   const set = (patch: Partial<ContractData>) => setD((cur) => ({ ...cur, ...patch }))
-  const miss = missingOf(d, cfg)
+  const miss = missingOf(d, cfg, aud)
   const copy = () =>
     navigator.clipboard
       ?.writeText(qualification(d))
@@ -343,7 +344,7 @@ function EditData({ client, onClose, onSave, onLink }: { client: Client; onClose
           )}
         </>
       ) : (
-        <DataEditor d={d} set={set} cfg={cfg} />
+        <DataEditor d={d} set={set} cfg={cfg} aud={aud} />
       )}
     </Modal>
   )
@@ -367,17 +368,22 @@ const KINDS: { value: DataQuestion['kind']; label: string }[] = [
 ]
 
 /** Seu formulário: o que é obrigatório, opcional ou não é pedido, texto de abertura e perguntas a mais. */
-function FormSettings({ value, sample, onClose, onSave }: { value: DataFormConfig; sample?: Client; onClose: () => void; onSave: (v: DataFormConfig) => void }) {
+function FormSettings({ value, clients, onClose, onSave }: { value: Record<Audience, DataFormConfig>; clients: Client[]; onClose: () => void; onSave: (v: Record<Audience, DataFormConfig>) => void }) {
   const { data } = useStore()
-  const [v, setV] = useState<DataFormConfig>(value)
+  const [all, setAll] = useState<Record<Audience, DataFormConfig>>(value)
+  const [aud, setAud] = useState<Audience>('b2b')
+  const v = all[aud]
+  const setV = (next: DataFormConfig) => setAll((cur) => ({ ...cur, [aud]: next }))
   const [tab, setTab] = useState<'campos' | 'perguntas' | 'previa'>('campos')
-  const ruleOf = (k: (typeof DATA_FIELDS)[number]) => v.rules[k.key] ?? k.def
+  const ruleOf = (k: (typeof DATA_FIELDS)[number]) => v.rules[k.key] ?? k.def[aud]
   const setRule = (key: string, r: DataFieldRule) => setV({ ...v, rules: { ...v.rules, [key]: r } })
   const setQ = (id: string, patch: Partial<DataQuestion>) => setV({ ...v, extra: v.extra.map((q) => (q.id === id ? { ...q, ...patch } : q)) })
   const addQ = () => setV({ ...v, extra: [...v.extra, { id: uid(), label: '', kind: 'texto', options: [], required: false, step: 'final' }] })
   const delQ = (id: string) => setV({ ...v, extra: v.extra.filter((q) => q.id !== id) })
-  const clean: DataFormConfig = { ...v, extra: v.extra.filter((q) => q.label.trim()) }
-  const previewClient: Client = sample ?? ({ id: 'x', name: 'Cliente Exemplo', company: '', type: 'arquiteto', email: '', phone: '', instagram: '', city: '', document: '', origin: '', notes: '', favorite: false, history: [], archived: false, createdAt: today() } as Client)
+  const tidy = (c: DataFormConfig): DataFormConfig => ({ ...c, extra: c.extra.filter((q) => q.label.trim()) })
+  const clean = tidy(v)
+  const sample = clients.find((c) => audienceOf(c) === aud)
+  const previewClient: Client = sample ?? ({ id: 'x', name: 'Cliente Exemplo', company: '', type: aud === 'final' ? 'final' : 'arquiteto', email: '', phone: '', instagram: '', city: '', document: '', origin: '', notes: '', favorite: false, history: [], archived: false, createdAt: today() } as Client)
   return (
     <Modal
       wide
@@ -385,15 +391,26 @@ function FormSettings({ value, sample, onClose, onSave }: { value: DataFormConfi
       onClose={onClose}
       footer={
         <>
-          <button className="btn ghost" onClick={() => setV(DEFAULT_FORM)} title="Voltar ao formulário padrão">
+          <button className="btn ghost" onClick={() => setV(DEFAULT_FORM)} title="Voltar ao padrão deste formulário">
             <Icon name="undo" size={15} /> padrão
           </button>
-          <button className="btn primary" onClick={() => onSave(clean)}>
+          <button className="btn primary" onClick={() => onSave({ b2b: tidy(all.b2b), final: tidy(all.final) })}>
             <Icon name="check" size={15} /> salvar
           </button>
         </>
       }
     >
+      <div className="cdf-aud">
+        {AUDIENCES.map((a) => (
+          <button key={a.value} type="button" className={`cd-type ${aud === a.value ? 'is-on' : ''}`} onClick={() => setAud(a.value)}>
+            <span className="cd-ico">
+              <Icon name={a.value === 'final' ? 'home' : 'briefcase'} size={16} />
+            </span>
+            <b>{a.label}</b>
+            <small>{a.text}</small>
+          </button>
+        ))}
+      </div>
       <Segmented<'campos' | 'perguntas' | 'previa'>
         value={tab}
         onChange={setTab}
@@ -486,7 +503,7 @@ function FormSettings({ value, sample, onClose, onSave }: { value: DataFormConfi
           </p>
           <div className="cdp is-preview">
             <main className="cdp-card">
-              <DataWizard key={JSON.stringify(clean)} id="previa" preview cloud={false} payload={{ ...dataPayload(data.settings, previewClient), form: clean }} />
+              <DataWizard key={`${aud}${JSON.stringify(clean)}`} id="previa" preview cloud={false} payload={{ ...dataPayload(data.settings, previewClient), form: clean, audience: aud }} />
             </main>
           </div>
         </div>

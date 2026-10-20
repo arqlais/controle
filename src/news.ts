@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-20',
     kind: 'novo',
     title: 'dados para contrato por link',
-    text: 'Mande um link e o cliente preenche tudo o que o contrato precisa: empresa, dados pessoais, sócios, quem assina e o nome que vai no contrato. Os dados entram no cadastro e no contrato, e você confere e corrige numa tela só.',
+    text: 'Mande um link e o cliente preenche tudo o que o contrato precisa: empresa, dados pessoais, sócios, quem assina e o nome que vai no contrato. Para escritórios o formulário pede só o essencial; para cliente final, os dados pessoais e o endereço do imóvel. Os dados entram no cadastro e no contrato, e você confere, corrige e ajusta as perguntas numa tela só.',
     steps: [{ page: 'dados-contrato', text: 'Em clientes, aba “dados para contrato”: toque em “pedir dados” e escolha o cliente.' }],
     feature: 'dadosContrato',
   },

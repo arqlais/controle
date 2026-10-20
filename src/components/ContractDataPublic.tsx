@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from './Icon'
-import { AddressFields, Block, CompanyFields, DataSummary, ExtraFields, PartnersFields, PersonFields, SignFields } from './ContractDataForm'
+import { AddressFields, Block, CompanyFields, DataSummary, ExtraFields, PartnersFields, PersonFields, PropertyFields, SignFields } from './ContractDataForm'
 import { emptyAddress, loadDataLink, missingFor, ruleOf, sendData, type DataPayload } from '../contractData'
 import type { ContractData, ContractPerson, DataFieldKey, DataFormConfig, DataQuestion } from '../types'
 
@@ -118,7 +118,8 @@ function Done({ p }: { p: DataPayload }) {
 /** O passo a passo. Com `preview`, é só para ver: nada é guardado nem enviado. */
 export function DataWizard({ id, payload: p, cloud, preview }: { id: string; payload: DataPayload; cloud: boolean; preview?: boolean }) {
   const cfg: DataFormConfig | undefined = p.form
-  const r = ruleOf(cfg)
+  const aud = p.audience ?? 'b2b'
+  const r = ruleOf(cfg, aud)
   const draftKey = `dados-rascunho:${id}`
   const [d, setD] = useState<ContractData>(() => {
     if (!preview)
@@ -149,7 +150,7 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
   const setPerson = (patch: Partial<ContractPerson>) => set({ person: { ...d.person, ...patch } })
   const company = d.signAs === 'empresa'
   const extra = (s: DataQuestion['step']) => (cfg?.extra ?? []).filter((q) => (q.step === 'empresa' && !company ? 'voce' : q.step) === s)
-  const steps: Exclude<Step, 'capa'>[] = ['tipo', ...(company ? (['empresa'] as const) : []), 'voce', ...(company && r('partners') !== 'oculto' ? (['socios'] as const) : []), 'final', 'revisao']
+  const steps: Exclude<Step, 'capa'>[] = ['tipo', ...(company ? (['empresa'] as const) : []), 'voce', ...((company || aud === 'final') && r('partners') !== 'oculto' ? (['socios'] as const) : []), 'final', 'revisao']
   const idx = steps.indexOf(step as Exclude<Step, 'capa'>)
   const first = (p.clientName || d.person.name || '').split(' ')[0]
   const who = p.owner ? p.owner.split(' ')[0] : p.studio
@@ -162,7 +163,7 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
   }
   const next = () => {
     const part = step === 'empresa' || step === 'voce' || step === 'socios' || step === 'final' ? step : undefined
-    const m = part ? missingFor(d, cfg, part) : []
+    const m = part ? missingFor(d, cfg, part, aud) : []
     setMiss(m)
     if (m.length) return
     if (returnTo) {
@@ -173,7 +174,7 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
   }
   const back = () => go(idx <= 0 ? 'capa' : steps[idx - 1])
   const send = async () => {
-    const m = missingFor(d, cfg)
+    const m = missingFor(d, cfg, undefined, aud)
     if (m.length) return setMiss(m)
     if (preview) return setState('ok')
     setState('busy')
@@ -235,12 +236,12 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
         {steps.map((s, i) => (
           <li key={s} className={i < idx ? 'is-done' : i === idx ? 'is-on' : ''} title={META[s].short}>
             <span>{i < idx ? <Icon name="check" size={14} /> : <Icon name={META[s].icon} size={15} />}</span>
-            <small>{META[s].short}</small>
+            <small>{s === 'socios' && !company ? 'mais alguém' : META[s].short}</small>
           </li>
         ))}
       </ol>
       <div key={step} className="cd-anim">
-        <h1 className="cd-title">{step === 'voce' && company ? 'seus dados (responsável)' : meta.title}</h1>
+        <h1 className="cd-title">{step === 'voce' && company ? 'seus dados (responsável)' : step === 'socios' && !company ? 'quem mais assina' : step === 'final' && aud === 'final' ? 'imóvel e assinatura' : meta.title}</h1>
         {step === 'tipo' && (
           <div className="cd-types">
             <button type="button" className={`cd-type ${company ? 'is-on' : ''}`} onClick={() => set({ signAs: 'empresa' })}>
@@ -285,12 +286,13 @@ export function DataWizard({ id, payload: p, cloud, preview }: { id: string; pay
         )}
         {step === 'socios' && (
           <>
-            <p className="cd-lead is-small">Se a empresa tem outros sócios, coloque aqui. Se não tem, é só seguir.</p>
+            <p className="cd-lead is-small">{company ? 'Se a empresa tem outros sócios, coloque aqui. Se não tem, é só seguir.' : 'Se mais alguém vai assinar com você (cônjuge, sócio…), coloque aqui. Se não, é só seguir.'}</p>
             <PartnersFields d={d} set={set} r={r} suggestions={sugs} />
           </>
         )}
         {step === 'final' && (
           <>
+            <PropertyFields d={d} set={set} r={r} />
             <SignFields d={d} set={set} r={r} />
             <ExtraFields qs={extra('final')} d={d} set={set} />
             {r('notes') !== 'oculto' && (

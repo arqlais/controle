@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Field } from './ui'
 import { Icon } from './Icon'
-import { CIVIL_STATES, COMPANY_KINDS, UFS, cnpjDetails, contractantName, emptyAddress, emptyPerson, ruleOf, signersOf, validCnpj, validCpf, type Rule } from '../contractData'
+import { CIVIL_STATES, COMPANY_KINDS, UFS, cnpjDetails, contractantName, emptyAddress, emptyPerson, ruleOf, signersOf, validCnpj, validCpf, type Audience, type Rule } from '../contractData'
 import type { ContractData, ContractPerson, DataFieldKey, DataFormConfig, DataQuestion, FullAddress } from '../types'
 import { formatCep, formatDoc, formatPhone, lookupCep } from '../utils'
 
@@ -214,6 +214,7 @@ export function CompanyFields({ d, set, r, onPartners }: { d: ContractData; set:
 }
 
 export function PartnersFields({ d, set, r, suggestions }: { d: ContractData; set: Set<ContractData>; r: Rule; suggestions?: { name: string; role: string }[] }) {
+  const company = d.signAs === 'empresa'
   // sócio: nome e CPF sempre; o resto segue o formulário, como opcional
   const pr: Rule = (k) => (k === 'name' || k === 'cpf' ? 'obrigatorio' : r(k) === 'oculto' || k === 'email' || k === 'phone' ? 'oculto' : 'opcional')
   const setP = (id: string, patch: Partial<ContractPerson>) => set({ partners: d.partners.map((x) => (x.id === id ? { ...x, ...patch } : x)) })
@@ -229,12 +230,12 @@ export function PartnersFields({ d, set, r, suggestions }: { d: ContractData; se
             <span className="cd-ico is-soft">
               <Icon name="user" size={15} />
             </span>
-            <b>sócio {i + 1}</b>
-            <button type="button" className="icon-btn" onClick={() => remove(p.id)} aria-label="Tirar este sócio" title="Tirar este sócio">
+            <b>{company ? `sócio ${i + 1}` : `pessoa ${i + 2}`}</b>
+            <button type="button" className="icon-btn" onClick={() => remove(p.id)} aria-label="Tirar" title="Tirar">
               <Icon name="trash" size={16} />
             </button>
           </div>
-          <PersonFields p={p} set={(patch) => setP(p.id, patch)} company r={pr} />
+          <PersonFields p={p} set={(patch) => setP(p.id, patch)} company={company} r={pr} />
         </div>
       ))}
       {left.length > 0 && (
@@ -251,7 +252,7 @@ export function PartnersFields({ d, set, r, suggestions }: { d: ContractData; se
         <span className="cd-ico">
           <Icon name="plus" size={16} />
         </span>
-        adicionar sócio
+        {company ? 'adicionar sócio' : 'adicionar pessoa'}
       </button>
     </div>
   )
@@ -342,8 +343,25 @@ export function ExtraFields({ qs, d, set }: { qs: DataQuestion[]; d: ContractDat
 }
 
 /** Tudo aberto, para corrigir (sua tela). */
-export function DataEditor({ d, set, cfg }: { d: ContractData; set: Set<ContractData>; cfg?: DataFormConfig }) {
-  const r = ruleOf(cfg)
+/** Endereço do imóvel do projeto (cliente final), com atalho para usar o endereço da pessoa. */
+export function PropertyFields({ d, set, r }: { d: ContractData; set: Set<ContractData>; r: Rule }) {
+  if (r('propertyAddress') === 'oculto') return null
+  const a = d.property ?? emptyAddress()
+  const own = d.person.address
+  return (
+    <Block icon="home" title={`imóvel do projeto${r('propertyAddress') === 'obrigatorio' ? ' *' : ''}`}>
+      {own?.street && (
+        <button type="button" className="cd-pill" onClick={() => set({ property: { ...own } })}>
+          <Icon name="copy" size={13} /> é o mesmo endereço de cadastro
+        </button>
+      )}
+      <AddressFields a={a} set={(patch) => set({ property: { ...a, ...patch } })} required={r('propertyAddress') === 'obrigatorio'} />
+    </Block>
+  )
+}
+
+export function DataEditor({ d, set, cfg, aud = 'b2b' }: { d: ContractData; set: Set<ContractData>; cfg?: DataFormConfig; aud?: Audience }) {
+  const r = ruleOf(cfg, aud)
   const [sugs, setSugs] = useState<{ name: string; role: string }[]>([])
   const setPerson = (patch: Partial<ContractPerson>) => set({ person: { ...d.person, ...patch } })
   const company = d.signAs === 'empresa'
@@ -377,11 +395,12 @@ export function DataEditor({ d, set, cfg }: { d: ContractData; set: Set<Contract
         {r(addrKey) !== 'oculto' && <AddressFields a={d.person.address ?? emptyAddress()} set={(patch) => setPerson({ address: { ...(d.person.address ?? emptyAddress()), ...patch } })} required={r(addrKey) === 'obrigatorio'} />}
         <ExtraFields qs={extra('voce')} d={d} set={set} />
       </Block>
-      {company && r('partners') !== 'oculto' && (
-        <Block icon="users" title="sócios">
+      {(company || aud === 'final') && r('partners') !== 'oculto' && (
+        <Block icon="users" title={company ? 'sócios' : 'mais alguém assina?'}>
           <PartnersFields d={d} set={set} r={r} suggestions={sugs} />
         </Block>
       )}
+      <PropertyFields d={d} set={set} r={r} />
       <SignFields d={d} set={set} r={r} />
       <ExtraFields qs={extra('final')} d={d} set={set} />
       {r('notes') !== 'oculto' && (
@@ -423,12 +442,13 @@ export function DataSummary({ d, onEdit }: { d: ContractData; onEdit?: (part: 'e
       ['endereço', addr(p.address)],
     ],
   })
-  if (d.partners.length) groups.push({ part: 'socios', icon: 'users', title: 'sócios', rows: d.partners.map((x, i) => [`sócio ${i + 1}`, [x.name, x.cpf && `CPF ${x.cpf}`, x.role].filter(Boolean).join(' · ')] as [string, string]) })
+  if (d.partners.length) groups.push({ part: 'socios', icon: 'users', title: d.signAs === 'empresa' ? 'sócios' : 'quem mais assina', rows: d.partners.map((x, i) => [d.signAs === 'empresa' ? `sócio ${i + 1}` : `pessoa ${i + 2}`, [x.name, x.cpf && `CPF ${x.cpf}`, x.role].filter(Boolean).join(' · ')] as [string, string]) })
   groups.push({
     part: 'final',
     icon: 'pen',
     title: 'contrato',
     rows: [
+      ['imóvel', addr(d.property)],
       ['assina', signersOf(d).map((x) => x.name).join(', ')],
       ['no contrato', contractantName(d)],
       ...(d.extra ?? []).map((x) => [x.label, x.value] as [string, string]),

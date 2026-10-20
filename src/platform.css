@@ -4041,3 +4041,7 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
 .rz-list li { grid-template-columns: 72px auto minmax(0, 1fr); }
 .rz-list b { font-size: 64px; }
 .rz-celular:not(.is-story) .rz-phone { top: 380px; height: 830px; right: 90px; }
+.cdf-aud { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.cdf-aud .cd-type { grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; padding: 14px 16px; }
+.cdf-aud .cd-type small { grid-column: 1 / -1; line-height: 1.35; }
+@media (max-width: 560px) { .cdf-aud { grid-template-columns: 1fr; } }

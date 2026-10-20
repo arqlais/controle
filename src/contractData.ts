@@ -74,46 +74,58 @@ const filled = (v?: string) => !!(v ?? '').trim()
 const addrOk = (a?: FullAddress) => !!a && filled(a.cep) && filled(a.street) && filled(a.number) && filled(a.city) && filled(a.uf)
 
 /* ---------- o formulário: o que é obrigatório, opcional ou não é pedido ---------- */
-export const DATA_FIELDS: { key: DataFieldKey; label: string; group: 'empresa' | 'voce' | 'final'; def: DataFieldRule; fixed?: boolean }[] = [
-  { key: 'cnpj', label: 'CNPJ', group: 'empresa', def: 'obrigatorio', fixed: true },
-  { key: 'legalName', label: 'razão social', group: 'empresa', def: 'obrigatorio' },
-  { key: 'tradeName', label: 'nome fantasia', group: 'empresa', def: 'opcional' },
-  { key: 'kind', label: 'tipo (MEI, LTDA…)', group: 'empresa', def: 'opcional' },
-  { key: 'companyEmail', label: 'e-mail da empresa', group: 'empresa', def: 'opcional' },
-  { key: 'companyPhone', label: 'telefone da empresa', group: 'empresa', def: 'opcional' },
-  { key: 'stateReg', label: 'inscrição estadual / municipal', group: 'empresa', def: 'opcional' },
-  { key: 'companyAddress', label: 'endereço da empresa', group: 'empresa', def: 'obrigatorio' },
-  { key: 'name', label: 'nome completo', group: 'voce', def: 'obrigatorio', fixed: true },
-  { key: 'cpf', label: 'CPF', group: 'voce', def: 'obrigatorio' },
-  { key: 'rg', label: 'RG', group: 'voce', def: 'obrigatorio' },
-  { key: 'rgIssuer', label: 'órgão emissor', group: 'voce', def: 'opcional' },
-  { key: 'nationality', label: 'nacionalidade', group: 'voce', def: 'obrigatorio' },
-  { key: 'civilState', label: 'estado civil', group: 'voce', def: 'obrigatorio' },
-  { key: 'profession', label: 'profissão', group: 'voce', def: 'obrigatorio' },
-  { key: 'role', label: 'cargo na empresa', group: 'voce', def: 'opcional' },
-  { key: 'email', label: 'e-mail', group: 'voce', def: 'obrigatorio' },
-  { key: 'phone', label: 'WhatsApp', group: 'voce', def: 'opcional' },
-  { key: 'personAddress', label: 'endereço (pessoa física)', group: 'voce', def: 'obrigatorio' },
-  { key: 'repAddress', label: 'endereço de quem representa a empresa', group: 'voce', def: 'opcional' },
-  { key: 'partners', label: 'sócios', group: 'final', def: 'opcional' },
-  { key: 'signers', label: 'quem assina', group: 'final', def: 'obrigatorio' },
-  { key: 'contractName', label: 'nome que vai no contrato', group: 'final', def: 'opcional' },
-  { key: 'notes', label: 'observações', group: 'final', def: 'opcional' },
+export type Audience = 'b2b' | 'final'
+export const AUDIENCES: { value: Audience; label: string; text: string }[] = [
+  { value: 'b2b', label: 'escritórios e profissionais', text: 'prestação de serviço para escritório, arquiteto, designer ou construtora: o essencial da empresa e de quem assina' },
+  { value: 'final', label: 'cliente final', text: 'projeto para a casa ou o negócio do cliente: dados pessoais completos e o endereço do imóvel' },
+]
+export const audienceOf = (c?: Client): Audience => (c?.type === 'final' ? 'final' : 'b2b')
+type Def = { b2b: DataFieldRule; final: DataFieldRule }
+const o = 'obrigatorio' as const
+const p = 'opcional' as const
+const x = 'oculto' as const
+/** Só o que o contrato precisa, conforme para quem é o serviço. */
+export const DATA_FIELDS: { key: DataFieldKey; label: string; group: 'empresa' | 'voce' | 'final'; def: Def; fixed?: boolean }[] = [
+  { key: 'cnpj', label: 'CNPJ', group: 'empresa', def: { b2b: o, final: o }, fixed: true },
+  { key: 'legalName', label: 'razão social', group: 'empresa', def: { b2b: o, final: o } },
+  { key: 'tradeName', label: 'nome fantasia', group: 'empresa', def: { b2b: p, final: x } },
+  { key: 'kind', label: 'tipo (MEI, LTDA…)', group: 'empresa', def: { b2b: x, final: x } },
+  { key: 'companyEmail', label: 'e-mail da empresa', group: 'empresa', def: { b2b: p, final: x } },
+  { key: 'companyPhone', label: 'telefone da empresa', group: 'empresa', def: { b2b: x, final: x } },
+  { key: 'stateReg', label: 'inscrição estadual / municipal', group: 'empresa', def: { b2b: x, final: x } },
+  { key: 'companyAddress', label: 'endereço da empresa', group: 'empresa', def: { b2b: o, final: o } },
+  { key: 'name', label: 'nome completo', group: 'voce', def: { b2b: o, final: o }, fixed: true },
+  { key: 'cpf', label: 'CPF', group: 'voce', def: { b2b: o, final: o } },
+  { key: 'rg', label: 'RG', group: 'voce', def: { b2b: x, final: o } },
+  { key: 'rgIssuer', label: 'órgão emissor do RG', group: 'voce', def: { b2b: x, final: p } },
+  { key: 'nationality', label: 'nacionalidade', group: 'voce', def: { b2b: x, final: o } },
+  { key: 'civilState', label: 'estado civil', group: 'voce', def: { b2b: x, final: o } },
+  { key: 'profession', label: 'profissão', group: 'voce', def: { b2b: x, final: p } },
+  { key: 'role', label: 'cargo na empresa', group: 'voce', def: { b2b: p, final: x } },
+  { key: 'email', label: 'e-mail', group: 'voce', def: { b2b: o, final: o } },
+  { key: 'phone', label: 'WhatsApp', group: 'voce', def: { b2b: p, final: o } },
+  { key: 'personAddress', label: 'endereço (quando é pessoa física)', group: 'voce', def: { b2b: o, final: o } },
+  { key: 'repAddress', label: 'endereço de quem representa a empresa', group: 'voce', def: { b2b: x, final: x } },
+  { key: 'propertyAddress', label: 'endereço do imóvel do projeto', group: 'final', def: { b2b: x, final: o } },
+  { key: 'partners', label: 'sócios / outras pessoas que assinam', group: 'final', def: { b2b: p, final: p } },
+  { key: 'signers', label: 'quem assina', group: 'final', def: { b2b: o, final: o } },
+  { key: 'contractName', label: 'nome que vai no contrato', group: 'final', def: { b2b: p, final: x } },
+  { key: 'notes', label: 'observações', group: 'final', def: { b2b: x, final: x } },
 ]
 export const DEFAULT_FORM: DataFormConfig = { intro: '', rules: {}, extra: [] }
 export type Rule = (k: DataFieldKey) => DataFieldRule
 export const ruleOf =
-  (cfg?: DataFormConfig): Rule =>
+  (cfg?: DataFormConfig, aud: Audience = 'b2b'): Rule =>
   (k) => {
-    const f = DATA_FIELDS.find((x) => x.key === k)
+    const f = DATA_FIELDS.find((y) => y.key === k)
     if (f?.fixed) return 'obrigatorio'
-    return cfg?.rules[k] ?? f?.def ?? 'opcional'
+    return cfg?.rules[k] ?? f?.def[aud] ?? 'opcional'
   }
-const label = (k: DataFieldKey) => DATA_FIELDS.find((x) => x.key === k)?.label ?? k
+const label = (k: DataFieldKey) => DATA_FIELDS.find((y) => y.key === k)?.label ?? k
 
 /** O que falta, por passo (o link confere passo a passo) ou tudo (a sua tela). */
-export function missingFor(d: ContractData, cfg?: DataFormConfig, step?: 'empresa' | 'voce' | 'socios' | 'final'): string[] {
-  const r = ruleOf(cfg)
+export function missingFor(d: ContractData, cfg?: DataFormConfig, step?: 'empresa' | 'voce' | 'socios' | 'final', aud: Audience = 'b2b'): string[] {
+  const r = ruleOf(cfg, aud)
   const need = (k: DataFieldKey) => r(k) === 'obrigatorio'
   const out: string[] = []
   const p = d.person
@@ -134,8 +146,9 @@ export function missingFor(d: ContractData, cfg?: DataFormConfig, step?: 'empres
     if (!company && need('personAddress') && !addrOk(p.address)) out.push('endereço')
     if (company && need('repAddress') && !addrOk(p.address)) out.push('seu endereço')
   }
-  if (company && (!step || step === 'socios')) d.partners.forEach((x, i) => (!filled(x.name) || !validCpf(x.cpf)) && out.push(`nome e CPF do sócio ${i + 1}`))
+  if (!step || step === 'socios') d.partners.forEach((x, i) => (!filled(x.name) || !validCpf(x.cpf)) && out.push(company ? `nome e CPF do sócio ${i + 1}` : `nome e CPF da pessoa ${i + 2}`))
   if (!step || step === 'final') {
+    if (need('propertyAddress') && !addrOk(d.property)) out.push(label('propertyAddress'))
     if (need('signers') && !d.signers.length) out.push('quem assina')
     if (need('contractName') && !filled(d.contractName)) out.push(label('contractName'))
     if (need('notes') && !filled(d.notes)) out.push(label('notes'))
@@ -147,13 +160,13 @@ export function missingFor(d: ContractData, cfg?: DataFormConfig, step?: 'empres
   return out
 }
 /** O que ainda falta para o contrato sair completo (tela de quem gerencia). */
-export const missingOf = (d?: ContractData, cfg?: DataFormConfig) => (d ? missingFor(d, cfg) : ['tudo'])
+export const missingOf = (d?: ContractData, cfg?: DataFormConfig, aud: Audience = 'b2b') => (d ? missingFor(d, cfg, undefined, aud) : ['tudo'])
 /** De 0 a 100: quanto do contrato já tem dados. */
-export function completeness(d?: ContractData, cfg?: DataFormConfig) {
+export function completeness(d?: ContractData, cfg?: DataFormConfig, aud: Audience = 'b2b') {
   if (!d) return 0
-  const r = ruleOf(cfg)
-  const total = DATA_FIELDS.filter((f) => r(f.key) === 'obrigatorio' && (d.signAs === 'empresa' ? f.key !== 'personAddress' : f.group !== 'empresa' && f.key !== 'role' && f.key !== 'repAddress')).length + d.partners.length + (cfg?.extra ?? []).filter((q) => q.required).length
-  return Math.max(0, Math.min(100, Math.round(((total - missingOf(d, cfg).length) / Math.max(1, total)) * 100)))
+  const r = ruleOf(cfg, aud)
+  const total = DATA_FIELDS.filter((f) => r(f.key) === 'obrigatorio' && !f.fixed && f.key !== 'partners' && (d.signAs === 'empresa' ? f.key !== 'personAddress' : f.group !== 'empresa' && f.key !== 'role' && f.key !== 'repAddress')).length + d.partners.length + (cfg?.extra ?? []).filter((q) => q.required).length
+  return Math.max(0, Math.min(100, Math.round(((total - missingOf(d, cfg, aud).length) / Math.max(1, total)) * 100)))
 }
 
 /* ---------- textos para o contrato ---------- */
@@ -184,7 +197,10 @@ export const signersOf = (d: ContractData) => peopleOf(d).filter((p) => d.signer
 
 /** Qualificação completa de quem contrata (o parágrafo do "CONTRATANTE: …"). */
 export function qualification(d: ContractData) {
-  if (d.signAs === 'pessoa') return personText(d.person)
+  if (d.signAs === 'pessoa') {
+    const who = signersOf(d)
+    return (who.length ? who : [d.person]).map((x) => personText(x)).join('; e ')
+  }
   const c = d.company
   const reps = signersOf(d)
   const repText = reps.map((p) => personText(p, false, true)).join('; e por ')
@@ -266,6 +282,7 @@ export interface DataPayload {
   email?: string
   prefill: ContractData
   form?: DataFormConfig
+  audience?: Audience
 }
 const LOCAL = 'briefings-publicos' // mesma gaveta da prévia do briefing (as respostas voltam pelo mesmo caminho)
 type LocalRow = { payload: DataPayload; answers?: ContractData; answeredAt?: string }
@@ -288,7 +305,11 @@ const useCloud = () => CLOUD && !viewingAsClient()
 export const dataLinkUrl = (id: string) => `${location.origin}${location.pathname}#/dados/${id}`
 export const newLinkId = () => (crypto.randomUUID ? crypto.randomUUID() : `${uid()}-${uid()}`)
 
+export const formOf = (s: Settings, aud: Audience) => (aud === 'final' ? s.dataFormFinal : s.dataForm) ?? DEFAULT_FORM
+
 export function dataPayload(s: Settings, c: Client): DataPayload {
+  const aud = audienceOf(c)
+  const prefill = dataFromClient(c)
   return {
     kind: 'dados',
     title: 'dados para o contrato',
@@ -299,8 +320,9 @@ export function dataPayload(s: Settings, c: Client): DataPayload {
     logo: s.logo && s.logo.length < 200_000 ? s.logo : undefined,
     phone: (s.phone || '').replace(/\D/g, ''),
     email: s.email,
-    prefill: dataFromClient(c),
-    form: s.dataForm ?? DEFAULT_FORM,
+    prefill: c.contractData ? prefill : { ...prefill, signAs: c.companyDoc ? 'empresa' : c.billTo === 'pessoa' || aud === 'final' ? 'pessoa' : 'empresa' },
+    form: formOf(s, aud),
+    audience: aud,
   }
 }
 

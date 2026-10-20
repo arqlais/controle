@@ -18,6 +18,7 @@ export const CONTRACT_VARS: [string, string][] = [
   ['telefone_contratante', 'telefone do cliente'],
   ['qualificacao_contratante', 'qualificação completa do cliente (empresa, CNPJ, sede e quem representa)'],
   ['representante', 'quem assina pelo cliente'],
+  ['endereco_obra', 'endereço do imóvel do projeto (cliente final)'],
   ['contratada', 'seu nome completo'],
   ['doc_contratada', 'seu CPF/CNPJ'],
   ['endereco_contratada', 'seu endereço'],
@@ -151,6 +152,7 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
     foro: (s.city || '').replace(/\s*-\s*/, '/') || blank('cidade/UF do foro'),
     qualificacao_contratante: client ? payer.name : blank('qualificação do cliente'),
     representante: client?.name || blank('quem assina pelo cliente'),
+    endereco_obra: blank('endereço do imóvel'),
     // dados completos que o cliente mandou (ou que você corrigiu): valem por cima do cadastro
     ...(client?.contractData ? fromData(client.contractData) : {}),
   }
@@ -170,6 +172,7 @@ function fromData(d: NonNullable<Client['contractData']>): Record<string, string
   put('telefone_contratante', company ? d.company.phone || d.person.phone : d.person.phone)
   put('qualificacao_contratante', qualification(d))
   put('representante', signersOf(d).map((p) => p.name).join(' e '))
+  put('endereco_obra', addressText(d.property))
   return out
 }
 

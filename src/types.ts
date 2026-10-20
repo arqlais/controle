@@ -106,7 +106,8 @@ export interface ContractData {
     address: FullAddress
   }
   person: ContractPerson // quem preenche (titular / responsável)
-  partners: ContractPerson[]
+  partners: ContractPerson[] // sócios (empresa) ou outras pessoas que assinam (cônjuge…)
+  property?: FullAddress // endereço do imóvel do projeto (cliente final)
   signers: string[] // ids de quem assina (titular e/ou sócios)
   contractName: string // nome que aparece como contratante
   notes: string
@@ -119,7 +120,7 @@ export type DataFieldRule = 'obrigatorio' | 'opcional' | 'oculto'
 export type DataFieldKey =
   | 'cnpj' | 'legalName' | 'tradeName' | 'kind' | 'companyEmail' | 'companyPhone' | 'stateReg' | 'companyAddress'
   | 'name' | 'cpf' | 'rg' | 'rgIssuer' | 'nationality' | 'civilState' | 'profession' | 'role' | 'email' | 'phone' | 'personAddress' | 'repAddress'
-  | 'partners' | 'signers' | 'contractName' | 'notes'
+  | 'partners' | 'signers' | 'contractName' | 'notes' | 'propertyAddress'
 export interface DataQuestion {
   id: string
   label: string
@@ -656,7 +657,8 @@ export interface Contract {
 export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | 'page' | 'card' | 'text' | 'button' | 'detail' | 'border'
 
 export interface Settings {
-  dataForm?: DataFormConfig // formulário de dados para contrato (só a dona, por enquanto)
+  dataForm?: DataFormConfig // formulário de dados para contrato: escritórios e profissionais (só a dona, por enquanto)
+  dataFormFinal?: DataFormConfig // formulário de dados para contrato: cliente final
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços
