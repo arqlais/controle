@@ -81,4 +81,4 @@ jobs:
           jq -n --arg id "$GOOGLE_CLIENT_ID" --arg sec "$GOOGLE_CLIENT_SECRET" '{external_google_enabled: true, external_google_client_id: $id, external_google_secret: $sec, site_url: "https://useplane.com.br", uri_allow_list: "https://useplane.com.br/**,https://www.useplane.com.br/**,https://arqlais.github.io/controle/**"}' > auth.json
           CODE=$(curl -sS -o out.json -w '%{http_code}' -X PATCH "https://api.supabase.com/v1/projects/$REF/config/auth" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @auth.json)
-          if [ "$CODE" -lt 300 ]; then echo "::notice title=login com Google::ligado no Supabase"; else echo "::error title=login com Google ($CODE)::$(head -c 400 out.json | tr '\n' ' ')"; exit 1; fi
+          if [ "$CODE" -lt 300 ]; then echo "::notice title=login com Google::ligado no Supabase"; else echo "::warning title=login com Google ($CODE)::a chave do Supabase não pode mudar o login; ligue o Google direto no Supabase (Authentication → Providers)"; fi
