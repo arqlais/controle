@@ -571,9 +571,9 @@ export default function App() {
             {profileImportant(settings).length > 0 && <em className="brand-dot" title={`Falta no perfil: ${profileImportant(settings).join(', ')}`} />}
           </span>
           <span className="brand-text">
-            <span className="brand-kicker">meu estúdio</span>
+            <span className="brand-kicker">minha gestão</span>
             <span className="brand-name">
-              {settings.brandName.replace(/\.$/, '') || 'estúdio'}
+              {(settings.brandName && settings.brandName !== 'meu estúdio' ? settings.brandName : settings.ownerName || settings.brandName || 'meu perfil').replace(/\.$/, '')}
               <i>.</i>
             </span>
           </span>
