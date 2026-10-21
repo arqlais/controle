@@ -1910,7 +1910,25 @@ function PlansEditor() {
           </div>
         )}
         <label className={`launch-toggle ${cfg.google ? 'is-on' : ''}`}>
-          <input type="checkbox" checked={!!cfg.google} onChange={(e) => setCfg({ ...cfg, google: e.target.checked })} />
+          <input
+            type="checkbox"
+            checked={!!cfg.google}
+            onChange={async (e) => {
+              // salva na hora: o botão aparece no login sem precisar do "salvar" dos planos
+              const google = e.target.checked
+              const savedCfg = { ...(JSON.parse(saved) as PlanConfig), google }
+              setCfg({ ...cfg, google })
+              try {
+                await platform.savePlanConfig(savedCfg)
+                applyPlanConfig(savedCfg)
+                rememberPlanConfig(savedCfg)
+                setSaved(JSON.stringify(savedCfg))
+                toast(google ? 'Entrar com Google ligado: já aparece no login e no cadastro.' : 'Entrar com Google desligado.')
+              } catch {
+                toast('Não foi possível salvar agora. Tente de novo.')
+              }
+            }}
+          />
           <span>
             <b>{cfg.google ? 'entrar com Google ligado' : 'entrar com Google desligado'}</b>
             <small>Mostra “continuar com Google” no cadastro e no login. Só ligue depois de ativar o Google no Supabase (passo a passo em docs/PLATAFORMA-SUPABASE.md).</small>
