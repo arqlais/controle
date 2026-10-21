@@ -4448,3 +4448,6 @@ a.cd-go, a.cd-go:visited { color: #fff; text-decoration: none; }
 .ai-rev-item p { margin: 0; font-size: 13px; line-height: 1.5; }
 .ai-rev-item small { font-size: 12px; color: var(--muted); }
 .ai-rev-ok { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--accent-ink); }
+:root[data-app-theme='dark'] .sidebar nav a.active .nav-alert { background: #1d232a !important; color: var(--accent-soft) !important; }
+:root[data-app-theme='dark'] .avatar { background: color-mix(in srgb, var(--accent-soft) 20%, var(--surface)) !important; color: var(--text) !important; }
+.star { color: var(--accent-ink); }
