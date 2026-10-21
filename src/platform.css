@@ -4169,3 +4169,32 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
   .brand { padding-bottom: 6px !important; }
 }
 @media (min-width: 821px) and (max-height: 800px) { .sidebar nav a, .sidebar nav .nav-tour { padding-top: 5px; padding-bottom: 5px; } .nav-main-label { padding-top: 6px !important; } }
+
+/* cartão do assinante: o essencial à vista, o resto no símbolo de engrenagem */
+.pf-sub { gap: 10px; }
+.pf-sub-head .grow b { display: flex; align-items: center; gap: 6px; }
+.pf-email { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-chat-btn { position: relative; flex: none; }
+.pf-unread { position: absolute; top: 2px; right: 2px; min-width: 16px; padding: 0 4px; border-radius: 99px; background: var(--accent-ink); color: #fff; font-size: 10px; font-style: normal; line-height: 16px; text-align: center; }
+.pf-state { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--surface-2, #f3efea); font-size: 12.5px; font-weight: 600; }
+.pf-state i { width: 7px; height: 7px; border-radius: 50%; }
+.pf-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+.pf-chip.is-warn { color: var(--accent-ink); border-color: var(--accent-soft); }
+.pf-request { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--accent-soft); border-radius: calc(14px * var(--rs, 1)); background: var(--accent-tint); color: var(--text); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.pf-request > svg { color: var(--accent-ink); }
+.pf-request-go { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 999px; background: var(--accent); color: var(--accent-contrast, #fff); font-size: 12.5px; font-weight: 600; }
+.pf-facts.is-icons { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.pf-facts.is-icons > div { flex-direction: row; align-items: center; gap: 7px; color: var(--muted); }
+.pf-facts.is-icons dd { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-icon-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding-top: 8px; border-top: 1px solid var(--border); }
+.pf-icon-row .icon-btn { width: 100%; height: 38px; border-radius: calc(12px * var(--rs, 1)); }
+.pf-icon-row .icon-btn.is-on { background: var(--accent-tint); color: var(--accent-ink); }
+.pf-icon-row .icon-btn.is-danger:hover { color: var(--accent-ink); background: var(--accent-tint); }
+.pf-manage { display: grid; gap: 10px; animation: fade .2s; }
+/* uso: só o selo e os números principais em símbolos; a lista completa aparece ao passar o mouse */
+.pf-facts.is-icons .pf-usage { grid-column: 1 / -1; }
+.pf-facts.is-icons .pf-usage-in > small { display: none; }
+.pf-facts.is-icons .pf-usage { gap: 10px; }
+.pf-mini { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; color: var(--text); }
+.pf-mini svg { color: var(--muted); }
+.pf-icon-row { margin-top: auto; }

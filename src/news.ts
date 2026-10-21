@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-20-menu-inteiro',
+    date: '2026-10-20',
+    kind: 'melhoria',
+    title: 'menu inteiro na tela e início mais acolhedor',
+    text: 'O menu lateral aparece inteiro, sem rolar: os atalhos de ajustes viraram símbolos. Em configurações → aparência dá para escolher o menu fixo ou flutuante. E a tela de início ganhou a saudação do dia.',
+  },
+  {
     id: '2026-10-20-escopo-colunas',
     date: '2026-10-20',
     kind: 'correcao',

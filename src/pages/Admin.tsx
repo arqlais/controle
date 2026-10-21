@@ -394,6 +394,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
 function Subscribers({ subs, archivedN, onDeleted, update, openChat, unreadOf, billing, saveBilling, ctrl, saveCtrl, usage }: { archivedN: number; onDeleted: (id: string) => void; usage: Record<string, Usage>; subs: Subscription[]; update: (s: Subscription, p: Partial<Subscription>, msg: string) => Promise<boolean>; openChat: (id: string) => void; unreadOf: (id: string) => number; billing: Record<string, Billing>; saveBilling: (userId: string, b: Billing) => Promise<void>; ctrl: Record<string, SubAdmin>; saveCtrl: SaveCtrl }) {
   const [q, setQ] = useState('')
   const [proof, setProof] = useState<Subscription | null>(null)
+  const [openSub, setOpenSub] = useState<string | null>(null)
   const [filter, setFilter] = useKeep<'todos' | SubStatus | 'bloqueados' | 'vencendo' | 'teste_acabando' | 'sumidos' | 'arquivados'>('painel-filtro', 'todos')
   const [order, setOrder] = useKeep<'recentes' | 'nome' | 'vencimento' | 'acesso'>('painel-ordem', 'recentes')
   const idle = (s: Subscription) => !s.lastSeen || Date.now() - new Date(s.lastSeen).getTime() > 14 * 86_400_000
@@ -511,107 +512,139 @@ function Subscribers({ subs, archivedN, onDeleted, update, openChat, unreadOf, b
               <header className="pf-sub-head">
                 <span className="pf-avatar">{(s.name || s.email || '?')[0].toUpperCase()}</span>
                 <span className="grow">
-                  <b>{s.name || 'sem nome'}</b> <OnlineDot s={s} />
-                  <small className="muted">{s.studio || '—'}</small>
-                  <small className="muted pf-email">{s.email}</small>
+                  <b>
+                    {s.name || 'sem nome'} <OnlineDot s={s} />
+                  </b>
+                  <small className="muted pf-email" title={s.email}>
+                    {s.studio ? `${s.studio} · ` : ''}
+                    {s.email}
+                  </small>
                 </span>
+                {!s.deletedAt && (
+                  <button className="icon-btn pf-chat-btn" onClick={() => openChat(s.userId)} aria-label="Conversar" title="Conversar">
+                    <Icon name="chat" size={17} />
+                    {unread ? <em className="pf-unread">{unread}</em> : null}
+                  </button>
+                )}
               </header>
               <div className="pf-badges">
-                <Badge color={STATUS_COLOR[s.status]}>{STATUS_LABEL[s.status]}</Badge>
-                <Badge color="#3e4b57">{s.status === 'trial' ? `testando o ${PLANS[effectivePlan(s)].name}` : PLANS[s.plan].name}</Badge>
-                {s.deletedAt ? <Badge color="#9aa3ab">conta apagada em {dateBR(s.deletedAt)}</Badge> : s.blocked && <Badge color="#9a5b53">bloqueado</Badge>}
-                {!s.deletedAt && s.status === 'cancelada' && s.canceledAt && <Badge color="#9aa3ab">desativou em {dateBR(s.canceledAt)}</Badge>}
-                {s.requestedPlan && <Badge color="#b08a7e">pediu o {PLANS[s.requestedPlan].name}</Badge>}
+                <span className={`pf-state is-${s.status}`}>
+                  <i style={{ background: STATUS_COLOR[s.status] }} />
+                  {s.status === 'trial' ? `teste · ${PLANS[effectivePlan(s)].name}` : `${PLANS[s.plan].name} · ${STATUS_LABEL[s.status]}`}
+                </span>
+                {s.deletedAt ? (
+                  <span className="pf-chip" title={`conta apagada em ${dateBR(s.deletedAt)}`}>
+                    <Icon name="trash" size={12} /> apagada
+                  </span>
+                ) : (
+                  s.blocked && (
+                    <span className="pf-chip is-warn">
+                      <Icon name="lock" size={12} /> bloqueado
+                    </span>
+                  )
+                )}
+                {!s.deletedAt && s.status === 'cancelada' && s.canceledAt && <span className="pf-chip" title="desativou em">{dateBR(s.canceledAt)}</span>}
               </div>
-              <dl className="pf-facts">
-                <div>
-                  <dt>desde</dt>
+              {s.requestedPlan && !s.deletedAt && (
+                <button className="pf-request" onClick={async () => (await ask(`Ativar a assinatura do ${PLANS[s.requestedPlan!].name}? Faça isso depois de confirmar o pagamento.`, { confirmLabel: 'Ativar' })) && update(s, activate(s), 'Assinatura ativada.')}>
+                  <Icon name="star" size={15} />
+                  <span className="grow">
+                    pediu o <b>{PLANS[s.requestedPlan].name}</b>
+                  </span>
+                  <span className="pf-request-go">
+                    <Icon name="check" size={14} /> ativar
+                  </span>
+                </button>
+              )}
+              <dl className="pf-facts is-icons">
+                <div title="desde">
+                  <Icon name="calendar" size={14} />
                   <dd>{dateBR(s.createdAt)}</dd>
                 </div>
-                <div>
-                  <dt>último acesso</dt>
+                <div title="último acesso">
+                  <Icon name="clock" size={14} />
                   <dd>{s.lastSeen ? ago(s.lastSeen) : '—'}</dd>
                 </div>
-                <div className="pf-usage">
-                  <dt>uso</dt>
-                  <dd>
-                    <UsageBadge u={usage[s.userId]} />
-                  </dd>
+                <div title={s.status === 'trial' ? 'teste' : 'valor'}>
+                  <Icon name={s.status === 'trial' ? 'star' : 'wallet'} size={14} />
+                  <dd>{s.status === 'trial' ? (left > 0 ? `${left} dia(s)` : 'terminou') : `${money0(PLANS[s.plan].price)}/mês`}</dd>
                 </div>
-                <div>
-                  <dt>{s.status === 'trial' ? 'teste' : 'valor'}</dt>
-                  <dd>{s.status === 'trial' ? (left > 0 ? `faltam ${left} dia(s)` : 'terminou') : `${money0(PLANS[s.plan].price)}/mês`}</dd>
+                <div className="pf-usage" title="uso">
+                  <UsageBadge u={usage[s.userId]} />
+                  {(usage[s.userId]?.quotes ?? 0) > 0 && (
+                    <span className="pf-mini" title="orçamentos">
+                      <Icon name="file" size={13} /> {usage[s.userId]!.quotes}
+                    </span>
+                  )}
+                  {(usage[s.userId]?.clients ?? 0) > 0 && (
+                    <span className="pf-mini" title="clientes">
+                      <Icon name="users" size={13} /> {usage[s.userId]!.clients}
+                    </span>
+                  )}
                 </div>
               </dl>
-              {billing[s.userId] && <BillingDetails s={s} b={billing[s.userId]} save={(b) => saveBilling(s.userId, b)} />}
-              <button type="button" className="link small proof-link" onClick={() => setProof(s)} title="Para contestação de pagamento">
-                <Icon name="file" size={13} /> comprovante do assinante
-              </button>
-              {!s.deletedAt && <TrialControl s={s} update={update} />}
-              {!s.deletedAt && (s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
-              {s.deletedAt ? (
-                <p className="muted small">A pessoa apagou a conta: os dados do sistema dela foram removidos. O cadastro fica aqui só para consulta.</p>
-              ) : (
-              <>
-              <div className="pf-sub-actions">
-                <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
-                  {PLAN_LIST.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={s.status}
-                  onChange={(e) => {
-                    const status = e.target.value as SubStatus
-                    void update(s, { status, canceledAt: status === 'cancelada' ? new Date().toISOString() : null }, `Situação → ${STATUS_LABEL[status]}.`)
-                  }}
-                  aria-label="Situação"
-                >
-                  {(Object.keys(STATUS_LABEL) as SubStatus[]).map((k) => (
-                    <option key={k} value={k}>
-                      {STATUS_LABEL[k]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="row gap-s wrap">
-                {s.requestedPlan && (
-                  <button className="btn small approve" onClick={async () => (await ask(`Ativar a assinatura do ${PLANS[s.requestedPlan!].name}? Faça isso depois de confirmar o pagamento.`, { confirmLabel: 'Ativar' })) && update(s, activate(s), 'Assinatura ativada.')}>
-                    <Icon name="check" size={14} /> ativar assinatura
+              {s.deletedAt && <p className="muted small">A pessoa apagou a conta: os dados foram removidos. O cadastro fica só para consulta.</p>}
+              <div className="pf-icon-row">
+                {!s.deletedAt && (
+                  <button className={`icon-btn ${openSub === s.userId ? 'is-on' : ''}`} onClick={() => setOpenSub(openSub === s.userId ? null : s.userId)} aria-label="Gerenciar plano, teste e cobrança" title="Gerenciar plano, teste e cobrança">
+                    <Icon name="settings" size={16} />
                   </button>
                 )}
-                {s.blocked ? (
-                  <button className="btn small approve" onClick={() => void update(s, { blocked: false }, 'Acesso liberado.')}>
-                    <Icon name="check" size={14} /> liberar
-                  </button>
-                ) : (
-                  <button
-                    className="btn small ghost danger"
-                    onClick={async () => (await ask(`Bloquear ${s.name || s.email}? A pessoa não consegue usar o sistema até você liberar. Os dados dela não são apagados.`, { confirmLabel: 'Bloquear', danger: true })) && update(s, { blocked: true }, 'Acesso bloqueado.')}
-                  >
-                    <Icon name="lock" size={14} /> bloquear
-                  </button>
-                )}
-                <button className="btn small ghost" onClick={() => openChat(s.userId)}>
-                  <Icon name="chat" size={14} /> conversar{unread ? ` (${unread})` : ''}
+                <button className="icon-btn" onClick={() => setProof(s)} aria-label="Comprovante do assinante" title="Comprovante do assinante (para contestação)">
+                  <Icon name="file" size={16} />
                 </button>
-              </div>
-              </>
-              )}
-              <div className="row gap-s wrap pf-sub-house">
+                {!s.deletedAt &&
+                  (s.blocked ? (
+                    <button className="icon-btn" onClick={() => void update(s, { blocked: false }, 'Acesso liberado.')} aria-label="Liberar acesso" title="Liberar acesso">
+                      <Icon name="check" size={16} />
+                    </button>
+                  ) : (
+                    <button className="icon-btn" onClick={async () => (await ask(`Bloquear ${s.name || s.email}? A pessoa não consegue usar o sistema até você liberar. Os dados dela não são apagados.`, { confirmLabel: 'Bloquear', danger: true })) && update(s, { blocked: true }, 'Acesso bloqueado.')} aria-label="Bloquear" title="Bloquear">
+                      <Icon name="lock" size={16} />
+                    </button>
+                  ))}
                 <button
-                  className="btn small ghost"
+                  className="icon-btn"
                   onClick={() => void saveCtrl(s.userId, { ...ctrl[s.userId], archived: !ctrl[s.userId]?.archived }, ctrl[s.userId]?.archived ? 'Conta de volta na lista.' : 'Conta arquivada: saiu da lista e dos números. Fica em “arquivados”.')}
-                  title="Tira da lista e dos números sem apagar nada (ex.: conta de teste)"
+                  aria-label={ctrl[s.userId]?.archived ? 'Desarquivar' : 'Arquivar'}
+                  title={ctrl[s.userId]?.archived ? 'Desarquivar' : 'Arquivar (tira da lista e dos números sem apagar)'}
                 >
-                  <Icon name="box" size={14} /> {ctrl[s.userId]?.archived ? 'desarquivar' : 'arquivar'}
+                  <Icon name="box" size={16} />
                 </button>
-                <button className="btn small ghost danger" onClick={() => void removeForever(s)} title="Apaga o login, a assinatura e todos os dados da conta">
-                  <Icon name="trash" size={14} /> excluir de vez
+                <button className="icon-btn is-danger" onClick={() => void removeForever(s)} aria-label="Excluir de vez" title="Excluir de vez (login, assinatura e dados)">
+                  <Icon name="trash" size={16} />
                 </button>
               </div>
+              {openSub === s.userId && !s.deletedAt && (
+                <div className="pf-manage">
+                  <div className="pf-sub-actions">
+                    <select value={s.plan} onChange={(e) => void update(s, { plan: e.target.value as PlanId }, `Plano de ${s.name || s.email} → ${PLANS[e.target.value as PlanId].name}.`)} aria-label="Plano">
+                      {PLAN_LIST.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={s.status}
+                      onChange={(e) => {
+                        const status = e.target.value as SubStatus
+                        void update(s, { status, canceledAt: status === 'cancelada' ? new Date().toISOString() : null }, `Situação → ${STATUS_LABEL[status]}.`)
+                      }}
+                      aria-label="Situação"
+                    >
+                      {(Object.keys(STATUS_LABEL) as SubStatus[]).map((k) => (
+                        <option key={k} value={k}>
+                          {STATUS_LABEL[k]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <TrialControl s={s} update={update} />
+                  {(s.status !== 'trial' || ctrl[s.userId]) && <SubControl s={s} c={ctrl[s.userId]} b={billing[s.userId]} save={saveCtrl} />}
+                  {billing[s.userId] && <BillingDetails s={s} b={billing[s.userId]} save={(b) => saveBilling(s.userId, b)} />}
+                </div>
+              )}
             </article>
           )
         })}
@@ -2009,7 +2042,7 @@ function UsageBadge({ u }: { u?: Usage }) {
   const lv = LEVEL[usageLevel(u)]
   const parts = u ? [[u.quotes, 'orçamento'], [u.clients, 'cliente'], [u.contracts, 'contrato'], [u.docs, 'documento'], [u.briefings, 'briefing']].filter(([n]) => (n as number) > 0).map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`) : []
   return (
-    <span className="pf-usage-in">
+    <span className="pf-usage-in" title={[parts.join(' · '), u?.lastQuoteAt ? `último orçamento ${ago(u.lastQuoteAt)}` : ''].filter(Boolean).join(' · ') || undefined}>
       <span className="pf-usage-badge" style={{ color: lv.color, background: `color-mix(in srgb, ${lv.color} 12%, transparent)` }}>
         <Icon name={lv.icon} size={12} /> {lv.label}
       </span>
