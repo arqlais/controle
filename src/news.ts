@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-20-valor-unitario',
+    date: '2026-10-20',
+    kind: 'melhoria',
+    title: 'valor de cada unidade na proposta e desconto de estudante opcional',
+    text: 'Serviços cobrados por unidade (imagens, pranchas, mapas…) mostram na proposta a conta, como “9 × R$ 70,00”, embaixo do total. E o desconto de estudante não entra mais sozinho: marque no orçamento quando quiser dar.',
+  },
+  {
     id: '2026-10-20-menu-inteiro',
     date: '2026-10-20',
     kind: 'melhoria',

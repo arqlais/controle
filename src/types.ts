@@ -486,6 +486,7 @@ export interface Quote {
   projectRemoved?: boolean // a demanda deste orçamento foi apagada de propósito (não pede para lançar de novo)
   closedNote?: string // o que mudou no fechamento (escopo, valor…)
   table?: PartnerTable // tabela de valores (terceirização, só a dona): o PDF sai como a tabela "proposta parceria"
+  studentOn?: boolean // desconto de estudante ligado neste orçamento (não entra sozinho)
   audience?: QuoteAudience // para quem é: cliente final (proposta em slides, etapas) ou escritório parceiro (vazio = parceiro)
   processId?: string // processo de trabalho usado como base das etapas
   steps?: ProcessStep[] // etapas do projeto (cliente final): o que inclui, prazo e % do pagamento
@@ -562,6 +563,7 @@ export interface ServiceDef {
   noteHints?: string[] // observações prontas para este serviço (aparecem como sugestão no orçamento)
   deliveryOpen?: string // como é entregue quando o cliente quer o arquivo aberto ('' = não se aplica)
   audience?: 'final' | 'parceiro' | 'ambos' // para quem este serviço aparece no orçamento (vazio = pelo tipo do serviço)
+  fixed?: boolean // valor fixo por unidade: não muda com a complexidade nem com o desconto de estudante (ex.: mapas)
   perFloor?: boolean // encarece a cada pavimento a mais (pranchas, arquivos e modelos em dobro, triplo…)
   areaTiers?: AreaTier[] // por m² com faixas: quanto maior a área, menor o R$/m² (valor para complexidade média); a lista vira peso (%) de cada planta
 }
@@ -659,6 +661,7 @@ export interface Contract {
 export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | 'page' | 'card' | 'text' | 'button' | 'detail' | 'border'
 
 export interface Settings {
+  mapsFixed?: boolean // serviço de mapas já marcado como valor fixo
   mapsAdded?: boolean // serviço de mapas urbanos já entrou na tabela da dona (uma vez só)
   menuLook?: 'classico' | 'claro' | 'flutuante-tema' | 'flutuante' // jeito do menu: fixo como era, fixo claro ou flutuante de vidro
   dataForm?: DataFormConfig // formulário de dados para contrato: escritórios e profissionais (só a dona, por enquanto)

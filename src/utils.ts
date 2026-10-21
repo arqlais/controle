@@ -524,7 +524,7 @@ export const listShare = (s: ServiceDef, lines: string[]) => (pricedByList(s, li
 
 export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity: Complexity, student: boolean, st: Settings, lines: string[] = [], openFile = false, floors = 1) {
   if (!s || s.pricing === 'livre') return 0
-  const cx = st.complexity[complexity] ?? 1
+  const cx = s.fixed ? st.complexity.media || 1 : st.complexity[complexity] ?? 1
   let v: number
   if (hasAreaTiers(s)) {
     // faixa de área × m² × complexidade (o valor da faixa é o da complexidade média) × peso das plantas marcadas
@@ -532,14 +532,14 @@ export function suggestPrice(s: ServiceDef | undefined, qty: number, complexity:
   } else if (pricedByList(s, lines)) {
     // cada planta/detalhamento marcado soma: R$/m² × área × complexidade, ou R$ cada × complexidade
     const { rate } = checklistRate(s, lines)
-    v = s.pricing === 'm2' ? (s.base || 0) + rate * qty * cx : rate * cx
+    v = s.pricing === 'm2' ? (s.base || 0) + rate * qty * cx : s.fixed ? rate : rate * cx
   } else v = s.pricing === 'm2' ? (s.base || 0) + s.price * qty * cx : unitRate(s, qty) * qty
   v = Math.max(v, s.min || 0)
   // cada pavimento a mais: pranchas, arquivos e modelos a mais
   if (s.perFloor && floors > 1) v *= 1 + ((floors - 1) * (st.floorFee ?? 50)) / 100
   // arquivo aberto: taxa interna embutida no valor (a proposta só diz como será entregue)
   if (openFile && !alreadyOpen(s)) v *= 1 + (st.openFileFee ?? 30) / 100
-  if (student && st.studentDiscount) v *= 1 - st.studentDiscount / 100
+  if (student && st.studentDiscount && !s.fixed) v *= 1 - st.studentDiscount / 100
   return round2(v)
 }
 

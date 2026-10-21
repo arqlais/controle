@@ -241,13 +241,17 @@ export default function App() {
   useContractDataSync(access.has('dadosContrato'))
   // mapas urbanos (estudantes): entra uma vez na tabela da dona, com a lista de mapas e o valor por mapa
   useEffect(() => {
+    if (access.isOwner && settings.mapsAdded && !settings.mapsFixed && !isSample) {
+      setSettings({ mapsFixed: true, services: settings.services.map((x) => (x.id === 'fr-mapas-urbanos' ? { ...x, fixed: true } : x)) })
+      return
+    }
     if (!access.isOwner || settings.mapsAdded || isSample) return
     const m = CATALOG.freela.groups.flatMap((g) => g.services).find((x) => x.id === 'fr-mapas-urbanos')
     if (!m) return
     const has = settings.services.some((x) => x.id === m.id)
-    setSettings({ mapsAdded: true, ...(has ? {} : { services: [...settings.services, { ...m, tiers: [], checklist: [...(m.checklist ?? [])], checklistPrices: { ...(m.checklistPrices ?? {}) }, noteHints: [...(m.noteHints ?? [])], audience: 'ambos' as const }] }) })
+    setSettings({ mapsAdded: true, mapsFixed: true, ...(has ? {} : { services: [...settings.services, { ...m, tiers: [], checklist: [...(m.checklist ?? [])], checklistPrices: { ...(m.checklistPrices ?? {}) }, noteHints: [...(m.noteHints ?? [])], audience: 'ambos' as const }] }) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [access.isOwner, settings.mapsAdded, isSample])
+  }, [access.isOwner, settings.mapsAdded, settings.mapsFixed, isSample])
   // assinaturas e recados que os clientes mandaram pelas páginas públicas
   useClientInbox(!access.legacy)
   const [chatSignal, setChatSignal] = useState(0)

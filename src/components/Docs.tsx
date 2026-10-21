@@ -267,7 +267,14 @@ function Desc({ text }: { text: string }) {
   )
 }
 
-function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boolean }) {
+function Rows({ items: all, priceFirst, services = [] }: { items: QuoteItem[]; priceFirst?: boolean; services?: ServiceDef[] }) {
+  // cobrado por unidade (mapas, imagens, pranchas…): mostra o valor de cada um, e o total ao lado
+  const each = (it: QuoteItem) => {
+    const sv = services.find((x) => x.id === it.service)
+    if (!sv || (sv.pricing !== 'unidade' && sv.pricing !== 'pacote') || it.quantity < 2 || it.joined || !it.price) return ''
+    const unit = Math.round((it.price / it.quantity) * 100) / 100
+    return `${it.quantity} × ${money(unit)}`
+  }
   // serviço em branco (sem nome e sem valor) não vai para a proposta
   const items = all.filter((it) => it.title.trim() || it.price > 0 || it.joined)
   return (
@@ -283,7 +290,12 @@ function Rows({ items: all, priceFirst }: { items: QuoteItem[]; priceFirst?: boo
             <Desc text={it.description} />
           </div>
           {/* cobrado junto com o de cima: sem valor na linha, já está somado no total */}
-          {!priceFirst && <span className="p-row-price">{it.joined ? '' : money(it.price)}</span>}
+          {!priceFirst && (
+            <span className="p-row-price">
+              {it.joined ? '' : money(it.price)}
+              {each(it) && <small className="p-row-each">{each(it)}</small>}
+            </span>
+          )}
         </div>
       ))}
     </div>
@@ -360,7 +372,7 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
                 <span className="p-option-label">{quote.combo ? 'proposta' : 'opção'} {n + 1}</span>
                 <div className="p-card">
                   <h3 className="p-card-title">{heading(o.name, o)}</h3>
-                  <Rows items={o.items} priceFirst />
+                  <Rows items={o.items} priceFirst services={s.services} />
                   {o.note && <p className="p-note">{o.note}</p>}
                 </div>
                 <TotalBar compact label="total" value={optionTotal(o)} note={o.discountNote || discountText(disc)} />
@@ -375,7 +387,7 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
               <h3 className="p-card-title">{heading(quote.title)}</h3>
               <span className="p-label">valor</span>
             </div>
-            <Rows items={quote.urgency && quote.urgencyHidden ? quote.items.map((it) => ({ ...it, price: Math.round(it.price * (1 + s.urgencyFee / 100) * 100) / 100 })) : quote.items} />
+            <Rows items={quote.urgency && quote.urgencyHidden ? quote.items.map((it) => ({ ...it, price: Math.round(it.price * (1 + s.urgencyFee / 100) * 100) / 100 })) : quote.items} services={s.services} />
             {quote.notes && <p className="p-note">{quote.notes}</p>}
           </div>
           <TotalBar label="investimento total" value={quoteTotal(quote, s.urgencyFee)} note={scopeNote} />

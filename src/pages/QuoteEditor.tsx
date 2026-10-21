@@ -116,7 +116,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   const [fresh] = useState(() => {
     if (!found) return undefined
     const c = data.clients.find((x) => x.id === found.clientId)
-    return freshPrices(found, withPartner(data.settings, c), isStudent(c))
+    return freshPrices(found, withPartner(data.settings, c), isStudent(c) && !!found.studentOn)
   })
   const [showFile, setShowFile] = useState(false) // "arquivo final" fica recolhido até ser usado
   const existing = fresh ?? found
@@ -298,7 +298,9 @@ export default function QuoteEditor({ id }: { id: string }) {
   if (id !== 'novo' && id !== 'antigo' && !existing) return <Empty title="Orçamento não encontrado" action={<a className="btn" href={href('orcamentos')}>Voltar</a>} />
 
   const client = data.clients.find((c) => c.id === q.clientId)
-  const student = isStudent(client)
+  // desconto de estudante: só quando marcado no orçamento (não entra sozinho)
+  const isStudentClient = isStudent(client)
+  const student = isStudentClient && !!q.studentOn
   const two = q.mode === 'opcoes'
   const displayName = client?.name || 'cliente'
 
@@ -935,7 +937,19 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <span className="muted small">{q.closedAt && q.closedAt > q.createdAt ? `${daysBetween(q.createdAt, q.closedAt)} dia(s) depois do orçamento` : 'pode ser diferente da data do orçamento'}</span>
               </div>
             )}
-            {student && <p className="small text-warn">Cliente estudante: sugestões com {settings.studentDiscount}% de desconto.</p>}
+            {isStudentClient && settings.studentDiscount > 0 && (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={!!q.studentOn}
+                  onChange={(e) => {
+                    const on = e.target.checked
+                    set(freshPrices({ ...q, studentOn: on || undefined }, settings, on))
+                  }}
+                />
+                <span>desconto de estudante ({settings.studentDiscount}%) nos valores da tabela</span>
+              </label>
+            )}
           </Section>
 
           {isFinal && (
@@ -1533,7 +1547,7 @@ function ItemsEditor({ items, student, openFile, floors, area = 0, settings, aud
                   <input type="number" min={0} inputMode="decimal" value={it.quantity || ''} placeholder="0" onFocus={(e) => e.target.select()} onChange={(e) => setItem(it.id, { quantity: Number(e.target.value) || 0 })} />
                 </Field>
               )}
-              {(s?.pricing === 'm2' || byList) && (
+              {(s?.pricing === 'm2' || byList) && !s?.fixed && (
                 <Field group label="Complexidade">
                   <Segmented<Complexity>
                     value={it.complexity}
