@@ -4207,3 +4207,4 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
   .sidebar-foot { flex-wrap: nowrap !important; align-items: center; padding: 10px 4px 2px !important; }
   .sidebar-foot .sync-status { order: 0 !important; flex: 1 0 auto !important; display: flex !important; font-size: 12px; overflow: visible !important; text-overflow: clip !important; }
 }
+@media (min-width: 821px) { .sidebar > .platform-mark { font-size: 28px; gap: 10px; top: -72px; height: 52px; letter-spacing: -0.035em; } }

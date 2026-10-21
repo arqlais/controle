@@ -562,7 +562,7 @@ export default function App() {
       <aside className="sidebar">
         {/* a marca da plataforma fica sempre presente, discreta, acima do estúdio de quem usa */}
         <a className="platform-mark" href={href('inicio')} aria-label={PLATFORM.name}>
-          <BrandMark place="menu" size={26} />
+          <BrandMark place="menu" size={34} />
           {PLATFORM.name}
         </a>
         <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('perfil')} title={`Perfil do estúdio e conta${userEmail ? ` (${userEmail})` : ''}`}>
