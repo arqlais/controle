@@ -1,8 +1,9 @@
 import { PixKeyInput } from '../components/PixKeyInput'
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useStore } from '../store'
 import { CLOUD, supabase } from '../cloud'
 import { signOut } from '../components/Auth'
+import { GoogleButton } from '../components/Signup'
 import { Icon } from '../components/Icon'
 import { InstallHint } from '../components/InstallHint'
 import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
@@ -240,6 +241,37 @@ export default function Profile() {
   )
 }
 
+/** Vincular o Google a uma conta criada com e-mail e senha: depois dá para entrar pelos dois jeitos. */
+function GoogleLink() {
+  const [linked, setLinked] = useState<string | null | undefined>(undefined)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    void supabase!.auth.getUserIdentities().then(({ data }) => {
+      const g = data?.identities.find((i) => i.provider === 'google')
+      setLinked(g ? String(g.identity_data?.email ?? 'conta Google') : null)
+    }, () => setLinked(null))
+  }, [])
+  if (linked === undefined) return null
+  if (linked)
+    return (
+      <p className="google-linked">
+        <Icon name="check" size={14} /> Google vinculado · {linked}
+      </p>
+    )
+  return (
+    <GoogleButton
+      busy={busy}
+      label="vincular minha conta Google"
+      onClick={async () => {
+        setBusy(true)
+        const { error } = await supabase!.auth.linkIdentity({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname + '#/perfil' } })
+        setBusy(false)
+        if (error) toast(/manual linking/i.test(error.message) ? 'O vínculo ainda não está liberado no Supabase (Authentication → Sign In / Providers → "Allow manual linking").' : 'Não foi possível vincular agora. Tente de novo.')
+      }}
+    />
+  )
+}
+
 function AccountSection({ email }: { email: string }) {
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
@@ -267,6 +299,7 @@ function AccountSection({ email }: { email: string }) {
           <div>
             <span className="field-label">e-mail de login</span>
             <p className="account-email">{email}</p>
+            <GoogleLink />
             <button className="btn ghost small" onClick={() => signOut()}>
               <Icon name="x" size={14} /> sair desta conta
             </button>

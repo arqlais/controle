@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-21-vincular-google',
+    date: '2026-10-21',
+    kind: 'novo',
+    title: 'entrar com o Google',
+    text: 'Criou a conta com e-mail e senha? Em perfil → conta e segurança, vincule a sua conta Google e entre pelos dois jeitos.',
+    steps: [{ text: 'Toque em "vincular minha conta Google".', page: 'perfil', target: '.auth-google' }],
+  },
+  {
     id: '2026-10-21-contrato-revisar',
     date: '2026-10-21',
     kind: 'melhoria',
