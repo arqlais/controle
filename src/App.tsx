@@ -1016,9 +1016,10 @@ function GlobalSearch() {
 function SyncBadge({ sync, lastSaved }: { sync: SyncStatus; lastSaved: Date | null }) {
   const time = lastSaved?.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   const label =
-    sync === 'saving' ? 'salvando…' : sync === 'offline' ? 'sem conexão · salvo no aparelho' : sync === 'saved' ? `salvo na nuvem${time ? ` · ${time}` : ''}` : time ? `salvo ${time}` : 'salvo neste navegador'
+    sync === 'saving' ? 'salvando…' : sync === 'offline' ? 'sem conexão' : time ? `salvo ${time}` : 'salvo'
+  const full = sync === 'saving' ? 'Salvando…' : sync === 'offline' ? 'Sem conexão: salvo no aparelho, sobe sozinho quando a internet voltar' : sync === 'saved' ? `Salvo na nuvem${time ? ` às ${time}` : ''}` : 'Salvo neste navegador'
   return (
-    <span className={`sync-status grow ${sync === 'saving' ? 'saving' : sync === 'offline' ? 'error' : ''}`}>
+    <span title={full} className={`sync-status grow ${sync === 'saving' ? 'saving' : sync === 'offline' ? 'error' : ''}`}>
       <i /> {label}
     </span>
   )

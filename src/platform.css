@@ -4225,3 +4225,9 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
   .brand .brand-name i { display: inline !important; color: var(--accent-soft); font-style: normal; }
   .brand .brand-photo { width: 40px !important; height: 40px !important; }
 }
+@media (min-width: 821px) {
+  .sidebar-foot { gap: 2px !important; }
+  .sidebar-foot .sync-status { flex: 1 1 auto !important; min-width: 0; justify-content: center; white-space: nowrap; }
+  .sidebar-foot > * { flex-shrink: 0; }
+  .sidebar-foot > .sync-status { flex-shrink: 1; }
+}
