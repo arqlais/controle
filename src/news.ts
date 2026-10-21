@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-21-negrito-cor',
+    date: '2026-10-21',
+    kind: 'novo',
+    title: 'negrito, itálico e cor nos textos',
+    text: 'No contrato e nos textos da proposta (observações, pagamento, prazos, apresentação), selecione um trecho e toque em B, I, U ou numa cor da sua marca (ou qualquer cor). As sugestões da IA entram dentro da cláusula certa e dá para tirar ou dispensar.',
+    steps: [{ text: 'Abra um contrato, selecione um trecho e toque em B ou numa cor.', page: 'contratos' }],
+  },
+  {
     id: '2026-10-21-contrato-orcamento',
     date: '2026-10-21',
     kind: 'melhoria',

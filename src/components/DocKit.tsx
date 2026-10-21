@@ -8,6 +8,7 @@ import type { Settings } from '../types'
 import type { PhotoPos } from '../docTypes'
 import { DocScale, usePdf } from './Print'
 import { Icon } from './Icon'
+import { FormatBar } from './FormatBar'
 import { toast } from './dialog'
 import { DesktopNote, Section } from './ui'
 import '../docs.css'
@@ -197,7 +198,10 @@ export function DocWorkbench({ title, eyebrow, onBack, form, doc, pageW, pageH, 
             {free === null ? (
               <div ref={live}>{doc}</div>
             ) : (
-              <FreeSheet key={mountKey} html={free} innerRef={edited} onInput={(h) => onFree?.(h)} />
+              <>
+                <FormatBar className="dk-fmt" onChange={() => edited.current && onFree?.(edited.current.innerHTML)} />
+                <FreeSheet key={mountKey} html={free} innerRef={edited} onInput={(h) => onFree?.(h)} />
+              </>
             )}
           </DocScale>
         </div>
@@ -241,6 +245,7 @@ export function FreeEditModal({ doc, width, onClose, onDownload }: { doc: ReactN
         <span>
           <Icon name="pen" size={15} /> toque em qualquer texto para mudar · o orçamento não muda, só este PDF
         </span>
+        <FormatBar />
         <div className="row gap-s">
           <button className="btn ghost small" onClick={onClose}>
             cancelar

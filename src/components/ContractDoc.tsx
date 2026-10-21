@@ -5,6 +5,7 @@ import { useAccess } from '../access'
 import { sheetColors, showsLogo } from '../proposalTemplates'
 import { SignatureGlyph } from './SignaturePad'
 import { cleanHtml } from '../contractHtml'
+import { Rich, richHtml, stripRich } from '../richText'
 
 /* Contrato em folhas A4 (794 × 1123 px). O texto é medido parágrafo por parágrafo
    e dividido em páginas, assim nenhuma linha é cortada ao meio no PDF. */
@@ -21,9 +22,10 @@ function toBlocks(body: string): Block[] {
   const out: Block[] = []
   lines.forEach((raw, i) => {
     const t = raw.trim()
+    const pl = stripRich(t)
     if (!t) return out.length && out[out.length - 1].kind !== 'gap' && out.push({ kind: 'gap', text: '' })
-    if (i === 0 && t === t.toUpperCase() && t.length < 90) return out.push({ kind: 'title', text: t })
-    if (/^(CLÁUSULA|CLAUSULA|PARÁGRAFO)\b/i.test(t) || (t === t.toUpperCase() && /[A-ZÁÉÍÓÚ]{4}/.test(t) && t.length < 80)) return out.push({ kind: 'clause', text: t })
+    if (i === 0 && pl === pl.toUpperCase() && pl.length < 90) return out.push({ kind: 'title', text: t })
+    if (/^(CLÁUSULA|CLAUSULA|PARÁGRAFO)\b/i.test(pl) || (pl === pl.toUpperCase() && /[A-ZÁÉÍÓÚ]{4}/.test(pl) && pl.length < 80)) return out.push({ kind: 'clause', text: t })
     out.push({ kind: 'p', text: t })
   })
   out.push({ kind: 'sign', text: '' })
@@ -181,8 +183,8 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
   const render = (i: number) => {
     const b = blocks[i]
     if (b.kind === 'gap') return <div key={i} className="c-gap" />
-    if (b.kind === 'title') return <h2 key={i} className="c-title">{b.text.toLowerCase()}</h2>
-    if (b.kind === 'clause') return <h3 key={i} className="c-clause">{b.text}</h3>
+    if (b.kind === 'title') return <h2 key={i} className="c-title"><Rich text={b.text.toLowerCase()} /></h2>
+    if (b.kind === 'clause') return <h3 key={i} className="c-clause"><Rich text={b.text} /></h3>
     if (b.kind === 'sign')
       return (
         <div key={i} className="c-sign">
@@ -202,7 +204,7 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
           </div>
         </div>
       )
-    return <p key={i}>{b.text}</p>
+    return <p key={i}><Rich text={b.text} /></p>
   }
 
   if (!pages)
@@ -257,7 +259,7 @@ function laisBlocks(body: string): LBlock[] {
   for (; i < lines.length; i++) {
     const t = lines[i]
     if (!t) continue
-    if (t === 'CONTRATADA' || t === 'CONTRATANTE') {
+    if (stripRich(t) === 'CONTRATADA' || stripRich(t) === 'CONTRATANTE') {
       const rows: [string, string][] = []
       while (lines[i + 1]) {
         const l = lines[++i]
@@ -268,17 +270,18 @@ function laisBlocks(body: string): LBlock[] {
       out.push({ kind: 'party', label: t, rows })
       continue
     }
-    if (/^CLÁUSULA\b/i.test(t) || t === 'DAS ASSINATURAS') {
-      afterSign = t === 'DAS ASSINATURAS'
+    const pl = stripRich(t)
+    if (/^CLÁUSULA\b/i.test(pl) || pl === 'DAS ASSINATURAS') {
+      afterSign = pl === 'DAS ASSINATURAS'
       out.push({ kind: 'clause', text: t })
       continue
     }
-    const num = t.match(/^(\d+\.\d+)\s+(.*)$/)
+    const num = t.match(/^((?:\*\*|\*|__|\[cor=#[0-9a-fA-F]{3,8}\])*)(\d+\.\d+)\s+(.*)$/)
     if (num) {
-      out.push({ kind: 'num', n: num[1], text: num[2] })
+      out.push({ kind: 'num', n: num[2], text: num[1] + num[3] })
       continue
     }
-    if (/^[•\-]\s+/.test(t)) {
+    if (/^[•\-]\s+/.test(pl)) {
       out.push({ kind: 'bullet', text: t.replace(/^[•\-]\s+/, '') })
       continue
     }
@@ -341,7 +344,7 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
             <legend>{b.label}</legend>
             {b.rows.map(([k, v], n) => (
               <p key={n}>
-                <b>{k}:</b> {v}
+                <b>{k}:</b> <Rich text={v} />
               </p>
             ))}
           </fieldset>
@@ -349,38 +352,38 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
       case 'intro':
         return (
           <p key={i} className="lc-intro">
-            {b.text}
+            <Rich text={b.text} />
           </p>
         )
       case 'clause':
         return (
           <h3 key={i} className="lc-clause">
-            {b.text}
+            <Rich text={b.text} />
           </h3>
         )
       case 'num':
         return (
           <div key={i} className="lc-num">
             <b>{b.n}</b>
-            <p>{b.text}</p>
+            <p><Rich text={b.text} /></p>
           </div>
         )
       case 'bullet':
         return (
           <p key={i} className="lc-bullet">
-            {b.text}
+            <Rich text={b.text} />
           </p>
         )
       case 'letter':
         return (
           <p key={i} className="lc-letter">
-            {b.text}
+            <Rich text={b.text} />
           </p>
         )
       case 'date':
         return (
           <p key={i} className="lc-date">
-            {b.text}
+            <Rich text={b.text} />
           </p>
         )
       case 'sign':
@@ -403,7 +406,7 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
       default:
         return (
           <p key={i} className="lc-p">
-            {b.text}
+            <Rich text={b.text} />
           </p>
         )
     }
@@ -589,7 +592,7 @@ function LetterheadContract({ s, body, html, lh, clientName, signed }: { s: Sett
     ? cleanHtml(html)
     : toBlocks(body)
         .filter((b) => b.kind !== 'sign')
-        .map((b) => (b.kind === 'gap' ? '<div class="c-gap"></div>' : b.kind === 'title' ? `<h2 class="lh-title">${esc(b.text)}</h2>` : b.kind === 'clause' ? `<h3 class="lh-clause">${esc(b.text)}</h3>` : `<p>${esc(b.text)}</p>`))
+        .map((b) => (b.kind === 'gap' ? '<div class="c-gap"></div>' : b.kind === 'title' ? `<h2 class="lh-title">${richHtml(b.text)}</h2>` : b.kind === 'clause' ? `<h3 class="lh-clause">${richHtml(b.text)}</h3>` : `<p>${richHtml(b.text)}</p>`))
         .join('')
   const key = source + clientName + (signed?.at ?? '') + lh.top + lh.bottom + lh.side
   useLayoutEffect(() => {
@@ -638,4 +641,3 @@ function LetterheadContract({ s, body, html, lh, clientName, signed }: { s: Sett
   )
 }
 
-const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

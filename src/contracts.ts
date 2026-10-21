@@ -105,7 +105,7 @@ function servicesText(q: Quote) {
         .map((x) => x.replace(/^[-•–·*]\s*/, '').trim())
         .filter(Boolean)
       const unit = i.quantity > 1 && i.price > 0 && !i.joined ? ` — ${i.quantity} × ${money(Math.round((i.price / i.quantity) * 100) / 100)} = ${money(i.price)}` : i.price > 0 && !i.joined ? ` — ${money(i.price)}` : i.joined ? ' (valor incluído no item anterior)' : ''
-      return [`• ${i.title || 'serviço'}${det ? ` (${det})` : ''}${unit}`, ...inc.map((x) => `   – ${x}`)].join('\n')
+      return `• ${i.title || 'serviço'}${det ? ` (${det})` : ''}${unit}${inc.length ? `. Inclui: ${inc.join('; ')}.` : ''}`
     })
   return lines.join('\n') || '[descreva os serviços]'
 }
@@ -281,7 +281,10 @@ export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Clien
     if (html) html = swapHtml(html, a, b)
   }
   // modelo sem a lista do orçamento: o escopo aprovado entra na cláusula do objeto
-  if (q && !html && !blankOf(now.escopo) && !body.includes(now.servicos) && !body.includes(now.escopo)) body = insertScope(body, now.escopo, now.orcamento)
+  // já tem a lista do orçamento (em qualquer formato, antigo ou novo)? então não repete
+  const firstLine = (x: string) => x.split('\n')[0].replace(/\s+—.*$/, '').trim()
+  const listed = !!q && [legacyServices(q), now.servicos, before.servicos ?? ''].map(firstLine).some((x) => x.length > 4 && body.includes(x))
+  if (q && !html && !blankOf(now.escopo) && !listed && !body.includes(now.servicos) && !body.includes(now.escopo)) body = insertScope(body, now.escopo, now.orcamento)
   const vars = { ...now }
   for (const k of manual) if (c.vars?.[k] !== undefined) vars[k] = c.vars[k]
   if (body === c.body && html === c.html && JSON.stringify(c.vars) === JSON.stringify(vars)) return null
@@ -368,3 +371,36 @@ export function reviseContract(c: Contract, vars: Record<string, string>, key: s
 
 /** Troca {variáveis}; as que não existem ficam como estão (para a pessoa ver e completar). */
 export const fillContract = (body: string, vars: Record<string, string>) => body.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m))
+
+/** Põe um item novo dentro da cláusula do assunto (como N.k, depois do último item dela);
+ *  sem cláusula certa, vira uma cláusula nova antes das assinaturas. */
+export function insertClause(body: string, text: string, title: string, n: number | null): { body: string; where?: string; added: string } {
+  const lines = body.split('\n')
+  const isHead = (l: string, k?: number) => (k === undefined ? /^(CL[ÁA]USULA\s+\d+\b|\d+\.\s+[A-ZÀ-Ú]{3})/i.test(l.trim()) : new RegExp(`^(CL[ÁA]USULA\\s+${k}\\b|${k}\\.\\s+[A-ZÀ-Ú]{3})`, 'i').test(l.trim()))
+  if (n) {
+    const start = lines.findIndex((l) => isHead(l, n))
+    if (start >= 0) {
+      let end = lines.findIndex((l, i) => i > start && (isHead(l) || /^(DAS ASSINATURAS|E,? por estarem)/i.test(l.trim())))
+      if (end < 0) end = lines.length
+      // último item numerado da cláusula (n.k) e onde ele termina (inclui os tópicos logo abaixo)
+      let last = 0
+      let at = start
+      for (let i = start + 1; i < end; i++) {
+        const m = lines[i].trim().match(new RegExp(`^${n}\\.(\\d+)\\b`))
+        if (m) last = Math.max(last, Number(m[1]))
+        if (lines[i].trim()) at = i
+      }
+      const label = `${n}.${last + 1}`
+      lines.splice(at + 1, 0, `${label} ${text}`)
+      return { body: lines.join('\n'), where: `item ${label}`, added: `\n${label} ${text}` }
+    }
+  }
+  const nums = [...body.matchAll(/^CL[ÁA]USULA\s+(\d+)/gim)].map((m) => Number(m[1]))
+  const plain = [...body.matchAll(/^(\d+)\.\s+[A-ZÀ-Ú]{3}/gm)].map((m) => Number(m[1]))
+  const next = Math.max(0, ...nums, ...plain) + 1
+  const head = nums.length ? `CLÁUSULA ${next} – ${title.toUpperCase()}` : plain.length ? `${next}. ${title.toUpperCase()}` : title.toUpperCase()
+  const block = `${head}\n${nums.length || plain.length ? `${next}.1 ` : ''}${text}\n\n`
+  const m = /^(DAS ASSINATURAS|E,? por estarem|\{cidade\})/m.exec(body)
+  return { body: m ? body.slice(0, m.index) + block + body.slice(m.index) : `${body.trimEnd()}\n\n${block}`, where: nums.length || plain.length ? `cláusula ${next}` : undefined, added: block }
+}
+

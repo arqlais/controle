@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Icon } from './Icon'
+import { FormatBar } from './FormatBar'
 
 /* Editor do contrato no modelo da pessoa: edita direto na folha (negrito, itálico, sublinhado, alinhamento)
    e insere as {etiquetas} onde o cursor está. */
@@ -50,19 +51,10 @@ export const DocRich = forwardRef<DocRichHandle, { html: string; onChange: (html
       emit()
     },
   }))
-  const tools: [string, string, string][] = [
-    ['bold', 'B', 'Negrito'],
-    ['italic', 'I', 'Itálico'],
-    ['underline', 'U', 'Sublinhado'],
-  ]
   return (
     <div className={`rt ${className}`}>
       <div className="rt-bar" role="toolbar" aria-label="Formatação">
-        {tools.map(([c, label, title]) => (
-          <button key={c} type="button" className={`rt-btn rt-${c}`} title={title} aria-label={title} onMouseDown={(e) => e.preventDefault()} onClick={() => cmd(c)}>
-            {label}
-          </button>
-        ))}
+        <FormatBar className="is-inline" onChange={emit} />
         <span className="rt-sep" />
         {(
           [

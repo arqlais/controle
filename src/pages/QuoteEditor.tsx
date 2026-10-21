@@ -1,4 +1,5 @@
 import { withPanelShare } from '../clientPanel'
+import { FmtArea } from '../components/TextFormat'
 import { QuoteTableSection } from '../components/PartnerTable'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { LockButton } from '../components/LockedPreview'
@@ -965,7 +966,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 />
               </Field>
               {isSlides(q) && <Field label="Texto de abertura" hint="Aparece no slide “O seu projeto”. Em branco, vai um texto padrão. Seu “sobre” e as fotos de projetos ficam em Configurações → propostas.">
-                <textarea rows={3} value={q.intro ?? ''} onChange={(e) => set({ intro: e.target.value })} placeholder="Ex.: Um apartamento pensado para a rotina de vocês, com espaço para receber os amigos e muita luz natural." spellCheck lang="pt-BR" />
+                <FmtArea rows={3} value={q.intro ?? ''} onChange={(intro) => set({ intro })} placeholder="Ex.: Um apartamento pensado para a rotina de vocês, com espaço para receber os amigos e muita luz natural." spellCheck lang="pt-BR" />
               </Field>}
             </Section>
           )}
@@ -1122,10 +1123,10 @@ export default function QuoteEditor({ id }: { id: string }) {
                 </select>
               </Field>
               <Field label="Pagamento" span={3} hint={months ? 'Texto automático do pacote (muda sozinho com o valor e os meses).' : undefined}>
-                {months ? <div className="readonly">{payText}</div> : <textarea className="auto-grow" rows={1} value={q.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value.replace(/\n/g, ' ') })} />}
+                {months ? <div className="readonly">{payText}</div> : <FmtArea className="auto-grow" rows={1} value={q.paymentTerms} onChange={(v) => set({ paymentTerms: v.replace(/\n/g, ' ') })} />}
               </Field>
               <Field label="Prazos e cronograma" span={3}>
-                <textarea className="auto-grow" rows={1} value={q.schedule} onChange={(e) => set({ schedule: e.target.value.replace(/\n/g, ' ') })} placeholder="Ex.: 10 dias úteis após o sinal." />
+                <FmtArea className="auto-grow" rows={1} value={q.schedule} onChange={(v) => set({ schedule: v.replace(/\n/g, ' ') })} placeholder="Ex.: 10 dias úteis após o sinal." />
                 <span className="q-suggest">
                   {[settings.proposal.schedule, CLIENT_SCHEDULE, DEFAULT_PROPOSAL.schedule, q.deadlineDays ? `${q.deadlineDays} dias úteis após a aprovação.` : ''].filter((x, i, a) => x && x !== q.schedule && a.indexOf(x) === i).map((x) => (
                     <button key={x} type="button" className="link small" onClick={() => set({ schedule: x })}>
@@ -1718,7 +1719,7 @@ function NoteField({ value, items, settings, onChange }: { value: string; items:
   const used = hints.filter(has).length
   return (
     <Field label="Observação (dentro do quadro)" hint={open ? 'Toque para colocar ou tirar · dá para editar o texto à vontade.' : undefined}>
-      <textarea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={Math.min(6, Math.max(2, lines.length + 1))} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Opcional" />
+      <FmtArea spellCheck lang="pt-BR" autoCapitalize="sentences" autoCorrect="on" rows={Math.min(6, Math.max(2, lines.length + 1))} value={value} onChange={onChange} placeholder="Opcional" />
       {hints.length > 0 && (
         <button type="button" className="note-hints-toggle" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
           <Icon name="sparkle" size={13} /> observações prontas ({hints.length}){used ? ` · ${used} em uso` : ''}

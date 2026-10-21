@@ -10,12 +10,13 @@ import { LetterheadField } from '../components/Letterhead'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
-import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract, insertScope } from '../contracts'
+import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract, insertScope, insertClause } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { DocRich, type DocRichHandle } from '../components/DocRich'
+import { TextFormat } from '../components/TextFormat'
 import { SIGN_SITES, checkSignMessage, ownerStamp, publishSign, unpublishSign, type SignPayload } from '../contractSign'
 import { SIGN_FONTS, SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
@@ -326,6 +327,7 @@ function ContractEditor({ id }: { id: string }) {
   const setC = draft.setValue
   const [zoom, setZoom] = useState(false)
   const pdfInput = useRef<HTMLInputElement>(null)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   const [sheetMode, setSheetMode] = useState<'modelo' | 'timbrado' | 'pdf'>(() => (c?.pdfPages?.length ? 'pdf' : c?.letterhead ? 'timbrado' : 'modelo'))
   const pdf = usePdf()
   // assinatura que chegou sozinha (cliente assinou pelo link) com o contrato aberto: entra na tela também
@@ -556,8 +558,9 @@ function ContractEditor({ id }: { id: string }) {
               </>
             ) : (
               <>
-                <textarea className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} spellCheck lang="pt-BR" />
-                <p className="muted small">Linhas em MAIÚSCULAS viram títulos (ex.: CLÁUSULA 1 — DO OBJETO). A assinatura das duas partes entra sozinha no fim.</p>
+                <TextFormat target={bodyRef} value={c.body} onChange={(body) => set({ body })} />
+                <textarea ref={bodyRef} className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} spellCheck lang="pt-BR" />
+                <p className="muted small">Selecione um trecho e toque em B, I, U ou numa cor. Linhas em MAIÚSCULAS viram títulos (ex.: CLÁUSULA 1 — DO OBJETO). A assinatura das duas partes entra sozinha no fim.</p>
               </>
             )}
           </Section>
@@ -825,6 +828,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
               </span>
             </p>
           )}
+          <TextFormat target={ref} value={cur.body} onChange={(body) => patch({ body })} />
           <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
           {cur.body.trim().length > 40 && (
             <button type="button" className="btn small ghost ct-see" onClick={() => setPreview(true)}>
@@ -846,24 +850,25 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
 }
 
 /** Revisão do contrato com a IA (Gemini da própria conta): confere com o orçamento e sugere cláusulas que faltam. */
-type AIReview = { inconsistencias: { ponto: string; como_corrigir: string }[]; clausulas: { titulo: string; texto: string; por_que: string }[] }
+type AIReview = { inconsistencias: { ponto: string; como_corrigir: string }[]; clausulas: { titulo: string; texto: string; por_que: string; clausula?: number | null }[] }
 function ContractAI({ c, vars, onInsert }: { c: Contract; vars: Record<string, string>; onInsert: (body: string) => void }) {
   const { data } = useStore()
   const key = data.settings.aiKey
   const [busy, setBusy] = useState(false)
   const [res, setRes] = useState<AIReview | null>(null)
-  const [added, setAdded] = useState<string[]>([])
+  const [added, setAdded] = useState<Record<string, string>>({}) // título → trecho que entrou no texto (para poder tirar)
+  const [gone, setGone] = useState<string[]>([])
   const run = async () => {
     if (!key) return toast('Ligue o assistente com a sua chave do Gemini em configurações → assistente.')
     setBusy(true)
     try {
       const { askGemini } = await import('../components/AIChat')
-      const system = `Você revisa contratos de prestação de serviços autônomos de arquitetura, design de interiores, projeto executivo e visualização 3D no Brasil, do lado da CONTRATADA. Compare o contrato com o orçamento aprovado e aponte só problemas reais: valor, pagamento, prazo, escopo ou quantidade diferentes do orçamento, campos em branco entre colchetes, cláusulas contraditórias. Depois sugira no máximo 6 cláusulas que realmente faltam para proteger a CONTRATADA, sem ser abusivo e respeitando o Código de Defesa do Consumidor quando o cliente for pessoa física. Texto claro, em português, sem numeração. Responda SOMENTE com JSON no formato {"inconsistencias":[{"ponto":"","como_corrigir":""}],"clausulas":[{"titulo":"","texto":"","por_que":""}]}.`
+      const system = `Você revisa contratos de prestação de serviços autônomos de arquitetura, design de interiores, projeto executivo e visualização 3D no Brasil, do lado da CONTRATADA. 1) Compare o contrato com o orçamento aprovado e aponte só problemas reais: valor, pagamento, prazo, escopo ou quantidade diferentes do orçamento, campos em branco entre colchetes, cláusulas contraditórias. 2) Sugira no máximo 5 itens que realmente faltam para proteger a CONTRATADA, sem repetir nada que o contrato já diz e sem ser abusivo (respeite o Código de Defesa do Consumidor quando o cliente for pessoa física). Cada item: uma ou duas frases curtas, linguagem simples que qualquer cliente entende, sem juridiquês e sem encher linguiça, mas com efeito jurídico claro. Diga em "clausula" o número da cláusula existente onde o item se encaixa pelo assunto (ex.: atraso de pagamento vai na cláusula de valor e pagamento); use null só se nenhum assunto existente servir. Não numere o texto. Responda SOMENTE com JSON no formato {"inconsistencias":[{"ponto":"","como_corrigir":""}],"clausulas":[{"titulo":"","texto":"","por_que":"","clausula":7}]}.`
       const orc = ['escopo', 'valor', 'pagamento', 'prazo', 'prazo_dias', 'revisoes', 'arquivos', 'entrada', 'saldo'].map((k) => `${k}: ${vars[k] ?? ''}`).join('\n')
       const answer = await askGemini(key, system, [{ role: 'user', text: `ORÇAMENTO APROVADO\n${orc}\n\nCONTRATO\n${c.body.slice(0, 30000)}` }])
       const json = answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1)
       const r = JSON.parse(json) as AIReview
-      setRes({ inconsistencias: r.inconsistencias ?? [], clausulas: (r.clausulas ?? []).slice(0, 6) })
+      setRes({ inconsistencias: r.inconsistencias ?? [], clausulas: (r.clausulas ?? []).slice(0, 5) })
     } catch (e) {
       toast((e as Error)?.message && !/JSON/i.test((e as Error).message) ? (e as Error).message : 'A IA não respondeu no formato certo. Tente de novo.')
     } finally {
@@ -871,14 +876,21 @@ function ContractAI({ c, vars, onInsert }: { c: Contract; vars: Record<string, s
     }
   }
   const insert = (cl: AIReview['clausulas'][number]) => {
-    const body = c.body
-    const nums = [...body.matchAll(/^CL[ÁA]USULA\s+(\d+)/gim)].map((m) => Number(m[1]))
-    const head = nums.length ? `CLÁUSULA ${Math.max(...nums) + 1} – ${cl.titulo.toUpperCase()}` : cl.titulo.toUpperCase()
-    const block = `${head}\n${cl.texto.trim()}\n\n`
-    const m = /^(DAS ASSINATURAS|E,? por estarem|\{cidade\}|[A-ZÀ-Ú][\wÀ-ú ]+, \d{1,2} de )/m.exec(body)
-    onInsert(m ? body.slice(0, m.index) + block + body.slice(m.index) : `${body.trimEnd()}\n\n${block}`)
-    setAdded([...added, cl.titulo])
-    toast('Cláusula adicionada antes das assinaturas. Confira o texto e salve.')
+    const r = insertClause(c.body, cl.texto.trim(), cl.titulo, cl.clausula ?? null)
+    onInsert(r.body)
+    setAdded({ ...added, [cl.titulo]: r.added })
+    toast(r.where ? `Adicionado como ${r.where}. Confira o texto e salve.` : 'Adicionado antes das assinaturas. Confira o texto e salve.')
+  }
+  const remove = (title: string) => {
+    const snip = added[title]
+    if (snip && c.body.includes(snip)) onInsert(c.body.replace(snip, snip.startsWith('\n') ? '' : ''))
+    else toast('Esse trecho foi editado no texto: apague direto no contrato.')
+    const { [title]: _, ...rest } = added
+    setAdded(rest)
+  }
+  const clear = () => {
+    setRes(null)
+    setGone([])
   }
   return (
     <Section title="revisar com IA">
@@ -886,6 +898,11 @@ function ContractAI({ c, vars, onInsert }: { c: Contract; vars: Record<string, s
       <button className="btn small" disabled={busy} onClick={() => void run()}>
         <Icon name="sparkle" size={14} /> {busy ? 'revisando…' : res ? 'revisar de novo' : 'revisar o contrato'}
       </button>
+      {res && (
+        <button className="btn ghost small" onClick={clear} title="Tirar as sugestões da tela (o que já entrou no contrato fica)">
+          <Icon name="x" size={13} /> limpar sugestões
+        </button>
+      )}
       {res && (
         <div className="ai-rev">
           {res.inconsistencias.length > 0 ? (
@@ -904,19 +921,31 @@ function ContractAI({ c, vars, onInsert }: { c: Contract; vars: Record<string, s
           {res.clausulas.length > 0 && (
             <div className="ai-rev-group">
               <p className="ai-rev-label"><Icon name="layers" size={13} /> cláusulas sugeridas</p>
-              {res.clausulas.map((x, i) => (
-                <div key={i} className="ai-rev-item">
+              {res.clausulas.filter((x) => !gone.includes(x.titulo)).map((x, i) => (
+                <div key={i} className={`ai-rev-item ${added[x.titulo] ? 'is-added' : ''}`}>
                   <b>{x.titulo}</b>
                   <p>{x.texto}</p>
-                  <small>{x.por_que}</small>
+                  <small>{x.clausula ? `entra na cláusula ${x.clausula} · ` : ''}{x.por_que}</small>
                   {c.html ? (
                     <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(x.texto).then(() => toast('Cláusula copiada.'))}>
                       <Icon name="copy" size={13} /> copiar
                     </button>
+                  ) : added[x.titulo] ? (
+                    <div className="row gap-s">
+                      <span className="ai-rev-in"><Icon name="check" size={13} /> no contrato</span>
+                      <button className="btn ghost small" onClick={() => remove(x.titulo)}>
+                        <Icon name="undo" size={13} /> tirar do contrato
+                      </button>
+                    </div>
                   ) : (
-                    <button className="btn ghost small" disabled={added.includes(x.titulo)} onClick={() => insert(x)}>
-                      <Icon name={added.includes(x.titulo) ? 'check' : 'plus'} size={13} /> {added.includes(x.titulo) ? 'adicionada' : 'adicionar ao contrato'}
-                    </button>
+                    <div className="row gap-s">
+                      <button className="btn ghost small" onClick={() => insert(x)}>
+                        <Icon name="plus" size={13} /> adicionar
+                      </button>
+                      <button className="icon-btn" title="Dispensar esta sugestão" aria-label="Dispensar esta sugestão" onClick={() => setGone([...gone, x.titulo])}>
+                        <Icon name="x" size={14} />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

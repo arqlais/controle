@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Rich } from '../richText'
 import { photoStyle } from './DocKit'
 import { dayLabel, stepsPercent } from '../processes'
 import type { Client, ProcessStep, Quote, QuoteItem, QuoteOption, Settings } from '../types'
@@ -41,7 +42,7 @@ function Rail({ steps }: { steps: ProcessStep[] }) {
           <li key={x.id}>
             <span className="sp-rail-n">{two(i + 1)}</span>
             <b>{x.name}</b>
-            {x.description && <p>{x.description}</p>}
+            {x.description && <p><Rich text={x.description} /></p>}
             {x.items.length > 0 && (
               <ul>
                 {x.items.slice(0, max).map((it, k) => (
@@ -160,7 +161,7 @@ export function ProposalSlides({ s, client, quote: q }: { s: Settings; client?: 
       <>
         <div className="sp-intro-text">
           <Heading kicker="a proposta" a="o seu" b="projeto" />
-          <p className="sp-lead">{intro}</p>
+          <p className="sp-lead"><Rich text={intro} /></p>
           {s.about?.trim() && (
             <p className="sp-about">
               <span>sobre {s.brandName || 'mim'}</span>
@@ -300,7 +301,7 @@ export function ProposalSlides({ s, client, quote: q }: { s: Settings; client?: 
               {multi && !combo && <p className="sp-small">Os valores de cada parte seguem a opção escolhida.</p>}
             </>
           )}
-          {q.paymentTerms.trim() && <p className="sp-lead sp-terms">{q.paymentTerms}</p>}
+          {q.paymentTerms.trim() && <p className="sp-lead sp-terms"><Rich text={q.paymentTerms} /></p>}
         </>,
       ),
     )
@@ -315,7 +316,7 @@ export function ProposalSlides({ s, client, quote: q }: { s: Settings; client?: 
             {notes.slice(0, 8).map((x, i) => (
               <li key={i}>
                 <span>{two(i + 1)}</span>
-                {x}
+                <Rich text={x} />
               </li>
             ))}
           </ol>

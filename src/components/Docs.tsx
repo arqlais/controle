@@ -1,4 +1,5 @@
 import { useKindSettings } from './DocKit'
+import { Rich } from '../richText'
 import type { CSSProperties, ReactNode } from 'react'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { PAYMENT_TERMS } from '../store'
@@ -157,7 +158,7 @@ function ClientSheet({ s, tpl, p, eyebrow, title, number, meta, infos, children 
           {infos.map((i) => (
             <div key={i.label}>
               <b>{i.label}</b>
-              <p>{i.text}</p>
+              <p><Rich text={i.text} /></p>
             </div>
           ))}
         </section>
@@ -225,7 +226,7 @@ function InfoRow({ items, color }: { items: { icon: keyof typeof ICONS; label: s
             </g>
           </svg>
           <p>
-            <b>{it.label}:</b> {it.text}
+            <b>{it.label}:</b> <Rich text={it.text} />
           </p>
         </div>
       ))}
@@ -257,11 +258,11 @@ function Contacts({ s }: { s: Settings }) {
 function Desc({ text }: { text: string }) {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
   if (!lines.length) return null
-  if (lines.length === 1) return <span className="p-row-desc">{lines[0]}</span>
+  if (lines.length === 1) return <span className="p-row-desc"><Rich text={lines[0]} /></span>
   return (
     <ul className="p-row-desc p-row-list" style={{ ['--rows' as string]: Math.ceil(lines.length / 2) }}>
       {lines.map((l, i) => (
-        <li key={i}>{l}</li>
+        <li key={i}><Rich text={l} /></li>
       ))}
     </ul>
   )
@@ -392,7 +393,7 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
               <span className="p-label">valor</span>
             </div>
             <Rows items={quote.urgency && quote.urgencyHidden ? quote.items.map((it) => ({ ...it, price: Math.round(it.price * (1 + s.urgencyFee / 100) * 100) / 100 })) : quote.items} services={s.services} />
-            {quote.notes && <p className="p-note">{quote.notes}</p>}
+            {quote.notes && <p className="p-note"><Rich text={quote.notes} /></p>}
           </div>
           <TotalBar label="investimento total" value={quoteTotal(quote, s.urgencyFee)} note={scopeNote} />
         </>
@@ -402,7 +403,7 @@ function QuoteSheet({ s, client, quote }: { s: Settings; client?: Client; quote:
           <TotalBar label={`fechando ${allLabel(quote)} juntas`} value={comboTotal(quote)} note={(quote.comboDiscount ?? 0) > 0 ? `em vez de ${money(comboSeparate(quote))} · economia de ${money(comboSeparate(quote) - comboTotal(quote))}` : ''} />
         </div>
       )}
-      {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside">{quote.notes}</p>}
+      {quote.mode === 'opcoes' && quote.notes && <p className="p-note is-outside"><Rich text={quote.notes} /></p>}
     </>
   )
   // modelos dos clientes: diagramação própria (o "Proposta #001" é só da dona)
@@ -621,7 +622,7 @@ export function VisitReportDoc({ s, client, project, visit, urls }: { s: Setting
     <>
       <div className="p-card">
         <h3 className="p-card-title">{visit.title || 'visita de obra'}</h3>
-        {visit.notes && <p className="p-receipt vr-text">{visit.notes}</p>}
+        {visit.notes && <p className="p-receipt vr-text"><Rich text={visit.notes} /></p>}
         {visit.next && (
           <p className="p-note vr-next">
             <b>próximos passos:</b> {visit.next}
