@@ -34,7 +34,7 @@ function Shell({ p, children }: { p?: DataPayload; children: ReactNode }) {
     <div className="cdp" style={{ ['--bf-accent' as string]: p?.accent || '#4a5d6b' } as CSSProperties}>
       {p && (
         <header className="cdp-top">
-          {p.logo ? <img src={p.logo} alt="" className="cdp-logo" /> : <span className="cdp-logo is-letter">{(p.studio || '·').slice(0, 1).toLowerCase()}</span>}
+          {p.logo ? <img src={p.logo} alt="" className="cdp-logo" /> : <span className="cdp-logo is-letter"><i>{(p.studio || '·').slice(0, 1).toLowerCase()}</i></span>}
           <span>
             <b>{p.studio}</b>
             <small>dados para o contrato</small>

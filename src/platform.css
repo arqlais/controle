@@ -4339,3 +4339,6 @@ a.cd-link > svg:last-child { margin-left: auto; flex: none; opacity: .6; }
 .cdp-logo.is-letter { background: var(--cdp-a); color: var(--cdp-beige); }
 .cdp-made-mark svg path { stroke: var(--cdp-beige); }
 .cdp .cd-type svg, .cdp .cd-ico svg { color: inherit; } .cdp .cd-type-check svg { stroke: currentColor; }
+/* letra do logo: The Seasons itálica, centralizada de verdade (a itálica pende para a direita e a fonte tem respiro embaixo) */
+.cdp-logo.is-letter { display: flex; align-items: center; justify-content: center; font-family: 'The Seasons', 'Cormorant Garamond', Georgia, serif; font-style: italic; font-weight: 400; font-size: 28px; line-height: 1; padding: 0; }
+.cdp-logo.is-letter i { display: block; font-style: italic; transform: translate(-7px, 3px); }
