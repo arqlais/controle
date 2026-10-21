@@ -142,6 +142,7 @@ export interface ContractDataLink {
   sentAt: string
   status: 'enviado' | 'respondido'
   answeredAt?: string
+  short?: boolean // link curto (só o código; abre pela tabela)
 }
 
 /** Valor especial de um serviço para um parceiro (o que não for preenchido segue a tabela). */
@@ -656,6 +657,7 @@ export interface Contract {
   signToken?: string // identifica o link de assinatura
   signLink?: string
   sign?: ContractSignature
+  ownerSign?: ContractSignature // assinatura da contratada, registrada ao gerar o link
 }
 
 export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | 'page' | 'card' | 'text' | 'button' | 'detail' | 'border'
@@ -739,6 +741,8 @@ export interface Settings {
   clientReminders?: { on: boolean; before: number; late: boolean } // e-mail automático para a cliente: parcela vencendo / em aberto
   quoteReminders?: { on: boolean; days: number } // e-mail automático para a cliente: proposta sem resposta depois de X dias (uma vez)
   signature?: string // imagem da assinatura (data URL), vai no contrato
+  signFont?: string // letra da assinatura digitada da dona (quando não tem imagem)
+  ownerSignOff?: boolean // não assinar como contratada ao gerar o link
   firstStepsHidden?: boolean // cartão "primeiros passos" escondido
   tour?: string // passo a passo do primeiro acesso: 'feito' ou a data em que escolheu "ver depois"
   newsSeen?: string[] // novidades já vistas (vazio/ausente: ainda não começou a acompanhar)

@@ -200,7 +200,7 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
   const { data, upsert, userId } = useStore()
   const [busy, setBusy] = useState(false)
   const pending = client.dataLink?.status === 'enviado'
-  const url = pending ? dataLinkUrl(client.dataLink!.id, userId) : ''
+  const url = pending ? dataLinkUrl(client.dataLink!.id, userId, client.dataLink!.short) : ''
   const first = client.name.split(' ')[0]
   const { setSettings } = useStore()
   const DEFAULT_MSG = 'Oi, {nome}! Segue o link para preencher os seus dados e gerarmos o contrato. Leva uns 3 minutos e o que eu já tinha aparece preenchido: {link}'
@@ -217,8 +217,8 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
     const linkId = newLinkId()
     try {
       if (client.dataLink?.status === 'enviado') await cancelDataLink(client.dataLink.id, userId)
-      await publishDataLink(linkId, dataPayload(data.settings, client, quote), userId)
-      upsert('clients', { ...client, dataLink: { id: linkId, sentAt: today(), status: 'enviado', audience: aud, ...(quote ? { quoteId: quote.id } : {}) }, history: [...client.history, { id: uid(), date: today(), text: 'pedido de dados para o contrato enviado por link' }] })
+      const { short } = await publishDataLink(linkId, dataPayload(data.settings, client, quote), userId)
+      upsert('clients', { ...client, dataLink: { id: linkId, sentAt: today(), status: 'enviado', audience: aud, ...(short ? { short } : {}), ...(quote ? { quoteId: quote.id } : {}) }, history: [...client.history, { id: uid(), date: today(), text: 'pedido de dados para o contrato enviado por link' }] })
     } catch (e) {
       toast(`Não foi possível criar o link agora (${(e as Error)?.message || 'sem conexão'}). Tente de novo.`)
     } finally {
@@ -274,10 +274,11 @@ function SendLink({ client, onClose, onEdit }: { client: Client; onClose: () => 
         </div>
       ) : (
         <div className="cd-send">
-          <p className="cd-link">
+          <a className="cd-link" href={url} target="_blank" rel="noreferrer" title="Abrir o link">
             <Icon name="link" size={15} />
-            <span>{url}</span>
-          </p>
+            <span>{url.replace(/^https?:\/\//, '')}</span>
+            <Icon name="arrowRight" size={14} />
+          </a>
           <label className="check">
             <input type="checkbox" checked={withMsg} onChange={(e) => setWithMsg(e.target.checked)} />
             <span>mandar com mensagem</span>

@@ -30,6 +30,21 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-21-assinatura-das-duas-partes',
+    date: '2026-10-21',
+    kind: 'novo',
+    title: 'contrato assinado pelas duas partes',
+    text: 'Ao gerar o link de assinatura, o contrato já vai assinado por você, com registro próprio no certificado. Quando o cliente assina, os dois recebem por e-mail a cópia do contrato assinado.',
+    steps: [{ text: 'Escolha a letra da sua assinatura em contratos → modelos → sua assinatura.', page: 'contratos', id: 'modelos', target: '.sg-auto' }],
+  },
+  {
+    id: '2026-10-21-foto-e-ajustes',
+    date: '2026-10-21',
+    kind: 'melhoria',
+    title: 'foto ajustável e menu mais claro',
+    text: 'Antes de salvar a foto do perfil, dá para aproximar e posicionar; ela fica sempre redonda. A aba aberta no menu volta a ficar em destaque e o link de dados para contrato ficou mais curto.',
+  },
+  {
     id: '2026-10-20-valor-unitario',
     date: '2026-10-20',
     kind: 'melhoria',

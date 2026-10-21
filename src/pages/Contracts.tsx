@@ -16,8 +16,8 @@ import type { Client, Contract, ContractStatus, ContractTemplate } from '../type
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { DocRich, type DocRichHandle } from '../components/DocRich'
-import { SIGN_SITES, checkSignMessage, publishSign, unpublishSign, type SignPayload } from '../contractSign'
-import { SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
+import { SIGN_SITES, checkSignMessage, ownerStamp, publishSign, unpublishSign, type SignPayload } from '../contractSign'
+import { SIGN_FONTS, SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
 
 /* Contratos: escolhe um orçamento + um modelo → o texto sai preenchido
@@ -356,7 +356,7 @@ function ContractEditor({ id }: { id: string }) {
     set({ templateId, html: undefined, ...fromTemplate(tpl, contractVars(data.settings, quote, client)) })
   }
   const missing = [...new Set(c.body.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
-  const doc = <ContractDoc s={data.settings} body={c.body} html={c.html} letterhead={c.letterhead} pdfPages={c.pdfPages} clientName={client ? client.name : ''} signed={c.sign} />
+  const doc = <ContractDoc s={data.settings} body={c.body} html={c.html} letterhead={c.letterhead} pdfPages={c.pdfPages} clientName={client ? client.name : ''} signed={c.sign} ownerSigned={c.ownerSign} />
   const file = `Contrato - ${client?.name ?? c.title}.pdf`
 
   return (
@@ -379,7 +379,7 @@ function ContractEditor({ id }: { id: string }) {
           )}
           <MoreMenu>
             <button aria-label="Imprimir" className="btn ghost" onClick={() => pdf.downloadVector(doc, file)} title="Imprimir em folhas A4 (ou salvar como PDF pela impressão)">
-              <Icon name="printer" size={16} />
+              <Icon name="printer" size={16} /> imprimir
             </button>
             <button className="btn ghost" onClick={() => setZoom(true)} title="Ver o contrato em tamanho grande">
               <Icon name="eye" size={16} /> ver maior
@@ -813,7 +813,24 @@ function SignatureField() {
   }
   return (
     <Section title="sua assinatura">
-      <p className="muted small">Desenhe a sua assinatura aqui (com o dedo ou o mouse) ou envie uma imagem (de preferência PNG com fundo transparente). Ela entra sozinha no quadro de assinatura de todos os contratos. Sem imagem, vai o seu nome.</p>
+      <p className="muted small">Desenhe a sua assinatura (com o dedo ou o mouse), envie uma imagem (PNG com fundo transparente) ou use o seu nome numa letra de assinatura. Ela entra sozinha no quadro de todos os contratos.</p>
+      <label className="sg-auto">
+        <input type="checkbox" checked={!data.settings.ownerSignOff} onChange={(e) => setSettings({ ownerSignOff: !e.target.checked })} />
+        <span>
+          <b>já assinar como contratada ao gerar o link</b>
+          <small>fica registrado com data, hora, aparelho e código ligado ao texto, igual à assinatura do cliente</small>
+        </span>
+      </label>
+      {!sig && drawing === null && (
+        <div className="cs-fonts sg-fonts">
+          {SIGN_FONTS.map((f) => (
+            <button key={f.id} type="button" className={`cs-font ${(data.settings.signFont ?? SIGN_FONTS[0].id) === f.id ? 'is-on' : ''}`} onClick={() => setSettings({ signFont: f.id })} aria-pressed={(data.settings.signFont ?? SIGN_FONTS[0].id) === f.id}>
+              <span style={{ fontFamily: f.family, fontSize: `${f.size ?? 1}em` }}>{data.settings.legalName || data.settings.ownerName || 'Seu Nome'}</span>
+              <small>{f.name}</small>
+            </button>
+          ))}
+        </div>
+      )}
       {drawing !== null ? (
         <div className="stack-s">
           <SignaturePad value={drawing} onChange={setDrawing} label="desenhe a sua assinatura" />
@@ -863,6 +880,7 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
     setBusy(true)
     try {
       const token = c.signToken ?? crypto.randomUUID()
+      const ownerSign = st.ownerSignOff ? undefined : await ownerStamp(c.body, st)
       const payload: SignPayload = {
         token,
         title: c.title,
@@ -876,11 +894,12 @@ function SignSection({ c, client, dirty, save, onPdf }: { c: Contract; client?: 
         phone: st.phone,
         accent: st.accent,
         logo: st.logo || undefined,
-        s: { proposal: st.proposal, legalName: st.legalName, ownerName: st.ownerName, brandName: st.brandName, email: st.email, phone: st.phone, instagram: st.instagram, logo: st.logo, signature: st.signature, customFont: st.customFont },
+        s: { proposal: st.proposal, legalName: st.legalName, ownerName: st.ownerName, brandName: st.brandName, email: st.email, phone: st.phone, instagram: st.instagram, logo: st.logo, signature: st.signature, signFont: st.signFont, customFont: st.customFont },
         exclusive: usesExclusiveContract(has, c.body),
+        ...(ownerSign ? { ownerSign } : {}),
       }
       const link = await publishSign(payload, userId)
-      save({ signToken: token, signLink: link, status: c.status === 'rascunho' ? 'enviado' : c.status })
+      save({ signToken: token, signLink: link, ownerSign, status: c.status === 'rascunho' ? 'enviado' : c.status })
       await navigator.clipboard?.writeText(link).catch(() => undefined)
       toast('Link de assinatura criado e copiado.')
     } catch {

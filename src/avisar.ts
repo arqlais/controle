@@ -28,6 +28,7 @@ export interface ClientEvent {
   painel?: string // token do painel (recados) ou da proposta (aprovação)
   opcao?: string // aprovação: opção escolhida
   studio?: string
+  link?: string // assinatura: endereço da cópia do contrato assinado
 }
 
 const LOCAL = 'avisos-de-clientes'

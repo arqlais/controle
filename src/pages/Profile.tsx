@@ -8,6 +8,7 @@ import { InstallHint } from '../components/InstallHint'
 import { AVATAR_ICONS, AvatarGlyph } from '../components/Avatar'
 import { EmailInput, Field, PhoneInput, Section, CepInput } from '../components/ui'
 import { toast } from '../components/dialog'
+import { PhotoCrop } from '../components/PhotoCrop'
 import type { Settings } from '../types'
 import { DEFAULT_PAGE, pageLink, pagePayload, publishPage, unpublishPage, type StudioPageCfg } from '../studioPage'
 import { atHandle, cleanSite, docKind, fitImage, formatDoc, showDoc, typeHandle } from '../utils'
@@ -53,11 +54,16 @@ export default function Profile() {
   const done = CHECK.length - missing.length
   const pct = Math.round((done / CHECK.length) * 100)
 
+  const [cropFile, setCropFile] = useState<File | null>(null)
   const onLogo = (f?: File) => {
     if (!f) return
-    void fitImage(f)
-      .then((logo) => set({ logo }))
-      .catch(() => toast('Não consegui abrir essa imagem. Tente JPG ou PNG.'))
+    if (f.type === 'image/svg+xml') {
+      void fitImage(f)
+        .then((logo) => set({ logo }))
+        .catch(() => toast('Não consegui abrir essa imagem. Tente JPG ou PNG.'))
+      return
+    }
+    setCropFile(f)
   }
 
   const contacts = [s.phone, atHandle(s.instagram), cleanSite(s.website), s.email].filter((x) => x.trim())
@@ -83,7 +89,8 @@ export default function Profile() {
               <Icon name={s.logo ? 'edit' : 'plus'} size={15} />
             </button>
           </div>
-          <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => onLogo(e.target.files?.[0])} />
+          <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => (onLogo(e.target.files?.[0]), (e.target.value = ''))} />
+          {cropFile && <PhotoCrop file={cropFile} onCancel={() => setCropFile(null)} onDone={(logo) => (set({ logo }), setCropFile(null))} />}
           {s.logo && (
             <button className="link profile-remove" onClick={() => set({ logo: '' })}>
               remover foto

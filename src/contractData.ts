@@ -319,9 +319,18 @@ const writeLocal = (v: Record<string, LocalRow>) => {
 const useCloud = () => CLOUD && !viewingAsClient()
 
 /** Endereço do link: a conta (em 22 letras) + o código. A conta deixa o link abrir mesmo sem a tabela do briefing. */
-export const dataLinkUrl = (id: string, userId?: string) => `${location.origin}${location.pathname}#/dados/${userId && isUuid(userId) && useCloud() ? `${uuidToB64(userId)}.${id}` : id}`
+export const dataLinkUrl = (id: string, userId?: string, short?: boolean) =>
+  `${location.origin}${location.pathname}#/dados/${short && isUuid(id) ? uuidToB64(id) : userId && isUuid(userId) && useCloud() ? `${uuidToB64(userId)}.${id}` : id}`
 /** "conta.código" ou só "código". */
 export function parseDataCode(code: string): { id: string; user: string } {
+  if (!code.includes('.') && code.length === 22) {
+    try {
+      const id = b64ToUuid(code)
+      if (isUuid(id)) return { id, user: '' } // link curto: só o código (a tabela acha o resto)
+    } catch {
+      /* segue */
+    }
+  }
   const [a, b] = code.includes('.') ? code.split('.') : ['', code]
   let user = ''
   try {
@@ -359,12 +368,12 @@ const FILE = (id: string) => `dados-${id}.json`
 
 /** Publica o link: na tabela do briefing (a resposta volta sozinha) e como arquivo público da conta
  *  (plano B: abre mesmo se a tabela não existir; a resposta volta como aviso). Só falha se os dois falharem. */
-export async function publishDataLink(id: string, payload: DataPayload, userId?: string) {
+export async function publishDataLink(id: string, payload: DataPayload, userId?: string): Promise<{ short: boolean }> {
   if (!useCloud()) {
     const all = readLocal()
     all[id] = { payload }
     writeLocal(all)
-    return
+    return { short: false }
   }
   const [t, f] = await Promise.allSettled([
     supabase!
@@ -379,6 +388,7 @@ export async function publishDataLink(id: string, payload: DataPayload, userId?:
     const why = (t.reason as { message?: string })?.message || (f.reason as { message?: string })?.message || 'nuvem'
     throw new Error(why)
   }
+  return { short: t.status === 'fulfilled' }
 }
 
 export type DataLinkSource = 'tabela' | 'arquivo' | 'local'

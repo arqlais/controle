@@ -1,6 +1,6 @@
 import { TermsText } from '../components/Terms'
 import { SubscriberProof } from '../components/SubscriberProof'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, MoneyInput, Section, Segmented, Stat } from '../components/ui'
 import { ask, askDelete, toast } from '../components/dialog'
@@ -264,90 +264,122 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
     .filter((x): x is { s: Subscription; d: number } => x.d !== null && x.d <= 10)
     .sort((a, b) => a.d - b.d)
   const endingTrials = subs.filter((x) => x.status === 'trial' && trialDaysLeft(x) > 0 && trialDaysLeft(x) <= 3)
+  const daysIn = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  const stuck = subs.filter((s) => !s.deletedAt && s.status === 'trial' && trialDaysLeft(s) > 0 && s.createdAt && daysIn(s.createdAt) >= 3 && !(usage[s.userId]?.quotes > 0) && !endingTrials.includes(s))
+  const nudge = (s: Subscription) => `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! vi que você começou o teste do ${PLATFORM.name} e ainda não montou um orçamento. quer que eu te mostre em 5 minutinhos? me conta o serviço que você mais faz que eu te ajudo a deixar a primeira proposta pronta.`
+  const online = subs.filter(isOnline5)
+  const todo = requests.length + upcoming.length + endingTrials.length + stuck.length
+  const chatBtn = (s: Subscription) => (
+    <button className="icon-btn" title="Conversar" aria-label={`Conversar com ${s.name || s.email}`} onClick={() => openChat(s.userId)}>
+      <Icon name="chat" size={16} />
+    </button>
+  )
+  const row = (s: Subscription, meta: ReactNode, chip: ReactNode, actions: ReactNode) => (
+    <div key={s.userId} className="adm-row">
+      <span className="adm-ava">{(s.name || s.email || '?').slice(0, 1).toUpperCase()}</span>
+      <span className="adm-who">
+        <b>{s.name || s.email}</b>
+        <small>{meta}</small>
+      </span>
+      {chip}
+      <span className="adm-acts">{actions}</span>
+    </div>
+  )
   return (
     <>
+      <div className="adm-kpis">
+        <Stat label="receita/mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s)`} icon="wallet" tone="good" />
+        <Stat label="recebido no mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s)` : 'registre em assinantes'} icon="check" />
+        <Stat label="em teste" value={trials.length} sub={expired.length ? `${expired.length} já terminaram` : `${TRIAL_DAYS} dias de teste`} icon="clock" />
+        <Stat label="novos no mês" value={newOnes.length} sub={`conversão ${conversion}%`} icon="trend" />
+        <Stat label="online" value={online.length} sub={online.map((x) => first(x)).join(', ') || 'ninguém agora'} icon="users" />
+        <Stat label="cancelados" value={canceled.length} sub={late.length ? `${late.length} atrasado(s)` : 'nenhum atraso'} icon="alert" tone={canceled.length || late.length ? 'warn' : undefined} />
+      </div>
+
       <UsageSummary subs={subs.filter((x) => !x.deletedAt)} usage={usage} />
-      <Stuck subs={subs} usage={usage} openChat={openChat} />
-      <div className="stats">
-        <Stat label="Online agora" value={subs.filter(isOnline5).length} sub={subs.filter(isOnline5).map((x) => first(x)).join(', ') || 'ninguém usando neste momento'} icon="users" />
-        <Stat label="Recebido este mês" value={money(receivedMonth)} sub={hasReal ? `${allPays.filter((x) => ym(x.p.date) === nowYM).length} pagamento(s) registrado(s)` : 'registre em assinantes → cobrança'} icon="check" tone="good" />
-        <Stat label="Vencendo / vencidas" value={upcoming.length} sub={upcoming.length ? `${upcoming.filter((x) => x.d < 0).length} vencida(s) · ${money(upcoming.reduce((n, x) => n + priceOf(x.s, cycleOf(x.s, ctrl[x.s.userId], billing[x.s.userId])), 0))}` : 'nada nos próximos 10 dias'} icon="calendar" tone={upcoming.some((x) => x.d < 0) ? 'warn' : undefined} />
-        <Stat label="Pedidos de assinatura" value={requests.length} sub={requests.length ? requests.map((x) => `${first(x)} · ${PLANS[x.requestedPlan!].name}`).join(', ') : 'nenhum pedido esperando'} icon="inbox" tone={requests.length ? 'warn' : undefined} />
-      </div>
-      {(upcoming.length > 0 || endingTrials.length > 0) && (
-        <Section title="cobranças e testes para olhar">
-          {upcoming.map(({ s, d }) => {
-            const c = ctrl[s.userId]
-            const cyc = cycleOf(s, c, billing[s.userId])
-            return (
-              <div key={s.userId} className="pf-plan-line">
-                <b>{s.name || s.email}</b>
-                <span className="muted small">
-                  {PLANS[s.plan].name} · {money(priceOf(s, cyc, c?.method))}/{CYCLE_UNIT[cyc]} · {c?.method === 'cartao' ? 'cartão' : 'Pix'}
-                </span>
-                <Badge color={dueColor(d)}>{dueLabel(d)}</Badge>
-                <span className="grow" />
-                <button className="btn small ghost" onClick={() => void platform.send(s.userId, remindText(s, c), true).then(() => toast('Lembrete enviado na conversa.'), () => toast('Não foi possível enviar agora.'))}>
-                  <Icon name="chat" size={14} /> lembrar
-                </button>
-                <button
-                  className="btn small approve"
-                  onClick={async () => {
-                    const amount = priceOf(s, cyc)
-                    if (!(await ask(`Registrar ${money(amount)} de ${s.name || s.email} recebido hoje (${c?.method === 'cartao' ? 'cartão' : 'Pix'})?`, { confirmLabel: 'Registrar' }))) return
-                    const next = withPayment(s, c, billing[s.userId], { date: today(), amount, method: c?.method ?? 'pix', note: '' })
-                    void saveCtrl(s.userId, next, `Pagamento registrado. Pago até ${next.paidUntil!.split('-').reverse().join('/')}.`)
-                  }}
-                >
-                  <Icon name="check" size={14} /> recebi
-                </button>
-              </div>
-            )
-          })}
-          {endingTrials.map((s) => (
-            <div key={s.userId} className="pf-plan-line">
-              <b>{s.name || s.email}</b>
-              <span className="muted small">teste do {PLANS[effectivePlan(s)].name}</span>
-              <Badge color="#7d8c99">{`teste acaba em ${trialDaysLeft(s)} dia(s)`}</Badge>
-              <span className="grow" />
-              <button className="btn small ghost" onClick={() => openChat(s.userId)}>
-                <Icon name="chat" size={14} /> conversar
-              </button>
-            </div>
-          ))}
-        </Section>
-      )}
-      <div className="stats">
-        <Stat label="Receita por mês" value={money(mrr)} sub={`${active.length} assinante(s) ativo(s)`} icon="wallet" tone="good" />
-        <Stat label="Em teste grátis" value={trials.length} sub={expired.length ? `${expired.length} teste(s) já terminaram` : `${TRIAL_DAYS} dias de teste`} icon="clock" />
-        <Stat label="Novos este mês" value={newOnes.length} sub={`conversão do teste: ${conversion}%`} icon="trend" />
-        <Stat label="Cancelamentos no mês" value={canceled.length} sub={late.length ? `${late.length} com pagamento atrasado` : 'nenhum atraso'} icon="alert" tone={canceled.length || late.length ? 'warn' : undefined} />
-      </div>
-      {requests.length > 0 && (
-        <Section title={`pedidos de assinatura (${requests.length})`}>
-          <p className="muted small">Confirme o pagamento com a pessoa (Pix, por exemplo) e toque em “ativar”. Na fase 2 isso acontece sozinho quando o pagamento cai.</p>
-          {requests.map((s) => (
-            <div key={s.userId} className="pf-plan-line">
-              <b>{s.name || s.email}</b>
-              <span className="muted small">
-                quer o {PLANS[s.requestedPlan!].name} · {(() => {
-                  const cy: Cycle = billing[s.userId]?.cycle === 'semestral' ? 'semestral' : s.requestedCycle ?? billing[s.userId]?.cycle ?? 'mensal'
-                  const pr = PLANS[s.requestedPlan!].price
-                  return `${money(billing[s.userId]?.payMethod === 'cartao' ? cardPrice(pr, cy) : cyclePrice(pr, cy))}/${CYCLE_UNIT[cy]}`
-                })()}
-                {billing[s.userId] ? ` · ${PAY_LABEL[billing[s.userId].payMethod]}${(billing[s.userId].installments ?? 1) > 1 ? ` em ${billing[s.userId].installments}x` : ''}` : ''}
-              </span>
-              <span className="grow" />
-              <button className="btn small ghost" onClick={() => openChat(s.userId)}>
-                <Icon name="chat" size={14} /> conversar
-              </button>
-              <button className="btn small approve" onClick={async () => (await ask(`Ativar a assinatura do ${PLANS[s.requestedPlan!].name} para ${s.name || s.email}? Faça isso depois de confirmar o pagamento.`, { confirmLabel: 'Ativar' })) && update(s, activate(s), 'Assinatura ativada.')}>
-                <Icon name="check" size={14} /> ativar
-              </button>
-            </div>
-          ))}
-        </Section>
-      )}
+
+      <section className="card adm-todo">
+        <header className="adm-todo-head">
+          <h2>para fazer agora</h2>
+          <span className="adm-count">{todo}</span>
+        </header>
+        {todo === 0 && <p className="muted small adm-empty"><Icon name="check" size={15} /> tudo em dia</p>}
+        {requests.length > 0 && (
+          <div className="adm-group">
+            <p className="adm-group-label"><Icon name="inbox" size={13} /> pedidos de assinatura</p>
+            {requests.map((s) => {
+              const cy: Cycle = billing[s.userId]?.cycle === 'semestral' ? 'semestral' : s.requestedCycle ?? billing[s.userId]?.cycle ?? 'mensal'
+              const pr = PLANS[s.requestedPlan!].price
+              return row(
+                s,
+                `${PLANS[s.requestedPlan!].name} · ${money(billing[s.userId]?.payMethod === 'cartao' ? cardPrice(pr, cy) : cyclePrice(pr, cy))}/${CYCLE_UNIT[cy]}${billing[s.userId] ? ` · ${PAY_LABEL[billing[s.userId].payMethod]}` : ''}`,
+                <span className="adm-chip is-hot">novo</span>,
+                <>
+                  {chatBtn(s)}
+                  <button className="btn small approve" onClick={async () => (await ask(`Ativar a assinatura do ${PLANS[s.requestedPlan!].name} para ${s.name || s.email}? Faça isso depois de confirmar o pagamento.`, { confirmLabel: 'Ativar' })) && update(s, activate(s), 'Assinatura ativada.')}>
+                    <Icon name="check" size={14} /> ativar
+                  </button>
+                </>,
+              )
+            })}
+          </div>
+        )}
+        {upcoming.length > 0 && (
+          <div className="adm-group">
+            <p className="adm-group-label"><Icon name="calendar" size={13} /> cobranças</p>
+            {upcoming.map(({ s, d }) => {
+              const c = ctrl[s.userId]
+              const cyc = cycleOf(s, c, billing[s.userId])
+              return row(
+                s,
+                `${PLANS[s.plan].name} · ${money(priceOf(s, cyc, c?.method))}/${CYCLE_UNIT[cyc]} · ${c?.method === 'cartao' ? 'cartão' : 'Pix'}`,
+                <span className={`adm-chip ${d < 0 ? 'is-hot' : ''}`}>{dueLabel(d)}</span>,
+                <>
+                  <button className="icon-btn" title="Mandar lembrete na conversa" aria-label="Mandar lembrete" onClick={() => void platform.send(s.userId, remindText(s, c), true).then(() => toast('Lembrete enviado na conversa.'), () => toast('Não foi possível enviar agora.'))}>
+                    <Icon name="bell" size={16} />
+                  </button>
+                  <button
+                    className="btn small approve"
+                    onClick={async () => {
+                      const amount = priceOf(s, cyc)
+                      if (!(await ask(`Registrar ${money(amount)} de ${s.name || s.email} recebido hoje (${c?.method === 'cartao' ? 'cartão' : 'Pix'})?`, { confirmLabel: 'Registrar' }))) return
+                      const next = withPayment(s, c, billing[s.userId], { date: today(), amount, method: c?.method ?? 'pix', note: '' })
+                      void saveCtrl(s.userId, next, `Pagamento registrado. Pago até ${next.paidUntil!.split('-').reverse().join('/')}.`)
+                    }}
+                  >
+                    <Icon name="check" size={14} /> recebi
+                  </button>
+                </>,
+              )
+            })}
+          </div>
+        )}
+        {endingTrials.length > 0 && (
+          <div className="adm-group">
+            <p className="adm-group-label"><Icon name="clock" size={13} /> teste acabando</p>
+            {endingTrials.map((s) => row(s, `teste do ${PLANS[effectivePlan(s)].name}`, <span className="adm-chip is-hot">{trialDaysLeft(s) === 1 ? 'acaba amanhã' : `${trialDaysLeft(s)} dias`}</span>, chatBtn(s)))}
+          </div>
+        )}
+        {stuck.length > 0 && (
+          <div className="adm-group">
+            <p className="adm-group-label" title="No teste há 3 dias ou mais e sem nenhum orçamento: uma mensagem sua agora faz diferença"><Icon name="sparkle" size={13} /> ainda não engataram</p>
+            {stuck.map((s) =>
+              row(
+                s,
+                `${daysIn(s.createdAt)} dias no teste · sem orçamento`,
+                <span className="adm-chip">{trialDaysLeft(s)} dias</span>,
+                <>
+                  <button className="icon-btn" title="Copiar mensagem pronta" aria-label="Copiar mensagem pronta" onClick={() => navigator.clipboard?.writeText(nudge(s)).then(() => toast('Mensagem copiada.'))}>
+                    <Icon name="copy" size={16} />
+                  </button>
+                  {chatBtn(s)}
+                </>,
+              ),
+            )}
+          </div>
+        )}
+      </section>
+
       <Section title="receita (últimos 6 meses)">
         <BarChart labels={months.map((m) => MONTHS[m.getMonth()])} series={[{ label: hasReal ? 'recebido' : 'estimado', color: 'var(--accent)', values: hasReal ? realRevenue : revenue }]} height={200} />
         <p className="muted small">{hasReal ? 'Soma dos pagamentos que você registrou em assinantes → cobrança.' : 'Estimativa pelos planos ativos. Registre os pagamentos em assinantes → cobrança para ver o valor real.'}</p>
@@ -2496,29 +2528,3 @@ function SubReferrals({ subs, update }: { subs: Subscription[]; update: (s: Subs
 }
 
 /** Quem está no teste há 3 dias ou mais e ainda não fez nenhum orçamento: uma mensagem pronta para puxar a conversa. */
-function Stuck({ subs, usage, openChat }: { subs: Subscription[]; usage: Record<string, Usage>; openChat: (id: string) => void }) {
-  const days = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
-  const list = subs.filter((s) => !s.deletedAt && s.status === 'trial' && trialDaysLeft(s) > 0 && s.createdAt && days(s.createdAt) >= 3 && !(usage[s.userId]?.quotes > 0))
-  if (!list.length) return null
-  const text = (s: Subscription) => `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! vi que você começou o teste do ${PLATFORM.name} e ainda não montou um orçamento. quer que eu te mostre em 5 minutinhos? me conta o serviço que você mais faz que eu te ajudo a deixar a primeira proposta pronta.`
-  return (
-    <Section title={`ainda não engataram (${list.length})`}>
-      <p className="muted small">No teste há 3 dias ou mais e sem nenhum orçamento. Uma mensagem sua agora faz muita diferença.</p>
-      {list.map((s) => (
-        <div key={s.userId} className="pf-plan-line">
-          <b>{s.name || s.email}</b>
-          <span className="muted small">
-            há {days(s.createdAt)} dias no teste · faltam {trialDaysLeft(s)}
-          </span>
-          <span className="grow" />
-          <button className="btn small ghost" onClick={() => navigator.clipboard?.writeText(text(s)).then(() => toast('Mensagem copiada.'))}>
-            <Icon name="copy" size={14} /> copiar mensagem
-          </button>
-          <button className="btn small" onClick={() => openChat(s.userId)}>
-            <Icon name="chat" size={14} /> conversar
-          </button>
-        </div>
-      ))}
-    </Section>
-  )
-}

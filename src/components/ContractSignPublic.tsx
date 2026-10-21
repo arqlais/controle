@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_SETTINGS } from '../store'
 import { formatDoc, whatsappLink } from '../utils'
-import { hashExtra, readShortCode } from '../linkPack'
+import { hashExtra, readShortCode, unpack } from '../linkPack'
 import { avisar } from '../avisar'
 import { deviceLabel, docHash, loadSign, signExtra, signMessage, signatureHash, type SignAnswer, type SignPayload } from '../contractSign'
 import { SIGN_FONTS, SignatureGlyph, SignaturePad } from './SignaturePad'
@@ -27,6 +27,19 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
   useEffect(() => {
     if (!data) loadSign(id, hashExtra()).then(setP, () => setP(null))
   }, [id, data])
+  // cópia assinada (link do e-mail): o código da assinatura vem no fim do endereço e é conferido com o texto
+  const [copyOf, setCopyOf] = useState<SignAnswer | null>(null)
+  useEffect(() => {
+    const extra = id.includes('.') ? hashExtra() : ''
+    if (!extra || !p) return
+    void unpack<SignAnswer>(extra).then(async (a) => {
+      if (a && a.t === p.token && (await signatureHash(p.body, a.n, a.d.replace(/\D/g, ''), a.at, signExtra(a))) === a.h) {
+        setCopyOf(a)
+        setDone({ a, msg: '' })
+        setSent(true)
+      }
+    })
+  }, [id, p])
 
   const wrap = (children: React.ReactNode) => (
     <div className={`bf-public cs-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: p?.accent || '#a88a80' }}>
@@ -84,7 +97,8 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
     if (!preview) {
       const owner = id.includes('.') ? readShortCode(id)?.userId ?? '' : ''
       const code = msg.match(/c[óo]digo da assinatura:\s*(\S+)/i)?.[1] ?? ''
-      void avisar({ user: owner, kind: 'assinatura', ref: p.token, cliente: a.n, titulo: p.title, code, clienteEmail: a.c?.includes('@') ? a.c : undefined, studio: p.studio }).then((ok) => setSent(ok && !!owner))
+      const copia = owner && code ? `${location.origin}${location.pathname}#/assinar/${id}/${code}` : undefined
+      void avisar({ user: owner, kind: 'assinatura', ref: p.token, cliente: a.n, titulo: p.title, code, clienteEmail: a.c?.includes('@') ? a.c : undefined, studio: p.studio, link: copia }).then((ok) => setSent(ok && !!owner))
     }
   }
   const s = { ...DEFAULT_SETTINGS, ...p.s }
@@ -96,12 +110,14 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
         <p className="bf-eyebrow">{p.studio}</p>
         <h1>{p.title}</h1>
         <p className="muted">
-          {p.clientName ? `Oi, ${p.clientName.split(' ')[0]}! ` : ''}Leia o contrato com calma. No fim da página, assine digitando o seu nome e CPF.
+          {copyOf
+            ? 'Cópia do contrato assinado pelas duas partes, com o certificado de assinatura na última página.'
+            : `${p.clientName ? `Oi, ${p.clientName.split(' ')[0]}! ` : ''}Leia o contrato com calma. No fim da página, assine com o seu nome e CPF.${p.ownerSign ? ` ${p.owner || p.studio} já assinou como contratada.` : ''}`}
         </p>
       </header>
       <div className="cs-doc" tabIndex={0} aria-label="Texto do contrato">
         <DocScale>
-          <ContractDoc s={s} body={p.body} html={p.html} letterhead={p.letterhead} pdfPages={p.pdfPages} clientName={p.clientName} exclusive={p.exclusive} signed={done ? { via: 'link', name: done.a.n, doc: done.a.d, at: done.a.at, hash: done.a.h, method: done.a.m, drawing: done.a.p, font: done.a.f, contact: done.a.c, device: done.a.ua, tz: done.a.tz, geo: done.a.g, docHash: done.a.dh } : undefined} />
+          <ContractDoc s={s} body={p.body} html={p.html} letterhead={p.letterhead} pdfPages={p.pdfPages} clientName={p.clientName} exclusive={p.exclusive} ownerSigned={p.ownerSign} signed={done ? { via: 'link', name: done.a.n, doc: done.a.d, at: done.a.at, hash: done.a.h, method: done.a.m, drawing: done.a.p, font: done.a.f, contact: done.a.c, device: done.a.ua, tz: done.a.tz, geo: done.a.g, docHash: done.a.dh } : undefined} />
         </DocScale>
       </div>
       {!done ? (
@@ -163,23 +179,32 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
           <div className="cs-done-sign">
             <SignatureGlyph sign={{ name: done.a.n, drawing: done.a.p, font: done.a.f }} />
           </div>
-          {sent ? (
+          {copyOf ? (
             <p className="muted">
-              Código de verificação <b>{done.a.h}</b>. Pronto: {p.owner || p.studio} já recebeu a sua assinatura{done.a.c?.includes('@') ? ' e uma cópia vai para o seu e-mail' : ''}.
+              Assinado por {done.a.n} em {new Date(done.a.at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}{p.ownerSign ? ` e por ${p.ownerSign.name}` : ''}. Código de verificação <b>{done.a.h}</b>.
+            </p>
+          ) : sent ? (
+            <p className="muted">
+              Código de verificação <b>{done.a.h}</b>. Pronto: {p.owner || p.studio} já recebeu a sua assinatura{done.a.c?.includes('@') ? ' e a cópia do contrato assinado vai para o seu e-mail' : ''}.
             </p>
           ) : (
             <p className="muted">
               Código de verificação <b>{done.a.h}</b>. Falta um passo: envie a confirmação para {p.owner || p.studio}.
             </p>
           )}
-          {p.phone ? (
+          <button className="bf-send" onClick={() => window.print()}>
+            <Icon name="download" size={16} /> salvar cópia em PDF
+          </button>
+          {!copyOf && p.phone ? (
             <a className={sent ? 'btn ghost small' : 'bf-send'} href={whatsappLink(p.phone, done.msg)} target="_blank" rel="noreferrer">
               <Icon name="whatsapp" size={16} /> {sent ? 'mandar também no WhatsApp' : 'enviar confirmação no WhatsApp'}
             </a>
           ) : null}
-          <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(done.msg)}>
-            <Icon name="copy" size={14} /> copiar confirmação
-          </button>
+          {!copyOf && (
+            <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(done.msg)}>
+              <Icon name="copy" size={14} /> copiar confirmação
+            </button>
+          )}
         </section>
       )}
     </>,

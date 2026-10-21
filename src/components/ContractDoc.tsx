@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from './Icon'
 import type { ContractSignature, Letterhead, Settings } from '../types'
 import { useAccess } from '../access'
@@ -33,6 +33,18 @@ function toBlocks(body: string): Block[] {
 /** Desenho do contrato exclusivo da dona (o link de assinatura guarda isso, porque abre fora da conta). */
 export const usesExclusiveContract = (has: (f: 'modeloExclusivo') => boolean, body: string) => has('modeloExclusivo') && /^CONTRATADA\s*$/m.test(body)
 
+/** Assinatura da contratada registrada ao gerar o link (vale junto com a do cliente). */
+const OwnerSignCtx = createContext<ContractSignature | undefined>(undefined)
+function OwnerSign({ s, lais }: { s: Settings; lais?: boolean }) {
+  const o = useContext(OwnerSignCtx)
+  if (s.signature) return <img className={lais ? undefined : 'c-sign-img'} src={s.signature} alt="" />
+  if (o) return <SignatureGlyph sign={{ name: o.name, font: o.font ?? s.signFont }} className={lais ? undefined : 'c-sign-img'} />
+  return lais ? null : <i className="c-sign-img" />
+}
+function OwnerMark() {
+  return <SignedMark sign={useContext(OwnerSignCtx)} />
+}
+
 /** Linha "assinado eletronicamente" embaixo do nome de quem assinou pelo link. */
 function SignedMark({ sign }: { sign?: ContractSignature }) {
   if (!sign || sign.via !== 'link') return null
@@ -47,6 +59,7 @@ function SignedMark({ sign }: { sign?: ContractSignature }) {
 
 /** Certificado de assinatura (última página): o registro de quem assinou, como, quando e de qual texto. */
 function SignCertificate({ sign, lais }: { sign?: ContractSignature; lais?: boolean }) {
+  const owner = useContext(OwnerSignCtx)
   if (!sign || sign.via !== 'link') return null
   const when = (iso?: string) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'medium' }) : '')
   const rows: [string, string | undefined][] = [
@@ -57,40 +70,69 @@ function SignCertificate({ sign, lais }: { sign?: ContractSignature; lais?: bool
     ['forma', sign.method === 'desenho' ? 'assinatura desenhada à mão na tela' : 'nome digitado, adotado como assinatura'],
     ['aparelho', sign.device],
     ['localização', sign.geo || 'não informada'],
-    ['confirmação', sign.confirmedAt ? `recebida pelo WhatsApp e registrada em ${when(sign.confirmedAt)}` : 'aguardando'],
+    ['confirmação', sign.confirmedAt ? `recebida e registrada em ${when(sign.confirmedAt)}` : 'aguardando'],
     ['código da assinatura', sign.hash],
   ]
+  const ownerRows: [string, string | undefined][] = owner
+    ? [
+        ['nome', owner.name],
+        ['CPF / CNPJ', owner.doc],
+        ['contato', owner.contact],
+        ['assinado em', `${when(owner.at)}${owner.tz ? ` (${owner.tz})` : ''}`],
+        ['forma', 'assinatura adotada pela contratada ao enviar o contrato'],
+        ['aparelho', owner.device],
+        ['código da assinatura', owner.hash],
+      ]
+    : []
+  const table = (r: [string, string | undefined][]) => (
+    <table className="c-cert-table">
+      <tbody>
+        {r.map(([k, v]) => (
+          <tr key={k}>
+            <th>{k}</th>
+            <td>{v || '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
   return (
     <article className={`contract-page c-cert ${lais ? 'lc-page' : ''}`}>
       <p className="c-cert-eyebrow">certificado de assinatura eletrônica</p>
-      <h2 className="c-cert-title">registro da assinatura</h2>
-      <p className="c-cert-text">Este documento foi assinado eletronicamente pelo link enviado pela contratada. Os dados abaixo foram registrados no momento da assinatura e ficam ligados ao texto exato do contrato pela impressão digital SHA-256: qualquer alteração no texto gera outra impressão e invalida esta assinatura.</p>
+      <h2 className="c-cert-title">registro das assinaturas</h2>
+      <p className="c-cert-text">Este documento foi assinado eletronicamente pelas partes. Os dados abaixo foram registrados no momento de cada assinatura e ficam ligados ao texto exato do contrato pela impressão digital SHA-256: qualquer alteração no texto gera outra impressão e invalida as assinaturas.</p>
+      <p className="c-cert-who">contratante</p>
       <div className="c-cert-sign">
         <SignatureGlyph sign={sign} />
         <span>{sign.name}</span>
       </div>
-      <table className="c-cert-table">
-        <tbody>
-          {rows.map(([k, v]) => (
-            <tr key={k}>
-              <th>{k}</th>
-              <td>{v || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {table(rows)}
+      {owner && (
+        <>
+          <p className="c-cert-who">contratada</p>
+          {table(ownerRows)}
+        </>
+      )}
       {sign.docHash && (
         <p className="c-cert-hash">
           <b>impressão digital do documento (SHA-256)</b>
           <code>{sign.docHash}</code>
         </p>
       )}
-      <p className="c-cert-law">Assinatura eletrônica simples, nos termos da Lei nº 14.063/2020 e da MP nº 2.200-2/2001 (art. 10, § 2º), admitida como válida pelas partes que a aceitaram. Para assinatura com certificado digital ICP-Brasil, use um serviço credenciado (ex.: assinador gov.br).</p>
+      <p className="c-cert-law">Assinaturas eletrônicas simples, nos termos da Lei nº 14.063/2020 e da MP nº 2.200-2/2001 (art. 10, § 2º), admitidas como válidas pelas partes que as aceitaram. Para assinatura com certificado digital ICP-Brasil, use um serviço credenciado (ex.: assinador gov.br).</p>
     </article>
   )
 }
 
-export function ContractDoc({ s, body, html, clientName, exclusive, signed, letterhead, pdfPages }: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature; letterhead?: Letterhead; pdfPages?: string[] }) {
+export function ContractDoc(props: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature; ownerSigned?: ContractSignature; letterhead?: Letterhead; pdfPages?: string[] }) {
+  return (
+    <OwnerSignCtx.Provider value={props.ownerSigned}>
+      <ContractSheets {...props} />
+    </OwnerSignCtx.Provider>
+  )
+}
+
+function ContractSheets({ s, body, html, clientName, exclusive, signed, letterhead, pdfPages }: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature; letterhead?: Letterhead; pdfPages?: string[] }) {
   const { has } = useAccess()
   // PDF pronto: as folhas exatamente como são + a folha das assinaturas no fim
   if (pdfPages?.length) return <PdfContract s={s} pages={pdfPages} clientName={clientName} signed={signed} />
@@ -152,10 +194,11 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
             <SignedMark sign={signed} />
           </div>
           <div>
-            {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
+            <OwnerSign s={s} />
             <span />
             <b>{s.legalName || s.ownerName || 'contratada'}</b>
             <small>contratada</small>
+            <OwnerMark />
           </div>
         </div>
       )
@@ -343,10 +386,11 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
       case 'sign':
         return (
           <div key={i} className="lc-signs">
-            <div className="lc-sign-box">{s.signature && <img src={s.signature} alt="" />}</div>
+            <div className="lc-sign-box"><OwnerSign s={s} lais /></div>
             <p className="lc-sign-who">
               {who.toUpperCase()}
               <b>CONTRATADO</b>
+              <OwnerMark />
             </p>
             <div className="lc-sign-box">{signed?.via === 'link' && <SignatureGlyph sign={signed} />}</div>
             <p className="lc-sign-who">
@@ -461,10 +505,11 @@ function OwnContract({ s, html, clientName, signed }: { s: Settings; html: strin
         <SignedMark sign={signed} />
       </div>
       <div>
-        {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
+        <OwnerSign s={s} />
         <span />
         <b>{s.legalName || s.ownerName || 'contratada'}</b>
         <small>contratada</small>
+            <OwnerMark />
       </div>
     </div>
   )
@@ -503,10 +548,11 @@ function SignBox({ s, clientName, signed }: { s: Settings; clientName: string; s
         <SignedMark sign={signed} />
       </div>
       <div>
-        {s.signature ? <img className="c-sign-img" src={s.signature} alt="" /> : <i className="c-sign-img" />}
+        <OwnerSign s={s} />
         <span />
         <b>{s.legalName || s.ownerName || 'contratada'}</b>
         <small>contratada</small>
+            <OwnerMark />
       </div>
     </div>
   )

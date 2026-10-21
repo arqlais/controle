@@ -21,6 +21,7 @@ export interface SignPayload {
   logo?: string
   s: Partial<Settings> // só o que o desenho do contrato usa
   exclusive: boolean // desenho exclusivo da dona
+  ownerSign?: ContractSignature // a contratada já assinou ao gerar o link
 }
 
 /** Resposta do cliente (vai no código da mensagem). */
@@ -61,6 +62,28 @@ export async function signatureHash(body: string, name: string, doc: string, at:
   const bytes = new TextEncoder().encode([body.trim(), name.trim().toLowerCase(), doc.replace(/\D/g, ''), at, extra].join('|'))
   const hex = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((b) => b.toString(16).padStart(2, '0')).join('')
   return hex.slice(0, 16).toUpperCase().match(/.{4}/g)!.join('-')
+}
+
+/** Assinatura da contratada, registrada quando ela gera o link (nome, documento, data, aparelho e código ligado ao texto). */
+export async function ownerStamp(body: string, st: Pick<Settings, 'legalName' | 'ownerName' | 'brandName' | 'document' | 'email' | 'phone' | 'signFont'>): Promise<ContractSignature> {
+  const name = (st.legalName || st.ownerName || st.brandName || 'contratada').trim()
+  const doc = st.document || ''
+  const at = new Date().toISOString()
+  const device = deviceLabel()
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  return {
+    via: 'link',
+    name,
+    doc: doc || undefined,
+    at,
+    method: 'digitado',
+    font: st.signFont,
+    contact: st.email || st.phone || undefined,
+    device,
+    tz,
+    hash: await signatureHash(body, name, doc, at, ['contratada', device, tz].join('|')),
+    docHash: await docHash(body),
+  }
 }
 
 /** Publica o contrato para assinar e devolve o link (curto na nuvem; com a cópia dentro, sem nuvem). */

@@ -309,7 +309,7 @@ const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   pedido: { eyebrow: 'pedido de orçamento', did: 'pediu um orçamento pela sua página' },
   dados: { eyebrow: 'dados para contrato', did: 'mandou os dados do contrato' },
 }
-const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string): Mail => {
+const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string, link = ''): Mail => {
   const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado
   return {
     subject: `${client || 'Seu cliente'} ${k.did}${title ? `: ${title}` : ''}`,
@@ -317,20 +317,21 @@ const clientEventMail = (s: Sub, kind: string, client: string, title: string, te
       eyebrow: k.eyebrow,
       title: `${esc(client || 'Seu cliente')} ${k.did}`,
       text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : kind === 'visualizou' ? '. Bom momento para mandar uma mensagem: ela acabou de ver' : kind === 'pedido' ? '. O rascunho do orçamento já está pronto, com o cliente e os serviços' : ''}.</p>`,
-      button: 'abrir o planê',
-      url: `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' || kind === 'pedido' ? 'orcamentos' : 'clientes'}`,
+      button: kind === 'assinatura' && link ? 'ver o contrato assinado' : 'abrir o planê',
+      url: kind === 'assinatura' && link ? link : `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' || kind === 'pedido' ? 'orcamentos' : 'clientes'}`,
     }),
   }
 }
-const clientCopyMail = (kind: string, studio: string, title: string): Mail => ({
+const clientCopyMail = (kind: string, studio: string, title: string, link = ''): Mail => ({
   subject: kind === 'assinatura' ? `Cópia: você assinou "${title}"` : kind === 'aprovacao' ? `Você aprovou: ${title}` : `Recebemos: ${title || 'sua mensagem'}`,
   html: layout({
     eyebrow: CLIENT_KIND[kind]?.eyebrow ?? 'aviso',
     title: kind === 'assinatura' ? 'Contrato assinado' : kind === 'aprovacao' ? 'Proposta aprovada' : 'Recebido!',
     text:
       kind === 'assinatura'
-        ? `<p style="margin:0 0 12px;">Sua assinatura de <b>${esc(title)}</b> foi registrada e ${esc(studio || 'o profissional')} já foi avisado(a).</p><p style="margin:0;">Guarde este e-mail como comprovante. A via assinada, com o certificado de assinatura, fica disponível com ${esc(studio || 'o profissional')}.</p>`
+        ? `<p style="margin:0 0 12px;">Sua assinatura de <b>${esc(title)}</b> foi registrada e ${esc(studio || 'o profissional')} já foi avisado(a).</p><p style="margin:0;">${link ? 'Abaixo está a sua cópia do contrato assinado pelas duas partes, com o certificado de assinatura. Dá para salvar em PDF.' : `Guarde este e-mail como comprovante. A via assinada, com o certificado de assinatura, fica disponível com ${esc(studio || 'o profissional')}.`}</p>`
         : `<p style="margin:0;">${esc(studio || 'O profissional')} recebeu ${esc(title || 'sua mensagem')} e já foi avisado(a).</p>`,
+    ...(kind === 'assinatura' && link ? { button: 'ver o contrato assinado', url: link } : {}),
   }),
 })
 
@@ -530,6 +531,8 @@ Deno.serve(async (req) => {
       painel: String(body.painel ?? '').slice(0, 80),
       opcao: String(body.opcao ?? '').slice(0, 80),
     }
+    // cópia do contrato assinado: só endereços do próprio planê
+    const link = /^https:\/\/[a-z0-9.-]+\/[^\s"'<>]*#\/assinar\/[A-Za-z0-9_.\/-]+$/.test(String(body.link ?? '')) ? String(body.link).slice(0, 20000) : ''
     const { error } = await db.from('client_events').insert({ user_id: user, kind, ref, payload })
     if (error) return json({ ok: false, motivo: 'já recebido' })
     // e-mail para o profissional (assinante; se não tiver assinatura, o e-mail da conta)
@@ -552,14 +555,14 @@ Deno.serve(async (req) => {
       }
       text = [payload.texto, req.area ? `área: ${req.area} m²` : '', req.phone ? `WhatsApp: ${String(req.phone).slice(0, 30)}` : '', payload.contato ? `e-mail: ${payload.contato}` : ''].filter(Boolean).join('\n')
     }
-    const sent = await once(s, `cliente-${kind}`, ref, clientEventMail(s, kind, payload.cliente, payload.titulo, text))
+    const sent = await once(s, `cliente-${kind}`, ref, clientEventMail(s, kind, payload.cliente, payload.titulo, text, link))
     // cópia para o cliente (só se deixou um e-mail); responder cai no e-mail do profissional
     const to = payload.contato.trim()
     if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
       const studio = String(body.studio ?? '').slice(0, 80)
       const copy: Sub = { ...s, email: to, name: payload.cliente }
       const { error: dup } = await db.from('email_log').insert({ user_id: user, kind: `copia-${kind}`, ref })
-      if (!dup) await send(copy, clientCopyMail(kind, studio, payload.titulo), s.email).catch((e) => console.error(e))
+      if (!dup) await send(copy, clientCopyMail(kind, studio, payload.titulo, link), s.email).catch((e) => console.error(e))
     }
     return json({ ok: true, email: sent })
   }

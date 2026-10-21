@@ -98,19 +98,9 @@ function Done({ p }: { p: DataPayload }) {
         <Icon name="check" size={28} />
       </span>
       <h1>
-        tudo <em>certo!</em>
+        preenchido com <em>sucesso!</em>
       </h1>
-      <p className="muted">{who} já recebeu os seus dados e vai preparar o contrato.</p>
-      <a className="cdp-promo" href="https://useplane.com.br" target="_blank" rel="noreferrer">
-        <span className="cdp-promo-mark">
-          <PlaneMark size={22} />
-        </span>
-        <span>
-          <b>esse formulário foi feito no planê</b>
-          <small>propostas, contratos, prazos e financeiro para quem vive de projeto</small>
-        </span>
-        <Icon name="arrowRight" size={16} />
-      </a>
+      <p className="muted">Seus dados foram enviados para {who}. Agora é só aguardar o contrato.</p>
     </div>
   )
 }
