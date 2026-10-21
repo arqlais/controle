@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-21-contrato-revisar',
+    date: '2026-10-21',
+    kind: 'melhoria',
+    title: 'contrato sempre com os dados certos',
+    text: 'Quando o cliente manda os dados para contrato (ou você corrige o cadastro), o contrato atualiza sozinho: e-mail, endereço, documento e quem assina. No contrato aberto, o quadro "revisar antes de enviar" junta valor, pagamento, prazo e contato: mudou ali, muda no texto todo.',
+    steps: [{ text: 'Abra um contrato e veja o quadro "revisar antes de enviar".', page: 'contratos' }],
+  },
+  {
     id: '2026-10-21-assinatura-das-duas-partes',
     date: '2026-10-21',
     kind: 'novo',

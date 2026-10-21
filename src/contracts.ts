@@ -1,4 +1,4 @@
-import type { Client, ContractSettings, ContractTemplate, Quote, Settings } from './types'
+import type { Client, Contract, ContractSettings, ContractTemplate, Quote, Settings } from './types'
 import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS } from './contractTemplates'
 import { dayLabel } from './processes'
 import { porExtenso } from './components/Docs'
@@ -174,6 +174,68 @@ function fromData(d: NonNullable<Client['contractData']>): Record<string, string
   put('representante', signersOf(d).map((p) => p.name).join(' e '))
   put('endereco_obra', addressText(d.property))
   return out
+}
+
+/** Dados que mudaram depois que o contrato foi criado (o cliente mandou o formulário, você corrigiu o cadastro
+ *  ou o seu perfil): troca no texto o valor antigo pelo novo, sem mexer no que foi escrito à mão.
+ *  Contrato assinado nunca muda. Devolve null quando não há nada a trocar. */
+export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Client): Pick<Contract, 'body' | 'html' | 'vars'> | null {
+  if (c.sign) return null
+  const now = contractVars(s, q, client)
+  // contratos antigos não guardaram os valores: o cadastro sem o formulário é o que foi usado
+  const before = c.vars ?? contractVars(s, q, client ? { ...client, contractData: undefined } : client)
+  const blankOf = (v: string) => /^\[[^\]\n]{3,40}\]$/.test(v)
+  let body = c.body
+  let html = c.html
+  const swap = (txt: string, from: string, to: string) => txt.split(from).join(to)
+  const swapHtml = (txt: string, from: string, to: string) => txt.split(esc(from)).join(esc(to)).split(from).join(to)
+  for (const k of SYNC_KEYS) {
+    const a = before[k]
+    const b = now[k]
+    if (!a || !b || a === b || blankOf(b)) continue
+    if (!blankOf(a) && a.length < 4) continue // valor curto demais para trocar com segurança
+    body = swap(body, a, b)
+    if (html) html = swapHtml(html, a, b)
+  }
+  if (body === c.body && html === c.html && c.vars) return null
+  return { body, html, vars: now }
+}
+const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const SYNC_KEYS = ['qualificacao_contratante', 'contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'representante', 'endereco_obra', 'contratada', 'doc_contratada', 'endereco_contratada', 'email_contratada', 'telefone_contratada']
+
+/** Pontos para revisar antes de enviar: trocar aqui troca no texto inteiro do contrato. */
+export const REVIEW_FIELDS: { key: string; label: string; icon: string; long?: boolean }[] = [
+  { key: 'valor', label: 'valor total', icon: 'wallet' },
+  { key: 'entrada', label: 'entrada', icon: 'check' },
+  { key: 'saldo', label: 'saldo', icon: 'clock' },
+  { key: 'pagamento', label: 'forma de pagamento', icon: 'wallet', long: true },
+  { key: 'prazo', label: 'prazo', icon: 'calendar' },
+  { key: 'prazo_total', label: 'prazo total', icon: 'calendar' },
+  { key: 'revisoes', label: 'revisões', icon: 'undo' },
+  { key: 'email_contratante', label: 'e-mail do cliente', icon: 'mail' },
+  { key: 'telefone_contratante', label: 'telefone do cliente', icon: 'phone' },
+  { key: 'endereco_obra', label: 'endereço do imóvel', icon: 'home', long: true },
+  { key: 'foro', label: 'foro', icon: 'flag' },
+]
+
+/** Troca um valor no texto (e no desenho do Word) e devolve o contrato novo; o valor por extenso acompanha. */
+export function reviseContract(c: Contract, vars: Record<string, string>, key: string, value: string): Pick<Contract, 'body' | 'html' | 'vars'> {
+  const pairs: [string, string][] = [[vars[key] ?? '', value]]
+  if (key === 'valor') {
+    const n = Number(value.replace(/[^\d,]/g, '').replace(',', '.'))
+    if (n > 0 && vars.valor_extenso) pairs.push([vars.valor_extenso, porExtenso(n)])
+  }
+  let body = c.body
+  let html = c.html
+  const next = { ...vars }
+  for (const [a, b] of pairs) {
+    if (!a || a === b) continue
+    body = body.split(a).join(b)
+    if (html) html = html.split(esc(a)).join(esc(b)).split(a).join(b)
+  }
+  next[key] = value
+  if (key === 'valor' && pairs[1]) next.valor_extenso = pairs[1][1]
+  return { body, html, vars: next }
 }
 
 /** Troca {variáveis}; as que não existem ficam como estão (para a pessoa ver e completar). */

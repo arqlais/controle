@@ -10,7 +10,7 @@ import { LetterheadField } from '../components/Letterhead'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
-import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate } from '../contracts'
+import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, reviseContract } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
@@ -215,6 +215,7 @@ function NewContract({ onClose }: { onClose: () => void }) {
       clientId,
       templateId: tpl.id,
       ...fromTemplate(tpl, vars),
+      vars,
       status: 'rascunho',
       createdAt: today(),
     }
@@ -330,6 +331,23 @@ function ContractEditor({ id }: { id: string }) {
   useEffect(() => {
     if (arrived) setC((x) => (x ? { ...x, sign: arrived, status: 'assinado' } : x))
   }, [arrived])
+  // dados do cliente (formulário ou cadastro) ou do seu perfil mudaram: o contrato acompanha sozinho
+  const syncKey = (() => {
+    const cl = data.clients.find((x) => x.id === found?.clientId)
+    return JSON.stringify([cl?.contractData, cl?.email, cl?.phone, cl?.name, data.settings.email, data.settings.phone, data.settings.legalName, data.settings.document])
+  })()
+  useEffect(() => {
+    if (!found) return
+    const upd = syncContract(found, data.settings, data.quotes.find((x) => x.id === found.quoteId), data.clients.find((x) => x.id === found.clientId))
+    if (!upd) return
+    const changed = upd.body !== found.body || upd.html !== found.html
+    const next = { ...found, ...upd }
+    upsert('contracts', next)
+    setC((x) => (x ? { ...x, ...upd } : x))
+    draft.rebase(next)
+    if (changed) toast(found.signLink ? 'Contrato atualizado com os dados novos. Toque em “atualizar link” para o cliente assinar esta versão.' : 'Contrato atualizado com os dados novos do cliente.')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [found?.id, syncKey])
   useLeaveGuard(!!c && JSON.stringify(c) !== JSON.stringify(found), () => {
     if (c) {
       upsert('contracts', c)
@@ -353,7 +371,8 @@ function ContractEditor({ id }: { id: string }) {
     const tpl = cs.templates.find((t) => t.id === templateId)
     if (!tpl) return
     if (c.body.trim() && !(await ask('Preencher de novo a partir do modelo? O que você editou à mão neste contrato será substituído.', { confirmLabel: 'Preencher de novo' }))) return
-    set({ templateId, html: undefined, ...fromTemplate(tpl, contractVars(data.settings, quote, client)) })
+    const vars = contractVars(data.settings, quote, client)
+    set({ templateId, html: undefined, vars, ...fromTemplate(tpl, vars) })
   }
   const missing = [...new Set(c.body.match(/\[[^\]\n]{3,40}\]/g) ?? [])]
   const doc = <ContractDoc s={data.settings} body={c.body} html={c.html} letterhead={c.letterhead} pdfPages={c.pdfPages} clientName={client ? client.name : ''} signed={c.sign} ownerSigned={c.ownerSign} />
@@ -396,6 +415,7 @@ function ContractEditor({ id }: { id: string }) {
       <Disclaimer />
       <div className="pf-contract-layout">
         <div className="stack">
+          {!c.sign && <ReviewBox c={c} vars={c.vars ?? contractVars(data.settings, quote, client)} onChange={(patch) => set(patch)} />}
           <Section title="dados">
             <div className="form-grid">
               <Field label="Título" span={2}>
@@ -793,6 +813,43 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
         </Section>
       )}
     </div>
+  )
+}
+
+/** Revisar antes de enviar: os pontos que mais mudam, num lugar só. Só aparece o que está no texto. */
+function ReviewBox({ c, vars, onChange }: { c: Contract; vars: Record<string, string>; onChange: (patch: Partial<Contract>) => void }) {
+  const shown = REVIEW_FIELDS.filter((f) => vars[f.key] && (c.body.includes(vars[f.key]) || (c.html ?? '').includes(vars[f.key])))
+  const [edit, setEdit] = useState<Record<string, string>>({})
+  if (!shown.length) return null
+  const commit = (key: string) => {
+    const v = edit[key]
+    if (v === undefined) return
+    setEdit(({ [key]: _, ...rest }) => rest)
+    if (!v.trim() || v === vars[key]) return
+    onChange(reviseContract(c, vars, key, v.trim()))
+  }
+  return (
+    <Section title="revisar antes de enviar">
+      <p className="muted small">Mudou aqui, muda em todo o texto do contrato. Depois é só salvar.</p>
+      <div className="rv-grid">
+        {shown.map((f) => {
+          const blank = /^\[[^\]\n]{3,40}\]$/.test(vars[f.key])
+          const val = edit[f.key] ?? (blank ? '' : vars[f.key])
+          return (
+            <label key={f.key} className={`rv-field ${f.long ? 'is-long' : ''} ${blank ? 'is-blank' : ''}`}>
+              <span className="rv-label">
+                <Icon name={f.icon} size={13} /> {f.label}
+              </span>
+              {f.long ? (
+                <textarea rows={2} value={val} placeholder={blank ? 'falta preencher' : ''} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })} onBlur={() => commit(f.key)} />
+              ) : (
+                <input value={val} placeholder={blank ? 'falta preencher' : ''} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })} onBlur={() => commit(f.key)} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
+              )}
+            </label>
+          )
+        })}
+      </div>
+    </Section>
   )
 }
 
