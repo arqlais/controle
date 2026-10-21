@@ -31,3 +31,4 @@ end;
 $$;
 revoke execute on function public.briefing_publico(uuid), public.responder_briefing(uuid, jsonb) from public;
 grant execute on function public.briefing_publico(uuid), public.responder_briefing(uuid, jsonb) to anon, authenticated;
+-- publicado pela automação em 2026-10-20

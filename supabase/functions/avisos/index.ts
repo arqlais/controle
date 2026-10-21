@@ -1,3 +1,4 @@
+// publicado automaticamente pelo GitHub (workflow supabase.yml)
 // Avisos por e-mail do planê (roda no Supabase, nunca no site).
 // Cole este arquivo em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "avisos".
 // Segredos (Edge Functions → Secrets): BREVO_API_KEY e CRON_SECRET. Opcionais: SENDER_EMAIL (remetente validado no Brevo), SITE_URL, REPLY_TO.
