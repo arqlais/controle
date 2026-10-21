@@ -269,16 +269,50 @@ export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Clien
   const blankOf = (v: string) => /^\[[^\]\n]{3,60}\]$/.test(v)
   let body = c.body
   let html = c.html
-  const swap = (txt: string, from: string, to: string) => txt.split(from).join(to)
-  const swapHtml = (txt: string, from: string, to: string) => txt.split(esc(from)).join(esc(to)).split(from).join(to)
+  // conserta a troca antiga que pôs a qualificação inteira no lugar do nome (linha "Nome: …" do contrato)
+  const qual = now.qualificacao_contratante
+  if (qual && !blankOf(qual) && qual !== now.contratante && body.includes(qual)) {
+    body = body.split('\n').map((l) => (/^\W*Nome\s*:/i.test(l) && l.includes(qual) ? l.replace(qual, now.contratante) : l)).join('\n')
+  }
+  // conserta trocas antigas que repetiram o texto (ex.: "Muda Arquitetura Possivel LTDA Possivel LTDA")
   for (const k of SYNC_KEYS) {
-    if (manual.has(k)) continue // mudado à mão no "revisar antes de enviar": fica como ela deixou
+    const a = before[k]
+    const b = now[k]
+    if (!a || !b || a === b || !b.includes(a) || a.length < 4) continue
+    const broken = b.split(a).join(b)
+    for (let n = 0; n < 4 && body.includes(broken); n++) body = body.split(broken).join(b)
+    if (html) for (let n = 0; n < 4 && html.includes(esc(broken)); n++) html = html.split(esc(broken)).join(esc(b))
+  }
+  // todas as trocas de uma vez: um valor novo nunca é trocado de novo por outra regra,
+  const pairs: [string, string][] = []
+  for (const k of SYNC_KEYS) {
+    if (manual.has(k)) continue
     const a = before[k]
     const b = now[k]
     if (!a || !b || a === b || blankOf(b)) continue
     if (!blankOf(a) && a.length < 4) continue // valor curto demais para trocar com segurança
-    body = swap(body, a, b)
-    if (html) html = swapHtml(html, a, b)
+    pairs.push([a, b])
+  }
+  // mesmo valor antigo para duas coisas: vale a primeira da lista (quem contrata vem antes de quem assina)
+  const first = new Map<string, string>()
+  for (const [a, b] of pairs) if (!first.has(a)) first.set(a, b)
+  const clear = [...first.entries()].sort((x, y) => y[0].length - x[0].length)
+  const multi = (txt: string, enc: (x: string) => string) => {
+    let out = txt
+    clear.forEach(([, b], i) => (out = out.split(enc(b)).join(`\u0000n${i}\u0000`))) // o que já está certo fica protegido
+    clear.forEach(([a], i) => (out = out.split(enc(a)).join(`\u0000n${i}\u0000`)))
+    clear.forEach(([, b], i) => (out = out.split(`\u0000n${i}\u0000`).join(enc(b))))
+    return out
+  }
+  body = multi(body, (x) => x)
+  if (html) html = multi(multi(html, esc), (x) => x)
+  // mesma coisa escrita em maiúsculas/minúsculas diferentes (ex.: e-mail todo em MAIÚSCULA): fica no padrão
+  for (const k of ['email_contratante', 'email_contratada', 'contratante', 'contratada', 'representante']) {
+    const v = now[k]
+    if (!v || blankOf(v) || v.length < 4 || manual.has(k)) continue
+    const re = new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+    body = body.replace(re, v)
+    if (html) html = html.replace(re, v)
   }
   // modelo sem a lista do orçamento: o escopo aprovado entra na cláusula do objeto
   // já tem a lista do orçamento (em qualquer formato, antigo ou novo)? então não repete
@@ -289,6 +323,16 @@ export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Clien
   for (const k of manual) if (c.vars?.[k] !== undefined) vars[k] = c.vars[k]
   if (body === c.body && html === c.html && JSON.stringify(c.vars) === JSON.stringify(vars)) return null
   return { body, html, vars }
+}
+
+/** Troca "de" por "para" sem estragar onde o "para" já está escrito (quando o novo contém o antigo). */
+export function safeSwap(txt: string, from: string, to: string): string {
+  if (!from || from === to) return txt
+  if (to.includes(from)) {
+    const KEEP = '\u0000mantem\u0000'
+    return txt.split(to).join(KEEP).split(from).join(to).split(KEEP).join(to)
+  }
+  return txt.split(from).join(to)
 }
 
 /** Como a lista de serviços saía antes (para trocar pela nova nos rascunhos antigos). */
@@ -309,7 +353,7 @@ export function insertScope(body: string, scope: string, orc = '') {
   return head.replace(/\n*$/, '\n') + block + body.slice(at)
 }
 const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-const SYNC_KEYS = ['qualificacao_contratante', 'contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'representante', 'endereco_obra', 'contratada', 'doc_contratada', 'endereco_contratada', 'email_contratada', 'telefone_contratada', 'escopo', 'servicos', 'observacoes', 'etapas', 'cronograma', 'pagamento_etapas', 'pagamento', 'valor', 'valor_extenso', 'entrada', 'saldo', 'prazo', 'prazo_total', 'prazo_dias', 'projeto', 'orcamento', 'arquivos', 'revisoes', 'quantidade']
+const SYNC_KEYS = ['contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'representante', 'qualificacao_contratante', 'endereco_obra', 'contratada', 'doc_contratada', 'endereco_contratada', 'email_contratada', 'telefone_contratada', 'escopo', 'servicos', 'observacoes', 'etapas', 'cronograma', 'pagamento_etapas', 'pagamento', 'valor', 'valor_extenso', 'entrada', 'saldo', 'prazo', 'prazo_total', 'prazo_dias', 'projeto', 'orcamento', 'arquivos', 'revisoes', 'quantidade']
 
 /** Pontos para revisar antes de enviar: trocar aqui troca no texto inteiro do contrato. */
 export const REVIEW_GROUPS: { id: string; label: string; icon: string }[] = [
@@ -360,8 +404,8 @@ export function reviseContract(c: Contract, vars: Record<string, string>, key: s
   const next = { ...vars }
   for (const [a, b] of pairs) {
     if (!a || a === b) continue
-    body = body.split(a).join(b)
-    if (html) html = html.split(esc(a)).join(esc(b)).split(a).join(b)
+    body = safeSwap(body, a, b)
+    if (html) html = safeSwap(safeSwap(html, esc(a), esc(b)), a, b)
   }
   next[key] = value
   if (key === 'valor' && pairs[1]) next.valor_extenso = pairs[1][1]
