@@ -8,6 +8,7 @@ import { SIGN_FONTS, SignatureGlyph, SignaturePad } from './SignaturePad'
 import { ContractDoc } from './ContractDoc'
 import { DocScale } from './Print'
 import { Icon } from './Icon'
+import { PlaneMark } from './ContractDataPublic'
 
 /* Página que o cliente abre para ler e assinar o contrato (sem login, sem nada do sistema). */
 export function ContractSignPublic({ id, data, preview }: { id: string; data?: SignPayload; preview?: boolean }) {
@@ -42,12 +43,26 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
   }, [id, p])
 
   const wrap = (children: React.ReactNode) => (
-    <div className={`bf-public cs-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: p?.accent || '#a88a80' }}>
-      <div className="bf-card cs-card">{children}</div>
-      <p className="bf-foot"><a href="https://useplane.com.br" target="_blank" rel="noreferrer">feito com planê · useplane.com.br</a></p>
+    <div className={`cdp cs2 ${preview ? 'is-preview' : ''}`}>
+      {p && (
+        <header className="cdp-top">
+          {p.logo ? <img src={p.logo} alt="" className="cdp-logo" /> : <span className="cdp-logo is-letter"><i>{(p.studio || '·').slice(0, 1).toLowerCase()}</i></span>}
+          <span>
+            <b>{p.studio}</b>
+            <small>contrato para assinar</small>
+          </span>
+        </header>
+      )}
+      <main className="cdp-card cs2-card">{children}</main>
+      <a className="cdp-made" href="https://useplane.com.br" target="_blank" rel="noreferrer">
+        <span className="cdp-made-mark">
+          <PlaneMark size={14} />
+        </span>
+        feito com <b>planê</b>
+      </a>
     </div>
   )
-  if (p === undefined) return wrap(<p className="muted">carregando o contrato…</p>)
+  if (p === undefined) return wrap(<div className="cdp-loading"><span /></div>)
   if (p === null) return wrap(<p>Este contrato não está mais disponível. Fale com quem te enviou o link.</p>)
 
   const digits = doc.replace(/\D/g, '')
@@ -102,48 +117,65 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
     }
   }
   const s = { ...DEFAULT_SETTINGS, ...p.s }
+  const signedNow = done ? { via: 'link' as const, name: done.a.n, doc: done.a.d, at: done.a.at, hash: done.a.h, method: done.a.m, drawing: done.a.p, font: done.a.f, contact: done.a.c, device: done.a.ua, tz: done.a.tz, geo: done.a.g, docHash: done.a.dh } : undefined
+  const who = p.owner || p.studio
 
   return wrap(
-    <>
-      <header className="bf-head">
-        {p.logo && <img src={p.logo} alt="" className="bf-logo" />}
-        <p className="bf-eyebrow">{p.studio}</p>
-        <h1>{p.title}</h1>
-        <p className="muted">
-          {copyOf
-            ? 'Cópia do contrato assinado pelas duas partes, com o certificado de assinatura na última página.'
-            : `${p.clientName ? `Oi, ${p.clientName.split(' ')[0]}! ` : ''}Leia o contrato com calma. No fim da página, assine com o seu nome e CPF.${p.ownerSign ? ` ${p.owner || p.studio} já assinou como contratada.` : ''}`}
+    <div className="cd-anim">
+      <div className="cs2-head">
+        <p className="cd-eyebrow">
+          <Icon name="file" size={13} /> contrato
         </p>
-      </header>
-      <div className="cs-doc" tabIndex={0} aria-label="Texto do contrato">
+        <h1 className="cd-title">{p.title.replace(/^contrato\s*[·\-–—]\s*/i, '')}</h1>
+        {!copyOf && !done && <p className="cd-lead is-small">{p.clientName ? `Oi, ${p.clientName.split(' ')[0]}! ` : ''}Leia com calma e assine no fim da página.</p>}
+        {p.ownerSign && (
+          <p className="cs2-chip">
+            <Icon name="check" size={13} /> {who} já assinou
+          </p>
+        )}
+      </div>
+
+      <div className="cs-doc cs2-doc" tabIndex={0} aria-label="Texto do contrato">
         <DocScale>
-          <ContractDoc s={s} body={p.body} html={p.html} letterhead={p.letterhead} pdfPages={p.pdfPages} clientName={p.clientName} exclusive={p.exclusive} ownerSigned={p.ownerSign} signed={done ? { via: 'link', name: done.a.n, doc: done.a.d, at: done.a.at, hash: done.a.h, method: done.a.m, drawing: done.a.p, font: done.a.f, contact: done.a.c, device: done.a.ua, tz: done.a.tz, geo: done.a.g, docHash: done.a.dh } : undefined} />
+          <ContractDoc s={s} body={p.body} html={p.html} letterhead={p.letterhead} pdfPages={p.pdfPages} clientName={p.clientName} exclusive={p.exclusive} ownerSigned={p.ownerSign} signed={signedNow} />
         </DocScale>
       </div>
+
       {!done ? (
-        <section className="cs-form">
-          <h2>assinar</h2>
-          <label>
-            <span>Nome completo</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="como no documento" />
-          </label>
-          <label>
-            <span>CPF ou CNPJ</span>
-            <input value={formatDoc(doc)} onChange={(e) => setDoc(e.target.value)} inputMode="numeric" placeholder="só os números" />
-          </label>
-          <label>
-            <span>E-mail ou WhatsApp</span>
-            <input value={contact} onChange={(e) => setContact(e.target.value)} autoComplete="email" placeholder="para constar no registro da assinatura" />
-          </label>
-          <div className="cs-method">
-            <span>Como quer assinar?</span>
-            <div className="cs-tabs" role="tablist">
-              <button role="tab" aria-selected={method === 'desenho'} className={method === 'desenho' ? 'is-on' : ''} onClick={() => setMethod('desenho')}>
-                desenhar
-              </button>
-              <button role="tab" aria-selected={method === 'digitado'} className={method === 'digitado' ? 'is-on' : ''} onClick={() => setMethod('digitado')}>
-                digitar o nome
-              </button>
+        <section className="cs2-form">
+          <div className="cd-blk">
+            <div className="cd-blk-head">
+              <span className="cd-ico"><Icon name="user" size={15} /></span>
+              <b>seus dados</b>
+            </div>
+            <div className="cs2-fields">
+              <label className="cs2-field is-wide">
+                <span>nome completo</span>
+                <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder="como no documento" />
+              </label>
+              <label className="cs2-field">
+                <span>CPF ou CNPJ</span>
+                <input value={formatDoc(doc)} onChange={(e) => setDoc(e.target.value)} inputMode="numeric" placeholder="só os números" />
+              </label>
+              <label className="cs2-field">
+                <span>e-mail ou WhatsApp</span>
+                <input value={contact} onChange={(e) => setContact(e.target.value)} autoComplete="email" placeholder="para receber a cópia" />
+              </label>
+            </div>
+          </div>
+
+          <div className="cd-blk">
+            <div className="cd-blk-head">
+              <span className="cd-ico"><Icon name="pen" size={15} /></span>
+              <b>assinatura</b>
+              <div className="cs-tabs cs2-tabs" role="tablist">
+                <button role="tab" aria-selected={method === 'desenho'} className={method === 'desenho' ? 'is-on' : ''} onClick={() => setMethod('desenho')}>
+                  desenhar
+                </button>
+                <button role="tab" aria-selected={method === 'digitado'} className={method === 'digitado' ? 'is-on' : ''} onClick={() => setMethod('digitado')}>
+                  digitar
+                </button>
+              </div>
             </div>
             {method === 'desenho' ? (
               <SignaturePad value={drawing} onChange={setDrawing} />
@@ -152,61 +184,62 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
                 {SIGN_FONTS.map((f) => (
                   <button key={f.id} className={`cs-font ${font === f.id ? 'is-on' : ''}`} onClick={() => setFont(f.id)} aria-pressed={font === f.id}>
                     <span style={{ fontFamily: f.family, fontSize: `${f.size ?? 1}em` }}>{name.trim() || 'Seu Nome'}</span>
-                    <small>{f.name}</small>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <label className="cs-agree">
+
+          <label className={`cs2-agree ${agree ? 'is-on' : ''}`}>
             <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>Li todo o contrato, concordo com os termos e reconheço esta assinatura eletrônica como minha.</span>
+            <span>Li o contrato, concordo com os termos e reconheço esta assinatura eletrônica como minha.</span>
           </label>
-          {error && <p className="cs-error">{error}</p>}
-          <button className="bf-send" disabled={busy || !agree} onClick={() => void sign()} title={agree ? undefined : 'Marque que leu e concorda para assinar'}>
-            {busy ? 'assinando…' : 'assinar contrato'}
+          {error && (
+            <p className="cd-miss">
+              <Icon name="alert" size={15} /> {error}
+            </p>
+          )}
+          <button className="cd-go" disabled={busy || !agree} onClick={() => void sign()}>
+            {busy ? 'assinando…' : 'assinar contrato'} <Icon name="pen" size={16} />
           </button>
-          <p className="muted small">
-            Assinatura eletrônica (Lei 14.063/2020 e MP 2.200-2/2001, art. 10, § 2º). Ao assinar, o navegador pede a sua localização. Ficam registrados nome, CPF, contato, data e hora, fuso, aparelho, localização e a impressão digital (SHA-256) deste texto. Se o texto mudar, a assinatura deixa de valer. Tudo aparece no certificado de assinatura, na última página do contrato.
-          </p>
+          <details className="cs2-law">
+            <summary>
+              <Icon name="lock" size={13} /> como a assinatura vale
+            </summary>
+            <p>Assinatura eletrônica (Lei 14.063/2020 e MP 2.200-2/2001, art. 10, § 2º). Ao assinar, o navegador pede a sua localização. Ficam registrados nome, CPF, contato, data e hora, fuso, aparelho, localização e a impressão digital (SHA-256) deste texto. Se o texto mudar, a assinatura deixa de valer. Tudo aparece no certificado, na última página do contrato.</p>
+          </details>
         </section>
       ) : (
-        <section className="cs-done">
-          <span className="cs-done-icon">
-            <Icon name="check" size={22} />
+        <section className="cd-done">
+          <span className="cd-done-ico">
+            <Icon name="check" size={28} />
           </span>
-          <h2>contrato assinado</h2>
+          <h1>
+            contrato <em>assinado!</em>
+          </h1>
           <div className="cs-done-sign">
             <SignatureGlyph sign={{ name: done.a.n, drawing: done.a.p, font: done.a.f }} />
           </div>
-          {copyOf ? (
-            <p className="muted">
-              Assinado por {done.a.n} em {new Date(done.a.at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}{p.ownerSign ? ` e por ${p.ownerSign.name}` : ''}. Código de verificação <b>{done.a.h}</b>.
-            </p>
-          ) : sent ? (
-            <p className="muted">
-              Código de verificação <b>{done.a.h}</b>. Pronto: {p.owner || p.studio} já recebeu a sua assinatura{done.a.c?.includes('@') ? ' e a cópia do contrato assinado vai para o seu e-mail' : ''}.
-            </p>
-          ) : (
-            <p className="muted">
-              Código de verificação <b>{done.a.h}</b>. Falta um passo: envie a confirmação para {p.owner || p.studio}.
-            </p>
-          )}
-          <button className="bf-send" onClick={() => window.print()}>
-            <Icon name="download" size={16} /> salvar cópia em PDF
-          </button>
-          {!copyOf && p.phone ? (
-            <a className={sent ? 'btn ghost small' : 'bf-send'} href={whatsappLink(p.phone, done.msg)} target="_blank" rel="noreferrer">
-              <Icon name="whatsapp" size={16} /> {sent ? 'mandar também no WhatsApp' : 'enviar confirmação no WhatsApp'}
-            </a>
-          ) : null}
-          {!copyOf && (
-            <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(done.msg)}>
-              <Icon name="copy" size={14} /> copiar confirmação
+          <p className="muted">
+            {copyOf
+              ? `Assinado por ${done.a.n}${p.ownerSign ? ` e ${p.ownerSign.name}` : ''} em ${new Date(done.a.at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}.`
+              : sent
+                ? `${who} já recebeu a sua assinatura${done.a.c?.includes('@') ? ' e a cópia vai para o seu e-mail' : ''}.`
+                : `Falta um passo: envie a confirmação para ${who}.`}
+          </p>
+          <p className="cs2-code">código {done.a.h}</p>
+          <div className="cs2-done-acts">
+            <button className="cd-go" onClick={() => window.print()}>
+              <Icon name="download" size={16} /> salvar em PDF
             </button>
-          )}
+            {!copyOf && p.phone ? (
+              <a className={sent ? 'cd-back cs2-round' : 'cd-go'} href={whatsappLink(p.phone, done.msg)} target="_blank" rel="noreferrer" title="Mandar a confirmação no WhatsApp" aria-label="Mandar a confirmação no WhatsApp">
+                <Icon name="whatsapp" size={18} /> {sent ? '' : 'enviar confirmação'}
+              </a>
+            ) : null}
+          </div>
         </section>
       )}
-    </>,
+    </div>,
   )
 }
