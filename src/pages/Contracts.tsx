@@ -10,7 +10,7 @@ import { LetterheadField } from '../components/Letterhead'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
-import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, reviseContract } from '../contracts'
+import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
@@ -818,7 +818,14 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
 
 /** Revisar antes de enviar: os pontos que mais mudam, num lugar só. Só aparece o que está no texto. */
 function ReviewBox({ c, vars, onChange }: { c: Contract; vars: Record<string, string>; onChange: (patch: Partial<Contract>) => void }) {
-  const shown = REVIEW_FIELDS.filter((f) => vars[f.key] && (c.body.includes(vars[f.key]) || (c.html ?? '').includes(vars[f.key])))
+  const count = (v: string) => c.body.split(v).length - 1
+  // valor curto (ex.: "2") só entra se aparece uma vez no texto: senão a troca pegaria outros números
+  const shown = REVIEW_FIELDS.filter((f) => {
+    const v = vars[f.key]
+    if (!v) return false
+    const n = count(v) || ((c.html ?? '').includes(v) ? 1 : 0)
+    return v.trim().length >= 4 ? n > 0 : n === 1
+  }).filter((f, i, all) => all.findIndex((x) => vars[x.key] === vars[f.key]) === i) // mesmo texto em dois campos: mostra uma vez
   const [edit, setEdit] = useState<Record<string, string>>({})
   if (!shown.length) return null
   const commit = (key: string) => {
@@ -831,24 +838,37 @@ function ReviewBox({ c, vars, onChange }: { c: Contract; vars: Record<string, st
   return (
     <Section title="revisar antes de enviar">
       <p className="muted small">Mudou aqui, muda em todo o texto do contrato. Depois é só salvar.</p>
-      <div className="rv-grid">
-        {shown.map((f) => {
-          const blank = /^\[[^\]\n]{3,40}\]$/.test(vars[f.key])
-          const val = edit[f.key] ?? (blank ? '' : vars[f.key])
-          return (
-            <label key={f.key} className={`rv-field ${f.long ? 'is-long' : ''} ${blank ? 'is-blank' : ''}`}>
-              <span className="rv-label">
-                <Icon name={f.icon} size={13} /> {f.label}
-              </span>
-              {f.long ? (
-                <textarea rows={2} value={val} placeholder={blank ? 'falta preencher' : ''} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })} onBlur={() => commit(f.key)} />
-              ) : (
-                <input value={val} placeholder={blank ? 'falta preencher' : ''} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })} onBlur={() => commit(f.key)} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
-              )}
-            </label>
-          )
-        })}
-      </div>
+      {REVIEW_GROUPS.map((g) => {
+        const fields = shown.filter((f) => f.group === g.id)
+        if (!fields.length) return null
+        const open = g.id !== 'geral' || fields.some((f) => /^\[[^\]\n]{3,40}\]$/.test(vars[f.key]))
+        return (
+          <details key={g.id} className="rv-group" open={open}>
+            <summary>
+              <Icon name={g.icon} size={14} /> {g.label}
+              <small>{fields.length}</small>
+            </summary>
+            <div className="rv-grid">
+              {fields.map((f) => {
+                const blank = /^\[[^\]\n]{3,40}\]$/.test(vars[f.key])
+                const val = edit[f.key] ?? (blank ? '' : vars[f.key])
+                return (
+                  <label key={f.key} className={`rv-field ${f.long ? 'is-long' : ''} ${blank ? 'is-blank' : ''}`}>
+                    <span className="rv-label">
+                      <Icon name={f.icon} size={13} /> {f.label}
+                    </span>
+                    {f.long ? (
+                      <textarea rows={Math.min(8, Math.max(2, val.split('\n').length))} value={val} placeholder={blank ? 'falta preencher' : ''} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })} onBlur={() => commit(f.key)} />
+                    ) : (
+                      <input value={val} placeholder={blank ? 'falta preencher' : ''} onChange={(e) => setEdit({ ...edit, [f.key]: e.target.value })} onBlur={() => commit(f.key)} onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()} />
+                    )}
+                  </label>
+                )
+              })}
+            </div>
+          </details>
+        )
+      })}
     </Section>
   )
 }

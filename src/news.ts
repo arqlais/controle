@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-10-21',
     kind: 'melhoria',
     title: 'contrato sempre com os dados certos',
-    text: 'Quando o cliente manda os dados para contrato (ou você corrige o cadastro), o contrato atualiza sozinho: e-mail, endereço, documento e quem assina. No contrato aberto, o quadro "revisar antes de enviar" junta valor, pagamento, prazo e contato: mudou ali, muda no texto todo.',
+    text: 'Quando o cliente manda os dados para contrato (ou você corrige o cadastro), o contrato atualiza sozinho: e-mail, endereço, documento e quem assina. Nomes, e-mails e telefones entram no padrão certo. No contrato aberto, o quadro "revisar antes de enviar" junta quem contrata, escopo, valores, prazos e foro: mudou ali, muda no texto todo.',
     steps: [{ text: 'Abra um contrato e veja o quadro "revisar antes de enviar".', page: 'contratos' }],
   },
   {

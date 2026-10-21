@@ -1,10 +1,10 @@
-import type { Client, Contract, ContractSettings, ContractTemplate, Quote, Settings } from './types'
+import type { Client, Contract, FullAddress, ContractSettings, ContractTemplate, Quote, Settings } from './types'
 import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS } from './contractTemplates'
 import { dayLabel } from './processes'
 import { porExtenso } from './components/Docs'
 import { PAYMENT_TERMS } from './store'
 import { addressText, contractantName, qualification, signersOf } from './contractData'
-import { cleanDetail, docKind, money, optionTotal, payerOf, quoteDeal, quoteNumber, shownOptions, showDoc, today, BOTH } from './utils'
+import { cleanDetail, docKind, formatPhone, money, optionTotal, payerOf, quoteDeal, quoteNumber, shownOptions, showDoc, today, BOTH } from './utils'
 
 /* Contratos: modelos com {variáveis} que o sistema preenche com os dados do
    orçamento, do cliente e do perfil do estúdio. São MODELOS de referência:
@@ -106,7 +106,45 @@ function quantityOf(q: Quote) {
   return n ? String(n) : blank('quantidade')
 }
 
+/** Variáveis do contrato já no padrão: nomes com maiúscula certa, e-mail minúsculo, telefone (11) 99999-9999. */
 export function contractVars(s: Settings, q?: Quote, client?: Client): Record<string, string> {
+  const v = rawVars(s, q, client)
+  for (const k of ['contratante', 'contratada', 'representante']) if (v[k] && !isBlank(v[k])) v[k] = fixText(v[k])
+  for (const k of ['endereco_contratante', 'endereco_contratada', 'endereco_obra']) if (v[k] && !isBlank(v[k])) v[k] = fixText(v[k])
+  for (const k of ['email_contratante', 'email_contratada']) if (v[k] && !isBlank(v[k])) v[k] = v[k].trim().toLowerCase()
+  for (const k of ['telefone_contratante', 'telefone_contratada']) if (v[k] && !isBlank(v[k])) v[k] = contractPhone(v[k])
+  return v
+}
+const isBlank = (x: string) => /^\[[^\]\n]{3,40}\]$/.test(x.trim())
+
+/** Telefone do Brasil sem o +55: (11) 96928-8192. Outro país fica como está, só arrumado. */
+export function contractPhone(x: string) {
+  let d = x.replace(/\D/g, '')
+  if (d.startsWith('55') && (d.length === 12 || d.length === 13)) d = d.slice(2)
+  if (d.length === 10 || d.length === 11) return formatPhone(d)
+  return formatPhone(x)
+}
+
+const SMALL = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'na', 'no', 'nas', 'nos', 'para', 'com', 'a', 'o', 'à'])
+const UPPER = new Set(['LTDA', 'ME', 'EPP', 'EIRELI', 'MEI', 'SA', 'S.A.', 'S/A', 'SS', 'CPF', 'CNPJ', 'RG', 'CEP', 'UF', 'SP', 'RJ', 'MG', 'RS', 'SC', 'PR', 'BA', 'PE', 'CE', 'GO', 'DF', 'ES', 'MT', 'MS', 'PA', 'AM', 'MA', 'PB', 'RN', 'AL', 'SE', 'PI', 'TO', 'RO', 'AC', 'AP', 'RR', 'SSP', 'II', 'III', 'IV'])
+/** Palavra toda em MAIÚSCULA ou toda minúscula vira "Nome Próprio" (siglas e e-mails ficam como estão). */
+export function fixText(x: string) {
+  return x.replace(/[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'/]*(?:@\S+)?/g, (w, i: number, all: string) => {
+    if (w.includes('@')) return w.toLowerCase()
+    const bare = w.replace(/[.,]$/, '')
+    if (UPPER.has(bare.toUpperCase()) && (bare === bare.toUpperCase() || bare.length <= 2) && !SMALL.has(bare.toLowerCase())) return w.toUpperCase()
+    const upper = w === w.toUpperCase()
+    const lower = w === w.toLowerCase()
+    if (!upper && !lower) return w // escrito à mão com maiúsculas misturadas: respeita
+    const low = w.toLowerCase()
+    const prev = all.slice(0, i).trimEnd()
+    const startOf = !prev || /[.:;(\n]$/.test(prev)
+    if (SMALL.has(low) && !startOf) return low
+    return low.charAt(0).toUpperCase() + low.slice(1)
+  })
+}
+
+function rawVars(s: Settings, q?: Quote, client?: Client): Record<string, string> {
   const payer = payerOf(client)
   const addr = (a?: string, n?: string, city?: string) => [a, n, city].filter((x) => x?.trim()).join(', ')
   const total = q ? (q.mode === 'opcoes' && q.chosenOption !== BOTH && !q.closedValue ? optionTotal(shownOptions(q).find((o) => o.id === q.chosenOption) ?? shownOptions(q)[0] ?? { items: [], discount: 0 }) : quoteDeal(q, s.urgencyFee)) : 0
@@ -158,8 +196,23 @@ export function contractVars(s: Settings, q?: Quote, client?: Client): Record<st
   }
 }
 
+/** Dados do formulário no padrão do contrato (nomes, e-mails, telefones e endereços). */
+function cleanData(d: NonNullable<Client['contractData']>): NonNullable<Client['contractData']> {
+  const addr = (a?: FullAddress): FullAddress | undefined => (a ? { ...a, street: fixText(a.street || ''), complement: fixText(a.complement || ''), district: fixText(a.district || ''), city: fixText(a.city || ''), uf: (a.uf || '').toUpperCase() } : a)
+  const person = <P extends (typeof d)['person']>(p: P): P => ({ ...p, name: fixText(p.name || ''), email: (p.email || '').trim().toLowerCase(), phone: p.phone ? contractPhone(p.phone) : p.phone, nationality: (p.nationality || '').toLowerCase(), civilState: (p.civilState || '').toLowerCase(), profession: (p.profession || '').toLowerCase(), address: addr(p.address)! })
+  return {
+    ...d,
+    contractName: d.contractName ? fixText(d.contractName) : d.contractName,
+    person: person(d.person),
+    partners: (d.partners ?? []).map(person),
+    company: { ...d.company, legalName: fixText(d.company.legalName || ''), tradeName: fixText(d.company.tradeName || ''), email: (d.company.email || '').trim().toLowerCase(), phone: d.company.phone ? contractPhone(d.company.phone) : d.company.phone, address: addr(d.company.address)! },
+    property: d.property ? addr(d.property) : d.property,
+  }
+}
+
 /** Variáveis do contratante a partir dos dados para contrato (o que estiver vazio fica de fora). */
 function fromData(d: NonNullable<Client['contractData']>): Record<string, string> {
+  d = cleanData(d)
   const out: Record<string, string> = {}
   const put = (k: string, v?: string) => {
     if (v && v.trim()) out[k] = v.trim()
@@ -204,18 +257,40 @@ const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const SYNC_KEYS = ['qualificacao_contratante', 'contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'representante', 'endereco_obra', 'contratada', 'doc_contratada', 'endereco_contratada', 'email_contratada', 'telefone_contratada']
 
 /** Pontos para revisar antes de enviar: trocar aqui troca no texto inteiro do contrato. */
-export const REVIEW_FIELDS: { key: string; label: string; icon: string; long?: boolean }[] = [
-  { key: 'valor', label: 'valor total', icon: 'wallet' },
-  { key: 'entrada', label: 'entrada', icon: 'check' },
-  { key: 'saldo', label: 'saldo', icon: 'clock' },
-  { key: 'pagamento', label: 'forma de pagamento', icon: 'wallet', long: true },
-  { key: 'prazo', label: 'prazo', icon: 'calendar' },
-  { key: 'prazo_total', label: 'prazo total', icon: 'calendar' },
-  { key: 'revisoes', label: 'revisões', icon: 'undo' },
-  { key: 'email_contratante', label: 'e-mail do cliente', icon: 'mail' },
-  { key: 'telefone_contratante', label: 'telefone do cliente', icon: 'phone' },
-  { key: 'endereco_obra', label: 'endereço do imóvel', icon: 'home', long: true },
-  { key: 'foro', label: 'foro', icon: 'flag' },
+export const REVIEW_GROUPS: { id: string; label: string; icon: string }[] = [
+  { id: 'partes', label: 'quem contrata', icon: 'user' },
+  { id: 'escopo', label: 'escopo', icon: 'layers' },
+  { id: 'valores', label: 'valores e pagamento', icon: 'wallet' },
+  { id: 'prazos', label: 'prazos', icon: 'calendar' },
+  { id: 'geral', label: 'geral', icon: 'file' },
+]
+export const REVIEW_FIELDS: { key: string; label: string; icon: string; group: string; long?: boolean }[] = [
+  { key: 'contratante', label: 'nome no contrato', icon: 'user', group: 'partes' },
+  { key: 'doc_contratante', label: 'CPF / CNPJ', icon: 'file', group: 'partes' },
+  { key: 'representante', label: 'quem assina', icon: 'pen', group: 'partes' },
+  { key: 'email_contratante', label: 'e-mail', icon: 'mail', group: 'partes' },
+  { key: 'telefone_contratante', label: 'telefone', icon: 'phone', group: 'partes' },
+  { key: 'endereco_contratante', label: 'endereço', icon: 'home', group: 'partes', long: true },
+  { key: 'qualificacao_contratante', label: 'qualificação completa', icon: 'users', group: 'partes', long: true },
+  { key: 'projeto', label: 'projeto', icon: 'folder', group: 'escopo' },
+  { key: 'endereco_obra', label: 'endereço do imóvel', icon: 'home', group: 'escopo', long: true },
+  { key: 'servicos', label: 'serviços incluídos', icon: 'list', group: 'escopo', long: true },
+  { key: 'quantidade', label: 'quantidade', icon: 'grid', group: 'escopo' },
+  { key: 'revisoes', label: 'revisões incluídas', icon: 'undo', group: 'escopo' },
+  { key: 'arquivos', label: 'arquivos entregues', icon: 'download', group: 'escopo', long: true },
+  { key: 'etapas', label: 'etapas', icon: 'layers', group: 'escopo', long: true },
+  { key: 'valor', label: 'valor total', icon: 'wallet', group: 'valores' },
+  { key: 'entrada', label: 'entrada', icon: 'check', group: 'valores' },
+  { key: 'saldo', label: 'saldo', icon: 'clock', group: 'valores' },
+  { key: 'pagamento', label: 'forma de pagamento', icon: 'wallet', group: 'valores', long: true },
+  { key: 'pagamento_etapas', label: 'pagamento por etapa', icon: 'list', group: 'valores', long: true },
+  { key: 'prazo', label: 'prazo', icon: 'calendar', group: 'prazos' },
+  { key: 'prazo_total', label: 'prazo total', icon: 'calendar', group: 'prazos' },
+  { key: 'prazo_dias', label: 'prazo em dias', icon: 'clock', group: 'prazos' },
+  { key: 'cronograma', label: 'cronograma', icon: 'calendar', group: 'prazos', long: true },
+  { key: 'foro', label: 'foro', icon: 'flag', group: 'geral' },
+  { key: 'cidade', label: 'cidade', icon: 'compass', group: 'geral' },
+  { key: 'data', label: 'data', icon: 'calendar', group: 'geral' },
 ]
 
 /** Troca um valor no texto (e no desenho do Word) e devolve o contrato novo; o valor por extenso acompanha. */

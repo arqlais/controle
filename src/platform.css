@@ -4350,3 +4350,10 @@ a.cd-link > svg:last-child { margin-left: auto; flex: none; opacity: .6; }
 .rv-label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
 .rv-field input, .rv-field textarea { border: 0; padding: 0; background: transparent; font: inherit; font-size: 14px; color: var(--text); box-shadow: none; outline: none; resize: vertical; min-height: 0; }
 @media (max-width: 620px) { .rv-grid { grid-template-columns: 1fr; } }
+.rv-group { border-top: 1px solid var(--border); padding: 10px 0 4px; }
+.rv-group:first-of-type { border-top: 0; }
+.rv-group summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; font-size: 13.5px; font-weight: 600; padding: 4px 0 10px; }
+.rv-group summary::-webkit-details-marker { display: none; }
+.rv-group summary small { margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--surface-2, #f3efea); color: var(--muted); display: grid; place-items: center; font-size: 11.5px; }
+.rv-group summary::after { content: ''; width: 7px; height: 7px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); margin: 0 4px 3px 6px; transition: transform .2s; }
+.rv-group[open] summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
