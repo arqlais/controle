@@ -659,6 +659,7 @@ export interface Contract {
 export type UiColorKey = 'sidebar' | 'sidebarText' | 'active' | 'activeText' | 'page' | 'card' | 'text' | 'button' | 'detail' | 'border'
 
 export interface Settings {
+  menuLook?: 'classico' | 'claro' | 'flutuante-tema' | 'flutuante' // jeito do menu: fixo como era, fixo claro ou flutuante de vidro
   dataForm?: DataFormConfig // formulário de dados para contrato: escritórios e profissionais (só a dona, por enquanto)
   dataFormFinal?: DataFormConfig // formulário de dados para contrato: cliente final
   dataMessage?: string // mensagem que vai junto com o link de dados ({nome} e {link})

@@ -430,6 +430,7 @@ export default function App() {
   // The Seasons é só da dona: nas contas de clientes vira a fonte padrão deles
   useEffect(() => {
     applyTheme(effectiveSettings(settings, access.has), dark)
+    document.documentElement.dataset.menu = settings.menuLook ?? 'flutuante'
   }, [settings, dark, access, route.page === 'vendas'])
   useEffect(() => {
     setMenuOpen(false)
@@ -564,8 +565,11 @@ export default function App() {
           <BrandMark place="menu" size={26} />
           {PLATFORM.name}
         </a>
-        <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('inicio')}>
-          <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}><AvatarGlyph s={settings} size={24} /></span>
+        <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('perfil')} title={`Perfil do estúdio e conta${userEmail ? ` (${userEmail})` : ''}`}>
+          <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}>
+            <AvatarGlyph s={settings} size={24} />
+            {profileImportant(settings).length > 0 && <em className="brand-dot" title={`Falta no perfil: ${profileImportant(settings).join(', ')}`} />}
+          </span>
           <span className="brand-text">
             <span className="brand-kicker">meu estúdio</span>
             <span className="brand-name">
@@ -651,7 +655,7 @@ export default function App() {
               {g.items.map((n) => {
                 const count = alerts[n.page as keyof typeof alerts]
                 return (
-                  <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} onClick={(e) => organizing && e.preventDefault()}>
+                  <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} title={n.label} aria-label={n.label} onClick={(e) => organizing && e.preventDefault()}>
                     <Icon name={n.icon} />
                     <span>{n.label}</span>
                     {count && !organizing ? <em className="nav-alert" title="Mensagens novas no chat">{count}</em> : null}
@@ -665,25 +669,26 @@ export default function App() {
                 </button>
               )}
               {g.key === 'ajustes' && (
-                <button type="button" className="is-tool nav-tour" onClick={() => setInstallGuide(true)} title="Pôr o planê na tela de início do celular">
+                <button type="button" className="is-tool nav-tour" onClick={() => setInstallGuide(true)} title="Pôr o planê na tela de início do celular" aria-label="App no celular">
                   <Icon name="smartphone" />
                   <span>app no celular</span>
                 </button>
               )}
               {/* atalho para o portfólio: só da dona */}
               {g.key === 'ajustes' && siteUrl && access.isOwner && (
-                <a className="is-tool" href={siteUrl} target="_blank" rel="noreferrer" title="Abre em outra aba">
+                <a className="is-tool" href={siteUrl} target="_blank" rel="noreferrer" title="Meu portfólio (abre em outra aba)" aria-label="Meu portfólio">
                   <Icon name="link" />
                   <span>meu portfólio ↗</span>
                 </a>
               )}
+              {g.key === 'ajustes' && (
+                <button type="button" className={`is-tool nav-tour nav-organize ${organizing ? 'active' : ''}`} onClick={() => setOrganizing((v) => !v)} title={organizing ? 'Pronto' : 'Organizar menu'} aria-label={organizing ? 'Pronto' : 'Organizar menu'}>
+                  <Icon name={organizing ? 'check' : 'list'} />
+                  <span>{organizing ? 'pronto' : 'organizar menu'}</span>
+                </button>
+              )}
             </div>
           ))}
-          <div className="nav-links">
-            <button type="button" className="link" onClick={() => setOrganizing((v) => !v)}>
-              {organizing ? 'pronto' : 'organizar menu'}
-            </button>
-          </div>
         </nav>
         <a href={href('perfil')} className={`profile-chip ${route.page === 'perfil' ? 'active' : ''}`} title="Perfil do estúdio e conta">
           <span className="profile-chip-avatar">

@@ -98,10 +98,23 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
   if (!data.clients.length && !data.projects.length) {
     return (
       <div className="page">
-        <h1 className="hello-title">
-          {hello.toLowerCase()}
-          {settings.ownerName ? <em>, {settings.ownerName.split(' ')[0]}</em> : ''}
-        </h1>
+        <section className="welcome is-first">
+          <div className="welcome-text">
+            <p className="welcome-date">{d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <h1>
+              <em>{hello.toLowerCase()},</em> {(settings.ownerName || settings.brandName || '').split(' ')[0].toLowerCase()}
+            </h1>
+            <p className="welcome-sub">vamos começar pela sua primeira proposta</p>
+          </div>
+          <div className="welcome-actions">
+            <a className="btn light" href={href('orcamentos', 'novo')}>
+              <Icon name="plus" size={16} /> novo orçamento
+            </a>
+            <button className="btn outline-light" onClick={() => onQuick('cliente')}>
+              novo cliente
+            </button>
+          </div>
+        </section>
         <FirstSteps />
         {(settings.firstStepsHidden || access.isOwner) && (
           <div className="row gap-s wrap">

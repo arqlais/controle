@@ -4067,3 +4067,105 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
 .cd-send > * { min-width: 0; }
 .cd-link { overflow: hidden; }
 .cd-link span { flex: 1; min-width: 0; }
+
+/* ===== jeito do menu (configurações → aparência → menu). Padrão: fixo, como era. ===== */
+:root[data-menu='classico'] .sidebar, :root[data-menu='claro'] .sidebar {
+  inset: 0 auto 0 0 !important; border-radius: 0 !important; border: 0 !important; border-right: 1px solid var(--border) !important;
+  box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+:root[data-menu='classico'] .sidebar, :root[data-menu='flutuante-tema'] .sidebar { background: var(--sidebar-bg, var(--bg)) !important; }
+:root[data-menu='claro'] .sidebar { background: color-mix(in srgb, var(--surface) 82%, var(--bg)) !important; }
+:root[data-menu='flutuante-tema'] .sidebar { -webkit-backdrop-filter: none; backdrop-filter: none; border-color: var(--border); box-shadow: 0 14px 34px -22px rgba(20, 24, 32, 0.3); }
+@media (min-width: 821px) {
+  :root[data-menu='classico'] .main, :root[data-menu='claro'] .main { margin-left: var(--sidebar-w); }
+}
+/* item aberto em destaque: a cor dos botões, texto claro (como era) */
+:root[data-menu='classico'] .sidebar nav a.active, :root[data-menu='flutuante-tema'] .sidebar nav a.active {
+  background: var(--nav-active-bg, var(--accent)); color: var(--nav-active-text, var(--accent-contrast)); box-shadow: var(--shadow-btn);
+}
+:root[data-menu='classico'] .sidebar nav a.active svg, :root[data-menu='flutuante-tema'] .sidebar nav a.active svg { color: inherit; }
+:root[data-menu='classico'] .sidebar nav a.active .nav-alert, :root[data-menu='flutuante-tema'] .sidebar nav a.active .nav-alert { background: #fff; color: var(--accent); }
+:root[data-menu='classico'] .sidebar nav a:hover:not(.active), :root[data-menu='flutuante-tema'] .sidebar nav a:hover:not(.active) { background: var(--surface-2); }
+/* fixo (como era): fundo liso e topo no tom do fundo */
+:root[data-menu='classico'] .app::before { background: var(--bg); }
+:root[data-menu='classico'] .topbar { background: color-mix(in srgb, var(--bg) 88%, transparent); }
+/* celular: o menu que abre pelo ☰ fica encostado e de altura inteira nos modos fixos */
+@media (max-width: 820px) {
+  :root[data-menu='classico'] .sidebar, :root[data-menu='claro'] .sidebar { transform: translateX(-100%); padding-top: calc(24px + env(safe-area-inset-top, 0px)); }
+  :root[data-menu='classico'] .menu-open .sidebar, :root[data-menu='claro'] .menu-open .sidebar { transform: none; }
+}
+/* escolha na tela de aparência */
+.ml-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .ml-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.ml-opt { display: grid; gap: 6px; justify-items: start; text-align: left; padding: 12px; border: 1px solid var(--border); border-radius: calc(16px * var(--rs, 1)); background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
+.ml-opt.is-on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ml-opt strong { font-size: 14px; font-weight: 600; }
+.ml-opt small { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.ml-mini { width: 100%; height: 74px; border-radius: calc(10px * var(--rs, 1)); background: var(--bg); display: flex; gap: 6px; padding: 0; overflow: hidden; margin-bottom: 4px; border: 1px solid var(--border); }
+.ml-mini > i { width: 30%; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: block; position: relative; }
+.ml-mini > i::after { content: ''; position: absolute; left: 6px; right: 6px; top: 14px; height: 7px; border-radius: 4px; background: var(--accent); }
+.ml-mini > span { flex: 1; display: grid; gap: 5px; align-content: start; padding: 10px 8px 0 2px; }
+.ml-mini b { display: block; height: 10px; border-radius: 4px; background: var(--surface); border: 1px solid var(--border); }
+.ml-mini.is-claro > i { background: var(--surface); }
+.ml-mini.is-claro > i::after { background: var(--accent-soft); }
+.ml-mini.is-flutuante-tema > i, .ml-mini.is-flutuante > i { margin: 6px 0 6px 6px; border-radius: 8px; border: 1px solid var(--border); }
+.ml-mini.is-flutuante > i { background: rgba(255, 255, 255, .8); }
+.ml-mini.is-flutuante > i::after { background: var(--accent-soft); }
+
+/* ===== menu lateral cabe inteiro na tela, sem rolar (computador) ===== */
+@media (min-width: 821px) {
+  .sidebar { padding: 18px 14px 12px; overflow: hidden; }
+  .platform-mark { padding: 0 10px 8px; font-size: 17px; }
+  .brand { padding: 2px 8px 10px !important; gap: 10px !important; }
+  .brand .brand-photo { width: 40px; height: 40px; }
+  .brand .brand-name { font-size: 24px; }
+  .sidebar nav { gap: 1px; min-height: 0; }
+  .sidebar nav a, .sidebar nav .nav-tour { padding-top: clamp(5px, 0.85vh, 9px); padding-bottom: clamp(5px, 0.85vh, 9px); }
+  .nav-main-label { padding-top: clamp(6px, 1.2vh, 12px) !important; padding-bottom: 2px !important; }
+  /* plataforma: o mesmo quadro rosé, mais justo */
+  .nav-group.is-plataforma { margin-top: clamp(6px, 1.2vh, 12px); padding: 6px 6px 4px; gap: 0; }
+  .nav-group.is-plataforma .nav-group-label { padding-bottom: 2px; }
+  /* ajustes e dicas: uma fileira de símbolos (o nome aparece ao passar o mouse) */
+  .nav-group.is-ajustes { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: clamp(6px, 1.2vh, 12px); padding-top: clamp(6px, 1.2vh, 10px); }
+  .nav-group.is-ajustes .nav-group-label { display: none; }
+  .nav-group.is-ajustes > a, .nav-group.is-ajustes > .nav-tour { flex: 1 1 0; justify-content: center; padding: 9px 0 !important; gap: 0; border-radius: calc(12px * var(--rs, 1)); }
+  .nav-group.is-ajustes > a > span, .nav-group.is-ajustes > .nav-tour > span { display: none; }
+  .nav-group.is-ajustes > a.active, .nav-group.is-ajustes > .nav-tour.active { background: var(--accent-tint); border: 0; }
+  /* o cartão do perfil vira só a foto ao lado do estúdio: o nome do estúdio já leva ao início */
+  .profile-chip { margin: 6px 0 2px; padding: 7px 10px; }
+  .profile-chip small { display: none; }
+  .sidebar-foot { padding-top: 8px; row-gap: 6px; }
+}
+/* telas baixas (notebook pequeno): ainda mais justo */
+@media (min-width: 821px) and (max-height: 760px) {
+  .platform-mark { display: none; }
+  .brand .brand-photo { width: 34px; height: 34px; }
+  .brand .brand-name { font-size: 21px; }
+  .sidebar nav a, .sidebar nav .nav-tour { font-size: 13.5px; }
+  .sidebar-foot .sync-status { display: none; }
+}
+@media (min-width: 821px) {
+  /* o perfil abre pelo nome do estúdio, no topo: o cartão de baixo sai */
+  .sidebar > .profile-chip { display: none; }
+  .brand-photo { position: relative; }
+  .brand-dot { position: absolute; top: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-ink); border: 2px solid var(--surface); }
+  /* rodapé numa linha só */
+  .sidebar-foot { flex-wrap: nowrap; padding: 8px 4px 0; }
+  .sidebar-foot .sync-status { order: 0; flex: 1 1 auto; min-width: 0; font-size: 11.5px; }
+  .sidebar-foot .sample-toggle span { display: none; }
+  .sidebar-foot .sample-toggle { width: 34px; padding: 0; justify-content: center; }
+}
+@media (min-width: 821px) and (max-height: 1000px) {
+  /* plataforma: o quadro rosé com os quatro atalhos em símbolos, numa fileira (o nome aparece ao passar o mouse) */
+  .nav-group.is-plataforma { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 2px; padding: 6px; }
+  .nav-group.is-plataforma .nav-group-label { flex: 1 1 100%; }
+  .nav-group.is-plataforma > a, .nav-group.is-plataforma > .nav-tour { flex: 1 1 0; position: relative; justify-content: center; padding: 8px 0 !important; gap: 0; border-radius: calc(12px * var(--rs, 1)); }
+  .nav-group.is-plataforma > a > span, .nav-group.is-plataforma > .nav-tour > span { display: none; }
+  .nav-group.is-plataforma > a .nav-alert { position: absolute; top: 0; right: 4px; margin: 0; min-width: 16px; padding: 0 4px; line-height: 16px; font-size: 10px; }
+}
+@media (min-width: 821px) and (max-height: 740px) {
+  .sidebar nav a, .sidebar nav .nav-tour { padding-top: 4px; padding-bottom: 4px; }
+  .nav-main-label { padding-top: 5px !important; }
+  .brand { padding-bottom: 6px !important; }
+}
+@media (min-width: 821px) and (max-height: 800px) { .sidebar nav a, .sidebar nav .nav-tour { padding-top: 5px; padding-bottom: 5px; } .nav-main-label { padding-top: 6px !important; } }

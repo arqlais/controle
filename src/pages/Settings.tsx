@@ -128,6 +128,7 @@ export default function SettingsPage() {
                   </span>
                 </p>
               )}
+              <MenuLook />
               <BrandKit />
               <OwnerColors />
               <Section title="tema deste aparelho">
@@ -942,5 +943,37 @@ function RaiseTable() {
         </Modal>
       )}
     </>
+  )
+}
+
+/** Jeito do menu: fixo como era, fixo claro ou flutuante de vidro (no celular fica sempre a barra de baixo). */
+function MenuLook() {
+  const { data, setSettings } = useStore()
+  const cur = data.settings.menuLook ?? 'flutuante'
+  const opts: { value: NonNullable<typeof data.settings.menuLook>; label: string; text: string }[] = [
+    { value: 'classico', label: 'fixo', text: 'encostado na lateral, no tom do tema, item aberto em destaque (como era antes)' },
+    { value: 'claro', label: 'fixo claro', text: 'encostado na lateral, branco, item aberto em rosé' },
+    { value: 'flutuante-tema', label: 'flutuante no tom', text: 'solto da borda, no tom do tema, item aberto em destaque' },
+    { value: 'flutuante', label: 'flutuante de vidro', text: 'solto da borda, vidro claro, item aberto em rosé' },
+  ]
+  return (
+    <Section title="menu" hint="No celular o menu abre pelo ☰ e a barra de baixo continua igual.">
+      <div className="ml-grid">
+        {opts.map((o) => (
+          <button key={o.value} type="button" className={`ml-opt ${cur === o.value ? 'is-on' : ''}`} aria-pressed={cur === o.value} onClick={() => setSettings({ menuLook: o.value })}>
+            <span className={`ml-mini is-${o.value}`}>
+              <i />
+              <span>
+                <b />
+                <b />
+                <b />
+              </span>
+            </span>
+            <strong>{o.label}</strong>
+            <small>{o.text}</small>
+          </button>
+        ))}
+      </div>
+    </Section>
   )
 }
