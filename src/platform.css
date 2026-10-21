@@ -4208,3 +4208,12 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
   .sidebar-foot .sync-status { order: 0 !important; flex: 1 0 auto !important; display: flex !important; font-size: 12px; overflow: visible !important; text-overflow: clip !important; }
 }
 @media (min-width: 821px) { .sidebar > .platform-mark { font-size: 28px; gap: 10px; top: -72px; height: 52px; letter-spacing: -0.035em; } }
+/* foto do menu: simples, sem anel nem sombra, para não competir com o logo e o nome */
+@media (min-width: 821px) {
+  .brand .brand-photo { width: 34px !important; height: 34px !important; border: 0 !important; box-shadow: none !important; background: var(--surface-2, #f3efea); color: var(--muted); overflow: visible; }
+  .brand .brand-photo.is-empty { background: transparent; border: 1px solid var(--border) !important; }
+  .brand .brand-photo svg { width: 17px; height: 17px; }
+  .brand .brand-kicker { font-size: 10.5px; letter-spacing: .06em; opacity: .8; }
+  .brand .brand-name { font-size: 20px !important; }
+  .brand .brand-name i { display: none; }
+}
