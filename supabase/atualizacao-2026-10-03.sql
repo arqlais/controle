@@ -199,3 +199,4 @@ select (select count(*) from public.subscriptions where ref_code is not null) as
        (select count(*) from public.workspace_history) as versoes_guardadas,
        (select data ->> 'trialDays' from public.platform_settings where id = 1) as dias_de_teste,
        (select count(*) from public.affiliates) as afiliados;
+-- reaplicado automaticamente em 2026-10-21

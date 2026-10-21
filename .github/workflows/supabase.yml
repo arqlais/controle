@@ -57,7 +57,7 @@ jobs:
             CODE=$(curl -sS -o out.json -w '%{http_code}' -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @body.json)
             cat out.json; echo
-            if [ "$CODE" -ge 300 ]; then echo "::error title=SQL $FILE ($CODE)::$(head -c 600 out.json | tr '\n' ' ')"; FAIL=1; else echo "::notice title=SQL ok::$FILE"; fi
+            if [ "$CODE" -ge 300 ]; then echo "::error title=SQL $FILE ($CODE)::$(head -c 600 out.json | tr '\n' ' ')"; FAIL=1; else echo "::notice title=SQL ok $FILE::$(head -c 900 out.json | tr '\n' ' ')"; fi
           done
           exit $FAIL
       - name: Funções

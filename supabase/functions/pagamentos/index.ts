@@ -1,3 +1,4 @@
+// publicado automaticamente pelo GitHub (workflow supabase.yml)
 // Pagamentos do planê pelo Asaas (roda no Supabase, nunca no site).
 // Cole em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "pagamentos".
 // IMPORTANTE: nas configurações da função, DESLIGUE "Verify JWT" (o Asaas avisa os pagamentos sem login;

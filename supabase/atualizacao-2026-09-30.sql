@@ -79,3 +79,4 @@ create policy "uso: dona vê todos" on public.usage_stats for select to authenti
 
 -- Conferência: deve mostrar as duas tabelas novas.
 select table_name from information_schema.tables where table_schema = 'public' and table_name in ('client_events', 'usage_stats');
+-- reaplicado automaticamente em 2026-10-21

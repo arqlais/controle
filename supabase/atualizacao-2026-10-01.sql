@@ -30,3 +30,4 @@ end $$;
 
 -- Conferência: quantas pessoas estão testando cada plano
 select plan, count(*) from public.subscriptions where status = 'trial' group by plan;
+-- reaplicado automaticamente em 2026-10-21

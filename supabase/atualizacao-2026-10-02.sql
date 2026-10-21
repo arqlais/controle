@@ -34,3 +34,4 @@ begin
 end $$;
 revoke execute on function public.marcar_acesso() from public, anon;
 grant execute on function public.marcar_acesso() to authenticated;
+-- reaplicado automaticamente em 2026-10-21
