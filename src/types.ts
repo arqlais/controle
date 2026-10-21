@@ -657,6 +657,7 @@ export interface Contract {
   signToken?: string // identifica o link de assinatura
   signLink?: string
   sign?: ContractSignature
+  manualKeys?: string[] // o que foi mudado à mão no contrato (não volta para o valor do orçamento)
   vars?: Record<string, string> // valores usados para preencher (para atualizar sozinho quando os dados mudam)
   ownerSign?: ContractSignature // assinatura da contratada, registrada ao gerar o link
 }

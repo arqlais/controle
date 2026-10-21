@@ -135,11 +135,16 @@ CLÁUSULA 1 – OBJETO
 1.1 ${objeto}
 1.2 O escopo específico do projeto será definido conforme abaixo:
 ${escopo.map((x) => `• ${x}`).join('\n')}
-1.3 Os serviços serão desenvolvidos com base nas informações fornecidas pela CONTRATANTE, não sendo de responsabilidade do CONTRATADO a concepção autoral do projeto, quando aplicável.
+1.3 Escopo contratado, conforme o orçamento {orcamento} aprovado pela CONTRATANTE (projeto: {projeto}):
+{escopo}
+1.4 Qualquer serviço que não esteja listado acima é considerado extra e será orçado à parte, antes de ser executado.
+1.5 Os serviços serão desenvolvidos com base nas informações fornecidas pela CONTRATANTE, não sendo de responsabilidade do CONTRATADO a concepção autoral do projeto, quando aplicável.
 
 CLÁUSULA 2 – DO PRAZO
 2.1 O prazo para execução dos serviços será de {prazo_dias} dias úteis.
-2.2 O prazo terá início a partir do envio completo de todas as informações necessárias pela CONTRATANTE.
+2.2 O prazo terá início a partir do envio completo de todas as informações necessárias pela CONTRATANTE e da confirmação do pagamento da entrada.
+2.3 Atrasos no envio de informações, arquivos, aprovações ou pagamentos pela CONTRATANTE prorrogam o prazo pelo mesmo período.
+2.4 Se o projeto ficar parado por mais de 30 dias por falta de retorno da CONTRATANTE, a retomada dependerá da agenda do CONTRATADO e poderá ter os valores restantes reajustados.
 
 CLÁUSULA 3 – DAS OBRIGAÇÕES DA CONTRATANTE
 3.1 Fornecer todas as informações, arquivos e diretrizes necessárias para execução dos serviços.
@@ -157,6 +162,10 @@ CLÁUSULA 5 – DA ENTREGA
 5.1 As entregas poderão incluir:
 ${entrega.join('\n')}
 
+5.2 Cada entrega será considerada aprovada se a CONTRATANTE não apresentar pedidos de ajuste em até 5 dias úteis após o recebimento.
+5.3 Os arquivos finais, em alta resolução e sem marca d'água, serão enviados após a quitação total do valor.
+5.4 O CONTRATADO guarda os arquivos do projeto por 90 dias após a entrega final; depois desse período, não há obrigação de mantê-los.
+
 CLÁUSULA 6 – DAS REVISÕES E LIMITAÇÕES DE ALTERAÇÃO
 6.1 Estão incluídas até {revisoes} revisões no escopo contratado.
 6.2 Após aprovação, alterações somente mediante acréscimo de valor.
@@ -165,10 +174,9 @@ ${limites.join('\n')}
 
 CLÁUSULA 7 – DO VALOR E PAGAMENTO
 7.1 Pelos serviços prestados, a CONTRATANTE pagará ao CONTRATADO o valor total de {valor}.
-7.2 O pagamento será realizado da seguinte forma:
-• 50% na contratação - {entrada}
-• 50% na entrega - {saldo}
-7.3 Em caso de atraso no pagamento, o CONTRATADO poderá suspender os serviços até a regularização.
+7.2 Forma de pagamento: {pagamento}.
+7.3 Quando o pagamento for dividido em entrada e saldo: {entrada} na contratação e {saldo} na entrega.
+7.4 Em caso de atraso no pagamento, incidirão multa de 2% e juros de 1% ao mês sobre o valor em atraso, e o CONTRATADO poderá suspender os serviços e a entrega dos arquivos até a regularização, com prorrogação equivalente do prazo.
 
 CLÁUSULA 8 – DA RESCISÃO
 8.1 O contrato poderá ser rescindido por qualquer das partes mediante aviso prévio de 5 dias úteis.
@@ -184,12 +192,18 @@ CLÁUSULA 9 – DOS DIREITOS AUTORAIS
 CLÁUSULA 10 – DAS DISPOSIÇÕES GERAIS
 10.1 O presente contrato não estabelece vínculo empregatício entre as partes.
 10.2 Trata-se de prestação de serviço autônoma.
+10.3 As comunicações feitas pelos e-mails e telefones (inclusive WhatsApp) informados neste contrato são válidas como comunicação oficial entre as partes.
+10.4 As informações, medidas e arquivos fornecidos pela CONTRATANTE são de responsabilidade dela; o CONTRATADO não responde por erros decorrentes de dados incorretos ou incompletos.
+10.5 Não estão incluídos neste contrato responsabilidade técnica (RRT/ART), aprovação em órgãos públicos ou acompanhamento de obra, salvo se constarem no escopo contratado.
+10.6 Os dados pessoais das partes serão usados somente para a execução deste contrato, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
+10.7 Nenhuma das partes responde por atrasos causados por caso fortuito ou força maior, devidamente comunicados à outra parte.
+10.8 A tolerância de uma das partes quanto ao descumprimento de qualquer cláusula não significa renúncia ou alteração do que foi combinado.
 
 CLÁUSULA 11 – DO FORO
 11.1 Fica eleito o foro da comarca de {foro} para dirimir quaisquer dúvidas oriundas deste contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.
 
 DAS ASSINATURAS
-E, por estarem de pleno acordo, as partes assinam o presente contrato por meio de plataforma de assinatura eletrônica, para que produza seus efeitos jurídicos e legais.
+E, por estarem de pleno acordo, as partes assinam o presente contrato por meio de assinatura eletrônica, admitida como válida pelas partes nos termos da MP 2.200-2/2001 (art. 10, § 2º) e da Lei 14.063/2020, para que produza seus efeitos jurídicos e legais.
 
 {cidade}, {data}.`
 
@@ -270,8 +284,8 @@ As partes combinam a prestação de serviços abaixo, conforme o orçamento {orc
 1.1 ${objeto}
 1.2 Escopo contratado:
 ${escopo.map((x) => `• ${x}`).join('\n')}
-1.3 Serviços do orçamento:
-{servicos}
+1.3 Escopo do orçamento aprovado:
+{escopo}
 1.4 Qualquer item fora desta lista é considerado serviço extra e será orçado à parte, antes de ser feito.
 
 2. PRAZO
@@ -281,7 +295,7 @@ ${escopo.map((x) => `• ${x}`).join('\n')}
 3. VALOR E PAGAMENTO
 3.1 Valor total: {valor} ({valor_extenso}).
 3.2 Forma de pagamento: {pagamento}.
-3.3 Pagamentos em atraso permitem ao(à) PRESTADOR(A) pausar os serviços até a regularização, com ajuste proporcional do prazo.
+3.3 Pagamentos em atraso têm multa de 2% e juros de 1% ao mês, e permitem ao(à) PRESTADOR(A) pausar os serviços até a regularização, com ajuste proporcional do prazo.
 
 4. AJUSTES E ALTERAÇÕES
 4.1 Estão incluídas {revisoes} rodada(s) de ajuste, entendidas como correções pontuais do que foi combinado.
@@ -290,11 +304,14 @@ ${extra.length ? extra.join('\n') + '\n' : ''}
 5. ENTREGA
 5.1 ${entregas}
 5.2 Os arquivos finais são enviados depois da quitação total do valor.
+5.3 Cada entrega é considerada aprovada se não houver pedido de ajuste em até 5 dias úteis após o recebimento.
 
 6. RESPONSABILIDADES
 6.1 O(A) CONTRATANTE fornece as informações, medidas, referências e arquivos necessários e responde às solicitações em tempo razoável.
 6.2 O(A) PRESTADOR(A) executa os serviços com qualidade técnica, usa os próprios equipamentos e mantém sigilo sobre as informações recebidas.
 6.3 Este contrato não cria vínculo empregatício: trata-se de prestação de serviço autônoma.
+6.4 As comunicações pelos e-mails e telefones (inclusive WhatsApp) informados aqui valem como comunicação oficial.
+6.5 Os dados pessoais das partes são usados só para executar este contrato, conforme a LGPD (Lei 13.709/2018).
 
 7. DIREITOS DE USO E PORTFÓLIO
 7.1 O(A) CONTRATANTE pode usar o material entregue no projeto contratado. Reproduzir, revender ou reutilizar em outros projetos depende de autorização.

@@ -8,6 +8,7 @@ import { readShortCode, shortCode } from '../linkPack'
 import type { PanelDoc, PanelPayload, PanelProject } from '../clientPanel'
 import type { Settings } from '../types'
 import { Icon } from './Icon'
+import { cleanHtml } from '../contractHtml'
 type IconName = Parameters<typeof Icon>[0]['name']
 import { Modal } from './ui'
 import { DocScale, usePdf } from './Print'
@@ -77,7 +78,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   const openDoc = (x: PanelDoc) => {
     const w = x.kind === 'placa' ? PAGE.poster : x.kind === 'apresentacao' ? PAGE.slide : PAGE.a4
     const node = x.html ? (
-      <div className="dk-frozen" dangerouslySetInnerHTML={{ __html: x.html }} />
+      <div className="dk-frozen" dangerouslySetInnerHTML={{ __html: cleanHtml(x.html) }} />
     ) : x.kind === 'obra' && x.work ? (
       <WorkDocView s={s} doc={x.work} clientName={d.clientFull} projectName={d.projects.find((p) => p.id === x.work?.projectId)?.title} />
     ) : x.kind === 'guia' ? (

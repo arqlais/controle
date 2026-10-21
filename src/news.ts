@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-21-contrato-orcamento',
+    date: '2026-10-21',
+    kind: 'melhoria',
+    title: 'contrato com o escopo do orçamento',
+    text: 'O contrato puxa o orçamento aprovado: serviços, quantidade × valor, o que inclui, observações, valor, pagamento e prazos. Rascunhos acompanham as mudanças do orçamento sozinhos. Os modelos ganharam cláusulas de proteção (atraso, aprovação, arquivos, LGPD) e dá para revisar o contrato com a IA.',
+    steps: [{ text: 'Abra um contrato e confira "orçamento do contrato" e "revisar com IA".', page: 'contratos' }],
+  },
+  {
     id: '2026-10-21-vincular-google',
     date: '2026-10-21',
     kind: 'novo',

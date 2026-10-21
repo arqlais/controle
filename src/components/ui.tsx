@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
 import { useKeep } from '../keep'
 import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
@@ -116,8 +116,8 @@ export function Field({ label, children, hint, span, className = '', group }: { 
 export function Badge({ color, children, solid }: { color: string; children: ReactNode; solid?: boolean }) {
   return (
     <span
-      className="badge"
-      style={solid ? { background: color, color: '#fff', borderColor: color } : { color, borderColor: `${color}55`, background: `${color}12` }}
+      className={`badge ${solid ? 'is-solid' : ''}`}
+      style={(solid ? { background: color, color: '#fff', borderColor: color, ['--b' as string]: color } : { color, borderColor: `${color}55`, background: `${color}12`, ['--b' as string]: color }) as CSSProperties}
     >
       {children}
     </span>

@@ -10,7 +10,7 @@ import { LetterheadField } from '../components/Letterhead'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
-import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract } from '../contracts'
+import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract, insertScope } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
@@ -70,7 +70,9 @@ function fromTemplate(tpl: ContractTemplate, vars: Record<string, string>): { bo
     const html = fillHtml(tpl.html, vars)
     return { body: htmlToText(html), html, ...lh }
   }
-  return { body: fillContract(tpl.body, vars), ...lh }
+  // modelo sem a lista do orçamento: o escopo aprovado entra no fim da cláusula 1
+  const body = /\{(servicos|escopo)\}/.test(tpl.body) ? tpl.body : insertScope(tpl.body, '{escopo}', '{orcamento}')
+  return { body: fillContract(body, vars), ...lh }
 }
 const swapHtmlLike = (t: ContractTemplate, _body: string) => t.html ?? ''
 
@@ -334,18 +336,23 @@ function ContractEditor({ id }: { id: string }) {
   // dados do cliente (formulário ou cadastro) ou do seu perfil mudaram: o contrato acompanha sozinho
   const syncKey = (() => {
     const cl = data.clients.find((x) => x.id === found?.clientId)
-    return JSON.stringify([cl?.contractData, cl?.email, cl?.phone, cl?.name, data.settings.email, data.settings.phone, data.settings.legalName, data.settings.document])
+    const qq = data.quotes.find((x) => x.id === found?.quoteId)
+    return JSON.stringify([cl?.contractData, cl?.email, cl?.phone, cl?.name, data.settings.email, data.settings.phone, data.settings.legalName, data.settings.document, qq])
   })()
   useEffect(() => {
     if (!found) return
-    const upd = syncContract(found, data.settings, data.quotes.find((x) => x.id === found.quoteId), data.clients.find((x) => x.id === found.clientId))
-    if (!upd) return
-    const changed = upd.body !== found.body || upd.html !== found.html
-    const next = { ...found, ...upd }
+    // sem orçamento ligado: puxa o aprovado mais recente do cliente (rascunho ainda não assinado)
+    const approved = !found.quoteId && !found.sign ? data.quotes.filter((x) => x.clientId === found.clientId && x.status === 'aprovado').sort((a, b) => (b.closedAt ?? b.createdAt).localeCompare(a.closedAt ?? a.createdAt))[0] : undefined
+    const q = approved ?? data.quotes.find((x) => x.id === found.quoteId)
+    const cl = data.clients.find((x) => x.id === found.clientId)
+    const upd = syncContract(found, data.settings, q, cl, approved ? { before: found.vars ?? contractVars(data.settings, undefined, cl) } : {})
+    if (!upd && !approved) return
+    const changed = !!upd && (upd.body !== found.body || upd.html !== found.html)
+    const next = { ...found, ...(upd ?? {}), ...(approved ? { quoteId: approved.id } : {}) }
     upsert('contracts', next)
-    setC((x) => (x ? { ...x, ...upd } : x))
+    setC((x) => (x ? { ...x, ...(upd ?? {}), ...(approved ? { quoteId: approved.id } : {}) } : x))
     draft.rebase(next)
-    if (changed) toast(found.signLink ? 'Contrato atualizado com os dados novos. Toque em “atualizar link” para o cliente assinar esta versão.' : 'Contrato atualizado com os dados novos do cliente.')
+    if (changed) toast(found.signLink ? 'Contrato atualizado com o orçamento e os dados do cliente. Toque em “atualizar link” para o cliente assinar esta versão.' : 'Contrato atualizado com o orçamento e os dados do cliente.')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [found?.id, syncKey])
   useLeaveGuard(!!c && JSON.stringify(c) !== JSON.stringify(found), () => {
@@ -416,6 +423,7 @@ function ContractEditor({ id }: { id: string }) {
       <div className="pf-contract-layout">
         <div className="stack">
           {!c.sign && <ReviewBox c={c} vars={c.vars ?? contractVars(data.settings, quote, client)} onChange={(patch) => set(patch)} />}
+          {!c.sign && <ContractAI c={c} vars={c.vars ?? contractVars(data.settings, quote, client)} onInsert={(body) => set({ body })} />}
           <Section title="dados">
             <div className="form-grid">
               <Field label="Título" span={2}>
@@ -438,8 +446,29 @@ function ContractEditor({ id }: { id: string }) {
                   </button>
                 </div>
               </Field>
-              <Field label="Orçamento">
-                <div className="muted small pf-field-text">{quote ? `${quoteNumber(quote)} · ${quote.title}` : 'nenhum'}</div>
+              <Field label="Orçamento do contrato" span={2} hint={c.sign ? undefined : 'O escopo, os valores, o pagamento e os prazos vêm deste orçamento e acompanham as mudanças dele.'}>
+                <select
+                  value={c.quoteId}
+                  disabled={!!c.sign}
+                  onChange={(e) => {
+                    const nq = data.quotes.find((x) => x.id === e.target.value)
+                    const before = c.vars ?? contractVars(data.settings, quote, client)
+                    const upd = syncContract({ ...c, manualKeys: [] }, data.settings, nq, client, { before })
+                    set({ quoteId: e.target.value, manualKeys: [], ...(upd ?? {}) })
+                    toast(nq ? `Contrato ligado ao orçamento ${quoteNumber(nq)}: escopo, valor e prazos atualizados.` : 'Contrato sem orçamento.')
+                  }}
+                >
+                  <option value="">sem orçamento</option>
+                  {data.quotes
+                    .filter((x) => x.clientId === c.clientId || x.id === c.quoteId)
+                    .sort((a, b) => (a.status === 'aprovado' ? 0 : 1) - (b.status === 'aprovado' ? 0 : 1) || b.number - a.number)
+                    .map((x) => (
+                      <option key={x.id} value={x.id}>
+                        {[quoteNumber(x), x.title].filter(Boolean).join(' · ')}
+                        {x.status === 'aprovado' ? ' (aprovado)' : ''}
+                      </option>
+                    ))}
+                </select>
               </Field>
             </div>
             {missing.length > 0 && (
@@ -813,6 +842,89 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
         </Section>
       )}
     </div>
+  )
+}
+
+/** Revisão do contrato com a IA (Gemini da própria conta): confere com o orçamento e sugere cláusulas que faltam. */
+type AIReview = { inconsistencias: { ponto: string; como_corrigir: string }[]; clausulas: { titulo: string; texto: string; por_que: string }[] }
+function ContractAI({ c, vars, onInsert }: { c: Contract; vars: Record<string, string>; onInsert: (body: string) => void }) {
+  const { data } = useStore()
+  const key = data.settings.aiKey
+  const [busy, setBusy] = useState(false)
+  const [res, setRes] = useState<AIReview | null>(null)
+  const [added, setAdded] = useState<string[]>([])
+  const run = async () => {
+    if (!key) return toast('Ligue o assistente com a sua chave do Gemini em configurações → assistente.')
+    setBusy(true)
+    try {
+      const { askGemini } = await import('../components/AIChat')
+      const system = `Você revisa contratos de prestação de serviços autônomos de arquitetura, design de interiores, projeto executivo e visualização 3D no Brasil, do lado da CONTRATADA. Compare o contrato com o orçamento aprovado e aponte só problemas reais: valor, pagamento, prazo, escopo ou quantidade diferentes do orçamento, campos em branco entre colchetes, cláusulas contraditórias. Depois sugira no máximo 6 cláusulas que realmente faltam para proteger a CONTRATADA, sem ser abusivo e respeitando o Código de Defesa do Consumidor quando o cliente for pessoa física. Texto claro, em português, sem numeração. Responda SOMENTE com JSON no formato {"inconsistencias":[{"ponto":"","como_corrigir":""}],"clausulas":[{"titulo":"","texto":"","por_que":""}]}.`
+      const orc = ['escopo', 'valor', 'pagamento', 'prazo', 'prazo_dias', 'revisoes', 'arquivos', 'entrada', 'saldo'].map((k) => `${k}: ${vars[k] ?? ''}`).join('\n')
+      const answer = await askGemini(key, system, [{ role: 'user', text: `ORÇAMENTO APROVADO\n${orc}\n\nCONTRATO\n${c.body.slice(0, 30000)}` }])
+      const json = answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1)
+      const r = JSON.parse(json) as AIReview
+      setRes({ inconsistencias: r.inconsistencias ?? [], clausulas: (r.clausulas ?? []).slice(0, 6) })
+    } catch (e) {
+      toast((e as Error)?.message && !/JSON/i.test((e as Error).message) ? (e as Error).message : 'A IA não respondeu no formato certo. Tente de novo.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const insert = (cl: AIReview['clausulas'][number]) => {
+    const body = c.body
+    const nums = [...body.matchAll(/^CL[ÁA]USULA\s+(\d+)/gim)].map((m) => Number(m[1]))
+    const head = nums.length ? `CLÁUSULA ${Math.max(...nums) + 1} – ${cl.titulo.toUpperCase()}` : cl.titulo.toUpperCase()
+    const block = `${head}\n${cl.texto.trim()}\n\n`
+    const m = /^(DAS ASSINATURAS|E,? por estarem|\{cidade\}|[A-ZÀ-Ú][\wÀ-ú ]+, \d{1,2} de )/m.exec(body)
+    onInsert(m ? body.slice(0, m.index) + block + body.slice(m.index) : `${body.trimEnd()}\n\n${block}`)
+    setAdded([...added, cl.titulo])
+    toast('Cláusula adicionada antes das assinaturas. Confira o texto e salve.')
+  }
+  return (
+    <Section title="revisar com IA">
+      <p className="muted small">A IA confere o contrato com o orçamento aprovado e sugere cláusulas para deixá-lo mais completo. Revise sempre o resultado: não substitui um advogado.</p>
+      <button className="btn small" disabled={busy} onClick={() => void run()}>
+        <Icon name="sparkle" size={14} /> {busy ? 'revisando…' : res ? 'revisar de novo' : 'revisar o contrato'}
+      </button>
+      {res && (
+        <div className="ai-rev">
+          {res.inconsistencias.length > 0 ? (
+            <div className="ai-rev-group">
+              <p className="ai-rev-label"><Icon name="alert" size={13} /> para corrigir</p>
+              {res.inconsistencias.map((x, i) => (
+                <div key={i} className="ai-rev-item is-warn">
+                  <b>{x.ponto}</b>
+                  <small>{x.como_corrigir}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="ai-rev-ok"><Icon name="check" size={14} /> nada diferente do orçamento</p>
+          )}
+          {res.clausulas.length > 0 && (
+            <div className="ai-rev-group">
+              <p className="ai-rev-label"><Icon name="layers" size={13} /> cláusulas sugeridas</p>
+              {res.clausulas.map((x, i) => (
+                <div key={i} className="ai-rev-item">
+                  <b>{x.titulo}</b>
+                  <p>{x.texto}</p>
+                  <small>{x.por_que}</small>
+                  {c.html ? (
+                    <button className="btn ghost small" onClick={() => navigator.clipboard?.writeText(x.texto).then(() => toast('Cláusula copiada.'))}>
+                      <Icon name="copy" size={13} /> copiar
+                    </button>
+                  ) : (
+                    <button className="btn ghost small" disabled={added.includes(x.titulo)} onClick={() => insert(x)}>
+                      <Icon name={added.includes(x.titulo) ? 'check' : 'plus'} size={13} /> {added.includes(x.titulo) ? 'adicionada' : 'adicionar ao contrato'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Section>
   )
 }
 

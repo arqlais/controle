@@ -347,11 +347,14 @@ export function htmlToText(html: string): string {
 /** Tira o que não pode ir para a folha (scripts, eventos, links javascript:). */
 export function cleanHtml(html: string): string {
   const d = new DOMParser().parseFromString(html, 'text/html')
-  d.querySelectorAll('script, style, iframe, object, embed, link, meta, form, input, button').forEach((x) => x.remove())
+  // nada que rode código, abra outra página ou troque o endereço base
+  d.querySelectorAll('script, style, iframe, frame, frameset, object, embed, applet, link, meta, base, form, input, button, textarea, select, noscript, template, animate, set, animateMotion, animateTransform, foreignObject, use').forEach((x) => x.remove())
   d.querySelectorAll('*').forEach((el) => {
     for (const a of [...el.attributes]) {
       const n = a.name.toLowerCase()
-      if (n.startsWith('on') || ((n === 'href' || n === 'src') && /^\s*javascript:/i.test(a.value)) || (n === 'src' && !/^(data:image\/|https?:)/i.test(a.value.trim()))) el.removeAttribute(a.name)
+      const v = a.value.replace(/[\u0000-\u0020]/g, '')
+      const url = n.endsWith('href') || n === 'src' || n === 'action' || n === 'formaction' || n === 'poster' || n === 'background' || n === 'srcset'
+      if (n.startsWith('on') || n === 'srcdoc' || (url && /^(javascript|vbscript|data:(?!image\/(png|jpe?g|gif|webp)))/i.test(v)) || (n === 'src' && /^[a-z][a-z0-9+.-]*:/i.test(v) && !/^(data:image\/|https?:|blob:)/i.test(v)) || (n === 'style' && /expression\(|javascript:|url\(\s*['"]?\s*javascript/i.test(a.value))) el.removeAttribute(a.name)
     }
   })
   return d.body.innerHTML

@@ -26,6 +26,8 @@ export const CONTRACT_VARS: [string, string][] = [
   ['telefone_contratada', 'seu telefone'],
   ['projeto', 'nome do projeto'],
   ['servicos', 'lista de serviços do orçamento'],
+  ['escopo', 'escopo completo do orçamento aprovado (serviços, quantidades, o que inclui, área e observações)'],
+  ['observacoes', 'observações do orçamento'],
   ['valor', 'valor total'],
   ['valor_extenso', 'valor por extenso'],
   ['pagamento', 'forma de pagamento'],
@@ -88,19 +90,43 @@ const longDate = (iso: string) => {
 }
 
 /** Serviços do orçamento em linhas (na opção escolhida, quando há opções). */
-function servicesText(q: Quote) {
+const itemsOf = (q: Quote) => {
   const opts = shownOptions(q)
-  const items = q.mode === 'opcoes' ? (q.chosenOption === BOTH ? opts.flatMap((o) => o.items) : (opts.find((o) => o.id === q.chosenOption) ?? opts[0])?.items ?? []) : q.items
-  const lines = items.filter((i) => i.title.trim() || i.price > 0).map((i) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` (${cleanDetail(i.detail)})` : ''}${i.description.trim() ? ` — ${i.description.trim().replace(/\n+/g, '; ')}` : ''}`)
-  return lines.join('\n') || '• [descreva os serviços]'
+  return q.mode === 'opcoes' ? (q.chosenOption === BOTH ? opts.flatMap((o) => o.items) : (opts.find((o) => o.id === q.chosenOption) ?? opts[0])?.items ?? []) : q.items
+}
+/** Serviços do orçamento, um por linha: nome, quantidade × valor unitário e o que está incluso. */
+function servicesText(q: Quote) {
+  const lines = itemsOf(q)
+    .filter((i) => i.title.trim() || i.price > 0)
+    .map((i) => {
+      const det = cleanDetail(i.detail)
+      const inc = i.description
+        .split(/\n+|;\s*/)
+        .map((x) => x.replace(/^[-•–·*]\s*/, '').trim())
+        .filter(Boolean)
+      const unit = i.quantity > 1 && i.price > 0 && !i.joined ? ` — ${i.quantity} × ${money(Math.round((i.price / i.quantity) * 100) / 100)} = ${money(i.price)}` : i.price > 0 && !i.joined ? ` — ${money(i.price)}` : i.joined ? ' (valor incluído no item anterior)' : ''
+      return [`• ${i.title || 'serviço'}${det ? ` (${det})` : ''}${unit}`, ...inc.map((x) => `   – ${x}`)].join('\n')
+    })
+  return lines.join('\n') || '[descreva os serviços]'
+}
+
+/** Escopo completo do orçamento aprovado: serviços, área, observações e o que mudou no fechamento. */
+function scopeText(q: Quote) {
+  const opt = q.mode === 'opcoes' && q.chosenOption !== BOTH ? shownOptions(q).find((o) => o.id === q.chosenOption) : undefined
+  const extra = [
+    q.area ? `Área de referência: ${q.areaApprox ? 'aprox. ' : ''}${q.area.toLocaleString('pt-BR')} m²${q.floors && q.floors > 1 ? `, ${q.floors} pavimentos` : ''}.` : '',
+    opt?.note?.trim() ? `Observação da opção escolhida: ${opt.note.trim()}` : '',
+    q.notes?.trim() ? `Observações do orçamento: ${q.notes.trim().replace(/\n+/g, ' ')}` : '',
+    q.closedNote?.trim() ? `Ajustes combinados no fechamento: ${q.closedNote.trim()}` : '',
+  ].filter(Boolean)
+  return [servicesText(q), ...extra].join('\n')
 }
 
 const blank = (label: string) => `[${label}]`
 
 /** Quantidade de imagens (ou de itens) do orçamento, para "___ imagens renderizadas". */
 function quantityOf(q: Quote) {
-  const opts = shownOptions(q)
-  const items = q.mode === 'opcoes' ? (q.chosenOption === BOTH ? opts.flatMap((o) => o.items) : (opts.find((o) => o.id === q.chosenOption) ?? opts[0])?.items ?? []) : q.items
+  const items = itemsOf(q)
   const images = items.filter((i) => /render|imagem|ia\b/i.test(`${i.service} ${i.title}`))
   const n = (images.length ? images : items).reduce((acc, i) => acc + (i.quantity || 0), 0)
   return n ? String(n) : blank('quantidade')
@@ -170,6 +196,8 @@ function rawVars(s: Settings, q?: Quote, client?: Client): Record<string, string
     endereco_contratada: addr(s.address, s.addressNumber, s.city) || blank('seu endereço'),
     projeto: q?.title || blank('projeto'),
     servicos: q ? servicesText(q) : blank('serviços'),
+    escopo: q ? scopeText(q) : blank('escopo do orçamento'),
+    observacoes: q ? [q.notes?.trim(), q.closedNote?.trim()].filter(Boolean).join(' ') || 'nenhuma' : blank('observações'),
     valor: total ? money(total) : blank('valor'),
     valor_extenso: total ? porExtenso(total) : blank('valor por extenso'),
     pagamento: q?.paymentTerms.trim() || s.defaultPaymentTerms || PAYMENT_TERMS,
@@ -183,7 +211,7 @@ function rawVars(s: Settings, q?: Quote, client?: Client): Record<string, string
     telefone_contratante: client?.phone || blank('telefone do cliente'),
     email_contratada: s.email || blank('seu e-mail'),
     telefone_contratada: s.phone || blank('seu telefone'),
-    prazo_dias: days ? String(days) : q?.deadlineDays ? String(q.deadlineDays) : blank('prazo'),
+    prazo_dias: days ? String(days) : q?.deadlineDays ? String(q.deadlineDays) : blank('prazo em dias'),
     quantidade: q ? quantityOf(q) : blank('quantidade'),
     entrada: total ? money(Math.round((total * (first ?? 50)) / 100 * 100) / 100) : blank('entrada'),
     saldo: total ? money(total - Math.round((total * (first ?? 50)) / 100 * 100) / 100) : blank('saldo'),
@@ -232,17 +260,19 @@ function fromData(d: NonNullable<Client['contractData']>): Record<string, string
 /** Dados que mudaram depois que o contrato foi criado (o cliente mandou o formulário, você corrigiu o cadastro
  *  ou o seu perfil): troca no texto o valor antigo pelo novo, sem mexer no que foi escrito à mão.
  *  Contrato assinado nunca muda. Devolve null quando não há nada a trocar. */
-export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Client): Pick<Contract, 'body' | 'html' | 'vars'> | null {
+export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Client, opts: { before?: Record<string, string> } = {}): Pick<Contract, 'body' | 'html' | 'vars'> | null {
   if (c.sign) return null
+  const manual = new Set(c.manualKeys ?? [])
   const now = contractVars(s, q, client)
   // contratos antigos não guardaram os valores: o cadastro sem o formulário é o que foi usado
-  const before = c.vars ?? contractVars(s, q, client ? { ...client, contractData: undefined } : client)
-  const blankOf = (v: string) => /^\[[^\]\n]{3,40}\]$/.test(v)
+  const before = opts.before ?? c.vars ?? { ...contractVars(s, q, client ? { ...client, contractData: undefined } : client), ...(q ? { servicos: legacyServices(q) } : {}) }
+  const blankOf = (v: string) => /^\[[^\]\n]{3,60}\]$/.test(v)
   let body = c.body
   let html = c.html
   const swap = (txt: string, from: string, to: string) => txt.split(from).join(to)
   const swapHtml = (txt: string, from: string, to: string) => txt.split(esc(from)).join(esc(to)).split(from).join(to)
   for (const k of SYNC_KEYS) {
+    if (manual.has(k)) continue // mudado à mão no "revisar antes de enviar": fica como ela deixou
     const a = before[k]
     const b = now[k]
     if (!a || !b || a === b || blankOf(b)) continue
@@ -250,11 +280,33 @@ export function syncContract(c: Contract, s: Settings, q?: Quote, client?: Clien
     body = swap(body, a, b)
     if (html) html = swapHtml(html, a, b)
   }
-  if (body === c.body && html === c.html && c.vars) return null
-  return { body, html, vars: now }
+  // modelo sem a lista do orçamento: o escopo aprovado entra na cláusula do objeto
+  if (q && !html && !blankOf(now.escopo) && !body.includes(now.servicos) && !body.includes(now.escopo)) body = insertScope(body, now.escopo, now.orcamento)
+  const vars = { ...now }
+  for (const k of manual) if (c.vars?.[k] !== undefined) vars[k] = c.vars[k]
+  if (body === c.body && html === c.html && JSON.stringify(c.vars) === JSON.stringify(vars)) return null
+  return { body, html, vars }
+}
+
+/** Como a lista de serviços saía antes (para trocar pela nova nos rascunhos antigos). */
+function legacyServices(q: Quote) {
+  const lines = itemsOf(q).filter((i) => i.title.trim() || i.price > 0).map((i) => `• ${i.title || 'serviço'}${cleanDetail(i.detail) ? ` (${cleanDetail(i.detail)})` : ''}${i.description.trim() ? ` — ${i.description.trim().replace(/\n+/g, '; ')}` : ''}`)
+  return lines.join('\n') || '• [descreva os serviços]'
+}
+
+/** Põe o escopo do orçamento no fim da cláusula 1 (antes da cláusula 2), com a numeração seguinte. */
+export function insertScope(body: string, scope: string, orc = '') {
+  const m = /^(CL[ÁA]USULA\s+2\b|2\.\s|2\s*[–-]\s)/im.exec(body)
+  const at = m ? m.index : body.length
+  const head = body.slice(0, at)
+  const nums = [...head.matchAll(/^1\.(\d+)\s/gm)].map((x) => Number(x[1]))
+  const n = nums.length ? Math.max(...nums) + 1 : 2
+  const orcTxt = orc && !/^\[/.test(orc) ? ` nº ${orc}` : ''
+  const block = `1.${n} Escopo contratado, conforme o orçamento${orcTxt} aprovado pela CONTRATANTE (o que não estiver listado é serviço extra, orçado à parte):\n${scope}\n\n`
+  return head.replace(/\n*$/, '\n') + block + body.slice(at)
 }
 const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-const SYNC_KEYS = ['qualificacao_contratante', 'contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'representante', 'endereco_obra', 'contratada', 'doc_contratada', 'endereco_contratada', 'email_contratada', 'telefone_contratada']
+const SYNC_KEYS = ['qualificacao_contratante', 'contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'representante', 'endereco_obra', 'contratada', 'doc_contratada', 'endereco_contratada', 'email_contratada', 'telefone_contratada', 'escopo', 'servicos', 'observacoes', 'etapas', 'cronograma', 'pagamento_etapas', 'pagamento', 'valor', 'valor_extenso', 'entrada', 'saldo', 'prazo', 'prazo_total', 'prazo_dias', 'projeto', 'orcamento', 'arquivos', 'revisoes', 'quantidade']
 
 /** Pontos para revisar antes de enviar: trocar aqui troca no texto inteiro do contrato. */
 export const REVIEW_GROUPS: { id: string; label: string; icon: string }[] = [
@@ -294,7 +346,7 @@ export const REVIEW_FIELDS: { key: string; label: string; icon: string; group: s
 ]
 
 /** Troca um valor no texto (e no desenho do Word) e devolve o contrato novo; o valor por extenso acompanha. */
-export function reviseContract(c: Contract, vars: Record<string, string>, key: string, value: string): Pick<Contract, 'body' | 'html' | 'vars'> {
+export function reviseContract(c: Contract, vars: Record<string, string>, key: string, value: string): Pick<Contract, 'body' | 'html' | 'vars' | 'manualKeys'> {
   const pairs: [string, string][] = [[vars[key] ?? '', value]]
   if (key === 'valor') {
     const n = Number(value.replace(/[^\d,]/g, '').replace(',', '.'))
@@ -310,7 +362,8 @@ export function reviseContract(c: Contract, vars: Record<string, string>, key: s
   }
   next[key] = value
   if (key === 'valor' && pairs[1]) next.valor_extenso = pairs[1][1]
-  return { body, html, vars: next }
+  const manualKeys = [...new Set([...(c.manualKeys ?? []), key, ...(key === 'valor' ? ['valor_extenso'] : [])])]
+  return { body, html, vars: next, manualKeys }
 }
 
 /** Troca {variáveis}; as que não existem ficam como estão (para a pessoa ver e completar). */
