@@ -49,6 +49,7 @@ jobs:
         if: steps.mudou.outputs.pular != '1'
         run: |
           REF='${{ steps.mudou.outputs.ref }}'
+          FAIL=0
           for FILE in $(grep -E '^supabase/[^/]+\.sql$' changed.txt | sort); do
             [ -f "$FILE" ] || continue
             echo "→ rodando $FILE"
@@ -56,16 +57,17 @@ jobs:
             CODE=$(curl -sS -o out.json -w '%{http_code}' -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @body.json)
             cat out.json; echo
-            [ "$CODE" -lt 300 ] || { echo "Falhou ($CODE) em $FILE"; exit 1; }
+            if [ "$CODE" -ge 300 ]; then echo "::error title=SQL $FILE ($CODE)::$(head -c 600 out.json | tr '\n' ' ')"; FAIL=1; else echo "::notice title=SQL ok::$FILE"; fi
           done
+          exit $FAIL
       - name: Funções
-        if: steps.mudou.outputs.pular != '1'
+        if: ${{ always() && steps.mudou.outputs.pular != '1' }}
         run: |
           REF='${{ steps.mudou.outputs.ref }}'
           # páginas públicas e o Asaas chamam estas funções sem login: elas mesmas conferem quem pode o quê
           for FN in avisos pagamentos; do
             if grep -q "^supabase/functions/$FN/" changed.txt; then
               echo "→ publicando $FN"
-              supabase functions deploy "$FN" --project-ref "$REF" --no-verify-jwt
+              if supabase functions deploy "$FN" --project-ref "$REF" --no-verify-jwt > dep.txt 2>&1; then echo "::notice title=função $FN::publicada"; else echo "::error title=função $FN::$(tail -c 600 dep.txt | tr '\n' ' ')"; cat dep.txt; exit 1; fi
             fi
           done
