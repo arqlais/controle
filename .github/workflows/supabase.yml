@@ -7,7 +7,7 @@ name: Publicar no Supabase
 on:
   push:
     branches: [main]
-    paths: ['supabase/functions/**', 'supabase/atualizacao-*.sql', '.github/workflows/supabase.yml']
+    paths: ['supabase/functions/**', 'supabase/atualizacao-*.sql', 'supabase/login-google.txt']
   workflow_dispatch:
     inputs:
       sql:
@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://lbggvjebkhdcybpkxzxs.supabase.co' }}
     steps:
       - uses: actions/checkout@v4
@@ -71,3 +73,12 @@ jobs:
               if supabase functions deploy "$FN" --project-ref "$REF" --no-verify-jwt > dep.txt 2>&1; then echo "::notice title=função $FN::publicada"; else echo "::error title=função $FN::$(tail -c 600 dep.txt | tr '\n' ' ')"; cat dep.txt; exit 1; fi
             fi
           done
+      - name: Entrar com Google
+        if: ${{ always() && steps.mudou.outputs.pular != '1' }}
+        run: |
+          if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then echo "Sem GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET: login com Google não mexido."; exit 0; fi
+          REF='${{ steps.mudou.outputs.ref }}'
+          jq -n --arg id "$GOOGLE_CLIENT_ID" --arg sec "$GOOGLE_CLIENT_SECRET" '{external_google_enabled: true, external_google_client_id: $id, external_google_secret: $sec, site_url: "https://useplane.com.br", uri_allow_list: "https://useplane.com.br/**,https://www.useplane.com.br/**,https://arqlais.github.io/controle/**"}' > auth.json
+          CODE=$(curl -sS -o out.json -w '%{http_code}' -X PATCH "https://api.supabase.com/v1/projects/$REF/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data @auth.json)
+          if [ "$CODE" -lt 300 ]; then echo "::notice title=login com Google::ligado no Supabase"; else echo "::error title=login com Google ($CODE)::$(head -c 400 out.json | tr '\n' ' ')"; exit 1; fi

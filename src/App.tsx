@@ -49,6 +49,7 @@ import SubscriptionPage, { BlockedScreen, TrialBanner } from './pages/Subscripti
 import { OwnerChat } from './components/OwnerChat'
 import { useBriefingSync } from './briefingSync'
 import { useContractDataSync } from './contractData'
+import { CATALOG } from './serviceCatalog'
 import { useClientInbox } from './avisar'
 import { NoticesButton } from './components/Notices'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -238,6 +239,15 @@ export default function App() {
   useBriefingSync(access.has('briefing'))
   // dados para contrato que os clientes mandaram pelo link
   useContractDataSync(access.has('dadosContrato'))
+  // mapas urbanos (estudantes): entra uma vez na tabela da dona, com a lista de mapas e o valor por mapa
+  useEffect(() => {
+    if (!access.isOwner || settings.mapsAdded || isSample) return
+    const m = CATALOG.freela.groups.flatMap((g) => g.services).find((x) => x.id === 'fr-mapas-urbanos')
+    if (!m) return
+    const has = settings.services.some((x) => x.id === m.id)
+    setSettings({ mapsAdded: true, ...(has ? {} : { services: [...settings.services, { ...m, tiers: [], checklist: [...(m.checklist ?? [])], checklistPrices: { ...(m.checklistPrices ?? {}) }, noteHints: [...(m.noteHints ?? [])], audience: 'ambos' as const }] }) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [access.isOwner, settings.mapsAdded, isSample])
   // assinaturas e recados que os clientes mandaram pelas páginas públicas
   useClientInbox(!access.legacy)
   const [chatSignal, setChatSignal] = useState(0)

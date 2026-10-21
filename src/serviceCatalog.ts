@@ -167,6 +167,7 @@ const FREELA: Omit<CatalogGroup, 'kind'>[] = [
       sv('fr-moodboard', 'moodboards', 'unidade', 'moodboard', 120, { hours: 2 }),
       sv('fr-portfolio', 'portfólio', 'unidade', 'página', 40, { min: 300, hours: 1 }),
       sv('fr-diagramas', 'mapas e diagramas', 'unidade', 'diagrama', 100, { hours: 2 }),
+      sv('fr-mapas-urbanos', 'mapas urbanos (estudantes)', 'unidade', 'mapa', 70, { hours: 1.5, customRate: 70, checklistTitle: 'mapas', askText: 'Quais mapas você precisa?', checklist: ["uso e ocupação do solo", "gabarito de alturas", "cheios e vazios", "sistema viário e mobilidade", "equipamentos urbanos", "áreas verdes e espaços livres", "topografia e hidrografia", "zoneamento", "tipologias", "fluxos e pontos de interesse", "mapa de localização", "mapa síntese"], checklistPrices: Object.fromEntries(["uso e ocupação do solo", "gabarito de alturas", "cheios e vazios", "sistema viário e mobilidade", "equipamentos urbanos", "áreas verdes e espaços livres", "topografia e hidrografia", "zoneamento", "tipologias", "fluxos e pontos de interesse", "mapa de localização", "mapa síntese"].map((m) => [m, 70])), delivery: 'em alta resolução, na escala definida', noteHints: ['incluso toda a diagramação, pós-produção e legendas, com entrega na escala definida e em alta resolução', 'mapa completo: base + diagramação. Já tem a base no QGIS ou no DWG? me manda que eu aproveito'] }),
     ],
   },
   {
