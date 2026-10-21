@@ -42,7 +42,7 @@ export const NEWS: News[] = [
     date: '2026-10-21',
     kind: 'melhoria',
     title: 'foto ajustável e menu mais claro',
-    text: 'Antes de salvar a foto do perfil, dá para aproximar e posicionar; ela fica sempre redonda. A aba aberta no menu volta a ficar em destaque e o link de dados para contrato ficou mais curto.',
+    text: 'Antes de salvar a foto do perfil, dá para aproximar e posicionar; ela fica sempre redonda. A aba aberta no menu volta a ficar em destaque, o link de dados para contrato ficou mais curto e dá para excluir dados preenchidos por engano.',
   },
   {
     id: '2026-10-20-valor-unitario',

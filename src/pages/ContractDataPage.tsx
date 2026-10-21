@@ -118,6 +118,19 @@ export default function ContractDataPage({ id }: { id?: string }) {
                   <button className="icon-btn" onClick={() => setEditing(c.id)} aria-label="Corrigir dados" title="Corrigir dados">
                     <Icon name="edit" size={16} />
                   </button>
+                  <button
+                    className="icon-btn"
+                    aria-label="Excluir os dados"
+                    title="Excluir os dados (o cliente continua no cadastro)"
+                    onClick={async () => {
+                      if (!(await ask(`Excluir os dados para contrato de ${c.name}? O link sai do ar e ${c.name.split(' ')[0]} some desta lista. O cliente continua no cadastro.`, { confirmLabel: 'Excluir' }))) return
+                      if (c.dataLink) await cancelDataLink(c.dataLink.id, userId)
+                      upsert('clients', { ...c, contractData: undefined, dataLink: undefined })
+                      toast('Dados excluídos.')
+                    }}
+                  >
+                    <Icon name="trash" size={16} />
+                  </button>
                 </div>
               </div>
             )
