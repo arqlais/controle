@@ -404,3 +404,57 @@ export function insertClause(body: string, text: string, title: string, n: numbe
   return { body: m ? body.slice(0, m.index) + block + body.slice(m.index) : `${body.trimEnd()}\n\n${block}`, where: nums.length || plain.length ? `cláusula ${next}` : undefined, added: block }
 }
 
+
+/** Arruma a numeração depois de apagar ou incluir algo: cláusulas em sequência (CLÁUSULA 1, 2, 3… ou 1., 2., 3.),
+ *  itens de cada cláusula (5.1, 5.2…) e tópicos com letra (a), b), c)…). Só mexe no número, nunca no texto. */
+export function renumber(body: string): string {
+  const pre = '((?:\\*\\*|\\*|__|\\[cor=#[0-9a-fA-F]{3,8}\\])*)'
+  const headCl = new RegExp(`^${pre}(CL[ÁA]USULA\\s+)(\\d+)\\b`, 'i')
+  const headNum = new RegExp(`^${pre}(\\d+)(\\.\\s+)(?=[A-ZÀ-Ú]{3})`)
+  const sub = new RegExp(`^${pre}(\\d+)\\.(\\d+)(\\s|\\*{1,2}|__|\\[\\/cor\\])`)
+  const letter = new RegExp(`^${pre}([a-z])\\)(\\s)`)
+  const lines = body.split('\n')
+  const hasCl = lines.some((l) => headCl.test(l))
+  const hasNum = !hasCl && lines.filter((l) => headNum.test(l)).length >= 2
+  let clause = 0
+  let curMajor: number | null = null
+  let minor = 0
+  let lastSubMajor: number | null = null
+  let letterIdx = -1
+  return lines
+    .map((line) => {
+      let l = line
+      let m: RegExpMatchArray | null
+      if (hasCl && (m = l.match(headCl))) {
+        clause++
+        curMajor = clause
+        minor = 0
+        letterIdx = -1
+        return m[1] + m[2] + clause + l.slice(m[0].length)
+      }
+      if (hasNum && (m = l.match(headNum))) {
+        clause++
+        curMajor = clause
+        minor = 0
+        letterIdx = -1
+        return m[1] + clause + m[3] + l.slice(m[0].length)
+      }
+      if ((m = l.match(sub))) {
+        const major = curMajor ?? Number(m[2])
+        if (curMajor === null && lastSubMajor !== major) minor = 0
+        lastSubMajor = major
+        minor++
+        letterIdx = -1
+        l = m[1] + major + '.' + minor + m[4] + l.slice(m[0].length)
+        return l
+      }
+      if ((m = l.match(letter))) {
+        letterIdx++
+        return m[1] + String.fromCharCode(97 + Math.min(letterIdx, 25)) + ')' + m[3] + l.slice(m[0].length)
+      }
+      // tópico com letra só continua enquanto as linhas seguem; linha vazia ou texto comum recomeça
+      if (!/^\s*[•\-–]/.test(l)) letterIdx = -1
+      return l
+    })
+    .join('\n')
+}

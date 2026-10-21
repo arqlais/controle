@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-21-contrato-na-folha',
+    date: '2026-10-21',
+    kind: 'novo',
+    title: 'edite o contrato direto na folha',
+    text: 'O contrato abre por páginas e você edita como no Word, com negrito, itálico e cor (dá para abrir em tela cheia). A numeração das cláusulas, dos itens e dos tópicos a), b), c) se ajusta sozinha, e o título de uma cláusula não fica mais sozinho no fim da página.',
+    steps: [{ text: 'Abra um contrato e toque no texto da folha.', page: 'contratos' }],
+  },
+  {
     id: '2026-10-21-negrito-cor',
     date: '2026-10-21',
     kind: 'novo',

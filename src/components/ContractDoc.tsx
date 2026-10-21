@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from './Icon'
 import type { ContractSignature, Letterhead, Settings } from '../types'
 import { useAccess } from '../access'
@@ -15,7 +15,7 @@ const PAD_TOP = 76
 const PAD_BOTTOM = 92 // espaço do rodapé com o número da página
 const HEAD_H = 120 // cabeçalho só na primeira folha
 
-type Block = { kind: 'title' | 'clause' | 'p' | 'gap' | 'sign'; text: string }
+type Block = { kind: 'title' | 'clause' | 'p' | 'gap' | 'sign'; text: string; line?: number }
 
 function toBlocks(body: string): Block[] {
   const lines = body.replace(/\r/g, '').split('\n')
@@ -24,9 +24,9 @@ function toBlocks(body: string): Block[] {
     const t = raw.trim()
     const pl = stripRich(t)
     if (!t) return out.length && out[out.length - 1].kind !== 'gap' && out.push({ kind: 'gap', text: '' })
-    if (i === 0 && pl === pl.toUpperCase() && pl.length < 90) return out.push({ kind: 'title', text: t })
-    if (/^(CLÁUSULA|CLAUSULA|PARÁGRAFO)\b/i.test(pl) || (pl === pl.toUpperCase() && /[A-ZÁÉÍÓÚ]{4}/.test(pl) && pl.length < 80)) return out.push({ kind: 'clause', text: t })
-    out.push({ kind: 'p', text: t })
+    if (i === 0 && pl === pl.toUpperCase() && pl.length < 90) return out.push({ kind: 'title', text: t, line: i })
+    if (/^(CLÁUSULA|CLAUSULA|PARÁGRAFO)\b/i.test(pl) || (pl === pl.toUpperCase() && /[A-ZÁÉÍÓÚ]{4}/.test(pl) && pl.length < 80)) return out.push({ kind: 'clause', text: t, line: i })
+    out.push({ kind: 'p', text: t, line: i })
   })
   out.push({ kind: 'sign', text: '' })
   return out
@@ -34,6 +34,77 @@ function toBlocks(body: string): Block[] {
 
 /** Desenho do contrato exclusivo da dona (o link de assinatura guarda isso, porque abre fora da conta). */
 export const usesExclusiveContract = (has: (f: 'modeloExclusivo') => boolean, body: string) => has('modeloExclusivo') && /^CONTRATADA\s*$/m.test(body)
+
+/** Edição direto na folha: cada parágrafo vira editável e devolve a linha certa do texto. */
+type EditApi = { edit: (line: number, raw: string, newLine?: boolean) => void; focus: number | null }
+const EditCtx = createContext<EditApi | null>(null)
+function Ed({ as: Tag, line, text, className, raw = (x) => x }: { as: 'p' | 'h3'; line?: number; text: string; className?: string; raw?: (x: string) => string }) {
+  const api = useContext(EditCtx)
+  const ref = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    if (api && line !== undefined && api.focus === line && ref.current) {
+      const el = ref.current
+      el.focus()
+      const r = document.createRange()
+      r.selectNodeContents(el)
+      r.collapse(false)
+      const sel = window.getSelection()
+      sel?.removeAllRanges()
+      sel?.addRange(r)
+    }
+  }, [api, line])
+  if (!api || line === undefined) return <Tag className={className}><Rich text={text} /></Tag>
+  const commit = (newLine = false) => {
+    const md = htmlToMarkup(ref.current?.innerHTML ?? '')
+    if (md === text.replace(/\u200B/g, '') && !newLine) return
+    api.edit(line, md ? raw(md) : '', newLine)
+  }
+  return (
+    <Tag
+      ref={ref as never}
+      className={`${className ?? ''} ed-line`}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck
+      lang="pt-BR"
+      onBlur={() => commit()}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault()
+          commit(true)
+        }
+      }}
+    >
+      <Rich text={text.replace(/\u200B/g, '')} />
+    </Tag>
+  )
+}
+
+/** HTML do parágrafo editado → texto com as marcas (**negrito**, *itálico*, __sublinhado__, [cor=…]). */
+export function htmlToMarkup(html: string): string {
+  const d = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html').body.firstElementChild as HTMLElement
+  const hex = (c: string) => {
+    const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+    return m ? '#' + [m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('') : c.startsWith('#') ? c : ''
+  }
+  const walk = (n: Node): string => {
+    if (n.nodeType === 3) return (n.textContent ?? '').replace(/\u00A0/g, ' ')
+    if (n.nodeType !== 1) return ''
+    const el = n as HTMLElement
+    if (el.tagName === 'BR') return ' '
+    let inner = [...el.childNodes].map(walk).join('')
+    if (!inner.trim()) return inner
+    const st = el.style
+    const tag = el.tagName
+    const color = hex(st.color || el.getAttribute('color') || '')
+    if (color && color !== '#000000') inner = `[cor=${color}]${inner}[/cor]`
+    if (tag === 'U' || /underline/.test(st.textDecoration || st.textDecorationLine || '')) inner = `__${inner}__`
+    if (tag === 'I' || tag === 'EM' || st.fontStyle === 'italic') inner = `*${inner}*`
+    if (tag === 'B' || tag === 'STRONG' || st.fontWeight === 'bold' || Number(st.fontWeight) >= 600) inner = `**${inner}**`
+    return inner
+  }
+  return walk(d).replace(/\s+/g, ' ').replace(/\u200B/g, '').trim()
+}
 
 /** Assinatura da contratada registrada ao gerar o link (vale junto com a do cliente). */
 const OwnerSignCtx = createContext<ContractSignature | undefined>(undefined)
@@ -45,6 +116,16 @@ function OwnerSign({ s, lais }: { s: Settings; lais?: boolean }) {
 }
 function OwnerMark() {
   return <SignedMark sign={useContext(OwnerSignCtx)} />
+}
+
+/** Título de cláusula no desenho do Word: h1–h4, linha curta toda em maiúsculas ou toda em negrito. */
+function isHeading(el: HTMLElement) {
+  if (/^H[1-4]$/.test(el.tagName) || el.classList.contains('lh-title') || el.classList.contains('lh-clause')) return true
+  const txt = (el.textContent ?? '').trim()
+  if (!txt || txt.length > 90) return false
+  if (txt === txt.toUpperCase() && /[A-ZÀ-Ú]{4}/.test(txt)) return true
+  const bold = [...el.querySelectorAll('b, strong')].map((b) => b.textContent ?? '').join('').trim()
+  return bold.length > 0 && bold.length >= txt.length - 2
 }
 
 /** Linha "assinado eletronicamente" embaixo do nome de quem assinou pelo link. */
@@ -126,10 +207,30 @@ function SignCertificate({ sign, lais }: { sign?: ContractSignature; lais?: bool
   )
 }
 
-export function ContractDoc(props: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature; ownerSigned?: ContractSignature; letterhead?: Letterhead; pdfPages?: string[] }) {
+export function ContractDoc(props: { s: Settings; body: string; html?: string; clientName: string; exclusive?: boolean; signed?: ContractSignature; ownerSigned?: ContractSignature; letterhead?: Letterhead; pdfPages?: string[]; onBody?: (body: string) => void }) {
+  const [focus, setFocus] = useState<number | null>(null)
+  const { onBody, body } = props
+  const api = useMemo<EditApi | null>(
+    () =>
+      onBody
+        ? {
+            focus,
+            edit: (line, raw, newLine) => {
+              const lines = body.split('\n')
+              if (!raw.trim() && !newLine) lines.splice(line, 1) // parágrafo apagado: some a linha
+              else lines.splice(line, 1, ...(newLine ? [raw, '\u200B'] : [raw]))
+              setFocus(newLine ? line + 1 : null)
+              onBody(lines.join('\n'))
+            },
+          }
+        : null,
+    [onBody, body, focus],
+  )
   return (
     <OwnerSignCtx.Provider value={props.ownerSigned}>
-      <ContractSheets {...props} />
+      <EditCtx.Provider value={api}>
+        <ContractSheets {...props} />
+      </EditCtx.Provider>
     </OwnerSignCtx.Provider>
   )
 }
@@ -166,6 +267,7 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
     heights.forEach((h, i) => {
       const room = PAGE_H - PAD_TOP - PAD_BOTTOM
       // título de cláusula não fica sozinho no fim da folha
+      if (!blocks[i]) return // o texto mudou no meio da medição
       const need = blocks[i].kind === 'clause' ? h + (heights[i + 1] ?? 0) : h
       if (used + need > room && out[out.length - 1].length) {
         out.push([])
@@ -182,9 +284,10 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
   const who = (s.legalName || s.ownerName || s.brandName).toUpperCase()
   const render = (i: number) => {
     const b = blocks[i]
+    if (!b) return null
     if (b.kind === 'gap') return <div key={i} className="c-gap" />
     if (b.kind === 'title') return <h2 key={i} className="c-title"><Rich text={b.text.toLowerCase()} /></h2>
-    if (b.kind === 'clause') return <h3 key={i} className="c-clause"><Rich text={b.text} /></h3>
+    if (b.kind === 'clause') return <Ed key={i} as="h3" className="c-clause" line={b.line} text={b.text} />
     if (b.kind === 'sign')
       return (
         <div key={i} className="c-sign">
@@ -204,7 +307,7 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
           </div>
         </div>
       )
-    return <p key={i}><Rich text={b.text} /></p>
+    return <Ed key={i} as="p" line={b.line} text={b.text} />
   }
 
   if (!pages)
@@ -245,8 +348,8 @@ function ClientContract({ s, body, clientName, has, signed }: { s: Settings; bod
 
 type LBlock =
   | { kind: 'party'; label: string; rows: [string, string][] }
-  | { kind: 'intro' | 'clause' | 'p' | 'bullet' | 'letter' | 'date'; text: string }
-  | { kind: 'num'; n: string; text: string }
+  | { kind: 'intro' | 'clause' | 'p' | 'bullet' | 'letter' | 'date'; text: string; line?: number }
+  | { kind: 'num'; n: string; text: string; line?: number }
   | { kind: 'sign' }
 
 const MONTH = /( de )([a-zç]+)( de \d{4})/
@@ -273,28 +376,28 @@ function laisBlocks(body: string): LBlock[] {
     const pl = stripRich(t)
     if (/^CLÁUSULA\b/i.test(pl) || pl === 'DAS ASSINATURAS') {
       afterSign = pl === 'DAS ASSINATURAS'
-      out.push({ kind: 'clause', text: t })
+      out.push({ kind: 'clause', text: t, line: i })
       continue
     }
     const num = t.match(/^((?:\*\*|\*|__|\[cor=#[0-9a-fA-F]{3,8}\])*)(\d+\.\d+)\s+(.*)$/)
     if (num) {
-      out.push({ kind: 'num', n: num[2], text: num[1] + num[3] })
+      out.push({ kind: 'num', n: num[2], text: num[1] + num[3], line: i })
       continue
     }
     if (/^[•\-]\s+/.test(pl)) {
-      out.push({ kind: 'bullet', text: t.replace(/^[•\-]\s+/, '') })
+      out.push({ kind: 'bullet', text: t.replace(/^[•\-]\s+/, ''), line: i })
       continue
     }
     if (/^[a-z]\)\s/.test(t)) {
-      out.push({ kind: 'letter', text: t })
+      out.push({ kind: 'letter', text: t, line: i })
       continue
     }
     if (afterSign && /\d{4}\.?$/.test(t) && t.includes(',')) {
       // "Santo André - SP, 25 de Abril de 2026" (mês com inicial maiúscula, como no modelo)
-      out.push({ kind: 'date', text: t.replace(/\.$/, '').replace(MONTH, (_m, a: string, mo: string, b: string) => a + mo[0].toUpperCase() + mo.slice(1) + b) })
+      out.push({ kind: 'date', line: i, text: t.replace(/\.$/, '').replace(MONTH, (_m, a: string, mo: string, b: string) => a + mo[0].toUpperCase() + mo.slice(1) + b) })
       continue
     }
-    out.push({ kind: /^As partes acima/.test(t) ? 'intro' : 'p', text: t })
+    out.push({ kind: /^As partes acima/.test(t) ? 'intro' : 'p', text: t, line: i })
   }
   out.push({ kind: 'sign' })
   return out
@@ -321,6 +424,7 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
     let used = L_HEAD_H
     heights.forEach((h, i) => {
       const b = blocks[i]
+      if (!b) return // o texto mudou no meio da medição
       // título de cláusula sempre junto do primeiro item; assinaturas juntas
       // "DAS ASSINATURAS" leva junto o texto, a data e os quadros de assinatura (como no modelo)
       const need = b.kind === 'clause' && b.text === 'DAS ASSINATURAS' ? heights.slice(i).reduce((a, x) => a + x, 0) : b.kind === 'clause' ? h + (heights[i + 1] ?? 0) : h
@@ -337,6 +441,7 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
   const ig = (s.instagram || '').replace(/^@/, '')
   const render = (i: number): ReactNode => {
     const b = blocks[i]
+    if (!b) return null
     switch (b.kind) {
       case 'party':
         return (
@@ -351,40 +456,30 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
         )
       case 'intro':
         return (
-          <p key={i} className="lc-intro">
-            <Rich text={b.text} />
-          </p>
+          <Ed key={i} as="p" className="lc-intro" line={b.line} text={b.text} />
         )
       case 'clause':
         return (
-          <h3 key={i} className="lc-clause">
-            <Rich text={b.text} />
-          </h3>
+          <Ed key={i} as="h3" className="lc-clause" line={b.line} text={b.text} />
         )
       case 'num':
         return (
           <div key={i} className="lc-num">
             <b>{b.n}</b>
-            <p><Rich text={b.text} /></p>
+            <Ed as="p" line={b.line} text={b.text} raw={(x) => `${b.n} ${x}`} />
           </div>
         )
       case 'bullet':
         return (
-          <p key={i} className="lc-bullet">
-            <Rich text={b.text} />
-          </p>
+          <Ed key={i} as="p" className="lc-bullet" line={b.line} text={b.text} raw={(x) => `• ${x}`} />
         )
       case 'letter':
         return (
-          <p key={i} className="lc-letter">
-            <Rich text={b.text} />
-          </p>
+          <Ed key={i} as="p" className="lc-letter" line={b.line} text={b.text} />
         )
       case 'date':
         return (
-          <p key={i} className="lc-date">
-            <Rich text={b.text} />
-          </p>
+          <Ed key={i} as="p" className="lc-date" line={b.line} text={b.text} />
         )
       case 'sign':
         return (
@@ -405,9 +500,7 @@ function LaisContract({ s, body, clientName, signed }: { s: Settings; body: stri
         )
       default:
         return (
-          <p key={i} className="lc-p">
-            <Rich text={b.text} />
-          </p>
+          <Ed key={i} as="p" className="lc-p" line={b.line} text={b.text} />
         )
     }
   }
@@ -487,7 +580,10 @@ function OwnContract({ s, html, clientName, signed }: { s: Settings; html: strin
         return
       }
       const h = i < els.length - 1 ? els[i + 1].offsetTop - el.offsetTop : el.offsetHeight + 8
-      if (used + h > room && out[out.length - 1].length) {
+      // título não fica sozinho no fim da folha: vai junto com o primeiro parágrafo
+      const next = els[i + 1] ? (i + 1 < els.length - 1 ? els[i + 2].offsetTop - els[i + 1].offsetTop : els[i + 1].offsetHeight + 8) : 0
+      const need = isHeading(el) ? h + next : h
+      if (used + need > room && out[out.length - 1].length) {
         out.push([])
         used = 0
       }
@@ -607,7 +703,8 @@ function LetterheadContract({ s, body, html, lh, clientName, signed }: { s: Sett
     let used = 0
     els.forEach((el, i) => {
       const h = i < els.length - 1 ? els[i + 1].offsetTop - el.offsetTop : el.offsetHeight + 8
-      if (used + h > room && out[out.length - 1].length) {
+      const next = els[i + 1] ? (i + 1 < els.length - 1 ? els[i + 2].offsetTop - els[i + 1].offsetTop : els[i + 1].offsetHeight + 8) : 0
+      if (used + (isHeading(el) ? h + next : h) > room && out[out.length - 1].length) {
         out.push([])
         used = 0
       }

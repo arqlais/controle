@@ -1,5 +1,6 @@
 import { withPanelShare } from '../clientPanel'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../store'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
@@ -10,13 +11,14 @@ import { LetterheadField } from '../components/Letterhead'
 import { ContractDoc, usesExclusiveContract } from '../components/ContractDoc'
 import { DocLookPanel } from '../components/DocKit'
 import { DocScale, DocZoom, usePdf } from '../components/Print'
-import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract, insertScope, insertClause } from '../contracts'
+import { CONTRACT_VARS, contractSettings, contractVars, defaultTemplates, fillContract, suggestTemplate, syncContract, REVIEW_FIELDS, REVIEW_GROUPS, reviseContract, insertScope, insertClause, renumber } from '../contracts'
 import { useAccess } from '../access'
 import type { Client, Contract, ContractStatus, ContractTemplate } from '../types'
 import { IMPORT_ACCEPT, findFields, importContract, importError, swapAll } from '../contractImport'
 import { fillHtml, htmlToText } from '../contractHtml'
 import { DocRich, type DocRichHandle } from '../components/DocRich'
 import { TextFormat } from '../components/TextFormat'
+import { FormatBar } from '../components/FormatBar'
 import { SIGN_SITES, checkSignMessage, ownerStamp, publishSign, unpublishSign, type SignPayload } from '../contractSign'
 import { SIGN_FONTS, SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
@@ -328,6 +330,8 @@ function ContractEditor({ id }: { id: string }) {
   const [zoom, setZoom] = useState(false)
   const pdfInput = useRef<HTMLInputElement>(null)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [textMode, setTextMode] = useState<'folha' | 'texto'>('folha')
+  const [full, setFull] = useState(false)
   const [sheetMode, setSheetMode] = useState<'modelo' | 'timbrado' | 'pdf'>(() => (c?.pdfPages?.length ? 'pdf' : c?.letterhead ? 'timbrado' : 'modelo'))
   const pdf = usePdf()
   // assinatura que chegou sozinha (cliente assinou pelo link) com o contrato aberto: entra na tela também
@@ -558,9 +562,46 @@ function ContractEditor({ id }: { id: string }) {
               </>
             ) : (
               <>
+                <Segmented<'folha' | 'texto'> value={textMode} onChange={setTextMode} options={[{ value: 'folha', label: 'na folha' }, { value: 'texto', label: 'texto corrido' }]} />
+                {textMode === 'folha' ? (
+                  <>
+                    <div className="row gap-s wrap ct-sheet-tools">
+                      <FormatBar />
+                      <button className="btn small" onClick={() => setFull(true)}>
+                        <Icon name="monitor" size={14} /> tela cheia
+                      </button>
+                    </div>
+                    {full &&
+                      createPortal(
+                        <div className="ct-full" role="dialog" aria-label="Editar o contrato na folha">
+                          <div className="ct-full-bar">
+                            <FormatBar />
+                            <button className="btn primary small" onClick={() => setFull(false)}>
+                              <Icon name="check" size={14} /> pronto
+                            </button>
+                          </div>
+                          <div className="ct-full-sheet">
+                            <DocScale>
+                              <ContractDoc s={data.settings} body={c.body} letterhead={c.letterhead} clientName={client ? client.name : ''} ownerSigned={c.ownerSign} onBody={(body) => set({ body: renumber(body) })} />
+                            </DocScale>
+                          </div>
+                        </div>,
+                        document.body,
+                      )}
+                    <div className="ct-sheet-edit">
+                      <DocScale>
+                        <ContractDoc s={data.settings} body={c.body} letterhead={c.letterhead} clientName={client ? client.name : ''} ownerSigned={c.ownerSign} onBody={(body) => set({ body: renumber(body) })} />
+                      </DocScale>
+                    </div>
+                    <p className="muted small">Toque no texto da folha e edite como no Word. Enter cria um parágrafo novo; apagar todo o texto de um parágrafo tira ele. A numeração (1.1, 1.2… e a, b, c) se ajusta sozinha.</p>
+                  </>
+                ) : (
+                <>
                 <TextFormat target={bodyRef} value={c.body} onChange={(body) => set({ body })} />
-                <textarea ref={bodyRef} className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} spellCheck lang="pt-BR" />
+                <textarea ref={bodyRef} className="pf-contract-text" rows={24} value={c.body} onChange={(e) => set({ body: e.target.value })} onBlur={() => { const r = renumber(c.body); if (r !== c.body) set({ body: r }) }} spellCheck lang="pt-BR" />
                 <p className="muted small">Selecione um trecho e toque em B, I, U ou numa cor. Linhas em MAIÚSCULAS viram títulos (ex.: CLÁUSULA 1 — DO OBJETO). A assinatura das duas partes entra sozinha no fim.</p>
+                </>
+                )}
               </>
             )}
           </Section>
@@ -829,7 +870,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
             </p>
           )}
           <TextFormat target={ref} value={cur.body} onChange={(body) => patch({ body })} />
-          <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
+          <textarea ref={ref} className="pf-contract-text" rows={22} value={cur.body} onChange={(e) => patch({ body: e.target.value })} onBlur={() => { const r = renumber(cur.body); if (r !== cur.body) patch({ body: r }) }} spellCheck lang="pt-BR" autoFocus={cur.id === startId} placeholder={'Cole aqui o texto do seu contrato (do Word, PDF ou Google Docs).\n\nDepois troque o nome do cliente por {contratante}, o valor por {valor}, a data por {data}… tocando nas etiquetas acima: cada contrato novo já sai preenchido.'} />
           {cur.body.trim().length > 40 && (
             <button type="button" className="btn small ghost ct-see" onClick={() => setPreview(true)}>
               <Icon name="eye" size={14} /> ver como fica
@@ -883,7 +924,7 @@ function ContractAI({ c, vars, onInsert }: { c: Contract; vars: Record<string, s
   }
   const remove = (title: string) => {
     const snip = added[title]
-    if (snip && c.body.includes(snip)) onInsert(c.body.replace(snip, snip.startsWith('\n') ? '' : ''))
+    if (snip && c.body.includes(snip)) onInsert(renumber(c.body.replace(snip, '')))
     else toast('Esse trecho foi editado no texto: apague direto no contrato.')
     const { [title]: _, ...rest } = added
     setAdded(rest)
