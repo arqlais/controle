@@ -4217,3 +4217,11 @@ body:has(.modal-backdrop, .news-backdrop, .nw-backdrop, [role='dialog'][aria-mod
   .brand .brand-name { font-size: 20px !important; }
   .brand .brand-name i { display: none; }
 }
+@media (min-width: 821px) {
+  .brand { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+  .brand .brand-text { display: flex; flex-direction: column; justify-content: center; gap: 1px; line-height: 1.1; }
+  .brand .brand-kicker { line-height: 1.2; }
+  .brand .brand-name { line-height: 1.05; }
+  .brand .brand-name i { display: inline !important; color: var(--accent-soft); font-style: normal; }
+  .brand .brand-photo { width: 40px !important; height: 40px !important; }
+}
