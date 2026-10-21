@@ -4359,3 +4359,23 @@ a.cd-link > svg:last-child { margin-left: auto; flex: none; opacity: .6; }
 .rv-group[open] summary::after { transform: rotate(-135deg); margin-bottom: -3px; }
 .account-grid .auth-google { margin: 0 0 10px; display: inline-flex; width: auto; }
 .google-linked { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 10px; padding: 7px 12px; border-radius: 999px; background: var(--accent-tint); color: var(--accent-ink); font-size: 12.5px; font-weight: 600; }
+/* página de assinar contrato: identidade do planê (azul e rosé, bege de fundo), igual aos dados para contrato */
+.cs-public { --cs-a: #4a5d6b; --cs-rose: #b48a7f; --cs-rose-bg: #f3e3de; --cs-beige: #f3e6dc;
+  background: radial-gradient(ellipse 70% 40% at 0% 0%, rgba(208, 172, 163, .35), transparent 70%), radial-gradient(40rem 30rem at 100% 100%, rgba(255, 255, 255, .6), transparent 70%), #f3ece5 !important; color: #3e4b57; }
+.cs-public .bf-card { --bf-accent: var(--cs-a); background: linear-gradient(150deg, rgba(255, 255, 255, .9), rgba(255, 255, 255, .75)); border: 1.5px solid rgba(255, 255, 255, .95); border-radius: 28px; box-shadow: 0 30px 60px -40px rgba(74, 93, 107, .45); }
+.cs-public .bf-eyebrow { color: var(--cs-rose); }
+.cs-public h1 { color: #3e4b57; }
+.cs-public .bf-send { background: var(--cs-a) !important; color: var(--cs-beige) !important; border-radius: 999px !important; min-height: 54px; box-shadow: 0 14px 30px -18px rgba(74, 93, 107, .8); }
+.cs-public .bf-send:disabled { opacity: .5; box-shadow: none; }
+.cs-public .cs-tabs { background: var(--cs-rose-bg); }
+.cs-public .cs-tabs button { color: #8f6d64; }
+.cs-public .cs-tabs button.is-on { background: var(--cs-a); color: var(--cs-beige); box-shadow: none; }
+.cs-public .cs-font.is-on { border-color: var(--cs-a); box-shadow: 0 0 0 3px rgba(74, 93, 107, .12); }
+.cs-public .cs-agree input, .cs-public input[type=checkbox] { accent-color: var(--cs-a); }
+.cs-public .sp-area { border-color: rgba(180, 138, 127, .35); background: rgba(255, 255, 255, .7); }
+.cs-public .cs-form input:not([type=checkbox]) { background: rgba(255, 255, 255, .9); border-color: rgba(180, 138, 127, .3); border-radius: 14px; }
+.cs-public .cs-form label > span, .cs-public .cs-method > span { color: #3e4b57; }
+.cs-public .cs-doc { background: var(--cs-rose-bg) !important; border-radius: 20px; }
+.cs-public .cs-done-icon { background: var(--cs-a) !important; color: var(--cs-beige) !important; }
+.cs-public .sp-bar .link, .cs-public .link { color: var(--cs-rose); }
+.cs-public .bf-foot a { color: #8f6d64; }

@@ -50,7 +50,7 @@ export const NEWS: News[] = [
     date: '2026-10-21',
     kind: 'novo',
     title: 'contrato assinado pelas duas partes',
-    text: 'Ao gerar o link de assinatura, o contrato já vai assinado por você, com registro próprio no certificado. Quando o cliente assina, os dois recebem por e-mail a cópia do contrato assinado.',
+    text: 'Ao gerar o link de assinatura, o contrato já vai assinado por você, com registro próprio no certificado. Quando o cliente assina, os dois recebem por e-mail a cópia do contrato assinado. A página de assinar ganhou o visual do planê.',
     steps: [{ text: 'Escolha a letra da sua assinatura em contratos → modelos → sua assinatura.', page: 'contratos', id: 'modelos', target: '.sg-auto' }],
   },
   {
