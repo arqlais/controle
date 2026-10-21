@@ -271,9 +271,13 @@ function Rows({ items: all, priceFirst, services = [] }: { items: QuoteItem[]; p
   // cobrado por unidade (mapas, imagens, pranchas…): mostra o valor de cada um, e o total ao lado
   const each = (it: QuoteItem) => {
     const sv = services.find((x) => x.id === it.service)
-    if (!sv || (sv.pricing !== 'unidade' && sv.pricing !== 'pacote') || it.quantity < 2 || it.joined || !it.price) return ''
-    const unit = Math.round((it.price / it.quantity) * 100) / 100
-    return `${it.quantity} × ${money(unit)}`
+    if (!sv || (sv.pricing !== 'unidade' && sv.pricing !== 'pacote') || it.joined || !it.price) return ''
+    // serviço com lista (mapas, plantas…): a quantidade é o que está marcado no "o que está incluso"
+    const lines = it.description.split('\n').filter((l) => l.trim())
+    const qty = sv.checklist?.some((c) => c.trim()) && lines.length ? lines.length : it.quantity
+    if (qty < 2) return ''
+    const unit = Math.round((it.price / qty) * 100) / 100
+    return `${qty} × ${money(unit)}`
   }
   // serviço em branco (sem nome e sem valor) não vai para a proposta
   const items = all.filter((it) => it.title.trim() || it.price > 0 || it.joined)
