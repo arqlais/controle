@@ -33,3 +33,4 @@ revoke execute on function public.briefing_publico(uuid), public.responder_brief
 grant execute on function public.briefing_publico(uuid), public.responder_briefing(uuid, jsonb) to anon, authenticated;
 -- publicado pela automação em 2026-10-20
 -- (2ª tentativa)
+-- (3ª)
