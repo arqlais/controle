@@ -14,7 +14,7 @@ jobs:
       - name: Consulta leve no banco
         env:
           SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://lbggvjebkhdcybpkxzxs.supabase.co' }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY || 'sb_publishable_uqo6nAVMS7iZsidCPNQRhg_YA9RNaYA' }} # chave pública (a mesma de src/supaConfig.ts)
         run: |
           if [ -z "$SUPABASE_ANON_KEY" ]; then echo "Falta a variável SUPABASE_ANON_KEY (Settings → Secrets and variables → Actions → Variables)."; exit 1; fi
           code=$(curl -s -o /dev/null -w '%{http_code}' "$SUPABASE_URL/rest/v1/platform_settings?select=*&limit=1" -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
