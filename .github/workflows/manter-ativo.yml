@@ -1,0 +1,22 @@
+name: Manter o Supabase ativo
+
+# O plano grátis do Supabase pausa o projeto depois de 7 dias sem nenhum acesso.
+# Uma vez por dia, esta tarefa faz uma consulta leve no banco (só leitura) para ele nunca dormir.
+on:
+  schedule:
+    - cron: '37 10 * * *' # todo dia, 7h37 em Brasília
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta leve no banco
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://lbggvjebkhdcybpkxzxs.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_ANON_KEY" ]; then echo "Falta a variável SUPABASE_ANON_KEY (Settings → Secrets and variables → Actions → Variables)."; exit 1; fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$SUPABASE_URL/rest/v1/platform_settings?select=*&limit=1" -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "Supabase respondeu $code"
+          [ "$code" -lt 500 ] || exit 1
