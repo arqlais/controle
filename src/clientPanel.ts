@@ -9,6 +9,7 @@ import { usesExclusiveContract } from './components/ContractDoc'
 import type { BriefingAnswers, BriefingQuestion, BriefingSection, Client, ClientPanel, ContractSignature, Data, PanelFile, PanelLook, PanelSection } from './types'
 import type { SavedDoc } from './docTypes'
 import { processesOf } from './processes'
+import { reviewForPanel, type PanelReview } from './review'
 import { allTemplates } from './briefingTemplates'
 
 export type PanelDoc = SavedDoc & { stages?: string[]; tpl?: { name: string; sections: BriefingSection[]; questions: BriefingQuestion[] } }
@@ -30,6 +31,7 @@ export interface PanelProject {
   paid?: number
   filesLink?: string
   visits?: { date: string; title: string; notes: string; next?: string }[]
+  review?: PanelReview // imagens para aprovar
 }
 
 export interface PanelPayload {
@@ -92,6 +94,7 @@ export function panelPayload(d: Data, client: Client, panel: ClientPanel, has: H
           }
         : {}),
       ...(p.filesLink ? { filesLink: p.filesLink } : {}),
+      ...(reviewForPanel(p) ? { review: reviewForPanel(p) } : {}),
       ...(panel.showVisits ? { visits: (p.visits ?? []).map((v) => ({ date: v.date, title: v.title, notes: v.notes, next: v.next })).sort((a, b) => b.date.localeCompare(a.date)) } : {}),
     }))
   const shareC = new Set(panel.contracts ?? [])

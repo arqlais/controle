@@ -11,6 +11,7 @@ import type { PageRequest } from './studioPage'
 import type { Client, ContractData } from './types'
 import { applyToClient, cancelDataLink } from './contractData'
 import { BOTH, quoteNumber, today, uid } from './utils'
+import { applyReview, type ReviewFeedback } from './review'
 
 /* Avisos do cliente final para o profissional: assinatura de contrato e recado pelo painel.
    A página pública (sem login) manda para a função "avisos": ela guarda o aviso, manda o e-mail
@@ -18,7 +19,7 @@ import { BOTH, quoteNumber, today, uid } from './utils'
 
 export interface ClientEvent {
   user: string // conta do profissional
-  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou' | 'pedido' | 'dados'
+  kind: 'assinatura' | 'recado' | 'aprovacao' | 'visualizou' | 'pedido' | 'dados' | 'imagens'
   ref: string // o que é (token do contrato, id do recado): não repete
   cliente: string
   titulo: string
@@ -216,6 +217,32 @@ export function useClientInbox(enabled: boolean) {
           notifyDevice(`${c.name} mandou os dados do contrato`, 'Já estão no cadastro.')
           void cancelDataLink(r.ref, userId)
         }
+      } else if (r.kind === 'imagens') {
+        // resposta do cliente às imagens da demanda: aprovou ou marcou pontos para ajustar
+        let fb: ReviewFeedback | null = null
+        try {
+          fb = JSON.parse(p.code || 'null') as ReviewFeedback
+        } catch {
+          fb = null
+        }
+        const proj = fb ? d.projects.find((x) => x.id === fb!.p) : undefined
+        if (!fb || !proj) {
+          if (fb && !d.projects.length) continue // dados ainda chegando: tenta depois
+          done.push(r)
+          continue
+        }
+        const { next, scene } = applyReview(proj, fb, r.created_at, p.cliente || undefined)
+        if (!scene) continue // cena de outro aparelho ainda não sincronizada: tenta depois
+        upsert('projects', next)
+        const client = d.clients.find((x) => x.id === proj.clientId)
+        const who = client?.name ?? p.cliente ?? 'O cliente'
+        const pins = fb.pins.filter((x) => x.text.trim()).length
+        const title = fb.ok ? `${who} aprovou “${scene.name}”` : `${who} pediu ajustes em “${scene.name}”`
+        const text = fb.ok ? `Versão ${fb.v} aprovada.` : [pins ? `${pins} ponto${pins > 1 ? 's' : ''} marcado${pins > 1 ? 's' : ''} na imagem` : '', fb.note?.trim()].filter(Boolean).join(' · ') || `Versão ${fb.v}.`
+        if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `${fb.ok ? 'aprovou' : 'pediu ajustes em'} “${scene.name}” (v${fb.v}) pela página` }] })
+        upsert('notices', makeNotice({ kind: 'imagens', ref: key, clientId: proj.clientId, link: `projetos/${proj.id}`, title, text }))
+        toast(title)
+        notifyDevice(title, text)
       } else if (r.kind === 'recado') {
         const client = d.clients.find((x) => x.panel?.token === p.painel)
         if (client) upsert('clients', { ...client, history: [...client.history, { id: uid(), date: today(), text: `recado pelo painel: ${p.texto ?? ''}` }] })

@@ -30,6 +30,15 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-29-imagens-aprovacao',
+    date: '2026-10-29',
+    kind: 'novo',
+    title: 'imagens para o cliente aprovar',
+    text: 'Na demanda, envie as versões de cada cena. Na página dele, o cliente toca na imagem para marcar o que quer ajustar, compara com a versão anterior e aprova. A resposta volta sozinha para a demanda, com os pontos em cima da imagem, e pedir ajustes já conta uma revisão.',
+    feature: 'portal',
+    steps: [{ text: 'Abra uma demanda e toque em “Cena”, em Imagens para aprovação.', page: 'projetos' }],
+  },
+  {
     id: '2026-10-21-contrato-na-folha',
     date: '2026-10-21',
     kind: 'novo',

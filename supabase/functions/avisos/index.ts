@@ -308,6 +308,7 @@ const CLIENT_KIND: Record<string, { eyebrow: string; did: string }> = {
   visualizou: { eyebrow: 'proposta', did: 'abriu a sua proposta' },
   pedido: { eyebrow: 'pedido de orçamento', did: 'pediu um orçamento pela sua página' },
   dados: { eyebrow: 'dados para contrato', did: 'mandou os dados do contrato' },
+  imagens: { eyebrow: 'imagens', did: 'respondeu sobre as imagens' },
 }
 const clientEventMail = (s: Sub, kind: string, client: string, title: string, text: string, link = ''): Mail => {
   const k = CLIENT_KIND[kind] ?? CLIENT_KIND.recado
@@ -316,9 +317,9 @@ const clientEventMail = (s: Sub, kind: string, client: string, title: string, te
     html: layout({
       eyebrow: k.eyebrow,
       title: `${esc(client || 'Seu cliente')} ${k.did}`,
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : kind === 'visualizou' ? '. Bom momento para mandar uma mensagem: ela acabou de ver' : kind === 'pedido' ? '. O rascunho do orçamento já está pronto, com o cliente e os serviços' : ''}.</p>`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! ${title ? `<b>${esc(title)}</b>` : ''}</p>${text.trim() ? quote(rich(text.slice(0, 2000))) : ''}<p style="margin:12px 0 0;">Abra o planê: já está na central de avisos e na ficha do cliente${kind === 'assinatura' ? ', com a assinatura registrada no contrato' : kind === 'aprovacao' ? '. No orçamento, toque em fechar para criar a demanda e lançar os pagamentos' : kind === 'visualizou' ? '. Bom momento para mandar uma mensagem: ela acabou de ver' : kind === 'pedido' ? '. O rascunho do orçamento já está pronto, com o cliente e os serviços' : kind === 'imagens' ? '. Os pontos marcados já estão na demanda, em cima da imagem' : ''}.</p>`,
       button: kind === 'assinatura' && link ? 'ver o contrato assinado' : 'abrir o planê',
-      url: kind === 'assinatura' && link ? link : `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' || kind === 'pedido' ? 'orcamentos' : 'clientes'}`,
+      url: kind === 'assinatura' && link ? link : `${SITE}#/${kind === 'aprovacao' || kind === 'visualizou' || kind === 'pedido' ? 'orcamentos' : kind === 'imagens' ? 'projetos' : 'clientes'}`,
     }),
   }
 }

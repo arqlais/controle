@@ -20,6 +20,7 @@ import { DeckDoc } from './docs/Deck'
 import { WorkDocView } from './docs/WorkDocView'
 import { WORK_KINDS } from '../workDocs'
 import { PAGE } from './docs/DocPage'
+import { ReviewPublic, scenesToReview } from './ReviewPublic'
 
 /* Painel do cliente final: abre pelo link, sem conta. Mostra tudo o que o profissional compartilhou. */
 
@@ -68,6 +69,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   const toAnswer = d.briefings.filter((b) => !b.answered && b.link)
   const hidden = new Set(d.hide ?? [])
   const nav: { id: string; label: string; icon: IconName; n?: number; show: boolean }[] = [
+    { id: 'pn-imagens', label: 'imagens', icon: 'image', n: scenesToReview(d) || undefined, show: d.projects.some((p) => p.review?.length) },
     { id: 'pn-projetos', label: d.projects.length > 1 ? 'projetos' : 'etapas', icon: 'layers', show: d.projects.length > 0 && !hidden.has('etapas') },
     { id: 'pn-pagamentos', label: 'pagamentos', icon: 'wallet', n: unpaid.length || undefined, show: d.projects.some((p) => p.payments?.length) && !hidden.has('pagamentos') },
     { id: 'pn-documentos', label: 'documentos', icon: 'file', n: docsCount || undefined, show: (docsCount > 0 || d.contracts.length > 0 || d.briefings.length > 0 || d.quotes.length > 0) && !hidden.has('documentos') },
@@ -115,7 +117,8 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
   const hide = new Set(d.hide ?? [])
   const look = d.look ?? 'suave'
   const nextDays = d.next?.date ? daysTo(d.next.date) : null
-  const todos = hide.has('fazer') ? 0 : toSign.length + toAnswer.length + (nextPay ? 1 : 0)
+  const toReview = scenesToReview(d)
+  const todos = hide.has('fazer') ? 0 : toReview + toSign.length + toAnswer.length + (nextPay ? 1 : 0)
 
   return (
     <div className={`cp is-${look}`} style={vars}>
@@ -215,6 +218,20 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
             <Icon name="flag" size={16} /> para você fazer
           </h2>
           <div className="cp-todo-list">
+            {toReview > 0 && (
+              <div className="cp-action">
+                <span className="cp-action-ico">
+                  <Icon name="image" size={20} />
+                </span>
+                <span className="cp-action-text">
+                  <b>{toReview === 1 ? 'ver e aprovar 1 imagem' : `ver e aprovar ${toReview} imagens`}</b>
+                  <small>Toque na imagem para marcar o que quer ajustar, ou aprove se estiver tudo certo.</small>
+                </span>
+                <a className="btn primary" href="#pn-imagens" onClick={(e) => jump(e, 'pn-imagens')}>
+                  ver imagens
+                </a>
+              </div>
+            )}
             {toSign.map((k) => (
               <div key={k.id} className="cp-action">
                 <span className="cp-action-ico">
@@ -283,6 +300,7 @@ function Panel({ d, owner, preview, token }: { d: PanelPayload; owner: string; p
 
       <div className={`cp-grid ${hide.has('contato') ? 'no-side' : ''}`}>
         <div className="cp-main">
+          <ReviewPublic d={d} owner={owner} token={token} preview={preview} />
           {d.projects.length > 0 && !hide.has('etapas') && (
             <section id="pn-projetos" className="cp-section">
               {d.projects.map((p) => (

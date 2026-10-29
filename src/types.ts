@@ -212,7 +212,7 @@ export interface PanelFile {
 export interface Notice {
   id: string
   at: string
-  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao' | 'visualizou' | 'pedido'
+  kind: 'briefing' | 'assinatura' | 'recado' | 'aviso' | 'aprovacao' | 'visualizou' | 'pedido' | 'imagens'
   title: string
   text?: string
   clientId?: string
@@ -319,6 +319,38 @@ export interface Project {
   visits?: SiteVisit[] // acompanhamento de obra
   costs?: ProjectCost[] // custos do projeto (taxas, impressões, deslocamento…)
   portal?: ProjectPortal // página de acompanhamento para o cliente
+  review?: ReviewScene[] // imagens para o cliente aprovar (aparecem na página do cliente)
+}
+
+/** Imagem para aprovação: uma cena (ex.: sala vista 1) com as versões enviadas ao cliente. */
+export interface ReviewScene {
+  id: string
+  name: string
+  versions: ReviewVersion[] // da mais antiga para a mais nova
+  status: 'enviada' | 'ajustes' | 'aprovada'
+  approvedAt?: string
+  approvedVersion?: number
+  by?: string // quem aprovou (nome que o cliente deixou)
+}
+export interface ReviewVersion {
+  id: string
+  n: number // v1, v2…
+  url: string
+  path?: string // caminho na nuvem (para apagar)
+  w?: number
+  h?: number
+  at: string
+  pins?: ReviewPin[] // comentários presos num ponto da imagem
+  note?: string // recado geral do cliente nesta versão
+  counted?: boolean // já contou como revisão usada
+}
+export interface ReviewPin {
+  id: string
+  x: number // 0 a 1, da esquerda
+  y: number // 0 a 1, do topo
+  text: string
+  at: string
+  done?: boolean // você já resolveu
 }
 
 /** Etapa do cronograma (estudo preliminar, anteprojeto, executivo…). */

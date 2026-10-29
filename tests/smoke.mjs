@@ -321,6 +321,34 @@ try {
     await page.bringToFront(); await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await page.waitForTimeout(1200)
     await page.locator('.nt-wrap .icon-btn').click(); await page.waitForTimeout(300)
     ok(await page.locator('.nt-list li', { hasText: 'Recado' }).count() === 1, 'avisos: recado do painel aparece na central')
+    // imagens para aprovação: envia a versão na demanda → cliente marca um ponto e pede ajustes → volta para a demanda
+    await page.keyboard.press('Escape')
+    const pidImg = await page.evaluate((cid) => { const k = Object.keys(localStorage).find((x) => x.startsWith('lais3d')); const d = JSON.parse(localStorage[k]); return d.projects.find((p) => p.clientId === cid)?.id }, cid)
+    if (pidImg) {
+      await page.evaluate((h) => (location.hash = h), `#/projetos/${pidImg}`); await page.waitForTimeout(700)
+      await page.getByRole('button', { name: 'Cena' }).click()
+      await page.locator('.rv-add input').fill('Sala · vista 1'); await page.getByRole('button', { name: 'Criar' }).click(); await page.waitForTimeout(300)
+      const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7ljmRAAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDK+mmyAAAAABJRU5ErkJggg==', 'base64')
+      await page.locator('.rv-card input[type=file]').setInputFiles({ name: 'render.png', mimeType: 'image/png', buffer: png }); await page.waitForTimeout(1200)
+      ok(await page.locator('.rv-shot img').count() === 1, 'imagens: versão 1 enviada na demanda')
+      await page.waitForTimeout(2600) // o painel se publica de novo sozinho
+      const pub2 = await ctx.newPage()
+      pub2.on('pageerror', (e) => errors.push(e.message))
+      await pub2.goto(`http://localhost:${PORT}/${plink.slice(plink.indexOf('#'))}`); await pub2.waitForTimeout(1500)
+      ok(await pub2.locator('#pn-imagens .cpr-scene').count() === 1, 'imagens: cliente vê a imagem para aprovar')
+      await pub2.locator('.cpr-shot').scrollIntoViewIfNeeded(); await pub2.waitForTimeout(300)
+      const shot = await pub2.locator('.cpr-shot').boundingBox()
+      await pub2.mouse.click(shot.x + shot.width * 0.3, shot.y + shot.height * 0.4); await pub2.waitForTimeout(200)
+      await pub2.locator('.cpr-list input').first().fill('madeira mais clara')
+      await pub2.getByRole('button', { name: /pedir ajustes/ }).click(); await pub2.waitForTimeout(500)
+      ok(await pub2.locator('.cpr-scene .pn-sent').count() === 1, 'imagens: cliente marca um ponto e pede ajustes')
+      await pub2.close()
+      await page.bringToFront(); await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await page.waitForTimeout(1500)
+      const pj = await page.evaluate((id) => { const k = Object.keys(localStorage).find((x) => x.startsWith('lais3d')); const d = JSON.parse(localStorage[k]); return d.projects.find((p) => p.id === id) }, pidImg)
+      const sc = pj?.review?.[0]
+      ok(sc?.status === 'ajustes' && sc.versions[0].pins?.[0]?.text === 'madeira mais clara', 'imagens: o ponto marcado chega na demanda')
+      ok(!!sc?.versions[0].counted, 'imagens: pedir ajustes conta uma revisão')
+    }
     ok(errors.length === 0, `painel: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await ctx.close()
   }

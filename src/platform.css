@@ -4475,3 +4475,38 @@ a.cd-go, a.cd-go:visited { color: #fff; text-decoration: none; }
 .ct-full-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .ct-full-sheet { overflow: auto; padding: 20px 16px 60px; }
 .ct-full-sheet .doc-scale { max-width: 860px; margin: 0 auto; }
+
+/* Página do cliente: imagens para aprovar */
+.cpr-help { margin: -4px 0 14px; color: color-mix(in srgb, var(--cp-text) 70%, transparent); font-size: 14px; line-height: 1.5; }
+.cpr-project { display: grid; gap: 14px; }
+.cpr-scene { display: grid; gap: 10px; }
+.cpr-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cpr-status { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--cp-soft) 55%, #fff); color: var(--cp-ink); white-space: nowrap; }
+.cpr-status.is-ok { background: var(--cp-ink); color: #fff; }
+.cpr-status.is-adj { background: color-mix(in srgb, var(--cp-accent) 22%, #fff); }
+.cpr-shot { position: relative; border-radius: 12px; overflow: hidden; background: color-mix(in srgb, var(--cp-soft) 40%, #fff); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.cpr-shot.can-mark { cursor: crosshair; }
+.cpr-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.cpr-before { position: absolute; inset: 0; }
+.cpr-cut { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2); transform: translateX(-1px); pointer-events: none; }
+.cpr-tag { position: absolute; top: 8px; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.88); color: var(--cp-text); }
+.cpr-tag.is-l { left: 8px; }
+.cpr-tag.is-r { right: 8px; }
+.cpr-range { width: 100%; accent-color: var(--cp-accent); }
+.cpr-pin { position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%; background: var(--cp-accent); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; box-shadow: 0 0 0 2px #fff, 0 3px 8px rgba(0, 0, 0, 0.3); cursor: pointer; }
+.cpr-pin.is-old { background: var(--cp-ink); }
+.cpr-pin.is-done { opacity: 0.55; }
+.cpr-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cpr-grow { flex: 1; }
+.cpr-v { display: inline-flex; align-items: center; gap: 4px; border: 1px solid color-mix(in srgb, var(--cp-text) 18%, transparent); background: #fff; color: var(--cp-text); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.cpr-v.is-on { background: var(--cp-ink); border-color: var(--cp-ink); color: #fff; }
+.cpr-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
+.cpr-list li { display: flex; align-items: center; gap: 8px; }
+.cpr-list b { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; background: var(--cp-accent); color: #fff; }
+.cpr-list.is-old b { background: var(--cp-ink); }
+.cpr-list .is-done { opacity: 0.6; }
+.cpr-list em { font-size: 12px; color: var(--cp-ink); }
+.cpr-list input { flex: 1; min-width: 0; }
+.cpr-x { border: 0; background: none; color: color-mix(in srgb, var(--cp-text) 60%, transparent); cursor: pointer; padding: 6px; border-radius: 8px; }
+.cpr-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cpr-tip { margin: 0; font-size: 12.5px; color: color-mix(in srgb, var(--cp-text) 60%, transparent); }

@@ -16,6 +16,7 @@ import { Badge, Empty, Field, Modal, MoneyInput, Progress, Section, Segmented, S
 import { askDelete, toast } from '../components/dialog'
 import { MessagesButton } from '../components/Messages'
 import { requestStatus } from '../components/quick'
+import { ReviewSection } from '../components/ReviewSection'
 import type { Client, Extra, Payment, Priority, Project, ProjectItem, ProjectStatus } from '../types'
 import {
   EVENT_TYPES,
@@ -443,6 +444,8 @@ export default function ProjectDetail({ id }: { id: string }) {
               </ul>
             </Section>
           )}
+
+          <ReviewSection p={p} client={client} save={save} />
 
           <Section title={`Etapas · ${done}/${p.tasks.length}`}>
             {p.tasks.length > 0 && <Progress value={done} max={p.tasks.length} />}
