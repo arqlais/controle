@@ -55,5 +55,3 @@ export function FormatBar({ onChange, className = '' }: { onChange?: () => void;
   )
 }
 
-/** Guarda onde estava o cursor nos textos editáveis (para a barra aplicar no lugar certo). */
-export const rememberSelection = keep

@@ -68,7 +68,6 @@ export const cardPrice = (monthly: number, c: BillCycle) =>
 export const cycleMonthly = (monthly: number, c: BillCycle) => cents(cyclePrice(monthly, c) / CYCLE_MONTHS[c])
 /** Parcela no cartão sem juros (12x no anual, 6x no semestral). */
 export const cardInstallment = (monthly: number, c: BillCycle = 'anual') => cents(cardPrice(monthly, c) / CYCLE_INSTALLMENTS[c])
-export const annualPrice = (monthly: number) => cyclePrice(monthly, 'anual')
 /** Selo do anual: "2 meses grátis". */
 export const annualBadge = () => (ANNUAL_FREE_MONTHS > 0 ? `${ANNUAL_FREE_MONTHS} ${ANNUAL_FREE_MONTHS === 1 ? 'mês grátis' : 'meses grátis'}` : '')
 
@@ -168,8 +167,6 @@ export const PLAN_PROFILE: Record<PlanId, string> = { essencial: 'freelancer com
 export const REFERRAL = { months: 1, discount: 20 }
 /** Preço de fundador: quem assina agora mantém o valor (aparece na página de vendas e na assinatura). */
 export const FOUNDER_PRICE = true
-/** Planos que qualquer pessoa assina sozinha (todos). */
-export const OPEN_PLANS = () => PLAN_LIST.filter((p) => !p.inviteOnly)
 
 /** A dona tem tudo — menos o chat com ela mesma (ela usa a caixa de entrada do painel). */
 export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos', 'dadosContrato']

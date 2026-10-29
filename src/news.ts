@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-10-29-ajustes-celular',
+    date: '2026-10-29',
+    kind: 'correcao',
+    title: 'celulares pequenos e sistema mais leve',
+    text: 'Em celulares de tela pequena, o menu de baixo e os botões do topo cabem sem cortar. No financeiro, quando a meta do mês é batida, aparece “meta batida”. E o sistema ficou um pouco mais leve para abrir.',
+  },
+  {
     id: '2026-10-29-imagens-aprovacao',
     date: '2026-10-29',
     kind: 'novo',

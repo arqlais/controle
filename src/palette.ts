@@ -33,7 +33,6 @@ export const EXTRA = {
 
 /** Ordem para quando cada item precisa de uma cor (alterna azul e rosa; depois os complementares). */
 export const SERIES = [PAL.slate, PAL.rose, PAL.blue, PAL.roseMid, PAL.steel, PAL.roseDeep, PAL.mist, PAL.roseSoft, EXTRA.sand, EXTRA.dusk, EXTRA.clay, EXTRA.lilac, EXTRA.sage] as const
-export const seriesColor = (i: number) => SERIES[((i % SERIES.length) + SERIES.length) % SERIES.length]
 
 /** Deixa qualquer cor mais perto da paleta: tira o excesso de saturação e evita claro ou escuro demais. */
 export function harmonize(hex: string): string {

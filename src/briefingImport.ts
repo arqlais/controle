@@ -458,7 +458,6 @@ export async function importBriefingFile(file: File): Promise<BriefingTemplate> 
   }
 }
 
-export const BRIEFING_ACCEPT = '.docx,.pdf,.txt,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain'
 
 export function briefingImportError(e: unknown) {
   const m = e instanceof Error ? e.message : ''

@@ -144,7 +144,7 @@ export default function Finance() {
               <>
                 <Progress value={s.received} max={settings.monthlyGoal} />
                 <span>
-                  {Math.round((s.received / settings.monthlyGoal) * 100)}% da meta · faltam {money(Math.max(0, settings.monthlyGoal - s.received))}
+                  {Math.round((s.received / settings.monthlyGoal) * 100)}% da meta · {s.received >= settings.monthlyGoal ? 'meta batida' : `faltam ${money(settings.monthlyGoal - s.received)}`}
                 </span>
               </>
             ) : undefined

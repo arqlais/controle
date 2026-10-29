@@ -183,12 +183,6 @@ export const WORK_KINDS: Record<WorkKind, WorkKindInfo> = {
 
 export const WORK_ORDER: WorkKind[] = ['memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os']
 
-export const WORK_LAYOUTS: { id: WorkLayout; label: string; text: string; icon: string }[] = [
-  { id: 'tabela', label: 'tabela', text: 'linhas e colunas, com totais', icon: 'grid' },
-  { id: 'lista', label: 'lista', text: 'compacta, item embaixo de item', icon: 'list' },
-  { id: 'cartoes', label: 'cartões', text: 'foto em destaque, dois por linha', icon: 'image' },
-  { id: 'fichas', label: 'fichas', text: 'um item por bloco, foto grande', icon: 'layers' },
-]
 
 export const has = (k: WorkKind, f: WorkField) => WORK_KINDS[k].fields.includes(f)
 

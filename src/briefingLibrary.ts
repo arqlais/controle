@@ -578,5 +578,3 @@ export const LIBRARY: BriefingTemplate[] = [
   ]),
 ]
 
-/** Modelos que a biblioteca atualizou (os antigos com o mesmo id ficam no lugar). */
-export const LIBRARY_IDS = new Set(LIBRARY.map((t) => t.id))

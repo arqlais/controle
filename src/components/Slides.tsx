@@ -14,7 +14,6 @@ import { DocPage } from './docs/DocPage'
    ============================================================ */
 
 export const SLIDE_W = 1280
-export const SLIDE_H = 720
 
 const fmt = (s: string) => s.split('-').reverse().join('/')
 const itemLine = (i: QuoteItem) => [i.title, cleanDetail(i.detail)].filter(Boolean).join(' · ')

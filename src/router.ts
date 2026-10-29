@@ -51,7 +51,6 @@ const restoreScroll = (r: Route) => {
 }
 // caminho percorrido dentro do site (para a setinha de voltar)
 const trail: Route[] = []
-export const canGoBack = () => trail.length > 0
 
 function set(r: Route, writeHash: boolean, fromBack = false) {
   if (keyOf(r) === keyOf(current)) return // mesma tela (ex.: popstate + hashchange juntos)

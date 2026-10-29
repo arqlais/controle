@@ -94,4 +94,3 @@ export const STYLE_ART: Record<string, string> = {
   tropical: 'art:pal:#eef0e6,#9fb58f,#6e8a5a,#c86f4a',
   americano: 'art:pal:#f3efe8,#c9d3da,#8b6e55,#243746',
 }
-export const styleOptions = (names: string[]) => Object.fromEntries(names.filter((n) => STYLE_ART[n.toLowerCase()]).map((n) => [n, STYLE_ART[n.toLowerCase()]]))

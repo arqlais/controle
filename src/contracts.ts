@@ -48,10 +48,7 @@ export const CONTRACT_VARS: [string, string][] = [
   ['data', 'data de hoje, por extenso'],
 ]
 
-/** Modelos padrão: a dona tem o dela (exclusivo); cada freelancer começa com os modelos da plataforma. */
-export const DEFAULT_CONTRACTS = CLIENT_CONTRACTS
 export const defaultTemplates = (owner: boolean) => (owner ? LAIS_CONTRACTS : CLIENT_CONTRACTS)
-export const defaultContractSettings = (owner = false): ContractSettings => ({ templates: defaultTemplates(owner) })
 /** Modelos em uso nesta conta (os editados por ela ou os padrões do perfil). */
 export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
   const cs = s.contracts

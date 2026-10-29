@@ -124,9 +124,6 @@ export function Badge({ color, children, solid }: { color: string; children: Rea
   )
 }
 
-export function Dot({ color }: { color: string }) {
-  return <span className="dot" style={{ background: color }} />
-}
 
 /** Número grande que diminui a fonte até caber inteiro no card (nada de "R$ 1.247.4…"). */
 export function FitValue({ children, className = 'stat-value' }: { children: ReactNode; className?: string }) {

@@ -6,7 +6,7 @@ import { Icon } from './Icon'
 import { DateInput } from './DateInput'
 import { Field, Modal, MoneyInput, Progress, Section } from './ui'
 import { askDelete, toast } from './dialog'
-import { PLANS, type Feature } from '../plans'
+import type { Feature } from '../plans'
 import type { Client, Project, ProjectCost, ProjectPhase, ProjectPortal, SiteVisit, VisitPhoto } from '../types'
 import { daysUntil, fmtDate, money, payWhen, projectPaid, projectTotal, statusInfo, today, uid, whatsappLink, lower } from '../utils'
 import { deletePhoto, packPortal, photoUrls, portalLink, portalShortLink, publishPortal, savePhoto, unpublishPortal, type PortalPayload } from '../studioApi'
@@ -52,29 +52,6 @@ export function ProjectTabs({ tab, onTab, p }: { tab: ProjectTab; onTab: (t: Pro
   )
 }
 
-/** Aba de um recurso do Estúdio para quem não tem o plano: explica e mostra como pedir. */
-export function StudioLocked({ tab }: { tab: ProjectTab }) {
-  const t = PROJECT_TABS.find((x) => x.id === tab)!
-  const text: Record<string, string> = {
-    cronograma: 'Organize o projeto em etapas (levantamento, estudo preliminar, anteprojeto, executivo, aprovação, obra), cada uma com prazo e a parcela que é cobrada quando ela termina.',
-    obra: 'Registre cada visita de obra com data, fotos, o que foi visto e os próximos passos. Gere um relatório em PDF com a sua marca para mandar ao cliente.',
-    lucro: 'Anote as horas e os custos do projeto (taxas, impressões, deslocamento) e veja quanto sobrou de verdade e quanto rendeu cada hora sua.',
-    cliente: 'Um link para o cliente acompanhar o projeto: etapas, prazos, pagamentos e arquivos, sempre atualizado. Menos “e aí, como está?” no WhatsApp.',
-  }
-  return (
-    <div className="card st-locked">
-      <span className="st-locked-icon">
-        <Icon name={t.icon} size={26} />
-      </span>
-      <p className="eyebrow">plano {PLANS.estudio.name}</p>
-      <h2>{t.label}</h2>
-      <p className="muted">{text[tab]}</p>
-      <button className="btn primary" onClick={() => go('assinatura')}>
-        <Icon name="star" size={15} /> conhecer o {PLANS.estudio.name}
-      </button>
-    </div>
-  )
-}
 
 /* ---------------- cronograma ---------------- */
 

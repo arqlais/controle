@@ -7,7 +7,6 @@ import type {
   BoardColumn,
   Client,
   Complexity,
-  Pricing,
   ServiceDef,
   Settings,
   ClientType,
@@ -339,7 +338,6 @@ export function estimateHours(items: { service: string; quantity: number; price:
   }
   return Math.round(h * 10) / 10
 }
-export const projectHours = (p: Project) => p.timeLogs.reduce((s, t) => s + t.hours, 0)
 export const isOpen = (p: Project) => p.status !== 'entregue' && p.status !== 'cancelado'
 export const isLate = (p: Project) => isOpen(p) && !!p.dueDate && daysUntil(p.dueDate) < 0
 
@@ -435,7 +433,6 @@ export function lastMonths(n: number, from = today()) {
 /* ---------- preços e orçamentos ---------- */
 
 export const COMPLEXITY: Record<Complexity, string> = { simples: 'simples', media: 'média', alta: 'alta' }
-export const PRICING: Record<Pricing, string> = { unidade: 'por unidade', pacote: 'pacotes', m2: 'por m² × complexidade', hora: 'por hora', livre: 'valor livre' }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
