@@ -1,6 +1,6 @@
 # planê.apê
 
-> Aberto para todo mundo (divulgado no Instagram @apzinho_1204). O San Levi é uma opção no cadastro; quem é de outro lugar informa só nome, WhatsApp e, se quiser, o condomínio. Os textos deixam claro que a página só organiza o que as pessoas mandam: a responsabilidade pelos orçamentos é de quem envia e do fornecedor (aviso na lista e no rodapé).
+> A loja é aberta para todo mundo (divulgada no Instagram @apzinho_1204). **Os orçamentos são só dos moradores do San Levi**: quem marca "outro lugar" no cadastro vê a loja, mas não os orçamentos (a tabela não é mais pública; o morador lê pela função `ape_orcamentos_morador`). Cada morador marca **"vou fechar com este"** (um por serviço) e todos veem quantos vizinhos escolheram cada fornecedor; a compra em grupo continua como opção. Ao **anexar** um orçamento, a página sobe o arquivo e a IA (Gemini, com a chave da dona no planê ou o segredo `GEMINI_API_KEY`) já preenche fornecedor e serviço. O San Levi é uma opção no cadastro (com torre e apê); quem é de outro lugar informa só nome, WhatsApp e, se quiser, o condomínio. Os textos deixam claro que a página só organiza o que as pessoas mandam: a responsabilidade pelos orçamentos é de quem envia e do fornecedor (aviso na lista e no rodapé).
 
 Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo código, mesmo Supabase, mesmo domínio e o mesmo design (Poppins + The Seasons, símbolo do planê, pílulas, menu de baixo no celular), com as cores do apê 1204 e público próprio.
 

@@ -13,11 +13,14 @@ export interface Ajustes {
 export interface Publico {
   orcamentos: Orcamento[]
   ajustes: Ajustes
-  contagens: Record<string, number>
+  contagens: Record<string, number> // quantos entraram no grupo
+  escolhas: Record<string, number> // quantos vão fechar com este
+  minhas: string[] // orçamentos que este morador escolheu
+  bloqueado: boolean // não é morador do San Levi: não vê os orçamentos
 }
 
 const LOCAL = 'ape-previa-v1'
-type Local = { orcamentos: Orcamento[]; ajustes: Ajustes; moradores: Morador[]; envios: (Omit<Envio, 'morador'> & { moradorId: string })[]; interesses: { orcamento: string; morador: string; criado: string }[] }
+type Local = { escolhas?: { morador: string; nicho: string; orcamento: string }[]; orcamentos: Orcamento[]; ajustes: Ajustes; moradores: Morador[]; envios: (Omit<Envio, 'morador'> & { moradorId: string })[]; interesses: { orcamento: string; morador: string; criado: string }[] }
 const readLocal = (): Local => {
   try {
     const v = JSON.parse(localStorage.getItem(LOCAL) || 'null') as Local | null
@@ -55,22 +58,81 @@ const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | nul
 export const apeCloud = CLOUD
 
 /* ===== página pública ===== */
-export async function loadPublico(): Promise<Publico> {
+export async function loadPublico(me?: Morador | null, dona = false): Promise<Publico> {
+  const morador = me?.id || ''
+  const sl = !!me && ehSanLevi(me)
   if (!CLOUD) {
     const l = readLocal()
     const contagens: Record<string, number> = {}
     for (const i of l.interesses) contagens[i.orcamento] = (contagens[i.orcamento] || 0) + 1
-    return { orcamentos: l.orcamentos, ajustes: ajustesOf(l.ajustes), contagens }
+    const escolhas: Record<string, number> = {}
+    for (const e of l.escolhas || []) escolhas[e.orcamento] = (escolhas[e.orcamento] || 0) + 1
+    const minhas = (l.escolhas || []).filter((e) => e.morador === morador).map((e) => e.orcamento)
+    return { orcamentos: sl || dona ? l.orcamentos : [], ajustes: ajustesOf(l.ajustes), contagens, escolhas, minhas, bloqueado: !sl && !dona }
   }
   const [o, a, c] = await Promise.all([
-    sb().from('ape_orcamentos').select('*'),
+    dona ? sb().from('ape_orcamentos').select('*') : sl ? sb().rpc('ape_orcamentos_morador', { p_morador: morador }) : Promise.resolve({ data: [], error: null }),
     sb().from('ape_ajustes').select('data').eq('id', 1).maybeSingle(),
-    sb().rpc('ape_contagens'),
+    sb().rpc('ape_contagens2', { p_morador: morador || null }),
   ])
-  fail(o.error)
+  fail(o.error as { message?: string } | null)
   const contagens: Record<string, number> = {}
-  for (const r of (c.data ?? []) as { orcamento: string; n: number }[]) contagens[r.orcamento] = r.n
-  return { orcamentos: (o.data ?? []).map(rowToOrc), ajustes: ajustesOf(a.data?.data), contagens }
+  const escolhas: Record<string, number> = {}
+  const minhas: string[] = []
+  for (const r of (c.data ?? []) as { orcamento: string; grupo: number; escolhas: number; minha: boolean }[]) {
+    contagens[r.orcamento] = r.grupo
+    escolhas[r.orcamento] = r.escolhas
+    if (r.minha) minhas.push(r.orcamento)
+  }
+  return { orcamentos: ((o.data ?? []) as Parameters<typeof rowToOrc>[0][]).map(rowToOrc), ajustes: ajustesOf(a.data?.data), contagens, escolhas, minhas, bloqueado: !sl && !dona }
+}
+
+/** "Vou fechar com este" (um por serviço; tocar de novo desmarca). Devolve o orçamento escolhido ou ''. */
+export async function escolher(orcamento: string, moradorId: string, nicho: string): Promise<string> {
+  if (!CLOUD) {
+    let out = ''
+    writeLocal((l) => {
+      l.escolhas = l.escolhas || []
+      const ja = l.escolhas.find((e) => e.morador === moradorId && e.nicho === nicho)
+      l.escolhas = l.escolhas.filter((e) => !(e.morador === moradorId && e.nicho === nicho))
+      if (ja?.orcamento !== orcamento) {
+        l.escolhas.push({ morador: moradorId, nicho, orcamento })
+        out = orcamento
+      }
+    })
+    return out
+  }
+  const { data, error } = await sb().rpc('ape_escolher', { p_orcamento: orcamento, p_morador: moradorId })
+  fail(error)
+  return String(data ?? '')
+}
+
+/** Sobe os anexos já na hora em que a pessoa escolhe (para ler e depois enviar). */
+export async function subirArquivos(files: File[], onStep?: (t: string) => void): Promise<Arquivo[]> {
+  if (!CLOUD) return files.map((f) => ({ path: '', nome: f.name, tipo: f.type }))
+  const pasta = `envios/${crypto.randomUUID()}`
+  const out: Arquivo[] = []
+  for (const [i, f0] of files.entries()) {
+    onStep?.(`subindo ${i + 1} de ${files.length}…`)
+    const f = await leve(f0)
+    const path = `${pasta}/${i + 1}-${safeName(f.name)}`
+    const { error } = await sb().storage.from('ape-envios').upload(path, f, { contentType: f.type || undefined, upsert: false })
+    if (error) throw new Error(/size|large/i.test(error.message) ? `O arquivo ${f.name} é grande demais (máximo 15 MB).` : /mime|type/i.test(error.message) ? `O arquivo ${f.name} não é PDF nem imagem.` : error.message)
+    out.push({ path, nome: f.name, tipo: f.type })
+  }
+  return out
+}
+
+/** Lê os anexos com IA (no servidor) e devolve fornecedor e serviço para preencher sozinho. */
+export async function lerAnexos(moradorId: string, arquivos: Arquivo[], texto = ''): Promise<{ fornecedor: string; nicho: string; servico: string } | null> {
+  if (!CLOUD || (!arquivos.some((a) => a.path) && !texto.trim())) return null
+  try {
+    const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-ler', morador: moradorId, arquivos: arquivos.map((a) => a.path).filter(Boolean), texto } })
+    if (error || !data || (data as { erro?: string }).erro) return null
+    return data as { fornecedor: string; nicho: string; servico: string }
+  } catch {
+    return null
+  }
 }
 
 /** É a dona olhando a página (logada no planê)? */
@@ -148,23 +210,14 @@ export async function novosEnvios(): Promise<number> {
   return error ? 0 : count ?? 0
 }
 
-export async function enviar(moradorId: string, e: { nicho: string; fornecedor: string; texto: string; files: File[] }, onStep?: (t: string) => void): Promise<void> {
+export async function enviar(moradorId: string, e: { nicho: string; fornecedor: string; texto: string; files: File[]; arquivos?: Arquivo[] }, onStep?: (t: string) => void): Promise<void> {
   if (!CLOUD) {
     writeLocal((l) => {
       l.envios.unshift({ id: crypto.randomUUID(), moradorId, nicho: e.nicho, fornecedor: e.fornecedor, texto: e.texto, arquivos: e.files.map((f) => ({ path: '', nome: f.name, tipo: f.type })), status: 'novo', criado: new Date().toISOString() })
     })
     return
   }
-  const pasta = `envios/${crypto.randomUUID()}`
-  const arquivos: Arquivo[] = []
-  for (const [i, f0] of e.files.entries()) {
-    onStep?.(`Enviando arquivo ${i + 1} de ${e.files.length}…`)
-    const f = await leve(f0)
-    const path = `${pasta}/${i + 1}-${safeName(f.name)}`
-    const { error } = await sb().storage.from('ape-envios').upload(path, f, { contentType: f.type || undefined, upsert: false })
-    if (error) throw new Error(/size|large/i.test(error.message) ? `O arquivo ${f.name} é grande demais (máximo 15 MB).` : /mime|type/i.test(error.message) ? `O arquivo ${f.name} não é PDF nem imagem.` : error.message)
-    arquivos.push({ path, nome: f.name, tipo: f.type })
-  }
+  const arquivos = e.arquivos?.length ? e.arquivos : await subirArquivos(e.files, onStep)
   onStep?.('Guardando o orçamento…')
   const { error } = await sb().rpc('ape_enviar', { p_morador: moradorId, p_nicho: e.nicho, p_fornecedor: e.fornecedor, p_texto: e.texto, p_arquivos: arquivos })
   fail(error)
@@ -185,7 +238,7 @@ export async function queroGrupo(orcamento: string, moradorId: string): Promise<
 /* ===== painel da dona ===== */
 export const admin = {
   async orcamentos(): Promise<Orcamento[]> {
-    return (await loadPublico()).orcamentos
+    return (await loadPublico(null, true)).orcamentos
   },
   async salvar(o: Orcamento) {
     if (!CLOUD) {

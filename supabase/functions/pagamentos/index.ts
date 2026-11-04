@@ -17,6 +17,8 @@
 //             · Pix = QR Code na hora
 //   ape-criar / ape-pedido → loja do planê.apê (sem login): cria o pedido com o preço calculado aqui e, depois de pago,
 //             devolve links temporários para baixar os arquivos (pasta privada ape-arquivos).
+//   ape-ler → lê o orçamento anexado por um morador e devolve fornecedor e serviço (Gemini: segredo GEMINI_API_KEY
+//             ou a chave que a dona colocou no planê).
 //   webhook → o Asaas avisa cada pagamento; tudo é conferido de novo direto no Asaas. Confirmado, a conta é liberada sozinha,
 //             o pagamento entra no controle da dona (assinantes → cobrança) e a pessoa recebe uma mensagem no chat.
 
@@ -322,16 +324,81 @@ async function apePedido(body: Record<string, any>) {
   return json({ status: 'pago', itens, total: ped.total, nome: ped.nome, arquivos })
 }
 
+
+/* ===== planê.apê: leitura automática do orçamento anexado (fornecedor e serviço) ===== */
+const APE_NICHOS = 'piso-vinilico, piso-ceramico, piso-laminado, marcenaria, marmoraria, box, gesso, eletrica, ar, pintura, cortinas, telas, vidros, moveis, eletros, mao-de-obra, outros'
+const b64 = (buf: ArrayBuffer) => {
+  const u = new Uint8Array(buf)
+  let s = ''
+  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000))
+  return btoa(s)
+}
+/** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que a dona colocou no planê (configurações → assistente). */
+async function geminiKey() {
+  const k = env('GEMINI_API_KEY')
+  if (k) return k
+  const { data: adm } = await db.from('admins').select('user_id').limit(1).maybeSingle()
+  if (!adm) return ''
+  const { data: ws } = await db.from('workspace').select('data').eq('user_id', adm.user_id).maybeSingle()
+  return String((ws?.data as Record<string, any> | undefined)?.settings?.aiKey ?? '')
+}
+async function apeLer(body: Record<string, any>) {
+  const morador = String(body.morador ?? '')
+  if (!/^[0-9a-f-]{36}$/i.test(morador)) return json({ erro: 'faça o cadastro' }, 400)
+  const { data: m } = await db.from('ape_moradores').select('id').eq('id', morador).maybeSingle()
+  if (!m) return json({ erro: 'faça o cadastro' }, 400)
+  const desde = new Date(Date.now() - 864e5).toISOString()
+  const { count } = await db.from('ape_leituras').select('id', { count: 'exact', head: true }).eq('morador', morador).gte('criado', desde)
+  if ((count ?? 0) >= 25) return json({ erro: 'limite de leituras por hoje' }, 429)
+  const key = await geminiKey()
+  if (!key) return json({ erro: 'leitura automática desligada' }, 503)
+  const paths = (Array.isArray(body.arquivos) ? body.arquivos : []).map(String).filter((x: string) => x.startsWith('envios/')).slice(0, 4)
+  const parts: Record<string, unknown>[] = []
+  let total = 0
+  for (const path of paths) {
+    const { data: f } = await db.storage.from('ape-envios').download(path)
+    if (!f || total + f.size > 12 * 1024 * 1024) continue
+    total += f.size
+    parts.push({ inlineData: { mimeType: f.type || (path.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'), data: b64(await f.arrayBuffer()) } })
+  }
+  const texto = String(body.texto ?? '').slice(0, 8000)
+  if (!parts.length && !texto.trim()) return json({ erro: 'nada para ler' }, 400)
+  await db.from('ape_leituras').insert({ morador })
+  const prompt = `Este é um orçamento de reforma ou móveis para um apê. Responda só com JSON: {"fornecedor": "nome da empresa ou profissional que fez o orçamento (não o cliente)", "nicho": um destes ids: ${APE_NICHOS}, "servico": "o que está sendo orçado, em até 8 palavras"}. Se não souber um campo, deixe "".${texto ? `\nTexto enviado:\n"""${texto}"""` : ''}`
+  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: prompt }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } }),
+  })
+  const out = (await r.json().catch(() => ({}))) as Record<string, any>
+  if (!r.ok) return json({ erro: 'não deu para ler agora' }, 502)
+  const txt = String(out.candidates?.[0]?.content?.parts?.map((x: Record<string, any>) => x.text ?? '').join('') ?? '')
+  let v: Record<string, any> = {}
+  try {
+    v = JSON.parse(txt.replace(/```(json)?/g, '').trim())
+  } catch {
+    /* resposta fora do formato: devolve vazio */
+  }
+  const nicho = APE_NICHOS.split(', ').includes(String(v.nicho)) ? String(v.nicho) : ''
+  return json({ fornecedor: String(v.fornecedor ?? '').slice(0, 120), nicho, servico: String(v.servico ?? '').slice(0, 120) })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
-  if (!TOKEN) return json({ erro: 'Falta o segredo ASAAS_API_KEY no Supabase.' }, 500)
   const url = new URL(req.url)
   try {
+    if (!TOKEN) {
+      // a leitura automática não depende do Asaas
+      const b = (await req.clone().json().catch(() => ({}))) as Record<string, any>
+      if (b.acao === 'ape-ler') return await apeLer(b)
+      return json({ erro: 'Falta o segredo ASAAS_API_KEY no Supabase.' }, 500)
+    }
     if (url.searchParams.get('acao') === 'webhook' || req.headers.has('asaas-access-token')) return await webhook(req)
     const body = (await req.json().catch(() => ({}))) as Record<string, any>
     if (body.acao === 'criar') return await create(req, body)
     if (body.acao === 'ape-criar') return await apeCriar(body)
     if (body.acao === 'ape-pedido') return await apePedido(body)
+    if (body.acao === 'ape-ler') return await apeLer(body)
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {
     return json({ erro: e instanceof Error ? e.message : String(e) }, 500)

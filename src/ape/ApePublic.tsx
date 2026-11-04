@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, criarPedido, enviar, loadPublico, meusEnvios, pedidosLocais, verPedido, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
+import { type Arquivo } from './model'
+import { cadastrar, criarPedido, enviar, escolher, lerAnexos, subirArquivos, loadPublico, meusEnvios, pedidosLocais, verPedido, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
@@ -67,10 +68,14 @@ export function ApePublic({ sub }: { sub?: string }) {
       return () => el.setAttribute(attr, old)
     }
     const undo = [swap('link[rel="manifest"]', 'href', 'ape/manifest.webmanifest'), swap('link[rel="apple-touch-icon"]', 'href', 'ape/icon-180.png'), swap('meta[name="apple-mobile-web-app-title"]', 'content', 'planê.apê')]
-    loadPublico().then(setD, () => setD(null))
     souDona().then(setOwner, () => setOwner(false))
     return () => undo.forEach((f) => f())
   }, [])
+  // os orçamentos dependem de quem é: morador do San Levi (ou a dona) vê; os outros, não
+  const recarregar = () => loadPublico(me, owner).then(setD, () => setD(null))
+  useEffect(() => {
+    void recarregar()
+  }, [me?.id, me?.condominio, owner])
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [route.id])
@@ -142,10 +147,18 @@ export function ApePublic({ sub }: { sub?: string }) {
           <div className="ape-panel ape-empty">
             <b>a página não abriu</b>
             <span>Confira a internet e tente de novo em instantes.</span>
-            <button className="ape-btn" onClick={() => loadPublico().then(setD, () => setD(null))}>tentar de novo</button>
+            <button className="ape-btn" onClick={() => void recarregar()}>tentar de novo</button>
           </div>
         ) : view === 'orcamentos' ? (
-          <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} />
+          <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} onEscolha={(id, nicho, ficou) => {
+            // um por serviço: tira a escolha anterior do mesmo serviço
+            const doServico = d.orcamentos.filter((o) => o.nicho === nicho).map((o) => o.id)
+            const antes = d.minhas.filter((x) => doServico.includes(x))
+            const escolhas = { ...d.escolhas }
+            antes.forEach((x) => (escolhas[x] = Math.max(0, (escolhas[x] || 1) - 1)))
+            if (ficou) escolhas[id] = (escolhas[id] || 0) + 1
+            setD({ ...d, escolhas, minhas: [...d.minhas.filter((x) => !doServico.includes(x)), ...(ficou ? [id] : [])] })
+          }} onEditar={() => setEditing(true)} />
         ) : view === 'enviar' ? (
           <Enviar me={me} whats={whats} />
         ) : view === 'checkout' ? (
@@ -187,7 +200,7 @@ export function ApePublic({ sub }: { sub?: string }) {
 }
 
 /* ===== orçamentos ===== */
-function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void }) {
+function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEditar }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void; onEditar: () => void }) {
   const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean }>(UI) || {}
   const [filtro, setFiltro] = useState(saved.nicho || 'todos')
   const [sort, setSort] = useState<Sort>(saved.sort && SORTS[saved.sort] ? saved.sort : 'compensa')
@@ -202,6 +215,27 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
   const nf = filtro !== 'todos' && !counts[filtro] ? 'todos' : filtro
   const comGrupo = vis.filter((o) => num(o.grupo_pct)).length
   const exemplos = vis.filter((o) => o.exemplo).length
+
+  if (d.bloqueado && !owner)
+    return (
+      <>
+        <section className="ape-panel ape-hero">
+          <div>
+            <p className="ape-eyebrow">só para moradores</p>
+            <h2>
+              os orçamentos são dos moradores do <em>{APE.condominio}</em>
+            </h2>
+            <p>Aqui os futuros moradores do {APE.condominio} ({APE.construtora}) comparam os orçamentos que receberam e escolhem com quem fechar. Se você é de outro lugar, a loja do apê é para você: checklists, planilhas e guias para quem está montando o apê.</p>
+            <div className="ape-acts" style={{ marginTop: 14 }}>
+              <a className="ape-btn primary" href={href('ape', 'loja')}><ApeIcon name="bag" />ver a loja do apê</a>
+              <button className="ape-btn" onClick={onEditar}>sou do {APE.condominio}</button>
+            </div>
+          </div>
+          <div className="ape-lockart" aria-hidden="true"><ApeIcon name="shield" size={64} /></div>
+        </section>
+        <Cta nicho="outros" produtos={d.ajustes.produtos} />
+      </>
+    )
 
   if (!vis.length)
     return (
@@ -307,7 +341,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
           const n = nicho(id)
           const showCta = !ctaDone && (gi === 0 || nf !== 'todos')
           if (showCta) ctaDone = true
-          const card = (x: Item, isTop: boolean) => <Card key={x.o.id} x={x} a={a} isTop={isTop} me={me} whats={whats} count={d.contagens[x.o.id] || 0} show={show} onCount={onCount} />
+          const card = (x: Item, isTop: boolean) => <Card key={x.o.id} x={x} a={a} isTop={isTop} me={me} whats={whats} count={d.contagens[x.o.id] || 0} escolhas={d.escolhas[x.o.id] || 0} minha={d.minhas.includes(x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
           return (
             <div key={id} style={{ display: 'grid', gap: 18 }}>
               <section className="ape-nicho" aria-label={n.l}>
@@ -332,7 +366,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
   )
 }
 
-function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: Analise; isTop: boolean; me: Morador | null; whats: string; count: number; show: (m: string) => void; onCount: (id: string, n: number) => void }) {
+function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, onEscolha }: { x: Item; a: Analise; isTop: boolean; me: Morador | null; whats: string; count: number; escolhas: number; minha: boolean; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void }) {
   const { o, c } = x
   const [busy, setBusy] = useState(false)
   const [joined, setJoined] = useState(() => (read<string[]>(GRUPOS) || []).includes(o.id))
@@ -349,6 +383,19 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
       <span className="ape-pill"><ApeIcon name="clock" />Válido até {dmy(o.validade)}</span>
     ) : null
 
+  const [esc, setEsc] = useState(false)
+  const fechar = async () => {
+    if (!me?.id) return show('Faça o cadastro para escolher.')
+    setEsc(true)
+    try {
+      const r = await escolher(o.id, me.id, o.nicho)
+      onEscolha(o.id, o.nicho, !!r)
+      show(r ? `Anotado: você vai fechar ${nicho(o.nicho).l.toLowerCase()} com ${o.fornecedor}.` : 'Escolha desmarcada.')
+    } catch {
+      show('Não deu para salvar agora. Tente de novo.')
+    }
+    setEsc(false)
+  }
   const entrar = async () => {
     if (!me?.id) return show('Faça o cadastro para entrar no grupo.')
     setBusy(true)
@@ -435,6 +482,12 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
           {falta ? <span className="ape-note">faltam {falta} para liberar −{pct(c.gp)}</span> : null}
         </div>
       )}
+      {(escolhas > 0 || minha) && (
+        <div className="ape-escolha">
+          <ApeIcon name="check" />
+          {minha ? (escolhas > 1 ? `Você e mais ${escolhas - 1} ${escolhas - 1 > 1 ? 'vizinhos vão' : 'vizinho vai'} fechar com este` : 'Você vai fechar com este') : `${escolhas} ${escolhas > 1 ? 'vizinhos vão' : 'vizinho vai'} fechar com este`}
+        </div>
+      )}
       <details className="ape-more">
         <summary><ApeIcon name="chev" />o que está incluso e o que não está</summary>
         <div className="ape-lists">
@@ -462,6 +515,10 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
         ) : (
           <span className="ape-note">Contato do fornecedor não informado</span>
         )}
+        <button className={`ape-btn ${minha ? 'rose' : ''}`} onClick={() => void fechar()} disabled={esc} aria-pressed={minha} title={minha ? 'Tocar de novo desmarca' : 'Marca este como o que você vai contratar (um por serviço)'}>
+          <ApeIcon name={minha ? 'check' : 'star'} />
+          {minha ? 'minha escolha' : 'vou fechar com este'}
+        </button>
         {c.gp > 0 &&
           (joined ? (
             <a className="ape-btn rose" href={wa(whats, msgGrupo(o, me))} target="_blank" rel="noopener noreferrer" title="Você já está na lista do grupo">
@@ -543,21 +600,50 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
   const [step, setStep] = useState('')
   const [done, setDone] = useState(false)
   const [meus, setMeus] = useState<MeuEnvio[]>([])
+  const [subidos, setSubidos] = useState<Arquivo[]>([])
+  const [lendo, setLendo] = useState('')
+  const [auto, setAuto] = useState(false) // fornecedor e serviço vieram da leitura automática
   useEffect(() => {
     if (me?.id) meusEnvios(me.id).then(setMeus, () => setMeus([]))
   }, [me?.id, done])
+
+  /* anexou: sobe na hora e a IA já puxa o fornecedor e o serviço */
+  const anexar = async (list: File[]) => {
+    setFiles(list)
+    setSubidos([])
+    setErr('')
+    if (!list.length || !me?.id) return
+    if (list.length > 8) return setErr('Mande no máximo 8 arquivos por vez.')
+    try {
+      setLendo('subindo o arquivo…')
+      const arqs = await subirArquivos(list, setLendo)
+      setSubidos(arqs)
+      setLendo('lendo o orçamento…')
+      const r = await lerAnexos(me.id, arqs, txt)
+      if (r) {
+        let algo = false
+        if (r.fornecedor && !forn.trim()) (setForn(r.fornecedor), (algo = true))
+        if (r.nicho && r.nicho !== 'outros' && !n) (setN(r.nicho), (algo = true))
+        setAuto(algo)
+      }
+    } catch (x) {
+      setErr(String((x as Error).message))
+    }
+    setLendo('')
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setErr('')
     if (!me?.id) return setErr('Faça o cadastro antes de enviar.')
+    if (lendo) return setErr('Espere terminar de ler o arquivo.')
     if (!txt.trim() && !files.length) return setErr('Cole o texto do orçamento ou anexe o PDF ou um print.')
     if (files.length > 8) return setErr('Mande no máximo 8 arquivos por vez.')
     const big = files.find((f) => f.size > 15 * 1024 * 1024 && !/^image\/(jpeg|png|webp)$/i.test(f.type))
     if (big) return setErr(`O arquivo ${big.name} passa de 15 MB. Mande um print ou um PDF menor.`)
     setStep('Enviando…')
     try {
-      await enviar(me.id, { nicho: n, fornecedor: forn.trim(), texto: txt.trim(), files }, setStep)
+      await enviar(me.id, { nicho: n, fornecedor: forn.trim(), texto: txt.trim(), files, arquivos: subidos.length === files.length ? subidos : undefined }, setStep)
       setDone(true)
     } catch (e) {
       setErr(`Não deu para enviar agora (${(e as Error).message}). Tente de novo ou mande pelo WhatsApp.`)
@@ -587,6 +673,16 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
     </section>
   )
 
+  if (me && !ehSanLevi(me))
+    return (
+      <section className="ape-panel ape-empty">
+        <ApeIcon name="shield" size={30} />
+        <b>o envio é para os moradores do {APE.condominio}</b>
+        <span>Os orçamentos ficam entre os vizinhos do {APE.condominio}. Se você é de lá, atualize o seu cadastro.</span>
+        <a className="ape-btn primary" href={href('ape', 'loja')}><ApeIcon name="bag" />ver a loja do apê</a>
+      </section>
+    )
+
   if (done)
     return (
       <>
@@ -615,33 +711,18 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
       <div>
         <p className="ape-eyebrow"><ApeIcon name="send" />Enviar orçamento</p>
         <h2 className="ape-h2">
-          mande o seu e a gente <em>organiza</em>
+          anexe e pronto: <em>a página organiza</em>
         </h2>
       </div>
       <ol className="ape-steps">
-        <li><b>1</b>Escolha o serviço e diga de quem é o orçamento</li>
-        <li><b>2</b>Anexe o PDF ou os prints, ou cole o texto que o fornecedor mandou</li>
-        <li><b>3</b>Toque em enviar: ele entra na página, sem os seus dados</li>
+        <li><b>1</b>Anexe o PDF ou os prints que o fornecedor mandou</li>
+        <li><b>2</b>A página já puxa o fornecedor e o serviço sozinha</li>
+        <li><b>3</b>Confira e toque em enviar: entra na página sem os seus dados</li>
       </ol>
-      <div className="ape-frow">
-        <div className="ape-f">
-          <label htmlFor="e-nicho">Serviço</label>
-          <select id="e-nicho" value={n} onChange={(e) => setN(e.target.value)}>
-            <option value="">Escolha…</option>
-            {NICHOS.map((x) => (
-              <option key={x[0]} value={x[0]}>{x[1]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="ape-f">
-          <label htmlFor="e-forn">Fornecedor</label>
-          <input id="e-forn" value={forn} onChange={(e) => setForn(e.target.value)} placeholder="Nome da loja ou profissional" />
-        </div>
-      </div>
       <label className="ape-drop" htmlFor="e-files">
         <ApeIcon name="clip" />
         <b>{files.length ? 'trocar os arquivos' : 'anexar PDF ou prints'}</b>
-        <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => setFiles([...(e.target.files || [])])} />
+        <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => void anexar([...(e.target.files || [])])} />
         {files.length > 0 && (
           <span className="ape-files">
             {files.map((f) => (
@@ -649,15 +730,35 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
             ))}
           </span>
         )}
-        <span className="ape-note">Toque para escolher da galeria ou dos arquivos. Até 8, de até 15 MB cada.</span>
+        {lendo ? (
+          <span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>{lendo}</span>
+        ) : (
+          <span className="ape-note">Toque para escolher da galeria ou dos arquivos. Até 8, de até 15 MB cada.</span>
+        )}
       </label>
+      {auto && <div className="ape-banner"><ApeIcon name="sparkle" />Preenchemos o fornecedor e o serviço lendo o arquivo. Confira se está certo.</div>}
+      <div className="ape-frow">
+        <div className="ape-f">
+          <label htmlFor="e-nicho">Serviço</label>
+          <select id="e-nicho" value={n} onChange={(e) => { setN(e.target.value); setAuto(false) }}>
+            <option value="">{lendo ? 'lendo…' : 'Escolha…'}</option>
+            {NICHOS.map((x) => (
+              <option key={x[0]} value={x[0]}>{x[1]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="ape-f">
+          <label htmlFor="e-forn">Fornecedor</label>
+          <input id="e-forn" value={forn} onChange={(e) => setForn(e.target.value)} placeholder={lendo ? 'lendo…' : 'Nome da loja ou profissional'} />
+        </div>
+      </div>
       <div className="ape-f">
         <label htmlFor="e-txt">Texto do orçamento (opcional)</label>
         <textarea id="e-txt" value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" />
       </div>
       {err && <p className="ape-err" role="alert">{err}</p>}
       <div className="ape-acts">
-        <button className="ape-btn primary" type="submit" disabled={!!step}>
+        <button className="ape-btn primary" type="submit" disabled={!!step || !!lendo}>
           <ApeIcon name="send" />
           {step || 'enviar orçamento'}
         </button>
@@ -1377,6 +1478,7 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
     e.preventDefault()
     const m = { nome: nome.trim().replace(/\s+/g, ' '), condominio: sl ? APE.condominio : cond.trim(), torre: sl ? torre.trim() : '', ap: sl ? ap.trim() : '', tel: digits(tel) }
     if (m.nome.split(' ').length < 2) return setErr('Coloque o nome completo.')
+    if (sl && (!m.torre || !m.ap)) return setErr('Coloque a torre e o apê.')
     if (m.tel.length < 10 || m.tel.length > 13) return setErr('Coloque o WhatsApp com DDD.')
     setErr('')
     setBusy(true)
@@ -1395,7 +1497,7 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
         <h2 id="g-t">
           boas-vindas ao <em>planê.apê</em>
         </h2>
-        <p>Orçamentos de quem está montando o apê, lado a lado. Para ver e mandar orçamentos, conte rapidinho quem é você. Seus dados não aparecem na página.</p>
+        <p>Os orçamentos são exclusivos dos moradores do {APE.condominio}. A loja do apê é aberta para todo mundo. Conte rapidinho quem é você: seus dados não aparecem na página.</p>
         <div className="ape-f">
           <label htmlFor="g-nome">Nome completo</label>
           <input id="g-nome" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} required />
@@ -1410,11 +1512,11 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
         {sl ? (
           <div className="ape-frow">
             <div className="ape-f">
-              <label htmlFor="g-torre">Torre (opcional)</label>
+              <label htmlFor="g-torre">Torre</label>
               <input id="g-torre" inputMode="numeric" value={torre} onChange={(e) => setTorre(e.target.value)} />
             </div>
             <div className="ape-f">
-              <label htmlFor="g-ap">Apê (opcional)</label>
+              <label htmlFor="g-ap">Apê</label>
               <input id="g-ap" inputMode="numeric" value={ap} onChange={(e) => setAp(e.target.value)} />
             </div>
           </div>
