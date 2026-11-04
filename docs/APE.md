@@ -33,7 +33,7 @@ A diferença em relação à página antiga (Artifact): agora os moradores **gra
 
 ## Cores
 
-Ficam só no topo de `src/ape/ape.css` (variáveis `--a-*`), tiradas do projeto do apê 1204: terracota `#9B593F` (destaque), azul da marcenaria `#889AA5` (usado escurecido, `#4E6472`, em texto e botões), madeira `#AC7F54` (escurecida, `#8A6038`, para grupo e atenção) e off-white `#F6F3EF` de fundo. Os tons escurecidos são para o texto ler bem sobre o fundo claro. A regra de "só azul e rosa" do `CLAUDE.md` vale para o planê; o planê.apê tem paleta própria, mas segue a mesma ideia: sem verde, amarelo ou vermelho vivos.
+Ficam só no topo de `src/ape/ape.css` (variáveis `--a-*`), tiradas do projeto do apê 1204, na ordem que a Laís escolheu: **azul predominante** (marcenaria `#889AA5`, usado escurecido, `#4E6472`, em botões, "mais compensa", abas e selos), **bege** de base (fundo `#F5F1EB` e caixas `#F0EAE3`) e **terracota** nos detalhes (`#9B593F`: preço à vista, itálicos dos títulos, ".apê" do logo). A madeira (`#8A6038`) fica para grupo e atenção. Os tons escurecidos são para o texto ler bem sobre o fundo claro. A regra de "só azul e rosa" do `CLAUDE.md` vale para o planê; o planê.apê tem paleta própria, mas segue a mesma ideia: sem verde, amarelo ou vermelho vivos.
 
 ## Arquivos
 

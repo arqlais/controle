@@ -3,15 +3,16 @@
    As cores ficam SÓ neste bloco: para trocar a paleta, mude estas variáveis.
    (os tons de texto e de botão são versões mais escuras das cores do projeto, para ler bem) */
 .ape {
-  --a-bg: #f6f3ef; /* parede off-white */
+  /* ordem escolhida pela Laís: azul predominante, depois bege, depois terracota */
+  --a-bg: #f5f1eb; /* bege claro (parede off-white aquecida) */
   --a-card: #ffffff;
   --a-ink: #2b2826; /* preto da geladeira, um pouco mais suave */
   --a-muted: #6b635c;
   --a-line: #e7e0d8;
-  --a-pri: #9b593f; /* parede terracota: botões, "mais compensa" */
-  --a-pri-soft: #f6ece6;
-  --a-sec: #4e6472; /* azul da marcenaria (#889aa5), escurecido para texto e botões */
-  --a-sec-soft: #e7ecef;
+  --a-pri: #4e6472; /* azul da marcenaria (#889aa5), escurecido: botões, "mais compensa", destaques */
+  --a-pri-soft: #e7ecef;
+  --a-sec: #9b593f; /* parede terracota: preço à vista, detalhes */
+  --a-sec-soft: #f6ece6;
   --a-ter: #8a6038; /* madeira (#ac7f54), escurecida: grupo, atenção, vencido */
   --a-ter-soft: #f3eadf;
   --a-sand: #f0eae3; /* caixas de preço e fundos leves (piso e palha clareados) */
@@ -21,7 +22,7 @@
   --a-body: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --a-radius: 18px;
   --a-shadow: 0 1px 2px rgba(43, 40, 38, 0.04), 0 10px 30px -12px rgba(43, 40, 38, 0.12);
-  --a-shadow-btn: 0 10px 24px -8px color-mix(in srgb, var(--a-pri) 55%, transparent);
+  --a-shadow-btn: 0 10px 24px -8px color-mix(in srgb, var(--a-pri) 50%, transparent);
 
   min-height: 100vh;
   min-height: 100dvh;
@@ -40,13 +41,13 @@
 .ape a { color: inherit; text-decoration: none; }
 .ape .num { font-variant-numeric: tabular-nums; text-align: inherit; white-space: normal; }
 .ape-i { width: 1.15em; height: 1.15em; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.2em; }
-.ape :focus-visible { outline: 2px solid var(--a-sec); outline-offset: 2px; }
+.ape :focus-visible { outline: 2px solid var(--a-pri); outline-offset: 2px; }
 
 /* títulos como no planê: Poppins forte, com o destaque em The Seasons itálico */
 .ape h1, .ape h2, .ape h3, .ape h4 { margin: 0; color: inherit; text-transform: none; text-wrap: balance; font-family: var(--a-body); }
 .ape h2 { font-weight: 700; letter-spacing: -0.025em; line-height: 1.12; }
 .ape h3 { font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
-.ape h1 em, .ape h2 em, .ape h3 em, .ape .ape-it { font-family: var(--a-display); font-style: italic; font-weight: 400; color: var(--a-pri); letter-spacing: 0; font-size: 1.12em; }
+.ape h1 em, .ape h2 em, .ape h3 em, .ape .ape-it { font-family: var(--a-display); font-style: italic; font-weight: 400; color: var(--a-sec); letter-spacing: 0; font-size: 1.12em; }
 .ape .wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
 /* topo */
@@ -56,7 +57,7 @@
 .ape-mark { width: 34px; height: 34px; flex: none; display: block; }
 .ape-mark svg { width: 100%; height: 100%; display: block; }
 .ape-logo h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
-.ape-logo h1 span { color: var(--a-pri); }
+.ape-logo h1 span { color: var(--a-sec); }
 .ape-logo small { display: block; font-size: 11.5px; color: var(--a-muted); font-weight: 500; margin-top: 3px; }
 .ape-me { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--a-muted); background: var(--a-card); border: 1px solid var(--a-line); border-radius: 999px; padding: 4px 4px 4px 12px; max-width: 55%; min-width: 0; box-shadow: var(--a-shadow); }
 .ape-me > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -76,7 +77,7 @@
 .ape-eyebrow::before { content: ''; width: 26px; height: 1.5px; background: currentColor; flex: none; }
 .ape-eyebrow .ape-i { display: none; }
 .ape-note { font-size: 12px; color: var(--a-muted); }
-.ape-banner { background: var(--a-sec-soft); color: var(--a-sec); padding: 11px 16px; border-radius: 14px; font-size: 13px; display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; }
+.ape-banner { background: var(--a-pri-soft); color: var(--a-pri); padding: 11px 16px; border-radius: 14px; font-size: 13px; display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; }
 .ape-banner.warn { background: var(--a-ter-soft); color: var(--a-ter); }
 .ape-h2 { font-size: clamp(24px, 4.5vw, 30px); }
 
@@ -94,7 +95,7 @@
 .ape-chips::-webkit-scrollbar { display: none; }
 .ape-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--a-line); background: var(--a-card); border-radius: 999px; padding: 8px 14px; font-size: 13px; white-space: nowrap; font-weight: 600; text-transform: lowercase; min-height: 40px; }
 .ape-chip span { font-size: 11px; color: var(--a-muted); }
-.ape-chip[aria-pressed='true'] { background: var(--a-sec); border-color: var(--a-sec); color: #fff; }
+.ape-chip[aria-pressed='true'] { background: var(--a-pri); border-color: var(--a-pri); color: #fff; }
 .ape-chip[aria-pressed='true'] span { color: #fff; opacity: 0.8; }
 .ape-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ape-search { flex: 1 1 220px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--a-line); background: var(--a-card); border-radius: 999px; padding: 0 16px; min-width: 0; color: var(--a-muted); min-height: 44px; }
@@ -106,7 +107,7 @@
 /* nicho */
 .ape-nicho { display: grid; gap: 12px; }
 .ape-nhead { display: flex; align-items: center; gap: 12px; }
-.ape-nic { width: 42px; height: 42px; border-radius: 14px; background: var(--a-sec-soft); color: var(--a-sec); display: grid; place-items: center; flex: none; }
+.ape-nic { width: 42px; height: 42px; border-radius: 14px; background: var(--a-pri-soft); color: var(--a-pri); display: grid; place-items: center; flex: none; }
 .ape-nic .ape-i { width: 21px; height: 21px; }
 .ape-nhead h3 { font-size: 19px; text-transform: lowercase; }
 .ape-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; }
@@ -132,14 +133,14 @@
 .ape-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .ape-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; background: var(--a-sand); text-transform: lowercase; }
 .ape-pill .ape-i { width: 12px; height: 12px; }
-.ape-pill.azul { background: var(--a-sec-soft); color: var(--a-sec); }
-.ape-pill.terra { background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-pill.azul { background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-pill.terra { background: var(--a-sec-soft); color: var(--a-sec); }
 .ape-pill.rosa { background: var(--a-ter-soft); color: var(--a-ter); }
 .ape-why { display: grid; gap: 4px; font-size: 12.5px; color: var(--a-pri); margin: 0; padding: 0; list-style: none; font-weight: 500; }
 .ape-why li { display: flex; gap: 6px; align-items: flex-start; }
 .ape-why .ape-i { margin-top: 2px; }
 .ape-more { border-top: 1px dashed var(--a-line); padding-top: 10px; }
-.ape-more > summary { list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--a-sec); display: flex; align-items: center; gap: 6px; text-transform: lowercase; min-height: 32px; }
+.ape-more > summary { list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--a-pri); display: flex; align-items: center; gap: 6px; text-transform: lowercase; min-height: 32px; }
 .ape-more > summary::-webkit-details-marker { display: none; }
 .ape-more[open] > summary .ape-i { transform: rotate(180deg); }
 .ape-lists { display: grid; gap: 12px; margin-top: 8px; }
@@ -147,7 +148,7 @@
 .ape-lists ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: 13px; }
 .ape-lists li { display: flex; gap: 7px; align-items: flex-start; }
 .ape-lists li .ape-i { margin-top: 3px; }
-.ape-lists .y .ape-i { color: var(--a-sec); }
+.ape-lists .y .ape-i { color: var(--a-pri); }
 .ape-lists .n .ape-i, .ape-lists .a .ape-i { color: var(--a-ter); }
 .ape-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 12.5px; margin: 0; }
 .ape-facts dt { color: var(--a-muted); text-transform: lowercase; }
@@ -160,7 +161,7 @@
 .ape-btn:active { transform: translateY(1px); }
 .ape-btn.primary { background: var(--a-pri); border-color: var(--a-pri); color: #fff; box-shadow: var(--a-shadow-btn); }
 .ape-btn.primary:hover { opacity: 0.92; }
-.ape-btn.blue { background: var(--a-sec); border-color: var(--a-sec); color: #fff; box-shadow: 0 10px 24px -10px color-mix(in srgb, var(--a-sec) 60%, transparent); }
+.ape-btn.blue { background: var(--a-pri); border-color: var(--a-pri); color: #fff; box-shadow: var(--a-shadow-btn); }
 .ape-btn.rose { background: var(--a-ter-soft); border-color: var(--a-ter-soft); color: var(--a-ter); }
 .ape-btn.ghost { background: transparent; border-color: transparent; }
 .ape-btn.danger { color: var(--a-ter); border-color: color-mix(in srgb, var(--a-ter) 40%, transparent); }
@@ -170,12 +171,12 @@
 .ape-owner { font-size: 12px; background: var(--a-ter-soft); border-radius: 12px; padding: 6px 10px; color: var(--a-ter); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 
 /* chamada da loja */
-.ape-cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; background: var(--a-sec); color: #fff; border-radius: var(--a-radius); padding: 20px 22px; box-shadow: var(--a-shadow); }
+.ape-cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; background: var(--a-pri); color: #fff; border-radius: var(--a-radius); padding: 20px 22px; box-shadow: var(--a-shadow); }
 .ape-cta .k { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: lowercase; opacity: 0.8; }
 .ape .ape-cta h3 { font-size: 20px; font-weight: 700; margin: 4px 0 6px; color: #fff; }
 .ape .ape-cta h3 em { color: #fff; }
 .ape-cta p { margin: 0; font-size: 13px; opacity: 0.88; max-width: 60ch; }
-.ape-cta .ape-btn { background: #fff; border-color: #fff; color: var(--a-sec); }
+.ape-cta .ape-btn { background: #fff; border-color: #fff; color: var(--a-pri); }
 
 /* loja */
 .ape-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 12px; }
@@ -207,7 +208,7 @@
 .ape-steps li { background: var(--a-sand); border-radius: 14px; padding: 12px 14px; font-size: 12.5px; }
 .ape-steps b { display: block; font-family: var(--a-display); font-style: italic; font-weight: 400; font-size: 26px; color: var(--a-pri); line-height: 1; margin-bottom: 4px; }
 .ape-done { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 26px 12px; }
-.ape-done > .ape-i { width: 44px; height: 44px; color: var(--a-sec); }
+.ape-done > .ape-i { width: 44px; height: 44px; color: var(--a-pri); }
 
 /* cadastro: como o modal do planê (no celular, sobe de baixo) */
 .ape-gate { position: fixed; inset: 0; z-index: 40; background: color-mix(in srgb, var(--a-bg) 45%, transparent); -webkit-backdrop-filter: blur(7px) saturate(0.9); backdrop-filter: blur(7px) saturate(0.9); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
@@ -219,9 +220,9 @@
 .ape-empty b { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: var(--a-ink); line-height: 1.2; }
 .ape-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); background: var(--a-ink); color: #fff; padding: 11px 20px; border-radius: 999px; font-size: 13px; font-weight: 500; z-index: 50; max-width: calc(100vw - 32px); text-align: center; box-shadow: 0 16px 34px -14px rgba(0, 0, 0, 0.5); }
 .ape-foot { text-align: center; font-size: 12px; color: var(--a-muted); padding: 0 16px 30px; }
-.ape-thinking { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--a-sec); }
+.ape-thinking { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--a-pri); }
 .ape-dots { display: inline-flex; gap: 3px; }
-.ape-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--a-sec); opacity: 0.3; }
+.ape-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--a-pri); opacity: 0.3; }
 @media (prefers-reduced-motion: no-preference) {
   .ape-dots i { animation: ape-blink 1.2s infinite; }
   .ape-dots i:nth-child(2) { animation-delay: 0.2s; }

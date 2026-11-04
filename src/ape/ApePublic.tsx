@@ -10,7 +10,7 @@ import { markSvg } from '../components/PlaneMark'
 import './ape.css'
 
 // símbolo do planê nas cores do apê (conteúdo fixo)
-const MARK_SVG = markSvg('quadrado', '#9b593f', '#ffffff')
+const MARK_SVG = markSvg('quadrado', '#4e6472', '#ffffff')
 
 /* Página pública do planê.apê: os moradores se cadastram, comparam os orçamentos,
    mandam os seus (com PDF e prints) e entram nas compras em grupo. Sem login. */
