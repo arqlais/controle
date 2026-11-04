@@ -7,7 +7,7 @@ import { admin, apeCloud, loja, type Ajustes, type PedidoAdmin } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, DESCONTOS, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
-  CATEGORIAS, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
+  CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
 
@@ -30,13 +30,17 @@ export default function ApeAdmin() {
   const [envios, setEnvios] = useState<Envio[]>([])
   const [moradores, setMoradores] = useState<Morador[]>([])
   const [interesses, setInteresses] = useState<Interesse[]>([])
+  const [escolhas, setEscolhas] = useState<{ orcamento: string; nicho: string; morador: Morador | null }[]>([])
+  const [pedidos, setPedidos] = useState<PedidoAdmin[]>([])
   const [ajustes, setAjustes] = useState<Ajustes | null>(null)
   const [erro, setErro] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
 
   const load = useCallback(async () => {
     try {
-      const [o, e, m, i, a] = await Promise.all([admin.orcamentos(), admin.envios(), admin.moradores(), admin.interesses(), admin.ajustes()])
+      const [o, e, m, i, a, es, pe] = await Promise.all([admin.orcamentos(), admin.envios(), admin.moradores(), admin.interesses(), admin.ajustes(), admin.escolhas(), loja.pedidos().catch(() => [] as PedidoAdmin[])])
+      setEscolhas(es)
+      setPedidos(pe)
       setOrcs(o)
       setEnvios(e)
       setMoradores(m)
@@ -70,19 +74,23 @@ export default function ApeAdmin() {
           </h1>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            className="btn"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText('https://useplane.com.br/ape/')
-                toast('Link copiado: useplane.com.br/ape (abre direto a página dos moradores).')
-              } catch {
-                toast('Link dos moradores: useplane.com.br/ape')
-              }
-            }}
-          >
-            <ApeIcon name="copy" /> copiar link dos moradores
-          </button>
+          {([['https://useplane.com.br/ape/sanlevi/', 'link dos moradores', 'abre os orçamentos (só San Levi)'], ['https://useplane.com.br/ape/', 'link da loja', 'página de vendas aberta a todos']] as const).map(([u, l, d]) => (
+            <button
+              key={u}
+              className="btn"
+              title={d}
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(u)
+                  toast(`Copiado: ${u.replace('https://', '')} (${d}).`)
+                } catch {
+                  toast(u.replace('https://', ''))
+                }
+              }}
+            >
+              <ApeIcon name="copy" /> copiar {l}
+            </button>
+          ))}
           <a className="btn" href={href('ape')} target="_blank" rel="noreferrer">
             <ApeIcon name="eye" /> abrir a página dos moradores
           </a>
@@ -140,7 +148,7 @@ export default function ApeAdmin() {
               <Novo aiKey={aiKey} onDraft={setDraft} />
             ))}
           {tab === 'lista' && <Lista orcs={orcs} interesses={interesses} onEdit={edit} onChange={load} />}
-          {tab === 'moradores' && <Moradores moradores={moradores} envios={envios} interesses={interesses} orcs={orcs} onChange={load} />}
+          {tab === 'moradores' && <Moradores moradores={moradores} envios={envios} interesses={interesses} orcs={orcs} escolhas={escolhas} pedidos={pedidos} onChange={load} />}
           {tab === 'grupos' && <Grupos orcs={orcs} interesses={interesses} />}
           {tab === 'loja' && ajustes && <Loja ajustes={ajustes} onSaved={setAjustes} />}
           {tab === 'pedidos' && <Vendas />}
@@ -489,17 +497,35 @@ function Lista({ orcs, interesses, onEdit, onChange }: { orcs: Orcamento[]; inte
   )
 }
 
-function Moradores({ moradores, envios, interesses, orcs, onChange }: { moradores: Morador[]; envios: Envio[]; interesses: Interesse[]; orcs: Orcamento[]; onChange: () => void }) {
+function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onChange }: { moradores: Morador[]; envios: Envio[]; interesses: Interesse[]; orcs: Orcamento[]; escolhas: { orcamento: string; nicho: string; morador: Morador | null }[]; pedidos: PedidoAdmin[]; onChange: () => void }) {
   const [q, setQ] = useState('')
+  const [filtro, setFiltro] = useState<'todos' | 'sanlevi' | 'outros' | 'mesmoap' | 'enviaram'>('todos')
+  const forn = (id: string) => orcs.find((o) => o.id === id)?.fornecedor || 'orçamento removido'
+  const chave = (m: Morador) => `${m.torre.trim().toLowerCase()}|${m.ap.trim().toLowerCase()}`
+  // mesmo torre e apê com nomes diferentes: moram juntos (ou alguém errou o apê)
+  const porAp = new Map<string, Morador[]>()
+  for (const m of moradores) if (ehSanLevi(m) && m.torre && m.ap) porAp.set(chave(m), [...(porAp.get(chave(m)) || []), m])
+  const vizinhosDeAp = (m: Morador) => (ehSanLevi(m) && m.torre && m.ap ? (porAp.get(chave(m)) || []).filter((x) => x.id !== m.id && x.nome.trim().toLowerCase() !== m.nome.trim().toLowerCase()) : [])
+  const info = (m: Morador) => {
+    const env = envios.filter((e) => e.morador?.id === m.id)
+    const grp = interesses.filter((i) => i.morador?.id === m.id).map((i) => forn(i.orcamento))
+    const esc = escolhas.filter((e) => e.morador?.id === m.id).map((e) => `${nicho(e.nicho).l}: ${forn(e.orcamento)}`)
+    const ped = pedidos.filter((p) => p.status === 'pago' && digits(p.tel).slice(-9) === digits(m.tel).slice(-9))
+    return { env, grp, esc, ped, junto: vizinhosDeAp(m) }
+  }
   const list = useMemo(
     () =>
       moradores
-        .filter((m) => !q || [m.nome, m.torre, m.ap, m.tel].join(' ').toLowerCase().includes(q.toLowerCase()))
-        .sort((a, b) => a.torre.localeCompare(b.torre, 'pt', { numeric: true }) || a.ap.localeCompare(b.ap, 'pt', { numeric: true })),
-    [moradores, q],
+        .filter((m) => !q || [m.nome, m.torre, m.ap, m.tel, m.condominio].join(' ').toLowerCase().includes(q.toLowerCase()))
+        .filter((m) => filtro === 'todos' || (filtro === 'sanlevi' ? ehSanLevi(m) : filtro === 'outros' ? !ehSanLevi(m) : filtro === 'mesmoap' ? vizinhosDeAp(m).length > 0 : envios.some((e) => e.morador?.id === m.id)))
+        .sort((a, b) => Number(!ehSanLevi(a)) - Number(!ehSanLevi(b)) || a.torre.localeCompare(b.torre, 'pt', { numeric: true }) || a.ap.localeCompare(b.ap, 'pt', { numeric: true }) || a.nome.localeCompare(b.nome)),
+    [moradores, q, filtro, envios],
   )
+  const sl = moradores.filter(ehSanLevi)
+  const aps = new Set(sl.filter((m) => m.torre && m.ap).map(chave)).size
+  const juntos = [...porAp.values()].filter((l) => new Set(l.map((m) => m.nome.trim().toLowerCase())).size > 1).length
   const copiar = async () => {
-    const t = list.map((m) => `${m.nome}\t${m.condominio || APE.condominio}\t${m.torre ? `Torre ${m.torre}` : ''}\t${m.ap ? `Apê ${m.ap}` : ''}\t${fmtTel(m.tel)}`).join('\n')
+    const t = list.map((m) => { const x = info(m); return [m.nome, m.condominio || APE.condominio, m.torre && `Torre ${m.torre}`, m.ap && `Apê ${m.ap}`, fmtTel(m.tel), `${x.env.length} orçamentos`, x.esc.join('; '), x.ped.length ? `comprou ${brl(x.ped.reduce((t, p) => t + p.total, 0))}` : ''].join('\t') }).join('\n')
     try {
       await navigator.clipboard.writeText(t)
       toast('Lista copiada: cole numa planilha.')
@@ -512,39 +538,59 @@ function Moradores({ moradores, envios, interesses, orcs, onChange }: { moradore
     await admin.removerMorador(m.id).then(onChange, () => toast('Não consegui apagar.'))
   }
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div className="ape-banner">Só você vê esta lista: todo mundo que se cadastrou, o que mandou, com quem escolheu fechar, os grupos e as compras na loja.</div>
+      <div className="ape-stats">
+        <div className="ape-stat"><b className="num">{sl.length}</b><span>moradores do {APE.condominio}</span></div>
+        <div className="ape-stat"><b className="num">{aps}</b><span>apês diferentes</span></div>
+        <div className="ape-stat"><b className="num">{juntos}</b><span>apês com mais de uma pessoa</span></div>
+      </div>
       <div className="ape-toolbar">
         <label className="ape-search">
           <ApeIcon name="search" />
-          <input type="search" placeholder="Filtrar por nome, torre, apê…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input type="search" placeholder="Filtrar por nome, torre, apê, telefone…" value={q} onChange={(e) => setQ(e.target.value)} />
         </label>
+        <select className="ape-sel" value={filtro} onChange={(e) => setFiltro(e.target.value as typeof filtro)} aria-label="Mostrar">
+          <option value="todos">todos ({moradores.length})</option>
+          <option value="sanlevi">só {APE.condominio}</option>
+          <option value="outros">de outros lugares</option>
+          <option value="mesmoap">mesmo apê, nomes diferentes</option>
+          <option value="enviaram">quem mandou orçamento</option>
+        </select>
         <button className="ape-btn sm" onClick={() => void copiar()}><ApeIcon name="copy" />Copiar lista</button>
       </div>
       <div className="ape-rows">
         {!list.length && (
           <div className="ape-empty">
-            <b>Ninguém por aqui ainda</b>
-            <span>Quem se cadastrar na página aparece nesta lista, com torre, apê e telefone. Só você vê.</span>
+            <b>ninguém por aqui</b>
+            <span>Quem se cadastrar na página aparece nesta lista. Só você vê.</span>
           </div>
         )}
         {list.map((m) => {
-          const env = envios.filter((e) => e.morador?.id === m.id).length
-          const grp = interesses.filter((i) => i.morador?.id === m.id).map((i) => orcs.find((o) => o.id === i.orcamento)?.fornecedor).filter(Boolean)
+          const x = info(m)
           return (
-            <div key={m.id} className="ape-row">
+            <div key={m.id} className="ape-row ape-pessoa">
               <div className="t">
-                <b>{m.nome}</b>
+                <b>
+                  {m.nome}
+                  {!ehSanLevi(m) && <span className="ape-pill ape-keep" style={{ marginLeft: 6 }}>{m.condominio || 'outro lugar'}</span>}
+                </b>
                 <span>
-                  {ondeMora(m) || 'sem endereço'} · <span className="ape-tel">{fmtTel(m.tel)}</span>
+                  {ehSanLevi(m) ? `Torre ${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>
                   {m.criado ? ` · desde ${dmy(m.criado)}` : ''}
                 </span>
-                {(env > 0 || grp.length > 0) && (
-                  <span>
-                    {env ? `${env} orçamento${env > 1 ? 's' : ''} enviado${env > 1 ? 's' : ''}` : ''}
-                    {env && grp.length ? ' · ' : ''}
-                    {grp.length ? `no grupo: ${grp.join(', ')}` : ''}
+                {x.junto.length > 0 && (
+                  <span className={`ape-pill ape-keep ${m.moraJunto ? 'azul' : 'rosa'}`} style={{ marginTop: 4 }}>
+                    <ApeIcon name="users" />
+                    {m.moraJunto ? `mora junto com ${x.junto.map((j) => j.nome).join(', ')}` : `mesmo apê que ${x.junto.map((j) => j.nome).join(', ')} (não confirmou que mora junto)`}
                   </span>
                 )}
+                <div className="ape-pessoa-tags">
+                  <span className="ape-pill ape-keep"><ApeIcon name="send" />{x.env.length} orçamento{x.env.length === 1 ? '' : 's'}</span>
+                  {x.esc.map((e) => <span key={e} className="ape-pill azul ape-keep"><ApeIcon name="star" />{e}</span>)}
+                  {x.grp.map((g) => <span key={g} className="ape-pill rosa ape-keep"><ApeIcon name="users" />grupo: {g}</span>)}
+                  {x.ped.length > 0 && <span className="ape-pill terra ape-keep"><ApeIcon name="bag" />comprou {brl(x.ped.reduce((t, p) => t + p.total, 0))}</span>}
+                </div>
               </div>
               <div className="r">
                 {waNum(m.tel) && (

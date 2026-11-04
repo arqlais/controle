@@ -8,6 +8,7 @@ export const APE = {
   apes: '38 a 40 m²',
   dona: 'Laís',
   doApe: 'apê 1204',
+  meuApe: '40 m²', // o apê da Laís (exemplo padrão nos materiais)
   instagram: '@apzinho_1204',
   whatsapp: '5511969288192', // da Laís: grupo, loja e dúvidas
 }
@@ -67,8 +68,8 @@ export type Categoria = 'arquivos' | 'combos' | 'plataforma' | 'projeto'
 export const CATEGORIAS: [Categoria, string, string, string][] = [
   ['arquivos', 'arquivos úteis', 'file', 'Materiais prontos para baixar, imprimir ou usar no celular. Quanto mais você leva, maior o desconto.'],
   ['combos', 'kits', 'gift', 'Os arquivos juntos, com o melhor preço. Para chegar na vistoria, na obra e na mudança sem susto.'],
-  ['plataforma', 'plataforma do apê', 'phone', 'Um app no celular para controlar gastos, parcelas, obra e vistoria do seu apê, num lugar só.'],
-  ['projeto', 'projeto do seu apê', 'ruler', 'Projeto de interiores feito por uma estudante de arquitetura no último ano, nas medidas do seu apê, com preço acessível.'],
+  ['plataforma', 'plataforma do apê', 'phone', 'Um site para organizar gastos, parcelas, obra e vistoria da sua casa ou apê, num lugar só.'],
+  ['projeto', 'projeto do seu apê', 'ruler', 'Projeto de interiores nas medidas da sua casa ou apê, com preço acessível.'],
 ]
 export interface Produto {
   id: string
@@ -95,6 +96,7 @@ export interface Morador {
   id: string
   nome: string
   condominio?: string // 'San Levi' ou o nome que a pessoa digitou
+  moraJunto?: boolean // confirmou que mora no mesmo apê de quem já tinha cadastro
   torre: string
   ap: string
   tel: string
@@ -297,22 +299,22 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 /* ===== produtos e exemplos ===== */
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
-export const LOJA_VERSAO = 4
+export const LOJA_VERSAO = 5
 /** Quanto mais arquivos avulsos no carrinho, maior o desconto: [a partir de N itens, % de desconto]. */
 export const DESCONTOS: [number, number][] = [[2, 10], [3, 15], [4, 20], [6, 25]]
 const arq = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega'>): Produto => ({ cat: 'arquivos', ativo: true, entrega: NA_HORA, fase: 'comprei', ...p })
 export const PRODUTOS: Produto[] = [
-  arq({ id: 'checklist', arte: 'vistoria', nome: 'Checklist de vistoria MRV', tag: 'para a vistoria', destaque: true, preco: 'R$ 19,90', formato: 'PDF · imprimir ou usar no celular', amostras: [AM('m-checklist.jpg')], numeros: ['9 páginas', '+90 itens', '7 cômodos', 'resumo para a MRV'],
-    desc: 'Tudo o que conferir no dia da vistoria, cômodo por cômodo, para a construtora corrigir antes de você receber as chaves.',
+  arq({ id: 'checklist', arte: 'vistoria', nome: 'Checklist de vistoria', tag: 'para a vistoria', destaque: true, preco: 'R$ 19,90', formato: 'PDF · imprimir ou usar no celular', amostras: [AM('m-checklist.jpg')], numeros: ['9 páginas', '+90 itens', '7 cômodos', 'resumo para a construtora'],
+    desc: 'Tudo o que conferir no dia da vistoria do apê ou da casa nova, cômodo por cômodo, para a construtora corrigir antes de você receber as chaves.',
     itens: ['O que levar e o que combinar antes', 'Itens para porta, sala, cozinha, área de serviço, banheiro, quartos e apê inteiro', 'Testes simples de vazamento, caimento de piso e tomadas', 'Tabela para anotar as medidas do seu apê', 'O que fazer com os problemas depois', 'Resumo pronto para entregar à construtora'] }),
   arq({ id: 'planilha', arte: 'planilha', nome: 'Planilha de obra e compras', tag: 'organização', destaque: true, preco: 'R$ 24,90', formato: 'Excel · abre no Google Planilhas', amostras: [AM('m-planilha.jpg')], numeros: ['6 abas', '27 itens prontos', 'contas automáticas'],
     desc: 'Quanto você planejou, quanto já gastou e quanto falta, por cômodo, com as parcelas mês a mês.',
-    itens: ['Resumo automático por cômodo e no total', 'Lista de compras com itens típicos de apê compacto e valores de referência', 'Comparador de orçamentos que mostra o mais barato', 'Parcelas dos próximos 12 meses somadas sozinhas', 'Cronograma da obra na ordem certa, da vistoria à mudança'] }),
+    itens: ['Resumo automático por cômodo e no total', 'Lista de compras com itens típicos de um apê de 40 m² e valores de referência', 'Comparador de orçamentos que mostra o mais barato', 'Parcelas dos próximos 12 meses somadas sozinhas', 'Cronograma da obra na ordem certa, da vistoria à mudança'] }),
   arq({ id: 'guia', arte: 'orcamento', nome: 'Guia de orçamentos', tag: 'antes de fechar', preco: 'R$ 14,90', formato: 'PDF', amostras: [AM('m-guia.jpg')], numeros: ['8 páginas', '9 serviços', '3 mensagens prontas'],
     desc: 'O que pedir em cada orçamento, as pegadinhas mais comuns e como comparar de verdade.',
     itens: ['Piso, marcenaria, marmoraria, box, gesso, elétrica, ar, pintura, telas e cortinas', 'O que precisa vir escrito em cada orçamento', 'A pegadinha mais comum de cada serviço', 'Tabela para comparar até 3 orçamentos', 'Mensagens prontas para pedir orçamento e desconto em grupo'] }),
   arq({ id: 'medidas', arte: 'medidas', nome: 'Guia de medidas do apê', tag: 'novo', preco: 'R$ 16,90', formato: 'PDF', amostras: [AM('m-medidas.jpg')], numeros: ['6 páginas', '+25 móveis', 'tabela "cabe?"'],
-    desc: 'As medidas dos móveis e dos espaços de passagem para comprar o que cabe de verdade num apê compacto.',
+    desc: 'As medidas dos móveis e dos espaços de passagem para comprar o que cabe de verdade na sua casa ou apê.',
     itens: ['Passagens mínimas entre móveis, portas e gavetas', 'Sala e jantar: sofá, rack, mesa e distância da TV', 'Cozinha e área de serviço: bancada, geladeira, máquina', 'Quartos e banheiro: camas, guarda-roupa, box', 'O teste da fita crepe e a tabela "cabe no meu apê?"'] }),
   arq({ id: 'enxoval', arte: 'enxoval', nome: 'Planilha do enxoval', tag: 'novo', preco: 'R$ 14,90', formato: 'Excel · abre no Google Planilhas', amostras: [AM('m-enxoval.jpg')], numeros: ['+50 itens', '3 prioridades', 'quanto falta'],
     desc: 'Tudo o que comprar para morar, com preço de referência, prioridade e quanto falta por cômodo.',
@@ -325,7 +327,7 @@ export const PRODUTOS: Produto[] = [
     itens: ['Enxoval da cozinha, área de serviço, banheiro, quartos e sala', 'Passo a passo: 30 dias, 15 dias, 7 dias, o dia e depois', 'Contas para ligar e endereço para trocar', 'A caixa do primeiro dia'] }),
   arq({ id: 'planner', arte: 'decoracao', nome: 'Planner de decoração', tag: 'novo', preco: 'R$ 17,90', formato: 'PDF · imprimir ou usar no tablet', amostras: [AM('m-planner.jpg')], numeros: ['5 páginas', '4 paletas', 'moodboard'],
     desc: 'Do estilo à lista de compras: defina a cara do apê, escolha a paleta e compre na ordem certa.',
-    itens: ['Teste rápido para descobrir o seu estilo', 'Paletas prontas para apê compacto', 'Moodboard para cada cômodo', 'Ideias para parecer maior, guardar mais e gastar menos', 'Lista de decoração na ordem de compra que economiza'] }),
+    itens: ['Teste rápido para descobrir o seu estilo', 'Paletas prontas para espaços pequenos e grandes', 'Moodboard para cada cômodo', 'Ideias para parecer maior, guardar mais e gastar menos', 'Lista de decoração na ordem de compra que economiza'] }),
   arq({ id: 'compra', arte: 'contrato', fase: 'comprando', nome: 'Guia de compra do apê na planta', tag: 'antes de assinar', destaque: true, preco: 'R$ 19,90', formato: 'PDF', amostras: [AM('m-compra.jpg')], numeros: ['6 páginas', '8 etapas', '12 perguntas prontas'],
     desc: 'Do stand às chaves: as etapas, os custos que ninguém conta, o que perguntar ao corretor e o que olhar no contrato.',
     itens: ['As 8 etapas da compra na planta, uma por uma', 'Custos escondidos: ITBI, cartório, juros de obra, INCC, condomínio', '12 perguntas para fazer ao corretor', 'Prazo de entrega, correção das parcelas e distrato explicados', 'Financiamento em 5 passos'] }),
@@ -343,21 +345,21 @@ export const PRODUTOS: Produto[] = [
     desc: 'Para planejar, comparar orçamentos e comprar o que cabe: planilha de obra, guia de orçamentos e guia de medidas.', itens: [], ativo: true },
   { id: 'kit-completo', cat: 'combos', nome: 'Kit apê completo', tag: 'mais vendido', arte: 'casa', destaque: true, preco: 'R$ 79,90', combo: ['compra', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'enxoval', 'entregas', 'mudanca', 'planner'], entrega: NA_HORA, amostras: [AM('m-compra.jpg'), AM('m-checklist.jpg'), AM('m-planilha.jpg'), AM('m-planner.jpg')],
     desc: 'Os 11 arquivos da loja, da compra à decoração, por menos da metade do preço.', itens: ['+ 3 meses grátis da plataforma do apê'], ativo: true },
-  { id: 'plataforma', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'no celular', preco: 'R$ 79', unidade: 'por ano', preco_de: 'R$ 9,90 por mês', formato: 'app no navegador do celular · funciona no computador também', entrega: 'Você chama no WhatsApp e recebe o acesso em até 24 horas.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
-    desc: 'Gastos, parcelas, obra, vistoria e contatos do seu apê num lugar só, no celular.',
-    itens: ['Quanto já foi gasto e quanto falta, por cômodo', 'Parcelas dos próximos meses', 'Obra passo a passo, com datas e o que já foi feito', 'Vistoria com fotos e resumo para a construtora', 'Contatos dos fornecedores com WhatsApp a um toque', 'Funciona no celular, sem instalar nada'], ativo: true },
+  { id: 'plataforma', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 79', unidade: 'por ano · pagamento único', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, você recebe o acesso no WhatsApp em até 24 horas.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
+    desc: 'Um site para organizar tudo do seu apê ou casa: gastos, parcelas, obra, vistoria e contatos, num lugar só. Paga uma vez e usa o ano inteiro.',
+    itens: ['Gastos por cômodo: quanto planejou, quanto já foi e quanto falta', 'Parcelas dos próximos meses, sem surpresa no cartão', 'Obra passo a passo, com datas e o que já foi feito', 'Vistoria com fotos e resumo pronto para a construtora', 'Contatos dos fornecedores com WhatsApp a um toque', 'Funciona no celular e no computador, sem instalar nada', 'Pagamento único: 12 meses de acesso, sem mensalidade'], ativo: true },
   { id: 'layout', cat: 'projeto', nome: 'Projeto de layout', tag: 'planta com móveis', preco: 'R$ 390', formato: 'planta em PDF + lista de compras', entrega: 'Entrega em até 10 dias depois da conversa inicial.', amostras: [AM('m-layout.jpg')], arte: 'planta',
     desc: 'A planta do seu apê com os móveis no lugar e as medidas certas, para pedir orçamentos iguais e comprar sem errar.',
     itens: ['Conversa para entender a sua rotina', 'Planta de layout com móveis e medidas', '1 rodada de ajustes', 'Lista de compras com medidas de cada móvel', 'Sugestão de pontos de tomada e iluminação'], ativo: true },
   { id: 'projeto', cat: 'projeto', nome: 'Projeto completo com 3D', tag: 'mais completo', destaque: true, preco: 'R$ 1.290', preco_de: 'R$ 1.590', formato: 'planta, imagens 3D e detalhamento em PDF', entrega: 'Entrega em até 25 dias, em etapas: layout, 3D e detalhamento.', amostras: [AM('m-projeto.jpg'), AM('m-layout.jpg')], arte: 'projeto3d',
-    desc: 'Layout, imagens 3D e detalhamento para a marcenaria, nas medidas do seu apê. Projeto de interiores feito por uma estudante de arquitetura no último ano.',
+    desc: 'Layout, imagens 3D e detalhamento para a marcenaria, nas medidas da sua casa ou apê.',
     itens: ['Tudo do projeto de layout', 'Imagens 3D da sala e da cozinha', 'Detalhamento da marcenaria para o marceneiro orçar', 'Sugestão de pontos de tomada e iluminação, para o eletricista executar', 'Lista de materiais e acabamentos', '2 rodadas de ajustes', 'Quando a obra pedir ART, um profissional habilitado assina à parte'], ativo: true },
 ]
 
 /** Parcelas sem juros no cartão (mesma regra da função de pagamento). */
 export const parcelasMax = (total: number) => (total >= 60 ? 3 : total >= 30 ? 2 : 1)
-/** Pode ir para o carrinho (arquivos e kits); plataforma e projeto são combinados no WhatsApp. */
-export const noCarrinho = (p: Produto) => (p.cat || 'arquivos') === 'arquivos' || p.cat === 'combos'
+/** Pode ir para o carrinho (arquivos, kits e a plataforma); o projeto é combinado no WhatsApp. */
+export const noCarrinho = (p: Produto) => (p.cat || 'arquivos') === 'arquivos' || p.cat === 'combos' || p.cat === 'plataforma'
 export const reais = (v: unknown) => {
   const n = parseFloat(String(v ?? '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'))
   return Number.isFinite(n) ? n : 0
@@ -369,10 +371,10 @@ export function conta(ids: string[], produtos: Produto[], tiers: [number, number
   const map = new Map(produtos.filter((p) => p.ativo && noCarrinho(p)).map((p) => [p.id, p]))
   let uniq = [...new Set(ids)].filter((id) => map.has(id))
   const dentro = new Set(uniq.flatMap((id) => (map.get(id)!.cat === 'combos' ? map.get(id)!.combo || [] : [])))
-  const repetidos = uniq.filter((id) => map.get(id)!.cat !== 'combos' && dentro.has(id))
+  const repetidos = uniq.filter((id) => (map.get(id)!.cat || 'arquivos') === 'arquivos' && dentro.has(id))
   uniq = uniq.filter((id) => !repetidos.includes(id))
   const itens = uniq.map((id) => map.get(id)!)
-  const avulsos = itens.filter((p) => p.cat !== 'combos')
+  const avulsos = itens.filter((p) => (p.cat || 'arquivos') === 'arquivos') // desconto por quantidade só nos arquivos
   const pct = tiers.reduce((b, [k, v]) => (avulsos.length >= k ? Math.max(b, v) : b), 0)
   const prox = tiers.find(([k]) => k > avulsos.length) || null
   const subtotal = c2(itens.reduce((t, p) => t + reais(p.preco), 0))

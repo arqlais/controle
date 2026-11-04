@@ -6,7 +6,10 @@ Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo có
 
 ## Endereços
 
-- **Link para divulgar:** `useplane.com.br/ape` (abre direto a página dos moradores, com prévia própria no WhatsApp; não passa pelo site do planê). Para instalar no celular, o ícone também abre direto nos orçamentos.
+- **Loja (divulgar no Instagram):** `useplane.com.br/ape` abre a página de vendas, aberta a todos, sem cadastro.
+- **Moradores do San Levi:** `useplane.com.br/ape/sanlevi` abre os orçamentos (pede cadastro; quem não é do San Levi vê só a loja).
+- **Mesmo apê:** no cadastro, se a torre e o apê já têm outra pessoa, aparece "Este apê já tem cadastro: Maria S. Você mora junto?" (só primeiro nome e inicial). No painel → cadastros, a dona vê tudo de cada pessoa (orçamentos, escolhas, grupos, compras) e quem divide o mesmo apê.
+
 - **Moradores:** `useplane.com.br/#/ape` (abas `#/ape/enviar` e `#/ape/loja`). Sem login: na primeira vez a pessoa informa nome completo, torre, apê e telefone.
 - **Dona:** no planê, menu **plataforma → planê.apê** (`#/ape-admin`). Logada no planê, a dona também vê os exemplos e os ocultos na página dos moradores.
 

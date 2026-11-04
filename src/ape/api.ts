@@ -53,7 +53,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   return { produtos: atual ? a.produtos! : PRODUTOS, whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, descontos: Array.isArray(a.descontos) && a.descontos.length ? a.descontos : DESCONTOS }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
-  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
+  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
 
 export const apeCloud = CLOUD
 
@@ -107,6 +107,19 @@ export async function escolher(orcamento: string, moradorId: string, nicho: stri
   return String(data ?? '')
 }
 
+/** Quem já tem cadastro nesta torre e apê do San Levi (primeiro nome e inicial), para perguntar se mora junto. */
+export async function mesmoAp(torre: string, ap: string, id?: string): Promise<string[]> {
+  if (!torre.trim() || !ap.trim()) return []
+  if (!CLOUD) {
+    return readLocal().moradores.filter((m) => m.id !== id && ehSanLevi(m) && m.torre.trim().toLowerCase() === torre.trim().toLowerCase() && m.ap.trim().toLowerCase() === ap.trim().toLowerCase()).map((m) => {
+      const p = m.nome.trim().split(/\s+/)
+      return p.length > 1 ? `${p[0]} ${p[p.length - 1][0]}.` : p[0]
+    })
+  }
+  const { data, error } = await sb().rpc('ape_mesmo_ap', { p_torre: torre, p_ap: ap, p_id: id || null })
+  return error ? [] : ((data as string[]) ?? [])
+}
+
 /** Sobe os anexos já na hora em que a pessoa escolhe (para ler e depois enviar). */
 export async function subirArquivos(files: File[], onStep?: (t: string) => void): Promise<Arquivo[]> {
   if (!CLOUD) return files.map((f) => ({ path: '', nome: f.name, tipo: f.type }))
@@ -152,6 +165,8 @@ export async function cadastrar(m: Omit<Morador, 'id'> & { id?: string }): Promi
     })
     return id
   }
+  const novo = await sb().rpc('ape_cadastro3', { p_id: m.id || null, p_nome: m.nome, p_condominio: m.condominio || APE.condominio, p_torre: m.torre, p_ap: m.ap, p_tel: m.tel, p_junto: !!m.moraJunto })
+  if (!novo.error) return String(novo.data)
   const { data, error } = await sb().rpc('ape_cadastro2', { p_id: m.id || null, p_nome: m.nome, p_condominio: m.condominio || APE.condominio, p_torre: m.torre, p_ap: m.ap, p_tel: m.tel })
   if (!error) return String(data)
   // banco ainda sem a atualização: cadastro antigo (só San Levi)
@@ -326,6 +341,15 @@ export const admin = {
     const { data, error } = await sb().storage.from('ape-envios').download(a.path)
     fail(error)
     return data
+  },
+  async escolhas(): Promise<{ orcamento: string; nicho: string; morador: Morador | null }[]> {
+    if (!CLOUD) {
+      const l = readLocal()
+      return (l.escolhas || []).map((e) => ({ orcamento: e.orcamento, nicho: e.nicho, morador: l.moradores.find((m) => m.id === e.morador) ?? null }))
+    }
+    const { data, error } = await sb().from('ape_escolhas').select('*, pessoa:ape_moradores(*)')
+    if (error) return []
+    return (data ?? []).map((r) => ({ orcamento: String(r.orcamento), nicho: String(r.nicho), morador: moradorOf(r.pessoa as Record<string, unknown> | null) }))
   },
   async interesses(): Promise<Interesse[]> {
     if (!CLOUD) {

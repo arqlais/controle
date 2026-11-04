@@ -219,6 +219,7 @@ const APE_DEFAULT: Record<string, { nome: string; preco: string; cat: string; co
   compra: { nome: 'Guia de compra do apê na planta', preco: '19,90', cat: 'arquivos' },
   'planilha-compra': { nome: 'Planilha de custos da compra', preco: '19,90', cat: 'arquivos' },
   decorado: { nome: 'Checklist do decorado e documentos', preco: '12,90', cat: 'arquivos' },
+  plataforma: { nome: 'Plataforma do apê (1 ano)', preco: '79,00', cat: 'plataforma' },
   'kit-compra': { nome: 'Kit vou comprar meu apê', preco: '34,90', cat: 'combos', combo: ['compra', 'planilha-compra', 'decorado'] },
   'kit-chaves': { nome: 'Kit chaves na mão', preco: '34,90', cat: 'combos', combo: ['checklist', 'entregas', 'mudanca'] },
   'kit-obra': { nome: 'Kit obra sem susto', preco: '39,90', cat: 'combos', combo: ['planilha', 'guia', 'medidas'] },
@@ -233,8 +234,8 @@ async function apeLoja() {
   const { data } = await db.from('ape_ajustes').select('data').eq('id', 1).maybeSingle()
   const a = (data?.data ?? {}) as Record<string, any>
   const map: Record<string, { nome: string; preco: number; cat: string; combo: string[] }> = {}
-  const saved = Number(a.lojaV ?? 0) >= 4 && Array.isArray(a.produtos) ? (a.produtos as Record<string, any>[]) : null
-  if (saved) for (const p of saved) if (p.ativo !== false && (p.cat === 'arquivos' || p.cat === 'combos')) map[p.id] = { nome: String(p.nome), preco: reais(p.preco), cat: p.cat, combo: Array.isArray(p.combo) ? p.combo : [] }
+  const saved = Number(a.lojaV ?? 0) >= 5 && Array.isArray(a.produtos) ? (a.produtos as Record<string, any>[]) : null
+  if (saved) for (const p of saved) if (p.ativo !== false && (p.cat === 'arquivos' || p.cat === 'combos' || p.cat === 'plataforma')) map[p.id] = { nome: String(p.nome), preco: reais(p.preco), cat: p.cat, combo: Array.isArray(p.combo) ? p.combo : [] }
   if (!saved) for (const [id, p] of Object.entries(APE_DEFAULT)) map[id] = { nome: p.nome, preco: reais(p.preco), cat: p.cat, combo: p.combo ?? [] }
   const tiers = Array.isArray(a.descontos) && a.descontos.length ? (a.descontos as [number, number][]) : APE_TIERS
   return { map, tiers }

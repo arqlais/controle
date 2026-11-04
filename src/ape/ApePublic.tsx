@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
 import { type Arquivo } from './model'
-import { cadastrar, criarPedido, enviar, escolher, lerAnexos, subirArquivos, loadPublico, meusEnvios, pedidosLocais, verPedido, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
+import { cadastrar, criarPedido, enviar, escolher, lerAnexos, mesmoAp, subirArquivos, loadPublico, meusEnvios, pedidosLocais, verPedido, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -91,8 +91,14 @@ export function ApePublic({ sub }: { sub?: string }) {
     setEditing(false)
   }
 
+  // loja, checkout e pedido: página de vendas aberta a todos; orçamentos e envio: só moradores do San Levi
+  const publico = view === 'loja' || view === 'checkout' || view === 'pedido'
+  const morador = !!me && ehSanLevi(me)
   return (
-    <div className="ape">
+    <div className={`ape ${publico ? 'ape-publico' : ''}`}>
+      {publico ? (
+        <ShopNav morador={morador || owner} />
+      ) : (
       <header className="ape-top">
         <div className="wrap">
           <div className="ape-brand">
@@ -102,7 +108,7 @@ export function ApePublic({ sub }: { sub?: string }) {
                 <h1>
                   planê<span>.apê</span>
                 </h1>
-                <small>orçamentos lado a lado · {APE.instagram}</small>
+                <small>orçamentos do {APE.condominio} · só moradores</small>
               </div>
             </a>
             {me && (
@@ -124,7 +130,7 @@ export function ApePublic({ sub }: { sub?: string }) {
               <ApeIcon name="send" />
               Enviar orçamento
             </a>
-            <a href={href('ape', 'loja')} aria-current={view === 'loja' || view === 'checkout' ? 'page' : undefined}>
+            <a href={href('ape', 'loja')}>
               <ApeIcon name="bag" />
               Loja do apê
             </a>
@@ -137,6 +143,7 @@ export function ApePublic({ sub }: { sub?: string }) {
           </nav>
         </div>
       </header>
+      )}
       <main className="wrap ape-main">
         {d === undefined ? (
           <div className="ape-panel ape-empty">
@@ -170,7 +177,7 @@ export function ApePublic({ sub }: { sub?: string }) {
           <Loja key={abrir || 'loja'} produtos={d.ajustes.produtos} me={me} whats={whats} abrir={abrir} tiers={d.ajustes.descontos || DESCONTOS} />
         )}
       </main>
-      <nav className="ape-bnav" aria-label="Seções">
+      {(!publico || morador) && <nav className="ape-bnav" aria-label="Seções">
         <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>
           <ApeIcon name="list" />
           orçamentos
@@ -190,13 +197,49 @@ export function ApePublic({ sub }: { sub?: string }) {
             painel
           </a>
         )}
-      </nav>
+      </nav>}
       <p className="ape-foot">
         <b>{APE.name}</b> · Os orçamentos são enviados por quem está montando o apê e aparecem como foram recebidos. A página só organiza e compara: confira valores, prazos e condições direto com o fornecedor antes de fechar. Não temos vínculo com os fornecedores nem participamos das negociações.
       </p>
-      {!owner && view !== 'pedido' && (!me || editing) && <Cadastro me={me} onDone={onCadastro} onCancel={me ? () => setEditing(false) : undefined} />}
+      {!owner && !publico && (!me || editing) && <Cadastro me={me} onDone={onCadastro} onCancel={me ? () => setEditing(false) : undefined} />}
       {toast}
     </div>
+  )
+}
+
+/* ===== menu da página de vendas (loja aberta a todos) ===== */
+function ShopNav({ morador }: { morador: boolean }) {
+  const cart = useCarrinho()
+  const n = cart.ids.length
+  const ir = (id: string) => {
+    if (!location.hash.startsWith('#/ape/loja')) location.hash = '#/ape/loja'
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+  }
+  return (
+    <header className="ape-top ape-shopnav">
+      <div className="wrap ape-brand">
+        <a className="ape-logo" href={href('ape', 'loja')} aria-label={`${APE.name}: loja`}>
+          <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+          <div>
+            <h1>
+              planê<span>.apê</span>
+            </h1>
+            <small>do contrato às chaves</small>
+          </div>
+        </a>
+        <nav className="ape-shoplinks" aria-label="Loja">
+          <button onClick={() => ir('loja-arquivos')}>arquivos</button>
+          <button onClick={() => ir('loja-combos')}>kits</button>
+          <button onClick={() => ir('loja-plataforma')}>plataforma</button>
+          <button onClick={() => ir('loja-duvidas')}>dúvidas</button>
+          {morador && <a href={href('ape')}>área do {APE.condominio}</a>}
+        </nav>
+        <a className="ape-btn primary sm ape-cartbtn" href={href('ape', 'loja:carrinho')} onClick={() => window.dispatchEvent(new Event('ape-abrir-carrinho'))} aria-label={`Carrinho com ${n} itens`}>
+          <ApeIcon name="bag" />
+          carrinho{n ? <em>{n}</em> : null}
+        </a>
+      </div>
+    </header>
   )
 }
 
@@ -539,8 +582,8 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
 
 /* convite para os vizinhos: compartilhar do celular ou mandar no WhatsApp */
 // link direto para os moradores (abre a página deles, não o site do planê)
-const LINK = 'https://useplane.com.br/ape/'
-const CONVITE = `Olha que legal: uma página com orçamentos de quem está montando o apê (piso, marcenaria, box…), lado a lado, e compras em grupo com desconto. Manda os seus também 🏡`
+const LINK = 'https://useplane.com.br/ape/sanlevi/'
+const CONVITE = `Vizinho(a) do ${APE.condominio}! Estou usando esta página para comparar os orçamentos do apê (piso, marcenaria, box…) e escolher com quem fechar. Manda os seus também 🏡`
 function Compartilhar() {
   const share = async () => {
     try {
@@ -782,14 +825,23 @@ const CARRINHO = 'ape-carrinho'
 type Carrinho = { ids: string[]; add: (id: string) => void; remove: (id: string) => void; limpar: () => void; tem: (id: string) => boolean }
 function useCarrinho(): Carrinho {
   const [ids, setIds] = useState<string[]>(() => read<string[]>(CARRINHO) || [])
+  // vários pedaços da página usam o carrinho (menu, loja, checkout): todos ficam iguais
   useEffect(() => {
-    write(CARRINHO, ids)
-  }, [ids])
+    const sync = () => setIds(read<string[]>(CARRINHO) || [])
+    window.addEventListener('ape-carrinho', sync)
+    return () => window.removeEventListener('ape-carrinho', sync)
+  }, [])
+  const mudar = (fn: (l: string[]) => string[]) => {
+    const next = fn(read<string[]>(CARRINHO) || [])
+    write(CARRINHO, next)
+    setIds(next)
+    window.dispatchEvent(new Event('ape-carrinho'))
+  }
   return {
     ids,
-    add: (id) => setIds((l) => (l.includes(id) ? l : [...l, id])),
-    remove: (id) => setIds((l) => l.filter((x) => x !== id)),
-    limpar: () => setIds([]),
+    add: (id) => mudar((l) => (l.includes(id) ? l : [...l, id])),
+    remove: (id) => mudar((l) => l.filter((x) => x !== id)),
+    limpar: () => mudar(() => []),
     tem: (id) => ids.includes(id),
   }
 }
@@ -811,6 +863,11 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
   ].filter((x) => ativos.some(x.f))
   const tot = conta(cart.ids, produtos, tiers)
   useEffect(() => {
+    const abrirCarrinho = () => setVerCarrinho(true)
+    window.addEventListener('ape-abrir-carrinho', abrirCarrinho)
+    return () => window.removeEventListener('ape-abrir-carrinho', abrirCarrinho)
+  }, [])
+  useEffect(() => {
     document.body.style.overflow = aberto || verCarrinho ? 'hidden' : ''
     return () => {
       document.body.style.overflow = ''
@@ -828,23 +885,92 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
         <span>Os produtos aparecem aqui assim que forem lançados.</span>
       </div>
     )
+  const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const kitTop = ativos.find((p) => p.cat === 'combos' && p.destaque)
+  const plat = ativos.find((p) => p.cat === 'plataforma')
+  const secoesLoja = secoes.filter((x) => x.id !== 'plataforma')
+  const vitrine = ['m-compra.jpg', 'm-planilha.jpg', 'm-checklist.jpg'].map((f) => `ape/amostras/${f}`)
   return (
     <>
-      <section className="ape-panel ape-hero ape-shop-hero">
-        <div>
-          <p className="ape-eyebrow">loja do apê</p>
+      {/* capa: como a página de vendas do planê */}
+      <section className="ape-lp-hero">
+        <div className="ape-blobs" aria-hidden="true"><i /><i /><i /></div>
+        <div className="ape-lp-text">
+          <p className="ape-kicker"><span className="ape-dot" />para quem vai comprar ou já comprou casa ou apê</p>
           <h2>
             do contrato às chaves, <em>sem susto</em>
           </h2>
-          <p>Guias, checklists e planilhas para quem vai comprar e para quem já comprou um apê compacto, feitos por uma estudante de arquitetura (9º semestre) que também está montando o dela. Quanto mais arquivos, maior o desconto.</p>
+          <p className="ape-lead">Guias, checklists e planilhas prontos para cada etapa: comprar, receber as chaves, fazer a obra, mudar e decorar. Para casa ou apê de qualquer tamanho.</p>
+          <div className="ape-acts">
+            <button className="ape-btn primary" onClick={() => ir('loja-arquivos')}><ApeIcon name="bag" />ver os arquivos</button>
+            {kitTop && <button className="ape-btn" onClick={() => setAberto(kitTop)}><ApeIcon name="gift" />{kitTop.nome} · {kitTop.preco}</button>}
+          </div>
           <div className="ape-trust">
-            <span><ApeIcon name="shield" />pagamento seguro, Pix ou cartão</span>
+            <span><ApeIcon name="shield" />Pix ou cartão</span>
             <span><ApeIcon name="download" />baixa na hora</span>
             <span><ApeIcon name="check" />7 dias de garantia</span>
           </div>
         </div>
+        <div className="ape-lp-art" aria-hidden="true">
+          {vitrine.map((src, i) => <img key={src} src={src} alt="" className={`ape-lp-card c${i}`} />)}
+          <span className="ape-float f0"><ApeArt name="vistoria" size={54} /></span>
+          <span className="ape-float f1"><ApeArt name="calculo" size={50} tone="sec" /></span>
+          <span className="ape-float f2"><ApeArt name="mudanca" size={48} /></span>
+        </div>
+      </section>
+
+      <div className="ape-marquee" aria-hidden="true">
+        <div className="ape-marquee-track">
+          {[0, 1].map((k) => (
+            <span key={k}>
+              {['checklist de vistoria', 'planilha de custos da compra', 'guia de medidas', 'planilha de obra', 'guia de orçamentos', 'lista da mudança', 'planner de decoração', 'checklist do decorado', 'planilha do enxoval'].map((t) => <b key={t}><ApeIcon name="check" />{t}</b>)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* quem fez */}
+      <section className="ape-story ape-panel">
+        <span className="ape-me-av">L</span>
+        <div>
+          <p className="ape-eyebrow">quem fez</p>
+          <p>Oi! Sou a Laís, estou me formando em arquitetura e montando o meu apê de {APE.meuApe}. Juntei aqui tudo o que eu precisei (e não achei pronto): o que perguntar antes de assinar, o que conferir na vistoria, quanto vai custar de verdade e como organizar a obra sem perder o controle.</p>
+          <p className="ape-note" style={{ margin: 0 }}>{APE.instagram}</p>
+        </div>
+      </section>
+
+      {/* as etapas */}
+      <section className="ape-journey">
+        <h3 className="ape-sec-t">em que etapa <em>você está?</em></h3>
+        <div className="ape-journey-grid">
+          {[
+            ['contrato', 'vou comprar', 'Visita ao decorado, simulação, contrato e custos que ninguém conta.', 'comprando'],
+            ['vistoria', 'recebi as chaves', 'Vistoria cômodo por cômodo e o que fazer com cada problema.', 'comprei'],
+            ['planilha', 'vou fazer a obra', 'Orçamentos, medidas, gastos, parcelas e entregas dos fornecedores.', 'comprei'],
+            ['decoracao', 'mudança e decoração', 'Enxoval, mudança semana a semana e a cara do seu apê.', 'comprei'],
+          ].map(([arte, t, d, alvo], i) => (
+            <button key={t} className="ape-journey-i" onClick={() => { setCat(alvo); ir('loja-arquivos') }} style={{ animationDelay: `${i * 0.08}s` }}>
+              <span className="ape-journey-n">{i + 1}</span>
+              <ApeArt name={arte} size={60} tone={i % 2 ? 'sec' : 'pri'} />
+              <b>{t}</b>
+              <span>{d}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* desconto por quantidade */}
+      <section className="ape-panel ape-hero ape-shop-hero">
+        <div>
+          <h3 className="ape-sec-t">monte o seu kit: <em>quanto mais, menor o preço</em></h3>
+          <ol className="ape-how">
+            <li><ApeArt name="carrinho" size={46} /><span><b>1. escolha</b>arquivos avulsos ou um kit pronto</span></li>
+            <li><ApeArt name="grupo" size={46} tone="sec" /><span><b>2. junte mais</b>o desconto sobe sozinho no carrinho</span></li>
+            <li><ApeArt name="download" size={46} /><span><b>3. pague e baixe</b>Pix ou cartão, e já baixa</span></li>
+          </ol>
+        </div>
         <div className="ape-ladder" aria-label="Desconto por quantidade">
-          <b>monte seu kit</b>
+          <b>desconto nos arquivos</b>
           {tiers.map(([k, v]) => (
             <div key={k} className={tot.avulsos >= k ? 'on' : ''}>
               <span>{k}{k === tiers[tiers.length - 1][0] ? '+' : ''} arquivos</span>
@@ -854,23 +980,20 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
           <span className="ape-note">{tot.prox ? `Você tem ${tot.avulsos} no carrinho. Falta${tot.prox[0] - tot.avulsos > 1 ? 'm' : ''} ${tot.prox[0] - tot.avulsos} para −${tot.prox[1]}%.` : `Desconto máximo de ${tot.pct}% liberado!`}</span>
         </div>
       </section>
-      <ol className="ape-how">
-        <li><ApeArt name="carrinho" size={46} /><span><b>1. escolha</b>arquivos avulsos ou um kit</span></li>
-        <li><ApeArt name="grupo" size={46} tone="sec" /><span><b>2. junte mais</b>2 arquivos: −10% · 4: −20%</span></li>
-        <li><ApeArt name="download" size={46} /><span><b>3. pague e baixe</b>Pix ou cartão, na hora</span></li>
-      </ol>
+
+      <div id="loja-arquivos" className="ape-anchor" />
       <div className="ape-chips" role="group" aria-label="Filtrar a loja">
         <button className="ape-chip" aria-pressed={cat === 'todos'} onClick={() => setCat('todos')}>tudo</button>
-        {secoes.map((x) => (
+        {secoesLoja.map((x) => (
           <button key={x.id} className="ape-chip" aria-pressed={cat === x.id} onClick={() => setCat(x.id)}>
             {x.id === 'comprando' ? 'vou comprar' : x.id === 'comprei' ? 'já comprei' : x.l}
           </button>
         ))}
       </div>
-      {secoes
+      {secoesLoja
         .filter((x) => cat === 'todos' || cat === x.id)
         .map((x) => (
-          <section key={x.id} className="ape-nicho ape-reveal" aria-label={x.l}>
+          <section key={x.id} id={`loja-${x.id}`} className="ape-nicho ape-reveal" aria-label={x.l}>
             <div className="ape-nhead ape-nhead-art">
               <ApeArt name={x.arte} size={52} />
               <div>
@@ -878,7 +1001,7 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
                 <span className="ape-note">{x.d}</span>
               </div>
             </div>
-            {x.id === 'plataforma' || x.id === 'projeto' ? <Vitrine cat={x.id as Categoria} /> : null}
+            {x.id === 'projeto' ? <Vitrine cat="projeto" /> : null}
             <div className="ape-shop">
               {ativos.filter(x.f).map((p) => (
                 <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} cart={cart} onAdd={adicionar} produtos={produtos} />
@@ -886,18 +1009,51 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
             </div>
           </section>
         ))}
-      <MeusPedidos />
-      <aside className="ape-cta">
+
+      {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} />}
+
+      {/* garantia e dúvidas */}
+      <section className="ape-panel ape-garantia">
+        <ApeArt name="entregas" size={72} tone="sec" />
         <div>
-          <span className="k">dúvida?</span>
-          <h3>Fale no WhatsApp</h3>
-          <p>Para saber o que vem em cada arquivo, montar um kit do seu jeito ou entender como funciona o projeto.</p>
+          <h3 className="ape-sec-t">7 dias de <em>garantia</em></h3>
+          <p className="ape-note" style={{ margin: 0 }}>Comprou e não era o que esperava? Em até 7 dias depois do pagamento você pede o dinheiro de volta pelo WhatsApp (art. 49 do Código de Defesa do Consumidor).</p>
         </div>
-        <a className="ape-btn" href={wa(whats, `Oi! Sou ${me ? me.nome : 'uma pessoa que está montando o apê'}. Tenho uma dúvida sobre a loja do apê.`)} target="_blank" rel="noopener noreferrer">
-          <ApeIcon name="chat" />
-          chamar no WhatsApp
-        </a>
-      </aside>
+      </section>
+      <section className="ape-faq" id="loja-duvidas">
+        <h3 className="ape-sec-t">dúvidas <em>frequentes</em></h3>
+        {[
+          ['Serve para casa? E para apê de outro tamanho?', 'Serve. Os materiais foram pensados para casa ou apê de qualquer tamanho; quando aparece um exemplo com medidas, é de um apê de 40 m², e você troca pelos seus números.'],
+          ['Como eu recebo os arquivos?', 'Assim que o Pix ou o cartão é confirmado, a página do pedido mostra os botões de baixar. O link fica guardado para baixar de novo depois.'],
+          ['Abre no celular?', 'Sim. Os PDFs abrem no celular, no tablet e no computador (e dá para imprimir). As planilhas abrem no Excel e no Google Planilhas, também pelo celular.'],
+          ['Posso pagar no cartão?', 'Pode: Pix ou cartão de crédito, em até 3x sem juros a partir de R$ 60.'],
+          ['Como funciona o desconto?', 'Ele é automático: com 2 arquivos avulsos no carrinho você ganha 10%, com 3 ganha 15%, com 4 ganha 20% e com 6 ou mais, 25%. Os kits já têm preço fechado, ainda menor.'],
+          ['Posso compartilhar com quem mora comigo?', 'Pode usar com a sua família, na sua casa. O que não pode é repassar, revender ou postar os arquivos.'],
+          ['Substitui um profissional?', 'Não. São guias práticos para você se organizar e não errar no básico. Para obra, contrato e financiamento, conte com profissionais e com o seu banco.'],
+        ].map(([q, r]) => (
+          <details key={q} className="ape-faq-i">
+            <summary>{q}<ApeIcon name="chev" /></summary>
+            <p>{r}</p>
+          </details>
+        ))}
+      </section>
+
+      <section className="ape-final">
+        <div>
+          <h3>comece pelo <em>kit completo</em></h3>
+          <p>{kitTop ? `${(kitTop.combo || []).length} arquivos, da compra à decoração, por ${kitTop.preco}.` : 'Todos os arquivos, da compra à decoração.'}</p>
+        </div>
+        {kitTop && (
+          <button className="ape-btn" onClick={() => adicionar(kitTop)}>
+            <ApeIcon name="plus" />
+            {cart.tem(kitTop.id) ? 'no carrinho' : 'adicionar ao carrinho'}
+          </button>
+        )}
+      </section>
+      <MeusPedidos />
+      <p className="ape-note" style={{ textAlign: 'center', margin: 0 }}>
+        dúvida? <a href={wa(whats, `Oi! Tenho uma dúvida sobre a loja do planê.apê.`)} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--a-pri)', fontWeight: 600 }}>fale no WhatsApp</a>
+      </p>
       {cart.ids.length > 0 && !verCarrinho && (
         <button className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
           <ApeIcon name="bag" />
@@ -915,6 +1071,52 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
   )
 }
 
+/* plataforma do apê: uma seção grande, que explica tudo */
+function PlataformaSec({ p, cart, onAdd, me, whats }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
+  const recursos: [string, string, string][] = [
+    ['planilha', 'gastos por cômodo', 'Quanto planejou, quanto já gastou e quanto falta, com as notas de cada compra.'],
+    ['calculo', 'parcelas do mês', 'Todas as parcelas somadas mês a mês, para não ter surpresa no cartão.'],
+    ['projeto3d', 'obra passo a passo', 'As etapas na ordem certa, com datas, fornecedor e o que já foi feito.'],
+    ['vistoria', 'vistoria com fotos', 'Marque cada item, tire fotos dos problemas e gere o resumo para a construtora.'],
+    ['grupo', 'contatos da obra', 'Fornecedores e prestadores com WhatsApp a um toque.'],
+    ['celular', 'celular e computador', 'É um site: abre em qualquer aparelho, sem instalar nada.'],
+  ]
+  return (
+    <section className="ape-plat" id="loja-plataforma">
+      <div className="ape-plat-head">
+        <p className="ape-eyebrow">plataforma do apê</p>
+        <h3 className="ape-sec-t">a sua casa toda organizada <em>num lugar só</em></h3>
+        <p className="ape-lead">Um site para acompanhar a compra, a obra e a mudança da sua casa ou apê: gastos, parcelas, obra, vistoria e contatos, no celular e no computador.</p>
+      </div>
+      <div className="ape-plat-grid">
+        <img src="ape/amostras/m-plataforma.jpg" alt="Telas de exemplo da plataforma do apê: gastos, obra passo a passo e vistoria com fotos" loading="lazy" />
+        <div className="ape-plat-feats">
+          {recursos.map(([a, t, d]) => (
+            <div key={t} className="ape-plat-f">
+              <ApeArt name={a} size={40} />
+              <span><b>{t}</b>{d}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="ape-plat-buy">
+        <div>
+          <span className="ape-note">acesso por 12 meses</span>
+          <div className="ape-price">{p.preco}<small> por ano</small></div>
+          <span className="ape-pill azul ape-keep">pagamento único · sem mensalidade</span>
+        </div>
+        <ol className="ape-plat-steps">
+          <li><b>1</b>Você paga uma vez (Pix ou cartão)</li>
+          <li><b>2</b>Recebe o acesso no WhatsApp em até 24 h</li>
+          <li><b>3</b>Usa no celular e no computador por 1 ano</li>
+        </ol>
+        <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
+      </div>
+      <span className="ape-note">Telas ilustrativas.</span>
+    </section>
+  )
+}
+
 const somaAvulsos = (p: Produto, byId: (id: string) => Produto | undefined) => (p.combo || []).reduce((t, id) => t + (reais(byId(id)?.preco) || 0), 0)
 
 function Preco({ p, byId }: { p: Produto; byId: (id: string) => Produto | undefined }) {
@@ -923,7 +1125,7 @@ function Preco({ p, byId }: { p: Produto; byId: (id: string) => Produto | undefi
   const de = p.combo?.length && soma ? brl(soma) : p.preco_de && /^R\$/.test(p.preco_de) && /^R\$/.test(p.preco) && !p.unidade ? p.preco_de : ''
   return (
     <div className="ape-price">
-      {de && <s className="ape-de">{de} separados</s>}
+      {de && <s className="ape-de">{de}{p.combo?.length ? " separados" : ""}</s>}
       {p.preco ? (
         <>
           {p.preco}
@@ -1028,7 +1230,7 @@ function Vitrine({ cat }: { cat: Categoria }) {
     <div className="ape-vit">
       <img src="ape/amostras/m-projeto.jpg" alt="Imagem 3D de um projeto de apê compacto: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
       <div className="ape-vit-t">
-        <b>exemplo real: um apê de {APE.apes}</b>
+        <b>exemplo real: um apê de {APE.meuApe}</b>
         <ul className="ape-inc">
           <li><ApeIcon name="check" />Marcenaria azul na cozinha, parede terracota e piso em espinha de peixe</li>
           <li><ApeIcon name="check" />Mesa de jantar no lugar certo, sem atrapalhar a passagem</li>
@@ -1378,7 +1580,7 @@ function TermosLoja({ onClose, onAccept }: { onClose: () => void; onAccept: () =
           <ol className="ape-termos">
             <li><b>O que você compra.</b> Arquivos digitais (PDF e planilhas) para uso pessoal, no seu apê. A entrega é pelo botão de baixar que aparece depois que o pagamento é confirmado.</li>
             <li><b>Uso pessoal.</b> Os arquivos não podem ser revendidos, repassados, publicados ou compartilhados em grupos. Indique a página para quem quiser também.</li>
-            <li><b>Conteúdo informativo.</b> Os materiais são guias práticos feitos por uma estudante de arquitetura. Não substituem a avaliação de um profissional habilitado (arquiteto ou engenheiro) nem as orientações da construtora e do manual do proprietário.</li>
+            <li><b>Conteúdo informativo.</b> Os materiais são guias práticos. Não substituem a avaliação de um profissional habilitado (arquiteto ou engenheiro) nem as orientações da construtora e do manual do proprietário.</li>
             <li><b>Pagamento.</b> Pix ou cartão, processado pelo Asaas. Os dados do cartão são digitados só na página segura do Asaas.</li>
             <li><b>Arrependimento.</b> Você pode pedir o dinheiro de volta em até 7 dias depois do pagamento (art. 49 do Código de Defesa do Consumidor), pelo WhatsApp.</li>
             <li><b>Problemas para baixar.</b> Fale no WhatsApp: enviamos os arquivos por lá.</li>
@@ -1484,12 +1686,26 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
   const [tel, setTel] = useState(me?.tel ? fmtTel(me.tel) : '')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  // mesmo apê com outro nome: pergunta se mora junto (mostra só o primeiro nome e a inicial)
+  const [outros, setOutros] = useState<string[]>([])
+  const [junto, setJunto] = useState<boolean | null>(me?.moraJunto ? true : null)
+  useEffect(() => {
+    if (!sl || !torre.trim() || !ap.trim()) return setOutros([])
+    const t = window.setTimeout(() => {
+      mesmoAp(torre, ap, me?.id).then((l) => {
+        setOutros(l)
+        if (!l.length) setJunto(null)
+      }, () => setOutros([]))
+    }, 500)
+    return () => window.clearTimeout(t)
+  }, [sl, torre, ap])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    const m = { nome: nome.trim().replace(/\s+/g, ' '), condominio: sl ? APE.condominio : cond.trim(), torre: sl ? torre.trim() : '', ap: sl ? ap.trim() : '', tel: digits(tel) }
+    const m = { nome: nome.trim().replace(/\s+/g, ' '), condominio: sl ? APE.condominio : cond.trim(), torre: sl ? torre.trim() : '', ap: sl ? ap.trim() : '', tel: digits(tel), moraJunto: !!(outros.length && junto) }
     if (m.nome.split(' ').length < 2) return setErr('Coloque o nome completo.')
     if (sl && (!m.torre || !m.ap)) return setErr('Coloque a torre e o apê.')
+    if (sl && outros.length && junto !== true) return setErr(junto === false ? 'Confira a torre e o apê.' : `Este apê já tem cadastro (${outros.join(', ')}). Confirme se você mora junto.`)
     if (m.tel.length < 10 || m.tel.length > 13) return setErr('Coloque o WhatsApp com DDD.')
     setErr('')
     setBusy(true)
@@ -1531,7 +1747,21 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
               <input id="g-ap" inputMode="numeric" value={ap} onChange={(e) => setAp(e.target.value)} />
             </div>
           </div>
-        ) : (
+        ) : null}
+        {sl && outros.length > 0 && (
+          <div className="ape-junto" role="group" aria-label="Mesmo apê">
+            <ApeArt name="grupo" size={40} tone="sec" />
+            <div>
+              <b>Este apê já tem cadastro: {outros.join(', ')}</b>
+              <span>Você mora junto{outros.length > 1 ? ' com essas pessoas' : ''}?</span>
+              <div className="ape-acts">
+                <button type="button" className={`ape-btn sm ${junto === true ? 'primary' : ''}`} onClick={() => setJunto(true)}>sim, moro junto</button>
+                <button type="button" className={`ape-btn sm ${junto === false ? 'rose' : ''}`} onClick={() => { setJunto(false); setAp('') }}>não, errei o apê</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {sl ? null : (
           <div className="ape-f">
             <label htmlFor="g-cond">Condomínio ou bairro (opcional)</label>
             <input id="g-cond" value={cond} onChange={(e) => setCond(e.target.value)} placeholder="Ex.: Residencial Jardim, Mooca" />
