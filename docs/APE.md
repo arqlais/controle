@@ -4,6 +4,7 @@ Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo có
 
 ## Endereços
 
+- **Link para divulgar:** `useplane.com.br/ape` (abre direto a página dos moradores, com prévia própria no WhatsApp; não passa pelo site do planê). Para instalar no celular, o ícone também abre direto nos orçamentos.
 - **Moradores:** `useplane.com.br/#/ape` (abas `#/ape/enviar` e `#/ape/loja`). Sem login: na primeira vez a pessoa informa nome completo, torre, apê e telefone.
 - **Dona:** no planê, menu **plataforma → planê.apê** (`#/ape-admin`). Logada no planê, a dona também vê os exemplos e os ocultos na página dos moradores.
 
@@ -24,6 +25,14 @@ A diferença em relação à página antiga (Artifact): agora os moradores **gra
 1. Supabase → **SQL Editor → New query**: cole `supabase/ape.sql` e clique em **Run** (depois do `plataforma.sql`, que já está rodado).
 2. Publique (push para `main` e `plataforma`).
 3. Abra o painel → **Orçamentos** → "Colocar 3 exemplos" se quiser ver a página cheia antes dos reais.
+
+## Loja do apê
+
+Quatro seções: **arquivos úteis**, **combos**, **plataforma do apê** e **projeto do seu apê**. Cada item tem amostra (imagem com marca d'água), o que vem, formato, como recebe e preço; os combos mostram quanto economiza. A compra é pelo WhatsApp da Laís (Pix).
+
+Preços sugeridos (fictícios, editáveis em planê.apê → loja): checklist R$ 19,90 · planilha R$ 24,90 · guia de orçamentos R$ 14,90 · lista da mudança R$ 12,90 · kit chaves na mão R$ 27,90 · kit obra sem susto R$ 32,90 · kit apê novo completo R$ 49,90 · plataforma R$ 79/ano · consultoria R$ 149 · layout R$ 390 · projeto completo com 3D R$ 1.290.
+
+**Os arquivos pagos não ficam no site nem no GitHub** (o repositório é público): a Laís guarda os PDFs e a planilha e manda pelo WhatsApp depois do Pix. No site ficam só as amostras em `public/ape/amostras`.
 
 ## Segurança
 

@@ -71,7 +71,8 @@
 .ape-tabs .cnt, .ape-bnav .cnt { font-size: 10.5px; background: var(--a-pri-soft); color: var(--a-pri); border-radius: 999px; padding: 0 7px; font-weight: 600; }
 .ape-bnav { display: none; }
 
-.ape-main { padding-block: 22px 90px; display: grid; gap: 20px; }
+.ape-main { padding-block: 22px 90px; display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+.ape { overflow-x: clip; }
 .ape-panel { background: var(--a-card); border: 1px solid var(--a-line); border-radius: var(--a-radius); padding: 22px 24px; min-width: 0; box-shadow: var(--a-shadow); }
 .ape-eyebrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: lowercase; color: var(--a-pri); margin: 0 0 8px; }
 .ape-eyebrow::before { content: ''; width: 26px; height: 1.5px; background: currentColor; flex: none; }
@@ -194,6 +195,37 @@
 .ape-price { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--a-pri); line-height: 1.1; margin-top: auto; }
 .ape-price small { font-size: 12px; color: var(--a-muted); font-weight: 500; letter-spacing: 0; text-transform: lowercase; }
 
+/* loja: cartões com amostra, combos, vitrine e detalhes */
+.ape-prod.top { border: 1.5px solid var(--a-pri); }
+.ape-prod h3 { font-size: 17px; }
+.ape-thumb { position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; border: 0; padding: 0; border-radius: 14px; overflow: hidden; background: var(--a-sand); }
+.ape-thumb > img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; transition: transform 0.3s; }
+.ape-thumb:hover > img { transform: scale(1.03); }
+.ape-thumb-ic { position: absolute; inset: 0; display: grid; place-items: center; color: var(--a-pri); background: linear-gradient(135deg, var(--a-pri-soft), var(--a-sand)); }
+.ape-stack { position: absolute; inset: 0; }
+.ape-stack img { position: absolute; top: 12%; width: 48%; aspect-ratio: 3 / 4; object-fit: cover; object-position: top; border-radius: 8px; box-shadow: 0 10px 22px -10px rgba(43, 40, 38, 0.45); left: calc(8% + var(--i) * 21%); transform: rotate(calc((var(--i) - 1) * 5deg)); background: #fff; }
+.ape-ver { position: absolute; right: 8px; bottom: 8px; display: inline-flex; gap: 5px; align-items: center; background: color-mix(in srgb, var(--a-card) 92%, transparent); color: var(--a-pri); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; text-transform: lowercase; }
+.ape-inc { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 12.5px; }
+.ape-inc li { display: flex; gap: 7px; align-items: flex-start; }
+.ape-inc .ape-i { color: var(--a-pri); margin-top: 3px; }
+.ape-de { display: block; font-size: 12px; font-weight: 500; color: var(--a-muted); letter-spacing: 0; }
+.ape-vit { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: center; background: var(--a-card); border: 1px solid var(--a-line); border-radius: var(--a-radius); padding: 14px; box-shadow: var(--a-shadow); }
+.ape-vit img { width: 100%; border-radius: 12px; display: block; }
+.ape-vit-t { display: grid; gap: 8px; }
+.ape-vit-t b { font-size: 15px; }
+.ape-sheet { position: fixed; inset: 0; z-index: 45; background: color-mix(in srgb, var(--a-ink) 40%, transparent); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
+.ape-sheet-in { position: relative; background: var(--a-card); border-radius: 24px; width: min(620px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; box-shadow: 0 40px 90px -30px rgba(43, 40, 38, 0.5); }
+.ape-sheet-b { padding: 18px 22px 22px; display: grid; gap: 12px; }
+.ape-x { position: absolute; top: 10px; right: 10px; z-index: 2; width: 38px; height: 38px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--a-card) 92%, transparent); display: grid; place-items: center; box-shadow: var(--a-shadow); }
+.ape-gal { position: relative; background: var(--a-sand); }
+.ape-gal img { width: 100%; max-height: 56vh; object-fit: contain; display: block; }
+.ape-dotsn { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 6px; }
+.ape-dotsn button { width: 26px; height: 6px; border-radius: 9px; border: 0; background: color-mix(in srgb, var(--a-ink) 25%, transparent); padding: 0; }
+.ape-dotsn button[aria-pressed='true'] { background: var(--a-pri); }
+.ape .ape-keep { text-transform: none; }
+.ape-row-btn { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--a-line); text-align: left; cursor: pointer; }
+.ape-row-btn:hover b { color: var(--a-pri); }
+
 /* formulários: como os campos do planê (16 px no celular para o iPhone não dar zoom) */
 .ape-f { display: grid; gap: 7px; min-width: 0; }
 .ape-f > label { font-size: 12px; font-weight: 600; text-transform: lowercase; color: var(--a-ink); }
@@ -266,6 +298,10 @@
   .ape-row { grid-template-columns: minmax(0, 1fr); }
   .ape-row .r { justify-content: flex-start; }
   .ape-cta .ape-btn { width: 100%; }
+  .ape-vit { grid-template-columns: minmax(0, 1fr); }
+  .ape-sheet { padding: 0; align-items: end; }
+  .ape-sheet-in { border-radius: 24px 24px 0 0; max-height: 92dvh; }
+  .ape-sheet-b { padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); }
   .ape-stat b { font-size: 22px; }
   .ape-me-ap { display: none; }
   .ape-me { max-width: none; flex: none; }

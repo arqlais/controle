@@ -1,0 +1,16 @@
+{
+  "name": "planê.apê · San Levi",
+  "short_name": "planê.apê",
+  "description": "Orçamentos dos futuros moradores do San Levi",
+  "start_url": "../#/ape",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#f5f1eb",
+  "theme_color": "#4e6472",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

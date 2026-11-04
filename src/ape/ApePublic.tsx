@@ -4,7 +4,7 @@ import { cadastrar, enviar, loadPublico, meusEnvios, queroGrupo, souDona, apeClo
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
-  type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  CATEGORIAS, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { markSvg } from '../components/PlaneMark'
 import './ape.css'
@@ -48,7 +48,8 @@ function useToast(): [ReactNode, (m: string) => void] {
 
 export function ApePublic({ sub }: { sub?: string }) {
   const route = useRoute()
-  const view: View = sub === 'enviar' || sub === 'loja' ? sub : 'orcamentos'
+  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : 'orcamentos'
+  const abrir = sub?.startsWith('loja:') ? sub.slice(5) : undefined
   const [d, setD] = useState<Publico | null | undefined>(undefined)
   const [owner, setOwner] = useState(false)
   const [me, setMe] = useState<Morador | null>(() => read<Morador>(CAD))
@@ -57,8 +58,18 @@ export function ApePublic({ sub }: { sub?: string }) {
 
   useEffect(() => {
     document.title = `${APE.name} · orçamentos ${APE.condominio}`
+    // "adicionar à tela de início" abre direto a página dos moradores, com o ícone do planê.apê
+    const swap = (sel: string, attr: string, val: string) => {
+      const el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(sel)
+      if (!el) return () => undefined
+      const old = el.getAttribute(attr) || ''
+      el.setAttribute(attr, val)
+      return () => el.setAttribute(attr, old)
+    }
+    const undo = [swap('link[rel="manifest"]', 'href', 'ape/manifest.webmanifest'), swap('link[rel="apple-touch-icon"]', 'href', 'ape/icon-180.png'), swap('meta[name="apple-mobile-web-app-title"]', 'content', 'planê.apê')]
     loadPublico().then(setD, () => setD(null))
     souDona().then(setOwner, () => setOwner(false))
+    return () => undo.forEach((f) => f())
   }, [])
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -138,7 +149,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         ) : view === 'enviar' ? (
           <Enviar me={me} whats={whats} />
         ) : (
-          <Loja produtos={d.ajustes.produtos} me={me} whats={whats} />
+          <Loja key={abrir || 'loja'} produtos={d.ajustes.produtos} me={me} whats={whats} abrir={abrir} />
         )}
       </main>
       <nav className="ape-bnav" aria-label="Seções">
@@ -163,8 +174,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         )}
       </nav>
       <p className="ape-foot">
-        {APE.name} · feito por quem também está montando o apê no {APE.condominio} ·{' '}
-        <a href="https://useplane.com.br" target="_blank" rel="noreferrer">useplane.com.br</a>
+        {APE.name} · feito por quem também está montando o apê no {APE.condominio}
       </p>
       {!owner && (!me || editing) && <Cadastro me={me} onDone={onCadastro} onCancel={me ? () => setEditing(false) : undefined} />}
       {toast}
@@ -462,7 +472,8 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
 }
 
 /* convite para os vizinhos: compartilhar do celular ou mandar no WhatsApp */
-const LINK = 'https://useplane.com.br/#/ape'
+// link direto para os moradores (abre a página deles, não o site do planê)
+const LINK = 'https://useplane.com.br/ape/'
 const CONVITE = `Oi, vizinho(a) do ${APE.condominio}! Estou usando esta página para comparar os orçamentos do apê (piso, marcenaria, box…) e fechar desconto em grupo. Manda os seus também 🏡`
 function Compartilhar() {
   const share = async () => {
@@ -494,9 +505,9 @@ function Lista({ cls, t, icon, itens }: { cls: string; t: string; icon: string; 
   )
 }
 
-function Cta({ nicho: n, produtos, me, whats }: { nicho: Nicho; produtos: Produto[]; me: Morador | null; whats: string }) {
+function Cta({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[]; me?: Morador | null; whats?: string }) {
   const ativos = produtos.filter((p) => p.ativo)
-  const p = ativos.find((p) => p.id === (CTA_BY[n] || 'checklist')) || ativos[0]
+  const p = ativos.find((p) => p.id === (CTA_BY[n] || (n === 'outros' ? 'kit-completo' : 'checklist'))) || ativos[0]
   if (!p) return null
   const copy = CTA_COPY[p.id] || ['Loja do apê', p.nome, p.desc]
   return (
@@ -506,9 +517,9 @@ function Cta({ nicho: n, produtos, me, whats }: { nicho: Nicho; produtos: Produt
         <h3>{copy[1]}</h3>
         <p>{copy[2]}</p>
       </div>
-      <a className="ape-btn" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
-        <ApeIcon name="bag" />
-        {p.preco ? `${p.preco} · ` : ''}quero
+      <a className="ape-btn" href={href('ape', `loja:${p.id}`)}>
+        <ApeIcon name="eye" />
+        {p.preco ? `${p.preco} · ` : ''}ver como é
       </a>
     </aside>
   )
@@ -657,41 +668,259 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
 }
 
 /* ===== loja ===== */
-function Loja({ produtos, me, whats }: { produtos: Produto[]; me: Morador | null; whats: string }) {
+function Loja({ produtos, me, whats, abrir }: { produtos: Produto[]; me: Morador | null; whats: string; abrir?: string }) {
   const ativos = produtos.filter((p) => p.ativo)
+  const [cat, setCat] = useState<Categoria | 'todos'>('todos')
+  const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
+  const byId = (id: string) => produtos.find((p) => p.id === id)
+  const cats = CATEGORIAS.filter(([c]) => ativos.some((p) => (p.cat || 'arquivos') === c))
+  useEffect(() => {
+    document.body.style.overflow = aberto ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [aberto])
+  if (!ativos.length)
+    return (
+      <div className="ape-panel ape-empty">
+        <b>em breve</b>
+        <span>Os produtos aparecem aqui assim que forem lançados.</span>
+      </div>
+    )
   return (
     <>
-      <section className="ape-panel ape-hero" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+      <section className="ape-panel ape-hero">
         <div>
-          <p className="ape-eyebrow"><ApeIcon name="bag" />Loja do apê</p>
+          <p className="ape-eyebrow">loja do apê</p>
           <h2>
             feito por quem também está <em>montando o apê</em> no {APE.condominio}
           </h2>
-          <p>Materiais e serviços da {APE.dona} (arquitetura) e do Igor, do {APE.doApe}, pensados para os apês de {APE.apes} da {APE.construtora}. Toque em "quero" para falar no WhatsApp.</p>
+          <p>Materiais e projetos da {APE.dona} (arquiteta) e do Igor, do {APE.doApe}, pensados para os apês de {APE.apes} da {APE.construtora}. Toque num item para ver como ele é por dentro.</p>
         </div>
+        <ol className="ape-steps" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+          <li><b>1</b>Escolha o arquivo, combo ou projeto</li>
+          <li><b>2</b>Toque em "quero": abre o WhatsApp da {APE.dona}</li>
+          <li><b>3</b>Pague no Pix e receba na hora</li>
+        </ol>
       </section>
-      {ativos.length ? (
-        <div className="ape-shop">
-          {ativos.map((p) => (
-            <article key={p.id} className="ape-prod">
-              {p.tag && <span className="ape-pill terra" style={{ alignSelf: 'flex-start' }}>{p.tag}</span>}
-              <h3>{p.nome}</h3>
-              <p>{p.desc}</p>
-              <div className="ape-price">{p.preco ? p.preco : <small>Valor sob consulta</small>}</div>
-              <a className="ape-btn primary" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
-                <ApeIcon name="chat" />
-                quero
-              </a>
-            </article>
-          ))}
+      <div className="ape-chips" role="group" aria-label="Filtrar a loja">
+        <button className="ape-chip" aria-pressed={cat === 'todos'} onClick={() => setCat('todos')}>tudo</button>
+        {cats.map(([c, l, i]) => (
+          <button key={c} className="ape-chip" aria-pressed={cat === c} onClick={() => setCat(c)}>
+            <ApeIcon name={i} />
+            {l}
+          </button>
+        ))}
+      </div>
+      {cats
+        .filter(([c]) => cat === 'todos' || cat === c)
+        .map(([c, l, i, d]) => (
+          <section key={c} className="ape-nicho" aria-label={l}>
+            <div className="ape-nhead">
+              <span className="ape-nic"><ApeIcon name={i} /></span>
+              <div>
+                <h3>{l}</h3>
+                <span className="ape-note">{d}</span>
+              </div>
+            </div>
+            {c === 'plataforma' || c === 'projeto' ? <Vitrine cat={c} /> : null}
+            <div className="ape-shop">
+              {ativos
+                .filter((p) => (p.cat || 'arquivos') === c)
+                .map((p) => (
+                  <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} />
+                ))}
+            </div>
+          </section>
+        ))}
+      <aside className="ape-cta">
+        <div>
+          <span className="k">dúvida?</span>
+          <h3>Me chama no WhatsApp</h3>
+          <p>Conto o que vem em cada arquivo, monto um combo do seu jeito ou explico como funciona o projeto.</p>
         </div>
-      ) : (
-        <div className="ape-panel ape-empty">
-          <b>em breve</b>
-          <span>Os produtos aparecem aqui assim que forem lançados.</span>
-        </div>
-      )}
+        <a className="ape-btn" href={wa(whats, `Oi, ${APE.dona}! Sou ${me ? `${me.nome} (Torre ${me.torre}, apê ${me.ap})` : 'morador do ' + APE.condominio}. Tenho uma dúvida sobre a loja do apê.`)} target="_blank" rel="noopener noreferrer">
+          <ApeIcon name="chat" />
+          chamar a {APE.dona}
+        </a>
+      </aside>
+      {aberto && <Detalhe p={aberto} byId={byId} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} />}
     </>
+  )
+}
+
+const precoDe = (p: Produto) => (p.preco_de && /^R\$/.test(p.preco_de) && /^R\$/.test(p.preco) ? p.preco_de : '')
+const economia = (p: Produto, byId: (id: string) => Produto | undefined) => {
+  if (!p.combo?.length) return 0
+  const soma = p.combo.reduce((t, id) => t + (num(byId(id)?.preco) || 0), 0)
+  return Math.max(0, soma - (num(p.preco) || 0))
+}
+
+function Preco({ p, byId }: { p: Produto; byId: (id: string) => Produto | undefined }) {
+  const eco = economia(p, byId)
+  const de = precoDe(p)
+  return (
+    <div className="ape-price">
+      {de && <s className="ape-de">{de}</s>}
+      {p.preco ? (
+        <>
+          {p.preco}
+          {p.unidade && <small> {p.unidade}</small>}
+        </>
+      ) : (
+        <small>valor sob consulta</small>
+      )}
+      {p.preco_de && !de && <span className="ape-note" style={{ display: 'block' }}>ou {p.preco_de}</span>}
+      {eco > 0 && <span className="ape-pill rosa ape-keep" style={{ display: 'table', marginTop: 6 }}>economize {brl(eco)}</span>}
+    </div>
+  )
+}
+
+function ProdCard({ p, byId, onOpen, me, whats }: { p: Produto; byId: (id: string) => Produto | undefined; onOpen: () => void; me: Morador | null; whats: string }) {
+  const img = p.amostras?.[0]
+  return (
+    <article className={`ape-prod ${p.destaque ? 'top' : ''}`}>
+      <button className="ape-thumb" onClick={onOpen} aria-label={`Ver ${p.nome} por dentro`}>
+        {p.combo?.length ? (
+          <span className="ape-stack">
+            {(p.amostras || []).slice(0, 3).map((a, i) => (
+              <img key={a} src={a} alt="" loading="lazy" style={{ ['--i' as string]: i }} />
+            ))}
+          </span>
+        ) : img ? (
+          <img src={img} alt="" loading="lazy" />
+        ) : (
+          <span className="ape-thumb-ic"><ApeIcon name="chat" size={34} /></span>
+        )}
+        <span className="ape-ver"><ApeIcon name="eye" />ver por dentro</span>
+      </button>
+      <div className="ape-tags">
+        {p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
+        {p.formato && <span className="ape-pill ape-keep">{p.formato.split(' · ')[0]}</span>}
+      </div>
+      <h3>{p.nome}</h3>
+      <p>{p.desc}</p>
+      {p.combo?.length ? (
+        <ul className="ape-inc">
+          {p.combo.map((id) => byId(id)).filter(Boolean).map((x) => (
+            <li key={x!.id}><ApeIcon name="check" />{x!.nome}</li>
+          ))}
+          {(p.itens || []).map((x) => (
+            <li key={x}><ApeIcon name="plus" />{x.replace(/^\+\s*/, '')}</li>
+          ))}
+        </ul>
+      ) : null}
+      <Preco p={p} byId={byId} />
+      <div className="ape-acts">
+        <button className="ape-btn wide" onClick={onOpen}>ver detalhes</button>
+        <a className="ape-btn primary wide" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
+          <ApeIcon name="bag" />
+          quero
+        </a>
+      </div>
+    </article>
+  )
+}
+
+/* explicação visual de cada área (com as imagens de exemplo) */
+function Vitrine({ cat }: { cat: Categoria }) {
+  if (cat === 'plataforma')
+    return (
+      <div className="ape-vit">
+        <img src="ape/amostras/plataforma.jpg" alt="Telas de exemplo da plataforma do apê: gastos, obra passo a passo e vistoria com fotos" loading="lazy" />
+        <div className="ape-vit-t">
+          <b>como funciona</b>
+          <ul className="ape-inc">
+            <li><ApeIcon name="check" />Você anota cada compra e a plataforma soma tudo por cômodo</li>
+            <li><ApeIcon name="check" />As parcelas aparecem mês a mês, sem surpresa no cartão</li>
+            <li><ApeIcon name="check" />A obra fica em etapas, com data e o que já foi feito</li>
+            <li><ApeIcon name="check" />Na vistoria, você marca os itens, tira fotos e gera o resumo para a MRV</li>
+          </ul>
+          <span className="ape-note">Telas ilustrativas.</span>
+        </div>
+      </div>
+    )
+  return (
+    <div className="ape-vit">
+      <img src="ape/amostras/projeto-3d.jpg" alt="Imagem 3D do projeto do apê 1204: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
+      <div className="ape-vit-t">
+        <b>exemplo real: o {APE.doApe}</b>
+        <ul className="ape-inc">
+          <li><ApeIcon name="check" />Marcenaria azul da cozinha, parede terracota e piso em espinha de peixe</li>
+          <li><ApeIcon name="check" />Mesa de jantar no lugar certo, sem atrapalhar a passagem</li>
+          <li><ApeIcon name="check" />Tudo nas medidas do apê MRV de {APE.apes}</li>
+        </ul>
+        <span className="ape-note">Projeto da {APE.dona}, arquiteta, para o próprio apê.</span>
+      </div>
+    </div>
+  )
+}
+
+function Detalhe({ p, byId, me, whats, onClose, onOpen }: { p: Produto; byId: (id: string) => Produto | undefined; me: Morador | null; whats: string; onClose: () => void; onOpen: (p: Produto) => void }) {
+  const [i, setI] = useState(0)
+  const imgs = p.amostras || []
+  useEffect(() => {
+    setI(0)
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [p, onClose])
+  const filhos = (p.combo || []).map(byId).filter((x): x is Produto => !!x)
+  return (
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label={p.nome} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in">
+        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        {imgs.length > 0 && (
+          <div className="ape-gal">
+            <img src={imgs[i]} alt={`${p.nome}: amostra ${i + 1}`} />
+            {imgs.length > 1 && (
+              <div className="ape-dotsn">
+                {imgs.map((_, j) => (
+                  <button key={j} aria-label={`Amostra ${j + 1}`} aria-pressed={i === j} onClick={() => setI(j)} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="ape-sheet-b">
+          <div className="ape-tags">
+            {p.tag && <span className="ape-pill azul">{p.tag}</span>}
+            {imgs.length > 0 && p.cat !== 'projeto' && p.cat !== 'plataforma' && <span className="ape-pill">amostra com marca d'água</span>}
+          </div>
+          <h2 className="ape-h2">{p.nome}</h2>
+          <p style={{ margin: 0, color: 'var(--a-muted)' }}>{p.desc}</p>
+          {filhos.length > 0 && (
+            <div className="ape-rows">
+              {filhos.map((x) => (
+                <button key={x.id} className="ape-row ape-row-btn" onClick={() => onOpen(x)}>
+                  <span className="t"><b>{x.nome}</b><span>{x.formato}</span></span>
+                  <span className="r"><s className="ape-note">{x.preco}</s></span>
+                </button>
+              ))}
+            </div>
+          )}
+          {(p.itens || []).length > 0 && (
+            <>
+              <p className="ape-eyebrow" style={{ marginTop: 6 }}>{filhos.length ? 'e ainda' : 'o que vem'}</p>
+              <ul className="ape-inc">
+                {p.itens!.map((x) => (
+                  <li key={x}><ApeIcon name="check" />{x.replace(/^\+\s*/, '')}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          <dl className="ape-facts">
+            {p.formato && (<><dt>formato</dt><dd>{p.formato}</dd></>)}
+            {p.entrega && (<><dt>como recebo</dt><dd>{p.entrega}</dd></>)}
+          </dl>
+          <Preco p={p} byId={byId} />
+          <a className="ape-btn primary" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
+            <ApeIcon name="bag" />
+            quero {p.cat === 'projeto' ? 'conversar sobre o projeto' : 'esse'}
+          </a>
+        </div>
+      </div>
+    </div>
   )
 }
 

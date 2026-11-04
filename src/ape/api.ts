@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { EXEMPLOS, PRODUTOS, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
+import { EXEMPLOS, LOJA_VERSAO, PRODUTOS, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
 
 /* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -7,6 +7,7 @@ import { EXEMPLOS, PRODUTOS, cleanOrcamento, type Arquivo, type Envio, type Inte
 export interface Ajustes {
   produtos: Produto[]
   whatsapp?: string
+  lojaV?: number
 }
 export interface Publico {
   orcamentos: Orcamento[]
@@ -43,7 +44,9 @@ const rowToOrc = (r: { id: string; data: Record<string, unknown>; oculto: boolea
   cleanOrcamento(r.data, { ...(r.data as Partial<Orcamento>), id: r.id, oculto: r.oculto, exemplo: r.exemplo, criado: String((r.data as Partial<Orcamento>).criado || r.criado) })
 const ajustesOf = (d: unknown): Ajustes => {
   const a = (d || {}) as Partial<Ajustes>
-  return { produtos: Array.isArray(a.produtos) && a.produtos.length ? a.produtos : PRODUTOS, whatsapp: a.whatsapp || '' }
+  // loja antiga (antes das categorias): usa a nova, mantendo só o WhatsApp
+  const atual = (a.lojaV || 0) >= LOJA_VERSAO && Array.isArray(a.produtos) && a.produtos.length
+  return { produtos: atual ? a.produtos! : PRODUTOS, whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null

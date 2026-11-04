@@ -6,8 +6,8 @@ import { useStore } from '../store'
 import { admin, apeCloud, type Ajustes } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, FIELDS, NICHOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
-  type Envio, type Interesse, type Morador, type Orcamento, type Produto,
+  APE, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  CATEGORIAS, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
 
@@ -69,9 +69,24 @@ export default function ApeAdmin() {
             {APE.name} <em>{APE.condominio}</em>
           </h1>
         </div>
-        <a className="btn" href={href('ape')} target="_blank" rel="noreferrer">
-          <ApeIcon name="eye" /> abrir a página dos moradores
-        </a>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            className="btn"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText('https://useplane.com.br/ape/')
+                toast('Link copiado: useplane.com.br/ape (abre direto a página dos moradores).')
+              } catch {
+                toast('Link dos moradores: useplane.com.br/ape')
+              }
+            }}
+          >
+            <ApeIcon name="copy" /> copiar link dos moradores
+          </button>
+          <a className="btn" href={href('ape')} target="_blank" rel="noreferrer">
+            <ApeIcon name="eye" /> abrir a página dos moradores
+          </a>
+        </div>
       </div>
       <div className="ape ape-admin">
         <div className="ape-panel" style={{ display: 'grid', gap: 14 }}>
@@ -611,7 +626,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const set = (i: number, patch: Partial<Produto>) => setPs((l) => l.map((p, j) => (j === i ? { ...p, ...patch } : p)))
   const save = async () => {
     setBusy(true)
-    const a = { produtos: ps, whatsapp: whats.replace(/\D/g, '') }
+    const a = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO }
     try {
       await admin.salvarAjustes(a)
       onSaved(a)
@@ -644,13 +659,63 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
               <input id={`p-tag-${i}`} value={p.tag} onChange={(e) => set(i, { tag: e.target.value })} />
             </div>
           </div>
+          <div className="ape-frow">
+            <div className="ape-f">
+              <label htmlFor={`p-cat-${i}`}>Seção da loja</label>
+              <select id={`p-cat-${i}`} value={p.cat || 'arquivos'} onChange={(e) => set(i, { cat: e.target.value as Categoria })}>
+                {CATEGORIAS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}
+              </select>
+            </div>
+            <div className="ape-f">
+              <label htmlFor={`p-de-${i}`}>Preço "de" (riscado) ou outra opção</label>
+              <input id={`p-de-${i}`} value={p.preco_de || ''} onChange={(e) => set(i, { preco_de: e.target.value })} placeholder="R$ 32,80" />
+            </div>
+            <div className="ape-f">
+              <label htmlFor={`p-un-${i}`}>Depois do preço</label>
+              <input id={`p-un-${i}`} value={p.unidade || ''} onChange={(e) => set(i, { unidade: e.target.value })} placeholder="por ano" />
+            </div>
+          </div>
           <div className="ape-f">
             <label htmlFor={`p-desc-${i}`}>Descrição</label>
             <textarea id={`p-desc-${i}`} style={{ minHeight: 60 }} value={p.desc} onChange={(e) => set(i, { desc: e.target.value })} />
           </div>
+          <div className="ape-frow">
+            <div className="ape-f">
+              <label htmlFor={`p-fmt-${i}`}>Formato</label>
+              <input id={`p-fmt-${i}`} value={p.formato || ''} onChange={(e) => set(i, { formato: e.target.value })} placeholder="PDF · 9 páginas" />
+            </div>
+            <div className="ape-f">
+              <label htmlFor={`p-ent-${i}`}>Como a pessoa recebe</label>
+              <input id={`p-ent-${i}`} value={p.entrega || ''} onChange={(e) => set(i, { entrega: e.target.value })} />
+            </div>
+          </div>
+          <div className="ape-f">
+            <label htmlFor={`p-it-${i}`}>O que vem (um por linha)</label>
+            <textarea id={`p-it-${i}`} style={{ minHeight: 80 }} value={(p.itens || []).join('\n')} onChange={(e) => set(i, { itens: e.target.value.split('\n') })} onBlur={(e) => set(i, { itens: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} />
+          </div>
+          {(p.cat || 'arquivos') === 'combos' && (
+            <div className="ape-f">
+              <label>Produtos do combo</label>
+              <div className="ape-acts">
+                {ps.filter((x) => (x.cat || 'arquivos') !== 'combos').map((x) => (
+                  <label key={x.id} className="ape-tog">
+                    <input type="checkbox" checked={(p.combo || []).includes(x.id)} onChange={(e) => set(i, { combo: e.target.checked ? [...(p.combo || []), x.id] : (p.combo || []).filter((y) => y !== x.id) })} /> {x.nome}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="ape-f">
+            <label htmlFor={`p-am-${i}`}>Imagens de amostra (endereço, uma por linha)</label>
+            <textarea id={`p-am-${i}`} style={{ minHeight: 50 }} value={(p.amostras || []).join('\n')} onChange={(e) => set(i, { amostras: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} />
+            <span className="ape-hint">As amostras ficam na pasta do site (ape/amostras). Também dá para colar o endereço de uma imagem na internet.</span>
+          </div>
           <div className="ape-acts">
             <label className="ape-tog">
               <input type="checkbox" checked={p.ativo} onChange={(e) => set(i, { ativo: e.target.checked })} /> Mostrar na loja
+            </label>
+            <label className="ape-tog">
+              <input type="checkbox" checked={!!p.destaque} onChange={(e) => set(i, { destaque: e.target.checked })} /> Destaque
             </label>
             <button className="ape-btn ghost sm" onClick={() => setPs((l) => l.filter((_, j) => j !== i))}><ApeIcon name="trash" />Tirar</button>
           </div>
@@ -658,8 +723,11 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
       ))}
       <div className="ape-acts">
         <button className="ape-btn primary" disabled={busy} onClick={() => void save()}><ApeIcon name="check" />Salvar loja</button>
-        <button className="ape-btn" onClick={() => setPs((l) => [...l, { id: 'p' + Date.now().toString(36), nome: 'Novo produto', desc: '', preco: '', tag: '', ativo: false }])}>
+        <button className="ape-btn" onClick={() => setPs((l) => [...l, { id: 'p' + Date.now().toString(36), nome: 'Novo produto', desc: '', preco: '', tag: '', ativo: false, cat: 'arquivos' }])}>
           <ApeIcon name="plus" />Novo produto
+        </button>
+        <button className="ape-btn ghost" onClick={async () => { if (await ask('Trocar a loja pela sugerida (com preços e textos de exemplo)? O que você mudou aqui se perde.', { confirmLabel: 'trocar' })) setPs(PRODUTOS) }}>
+          voltar para a loja sugerida
         </button>
       </div>
     </div>

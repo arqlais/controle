@@ -63,6 +63,13 @@ export interface Orcamento {
   interessados: number | null // quem entrou no grupo por fora (WhatsApp); soma com os da página
 }
 
+export type Categoria = 'arquivos' | 'combos' | 'plataforma' | 'projeto'
+export const CATEGORIAS: [Categoria, string, string, string][] = [
+  ['arquivos', 'arquivos úteis', 'file', 'Materiais prontos para baixar, imprimir ou usar no celular. Você recebe na hora, pelo WhatsApp.'],
+  ['combos', 'combos', 'gift', 'Os arquivos juntos, mais baratos. Para quem quer chegar na vistoria e na obra sem susto.'],
+  ['plataforma', 'plataforma do apê', 'phone', 'Um app no celular para controlar gastos, parcelas, obra e vistoria do seu apê, num lugar só.'],
+  ['projeto', 'projeto do seu apê', 'ruler', 'Arquitetura de verdade, nas medidas do apê MRV, com preço de vizinho.'],
+]
 export interface Produto {
   id: string
   nome: string
@@ -70,6 +77,15 @@ export interface Produto {
   preco: string
   tag: string
   ativo: boolean
+  cat?: Categoria
+  preco_de?: string // preço "de", riscado
+  unidade?: string // ex.: "por ano"
+  itens?: string[] // o que vem
+  formato?: string // ex.: "PDF · 9 páginas"
+  entrega?: string // como recebe
+  amostras?: string[] // imagens (pasta public/ape/amostras)
+  combo?: string[] // ids dos produtos que o combo junta
+  destaque?: boolean
 }
 
 export interface Morador {
@@ -266,22 +282,53 @@ export const msgFornecedor = (o: Orcamento, m: Morador | null) =>
   (num(o.grupo_pct) ? ' Tenho interesse também na condição de compra em grupo.' : '')
 export const msgGrupo = (o: Orcamento, m: Morador | null) => `Oi, ${APE.dona}! Sou ${quem(m)}. Quero entrar na compra em grupo de ${o.servico || nicho(o.nicho).l} da ${o.fornecedor} 🙌`
 export const msgProduto = (p: Produto, m: Morador | null) =>
-  `Oi, ${APE.dona}! Sou ${quem(m)}, morador do ${APE.condominio}. Tenho interesse em: ${p.nome} 😊` + (m ? `\nTelefone: ${fmtTel(m.tel)}` : '')
+  `Oi, ${APE.dona}! Sou ${quem(m)}, morador do ${APE.condominio}. Tenho interesse em: ${p.nome}${p.preco ? ` (${p.preco}${p.unidade ? ` ${p.unidade}` : ''})` : ''} 😊` + (m ? `\nTelefone: ${fmtTel(m.tel)}` : '')
 export const msgAnexo = (m: Morador | null, fornecedor: string) =>
   `Oi, ${APE.dona}! Sou ${quem(m)}. Mandei o orçamento${fornecedor ? ` da ${fornecedor}` : ''} pela página e vou anexar o arquivo aqui 📎`
 
 /* ===== produtos e exemplos ===== */
+const AM = (f: string) => `ape/amostras/${f}`
+const NA_HORA = 'Você paga no Pix pelo WhatsApp e recebe o arquivo na mesma hora.'
+export const LOJA_VERSAO = 2
 export const PRODUTOS: Produto[] = [
-  { id: 'checklist', nome: 'Checklist de vistoria MRV', desc: `O que conferir no dia da vistoria, cômodo por cômodo, com espaço para anotar e fotografar problemas. Feito em cima do memorial do ${APE.condominio}.`, preco: '', tag: 'Para a vistoria', ativo: true },
-  { id: 'planilha', nome: 'Planilha de obra e compras', desc: 'Controle do que comprar, quanto custou, parcelas e quanto falta, organizado por cômodo e categoria.', preco: '', tag: 'Organização', ativo: true },
-  { id: 'plataforma', nome: 'Plataforma do apê · acesso anual', desc: `A mesma plataforma que usamos no ${APE.doApe}: compras, obra, vistoria, contatos e projeto num lugar só, no celular.`, preco: '', tag: '12 meses de acesso', ativo: true },
-  { id: 'projeto', nome: 'Projeto do seu apê', desc: `Planta com layout, imagens 3D e detalhamento para marcenaria e elétrica, nas medidas da ${APE.construtora}. ART com engenheiro como adicional.`, preco: '', tag: 'Sob medida', ativo: true },
+  { id: 'checklist', cat: 'arquivos', nome: 'Checklist de vistoria MRV', tag: 'para a vistoria', destaque: true, preco: 'R$ 19,90', formato: 'PDF · 9 páginas · imprimir ou celular', entrega: NA_HORA, amostras: [AM('checklist-2.jpg'), AM('checklist-1.jpg')],
+    desc: 'Tudo o que conferir no dia da vistoria, cômodo por cômodo, para a MRV corrigir antes de você receber as chaves.',
+    itens: ['O que levar e o que combinar antes', 'Mais de 90 itens: porta, sala, cozinha, área de serviço, banheiro, quartos e apê inteiro', 'Testes simples de vazamento, caimento de piso e elétrica', 'Tabela para anotar as medidas do seu apê', 'Como registrar os problemas e o que fazer depois', 'Resumo pronto para entregar à MRV'], ativo: true },
+  { id: 'planilha', cat: 'arquivos', nome: 'Planilha de obra e compras', tag: 'organização', preco: 'R$ 24,90', formato: 'Excel · abre no Google Planilhas · 6 abas', entrega: NA_HORA, amostras: [AM('planilha.jpg')],
+    desc: 'Quanto você planejou, quanto já gastou e quanto falta, por cômodo, com as parcelas mês a mês. Já vem com os itens de um apê MRV.',
+    itens: ['Resumo automático por cômodo e no total', 'Lista de compras com 27 itens típicos e valores de referência', 'Comparador de orçamentos que mostra o mais barato', 'Parcelas dos próximos 12 meses somadas sozinhas', 'Cronograma da obra na ordem certa, da vistoria à mudança'], ativo: true },
+  { id: 'guia', cat: 'arquivos', nome: 'Guia de orçamentos', tag: 'antes de fechar', preco: 'R$ 14,90', formato: 'PDF · 8 páginas', entrega: NA_HORA, amostras: [AM('guia-2.jpg'), AM('guia-1.jpg')],
+    desc: 'O que pedir em cada orçamento, as pegadinhas mais comuns e como comparar de verdade, com mensagens prontas para os fornecedores.',
+    itens: ['9 serviços: piso, marcenaria, marmoraria, box, gesso, elétrica, ar, pintura, telas e cortinas', 'O que precisa vir escrito em cada orçamento', 'A pegadinha mais comum de cada serviço', 'Tabela para comparar até 3 orçamentos', 'Mensagens prontas: pedir orçamento, pedir desconto em grupo e cobrar o que faltou'], ativo: true },
+  { id: 'mudanca', cat: 'arquivos', nome: 'Lista da mudança e enxoval', tag: 'para a mudança', preco: 'R$ 12,90', formato: 'PDF · 5 páginas', entrega: NA_HORA, amostras: [AM('mudanca-2.jpg'), AM('mudanca-1.jpg')],
+    desc: 'Tudo o que comprar para o apê novo, cômodo por cômodo, e a mudança semana a semana para nada ficar para trás.',
+    itens: ['Enxoval da cozinha, área de serviço, banheiro, quartos e sala', 'Passo a passo: 30 dias, 15 dias, 7 dias, o dia e depois', 'Contas para ligar (luz, gás, internet) e endereço para trocar', 'A caixa do primeiro dia'], ativo: true },
+  { id: 'kit-chaves', cat: 'combos', nome: 'Kit chaves na mão', tag: 'combo', preco: 'R$ 27,90', preco_de: 'R$ 32,80', combo: ['checklist', 'mudanca'], entrega: NA_HORA, amostras: [AM('checklist-2.jpg'), AM('mudanca-2.jpg')],
+    desc: 'Para a vistoria e a mudança: o checklist da MRV e a lista do enxoval juntos.', itens: [], ativo: true },
+  { id: 'kit-obra', cat: 'combos', nome: 'Kit obra sem susto', tag: 'combo', preco: 'R$ 32,90', preco_de: 'R$ 39,80', combo: ['planilha', 'guia'], entrega: NA_HORA, amostras: [AM('planilha.jpg'), AM('guia-2.jpg')],
+    desc: 'Para pedir, comparar e controlar os orçamentos: a planilha e o guia de orçamentos juntos.', itens: [], ativo: true },
+  { id: 'kit-completo', cat: 'combos', nome: 'Kit apê novo completo', tag: 'mais vendido', destaque: true, preco: 'R$ 49,90', preco_de: 'R$ 72,50', combo: ['checklist', 'planilha', 'guia', 'mudanca'], entrega: NA_HORA, amostras: [AM('checklist-2.jpg'), AM('planilha.jpg'), AM('guia-2.jpg'), AM('mudanca-2.jpg')],
+    desc: 'Os 4 arquivos juntos, da vistoria à mudança, mais 3 meses grátis da plataforma do apê.', itens: ['+ 3 meses grátis da plataforma do apê'], ativo: true },
+  { id: 'plataforma', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'no celular', preco: 'R$ 79', unidade: 'por ano', preco_de: 'R$ 9,90 por mês', formato: 'app no navegador do celular · funciona no computador também', entrega: 'Você paga no Pix pelo WhatsApp e recebe o acesso em até 24 horas.', amostras: [AM('plataforma.jpg')],
+    desc: `A mesma plataforma que usamos no ${APE.doApe}: gastos, parcelas, obra, vistoria e contatos do seu apê num lugar só.`,
+    itens: ['Quanto já foi gasto e quanto falta, por cômodo', 'Parcelas dos próximos meses', 'Obra passo a passo, com datas e o que já foi feito', 'Vistoria com fotos e resumo para a MRV', 'Contatos dos fornecedores com WhatsApp a um toque', 'Funciona no celular, sem instalar nada'], ativo: true },
+  { id: 'consultoria', cat: 'projeto', nome: 'Consultoria online', tag: '1 hora', preco: 'R$ 149', formato: 'chamada de vídeo de 1 hora + resumo por escrito', entrega: 'Você escolhe o horário pelo WhatsApp e recebe o link da chamada.', amostras: [],
+    desc: 'Uma hora comigo para tirar as dúvidas do seu apê: layout, cores, piso, marcenaria e o que dá para fazer com o seu orçamento.',
+    itens: ['Análise da planta e das suas ideias antes da chamada', 'Sugestões de layout, cores e materiais', 'Ajuda para ler e comparar orçamentos', 'Resumo com as decisões por escrito'], ativo: true },
+  { id: 'layout', cat: 'projeto', nome: 'Projeto de layout', tag: 'planta com móveis', preco: 'R$ 390', formato: 'planta em PDF + lista de compras', entrega: 'Entrega em até 10 dias depois da conversa inicial.', amostras: [AM('planta.jpg')],
+    desc: 'A planta do seu apê com os móveis no lugar e as medidas certas, para pedir orçamentos iguais e comprar sem errar.',
+    itens: ['Conversa para entender a sua rotina', 'Planta de layout com móveis e medidas', '1 rodada de ajustes', 'Lista de compras com medidas de cada móvel', 'Pontos de tomada e iluminação sugeridos'], ativo: true },
+  { id: 'projeto', cat: 'projeto', nome: 'Projeto completo com 3D', tag: 'mais completo', destaque: true, preco: 'R$ 1.290', preco_de: 'R$ 1.590', formato: 'planta, imagens 3D e detalhamento em PDF', entrega: 'Entrega em até 25 dias, em etapas: layout, 3D e detalhamento.', amostras: [AM('projeto-3d.jpg'), AM('planta.jpg')],
+    desc: `Layout, imagens 3D e detalhamento para marcenaria e elétrica, nas medidas da ${APE.construtora}. É como fizemos o ${APE.doApe}.`,
+    itens: ['Tudo do projeto de layout', 'Imagens 3D da sala e da cozinha', 'Detalhamento da marcenaria para o marceneiro orçar', 'Planta de elétrica e iluminação', 'Lista de materiais e acabamentos', '2 rodadas de ajustes', 'ART com engenheiro como adicional'], ativo: true },
 ]
+
 export const CTA_COPY: Record<string, [string, string, string]> = {
   checklist: ['Vistoria em dezembro', 'Não deixe passar nenhum defeito na vistoria', 'Uma lista cômodo por cômodo para conferir piso, paredes, esquadrias, louças e elétrica antes de receber as chaves.'],
   projeto: ['Antes de fechar', 'Feche marcenaria e elétrica com o projeto na mão', 'Com a planta e as medidas certas, você pede orçamentos iguais e compara de verdade.'],
   planilha: ['Organização', 'Saiba quanto já gastou e quanto falta', 'Uma planilha pronta para controlar compras, parcelas e orçamentos do apê.'],
   plataforma: ['Plataforma do apê', 'Tudo do seu apê num lugar só', `Compras, obra, vistoria e contatos, no celular, como usamos no ${APE.doApe}.`],
+  'kit-completo': ['Combo', 'Da vistoria à mudança, sem susto', 'Checklist, planilha, guia de orçamentos e lista da mudança juntos, mais barato.'],
 }
 
 const base = (o: Partial<Orcamento>): Orcamento => ({
