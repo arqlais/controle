@@ -233,6 +233,38 @@
 .ape-row-btn { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--a-line); text-align: left; cursor: pointer; }
 .ape-row-btn:hover b { color: var(--a-pri); }
 
+/* loja: kit com desconto, carrinho e compra */
+.ape-shop-hero { grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr); }
+.ape-trust { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 12px; color: var(--a-pri); font-weight: 600; }
+.ape-trust span { display: inline-flex; gap: 6px; align-items: center; }
+.ape-ladder { background: var(--a-sand); border-radius: 16px; padding: 14px; display: grid; gap: 6px; }
+.ape-ladder > b { font-size: 14px; text-transform: lowercase; }
+.ape-ladder div { display: flex; justify-content: space-between; align-items: center; background: var(--a-card); border-radius: 10px; padding: 7px 12px; font-size: 13px; border: 1.5px solid transparent; }
+.ape-ladder div em { font-style: normal; font-weight: 700; color: var(--a-sec); }
+.ape-ladder div.on { border-color: var(--a-pri); background: var(--a-pri-soft); }
+.ape-ladder div.on em { color: var(--a-pri); }
+.ape-nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px; }
+.ape-nums span { background: var(--a-pri-soft); color: var(--a-pri); border-radius: 12px; padding: 10px; text-align: center; font-weight: 700; font-size: 13px; }
+.ape-upsell { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; border: 1.5px dashed var(--a-sec); background: var(--a-sec-soft); color: var(--a-ink); border-radius: 14px; padding: 12px 14px; }
+.ape-upsell > .ape-i { width: 26px; height: 26px; color: var(--a-sec); }
+.ape-upsell b { display: block; font-size: 13.5px; }
+.ape-upsell span span { font-size: 12px; color: var(--a-muted); }
+.ape-cartfab { position: fixed; z-index: 35; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 10px; border: 0; background: var(--a-pri); color: #fff; border-radius: 999px; padding: 10px 10px 10px 18px; box-shadow: 0 16px 34px -12px color-mix(in srgb, var(--a-pri) 70%, transparent); font-size: 13px; }
+.ape-cartfab em { font-style: normal; background: #fff; color: var(--a-pri); border-radius: 999px; padding: 0 6px; font-weight: 700; margin-left: 4px; }
+.ape-cartfab .go { background: color-mix(in srgb, #fff 18%, transparent); border-radius: 999px; padding: 7px 14px; text-transform: lowercase; }
+.ape-cart-row .t { text-align: left; }
+.ape-linkish { background: none; border: 0; padding: 0; cursor: pointer; display: block; min-width: 0; }
+.ape-cart-row .r { align-items: center; flex-wrap: nowrap; }
+.ape-sug { display: grid; gap: 6px; }
+.ape-sug-i { display: flex; gap: 10px; align-items: center; text-align: left; border: 1px solid var(--a-line); background: var(--a-card); border-radius: 12px; padding: 6px 10px 6px 6px; }
+.ape-sug-i img { width: 54px; height: 40px; object-fit: cover; border-radius: 8px; flex: none; }
+.ape-sug-i span { flex: 1; min-width: 0; font-size: 12.5px; }
+.ape-sug-i b { display: block; font-weight: 600; }
+.ape-sug-i > .ape-i { color: var(--a-pri); }
+.ape-totais { font-size: 14px; }
+.ape .ape-totais dd { text-align: right; }
+.ape-gal img { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; pointer-events: none; }
+
 /* formulários: como os campos do planê (16 px no celular para o iPhone não dar zoom) */
 .ape-f { display: grid; gap: 7px; min-width: 0; }
 .ape-f > label { font-size: 12px; font-weight: 600; text-transform: lowercase; color: var(--a-ink); }
@@ -306,6 +338,8 @@
   .ape-row .r { justify-content: flex-start; }
   .ape-cta .ape-btn { width: 100%; }
   .ape-vit { grid-template-columns: minmax(0, 1fr); }
+  .ape-shop-hero { grid-template-columns: minmax(0, 1fr); }
+  .ape-cartfab { left: 16px; right: 16px; justify-content: space-between; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
   .ape-sheet { padding: 0; align-items: end; }
   .ape-sheet-in { border-radius: 24px 24px 0 0; max-height: 92dvh; }
   .ape-sheet-b { padding-bottom: calc(22px + env(safe-area-inset-bottom, 0px)); }

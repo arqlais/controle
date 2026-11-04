@@ -15,6 +15,8 @@
 //             · mensal no cartão = assinatura recorrente (cobra todo mês sozinho)
 //             · cartão no semestral/anual = parcelado em até 6x/12x sem juros (taxa já embutida no preço)
 //             · Pix = QR Code na hora
+//   ape-criar / ape-pedido → loja do planê.apê (sem login): cria o pedido com o preço calculado aqui e, depois de pago,
+//             devolve links temporários para baixar os arquivos (pasta privada ape-arquivos).
 //   webhook → o Asaas avisa cada pagamento; tudo é conferido de novo direto no Asaas. Confirmado, a conta é liberada sozinha,
 //             o pagamento entra no controle da dona (assinantes → cobrança) e a pessoa recebe uma mensagem no chat.
 
@@ -173,6 +175,19 @@ async function webhook(req: Request) {
   if (!id || !/^PAYMENT_(CONFIRMED|RECEIVED)$/.test(String(body.event ?? ''))) return json({ ok: true })
   const p = await asaas(`/payments/${id}`)
   if (!['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(p.status))) return json({ ok: true })
+  // compra da loja do planê.apê
+  const ext = String(p.externalReference ?? '')
+  if (ext.startsWith('ape|')) {
+    await apeMarcarPago(ext.slice(4), p)
+    return json({ ok: true })
+  }
+  if (p.paymentLink) {
+    const { data: ap } = await db.from('ape_pedidos').select('id').eq('asaas_link', p.paymentLink).maybeSingle()
+    if (ap) {
+      await apeMarcarPago(ap.id, p)
+      return json({ ok: true })
+    }
+  }
   const ref = await refOf(p)
   if (!ref) return json({ ok: true })
   const method = p.billingType === 'CREDIT_CARD' ? 'cartao' : 'pix'
@@ -185,6 +200,122 @@ async function webhook(req: Request) {
   return json({ ok: true })
 }
 
+
+/* ===================== planê.apê: loja com carrinho ===================== */
+// Preços e regras vêm da loja salva no painel (tabela ape_ajustes); sem loja salva, valem os de baixo
+// (mesmos de src/ape/model.ts). O valor nunca vem do navegador.
+const APE_SITE = `${SITE.replace(/\/$/, '')}/ape/`
+const APE_DEFAULT: Record<string, { nome: string; preco: string; cat: string; combo?: string[] }> = {
+  checklist: { nome: 'Checklist de vistoria MRV', preco: '19,90', cat: 'arquivos' },
+  planilha: { nome: 'Planilha de obra e compras', preco: '24,90', cat: 'arquivos' },
+  guia: { nome: 'Guia de orçamentos', preco: '14,90', cat: 'arquivos' },
+  mudanca: { nome: 'Lista da mudança e enxoval', preco: '12,90', cat: 'arquivos' },
+  medidas: { nome: 'Guia de medidas do apê', preco: '16,90', cat: 'arquivos' },
+  enxoval: { nome: 'Planilha do enxoval', preco: '14,90', cat: 'arquivos' },
+  entregas: { nome: 'Checklist de entregas da obra', preco: '12,90', cat: 'arquivos' },
+  planner: { nome: 'Planner de decoração', preco: '17,90', cat: 'arquivos' },
+  'kit-chaves': { nome: 'Kit chaves na mão', preco: '34,90', cat: 'combos', combo: ['checklist', 'entregas', 'mudanca'] },
+  'kit-obra': { nome: 'Kit obra sem susto', preco: '39,90', cat: 'combos', combo: ['planilha', 'guia', 'medidas'] },
+  'kit-completo': { nome: 'Kit apê novo completo', preco: '69,90', cat: 'combos', combo: ['checklist', 'planilha', 'guia', 'mudanca', 'medidas', 'enxoval', 'entregas', 'planner'] },
+}
+const APE_TIERS: [number, number][] = [[2, 10], [3, 15], [4, 20], [6, 25]]
+const reais = (v: unknown) => {
+  const n = parseFloat(String(v ?? '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'))
+  return Number.isFinite(n) ? n : 0
+}
+async function apeLoja() {
+  const { data } = await db.from('ape_ajustes').select('data').eq('id', 1).maybeSingle()
+  const a = (data?.data ?? {}) as Record<string, any>
+  const map: Record<string, { nome: string; preco: number; cat: string; combo: string[] }> = {}
+  const saved = Number(a.lojaV ?? 0) >= 3 && Array.isArray(a.produtos) ? (a.produtos as Record<string, any>[]) : null
+  if (saved) for (const p of saved) if (p.ativo !== false && (p.cat === 'arquivos' || p.cat === 'combos')) map[p.id] = { nome: String(p.nome), preco: reais(p.preco), cat: p.cat, combo: Array.isArray(p.combo) ? p.combo : [] }
+  if (!saved) for (const [id, p] of Object.entries(APE_DEFAULT)) map[id] = { nome: p.nome, preco: reais(p.preco), cat: p.cat, combo: p.combo ?? [] }
+  const tiers = Array.isArray(a.descontos) && a.descontos.length ? (a.descontos as [number, number][]) : APE_TIERS
+  return { map, tiers }
+}
+/** Mesma conta do carrinho do site: combo fixo; arquivos avulsos ganham desconto pela quantidade. */
+function apeConta(ids: string[], map: Awaited<ReturnType<typeof apeLoja>>['map'], tiers: [number, number][]) {
+  let uniq = [...new Set(ids)].filter((id) => map[id])
+  const noCombo = new Set(uniq.flatMap((id) => (map[id].cat === 'combos' ? map[id].combo : [])))
+  uniq = uniq.filter((id) => !(map[id].cat === 'arquivos' && noCombo.has(id)))
+  const itens = uniq.map((id) => ({ id, nome: map[id].nome, preco: map[id].preco, cat: map[id].cat }))
+  const avulsos = itens.filter((i) => i.cat === 'arquivos')
+  const pct = tiers.reduce((b, [k, v]) => (avulsos.length >= k ? Math.max(b, v) : b), 0)
+  const subtotal = cents(itens.reduce((t, i) => t + i.preco, 0))
+  const desconto = cents(avulsos.reduce((t, i) => t + i.preco, 0) * pct / 100)
+  return { itens, subtotal, desconto, total: cents(subtotal - desconto), pct }
+}
+async function apeCriar(body: Record<string, any>) {
+  const nome = String(body.nome ?? '').trim().slice(0, 120)
+  const tel = String(body.tel ?? '').replace(/\D/g, '').slice(0, 13)
+  const email = String(body.email ?? '').trim().slice(0, 160)
+  if (nome.length < 3 || tel.length < 10) return json({ erro: 'Coloque nome e WhatsApp.' }, 400)
+  const { map, tiers } = await apeLoja()
+  const c = apeConta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, tiers)
+  if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
+  if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
+  const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
+  const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total }).select('id, token').single()
+  if (error || !ped) throw new Error(error?.message ?? 'não deu para criar o pedido')
+  const link: Record<string, any> = {
+    name: 'planê.apê · seu pedido',
+    description: c.itens.map((i) => i.nome).join(' + ').slice(0, 250),
+    value: c.total,
+    billingType: 'UNDEFINED', // a pessoa escolhe Pix ou cartão na página do Asaas
+    chargeType: 'DETACHED',
+    dueDateLimitDays: 2,
+    endDate: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
+    externalReference: `ape|${ped.id}`,
+    notificationEnabled: false,
+    callback: { successUrl: `${APE_SITE}#pedido:${ped.token}`, autoRedirect: true },
+  }
+  let made: Record<string, any>
+  try {
+    made = await asaas('/paymentLinks', { method: 'POST', body: JSON.stringify(link) })
+  } catch (e) {
+    if (!/callback|successUrl|dom[ií]nio|domain/i.test(String(e))) throw e
+    delete link.callback
+    made = await asaas('/paymentLinks', { method: 'POST', body: JSON.stringify(link) })
+  }
+  await db.from('ape_pedidos').update({ asaas_link: made.id }).eq('id', ped.id)
+  return json({ url: made.url, token: ped.token, total: c.total })
+}
+const PAGO = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']
+async function apeMarcarPago(id: string, p: Record<string, any>) {
+  await db.from('ape_pedidos').update({ status: 'pago', pago_em: new Date().toISOString(), asaas_pagamento: String(p.id ?? ''), forma: p.billingType === 'CREDIT_CARD' ? 'cartao' : 'pix' }).eq('id', id).neq('status', 'pago')
+}
+async function apePedido(body: Record<string, any>) {
+  const token = String(body.token ?? '')
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return json({ erro: 'Pedido não encontrado.' }, 404)
+  const { data: ped } = await db.from('ape_pedidos').select('*').eq('token', token).maybeSingle()
+  if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
+  // o aviso do Asaas ainda não chegou? confere direto lá
+  if (ped.status === 'pendente' && ped.asaas_link) {
+    const r = await asaas(`/payments?paymentLink=${ped.asaas_link}&limit=10`).catch(() => ({}) as Record<string, any>)
+    const ok = ((r.data ?? []) as Record<string, any>[]).find((x) => PAGO.includes(String(x.status)))
+    if (ok) {
+      await apeMarcarPago(ped.id, ok)
+      ped.status = 'pago'
+    }
+  }
+  const itens = (ped.itens ?? []) as { id: string; nome: string; preco: number }[]
+  if (ped.status !== 'pago') return json({ status: ped.status, itens, total: ped.total })
+  const { map } = await apeLoja()
+  const ids = [...new Set(itens.flatMap((i) => (map[i.id]?.cat === 'combos' ? map[i.id].combo : [i.id])))]
+  const arquivos: { produto: string; nome: string; url: string }[] = []
+  for (const id of ids) {
+    const st = db.storage.from('ape-arquivos')
+    const { data: files } = await st.list(id, { limit: 20 })
+    for (const f of files ?? []) {
+      if (!f.name || f.name.startsWith('.')) continue
+      const { data: u } = await st.createSignedUrl(`${id}/${f.name}`, 60 * 60 * 24, { download: f.name })
+      if (u?.signedUrl) arquivos.push({ produto: map[id]?.nome ?? id, nome: f.name, url: u.signedUrl })
+    }
+  }
+  await db.from('ape_pedidos').update({ baixados: Number(ped.baixados ?? 0) + 1 }).eq('id', ped.id)
+  return json({ status: 'pago', itens, total: ped.total, nome: ped.nome, arquivos })
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (!TOKEN) return json({ erro: 'Falta o segredo ASAAS_API_KEY no Supabase.' }, 500)
@@ -193,6 +324,8 @@ Deno.serve(async (req) => {
     if (url.searchParams.get('acao') === 'webhook' || req.headers.has('asaas-access-token')) return await webhook(req)
     const body = (await req.json().catch(() => ({}))) as Record<string, any>
     if (body.acao === 'criar') return await create(req, body)
+    if (body.acao === 'ape-criar') return await apeCriar(body)
+    if (body.acao === 'ape-pedido') return await apePedido(body)
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {
     return json({ erro: e instanceof Error ? e.message : String(e) }, 500)

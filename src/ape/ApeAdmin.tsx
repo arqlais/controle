@@ -3,10 +3,10 @@ import { askGemini, readFile, type Attachment } from '../components/AIChat'
 import { ask, toast } from '../components/dialog'
 import { href } from '../router'
 import { useStore } from '../store'
-import { admin, apeCloud, type Ajustes } from './api'
+import { admin, apeCloud, loja, type Ajustes, type PedidoAdmin } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, DESCONTOS, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -14,7 +14,7 @@ import './ape.css'
 /* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja'
+type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'entregas'
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -105,6 +105,8 @@ export default function ApeAdmin() {
                 ['moradores', `Cadastros (${moradores.length})`],
                 ['grupos', 'Compras em grupo'],
                 ['loja', 'Loja'],
+                ['pedidos', 'Vendas'],
+                ['entregas', 'Arquivos para entregar'],
               ] as [Tab, React.ReactNode][]
             ).map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>
@@ -141,6 +143,8 @@ export default function ApeAdmin() {
           {tab === 'moradores' && <Moradores moradores={moradores} envios={envios} interesses={interesses} orcs={orcs} onChange={load} />}
           {tab === 'grupos' && <Grupos orcs={orcs} interesses={interesses} />}
           {tab === 'loja' && ajustes && <Loja ajustes={ajustes} onSaved={setAjustes} />}
+          {tab === 'pedidos' && <Vendas />}
+          {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
         </div>
       </div>
     </div>
@@ -622,11 +626,13 @@ function Grupos({ orcs, interesses }: { orcs: Orcamento[]; interesses: Interesse
 function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) => void }) {
   const [ps, setPs] = useState<Produto[]>(ajustes.produtos)
   const [whats, setWhats] = useState(ajustes.whatsapp || '')
+  const [faixas, setFaixas] = useState((ajustes.descontos || DESCONTOS).map(([k, v]) => `${k}:${v}`).join(', '))
   const [busy, setBusy] = useState(false)
   const set = (i: number, patch: Partial<Produto>) => setPs((l) => l.map((p, j) => (j === i ? { ...p, ...patch } : p)))
   const save = async () => {
     setBusy(true)
-    const a = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO }
+    const descontos = faixas.split(/[,;\n]/).map((x) => x.split(/[:=x×]/).map((n) => parseInt(n, 10))).filter(([k, v]) => k > 1 && v > 0 && v < 90).sort((a, b) => a[0] - b[0]) as [number, number][]
+    const a = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, descontos: descontos.length ? descontos : DESCONTOS }
     try {
       await admin.salvarAjustes(a)
       onSaved(a)
@@ -643,6 +649,12 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
         <input id="l-whats" inputMode="tel" value={whats} onChange={(e) => setWhats(e.target.value)} placeholder={fmtTel(APE.whatsapp)} />
         <span className="ape-hint">Vazio: usa o {fmtTel(APE.whatsapp)}.</span>
       </div>
+      <div className="ape-f" style={{ maxWidth: 420 }}>
+        <label htmlFor="l-faixas">Desconto por quantidade de arquivos (itens:%)</label>
+        <input id="l-faixas" value={faixas} onChange={(e) => setFaixas(e.target.value)} placeholder="2:10, 3:15, 4:20, 6:25" />
+        <span className="ape-hint">Ex.: "2:10, 3:15" = 2 arquivos têm 10% e 3 ou mais têm 15%. Os kits têm preço fixo.</span>
+      </div>
+      <div className="ape-banner">Os preços daqui valem também no pagamento: a cobrança é calculada no servidor com a loja salva. Depois de mudar preços, toque em "salvar loja".</div>
       {ps.map((p, i) => (
         <div key={p.id} className="ape-panel" style={{ display: 'grid', gap: 10, background: 'var(--a-bg)' }}>
           <div className="ape-frow">
@@ -706,6 +718,10 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
             </div>
           )}
           <div className="ape-f">
+            <label htmlFor={`p-nu-${i}`}>O que tem dentro, em números (um por linha)</label>
+            <textarea id={`p-nu-${i}`} style={{ minHeight: 50 }} value={(p.numeros || []).join('\n')} onChange={(e) => set(i, { numeros: e.target.value.split('\n') })} onBlur={(e) => set(i, { numeros: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} placeholder="9 páginas" />
+          </div>
+          <div className="ape-f">
             <label htmlFor={`p-am-${i}`}>Imagens de amostra (endereço, uma por linha)</label>
             <textarea id={`p-am-${i}`} style={{ minHeight: 50 }} value={(p.amostras || []).join('\n')} onChange={(e) => set(i, { amostras: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} />
             <span className="ape-hint">As amostras ficam na pasta do site (ape/amostras). Também dá para colar o endereço de uma imagem na internet.</span>
@@ -729,6 +745,122 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
         <button className="ape-btn ghost" onClick={async () => { if (await ask('Trocar a loja pela sugerida (com preços e textos de exemplo)? O que você mudou aqui se perde.', { confirmLabel: 'trocar' })) setPs(PRODUTOS) }}>
           voltar para a loja sugerida
         </button>
+      </div>
+    </div>
+  )
+}
+
+/* ===== vendas da loja ===== */
+function Vendas() {
+  const [ps, setPs] = useState<PedidoAdmin[] | null>(null)
+  const [erro, setErro] = useState('')
+  const [ver, setVer] = useState<'pago' | 'todos'>('pago')
+  useEffect(() => {
+    loja.pedidos().then(setPs, (e) => {
+      setErro(String((e as Error).message))
+      setPs([])
+    })
+  }, [])
+  if (!ps) return <Thinking t="carregando as vendas…" />
+  const pagos = ps.filter((p) => p.status === 'pago')
+  const mes = new Date().toISOString().slice(0, 7)
+  const doMes = pagos.filter((p) => (p.pago_em || p.criado).slice(0, 7) === mes)
+  const list = ver === 'pago' ? pagos : ps
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      {erro && <div className="ape-banner warn">Não consegui ler as vendas ({erro}). Confira se o arquivo supabase/atualizacao-2026-11-05-ape-loja.sql já rodou.</div>}
+      {!apeCloud && <div className="ape-banner">Na prévia não há vendas de verdade.</div>}
+      <div className="ape-stats">
+        <div className="ape-stat"><b className="num">{brl(doMes.reduce((t, p) => t + p.total, 0))}</b><span>vendido no mês</span></div>
+        <div className="ape-stat"><b className="num">{doMes.length}</b><span>vendas no mês</span></div>
+        <div className="ape-stat"><b className="num">{brl(pagos.reduce((t, p) => t + p.total, 0))}</b><span>total vendido</span></div>
+      </div>
+      <div className="ape-toolbar">
+        <p className="ape-note" style={{ margin: 0, flex: 1 }}>Quem pagou recebe os arquivos sozinho. Pedidos "pendentes" são carrinhos que abriram o pagamento e ainda não pagaram: dá para chamar no WhatsApp.</p>
+        <select className="ape-sel" value={ver} onChange={(e) => setVer(e.target.value as 'pago' | 'todos')} aria-label="Mostrar">
+          <option value="pago">só pagos</option>
+          <option value="todos">todos</option>
+        </select>
+      </div>
+      <div className="ape-rows">
+        {!list.length && <div className="ape-empty"><b>nenhuma venda ainda</b><span>As compras pela loja aparecem aqui.</span></div>}
+        {list.map((p) => (
+          <div key={p.id} className="ape-row">
+            <div className="t">
+              <b>{p.nome} · {brl(p.total)}{p.desconto ? ` (−${brl(p.desconto)})` : ''}</b>
+              <span>{p.itens.map((i) => i.nome).join(' + ')}</span>
+              <span>{dmy(p.criado)} · {p.status === 'pago' ? `pago${p.forma ? ` no ${p.forma === 'cartao' ? 'cartão' : 'Pix'}` : ''} · baixou ${p.baixados}x` : p.status}{p.email ? ` · ${p.email}` : ''}</span>
+            </div>
+            <div className="r">
+              {waNum(p.tel) && (
+                <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra na loja do apê 😊 Conseguiu baixar tudo certinho?` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra na loja do apê. Ficou alguma dúvida? Posso te ajudar 😊`)} target="_blank" rel="noreferrer">
+                  <ApeIcon name="chat" />WhatsApp
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ===== arquivos que a loja entrega (pasta privada) ===== */
+function Entregas({ produtos }: { produtos: Produto[] }) {
+  const itens = produtos.filter((p) => p.cat === 'arquivos' || !p.cat)
+  const [arqs, setArqs] = useState<Record<string, { nome: string; tamanho: number }[]>>({})
+  const [busy, setBusy] = useState('')
+  const load = useCallback(async () => {
+    const out: Record<string, { nome: string; tamanho: number }[]> = {}
+    for (const p of itens) out[p.id] = await loja.arquivos(p.id).catch(() => [])
+    setArqs(out)
+  }, [produtos])
+  useEffect(() => {
+    void load()
+  }, [load])
+  const enviar = async (id: string, files: FileList | null) => {
+    if (!files?.length) return
+    setBusy(id)
+    try {
+      for (const f of Array.from(files)) await loja.enviarArquivo(id, f)
+      toast('Arquivo guardado: quem comprar recebe este.')
+      await load()
+    } catch (e) {
+      toast(`Não consegui enviar (${(e as Error).message}).`)
+    }
+    setBusy('')
+  }
+  const apagar = async (id: string, nome: string) => {
+    if (!(await ask(`Tirar o arquivo ${nome}? Quem comprar não recebe mais ele.`, { confirmLabel: 'tirar', danger: true }))) return
+    await loja.apagarArquivo(id, nome).then(load, () => toast('Não consegui tirar.'))
+  }
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <div className="ape-banner">Envie aqui o arquivo de verdade de cada produto (PDF ou planilha). Ele fica numa pasta privada: só quem pagou baixa, por um link que vale 24 horas e é refeito a cada visita à página do pedido. Os kits entregam os arquivos de cada item.</div>
+      {!apeCloud && <div className="ape-banner warn">Na prévia os arquivos não ficam guardados.</div>}
+      <div className="ape-rows">
+        {itens.map((p) => {
+          const l = arqs[p.id] || []
+          return (
+            <div key={p.id} className="ape-row">
+              <div className="t">
+                <b>{p.nome}</b>
+                {l.length ? l.map((f) => (
+                  <span key={f.nome}>
+                    <ApeIcon name="file" /> {f.nome} · {Math.max(1, Math.round(f.tamanho / 1024))} KB{' '}
+                    <button className="ape-btn ghost sm" onClick={() => void apagar(p.id, f.nome)} aria-label={`Tirar ${f.nome}`}><ApeIcon name="trash" /></button>
+                  </span>
+                )) : <span style={{ color: 'var(--a-ter)' }}>sem arquivo: quem comprar não vai receber nada</span>}
+              </div>
+              <div className="r">
+                <label className="ape-btn sm primary" style={{ cursor: 'pointer' }}>
+                  <ApeIcon name="plus" />{busy === p.id ? 'enviando…' : l.length ? 'trocar / somar' : 'enviar arquivo'}
+                  <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void enviar(p.id, e.target.files)} />
+                </label>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

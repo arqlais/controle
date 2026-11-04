@@ -30,11 +30,21 @@ A diferença em relação à página antiga (Artifact): agora os moradores **gra
 
 ## Loja do apê
 
-Quatro seções: **arquivos úteis**, **combos**, **plataforma do apê** e **projeto do seu apê**. Cada item tem amostra (imagem com marca d'água), o que vem, formato, como recebe e preço; os combos mostram quanto economiza. A compra é pelo WhatsApp da Laís (Pix).
+Seções: **arquivos úteis**, **kits**, **plataforma do apê** e **projeto do seu apê**. Os detalhes mostram só mockups (capa nítida, páginas de dentro borradas) e "o que tem dentro" em números; o conteúdo não aparece antes da compra.
 
-Preços sugeridos (fictícios, editáveis em planê.apê → loja): checklist R$ 19,90 · planilha R$ 24,90 · guia de orçamentos R$ 14,90 · lista da mudança R$ 12,90 · kit chaves na mão R$ 27,90 · kit obra sem susto R$ 32,90 · kit apê novo completo R$ 49,90 · plataforma R$ 79/ano · consultoria R$ 149 · layout R$ 390 · projeto completo com 3D R$ 1.290.
+**Carrinho:** arquivos e kits vão para o carrinho. Quanto mais arquivos avulsos, maior o desconto (padrão 2 = 10%, 3 = 15%, 4 = 20%, 6+ = 25%; muda em planê.apê → loja). Os kits têm preço fixo; um arquivo que já está num kit do carrinho sai sozinho. O carrinho sugere arquivos que faltam para o próximo desconto e a troca pelo kit completo quando compensa. Plataforma e projeto continuam pelo WhatsApp.
 
-**Os arquivos pagos não ficam no site nem no GitHub** (o repositório é público): a Laís guarda os PDFs e a planilha e manda pelo WhatsApp depois do Pix. No site ficam só as amostras em `public/ape/amostras`.
+**Pagamento:** Pix ou cartão pelo Asaas (mesma conta das assinaturas do planê, função `pagamentos`). O preço é calculado no servidor com a loja salva. Pagou → a página do pedido (`useplane.com.br/ape/#pedido:...`) mostra os botões de baixar (links de 24 h, refeitos a cada visita). Sem Asaas ligado, o carrinho oferece "finalizar pelo WhatsApp".
+
+Preços sugeridos (editáveis): checklist de vistoria R$ 19,90 · planilha de obra R$ 24,90 · planner de decoração R$ 17,90 · guia de medidas R$ 16,90 · guia de orçamentos R$ 14,90 · planilha do enxoval R$ 14,90 · checklist de entregas R$ 12,90 · lista da mudança R$ 12,90 · kit chaves na mão R$ 34,90 · kit obra sem susto R$ 39,90 · kit apê novo completo (8 arquivos) R$ 69,90 · plataforma R$ 79/ano · consultoria R$ 149 · layout R$ 390 · projeto com 3D R$ 1.290.
+
+**Para a venda funcionar (uma vez):**
+1. Supabase → Edge Functions → Secrets: `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` (os mesmos das assinaturas; se já existem, nada a fazer). Webhook do Asaas apontando para a função `pagamentos` (ver o topo de `supabase/functions/pagamentos/index.ts`).
+2. Asaas → Minha conta → Informações comerciais: site `useplane.com.br` (para o Asaas voltar para a página do pedido depois do pagamento).
+3. planê.apê → **arquivos para entregar**: envie o arquivo de cada produto. Sem arquivo, quem comprar vê "fale no WhatsApp".
+4. planê.apê → **loja** → "salvar loja" uma vez (assim o servidor usa os seus preços).
+
+**Os arquivos pagos não ficam no site nem no GitHub** (o repositório é público): ficam na pasta privada `ape-arquivos` do Supabase. No site ficam só os mockups em `public/ape/amostras`.
 
 ## Segurança
 

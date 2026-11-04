@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { APE, EXEMPLOS, LOJA_VERSAO, PRODUTOS, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
+import { APE, DESCONTOS, EXEMPLOS, LOJA_VERSAO, PRODUTOS, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
 
 /* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -8,6 +8,7 @@ export interface Ajustes {
   produtos: Produto[]
   whatsapp?: string
   lojaV?: number
+  descontos?: [number, number][]
 }
 export interface Publico {
   orcamentos: Orcamento[]
@@ -46,7 +47,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   const a = (d || {}) as Partial<Ajustes>
   // loja antiga (antes das categorias): usa a nova, mantendo só o WhatsApp
   const atual = (a.lojaV || 0) >= LOJA_VERSAO && Array.isArray(a.produtos) && a.produtos.length
-  return { produtos: atual ? a.produtos! : PRODUTOS, whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO }
+  return { produtos: atual ? a.produtos! : PRODUTOS, whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, descontos: Array.isArray(a.descontos) && a.descontos.length ? a.descontos : DESCONTOS }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -281,5 +282,81 @@ export const admin = {
     const { data, error } = await sb().from('ape_interesses').select('*, pessoa:ape_moradores(*)').order('criado', { ascending: false })
     fail(error)
     return (data ?? []).map((r) => ({ orcamento: String(r.orcamento), criado: String(r.criado), morador: moradorOf(r.pessoa as Record<string, unknown> | null) }))
+  },
+}
+
+/* ===== loja: pagamento pelo Asaas (função "pagamentos" do Supabase) ===== */
+export interface Pedido {
+  status: 'pendente' | 'pago' | 'cancelado'
+  itens: { id: string; nome: string; preco: number }[]
+  total: number
+  nome?: string
+  arquivos?: { produto: string; nome: string; url: string }[]
+}
+const PED = 'ape-pedidos'
+export const pedidosLocais = (): { token: string; criado: string; total: number }[] => {
+  try {
+    return JSON.parse(localStorage.getItem(PED) || '[]')
+  } catch {
+    return []
+  }
+}
+/** Cria o pedido e devolve o link de pagamento do Asaas (o preço é calculado na função, não aqui). */
+export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; tel: string; email?: string }): Promise<{ url: string; token: string; total: number }> {
+  if (!CLOUD) throw new Error('Na prévia não dá para pagar de verdade.')
+  const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-criar', ...d } })
+  const erro = (data as { erro?: string } | null)?.erro
+  if (error || erro || !data?.url) throw new Error(erro || (error?.message?.includes('non-2xx') ? 'o pagamento ainda não está ligado' : error?.message) || 'sem resposta')
+  try {
+    localStorage.setItem(PED, JSON.stringify([{ token: data.token, criado: new Date().toISOString(), total: data.total }, ...pedidosLocais()].slice(0, 20)))
+  } catch {
+    /* ok */
+  }
+  return data as { url: string; token: string; total: number }
+}
+export async function verPedido(token: string): Promise<Pedido | null> {
+  if (!CLOUD) return null
+  const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-pedido', token } })
+  if (error || !data || (data as { erro?: string }).erro) return null
+  return data as Pedido
+}
+
+/* ===== painel: pedidos e arquivos que a loja entrega ===== */
+export interface PedidoAdmin {
+  id: string
+  nome: string
+  tel: string
+  email: string
+  itens: { id: string; nome: string; preco: number }[]
+  total: number
+  desconto: number
+  status: Pedido['status']
+  forma: string
+  criado: string
+  pago_em: string | null
+  baixados: number
+}
+export const loja = {
+  async pedidos(): Promise<PedidoAdmin[]> {
+    if (!CLOUD) return []
+    const { data, error } = await sb().from('ape_pedidos').select('*').order('criado', { ascending: false }).limit(300)
+    fail(error)
+    return (data ?? []).map((r) => ({ ...(r as PedidoAdmin), total: Number(r.total), desconto: Number(r.desconto) }))
+  },
+  async arquivos(produto: string): Promise<{ nome: string; tamanho: number }[]> {
+    if (!CLOUD) return []
+    const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 20 })
+    fail(error)
+    return (data ?? []).filter((f) => f.name && !f.name.startsWith('.')).map((f) => ({ nome: f.name, tamanho: Number(f.metadata?.size ?? 0) }))
+  },
+  async enviarArquivo(produto: string, f: File) {
+    if (!CLOUD) throw new Error('Na prévia os arquivos não ficam guardados.')
+    const nome = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.() -]+/g, '-')
+    const { error } = await sb().storage.from('ape-arquivos').upload(`${produto}/${nome}`, f, { upsert: true, contentType: f.type || undefined })
+    fail(error)
+  },
+  async apagarArquivo(produto: string, nome: string) {
+    const { error } = await sb().storage.from('ape-arquivos').remove([`${produto}/${nome}`])
+    fail(error)
   },
 }

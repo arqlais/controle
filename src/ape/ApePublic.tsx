@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, enviar, loadPublico, meusEnvios, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
+import { cadastrar, criarPedido, enviar, loadPublico, meusEnvios, pedidosLocais, verPedido, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
-  CATEGORIAS, ehSanLevi, ondeMora, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  CATEGORIAS, DESCONTOS, conta, ehSanLevi, noCarrinho, ondeMora, reais, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { markSvg } from '../components/PlaneMark'
 import './ape.css'
@@ -33,7 +33,7 @@ const write = (k: string, v: unknown) => {
   }
 }
 
-type View = 'orcamentos' | 'enviar' | 'loja'
+type View = 'orcamentos' | 'enviar' | 'loja' | 'pedido'
 
 let toastTimer = 0
 function useToast(): [ReactNode, (m: string) => void] {
@@ -48,7 +48,7 @@ function useToast(): [ReactNode, (m: string) => void] {
 
 export function ApePublic({ sub }: { sub?: string }) {
   const route = useRoute()
-  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : 'orcamentos'
+  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : sub?.startsWith('pedido:') ? 'pedido' : 'orcamentos'
   const abrir = sub?.startsWith('loja:') ? sub.slice(5) : undefined
   const [d, setD] = useState<Publico | null | undefined>(undefined)
   const [owner, setOwner] = useState(false)
@@ -148,8 +148,10 @@ export function ApePublic({ sub }: { sub?: string }) {
           <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} />
         ) : view === 'enviar' ? (
           <Enviar me={me} whats={whats} />
+        ) : view === 'pedido' ? (
+          <PedidoPage token={sub!.slice(7)} whats={whats} />
         ) : (
-          <Loja key={abrir || 'loja'} produtos={d.ajustes.produtos} me={me} whats={whats} abrir={abrir} />
+          <Loja key={abrir || 'loja'} produtos={d.ajustes.produtos} me={me} whats={whats} abrir={abrir} tiers={d.ajustes.descontos || DESCONTOS} />
         )}
       </main>
       <nav className="ape-bnav" aria-label="Seções">
@@ -176,7 +178,7 @@ export function ApePublic({ sub }: { sub?: string }) {
       <p className="ape-foot">
         <b>{APE.name}</b> · Os orçamentos são enviados por quem está montando o apê e aparecem como foram recebidos. A página só organiza e compara: confira valores, prazos e condições direto com o fornecedor antes de fechar. Não temos vínculo com os fornecedores nem participamos das negociações.
       </p>
-      {!owner && (!me || editing) && <Cadastro me={me} onDone={onCadastro} onCancel={me ? () => setEditing(false) : undefined} />}
+      {!owner && view !== 'pedido' && (!me || editing) && <Cadastro me={me} onDone={onCadastro} onCancel={me ? () => setEditing(false) : undefined} />}
       {toast}
     </div>
   )
@@ -672,18 +674,44 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
 }
 
 /* ===== loja ===== */
-function Loja({ produtos, me, whats, abrir }: { produtos: Produto[]; me: Morador | null; whats: string; abrir?: string }) {
+const CARRINHO = 'ape-carrinho'
+type Carrinho = { ids: string[]; add: (id: string) => void; remove: (id: string) => void; limpar: () => void; tem: (id: string) => boolean }
+function useCarrinho(): Carrinho {
+  const [ids, setIds] = useState<string[]>(() => read<string[]>(CARRINHO) || [])
+  useEffect(() => {
+    write(CARRINHO, ids)
+  }, [ids])
+  return {
+    ids,
+    add: (id) => setIds((l) => (l.includes(id) ? l : [...l, id])),
+    remove: (id) => setIds((l) => l.filter((x) => x !== id)),
+    limpar: () => setIds([]),
+    tem: (id) => ids.includes(id),
+  }
+}
+const faixas = (t: [number, number][]) => t.map(([k, v]) => `${k}${k === t[t.length - 1][0] ? '+' : ''} itens: −${v}%`)
+
+function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: Morador | null; whats: string; abrir?: string; tiers: [number, number][] }) {
   const ativos = produtos.filter((p) => p.ativo)
   const [cat, setCat] = useState<Categoria | 'todos'>('todos')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
+  const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
+  const cart = useCarrinho()
+  const [toast, show] = useToast()
   const byId = (id: string) => produtos.find((p) => p.id === id)
   const cats = CATEGORIAS.filter(([c]) => ativos.some((p) => (p.cat || 'arquivos') === c))
+  const tot = conta(cart.ids, produtos, tiers)
   useEffect(() => {
-    document.body.style.overflow = aberto ? 'hidden' : ''
+    document.body.style.overflow = aberto || verCarrinho ? 'hidden' : ''
     return () => {
       document.body.style.overflow = ''
     }
-  }, [aberto])
+  }, [aberto, verCarrinho])
+  const adicionar = (p: Produto) => {
+    cart.add(p.id)
+    const depois = conta([...cart.ids, p.id], produtos, tiers)
+    show(depois.prox ? `No carrinho! Com mais ${depois.prox[0] - depois.avulsos} arquivo${depois.prox[0] - depois.avulsos > 1 ? 's' : ''}, o desconto vai para ${depois.prox[1]}%.` : depois.pct ? `No carrinho, com ${depois.pct}% de desconto.` : 'No carrinho!')
+  }
   if (!ativos.length)
     return (
       <div className="ape-panel ape-empty">
@@ -693,19 +721,29 @@ function Loja({ produtos, me, whats, abrir }: { produtos: Produto[]; me: Morador
     )
   return (
     <>
-      <section className="ape-panel ape-hero">
+      <section className="ape-panel ape-hero ape-shop-hero">
         <div>
           <p className="ape-eyebrow">loja do apê</p>
           <h2>
-            feito por quem também está <em>montando o apê</em> no {APE.condominio}
+            chegue na vistoria, na obra e na mudança <em>sem susto</em>
           </h2>
-          <p>Materiais e projetos feitos por uma arquiteta que também está montando o apê, pensados para apês compactos como os de {APE.apes} da {APE.construtora}. Toque num item para ver como ele é por dentro.</p>
+          <p>Checklists, planilhas e guias feitos por uma arquiteta que também está montando o apê, para apês compactos como os de {APE.apes}. Monte o seu kit: quanto mais arquivos, maior o desconto.</p>
+          <div className="ape-trust">
+            <span><ApeIcon name="shield" />pagamento seguro, Pix ou cartão</span>
+            <span><ApeIcon name="download" />baixa na hora</span>
+            <span><ApeIcon name="check" />7 dias de garantia</span>
+          </div>
         </div>
-        <ol className="ape-steps" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
-          <li><b>1</b>Escolha o arquivo, combo ou projeto</li>
-          <li><b>2</b>Toque em "quero": abre o WhatsApp</li>
-          <li><b>3</b>Pague no Pix e receba na hora</li>
-        </ol>
+        <div className="ape-ladder" aria-label="Desconto por quantidade">
+          <b>monte seu kit</b>
+          {tiers.map(([k, v]) => (
+            <div key={k} className={tot.avulsos >= k ? 'on' : ''}>
+              <span>{k}{k === tiers[tiers.length - 1][0] ? '+' : ''} arquivos</span>
+              <em>−{v}%</em>
+            </div>
+          ))}
+          <span className="ape-note">{tot.prox ? `Você tem ${tot.avulsos} no carrinho. Falta${tot.prox[0] - tot.avulsos > 1 ? 'm' : ''} ${tot.prox[0] - tot.avulsos} para −${tot.prox[1]}%.` : `Desconto máximo de ${tot.pct}% liberado!`}</span>
+        </div>
       </section>
       <div className="ape-chips" role="group" aria-label="Filtrar a loja">
         <button className="ape-chip" aria-pressed={cat === 'todos'} onClick={() => setCat('todos')}>tudo</button>
@@ -732,40 +770,49 @@ function Loja({ produtos, me, whats, abrir }: { produtos: Produto[]; me: Morador
               {ativos
                 .filter((p) => (p.cat || 'arquivos') === c)
                 .map((p) => (
-                  <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} />
+                  <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} cart={cart} onAdd={adicionar} produtos={produtos} />
                 ))}
             </div>
           </section>
         ))}
+      <MeusPedidos />
       <aside className="ape-cta">
         <div>
           <span className="k">dúvida?</span>
-          <h3>Me chama no WhatsApp</h3>
-          <p>Conto o que vem em cada arquivo, monto um combo do seu jeito ou explico como funciona o projeto.</p>
+          <h3>Fale no WhatsApp</h3>
+          <p>Para saber o que vem em cada arquivo, montar um kit do seu jeito ou entender como funciona o projeto.</p>
         </div>
         <a className="ape-btn" href={wa(whats, `Oi! Sou ${me ? me.nome : 'uma pessoa que está montando o apê'}. Tenho uma dúvida sobre a loja do apê.`)} target="_blank" rel="noopener noreferrer">
           <ApeIcon name="chat" />
           chamar no WhatsApp
         </a>
       </aside>
-      {aberto && <Detalhe p={aberto} byId={byId} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} />}
+      {cart.ids.length > 0 && !verCarrinho && (
+        <button className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
+          <ApeIcon name="bag" />
+          <span>
+            {tot.itens.length} {tot.itens.length > 1 ? 'itens' : 'item'} · <b>{brl(tot.total)}</b>
+            {tot.pct ? <em> −{tot.pct}%</em> : null}
+          </span>
+          <b className="go">ver carrinho</b>
+        </button>
+      )}
+      {aberto && <Detalhe p={aberto} byId={byId} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} cart={cart} onAdd={(p) => { adicionar(p); setAberto(null) }} tiers={tiers} produtos={produtos} />}
+      {verCarrinho && <CarrinhoSheet produtos={produtos} tiers={tiers} cart={cart} me={me} whats={whats} onClose={() => setVerCarrinho(false)} onAdd={adicionar} onOpen={(p) => { setVerCarrinho(false); setAberto(p) }} />}
+      {toast}
     </>
   )
 }
 
-const precoDe = (p: Produto) => (p.preco_de && /^R\$/.test(p.preco_de) && /^R\$/.test(p.preco) ? p.preco_de : '')
-const economia = (p: Produto, byId: (id: string) => Produto | undefined) => {
-  if (!p.combo?.length) return 0
-  const soma = p.combo.reduce((t, id) => t + (num(byId(id)?.preco) || 0), 0)
-  return Math.max(0, soma - (num(p.preco) || 0))
-}
+const somaAvulsos = (p: Produto, byId: (id: string) => Produto | undefined) => (p.combo || []).reduce((t, id) => t + (reais(byId(id)?.preco) || 0), 0)
 
 function Preco({ p, byId }: { p: Produto; byId: (id: string) => Produto | undefined }) {
-  const eco = economia(p, byId)
-  const de = precoDe(p)
+  const soma = somaAvulsos(p, byId)
+  const eco = p.combo?.length ? Math.max(0, soma - reais(p.preco)) : 0
+  const de = p.combo?.length && soma ? brl(soma) : p.preco_de && /^R\$/.test(p.preco_de) && /^R\$/.test(p.preco) && !p.unidade ? p.preco_de : ''
   return (
     <div className="ape-price">
-      {de && <s className="ape-de">{de}</s>}
+      {de && <s className="ape-de">{de} separados</s>}
       {p.preco ? (
         <>
           {p.preco}
@@ -774,13 +821,34 @@ function Preco({ p, byId }: { p: Produto; byId: (id: string) => Produto | undefi
       ) : (
         <small>valor sob consulta</small>
       )}
-      {p.preco_de && !de && <span className="ape-note" style={{ display: 'block' }}>ou {p.preco_de}</span>}
-      {eco > 0 && <span className="ape-pill rosa ape-keep" style={{ display: 'table', marginTop: 6 }}>economize {brl(eco)}</span>}
+      {p.preco_de && p.unidade && <span className="ape-note" style={{ display: 'block' }}>ou {p.preco_de}</span>}
+      {eco > 0 && <span className="ape-pill rosa ape-keep" style={{ display: 'table', marginTop: 6 }}>economize {brl(eco)} ({Math.round((eco / soma) * 100)}%)</span>}
     </div>
   )
 }
 
-function ProdCard({ p, byId, onOpen, me, whats }: { p: Produto; byId: (id: string) => Produto | undefined; onOpen: () => void; me: Morador | null; whats: string }) {
+function BotaoCompra({ p, cart, onAdd, me, whats, wide = true }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string; wide?: boolean }) {
+  if (!noCarrinho(p))
+    return (
+      <a className={`ape-btn primary ${wide ? 'wide' : ''}`} href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
+        <ApeIcon name="chat" />
+        {p.cat === 'projeto' ? 'quero conversar' : 'quero'}
+      </a>
+    )
+  return cart.tem(p.id) ? (
+    <button className={`ape-btn rose ${wide ? 'wide' : ''}`} onClick={() => cart.remove(p.id)}>
+      <ApeIcon name="check" />
+      no carrinho
+    </button>
+  ) : (
+    <button className={`ape-btn primary ${wide ? 'wide' : ''}`} onClick={() => onAdd(p)}>
+      <ApeIcon name="plus" />
+      adicionar
+    </button>
+  )
+}
+
+function ProdCard({ p, byId, onOpen, me, whats, cart, onAdd }: { p: Produto; byId: (id: string) => Produto | undefined; onOpen: () => void; me: Morador | null; whats: string; cart: Carrinho; onAdd: (p: Produto) => void; produtos: Produto[] }) {
   const img = p.amostras?.[0]
   return (
     <article className={`ape-prod ${p.destaque ? 'top' : ''}`}>
@@ -800,7 +868,8 @@ function ProdCard({ p, byId, onOpen, me, whats }: { p: Produto; byId: (id: strin
       </button>
       <div className="ape-tags">
         {p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
-        {p.formato && <span className="ape-pill ape-keep">{p.formato.split(' · ')[0]}</span>}
+        {(p.numeros || []).slice(0, 2).map((n) => <span key={n} className="ape-pill ape-keep">{n}</span>)}
+        {!p.numeros?.length && p.formato && <span className="ape-pill ape-keep">{p.formato.split(' · ')[0]}</span>}
       </div>
       <h3>{p.nome}</h3>
       <p>{p.desc}</p>
@@ -817,10 +886,7 @@ function ProdCard({ p, byId, onOpen, me, whats }: { p: Produto; byId: (id: strin
       <Preco p={p} byId={byId} />
       <div className="ape-acts">
         <button className="ape-btn wide" onClick={onOpen}>ver detalhes</button>
-        <a className="ape-btn primary wide" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
-          <ApeIcon name="bag" />
-          quero
-        </a>
+        <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
       </div>
     </article>
   )
@@ -838,7 +904,7 @@ function Vitrine({ cat }: { cat: Categoria }) {
             <li><ApeIcon name="check" />Você anota cada compra e a plataforma soma tudo por cômodo</li>
             <li><ApeIcon name="check" />As parcelas aparecem mês a mês, sem surpresa no cartão</li>
             <li><ApeIcon name="check" />A obra fica em etapas, com data e o que já foi feito</li>
-            <li><ApeIcon name="check" />Na vistoria, você marca os itens, tira fotos e gera o resumo para a MRV</li>
+            <li><ApeIcon name="check" />Na vistoria, você marca os itens, tira fotos e gera o resumo</li>
           </ul>
           <span className="ape-note">Telas ilustrativas.</span>
         </div>
@@ -846,21 +912,21 @@ function Vitrine({ cat }: { cat: Categoria }) {
     )
   return (
     <div className="ape-vit">
-      <img src="ape/amostras/projeto-3d.jpg" alt="Imagem 3D do projeto do apê 1204: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
+      <img src="ape/amostras/projeto-3d.jpg" alt="Imagem 3D de um projeto de apê compacto: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
       <div className="ape-vit-t">
-        <b>exemplo real: o {APE.doApe}</b>
+        <b>exemplo real: um apê de {APE.apes}</b>
         <ul className="ape-inc">
-          <li><ApeIcon name="check" />Marcenaria azul da cozinha, parede terracota e piso em espinha de peixe</li>
+          <li><ApeIcon name="check" />Marcenaria azul na cozinha, parede terracota e piso em espinha de peixe</li>
           <li><ApeIcon name="check" />Mesa de jantar no lugar certo, sem atrapalhar a passagem</li>
-          <li><ApeIcon name="check" />Tudo nas medidas do apê MRV de {APE.apes}</li>
+          <li><ApeIcon name="check" />Tudo nas medidas do apê</li>
         </ul>
-        <span className="ape-note">Projeto da {APE.dona}, arquiteta, para o próprio apê.</span>
+        <span className="ape-note">Projeto feito para um apê do {APE.condominio}.</span>
       </div>
     </div>
   )
 }
 
-function Detalhe({ p, byId, me, whats, onClose, onOpen }: { p: Produto; byId: (id: string) => Produto | undefined; me: Morador | null; whats: string; onClose: () => void; onOpen: (p: Produto) => void }) {
+function Detalhe({ p, byId, me, whats, onClose, onOpen, cart, onAdd, tiers, produtos }: { p: Produto; byId: (id: string) => Produto | undefined; me: Morador | null; whats: string; onClose: () => void; onOpen: (p: Produto) => void; cart: Carrinho; onAdd: (p: Produto) => void; tiers: [number, number][]; produtos: Produto[] }) {
   const [i, setI] = useState(0)
   const imgs = p.amostras || []
   useEffect(() => {
@@ -870,34 +936,37 @@ function Detalhe({ p, byId, me, whats, onClose, onOpen }: { p: Produto; byId: (i
     return () => window.removeEventListener('keydown', k)
   }, [p, onClose])
   const filhos = (p.combo || []).map(byId).filter((x): x is Produto => !!x)
+  const kit = p.cat !== 'combos' && noCarrinho(p) ? produtos.find((k) => k.ativo && k.cat === 'combos' && (k.combo || []).includes(p.id) && k.destaque) : undefined
   return (
     <div className="ape-sheet" role="dialog" aria-modal="true" aria-label={p.nome} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="ape-sheet-in">
         <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
         {imgs.length > 0 && (
-          <div className="ape-gal">
-            <img src={imgs[i]} alt={`${p.nome}: amostra ${i + 1}`} />
+          <div className="ape-gal" onContextMenu={(e) => e.preventDefault()}>
+            <img src={imgs[i]} alt={`${p.nome}: prévia ${i + 1}`} draggable={false} />
             {imgs.length > 1 && (
               <div className="ape-dotsn">
                 {imgs.map((_, j) => (
-                  <button key={j} aria-label={`Amostra ${j + 1}`} aria-pressed={i === j} onClick={() => setI(j)} />
+                  <button key={j} aria-label={`Prévia ${j + 1}`} aria-pressed={i === j} onClick={() => setI(j)} />
                 ))}
               </div>
             )}
           </div>
         )}
         <div className="ape-sheet-b">
-          <div className="ape-tags">
-            {p.tag && <span className="ape-pill azul">{p.tag}</span>}
-            {imgs.length > 0 && p.cat !== 'projeto' && p.cat !== 'plataforma' && <span className="ape-pill">amostra com marca d'água</span>}
-          </div>
+          <div className="ape-tags">{p.tag && <span className="ape-pill azul">{p.tag}</span>}</div>
           <h2 className="ape-h2">{p.nome}</h2>
           <p style={{ margin: 0, color: 'var(--a-muted)' }}>{p.desc}</p>
+          {(p.numeros || []).length > 0 && (
+            <div className="ape-nums">
+              {p.numeros!.map((n) => <span key={n}>{n}</span>)}
+            </div>
+          )}
           {filhos.length > 0 && (
             <div className="ape-rows">
               {filhos.map((x) => (
                 <button key={x.id} className="ape-row ape-row-btn" onClick={() => onOpen(x)}>
-                  <span className="t"><b>{x.nome}</b><span>{x.formato}</span></span>
+                  <span className="t"><b>{x.nome}</b><span>{(x.numeros || []).join(' · ') || x.formato}</span></span>
                   <span className="r"><s className="ape-note">{x.preco}</s></span>
                 </button>
               ))}
@@ -905,7 +974,7 @@ function Detalhe({ p, byId, me, whats, onClose, onOpen }: { p: Produto; byId: (i
           )}
           {(p.itens || []).length > 0 && (
             <>
-              <p className="ape-eyebrow" style={{ marginTop: 6 }}>{filhos.length ? 'e ainda' : 'o que vem'}</p>
+              <p className="ape-eyebrow" style={{ marginTop: 6 }}>{filhos.length ? 'e ainda' : 'o que tem dentro'}</p>
               <ul className="ape-inc">
                 {p.itens!.map((x) => (
                   <li key={x}><ApeIcon name="check" />{x.replace(/^\+\s*/, '')}</li>
@@ -916,15 +985,220 @@ function Detalhe({ p, byId, me, whats, onClose, onOpen }: { p: Produto; byId: (i
           <dl className="ape-facts">
             {p.formato && (<><dt>formato</dt><dd>{p.formato}</dd></>)}
             {p.entrega && (<><dt>como recebo</dt><dd>{p.entrega}</dd></>)}
+            {noCarrinho(p) && (<><dt>garantia</dt><dd>7 dias: se não gostar, devolvemos o valor.</dd></>)}
           </dl>
           <Preco p={p} byId={byId} />
-          <a className="ape-btn primary" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
-            <ApeIcon name="bag" />
-            quero {p.cat === 'projeto' ? 'conversar sobre o projeto' : 'esse'}
-          </a>
+          {p.cat === 'arquivos' && <span className="ape-note">Leve junto com outros arquivos: {faixas(tiers).join(' · ')}.</span>}
+          <div className="ape-acts">
+            <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
+          </div>
+          {kit && !cart.tem(kit.id) && (
+            <button className="ape-upsell" onClick={() => onOpen(kit)}>
+              <ApeIcon name="gift" />
+              <span>
+                <b>Este arquivo também vem no {kit.nome}</b>
+                <span>{(kit.combo || []).length} arquivos por {kit.preco}: ver o kit</span>
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>
+  )
+}
+
+function CarrinhoSheet({ produtos, tiers, cart, me, whats, onClose, onAdd, onOpen }: { produtos: Produto[]; tiers: [number, number][]; cart: Carrinho; me: Morador | null; whats: string; onClose: () => void; onAdd: (p: Produto) => void; onOpen: (p: Produto) => void }) {
+  const t = conta(cart.ids, produtos, tiers)
+  const [nome, setNome] = useState(me?.nome || '')
+  const [tel, setTel] = useState(me?.tel ? fmtTel(me.tel) : '')
+  const [email, setEmail] = useState('')
+  const [step, setStep] = useState('')
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    // arquivo que já está num kit do carrinho sai sozinho
+    t.repetidos.forEach((id) => cart.remove(id))
+  }, [t.repetidos.join()])
+  const noKit = new Set(t.itens.flatMap((p) => p.combo || []))
+  const sugestoes = produtos.filter((p) => p.ativo && p.cat === 'arquivos' && !cart.tem(p.id) && !noKit.has(p.id)).sort((a, b) => reais(a.preco) - reais(b.preco)).slice(0, 3)
+  const kit = produtos.find((p) => p.ativo && p.cat === 'combos' && p.destaque)
+  const kitVale = kit && !cart.tem(kit.id) && t.total >= reais(kit.preco) * 0.8
+  const msgWhats = `Oi! Sou ${nome || me?.nome || 'uma pessoa que está montando o apê'}. Quero comprar:\n${t.itens.map((p) => `• ${p.nome} (${p.preco})`).join('\n')}${t.desconto ? `\nDesconto de ${t.pct}%: −${brl(t.desconto)}` : ''}\nTotal: ${brl(t.total)}`
+  const pagar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    if (nome.trim().split(/\s+/).length < 2) return setErr('Coloque o nome completo.')
+    if (digits(tel).length < 10) return setErr('Coloque o WhatsApp com DDD.')
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setErr('Confira o e-mail.')
+    setStep('abrindo o pagamento…')
+    try {
+      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), tel: digits(tel), email: email.trim() })
+      cart.limpar()
+      window.location.href = r.url
+    } catch (x) {
+      setErr(`Não deu para abrir o pagamento agora (${(x as Error).message}). Você pode finalizar pelo WhatsApp.`)
+      setStep('')
+    }
+  }
+  return (
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Carrinho" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in">
+        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        <div className="ape-sheet-b">
+          <p className="ape-eyebrow">seu carrinho</p>
+          {!t.itens.length ? (
+            <div className="ape-empty"><b>carrinho vazio</b><span>Adicione arquivos ou um kit.</span></div>
+          ) : (
+            <>
+              <div className="ape-rows">
+                {t.itens.map((p) => (
+                  <div key={p.id} className="ape-row ape-cart-row">
+                    <button className="t ape-linkish" onClick={() => onOpen(p)}>
+                      <b>{p.nome}</b>
+                      <span>{p.cat === 'combos' ? `kit com ${(p.combo || []).length} arquivos` : (p.numeros || []).slice(0, 2).join(' · ')}</span>
+                    </button>
+                    <div className="r">
+                      <b className="num">{p.preco}</b>
+                      <button className="ape-btn ghost sm" onClick={() => cart.remove(p.id)} aria-label={`Tirar ${p.nome}`}><ApeIcon name="trash" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="ape-meta">
+                <div className="ape-meta-t">
+                  <span><ApeIcon name="tag" /> {t.pct ? `${t.pct}% de desconto nos arquivos` : 'leve 2 ou mais arquivos e ganhe desconto'}</span>
+                  {t.prox && <b>falta{t.prox[0] - t.avulsos > 1 ? 'm' : ''} {t.prox[0] - t.avulsos} para −{t.prox[1]}%</b>}
+                </div>
+                <div className="ape-bar"><i style={{ width: `${Math.min(100, (t.avulsos / tiers[tiers.length - 1][0]) * 100)}%` }} /></div>
+              </div>
+              {sugestoes.length > 0 && t.prox && (
+                <div className="ape-sug">
+                  <span className="ape-note">aproveite e leve também:</span>
+                  {sugestoes.map((p) => (
+                    <button key={p.id} className="ape-sug-i" onClick={() => onAdd(p)}>
+                      <img src={p.amostras?.[0]} alt="" />
+                      <span><b>{p.nome}</b><span>{p.preco}</span></span>
+                      <ApeIcon name="plus" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {kitVale && kit && (
+                <button className="ape-upsell" onClick={() => { (kit.combo || []).forEach((id) => cart.remove(id)); onAdd(kit) }}>
+                  <ApeIcon name="gift" />
+                  <span>
+                    <b>Troque pelo {kit.nome} por {kit.preco}</b>
+                    <span>Leva os {(kit.combo || []).length} arquivos da loja{t.total < reais(kit.preco) ? ` por só ${brl(reais(kit.preco) - t.total)} a mais` : ` e paga ${brl(t.total - reais(kit.preco))} a menos`}</span>
+                  </span>
+                </button>
+              )}
+              <dl className="ape-facts ape-totais">
+                <dt>subtotal</dt><dd className="num">{brl(t.subtotal)}</dd>
+                {t.desconto > 0 && (<><dt>desconto ({t.pct}%)</dt><dd className="num">−{brl(t.desconto)}</dd></>)}
+                <dt><b>total</b></dt><dd className="num"><b>{brl(t.total)}</b></dd>
+              </dl>
+              <form className="ape-form" onSubmit={pagar} noValidate>
+                <div className="ape-frow">
+                  <div className="ape-f"><label htmlFor="c-nome">Nome completo</label><input id="c-nome" value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" /></div>
+                  <div className="ape-f"><label htmlFor="c-tel">WhatsApp</label><input id="c-tel" type="tel" inputMode="tel" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => setTel(fmtTel(tel))} autoComplete="tel" /></div>
+                </div>
+                <div className="ape-f"><label htmlFor="c-email">E-mail (opcional, para receber o link)</label><input id="c-email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
+                {err && <p className="ape-err" role="alert">{err}</p>}
+                <button className="ape-btn primary" type="submit" disabled={!!step}>
+                  <ApeIcon name="shield" />
+                  {step || `pagar ${brl(t.total)} com Pix ou cartão`}
+                </button>
+                {err && (
+                  <a className="ape-btn" href={wa(whats, msgWhats)} target="_blank" rel="noopener noreferrer">
+                    <ApeIcon name="chat" />
+                    finalizar pelo WhatsApp
+                  </a>
+                )}
+                <p className="ape-note" style={{ margin: 0, textAlign: 'center' }}>Pagamento processado pelo Asaas, com segurança. Assim que confirmar, os arquivos aparecem para baixar. Garantia de 7 dias.</p>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MeusPedidos() {
+  const l = pedidosLocais()
+  if (!l.length) return null
+  return (
+    <section className="ape-panel">
+      <p className="ape-eyebrow">suas compras</p>
+      <div className="ape-rows">
+        {l.slice(0, 5).map((p) => (
+          <a key={p.token} className="ape-row" href={href('ape', `pedido:${p.token}`)}>
+            <span className="t"><b>Pedido de {dmy(p.criado)}</b><span>{brl(p.total)}</span></span>
+            <span className="r"><span className="ape-pill azul"><ApeIcon name="download" />baixar</span></span>
+          </a>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function PedidoPage({ token, whats }: { token: string; whats: string }) {
+  const [p, setP] = useState<Awaited<ReturnType<typeof verPedido>> | undefined>(undefined)
+  useEffect(() => {
+    let vivo = true
+    let n = 0
+    const load = () =>
+      verPedido(token).then((r) => {
+        if (!vivo) return
+        setP(r)
+        // pagamento ainda não confirmou: confere de novo por uns minutos
+        if (r && r.status === 'pendente' && n++ < 36) window.setTimeout(load, 5000)
+      })
+    void load()
+    return () => {
+      vivo = false
+    }
+  }, [token])
+  if (p === undefined) return <section className="ape-panel ape-empty"><span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>conferindo o pagamento…</span></section>
+  if (p === null)
+    return (
+      <section className="ape-panel ape-empty">
+        <b>pedido não encontrado</b>
+        <span>Confira o link ou fale no WhatsApp.</span>
+        <a className="ape-btn" href={wa(whats, `Oi! Fiz uma compra na loja do apê e não estou achando meu pedido (${token.slice(0, 8)}).`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />falar no WhatsApp</a>
+      </section>
+    )
+  if (p.status !== 'pago')
+    return (
+      <section className="ape-panel ape-done">
+        <ApeIcon name="clock" />
+        <h2 className="ape-h2">aguardando o <em>pagamento</em></h2>
+        <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>Assim que o Pix ou o cartão for confirmado, os arquivos aparecem aqui. Esta página confere sozinha a cada poucos segundos. Pode deixar aberta.</p>
+        <span className="ape-pill">{p.itens.map((i) => i.nome).join(' + ')} · {brl(Number(p.total))}</span>
+      </section>
+    )
+  return (
+    <section className="ape-panel ape-form">
+      <div className="ape-done" style={{ padding: 0 }}>
+        <ApeIcon name="check" />
+        <h2 className="ape-h2">pagamento <em>confirmado!</em></h2>
+        <p className="ape-note" style={{ margin: 0 }}>Obrigada{p.nome ? `, ${firstName(p.nome)}` : ''}! Baixe os seus arquivos. Guarde este link para baixar de novo depois.</p>
+      </div>
+      {p.arquivos?.length ? (
+        <div className="ape-rows">
+          {p.arquivos.map((a) => (
+            <a key={a.url} className="ape-row" href={a.url} target="_blank" rel="noopener noreferrer">
+              <span className="t"><b>{a.produto}</b><span>{a.nome}</span></span>
+              <span className="r"><span className="ape-btn primary sm"><ApeIcon name="download" />baixar</span></span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div className="ape-banner warn">
+          Os arquivos estão sendo preparados. Fale no WhatsApp que enviamos agora.
+          <a className="ape-btn sm" href={wa(whats, `Oi! Paguei o pedido ${token.slice(0, 8)} (${p.itens.map((i) => i.nome).join(', ')}) e os arquivos não apareceram.`)} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        </div>
+      )}
+    </section>
   )
 }
 
