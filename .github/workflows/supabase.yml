@@ -70,7 +70,7 @@ jobs:
           for FN in avisos pagamentos; do
             if grep -q "^supabase/functions/$FN/" changed.txt; then
               echo "→ publicando $FN"
-              if supabase functions deploy "$FN" --project-ref "$REF" --no-verify-jwt > dep.txt 2>&1; then echo "::notice title=função $FN::publicada"; else echo "::error title=função $FN::$(tail -c 600 dep.txt | tr '\n' ' ')"; cat dep.txt; exit 1; fi
+              if supabase functions deploy "$FN" --project-ref "$REF" --no-verify-jwt --yes > dep.txt 2>&1; then echo "::notice title=função $FN::publicada"; else echo "::error title=função $FN::$(tail -c 600 dep.txt | tr '\n' ' ')"; cat dep.txt; exit 1; fi
             fi
           done
       - name: Entrar com Google
