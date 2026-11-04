@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 're
 import { href, useRoute } from '../router'
 import { type Arquivo } from './model'
 import { cadastrar, criarPedido, enviar, escolher, lerAnexos, subirArquivos, loadPublico, meusEnvios, pedidosLocais, verPedido, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
+import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
@@ -231,7 +232,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
               <button className="ape-btn" onClick={onEditar}>sou do {APE.condominio}</button>
             </div>
           </div>
-          <div className="ape-lockart" aria-hidden="true"><ApeIcon name="shield" size={64} /></div>
+          <div className="ape-lockart" aria-hidden="true"><ApeArt name="casa" size={120} /></div>
         </section>
         <Cta nicho="outros" produtos={d.ajustes.produtos} />
       </>
@@ -715,9 +716,9 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
         </h2>
       </div>
       <ol className="ape-steps">
-        <li><b>1</b>Anexe o PDF ou os prints que o fornecedor mandou</li>
-        <li><b>2</b>A página já puxa o fornecedor e o serviço sozinha</li>
-        <li><b>3</b>Confira e toque em enviar: entra na página sem os seus dados</li>
+        <li className="ape-step-art"><ApeArt name="anexo" size={44} /><span><b>1</b>Anexe o PDF ou os prints que o fornecedor mandou</span></li>
+        <li className="ape-step-art"><ApeArt name="ia" size={44} tone="sec" /><span><b>2</b>A página já puxa o fornecedor e o serviço sozinha</span></li>
+        <li className="ape-step-art"><ApeArt name="comparar" size={44} /><span><b>3</b>Confira e envie: entra na página, lado a lado com os outros, sem os seus dados</span></li>
       </ol>
       <label className="ape-drop" htmlFor="e-files">
         <ApeIcon name="clip" />
@@ -796,13 +797,18 @@ const faixas = (t: [number, number][]) => t.map(([k, v]) => `${k}${k === t[t.len
 
 function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: Morador | null; whats: string; abrir?: string; tiers: [number, number][] }) {
   const ativos = produtos.filter((p) => p.ativo)
-  const [cat, setCat] = useState<Categoria | 'todos'>('todos')
+  const [cat, setCat] = useState<string>('todos')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
   const cart = useCarrinho()
   const [toast, show] = useToast()
   const byId = (id: string) => produtos.find((p) => p.id === id)
-  const cats = CATEGORIAS.filter(([c]) => ativos.some((p) => (p.cat || 'arquivos') === c))
+  // vitrine em etapas: quem vai comprar o apê, quem já comprou, kits, plataforma e projeto
+  const secoes: { id: string; l: string; arte: string; d: string; f: (p: Produto) => boolean }[] = [
+    { id: 'comprando', l: 'vai comprar um apê?', arte: 'contrato', d: 'Para a visita ao stand, a simulação e o contrato: o que olhar, quanto custa de verdade e o que perguntar.', f: (p: Produto) => (p.cat || 'arquivos') === 'arquivos' && p.fase === 'comprando' },
+    { id: 'comprei', l: 'já comprou? vistoria, obra e mudança', arte: 'vistoria', d: 'Da vistoria das chaves à decoração: checklists, planilhas e guias para cada etapa.', f: (p: Produto) => (p.cat || 'arquivos') === 'arquivos' && p.fase !== 'comprando' },
+    ...CATEGORIAS.filter(([c]) => c !== 'arquivos').map(([c, l, , d]) => ({ id: c, l, arte: c === 'combos' ? 'casa' : c === 'plataforma' ? 'celular' : 'projeto3d', d, f: (p: Produto) => p.cat === c })),
+  ].filter((x) => ativos.some(x.f))
   const tot = conta(cart.ids, produtos, tiers)
   useEffect(() => {
     document.body.style.overflow = aberto || verCarrinho ? 'hidden' : ''
@@ -828,9 +834,9 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
         <div>
           <p className="ape-eyebrow">loja do apê</p>
           <h2>
-            chegue na vistoria, na obra e na mudança <em>sem susto</em>
+            do contrato às chaves, <em>sem susto</em>
           </h2>
-          <p>Checklists, planilhas e guias feitos por uma estudante de arquitetura (9º semestre) que também está montando o apê, para apês compactos como os de {APE.apes}. Monte o seu kit: quanto mais arquivos, maior o desconto.</p>
+          <p>Guias, checklists e planilhas para quem vai comprar e para quem já comprou um apê compacto, feitos por uma estudante de arquitetura (9º semestre) que também está montando o dela. Quanto mais arquivos, maior o desconto.</p>
           <div className="ape-trust">
             <span><ApeIcon name="shield" />pagamento seguro, Pix ou cartão</span>
             <span><ApeIcon name="download" />baixa na hora</span>
@@ -848,33 +854,35 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
           <span className="ape-note">{tot.prox ? `Você tem ${tot.avulsos} no carrinho. Falta${tot.prox[0] - tot.avulsos > 1 ? 'm' : ''} ${tot.prox[0] - tot.avulsos} para −${tot.prox[1]}%.` : `Desconto máximo de ${tot.pct}% liberado!`}</span>
         </div>
       </section>
+      <ol className="ape-how">
+        <li><ApeArt name="carrinho" size={46} /><span><b>1. escolha</b>arquivos avulsos ou um kit</span></li>
+        <li><ApeArt name="grupo" size={46} tone="sec" /><span><b>2. junte mais</b>2 arquivos: −10% · 4: −20%</span></li>
+        <li><ApeArt name="download" size={46} /><span><b>3. pague e baixe</b>Pix ou cartão, na hora</span></li>
+      </ol>
       <div className="ape-chips" role="group" aria-label="Filtrar a loja">
         <button className="ape-chip" aria-pressed={cat === 'todos'} onClick={() => setCat('todos')}>tudo</button>
-        {cats.map(([c, l, i]) => (
-          <button key={c} className="ape-chip" aria-pressed={cat === c} onClick={() => setCat(c)}>
-            <ApeIcon name={i} />
-            {l}
+        {secoes.map((x) => (
+          <button key={x.id} className="ape-chip" aria-pressed={cat === x.id} onClick={() => setCat(x.id)}>
+            {x.id === 'comprando' ? 'vou comprar' : x.id === 'comprei' ? 'já comprei' : x.l}
           </button>
         ))}
       </div>
-      {cats
-        .filter(([c]) => cat === 'todos' || cat === c)
-        .map(([c, l, i, d]) => (
-          <section key={c} className="ape-nicho" aria-label={l}>
-            <div className="ape-nhead">
-              <span className="ape-nic"><ApeIcon name={i} /></span>
+      {secoes
+        .filter((x) => cat === 'todos' || cat === x.id)
+        .map((x) => (
+          <section key={x.id} className="ape-nicho ape-reveal" aria-label={x.l}>
+            <div className="ape-nhead ape-nhead-art">
+              <ApeArt name={x.arte} size={52} />
               <div>
-                <h3>{l}</h3>
-                <span className="ape-note">{d}</span>
+                <h3>{x.l}</h3>
+                <span className="ape-note">{x.d}</span>
               </div>
             </div>
-            {c === 'plataforma' || c === 'projeto' ? <Vitrine cat={c} /> : null}
+            {x.id === 'plataforma' || x.id === 'projeto' ? <Vitrine cat={x.id as Categoria} /> : null}
             <div className="ape-shop">
-              {ativos
-                .filter((p) => (p.cat || 'arquivos') === c)
-                .map((p) => (
-                  <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} cart={cart} onAdd={adicionar} produtos={produtos} />
-                ))}
+              {ativos.filter(x.f).map((p) => (
+                <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} cart={cart} onAdd={adicionar} produtos={produtos} />
+              ))}
             </div>
           </section>
         ))}
@@ -969,12 +977,15 @@ function ProdCard({ p, byId, onOpen, me, whats, cart, onAdd }: { p: Produto; byI
         )}
         <span className="ape-ver"><ApeIcon name="eye" />ver por dentro</span>
       </button>
+      <div className="ape-prod-h">
+        {p.arte && <ApeArt name={p.arte} size={40} tone={p.cat === 'combos' ? 'sec' : 'pri'} />}
+        <h3>{p.nome}</h3>
+      </div>
       <div className="ape-tags">
         {p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
         {(p.numeros || []).slice(0, 2).map((n) => <span key={n} className="ape-pill ape-keep">{n}</span>)}
         {!p.numeros?.length && p.formato && <span className="ape-pill ape-keep">{p.formato.split(' · ')[0]}</span>}
       </div>
-      <h3>{p.nome}</h3>
       <p>{p.desc}</p>
       {p.combo?.length ? (
         <ul className="ape-inc">
@@ -1000,7 +1011,7 @@ function Vitrine({ cat }: { cat: Categoria }) {
   if (cat === 'plataforma')
     return (
       <div className="ape-vit">
-        <img src="ape/amostras/plataforma.jpg" alt="Telas de exemplo da plataforma do apê: gastos, obra passo a passo e vistoria com fotos" loading="lazy" />
+        <img src="ape/amostras/m-plataforma.jpg" alt="Telas de exemplo da plataforma do apê: gastos, obra passo a passo e vistoria com fotos" loading="lazy" />
         <div className="ape-vit-t">
           <b>como funciona</b>
           <ul className="ape-inc">
@@ -1015,7 +1026,7 @@ function Vitrine({ cat }: { cat: Categoria }) {
     )
   return (
     <div className="ape-vit">
-      <img src="ape/amostras/projeto-3d.jpg" alt="Imagem 3D de um projeto de apê compacto: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
+      <img src="ape/amostras/m-projeto.jpg" alt="Imagem 3D de um projeto de apê compacto: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
       <div className="ape-vit-t">
         <b>exemplo real: um apê de {APE.apes}</b>
         <ul className="ape-inc">

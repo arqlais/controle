@@ -303,6 +303,58 @@
 .ape-psteps li i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--a-line); flex: none; }
 .ape-psteps li.ok i { background: var(--a-pri); border-color: var(--a-pri); }
 
+/* desenhos */
+.ape-art { flex: none; display: block; --art-a: var(--a-pri-soft); --art-b: color-mix(in srgb, var(--a-sec) 55%, #fff); color: var(--a-pri); }
+.ape-art-sec { --art-a: var(--a-sec-soft); --art-b: color-mix(in srgb, var(--a-pri) 45%, #fff); color: var(--a-sec); }
+.ape-art-ter { --art-a: var(--a-ter-soft); --art-b: color-mix(in srgb, var(--a-ter) 45%, #fff); color: var(--a-ter); }
+.ape-nhead-art { align-items: center; }
+.ape-prod-h { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.ape-prod-h h3 { min-width: 0; overflow-wrap: anywhere; }
+.ape-steps .ape-step-art { display: flex; gap: 12px; align-items: center; }
+.ape-steps .ape-step-art b { display: inline; font-size: 18px; margin-right: 6px; }
+.ape-how { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ape-how li { display: flex; gap: 12px; align-items: center; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 16px; padding: 12px 14px; box-shadow: var(--a-shadow); min-width: 0; }
+.ape-how li > span { min-width: 0; font-size: 12.5px; color: var(--a-muted); }
+.ape-how b { display: block; color: var(--a-ink); font-size: 14px; text-transform: lowercase; }
+
+/* nada de imagem cortada: as amostras aparecem inteiras */
+.ape .ape-thumb > img { object-fit: contain; background: var(--a-sand); }
+.ape .ape-stack img { object-fit: cover; }
+.ape .ape-vit img { aspect-ratio: 4 / 3; object-fit: contain; background: var(--a-sand); }
+.ape .ape-gal img { object-fit: contain; max-height: min(56vh, 520px); background: var(--a-sand); }
+
+/* tudo dentro do cartão (tablet e celular) */
+.ape .ape-prod, .ape .ape-oc, .ape .ape-panel { min-width: 0; overflow-wrap: anywhere; }
+.ape .ape-prod p, .ape .ape-oc p { overflow-wrap: anywhere; }
+.ape .ape-pill { max-width: 100%; white-space: normal; text-align: left; line-height: 1.35; }
+.ape .ape-btn { white-space: normal; text-align: center; line-height: 1.25; }
+.ape .ape-acts > .ape-btn { min-width: 0; }
+.ape .ape-pbox .v { font-size: clamp(16px, 2.2vw, 19px); }
+.ape .ape-ladder div span { min-width: 0; }
+
+/* movimento (só para quem não pediu menos movimento) */
+@media (prefers-reduced-motion: no-preference) {
+  .ape-prod, .ape-oc, .ape-how li, .ape-nhead-art { animation: ape-up 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  .ape-shop > :nth-child(2), .ape-grid > :nth-child(2) { animation-delay: 0.06s; }
+  .ape-shop > :nth-child(3), .ape-grid > :nth-child(3) { animation-delay: 0.12s; }
+  .ape-shop > :nth-child(4), .ape-grid > :nth-child(4) { animation-delay: 0.18s; }
+  .ape-shop > :nth-child(n + 5) { animation-delay: 0.24s; }
+  .ape-how li:nth-child(2) { animation-delay: 0.08s; }
+  .ape-how li:nth-child(3) { animation-delay: 0.16s; }
+  @keyframes ape-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .ape-prod, .ape-oc { transition: transform 0.2s, box-shadow 0.2s; }
+  .ape-prod:hover, .ape-oc:hover { transform: translateY(-3px); box-shadow: 0 22px 40px -24px rgba(43, 40, 38, 0.35); }
+  .ape-thumb:hover .ape-ver { transform: translateY(-2px); }
+  .ape-ver { transition: transform 0.2s; }
+  .ape-cartfab { animation: ape-pop 0.35s cubic-bezier(0.3, 1.6, 0.5, 1); }
+  @keyframes ape-pop { from { transform: scale(0.7); opacity: 0; } to { transform: none; opacity: 1; } }
+  .ape-ladder div.on { animation: ape-glow 0.6s ease; }
+  @keyframes ape-glow { 0% { transform: scale(1); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  .ape-art { transition: transform 0.3s; }
+  .ape-prod:hover .ape-art, .ape-how li:hover .ape-art { transform: rotate(-6deg) scale(1.06); }
+  .ape-sheet-in { animation: ape-up 0.3s ease both; }
+}
+
 /* formulários: como os campos do planê (16 px no celular para o iPhone não dar zoom) */
 .ape-f { display: grid; gap: 7px; min-width: 0; }
 .ape-f > label { font-size: 12px; font-weight: 600; text-transform: lowercase; color: var(--a-ink); }
@@ -366,6 +418,20 @@
 .ape-envio { border: 1px solid var(--a-line); border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px; background: var(--a-card); }
 .ape-envio.lido { opacity: 0.7; }
 .ape-envio pre { white-space: pre-wrap; font: inherit; font-size: 13px; margin: 0; max-height: 160px; overflow: auto; background: var(--a-sand); border-radius: 12px; padding: 10px 12px; }
+
+/* tablet (iPad em pé e deitado) */
+@media (max-width: 1100px) {
+  .ape-shop-hero, .ape-hero { grid-template-columns: minmax(0, 1fr); }
+  .ape-co { grid-template-columns: minmax(0, 1fr) 300px; }
+  .ape-shop { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+  .ape-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ape-ladder > b, .ape-ladder > .ape-note { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .ape-co { grid-template-columns: minmax(0, 1fr); }
+  .ape-co-sum { position: static; order: -1; }
+  .ape-how { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* tablet e celular */
 @media (max-width: 760px) {
