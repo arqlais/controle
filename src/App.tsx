@@ -65,6 +65,7 @@ import { useAccess } from './access'
 const Landing = lazy(() => import('./pages/Landing'))
 import { setViewAsClient, setViewPlan, viewingAsClient, type ViewPlan } from './viewAs'
 import { PREVIEW_CLIENT, notifyPlatformMode, platform, setPlatformSample, setPreviewPlan, setPreviewRole } from './platform'
+import { useApeNovos } from './ape/novos'
 import { SIGNUP_KEY, demoData, hasLocalAccount, seedPreviewAccount, usageCounts } from './store'
 import { ScreenHelp, Tour } from './components/Tour'
 import { NewsButton, NewsHistory, NewsModal, WelcomeCard, useNews } from './components/News'
@@ -235,6 +236,7 @@ export default function App() {
   }, [access.isOwner, access.sub])
   // dona: caixa de entrada do chat (aviso de mensagem nova em qualquer tela)
   const inbox = useInbox(access.isOwner && !access.legacy, true)
+  const apeNovos = useApeNovos(access.has('painelDona') && !access.legacy)
   const sugUpdates = useSuggestionUpdates(!access.isOwner && !access.legacy)
   // respostas de briefing que chegaram enquanto estava fora
   useBriefingSync(access.has('briefing'))
@@ -457,8 +459,9 @@ export default function App() {
       financeiro: allPayments(data).filter((x) => paymentDue(x.pay, x.project)).length,
       plataforma: inbox.unread + inbox.newSuggestions,
       sugestoes: sugUpdates.unseen.length,
+      'ape-admin': apeNovos,
     }),
-    [data, inbox.unread, inbox.newSuggestions, sugUpdates.unseen.length],
+    [data, inbox.unread, inbox.newSuggestions, sugUpdates.unseen.length, apeNovos],
   )
   // conta de cliente pausada, teste encerrado ou cancelada: dados guardados, só assinatura/chat/backup
   const locked = !access.isOwner && !!access.sub && (access.sub.blocked || trialOver(access.sub) || access.sub.status === 'cancelada')
@@ -675,7 +678,7 @@ export default function App() {
                   <a key={n.page} href={href(n.page)} className={`is-tool ${route.page === n.page ? 'active' : ''}`} title={n.label} aria-label={n.label} onClick={(e) => organizing && e.preventDefault()}>
                     <Icon name={n.icon} />
                     <span>{n.label}</span>
-                    {count && !organizing ? <em className="nav-alert" title="Mensagens novas no chat">{count}</em> : null}
+                    {count && !organizing ? <em className="nav-alert" title={n.page === 'ape-admin' ? 'Orçamentos novos dos moradores' : 'Mensagens novas no chat'}>{count}</em> : null}
                   </a>
                 )
               })}

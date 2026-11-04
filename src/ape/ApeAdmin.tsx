@@ -43,6 +43,7 @@ export default function ApeAdmin() {
       setInteresses(i)
       setAjustes(a)
       setErro('')
+      window.dispatchEvent(new Event('ape-envios-mudou'))
     } catch (e) {
       setErro(String((e as Error).message || e))
     }

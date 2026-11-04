@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, enviar, loadPublico, queroGrupo, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, enviar, loadPublico, meusEnvios, queroGrupo, souDona, apeCloud, type MeuEnvio, type Publico } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
@@ -191,15 +191,30 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
 
   if (!vis.length)
     return (
-      <section className="ape-panel ape-empty">
-        <ApeIcon name="file" size={32} />
-        <b>os primeiros orçamentos chegam aqui</b>
-        <span>Recebeu um orçamento de piso, marcenaria, box ou qualquer outro serviço? Mande pela aba Enviar orçamento e ele aparece organizado nesta página.</span>
-        <a className="ape-btn primary" href={href('ape', 'enviar')}>
-          <ApeIcon name="send" />
-          enviar um orçamento
-        </a>
-      </section>
+      <>
+        <section className="ape-panel ape-hero">
+          <div>
+            <p className="ape-eyebrow">começando agora</p>
+            <h2>
+              os orçamentos do {APE.condominio} vão ficar <em>lado a lado</em> aqui
+            </h2>
+            <p>Cada morador que manda um orçamento ajuda todo mundo a comparar preço, o que está incluso e a negociar desconto em grupo. Quanto mais gente, melhor o desconto.</p>
+          </div>
+          <ol className="ape-steps" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+            <li><b>1</b>Peça orçamento de piso, marcenaria, box, gesso…</li>
+            <li><b>2</b>Mande por aqui (PDF, print ou texto)</li>
+            <li><b>3</b>A {APE.dona} organiza e todo mundo compara</li>
+          </ol>
+        </section>
+        <div className="ape-acts">
+          <a className="ape-btn primary wide" href={href('ape', 'enviar')}>
+            <ApeIcon name="send" />
+            enviar um orçamento
+          </a>
+          <Compartilhar />
+        </div>
+        <Cta nicho="outros" produtos={d.ajustes.produtos} me={me} whats={whats} />
+      </>
     )
 
   const term = q.trim().toLowerCase()
@@ -224,6 +239,9 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
             todos os orçamentos do condomínio, <em>lado a lado</em>
           </h2>
           <p>Os moradores mandam, a gente organiza. Em cada tipo de serviço, o que mais compensa aparece primeiro, com o que está incluso e o que fica de fora.</p>
+          <div className="ape-acts" style={{ marginTop: 14 }}>
+            <Compartilhar />
+          </div>
         </div>
         <div className="ape-stats">
           <div className="ape-stat"><b className="num">{vis.length}</b><span>orçamentos</span></div>
@@ -383,9 +401,20 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
           <span className="ape-pill rosa"><ApeIcon name="alert" />{o.nao_inclui.length} ite{o.nao_inclui.length > 1 ? 'ns' : 'm'} fora</span>
         )}
       </div>
-      {c.gp > 0 && total > 0 && (
-        <div className="ape-note">
-          <ApeIcon name="users" /> {total} {total > 1 ? 'apês já querem' : 'apê já quer'} fechar em grupo{falta != null ? (falta ? ` · faltam ${falta} para liberar` : ' · meta batida') : ''}
+      {c.gp > 0 && (total > 0 || num(o.grupo_min)) && (
+        <div className="ape-meta">
+          <div className="ape-meta-t">
+            <span>
+              <ApeIcon name="users" /> {total ? `${total} ${total > 1 ? 'apês já querem' : 'apê já quer'} fechar em grupo` : 'seja o primeiro apê do grupo'}
+            </span>
+            {num(o.grupo_min) ? <b className="num">{falta ? `${total} de ${num(o.grupo_min)}` : 'meta batida'}</b> : null}
+          </div>
+          {num(o.grupo_min) ? (
+            <div className="ape-bar" role="progressbar" aria-valuemin={0} aria-valuemax={num(o.grupo_min) || 0} aria-valuenow={Math.min(total, num(o.grupo_min) || 0)} aria-label="Apês no grupo">
+              <i style={{ width: `${Math.min(100, (total / (num(o.grupo_min) || 1)) * 100)}%` }} />
+            </div>
+          ) : null}
+          {falta ? <span className="ape-note">faltam {falta} para liberar −{pct(c.gp)}</span> : null}
         </div>
       )}
       <details className="ape-more">
@@ -432,6 +461,26 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
   )
 }
 
+/* convite para os vizinhos: compartilhar do celular ou mandar no WhatsApp */
+const LINK = 'https://useplane.com.br/#/ape'
+const CONVITE = `Oi, vizinho(a) do ${APE.condominio}! Estou usando esta página para comparar os orçamentos do apê (piso, marcenaria, box…) e fechar desconto em grupo. Manda os seus também 🏡`
+function Compartilhar() {
+  const share = async () => {
+    try {
+      if (navigator.share) return await navigator.share({ title: `${APE.name} · ${APE.condominio}`, text: CONVITE, url: LINK })
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
+    }
+    window.open(wa('', `${CONVITE}\n${LINK}`), '_blank', 'noopener')
+  }
+  return (
+    <button type="button" className="ape-btn" onClick={() => void share()}>
+      <ApeIcon name="share" />
+      chamar os vizinhos
+    </button>
+  )
+}
+
 function Lista({ cls, t, icon, itens }: { cls: string; t: string; icon: string; itens: string[] }) {
   return (
     <div className={cls}>
@@ -474,6 +523,10 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
   const [err, setErr] = useState('')
   const [step, setStep] = useState('')
   const [done, setDone] = useState(false)
+  const [meus, setMeus] = useState<MeuEnvio[]>([])
+  useEffect(() => {
+    if (me?.id) meusEnvios(me.id).then(setMeus, () => setMeus([]))
+  }, [me?.id, done])
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -481,7 +534,7 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
     if (!me?.id) return setErr('Faça o cadastro antes de enviar.')
     if (!txt.trim() && !files.length) return setErr('Cole o texto do orçamento ou anexe o PDF ou um print.')
     if (files.length > 8) return setErr('Mande no máximo 8 arquivos por vez.')
-    const big = files.find((f) => f.size > 15 * 1024 * 1024)
+    const big = files.find((f) => f.size > 15 * 1024 * 1024 && !/^image\/(jpeg|png|webp)$/i.test(f.type))
     if (big) return setErr(`O arquivo ${big.name} passa de 15 MB. Mande um print ou um PDF menor.`)
     setStep('Enviando…')
     try {
@@ -493,8 +546,31 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
     setStep('')
   }
 
+  const lista = meus.length > 0 && (
+    <section className="ape-panel">
+      <p className="ape-eyebrow">seus envios</p>
+      <div className="ape-rows">
+        {meus.map((m) => (
+          <div key={m.id} className="ape-row">
+            <div className="t">
+              <b>{m.fornecedor || 'Fornecedor não informado'}</b>
+              <span>{m.nicho ? nicho(m.nicho).l : 'serviço não informado'} · {dmy(m.criado)}</span>
+            </div>
+            <div className="r">
+              <span className={`ape-pill ${m.status === 'publicado' ? 'azul' : m.status === 'descartado' ? 'rosa' : ''}`}>
+                <ApeIcon name={m.status === 'publicado' ? 'check' : 'clock'} />
+                {m.status === 'publicado' ? 'publicado na página' : m.status === 'descartado' ? 'não publicado' : 'recebido, em análise'}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+
   if (done)
     return (
+      <>
       <section className="ape-panel ape-done">
         <ApeIcon name="check" />
         <h2 className="ape-h2">
@@ -507,11 +583,15 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
             mandar outro
           </button>
           <a className="ape-btn" href={href('ape')}>ver os orçamentos</a>
+          <Compartilhar />
         </div>
       </section>
+      {lista}
+      </>
     )
 
   return (
+    <>
     <form className="ape-panel ape-form" onSubmit={submit} noValidate>
       <div>
         <p className="ape-eyebrow"><ApeIcon name="send" />Enviar orçamento</p>
@@ -571,6 +651,8 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
       </div>
       <p className="ape-note" style={{ margin: 0 }}>Seu nome, torre, apê e telefone vão junto para a {APE.dona} saber quem mandou. Na página, o orçamento aparece sem os seus dados.</p>
     </form>
+    {lista}
+    </>
   )
 }
 

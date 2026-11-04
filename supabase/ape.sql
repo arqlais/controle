@@ -134,6 +134,16 @@ $$;
 revoke execute on function public.ape_cadastro(uuid, text, text, text, text), public.ape_enviar(uuid, text, text, text, jsonb), public.ape_quero_grupo(text, uuid), public.ape_contagens() from public;
 grant execute on function public.ape_cadastro(uuid, text, text, text, text), public.ape_enviar(uuid, text, text, text, jsonb), public.ape_quero_grupo(text, uuid), public.ape_contagens() to anon, authenticated;
 
+-- o morador vê a situação dos orçamentos que ele mandou
+create or replace function public.ape_meus_envios(p_morador uuid) returns table (id uuid, fornecedor text, nicho text, status text, criado timestamptz)
+language sql stable security definer set search_path = public as $$
+  select e.id, e.fornecedor, e.nicho, e.status, e.criado from public.ape_envios e
+  where p_morador is not null and e.morador = p_morador
+  order by e.criado desc limit 30
+$$;
+revoke execute on function public.ape_meus_envios(uuid) from public;
+grant execute on function public.ape_meus_envios(uuid) to anon, authenticated;
+
 -- ===== arquivos (PDF e prints dos orçamentos) =====
 -- pasta privada: o morador só consegue ENVIAR; só a dona abre.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

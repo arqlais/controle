@@ -93,6 +93,50 @@ export async function cadastrar(m: Omit<Morador, 'id'> & { id?: string }): Promi
 
 const safeName = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '-').slice(-80) || 'arquivo'
 
+/** Foto ou print grande vira JPEG mais leve (sobe rápido no 4G). PDF e imagens pequenas vão como estão. */
+async function leve(f: File): Promise<File> {
+  if (!/^image\/(jpeg|png|webp)$/i.test(f.type) || f.size < 1.5 * 1024 * 1024) return f
+  try {
+    const bmp = await createImageBitmap(f)
+    const max = 2200
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height))
+    const c = document.createElement('canvas')
+    c.width = Math.round(bmp.width * k)
+    c.height = Math.round(bmp.height * k)
+    const ctx = c.getContext('2d')!
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, c.width, c.height)
+    ctx.drawImage(bmp, 0, 0, c.width, c.height)
+    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.85))
+    if (!blob || blob.size >= f.size) return f
+    return new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    return f
+  }
+}
+
+export interface MeuEnvio {
+  id: string
+  fornecedor: string
+  nicho: string
+  status: Envio['status']
+  criado: string
+}
+/** Os orçamentos que este morador mandou e em que pé estão. */
+export async function meusEnvios(moradorId: string): Promise<MeuEnvio[]> {
+  if (!CLOUD) return readLocal().envios.filter((e) => e.moradorId === moradorId).map((e) => ({ id: e.id, fornecedor: e.fornecedor, nicho: e.nicho, status: e.status, criado: e.criado }))
+  const { data, error } = await sb().rpc('ape_meus_envios', { p_morador: moradorId })
+  if (error) return []
+  return ((data ?? []) as MeuEnvio[]).map((r) => ({ ...r, id: String(r.id), criado: String(r.criado) }))
+}
+
+/** Quantos orçamentos dos moradores ainda não foram vistos (aviso no menu da dona). */
+export async function novosEnvios(): Promise<number> {
+  if (!CLOUD) return readLocal().envios.filter((e) => e.status === 'novo').length
+  const { count, error } = await sb().from('ape_envios').select('id', { count: 'exact', head: true }).eq('status', 'novo')
+  return error ? 0 : count ?? 0
+}
+
 export async function enviar(moradorId: string, e: { nicho: string; fornecedor: string; texto: string; files: File[] }, onStep?: (t: string) => void): Promise<void> {
   if (!CLOUD) {
     writeLocal((l) => {
@@ -102,8 +146,9 @@ export async function enviar(moradorId: string, e: { nicho: string; fornecedor: 
   }
   const pasta = `envios/${crypto.randomUUID()}`
   const arquivos: Arquivo[] = []
-  for (const [i, f] of e.files.entries()) {
+  for (const [i, f0] of e.files.entries()) {
     onStep?.(`Enviando arquivo ${i + 1} de ${e.files.length}…`)
+    const f = await leve(f0)
     const path = `${pasta}/${i + 1}-${safeName(f.name)}`
     const { error } = await sb().storage.from('ape-envios').upload(path, f, { contentType: f.type || undefined, upsert: false })
     if (error) throw new Error(/size|large/i.test(error.message) ? `O arquivo ${f.name} é grande demais (máximo 15 MB).` : /mime|type/i.test(error.message) ? `O arquivo ${f.name} não é PDF nem imagem.` : error.message)

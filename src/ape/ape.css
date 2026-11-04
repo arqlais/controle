@@ -170,6 +170,14 @@
 .ape-btn:disabled { opacity: 0.45; cursor: default; box-shadow: none; }
 .ape-owner { font-size: 12px; background: var(--a-ter-soft); border-radius: 12px; padding: 6px 10px; color: var(--a-ter); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 
+/* meta da compra em grupo */
+.ape-meta { display: grid; gap: 6px; background: var(--a-ter-soft); border-radius: 14px; padding: 10px 12px; font-size: 12.5px; color: var(--a-ter); }
+.ape-meta-t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ape-meta-t b { font-weight: 700; }
+.ape-meta .ape-note { color: var(--a-ter); opacity: 0.85; }
+.ape-bar { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--a-ter) 18%, #fff); overflow: hidden; }
+.ape-bar i { display: block; height: 100%; border-radius: inherit; background: var(--a-ter); transition: width 0.4s ease; }
+
 /* chamada da loja */
 .ape-cta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; background: var(--a-pri); color: #fff; border-radius: var(--a-radius); padding: 20px 22px; box-shadow: var(--a-shadow); }
 .ape-cta .k { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: lowercase; opacity: 0.8; }
