@@ -1,6 +1,6 @@
 # planê.apê
 
-Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo código, mesmo Supabase, mesmo domínio, com cores e público próprios.
+Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo código, mesmo Supabase, mesmo domínio e o mesmo design (Poppins + The Seasons, símbolo do planê, pílulas, menu de baixo no celular), com as cores do apê 1204 e público próprio.
 
 ## Endereços
 

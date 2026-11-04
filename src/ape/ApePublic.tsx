@@ -6,7 +6,11 @@ import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
   type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
+import { markSvg } from '../components/PlaneMark'
 import './ape.css'
+
+// símbolo do planê nas cores do apê (conteúdo fixo)
+const MARK_SVG = markSvg('quadrado', '#9b593f', '#ffffff')
 
 /* Página pública do planê.apê: os moradores se cadastram, comparam os orçamentos,
    mandam os seus (com PDF e prints) e entram nas compras em grupo. Sem login. */
@@ -75,16 +79,20 @@ export function ApePublic({ sub }: { sub?: string }) {
       <header className="ape-top">
         <div className="wrap">
           <div className="ape-brand">
-            <div className="ape-logo">
-              <h1>
-                orçamentos <span>{APE.condominio}</span>
-              </h1>
-              <small>{APE.name} · por {APE.instagram}</small>
-            </div>
+            <a className="ape-logo" href={href('ape')} aria-label={`${APE.name}: início`}>
+              <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+              <div>
+                <h1>
+                  planê<span>.apê</span>
+                </h1>
+                <small>orçamentos do {APE.condominio} · {APE.instagram}</small>
+              </div>
+            </a>
             {me && (
               <button className="ape-me" onClick={() => setEditing(true)} aria-label="Editar meus dados">
                 <span>
-                  Olá, <b>{first}</b> · T{me.torre} · {me.ap}
+                  oi, <b>{first}</b>
+                  <span className="ape-me-ap"> · T{me.torre} · {me.ap}</span>
                 </span>
                 <span className="ape-av">{first.charAt(0).toUpperCase()}</span>
               </button>
@@ -121,9 +129,9 @@ export function ApePublic({ sub }: { sub?: string }) {
           </div>
         ) : d === null ? (
           <div className="ape-panel ape-empty">
-            <b>A página não abriu</b>
+            <b>a página não abriu</b>
             <span>Confira a internet e tente de novo em instantes.</span>
-            <button className="ape-btn" onClick={() => loadPublico().then(setD, () => setD(null))}>Tentar de novo</button>
+            <button className="ape-btn" onClick={() => loadPublico().then(setD, () => setD(null))}>tentar de novo</button>
           </div>
         ) : view === 'orcamentos' ? (
           <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} />
@@ -133,6 +141,27 @@ export function ApePublic({ sub }: { sub?: string }) {
           <Loja produtos={d.ajustes.produtos} me={me} whats={whats} />
         )}
       </main>
+      <nav className="ape-bnav" aria-label="Seções">
+        <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>
+          <ApeIcon name="list" />
+          orçamentos
+          {vis.length > 0 && <span className="cnt num">{vis.length}</span>}
+        </a>
+        <a href={href('ape', 'enviar')} aria-current={view === 'enviar' ? 'page' : undefined}>
+          <ApeIcon name="send" />
+          enviar
+        </a>
+        <a href={href('ape', 'loja')} aria-current={view === 'loja' ? 'page' : undefined}>
+          <ApeIcon name="bag" />
+          loja do apê
+        </a>
+        {owner && (
+          <a href={href('ape-admin')}>
+            <ApeIcon name="gear" />
+            painel
+          </a>
+        )}
+      </nav>
       <p className="ape-foot">
         {APE.name} · feito por quem também está montando o apê no {APE.condominio} ·{' '}
         <a href="https://useplane.com.br" target="_blank" rel="noreferrer">useplane.com.br</a>
@@ -164,11 +193,11 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
     return (
       <section className="ape-panel ape-empty">
         <ApeIcon name="file" size={32} />
-        <b>Os primeiros orçamentos chegam aqui</b>
+        <b>os primeiros orçamentos chegam aqui</b>
         <span>Recebeu um orçamento de piso, marcenaria, box ou qualquer outro serviço? Mande pela aba Enviar orçamento e ele aparece organizado nesta página.</span>
         <a className="ape-btn primary" href={href('ape', 'enviar')}>
           <ApeIcon name="send" />
-          Enviar um orçamento
+          enviar um orçamento
         </a>
       </section>
     )
@@ -192,7 +221,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
       <section className="ape-panel ape-hero">
         <div>
           <h2>
-            Todos os orçamentos do condomínio, <em>lado a lado</em>
+            todos os orçamentos do condomínio, <em>lado a lado</em>
           </h2>
           <p>Os moradores mandam, a gente organiza. Em cada tipo de serviço, o que mais compensa aparece primeiro, com o que está incluso e o que fica de fora.</p>
         </div>
@@ -230,7 +259,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
       <div style={{ display: 'grid', gap: 26 }}>
         {!list.length && (
           <div className="ape-panel ape-empty">
-            <b>Nada por aqui</b>
+            <b>nada por aqui</b>
             <span>Nenhum orçamento com esse filtro. Tente limpar a busca ou mostrar os vencidos.</span>
           </div>
         )}
@@ -360,7 +389,7 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
         </div>
       )}
       <details className="ape-more">
-        <summary><ApeIcon name="chev" />O que está incluso e o que não está</summary>
+        <summary><ApeIcon name="chev" />o que está incluso e o que não está</summary>
         <div className="ape-lists">
           {o.inclui.length > 0 && <Lista cls="y" t="Inclui" icon="check" itens={o.inclui} />}
           {o.nao_inclui.length > 0 && <Lista cls="n" t="Não inclui" icon="x" itens={o.nao_inclui} />}
@@ -381,7 +410,7 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
         {vendorWa ? (
           <a className="ape-btn primary wide" href={wa(vendorWa, msgFornecedor(o, me))} target="_blank" rel="noopener noreferrer">
             <ApeIcon name="chat" />
-            Falar com o fornecedor
+            falar com o fornecedor
           </a>
         ) : (
           <span className="ape-note">Contato do fornecedor não informado</span>
@@ -390,12 +419,12 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
           (joined ? (
             <a className="ape-btn rose" href={wa(whats, msgGrupo(o, me))} target="_blank" rel="noopener noreferrer" title="Você já está na lista; fale com a Laís se quiser">
               <ApeIcon name="check" />
-              Você está no grupo
+              você está no grupo
             </a>
           ) : (
             <button className="ape-btn blue" onClick={entrar} disabled={busy}>
               <ApeIcon name="users" />
-              Entrar no grupo
+              entrar no grupo
             </button>
           ))}
       </div>
@@ -430,7 +459,7 @@ function Cta({ nicho: n, produtos, me, whats }: { nicho: Nicho; produtos: Produt
       </div>
       <a className="ape-btn" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
         <ApeIcon name="bag" />
-        {p.preco ? `${p.preco} · ` : ''}Quero
+        {p.preco ? `${p.preco} · ` : ''}quero
       </a>
     </aside>
   )
@@ -468,14 +497,16 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
     return (
       <section className="ape-panel ape-done">
         <ApeIcon name="check" />
-        <h2 className="ape-h2">Recebido, obrigada!</h2>
+        <h2 className="ape-h2">
+          recebido, <em>obrigada!</em>
+        </h2>
         <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>A {APE.dona} confere e o orçamento aparece organizado na página, sem os seus dados. Se for de um serviço com desconto em grupo, você fica sabendo por aqui.</p>
         <div className="ape-acts" style={{ justifyContent: 'center' }}>
           <button className="ape-btn primary" onClick={() => { setDone(false); setN(''); setForn(''); setTxt(''); setFiles([]) }}>
             <ApeIcon name="plus" />
-            Mandar outro
+            mandar outro
           </button>
-          <a className="ape-btn" href={href('ape')}>Ver os orçamentos</a>
+          <a className="ape-btn" href={href('ape')}>ver os orçamentos</a>
         </div>
       </section>
     )
@@ -484,7 +515,9 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
     <form className="ape-panel ape-form" onSubmit={submit} noValidate>
       <div>
         <p className="ape-eyebrow"><ApeIcon name="send" />Enviar orçamento</p>
-        <h2 className="ape-h2">Mande o seu e a gente organiza</h2>
+        <h2 className="ape-h2">
+          mande o seu e a gente <em>organiza</em>
+        </h2>
       </div>
       <ol className="ape-steps">
         <li><b>1</b>Escolha o serviço e diga de quem é o orçamento</li>
@@ -506,18 +539,19 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
           <input id="e-forn" value={forn} onChange={(e) => setForn(e.target.value)} placeholder="Nome da loja ou profissional" />
         </div>
       </div>
-      <div className="ape-drop">
-        <label htmlFor="e-files" className="ape-eyebrow"><ApeIcon name="clip" />PDF ou prints</label>
+      <label className="ape-drop" htmlFor="e-files">
+        <ApeIcon name="clip" />
+        <b>{files.length ? 'trocar os arquivos' : 'anexar PDF ou prints'}</b>
         <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => setFiles([...(e.target.files || [])])} />
         {files.length > 0 && (
-          <div className="ape-files">
+          <span className="ape-files">
             {files.map((f) => (
               <span key={f.name} className="ape-pill"><ApeIcon name="file" />{f.name}</span>
             ))}
-          </div>
+          </span>
         )}
-        <span className="ape-note">Até 8 arquivos, de até 15 MB cada.</span>
-      </div>
+        <span className="ape-note">Toque para escolher da galeria ou dos arquivos. Até 8, de até 15 MB cada.</span>
+      </label>
       <div className="ape-f">
         <label htmlFor="e-txt">Texto do orçamento (opcional)</label>
         <textarea id="e-txt" value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" />
@@ -526,12 +560,12 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
       <div className="ape-acts">
         <button className="ape-btn primary" type="submit" disabled={!!step}>
           <ApeIcon name="send" />
-          {step || 'Enviar orçamento'}
+          {step || 'enviar orçamento'}
         </button>
         {err && (
           <a className="ape-btn" href={wa(whats, msgAnexo(me, forn.trim()) + (txt.trim() ? `\n\n${txt.trim()}` : ''))} target="_blank" rel="noopener noreferrer">
             <ApeIcon name="chat" />
-            Mandar pelo WhatsApp
+            mandar pelo WhatsApp
           </a>
         )}
       </div>
@@ -549,9 +583,9 @@ function Loja({ produtos, me, whats }: { produtos: Produto[]; me: Morador | null
         <div>
           <p className="ape-eyebrow"><ApeIcon name="bag" />Loja do apê</p>
           <h2>
-            Feito por quem também está <em>montando o apê</em> no {APE.condominio}
+            feito por quem também está <em>montando o apê</em> no {APE.condominio}
           </h2>
-          <p>Materiais e serviços da {APE.dona} (arquitetura) e do Igor, do {APE.doApe}, pensados para os apês de {APE.apes} da {APE.construtora}. Toque em "Quero" para falar no WhatsApp.</p>
+          <p>Materiais e serviços da {APE.dona} (arquitetura) e do Igor, do {APE.doApe}, pensados para os apês de {APE.apes} da {APE.construtora}. Toque em "quero" para falar no WhatsApp.</p>
         </div>
       </section>
       {ativos.length ? (
@@ -564,14 +598,14 @@ function Loja({ produtos, me, whats }: { produtos: Produto[]; me: Morador | null
               <div className="ape-price">{p.preco ? p.preco : <small>Valor sob consulta</small>}</div>
               <a className="ape-btn primary" href={wa(whats, msgProduto(p, me))} target="_blank" rel="noopener noreferrer">
                 <ApeIcon name="chat" />
-                Quero
+                quero
               </a>
             </article>
           ))}
         </div>
       ) : (
         <div className="ape-panel ape-empty">
-          <b>Em breve</b>
+          <b>em breve</b>
           <span>Os produtos aparecem aqui assim que forem lançados.</span>
         </div>
       )}
@@ -609,7 +643,7 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
     <div className="ape-gate" role="dialog" aria-modal="true" aria-labelledby="g-t">
       <form onSubmit={submit} noValidate>
         <h2 id="g-t">
-          Quem é você no <em>{APE.condominio}</em>?
+          quem é você no <em>{APE.condominio}</em>?
         </h2>
         <p>A página é só para os futuros moradores. Seus dados ficam com a {APE.dona} e vão junto quando você mandar um orçamento ou entrar numa compra em grupo.</p>
         <div className="ape-f">
@@ -633,10 +667,10 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
         {err && <p className="ape-err" role="alert">{err}</p>}
         <div className="ape-acts">
           <button className="ape-btn primary wide" type="submit" disabled={busy}>
-            {busy ? 'Entrando…' : 'Entrar'}
+            {busy ? 'entrando…' : 'entrar'}
           </button>
           {onCancel && (
-            <button className="ape-btn ghost" type="button" onClick={onCancel}>Cancelar</button>
+            <button className="ape-btn ghost" type="button" onClick={onCancel}>cancelar</button>
           )}
         </div>
       </form>
