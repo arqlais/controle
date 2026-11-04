@@ -1,19 +1,20 @@
 /* planê.apê — mesma estrutura do planê, com cores próprias.
    As cores ficam SÓ neste bloco: para trocar a paleta, mude estas variáveis.
-   (provisórias, a partir da página antiga do San Levi: a Laís vai mandar as definitivas) */
+   Paleta do apê 1204: parede terracota, marcenaria azul acinzentada, madeira e paredes off-white.
+   (os tons de texto e de botão são versões mais escuras das cores do projeto, para ler bem) */
 .ape {
-  --a-bg: #f8f3ec;
+  --a-bg: #f6f3ef; /* parede off-white */
   --a-card: #ffffff;
-  --a-ink: #2a2521;
-  --a-muted: #776b62;
-  --a-line: #e6dacb;
-  --a-pri: #a4532f; /* destaque principal: botões, "mais compensa" */
-  --a-pri-soft: #f6e7df;
-  --a-sec: #2f4b66; /* apoio: preços, "ok", links */
-  --a-sec-soft: #e8edf2;
-  --a-ter: #a5675e; /* terceiro tom: grupo, atenção, vencido */
-  --a-ter-soft: #f7e8e4;
-  --a-sand: #f2e9dc; /* caixas de preço e fundos leves */
+  --a-ink: #2b2826; /* preto da geladeira, um pouco mais suave */
+  --a-muted: #6b635c;
+  --a-line: #e0d9d0;
+  --a-pri: #9b593f; /* parede terracota: botões, "mais compensa" */
+  --a-pri-soft: #f6ece6;
+  --a-sec: #4e6472; /* azul da marcenaria (#889aa5), escurecido para texto e botões */
+  --a-sec-soft: #e7ecef;
+  --a-ter: #8a6038; /* madeira (#ac7f54), escurecida: grupo, atenção, vencido */
+  --a-ter-soft: #f3eadf;
+  --a-sand: #ede7e0; /* caixas de preço e fundos leves (piso e palha clareados) */
   --a-display: 'Cormorant Garamond', 'Times New Roman', serif;
   --a-body: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
