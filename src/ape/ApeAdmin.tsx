@@ -7,7 +7,7 @@ import { admin, apeCloud, type Ajustes } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
-  CATEGORIAS, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
+  CATEGORIAS, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
 
@@ -102,7 +102,7 @@ export default function ApeAdmin() {
                 ['recebidos', <>Recebidos{novos ? <em>{novos}</em> : null}</>],
                 ['novo', draft && !draft.novo ? 'Editar' : 'Adicionar'],
                 ['lista', `Orçamentos (${orcs.length})`],
-                ['moradores', `Moradores (${moradores.length})`],
+                ['moradores', `Cadastros (${moradores.length})`],
                 ['grupos', 'Compras em grupo'],
                 ['loja', 'Loja'],
               ] as [Tab, React.ReactNode][]
@@ -233,7 +233,7 @@ function Recebidos({ envios, aiKey, onDraft, onChange }: { envios: Envio[]; aiKe
                 {e.fornecedor || 'Fornecedor não informado'} · {e.nicho ? nicho(e.nicho).l : 'serviço não informado'}
               </b>
               <span>
-                {e.morador ? `${e.morador.nome} · T${e.morador.torre} · ${e.morador.ap} · ${fmtTel(e.morador.tel)}` : 'morador removido'} · {dmy(e.criado)}
+                {e.morador ? `${e.morador.nome} · ${ondeMora(e.morador) || 'sem endereço'} · ${fmtTel(e.morador.tel)}` : 'cadastro removido'} · {dmy(e.criado)}
                 {e.status !== 'novo' ? ` · ${e.status}` : ''}
               </span>
             </div>
@@ -495,7 +495,7 @@ function Moradores({ moradores, envios, interesses, orcs, onChange }: { moradore
     [moradores, q],
   )
   const copiar = async () => {
-    const t = list.map((m) => `${m.nome}\tTorre ${m.torre}\tApê ${m.ap}\t${fmtTel(m.tel)}`).join('\n')
+    const t = list.map((m) => `${m.nome}\t${m.condominio || APE.condominio}\t${m.torre ? `Torre ${m.torre}` : ''}\t${m.ap ? `Apê ${m.ap}` : ''}\t${fmtTel(m.tel)}`).join('\n')
     try {
       await navigator.clipboard.writeText(t)
       toast('Lista copiada: cole numa planilha.')
@@ -531,7 +531,7 @@ function Moradores({ moradores, envios, interesses, orcs, onChange }: { moradore
               <div className="t">
                 <b>{m.nome}</b>
                 <span>
-                  Torre {m.torre} · apê {m.ap} · <span className="ape-tel">{fmtTel(m.tel)}</span>
+                  {ondeMora(m) || 'sem endereço'} · <span className="ape-tel">{fmtTel(m.tel)}</span>
                   {m.criado ? ` · desde ${dmy(m.criado)}` : ''}
                 </span>
                 {(env > 0 || grp.length > 0) && (
@@ -577,7 +577,7 @@ function Grupos({ orcs, interesses }: { orcs: Orcamento[]; interesses: Interesse
         const tels = ppl.map((i) => i.morador).filter((m): m is Morador => !!m)
         const copiar = async () => {
           try {
-            await navigator.clipboard.writeText(tels.map((m) => `${m.nome} · T${m.torre} · ${m.ap} · ${fmtTel(m.tel)}`).join('\n'))
+            await navigator.clipboard.writeText(tels.map((m) => `${m.nome} · ${ondeMora(m)} · ${fmtTel(m.tel)}`).join('\n'))
             toast('Lista copiada.')
           } catch {
             toast('Não consegui copiar.')
@@ -606,7 +606,7 @@ function Grupos({ orcs, interesses }: { orcs: Orcamento[]; interesses: Interesse
                   <div key={m.id} className="ape-row" style={{ padding: '6px 0' }}>
                     <div className="t">
                       <b style={{ fontSize: 13 }}>{m.nome}</b>
-                      <span>Torre {m.torre} · apê {m.ap} · {fmtTel(m.tel)}</span>
+                      <span>{ondeMora(m) || 'sem endereço'} · {fmtTel(m.tel)}</span>
                     </div>
                   </div>
                 ))}

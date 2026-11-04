@@ -4,7 +4,7 @@ import { cadastrar, enviar, loadPublico, meusEnvios, queroGrupo, souDona, apeClo
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
-  CATEGORIAS, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  CATEGORIAS, ehSanLevi, ondeMora, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { markSvg } from '../components/PlaneMark'
 import './ape.css'
@@ -57,7 +57,7 @@ export function ApePublic({ sub }: { sub?: string }) {
   const [toast, show] = useToast()
 
   useEffect(() => {
-    document.title = `${APE.name} · orçamentos ${APE.condominio}`
+    document.title = `${APE.name} · orçamentos lado a lado`
     // "adicionar à tela de início" abre direto a página dos moradores, com o ícone do planê.apê
     const swap = (sel: string, attr: string, val: string) => {
       const el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(sel)
@@ -96,14 +96,14 @@ export function ApePublic({ sub }: { sub?: string }) {
                 <h1>
                   planê<span>.apê</span>
                 </h1>
-                <small>orçamentos do {APE.condominio} · {APE.instagram}</small>
+                <small>orçamentos lado a lado · {APE.instagram}</small>
               </div>
             </a>
             {me && (
               <button className="ape-me" onClick={() => setEditing(true)} aria-label="Editar meus dados">
                 <span>
                   oi, <b>{first}</b>
-                  <span className="ape-me-ap"> · T{me.torre} · {me.ap}</span>
+                  {ondeMora(me) && <span className="ape-me-ap"> · {ehSanLevi(me) && me.torre ? `T${me.torre} · ${me.ap}` : ondeMora(me)}</span>}
                 </span>
                 <span className="ape-av">{first.charAt(0).toUpperCase()}</span>
               </button>
@@ -174,7 +174,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         )}
       </nav>
       <p className="ape-foot">
-        {APE.name} · feito por quem também está montando o apê no {APE.condominio}
+        <b>{APE.name}</b> · Os orçamentos são enviados por quem está montando o apê e aparecem como foram recebidos. A página só organiza e compara: confira valores, prazos e condições direto com o fornecedor antes de fechar. Não temos vínculo com os fornecedores nem participamos das negociações.
       </p>
       {!owner && (!me || editing) && <Cadastro me={me} onDone={onCadastro} onCancel={me ? () => setEditing(false) : undefined} />}
       {toast}
@@ -206,14 +206,14 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
           <div>
             <p className="ape-eyebrow">começando agora</p>
             <h2>
-              os orçamentos do {APE.condominio} vão ficar <em>lado a lado</em> aqui
+              os orçamentos de quem está montando o apê, <em>lado a lado</em>
             </h2>
-            <p>Cada morador que manda um orçamento ajuda todo mundo a comparar preço, o que está incluso e a negociar desconto em grupo. Quanto mais gente, melhor o desconto.</p>
+            <p>Cada pessoa que manda um orçamento ajuda todo mundo a comparar preço, o que está incluso e a negociar desconto em grupo. Quanto mais gente, melhor o desconto.</p>
           </div>
           <ol className="ape-steps" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
             <li><b>1</b>Peça orçamento de piso, marcenaria, box, gesso…</li>
             <li><b>2</b>Mande por aqui (PDF, print ou texto)</li>
-            <li><b>3</b>A {APE.dona} organiza e todo mundo compara</li>
+            <li><b>3</b>Ele entra na página, lado a lado com os outros</li>
           </ol>
         </section>
         <div className="ape-acts">
@@ -246,9 +246,9 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
       <section className="ape-panel ape-hero">
         <div>
           <h2>
-            todos os orçamentos do condomínio, <em>lado a lado</em>
+            orçamentos de quem está montando o apê, <em>lado a lado</em>
           </h2>
-          <p>Os moradores mandam, a gente organiza. Em cada tipo de serviço, o que mais compensa aparece primeiro, com o que está incluso e o que fica de fora.</p>
+          <p>Quem está montando o apê manda os orçamentos que recebeu e eles ficam lado a lado, por serviço: o que está incluso, o que fica de fora, à vista e parcelado.</p>
           <div className="ape-acts" style={{ marginTop: 14 }}>
             <Compartilhar />
           </div>
@@ -259,6 +259,10 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount }: { vis: Orcament
           <div className="ape-stat"><b className="num">{comGrupo}</b><span>com desconto em grupo</span></div>
         </div>
       </section>
+      <p className="ape-aviso">
+        <ApeIcon name="alert" />
+        <span>Os orçamentos vêm de quem está montando o apê e aparecem como foram enviados. O "mais compensa" é um cálculo automático (preço, o que está incluso e validade), não uma indicação. Confira tudo com o fornecedor antes de fechar.</span>
+      </p>
       <div className="ape-chips" role="group" aria-label="Filtrar por serviço">
         <button className="ape-chip" aria-pressed={nf === 'todos'} onClick={() => setFiltro('todos')}>
           Todos <span>{vis.length}</span>
@@ -456,7 +460,7 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
         )}
         {c.gp > 0 &&
           (joined ? (
-            <a className="ape-btn rose" href={wa(whats, msgGrupo(o, me))} target="_blank" rel="noopener noreferrer" title="Você já está na lista; fale com a Laís se quiser">
+            <a className="ape-btn rose" href={wa(whats, msgGrupo(o, me))} target="_blank" rel="noopener noreferrer" title="Você já está na lista do grupo">
               <ApeIcon name="check" />
               você está no grupo
             </a>
@@ -474,7 +478,7 @@ function Card({ x, a, isTop, me, whats, count, show, onCount }: { x: Item; a: An
 /* convite para os vizinhos: compartilhar do celular ou mandar no WhatsApp */
 // link direto para os moradores (abre a página deles, não o site do planê)
 const LINK = 'https://useplane.com.br/ape/'
-const CONVITE = `Oi, vizinho(a) do ${APE.condominio}! Estou usando esta página para comparar os orçamentos do apê (piso, marcenaria, box…) e fechar desconto em grupo. Manda os seus também 🏡`
+const CONVITE = `Olha que legal: uma página com orçamentos de quem está montando o apê (piso, marcenaria, box…), lado a lado, e compras em grupo com desconto. Manda os seus também 🏡`
 function Compartilhar() {
   const share = async () => {
     try {
@@ -487,7 +491,7 @@ function Compartilhar() {
   return (
     <button type="button" className="ape-btn" onClick={() => void share()}>
       <ApeIcon name="share" />
-      chamar os vizinhos
+      compartilhar
     </button>
   )
 }
@@ -587,7 +591,7 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
         <h2 className="ape-h2">
           recebido, <em>obrigada!</em>
         </h2>
-        <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>A {APE.dona} confere e o orçamento aparece organizado na página, sem os seus dados. Se for de um serviço com desconto em grupo, você fica sabendo por aqui.</p>
+        <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>O orçamento entra na página organizado com os outros, sem os seus dados. Você acompanha aqui embaixo, em "seus envios".</p>
         <div className="ape-acts" style={{ justifyContent: 'center' }}>
           <button className="ape-btn primary" onClick={() => { setDone(false); setN(''); setForn(''); setTxt(''); setFiles([]) }}>
             <ApeIcon name="plus" />
@@ -613,7 +617,7 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
       <ol className="ape-steps">
         <li><b>1</b>Escolha o serviço e diga de quem é o orçamento</li>
         <li><b>2</b>Anexe o PDF ou os prints, ou cole o texto que o fornecedor mandou</li>
-        <li><b>3</b>Toque em enviar: a {APE.dona} confere e publica na página</li>
+        <li><b>3</b>Toque em enviar: ele entra na página, sem os seus dados</li>
       </ol>
       <div className="ape-frow">
         <div className="ape-f">
@@ -660,7 +664,7 @@ function Enviar({ me, whats }: { me: Morador | null; whats: string }) {
           </a>
         )}
       </div>
-      <p className="ape-note" style={{ margin: 0 }}>Seu nome, torre, apê e telefone vão junto para a {APE.dona} saber quem mandou. Na página, o orçamento aparece sem os seus dados.</p>
+      <p className="ape-note" style={{ margin: 0 }}>Seu nome e telefone ficam guardados só para identificar quem mandou. Na página, o orçamento aparece sem os seus dados.</p>
     </form>
     {lista}
     </>
@@ -695,11 +699,11 @@ function Loja({ produtos, me, whats, abrir }: { produtos: Produto[]; me: Morador
           <h2>
             feito por quem também está <em>montando o apê</em> no {APE.condominio}
           </h2>
-          <p>Materiais e projetos da {APE.dona} (arquiteta) e do Igor, do {APE.doApe}, pensados para os apês de {APE.apes} da {APE.construtora}. Toque num item para ver como ele é por dentro.</p>
+          <p>Materiais e projetos feitos por uma arquiteta que também está montando o apê, pensados para apês compactos como os de {APE.apes} da {APE.construtora}. Toque num item para ver como ele é por dentro.</p>
         </div>
         <ol className="ape-steps" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
           <li><b>1</b>Escolha o arquivo, combo ou projeto</li>
-          <li><b>2</b>Toque em "quero": abre o WhatsApp da {APE.dona}</li>
+          <li><b>2</b>Toque em "quero": abre o WhatsApp</li>
           <li><b>3</b>Pague no Pix e receba na hora</li>
         </ol>
       </section>
@@ -739,9 +743,9 @@ function Loja({ produtos, me, whats, abrir }: { produtos: Produto[]; me: Morador
           <h3>Me chama no WhatsApp</h3>
           <p>Conto o que vem em cada arquivo, monto um combo do seu jeito ou explico como funciona o projeto.</p>
         </div>
-        <a className="ape-btn" href={wa(whats, `Oi, ${APE.dona}! Sou ${me ? `${me.nome} (Torre ${me.torre}, apê ${me.ap})` : 'morador do ' + APE.condominio}. Tenho uma dúvida sobre a loja do apê.`)} target="_blank" rel="noopener noreferrer">
+        <a className="ape-btn" href={wa(whats, `Oi! Sou ${me ? me.nome : 'uma pessoa que está montando o apê'}. Tenho uma dúvida sobre a loja do apê.`)} target="_blank" rel="noopener noreferrer">
           <ApeIcon name="chat" />
-          chamar a {APE.dona}
+          chamar no WhatsApp
         </a>
       </aside>
       {aberto && <Detalhe p={aberto} byId={byId} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} />}
@@ -927,6 +931,8 @@ function Detalhe({ p, byId, me, whats, onClose, onOpen }: { p: Produto; byId: (i
 /* ===== cadastro ===== */
 function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Morador) => void; onCancel?: () => void }) {
   const [nome, setNome] = useState(me?.nome || '')
+  const [sl, setSl] = useState(me ? ehSanLevi(me) : true)
+  const [cond, setCond] = useState(me && !ehSanLevi(me) ? me.condominio || '' : '')
   const [torre, setTorre] = useState(me?.torre || '')
   const [ap, setAp] = useState(me?.ap || '')
   const [tel, setTel] = useState(me?.tel ? fmtTel(me.tel) : '')
@@ -935,10 +941,9 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    const m = { nome: nome.trim().replace(/\s+/g, ' '), torre: torre.trim(), ap: ap.trim(), tel: digits(tel) }
+    const m = { nome: nome.trim().replace(/\s+/g, ' '), condominio: sl ? APE.condominio : cond.trim(), torre: sl ? torre.trim() : '', ap: sl ? ap.trim() : '', tel: digits(tel) }
     if (m.nome.split(' ').length < 2) return setErr('Coloque o nome completo.')
-    if (!m.torre || !m.ap) return setErr('Coloque a torre e o apê.')
-    if (m.tel.length < 10 || m.tel.length > 13) return setErr('Coloque o telefone com DDD.')
+    if (m.tel.length < 10 || m.tel.length > 13) return setErr('Coloque o WhatsApp com DDD.')
     setErr('')
     setBusy(true)
     try {
@@ -954,25 +959,39 @@ function Cadastro({ me, onDone, onCancel }: { me: Morador | null; onDone: (m: Mo
     <div className="ape-gate" role="dialog" aria-modal="true" aria-labelledby="g-t">
       <form onSubmit={submit} noValidate>
         <h2 id="g-t">
-          quem é você no <em>{APE.condominio}</em>?
+          boas-vindas ao <em>planê.apê</em>
         </h2>
-        <p>A página é só para os futuros moradores. Seus dados ficam com a {APE.dona} e vão junto quando você mandar um orçamento ou entrar numa compra em grupo.</p>
+        <p>Orçamentos de quem está montando o apê, lado a lado. Para ver e mandar orçamentos, conte rapidinho quem é você. Seus dados não aparecem na página.</p>
         <div className="ape-f">
           <label htmlFor="g-nome">Nome completo</label>
           <input id="g-nome" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} required />
         </div>
-        <div className="ape-frow">
-          <div className="ape-f">
-            <label htmlFor="g-torre">Torre</label>
-            <input id="g-torre" inputMode="numeric" value={torre} onChange={(e) => setTorre(e.target.value)} required />
-          </div>
-          <div className="ape-f">
-            <label htmlFor="g-ap">Apê</label>
-            <input id="g-ap" inputMode="numeric" value={ap} onChange={(e) => setAp(e.target.value)} required />
+        <div className="ape-f">
+          <label>Onde é o seu apê?</label>
+          <div className="ape-seg" role="radiogroup">
+            <button type="button" role="radio" aria-checked={sl} onClick={() => setSl(true)}>{APE.condominio} ({APE.construtora})</button>
+            <button type="button" role="radio" aria-checked={!sl} onClick={() => setSl(false)}>outro lugar</button>
           </div>
         </div>
+        {sl ? (
+          <div className="ape-frow">
+            <div className="ape-f">
+              <label htmlFor="g-torre">Torre (opcional)</label>
+              <input id="g-torre" inputMode="numeric" value={torre} onChange={(e) => setTorre(e.target.value)} />
+            </div>
+            <div className="ape-f">
+              <label htmlFor="g-ap">Apê (opcional)</label>
+              <input id="g-ap" inputMode="numeric" value={ap} onChange={(e) => setAp(e.target.value)} />
+            </div>
+          </div>
+        ) : (
+          <div className="ape-f">
+            <label htmlFor="g-cond">Condomínio ou bairro (opcional)</label>
+            <input id="g-cond" value={cond} onChange={(e) => setCond(e.target.value)} placeholder="Ex.: Residencial Jardim, Mooca" />
+          </div>
+        )}
         <div className="ape-f">
-          <label htmlFor="g-tel">Telefone com DDD</label>
+          <label htmlFor="g-tel">WhatsApp com DDD</label>
           <input id="g-tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="(11) 90000-0000" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => setTel(fmtTel(tel))} required />
         </div>
         {err && <p className="ape-err" role="alert">{err}</p>}

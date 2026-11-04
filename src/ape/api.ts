@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { EXEMPLOS, LOJA_VERSAO, PRODUTOS, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
+import { APE, EXEMPLOS, LOJA_VERSAO, PRODUTOS, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
 
 /* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -49,7 +49,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   return { produtos: atual ? a.produtos! : PRODUTOS, whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
-  r ? { id: String(r.id), nome: String(r.nome ?? ''), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
+  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
 
 export const apeCloud = CLOUD
 
@@ -89,9 +89,16 @@ export async function cadastrar(m: Omit<Morador, 'id'> & { id?: string }): Promi
     })
     return id
   }
-  const { data, error } = await sb().rpc('ape_cadastro', { p_id: m.id || null, p_nome: m.nome, p_torre: m.torre, p_ap: m.ap, p_tel: m.tel })
+  const { data, error } = await sb().rpc('ape_cadastro2', { p_id: m.id || null, p_nome: m.nome, p_condominio: m.condominio || APE.condominio, p_torre: m.torre, p_ap: m.ap, p_tel: m.tel })
+  if (!error) return String(data)
+  // banco ainda sem a atualização: cadastro antigo (só San Levi)
+  if (ehSanLevi(m as Morador) && m.torre && m.ap) {
+    const old = await sb().rpc('ape_cadastro', { p_id: m.id || null, p_nome: m.nome, p_torre: m.torre, p_ap: m.ap, p_tel: m.tel })
+    fail(old.error)
+    return String(old.data)
+  }
   fail(error)
-  return String(data)
+  return ''
 }
 
 const safeName = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '-').slice(-80) || 'arquivo'

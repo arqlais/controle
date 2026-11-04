@@ -1,7 +1,7 @@
 {
-  "name": "planê.apê · San Levi",
+  "name": "planê.apê",
   "short_name": "planê.apê",
-  "description": "Orçamentos dos futuros moradores do San Levi",
+  "description": "Orçamentos de quem está montando o apê, lado a lado",
   "start_url": "../#/ape",
   "scope": "../",
   "display": "standalone",

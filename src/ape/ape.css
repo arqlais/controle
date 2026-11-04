@@ -223,6 +223,13 @@
 .ape-dotsn button { width: 26px; height: 6px; border-radius: 9px; border: 0; background: color-mix(in srgb, var(--a-ink) 25%, transparent); padding: 0; }
 .ape-dotsn button[aria-pressed='true'] { background: var(--a-pri); }
 .ape .ape-keep { text-transform: none; }
+.ape-aviso { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: 12px; color: var(--a-muted); background: var(--a-sand); border-radius: 12px; padding: 10px 12px; }
+.ape-aviso .ape-i { color: var(--a-ter); margin-top: 2px; }
+.ape-foot b { color: var(--a-ink); font-weight: 600; }
+.ape-foot { max-width: 760px; margin: 0 auto; line-height: 1.6; }
+.ape-seg { display: flex; gap: 4px; background: var(--a-sand); border-radius: 999px; padding: 4px; }
+.ape-seg button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 9px 10px; font-size: 13px; font-weight: 600; color: var(--a-muted); min-height: 40px; }
+.ape-seg button[aria-checked='true'] { background: var(--a-card); color: var(--a-pri); box-shadow: 0 4px 12px -4px rgba(43, 40, 38, 0.18); }
 .ape-row-btn { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--a-line); text-align: left; cursor: pointer; }
 .ape-row-btn:hover b { color: var(--a-pri); }
 

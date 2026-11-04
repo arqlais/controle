@@ -91,6 +91,7 @@ export interface Produto {
 export interface Morador {
   id: string
   nome: string
+  condominio?: string // 'San Levi' ou o nome que a pessoa digitou
   torre: string
   ap: string
   tel: string
@@ -276,13 +277,17 @@ export const SORTS: Record<Sort, [string, (a: Item, b: Item) => number]> = {
 }
 
 /* ===== mensagens de WhatsApp (emojis só aqui, nas conversas) ===== */
-const quem = (m: Morador | null) => (m ? `${m.nome} (Torre ${m.torre}, apê ${m.ap})` : 'um morador')
+export const ehSanLevi = (m: Morador | null) => !!m && (!m.condominio || m.condominio === APE.condominio)
+/** "Maria (San Levi, Torre 2, apê 304)" ou "Maria (Residencial X)". */
+export const ondeMora = (m: Morador | null) =>
+  !m ? '' : ehSanLevi(m) ? [APE.condominio, m.torre && `Torre ${m.torre}`, m.ap && `apê ${m.ap}`].filter(Boolean).join(', ') : m.condominio || ''
+const quem = (m: Morador | null) => (m ? `${m.nome}${ondeMora(m) ? ` (${ondeMora(m)})` : ''}` : 'uma pessoa que está montando o apê')
 export const msgFornecedor = (o: Orcamento, m: Morador | null) =>
-  `Olá! Sou ${quem(m)}, do condomínio ${APE.condominio} (${APE.construtora}). Vi o orçamento de ${o.servico || nicho(o.nicho).l} da ${o.fornecedor} na página de orçamentos dos moradores e queria conversar.` +
+  `Olá! Sou ${quem(m)}. Vi o orçamento de ${o.servico || nicho(o.nicho).l} da ${o.fornecedor} na página ${APE.name} e queria conversar.` +
   (num(o.grupo_pct) ? ' Tenho interesse também na condição de compra em grupo.' : '')
 export const msgGrupo = (o: Orcamento, m: Morador | null) => `Oi, ${APE.dona}! Sou ${quem(m)}. Quero entrar na compra em grupo de ${o.servico || nicho(o.nicho).l} da ${o.fornecedor} 🙌`
 export const msgProduto = (p: Produto, m: Morador | null) =>
-  `Oi, ${APE.dona}! Sou ${quem(m)}, morador do ${APE.condominio}. Tenho interesse em: ${p.nome}${p.preco ? ` (${p.preco}${p.unidade ? ` ${p.unidade}` : ''})` : ''} 😊` + (m ? `\nTelefone: ${fmtTel(m.tel)}` : '')
+  `Oi, ${APE.dona}! Sou ${quem(m)}. Tenho interesse em: ${p.nome}${p.preco ? ` (${p.preco}${p.unidade ? ` ${p.unidade}` : ''})` : ''} 😊` + (m ? `\nTelefone: ${fmtTel(m.tel)}` : '')
 export const msgAnexo = (m: Morador | null, fornecedor: string) =>
   `Oi, ${APE.dona}! Sou ${quem(m)}. Mandei o orçamento${fornecedor ? ` da ${fornecedor}` : ''} pela página e vou anexar o arquivo aqui 📎`
 

@@ -1,5 +1,7 @@
 # planê.apê
 
+> Aberto para todo mundo (divulgado no Instagram @apzinho_1204). O San Levi é uma opção no cadastro; quem é de outro lugar informa só nome, WhatsApp e, se quiser, o condomínio. Os textos deixam claro que a página só organiza o que as pessoas mandam: a responsabilidade pelos orçamentos é de quem envia e do fornecedor (aviso na lista e no rodapé).
+
 Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo código, mesmo Supabase, mesmo domínio e o mesmo design (Poppins + The Seasons, símbolo do planê, pílulas, menu de baixo no celular), com as cores do apê 1204 e público próprio.
 
 ## Endereços
