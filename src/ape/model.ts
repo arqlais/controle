@@ -68,7 +68,7 @@ export const CATEGORIAS: [Categoria, string, string, string][] = [
   ['arquivos', 'arquivos úteis', 'file', 'Materiais prontos para baixar, imprimir ou usar no celular. Quanto mais você leva, maior o desconto.'],
   ['combos', 'kits', 'gift', 'Os arquivos juntos, com o melhor preço. Para chegar na vistoria, na obra e na mudança sem susto.'],
   ['plataforma', 'plataforma do apê', 'phone', 'Um app no celular para controlar gastos, parcelas, obra e vistoria do seu apê, num lugar só.'],
-  ['projeto', 'projeto do seu apê', 'ruler', 'Arquitetura de verdade, nas medidas do seu apê, com preço acessível.'],
+  ['projeto', 'projeto do seu apê', 'ruler', 'Projeto de interiores feito por uma estudante de arquitetura no último ano, nas medidas do seu apê, com preço acessível.'],
 ]
 export interface Produto {
   id: string
@@ -334,16 +334,18 @@ export const PRODUTOS: Produto[] = [
     desc: 'Gastos, parcelas, obra, vistoria e contatos do seu apê num lugar só, no celular.',
     itens: ['Quanto já foi gasto e quanto falta, por cômodo', 'Parcelas dos próximos meses', 'Obra passo a passo, com datas e o que já foi feito', 'Vistoria com fotos e resumo para a construtora', 'Contatos dos fornecedores com WhatsApp a um toque', 'Funciona no celular, sem instalar nada'], ativo: true },
   { id: 'consultoria', cat: 'projeto', nome: 'Consultoria online', tag: '1 hora', preco: 'R$ 149', formato: 'chamada de vídeo de 1 hora + resumo por escrito', entrega: 'Você escolhe o horário pelo WhatsApp e recebe o link da chamada.', amostras: [],
-    desc: 'Uma hora com uma arquiteta para tirar as dúvidas do seu apê: layout, cores, piso, marcenaria e o que dá para fazer com o seu orçamento.',
+    desc: 'Uma hora com uma estudante de arquitetura (9º semestre) para tirar as dúvidas do seu apê: layout, cores, piso, marcenaria e o que dá para fazer com o seu orçamento.',
     itens: ['Análise da planta e das suas ideias antes da chamada', 'Sugestões de layout, cores e materiais', 'Ajuda para ler e comparar orçamentos', 'Resumo com as decisões por escrito'], ativo: true },
   { id: 'layout', cat: 'projeto', nome: 'Projeto de layout', tag: 'planta com móveis', preco: 'R$ 390', formato: 'planta em PDF + lista de compras', entrega: 'Entrega em até 10 dias depois da conversa inicial.', amostras: [AM('planta.jpg')],
     desc: 'A planta do seu apê com os móveis no lugar e as medidas certas, para pedir orçamentos iguais e comprar sem errar.',
-    itens: ['Conversa para entender a sua rotina', 'Planta de layout com móveis e medidas', '1 rodada de ajustes', 'Lista de compras com medidas de cada móvel', 'Pontos de tomada e iluminação sugeridos'], ativo: true },
+    itens: ['Conversa para entender a sua rotina', 'Planta de layout com móveis e medidas', '1 rodada de ajustes', 'Lista de compras com medidas de cada móvel', 'Sugestão de pontos de tomada e iluminação'], ativo: true },
   { id: 'projeto', cat: 'projeto', nome: 'Projeto completo com 3D', tag: 'mais completo', destaque: true, preco: 'R$ 1.290', preco_de: 'R$ 1.590', formato: 'planta, imagens 3D e detalhamento em PDF', entrega: 'Entrega em até 25 dias, em etapas: layout, 3D e detalhamento.', amostras: [AM('projeto-3d.jpg'), AM('planta.jpg')],
-    desc: 'Layout, imagens 3D e detalhamento para marcenaria e elétrica, nas medidas do seu apê.',
-    itens: ['Tudo do projeto de layout', 'Imagens 3D da sala e da cozinha', 'Detalhamento da marcenaria para o marceneiro orçar', 'Planta de elétrica e iluminação', 'Lista de materiais e acabamentos', '2 rodadas de ajustes', 'ART com engenheiro como adicional'], ativo: true },
+    desc: 'Layout, imagens 3D e detalhamento para a marcenaria, nas medidas do seu apê. Projeto de interiores feito por uma estudante de arquitetura no último ano.',
+    itens: ['Tudo do projeto de layout', 'Imagens 3D da sala e da cozinha', 'Detalhamento da marcenaria para o marceneiro orçar', 'Sugestão de pontos de tomada e iluminação, para o eletricista executar', 'Lista de materiais e acabamentos', '2 rodadas de ajustes', 'Quando a obra pedir ART, um profissional habilitado assina à parte'], ativo: true },
 ]
 
+/** Parcelas sem juros no cartão (mesma regra da função de pagamento). */
+export const parcelasMax = (total: number) => (total >= 60 ? 3 : total >= 30 ? 2 : 1)
 /** Pode ir para o carrinho (arquivos e kits); plataforma e projeto são combinados no WhatsApp. */
 export const noCarrinho = (p: Produto) => (p.cat || 'arquivos') === 'arquivos' || p.cat === 'combos'
 export const reais = (v: unknown) => {

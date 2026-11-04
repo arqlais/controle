@@ -34,6 +34,8 @@ Seções: **arquivos úteis**, **kits**, **plataforma do apê** e **projeto do s
 
 **Carrinho:** arquivos e kits vão para o carrinho. Quanto mais arquivos avulsos, maior o desconto (padrão 2 = 10%, 3 = 15%, 4 = 20%, 6+ = 25%; muda em planê.apê → loja). Os kits têm preço fixo; um arquivo que já está num kit do carrinho sai sozinho. O carrinho sugere arquivos que faltam para o próximo desconto e a troca pelo kit completo quando compensa. Plataforma e projeto continuam pelo WhatsApp.
 
+**Checkout:** página própria (`#/ape/checkout`), no mesmo formato do checkout do planê: 1 seus itens · 2 seus dados · 3 forma de pagamento (Pix ou cartão em até 3x sem juros: 2x a partir de R$ 30, 3x a partir de R$ 60) · 4 confirmar (termos da compra e 7 dias de arrependimento), com o resumo do pedido ao lado.
+
 **Pagamento:** Pix ou cartão pelo Asaas (mesma conta das assinaturas do planê, função `pagamentos`). O preço é calculado no servidor com a loja salva. Pagou → a página do pedido (`useplane.com.br/ape/#pedido:...`) mostra os botões de baixar (links de 24 h, refeitos a cada visita). Sem Asaas ligado, o carrinho oferece "finalizar pelo WhatsApp".
 
 Preços sugeridos (editáveis): checklist de vistoria R$ 19,90 · planilha de obra R$ 24,90 · planner de decoração R$ 17,90 · guia de medidas R$ 16,90 · guia de orçamentos R$ 14,90 · planilha do enxoval R$ 14,90 · checklist de entregas R$ 12,90 · lista da mudança R$ 12,90 · kit chaves na mão R$ 34,90 · kit obra sem susto R$ 39,90 · kit apê novo completo (8 arquivos) R$ 69,90 · plataforma R$ 79/ano · consultoria R$ 149 · layout R$ 390 · projeto com 3D R$ 1.290.

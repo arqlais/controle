@@ -245,24 +245,30 @@ function apeConta(ids: string[], map: Awaited<ReturnType<typeof apeLoja>>['map']
   const desconto = cents(avulsos.reduce((t, i) => t + i.preco, 0) * pct / 100)
   return { itens, subtotal, desconto, total: cents(subtotal - desconto), pct }
 }
+/** Parcelas sem juros no cartão (mesma regra do site): a partir de R$ 30 em 2x, de R$ 60 em 3x. */
+const apeParcelas = (total: number) => (total >= 60 ? 3 : total >= 30 ? 2 : 1)
 async function apeCriar(body: Record<string, any>) {
   const nome = String(body.nome ?? '').trim().slice(0, 120)
   const tel = String(body.tel ?? '').replace(/\D/g, '').slice(0, 13)
   const email = String(body.email ?? '').trim().slice(0, 160)
   if (nome.length < 3 || tel.length < 10) return json({ erro: 'Coloque nome e WhatsApp.' }, 400)
+  if (body.aceite !== true) return json({ erro: 'Aceite os termos da compra.' }, 400)
   const { map, tiers } = await apeLoja()
   const c = apeConta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, tiers)
   if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
   if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
   const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
-  const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total }).select('id, token').single()
+  const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma: body.forma === 'cartao' ? 'cartao' : 'pix' }).select('id, token').single()
   if (error || !ped) throw new Error(error?.message ?? 'não deu para criar o pedido')
+  const forma = body.forma === 'cartao' ? 'cartao' : 'pix'
+  const parcelas = apeParcelas(c.total)
   const link: Record<string, any> = {
     name: 'planê.apê · seu pedido',
-    description: c.itens.map((i) => i.nome).join(' + ').slice(0, 250),
+    description: (c.itens.map((i) => i.nome).join(' + ') + (forma === 'cartao' && parcelas > 1 ? ` · em até ${parcelas}x sem juros` : '')).slice(0, 250),
     value: c.total,
-    billingType: 'UNDEFINED', // a pessoa escolhe Pix ou cartão na página do Asaas
-    chargeType: 'DETACHED',
+    billingType: forma === 'cartao' ? 'CREDIT_CARD' : 'PIX',
+    chargeType: forma === 'cartao' && parcelas > 1 ? 'INSTALLMENT' : 'DETACHED',
+    ...(forma === 'cartao' && parcelas > 1 ? { maxInstallmentCount: parcelas } : {}),
     dueDateLimitDays: 2,
     endDate: new Date(Date.now() + 3 * 864e5).toISOString().slice(0, 10),
     externalReference: `ape|${ped.id}`,

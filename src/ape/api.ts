@@ -302,7 +302,7 @@ export const pedidosLocais = (): { token: string; criado: string; total: number 
   }
 }
 /** Cria o pedido e devolve o link de pagamento do Asaas (o preço é calculado na função, não aqui). */
-export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; tel: string; email?: string }): Promise<{ url: string; token: string; total: number }> {
+export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; tel: string; email?: string; forma: 'pix' | 'cartao'; aceite: boolean }): Promise<{ url: string; token: string; total: number }> {
   if (!CLOUD) throw new Error('Na prévia não dá para pagar de verdade.')
   const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-criar', ...d } })
   const erro = (data as { erro?: string } | null)?.erro

@@ -4,7 +4,7 @@ import { cadastrar, criarPedido, enviar, loadPublico, meusEnvios, pedidosLocais,
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
-  CATEGORIAS, DESCONTOS, conta, ehSanLevi, noCarrinho, ondeMora, reais, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  CATEGORIAS, DESCONTOS, conta, parcelasMax, ehSanLevi, noCarrinho, ondeMora, reais, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { markSvg } from '../components/PlaneMark'
 import './ape.css'
@@ -33,7 +33,7 @@ const write = (k: string, v: unknown) => {
   }
 }
 
-type View = 'orcamentos' | 'enviar' | 'loja' | 'pedido'
+type View = 'orcamentos' | 'enviar' | 'loja' | 'pedido' | 'checkout'
 
 let toastTimer = 0
 function useToast(): [ReactNode, (m: string) => void] {
@@ -48,7 +48,7 @@ function useToast(): [ReactNode, (m: string) => void] {
 
 export function ApePublic({ sub }: { sub?: string }) {
   const route = useRoute()
-  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : sub?.startsWith('pedido:') ? 'pedido' : 'orcamentos'
+  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : sub?.startsWith('pedido:') ? 'pedido' : sub === 'checkout' ? 'checkout' : 'orcamentos'
   const abrir = sub?.startsWith('loja:') ? sub.slice(5) : undefined
   const [d, setD] = useState<Publico | null | undefined>(undefined)
   const [owner, setOwner] = useState(false)
@@ -118,7 +118,7 @@ export function ApePublic({ sub }: { sub?: string }) {
               <ApeIcon name="send" />
               Enviar orçamento
             </a>
-            <a href={href('ape', 'loja')} aria-current={view === 'loja' ? 'page' : undefined}>
+            <a href={href('ape', 'loja')} aria-current={view === 'loja' || view === 'checkout' ? 'page' : undefined}>
               <ApeIcon name="bag" />
               Loja do apê
             </a>
@@ -148,6 +148,8 @@ export function ApePublic({ sub }: { sub?: string }) {
           <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} />
         ) : view === 'enviar' ? (
           <Enviar me={me} whats={whats} />
+        ) : view === 'checkout' ? (
+          <Checkout produtos={d.ajustes.produtos} tiers={d.ajustes.descontos || DESCONTOS} me={me} whats={whats} />
         ) : view === 'pedido' ? (
           <PedidoPage token={sub!.slice(7)} whats={whats} />
         ) : (
@@ -164,7 +166,7 @@ export function ApePublic({ sub }: { sub?: string }) {
           <ApeIcon name="send" />
           enviar
         </a>
-        <a href={href('ape', 'loja')} aria-current={view === 'loja' ? 'page' : undefined}>
+        <a href={href('ape', 'loja')} aria-current={view === 'loja' || view === 'checkout' ? 'page' : undefined}>
           <ApeIcon name="bag" />
           loja do apê
         </a>
@@ -727,7 +729,7 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
           <h2>
             chegue na vistoria, na obra e na mudança <em>sem susto</em>
           </h2>
-          <p>Checklists, planilhas e guias feitos por uma arquiteta que também está montando o apê, para apês compactos como os de {APE.apes}. Monte o seu kit: quanto mais arquivos, maior o desconto.</p>
+          <p>Checklists, planilhas e guias feitos por uma estudante de arquitetura (9º semestre) que também está montando o apê, para apês compactos como os de {APE.apes}. Monte o seu kit: quanto mais arquivos, maior o desconto.</p>
           <div className="ape-trust">
             <span><ApeIcon name="shield" />pagamento seguro, Pix ou cartão</span>
             <span><ApeIcon name="download" />baixa na hora</span>
@@ -1007,13 +1009,8 @@ function Detalhe({ p, byId, me, whats, onClose, onOpen, cart, onAdd, tiers, prod
   )
 }
 
-function CarrinhoSheet({ produtos, tiers, cart, me, whats, onClose, onAdd, onOpen }: { produtos: Produto[]; tiers: [number, number][]; cart: Carrinho; me: Morador | null; whats: string; onClose: () => void; onAdd: (p: Produto) => void; onOpen: (p: Produto) => void }) {
+function CarrinhoSheet({ produtos, tiers, cart, onClose, onAdd, onOpen }: { produtos: Produto[]; tiers: [number, number][]; cart: Carrinho; me?: Morador | null; whats?: string; onClose: () => void; onAdd: (p: Produto) => void; onOpen: (p: Produto) => void }) {
   const t = conta(cart.ids, produtos, tiers)
-  const [nome, setNome] = useState(me?.nome || '')
-  const [tel, setTel] = useState(me?.tel ? fmtTel(me.tel) : '')
-  const [email, setEmail] = useState('')
-  const [step, setStep] = useState('')
-  const [err, setErr] = useState('')
   useEffect(() => {
     // arquivo que já está num kit do carrinho sai sozinho
     t.repetidos.forEach((id) => cart.remove(id))
@@ -1022,23 +1019,6 @@ function CarrinhoSheet({ produtos, tiers, cart, me, whats, onClose, onAdd, onOpe
   const sugestoes = produtos.filter((p) => p.ativo && p.cat === 'arquivos' && !cart.tem(p.id) && !noKit.has(p.id)).sort((a, b) => reais(a.preco) - reais(b.preco)).slice(0, 3)
   const kit = produtos.find((p) => p.ativo && p.cat === 'combos' && p.destaque)
   const kitVale = kit && !cart.tem(kit.id) && t.total >= reais(kit.preco) * 0.8
-  const msgWhats = `Oi! Sou ${nome || me?.nome || 'uma pessoa que está montando o apê'}. Quero comprar:\n${t.itens.map((p) => `• ${p.nome} (${p.preco})`).join('\n')}${t.desconto ? `\nDesconto de ${t.pct}%: −${brl(t.desconto)}` : ''}\nTotal: ${brl(t.total)}`
-  const pagar = async (e: FormEvent) => {
-    e.preventDefault()
-    setErr('')
-    if (nome.trim().split(/\s+/).length < 2) return setErr('Coloque o nome completo.')
-    if (digits(tel).length < 10) return setErr('Coloque o WhatsApp com DDD.')
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setErr('Confira o e-mail.')
-    setStep('abrindo o pagamento…')
-    try {
-      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), tel: digits(tel), email: email.trim() })
-      cart.limpar()
-      window.location.href = r.url
-    } catch (x) {
-      setErr(`Não deu para abrir o pagamento agora (${(x as Error).message}). Você pode finalizar pelo WhatsApp.`)
-      setStep('')
-    }
-  }
   return (
     <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Carrinho" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="ape-sheet-in">
@@ -1096,27 +1076,202 @@ function CarrinhoSheet({ produtos, tiers, cart, me, whats, onClose, onAdd, onOpe
                 {t.desconto > 0 && (<><dt>desconto ({t.pct}%)</dt><dd className="num">−{brl(t.desconto)}</dd></>)}
                 <dt><b>total</b></dt><dd className="num"><b>{brl(t.total)}</b></dd>
               </dl>
-              <form className="ape-form" onSubmit={pagar} noValidate>
-                <div className="ape-frow">
-                  <div className="ape-f"><label htmlFor="c-nome">Nome completo</label><input id="c-nome" value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" /></div>
-                  <div className="ape-f"><label htmlFor="c-tel">WhatsApp</label><input id="c-tel" type="tel" inputMode="tel" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => setTel(fmtTel(tel))} autoComplete="tel" /></div>
-                </div>
-                <div className="ape-f"><label htmlFor="c-email">E-mail (opcional, para receber o link)</label><input id="c-email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
-                {err && <p className="ape-err" role="alert">{err}</p>}
-                <button className="ape-btn primary" type="submit" disabled={!!step}>
-                  <ApeIcon name="shield" />
-                  {step || `pagar ${brl(t.total)} com Pix ou cartão`}
-                </button>
-                {err && (
-                  <a className="ape-btn" href={wa(whats, msgWhats)} target="_blank" rel="noopener noreferrer">
-                    <ApeIcon name="chat" />
-                    finalizar pelo WhatsApp
-                  </a>
-                )}
-                <p className="ape-note" style={{ margin: 0, textAlign: 'center' }}>Pagamento processado pelo Asaas, com segurança. Assim que confirmar, os arquivos aparecem para baixar. Garantia de 7 dias.</p>
-              </form>
+              <a className="ape-btn primary" href={href('ape', 'checkout')} onClick={onClose}>
+                <ApeIcon name="shield" />
+                finalizar compra · {brl(t.total)}
+              </a>
+              <p className="ape-note" style={{ margin: 0, textAlign: 'center' }}>Pix ou cartão{parcelasMax(t.total) > 1 ? ` em até ${parcelasMax(t.total)}x sem juros` : ''} · baixa na hora · 7 dias de garantia</p>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ===== checkout: igual ao do planê (passos à esquerda, resumo à direita), adaptado à loja ===== */
+function Checkout({ produtos, tiers, me, whats }: { produtos: Produto[]; tiers: [number, number][]; me: Morador | null; whats: string }) {
+  const cart = useCarrinho()
+  const t = conta(cart.ids, produtos, tiers)
+  const [nome, setNome] = useState(me?.nome || '')
+  const [tel, setTel] = useState(me?.tel ? fmtTel(me.tel) : '')
+  const [email, setEmail] = useState('')
+  const [forma, setForma] = useState<'pix' | 'cartao'>('pix')
+  const [aceite, setAceite] = useState(false)
+  const [termos, setTermos] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const parc = parcelasMax(t.total)
+  useEffect(() => {
+    t.repetidos.forEach((id) => cart.remove(id))
+  }, [t.repetidos.join()])
+  const kit = produtos.find((p) => p.ativo && p.cat === 'combos' && p.destaque)
+  const kitVale = kit && !cart.tem(kit.id) && t.itens.length > 0 && t.total >= reais(kit.preco) * 0.8
+  const msgWhats = `Oi! Sou ${nome || me?.nome || 'uma pessoa que está montando o apê'}. Quero comprar:\n${t.itens.map((p) => `• ${p.nome} (${p.preco})`).join('\n')}${t.desconto ? `\nDesconto de ${t.pct}%: −${brl(t.desconto)}` : ''}\nTotal: ${brl(t.total)} no ${forma === 'cartao' ? 'cartão' : 'Pix'}`
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    const falta = [nome.trim().split(/\s+/).length < 2 && 'nome completo', digits(tel).length < 10 && 'WhatsApp com DDD', email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && 'e-mail válido', !aceite && 'aceite dos termos'].filter(Boolean)
+    if (falta.length) return setErr(`Falta: ${falta.join(', ')}.`)
+    setBusy(true)
+    try {
+      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), tel: digits(tel), email: email.trim(), forma, aceite: true })
+      cart.limpar()
+      window.location.href = r.url
+    } catch (x) {
+      setErr(`Não deu para abrir o pagamento agora (${(x as Error).message}). Você pode finalizar pelo WhatsApp.`)
+      setBusy(false)
+    }
+  }
+  if (!t.itens.length)
+    return (
+      <section className="ape-panel ape-empty">
+        <ApeIcon name="bag" size={30} />
+        <b>seu carrinho está vazio</b>
+        <span>Escolha arquivos ou um kit na loja.</span>
+        <a className="ape-btn primary" href={href('ape', 'loja')}>ir para a loja</a>
+      </section>
+    )
+  return (
+    <>
+      <div className="ape-co-head">
+        <div>
+          <p className="ape-eyebrow"><ApeIcon name="shield" /> compra segura</p>
+          <h2 className="ape-h2">finalizar <em>compra</em></h2>
+        </div>
+        <a className="ape-btn ghost" href={href('ape', 'loja')}>voltar para a loja</a>
+      </div>
+      <form className="ape-co" onSubmit={submit} noValidate>
+        <div className="ape-co-steps">
+          <CoStep n={1} title="seus itens">
+            <div className="ape-rows">
+              {t.itens.map((p) => (
+                <div key={p.id} className="ape-row ape-cart-row">
+                  <div className="t">
+                    <b>{p.nome}</b>
+                    <span>{p.cat === 'combos' ? `kit com ${(p.combo || []).length} arquivos` : (p.numeros || []).slice(0, 2).join(' · ')}</span>
+                  </div>
+                  <div className="r">
+                    <b className="num">{p.preco}</b>
+                    <button type="button" className="ape-btn ghost sm" onClick={() => cart.remove(p.id)} aria-label={`Tirar ${p.nome}`}><ApeIcon name="trash" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {t.prox && <p className="ape-note" style={{ margin: 0 }}>Com mais {t.prox[0] - t.avulsos} arquivo{t.prox[0] - t.avulsos > 1 ? 's' : ''}, o desconto vai para {t.prox[1]}%. <a href={href('ape', 'loja')} style={{ color: 'var(--a-pri)', fontWeight: 600 }}>escolher mais</a></p>}
+            {kitVale && kit && (
+              <button type="button" className="ape-upsell" onClick={() => { (kit.combo || []).forEach((id) => cart.remove(id)); cart.add(kit.id) }}>
+                <ApeIcon name="gift" />
+                <span>
+                  <b>Troque pelo {kit.nome} por {kit.preco}</b>
+                  <span>Leva os {(kit.combo || []).length} arquivos da loja{t.total < reais(kit.preco) ? ` por só ${brl(reais(kit.preco) - t.total)} a mais` : ` e paga ${brl(t.total - reais(kit.preco))} a menos`}</span>
+                </span>
+              </button>
+            )}
+          </CoStep>
+          <CoStep n={2} title="seus dados">
+            <div className="ape-frow">
+              <div className="ape-f"><label htmlFor="co-nome">Nome completo *</label><input id="co-nome" value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" /></div>
+              <div className="ape-f"><label htmlFor="co-tel">WhatsApp *</label><input id="co-tel" type="tel" inputMode="tel" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => setTel(fmtTel(tel))} autoComplete="tel" placeholder="(11) 90000-0000" /></div>
+            </div>
+            <div className="ape-f"><label htmlFor="co-email">E-mail</label><input id="co-email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /><span className="ape-hint">Opcional. CPF e dados do cartão você coloca na página segura do Asaas, nunca aqui.</span></div>
+          </CoStep>
+          <CoStep n={3} title="forma de pagamento">
+            <div className="ape-co-pay">
+              {([
+                ['pix', 'Pix', 'QR Code na hora; libera os arquivos em segundos', 'tag'],
+                ['cartao', 'Cartão de crédito', parc > 1 ? `em até ${parc}x de ${brl(t.total / parc)} sem juros` : 'à vista no crédito', 'shield'],
+              ] as const).map(([id, l, h, i]) => (
+                <button type="button" key={id} className={forma === id ? 'on' : ''} aria-pressed={forma === id} onClick={() => setForma(id)}>
+                  <ApeIcon name={i} />
+                  <b>{l}{id === 'pix' && <em>mais rápido</em>}</b>
+                  <small>{h}</small>
+                </button>
+              ))}
+            </div>
+          </CoStep>
+          <CoStep n={4} title="confirmar">
+            <label className="ape-co-agree">
+              <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
+              <span>
+                li e aceito os{' '}
+                <button type="button" className="ape-linkish" style={{ color: 'var(--a-pri)', fontWeight: 600, display: 'inline' }} onClick={() => setTermos(true)}>termos da compra</button>{' '}
+                (uso pessoal, não repassar os arquivos).
+              </span>
+            </label>
+            <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="check" /> Se se arrepender, você tem 7 dias depois do pagamento para pedir o dinheiro de volta (art. 49 do Código de Defesa do Consumidor).</p>
+            {err && <p className="ape-err" role="alert">{err}</p>}
+            <button className="ape-btn primary ape-co-submit" type="submit" disabled={busy}>
+              {busy ? 'abrindo o pagamento…' : <>pagar <span className="ape-keep">{brl(t.total)}</span> {forma === 'pix' ? 'no Pix' : parc > 1 ? `em até ${parc}x no cartão` : 'no cartão'}</>}
+            </button>
+            {err && (
+              <a className="ape-btn" href={wa(whats, msgWhats)} target="_blank" rel="noopener noreferrer">
+                <ApeIcon name="chat" />
+                finalizar pelo WhatsApp
+              </a>
+            )}
+          </CoStep>
+        </div>
+        <aside className="ape-panel ape-co-sum">
+          <p className="ape-eyebrow">resumo do pedido</p>
+          {t.itens.map((p) => (
+            <div key={p.id} className="ape-co-line">
+              <span>{p.nome}{p.cat === 'combos' ? <small> · kit</small> : null}</span>
+              <span className="num">{p.preco}</span>
+            </div>
+          ))}
+          {t.desconto > 0 && (
+            <div className="ape-co-line ape-co-off">
+              <span>desconto de {t.pct}% ({t.avulsos} arquivos)</span>
+              <span className="num">−{brl(t.desconto)}</span>
+            </div>
+          )}
+          <div className="ape-co-line ape-co-total">
+            <span>total</span>
+            <b className="num">{brl(t.total)}</b>
+          </div>
+          {forma === 'cartao' && parc > 1 && <p className="ape-note" style={{ margin: 0 }}>ou {parc}x de {brl(t.total / parc)} sem juros</p>}
+          <ul className="ape-inc">
+            <li><ApeIcon name="download" />baixa na hora, depois do pagamento</li>
+            <li><ApeIcon name="check" />link guardado para baixar de novo</li>
+            <li><ApeIcon name="shield" />pagamento processado pelo Asaas</li>
+          </ul>
+          <p className="ape-co-secure"><ApeIcon name="shield" /> compra segura · 7 dias de garantia</p>
+        </aside>
+      </form>
+      {termos && <TermosLoja onClose={() => setTermos(false)} onAccept={() => { setAceite(true); setTermos(false) }} />}
+    </>
+  )
+}
+
+function CoStep({ n, title, children }: { n: number; title: string; children: ReactNode }) {
+  return (
+    <section className="ape-panel ape-co-step">
+      <header>
+        <span>{n}</span>
+        <h3>{title}</h3>
+      </header>
+      {children}
+    </section>
+  )
+}
+
+function TermosLoja({ onClose, onAccept }: { onClose: () => void; onAccept: () => void }) {
+  return (
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Termos da compra" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in">
+        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        <div className="ape-sheet-b">
+          <h2 className="ape-h2">termos da <em>compra</em></h2>
+          <ol className="ape-termos">
+            <li><b>O que você compra.</b> Arquivos digitais (PDF e planilhas) para uso pessoal, no seu apê. A entrega é pelo botão de baixar que aparece depois que o pagamento é confirmado.</li>
+            <li><b>Uso pessoal.</b> Os arquivos não podem ser revendidos, repassados, publicados ou compartilhados em grupos. Indique a página para quem quiser também.</li>
+            <li><b>Conteúdo informativo.</b> Os materiais são guias práticos feitos por uma estudante de arquitetura. Não substituem a avaliação de um profissional habilitado (arquiteto ou engenheiro) nem as orientações da construtora e do manual do proprietário.</li>
+            <li><b>Pagamento.</b> Pix ou cartão, processado pelo Asaas. Os dados do cartão são digitados só na página segura do Asaas.</li>
+            <li><b>Arrependimento.</b> Você pode pedir o dinheiro de volta em até 7 dias depois do pagamento (art. 49 do Código de Defesa do Consumidor), pelo WhatsApp.</li>
+            <li><b>Problemas para baixar.</b> Fale no WhatsApp: enviamos os arquivos por lá.</li>
+          </ol>
+          <button className="ape-btn primary" onClick={onAccept}>li e aceito</button>
         </div>
       </div>
     </div>
@@ -1173,6 +1328,11 @@ function PedidoPage({ token, whats }: { token: string; whats: string }) {
         <ApeIcon name="clock" />
         <h2 className="ape-h2">aguardando o <em>pagamento</em></h2>
         <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>Assim que o Pix ou o cartão for confirmado, os arquivos aparecem aqui. Esta página confere sozinha a cada poucos segundos. Pode deixar aberta.</p>
+        <ol className="ape-psteps">
+          <li className="ok"><i /><span><b>pedido enviado</b>com os seus dados</span></li>
+          <li><i /><span><b>pagamento</b>Pix ou cartão, na página segura do Asaas</span></li>
+          <li><i /><span><b>arquivos liberados</b>os botões de baixar aparecem aqui</span></li>
+        </ol>
         <span className="ape-pill">{p.itens.map((i) => i.nome).join(' + ')} · {brl(Number(p.total))}</span>
       </section>
     )

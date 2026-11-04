@@ -265,6 +265,40 @@
 .ape .ape-totais dd { text-align: right; }
 .ape-gal img { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; pointer-events: none; }
 
+/* checkout (mesmo formato do checkout do planê) */
+.ape-co-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.ape-co-head .ape-eyebrow .ape-i { display: inline-block; }
+.ape-co { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.ape-co-steps { display: grid; gap: 14px; min-width: 0; }
+.ape-co-step { display: grid; gap: 12px; }
+.ape-co-step > header { display: flex; align-items: center; gap: 10px; }
+.ape-co-step > header span { width: 28px; height: 28px; border-radius: 50%; background: var(--a-pri); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none; }
+.ape-co-step > header h3 { font-size: 16px; text-transform: lowercase; }
+.ape-co-pay { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.ape-co-pay button { display: grid; gap: 4px; justify-items: start; text-align: left; border: 1.5px solid var(--a-line); background: var(--a-card); border-radius: 14px; padding: 12px 14px; }
+.ape-co-pay button .ape-i { color: var(--a-pri); width: 20px; height: 20px; }
+.ape-co-pay button b { font-size: 14px; display: flex; gap: 6px; align-items: center; }
+.ape-co-pay button b em { font-style: normal; font-size: 10.5px; background: var(--a-sec-soft); color: var(--a-sec); border-radius: 999px; padding: 1px 8px; }
+.ape-co-pay button small { font-size: 12px; color: var(--a-muted); }
+.ape-co-pay button.on { border-color: var(--a-pri); background: var(--a-pri-soft); box-shadow: 0 0 0 3px var(--a-pri-soft); }
+.ape-co-agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; cursor: pointer; }
+.ape-co-agree input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--a-pri); flex: none; }
+.ape-co-submit { min-height: 50px; font-size: 14px; }
+.ape-co-sum { position: sticky; top: 130px; display: grid; gap: 10px; }
+.ape-co-line { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ape-co-line small { color: var(--a-muted); }
+.ape-co-off { color: var(--a-sec); font-weight: 600; }
+.ape-co-total { border-top: 1px solid var(--a-line); padding-top: 10px; font-size: 15px; }
+.ape-co-total b { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--a-pri); }
+.ape-co-secure { margin: 0; font-size: 12px; color: var(--a-muted); display: flex; gap: 6px; align-items: center; border-top: 1px dashed var(--a-line); padding-top: 10px; }
+.ape-termos { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 13px; }
+.ape-psteps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; width: min(420px, 100%); text-align: left; }
+.ape-psteps li { display: flex; gap: 10px; align-items: flex-start; background: var(--a-sand); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+.ape-psteps li b { display: block; }
+.ape-psteps li span { color: var(--a-muted); font-size: 12px; }
+.ape-psteps li i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--a-line); flex: none; }
+.ape-psteps li.ok i { background: var(--a-pri); border-color: var(--a-pri); }
+
 /* formulários: como os campos do planê (16 px no celular para o iPhone não dar zoom) */
 .ape-f { display: grid; gap: 7px; min-width: 0; }
 .ape-f > label { font-size: 12px; font-weight: 600; text-transform: lowercase; color: var(--a-ink); }
@@ -339,6 +373,10 @@
   .ape-cta .ape-btn { width: 100%; }
   .ape-vit { grid-template-columns: minmax(0, 1fr); }
   .ape-shop-hero { grid-template-columns: minmax(0, 1fr); }
+  .ape-co { grid-template-columns: minmax(0, 1fr); }
+  .ape .ape-cart-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .ape .ape-cart-row .r { justify-content: flex-end; }
+  .ape-co-sum { position: static; order: -1; }
   .ape-cartfab { left: 16px; right: 16px; justify-content: space-between; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
   .ape-sheet { padding: 0; align-items: end; }
   .ape-sheet-in { border-radius: 24px 24px 0 0; max-height: 92dvh; }
