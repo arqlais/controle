@@ -426,6 +426,32 @@ try {
     ok(errors.length === 0, `plataforma: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()
   }
+  // planê.apê: cadastro do morador, compra em grupo, envio de orçamento e painel da dona
+  for (const vp of [{ width: 1280, height: 860, name: 'computador' }, { width: 375, height: 812, name: 'celular' }]) {
+    const page = await browser.newPage({ viewport: vp })
+    const errors = []
+    page.on('pageerror', (e) => errors.push(e.message))
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)) })
+    await page.goto(`http://localhost:${PORT}/#/ape`)
+    const gate = await page.locator('#g-nome').waitFor({ timeout: 8000 }).then(() => true, () => false)
+    ok(gate, `apê ${vp.name}: pede o cadastro na entrada`)
+    await page.fill('#g-nome', 'Maria Teste Silva'); await page.fill('#g-torre', '2'); await page.fill('#g-ap', '304'); await page.fill('#g-tel', '11988887777')
+    await page.locator('.ape-gate button[type=submit]').click(); await page.waitForTimeout(400)
+    ok(await page.locator('.ape-oc.top').count() >= 1, `apê ${vp.name}: mostra o "mais compensa"`)
+    await page.locator('.ape-oc button', { hasText: 'Entrar no grupo' }).first().click(); await page.waitForTimeout(300)
+    ok(await page.locator('.ape-oc', { hasText: 'Você está no grupo' }).count() >= 1, `apê ${vp.name}: entra na compra em grupo`)
+    await page.evaluate(() => (location.hash = '#/ape/enviar')); await page.waitForTimeout(300)
+    await page.fill('#e-forn', 'Loja Teste'); await page.fill('#e-txt', 'Piso 30 m² por R$ 3.000 à vista')
+    await page.locator('.ape-form button[type=submit]').click(); await page.waitForTimeout(400)
+    ok(await page.locator('.ape-done').count() === 1, `apê ${vp.name}: envia orçamento`)
+    for (const h of ['#/ape', '#/ape/enviar', '#/ape/loja', '#/ape-admin']) {
+      await page.evaluate((h) => (location.hash = h), h); await page.waitForTimeout(500)
+      ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `apê ${vp.name}: ${h} cabe na tela`)
+    }
+    ok(await page.locator('.ape-envio', { hasText: 'Loja Teste' }).count() === 1, `apê ${vp.name}: dona recebe o orçamento enviado`)
+    ok(errors.length === 0, `apê ${vp.name}: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
+    await page.close()
+  }
 } finally {
   await browser.close()
   server.kill()

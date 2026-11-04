@@ -40,6 +40,7 @@ import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
 const ContractDataPage = lazy(() => import('./pages/ContractDataPage'))
 const Admin = lazy(() => import('./pages/Admin'))
+const ApeAdmin = lazy(() => import('./ape/ApeAdmin'))
 const AffiliatesPage = lazy(() => import('./pages/Admin').then((m) => ({ default: m.AffiliatesPage })))
 const Indique = lazy(() => import('./pages/Indique'))
 const Checkout = lazy(() => import('./pages/Checkout'))
@@ -112,7 +113,7 @@ const SIMPLE_NAV = ['inicio', 'orcamentos', 'clientes', 'projetos', 'financeiro'
 // o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
 const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
-const NEEDS: Record<string, Feature> = { 'dados-contrato': 'dadosContrato', contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
+const NEEDS: Record<string, Feature> = { 'dados-contrato': 'dadosContrato', contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', 'ape-admin': 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
   { page: 'manual', label: 'manual', icon: 'book' },
@@ -326,7 +327,7 @@ export default function App() {
   const groups = useMemo(
     () =>
       [
-        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'ape-admin', label: 'planê.apê', icon: 'home' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
         { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, ...(settings.simpleMenu && data.quotes.length < 3 ? [] : [{ page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }])] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),
@@ -497,6 +498,8 @@ export default function App() {
         return <ContractDataPage id={route.id} />
       case 'plataforma':
         return <Admin />
+      case 'ape-admin':
+        return <ApeAdmin />
       case 'afiliados':
         return <AffiliatesPage />
       case 'indique':
