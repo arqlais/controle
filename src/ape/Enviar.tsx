@@ -4,7 +4,7 @@ import { lerArquivo, meuOrcamento, publicar, subirArquivos, apeCloud } from './a
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { faltando, lerTexto, nichoDoTexto } from './comparar'
-import { APE, NICHOS, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
+import { APE, NICHOS, PLANTA_ROT, plantaDoAp, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
 
 /* Enviar orçamento: anexa um ou mais arquivos, cada arquivo vira um orçamento lido sozinho (IA no servidor;
    sem IA, regras simples sobre o texto do PDF). A pessoa só completa o que faltou e publica direto na comparação. */
@@ -46,6 +46,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const [busy, setBusy] = useState('')
   const [feitos, setFeitos] = useState<Orcamento[]>([])
   const [tipo, setTipo] = useState<TipoEnvio>('orcamento')
+  const [planta, setPlanta] = useState<Orcamento['planta']>(() => plantaDoAp(me?.ap))
   const meus = orcamentos.filter((o) => meusIds.includes(o.id))
   useEffect(() => setErr(''), [lidos.length])
 
@@ -135,7 +136,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     const ok: Orcamento[] = []
     for (const l of prontos) {
       try {
-        const id = await publicar(me.id, { ...l.o, enviado: true }, l.arquivos)
+        const id = await publicar(me.id, { ...l.o, enviado: true, ap: me.ap, planta: l.o.tipo === 'contato' ? '' : planta }, l.arquivos)
         ok.push({ ...l.o, id })
       } catch (x) {
         setErr(`Não deu para publicar ${l.o.fornecedor || 'um orçamento'} (${(x as Error).message}).`)
@@ -207,6 +208,16 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
             ))}
           </div>
         </div>
+        {tipo !== 'contato' && (
+          <div className="ape-f">
+            <label>Para qual planta é? <span className="ape-opc">{me?.ap ? `seu apê ${me.ap} é ${PLANTA_ROT[plantaDoAp(me.ap)] || 'de planta não identificada'}` : ''}</span></label>
+            <div className="ape-seg" role="radiogroup" aria-label="Planta">
+              {([['canto', 'canto (finais 01, 02, 11 e 12)'], ['corredor', 'corredor (finais 03 a 10)'], ['', 'não sei']] as const).map(([id, l]) => (
+                <button key={id || 'nao'} type="button" role="radio" aria-checked={planta === id} onClick={() => setPlanta(id)}>{l}</button>
+              ))}
+            </div>
+          </div>
+        )}
         <ol className="ape-steps ape-steps-num">
           <li><b>1</b><span>{tipo === 'contato' ? 'Preencha o contato ou anexe o print do cartão / da conversa' : tipo === 'tabela' ? 'Anexe o print ou o PDF da tabela de preços' : 'Anexe o PDF ou os prints (pode mandar vários de uma vez)'}</span></li>
           <li><b>2</b><span>Confira o que foi lido e complete só o que faltar</span></li>

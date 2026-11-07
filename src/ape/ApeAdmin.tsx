@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, BONUS, PIX_PCT, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, PIX_PCT, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -397,6 +397,8 @@ const asText = (v: unknown, t: string) => (v == null ? '' : t === 'lines' ? (v a
 function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => void; onSaved: () => void }) {
   const [vals, setVals] = useState<Record<string, string>>(() => Object.fromEntries(FIELDS.map(([k, , t]) => [k, asText(draft.o[k], t)])))
   const [busy, setBusy] = useState(false)
+  const [planta, setPlanta] = useState<Planta>(draft.o.planta || plantaDoAp(draft.o.ap))
+  const [acab, setAcab] = useState(draft.o.acabamento || '')
   const set = (k: string, v: string) => setVals((s) => ({ ...s, [k]: v }))
   const build = (patch: Partial<Orcamento> = {}): Orcamento => {
     const o = { ...draft.o } as unknown as Record<string, unknown>
@@ -404,7 +406,7 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
       const v = (vals[k] ?? '').trim()
       o[k] = t === 'num' ? num(v) : t === 'bool' ? (v === 'sim' ? true : v === 'nao' ? false : null) : t === 'lines' ? v.split('\n').map((s) => s.trim()).filter(Boolean) : v
     }
-    return { ...(o as unknown as Orcamento), ...patch }
+    return { ...(o as unknown as Orcamento), planta, acabamento: acab.trim(), ...patch }
   }
   const save = async (patch: Partial<Orcamento> = {}, msg = draft.novo ? 'Publicado na página.' : 'Alterações salvas.') => {
     const o = build(patch)
@@ -432,6 +434,19 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
     <div className="ape-form">
       <div className="ape-banner">{draft.ia ? 'Confira o que a IA leu e corrija o que precisar antes de publicar.' : 'Preencha o que tiver e publique.'}</div>
       <div className="ape-frow">
+        <div className="ape-f">
+          <label htmlFor="d-planta">Planta</label>
+          <select id="d-planta" value={planta} onChange={(e) => setPlanta(e.target.value as Planta)}>
+            <option value="">Não informada</option>
+            <option value="canto">Canto (finais 01, 02, 11 e 12)</option>
+            <option value="corredor">Corredor (finais 03 a 10)</option>
+          </select>
+        </div>
+        <div className="ape-f">
+          <label htmlFor="d-acab">Acabamento (separa na página)</label>
+          <input id="d-acab" list="d-acabs" placeholder={acabamentoDe({ ...draft.o, acabamento: '' }) || 'ex.: quartzo, granito'} value={acab} onChange={(e) => setAcab(e.target.value)} />
+          <datalist id="d-acabs">{['quartzo', 'granito', 'mármore', 'ultracompacto', 'porcelanato', 'cerâmica', 'vinílico', 'laminado', 'MDF', 'gesso', 'vidro temperado'].map((x) => <option key={x} value={x} />)}</datalist>
+        </div>
         {FIELDS.map(([k, l, t]) => {
           const id = `d-${k}`
           const v = vals[k] ?? ''

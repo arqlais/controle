@@ -5,7 +5,7 @@ import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop,
-  ehSanLevi, ehOrcamento, ondeMora, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  ehSanLevi, ehOrcamento, ondeMora, plantaDoAp, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { Assinatura, AvisoCookies, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
@@ -287,6 +287,8 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
   const [filtro, setFiltro] = useState(saved.nicho || 'todos')
   const [sort, setSort] = useState<Sort>(saved.sort && SORTS[saved.sort] ? saved.sort : 'compensa')
   const [validos, setValidos] = useState(!!saved.validos)
+  const minhaPlanta = plantaDoAp(me?.ap)
+  const [pl, setPl] = useState<'todas' | 'canto' | 'corredor'>('todas')
   const [q, setQ] = useState('')
   useEffect(() => {
     write(UI, { nicho: filtro, sort, validos })
@@ -348,6 +350,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
   let list = vis.filter((o) => nf === 'todos' || o.nicho === nf)
   if (term) list = list.filter((o) => [o.fornecedor, o.servico, o.resumo, ...(o.inclui || [])].join(' ').toLowerCase().includes(term))
   if (validos) list = list.filter((o) => calc(o).st !== 'vencido')
+  if (pl !== 'todas') list = list.filter((o) => !o.planta || o.planta === pl)
   const groups = NICHOS.map((n) => n[0]).filter((id) => list.some((o) => o.nicho === id))
   let ctaDone = false
 
@@ -395,9 +398,15 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
           )
         })}
       </div>
+      <div className="ape-plantas" role="group" aria-label="Planta">
+        <span>planta:</span>
+        {(['todas', 'canto', 'corredor'] as const).map((x) => (
+          <button key={x} className="ape-chip" aria-pressed={pl === x} onClick={() => setPl(x)}>{x === 'todas' ? 'todas' : x}{x === minhaPlanta ? ' · a sua' : ''}</button>
+        ))}
+      </div>
       <p className="ape-aviso">
         <ApeIcon name="alert" />
-        <span>Os orçamentos vêm dos vizinhos e aparecem como foram enviados. O "mais compensa" é um cálculo automático, não uma indicação: confira tudo com o fornecedor antes de fechar.</span>
+        <span>Cada orçamento foi feito para um apê: as plantas de canto (finais 01, 02, 11 e 12) e de corredor (finais 03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Por isso separamos por acabamento e mostramos a planta: dá para ver qual fornecedor sai mais em conta, mesmo sem ser igualzinho. O "mais compensa" é um cálculo automático, não uma indicação.</span>
       </p>
       <div className="ape-toolbar">
         <label className="ape-search">
@@ -424,14 +433,25 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
           const doServico = list.filter((o) => o.nicho === id)
           const extras = doServico.filter((o) => !ehOrcamento(o))
           const orcs = doServico.filter(ehOrcamento)
-          const a = analyze(orcs)
-          const sorted = [...a.items].sort(SORTS[sort][1])
-          const top = sort === 'compensa' && a.top ? a.top : null
-          const rest = top ? sorted.filter((x) => x !== top) : sorted
           const n = nicho(id)
           const showCta = !ctaDone && (gi === 0 || nf !== 'todos')
           if (showCta) ctaDone = true
-          const card = (x: Item, isTop: boolean) => <Card key={x.o.id} x={x} a={a} isTop={isTop} me={me} whats={whats} count={d.contagens[x.o.id] || 0} escolhas={d.escolhas[x.o.id] || 0} minha={d.minhas.includes(x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+          const acabs = [...new Set(orcs.map(acabamentoDe))].sort((x, y) => (x ? 0 : 1) - (y ? 0 : 1) || x.localeCompare(y))
+          const bloco = (lista: Orcamento[], titulo?: string) => {
+            const a = analyze(lista)
+            const sorted = [...a.items].sort(SORTS[sort][1])
+            const top = sort === 'compensa' && a.top ? a.top : null
+            const rest = top ? sorted.filter((x) => x !== top) : sorted
+            const card = (x: Item, isTop: boolean) => <Card key={x.o.id} x={x} a={a} isTop={isTop} me={me} whats={whats} count={d.contagens[x.o.id] || 0} escolhas={d.escolhas[x.o.id] || 0} minha={d.minhas.includes(x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+            return (
+              <div key={titulo || 'geral'} className="ape-acab">
+                {titulo !== undefined && <h4 className="ape-acab-h"><ApeIcon name="tag" />{titulo || 'outros acabamentos'} <span>{lista.length} orçamento{lista.length > 1 ? 's' : ''}</span></h4>}
+                <Comparar orcs={lista} me={me} />
+                {top && card(top, true)}
+                {rest.length > 0 && <div className="ape-grid">{rest.map((x) => card(x, false))}</div>}
+              </div>
+            )
+          }
           return (
             <div key={id} style={{ display: 'grid', gap: 18 }}>
               <section className="ape-nicho" aria-label={n.l}>
@@ -440,14 +460,12 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
                   <div>
                     <h3>{n.l}</h3>
                     <span className="ape-note">
-                      {orcs.length ? `${orcs.length} orçamento${orcs.length > 1 ? 's' : ''} · ${a.basis === 'm2' ? 'comparando pelo preço por m² à vista' : 'comparando pelo preço à vista'}` : 'ainda sem orçamento'}
+                      {orcs.length ? `${orcs.length} orçamento${orcs.length > 1 ? 's' : ''}${acabs.length > 1 ? ` · ${acabs.length} acabamentos` : ''}` : 'ainda sem orçamento'}
                       {extras.length ? ` · ${extras.length} ${extras.length > 1 ? 'contatos e tabelas' : extras[0].tipo === 'tabela' ? 'tabela' : 'contato'}` : ''}
                     </span>
                   </div>
                 </div>
-                <Comparar orcs={orcs} me={me} />
-                {top && card(top, true)}
-                {rest.length > 0 && <div className="ape-grid">{rest.map((x) => card(x, false))}</div>}
+                {acabs.length > 1 ? acabs.map((ac) => bloco(orcs.filter((o) => acabamentoDe(o) === ac), ac)) : orcs.length ? bloco(orcs) : null}
                 {extras.length > 0 && <Contatos lista={extras} me={me} />}
               </section>
               {showCta && <Cta nicho={id} produtos={d.ajustes.produtos} me={me} whats={whats} />}
@@ -610,6 +628,7 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
       )}
       <div className="ape-tags">
         {o.exemplo && <span className="ape-pill rosa">Exemplo</span>}
+        {o.planta ? <span className={`ape-pill ${o.planta === plantaDoAp(me?.ap) ? 'azul' : ''}`}><ApeIcon name="home" />{PLANTA_ROT[o.planta]}{o.planta === plantaDoAp(me?.ap) ? ' (a sua)' : ''}</span> : <span className="ape-pill"><ApeIcon name="home" />planta não informada</span>}
         {o.oculto && <span className="ape-pill rosa"><ApeIcon name="eye" />Oculto</span>}
         {x.badges.map((b) => (
           <span key={b.label} className={`ape-pill ${b.tone}`}><ApeIcon name={b.icon} />{b.label}</span>

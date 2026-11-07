@@ -72,9 +72,29 @@ export interface Orcamento {
   arquivos?: { nome: string; tipo: string }[]
   enviado?: boolean // mandado por um morador (vai direto para a comparação)
   tipo?: TipoEnvio // orçamento (padrão), tabela de preços ou só o contato do fornecedor
+  planta?: Planta // San Levi: planta de canto (finais 01, 02, 11, 12) ou de corredor (03 a 10)
+  acabamento?: string // corrigido pela dona; se vazio, é deduzido do texto
+  ap?: string // apê de quem mandou (só o número, para saber a planta; o nome não aparece)
 }
+export type Planta = 'canto' | 'corredor' | ''
 export type TipoEnvio = 'orcamento' | 'tabela' | 'contato'
 export const ehOrcamento = (o: Orcamento) => !o.tipo || o.tipo === 'orcamento'
+/** San Levi: 12 apês por andar; finais 01, 02, 11 e 12 são a planta de canto, 03 a 10 a de corredor. */
+export function plantaDoAp(ap: string | undefined | null): Planta {
+  const d = String(ap ?? '').replace(/\D/g, '')
+  if (d.length < 3) return ''
+  const f = Number(d.slice(-2))
+  if (!f || f > 12) return ''
+  return [1, 2, 11, 12].includes(f) ? 'canto' : 'corredor'
+}
+export const PLANTA_ROT: Record<string, string> = { canto: 'planta de canto', corredor: 'planta de corredor', '': 'planta não informada' }
+/** Acabamento do orçamento (quartzo, granito, porcelanato…), para comparar igual com igual dentro de cada serviço. */
+export function acabamentoDe(o: Orcamento): string {
+  if (o.acabamento?.trim()) return o.acabamento.trim().toLowerCase()
+  const t = [o.materiais?.[0], o.servico.split(' · ').slice(1).join(' '), o.servico].filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const fam: [RegExp, string][] = [[/quartzo/, 'quartzo'], [/granito/, 'granito'], [/marmore/, 'mármore'], [/ultracompact|lamina|dekton|sinterizad/, 'ultracompacto'], [/porcelanato/, 'porcelanato'], [/ceramic/, 'cerâmica'], [/vinilic/, 'vinílico'], [/laminad/, 'laminado'], [/mdf/, 'MDF'], [/drywall|gesso/, 'gesso'], [/temperado/, 'vidro temperado']]
+  return fam.find(([re]) => re.test(t))?.[1] || ''
+}
 export interface ItemOrc { descricao: string; qtd: number | null; unidade: string; valor: number | null }
 
 export type Categoria = 'arquivos' | 'combos' | 'plataforma' | 'projeto'
@@ -483,6 +503,8 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
   if (Array.isArray(raw2.arquivos)) o.arquivos = (raw2.arquivos as { nome?: string; tipo?: string }[]).map((a) => ({ nome: String(a?.nome ?? ''), tipo: String(a?.tipo ?? '') })).slice(0, 8)
   if (raw2.enviado === true) o.enviado = true
   if (raw2.tipo === 'tabela' || raw2.tipo === 'contato') o.tipo = raw2.tipo
+  if (raw2.planta === 'canto' || raw2.planta === 'corredor') o.planta = raw2.planta
+  if (typeof raw2.acabamento === 'string' && raw2.acabamento.trim()) o.acabamento = raw2.acabamento.trim().slice(0, 40)
   if (!o.whatsapp && o.telefone && digits(o.telefone).length === 11) o.whatsapp = digits(o.telefone)
   return o
 }
