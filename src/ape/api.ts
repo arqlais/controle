@@ -549,6 +549,7 @@ export interface PlatEtapa { id: string; nome: string; feita: boolean; data: str
 export interface PlatVistoria { id: string; comodo: string; item: string; status: 'ok' | 'problema' | 'pendente'; obs: string; foto?: string }
 export interface PlatContato { id: string; nome: string; servico: string; tel: string; obs: string }
 export interface PlatDados {
+  perfil?: { nome: string; foto: string }
   imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string }
   gastos?: PlatGasto[]
   parcelas?: PlatParcela[]

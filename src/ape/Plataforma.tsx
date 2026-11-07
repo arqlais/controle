@@ -94,6 +94,9 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const [dados, setDados] = useState<PlatDados>({})
   const [aba, setAba] = useState<Aba>('resumo')
   const [salvo, setSalvo] = useState<'ok' | 'salvando' | 'erro'>('ok')
+  const [editar, setEditar] = useState(false)
+  const [tema, setTema] = useState<'claro' | 'escuro'>(() => read<'claro' | 'escuro'>('ape-tema') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'))
+  const trocarTema = () => setTema((t) => { const n = t === 'escuro' ? 'claro' : 'escuro'; write('ape-tema', n); return n })
   const timer = useRef(0)
   const pendente = useRef<PlatDados | null>(null)
   // fechou a aba ou trocou de app antes de salvar: salva na hora
@@ -162,100 +165,191 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
       </main>
     )
   const im = dados.imovel || novo().imovel!
+  const nome = dados.perfil?.nome || acc.nome
+  const foto = dados.perfil?.foto || ''
+  const ir = (a: Aba) => {
+    setAba(a)
+    window.scrollTo(0, 0)
+  }
+  const statusSalvo = demo ? 'demonstração: nada é salvo' : salvo === 'salvando' ? 'salvando…' : salvo === 'erro' ? 'não salvou: confira a internet' : 'tudo salvo'
+  const titulo = ABAS.find((x) => x[0] === aba)?.[1] || ''
   return (
-    <>
-      <header className="ape-top ape-plat-top">
-        <div className="wrap ape-brand">
-          <a className="ape-logo" href={href('ape', 'loja')} aria-label="planê.apê">
-            <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
-            <div>
-              <h1>planê<span>.apê</span></h1>
-              <small>plataforma do apê{demo ? ' · demonstração' : ''}</small>
-            </div>
-          </a>
-          <span className={`ape-salvo ${salvo}`}>{demo ? 'exemplo: nada é salvo na nuvem' : salvo === 'salvando' ? 'salvando…' : salvo === 'erro' ? 'não salvou: confira a internet' : 'tudo salvo'}</span>
-        </div>
-        <nav className="wrap ape-tabs" aria-label="Seções da plataforma">
+    <div className="ape-pa" data-tema={tema}>
+      <aside className="ape-pa-lado">
+        <a className="ape-logo" href={href('ape', 'loja')} aria-label="planê.apê">
+          <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+          <div><h1>planê<span>.apê</span></h1><small>plataforma do apê</small></div>
+        </a>
+        <button className="ape-pa-eu" onClick={() => setEditar(true)} title="Editar meus dados">
+          <Avatar nome={nome} foto={foto} />
+          <span><b>{firstName(nome) || 'meu apê'}</b><small>{im.nome || 'meu apê'} · editar</small></span>
+        </button>
+        <nav className="ape-pa-nav" aria-label="Seções da plataforma">
           {ABAS.map(([id, l, i]) => (
-            <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => setAba(id)}><ApeIcon name={i} />{l}</button>
+            <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)}><ApeIcon name={i} /><span>{l}</span></button>
           ))}
         </nav>
-      </header>
-      <main className="wrap ape-main ape-platapp">
-        {demo && <div className="ape-banner"><ApeIcon name="eye" />Você está vendo a demonstração com dados de exemplo. Mexa à vontade: fica só neste aparelho. <a className="ape-link" href={href('ape', 'loja')}>quero a minha</a></div>}
-        {!acc.ativo && <div className="ape-banner warn">O seu acesso venceu em {dmy(acc.validade)}. Os dados continuam aqui para consulta. Para renovar, fale no WhatsApp.</div>}
-        {aba === 'resumo' && <Resumo acc={acc} dados={dados} im={im} token={token} demo={demo} mudar={mudar} irPara={setAba} />}
-        {aba === 'gastos' && <Gastos lista={dados.gastos || []} orcamento={im.orcamento} mudar={(fn) => mudar((d) => ({ ...d, gastos: fn(d.gastos || []) }))} />}
-        {aba === 'parcelas' && <Parcelas lista={dados.parcelas || []} mudar={(fn) => mudar((d) => ({ ...d, parcelas: fn(d.parcelas || []) }))} />}
-        {aba === 'etapas' && <Etapas lista={dados.etapas || []} mudar={(fn) => mudar((d) => ({ ...d, etapas: fn(d.etapas || []) }))} />}
-        {aba === 'vistoria' && <Vistoria lista={dados.vistoria || []} nome={acc.nome} mudar={(fn) => mudar((d) => ({ ...d, vistoria: fn(d.vistoria || []) }))} />}
-        {aba === 'contatos' && <Contatos lista={dados.contatos || []} mudar={(fn) => mudar((d) => ({ ...d, contatos: fn(d.contatos || []) }))} />}
-        <Assinatura />
-      </main>
+        <div className="ape-pa-pe">
+          <button className="ape-pa-tema" onClick={trocarTema}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /><span>{tema === 'escuro' ? 'modo claro' : 'modo escuro'}</span></button>
+          <a className="ape-pa-tema" href={href('ape', 'conta')}><ApeIcon name="user" /><span>minha conta</span></a>
+          <span className={`ape-salvo ${salvo}`}>{statusSalvo}</span>
+        </div>
+      </aside>
+      <div className="ape-pa-main">
+        <header className="ape-pa-top">
+          <button className="ape-pa-eu sm" onClick={() => setEditar(true)} aria-label="Editar meus dados"><Avatar nome={nome} foto={foto} /></button>
+          <div><small>planê<span>.apê</span></small><b>{titulo}</b></div>
+          <button className="ape-pa-ic" onClick={trocarTema} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+        </header>
+        <main className="ape-pa-cont">
+          {demo && <div className="ape-banner"><ApeIcon name="eye" />Demonstração com dados de exemplo: mexa à vontade, fica só neste aparelho. <a className="ape-link" href={href('ape', 'loja')}>quero a minha</a></div>}
+          {!acc.ativo && <div className="ape-banner warn">O seu acesso venceu em {dmy(acc.validade)}. Os dados continuam aqui para consulta. <a className="ape-link" href={href('ape', 'loja:plataforma')}>renovar</a></div>}
+          {aba === 'resumo' && <Resumo acc={acc} dados={dados} im={im} nome={nome} foto={foto} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
+          {aba === 'gastos' && <Gastos lista={dados.gastos || []} orcamento={im.orcamento} mudar={(fn) => mudar((d) => ({ ...d, gastos: fn(d.gastos || []) }))} />}
+          {aba === 'parcelas' && <Parcelas lista={dados.parcelas || []} mudar={(fn) => mudar((d) => ({ ...d, parcelas: fn(d.parcelas || []) }))} />}
+          {aba === 'etapas' && <Etapas lista={dados.etapas || []} mudar={(fn) => mudar((d) => ({ ...d, etapas: fn(d.etapas || []) }))} />}
+          {aba === 'vistoria' && <Vistoria lista={dados.vistoria || []} nome={nome} mudar={(fn) => mudar((d) => ({ ...d, vistoria: fn(d.vistoria || []) }))} />}
+          {aba === 'contatos' && <Contatos lista={dados.contatos || []} mudar={(fn) => mudar((d) => ({ ...d, contatos: fn(d.contatos || []) }))} />}
+          <Assinatura />
+        </main>
+      </div>
       <nav className="ape-bnav ape-plat-bnav" aria-label="Seções da plataforma">
         {ABAS.map(([id, l, i]) => (
-          <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => { setAba(id); window.scrollTo(0, 0) }}><ApeIcon name={i} />{l}</button>
+          <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)}><ApeIcon name={i} />{l}</button>
         ))}
       </nav>
-    </>
+      {editar && <EditarDados dados={dados} nomeConta={acc.nome} onClose={() => setEditar(false)} mudar={mudar} />}
+    </div>
+  )
+}
+
+function Avatar({ nome, foto }: { nome: string; foto: string }) {
+  return foto ? <img className="ape-pa-av" src={foto} alt="" /> : <span className="ape-pa-av">{firstName(nome).charAt(0).toUpperCase() || '?'}</span>
+}
+
+/** Foto de perfil pequena (cabe na nuvem). */
+async function fotoPerfil(f: File) {
+  const bmp = await createImageBitmap(f)
+  const k = Math.min(1, 320 / Math.max(bmp.width, bmp.height))
+  const c = document.createElement('canvas')
+  c.width = Math.round(bmp.width * k)
+  c.height = Math.round(bmp.height * k)
+  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
+  return c.toDataURL('image/jpeg', 0.8)
+}
+
+/** Meus dados: nome, foto e o imóvel, numa janela só. */
+function EditarDados({ dados, nomeConta, onClose, mudar }: { dados: PlatDados; nomeConta: string; onClose: () => void; mudar: (fn: (d: PlatDados) => PlatDados) => void }) {
+  const [p, setP] = useState(dados.perfil || { nome: nomeConta, foto: '' })
+  const [im, setIm] = useState(dados.imovel || novo().imovel!)
+  const salvar = () => {
+    mudar((d) => ({ ...d, perfil: p, imovel: im }))
+    onClose()
+  }
+  const set = (k: keyof NonNullable<PlatDados['imovel']>, v: unknown) => setIm({ ...im, [k]: v })
+  return (
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Meus dados" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in">
+        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        <div className="ape-sheet-b">
+          <h2 className="ape-h2">meus <em>dados</em></h2>
+          <div className="ape-conta-foto">
+            <Avatar nome={p.nome} foto={p.foto} />
+            <label className="ape-btn sm"><ApeIcon name="clip" />{p.foto ? 'trocar foto' : 'colocar foto'}<input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) setP({ ...p, foto: await fotoPerfil(f) }) }} /></label>
+            {p.foto && <button className="ape-btn ghost sm" onClick={() => setP({ ...p, foto: '' })}>tirar</button>}
+          </div>
+          <div className="ape-f"><label>Seu nome</label><input value={p.nome} onChange={(e) => setP({ ...p, nome: e.target.value })} /></div>
+          <p className="ape-eyebrow" style={{ marginTop: 6 }}>o imóvel</p>
+          <div className="ape-frow">
+            <div className="ape-f"><label>Nome</label><input value={im.nome} onChange={(e) => set('nome', e.target.value)} placeholder="meu apê" /></div>
+            <div className="ape-f"><label>Tipo</label><select value={im.tipo} onChange={(e) => set('tipo', e.target.value)}><option value="apê">apê</option><option value="casa">casa</option></select></div>
+          </div>
+          <div className="ape-frow">
+            <div className="ape-f"><label>Em que etapa você está</label>
+              <select value={im.fase} onChange={(e) => set('fase', e.target.value)}>
+                <option value="comprando">comprando</option><option value="planta">comprei na planta</option><option value="pronto">comprei pronto</option><option value="obra">em obra</option><option value="morando">morando</option>
+              </select>
+            </div>
+            <div className="ape-f"><label>Área (m²)</label><input inputMode="decimal" value={im.m2 ?? ''} onChange={(e) => set('m2', num(e.target.value))} /></div>
+          </div>
+          <div className="ape-frow">
+            <div className="ape-f"><label>Quanto quer gastar na obra (<span className="ape-keep">R$</span>)</label><input inputMode="decimal" value={im.orcamento ?? ''} onChange={(e) => set('orcamento', num(e.target.value))} /></div>
+            <div className="ape-f"><label>Entrega das chaves</label><input type="date" value={im.entrega} onChange={(e) => set('entrega', e.target.value)} /></div>
+          </div>
+          <button className="ape-btn primary" onClick={salvar}>salvar</button>
+        </div>
+      </div>
+    </div>
   )
 }
 
 type Mudar<T> = (fn: (l: T[]) => T[]) => void
 
-function Resumo({ acc, dados, im, token, demo, mudar, irPara }: { acc: PlatAcesso; dados: PlatDados; im: NonNullable<PlatDados['imovel']>; token: string; demo: boolean; mudar: (fn: (d: PlatDados) => PlatDados) => void; irPara: (a: Aba) => void }) {
+const FASE: Record<string, string> = { comprando: 'comprando', planta: 'comprei na planta', pronto: 'comprei pronto', obra: 'em obra', morando: 'morando' }
+function Resumo({ acc, dados, im, nome, foto, token, demo, mudar, irPara, onEditar }: { acc: PlatAcesso; dados: PlatDados; im: NonNullable<PlatDados['imovel']>; nome: string; foto: string; token: string; demo: boolean; mudar: (fn: (d: PlatDados) => PlatDados) => void; irPara: (a: Aba) => void; onEditar: () => void }) {
   const g = dados.gastos || []
   const previsto = g.reduce((t, x) => t + (x.previsto || 0), 0)
   const pago = g.reduce((t, x) => t + (x.pago || 0), 0)
   const ms = meses(dados.parcelas || [], 3)
   const et = dados.etapas || []
   const feitas = et.filter((e) => e.feita).length
+  const proximas = et.filter((e) => !e.feita).slice(0, 3)
   const vi = dados.vistoria || []
   const probl = vi.filter((v) => v.status === 'problema').length
   const [copiado, setCopiado] = useState(false)
   const link = `https://useplane.com.br/ape/#minha:${token}`
-  const setIm = (k: keyof NonNullable<PlatDados['imovel']>, v: unknown) => mudar((d) => ({ ...d, imovel: { ...im, [k]: v } }))
+  const dias = im.entrega ? Math.round((new Date(im.entrega + 'T00:00:00').getTime() - Date.now()) / 864e5) : null
+  const meta = im.orcamento || previsto
   return (
     <>
-      <section className="ape-panel ape-plat-hello">
+      <section className="ape-pa-ola">
+        <Avatar nome={nome} foto={foto} />
         <div>
-          <p className="ape-eyebrow">olá{acc.nome ? `, ${firstName(acc.nome)}` : ''}</p>
-          <h2 className="ape-h2">{im.nome || 'meu apê'}</h2>
-          <span className="ape-note">acesso até {dmy(acc.validade)}{acc.cortesia ? ' · cortesia' : ''}</span>
+          <h2>olá{nome ? `, ${firstName(nome)}` : ''}!</h2>
+          <p>{[im.nome || 'meu apê', im.tipo, im.m2 ? `${String(im.m2).replace('.', ',')} m²` : '', FASE[im.fase]].filter(Boolean).join(' · ')}{dias != null ? ` · ${dias > 0 ? `faltam ${dias} dias para as chaves` : dias === 0 ? 'chaves hoje!' : `chaves em ${dmy(im.entrega)}`}` : ''}</p>
         </div>
-        {!demo && (
-          <button className="ape-btn sm" onClick={() => { void navigator.clipboard?.writeText(link); setCopiado(true) }}>
-            <ApeIcon name={copiado ? 'check' : 'copy'} />
-            {copiado ? 'link copiado: guarde em lugar seguro' : 'copiar meu link de acesso'}
-          </button>
-        )}
+        <button className="ape-btn sm" onClick={onEditar}><ApeIcon name="edit" />editar</button>
       </section>
       <div className="ape-plat-kpis">
-        <button className="ape-kpi" onClick={() => irPara('gastos')}><span>gasto até agora</span><b className="ape-keep">{brl(pago)}</b><small className="ape-keep">de {brl(im.orcamento || previsto)} {im.orcamento ? 'do orçamento' : 'previstos'}</small></button>
-        <button className="ape-kpi" onClick={() => irPara('parcelas')}><span>parcelas este mês</span><b className="ape-keep">{brl(ms[0]?.total || 0)}</b><small className="ape-keep">próximo: {brl(ms[1]?.total || 0)}</small></button>
-        <button className="ape-kpi" onClick={() => irPara('etapas')}><span>etapas</span><b>{feitas} de {et.length}</b><small>{et.find((e) => !e.feita)?.nome || 'tudo feito'}</small></button>
-        <button className="ape-kpi" onClick={() => irPara('vistoria')}><span>vistoria</span><b>{probl} problema{probl === 1 ? '' : 's'}</b><small>{vi.filter((v) => v.status === 'pendente').length} itens a conferir</small></button>
+        <button className="ape-kpi" onClick={() => irPara('gastos')}>
+          <span><ApeIcon name="tag" />gasto até agora</span>
+          <b className="ape-keep">{brl(pago)}</b>
+          {meta ? <i className="ape-kpi-bar"><em style={{ width: `${Math.min(100, (pago / meta) * 100)}%` }} /></i> : null}
+          <small className="ape-keep">{meta ? `de ${brl(meta)} ${im.orcamento ? 'planejados' : 'previstos'}` : 'toque para lançar'}</small>
+        </button>
+        <button className="ape-kpi" onClick={() => irPara('parcelas')}><span><ApeIcon name="clock" />parcelas este mês</span><b className="ape-keep">{brl(ms[0]?.total || 0)}</b><small className="ape-keep">próximo mês: {brl(ms[1]?.total || 0)}</small></button>
+        <button className="ape-kpi" onClick={() => irPara('etapas')}><span><ApeIcon name="list" />etapas</span><b>{feitas} de {et.length}</b><i className="ape-kpi-bar"><em style={{ width: `${et.length ? (feitas / et.length) * 100 : 0}%` }} /></i><small>{proximas[0]?.nome || 'tudo feito!'}</small></button>
+        <button className="ape-kpi" onClick={() => irPara('vistoria')}><span><ApeIcon name="check" />vistoria</span><b>{probl ? `${probl} problema${probl > 1 ? 's' : ''}` : 'sem problemas'}</b><small>{vi.filter((v) => v.status === 'pendente').length} itens a conferir</small></button>
+      </div>
+      <div className="ape-pa-duas">
+        <section className="ape-panel ape-pa-passos">
+          <p className="ape-eyebrow">próximos passos</p>
+          {proximas.length ? proximas.map((e) => (
+            <label key={e.id} className="ape-pa-passo">
+              <input type="checkbox" onChange={() => mudar((d) => ({ ...d, etapas: (d.etapas || []).map((x) => (x.id === e.id ? { ...x, feita: true, data: x.data || new Date().toISOString().slice(0, 10) } : x)) }))} />
+              <span><b>{e.nome}</b>{e.data ? <small>{dmy(e.data)}</small> : null}</span>
+            </label>
+          )) : <p className="ape-note">Todas as etapas feitas.</p>}
+          <button className="ape-linkish ape-link" onClick={() => irPara('etapas')}>ver todas as etapas</button>
+        </section>
+        <section className="ape-panel ape-pa-atalhos">
+          <p className="ape-eyebrow">atalhos</p>
+          <button onClick={() => irPara('gastos')}><ApeIcon name="plus" />lançar um gasto</button>
+          <button onClick={() => irPara('parcelas')}><ApeIcon name="plus" />lançar uma parcela</button>
+          <button onClick={() => irPara('vistoria')}><ApeIcon name="check" />fazer a vistoria</button>
+          <button onClick={() => irPara('contatos')}><ApeIcon name="chat" />guardar um contato</button>
+        </section>
       </div>
       <section className="ape-panel">
-        <p className="ape-eyebrow">o imóvel</p>
-        <div className="ape-frow">
-          <div className="ape-f"><label>Nome</label><input value={im.nome} onChange={(e) => setIm('nome', e.target.value)} /></div>
-          <div className="ape-f"><label>Tipo</label><select value={im.tipo} onChange={(e) => setIm('tipo', e.target.value)}><option value="apê">apê</option><option value="casa">casa</option></select></div>
-        </div>
-        <div className="ape-frow">
-          <div className="ape-f"><label>Etapa</label>
-            <select value={im.fase} onChange={(e) => setIm('fase', e.target.value)}>
-              <option value="comprando">comprando</option><option value="planta">comprei na planta</option><option value="pronto">comprei pronto</option><option value="obra">em obra</option><option value="morando">morando</option>
-            </select>
-          </div>
-          <div className="ape-f"><label>Área (m²)</label><input inputMode="decimal" value={im.m2 ?? ''} onChange={(e) => setIm('m2', num(e.target.value))} /></div>
-        </div>
-        <div className="ape-frow">
-          <div className="ape-f"><label>Orçamento total da obra (<span className="ape-keep">R$</span>)</label><input inputMode="decimal" value={im.orcamento ?? ''} onChange={(e) => setIm('orcamento', num(e.target.value))} /></div>
-          <div className="ape-f"><label>Entrega das chaves</label><input type="date" value={im.entrega} onChange={(e) => setIm('entrega', e.target.value)} /></div>
-        </div>
-        <div className="ape-f"><label>Anotações</label><textarea value={dados.notas || ''} onChange={(e) => mudar((d) => ({ ...d, notas: e.target.value }))} placeholder="Senhas do interfone, medidas, ideias…" /></div>
+        <p className="ape-eyebrow">anotações</p>
+        <div className="ape-f"><textarea value={dados.notas || ''} onChange={(e) => mudar((d) => ({ ...d, notas: e.target.value }))} placeholder="Senha do interfone, medidas, ideias…" aria-label="Anotações" /></div>
       </section>
+      {!demo && (
+        <p className="ape-note" style={{ margin: 0, textAlign: 'center' }}>
+          acesso até {dmy(acc.validade)}{acc.cortesia ? ' (cortesia)' : ''} ·{' '}
+          <button className="ape-linkish ape-link" onClick={() => { void navigator.clipboard?.writeText(link); setCopiado(true) }}>{copiado ? 'link copiado' : 'copiar meu link de acesso'}</button>
+        </p>
+      )}
     </>
   )
 }
