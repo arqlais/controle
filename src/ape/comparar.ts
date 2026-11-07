@@ -285,10 +285,12 @@ export function nichoDoTexto(txt: string): Nicho | '' {
 }
 
 /** O que ainda falta preencher para o orçamento entrar bem na comparação (a pessoa só completa isso). */
-export function faltando(o: Partial<Orcamento>): ('fornecedor' | 'nicho' | 'valor')[] {
-  const f: ('fornecedor' | 'nicho' | 'valor')[] = []
+export function faltando(o: Partial<Orcamento>): ('fornecedor' | 'nicho' | 'valor' | 'contato')[] {
+  const f: ('fornecedor' | 'nicho' | 'valor' | 'contato')[] = []
   if (!String(o.fornecedor || '').trim()) f.push('fornecedor')
   if (!o.nicho || o.nicho === 'outros') f.push('nicho')
-  if (num(o.valor_total) == null && num(o.valor_avista) == null) f.push('valor')
+  if (o.tipo === 'contato') {
+    if (!digits(o.whatsapp).length && !digits(o.telefone).length && !String(o.instagram || '').trim() && !String(o.email || '').trim()) f.push('contato')
+  } else if (o.tipo !== 'tabela' && num(o.valor_total) == null && num(o.valor_avista) == null) f.push('valor')
   return f
 }

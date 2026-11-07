@@ -4,7 +4,7 @@ import { lerArquivo, meuOrcamento, publicar, subirArquivos, apeCloud } from './a
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { faltando, lerTexto, nichoDoTexto } from './comparar'
-import { APE, NICHOS, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento } from './model'
+import { APE, NICHOS, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
 
 /* Enviar orçamento: anexa um ou mais arquivos, cada arquivo vira um orçamento lido sozinho (IA no servidor;
    sem IA, regras simples sobre o texto do PDF). A pessoa só completa o que faltou e publica direto na comparação. */
@@ -45,13 +45,14 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState('')
   const [feitos, setFeitos] = useState<Orcamento[]>([])
+  const [tipo, setTipo] = useState<TipoEnvio>('orcamento')
   const meus = orcamentos.filter((o) => meusIds.includes(o.id))
   useEffect(() => setErr(''), [lidos.length])
 
   const atualizar = (key: string, fn: (l: Lido) => Lido) => setLidos((ls) => ls.map((l) => (l.key === key ? fn(l) : l)))
 
   /** Lê um arquivo (ou o texto colado) e devolve o orçamento já no formato da comparação. */
-  const ler = async (key: string, file: File | null, txt: string) => {
+  const ler = async (key: string, file: File | null, txt: string, t: TipoEnvio = tipo) => {
     try {
       let arquivos: Arquivo[] = []
       if (file) arquivos = await subirArquivos([file])
@@ -67,6 +68,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
       }
       if (base.nicho === 'outros') base.nicho = (nichoDoTexto(textoLocal + ' ' + base.servico) || 'outros') as Orcamento['nicho']
       if (!base.servico) base.servico = base.nicho !== 'outros' ? nicho(base.nicho).l : ''
+      if (t !== 'orcamento') base.tipo = t
       atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : textoLocal ? 'lido pelo texto do arquivo' : 'complete os dados' }))
     } catch (x) {
       atualizar(key, (l) => ({ ...l, status: 'erro', msg: String((x as Error).message) }))
@@ -78,17 +80,19 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     if (list.length + lidos.length > 10) return setErr('Mande até 10 arquivos por vez.')
     const big = list.find((f) => f.size > 15 * 1024 * 1024 && !/^image\//i.test(f.type))
     if (big) return setErr(`O arquivo ${big.name} passa de 15 MB.`)
-    const novos: Lido[] = list.map((f) => ({ key: crypto.randomUUID(), arquivos: [], files: [f], o: blankOrcamento(), status: 'lendo' }))
+    const novos: Lido[] = list.map((f) => ({ key: crypto.randomUUID(), arquivos: [], files: [f], o: blankOrcamento(tipo === 'orcamento' ? {} : { tipo }), status: 'lendo' }))
     setLidos((ls) => [...ls, ...novos])
-    novos.forEach((n) => void ler(n.key, n.files[0], ''))
+    novos.forEach((n) => void ler(n.key, n.files[0], '', tipo))
   }
   const lerColado = () => {
     if (!texto.trim()) return
-    const n: Lido = { key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento(), status: 'lendo' }
+    const n: Lido = { key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento(tipo === 'orcamento' ? {} : { tipo }), status: 'lendo' }
     setLidos((ls) => [...ls, n])
-    void ler(n.key, null, texto)
+    void ler(n.key, null, texto, tipo)
     setTexto('')
   }
+  /** Só o contato do fornecedor: um cartão para preencher na hora. */
+  const novoContato = () => setLidos((ls) => [...ls, { key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento({ tipo: 'contato' }), status: 'pronto', aberto: false, msg: 'preencha o contato' }])
   /** Duas fotos do mesmo orçamento: junta no de cima (soma os itens, mantém os dados que já tinha). */
   const juntar = (i: number) =>
     setLidos((ls) => {
@@ -104,7 +108,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     const prontos = lidos.filter((l) => l.status === 'pronto')
     if (!prontos.length) return setErr(lidos.some((l) => l.status === 'lendo') ? 'Espere terminar de ler.' : 'Anexe um orçamento.')
     const incompleto = prontos.find((l) => faltando(l.o).length)
-    if (incompleto) return setErr(`Complete ${faltando(incompleto.o).map((f) => (f === 'nicho' ? 'o serviço' : f === 'valor' ? 'o valor' : 'o fornecedor')).join(', ')} do orçamento ${prontos.indexOf(incompleto) + 1}.`)
+    if (incompleto) return setErr(`Complete ${faltando(incompleto.o).map((f) => (f === 'nicho' ? 'o serviço' : f === 'valor' ? 'o valor' : f === 'contato' ? 'o WhatsApp, telefone ou Instagram' : 'o fornecedor')).join(', ')} do item ${prontos.indexOf(incompleto) + 1}.`)
     setBusy('publicando…')
     const ok: Orcamento[] = []
     for (const l of prontos) {
@@ -150,7 +154,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     return (
       <section className="ape-panel ape-done">
         <ApeIcon name="check" />
-        <h2 className="ape-h2">{feitos.length > 1 ? `${feitos.length} orçamentos` : 'orçamento'} <em>na comparação</em></h2>
+        <h2 className="ape-h2">{feitos.length > 1 ? `${feitos.length} itens` : feitos[0]?.tipo === 'contato' ? 'contato' : feitos[0]?.tipo === 'tabela' ? 'tabela' : 'orçamento'} <em>publicado{feitos.length > 1 ? 's' : feitos[0]?.tipo === 'tabela' ? 'a' : ''}</em></h2>
         <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>Já está lado a lado com os outros, sem os seus dados. Se algo saiu errado, você corrige em "seus orçamentos".</p>
         <div className="ape-acts" style={{ justifyContent: 'center' }}>
           <a className="ape-btn primary" href={href('ape')} onClick={() => { try { localStorage.setItem('ape-ui', JSON.stringify({ nicho: feitos[0].nicho })) } catch { /* ok */ } }}><ApeIcon name="list" />ver a comparação</a>
@@ -163,22 +167,40 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     <>
       <form className="ape-panel ape-form" onSubmit={publicarTodos} noValidate>
         <div>
-          <p className="ape-eyebrow"><ApeIcon name="send" />enviar orçamento</p>
-          <h2 className="ape-h2">anexe e <em>compare</em></h2>
+          <p className="ape-eyebrow"><ApeIcon name="send" />enviar</p>
+          <h2 className="ape-h2">compartilhe com os <em>vizinhos</em></h2>
+        </div>
+        <div className="ape-f">
+          <label>O que você tem?</label>
+          <div className="ape-tipos-envio" role="radiogroup" aria-label="O que você tem">
+            {([
+              ['orcamento', 'orçamento', 'proposta com valores para o seu apê'],
+              ['tabela', 'tabela de preços', 'lista de valores, catálogo ou print'],
+              ['contato', 'só o contato', 'indicação de fornecedor, sem preço'],
+            ] as const).map(([id, l, d]) => (
+              <button key={id} type="button" role="radio" aria-checked={tipo === id} onClick={() => setTipo(id)}>
+                <b>{l}</b>
+                <span>{d}</span>
+              </button>
+            ))}
+          </div>
         </div>
         <ol className="ape-steps ape-steps-num">
-          <li><b>1</b><span>Anexe o PDF ou os prints (pode mandar vários de uma vez)</span></li>
+          <li><b>1</b><span>{tipo === 'contato' ? 'Preencha o contato ou anexe o print do cartão / da conversa' : tipo === 'tabela' ? 'Anexe o print ou o PDF da tabela de preços' : 'Anexe o PDF ou os prints (pode mandar vários de uma vez)'}</span></li>
           <li><b>2</b><span>Confira o que foi lido e complete só o que faltar</span></li>
-          <li><b>3</b><span>Publique: entra direto na comparação, sem os seus dados</span></li>
+          <li><b>3</b><span>{tipo === 'orcamento' ? 'Publique: entra direto na comparação, sem os seus dados' : 'Publique: aparece em "contatos e tabelas" do serviço, sem os seus dados'}</span></li>
         </ol>
+        {tipo === 'contato' && (
+          <button type="button" className="ape-btn primary" onClick={novoContato}><ApeIcon name="plus" />preencher o contato</button>
+        )}
         <label className="ape-drop" htmlFor="e-files">
           <ApeIcon name="clip" />
-          <b>{lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
+          <b>{tipo === 'contato' ? 'ou anexar print do contato' : tipo === 'tabela' ? (lidos.length ? 'anexar mais' : 'anexar a tabela de preços') : lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
           <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => { anexar([...(e.target.files || [])]); e.target.value = '' }} />
-          <span className="ape-note">Cada arquivo vira um orçamento. Até 10 por vez, de até 15 MB.</span>
+          <span className="ape-note">{tipo === 'orcamento' ? 'Cada arquivo vira um orçamento.' : 'Cada arquivo vira um item.'} Até 10 por vez, de até 15 MB.</span>
         </label>
         <details className="ape-more">
-          <summary><ApeIcon name="chev" />o orçamento veio por mensagem? cole o texto</summary>
+          <summary><ApeIcon name="chev" />veio por mensagem? cole o texto</summary>
           <div className="ape-f" style={{ marginTop: 8 }}>
             <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" aria-label="Texto do orçamento" />
             <button type="button" className="ape-btn sm" onClick={lerColado} disabled={!texto.trim()}>ler o texto</button>
@@ -195,7 +217,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
           <div className="ape-acts">
             <button className="ape-btn primary" type="submit" disabled={!!busy || lidos.some((l) => l.status === 'lendo')}>
               <ApeIcon name="send" />
-              {busy || (lidos.some((l) => l.status === 'lendo') ? 'lendo…' : `publicar ${lidos.filter((l) => l.status === 'pronto').length > 1 ? `os ${lidos.filter((l) => l.status === 'pronto').length}` : ''} na comparação`)}
+              {busy || (lidos.some((l) => l.status === 'lendo') ? 'lendo…' : `publicar ${lidos.filter((l) => l.status === 'pronto').length > 1 ? `os ${lidos.filter((l) => l.status === 'pronto').length}` : ''}`)}
             </button>
             {err && (
               <a className="ape-btn" href={wa(whats, msgAnexo(me, lidos[0]?.o.fornecedor || ''))} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />mandar pelo WhatsApp</a>
@@ -228,15 +250,35 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: 
       {l.status === 'erro' && <p className="ape-err">{l.msg}</p>}
       {l.status === 'pronto' && (
         <>
+          {o.tipo === 'contato' ? (
+            <div className="ape-lido-edit">
+              <div className="ape-frow">
+                <div className="ape-f"><label>Fornecedor</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} placeholder="Nome da loja ou profissional" /></div>
+                <div className="ape-f"><label>Serviço</label>
+                  <select value={o.nicho === 'outros' ? '' : o.nicho} onChange={(e) => set('nicho', e.target.value || 'outros')}>
+                    <option value="">Escolha…</option>
+                    {NICHOS.map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="ape-frow">
+                <div className="ape-f"><label><span className="ape-keep">WhatsApp</span> ou telefone</label><input inputMode="tel" value={o.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="(11) 90000-0000" /></div>
+                <div className="ape-f"><label>Instagram ou site</label><input value={o.instagram || ''} onChange={(e) => set('instagram', e.target.value)} placeholder="@loja" /></div>
+              </div>
+              <div className="ape-f"><label>Comentário (opcional)</label><input value={o.resumo} onChange={(e) => set('resumo', e.target.value)} placeholder="Ex.: atendeu rápido, faz desconto para o condomínio" /></div>
+            </div>
+          ) : (
           <dl className="ape-lido-res">
+            {o.tipo === 'tabela' && (<><dt>tipo</dt><dd>tabela de preços</dd></>)}
             <dt>serviço</dt><dd>{o.nicho !== 'outros' ? nicho(o.nicho).l : '—'}{o.servico && o.servico !== nicho(o.nicho).l ? ` · ${o.servico}` : ''}</dd>
-            <dt>valor</dt><dd className="ape-keep">{num(o.valor_avista) != null ? `${brl(num(o.valor_avista))} à vista` : num(o.valor_total) != null ? brl(num(o.valor_total)) : '—'}{o.parcelas_max ? ` · ${o.parcelas_max}x` : ''}</dd>
-            {(o.itens || []).length > 0 && (<><dt>itens</dt><dd>{o.itens!.length} itens lidos</dd></>)}
+            {o.tipo !== 'tabela' && <dt>valor</dt>}{o.tipo !== 'tabela' && <dd className="ape-keep">{num(o.valor_avista) != null ? `${brl(num(o.valor_avista))} à vista` : num(o.valor_total) != null ? brl(num(o.valor_total)) : '—'}{o.parcelas_max ? ` · ${o.parcelas_max}x` : ''}</dd>}
+            {(o.itens || []).length > 0 && (<><dt>itens</dt><dd>{o.tipo === 'tabela' ? o.itens!.slice(0, 4).map((i) => `${i.descricao}${i.valor != null ? ` ${brl(i.valor)}` : ''}`).join(' · ') + (o.itens!.length > 4 ? ` +${o.itens!.length - 4}` : '') : `${o.itens!.length} itens lidos`}</dd></>)}
             {(o.whatsapp || o.telefone || o.email) && (<><dt>contato</dt><dd>{[o.whatsapp || o.telefone, o.email].filter(Boolean).join(' · ')}</dd></>)}
             {o.prazo && (<><dt>prazo</dt><dd>{o.prazo}</dd></>)}
             {o.garantia && (<><dt>garantia</dt><dd>{o.garantia}</dd></>)}
           </dl>
-          {falta.length > 0 && (
+          )}
+          {falta.length > 0 && o.tipo !== 'contato' && (
             <div className="ape-lido-falta">
               <span className="ape-note"><ApeIcon name="alert" /> Não deu para ler {falta.length > 1 ? 'estes dados' : 'este dado'}. Complete:</span>
               <div className="ape-frow">

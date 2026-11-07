@@ -70,7 +70,10 @@ export interface Orcamento {
   endereco?: string
   arquivos?: { nome: string; tipo: string }[]
   enviado?: boolean // mandado por um morador (vai direto para a comparação)
+  tipo?: TipoEnvio // orçamento (padrão), tabela de preços ou só o contato do fornecedor
 }
+export type TipoEnvio = 'orcamento' | 'tabela' | 'contato'
+export const ehOrcamento = (o: Orcamento) => !o.tipo || o.tipo === 'orcamento'
 export interface ItemOrc { descricao: string; qtd: number | null; unidade: string; valor: number | null }
 
 export type Categoria = 'arquivos' | 'combos' | 'plataforma' | 'projeto'
@@ -476,6 +479,7 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
   for (const k of ['email', 'telefone', 'cnpj', 'endereco'] as const) if (raw2[k] != null && String(raw2[k]).trim()) o[k] = String(raw2[k]).trim().slice(0, 160)
   if (Array.isArray(raw2.arquivos)) o.arquivos = (raw2.arquivos as { nome?: string; tipo?: string }[]).map((a) => ({ nome: String(a?.nome ?? ''), tipo: String(a?.tipo ?? '') })).slice(0, 8)
   if (raw2.enviado === true) o.enviado = true
+  if (raw2.tipo === 'tabela' || raw2.tipo === 'contato') o.tipo = raw2.tipo
   if (!o.whatsapp && o.telefone && digits(o.telefone).length === 11) o.whatsapp = digits(o.telefone)
   return o
 }

@@ -5,7 +5,7 @@ import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop,
-  ehSanLevi, ondeMora, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  ehSanLevi, ehOrcamento, ondeMora, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { Assinatura, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
@@ -251,7 +251,6 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
   const counts: Record<string, number> = {}
   for (const o of vis) counts[o.nicho] = (counts[o.nicho] || 0) + 1
   const nf = filtro !== 'todos' && !counts[filtro] ? 'todos' : filtro
-  const comGrupo = vis.filter((o) => num(o.grupo_pct)).length
   const exemplos = vis.filter((o) => o.exemplo).length
 
   if (d.bloqueado && !owner)
@@ -330,9 +329,9 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
           </div>
         </div>
         <div className="ape-stats">
-          <div className="ape-stat"><b className="num">{vis.length}</b><span>orçamentos</span></div>
+          <div className="ape-stat"><b className="num">{vis.filter(ehOrcamento).length}</b><span>orçamentos</span></div>
           <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>serviços</span></div>
-          <div className="ape-stat"><b className="num">{comGrupo}</b><span>com desconto em grupo</span></div>
+          <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos e tabelas</span></div>
         </div>
       </section>
       <p className="ape-aviso">
@@ -372,7 +371,10 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
           </div>
         )}
         {groups.map((id, gi) => {
-          const a = analyze(list.filter((o) => o.nicho === id))
+          const doServico = list.filter((o) => o.nicho === id)
+          const extras = doServico.filter((o) => !ehOrcamento(o))
+          const orcs = doServico.filter(ehOrcamento)
+          const a = analyze(orcs)
           const sorted = [...a.items].sort(SORTS[sort][1])
           const top = sort === 'compensa' && a.top ? a.top : null
           const rest = top ? sorted.filter((x) => x !== top) : sorted
@@ -388,13 +390,15 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
                   <div>
                     <h3>{n.l}</h3>
                     <span className="ape-note">
-                      {a.items.length} orçamento{a.items.length > 1 ? 's' : ''} · {a.basis === 'm2' ? 'comparando pelo preço por m² à vista' : 'comparando pelo preço à vista'}
+                      {orcs.length ? `${orcs.length} orçamento${orcs.length > 1 ? 's' : ''} · ${a.basis === 'm2' ? 'comparando pelo preço por m² à vista' : 'comparando pelo preço à vista'}` : 'ainda sem orçamento'}
+                      {extras.length ? ` · ${extras.length} ${extras.length > 1 ? 'contatos e tabelas' : extras[0].tipo === 'tabela' ? 'tabela' : 'contato'}` : ''}
                     </span>
                   </div>
                 </div>
-                <Comparar orcs={a.items.map((x) => x.o)} me={me} />
+                <Comparar orcs={orcs} me={me} />
                 {top && card(top, true)}
                 {rest.length > 0 && <div className="ape-grid">{rest.map((x) => card(x, false))}</div>}
+                {extras.length > 0 && <Contatos lista={extras} me={me} />}
               </section>
               {showCta && <Cta nicho={id} produtos={d.ajustes.produtos} me={me} whats={whats} />}
             </div>
@@ -402,6 +406,40 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         })}
       </div>
     </>
+  )
+}
+
+/* contatos de fornecedor e tabelas de preço: não entram no "mais compensa", ficam à mão para pedir orçamento */
+function Contatos({ lista, me }: { lista: Orcamento[]; me: Morador | null }) {
+  return (
+    <div className="ape-contatos">
+      <p className="ape-eyebrow">contatos e tabelas</p>
+      <div className="ape-contatos-grid">
+        {lista.map((o) => {
+          const n = waNum(o.whatsapp || o.telefone)
+          const ig = (o.instagram || '').replace(/^@/, '')
+          return (
+            <article key={o.id} className="ape-contato">
+              <div className="t">
+                <b>{o.fornecedor}</b>
+                <span className={`ape-pill ${o.tipo === 'tabela' ? 'terra' : 'azul'}`}>{o.tipo === 'tabela' ? 'tabela de preços' : 'contato'}</span>
+              </div>
+              {o.resumo && <p>{o.resumo}</p>}
+              {o.tipo === 'tabela' && (o.itens || []).length > 0 && (
+                <ul className="ape-tabela">
+                  {o.itens!.slice(0, 8).map((i, k) => <li key={k}><span>{i.descricao}{i.unidade ? ` (${i.unidade})` : ''}</span><b className="num">{i.valor != null ? brl(i.valor) : '—'}</b></li>)}
+                </ul>
+              )}
+              <div className="ape-acts">
+                {n && <a className="ape-btn sm primary" href={wa(n, `Oi! ${me ? `Sou ${me.nome}, ` : ''}vi o seu contato com os vizinhos do ${APE.condominio}. Pode me passar um orçamento de ${nicho(o.nicho).l.toLowerCase()}?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir orçamento</a>}
+                {ig && !/\s/.test(ig) && <a className="ape-btn sm" href={/^https?:/.test(o.instagram || '') ? o.instagram : `https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer">{/^https?:/.test(o.instagram || '') ? 'site' : `@${ig}`}</a>}
+                {!n && !ig && <span className="ape-note">{o.email || 'sem contato informado'}</span>}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 

@@ -834,3 +834,23 @@
 .ape .ape-steps-num li { font-size: 13px; }
 .ape-cmp-dest .ape-pill { display: block; border-radius: 12px; padding: 6px 10px; line-height: 1.4; }
 .ape-cmp-dest .ape-pill .ape-i { vertical-align: -2px; margin-right: 4px; }
+
+/* enviar: o que você tem? (orçamento, tabela ou contato) */
+.ape-tipos-envio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ape-tipos-envio button { display: grid; gap: 2px; text-align: left; border: 1.5px solid var(--a-line); background: var(--a-card); border-radius: 14px; padding: 10px 12px; min-width: 0; }
+.ape-tipos-envio button b { font-size: 13.5px; text-transform: lowercase; }
+.ape-tipos-envio button span { font-size: 11.5px; color: var(--a-muted); }
+.ape-tipos-envio button[aria-checked='true'] { border-color: var(--a-pri); background: var(--a-pri-soft); }
+.ape-tipos-envio button[aria-checked='true'] b { color: var(--a-pri); }
+@media (max-width: 560px) { .ape-tipos-envio { grid-template-columns: minmax(0, 1fr); } }
+/* contatos e tabelas na lista */
+.ape-contatos { display: grid; gap: 8px; }
+.ape-contatos .ape-eyebrow { margin: 4px 0 0; }
+.ape-contatos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px; }
+.ape-contato { background: var(--a-card); border: 1px dashed color-mix(in srgb, var(--a-pri) 35%, var(--a-line)); border-radius: 16px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; align-content: start; }
+.ape-contato .t { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.ape-contato .t b { font-size: 14px; overflow-wrap: anywhere; }
+.ape-contato p { margin: 0; font-size: 12.5px; color: var(--a-muted); }
+.ape-tabela { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; }
+.ape-tabela li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--a-line); padding: 3px 0; }
+.ape-tabela li span { min-width: 0; overflow-wrap: anywhere; }
