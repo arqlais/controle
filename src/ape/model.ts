@@ -299,7 +299,7 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 /* ===== produtos e exemplos ===== */
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
-export const LOJA_VERSAO = 5
+export const LOJA_VERSAO = 6
 /** Quanto mais arquivos avulsos no carrinho, maior o desconto: [a partir de N itens, % de desconto]. */
 export const DESCONTOS: [number, number][] = [[2, 10], [3, 15], [4, 20], [6, 25]]
 const arq = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega'>): Produto => ({ cat: 'arquivos', ativo: true, entrega: NA_HORA, fase: 'comprei', ...p })
@@ -348,12 +348,6 @@ export const PRODUTOS: Produto[] = [
   { id: 'plataforma', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 79', unidade: 'por ano · pagamento único', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, você recebe o acesso no WhatsApp em até 24 horas.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
     desc: 'Um site para organizar tudo do seu apê ou casa: gastos, parcelas, obra, vistoria e contatos, num lugar só. Paga uma vez e usa o ano inteiro.',
     itens: ['Gastos por cômodo: quanto planejou, quanto já foi e quanto falta', 'Parcelas dos próximos meses, sem surpresa no cartão', 'Obra passo a passo, com datas e o que já foi feito', 'Vistoria com fotos e resumo pronto para a construtora', 'Contatos dos fornecedores com WhatsApp a um toque', 'Funciona no celular e no computador, sem instalar nada', 'Pagamento único: 12 meses de acesso, sem mensalidade'], ativo: true },
-  { id: 'layout', cat: 'projeto', nome: 'Projeto de layout', tag: 'planta com móveis', preco: 'R$ 390', formato: 'planta em PDF + lista de compras', entrega: 'Entrega em até 10 dias depois da conversa inicial.', amostras: [AM('m-layout.jpg')], arte: 'planta',
-    desc: 'A planta do seu apê com os móveis no lugar e as medidas certas, para pedir orçamentos iguais e comprar sem errar.',
-    itens: ['Conversa para entender a sua rotina', 'Planta de layout com móveis e medidas', '1 rodada de ajustes', 'Lista de compras com medidas de cada móvel', 'Sugestão de pontos de tomada e iluminação'], ativo: true },
-  { id: 'projeto', cat: 'projeto', nome: 'Projeto completo com 3D', tag: 'mais completo', destaque: true, preco: 'R$ 1.290', preco_de: 'R$ 1.590', formato: 'planta, imagens 3D e detalhamento em PDF', entrega: 'Entrega em até 25 dias, em etapas: layout, 3D e detalhamento.', amostras: [AM('m-projeto.jpg'), AM('m-layout.jpg')], arte: 'projeto3d',
-    desc: 'Layout, imagens 3D e detalhamento para a marcenaria, nas medidas da sua casa ou apê.',
-    itens: ['Tudo do projeto de layout', 'Imagens 3D da sala e da cozinha', 'Detalhamento da marcenaria para o marceneiro orçar', 'Sugestão de pontos de tomada e iluminação, para o eletricista executar', 'Lista de materiais e acabamentos', '2 rodadas de ajustes', 'Quando a obra pedir ART, um profissional habilitado assina à parte'], ativo: true },
 ]
 
 /** Parcelas sem juros no cartão (mesma regra da função de pagamento). */

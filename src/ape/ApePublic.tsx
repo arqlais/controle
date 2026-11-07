@@ -6,7 +6,7 @@ import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgAnexo, msgFornecedor, msgGrupo, msgProduto, nicho, num, pct, wa, waNum, whyTop,
-  CATEGORIAS, DESCONTOS, conta, parcelasMax, ehSanLevi, noCarrinho, ondeMora, reais, type Analise, type Categoria, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  CATEGORIAS, DESCONTOS, conta, parcelasMax, ehSanLevi, noCarrinho, ondeMora, reais, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { markSvg } from '../components/PlaneMark'
 import './ape.css'
@@ -1001,7 +1001,6 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
                 <span className="ape-note">{x.d}</span>
               </div>
             </div>
-            {x.id === 'projeto' ? <Vitrine cat="projeto" /> : null}
             <div className="ape-shop">
               {ativos.filter(x.f).map((p) => (
                 <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} me={me} whats={whats} cart={cart} onAdd={adicionar} produtos={produtos} />
@@ -1011,6 +1010,7 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
         ))}
 
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} />}
+      <ProjetoSec whats={whats} me={me} />
 
       {/* garantia e dúvidas */}
       <section className="ape-panel ape-garantia">
@@ -1068,6 +1068,25 @@ function Loja({ produtos, me, whats, abrir, tiers }: { produtos: Produto[]; me: 
       {verCarrinho && <CarrinhoSheet produtos={produtos} tiers={tiers} cart={cart} me={me} whats={whats} onClose={() => setVerCarrinho(false)} onAdd={adicionar} onOpen={(p) => { setVerCarrinho(false); setAberto(p) }} />}
       {toast}
     </>
+  )
+}
+
+/* projeto: em parceria com engenheiro civil, só por orçamento no WhatsApp (sem preço na página) */
+function ProjetoSec({ whats, me }: { whats: string; me: Morador | null }) {
+  const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria um orçamento de projeto para a minha casa/apê 😊`
+  return (
+    <section className="ape-projeto ape-panel" id="loja-projeto">
+      <ApeArt name="projeto3d" size={72} tone="sec" />
+      <div>
+        <p className="ape-eyebrow">precisa de projeto?</p>
+        <h3 className="ape-sec-t">projeto para a sua obra, <em>em parceria</em> com engenheiro civil</h3>
+        <p className="ape-note" style={{ margin: 0 }}>Layout, marcenaria, pontos de tomada e iluminação e o que mais a sua obra pedir, feito em parceria com engenheiro civil. Cada casa é de um jeito: conte o que você precisa e receba um orçamento sem compromisso.</p>
+      </div>
+      <a className="ape-btn primary" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer">
+        <ApeIcon name="chat" />
+        pedir orçamento
+      </a>
+    </section>
   )
 }
 
@@ -1205,40 +1224,6 @@ function ProdCard({ p, byId, onOpen, me, whats, cart, onAdd }: { p: Produto; byI
         <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
       </div>
     </article>
-  )
-}
-
-/* explicação visual de cada área (com as imagens de exemplo) */
-function Vitrine({ cat }: { cat: Categoria }) {
-  if (cat === 'plataforma')
-    return (
-      <div className="ape-vit">
-        <img src="ape/amostras/m-plataforma.jpg" alt="Telas de exemplo da plataforma do apê: gastos, obra passo a passo e vistoria com fotos" loading="lazy" />
-        <div className="ape-vit-t">
-          <b>como funciona</b>
-          <ul className="ape-inc">
-            <li><ApeIcon name="check" />Você anota cada compra e a plataforma soma tudo por cômodo</li>
-            <li><ApeIcon name="check" />As parcelas aparecem mês a mês, sem surpresa no cartão</li>
-            <li><ApeIcon name="check" />A obra fica em etapas, com data e o que já foi feito</li>
-            <li><ApeIcon name="check" />Na vistoria, você marca os itens, tira fotos e gera o resumo</li>
-          </ul>
-          <span className="ape-note">Telas ilustrativas.</span>
-        </div>
-      </div>
-    )
-  return (
-    <div className="ape-vit">
-      <img src="ape/amostras/m-projeto.jpg" alt="Imagem 3D de um projeto de apê compacto: cozinha azul, parede terracota e mesa de jantar" loading="lazy" />
-      <div className="ape-vit-t">
-        <b>exemplo real: um apê de {APE.meuApe}</b>
-        <ul className="ape-inc">
-          <li><ApeIcon name="check" />Marcenaria azul na cozinha, parede terracota e piso em espinha de peixe</li>
-          <li><ApeIcon name="check" />Mesa de jantar no lugar certo, sem atrapalhar a passagem</li>
-          <li><ApeIcon name="check" />Tudo nas medidas do apê</li>
-        </ul>
-        <span className="ape-note">Projeto feito para um apê do {APE.condominio}.</span>
-      </div>
-    </div>
   )
 }
 

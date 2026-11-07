@@ -234,7 +234,7 @@ async function apeLoja() {
   const { data } = await db.from('ape_ajustes').select('data').eq('id', 1).maybeSingle()
   const a = (data?.data ?? {}) as Record<string, any>
   const map: Record<string, { nome: string; preco: number; cat: string; combo: string[] }> = {}
-  const saved = Number(a.lojaV ?? 0) >= 5 && Array.isArray(a.produtos) ? (a.produtos as Record<string, any>[]) : null
+  const saved = Number(a.lojaV ?? 0) >= 6 && Array.isArray(a.produtos) ? (a.produtos as Record<string, any>[]) : null
   if (saved) for (const p of saved) if (p.ativo !== false && (p.cat === 'arquivos' || p.cat === 'combos' || p.cat === 'plataforma')) map[p.id] = { nome: String(p.nome), preco: reais(p.preco), cat: p.cat, combo: Array.isArray(p.combo) ? p.combo : [] }
   if (!saved) for (const [id, p] of Object.entries(APE_DEFAULT)) map[id] = { nome: p.nome, preco: reais(p.preco), cat: p.cat, combo: p.combo ?? [] }
   const tiers = Array.isArray(a.descontos) && a.descontos.length ? (a.descontos as [number, number][]) : APE_TIERS
