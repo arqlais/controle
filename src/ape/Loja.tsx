@@ -310,7 +310,7 @@ function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; f
         <h3>precisa de um <em>projeto?</em></h3>
         <p className="ape-proj-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho com o meu pai, engenheiro civil, em projetos e reformas.</p>
         <ul className="ape-proj-chips">{servicos.map(([t]) => <li key={t}>{t}</li>)}</ul>
-        <p className="ape-proj-local"><ApeIcon name="home" />vistoria de imóvel em Santo André e região (SP)</p>
+        <p className="ape-proj-local"><ApeIcon name="home" />vistoria de imóvel em Santo André, ABC e região (SP)</p>
         <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir orçamento no WhatsApp</a>
       </div>
       <div className="ape-proj-img">

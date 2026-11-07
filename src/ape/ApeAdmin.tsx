@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { askGemini, readFile, type Attachment } from '../components/AIChat'
 import { ask, toast } from '../components/dialog'
 import { href } from '../router'
@@ -14,7 +14,14 @@ import './ape.css'
 /* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
+type Tab = 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
+/* o painel em 4 partes: início (o que precisa de atenção), San Levi, loja e testar */
+const SECOES: [string, string, Tab[]][] = [
+  ['inicio', 'início', ['inicio']],
+  ['sanlevi', 'San Levi', ['moradores', 'lista', 'recebidos', 'novo', 'grupos']],
+  ['loja', 'loja', ['pedidos', 'clientes', 'loja', 'entregas', 'opiniao']],
+  ['testar', 'testar como cliente', ['testar']],
+]
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -25,7 +32,7 @@ interface Draft {
 export default function ApeAdmin() {
   const { data } = useStore()
   const aiKey = data.settings.aiKey || ''
-  const [tab, setTab] = useState<Tab>('recebidos')
+  const [tab, setTab] = useState<Tab>('inicio')
   const [orcs, setOrcs] = useState<Orcamento[]>([])
   const [envios, setEnvios] = useState<Envio[]>([])
   const [moradores, setMoradores] = useState<Morador[]>([])
@@ -104,27 +111,28 @@ export default function ApeAdmin() {
             </div>
           )}
           {!apeCloud && <div className="ape-banner">Prévia: tudo fica só neste navegador.</div>}
-          <div className="ape-atabs" role="tablist">
-            {(
-              [
-                ['recebidos', <>Enviados{novos ? <em>{novos}</em> : null}</>],
-                ['novo', draft && !draft.novo ? 'Editar' : 'Adicionar'],
-                ['lista', `Orçamentos (${orcs.length})`],
-                ['moradores', `Cadastros (${moradores.length})`],
-                ['grupos', 'Compras em grupo'],
-                ['loja', 'Produtos e preços'],
-                ['pedidos', 'Vendas'],
-                ['clientes', 'Clientes'],
-                ['entregas', 'Arquivos'],
-                ['opiniao', 'Depoimentos e sugestões'],
-                ['testar', 'Testar como cliente'],
-              ] as [Tab, React.ReactNode][]
-            ).map(([k, l]) => (
-              <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>
-                {l}
-              </button>
-            ))}
-          </div>
+          {(() => {
+            const sec = SECOES.find((x) => x[2].includes(tab)) || SECOES[0]
+            const ROT: Record<Tab, React.ReactNode> = {
+              inicio: 'início', moradores: `cadastros (${moradores.length})`, lista: `orçamentos (${orcs.length})`, recebidos: <>enviados{novos ? <em>{novos}</em> : null}</>, novo: draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', grupos: 'compras em grupo',
+              pedidos: <>vendas{pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length ? <em>{pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length}</em> : null}</>, clientes: 'clientes', loja: 'produtos e preços', entregas: 'arquivos', opiniao: 'depoimentos e sugestões', testar: 'testar como cliente',
+            }
+            return (
+              <>
+                <div className="ape-adm-secoes" role="tablist" aria-label="Partes do painel">
+                  {SECOES.map(([id, l, tabs]) => (
+                    <button key={id} role="tab" aria-selected={sec[0] === id} onClick={() => setTab(tabs[0])}>{l}</button>
+                  ))}
+                </div>
+                {sec[2].length > 1 && (
+                  <div className="ape-atabs" role="tablist" aria-label={sec[1]}>
+                    {sec[2].map((k) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{ROT[k]}</button>)}
+                  </div>
+                )}
+              </>
+            )
+          })()}
+          {tab === 'inicio' && <Inicio moradores={moradores} orcs={orcs} pedidos={pedidos} envios={envios} ir={setTab} />}
           {tab === 'recebidos' && (
             <Recebidos
               envios={envios}
@@ -160,6 +168,45 @@ export default function ApeAdmin() {
           {tab === 'opiniao' && <Opinioes />}
           {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ===== início do painel: o que precisa da sua atenção e os números principais ===== */
+function Inicio({ moradores, orcs, pedidos, envios, ir }: { moradores: Morador[]; orcs: Orcamento[]; pedidos: PedidoAdmin[]; envios: Envio[]; ir: (t: Tab) => void }) {
+  const sl = moradores.filter(ehSanLevi)
+  const aguardando = sl.filter((m) => !m.aprovado).length
+  const cancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
+  const mes = new Date().toISOString().slice(0, 7)
+  const vendasMes = pedidos.filter((p) => p.status === 'pago' && !p.cortesia && (p.pago_em || p.criado).slice(0, 7) === mes)
+  const semana = Date.now() - 7 * 864e5
+  const novos = sl.filter((m) => m.criado && new Date(m.criado).getTime() > semana).length
+  const novosOrc = envios.filter((e) => new Date(e.criado).getTime() > semana).length
+  const pend: [string, string, Tab][] = [
+    ...(cancel ? [[`${cancel} pedido(s) de cancelamento para decidir`, 'abrir vendas', 'pedidos'] as [string, string, Tab]] : []),
+    ...(aguardando ? [[`${aguardando} cadastro(s) do ${APE.condominio} aguardando aprovação`, 'abrir cadastros', 'moradores'] as [string, string, Tab]] : []),
+  ]
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div className="ape-adm-pend">
+        <p className="ape-eyebrow">precisa de você</p>
+        {pend.length ? pend.map(([t, b, k]) => (
+          <div key={t} className="ape-adm-pend-i"><ApeIcon name="alert" /><span>{t}</span><button className="ape-btn primary sm" onClick={() => ir(k)}>{b}</button></div>
+        )) : <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="check" /> Nada pendente agora.</p>}
+      </div>
+      <div className="ape-adm-cards">
+        <button onClick={() => ir('moradores')}><span><ApeIcon name="users" />moradores</span><b className="num">{sl.length}</b><small>{novos} novo(s) nesta semana · {new Set(sl.filter((m) => m.torre && m.ap).map((m) => `${m.torre}|${m.ap}`)).size} apês</small></button>
+        <button onClick={() => ir('lista')}><span><ApeIcon name="list" />orçamentos na área</span><b className="num">{orcs.filter((o) => !o.oculto && !o.exemplo).length}</b><small>{novosOrc} enviado(s) nesta semana</small></button>
+        <button onClick={() => ir('pedidos')}><span><ApeIcon name="bag" />vendas no mês</span><b className="num ape-keep">{brl(vendasMes.reduce((t, p) => t + p.total, 0))}</b><small>{vendasMes.length} venda(s)</small></button>
+        <button onClick={() => ir('clientes')}><span><ApeIcon name="user" />clientes da loja</span><b className="num">{new Set(pedidos.filter((p) => p.status === 'pago').map((p) => p.cpf || p.email)).size}</b><small>quem já comprou</small></button>
+      </div>
+      <div className="ape-adm-atalhos">
+        <p className="ape-eyebrow">atalhos</p>
+        <button className="ape-btn sm" onClick={() => ir('novo')}><ApeIcon name="plus" />adicionar orçamento</button>
+        <button className="ape-btn sm" onClick={() => ir('loja')}><ApeIcon name="tag" />mudar preços e foto de projetos</button>
+        <button className="ape-btn sm" onClick={() => ir('entregas')}><ApeIcon name="file" />arquivos da loja</button>
+        <button className="ape-btn sm" onClick={() => ir('testar')}><ApeIcon name="eye" />ver como cliente</button>
       </div>
     </div>
   )
@@ -574,17 +621,27 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
             <span>Quem se cadastrar na página aparece nesta lista. Só você vê.</span>
           </div>
         )}
-        {list.map((m) => {
+        {list.map((m, i) => {
           const x = info(m)
+          const ant = list[i - 1]
+          const torreNova = ehSanLevi(m) && (!ant || !ehSanLevi(ant) || ant.torre.trim() !== m.torre.trim())
+          const apNovo = ehSanLevi(m) && (torreNova || ant.ap.trim() !== m.ap.trim())
+          const doAp = ehSanLevi(m) ? list.filter((y) => ehSanLevi(y) && chave(y) === chave(m)) : []
+          const daTorre = ehSanLevi(m) ? list.filter((y) => ehSanLevi(y) && y.torre.trim() === m.torre.trim()) : []
+          const outrosNovo = !ehSanLevi(m) && (!ant || ehSanLevi(ant))
           return (
-            <div key={m.id} className="ape-row ape-pessoa">
+            <Fragment key={m.id}>
+            {torreNova && <h4 className="ape-torre-h">Torre {m.torre || '?'} <span>{new Set(daTorre.map(chave)).size} apê(s) · {daTorre.length} cadastro(s)</span></h4>}
+            {apNovo && <p className="ape-ap-h">apê {m.ap || '?'}{doAp.length > 1 ? ` · ${doAp.length} cadastros` : ''}{doAp.some((y) => y.pessoas) ? ` · ${Math.max(...doAp.map((y) => y.pessoas || 0))} pessoa(s) vão morar` : ''}</p>}
+            {outrosNovo && <h4 className="ape-torre-h">de outros lugares</h4>}
+            <div className="ape-row ape-pessoa">
               <div className="t">
                 <b>
                   {m.nome}
                   {!ehSanLevi(m) && <span className="ape-pill ape-keep" style={{ marginLeft: 6 }}>{m.condominio || 'outro lugar'}</span>}
                 </b>
                 <span>
-                  {ehSanLevi(m) ? `Torre ${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>
+                  {ehSanLevi(m) ? `T${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>{m.pessoas ? ` · ${m.pessoas} pessoa(s)` : ''}{ehSanLevi(m) && !m.aprovado ? ' · aguardando aprovação' : ''}
                   {m.criado ? ` · desde ${dmy(m.criado)}` : ''}
                 </span>
                 {x.junto.length > 0 && (
@@ -612,6 +669,7 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
                 <button className="ape-btn ghost sm" onClick={() => void remover(m)} aria-label={`Apagar ${m.nome}`}><ApeIcon name="trash" /></button>
               </div>
             </div>
+            </Fragment>
           )
         })}
       </div>

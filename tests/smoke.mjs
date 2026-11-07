@@ -452,6 +452,8 @@ try {
       await page.evaluate((h) => (location.hash = h), h); await page.waitForTimeout(500)
       ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `apê ${vp.name}: ${h} cabe na tela`)
     }
+    await page.locator('.ape-adm-secoes button', { hasText: 'San Levi' }).click().catch(() => {}); await page.waitForTimeout(200)
+    await page.locator('.ape-atabs button', { hasText: /enviados/i }).click().catch(() => {}); await page.waitForTimeout(300)
     ok(await page.locator('.ape-envio', { hasText: 'Loja Teste' }).count() === 1, `apê ${vp.name}: dona recebe o orçamento enviado`)
     ok(errors.length === 0, `apê ${vp.name}: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()

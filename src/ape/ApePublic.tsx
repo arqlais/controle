@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, souDona, verOriginal, apeCloud, type Publico } from './api'
+import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -11,7 +11,7 @@ import { Assinatura, AvisoCookies, MARK_SVG, read, useCarrinho, useToast, write 
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
 import { Plataforma } from './Plataforma'
-import { Comparar } from './Comparar'
+import { Comparar, Original } from './Comparar'
 import { Conta } from './Conta'
 import './ape.css'
 
@@ -324,10 +324,8 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         <section className="ape-panel ape-hero">
           <div>
             <p className="ape-eyebrow">começando agora</p>
-            <h2>
-              os orçamentos de quem está montando o apê, <em>lado a lado</em>
-            </h2>
-            <p>Cada pessoa que manda um orçamento ajuda todo mundo a comparar preço, o que está incluso e a negociar desconto em grupo. Quanto mais gente, melhor o desconto.</p>
+            <h2>todos os orçamentos do grupo, <em>organizados</em></h2>
+            <p>Os orçamentos ficavam espalhados no grupo. Aqui eles ficam em pastas por serviço, do jeito que foram recebidos, e todo mundo compara lado a lado. Comece mandando o seu.</p>
           </div>
           <ol className="ape-steps" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
             <li><b>1</b>Peça orçamento de piso, marcenaria, box, gesso…</li>
@@ -520,32 +518,6 @@ function ComoFunciona() {
   )
 }
 
-/* arquivo original do orçamento (PDF ou foto), como foi mandado */
-function Original({ o, me, onClose }: { o: Orcamento; me: Morador | null; onClose: () => void }) {
-  const [l, setL] = useState<{ nome: string; tipo: string; url: string }[] | null>(null)
-  const [erro, setErro] = useState('')
-  useEffect(() => {
-    verOriginal(me?.id, o.id).then(setL, (e) => setErro(String(e.message)))
-  }, [o.id])
-  return (
-    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Arquivo original" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="ape-sheet-in ape-original">
-        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
-        <div className="ape-sheet-b">
-          <p className="ape-eyebrow">como foi recebido</p>
-          <h2 className="ape-h2">{o.fornecedor}</h2>
-          {erro ? <p className="ape-err">{erro}</p> : !l ? <span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>abrindo…</span> : !l.length ? <p className="ape-note">Este orçamento veio sem arquivo (foi digitado ou colado).</p> : l.map((a) => (
-            <div key={a.url} className="ape-original-i">
-              {/pdf/i.test(a.tipo) || /\.pdf$/i.test(a.nome) ? <iframe src={a.url} title={a.nome} /> : <img src={a.url} alt={a.nome} />}
-              <a className="ape-btn sm" href={a.url} target="_blank" rel="noopener noreferrer"><ApeIcon name="download" />abrir {a.nome}</a>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, onEscolha }: { x: Item; a: Analise; isTop: boolean; me: Morador | null; whats: string; count: number; escolhas: number; minha: boolean; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void }) {
   const { o, c } = x
   const [busy, setBusy] = useState(false)
@@ -676,7 +648,8 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
           {o.nao_inclui.length > 0 && <Lista cls="n" t="Não inclui" icon="x" itens={o.nao_inclui} />}
           {o.alertas.length > 0 && <Lista cls="a" t="Antes de fechar, confira" icon="alert" itens={o.alertas} />}
           <dl className="ape-facts">
-            {([['Pagamento', o.pagamento], ['Prazo', o.prazo], ['Garantia', o.garantia], ['Em grupo', o.grupo_desc], ['Contato', o.contato], ['WhatsApp', vendorWa ? fmtTel(o.whatsapp) : ''], ['Instagram', o.instagram || '']] as const)
+            {([['Pagamento', o.pagamento], ['Prazo', o.prazo], ['Garantia', o.garantia], ['Validade', o.validade ? dmy(o.validade) : ''], ['Em grupo', o.grupo_desc], ['Contato', o.contato], ['WhatsApp', vendorWa ? fmtTel(o.whatsapp) : ''], ['Instagram', o.instagram || '']] as const)
+              .map(([k, v]) => [k, v || (['Pagamento', 'Prazo', 'Garantia', 'Validade'].includes(k) ? '— não informado' : '')] as const)
               .filter((f) => f[1])
               .map(([k, v]) => (
                 <div key={k} style={{ display: 'contents' }}>
@@ -779,6 +752,7 @@ function Cta({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[]; me?: M
 function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?: boolean; onDone: (m: Morador) => void; onCancel?: () => void }) {
   const [copiado, setCopiado] = useState(false)
   const [modo, setModo] = useState<'novo' | 'entrar'>('novo')
+  const [pessoas, setPessoas] = useState('')
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const entrar = async (e: FormEvent) => {
@@ -831,7 +805,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
     setBusy(true)
     try {
       if (!me && apeCloud) {
-        const novo = await moradorConta('morador', { ...m, junto: m.moraJunto, email: email.trim().toLowerCase(), senha })
+        const novo = await moradorConta('morador', { ...m, junto: m.moraJunto, email: email.trim().toLowerCase(), senha, pessoas: pessoas === '5+' ? 5 : Number(pessoas) || null })
         if (novo) onDone(novo)
       } else {
         const id = await cadastrar({ ...m, id: me?.id })
@@ -911,13 +885,27 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
           </div>
         )}
         <div className="ape-f">
-          <label htmlFor="g-tel"><span className="ape-keep">WhatsApp</span> com DDD</label>
+          <label htmlFor="g-tel">Celular (<span className="ape-keep">WhatsApp</span>)</label>
           <input id="g-tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="(11) 90000-0000" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => setTel(fmtTel(tel))} required />
         </div>
+        {!me && apeCloud && sl && (
+          <div className="ape-f">
+            <label>Quantas pessoas vão morar? <span className="ape-opc">opcional</span></label>
+            <div className="ape-seg" role="radiogroup" aria-label="Quantas pessoas vão morar">
+              {['1', '2', '3', '4', '5+'].map((n) => <button key={n} type="button" role="radio" aria-checked={pessoas === n} onClick={() => setPessoas(pessoas === n ? '' : n)}>{n}</button>)}
+            </div>
+          </div>
+        )}
+        {!me && apeCloud && (
+          <>
+            <div className="ape-f"><label htmlFor="g-email">E-mail</label><input id="g-email" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <div className="ape-f"><label htmlFor="g-senha">Crie uma senha</label><input id="g-senha" type="password" autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="8 ou mais caracteres" /></div>
+          </>
+        )}
         {err && <p className="ape-err" role="alert">{err}</p>}
         <div className="ape-acts">
           <button className="ape-btn primary wide" type="submit" disabled={busy}>
-            {busy ? 'entrando…' : 'entrar'}
+            {busy ? 'aguarde…' : me ? 'salvar' : apeCloud ? 'criar conta' : 'entrar'}
           </button>
           {onCancel && (
             <button className="ape-btn ghost" type="button" onClick={onCancel}>cancelar</button>

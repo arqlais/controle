@@ -86,7 +86,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
   const senhaOk = (s: string) => s.length >= 8
   const moradorDe = async (id: string | null | undefined) => {
     if (!id) return null
-    const { data } = await db.from('ape_moradores').select('id, nome, condominio, torre, ap, tel, mora_junto, aprovado, criado').eq('id', id).maybeSingle()
+    const { data } = await db.from('ape_moradores').select('id, nome, condominio, torre, ap, tel, mora_junto, aprovado, pessoas, criado').eq('id', id).maybeSingle()
     return data
   }
 
@@ -115,7 +115,8 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       if (!senhaOk(senha)) return json({ erro: 'A senha precisa de pelo menos 8 caracteres.' }, 400)
       const { data: ja } = await db.from('ape_clientes').select('id, senha, morador').eq('email', email).maybeSingle()
       if (ja?.senha) return json({ erro: 'Esse e-mail já tem conta. Toque em "já tenho conta" e entre.' }, 400)
-      const { data: m, error } = await db.from('ape_moradores').insert({ nome, tel, torre: sl ? torre : '', ap: sl ? ap : '', condominio: sl ? 'San Levi' : String(body.condominio ?? '').slice(0, 80), mora_junto: body.junto === true, aprovado: sl }).select('*').single()
+      const pessoas = Math.min(20, Math.max(0, Number(body.pessoas) || 0)) || null
+      const { data: m, error } = await db.from('ape_moradores').insert({ nome, tel, torre: sl ? torre : '', ap: sl ? ap : '', condominio: sl ? 'San Levi' : String(body.condominio ?? '').slice(0, 80), mora_junto: body.junto === true, aprovado: sl, pessoas }).select('*').single()
       if (error || !m) return json({ erro: 'Não deu para cadastrar agora.' }, 500)
       const h = await hash(senha)
       const cli = ja

@@ -1,12 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { verOriginal } from './api'
 import { ApeIcon } from './ApeIcon'
 import { comparar } from './comparar'
-import { brl, dmy, nicho, waNum, wa, type Morador, type Orcamento } from './model'
+import { brl, dmy, fmtTel, nicho, waNum, wa, type Morador, type Orcamento } from './model'
 
 /* Comparação lado a lado de um serviço: não só o preço — escopo, materiais, prazos, pagamento, garantia,
    o que falta em cada um, divergências e custos que podem aparecer depois. */
 export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }) {
   const [aberto, setAberto] = useState(false)
+  const [original, setOriginal] = useState<Orcamento | null>(null)
   if (orcs.length < 2) return null
   if (!aberto)
     return (
@@ -20,7 +22,7 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
   const linha = (l: string, vals: (string | null | undefined)[], cls = '') => (
     <tr className={cls}>
       <th scope="row">{l}</th>
-      {vals.map((v, i) => <td key={i}>{v || <span className="ape-cmp-vazio">não informa</span>}</td>)}
+      {vals.map((v, i) => <td key={i}>{v || <span className="ape-cmp-vazio">— não informado</span>}</td>)}
     </tr>
   )
   const pedir = (i: number) => {
@@ -48,7 +50,13 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
           <thead>
             <tr>
               <th />
-              {orcs.map((_, i) => <th key={i} scope="col">{col(i)}</th>)}
+              {orcs.map((o, i) => (
+                <th key={i} scope="col">
+                  <span className="ape-cmp-col-h">{col(i)}</span>
+                  {o.servico && <small className="ape-cmp-col-s">{o.servico.split(' · ').slice(1).join(' · ') || ''}</small>}
+                  {(o.arquivos?.length || o.enviado) ? <button className="ape-cmp-orig" onClick={() => setOriginal(o)}><ApeIcon name="file" />ver original</button> : <small className="ape-cmp-vazio">sem arquivo</small>}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -61,12 +69,12 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
             {linha('prazo', orcs.map((o) => o.prazo))}
             {linha('garantia', orcs.map((o) => o.garantia))}
             {linha('validade', orcs.map((o) => (o.validade ? dmy(o.validade) : '')))}
-            {orcs.some((o) => (o.materiais || []).length) && (
-              <>
-                <tr className="sec"><th colSpan={orcs.length + 1}>materiais e especificações</th></tr>
-                {linha('materiais', orcs.map((o) => (o.materiais || []).join(' · ')))}
-              </>
-            )}
+            <tr className="sec"><th colSpan={orcs.length + 1}>materiais e especificações</th></tr>
+            {linha('materiais', orcs.map((o) => (o.materiais || []).join(' · ')))}
+            {linha('não inclui', orcs.map((o) => (o.nao_inclui || []).join(' · ')))}
+            <tr className="sec"><th colSpan={orcs.length + 1}>contato</th></tr>
+            {linha('WhatsApp / telefone', orcs.map((o) => (o.whatsapp || o.telefone ? fmtTel(o.whatsapp || o.telefone) : '')))}
+            {linha('e-mail', orcs.map((o) => o.email || ''))}
             {c.escopo.length > 0 && (
               <>
                 <tr className="sec"><th colSpan={orcs.length + 1}>o que está incluso</th></tr>
@@ -121,7 +129,35 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
           </div>
         ))}
       </div>
-      <p className="ape-note" style={{ margin: 0 }}>Comparação automática a partir do que está escrito em cada orçamento. Confirme tudo com o fornecedor antes de fechar.</p>
+      <p className="ape-note" style={{ margin: 0 }}>Comparação automática a partir do que está escrito em cada orçamento. "Não informado" quer dizer que o orçamento não traz essa informação: vale perguntar ao fornecedor. Confirme tudo antes de fechar.</p>
+      {original && <Original o={original} me={me} onClose={() => setOriginal(null)} />}
     </section>
   )
 }
+
+/* arquivo original do orçamento (PDF ou foto), como foi mandado */
+export function Original({ o, me, onClose }: { o: Orcamento; me: Morador | null; onClose: () => void }) {
+  const [l, setL] = useState<{ nome: string; tipo: string; url: string }[] | null>(null)
+  const [erro, setErro] = useState('')
+  useEffect(() => {
+    verOriginal(me?.id, o.id).then(setL, (e) => setErro(String(e.message)))
+  }, [o.id])
+  return (
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Arquivo original" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in ape-original">
+        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        <div className="ape-sheet-b">
+          <p className="ape-eyebrow">como foi recebido</p>
+          <h2 className="ape-h2">{o.fornecedor}</h2>
+          {erro ? <p className="ape-err">{erro}</p> : !l ? <span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>abrindo…</span> : !l.length ? <p className="ape-note">Este orçamento veio sem arquivo (foi digitado ou colado).</p> : l.map((a) => (
+            <div key={a.url} className="ape-original-i">
+              {/pdf/i.test(a.tipo) || /\.pdf$/i.test(a.nome) ? <iframe src={a.url} title={a.nome} /> : <img src={a.url} alt={a.nome} />}
+              <a className="ape-btn sm" href={a.url} target="_blank" rel="noopener noreferrer"><ApeIcon name="download" />abrir {a.nome}</a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
