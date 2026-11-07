@@ -201,7 +201,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
               ['tabela', 'tabela de preços', 'lista de valores, catálogo ou print'],
               ['contato', 'só o contato', 'indicação de fornecedor, sem preço'],
             ] as const).map(([id, l, d]) => (
-              <button key={id} type="button" role="radio" aria-checked={tipo === id} onClick={() => setTipo(id)}>
+              <button key={id} type="button" role="radio" aria-checked={tipo === id} onClick={() => { setTipo(id); if (id === 'contato' && !lidos.some((l) => l.o.tipo === 'contato')) novoContato() }}>
                 <b>{l}</b>
                 <span>{d}</span>
               </button>
@@ -218,27 +218,30 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
             </div>
           </div>
         )}
-        <ol className="ape-steps ape-steps-num">
-          <li><b>1</b><span>{tipo === 'contato' ? 'Preencha o contato ou anexe o print do cartão / da conversa' : tipo === 'tabela' ? 'Anexe o print ou o PDF da tabela de preços' : 'Anexe o PDF ou os prints (pode mandar vários de uma vez)'}</span></li>
+        {tipo !== 'contato' && <ol className="ape-steps ape-steps-num">
+          <li><b>1</b><span>{tipo === 'tabela' ? 'Anexe o print ou o PDF da tabela de preços' : 'Anexe o PDF ou os prints (pode mandar vários de uma vez)'}</span></li>
           <li><b>2</b><span>Confira o que foi lido e complete só o que faltar</span></li>
           <li><b>3</b><span>{tipo === 'orcamento' ? 'Publique: entra direto na comparação, sem os seus dados' : 'Publique: aparece em "contatos e tabelas" do serviço, sem os seus dados'}</span></li>
-        </ol>
+        </ol>}
         {tipo === 'contato' && (
-          <button type="button" className="ape-btn primary" onClick={novoContato}><ApeIcon name="plus" />preencher o contato</button>
+          <>
+            <p className="ape-note" style={{ margin: 0 }}>Coloque o nome e o WhatsApp do fornecedor: os vizinhos tocam e já caem na conversa com a empresa.</p>
+            <button type="button" className="ape-btn" onClick={novoContato}><ApeIcon name="plus" />mais um contato</button>
+          </>
         )}
-        <label className="ape-drop" htmlFor="e-files">
+        {tipo !== 'contato' && <label className="ape-drop" htmlFor="e-files">
           <ApeIcon name="clip" />
-          <b>{tipo === 'contato' ? 'ou anexar print do contato' : tipo === 'tabela' ? (lidos.length ? 'anexar mais' : 'anexar a tabela de preços') : lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
+          <b>{tipo === 'tabela' ? (lidos.length ? 'anexar mais' : 'anexar a tabela de preços') : lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
           <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => { anexar([...(e.target.files || [])]); e.target.value = '' }} />
           <span className="ape-note">{tipo === 'orcamento' ? 'Cada arquivo vira um orçamento.' : 'Cada arquivo vira um item.'} Até 10 por vez, de até 15 MB.</span>
-        </label>
-        <details className="ape-more">
+        </label>}
+        {tipo !== 'contato' && <details className="ape-more">
           <summary><ApeIcon name="chev" />veio por mensagem? cole o texto</summary>
           <div className="ape-f" style={{ marginTop: 8 }}>
             <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" aria-label="Texto do orçamento" />
             <button type="button" className="ape-btn sm" onClick={lerColado} disabled={!texto.trim()}>ler o texto</button>
           </div>
-        </details>
+        </details>}
 
         {lidos.map((l, i) => (
           <LidoCard key={l.key} n={i + 1} l={l} podeJuntar={i > 0 && lidos[i - 1].status === 'pronto' && l.status === 'pronto' && (mesmoFornecedor(lidos[i - 1].o, l.o) || !l.o.fornecedor)} onJuntar={() => juntar(i)}

@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { APE, EXEMPLOS, LOJA_VERSAO, PIX_PCT, PRODUTOS, TAXAS, comPrecos, conta, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
+import { APE, EXEMPLOS, JUROS_PCT, LOJA_VERSAO, MIGRA_LOJA, PIX_PCT, PRODUTOS, TAXAS, comPrecos, conta, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
 
 /* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -9,6 +9,7 @@ export interface Ajustes {
   whatsapp?: string
   lojaV?: number
   pixPct?: number // desconto no Pix (padrão 5%)
+  jurosPct?: number // juros ao mês do cartão parcelado (padrão 2,99%)
   taxas?: Taxas // taxas do Asaas, só para conferir a margem no painel
   fotoProjeto?: string // foto da seção de projetos (o painel troca; pasta pública ape-publico)
   vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
@@ -54,12 +55,25 @@ const rowToOrc = (r: { id: string; data: Record<string, unknown>; oculto: boolea
   cleanOrcamento(r.data, { ...(r.data as Partial<Orcamento>), id: r.id, oculto: r.oculto, exemplo: r.exemplo, criado: String((r.data as Partial<Orcamento>).criado || r.criado) })
 const ajustesOf = (d: unknown): Ajustes => {
   const a = (d || {}) as Partial<Ajustes>
-  // loja antiga (antes das categorias): usa a nova, mantendo só o WhatsApp
-  const atual = (a.lojaV || 0) >= LOJA_VERSAO && Array.isArray(a.produtos) && a.produtos.length
+  // loja antiga (antes das categorias, v7): usa a nova, mantendo só o WhatsApp
+  const atual = (a.lojaV || 0) >= 7 && Array.isArray(a.produtos) && a.produtos.length
   const pixPct = typeof a.pixPct === 'number' && a.pixPct >= 0 && a.pixPct <= 10 ? a.pixPct : PIX_PCT
-  // imagens de amostra vêm sempre do site (são refeitas junto com os arquivos)
-  const base = atual ? a.produtos!.map((p) => { const d = PRODUTOS.find((x) => x.id === p.id); return { ...p, ...(d?.amostras ? { amostras: d.amostras } : {}), ...(p.selo === undefined && d?.selo ? { selo: d.selo } : {}) } }) : PRODUTOS
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '' }
+  const jurosPct = typeof a.jurosPct === 'number' && a.jurosPct >= 0 && a.jurosPct <= 10 ? a.jurosPct : JUROS_PCT
+  let base: Produto[] = PRODUTOS
+  if (atual) {
+    // imagens de amostra vêm sempre do site (são refeitas junto com os arquivos)
+    base = a.produtos!.map((p) => { const d = PRODUTOS.find((x) => x.id === p.id); return { ...p, ...(d?.amostras ? { amostras: d.amostras } : {}), ...(p.selo === undefined && d?.selo ? { selo: d.selo } : {}) } })
+    // versões novas da loja: entram os produtos novos e trocam só os campos que a versão mudou
+    for (const [v, m] of Object.entries(MIGRA_LOJA)) {
+      if ((a.lojaV || 0) >= Number(v)) continue
+      for (const [id, campos] of Object.entries(m.troca)) {
+        const d = PRODUTOS.find((x) => x.id === id)
+        base = base.map((p) => (p.id === id && d ? { ...p, ...Object.fromEntries(campos.map((c) => [c, d[c]])) } : p))
+      }
+      for (const id of m.novos) if (!base.some((p) => p.id === id)) { const d = PRODUTOS.find((x) => x.id === id); if (d) base.push(d) }
+    }
+  }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -477,7 +491,7 @@ const invoke = async <T,>(body: Record<string, unknown>): Promise<T> => {
 }
 export interface NovoPedido { token: string; total: number; forma: 'pix' | 'cartao'; pix: Pedido['pix']; url: string | null }
 /** Cria o pedido (o preço é calculado na função, não aqui). Pix: o QR aparece na página; cartão: abre a página segura do Asaas. */
-export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; cpf: string; tel: string; email: string; forma: 'pix' | 'cartao'; aceite: boolean }, produtos: Produto[], pixPct: number): Promise<NovoPedido> {
+export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; cpf: string; tel: string; email: string; forma: 'pix' | 'cartao'; parcelas?: number; aceite: boolean }, produtos: Produto[], pixPct: number): Promise<NovoPedido> {
   if (!CLOUD) {
     const c = conta(d.itens, produtos, d.forma, pixPct)
     const token = crypto.randomUUID()

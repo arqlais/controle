@@ -139,7 +139,7 @@ function Area({ conta, whats, onSair, onMudou }: { conta: MinhaConta; whats: str
               <>
                 <h2 className="ape-h2">você ainda não tem a <em>plataforma</em></h2>
                 <p className="ape-note" style={{ margin: 0 }}>Um site para acompanhar gastos, parcelas, etapas da obra e a vistoria com fotos, por 12 meses.</p>
-                <div className="ape-acts"><a className="ape-btn primary" href={href('ape', 'loja:plataforma')}>conhecer</a><a className="ape-btn" href={href('ape', 'minha:demo')}>ver demonstração</a></div>
+                <div className="ape-acts"><a className="ape-btn primary" href={href('ape', 'loja:plataforma')}>conhecer</a></div>
               </>
             )}
           </section>

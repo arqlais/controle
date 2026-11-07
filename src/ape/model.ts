@@ -121,7 +121,7 @@ export interface Produto {
   combo?: string[] // ids dos produtos que o combo junta
   destaque?: boolean
   numeros?: string[] // o que tem dentro, em números (ex.: "9 páginas")
-  fase?: 'comprando' | 'comprei' // para quem ainda vai comprar o apê ou para quem já comprou
+  fase?: 'comprando' | 'comprei' | 'escolhas' // para quem ainda vai comprar o apê ou para quem já comprou
   arte?: string // desenho que representa o produto
   selo?: string // selo de destaque no cartão (ex.: "mais vendido")
   kitPct?: number // kits: % de desconto sobre a soma dos arquivos (o preço sai sozinho)
@@ -336,7 +336,25 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 /* ===== produtos e exemplos ===== */
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
-export const LOJA_VERSAO = 7
+export const LOJA_VERSAO = 8
+/** O que cada versão da loja muda nos produtos que a dona já salvou (o resto do que ela editou continua). */
+export const MIGRA_LOJA: Record<number, { novos: string[]; troca: Record<string, (keyof Produto)[]> }> = {
+  8: { novos: ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca', 'kit-escolhas'], troca: { plataforma: ['preco', 'unidade'], 'kit-completo': ['combo', 'kitPct', 'desc', 'amostras'] } },
+}
+/** Juros ao mês do cartão parcelado (o painel muda). Parcela mínima: R$ 5. */
+export const JUROS_PCT = 2.99
+export const PARCELAS_MAX = 12
+/** Parcelas do cartão: 1x sem juros; de 2x a 12x com juros compostos (tabela Price). Mesma conta no servidor. */
+export function parcelas(total: number, jurosPct = JUROS_PCT): { n: number; parcela: number; total: number; juros: boolean }[] {
+  const out = [{ n: 1, parcela: c2(total), total: c2(total), juros: false }]
+  const i = jurosPct / 100
+  for (let n = 2; n <= PARCELAS_MAX; n++) {
+    const parcela = i > 0 ? c2((total * i) / (1 - Math.pow(1 + i, -n))) : c2(total / n)
+    if (parcela < 5) break
+    out.push({ n, parcela, total: c2(parcela * n), juros: i > 0 })
+  }
+  return out
+}
 /** Selos de destaque que dá para escolher no painel. */
 export const SELOS = ['mais vendido', 'queridinho', 'mais procurado', 'melhor custo-benefício', 'novidade', 'essencial', 'últimas vagas']
 /** Único desconto da loja além dos kits: Pix (a taxa do Pix é menor que a do cartão). Sem parcelamento. */
@@ -389,6 +407,43 @@ export const PRODUTOS: Produto[] = [
   arq({ id: 'planner', arte: 'decoracao', nome: 'Planner de decoração', tag: 'decoração', preco: 'R$ 17,90', formato: 'PDF · imprimir ou usar no tablet', amostras: [AM('m-planner.jpg')], numeros: ['6 páginas', '4 paletas', 'moodboard'],
     desc: 'Do estilo à lista de compras: defina a cara da casa, escolha a paleta e compre na ordem certa.',
     itens: ['Teste rápido para descobrir o seu estilo', 'Paletas prontas para espaços pequenos e grandes', 'Moodboard para cada cômodo', 'Ideias para parecer maior, guardar mais e gastar menos', 'Lista de decoração na ordem de compra que economiza'] }),
+  /* escolhas da obra: acabamentos, materiais e instalações */
+  arq({ id: 'pedras', selo: 'mais procurado', arte: 'orcamento', fase: 'escolhas', nome: 'Guia das pedras para bancada', tag: 'antes da marmoraria', destaque: true, preco: 'R$ 16,90', formato: 'PDF', amostras: [AM('m-pedras.jpg')], numeros: ['8 páginas', '9 materiais', 'prós e contras'],
+    desc: 'Granito, quartzo, mármore, ultracompacto, porcelanato e outros: como cada um aguenta calor, mancha e risco, quanto custa e onde vale usar.',
+    itens: ['Comparativo rápido de 9 materiais (calor, mancha, risco e preço)', 'Prós, contras e faixa de preço de cada pedra', 'Teste de mancha para fazer na amostra', 'Saia, frontão, bordas e tipos de cuba explicados', 'O que pedir no orçamento da marmoraria'] }),
+  arq({ id: 'pisos', arte: 'medidas', fase: 'escolhas', nome: 'Guia de pisos e revestimentos', tag: 'antes de escolher o piso', preco: 'R$ 16,90', formato: 'PDF', amostras: [AM('m-pisos.jpg')], numeros: ['7 páginas', '8 tipos de piso', 'qual piso em cada cômodo'],
+    desc: 'Porcelanato, cerâmica, vinílico, laminado, madeira e cimento: prós e contras, qual vai em cada cômodo e quanto comprar sem faltar nem sobrar.',
+    itens: ['Comparativo de conforto, água, durabilidade e preço', 'Qual piso usar (e evitar) em cada cômodo', 'Vinílico colado x click, porcelanato polido x acetinado', 'Cálculo da quantidade com a sobra certa e rejunte', 'Regras de barulho do prédio (manta acústica)'] }),
+  arq({ id: 'marcenaria', selo: 'essencial', arte: 'planilha', fase: 'escolhas', nome: 'Guia da marcenaria planejada', tag: 'antes do projeto', destaque: true, preco: 'R$ 16,90', formato: 'PDF', amostras: [AM('m-marcenaria.jpg')], numeros: ['8 páginas', 'MDF, BP e laca', 'checklist do projeto'],
+    desc: 'MDF ou MDP, BP ou laca, corrediça comum ou oculta: o que significa, onde vale gastar e como conferir o projeto antes de fechar.',
+    itens: ['Planejado de loja, modulado ou marceneiro: prós e contras', 'Materiais e espessuras (MDF, MDP, RU, compensado)', 'Acabamentos: BP, laca, lâmina, alto brilho', 'Ferragens que valem a pena e medidas de referência', 'Checklist do projeto e do orçamento'] }),
+  arq({ id: 'banheiro', arte: 'entregas', fase: 'escolhas', nome: 'Guia de louças, metais e box', tag: 'para o banheiro', preco: 'R$ 14,90', formato: 'PDF', amostras: [AM('m-banheiro.jpg')], numeros: ['6 páginas', 'cuba + torneira certas', 'box de vidro'],
+    desc: 'Vaso, cuba, torneira, chuveiro e box: os tipos, o que combina com o quê, os erros de altura e de compatibilidade mais comuns e quanto custa.',
+    itens: ['Vaso com caixa acoplada x caixa embutida', 'Qual torneira combina com cada tipo de cuba', 'Chuveiro elétrico, a gás ou central', 'Modelos de box de vidro temperado e cuidados', 'Detalhes que fazem diferença e erros comuns'] }),
+  arq({ id: 'cozinha', arte: 'medidas', fase: 'escolhas', nome: 'Guia da cozinha e dos eletros', tag: 'para a cozinha', preco: 'R$ 14,90', formato: 'PDF', amostras: [AM('m-cozinha.jpg')], numeros: ['7 páginas', 'gás ou indução', 'medidas dos eletros'],
+    desc: 'Cooktop a gás ou indução, coifa ou depurador, forno, geladeira, lava-louças e cuba: o que escolher e o que a cozinha precisa ter de instalação.',
+    itens: ['Cooktop a gás, indução ou elétrico: prós e contras', 'Coifa x depurador, forno de embutir e air fryer', 'Medidas e folgas de geladeira, lava-louças e máquina', 'Tipos de cuba e torneira', 'Tomadas da cozinha: onde, altura e 10 ou 20 A'] }),
+  arq({ id: 'iluminacao', arte: 'decoracao', fase: 'escolhas', nome: 'Guia de iluminação', tag: 'para cada cômodo', preco: 'R$ 14,90', formato: 'PDF', amostras: [AM('m-iluminacao.jpg')], numeros: ['6 páginas', 'luz quente ou fria', 'trilho sem gesso'],
+    desc: 'Luz amarela ou branca, quantas lâmpadas, spot, trilho ou fita de LED: cada cômodo bem iluminado e aconchegante, sem gesso em tudo.',
+    itens: ['Temperatura de cor certa para cada cômodo', 'Quanta luz cada cômodo precisa (lúmens por m²)', 'Trilho, spot, plafon, pendente e fita de LED', 'Plano de luz cômodo por cômodo', 'Interruptor paralelo, dimmer e lâmpadas inteligentes'] }),
+  arq({ id: 'eletrica', arte: 'calculo', fase: 'escolhas', nome: 'Guia de tomadas e elétrica', tag: 'antes de morar', preco: 'R$ 12,90', formato: 'PDF', amostras: [AM('m-eletrica.jpg')], numeros: ['5 páginas', 'tomadas por cômodo', '10 ou 20 A'],
+    desc: 'Quantas tomadas pôr em cada cômodo, em que altura, quando usar 10 ou 20 A e como saber se o quadro aguenta ar-condicionado e indução.',
+    itens: ['Tomadas por cômodo: o mínimo e o confortável', 'Alturas de referência de cada ponto', '10 A, 20 A e o que precisa de circuito próprio', 'Como conferir se o quadro aguenta', 'Internet, TV e extras que valem a pena'] }),
+  arq({ id: 'tintas', arte: 'decoracao', fase: 'escolhas', nome: 'Guia de tintas e paredes', tag: 'antes de pintar', preco: 'R$ 12,90', formato: 'PDF', amostras: [AM('m-tintas.jpg')], numeros: ['6 páginas', 'cálculo de latas', 'cores que ampliam'],
+    desc: 'Qual tinta e acabamento usar em cada parede, quantas latas comprar, cores que ampliam o apê e alternativas como papel de parede e ripado.',
+    itens: ['Tipos de tinta e onde usar cada um', 'Fosco, acetinado ou semibrilho', 'Cálculo de latas com exemplo', 'Cores e truques para o apê parecer maior', 'Preparação da parede, papel de parede e ripado'] }),
+  arq({ id: 'gesso', arte: 'projeto3d', fase: 'escolhas', nome: 'Guia de gesso, forro e sancas', tag: 'antes da pintura', preco: 'R$ 12,90', formato: 'PDF', amostras: [AM('m-gesso.jpg')], numeros: ['5 páginas', 'sanca e cortineiro', 'ordem da obra'],
+    desc: 'Forro, sanca aberta ou fechada, cortineiro, tabica e drywall: o que cada um resolve, quanto do pé-direito você perde e como pedir o orçamento.',
+    itens: ['Forro de drywall, de placas e de PVC', 'Sancas, cortineiro, tabica e negativo, com medidas', 'Paredes de drywall e reforços para TV e armários', 'Ordem certa da obra', 'O que pedir no orçamento do gesseiro'] }),
+  arq({ id: 'ar', arte: 'calculo', fase: 'escolhas', nome: 'Guia do ar-condicionado', tag: 'antes de comprar o ar', preco: 'R$ 12,90', formato: 'PDF', amostras: [AM('m-ar.jpg')], numeros: ['6 páginas', 'cálculo de BTUs', 'inverter x comum'],
+    desc: 'Quantos BTUs para cada cômodo, inverter ou convencional, split ou multi-split, o que o prédio precisa ter e como não perder a garantia.',
+    itens: ['Tabela de BTUs por cômodo, com e sem sol', 'Inverter x convencional: quando compensa', 'Split, multi-split, janela e portátil', 'Infraestrutura e regras do condomínio', 'Uso econômico e manutenção'] }),
+  arq({ id: 'cortinas', arte: 'decoracao', fase: 'escolhas', nome: 'Guia de cortinas e persianas', tag: 'para as janelas', preco: 'R$ 12,90', formato: 'PDF', amostras: [AM('m-cortinas.jpg')], numeros: ['6 páginas', 'blackout e tela solar', 'como medir'],
+    desc: 'Tecido ou persiana, blackout ou tela solar, trilho ou varão: o que usar em cada cômodo e como medir certo para não errar no orçamento.',
+    itens: ['Blackout, dimout, tela solar e voil', 'Cortina de tecido, rolô, double vision e romana', 'Como medir dentro e fora do vão', 'Trilho, varão ou cortineiro', 'Sugestões cômodo por cômodo'] }),
+  arq({ id: 'seguranca', arte: 'vistoria', fase: 'escolhas', nome: 'Guia de segurança e proteção do apê', tag: 'para morar tranquilo', preco: 'R$ 12,90', formato: 'PDF', amostras: [AM('m-seguranca.jpg')], numeros: ['6 páginas', 'telas e fechaduras', 'seguro residencial'],
+    desc: 'Telas de proteção, fechadura digital, sensores de vazamento, cuidados com gás e elétrica, crianças e pets, e o seguro residencial que vale a pena.',
+    itens: ['Telas de proteção: o que exigir da empresa', 'Fechadura digital e campainha com vídeo', 'Prevenção de vazamento, gás, incêndio e choque', 'Cuidados com crianças e pets', 'Seguro residencial: coberturas que importam'] }),
   /* kits: o preço sai sozinho da soma dos arquivos menos o desconto do kit */
   kit({ id: 'kit-compra', nome: 'Kit vou comprar', tag: 'kit', arte: 'contrato', kitPct: 35, combo: ['compra', 'financiamento', 'planilha-compra', 'decorado'], amostras: [AM('m-kit-compra.jpg'), AM('m-compra.jpg'), AM('m-financiamento.jpg'), AM('m-planilha-compra.jpg')],
     desc: 'Para quem ainda vai comprar, na planta ou pronto: guia de compra, guia do financiamento e dos seguros, planilha de custos e checklist da visita.' }),
@@ -396,9 +451,11 @@ export const PRODUTOS: Produto[] = [
     desc: 'Da vistoria à mudança: o checklist da vistoria, o de entregas da obra e a lista da mudança.' }),
   kit({ id: 'kit-obra', nome: 'Kit obra sem susto', tag: 'kit', arte: 'planilha', kitPct: 29, combo: ['planilha', 'guia', 'medidas'], amostras: [AM('m-kit-obra.jpg'), AM('m-planilha.jpg'), AM('m-guia.jpg'), AM('m-medidas.jpg')],
     desc: 'Para planejar, comparar orçamentos e comprar o que cabe: planilha de obra, guia de orçamentos e guia de medidas.' }),
-  kit({ id: 'kit-completo', selo: 'melhor custo-benefício', nome: 'Kit completo', tag: 'mais completo', arte: 'casa', destaque: true, kitPct: 56, combo: ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner'], amostras: [AM('m-kit-completo.jpg'), AM('m-compra.jpg'), AM('m-checklist.jpg'), AM('m-planilha.jpg'), AM('m-planner.jpg')],
-    desc: 'Os 12 arquivos da loja, da compra à decoração, com o maior desconto.', itens: [`+ ${KIT_PLATAFORMA_MESES} mês de plataforma do apê de presente`] }),
-  { id: 'plataforma', selo: 'novidade', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 79,00', unidade: 'por ano · pagamento único', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, o link de acesso aparece na página do pedido na hora.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
+  kit({ id: 'kit-escolhas', selo: 'novidade', nome: 'Kit escolhas da obra', tag: 'kit', arte: 'orcamento', kitPct: 45, combo: ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca'], amostras: [AM('m-kit-escolhas.jpg'), AM('m-pedras.jpg'), AM('m-pisos.jpg'), AM('m-marcenaria.jpg'), AM('m-cozinha.jpg')],
+    desc: 'Os 12 guias de acabamentos e instalações: pedras, pisos, marcenaria, banheiro, cozinha, iluminação, tomadas, tintas, gesso, ar, cortinas e segurança.' }),
+  kit({ id: 'kit-completo', selo: 'melhor custo-benefício', nome: 'Kit completo', tag: 'mais completo', arte: 'casa', destaque: true, kitPct: 63, combo: ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner', 'pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca'], amostras: [AM('m-kit-completo.jpg'), AM('m-compra.jpg'), AM('m-checklist.jpg'), AM('m-pedras.jpg'), AM('m-planilha.jpg'), AM('m-planner.jpg')],
+    desc: 'Os 24 arquivos da loja, da compra à decoração, com todos os guias de acabamentos e o maior desconto.', itens: [`+ ${KIT_PLATAFORMA_MESES} mês de plataforma do apê de presente`] }),
+  { id: 'plataforma', selo: 'novidade', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 89,90', unidade: '12 meses de acesso', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, o link de acesso aparece na página do pedido na hora.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
     desc: 'Um site para acompanhar a sua jornada do começo ao fim: gastos, parcelas, etapas da obra, vistoria com fotos e contatos, atualizados por você, num lugar só.',
     itens: ['Gastos por cômodo: quanto planejou, quanto já foi e quanto falta', 'Parcelas dos próximos meses, somadas sozinhas', 'Etapas da compra e da obra, com datas e o que já foi feito', 'Vistoria com fotos e resumo para imprimir', 'Contatos dos fornecedores com WhatsApp a um toque', 'Abre no celular e no computador, sem instalar nada', 'Pagamento único: 12 meses de acesso, sem mensalidade'], ativo: true },
 ]
@@ -456,7 +513,7 @@ export const CTA_COPY: Record<string, [string, string, string]> = {
   medidas: ['Antes de comprar', 'Compre só o que cabe', 'Medidas de móveis e passagens para a sua casa ou apê.'],
   planilha: ['Organização', 'Saiba quanto já gastou e quanto falta', 'Uma planilha pronta para controlar compras, parcelas e orçamentos do apê.'],
   plataforma: ['Plataforma do apê', 'Tudo do seu apê num lugar só', `Compras, obra, vistoria e contatos, no celular, como usamos no ${APE.doApe}.`],
-  'kit-completo': ['Kit', 'Da compra à decoração, sem susto', 'Os 12 arquivos da loja com o maior desconto: guias, checklists, planilhas e planner.'],
+  'kit-completo': ['Kit', 'Da compra à decoração, sem susto', 'Todos os arquivos da loja com o maior desconto: guias, checklists, planilhas, guias de acabamentos e planner.'],
 }
 
 const base = (o: Partial<Orcamento>): Orcamento => ({

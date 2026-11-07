@@ -18,7 +18,7 @@ export interface Deps {
 
 /* ===== preços (mesmas regras de src/ape/model.ts) ===== */
 const PIX_PCT = 5
-const TERMOS_VERSAO = '2026-11-07'
+const TERMOS_VERSAO = '2026-11-07b'
 const BONUS_DIAS = 7
 const KIT_PLATAFORMA_MESES = 1
 const ARQ: Record<string, [string, number]> = {
@@ -34,12 +34,35 @@ const ARQ: Record<string, [string, number]> = {
   enxoval: ['Planilha do enxoval', 14.9],
   mudanca: ['Lista da mudança', 12.9],
   planner: ['Planner de decoração', 17.9],
+  pedras: ['Guia das pedras para bancada', 16.9],
+  pisos: ['Guia de pisos e revestimentos', 16.9],
+  marcenaria: ['Guia da marcenaria planejada', 16.9],
+  banheiro: ['Guia de louças, metais e box', 14.9],
+  cozinha: ['Guia da cozinha e dos eletros', 14.9],
+  iluminacao: ['Guia de iluminação', 14.9],
+  eletrica: ['Guia de tomadas e elétrica', 12.9],
+  tintas: ['Guia de tintas e paredes', 12.9],
+  gesso: ['Guia de gesso, forro e sancas', 12.9],
+  ar: ['Guia do ar-condicionado', 12.9],
+  cortinas: ['Guia de cortinas e persianas', 12.9],
+  seguranca: ['Guia de segurança e proteção do apê', 12.9],
+}
+const ESCOLHAS = ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca']
+const PLATAFORMA_PRECO = 89.9
+const JUROS_PCT = 2.99
+/** Parcelas do cartão: 1x sem juros; 2x a 12x com juros compostos (tabela Price), parcela mínima de R$ 5. Mesma conta do site. */
+function parcelar(total: number, n: number, jurosPct: number) {
+  if (n <= 1) return { n: 1, parcela: c2(total), total: c2(total) }
+  const i = jurosPct / 100
+  const parcela = i > 0 ? c2((total * i) / (1 - Math.pow(1 + i, -n))) : c2(total / n)
+  return parcela < 5 ? null : { n, parcela, total: c2(parcela * n) }
 }
 const KITS: Record<string, [string, number, string[]]> = {
   'kit-compra': ['Kit vou comprar', 35, ['compra', 'financiamento', 'planilha-compra', 'decorado']],
   'kit-chaves': ['Kit chaves na mão', 23, ['checklist', 'entregas', 'mudanca']],
   'kit-obra': ['Kit obra sem susto', 29, ['planilha', 'guia', 'medidas']],
-  'kit-completo': ['Kit completo', 56, ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner']],
+  'kit-completo': ['Kit completo', 63, ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner', ...ESCOLHAS]],
+  'kit-escolhas': ['Kit escolhas da obra', 45, ESCOLHAS],
 }
 const c2 = (n: number) => Math.round(n * 100) / 100
 const reais = (v: unknown) => {
@@ -56,7 +79,13 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const { data } = await db.from('ape_ajustes').select('data').eq('id', 1).maybeSingle()
     const a = (data?.data ?? {}) as J
     const map: Record<string, Item> = {}
-    const saved = Number(a.lojaV ?? 0) >= 7 && Array.isArray(a.produtos) ? (a.produtos as J[]) : null
+    let saved = Number(a.lojaV ?? 0) >= 7 && Array.isArray(a.produtos) ? (a.produtos as J[]) : null
+    if (saved && Number(a.lojaV ?? 0) < 8) {
+      // loja v8 (igual ao site): plataforma a R$ 89,90, kit completo com todos os arquivos e os arquivos novos
+      saved = saved.map((p) => (p.id === 'plataforma' ? { ...p, preco: PLATAFORMA_PRECO } : p.id === 'kit-completo' ? { ...p, combo: KITS['kit-completo'][2], kitPct: KITS['kit-completo'][1] } : p))
+      for (const id of ESCOLHAS) if (!saved.some((p) => p.id === id)) saved.push({ id, nome: ARQ[id][0], preco: ARQ[id][1], cat: 'arquivos', ativo: true })
+      if (!saved.some((p) => p.id === 'kit-escolhas')) saved.push({ id: 'kit-escolhas', nome: KITS['kit-escolhas'][0], cat: 'combos', ativo: true, combo: ESCOLHAS, kitPct: KITS['kit-escolhas'][1], preco: 0 })
+    }
     if (saved) {
       for (const p of saved) if (p.ativo !== false && ['arquivos', 'combos', 'plataforma'].includes(p.cat ?? 'arquivos')) map[p.id] = { id: p.id, nome: String(p.nome), preco: reais(p.preco), cat: p.cat ?? 'arquivos', combo: Array.isArray(p.combo) ? p.combo.map(String) : [] }
       // kit com % de desconto: o preço sai da soma dos arquivos (igual ao site)
@@ -64,10 +93,11 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     } else {
       for (const [id, [nome, preco]] of Object.entries(ARQ)) map[id] = { id, nome, preco, cat: 'arquivos', combo: [] }
       for (const [id, [nome, pct, combo]] of Object.entries(KITS)) map[id] = { id, nome, preco: precoKit(combo.reduce((t, x) => t + ARQ[x][1], 0), pct), cat: 'combos', combo }
-      map.plataforma = { id: 'plataforma', nome: 'Plataforma do apê (12 meses)', preco: 79, cat: 'plataforma', combo: [] }
+      map.plataforma = { id: 'plataforma', nome: 'Plataforma do apê (12 meses)', preco: PLATAFORMA_PRECO, cat: 'plataforma', combo: [] }
     }
     const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
-    return { map, pixPct }
+    const jurosPct = a.jurosPct != null && Number.isFinite(Number(a.jurosPct)) ? Math.min(10, Math.max(0, Number(a.jurosPct))) : JUROS_PCT
+    return { map, pixPct, jurosPct }
   }
 
   function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number) {
@@ -111,10 +141,15 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const falta = [nome.split(' ').length < 2 && 'nome completo', !cpfOk(cpf) && 'CPF válido', !emailOk(email) && 'e-mail válido', tel.length < 10 && 'telefone com DDD'].filter(Boolean)
     if (falta.length) return json({ erro: `Confira: ${falta.join(', ')}.` }, 400)
     if (body.aceite !== true) return json({ erro: 'Aceite os termos de uso antes de pagar.' }, 400)
-    const { map, pixPct } = await loja()
+    const { map, pixPct, jurosPct } = await loja()
     const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct)
     if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
     if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
+    // cartão parcelado: o servidor refaz a conta dos juros (não confia no valor que veio do site)
+    const nParc = forma === 'cartao' ? Math.min(12, Math.max(1, Math.floor(Number(body.parcelas) || 1))) : 1
+    const parc = parcelar(c.total, nParc, jurosPct)
+    if (!parc) return json({ erro: 'Parcela abaixo de R$ 5,00: escolha menos parcelas.' }, 400)
+    if (parc.n > 1) c.total = parc.total
     const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
     const aceite = { versao: TERMOS_VERSAO, em: new Date().toISOString() }
     const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma }).select('id, token').single()
@@ -123,9 +158,9 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const pay: J = {
       customer,
       billingType: forma === 'cartao' ? 'CREDIT_CARD' : 'PIX',
-      value: c.total,
+      ...(parc.n > 1 ? { installmentCount: parc.n, installmentValue: parc.parcela } : { value: c.total }),
       dueDate: hojeBR(),
-      description: ('planê.apê · ' + c.itens.map((i) => i.nome).join(' + ')).slice(0, 480),
+      description: ('planê.apê · ' + c.itens.map((i) => i.nome).join(' + ') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} com juros` : '')).slice(0, 480),
       externalReference: `ape|${ped.id}`,
       callback: { successUrl: `${APE_SITE}#pedido:${ped.token}`, autoRedirect: true },
     }
@@ -306,7 +341,12 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
   async function reembolsarPedido(id: string) {
     const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', id).maybeSingle()
     if (!ped) return
-    if (ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') await asaas(`/payments/${ped.asaas_pagamento}/refund`, { method: 'POST', body: '{}' })
+    if (ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') {
+      // parcelado: estorna o parcelamento inteiro (todas as parcelas), não só uma
+      const pg = await asaas(`/payments/${ped.asaas_pagamento}`).catch(() => ({}) as J)
+      if (pg?.installment) await asaas(`/installments/${pg.installment}/refund`, { method: 'POST', body: '{}' })
+      else await asaas(`/payments/${ped.asaas_pagamento}/refund`, { method: 'POST', body: '{}' })
+    }
     else if (ped.asaas_pagamento && ped.status === 'pendente') await asaas(`/payments/${ped.asaas_pagamento}`, { method: 'DELETE' }).catch(() => null)
     const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
     await db.from('ape_pedidos').update({ status: ped.status === 'pago' ? 'reembolsado' : 'cancelado', cancelado_em: new Date().toISOString(), pix: null }).eq('id', ped.id)

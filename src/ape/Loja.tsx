@@ -3,7 +3,7 @@ import { href } from '../router'
 import { baixarArquivo, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, KIT_PLATAFORMA_MESES, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
+import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
 import { Recolhe, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
@@ -21,7 +21,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   PIX = pixPct
   PRODUTOS_LOJA = produtos
   const ativos = produtos.filter((p) => p.ativo)
-  const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei'>('todos')
+  const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei' | 'escolhas'>('todos')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
   const cart = useCarrinho()
@@ -51,9 +51,10 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   const plat = ativos.find((p) => p.cat === 'plataforma')
   const arquivos = ativos.filter((p) => (p.cat || 'arquivos') === 'arquivos')
   const kits = ativos.filter((p) => p.cat === 'combos')
-  const fases: { id: 'comprando' | 'comprei'; l: string; d: string; arte: string }[] = [
-    { id: 'comprando', l: 'para quem vai comprar', d: 'Na planta ou pronto: visita, simulação, financiamento, seguros e contrato.', arte: 'contrato' },
-    { id: 'comprei', l: 'para quem já comprou', d: 'Vistoria, obra, orçamentos, mudança e decoração.', arte: 'vistoria' },
+  const fases: { id: 'comprando' | 'comprei' | 'escolhas'; l: string; d: string; arte: string; chip: string }[] = [
+    { id: 'comprando', l: 'para quem vai comprar', d: 'Na planta ou pronto: visita, simulação, financiamento, seguros e contrato.', arte: 'contrato', chip: 'vou comprar' },
+    { id: 'comprei', l: 'para quem já comprou', d: 'Vistoria, obra, orçamentos, mudança e decoração.', arte: 'vistoria', chip: 'já comprei' },
+    { id: 'escolhas', l: 'para escolher acabamentos e materiais', d: 'Pedras, pisos, marcenaria, banheiro, cozinha, luz, tomadas, tintas, gesso, ar, cortinas e segurança: prós, contras e preços de cada opção.', arte: 'orcamento', chip: 'acabamentos' },
   ]
   return (
     <>
@@ -126,13 +127,13 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       <div className="ape-chips" role="group" aria-label="Filtrar os arquivos">
         <button className="ape-chip" aria-pressed={cat === 'todos'} onClick={() => setCat('todos')}>todos</button>
         {fases.map((f) => (
-          <button key={f.id} className="ape-chip" aria-pressed={cat === f.id} onClick={() => setCat(f.id)}>{f.id === 'comprando' ? 'vou comprar' : 'já comprei'}</button>
+          <button key={f.id} className="ape-chip" aria-pressed={cat === f.id} onClick={() => setCat(f.id)}>{f.chip}</button>
         ))}
       </div>
       {fases
         .filter((f) => cat === 'todos' || cat === f.id)
         .map((f) => {
-          const lista = arquivos.filter((p) => (f.id === 'comprando' ? p.fase === 'comprando' : p.fase !== 'comprando'))
+          const lista = arquivos.filter((p) => (p.fase || 'comprei') === f.id)
           if (!lista.length) return null
           return (
             <section key={f.id} id={`loja-${f.id}`} className="ape-nicho ape-reveal" aria-label={f.l}>
@@ -169,7 +170,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         </section>
       )}
 
-      {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} />}
+      {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} />
 
       <section className="ape-surpresa" aria-label="Bônus surpresa">
@@ -204,7 +205,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           ['Qual a diferença entre os arquivos e a plataforma?', 'Os arquivos são materiais prontos para uma tarefa (um checklist, um guia, uma planilha): você baixa e usa quando quiser. A plataforma é um site onde você registra o seu caso (gastos, parcelas, etapas, vistoria com fotos) e acompanha tudo por 12 meses. Dá para comprar um sem o outro.'],
           ['Serve para casa? E para outros tamanhos?', `Serve para casa ou apê de qualquer tamanho, na planta ou pronto. Quando aparece um exemplo com medidas, é de um apê de ${APE.meuApe}; você troca pelos seus números.`],
           ['Como eu recebo?', 'Pagou, a página do pedido mostra os botões de baixar (no Pix, em segundos). Para baixar de novo em outro aparelho, use "minhas compras" com o CPF e o e-mail da compra.'],
-          ['Quais formas de pagamento?', `Pix, com ${pixPct}% de desconto, ou cartão de crédito à vista. Não parcelamos.`],
+          ['Quais formas de pagamento?', `Pix, com ${pixPct}% de desconto, ou cartão de crédito: à vista sem juros ou em até 12x com juros (parcela mínima de R$ 5).`],
           ['Tem desconto levando mais?', 'Os kits já têm o desconto no preço e saem bem mais em conta que os arquivos separados. Além disso, o Pix tem desconto em qualquer compra.'],
           ['Posso compartilhar?', 'Pode usar com quem mora com você, na sua casa. Os arquivos são de uso pessoal: não podem ser repassados, revendidos, postados ou enviados em grupos. Cada PDF sai com o nome de quem comprou.'],
           ['Substitui um profissional?', 'Não. São guias práticos para você se organizar e não errar no básico. Regras de financiamento e seguro mudam de banco para banco e de contrato para contrato: confirme sempre com o seu banco e com profissionais.'],
@@ -317,7 +318,7 @@ function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; f
     ['projeto de interiores', ''],
     ['marcenaria', ''],
     ['elétrica e iluminação', ''],
-    ['vistoria de imóvel', ''],
+    ['vistoria de entrega das chaves', ''],
     ['reforma', ''],
   ]
   return (
@@ -327,7 +328,7 @@ function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; f
         <h3>precisa de um <em>projeto?</em></h3>
         <p className="ape-proj-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho com o meu pai, engenheiro civil, em projetos e reformas.</p>
         <ul className="ape-proj-chips">{servicos.map(([t]) => <li key={t}>{t}</li>)}</ul>
-        <p className="ape-proj-local"><ApeIcon name="home" />vistoria de imóvel em Santo André, ABC e região (SP)</p>
+        <p className="ape-proj-local"><ApeIcon name="home" />vistoria de entrega das chaves em Santo André, ABC e região (SP)</p>
         <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir orçamento no WhatsApp</a>
       </div>
       <div className="ape-proj-img">
@@ -338,7 +339,11 @@ function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; f
 }
 
 /* ===== plataforma do apê ===== */
-function PlataformaSec({ p, cart, onAdd, me, whats }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
+function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string; juros: number; pix: number }) {
+  const v = reais(p.preco)
+  const ops = parcelas(v, juros)
+  const ult = ops[ops.length - 1]
+  const mes = v / 12
   const recursos: [string, string, string][] = [
     ['planilha', 'gastos por cômodo', 'Quanto planejou, quanto já foi e quanto falta.'],
     ['calculo', 'parcelas do mês', 'Tudo somado mês a mês, sem surpresa.'],
@@ -366,19 +371,20 @@ function PlataformaSec({ p, cart, onAdd, me, whats }: { p: Produto; cart: Carrin
         </div>
       </div>
       <div className="ape-plat-buy">
-        <div>
-          <span className="ape-note">12 meses de acesso</span>
-          <div className="ape-price ape-keep">{p.preco}</div>
-          <span className="ape-pill azul">pagamento único · sem mensalidade</span>
+        <div className="ape-plat-preco">
+          <span className="ape-note">12 meses de acesso · pagamento único</span>
+          <div className="ape-price ape-keep">{p.preco} <small>à vista</small></div>
+          {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão <small>(com juros)</small></div>}
+          <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>menos de <b className="ape-keep">R$ 10 por mês</b> para deixar a casa nova toda organizada (<span className="ape-keep">{brl(mes)}</span>/mês à vista)</span></div>
+          <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>
         <ol className="ape-plat-steps">
-          <li><b>1</b>Paga uma vez, no Pix ou no cartão</li>
+          <li><b>1</b>Paga uma vez: Pix, cartão à vista ou parcelado</li>
           <li><b>2</b>O link de acesso aparece na hora, na página do pedido</li>
           <li><b>3</b>Usa por 12 meses, sem senha: o link é a sua chave</li>
         </ol>
         <div className="ape-acts" style={{ flexDirection: 'column' }}>
           <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
-          <a className="ape-btn ghost wide" href={href('ape', 'minha:demo')}><ApeIcon name="eye" />experimentar com dados de exemplo</a>
         </div>
       </div>
     </section>
@@ -620,6 +626,10 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
   const cart = useCarrinho()
   const [forma, setForma] = useState<'pix' | 'cartao'>('pix')
   const t = conta(cart.ids, produtos, forma, pixPct)
+  const opcoes = parcelas(t.subtotal, ajustes.jurosPct ?? JUROS_PCT)
+  const [nParc, setNParc] = useState(1)
+  const parc = forma === 'cartao' ? opcoes.find((o) => o.n === nParc) || opcoes[0] : null
+  const totalFinal = parc ? parc.total : t.total
   const [nome, setNome] = useState(me?.nome || '')
   const [cpf, setCpf] = useState('')
   const [tel, setTel] = useState(me?.tel ? fmtTel(me.tel) : '')
@@ -648,7 +658,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
     if (!aceite) return setErr('Leia e aceite os termos de uso para continuar.')
     setBusy(true)
     try {
-      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), cpf: digits(cpf), tel: digits(tel), email: email.trim().toLowerCase(), forma, aceite: true }, produtos, pixPct)
+      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), cpf: digits(cpf), tel: digits(tel), email: email.trim().toLowerCase(), forma, parcelas: parc?.n || 1, aceite: true }, produtos, pixPct)
       cart.limpar()
       if (r.forma === 'cartao' && r.url) window.location.href = r.url
       else window.location.hash = `#/ape/pedido:${r.token}`
@@ -666,7 +676,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
         <a className="ape-btn primary" href={href('ape', 'loja')}>ir para a loja</a>
       </section>
     )
-  const msgWhats = `Oi! Sou ${nome || 'uma pessoa interessada'}. Tentei comprar e deu erro:\n${t.itens.map((p) => `• ${p.nome} (${p.preco})`).join('\n')}\nTotal: ${brl(t.total)} no ${forma === 'cartao' ? 'cartão' : 'Pix'}`
+  const msgWhats = `Oi! Sou ${nome || 'uma pessoa interessada'}. Tentei comprar e deu erro:\n${t.itens.map((p) => `• ${p.nome} (${p.preco})`).join('\n')}\nTotal: ${brl(totalFinal)} no ${forma === 'cartao' ? (parc && parc.n > 1 ? `cartão em ${parc.n}x` : 'cartão') : 'Pix'}`
   return (
     <>
       <div className="ape-co-head">
@@ -709,7 +719,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
             <div className="ape-co-pay">
               {([
                 ['pix', 'Pix', `${pixPct}% de desconto · libera em segundos`, 'tag'],
-                ['cartao', 'Cartão de crédito', 'à vista, na página segura do Asaas', 'shield'],
+                ['cartao', 'Cartão de crédito', opcoes.length > 1 ? `à vista ou em até ${opcoes[opcoes.length - 1].n}x, na página segura do Asaas` : 'à vista, na página segura do Asaas', 'shield'],
               ] as const).map(([id, l, h, i]) => (
                 <button type="button" key={id} className={forma === id ? 'on' : ''} aria-pressed={forma === id} onClick={() => setForma(id)}>
                   <ApeIcon name={i} />
@@ -718,6 +728,15 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
                 </button>
               ))}
             </div>
+            {forma === 'cartao' && opcoes.length > 1 && (
+              <div className="ape-f" style={{ marginTop: 10 }}>
+                <label htmlFor="co-parc">Parcelas</label>
+                <select id="co-parc" value={parc?.n || 1} onChange={(e) => setNParc(Number(e.target.value))}>
+                  {opcoes.map((o) => <option key={o.n} value={o.n}>{o.n === 1 ? `1x de ${brl(o.parcela)} (sem juros)` : `${o.n}x de ${brl(o.parcela)} (total ${brl(o.total)}, com juros)`}</option>)}
+                </select>
+                <span className="ape-hint">À vista não tem juros. Parcelado tem juros de {String(ajustes.jurosPct ?? JUROS_PCT).replace('.', ',')}% ao mês.</span>
+              </div>
+            )}
           </CoStep>
           <CoStep n={4} title="termos de uso">
             <ul className="ape-termos-curto">
@@ -735,7 +754,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
             </label>
             {err && <p className="ape-err" role="alert">{err}</p>}
             <button className="ape-btn primary ape-co-submit" type="submit" disabled={busy}>
-              {busy ? 'abrindo o pagamento…' : <>pagar <span className="ape-keep">{brl(t.total)}</span> {forma === 'pix' ? 'no Pix' : 'no cartão'}</>}
+              {busy ? 'abrindo o pagamento…' : forma === 'pix' ? <>pagar <span className="ape-keep">{brl(t.total)}</span> no Pix</> : parc && parc.n > 1 ? <>pagar <span className="ape-keep">{parc.n}x de {brl(parc.parcela)}</span> no cartão</> : <>pagar <span className="ape-keep">{brl(t.total)}</span> no cartão</>}
             </button>
             {err && !busy && err.startsWith('Não deu') && (
               <a className="ape-btn" href={wa(whats, msgWhats)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />falar no WhatsApp</a>
@@ -757,9 +776,15 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
               <span className="num ape-keep">−{brl(t.desconto)}</span>
             </div>
           )}
+          {parc && parc.n > 1 && (
+            <div className="ape-co-line">
+              <span>juros do parcelamento ({parc.n}x)</span>
+              <span className="num ape-keep">+{brl(parc.total - t.subtotal)}</span>
+            </div>
+          )}
           <div className="ape-co-line ape-co-total">
-            <span>total</span>
-            <b className="num ape-keep">{brl(t.total)}</b>
+            <span>total{parc && parc.n > 1 ? ` · ${parc.n}x de ${brl(parc.parcela)}` : ''}</span>
+            <b className="num ape-keep">{brl(totalFinal)}</b>
           </div>
           <ul className="ape-inc">
             <li><ApeIcon name="download" />baixa assim que o pagamento confirma</li>
@@ -803,7 +828,7 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>O que não pode.</b> Copiar, compartilhar, enviar em grupos, publicar, distribuir, revender, alugar ou usar com clientes, no todo ou em parte, sem autorização por escrito. Os materiais são protegidos pela Lei de Direitos Autorais (Lei 9.610/98).</li>
             <li><b>Identificação da licença.</b> Cada PDF sai com o nome de quem comprou, parte do CPF e o número do pedido no rodapé, para identificar cópias não autorizadas.</li>
             <li><b>Conteúdo informativo.</b> Os materiais são guias práticos e não substituem a orientação de profissionais habilitados, do seu banco, da construtora ou do contrato. Regras de financiamento e seguro variam conforme o banco, o programa e o contrato.</li>
-            <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: Pix com {pixPct}% de desconto ou cartão de crédito à vista, sem parcelamento. O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
+            <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: Pix com {pixPct}% de desconto ou cartão de crédito à vista (sem juros) ou parcelado em até 12x com juros informados antes de pagar. O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
             <li><b>Entrega e conta.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma; você também recebe o link por e-mail. Com o e-mail da compra você cria uma senha em minha conta e acessa tudo de qualquer aparelho. Guarde a senha e não a compartilhe.</li>
             <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus surpresa gratuito (um arquivo extra, revelado quando é liberado). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>
             <li><b>Direito de arrependimento e cancelamento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor). Peça em minha conta → minhas compras (ou pelo WhatsApp ou e-mail). Dentro dos 7 dias o pedido é sempre aprovado e devolvemos o valor integral, pelo mesmo meio de pagamento. Depois desse prazo, o pedido é analisado caso a caso. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>

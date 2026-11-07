@@ -7,7 +7,7 @@ import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, typ
 import { ApeIcon } from './ApeIcon'
 import { emailOk } from './shared'
 import {
-  APE, BONUS, SELOS, PIX_PCT, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, SELOS, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -758,6 +758,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [ps, setPs] = useState<Produto[]>(ajustes.produtos)
   const [whats, setWhats] = useState(ajustes.whatsapp || '')
   const [pixPct, setPixPct] = useState(String(ajustes.pixPct ?? PIX_PCT))
+  const [jurosTxt, setJurosTxt] = useState(String(ajustes.jurosPct ?? JUROS_PCT).replace('.', ','))
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
   const [fotoProjeto, setFotoProjeto] = useState(ajustes.fotoProjeto || '')
@@ -766,6 +767,8 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [abrir, setAbrir] = useState<string | null>(null)
   const calcd = comPrecos(ps) // preço dos kits calculado sozinho
   const pix = Math.min(10, Math.max(0, num(pixPct) ?? PIX_PCT))
+  const juros = Math.min(10, Math.max(0, num(jurosTxt) ?? JUROS_PCT))
+  const exPlat = parcelas(reais(ps.find((p) => p.id === 'plataforma')?.preco) || 89.9, juros)
   const set = (i: number, patch: Partial<Produto>) => setPs((l) => l.map((p, j) => (j === i ? { ...p, ...patch } : p)))
   const margem = (p: Produto) => {
     const v = reais(p.preco)
@@ -777,7 +780,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, taxas, vendedor: vend, fotoProjeto }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, fotoProjeto }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })
@@ -794,6 +797,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
         <p className="ape-eyebrow">pagamento e margem</p>
         <div className="ape-frow">
           <div className="ape-f"><label htmlFor="l-pix">Desconto no Pix (%)</label><input id="l-pix" inputMode="decimal" value={pixPct} onChange={(e) => setPixPct(e.target.value)} /><span className="ape-hint">De 0 a 10. Sugerido: 5.</span></div>
+          <div className="ape-f"><label htmlFor="l-juros">Juros do cartão parcelado (% ao mês)</label><input id="l-juros" inputMode="decimal" value={jurosTxt} onChange={(e) => setJurosTxt(e.target.value)} /><span className="ape-hint ape-keep">1x sem juros. Plataforma em {exPlat[exPlat.length - 1].n}x: {brl(exPlat[exPlat.length - 1].parcela)} (total {brl(exPlat[exPlat.length - 1].total)}). Cobre a taxa do Asaas no parcelado.</span></div>
           <div className="ape-f"><label htmlFor="l-tp">Taxa do Pix (<span className="ape-keep">R$</span> por venda)</label><input id="l-tp" inputMode="decimal" value={String(taxas.pix).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, pix: num(e.target.value) ?? 0 })} /></div>
           <div className="ape-f"><label htmlFor="l-tc">Taxa do cartão (% + <span className="ape-keep">R$</span>)</label>
             <div className="ape-frow" style={{ gap: 6 }}>
@@ -1235,7 +1239,6 @@ function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos:
       <div className="ape-acts">
         <a className="ape-btn" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="bag" />abrir a loja</a>
         <a className="ape-btn" href={href('ape', 'checkout')} target="_blank" rel="noreferrer"><ApeIcon name="shield" />abrir o checkout</a>
-        <a className="ape-btn" href={href('ape', 'minha:demo')} target="_blank" rel="noreferrer"><ApeIcon name="phone" />demonstração da plataforma</a>
       </div>
       {meus.length > 0 && (
         <div className="ape-rows">

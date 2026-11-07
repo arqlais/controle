@@ -1317,3 +1317,11 @@
 .ape-tudo { border: 1px solid color-mix(in srgb, var(--a-pri) 30%, var(--a-line)); background: linear-gradient(135deg, var(--a-pri-soft), var(--a-card)); }
 .ape-tudo-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .ape-tudo-links .ape-note { flex-basis: 100%; }
+
+/* plataforma: à vista, parcelado e "menos de R$ 10 por mês" */
+.ape-plat-preco { display: grid; gap: 6px; max-width: 300px; }
+.ape-plat-parc { font-size: 14px; font-weight: 600; color: var(--a-ink); }
+.ape-plat-parc small { font-weight: 500; color: var(--a-muted); }
+.ape-plat-mes { display: flex; gap: 8px; align-items: flex-start; background: var(--a-card); border-radius: 12px; padding: 8px 12px; font-size: 12.5px; line-height: 1.4; }
+.ape-plat-mes svg { width: 16px; height: 16px; color: var(--a-sec); flex: none; margin-top: 1px; }
+.ape-plat-mes b { color: var(--a-sec); }
