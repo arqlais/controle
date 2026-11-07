@@ -162,6 +162,7 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
     const msg = r.error
     if (r.status === 400 && /api key/i.test(msg)) throw new Error('A chave do Gemini não é válida. Confira em configurações → assistente.')
     if (r.status === 400 && /image|mime|inline/i.test(msg)) throw new Error('A IA não conseguiu ler esse anexo. Tente mandar como foto (JPG) ou PDF.')
+    if (r.status === 402) throw new Error('Os créditos do Gemini acabaram. Entre em ai.studio/projects → Billing (faturamento) e coloque crédito no projeto da sua chave.')
     if (r.status === 429) throw new Error('Limite de uso do Gemini atingido por agora. Tente de novo em alguns minutos.')
     if (r.status === 403) throw new Error(`A chave não tem permissão para o Gemini${msg ? ` (Google: ${msg.slice(0, 140)})` : ''}. Confira em aistudio.google.com → Get API key se a API está ativa para essa chave, ou crie uma nova.`)
     if (r.status === 413) throw new Error('Os anexos ficaram grandes demais. Mande menos arquivos de uma vez.')

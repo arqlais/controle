@@ -374,14 +374,14 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     for (const model of MODELOS) {
       const cfg: J = { temperature: 0.1, responseMimeType: 'application/json', ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
       r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: cfg }) })
-      if (r.status !== 404) break
+      if (r.status !== 404 && r.status !== 402) break
     }
     if (!r) return json({ erro: 'não deu para ler agora' }, 502)
     const out = (await r.json().catch(() => ({}))) as J
     if (!r.ok) {
       const msg = String(out.error?.message ?? '')
       console.log('ape-ler: Gemini respondeu', r.status, msg.slice(0, 300))
-      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 429 ? 'limite do Gemini atingido' : 'não deu para ler agora', status: r.status }, 502)
+      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 402 ? 'créditos do Gemini acabaram' : r.status === 429 ? 'limite do Gemini atingido' : 'não deu para ler agora', status: r.status }, 502)
     }
     const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
     let v: J = {}
