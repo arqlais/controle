@@ -73,9 +73,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
             <span><ApeIcon name="check" />7 dias para desistir</span>
           </div>
         </div>
-        <div className="ape-lp-art" aria-hidden="true">
-          <img src="ape/amostras/m-hero.jpg" alt="" className="ape-lp-hero-img" />
-        </div>
+        <HeroArt pix={pixPct} />
       </section>
 
       <div className="ape-marquee" aria-hidden="true">
@@ -226,6 +224,51 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       {verCarrinho && <CarrinhoSheet produtos={produtos} pixPct={pixPct} cart={cart} onClose={() => setVerCarrinho(false)} onOpen={(p) => { setVerCarrinho(false); setAberto(p) }} />}
       {toast}
     </>
+  )
+}
+
+/* capa da loja: as capas dos arquivos soltas, um celular com a plataforma e avisos flutuando (mexe com o mouse) */
+function HeroArt({ pix }: { pix: number }) {
+  const [t, setT] = useState({ x: 0, y: 0 })
+  const [feitos, setFeitos] = useState(2)
+  useEffect(() => {
+    const i = window.setInterval(() => setFeitos((n) => (n >= 5 ? 2 : n + 1)), 1800)
+    return () => window.clearInterval(i)
+  }, [])
+  const etapas = ['vistoria', 'chaves', 'piso', 'marcenaria', 'mudança']
+  return (
+    <div
+      className="ape-hero-art"
+      aria-hidden="true"
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect()
+        setT({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 })
+      }}
+      onMouseLeave={() => setT({ x: 0, y: 0 })}
+      style={{ ['--tx' as string]: t.x, ['--ty' as string]: t.y }}
+    >
+      <img className="ape-hp p1" src="ape/amostras/c-compra.jpg" alt="" />
+      <img className="ape-hp p2" src="ape/amostras/c-checklist.jpg" alt="" />
+      <img className="ape-hp p3" src="ape/amostras/c-planner.jpg" alt="" />
+      <div className="ape-hero-cel">
+        <div className="ape-hc-top"><b>meu apê</b><span>40 m²</span></div>
+        <div className="ape-hc-card">
+          <span>gasto até agora</span>
+          <b className="ape-keep">R$ 18.420</b>
+          <i><em style={{ width: '46%' }} /></i>
+          <small className="ape-keep">de R$ 40.000 planejados</small>
+        </div>
+        <div className="ape-hc-card">
+          <span>obra, passo a passo</span>
+          {etapas.map((e, k) => (
+            <p key={e} className={k < feitos ? 'ok' : ''}><u>{k < feitos ? <ApeIcon name="check" /> : null}</u>{e}</p>
+          ))}
+        </div>
+      </div>
+      <div className="ape-hf f1"><span className="ic"><ApeIcon name="check" /></span><span><b>vistoria feita</b><small>2 problemas anotados</small></span></div>
+      <div className="ape-hf f2"><span className="ic sec"><ApeIcon name="tag" /></span><span><b className="ape-keep">{pix}% off no Pix</b><small>baixa na hora</small></span></div>
+      <div className="ape-hf f3"><span className="ic"><ApeIcon name="gift" /></span><span><b>bônus</b><small>chega em 7 dias</small></span></div>
+    </div>
   )
 }
 
