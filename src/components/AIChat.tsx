@@ -73,7 +73,8 @@ export const readFile = async (f: File): Promise<Attachment> => {
   return { name: f.name, mime: f.type || (/\.csv$/i.test(f.name) ? 'text/csv' : 'text/plain'), data: url.split(',')[1] ?? '' }
 }
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+// do mais novo para o mais antigo: o Google desliga modelos antigos para contas novas, então tenta o próximo se um não existir
+const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
 
 /** Anexos antigos não vão de novo a cada pergunta (só os da última mensagem com arquivo): evita estourar o limite. */
 const keepRecentFiles = (history: Msg[]) => {
@@ -157,7 +158,7 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
     }
     if (!r) throw new Error(NET_ERROR)
     if (r.status === 200) return r.text.trim() || 'Não consegui responder agora. Tente reformular a pergunta.'
-    if (r.status === 404) continue // modelo indisponível: tenta o próximo
+    if (r.status === 404 || (r.status === 400 && /model|not (found|supported)|no longer/i.test(r.error))) continue // modelo indisponível: tenta o próximo
     const msg = r.error
     if (r.status === 400 && /api key/i.test(msg)) throw new Error('A chave do Gemini não é válida. Confira em configurações → assistente.')
     if (r.status === 400 && /image|mime|inline/i.test(msg)) throw new Error('A IA não conseguiu ler esse anexo. Tente mandar como foto (JPG) ou PDF.')

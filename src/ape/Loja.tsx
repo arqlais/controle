@@ -9,12 +9,17 @@ import { SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolage
 /* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
 
 type ById = (id: string) => Produto | undefined
+const COR: Record<string, string> = { azul: '#4e6472', rosa: '#a86b78', roxa: '#6e5f86', verde: '#5f7566' }
+/** Imagem do produto pelo nome (para a página do pedido). */
+const amostraDe = (nome: string) => PRODUTOS_LOJA.find((p) => p.nome === nome)?.amostras?.[0]
+let PRODUTOS_LOJA: Produto[] = []
 let PIX = 5 // desconto do Pix da loja salva (definido ao abrir a loja)
 
 export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Morador | null; whats: string; abrir?: string }) {
   const produtos = ajustes.produtos
   const pixPct = ajustes.pixPct ?? 5
   PIX = pixPct
+  PRODUTOS_LOJA = produtos
   const ativos = produtos.filter((p) => p.ativo)
   const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei'>('todos')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
@@ -69,7 +74,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           </div>
         </div>
         <div className="ape-lp-art" aria-hidden="true">
-          {['m-compra.jpg', 'm-planilha.jpg', 'm-checklist.jpg'].map((f, i) => <img key={f} src={`ape/amostras/${f}`} alt="" className={`ape-lp-card c${i}`} />)}
+          <img src="ape/amostras/m-hero.jpg" alt="" className="ape-lp-hero-img" />
         </div>
       </section>
 
@@ -226,39 +231,36 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
 /* ===== serviços: separado dos produtos digitais, sempre com proposta antes ===== */
 function ServicosSec({ whats, me }: { whats: string; me: Morador | null }) {
   const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria uma proposta de projeto/reforma para a minha casa/apê.`
+  const servicos: [string, string][] = [
+    ['layout e interiores', 'planta com móveis e acabamentos'],
+    ['marcenaria', 'desenho dos planejados'],
+    ['elétrica e iluminação', 'tomadas, pontos e luminárias'],
+    ['vistoria técnica', 'acompanhamento nas chaves'],
+    ['acompanhamento de obra', 'visitas e conferência'],
+    ['reforma', 'execução com equipe e cronograma'],
+  ]
   return (
     <section className="ape-servicos ape-panel" id="loja-servicos">
-      <div className="ape-servicos-h">
-        <ApeArt name="projeto3d" size={44} tone="sec" />
-        <div>
-          <p className="ape-eyebrow">serviço à parte · não faz parte da loja</p>
-          <h3 className="ape-sec-t">precisa de um <em>projeto?</em></h3>
+      <div className="ape-serv-esq">
+        <p className="ape-eyebrow">serviço à parte</p>
+        <h3 className="ape-sec-t">precisa de um <em>projeto?</em></h3>
+        <div className="ape-serv-eu">
+          <span className="ape-me-av">L</span>
+          <p>Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho junto com o meu pai, que é engenheiro civil. Fazemos projetos, serviços técnicos e reformas, inclusive para quem acabou de receber as chaves.</p>
         </div>
+        <ol className="ape-serv-passos">
+          <li><b>1</b><span>Você conta o que precisa</span></li>
+          <li><b>2</b><span>Recebe uma proposta por escrito: escopo, valor, prazo e pagamento</span></li>
+          <li><b>3</b><span>Só começa depois que você aprovar</span></li>
+        </ol>
+        <a className="ape-btn primary" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir proposta no WhatsApp</a>
       </div>
-      <p className="ape-servicos-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho junto com o meu pai, que é engenheiro civil. Fazemos projetos, serviços técnicos e reformas, inclusive para quem acabou de receber as chaves.</p>
-      <div className="ape-servicos-grid">
-        {[
-          ['projeto de layout e interiores', 'Planta com móveis, medidas e acabamentos.'],
-          ['projeto de marcenaria', 'Desenho dos planejados para pedir orçamentos iguais.'],
-          ['pontos elétricos e iluminação', 'Onde vai cada tomada, ponto e luminária.'],
-          ['vistoria técnica de recebimento', 'Acompanhamento na vistoria das chaves.'],
-          ['acompanhamento de obra', 'Visitas e conferência do que foi combinado.'],
-          ['reforma', 'Execução de reformas, com equipe e cronograma.'],
-        ].map(([t, d]) => (
-          <div key={t} className="ape-servico"><ApeIcon name="check" /><span><b>{t}</b>{d}</span></div>
-        ))}
+      <div className="ape-serv-dir">
+        <ul className="ape-serv-lista">
+          {servicos.map(([t, d]) => <li key={t}><ApeIcon name="check" /><span><b>{t}</b>{d}</span></li>)}
+        </ul>
+        <p className="ape-note ape-serv-nota">Serviços que pedem responsabilidade técnica (ART) são assinados pelo engenheiro civil; a {APE.dona} desenvolve os projetos com ele, como estudante. Visita técnica, quando precisar, tem valor informado antes. Não faz parte da loja nem da plataforma.</p>
       </div>
-      <div className="ape-servicos-regras">
-        <div>
-          <b>quem faz o quê</b>
-          <span>Serviços que pedem responsabilidade técnica (com ART) são assinados pelo engenheiro civil. A {APE.dona} desenvolve os projetos com ele, como estudante, e não assina como arquiteta.</span>
-        </div>
-        <div>
-          <b>como funciona</b>
-          <span>1. Você conta o que precisa. 2. Recebe uma proposta por escrito com escopo, valor, prazo e pagamento. 3. Só começa depois que você aprovar. Visita técnica, quando precisar, tem valor informado antes.</span>
-        </div>
-      </div>
-      <a className="ape-btn primary" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir proposta no WhatsApp</a>
     </section>
   )
 }
@@ -354,11 +356,7 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
   return (
     <article className={`ape-prod ${p.destaque ? 'top' : ''}`}>
       <button className="ape-thumb" onClick={onOpen} aria-label={`Ver ${p.nome} por dentro`}>
-        {p.combo?.length ? (
-          <span className="ape-stack">
-            {(p.amostras || []).slice(0, 3).map((a, i) => <img key={a} src={a} alt="" loading="lazy" style={{ ['--i' as string]: i }} />)}
-          </span>
-        ) : img ? (
+        {img ? (
           <img src={img} alt="" loading="lazy" />
         ) : (
           <span className="ape-thumb-ic"><ApeArt name={p.arte || 'casa'} size={56} /></span>
@@ -726,6 +724,7 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>Problemas.</b> Arquivo com defeito ou que não abre: corrigimos, trocamos ou devolvemos o valor, como prevê o Código de Defesa do Consumidor.</li>
             <li><b>Plataforma do apê.</b> O acesso dura 12 meses a partir da liberação (ou 1 mês no presente do kit completo), por um link pessoal que funciona como chave: guarde-o e não compartilhe. Os dados que você registra são seus; depois do prazo, a plataforma fica só para consulta.</li>
             <li><b>Seus dados (LGPD).</b> Usamos nome, CPF, e-mail e celular só para emitir a cobrança, entregar, identificar a licença, recuperar compras e atender você. Eles são compartilhados apenas com o Asaas (pagamento) e com o Supabase (onde o site guarda as informações). Você pode pedir acesso, correção ou exclusão pelo e-mail acima, respeitado o que a lei obriga a guardar.</li>
+            <li><b>Cookies e armazenamento.</b> O site guarda no seu aparelho só o necessário para funcionar (carrinho, cadastro e compras). Não usamos cookies de propaganda nem de rastreamento.</li>
             <li><b>Foro.</b> Vale a lei brasileira; você pode resolver qualquer questão no foro da sua cidade.</li>
           </ol>
           {onAccept ? <button className="ape-btn primary" onClick={onAccept}>li e aceito</button> : <button className="ape-btn" onClick={onClose}>fechar</button>}
@@ -802,7 +801,8 @@ function MinhasCompras() {
 }
 
 /* ===== página do pedido: Pix na tela, arquivos, bônus e plataforma ===== */
-export function PedidoPage({ token, whats }: { token: string; whats: string }) {
+export function PedidoPage({ token, whats, produtos }: { token: string; whats: string; produtos?: Produto[] }) {
+  if (produtos) PRODUTOS_LOJA = produtos
   const [p, setP] = useState<Pedido | null | undefined>(undefined)
   const [copiado, setCopiado] = useState(false)
   const [baixando, setBaixando] = useState('')
@@ -903,13 +903,32 @@ export function PedidoPage({ token, whats }: { token: string; whats: string }) {
       {p.arquivos?.length ? (
         <>
           <p className="ape-eyebrow">seus arquivos</p>
-          <div className="ape-rows">
-            {p.arquivos.map((a, i) => (
-              <button key={a.path} className="ape-row ape-row-btn" onClick={() => void baixar(a.path)} disabled={!!baixando}>
-                <span className="t"><b>{i + 1}. {a.produto}</b><span>{a.nome}</span></span>
-                <span className="r"><span className="ape-btn primary sm"><ApeIcon name="download" />{baixando === a.path ? 'preparando…' : 'baixar'}</span></span>
-              </button>
-            ))}
+          <div className="ape-entregas">
+            {[...new Set(p.arquivos.map((a) => a.produto))].map((produto, i) => {
+              const fs = p.arquivos!.filter((a) => a.produto === produto)
+              const img = amostraDe(produto)
+              const cores = fs.filter((a) => a.cor)
+              return (
+                <article key={produto} className="ape-entrega">
+                  {img ? <img src={img} alt="" loading="lazy" /> : <span className="ape-entrega-ic"><ApeIcon name="file" /></span>}
+                  <div className="ape-entrega-b">
+                    <b>{i + 1}. {produto}</b>
+                    <span className="ape-note">{fs[0].tipo === 'planilha' ? `planilha Excel · ${cores.length > 1 ? `${cores.length} cores: escolha a sua` : 'abre no Google Planilhas'}` : 'PDF com a sua licença no rodapé'}</span>
+                    {cores.length > 1 ? (
+                      <div className="ape-cores">
+                        {cores.map((a) => (
+                          <button key={a.path} className="ape-cor" onClick={() => void baixar(a.path)} disabled={!!baixando} title={`Baixar na cor ${a.cor}`}>
+                            <i style={{ background: COR[a.cor!] }} />{baixando === a.path ? 'baixando…' : a.cor}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <button className="ape-btn primary sm" onClick={() => void baixar(fs[0].path)} disabled={!!baixando}><ApeIcon name="download" />{baixando === fs[0].path ? 'preparando…' : 'baixar'}</button>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
           </div>
           <span className="ape-note">Os PDFs saem com o seu nome no rodapé (licença de uso pessoal).</span>
         </>

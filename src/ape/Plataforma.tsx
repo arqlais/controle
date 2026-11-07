@@ -396,33 +396,34 @@ function Vistoria({ lista, nome, mudar }: { lista: PlatVistoria[]; nome: string;
   return (
     <section className="ape-panel ape-plat-sec">
       <div className="ape-plat-sec-h">
-        <div><p className="ape-eyebrow">vistoria</p><span className="ape-note">{lista.filter((v) => v.status === 'ok').length} ok · {probl.length} com problema · {lista.filter((v) => v.status === 'pendente').length} a conferir</span></div>
-        <div className="ape-acts">
-          <button className="ape-btn sm" onClick={() => mudar((l) => [...l, { id: uid(), comodo: 'geral', item: '', status: 'pendente', obs: '' }])}><ApeIcon name="plus" />item</button>
-          <button className="ape-btn primary sm" onClick={() => window.print()}><ApeIcon name="file" />imprimir resumo</button>
-        </div>
+        <div><p className="ape-eyebrow">vistoria</p><span className="ape-note">Toque em <b>ok</b> ou <b>problema</b> em cada item. {lista.filter((v) => v.status === 'ok').length} ok · {probl.length} com problema · {lista.filter((v) => v.status === 'pendente').length} a conferir</span></div>
+        <button className="ape-btn primary sm" onClick={() => window.print()}><ApeIcon name="file" />imprimir resumo</button>
       </div>
       {err && <p className="ape-err">{err}</p>}
       {comodos.map((c) => (
         <div key={c} className="ape-vist-c">
-          <h4>{c}</h4>
+          <h4>{c} <span>{lista.filter((v) => v.comodo === c && v.status !== 'pendente').length}/{lista.filter((v) => v.comodo === c).length}</span></h4>
           {lista.filter((v) => v.comodo === c).map((v) => (
             <div key={v.id} className={`ape-vist ${v.status}`}>
-              <input className="ape-vist-i" value={v.item} onChange={(e) => set(v.id, 'item', e.target.value)} aria-label="Item" placeholder="o que conferir" />
-              <div className="ape-seg" role="group" aria-label={`Situação de ${v.item}`}>
-                {(['ok', 'problema', 'pendente'] as const).map((s) => <button key={s} aria-pressed={v.status === s} onClick={() => set(v.id, 'status', s)}>{s === 'pendente' ? 'conferir' : s}</button>)}
+              <input className="ape-vist-i" value={v.item} onChange={(e) => set(v.id, 'item', e.target.value)} aria-label="Item" placeholder="o que conferir" autoFocus={!v.item} />
+              <div className="ape-vist-btns" role="group" aria-label={`Situação de ${v.item || 'item'}`}>
+                <button className="ok" aria-pressed={v.status === 'ok'} onClick={() => set(v.id, 'status', v.status === 'ok' ? 'pendente' : 'ok')}><ApeIcon name="check" />ok</button>
+                <button className="pr" aria-pressed={v.status === 'problema'} onClick={() => set(v.id, 'status', v.status === 'problema' ? 'pendente' : 'problema')}><ApeIcon name="alert" />problema</button>
+                <button className="del" onClick={() => { if (!v.item || confirm(`Excluir "${v.item}"?`)) mudar((l) => l.filter((x) => x.id !== v.id)) }} aria-label={`Excluir ${v.item || 'item'}`} title="Excluir item"><ApeIcon name="trash" /></button>
               </div>
               {v.status === 'problema' && (
                 <div className="ape-vist-p">
-                  <input value={v.obs} onChange={(e) => set(v.id, 'obs', e.target.value)} placeholder="o que está errado" aria-label="Problema" />
-                  <label className="ape-btn ghost sm"><ApeIcon name="clip" />{v.foto ? 'trocar foto' : 'foto'}<input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void foto(v.id, e.target.files?.[0])} /></label>
+                  <input value={v.obs} onChange={(e) => set(v.id, 'obs', e.target.value)} placeholder="o que está errado?" aria-label="Problema" />
+                  <label className="ape-btn sm"><ApeIcon name="clip" />{v.foto ? 'trocar foto' : 'tirar foto'}<input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void foto(v.id, e.target.files?.[0])} /></label>
                   {v.foto && <img src={v.foto} alt={`Foto: ${v.item}`} />}
                 </div>
               )}
             </div>
           ))}
+          <button className="ape-vist-add" onClick={() => mudar((l) => { const i = l.map((x) => x.comodo).lastIndexOf(c); const novo = { id: uid(), comodo: c, item: '', status: 'pendente' as const, obs: '' }; return i < 0 ? [...l, novo] : [...l.slice(0, i + 1), novo, ...l.slice(i + 1)] })}><ApeIcon name="plus" />adicionar item em {c}</button>
         </div>
       ))}
+      <button className="ape-btn sm" style={{ justifySelf: 'start' }} onClick={() => { const nome = prompt('Nome do cômodo (ex.: varanda, quarto 3):')?.trim(); if (nome) mudar((l) => [...l, { id: uid(), comodo: nome.toLowerCase(), item: '', status: 'pendente', obs: '' }]) }}><ApeIcon name="plus" />novo cômodo</button>
       {/* só aparece na impressão */}
       <div className="ape-print">
         <h2>resumo da vistoria · {nome}</h2>

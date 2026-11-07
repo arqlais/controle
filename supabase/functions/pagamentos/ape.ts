@@ -203,15 +203,22 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const itens = (ped.itens ?? []) as J[]
     const ids = [...new Set(itens.flatMap((i) => (map[i.id]?.cat === 'combos' ? map[i.id].combo : KITS[i.id]?.[2] ?? [i.id])))].filter((id) => id !== 'plataforma')
     const st = db.storage.from('ape-arquivos')
-    const out: { produto: string; nome: string; path: string; tipo: string }[] = []
+    const out: { produto: string; nome: string; path: string; tipo: string; cor: string; baixa: string }[] = []
     const pasta = async (id: string, produto: string) => {
       const { data: files } = await st.list(id, { limit: 20 })
-      for (const f of files ?? []) if (f.name && !f.name.startsWith('.') && f.id) out.push({ produto, nome: f.name, path: `${id}/${f.name}`, tipo: /\.pdf$/i.test(f.name) ? 'pdf' : /\.xlsx?$/i.test(f.name) ? 'planilha' : 'arquivo' })
+      for (const f of files ?? []) {
+        if (!f.name || f.name.startsWith('.') || !f.id) continue
+        const cor = (f.name.match(/-(azul|rosa|roxa|verde)\.[^.]+$/i) || [])[1]?.toLowerCase() || ''
+        const ext = (f.name.match(/\.[^.]+$/) || [''])[0].toLowerCase()
+        // nome bonito no download: "Guia de compra do imóvel - planê.apê.pdf" / "Planilha do enxoval (rosa) - planê.apê.xlsx"
+        const baixa = `${produto.replace(/[\\/:*?"<>|]/g, '')}${cor ? ` (${cor})` : ''} - planê.apê${ext}`
+        out.push({ produto, nome: f.name, path: `${id}/${f.name}`, tipo: ext === '.pdf' ? 'pdf' : /\.xlsx?$/.test(ext) ? 'planilha' : 'arquivo', cor, baixa })
+      }
     }
     for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? id)
     const libera = ped.pago_em ? new Date(new Date(ped.pago_em).getTime() + BONUS_DIAS * 864e5) : null
     const bonusLiberado = !!libera && libera.getTime() <= Date.now()
-    if (bonusLiberado) await pasta('bonus', 'Bônus: manutenção e garantias do 1º ano')
+    if (bonusLiberado) await pasta('bonus', 'Bônus - manutenção e garantias do 1º ano')
     return { arquivos: out, bonus: { liberado: bonusLiberado, em: libera?.toISOString() ?? null } }
   }
 
@@ -251,7 +258,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
         }
       }
     }
-    const { data: u } = await st.createSignedUrl(final, 60 * 30, { download: f.nome })
+    const { data: u } = await st.createSignedUrl(final, 60 * 30, { download: f.baixa || f.nome })
     await db.from('ape_pedidos').update({ baixados: Number(ped.baixados ?? 0) + 1 }).eq('id', ped.id)
     return u?.signedUrl ? json({ url: u.signedUrl }) : json({ erro: 'Não deu para gerar o link.' }, 500)
   }
@@ -316,6 +323,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     return btoa(s)
   }
   /** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que uma admin colocou no planê (configurações → assistente). */
+  const MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
   async function geminiKey() {
     const k = env('GEMINI_API_KEY').trim()
     if (k) return k
@@ -361,13 +369,14 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     const texto = String(body.texto ?? '').slice(0, 12000)
     if (!parts.length && !texto.trim()) return json({ erro: 'nada para ler' }, 400)
     await db.from('ape_leituras').insert({ morador })
-    // chave do Google AI Studio (AIza… ou AQ.…); se o Gemini recusar uma chave AQ., tenta o Vertex AI (modo express)
-    const reqBody = JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } })
-    let r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: reqBody })
-    if (!r.ok && [400, 401, 403].includes(r.status) && key.startsWith('AQ.')) {
-      const v = await fetch(`https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: reqBody }).catch(() => null)
-      if (v?.ok) r = v
+    // tenta do modelo mais novo para o mais antigo (o Google desliga modelos antigos para contas novas)
+    let r: Response | null = null
+    for (const model of MODELOS) {
+      const cfg: J = { temperature: 0.1, responseMimeType: 'application/json', ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: cfg }) })
+      if (r.status !== 404) break
     }
+    if (!r) return json({ erro: 'não deu para ler agora' }, 502)
     const out = (await r.json().catch(() => ({}))) as J
     if (!r.ok) {
       const msg = String(out.error?.message ?? '')
@@ -453,8 +462,8 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     }
     return json({
       chave: `${key.slice(0, 3)}… (${key.length} caracteres)`,
-      gemini: await tenta('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', { 'x-goog-api-key': key }),
-      vertex: key.startsWith('AQ.') ? await tenta(`https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, {}) : null,
+      gemini: Object.fromEntries(await Promise.all(MODELOS.map(async (m) => [m, await tenta(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, { 'x-goog-api-key': key })]))),
+
     })
   }
 

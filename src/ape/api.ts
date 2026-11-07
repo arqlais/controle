@@ -55,7 +55,9 @@ const ajustesOf = (d: unknown): Ajustes => {
   // loja antiga (antes das categorias): usa a nova, mantendo só o WhatsApp
   const atual = (a.lojaV || 0) >= LOJA_VERSAO && Array.isArray(a.produtos) && a.produtos.length
   const pixPct = typeof a.pixPct === 'number' && a.pixPct >= 0 && a.pixPct <= 10 ? a.pixPct : PIX_PCT
-  return { produtos: comPrecos(atual ? a.produtos! : PRODUTOS), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) } }
+  // imagens de amostra vêm sempre do site (são refeitas junto com os arquivos)
+  const base = atual ? a.produtos!.map((p) => { const d = PRODUTOS.find((x) => x.id === p.id); return d?.amostras ? { ...p, amostras: d.amostras } : p }) : PRODUTOS
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) } }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -399,7 +401,7 @@ export const admin = {
 
 /* ===== loja: pagamento pelo Asaas (função "pagamentos" do Supabase) ===== */
 export type StatusPedido = 'pendente' | 'pago' | 'cancelado' | 'reembolsado'
-export interface Entrega { produto: string; nome: string; path: string; tipo: string }
+export interface Entrega { produto: string; nome: string; path: string; tipo: string; cor?: string; baixa?: string }
 export interface Pedido {
   status: StatusPedido
   itens: { id: string; nome: string; preco: number }[]
@@ -488,7 +490,7 @@ export async function verPedido(token: string): Promise<Pedido | null> {
     if (p.status !== 'pago') return p
     const ids = [...new Set(p.itens.flatMap((i) => PRODUTOS.find((x) => x.id === i.id)?.combo || [i.id]))].filter((id) => id !== 'plataforma')
     const libera = new Date(new Date(p.pago_em!).getTime() + 7 * 864e5)
-    return { ...p, arquivos: ids.map((id) => ({ produto: PRODUTOS.find((x) => x.id === id)?.nome || id, nome: `${id}.pdf`, path: `${id}/${id}.pdf`, tipo: 'pdf' })), bonus: { liberado: libera.getTime() <= Date.now(), em: libera.toISOString() } }
+    return { ...p, arquivos: ids.flatMap((id) => { const nome = PRODUTOS.find((x) => x.id === id)?.nome || id; return /planilha|enxoval/.test(id) ? ['azul', 'rosa', 'roxa', 'verde'].map((cor) => ({ produto: nome, nome: `${id}-${cor}.xlsx`, path: `${id}/${id}-${cor}.xlsx`, tipo: 'planilha', cor })) : [{ produto: nome, nome: `${id}.pdf`, path: `${id}/${id}.pdf`, tipo: 'pdf' }] }), bonus: { liberado: libera.getTime() <= Date.now(), em: libera.toISOString() } }
   }
   try {
     return await invoke<Pedido>({ acao: 'ape-pedido', token })

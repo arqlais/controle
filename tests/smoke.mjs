@@ -429,6 +429,7 @@ try {
   // planê.apê: cadastro do morador, compra em grupo, envio de orçamento e painel da dona
   for (const vp of [{ width: 1280, height: 860, name: 'computador' }, { width: 375, height: 812, name: 'celular' }]) {
     const page = await browser.newPage({ viewport: vp })
+    await page.addInitScript(() => localStorage.setItem('ape-cookies', 'true'))
     const errors = []
     page.on('pageerror', (e) => errors.push(e.message))
     page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)) })

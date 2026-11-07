@@ -96,3 +96,15 @@ export const cpfOk = (v: string) => {
   return dv(9) === Number(d[9]) && dv(10) === Number(d[10])
 }
 export const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim())
+
+/** Aviso de cookies e armazenamento (só o necessário: carrinho, cadastro e compras neste aparelho; nada de rastreamento). */
+export function AvisoCookies() {
+  const [ok, setOk] = useState(() => !!read<boolean>('ape-cookies'))
+  if (ok) return null
+  return (
+    <div className="ape-cookies" role="region" aria-label="Aviso de cookies">
+      <p>Usamos só o armazenamento necessário para o site funcionar: carrinho, cadastro e suas compras neste aparelho. Não usamos cookies de propaganda nem rastreamento.</p>
+      <button className="ape-btn primary sm" onClick={() => { write('ape-cookies', true); setOk(true) }}>entendi</button>
+    </div>
+  )
+}

@@ -7,7 +7,7 @@ import {
   APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop,
   ehSanLevi, ehOrcamento, ondeMora, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
-import { Assinatura, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
+import { Assinatura, AvisoCookies, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
 import { Plataforma } from './Plataforma'
@@ -161,7 +161,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         ) : view === 'checkout' ? (
           <Checkout ajustes={d.ajustes} me={me} whats={whats} />
         ) : view === 'pedido' ? (
-          <PedidoPage token={sub!.slice(7)} whats={whats} />
+          <PedidoPage token={sub!.slice(7)} whats={whats} produtos={d.ajustes.produtos} />
         ) : (
           <Loja key={abrir || 'loja'} ajustes={d.ajustes} me={me} whats={whats} abrir={abrir} />
         )}
@@ -195,6 +195,7 @@ export function ApePublic({ sub }: { sub?: string }) {
           Os orçamentos são enviados por quem está montando o apê e aparecem como foram recebidos. A página só organiza e compara: confira valores, prazos e condições direto com o fornecedor antes de fechar. Não temos vínculo com os fornecedores nem participamos das negociações.
         </p>
       )}
+      <AvisoCookies />
       {pedeCadastro && <Cadastro me={me} owner={owner} onDone={onCadastro} onCancel={me ? () => setEditing(false) : owner ? () => { setEditing(false); location.hash = '#/ape' } : undefined} />}
       {toast}
     </div>
