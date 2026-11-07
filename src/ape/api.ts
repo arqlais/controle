@@ -144,16 +144,20 @@ export async function subirArquivos(files: File[], onStep?: (t: string) => void)
   return out
 }
 
-/** Lê UM arquivo do orçamento com IA (no servidor) e devolve os campos para a comparação. Sem IA, devolve null. */
-export async function lerArquivo(moradorId: string, arquivo: Arquivo | null, texto = ''): Promise<Record<string, unknown> | null> {
-  if (!CLOUD || (!arquivo?.path && !texto.trim())) return null
+/** Lê UM arquivo do orçamento com IA (no servidor) e devolve os campos para a comparação, ou o motivo de não ter lido. */
+export async function lerArquivo(moradorId: string, arquivo: Arquivo | null, texto = ''): Promise<{ o: Record<string, unknown> | null; erro?: string }> {
+  if (!CLOUD) return { o: null, erro: 'prévia sem IA' }
+  if (!arquivo?.path && !texto.trim()) return { o: null }
   try {
     const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-ler', morador: moradorId, arquivo: arquivo?.path || '', texto } })
     const o = (data as { orcamento?: Record<string, unknown> } | null)?.orcamento
-    if (error || !o) return null
-    return o
-  } catch {
-    return null
+    if (o) return { o }
+    let erro = (data as { erro?: string } | null)?.erro || ''
+    const ctx = (error as { context?: Response } | null)?.context
+    if (!erro && ctx) erro = ((await ctx.json().catch(() => null)) as { erro?: string } | null)?.erro || ''
+    return { o: null, erro: erro || error?.message || 'sem resposta' }
+  } catch (e) {
+    return { o: null, erro: String((e as Error).message) }
   }
 }
 

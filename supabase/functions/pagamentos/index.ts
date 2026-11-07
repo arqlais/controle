@@ -217,6 +217,8 @@ Deno.serve(async (req) => {
       if (b.acao === 'ape-pedido') return await ape.pedido(b)
       if (b.acao === 'ape-baixar') return await ape.baixar(b)
       if (b.acao === 'ape-recuperar') return await ape.recuperar(b)
+      if (b.acao === 'ape-chave') return await ape.chave()
+      if (b.acao === 'ape-importar') return await ape.importar(b)
       return json({ erro: 'Falta o segredo ASAAS_API_KEY no Supabase.' }, 500)
     }
     if (url.searchParams.get('acao') === 'webhook' || req.headers.has('asaas-access-token')) return await webhook(req)
@@ -228,6 +230,8 @@ Deno.serve(async (req) => {
     if (body.acao === 'ape-recuperar') return await ape.recuperar(body)
     if (body.acao === 'ape-reembolsar') return await ape.reembolsar(req, body)
     if (body.acao === 'ape-ler') return await ape.ler(body)
+    if (body.acao === 'ape-chave') return await ape.chave()
+    if (body.acao === 'ape-importar') return await ape.importar(body)
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {
     return json({ erro: e instanceof Error ? e.message : String(e) }, 500)

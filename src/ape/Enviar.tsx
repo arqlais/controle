@@ -58,7 +58,8 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
       if (file) arquivos = await subirArquivos([file])
       atualizar(key, (l) => ({ ...l, arquivos }))
       const textoLocal = file ? await textoDoPdf(file) : txt
-      const ia = me ? await lerArquivo(me.id, arquivos[0] || null, file ? '' : txt) : null
+      const lido = me ? await lerArquivo(me.id, arquivos[0] || null, file ? '' : txt) : { o: null }
+      const ia = lido.o
       const regra = textoLocal ? lerTexto(textoLocal) : {}
       const base = cleanOrcamento({ ...regra, ...(ia || {}) } as Record<string, unknown>, { nicho: 'outros' })
       // o que a IA não trouxe, as regras completam
@@ -69,7 +70,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
       if (base.nicho === 'outros') base.nicho = (nichoDoTexto(textoLocal + ' ' + base.servico) || 'outros') as Orcamento['nicho']
       if (!base.servico) base.servico = base.nicho !== 'outros' ? nicho(base.nicho).l : ''
       if (t !== 'orcamento') base.tipo = t
-      atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : textoLocal ? 'lido pelo texto do arquivo' : 'complete os dados' }))
+      atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : `${lido.erro ? `leitura automática indisponível (${lido.erro}) · ` : ''}${textoLocal ? 'lido pelo texto do arquivo' : 'complete os dados'}` }))
     } catch (x) {
       atualizar(key, (l) => ({ ...l, status: 'erro', msg: String((x as Error).message) }))
     }

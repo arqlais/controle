@@ -854,3 +854,33 @@
 .ape-tabela { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; }
 .ape-tabela li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--a-line); padding: 3px 0; }
 .ape-tabela li span { min-width: 0; overflow-wrap: anywhere; }
+
+/* cartões da loja alinhados: mesma altura de título, descrição e preço */
+.ape-shop { align-items: stretch; }
+.ape .ape-prod { display: grid; grid-template-rows: auto auto auto 1fr auto auto; gap: 10px; padding: 16px; }
+.ape .ape-prod .ape-prod-h { min-height: 2.6em; align-items: center; }
+.ape .ape-prod .ape-prod-h h3 { font-size: 15.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ape .ape-prod .ape-tags { flex-wrap: nowrap; overflow: hidden; min-height: 22px; }
+.ape .ape-prod-desc { font-size: 12.5px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; align-self: start; }
+.ape .ape-prod-extra { margin: 0; font-size: 11.5px; align-self: end; }
+.ape .ape-prod .ape-acts { margin-top: 0; }
+.ape .ape-prod .ape-acts .ape-btn { min-height: 42px; font-size: 13.5px; }
+.ape-precos { display: grid; gap: 1px; padding-top: 10px; border-top: 1px solid var(--a-line); }
+.ape-precos-pix { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; color: var(--a-pri); line-height: 1.15; }
+.ape-precos-pix small { font-size: 12px; font-weight: 600; color: var(--a-pri); letter-spacing: 0; }
+.ape-precos-cartao { font-size: 12px; color: var(--a-muted); }
+.ape-precos-eco { font-size: 11.5px; color: var(--a-sec); font-weight: 600; min-height: 1.4em; }
+.ape-precos-eco s { color: var(--a-muted); font-weight: 500; }
+.ape-sheet .ape-precos { border-top: 0; padding-top: 0; }
+
+/* faixa com os nomes dos arquivos: corre sem parar */
+.ape .ape-marquee { overflow: hidden; border-block: 1px solid var(--a-line); padding: 10px 0; margin-inline: -16px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.ape .ape-marquee-track { display: flex; width: max-content; animation: ape-corre 45s linear infinite; }
+.ape .ape-marquee:hover .ape-marquee-track { animation-play-state: paused; }
+.ape .ape-marquee-track > span { display: flex; gap: 26px; padding-right: 26px; }
+.ape .ape-marquee b { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; color: var(--a-muted); white-space: nowrap; }
+.ape .ape-marquee b .ape-i { color: var(--a-pri); }
+@keyframes ape-corre { to { transform: translateX(-50%); } }
+
+/* projetos: apresentação em primeira pessoa */
+.ape-servicos-eu { margin: 0; font-size: 14px; color: var(--a-ink); max-width: 70ch; }

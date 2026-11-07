@@ -3,6 +3,7 @@
 // Importado pelo index.ts da função "pagamentos". O preço nunca vem do navegador.
 
 import { PDFDocument, StandardFonts, rgb, degrees } from 'npm:pdf-lib@1.17.1'
+import { unzipSync } from 'npm:fflate@0.8.2'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 type J = Record<string, any>
@@ -314,13 +315,17 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000))
     return btoa(s)
   }
+  /** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que uma admin colocou no planê (configurações → assistente). */
   async function geminiKey() {
-    const k = env('GEMINI_API_KEY')
+    const k = env('GEMINI_API_KEY').trim()
     if (k) return k
-    const { data: adm } = await db.from('admins').select('user_id').limit(1).maybeSingle()
-    if (!adm) return ''
-    const { data: ws } = await db.from('workspace').select('data').eq('user_id', adm.user_id).maybeSingle()
-    return String((ws?.data as J | undefined)?.settings?.aiKey ?? '')
+    const { data: adms } = await db.from('admins').select('user_id')
+    for (const a of adms ?? []) {
+      const { data: ws } = await db.from('workspace').select('data').eq('user_id', a.user_id).maybeSingle()
+      const key = String((ws?.data as J | undefined)?.settings?.aiKey ?? '').trim()
+      if (key) return key
+    }
+    return ''
   }
   const PROMPT = (hoje: string, texto: string) => `Você lê UM orçamento de obra, reforma ou móveis (pode ser PDF, foto ou texto) e devolve só JSON, sem comentários. Hoje é ${hoje}.
 Formato:
@@ -362,7 +367,11 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
       body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } }),
     })
     const out = (await r.json().catch(() => ({}))) as J
-    if (!r.ok) return json({ erro: 'não deu para ler agora' }, 502)
+    if (!r.ok) {
+      const msg = String(out.error?.message ?? '')
+      console.log('ape-ler: Gemini respondeu', r.status, msg.slice(0, 300))
+      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 429 ? 'limite do Gemini atingido' : 'não deu para ler agora', status: r.status }, 502)
+    }
     const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
     let v: J = {}
     try {
@@ -374,5 +383,61 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     return json({ orcamento: v })
   }
 
-  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago }
+  /* ===== arquivos da loja enviados criptografados (pelo GitHub): só este servidor tem a chave para abrir ===== */
+  async function chave() {
+    const { data: ja } = await db.from('ape_segredos').select('dados').eq('id', 'arquivos').maybeSingle()
+    if (ja) return json({ publica: (ja.dados as J).publica })
+    const par = await crypto.subtle.generateKey({ name: 'RSA-OAEP', modulusLength: 3072, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['encrypt', 'decrypt'])
+    const publica = await crypto.subtle.exportKey('jwk', par.publicKey)
+    const privada = await crypto.subtle.exportKey('jwk', par.privateKey)
+    await db.from('ape_segredos').insert({ id: 'arquivos', dados: { publica, privada } })
+    return json({ publica })
+  }
+  const FONTE = /^https:\/\/raw\.githubusercontent\.com\/arqlais\/controle\/[0-9a-f]{7,40}\/ape-import\/[\w.-]+\.bin$/
+  async function importar(body: J) {
+    const url = String(body.url ?? '')
+    if (!FONTE.test(url)) return json({ erro: 'endereço não aceito' }, 400)
+    const { data: seg } = await db.from('ape_segredos').select('dados').eq('id', 'arquivos').maybeSingle()
+    if (!seg) return json({ erro: 'sem chave' }, 400)
+    const r = await fetch(url)
+    if (!r.ok) return json({ erro: `não baixou (${r.status})` }, 400)
+    const buf = new Uint8Array(await r.arrayBuffer())
+    if (buf.length > 40 * 1024 * 1024) return json({ erro: 'grande demais' }, 400)
+    // formato: [2 bytes: tamanho da chave cifrada][chave AES cifrada com RSA-OAEP][12 bytes IV][zip cifrado com AES-GCM]
+    const n = (buf[0] << 8) | buf[1]
+    const priv = await crypto.subtle.importKey('jwk', (seg.dados as J).privada, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt'])
+    const aesRaw = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, priv, buf.slice(2, 2 + n))
+    const aes = await crypto.subtle.importKey('raw', aesRaw, 'AES-GCM', false, ['decrypt'])
+    const iv = buf.slice(2 + n, 14 + n)
+    const zip = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aes, buf.slice(14 + n)))
+    const arquivos = unzipSync(zip)
+    const { map } = await loja()
+    const ids = [...Object.keys(map).filter((id) => map[id].cat === 'arquivos'), 'bonus'].sort((a, b) => b.length - a.length)
+    const st = db.storage.from('ape-arquivos')
+    const feitos: string[] = []
+    const fora: string[] = []
+    for (const [nome, dados] of Object.entries(arquivos)) {
+      if (nome.endsWith('/') || nome.startsWith('__')) continue
+      const base = nome.split('/').pop()!.replace(/\.[^.]+$/, '').toLowerCase()
+      const id = ids.find((x) => base === x || base.startsWith(x + '-'))
+      if (!id) {
+        fora.push(nome)
+        continue
+      }
+      const arq = nome.split('/').pop()!
+      const tipo = /\.pdf$/i.test(arq) ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      const { error } = await st.upload(`${id}/${arq}`, dados, { contentType: tipo, upsert: true })
+      if (error) fora.push(`${nome} (${error.message})`)
+      else feitos.push(`${id}/${arq}`)
+    }
+    // entregas já marcadas (PDF com a licença) são refeitas com os arquivos novos
+    const { data: velhos } = await st.list('entregas', { limit: 1000 })
+    for (const pasta of velhos ?? []) {
+      const { data: fs } = await st.list(`entregas/${pasta.name}`, { limit: 100 })
+      if (fs?.length) await st.remove(fs.map((f) => `entregas/${pasta.name}/${f.name}`))
+    }
+    return json({ ok: true, guardados: feitos.length, arquivos: feitos, fora })
+  }
+
+  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar }
 }

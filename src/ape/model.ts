@@ -6,6 +6,7 @@ export const APE = {
   condominio: 'San Levi',
   apes: '38 a 40 m²',
   dona: 'Laís',
+  semestre: '9º', // semestre da Laís em Arquitetura e Urbanismo (aparece em projetos e reformas)
   doApe: 'apê 1204',
   meuApe: '40 m²', // o apê da Laís (exemplo padrão nos materiais)
   instagram: '@apzinho_1204',

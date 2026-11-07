@@ -1,0 +1,34 @@
+name: planê.apê · arquivos da loja
+
+# Manual. "chave": mostra a chave pública do servidor (para criptografar os arquivos).
+# "importar": o servidor baixa o pacote criptografado (pasta ape-import/), abre com a chave dele e guarda cada arquivo na pasta do produto.
+on:
+  workflow_dispatch:
+    inputs:
+      etapa:
+        description: 'chave ou importar'
+        required: true
+        default: 'chave'
+      pacote:
+        description: 'nome do arquivo em ape-import/ (só para importar)'
+        required: false
+        default: 'pacote.bin'
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    env:
+      FN: https://lbggvjebkhdcybpkxzxs.supabase.co/functions/v1/pagamentos
+      KEY: sb_publishable_uqo6nAVMS7iZsidCPNQRhg_YA9RNaYA
+    steps:
+      - name: Chamar o servidor
+        run: |
+          if [ "${{ inputs.etapa }}" = "importar" ]; then
+            BODY=$(jq -n --arg u "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/ape-import/${{ inputs.pacote }}" '{acao: "ape-importar", url: $u}')
+          else
+            BODY='{"acao":"ape-chave"}'
+          fi
+          CODE=$(curl -sS -o out.json -w '%{http_code}' -X POST "$FN" -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' --data "$BODY")
+          echo "status $CODE"
+          cat out.json; echo
+          [ "$CODE" -lt 300 ] || exit 1

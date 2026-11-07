@@ -9,10 +9,12 @@ import { SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolage
 /* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
 
 type ById = (id: string) => Produto | undefined
+let PIX = 5 // desconto do Pix da loja salva (definido ao abrir a loja)
 
 export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Morador | null; whats: string; abrir?: string }) {
   const produtos = ajustes.produtos
   const pixPct = ajustes.pixPct ?? 5
+  PIX = pixPct
   const ativos = produtos.filter((p) => p.ativo)
   const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei'>('todos')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
@@ -70,6 +72,16 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           {['m-compra.jpg', 'm-planilha.jpg', 'm-checklist.jpg'].map((f, i) => <img key={f} src={`ape/amostras/${f}`} alt="" className={`ape-lp-card c${i}`} />)}
         </div>
       </section>
+
+      <div className="ape-marquee" aria-hidden="true">
+        <div className="ape-marquee-track">
+          {[0, 1].map((k) => (
+            <span key={k}>
+              {arquivos.map((p) => <b key={p.id}><ApeIcon name="check" />{p.nome.toLowerCase()}</b>)}
+            </span>
+          ))}
+        </div>
+      </div>
 
       <section className="ape-story ape-panel">
         <span className="ape-me-av">L</span>
@@ -217,13 +229,13 @@ function ServicosSec({ whats, me }: { whats: string; me: Morador | null }) {
   return (
     <section className="ape-servicos ape-panel" id="loja-servicos">
       <div className="ape-servicos-h">
-        <ApeArt name="projeto3d" size={48} tone="sec" />
+        <ApeArt name="projeto3d" size={44} tone="sec" />
         <div>
           <p className="ape-eyebrow">serviço à parte · não faz parte da loja</p>
-          <h3 className="ape-sec-t">projetos e <em>reformas</em></h3>
+          <h3 className="ape-sec-t">precisa de um <em>projeto?</em></h3>
         </div>
       </div>
-      <p className="ape-note" style={{ margin: 0 }}>A {APE.dona} é estudante de Arquitetura e Urbanismo e trabalha em parceria com o pai, engenheiro civil, em projetos, serviços técnicos e reformas, inclusive para quem acabou de receber as chaves.</p>
+      <p className="ape-servicos-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho junto com o meu pai, que é engenheiro civil. Fazemos projetos, serviços técnicos e reformas, inclusive para quem acabou de receber as chaves.</p>
       <div className="ape-servicos-grid">
         {[
           ['projeto de layout e interiores', 'Planta com móveis, medidas e acabamentos.'],
@@ -304,14 +316,14 @@ const somaAvulsos = (p: Produto, byId: ById) => (p.combo || []).reduce((t, id) =
 
 function Preco({ p, byId, pixPct }: { p: Produto; byId: ById; pixPct?: number }) {
   const soma = somaAvulsos(p, byId)
-  const eco = p.combo?.length ? Math.max(0, soma - reais(p.preco)) : 0
+  const v = reais(p.preco)
+  const eco = p.combo?.length ? Math.max(0, soma - v) : 0
+  const pix = pixPct ? Math.round((v - Math.round(v * pixPct / 100 * 100) / 100) * 100) / 100 : v // mesma conta do carrinho e do servidor
   return (
-    <div className="ape-price">
-      {eco > 0 && <s className="ape-de ape-keep">{brl(soma)} separados</s>}
-      <span className="ape-keep">{p.preco}</span>
-      {p.unidade && <small> {p.unidade}</small>}
-      {pixPct ? <span className="ape-note ape-keep" style={{ display: 'block' }}>{brl(Math.round(reais(p.preco) * (100 - pixPct)) / 100)} no Pix</span> : null}
-      {eco > 0 && <span className="ape-pill rosa ape-keep" style={{ display: 'table', marginTop: 6 }}>economia de {brl(eco)} ({Math.round((eco / soma) * 100)}%)</span>}
+    <div className="ape-precos">
+      <div className="ape-precos-pix ape-keep">{brl(pix)} <small>no Pix</small></div>
+      <div className="ape-precos-cartao ape-keep">{brl(v)} no cartão{p.unidade ? ` · ${p.unidade}` : ''}</div>
+      {eco > 0 ? <div className="ape-precos-eco ape-keep"><s>{brl(soma)}</s> separados · economia de {Math.round((eco / soma) * 100)}%</div> : <div className="ape-precos-eco" aria-hidden="true">&nbsp;</div>}
     </div>
   )
 }
@@ -359,12 +371,11 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
       </div>
       <div className="ape-tags">
         {p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
-        {(p.numeros || []).slice(0, 2).map((x) => <span key={x} className="ape-pill ape-keep">{x}</span>)}
-        {p.combo?.length ? <span className="ape-pill">{p.combo.length} arquivos</span> : null}
+        {p.combo?.length ? <span className="ape-pill">{p.combo.length} arquivos</span> : (p.numeros || []).slice(0, 1).map((x) => <span key={x} className="ape-pill ape-keep">{x}</span>)}
       </div>
-      <p>{p.desc}</p>
-      {(p.itens || []).length > 0 && p.combo?.length ? <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="gift" /> {p.itens!.map((x) => x.replace(/^\+\s*/, '')).join(' · ')}</p> : null}
-      <Preco p={p} byId={byId} />
+      <p className="ape-prod-desc">{p.desc}</p>
+      {(p.itens || []).length > 0 && p.combo?.length ? <p className="ape-note ape-prod-extra"><ApeIcon name="gift" /> {p.itens!.map((x) => x.replace(/^\+\s*/, '')).join(' · ')}</p> : null}
+      <Preco p={p} byId={byId} pixPct={PIX} />
       <div className="ape-acts">
         <button className="ape-btn wide" onClick={onOpen}>detalhes</button>
         <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
