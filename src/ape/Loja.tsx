@@ -684,7 +684,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           <p className="ape-eyebrow"><ApeIcon name="shield" /> compra segura</p>
           <h2 className="ape-h2">finalizar <em>compra</em></h2>
         </div>
-        <a className="ape-btn ghost" href={href('ape', 'loja')}>voltar para a loja</a>
+        <a className="ape-btn ghost so-pc-ape" href={href('ape', 'loja')}>voltar para a loja</a>
       </div>
       <form className="ape-co" onSubmit={submit} noValidate>
         <div className="ape-co-steps">

@@ -432,11 +432,11 @@ function Resumo({ acc, dados, im, nome, foto, casa, token, demo, mudar, irPara, 
           <div className="ape-pp-card-h"><p className="ape-eyebrow">orçamento da obra</p><button className="ape-linkish ape-link" onClick={() => irPara('gastos')}>ver gastos</button></div>
           {previsto || pago || meta ? (
             <div className="ape-pp-rosca-l">
-              <Rosca partes={[{ v: pago, c: 'var(--a-pri)', l: 'pago' }, { v: comprado, c: 'var(--a-sec)', l: 'comprado' }, { v: Math.max(0, (meta || 0) - pago - comprado), c: 'color-mix(in srgb, var(--a-pri) 22%, var(--a-sand))', l: 'falta' }]} centro={meta ? `${Math.round((pago / meta) * 100)}%` : '0%'} sub="pago" />
+              <Rosca partes={[{ v: pago, c: 'var(--a-pri)', l: 'pago' }, { v: comprado, c: 'var(--a-sec)', l: 'comprado' }, { v: Math.max(0, (meta || 0) - pago - comprado), c: 'var(--a-pri-soft)', l: 'falta' }]} centro={meta ? `${Math.round((pago / meta) * 100)}%` : '0%'} sub="pago" />
               <ul className="ape-legenda">
                 <li><i style={{ background: 'var(--a-pri)' }} />pago<b className="ape-keep">{brl(pago)}</b></li>
                 <li><i style={{ background: 'var(--a-sec)' }} />comprado, a pagar<b className="ape-keep">{brl(comprado)}</b></li>
-                <li><i style={{ background: 'color-mix(in srgb, var(--a-pri) 22%, var(--a-sand))' }} />ainda falta<b className="ape-keep">{brl(Math.max(0, (meta || 0) - pago - comprado))}</b></li>
+                <li><i style={{ background: 'var(--a-pri-soft)' }} />ainda falta<b className="ape-keep">{brl(Math.max(0, (meta || 0) - pago - comprado))}</b></li>
               </ul>
             </div>
           ) : <EmptyCard t="Coloque quanto quer gastar e lance os gastos para ver o gráfico." b="lançar gasto" onClick={() => irPara('gastos')} />}
@@ -504,11 +504,12 @@ function Gastos({ lista, orcamento, mudar }: { lista: PlatGasto[]; orcamento: nu
   const pago = lista.reduce((t, x) => t + (x.pago || 0), 0)
   const set = (id: string, k: keyof PlatGasto, v: unknown) => mudar((l) => l.map((g) => (g.id === id ? { ...g, [k]: v } : g)))
   const vis = lista.filter((g) => filtro === 'todos' || g.comodo === filtro)
+  const [aberto, setAberto] = useState('')
   return (
     <section className="ape-panel ape-plat-sec">
       <div className="ape-plat-sec-h">
         <div><p className="ape-eyebrow">gastos por cômodo</p><span className="ape-note ape-keep">previsto {brl(previsto)} · pago {brl(pago)} · falta {brl(Math.max(0, previsto - pago))}{orcamento ? ` · orçamento ${brl(orcamento)}` : ''}</span></div>
-        <button className="ape-btn primary sm" onClick={() => mudar((l) => [...l, { id: uid(), comodo: filtro === 'todos' ? 'geral' : filtro, item: '', previsto: null, pago: null, status: 'planejado', data: '', obs: '' }])}><ApeIcon name="plus" />gasto</button>
+        <button className="ape-btn primary sm" onClick={() => { const id = uid(); setAberto(id); mudar((l) => [{ id, comodo: filtro === 'todos' ? 'geral' : filtro, item: '', previsto: null, pago: null, status: 'planejado', data: '', obs: '' }, ...l]) }}><ApeIcon name="plus" />gasto</button>
       </div>
       {orcamento ? <div className="ape-bar" aria-label="Quanto do orçamento já foi"><i style={{ width: `${Math.min(100, (pago / orcamento) * 100)}%` }} /></div> : null}
       {por.length > 0 && (
@@ -519,8 +520,15 @@ function Gastos({ lista, orcamento, mudar }: { lista: PlatGasto[]; orcamento: nu
       )}
       {!vis.length && <div className="ape-empty"><span>Nenhum gasto ainda. Toque em "+ gasto".</span></div>}
       <div className="ape-plat-list">
-        {vis.map((g) => (
-          <div key={g.id} className="ape-plat-item">
+        {vis.map((g) => aberto !== g.id ? (
+          <button key={g.id} className="ape-pp-linha" onClick={() => setAberto(g.id)}>
+            <span className={`st ${g.status}`} aria-hidden="true"><ApeIcon name={g.status === 'planejado' ? 'clock' : 'check'} /></span>
+            <span className="t"><b>{g.item || 'gasto sem nome'}</b><small>{g.comodo} · {g.status}</small></span>
+            <span className="v ape-keep">{brl(g.pago ?? g.previsto ?? 0)}</span>
+            <ApeIcon name="chev" />
+          </button>
+        ) : (
+          <div key={g.id} className="ape-plat-item aberto">
             <div className="ape-frow">
               <div className="ape-f"><label>Item</label><input value={g.item} onChange={(e) => set(g.id, 'item', e.target.value)} placeholder="ex.: piso da sala" /></div>
               <div className="ape-f"><label>Cômodo</label><select value={g.comodo} onChange={(e) => set(g.id, 'comodo', e.target.value)}>{COMODOS.map((c) => <option key={c}>{c}</option>)}</select></div>
@@ -532,7 +540,10 @@ function Gastos({ lista, orcamento, mudar }: { lista: PlatGasto[]; orcamento: nu
             </div>
             <div className="ape-frow">
               <div className="ape-f"><label>Obs.</label><input value={g.obs} onChange={(e) => set(g.id, 'obs', e.target.value)} placeholder="loja, forma de pagamento…" /></div>
-              <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== g.id))} aria-label="Apagar gasto"><ApeIcon name="trash" /></button>
+            </div>
+            <div className="ape-acts ape-pp-item-acts">
+              <button className="ape-btn primary sm" onClick={() => setAberto('')}><ApeIcon name="check" />pronto</button>
+              <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== g.id))} aria-label="Apagar gasto"><ApeIcon name="trash" />apagar</button>
             </div>
           </div>
         ))}
@@ -545,11 +556,12 @@ function Parcelas({ lista, mudar }: { lista: PlatParcela[]; mudar: Mudar<PlatPar
   const ms = meses(lista, 12)
   const max = Math.max(1, ...ms.map((m) => m.total))
   const set = (id: string, k: keyof PlatParcela, v: unknown) => mudar((l) => l.map((p) => (p.id === id ? { ...p, [k]: v } : p)))
+  const [aberto, setAberto] = useState('')
   return (
     <section className="ape-panel ape-plat-sec">
       <div className="ape-plat-sec-h">
         <div><p className="ape-eyebrow">parcelas dos próximos 12 meses</p><span className="ape-note ape-keep">total no período: {brl(ms.reduce((t, m) => t + m.total, 0))}</span></div>
-        <button className="ape-btn primary sm" onClick={() => mudar((l) => [...l, { id: uid(), descricao: '', valor: null, vezes: 1, inicio: hoje(), dia: null }])}><ApeIcon name="plus" />parcela</button>
+        <button className="ape-btn primary sm" onClick={() => { const id = uid(); setAberto(id); mudar((l) => [{ id, descricao: '', valor: null, vezes: 1, inicio: hoje(), dia: null }, ...l]) }}><ApeIcon name="plus" />parcela</button>
       </div>
       <div className="ape-meses" aria-label="Parcelas por mês">
         {ms.map((m) => (
@@ -562,8 +574,15 @@ function Parcelas({ lista, mudar }: { lista: PlatParcela[]; mudar: Mudar<PlatPar
       </div>
       {!lista.length && <div className="ape-empty"><span>Cadastre as parcelas (marcenaria, móveis, financiamento…) e veja o mês a mês.</span></div>}
       <div className="ape-plat-list">
-        {lista.map((p) => (
-          <div key={p.id} className="ape-plat-item">
+        {lista.map((p) => aberto !== p.id ? (
+          <button key={p.id} className="ape-pp-linha" onClick={() => setAberto(p.id)}>
+            <span className="st" aria-hidden="true"><ApeIcon name="clock" /></span>
+            <span className="t"><b>{p.descricao || 'parcela sem nome'}</b><small>{p.vezes || 1}x · a partir de {p.inicio ? dmy(p.inicio) : '—'}</small></span>
+            <span className="v ape-keep">{brl(p.valor || 0)}</span>
+            <ApeIcon name="chev" />
+          </button>
+        ) : (
+          <div key={p.id} className="ape-plat-item aberto">
             <div className="ape-frow">
               <div className="ape-f"><label>O que é</label><input value={p.descricao} onChange={(e) => set(p.id, 'descricao', e.target.value)} placeholder="ex.: marcenaria" /></div>
               <div className="ape-f"><label>1ª parcela</label><input type="date" value={p.inicio} onChange={(e) => set(p.id, 'inicio', e.target.value)} /></div>
@@ -571,9 +590,12 @@ function Parcelas({ lista, mudar }: { lista: PlatParcela[]; mudar: Mudar<PlatPar
             <div className="ape-frow">
               <div className="ape-f"><label>Valor da parcela (<span className="ape-keep">R$</span>)</label><input inputMode="decimal" value={p.valor ?? ''} onChange={(e) => set(p.id, 'valor', num(e.target.value))} /></div>
               <div className="ape-f"><label>Quantas vezes</label><input inputMode="numeric" value={p.vezes ?? ''} onChange={(e) => set(p.id, 'vezes', num(e.target.value))} /></div>
-              <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== p.id))} aria-label="Apagar parcela"><ApeIcon name="trash" /></button>
             </div>
             {p.valor && p.vezes ? <span className="ape-note ape-keep">total: {brl(p.valor * p.vezes)}</span> : null}
+            <div className="ape-acts ape-pp-item-acts">
+              <button className="ape-btn primary sm" onClick={() => setAberto('')}><ApeIcon name="check" />pronto</button>
+              <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== p.id))} aria-label="Apagar parcela"><ApeIcon name="trash" />apagar</button>
+            </div>
           </div>
         ))}
       </div>

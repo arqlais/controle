@@ -212,8 +212,8 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
           <div className="ape-f">
             <label>Para qual planta é? <span className="ape-opc">{me?.ap ? `seu apê ${me.ap} é ${PLANTA_ROT[plantaDoAp(me.ap)] || 'de planta não identificada'}` : ''}</span></label>
             <div className="ape-seg" role="radiogroup" aria-label="Planta">
-              {([['canto', 'canto (finais 01, 02, 11 e 12)'], ['corredor', 'corredor (finais 03 a 10)'], ['', 'não sei']] as const).map(([id, l]) => (
-                <button key={id || 'nao'} type="button" role="radio" aria-checked={planta === id} onClick={() => setPlanta(id)}>{l}</button>
+              {([['canto', 'canto', 'finais 01, 02, 11, 12'], ['corredor', 'corredor', 'finais 03 a 10'], ['', 'não sei', 'tudo bem']] as const).map(([id, l, d]) => (
+                <button key={id || 'nao'} type="button" role="radio" className="ape-seg2" aria-checked={planta === id} onClick={() => setPlanta(id)}><b>{l}</b><small>{d}</small></button>
               ))}
             </div>
           </div>

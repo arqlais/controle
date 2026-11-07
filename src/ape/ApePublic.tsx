@@ -398,10 +398,10 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
           <button key={x} className="ape-chip" aria-pressed={pl === x} onClick={() => setPl(x)}>{x === 'todas' ? 'todas' : x}{x === minhaPlanta ? ' · a sua' : ''}</button>
         ))}
       </div>
-      <p className="ape-aviso">
-        <ApeIcon name="alert" />
-        <span>Cada orçamento foi feito para um apê: as plantas de canto (finais 01, 02, 11 e 12) e de corredor (finais 03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Por isso separamos por acabamento e mostramos a planta: dá para ver qual fornecedor sai mais em conta, mesmo sem ser igualzinho. O "mais compensa" é um cálculo automático, não uma indicação.</span>
-      </p>
+      <details className="ape-aviso ape-aviso-d">
+        <summary><ApeIcon name="alert" /><span>Separamos por <b>acabamento</b> e mostramos a <b>planta</b> de cada orçamento. <u>entenda</u></span></summary>
+        <p>Cada orçamento foi feito para um apê: as plantas de canto (finais 01, 02, 11 e 12) e de corredor (finais 03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Mesmo sem ser igualzinho, dá para ver qual fornecedor sai mais em conta. Quando o orçamento não diz a planta, o site tenta descobrir pelas medidas. O "mais compensa" é um cálculo automático, não uma indicação.</p>
+      </details>
       <details className="ape-grupo-como">
         <summary><ApeIcon name="users" /><span><b>como funciona o fechar em grupo</b><small>mais apês = mais força para pedir desconto</small></span><ApeIcon name="chev" /></summary>
         <ol>
