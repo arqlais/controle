@@ -1312,3 +1312,8 @@
   .ape .ape-toolbar .ape-vista { flex: none; }
   .ape .ape-toolbar .ape-tog { flex: 1 1 100%; justify-content: flex-start; white-space: nowrap; }
 }
+
+/* painel: testar como cliente com tudo liberado */
+.ape-tudo { border: 1px solid color-mix(in srgb, var(--a-pri) 30%, var(--a-line)); background: linear-gradient(135deg, var(--a-pri-soft), var(--a-card)); }
+.ape-tudo-links { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ape-tudo-links .ape-note { flex-basis: 100%; }

@@ -614,7 +614,7 @@ export const loja = {
     return (data ?? []).map((r) => ({ ...(r as PedidoAdmin), cpf: String(r.cpf ?? ''), total: Number(r.total), subtotal: Number(r.subtotal), desconto: Number(r.desconto), cortesia: !!r.cortesia, obs: String(r.obs ?? '') }))
   },
   /** Pedido de cortesia (sem pagar): para a dona testar como cliente ou dar acesso a alguém. Já sai pago. */
-  async cortesia(d: { nome: string; email: string; cpf: string; tel: string; itens: Produto[]; obs?: string }): Promise<string> {
+  async cortesia(d: { nome: string; email: string; cpf: string; tel: string; itens: Produto[]; obs?: string; bonusJa?: boolean }): Promise<string> {
     const itens = d.itens.map((p) => ({ id: p.id, nome: p.nome, preco: 0, cat: p.cat }))
     if (!CLOUD) {
       const token = crypto.randomUUID()
@@ -625,7 +625,7 @@ export const loja = {
       lembrar(token, 0)
       return token
     }
-    const { data, error } = await sb().from('ape_pedidos').insert({ nome: d.nome, email: d.email.toLowerCase(), cpf: d.cpf.replace(/\D/g, ''), tel: d.tel.replace(/\D/g, ''), itens, subtotal: 0, desconto: 0, total: 0, status: 'pago', forma: 'cortesia', cortesia: true, pago_em: new Date().toISOString(), obs: d.obs || 'cortesia' }).select('token').single()
+    const { data, error } = await sb().from('ape_pedidos').insert({ nome: d.nome, email: d.email.toLowerCase(), cpf: d.cpf.replace(/\D/g, ''), tel: d.tel.replace(/\D/g, ''), itens, subtotal: 0, desconto: 0, total: 0, status: 'pago', forma: 'cortesia', cortesia: true, pago_em: new Date(Date.now() - (d.bonusJa ? 8 * 864e5 : 0)).toISOString(), obs: d.obs || 'cortesia' }).select('token').single()
     fail(error)
     lembrar(String(data!.token), 0)
     return String(data!.token)

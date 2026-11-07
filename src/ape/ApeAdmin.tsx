@@ -5,6 +5,7 @@ import { href } from '../router'
 import { useStore } from '../store'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
+import { emailOk } from './shared'
 import {
   APE, BONUS, SELOS, PIX_PCT, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
@@ -1180,10 +1181,56 @@ function Opinioes() {
 }
 
 /* ===== testar como cliente: a dona vê a compra e o pós-compra como quem compra ===== */
+/** Um toque: a dona vira cliente com tudo liberado (todos os arquivos, plataforma e o bônus já aberto). */
+function TudoLiberado({ produtos, onDone }: { produtos: Produto[]; onDone: () => void }) {
+  const [email, setEmail] = useState(() => localStorage.getItem('ape-teste-email') || 'equipe.plane@gmail.com')
+  const [token, setToken] = useState('')
+  const [busy, setBusy] = useState(false)
+  const vendaveis = produtos.filter((p) => p.ativo && noCarrinho(p))
+  const completo = vendaveis.find((p) => p.id === 'kit-completo')
+  const itens = [...(completo ? [completo] : vendaveis.filter((p) => p.cat === 'arquivos')), ...vendaveis.filter((p) => p.cat === 'plataforma')]
+  const liberar = async () => {
+    if (!emailOk(email)) return toast('Coloque um e-mail válido (é com ele que você entra em minha conta).')
+    setBusy(true)
+    try {
+      try { localStorage.setItem('ape-teste-email', email) } catch { /* sem armazenamento */ }
+      const t = await loja.cortesia({ nome: 'Laís (teste)', email, cpf: '', tel: '', itens, obs: 'teste da dona', bonusJa: true })
+      setToken(t)
+      onDone()
+      toast('Tudo liberado para você.')
+    } catch (e) {
+      toast(`Não consegui (${(e as Error).message}).`)
+    }
+    setBusy(false)
+  }
+  return (
+    <div className="ape-panel ape-adm-box ape-tudo">
+      <p className="ape-eyebrow">testar como cliente</p>
+      <h3 style={{ margin: 0 }}>tudo liberado, num toque</h3>
+      <p className="ape-note" style={{ margin: 0 }}>Cria uma compra de teste (sem pagar) com os {completo ? (completo.combo || []).length : itens.length} arquivos, a plataforma do apê e o bônus já aberto. Não entra nas vendas nem nos valores.</p>
+      <div className="ape-frow">
+        <div className="ape-f"><label htmlFor="t-email">E-mail para entrar em minha conta</label><input id="t-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+      </div>
+      {!token ? (
+        <div className="ape-acts"><button className="ape-btn primary" disabled={busy} onClick={() => void liberar()}><ApeIcon name="sparkle" />{busy ? 'liberando…' : 'liberar tudo para mim'}</button></div>
+      ) : (
+        <div className="ape-tudo-links">
+          <a className="ape-btn primary" href={href('ape', `pedido:${token}`)} target="_blank" rel="noreferrer"><ApeIcon name="download" />arquivos, bônus e plataforma</a>
+          <a className="ape-btn" href={href('ape', 'conta')} target="_blank" rel="noreferrer"><ApeIcon name="user" />minha conta</a>
+          <a className="ape-btn" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="bag" />loja</a>
+          <a className="ape-btn" href={href('ape')} target="_blank" rel="noreferrer"><ApeIcon name="home" />área do San Levi</a>
+          <span className="ape-note">Em minha conta, use "primeiro acesso" com {email} para criar a senha (o código chega nesse e-mail).</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos: PedidoAdmin[]; onChange: () => void }) {
   const meus = pedidos.filter((p) => p.cortesia && p.obs === 'teste da dona')
   return (
     <div style={{ display: 'grid', gap: 12 }}>
+      <TudoLiberado produtos={produtos} onDone={onChange} />
       <div className="ape-banner">Aqui você vê tudo como cliente. O <b>acesso de teste</b> é um pedido de cortesia (sem pagar) com a página do pedido, os downloads com o seu nome no rodapé, o bônus (no 8º dia) e a plataforma do apê. Para testar o pagamento de verdade, faça uma compra pequena na loja e depois reembolse em "vendas".</div>
       <div className="ape-acts">
         <a className="ape-btn" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="bag" />abrir a loja</a>
