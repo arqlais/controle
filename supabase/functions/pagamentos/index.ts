@@ -218,6 +218,7 @@ Deno.serve(async (req) => {
       if (b.acao === 'ape-baixar') return await ape.baixar(b)
       if (b.acao === 'ape-recuperar') return await ape.recuperar(b)
       if (b.acao === 'ape-chave') return await ape.chave()
+      if (b.acao === 'ape-testar-ia') return await ape.testarIa()
       if (b.acao === 'ape-importar') return await ape.importar(b)
       return json({ erro: 'Falta o segredo ASAAS_API_KEY no Supabase.' }, 500)
     }
@@ -231,6 +232,7 @@ Deno.serve(async (req) => {
     if (body.acao === 'ape-reembolsar') return await ape.reembolsar(req, body)
     if (body.acao === 'ape-ler') return await ape.ler(body)
     if (body.acao === 'ape-chave') return await ape.chave()
+    if (body.acao === 'ape-testar-ia') return await ape.testarIa()
     if (body.acao === 'ape-importar') return await ape.importar(body)
     return json({ erro: 'Ação desconhecida.' }, 400)
   } catch (e) {

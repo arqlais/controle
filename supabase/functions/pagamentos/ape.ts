@@ -361,18 +361,18 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     const texto = String(body.texto ?? '').slice(0, 12000)
     if (!parts.length && !texto.trim()) return json({ erro: 'nada para ler' }, 400)
     await db.from('ape_leituras').insert({ morador })
-    // chave do Google AI Studio (AIza…) ou do Vertex AI no modo express (AQ.…)
-    const vertex = key.startsWith('AQ.')
-    const r = await fetch(vertex ? `https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}` : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
-      method: 'POST',
-      headers: vertex ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } }),
-    })
+    // chave do Google AI Studio (AIza… ou AQ.…); se o Gemini recusar uma chave AQ., tenta o Vertex AI (modo express)
+    const reqBody = JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } })
+    let r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: reqBody })
+    if (!r.ok && [400, 401, 403].includes(r.status) && key.startsWith('AQ.')) {
+      const v = await fetch(`https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: reqBody }).catch(() => null)
+      if (v?.ok) r = v
+    }
     const out = (await r.json().catch(() => ({}))) as J
     if (!r.ok) {
       const msg = String(out.error?.message ?? '')
       console.log('ape-ler: Gemini respondeu', r.status, msg.slice(0, 300))
-      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 429 ? 'limite do Gemini atingido' : 'não deu para ler agora', status: r.status }, 502)
+      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 429 ? 'limite do Gemini atingido' : 'não deu para ler agora', status: r.status }, 502)
     }
     const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
     let v: J = {}
@@ -441,5 +441,22 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     return json({ ok: true, guardados: feitos.length, arquivos: feitos, fora })
   }
 
-  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar }
+  /** Teste da IA (pelo GitHub): faz uma pergunta mínima com a chave guardada e devolve só a resposta do Google. */
+  async function testarIa() {
+    const key = await geminiKey()
+    if (!key) return json({ chave: 'nenhuma' })
+    const body = JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Responda só: ok' }] }] })
+    const tenta = async (url: string, h: Record<string, string>) => {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...h }, body }).catch((e) => ({ ok: false, status: 0, json: async () => ({ error: { message: String(e) } }) }) as unknown as Response)
+      const o = (await r.json().catch(() => ({}))) as J
+      return { status: r.status, msg: String(o.error?.message ?? o.candidates?.[0]?.content?.parts?.[0]?.text ?? '').slice(0, 300) }
+    }
+    return json({
+      chave: `${key.slice(0, 3)}… (${key.length} caracteres)`,
+      gemini: await tenta('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', { 'x-goog-api-key': key }),
+      vertex: key.startsWith('AQ.') ? await tenta(`https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}`, {}) : null,
+    })
+  }
+
+  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa }
 }

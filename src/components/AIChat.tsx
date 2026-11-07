@@ -90,16 +90,17 @@ const isNetError = (e: unknown) => e instanceof TypeError || /load failed|failed
 
 /** Uma chamada ao Gemini, recebendo a resposta aos pouquinhos (assim o celular não derruba a conexão enquanto a IA pensa). */
 async function callGemini(model: string, key: string, body: string, onText?: (t: string) => void) {
-  // chave do Google AI Studio (AIza…) ou do Vertex AI no modo express (AQ.…): cada uma tem o seu endereço
-  const vertex = key.trim().startsWith('AQ.')
-  const url = vertex
-    ? `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key.trim())}`
-    : `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`
-  const res = await fetch(url, {
+  // chave do Google AI Studio (AIza… ou o formato novo AQ.…): endereço do Gemini; se recusar uma chave AQ., tenta o do Vertex AI (modo express)
+  const k = key.trim()
+  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
     method: 'POST',
-    headers: vertex ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k },
     body,
   })
+  if (!res.ok && [400, 401, 403].includes(res.status) && k.startsWith('AQ.')) {
+    const v = await fetch(`https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(k)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }).catch(() => null)
+    if (v?.ok) res = v
+  }
   if (!res.ok || !res.body) {
     const json = await res.json().catch(() => ({}))
     return { status: res.status, error: String((Array.isArray(json) ? json[0] : json)?.error?.message ?? ''), text: '' }
@@ -161,7 +162,7 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
     if (r.status === 400 && /api key/i.test(msg)) throw new Error('A chave do Gemini não é válida. Confira em configurações → assistente.')
     if (r.status === 400 && /image|mime|inline/i.test(msg)) throw new Error('A IA não conseguiu ler esse anexo. Tente mandar como foto (JPG) ou PDF.')
     if (r.status === 429) throw new Error('Limite de uso do Gemini atingido por agora. Tente de novo em alguns minutos.')
-    if (r.status === 403) throw new Error('A chave não tem permissão para o Gemini. Crie uma nova no Google AI Studio.')
+    if (r.status === 403) throw new Error(`A chave não tem permissão para o Gemini${msg ? ` (Google: ${msg.slice(0, 140)})` : ''}. Confira em aistudio.google.com → Get API key se a API está ativa para essa chave, ou crie uma nova.`)
     if (r.status === 413) throw new Error('Os anexos ficaram grandes demais. Mande menos arquivos de uma vez.')
     if (r.status >= 500) throw new Error('O Gemini está instável agora. Tente de novo em instantes.')
     throw new Error(msg || `Erro ${r.status} ao falar com o Gemini.`)

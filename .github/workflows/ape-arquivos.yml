@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       etapa:
-        description: 'chave ou importar'
+        description: 'chave, importar ou testar-ia'
         required: true
         default: 'chave'
       pacote:
@@ -25,6 +25,8 @@ jobs:
         run: |
           if [ "${{ inputs.etapa }}" = "importar" ]; then
             BODY=$(jq -n --arg u "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/ape-import/${{ inputs.pacote }}" '{acao: "ape-importar", url: $u}')
+          elif [ "${{ inputs.etapa }}" = "testar-ia" ]; then
+            BODY='{"acao":"ape-testar-ia"}'
           else
             BODY='{"acao":"ape-chave"}'
           fi
