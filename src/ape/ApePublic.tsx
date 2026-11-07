@@ -12,6 +12,7 @@ import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
 import { Plataforma } from './Plataforma'
 import { Comparar } from './Comparar'
+import { Conta } from './Conta'
 import './ape.css'
 
 /* Página pública do planê.apê: os moradores do San Levi se cadastram, comparam os orçamentos,
@@ -21,11 +22,11 @@ const CAD = 'ape-cadastro'
 const UI = 'ape-ui'
 const GRUPOS = 'ape-grupos'
 
-type View = 'orcamentos' | 'enviar' | 'loja' | 'pedido' | 'checkout' | 'minha' | 'entrar'
+type View = 'orcamentos' | 'enviar' | 'loja' | 'pedido' | 'checkout' | 'minha' | 'entrar' | 'conta'
 
 export function ApePublic({ sub }: { sub?: string }) {
   const route = useRoute()
-  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : sub?.startsWith('pedido:') ? 'pedido' : sub === 'checkout' ? 'checkout' : sub?.startsWith('minha:') ? 'minha' : sub?.startsWith('entrar:') ? 'entrar' : 'orcamentos'
+  const view: View = sub === 'enviar' ? 'enviar' : sub?.startsWith('loja') ? 'loja' : sub?.startsWith('pedido:') ? 'pedido' : sub === 'checkout' ? 'checkout' : sub?.startsWith('minha:') ? 'minha' : sub?.startsWith('entrar:') ? 'entrar' : sub?.startsWith('conta') ? 'conta' : 'orcamentos'
   const abrir = sub?.startsWith('loja:') ? sub.slice(5) : undefined
   const [d, setD] = useState<Publico | null | undefined>(undefined)
   const [owner, setOwner] = useState(false)
@@ -81,7 +82,7 @@ export function ApePublic({ sub }: { sub?: string }) {
   if (view === 'minha') return <div className="ape"><Plataforma token={sub!.slice(6)} whats={whats} /></div>
 
   // loja, checkout e pedido: página de vendas aberta a todos; orçamentos e envio: só moradores do San Levi
-  const publico = view === 'loja' || view === 'checkout' || view === 'pedido'
+  const publico = view === 'loja' || view === 'checkout' || view === 'pedido' || view === 'conta'
   const morador = !!me && ehSanLevi(me)
   // a dona vê os orçamentos sem cadastro; para ENVIAR, ela também precisa de um (vira moradora como os outros)
   const pedeCadastro = !publico && view !== 'entrar' && (editing || (!me && !(owner && view === 'orcamentos')))
@@ -160,6 +161,8 @@ export function ApePublic({ sub }: { sub?: string }) {
           <Enviar me={me} whats={whats} orcamentos={vis} meusIds={d.meus} onPublicado={() => void recarregar()} onCadastro={() => setEditing(true)} />
         ) : view === 'checkout' ? (
           <Checkout ajustes={d.ajustes} me={me} whats={whats} />
+        ) : view === 'conta' ? (
+          <Conta sub={sub} whats={whats} />
         ) : view === 'pedido' ? (
           <PedidoPage token={sub!.slice(7)} whats={whats} produtos={d.ajustes.produtos} />
         ) : (
@@ -225,7 +228,7 @@ function ShopNav({ morador }: { morador: boolean }) {
           <button onClick={() => ir('loja-kits')}>kits</button>
           <button onClick={() => ir('loja-plataforma')}>plataforma</button>
           <button onClick={() => ir('loja-servicos')}>projetos</button>
-          <button onClick={() => ir('loja-compras')}>minhas compras</button>
+          <a href={href('ape', 'conta')}>minha conta</a>
           {morador && <a href={href('ape')}>área do {APE.condominio}</a>}
         </nav>
         <a className="ape-cartbtn" href={href('ape', 'loja:carrinho')} onClick={() => window.dispatchEvent(new Event('ape-abrir-carrinho'))} aria-label={`Carrinho com ${n} itens`}>

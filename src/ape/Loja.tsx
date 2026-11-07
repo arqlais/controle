@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
-import { baixarArquivo, criarPedido, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
+import { baixarArquivo, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, KIT_PLATAFORMA_MESES, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
@@ -182,6 +182,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         </div>
       </section>
 
+      <Depoimentos />
       <section className="ape-faq" id="loja-duvidas">
         <h3 className="ape-sec-t">dúvidas <em>frequentes</em></h3>
         {[
@@ -225,6 +226,27 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       {verCarrinho && <CarrinhoSheet produtos={produtos} pixPct={pixPct} cart={cart} onClose={() => setVerCarrinho(false)} onOpen={(p) => { setVerCarrinho(false); setAberto(p) }} />}
       {toast}
     </>
+  )
+}
+
+/* depoimentos publicados pela dona (só aparecem se houver) */
+function Depoimentos() {
+  const [l, setL] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
+  useEffect(() => void carregarDepoimentos().then(setL), [])
+  if (!l.length) return null
+  return (
+    <section className="ape-depos" aria-label="Depoimentos">
+      <h3 className="ape-sec-t">quem comprou <em>conta</em></h3>
+      <div className="ape-depos-grid">
+        {l.map((d, i) => (
+          <figure key={i} className="ape-depo">
+            {d.nota ? <span className="ape-depo-nota" aria-label={`${d.nota} de 5`}>{'★'.repeat(d.nota)}</span> : null}
+            <blockquote>{d.texto}</blockquote>
+            <figcaption>{d.nome}</figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -718,9 +740,9 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>Identificação da licença.</b> Cada PDF sai com o nome de quem comprou, parte do CPF e o número do pedido no rodapé, para identificar cópias não autorizadas.</li>
             <li><b>Conteúdo informativo.</b> Os materiais são guias práticos e não substituem a orientação de profissionais habilitados, do seu banco, da construtora ou do contrato. Regras de financiamento e seguro variam conforme o banco, o programa e o contrato.</li>
             <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: Pix com {pixPct}% de desconto ou cartão de crédito à vista, sem parcelamento. O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
-            <li><b>Entrega.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma. Você pode baixar de novo quando quiser pela página do pedido ou em "minhas compras".</li>
+            <li><b>Entrega e conta.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma; você também recebe o link por e-mail. Com o e-mail da compra você cria uma senha em minha conta e acessa tudo de qualquer aparelho. Guarde a senha e não a compartilhe.</li>
             <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus gratuito ({BONUS.nome.toLowerCase()}). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>
-            <li><b>Direito de arrependimento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor), pelo WhatsApp ou e-mail. Devolvemos o valor integral, pelo mesmo meio de pagamento. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>
+            <li><b>Direito de arrependimento e cancelamento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor). Peça em minha conta → minhas compras (ou pelo WhatsApp ou e-mail). Dentro dos 7 dias o pedido é sempre aprovado e devolvemos o valor integral, pelo mesmo meio de pagamento. Depois desse prazo, o pedido é analisado caso a caso. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>
             <li><b>Problemas.</b> Arquivo com defeito ou que não abre: corrigimos, trocamos ou devolvemos o valor, como prevê o Código de Defesa do Consumidor.</li>
             <li><b>Plataforma do apê.</b> O acesso dura 12 meses a partir da liberação (ou 1 mês no presente do kit completo), por um link pessoal que funciona como chave: guarde-o e não compartilhe. Os dados que você registra são seus; depois do prazo, a plataforma fica só para consulta.</li>
             <li><b>Seus dados (LGPD).</b> Usamos nome, CPF, e-mail e celular só para emitir a cobrança, entregar, identificar a licença, recuperar compras e atender você. Eles são compartilhados apenas com o Asaas (pagamento) e com o Supabase (onde o site guarda as informações). Você pode pedir acesso, correção ou exclusão pelo e-mail acima, respeitado o que a lei obriga a guardar.</li>
@@ -773,7 +795,10 @@ function MinhasCompras() {
     <section className="ape-panel ape-minhas" id="loja-compras">
       <div className="ape-minhas-h">
         <p className="ape-eyebrow">minhas compras</p>
-        <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'comprou em outro aparelho?'}</button>
+        <div className="ape-acts" style={{ gap: 6 }}>
+          <a className="ape-btn primary sm" href={href('ape', 'conta')}><ApeIcon name="shield" />entrar na minha conta</a>
+          <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'sem senha? buscar pelo CPF'}</button>
+        </div>
       </div>
       {l.length > 0 ? (
         <div className="ape-rows">
@@ -948,6 +973,13 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
             <b>bônus: {BONUS.nome.toLowerCase()}</b>
             <span>{p.bonus.liberado ? 'Liberado: ele está na lista acima.' : `Chega aqui em ${p.bonus.em ? dmy(p.bonus.em) : '7 dias'}. Volte nesta página.`}</span>
           </span>
+        </div>
+      )}
+      {!p.cortesia && (
+        <div className="ape-conta-convite">
+          <ApeIcon name="shield" />
+          <span><b>acesse quando quiser</b>Crie a sua senha com o e-mail da compra e encontre os arquivos, a plataforma e o bônus em minha conta, de qualquer aparelho.</span>
+          <a className="ape-btn sm" href={href('ape', `conta:criar:${token}:${encodeURIComponent(p.email || '')}`)}>criar senha</a>
         </div>
       )}
       <p className="ape-note" style={{ margin: 0 }}>Precisa de ajuda ou quer desistir (até 7 dias depois da compra)? <a className="ape-link" href={wa(whats, `Oi! Sobre o pedido ${token.slice(0, 8)}:`)} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>

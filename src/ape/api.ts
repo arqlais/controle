@@ -413,6 +413,7 @@ export interface Pedido {
   criado?: string
   pago_em?: string
   cortesia?: boolean
+  email?: string
   pix?: { img: string; copia: string; expira?: string } | null
   arquivos?: Entrega[]
   bonus?: { liberado: boolean; em: string | null }
@@ -574,6 +575,7 @@ export interface PedidoAdmin {
   cortesia: boolean
   aceite: { versao: string; em: string } | null
   obs: string
+  cancelamento?: { status: 'pedido' | 'aprovado' | 'negado'; motivo?: string; resposta?: string; em?: string } | null
 }
 export interface PlatAdmin { id: string; token: string; nome: string; email: string; cpf: string; tel: string; validade: string; cortesia: boolean; criado: string; atualizado: string; pedido: string | null }
 export const loja = {
@@ -661,6 +663,59 @@ export const loja = {
   },
   async apagarArquivo(produto: string, nome: string) {
     const { error } = await sb().storage.from('ape-arquivos').remove([`${produto}/${nome}`])
+    fail(error)
+  },
+}
+
+/* ===== conta do cliente (e-mail e senha), cancelamento e depoimentos ===== */
+const SESSAO = 'ape-sessao'
+export const sessaoLocal = () => {
+  try {
+    return localStorage.getItem(SESSAO) || ''
+  } catch {
+    return ''
+  }
+}
+export const guardarSessao = (t: string) => {
+  try {
+    if (t) localStorage.setItem(SESSAO, t)
+    else localStorage.removeItem(SESSAO)
+  } catch {
+    /* ok */
+  }
+}
+export interface MinhaConta {
+  perfil: { nome: string; email: string; tel: string; foto: string; cpf: string }
+  pedidos: { id: string; token: string; itens: { id: string; nome: string }[]; total: number; status: StatusPedido; forma: string; criado: string; pago_em: string | null; cortesia: boolean; cancelamento: { status: 'pedido' | 'aprovado' | 'negado'; motivo?: string; resposta?: string; em?: string } | null }[]
+  plataformas: { token: string; validade: string; cortesia: boolean }[]
+  feedback: { tipo: string; texto: string; nota: number | null; publicado: boolean; criado: string }[]
+}
+/** Chama a conta do cliente no servidor (entrar, criar, esqueci, redefinir, eu, perfil, senha, sair, cancelar, feedback). */
+export async function contaApi<T = Record<string, unknown>>(op: string, dados: Record<string, unknown> = {}): Promise<T> {
+  if (!CLOUD) throw new Error('Na prévia não há contas de verdade.')
+  return invoke<T>({ acao: 'ape-conta', op, sessao: sessaoLocal(), ...dados })
+}
+export async function depoimentos(): Promise<{ texto: string; nota: number | null; nome: string; criado: string }[]> {
+  if (!CLOUD) return []
+  try {
+    return (await invoke<{ depoimentos: { texto: string; nota: number | null; nome: string; criado: string }[] }>({ acao: 'ape-depoimentos' })).depoimentos
+  } catch {
+    return []
+  }
+}
+export const painelConta = {
+  async decidir(id: string, decisao: 'aprovar' | 'negar', resposta: string) {
+    if (!CLOUD) return
+    await invoke({ acao: 'ape-decidir', id, decisao, resposta })
+  },
+  async feedback(): Promise<{ id: string; tipo: string; texto: string; nota: number | null; nome: string; publicado: boolean; criado: string }[]> {
+    if (!CLOUD) return []
+    const { data, error } = await sb().from('ape_feedback').select('id, tipo, texto, nota, nome, publicado, criado').order('criado', { ascending: false }).limit(200)
+    if (error) return []
+    return data as never
+  },
+  async publicar(id: string, publicado: boolean) {
+    const { error } = await sb().from('ape_feedback').update({ publicado }).eq('id', id)
     fail(error)
   },
 }

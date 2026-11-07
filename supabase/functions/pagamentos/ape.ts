@@ -4,6 +4,7 @@
 
 import { PDFDocument, StandardFonts, rgb, degrees } from 'npm:pdf-lib@1.17.1'
 import { unzipSync } from 'npm:fflate@0.8.2'
+import { makeConta } from './conta.ts'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 type J = Record<string, any>
@@ -171,7 +172,10 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
 
   async function marcarPago(id: string, p: J) {
     const { data: ped } = await db.from('ape_pedidos').update({ status: 'pago', pago_em: new Date().toISOString(), asaas_pagamento: String(p.id ?? ''), forma: p.billingType === 'CREDIT_CARD' ? 'cartao' : 'pix', pix: null }).eq('id', id).eq('status', 'pendente').select('*').maybeSingle()
-    if (ped) await liberarPlataforma(ped)
+    if (ped) {
+      await liberarPlataforma(ped)
+      await contaApi.emailCompra(ped).catch(() => null)
+    }
   }
 
   const PAGO = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']
@@ -226,10 +230,11 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     let ped = await porToken(String(body.token ?? ''))
     if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
     ped = await conferir(ped)
-    const base = { status: ped.status, itens: ped.itens ?? [], subtotal: ped.subtotal, desconto: ped.desconto, total: ped.total, forma: ped.forma, nome: ped.nome, criado: ped.criado, cortesia: ped.cortesia }
+    const base = { status: ped.status, itens: ped.itens ?? [], subtotal: ped.subtotal, desconto: ped.desconto, total: ped.total, forma: ped.forma, nome: ped.nome, email: ped.email, criado: ped.criado, cortesia: ped.cortesia }
     if (ped.status === 'pendente') return json({ ...base, pix: ped.pix ?? null })
     if (ped.status !== 'pago') return json(base)
     const plat = await liberarPlataforma(ped)
+    if (!ped.email_enviado) await contaApi.emailCompra(ped).catch(() => null)
     const e = await entregas(ped)
     return json({ ...base, pago_em: ped.pago_em, ...e, plataforma: plat ? { token: plat.token, validade: plat.validade } : null })
   }
@@ -297,6 +302,18 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     return json({ pedidos: (data ?? []).map((p) => ({ token: p.token, criado: p.criado, total: p.total, status: p.status, itens: ((p.itens ?? []) as J[]).map((i) => i.nome) })), plataforma: plat ?? null })
   }
 
+  /** Devolve no Asaas (se pago), marca o pedido e fecha downloads e plataforma. */
+  async function reembolsarPedido(id: string) {
+    const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', id).maybeSingle()
+    if (!ped) return
+    if (ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') await asaas(`/payments/${ped.asaas_pagamento}/refund`, { method: 'POST', body: '{}' })
+    else if (ped.asaas_pagamento && ped.status === 'pendente') await asaas(`/payments/${ped.asaas_pagamento}`, { method: 'DELETE' }).catch(() => null)
+    const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
+    await db.from('ape_pedidos').update({ status: ped.status === 'pago' ? 'reembolsado' : 'cancelado', cancelado_em: new Date().toISOString(), pix: null }).eq('id', ped.id)
+    await db.from('ape_plataforma').update({ validade: ontem }).eq('pedido', ped.id)
+  }
+  const contaApi = makeConta({ db, asaas, json, site, env }, reembolsarPedido)
+
   /** Reembolso (só a dona, logada): devolve no Asaas, fecha os downloads e a plataforma do pedido. */
   async function reembolsar(req: Request, body: J) {
     const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
@@ -304,13 +321,9 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (!u?.user) return json({ erro: 'Entre na sua conta.' }, 401)
     const { data: adm } = await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()
     if (!adm) return json({ erro: 'Só a dona pode reembolsar.' }, 403)
-    const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', String(body.id ?? '')).maybeSingle()
+    const { data: ped } = await db.from('ape_pedidos').select('id').eq('id', String(body.id ?? '')).maybeSingle()
     if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
-    if (ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') await asaas(`/payments/${ped.asaas_pagamento}/refund`, { method: 'POST', body: '{}' })
-    else if (ped.asaas_pagamento && ped.status === 'pendente') await asaas(`/payments/${ped.asaas_pagamento}`, { method: 'DELETE' }).catch(() => null)
-    const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
-    await db.from('ape_pedidos').update({ status: ped.status === 'pago' ? 'reembolsado' : 'cancelado', cancelado_em: new Date().toISOString(), pix: null }).eq('id', ped.id)
-    await db.from('ape_plataforma').update({ validade: ontem }).eq('pedido', ped.id)
+    await reembolsarPedido(ped.id)
     return json({ ok: true })
   }
 
@@ -467,5 +480,5 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     })
   }
 
-  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa }
+  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos }
 }

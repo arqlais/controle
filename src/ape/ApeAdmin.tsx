@@ -3,7 +3,7 @@ import { askGemini, readFile, type Attachment } from '../components/AIChat'
 import { ask, toast } from '../components/dialog'
 import { href } from '../router'
 import { useStore } from '../store'
-import { admin, apeCloud, loja, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
+import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
   APE, BONUS, PIX_PCT, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
@@ -14,7 +14,7 @@ import './ape.css'
 /* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar'
+type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -116,6 +116,7 @@ export default function ApeAdmin() {
                 ['pedidos', 'Vendas'],
                 ['clientes', 'Clientes'],
                 ['entregas', 'Arquivos'],
+                ['opiniao', 'Depoimentos e sugestões'],
                 ['testar', 'Testar como cliente'],
               ] as [Tab, React.ReactNode][]
             ).map(([k, l]) => (
@@ -156,6 +157,7 @@ export default function ApeAdmin() {
           {tab === 'pedidos' && <Vendas pedidos={pedidos} onChange={load} />}
           {tab === 'clientes' && ajustes && <Clientes pedidos={pedidos} produtos={ajustes.produtos} onChange={load} />}
           {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
+          {tab === 'opiniao' && <Opinioes />}
           {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
         </div>
       </div>
@@ -840,9 +842,45 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
       toast(`Não consegui (${(e as Error).message}).`)
     }
   }
+  const pendentes = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago')
+  const decidir = async (p: PedidoAdmin, decisao: 'aprovar' | 'negar') => {
+    const dias = p.pago_em ? Math.floor((Date.now() - new Date(p.pago_em).getTime()) / 864e5) : 0
+    if (decisao === 'negar' && dias <= 7 && !(await ask(`A compra foi há ${dias} dia(s): dentro dos 7 dias, a lei (art. 49 do CDC) garante o reembolso. Negar assim mesmo pode gerar reclamação no Procon. Continuar?`, { confirmLabel: 'negar mesmo assim', danger: true }))) return
+    const resposta = prompt(decisao === 'aprovar' ? 'Mensagem para o cliente (opcional):' : 'Explique para o cliente por que não foi aprovado:') ?? ''
+    if (decisao === 'aprovar' && !(await ask(`Aprovar e reembolsar ${brl(p.total)} para ${p.nome}? Os downloads e a plataforma deste pedido param.`, { confirmLabel: 'aprovar e reembolsar' }))) return
+    try {
+      await painelConta.decidir(p.id, decisao, resposta)
+      toast(decisao === 'aprovar' ? 'Cancelamento aprovado e reembolso pedido ao Asaas.' : 'Resposta enviada ao cliente.')
+      onChange()
+    } catch (e) {
+      toast(`Não consegui (${(e as Error).message}).`)
+    }
+  }
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       {!apeCloud && <div className="ape-banner">Prévia: as vendas são as de teste deste navegador.</div>}
+      {pendentes.length > 0 && (
+        <div className="ape-panel ape-adm-box">
+          <p className="ape-eyebrow">pedidos de cancelamento para você decidir ({pendentes.length})</p>
+          {pendentes.map((p) => {
+            const dias = p.pago_em ? Math.floor((Date.now() - new Date(p.pago_em).getTime()) / 864e5) : 0
+            return (
+              <div key={p.id} className="ape-row ape-venda">
+                <div className="t">
+                  <b>{p.nome} · <span className="ape-keep">{brl(p.total)}</span> · comprou há {dias} dia(s)</b>
+                  <span>{p.itens.map((i) => i.nome).join(' + ')} · baixou {p.baixados}x</span>
+                  <span>Motivo: {p.cancelamento?.motivo || 'não informado'}</span>
+                  <span className={dias <= 7 ? '' : 'ape-ferr'}>{dias <= 7 ? 'Dentro dos 7 dias: o reembolso é direito do cliente (art. 49 do CDC).' : 'Passou dos 7 dias: você pode negar, explicando o motivo.'}</span>
+                </div>
+                <div className="r">
+                  <button className="ape-btn primary sm" onClick={() => void decidir(p, 'aprovar')}>aprovar e reembolsar</button>
+                  <button className="ape-btn ghost sm danger" onClick={() => void decidir(p, 'negar')}>negar</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
       <div className="ape-stats">
         <div className="ape-stat"><b className="num">{brl(doMes.reduce((s, p) => s + p.total, 0))}</b><span>vendido no mês</span></div>
         <div className="ape-stat"><b className="num">{doMes.length}</b><span>vendas no mês</span></div>
@@ -1002,6 +1040,25 @@ function Cortesia({ produtos, onDone, eu }: { produtos: Produto[]; onDone: (toke
       <div className="ape-acts">
         <button className="ape-btn primary" disabled={busy} onClick={() => void criar()}><ApeIcon name="gift" />{busy ? 'criando…' : 'criar e copiar o link'}</button>
       </div>
+    </div>
+  )
+}
+
+/* ===== depoimentos e sugestões de quem comprou ===== */
+function Opinioes() {
+  const [l, setL] = useState<Awaited<ReturnType<typeof painelConta.feedback>> | null>(null)
+  const load = useCallback(() => void painelConta.feedback().then(setL), [])
+  useEffect(load, [load])
+  if (!l) return <Thinking t="carregando…" />
+  if (!l.length) return <div className="ape-empty"><b>nada ainda</b><span>Depoimentos e sugestões de quem comprou aparecem aqui. Os depoimentos que você publicar aparecem na loja, só com o primeiro nome.</span></div>
+  return (
+    <div className="ape-rows">
+      {l.map((f) => (
+        <div key={f.id} className="ape-row">
+          <div className="t"><b>{f.tipo === 'depoimento' ? `depoimento${f.nota ? ` · ${'★'.repeat(f.nota)}` : ''}` : 'sugestão'} · {f.nome} · {dmy(f.criado)}</b><span>{f.texto}</span></div>
+          <div className="r">{f.tipo === 'depoimento' && <button className={`ape-btn sm ${f.publicado ? 'rose' : 'primary'}`} onClick={() => void painelConta.publicar(f.id, !f.publicado).then(load, (e) => toast(String(e.message)))}>{f.publicado ? 'tirar da loja' : 'publicar na loja'}</button>}</div>
+        </div>
+      ))}
     </div>
   )
 }

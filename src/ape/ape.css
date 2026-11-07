@@ -938,3 +938,47 @@
 .ape-cookies { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 60; max-width: 560px; margin: 0 auto; display: flex; gap: 12px; align-items: center; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 20px 40px -20px rgba(43, 40, 38, 0.4); }
 .ape-cookies p { margin: 0; font-size: 12px; color: var(--a-muted); }
 @media (max-width: 760px) { .ape-cookies { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); } }
+
+/* minha conta */
+.ape-conta-login { display: grid; place-items: center; }
+.ape-conta-login form { width: 100%; max-width: 440px; }
+.ape-conta-links { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
+.ape-conta { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.ape-conta-lado { display: grid; gap: 14px; position: sticky; top: 90px; }
+.ape-conta-eu { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.ape-conta-eu img, .ape-conta-foto img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.ape-conta-eu b { display: block; font-size: 14px; }
+.ape-conta-eu span { display: block; font-size: 11.5px; color: var(--a-muted); overflow: hidden; text-overflow: ellipsis; }
+.ape-conta-av { width: 48px; height: 48px; flex: none; border-radius: 50%; background: var(--a-pri); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+.ape-conta-nav { display: grid; gap: 2px; }
+.ape-conta-nav button { display: flex; gap: 10px; align-items: center; border: 0; background: none; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: var(--a-muted); text-align: left; text-transform: lowercase; }
+.ape-conta-nav button[aria-current='page'] { background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-conta-main { display: grid; gap: 14px; min-width: 0; }
+.ape-compras { display: grid; gap: 10px; }
+.ape-compra { background: var(--a-bg); border-radius: 16px; padding: 14px; display: grid; gap: 8px; }
+.ape-compra header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.ape-compra header b { display: block; font-size: 14px; }
+.ape-cancelar { display: grid; gap: 8px; background: var(--a-card); border-radius: 12px; padding: 12px; }
+.ape-conta-foto { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ape-conta-foto img, .ape-conta-foto .ape-conta-av { width: 64px; height: 64px; }
+.ape-estrelas { display: flex; gap: 4px; }
+.ape-estrelas button { border: 0; background: none; color: var(--a-line); padding: 2px; }
+.ape-estrelas button .ape-i { width: 26px; height: 26px; }
+.ape-estrelas button.on { color: var(--a-sec); }
+.ape-estrelas button.on .ape-i { fill: currentColor; }
+.ape-conta-convite { display: flex; gap: 12px; align-items: center; background: var(--a-pri-soft); border-radius: 14px; padding: 12px 14px; font-size: 12.5px; color: var(--a-muted); }
+.ape-conta-convite > .ape-i { color: var(--a-pri); flex: none; }
+.ape-conta-convite b { display: block; color: var(--a-pri); font-size: 13.5px; }
+.ape-conta-convite .ape-btn { margin-left: auto; flex: none; }
+@media (max-width: 760px) {
+  .ape-conta { grid-template-columns: minmax(0, 1fr); }
+  .ape-conta-lado { position: static; }
+  .ape-conta-nav { grid-template-columns: 1fr 1fr; }
+  .ape-conta-convite { flex-wrap: wrap; }
+}
+/* depoimentos na loja */
+.ape-depos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.ape-depo { margin: 0; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 18px; padding: 16px; display: grid; gap: 8px; box-shadow: var(--a-shadow); }
+.ape-depo-nota { color: var(--a-sec); letter-spacing: 2px; font-size: 13px; }
+.ape-depo blockquote { margin: 0; font-size: 13.5px; }
+.ape-depo figcaption { font-size: 12px; font-weight: 600; color: var(--a-muted); }
