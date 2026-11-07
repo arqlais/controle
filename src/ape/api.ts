@@ -58,7 +58,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   const atual = (a.lojaV || 0) >= LOJA_VERSAO && Array.isArray(a.produtos) && a.produtos.length
   const pixPct = typeof a.pixPct === 'number' && a.pixPct >= 0 && a.pixPct <= 10 ? a.pixPct : PIX_PCT
   // imagens de amostra vêm sempre do site (são refeitas junto com os arquivos)
-  const base = atual ? a.produtos!.map((p) => { const d = PRODUTOS.find((x) => x.id === p.id); return d?.amostras ? { ...p, amostras: d.amostras } : p }) : PRODUTOS
+  const base = atual ? a.produtos!.map((p) => { const d = PRODUTOS.find((x) => x.id === p.id); return { ...p, ...(d?.amostras ? { amostras: d.amostras } : {}), ...(p.selo === undefined && d?.selo ? { selo: d.selo } : {}) } }) : PRODUTOS
   return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>

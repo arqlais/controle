@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { markSvg } from '../components/PlaneMark'
 import { APE } from './model'
+import { ApeIcon } from './ApeIcon'
 
 /* Peças usadas em várias telas do planê.apê (página dos moradores, loja, plataforma). */
 
@@ -108,3 +109,22 @@ export function AvisoCookies() {
     </div>
   )
 }
+
+/** Bloco que abre e fecha, com "recolher" no fim (para não precisar voltar lá em cima). */
+export function Recolhe({ titulo, abertoInicial = false, children }: { titulo: string; abertoInicial?: boolean; children: ReactNode }) {
+  const [on, setOn] = useState(abertoInicial)
+  return (
+    <div className={`ape-recolhe ${on ? 'on' : ''}`}>
+      <button type="button" className="ape-recolhe-h" aria-expanded={on} onClick={() => setOn(!on)}>
+        <ApeIcon name="chev" />{titulo}<span>{on ? 'recolher' : 'ver'}</span>
+      </button>
+      {on && (
+        <>
+          {children}
+          <button type="button" className="ape-recolhe-x" onClick={() => setOn(false)}><ApeIcon name="chev" />recolher</button>
+        </>
+      )}
+    </div>
+  )
+}
+

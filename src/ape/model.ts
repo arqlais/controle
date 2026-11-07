@@ -123,6 +123,7 @@ export interface Produto {
   numeros?: string[] // o que tem dentro, em números (ex.: "9 páginas")
   fase?: 'comprando' | 'comprei' // para quem ainda vai comprar o apê ou para quem já comprou
   arte?: string // desenho que representa o produto
+  selo?: string // selo de destaque no cartão (ex.: "mais vendido")
   kitPct?: number // kits: % de desconto sobre a soma dos arquivos (o preço sai sozinho)
 }
 
@@ -336,6 +337,8 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
 export const LOJA_VERSAO = 7
+/** Selos de destaque que dá para escolher no painel. */
+export const SELOS = ['mais vendido', 'queridinho', 'mais procurado', 'melhor custo-benefício', 'novidade', 'essencial', 'últimas vagas']
 /** Único desconto da loja além dos kits: Pix (a taxa do Pix é menor que a do cartão). Sem parcelamento. */
 export const PIX_PCT = 5
 /** Taxas do Asaas usadas para conferir a margem (confira no seu plano e ajuste no painel). */
@@ -344,12 +347,12 @@ export const TAXAS: Taxas = { pix: 1.99, cartaoPct: 2.99, cartaoFixo: 0.49 }
 /** Meses de plataforma que o kit completo dá de presente (no máximo 1). */
 export const KIT_PLATAFORMA_MESES = 1
 /** Bônus de todas as compras, liberado 7 dias depois do pagamento (não é vendido; não muda o direito de arrependimento). */
-export const BONUS = { id: 'bonus', nome: 'Calendário de manutenção e garantias do 1º ano', desc: 'O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item. Chega 7 dias depois da compra.', dias: 7 }
+export const BONUS = { id: 'bonus', surpresa: 'bônus surpresa', pista: 'Um arquivo que não está à venda na loja, pensado para quem acabou de pegar as chaves. Ele chega fechado e só abre no 8º dia.', nome: 'Calendário de manutenção e garantias do 1º ano', desc: 'O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item. Chega 7 dias depois da compra.', dias: 7 }
 const arq = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega'>): Produto => ({ cat: 'arquivos', ativo: true, entrega: NA_HORA, fase: 'comprei', ...p })
 const kit = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega' | 'preco' | 'itens'> & { itens?: string[] }): Produto => ({ cat: 'combos', ativo: true, entrega: NA_HORA, preco: '', itens: [], ...p })
 export const PRODUTOS: Produto[] = [
   /* vai comprar */
-  arq({ id: 'compra', arte: 'contrato', fase: 'comprando', nome: 'Guia de compra do imóvel', tag: 'na planta ou pronto', destaque: true, preco: 'R$ 19,90', formato: 'PDF', amostras: [AM('m-compra.jpg')], numeros: ['8 páginas', 'na planta e pronto', '12 perguntas prontas'],
+  arq({ id: 'compra', selo: 'mais vendido', arte: 'contrato', fase: 'comprando', nome: 'Guia de compra do imóvel', tag: 'na planta ou pronto', destaque: true, preco: 'R$ 19,90', formato: 'PDF', amostras: [AM('m-compra.jpg')], numeros: ['8 páginas', 'na planta e pronto', '12 perguntas prontas'],
     desc: 'Do primeiro contato às chaves, para imóvel na planta ou pronto: as etapas, os custos que ninguém conta, o que perguntar e o que conferir antes de assinar.',
     itens: ['As etapas da compra na planta e do imóvel pronto, lado a lado', 'Custos além do preço: ITBI, cartório, juros de obra, correção, condomínio', '12 perguntas para fazer ao corretor ou ao vendedor', 'Documentos do imóvel e do vendedor para conferir no pronto', 'Prazo de entrega, correção das parcelas e distrato, no caso da planta'] }),
   arq({ id: 'financiamento', arte: 'calculo', fase: 'comprando', nome: 'Guia do financiamento e dos seguros', tag: 'novo', destaque: true, preco: 'R$ 16,90', formato: 'PDF', amostras: [AM('m-financiamento.jpg')], numeros: ['7 páginas', 'MCMV e outros', 'seguros explicados'],
@@ -362,10 +365,10 @@ export const PRODUTOS: Produto[] = [
     desc: 'O que olhar na visita ao decorado ou ao imóvel pronto, como comparar opções e todos os documentos para o financiamento.',
     itens: ['O que observar no imóvel, no prédio e no bairro', 'O que é do decorado e não vem no apê', 'Pontos de atenção num imóvel pronto ou usado', 'Tabela para comparar 3 opções', 'Lista de documentos para o financiamento'] }),
   /* já comprou */
-  arq({ id: 'checklist', arte: 'vistoria', nome: 'Checklist de vistoria', tag: 'para a vistoria', destaque: true, preco: 'R$ 19,90', formato: 'PDF · imprimir ou usar no celular', amostras: [AM('m-checklist.jpg')], numeros: ['10 páginas', '+90 itens', '7 cômodos', 'resumo para a construtora'],
+  arq({ id: 'checklist', selo: 'mais vendido', arte: 'vistoria', nome: 'Checklist de vistoria', tag: 'para a vistoria', destaque: true, preco: 'R$ 19,90', formato: 'PDF · imprimir ou usar no celular', amostras: [AM('m-checklist.jpg')], numeros: ['10 páginas', '+90 itens', '7 cômodos', 'resumo para a construtora'],
     desc: 'Tudo o que conferir na vistoria do imóvel novo, cômodo por cômodo, para a construtora ou o vendedor corrigir antes de você receber as chaves.',
     itens: ['O que levar e o que combinar antes', 'Itens para porta, sala, cozinha, área de serviço, banheiro, quartos e imóvel inteiro', 'Testes simples de vazamento, caimento de piso e tomadas', 'Tabela para anotar as medidas', 'O que fazer com os problemas depois', 'Resumo pronto para entregar à construtora'] }),
-  arq({ id: 'planilha', arte: 'planilha', nome: 'Planilha de obra e compras', tag: 'organização', destaque: true, preco: 'R$ 24,90', formato: 'Excel · abre no Google Planilhas · 4 cores (azul, rosa, roxa e verde)', amostras: [AM('m-planilha.jpg')], numeros: ['6 abas', '27 itens prontos', 'contas automáticas', '4 cores'],
+  arq({ id: 'planilha', selo: 'queridinho', arte: 'planilha', nome: 'Planilha de obra e compras', tag: 'organização', destaque: true, preco: 'R$ 24,90', formato: 'Excel · abre no Google Planilhas · 4 cores (azul, rosa, roxa e verde)', amostras: [AM('m-planilha.jpg')], numeros: ['6 abas', '27 itens prontos', 'contas automáticas', '4 cores'],
     desc: 'Quanto você planejou, quanto já gastou e quanto falta, por cômodo, com as parcelas mês a mês.',
     itens: ['Resumo automático por cômodo e no total', 'Lista de compras com itens típicos e valores de referência (troque pelos seus)', 'Comparador de orçamentos que mostra o mais barato', 'Parcelas dos próximos 12 meses somadas sozinhas', 'Cronograma da obra na ordem certa, da vistoria à mudança'] }),
   arq({ id: 'guia', arte: 'orcamento', nome: 'Guia de orçamentos', tag: 'antes de fechar', preco: 'R$ 14,90', formato: 'PDF', amostras: [AM('m-guia.jpg')], numeros: ['10 páginas', '12 serviços', '3 mensagens prontas'],
@@ -389,13 +392,13 @@ export const PRODUTOS: Produto[] = [
   /* kits: o preço sai sozinho da soma dos arquivos menos o desconto do kit */
   kit({ id: 'kit-compra', nome: 'Kit vou comprar', tag: 'kit', arte: 'contrato', kitPct: 35, combo: ['compra', 'financiamento', 'planilha-compra', 'decorado'], amostras: [AM('m-kit-compra.jpg'), AM('m-compra.jpg'), AM('m-financiamento.jpg'), AM('m-planilha-compra.jpg')],
     desc: 'Para quem ainda vai comprar, na planta ou pronto: guia de compra, guia do financiamento e dos seguros, planilha de custos e checklist da visita.' }),
-  kit({ id: 'kit-chaves', nome: 'Kit chaves na mão', tag: 'kit', arte: 'vistoria', kitPct: 23, combo: ['checklist', 'entregas', 'mudanca'], amostras: [AM('m-kit-chaves.jpg'), AM('m-checklist.jpg'), AM('m-entregas.jpg'), AM('m-mudanca.jpg')],
+  kit({ id: 'kit-chaves', selo: 'mais procurado', nome: 'Kit chaves na mão', tag: 'kit', arte: 'vistoria', kitPct: 23, combo: ['checklist', 'entregas', 'mudanca'], amostras: [AM('m-kit-chaves.jpg'), AM('m-checklist.jpg'), AM('m-entregas.jpg'), AM('m-mudanca.jpg')],
     desc: 'Da vistoria à mudança: o checklist da vistoria, o de entregas da obra e a lista da mudança.' }),
   kit({ id: 'kit-obra', nome: 'Kit obra sem susto', tag: 'kit', arte: 'planilha', kitPct: 29, combo: ['planilha', 'guia', 'medidas'], amostras: [AM('m-kit-obra.jpg'), AM('m-planilha.jpg'), AM('m-guia.jpg'), AM('m-medidas.jpg')],
     desc: 'Para planejar, comparar orçamentos e comprar o que cabe: planilha de obra, guia de orçamentos e guia de medidas.' }),
-  kit({ id: 'kit-completo', nome: 'Kit completo', tag: 'mais completo', arte: 'casa', destaque: true, kitPct: 56, combo: ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner'], amostras: [AM('m-kit-completo.jpg'), AM('m-compra.jpg'), AM('m-checklist.jpg'), AM('m-planilha.jpg'), AM('m-planner.jpg')],
+  kit({ id: 'kit-completo', selo: 'melhor custo-benefício', nome: 'Kit completo', tag: 'mais completo', arte: 'casa', destaque: true, kitPct: 56, combo: ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner'], amostras: [AM('m-kit-completo.jpg'), AM('m-compra.jpg'), AM('m-checklist.jpg'), AM('m-planilha.jpg'), AM('m-planner.jpg')],
     desc: 'Os 12 arquivos da loja, da compra à decoração, com o maior desconto.', itens: [`+ ${KIT_PLATAFORMA_MESES} mês de plataforma do apê de presente`] }),
-  { id: 'plataforma', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 79,00', unidade: 'por ano · pagamento único', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, o link de acesso aparece na página do pedido na hora.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
+  { id: 'plataforma', selo: 'novidade', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 79,00', unidade: 'por ano · pagamento único', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, o link de acesso aparece na página do pedido na hora.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
     desc: 'Um site para acompanhar a sua jornada do começo ao fim: gastos, parcelas, etapas da obra, vistoria com fotos e contatos, atualizados por você, num lugar só.',
     itens: ['Gastos por cômodo: quanto planejou, quanto já foi e quanto falta', 'Parcelas dos próximos meses, somadas sozinhas', 'Etapas da compra e da obra, com datas e o que já foi feito', 'Vistoria com fotos e resumo para imprimir', 'Contatos dos fornecedores com WhatsApp a um toque', 'Abre no celular e no computador, sem instalar nada', 'Pagamento único: 12 meses de acesso, sem mensalidade'], ativo: true },
 ]

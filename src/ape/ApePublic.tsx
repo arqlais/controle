@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
 import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
@@ -283,16 +283,17 @@ function ShopNav({ morador }: { morador: boolean }) {
 
 /* ===== orçamentos ===== */
 function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEditar }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void; onEditar: () => void; onRecarregar?: () => void }) {
-  const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean }>(UI) || {}
+  const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean; vista?: 'blocos' | 'lista' }>(UI) || {}
   const [filtro, setFiltro] = useState(saved.nicho || 'todos')
   const [sort, setSort] = useState<Sort>(saved.sort && SORTS[saved.sort] ? saved.sort : 'compensa')
   const [validos, setValidos] = useState(!!saved.validos)
   const minhaPlanta = plantaDoAp(me?.ap)
   const [pl, setPl] = useState<'todas' | 'canto' | 'corredor'>('todas')
   const [q, setQ] = useState('')
+  const [vista, setVista] = useState<'blocos' | 'lista'>(saved.vista === 'lista' ? 'lista' : 'blocos')
   useEffect(() => {
-    write(UI, { nicho: filtro, sort, validos })
-  }, [filtro, sort, validos])
+    write(UI, { nicho: filtro, sort, validos, vista })
+  }, [filtro, sort, validos, vista])
 
   const counts: Record<string, number> = {}
   for (const o of vis) counts[o.nicho] = (counts[o.nicho] || 0) + 1
@@ -418,6 +419,10 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
             <option key={k} value={k}>{s[0]}</option>
           ))}
         </select>
+        <div className="ape-vista" role="group" aria-label="Ver como">
+          <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em blocos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>blocos</button>
+          <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista"><ApeIcon name="list" />lista</button>
+        </div>
         <label className="ape-tog">
           <input type="checkbox" checked={validos} onChange={(e) => setValidos(e.target.checked)} /> Só dentro da validade
         </label>
@@ -447,8 +452,14 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
               <div key={titulo || 'geral'} className="ape-acab">
                 {titulo !== undefined && <h4 className="ape-acab-h"><ApeIcon name="tag" />{titulo || 'outros acabamentos'} <span>{lista.length} orçamento{lista.length > 1 ? 's' : ''}</span></h4>}
                 <Comparar orcs={lista} me={me} />
-                {top && card(top, true)}
-                {rest.length > 0 && <div className="ape-grid">{rest.map((x) => card(x, false))}</div>}
+                {vista === 'lista' ? (
+                  <div className="ape-linhas">{[...(top ? [top] : []), ...rest].map((x) => <Linha key={x.o.id} x={x} isTop={x === top} me={me}>{card(x, x === top)}</Linha>)}</div>
+                ) : (
+                  <>
+                    {top && card(top, true)}
+                    {rest.length > 0 && <div className="ape-grid">{rest.map((x) => card(x, false))}</div>}
+                  </>
+                )}
               </div>
             )
           }
@@ -533,6 +544,40 @@ function ComoFunciona() {
         <li><ApeArt name="carrinho" size={48} tone="sec" /><span><b>4. escolha</b>marque "vou fechar com este" e, se der, entre no grupo para ganhar desconto</span></li>
       </ol>
     </section>
+  )
+}
+
+/** Botão "recolher" no fim de um <details> aberto (fecha e volta para o começo dele). */
+export function RecolherDetalhes() {
+  return (
+    <button type="button" className="ape-more-x" onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) { d.open = false; d.scrollIntoView({ block: 'nearest', behavior: 'smooth' }) } }}>
+      <ApeIcon name="chev" />recolher
+    </button>
+  )
+}
+
+/** Modo lista: uma linha por orçamento; toca para abrir o cartão completo ali mesmo. */
+function Linha({ x, isTop, me, children }: { x: Item; isTop: boolean; me: Morador | null; children: ReactNode }) {
+  const [on, setOn] = useState(false)
+  const { o, c } = x
+  const minha = !!o.planta && o.planta === plantaDoAp(me?.ap)
+  return (
+    <div className={`ape-linha ${on ? 'on' : ''} ${isTop ? 'top' : ''}`}>
+      <button className="ape-linha-h" aria-expanded={on} onClick={() => setOn(!on)}>
+        <span className="t">
+          <b>{isTop && <ApeIcon name="star" />}{o.fornecedor || 'Fornecedor sem nome'}</b>
+          <small>{o.servico}{o.planta ? ` · ${o.planta}${minha ? ' (a sua)' : ''}` : ''}</small>
+        </span>
+        <span className="v num">{brl(c.avista)}<small>à vista</small></span>
+        <ApeIcon name="chev" />
+      </button>
+      {on && (
+        <div className="ape-linha-b">
+          {children}
+          <button type="button" className="ape-more-x" onClick={() => setOn(false)}><ApeIcon name="chev" />recolher</button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -677,6 +722,7 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
                 </div>
               ))}
           </dl>
+          <RecolherDetalhes />
         </div>
       </details>
       <div className="ape-acts">

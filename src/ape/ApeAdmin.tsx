@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, BONUS, PIX_PCT, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, SELOS, PIX_PCT, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -856,6 +856,12 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
                       <div className="ape-f"><label>Preço</label><input value={ps[i].preco} onChange={(e) => set(i, { preco: e.target.value })} placeholder="R$ 19,90" /></div>
                     )}
                     <div className="ape-f"><label>Etiqueta</label><input value={ps[i].tag} onChange={(e) => set(i, { tag: e.target.value })} /></div>
+                    <div className="ape-f"><label>Selo de destaque</label>
+                      <select value={ps[i].selo || ''} onChange={(e) => set(i, { selo: e.target.value })}>
+                        <option value="">sem selo</option>
+                        {[...new Set([...SELOS, ...(ps[i].selo ? [ps[i].selo!] : [])])].map((x) => <option key={x} value={x}>{x}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div className="ape-frow">
                     <div className="ape-f"><label>Seção</label>

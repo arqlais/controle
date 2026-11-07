@@ -4,7 +4,7 @@ import { baixarArquivo, criarPedido, depoimentos as carregarDepoimentos, pedidos
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, KIT_PLATAFORMA_MESES, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
-import { SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
+import { Recolhe, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
 
@@ -172,11 +172,28 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} />
 
+      <section className="ape-surpresa" aria-label="Bônus surpresa">
+        <div className="ape-surpresa-box" aria-hidden="true">
+          <ApeIcon name="gift" />
+          <span className="q">?</span>
+        </div>
+        <div>
+          <p className="ape-eyebrow">em toda compra</p>
+          <h3 className="ape-sec-t">um <em>bônus surpresa</em> no 8º dia</h3>
+          <p className="ape-note" style={{ margin: 0 }}>{BONUS.pista}</p>
+          <ul className="ape-surpresa-l">
+            <li><ApeIcon name="lock" />chega fechado</li>
+            <li><ApeIcon name="clock" />abre no 8º dia</li>
+            <li><ApeIcon name="sparkle" />não está à venda</li>
+          </ul>
+        </div>
+      </section>
+
       <section className="ape-panel ape-garantia">
         <ApeArt name="entregas" size={56} tone="sec" />
         <div>
           <h3 className="ape-sec-t">7 dias para <em>desistir</em></h3>
-          <p className="ape-note" style={{ margin: 0 }}>Comprou e não era o que esperava? Em até 7 dias depois da compra você pede o dinheiro de volta, inteiro, pelo WhatsApp ou e-mail, sem precisar explicar (art. 49 do Código de Defesa do Consumidor). Toda compra ainda ganha um bônus no 8º dia: <b>{BONUS.nome.toLowerCase()}</b>. O bônus não muda nem atrasa o seu direito de desistir.</p>
+          <p className="ape-note" style={{ margin: 0 }}>Comprou e não era o que esperava? Em até 7 dias depois da compra você pede o dinheiro de volta, inteiro, pelo WhatsApp ou e-mail, sem precisar explicar (art. 49 do Código de Defesa do Consumidor). Toda compra ainda ganha um <b>bônus surpresa</b> no 8º dia, que não muda nem atrasa o seu direito de desistir.</p>
         </div>
       </section>
 
@@ -214,10 +231,10 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       <MinhasCompras />
       <Vendedor v={ajustes.vendedor} whats={whats} />
       {cart.ids.length > 0 && !verCarrinho && (
-        <button className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
+        <button key={cart.ids.length} className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
           <ApeIcon name="bag" />
           <span>{tot.itens.length} {tot.itens.length > 1 ? 'itens' : 'item'} · <b className="ape-keep">{brl(tot.subtotal)}</b></span>
-          <b className="go">ver carrinho</b>
+          <b className="go">finalizar<ApeIcon name="chev" /></b>
         </button>
       )}
       {aberto && <Detalhe p={aberto} byId={byId} produtos={produtos} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} cart={cart} onAdd={(p) => { adicionar(p); setAberto(null) }} pixPct={pixPct} />}
@@ -267,7 +284,7 @@ function HeroArt({ pix }: { pix: number }) {
       </div>
       <div className="ape-hf f1"><span className="ic"><ApeIcon name="check" /></span><span><b>vistoria feita</b><small>2 problemas anotados</small></span></div>
       <div className="ape-hf f2"><span className="ic sec"><ApeIcon name="tag" /></span><span><b className="ape-keep">{pix}% off no Pix</b><small>baixa na hora</small></span></div>
-      <div className="ape-hf f3"><span className="ic"><ApeIcon name="gift" /></span><span><b>bônus</b><small>chega em 7 dias</small></span></div>
+      <div className="ape-hf f3"><span className="ic"><ApeIcon name="gift" /></span><span><b>bônus surpresa</b><small>abre no 8º dia</small></span></div>
     </div>
   )
 }
@@ -333,7 +350,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats }: { p: Produto; cart: Carrin
   return (
     <section className="ape-plat" id="loja-plataforma">
       <div className="ape-plat-head">
-        <p className="ape-eyebrow">plataforma do apê</p>
+        <p className="ape-eyebrow">plataforma do apê{p.selo ? <span className="ape-pill rosa" style={{ marginLeft: 8 }}><ApeIcon name="star" />{p.selo}</span> : null}</p>
         <h3 className="ape-sec-t">acompanhe a sua jornada <em>num lugar só</em></h3>
         <p className="ape-lead">Diferente dos arquivos, aqui você registra o <b>seu</b> caso e acompanha do começo ao fim: gastos, parcelas, etapas, vistoria e contatos.</p>
       </div>
@@ -417,6 +434,7 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
           <span className="ape-thumb-ic"><ApeArt name={p.arte || 'casa'} size={56} /></span>
         )}
         <span className="ape-ver"><ApeIcon name="eye" />ver por dentro</span>
+        {p.selo && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
       </button>
       <div className="ape-prod-h">
         {n ? <span className="ape-prod-n">{n}</span> : null}
@@ -463,36 +481,47 @@ function Detalhe({ p, byId, produtos, me, whats, onClose, onOpen, cart, onAdd, p
           </div>
         )}
         <div className="ape-sheet-b">
-          <div className="ape-tags">{p.tag && <span className="ape-pill azul">{p.tag}</span>}</div>
+          <div className="ape-tags">
+            {p.selo && <span className="ape-pill rosa"><ApeIcon name="star" />{p.selo}</span>}
+            {p.tag && <span className="ape-pill azul">{p.tag}</span>}
+          </div>
           <h2 className="ape-h2">{p.nome}</h2>
           <p style={{ margin: 0, color: 'var(--a-muted)' }}>{p.desc}</p>
-          {(p.numeros || []).length > 0 && <div className="ape-nums">{p.numeros!.map((x) => <span key={x}>{x}</span>)}</div>}
-          {filhos.length > 0 && (
-            <div className="ape-rows">
-              {filhos.map((x, j) => (
-                <button key={x.id} className="ape-row ape-row-btn" onClick={() => onOpen(x)}>
-                  <span className="t"><b>{j + 1}. {x.nome}</b><span>{(x.numeros || []).join(' · ') || x.formato}</span></span>
-                  <span className="r"><s className="ape-note ape-keep">{x.preco}</s></span>
-                </button>
-              ))}
+          {(p.numeros || []).length > 0 && (
+            <div className="ape-dnums">
+              {p.numeros!.map((x) => <span key={x}><ApeIcon name={iconeNumero(x)} />{x}</span>)}
             </div>
           )}
+          {filhos.length > 0 && (
+            <Recolhe titulo={`o que vem no kit (${filhos.length})`} abertoInicial={filhos.length <= 4}>
+              <div className="ape-rows">
+                {filhos.map((x, j) => (
+                  <button key={x.id} className="ape-row ape-row-btn" onClick={() => onOpen(x)}>
+                    <span className="t"><b>{j + 1}. {x.nome}</b></span>
+                    <span className="r"><s className="ape-note ape-keep">{x.preco}</s></span>
+                  </button>
+                ))}
+              </div>
+            </Recolhe>
+          )}
           {(p.itens || []).length > 0 && (
-            <>
-              <p className="ape-eyebrow" style={{ marginTop: 6 }}>{filhos.length ? 'e ainda' : 'o que tem dentro'}</p>
+            <Recolhe titulo={filhos.length ? 'e ainda' : `o que tem dentro (${p.itens!.length})`} abertoInicial={filhos.length > 0}>
               <ul className="ape-inc">
                 {p.itens!.map((x) => <li key={x}><ApeIcon name="check" />{x.replace(/^\+\s*/, '')}</li>)}
               </ul>
-            </>
+            </Recolhe>
           )}
-          <dl className="ape-facts">
-            {p.formato && (<><dt>formato</dt><dd>{p.formato}</dd></>)}
-            {p.entrega && (<><dt>como recebo</dt><dd>{p.entrega}</dd></>)}
-            {noCarrinho(p) && (<><dt>uso</dt><dd>Pessoal, na sua casa. Não pode repassar nem revender.</dd></>)}
-            {noCarrinho(p) && (<><dt>desistência</dt><dd>7 dias para pedir o dinheiro de volta.</dd></>)}
-          </dl>
-          <Preco p={p} byId={byId} pixPct={pixPct} />
-          <div className="ape-acts"><BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} /></div>
+          <div className="ape-dfacts">
+            {p.formato && <span><ApeIcon name={p.cat === 'plataforma' ? 'phone' : 'file'} />{p.formato.split(' · ')[0]}</span>}
+            {noCarrinho(p) && <span><ApeIcon name="download" />{p.cat === 'plataforma' ? 'acesso na hora' : 'baixa na hora'}</span>}
+            {noCarrinho(p) && <span><ApeIcon name="user" />uso pessoal</span>}
+            {noCarrinho(p) && <span><ApeIcon name="shield" />7 dias para desistir</span>}
+            {noCarrinho(p) && <span><ApeIcon name="gift" />bônus surpresa</span>}
+          </div>
+          <div className="ape-dbuy">
+            <Preco p={p} byId={byId} pixPct={pixPct} />
+            <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
+          </div>
           {kit && !cart.tem(kit.id) && (
             <button className="ape-upsell" onClick={() => onOpen(kit)}>
               <ApeIcon name="gift" />
@@ -507,6 +536,8 @@ function Detalhe({ p, byId, produtos, me, whats, onClose, onOpen, cart, onAdd, p
     </div>
   )
 }
+
+const iconeNumero = (x: string) => (/p[aá]gina/i.test(x) ? 'file' : /cor/i.test(x) ? 'brush' : /aba|planilha/i.test(x) ? 'list' : /mensag|pergunt/i.test(x) ? 'chat' : /c[oô]modo|m[oó]ve/i.test(x) ? 'home' : /m[eê]s|seman|dia/i.test(x) ? 'clock' : 'check')
 
 /** Kit que vale mais a pena do que os arquivos soltos que estão no carrinho (paga menos ou leva mais por pouco). */
 function kitSugerido(ids: string[], produtos: Produto[]) {
@@ -732,7 +763,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           </div>
           <ul className="ape-inc">
             <li><ApeIcon name="download" />baixa assim que o pagamento confirma</li>
-            <li><ApeIcon name="gift" />bônus no 8º dia: {BONUS.nome.toLowerCase()}</li>
+            <li><ApeIcon name="gift" />bônus surpresa no 8º dia</li>
             <li><ApeIcon name="shield" />pagamento processado pelo Asaas</li>
           </ul>
         </aside>
@@ -774,7 +805,7 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>Conteúdo informativo.</b> Os materiais são guias práticos e não substituem a orientação de profissionais habilitados, do seu banco, da construtora ou do contrato. Regras de financiamento e seguro variam conforme o banco, o programa e o contrato.</li>
             <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: Pix com {pixPct}% de desconto ou cartão de crédito à vista, sem parcelamento. O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
             <li><b>Entrega e conta.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma; você também recebe o link por e-mail. Com o e-mail da compra você cria uma senha em minha conta e acessa tudo de qualquer aparelho. Guarde a senha e não a compartilhe.</li>
-            <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus gratuito ({BONUS.nome.toLowerCase()}). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>
+            <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus surpresa gratuito (um arquivo extra, revelado quando é liberado). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>
             <li><b>Direito de arrependimento e cancelamento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor). Peça em minha conta → minhas compras (ou pelo WhatsApp ou e-mail). Dentro dos 7 dias o pedido é sempre aprovado e devolvemos o valor integral, pelo mesmo meio de pagamento. Depois desse prazo, o pedido é analisado caso a caso. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>
             <li><b>Problemas.</b> Arquivo com defeito ou que não abre: corrigimos, trocamos ou devolvemos o valor, como prevê o Código de Defesa do Consumidor.</li>
             <li><b>Plataforma do apê.</b> O acesso dura 12 meses a partir da liberação (ou 1 mês no presente do kit completo), por um link pessoal que funciona como chave: guarde-o e não compartilhe. Os dados que você registra são seus; depois do prazo, a plataforma fica só para consulta.</li>
@@ -1003,8 +1034,8 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
         <div className={`ape-bonus ${p.bonus.liberado ? 'on' : ''}`}>
           <ApeIcon name="gift" />
           <span>
-            <b>bônus: {BONUS.nome.toLowerCase()}</b>
-            <span>{p.bonus.liberado ? 'Liberado: ele está na lista acima.' : `Chega aqui em ${p.bonus.em ? dmy(p.bonus.em) : '7 dias'}. Volte nesta página.`}</span>
+            <b>{p.bonus.liberado ? `bônus: ${BONUS.nome.toLowerCase()}` : 'bônus surpresa'}</b>
+            <span>{p.bonus.liberado ? 'Liberado: ele está na lista acima.' : `Ainda é segredo: ele abre aqui em ${p.bonus.em ? dmy(p.bonus.em) : '7 dias'}. Volte nesta página.`}</span>
           </span>
         </div>
       )}
