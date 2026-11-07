@@ -1,0 +1,378 @@
+// planê.apê: loja (pedido com CPF, Pix na página, cartão no Asaas), entrega com marca de licença, bônus de 7 dias,
+// plataforma do apê, recuperação de compras, reembolso e leitura automática dos orçamentos.
+// Importado pelo index.ts da função "pagamentos". O preço nunca vem do navegador.
+
+import { PDFDocument, StandardFonts, rgb, degrees } from 'npm:pdf-lib@1.17.1'
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
+
+type J = Record<string, any>
+export interface Deps {
+  db: SupabaseClient
+  asaas: (path: string, init?: RequestInit) => Promise<J>
+  json: (body: unknown, status?: number) => Response
+  site: string
+  env: (k: string, d?: string) => string
+}
+
+/* ===== preços (mesmas regras de src/ape/model.ts) ===== */
+const PIX_PCT = 5
+const TERMOS_VERSAO = '2026-11-07'
+const BONUS_DIAS = 7
+const KIT_PLATAFORMA_MESES = 1
+const ARQ: Record<string, [string, number]> = {
+  compra: ['Guia de compra do imóvel', 19.9],
+  financiamento: ['Guia do financiamento e dos seguros', 16.9],
+  'planilha-compra': ['Planilha de custos da compra', 19.9],
+  decorado: ['Checklist da visita e documentos', 12.9],
+  checklist: ['Checklist de vistoria', 19.9],
+  planilha: ['Planilha de obra e compras', 24.9],
+  guia: ['Guia de orçamentos', 14.9],
+  medidas: ['Guia de medidas', 16.9],
+  entregas: ['Checklist de entregas da obra', 12.9],
+  enxoval: ['Planilha do enxoval', 14.9],
+  mudanca: ['Lista da mudança', 12.9],
+  planner: ['Planner de decoração', 17.9],
+}
+const KITS: Record<string, [string, number, string[]]> = {
+  'kit-compra': ['Kit vou comprar', 35, ['compra', 'financiamento', 'planilha-compra', 'decorado']],
+  'kit-chaves': ['Kit chaves na mão', 23, ['checklist', 'entregas', 'mudanca']],
+  'kit-obra': ['Kit obra sem susto', 29, ['planilha', 'guia', 'medidas']],
+  'kit-completo': ['Kit completo', 56, ['compra', 'financiamento', 'planilha-compra', 'decorado', 'checklist', 'planilha', 'guia', 'medidas', 'entregas', 'enxoval', 'mudanca', 'planner']],
+}
+const c2 = (n: number) => Math.round(n * 100) / 100
+const reais = (v: unknown) => {
+  const n = parseFloat(String(v ?? '').replace(/[^\d,.]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'))
+  return Number.isFinite(n) ? n : 0
+}
+export const precoKit = (soma: number, pct: number) => c2(Math.max(0.9, Math.floor(soma * (1 - pct / 100) - 0.9 + 1e-9) + 0.9))
+type Item = { id: string; nome: string; preco: number; cat: string; combo: string[] }
+
+export function makeApe({ db, asaas, json, site, env }: Deps) {
+  const APE_SITE = `${site.replace(/\/$/, '')}/ape/`
+
+  async function loja() {
+    const { data } = await db.from('ape_ajustes').select('data').eq('id', 1).maybeSingle()
+    const a = (data?.data ?? {}) as J
+    const map: Record<string, Item> = {}
+    const saved = Number(a.lojaV ?? 0) >= 7 && Array.isArray(a.produtos) ? (a.produtos as J[]) : null
+    if (saved) {
+      for (const p of saved) if (p.ativo !== false && ['arquivos', 'combos', 'plataforma'].includes(p.cat ?? 'arquivos')) map[p.id] = { id: p.id, nome: String(p.nome), preco: reais(p.preco), cat: p.cat ?? 'arquivos', combo: Array.isArray(p.combo) ? p.combo.map(String) : [] }
+      // kit com % de desconto: o preço sai da soma dos arquivos (igual ao site)
+      for (const p of saved) if (map[p.id] && p.cat === 'combos' && Number(p.kitPct) > 0) map[p.id].preco = precoKit(map[p.id].combo.reduce((t, id) => t + (map[id]?.cat === 'arquivos' ? map[id].preco : reais(saved.find((x) => x.id === id)?.preco)), 0), Number(p.kitPct))
+    } else {
+      for (const [id, [nome, preco]] of Object.entries(ARQ)) map[id] = { id, nome, preco, cat: 'arquivos', combo: [] }
+      for (const [id, [nome, pct, combo]] of Object.entries(KITS)) map[id] = { id, nome, preco: precoKit(combo.reduce((t, x) => t + ARQ[x][1], 0), pct), cat: 'combos', combo }
+      map.plataforma = { id: 'plataforma', nome: 'Plataforma do apê (12 meses)', preco: 79, cat: 'plataforma', combo: [] }
+    }
+    const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
+    return { map, pixPct }
+  }
+
+  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number) {
+    let uniq = [...new Set(ids)].filter((id) => map[id])
+    const noKit = new Set(uniq.flatMap((id) => (map[id].cat === 'combos' ? map[id].combo : [])))
+    uniq = uniq.filter((id) => !(map[id].cat === 'arquivos' && noKit.has(id)))
+    const itens = uniq.map((id) => ({ id, nome: map[id].nome, preco: map[id].preco, cat: map[id].cat }))
+    const subtotal = c2(itens.reduce((t, i) => t + i.preco, 0))
+    const desconto = forma === 'pix' ? c2(subtotal * pixPct / 100) : 0
+    return { itens, subtotal, desconto, total: c2(subtotal - desconto) }
+  }
+
+  const cpfOk = (v: string) => {
+    const d = v.replace(/\D/g, '')
+    if (d.length !== 11 || /^(\d)\1+$/.test(d)) return false
+    const dv = (n: number) => {
+      let s = 0
+      for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i)
+      const r = (s * 10) % 11
+      return r === 10 ? 0 : r
+    }
+    return dv(9) === Number(d[9]) && dv(10) === Number(d[10])
+  }
+  const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)
+  const hojeBR = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
+
+  async function cliente(nome: string, cpf: string, email: string, tel: string) {
+    const achado = await asaas(`/customers?cpfCnpj=${cpf}&limit=1`).catch(() => ({}) as J)
+    const id = achado.data?.[0]?.id
+    if (id) return String(id)
+    const c = await asaas('/customers', { method: 'POST', body: JSON.stringify({ name: nome, cpfCnpj: cpf, email, mobilePhone: tel, notificationDisabled: true }) })
+    return String(c.id)
+  }
+
+  async function criar(body: J) {
+    const nome = String(body.nome ?? '').trim().replace(/\s+/g, ' ').slice(0, 120)
+    const tel = String(body.tel ?? '').replace(/\D/g, '').slice(0, 13)
+    const email = String(body.email ?? '').trim().toLowerCase().slice(0, 160)
+    const cpf = String(body.cpf ?? '').replace(/\D/g, '')
+    const forma: 'pix' | 'cartao' = body.forma === 'cartao' ? 'cartao' : 'pix'
+    const falta = [nome.split(' ').length < 2 && 'nome completo', !cpfOk(cpf) && 'CPF válido', !emailOk(email) && 'e-mail válido', tel.length < 10 && 'telefone com DDD'].filter(Boolean)
+    if (falta.length) return json({ erro: `Confira: ${falta.join(', ')}.` }, 400)
+    if (body.aceite !== true) return json({ erro: 'Aceite os termos de uso antes de pagar.' }, 400)
+    const { map, pixPct } = await loja()
+    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct)
+    if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
+    if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
+    const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
+    const aceite = { versao: TERMOS_VERSAO, em: new Date().toISOString() }
+    const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma }).select('id, token').single()
+    if (error || !ped) throw new Error(error?.message ?? 'não deu para criar o pedido')
+    const customer = await cliente(nome, cpf, email, tel)
+    const pay: J = {
+      customer,
+      billingType: forma === 'cartao' ? 'CREDIT_CARD' : 'PIX',
+      value: c.total,
+      dueDate: hojeBR(),
+      description: ('planê.apê · ' + c.itens.map((i) => i.nome).join(' + ')).slice(0, 480),
+      externalReference: `ape|${ped.id}`,
+      callback: { successUrl: `${APE_SITE}#pedido:${ped.token}`, autoRedirect: true },
+    }
+    let made: J
+    try {
+      made = await asaas('/payments', { method: 'POST', body: JSON.stringify(pay) })
+    } catch (e) {
+      if (!/callback|successUrl|dom[ií]nio|domain/i.test(String(e))) throw e
+      delete pay.callback
+      made = await asaas('/payments', { method: 'POST', body: JSON.stringify(pay) })
+    }
+    let pix: J | null = null
+    if (forma === 'pix') {
+      const q = await asaas(`/payments/${made.id}/pixQrCode`).catch(() => null)
+      if (q?.payload) pix = { img: q.encodedImage, copia: q.payload, expira: q.expirationDate }
+    }
+    await db.from('ape_pedidos').update({ asaas_pagamento: made.id, asaas_cliente: customer, pix }).eq('id', ped.id)
+    return json({ token: ped.token, total: c.total, forma, pix, url: forma === 'cartao' ? made.invoiceUrl : null })
+  }
+
+  /** Libera a plataforma do apê de quem comprou (ou ganhou 1 mês no kit completo). */
+  async function liberarPlataforma(ped: J) {
+    const ids = ((ped.itens ?? []) as J[]).map((i) => String(i.id))
+    const dias = (ids.includes('plataforma') ? 365 : 0) + (ids.includes('kit-completo') ? 30 * KIT_PLATAFORMA_MESES : 0)
+    if (!dias) return null
+    const { data: ja } = await db.from('ape_plataforma').select('token, validade').eq('pedido', ped.id).maybeSingle()
+    if (ja) return ja
+    // a mesma pessoa já tem acesso? soma os dias no acesso dela
+    if (ped.cpf) {
+      const { data: outro } = await db.from('ape_plataforma').select('id, token, validade').eq('cpf', ped.cpf).order('validade', { ascending: false }).limit(1).maybeSingle()
+      if (outro) {
+        const base = outro.validade > hojeBR() ? new Date(outro.validade) : new Date(hojeBR())
+        base.setDate(base.getDate() + dias)
+        const validade = base.toISOString().slice(0, 10)
+        await db.from('ape_plataforma').update({ validade }).eq('id', outro.id)
+        return { token: outro.token, validade }
+      }
+    }
+    const v = new Date(hojeBR())
+    v.setDate(v.getDate() + dias)
+    const { data: novo } = await db.from('ape_plataforma').insert({ nome: ped.nome, email: ped.email, cpf: ped.cpf, tel: ped.tel, pedido: ped.id, validade: v.toISOString().slice(0, 10), cortesia: !!ped.cortesia }).select('token, validade').single()
+    return novo
+  }
+
+  async function marcarPago(id: string, p: J) {
+    const { data: ped } = await db.from('ape_pedidos').update({ status: 'pago', pago_em: new Date().toISOString(), asaas_pagamento: String(p.id ?? ''), forma: p.billingType === 'CREDIT_CARD' ? 'cartao' : 'pix', pix: null }).eq('id', id).eq('status', 'pendente').select('*').maybeSingle()
+    if (ped) await liberarPlataforma(ped)
+  }
+
+  const PAGO = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']
+  async function porToken(token: string) {
+    if (!/^[0-9a-f-]{36}$/i.test(token)) return null
+    const { data } = await db.from('ape_pedidos').select('*').eq('token', token).maybeSingle()
+    return data as J | null
+  }
+  async function conferir(ped: J) {
+    if (ped.status !== 'pendente') return ped
+    let ok: J | undefined
+    if (ped.asaas_pagamento) {
+      const p = await asaas(`/payments/${ped.asaas_pagamento}`).catch(() => ({}) as J)
+      if (PAGO.includes(String(p.status))) ok = p
+    } else if (ped.asaas_link) {
+      const r = await asaas(`/payments?paymentLink=${ped.asaas_link}&limit=10`).catch(() => ({}) as J)
+      ok = ((r.data ?? []) as J[]).find((x) => PAGO.includes(String(x.status)))
+    }
+    if (ok) {
+      await marcarPago(ped.id, ok)
+      return { ...ped, status: 'pago', pago_em: new Date().toISOString() }
+    }
+    return ped
+  }
+
+  /** Lista o que a pessoa pode baixar: arquivos de cada produto e, depois de 7 dias, o bônus. */
+  async function entregas(ped: J) {
+    const { map } = await loja()
+    const itens = (ped.itens ?? []) as J[]
+    const ids = [...new Set(itens.flatMap((i) => (map[i.id]?.cat === 'combos' ? map[i.id].combo : KITS[i.id]?.[2] ?? [i.id])))].filter((id) => id !== 'plataforma')
+    const st = db.storage.from('ape-arquivos')
+    const out: { produto: string; nome: string; path: string; tipo: string }[] = []
+    const pasta = async (id: string, produto: string) => {
+      const { data: files } = await st.list(id, { limit: 20 })
+      for (const f of files ?? []) if (f.name && !f.name.startsWith('.') && f.id) out.push({ produto, nome: f.name, path: `${id}/${f.name}`, tipo: /\.pdf$/i.test(f.name) ? 'pdf' : /\.xlsx?$/i.test(f.name) ? 'planilha' : 'arquivo' })
+    }
+    for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? id)
+    const libera = ped.pago_em ? new Date(new Date(ped.pago_em).getTime() + BONUS_DIAS * 864e5) : null
+    const bonusLiberado = !!libera && libera.getTime() <= Date.now()
+    if (bonusLiberado) await pasta('bonus', 'Bônus: manutenção e garantias do 1º ano')
+    return { arquivos: out, bonus: { liberado: bonusLiberado, em: libera?.toISOString() ?? null } }
+  }
+
+  async function pedido(body: J) {
+    let ped = await porToken(String(body.token ?? ''))
+    if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
+    ped = await conferir(ped)
+    const base = { status: ped.status, itens: ped.itens ?? [], subtotal: ped.subtotal, desconto: ped.desconto, total: ped.total, forma: ped.forma, nome: ped.nome, criado: ped.criado, cortesia: ped.cortesia }
+    if (ped.status === 'pendente') return json({ ...base, pix: ped.pix ?? null })
+    if (ped.status !== 'pago') return json(base)
+    const plat = await liberarPlataforma(ped)
+    const e = await entregas(ped)
+    return json({ ...base, pago_em: ped.pago_em, ...e, plataforma: plat ? { token: plat.token, validade: plat.validade } : null })
+  }
+
+  /** Baixa um arquivo: PDF sai com a licença de quem comprou no rodapé de cada página (feito uma vez e guardado). */
+  async function baixar(body: J) {
+    const ped = await porToken(String(body.token ?? ''))
+    if (!ped || ped.status !== 'pago') return json({ erro: 'Pedido não liberado.' }, 403)
+    const path = String(body.path ?? '')
+    const e = await entregas(ped)
+    const f = e.arquivos.find((a) => a.path === path)
+    if (!f) return json({ erro: 'Arquivo não encontrado.' }, 404)
+    const st = db.storage.from('ape-arquivos')
+    let final = path
+    if (f.tipo === 'pdf') {
+      final = `entregas/${ped.id}/${path.replace(/\//g, '__')}`
+      const { data: ja } = await st.list(`entregas/${ped.id}`, { search: path.replace(/\//g, '__') })
+      if (!ja?.some((x) => x.name === path.replace(/\//g, '__'))) {
+        const { data: blob } = await st.download(path)
+        if (!blob) return json({ erro: 'Arquivo indisponível.' }, 404)
+        try {
+          const bytes = await licenciar(new Uint8Array(await blob.arrayBuffer()), ped)
+          await st.upload(final, bytes, { contentType: 'application/pdf', upsert: true })
+        } catch {
+          final = path // PDF protegido ou fora do padrão: entrega o original
+        }
+      }
+    }
+    const { data: u } = await st.createSignedUrl(final, 60 * 30, { download: f.nome })
+    await db.from('ape_pedidos').update({ baixados: Number(ped.baixados ?? 0) + 1 }).eq('id', ped.id)
+    return u?.signedUrl ? json({ url: u.signedUrl }) : json({ erro: 'Não deu para gerar o link.' }, 500)
+  }
+
+  async function licenciar(src: Uint8Array, ped: J) {
+    const pdf = await PDFDocument.load(src)
+    const font = await pdf.embedFont(StandardFonts.Helvetica)
+    const cpf = String(ped.cpf ?? '').replace(/\D/g, '')
+    const cpfM = cpf.length === 11 ? `***.${cpf.slice(3, 6)}.${cpf.slice(6, 9)}-**` : ''
+    const quem = `${ped.nome}${cpfM ? ` · CPF ${cpfM}` : ''} · pedido ${String(ped.token).slice(0, 8)}`
+    // só caracteres que a fonte padrão aceita
+    const limpa = (s: string) => s.normalize('NFC').replace(/[^\x20-\x7E\xA0-\xFF]/g, '') // Latin-1: acentos e "·" ficam
+    const linha = limpa(`Licenciado para ${quem} · uso pessoal · proibida a reprodução, distribuição ou revenda · planê.apê · useplane.com.br/ape`)
+    for (const page of pdf.getPages()) {
+      const { width, height } = page.getSize()
+      const size = 6.2
+      const w = font.widthOfTextAtSize(linha, size)
+      const s = w > width - 40 ? size * (width - 40) / w : size
+      page.drawText(linha, { x: (width - font.widthOfTextAtSize(linha, s)) / 2, y: 7, size: s, font, color: rgb(0.45, 0.43, 0.41), opacity: 0.85 })
+      // marca bem leve na lateral, para identificar cópias
+      page.drawText(limpa(`licenciado para ${ped.nome}`), { x: width - 6, y: height * 0.3, size: 6, font, color: rgb(0.6, 0.58, 0.56), opacity: 0.35, rotate: degrees(90) })
+    }
+    pdf.setTitle(pdf.getTitle() ?? 'planê.apê')
+    pdf.setAuthor('planê.apê · useplane.com.br/ape')
+    pdf.setSubject(limpa(`Licenciado para ${quem}`))
+    return await pdf.save()
+  }
+
+  /** Recupera as compras pelo CPF e e-mail (os dois precisam bater). */
+  async function recuperar(body: J) {
+    const cpf = String(body.cpf ?? '').replace(/\D/g, '')
+    const email = String(body.email ?? '').trim().toLowerCase()
+    if (!cpfOk(cpf) || !emailOk(email)) return json({ erro: 'Confira o CPF e o e-mail.' }, 400)
+    const { data } = await db.from('ape_pedidos').select('token, criado, total, status, itens').eq('cpf', cpf).eq('email', email).order('criado', { ascending: false }).limit(20)
+    const { data: plat } = await db.from('ape_plataforma').select('token, validade').eq('cpf', cpf).order('validade', { ascending: false }).limit(1).maybeSingle()
+    return json({ pedidos: (data ?? []).map((p) => ({ token: p.token, criado: p.criado, total: p.total, status: p.status, itens: ((p.itens ?? []) as J[]).map((i) => i.nome) })), plataforma: plat ?? null })
+  }
+
+  /** Reembolso (só a dona, logada): devolve no Asaas, fecha os downloads e a plataforma do pedido. */
+  async function reembolsar(req: Request, body: J) {
+    const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const { data: u } = await db.auth.getUser(jwt)
+    if (!u?.user) return json({ erro: 'Entre na sua conta.' }, 401)
+    const { data: adm } = await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()
+    if (!adm) return json({ erro: 'Só a dona pode reembolsar.' }, 403)
+    const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', String(body.id ?? '')).maybeSingle()
+    if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
+    if (ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') await asaas(`/payments/${ped.asaas_pagamento}/refund`, { method: 'POST', body: '{}' })
+    else if (ped.asaas_pagamento && ped.status === 'pendente') await asaas(`/payments/${ped.asaas_pagamento}`, { method: 'DELETE' }).catch(() => null)
+    const ontem = new Date(Date.now() - 864e5).toISOString().slice(0, 10)
+    await db.from('ape_pedidos').update({ status: ped.status === 'pago' ? 'reembolsado' : 'cancelado', cancelado_em: new Date().toISOString(), pix: null }).eq('id', ped.id)
+    await db.from('ape_plataforma').update({ validade: ontem }).eq('pedido', ped.id)
+    return json({ ok: true })
+  }
+
+  /* ===== leitura automática do orçamento: um arquivo por vez, já no formato da comparação ===== */
+  const NICHOS = 'piso-vinilico, piso-ceramico, piso-laminado, revestimentos, marcenaria, marmoraria, box, gesso, eletrica, hidraulica, impermeabilizacao, serralheria, ar, pintura, cortinas, telas, vidros, iluminacao, moveis, eletros, mao-de-obra, outros'
+  const b64 = (buf: ArrayBuffer) => {
+    const u = new Uint8Array(buf)
+    let s = ''
+    for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000))
+    return btoa(s)
+  }
+  async function geminiKey() {
+    const k = env('GEMINI_API_KEY')
+    if (k) return k
+    const { data: adm } = await db.from('admins').select('user_id').limit(1).maybeSingle()
+    if (!adm) return ''
+    const { data: ws } = await db.from('workspace').select('data').eq('user_id', adm.user_id).maybeSingle()
+    return String((ws?.data as J | undefined)?.settings?.aiKey ?? '')
+  }
+  const PROMPT = (hoje: string, texto: string) => `Você lê UM orçamento de obra, reforma ou móveis (pode ser PDF, foto ou texto) e devolve só JSON, sem comentários. Hoje é ${hoje}.
+Formato:
+{"fornecedor": "empresa ou profissional que fez o orçamento (nunca o cliente)", "nicho": um destes ids: ${NICHOS},
+"servico": "o que está sendo orçado, até 10 palavras", "resumo": "1 frase simples: o que é e o preço que importa",
+"contato": "nome do vendedor", "whatsapp": "só dígitos com DDD", "telefone": "só dígitos", "email": "", "instagram": "", "cnpj": "só dígitos", "endereco": "",
+"valor_total": número ou null (preço cheio/a prazo), "valor_avista": número ou null, "desconto_avista_pct": número ou null, "parcelas_max": número ou null, "valor_parcela": número ou null, "juros": true/false/null,
+"area_m2": número ou null, "prazo": "prazo de execução ou entrega", "garantia": "", "validade": "AAAA-MM-DD ou vazio (válido por N dias: conte a partir da data do orçamento)", "pagamento": "condições de pagamento",
+"itens": [{"descricao": "item como está escrito, curto", "qtd": número ou null, "unidade": "m², un, ml, vb...", "valor": número ou null (total do item)}],
+"materiais": ["marca, linha, espessura, acabamento ou especificação citada"],
+"inclui": ["o que o orçamento diz que inclui (mão de obra, frete, instalação...)"],
+"nao_inclui": ["o que diz que NÃO inclui ou fica por conta do cliente"],
+"alertas": ["o que está vago ou costuma gerar custo extra e não aparece (ex.: frete, rodapé, retirada de entulho, regularização)"],
+"completude": 1 a 5}
+Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
+
+  async function ler(body: J) {
+    const morador = String(body.morador ?? '')
+    if (!/^[0-9a-f-]{36}$/i.test(morador)) return json({ erro: 'faça o cadastro' }, 400)
+    const { data: m } = await db.from('ape_moradores').select('id').eq('id', morador).maybeSingle()
+    if (!m) return json({ erro: 'faça o cadastro' }, 400)
+    const desde = new Date(Date.now() - 864e5).toISOString()
+    const { count } = await db.from('ape_leituras').select('id', { count: 'exact', head: true }).eq('morador', morador).gte('criado', desde)
+    if ((count ?? 0) >= 40) return json({ erro: 'limite de leituras por hoje' }, 429)
+    const key = await geminiKey()
+    if (!key) return json({ erro: 'leitura automática desligada' }, 503)
+    const path = String(body.arquivo ?? (Array.isArray(body.arquivos) ? body.arquivos[0] : '') ?? '')
+    const parts: J[] = []
+    if (path.startsWith('envios/')) {
+      const { data: f } = await db.storage.from('ape-envios').download(path)
+      if (f && f.size <= 15 * 1024 * 1024) parts.push({ inlineData: { mimeType: f.type || (path.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'), data: b64(await f.arrayBuffer()) } })
+    }
+    const texto = String(body.texto ?? '').slice(0, 12000)
+    if (!parts.length && !texto.trim()) return json({ erro: 'nada para ler' }, 400)
+    await db.from('ape_leituras').insert({ morador })
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } }),
+    })
+    const out = (await r.json().catch(() => ({}))) as J
+    if (!r.ok) return json({ erro: 'não deu para ler agora' }, 502)
+    const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
+    let v: J = {}
+    try {
+      v = JSON.parse(txt.replace(/```(json)?/g, '').trim())
+    } catch {
+      /* resposta fora do formato: devolve vazio */
+    }
+    if (!NICHOS.split(', ').includes(String(v.nicho))) v.nicho = ''
+    return json({ orcamento: v })
+  }
+
+  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago }
+}

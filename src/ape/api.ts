@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { APE, DESCONTOS, EXEMPLOS, LOJA_VERSAO, PRODUTOS, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto } from './model'
+import { APE, EXEMPLOS, LOJA_VERSAO, PIX_PCT, PRODUTOS, TAXAS, comPrecos, conta, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
 
 /* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -8,8 +8,11 @@ export interface Ajustes {
   produtos: Produto[]
   whatsapp?: string
   lojaV?: number
-  descontos?: [number, number][]
+  pixPct?: number // desconto no Pix (padrão 5%)
+  taxas?: Taxas // taxas do Asaas, só para conferir a margem no painel
+  vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
 }
+export interface Vendedor { nome: string; doc: string; cidade: string; email: string }
 export interface Publico {
   orcamentos: Orcamento[]
   ajustes: Ajustes
@@ -17,10 +20,11 @@ export interface Publico {
   escolhas: Record<string, number> // quantos vão fechar com este
   minhas: string[] // orçamentos que este morador escolheu
   bloqueado: boolean // não é morador do San Levi: não vê os orçamentos
+  meus: string[] // orçamentos que este morador mandou (pode corrigir ou apagar)
 }
 
 const LOCAL = 'ape-previa-v1'
-type Local = { escolhas?: { morador: string; nicho: string; orcamento: string }[]; orcamentos: Orcamento[]; ajustes: Ajustes; moradores: Morador[]; envios: (Omit<Envio, 'morador'> & { moradorId: string })[]; interesses: { orcamento: string; morador: string; criado: string }[] }
+type Local = { pedidos?: PedidoLocal[]; plataforma?: Record<string, { nome: string; validade: string; cortesia: boolean; dados: PlatDados; atualizado: string }>; escolhas?: { morador: string; nicho: string; orcamento: string }[]; orcamentos: Orcamento[]; ajustes: Ajustes; moradores: Morador[]; envios: (Omit<Envio, 'morador'> & { moradorId: string })[]; interesses: { orcamento: string; morador: string; criado: string }[] }
 const readLocal = (): Local => {
   try {
     const v = JSON.parse(localStorage.getItem(LOCAL) || 'null') as Local | null
@@ -44,13 +48,14 @@ const sb = () => supabase!
 const fail = (error: { message?: string } | null) => {
   if (error) throw new Error(error.message || 'erro')
 }
-const rowToOrc = (r: { id: string; data: Record<string, unknown>; oculto: boolean; exemplo: boolean; criado: string }) =>
+const rowToOrc = (r: { id: string; data: Record<string, unknown>; oculto: boolean; exemplo: boolean; criado: string; morador?: string | null }) =>
   cleanOrcamento(r.data, { ...(r.data as Partial<Orcamento>), id: r.id, oculto: r.oculto, exemplo: r.exemplo, criado: String((r.data as Partial<Orcamento>).criado || r.criado) })
 const ajustesOf = (d: unknown): Ajustes => {
   const a = (d || {}) as Partial<Ajustes>
   // loja antiga (antes das categorias): usa a nova, mantendo só o WhatsApp
   const atual = (a.lojaV || 0) >= LOJA_VERSAO && Array.isArray(a.produtos) && a.produtos.length
-  return { produtos: atual ? a.produtos! : PRODUTOS, whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, descontos: Array.isArray(a.descontos) && a.descontos.length ? a.descontos : DESCONTOS }
+  const pixPct = typeof a.pixPct === 'number' && a.pixPct >= 0 && a.pixPct <= 10 ? a.pixPct : PIX_PCT
+  return { produtos: comPrecos(atual ? a.produtos! : PRODUTOS), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) } }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -68,7 +73,8 @@ export async function loadPublico(me?: Morador | null, dona = false): Promise<Pu
     const escolhas: Record<string, number> = {}
     for (const e of l.escolhas || []) escolhas[e.orcamento] = (escolhas[e.orcamento] || 0) + 1
     const minhas = (l.escolhas || []).filter((e) => e.morador === morador).map((e) => e.orcamento)
-    return { orcamentos: sl || dona ? l.orcamentos : [], ajustes: ajustesOf(l.ajustes), contagens, escolhas, minhas, bloqueado: !sl && !dona }
+    const meus = l.orcamentos.filter((o) => (o as Orcamento & { morador?: string }).morador === morador && morador).map((o) => o.id)
+    return { orcamentos: sl || dona ? l.orcamentos : [], ajustes: ajustesOf(l.ajustes), contagens, escolhas, minhas, bloqueado: !sl && !dona, meus }
   }
   const [o, a, c] = await Promise.all([
     dona ? sb().from('ape_orcamentos').select('*') : sl ? sb().rpc('ape_orcamentos_morador', { p_morador: morador }) : Promise.resolve({ data: [], error: null }),
@@ -84,7 +90,9 @@ export async function loadPublico(me?: Morador | null, dona = false): Promise<Pu
     escolhas[r.orcamento] = r.escolhas
     if (r.minha) minhas.push(r.orcamento)
   }
-  return { orcamentos: ((o.data ?? []) as Parameters<typeof rowToOrc>[0][]).map(rowToOrc), ajustes: ajustesOf(a.data?.data), contagens, escolhas, minhas, bloqueado: !sl && !dona }
+  const rows = (o.data ?? []) as (Parameters<typeof rowToOrc>[0] & { meu?: boolean })[]
+  const meus = rows.filter((r) => r.meu || (dona && r.morador && r.morador === morador)).map((r) => r.id)
+  return { orcamentos: rows.map(rowToOrc), ajustes: ajustesOf(a.data?.data), contagens, escolhas, minhas, bloqueado: !sl && !dona, meus }
 }
 
 /** "Vou fechar com este" (um por serviço; tocar de novo desmarca). Devolve o orçamento escolhido ou ''. */
@@ -136,16 +144,25 @@ export async function subirArquivos(files: File[], onStep?: (t: string) => void)
   return out
 }
 
-/** Lê os anexos com IA (no servidor) e devolve fornecedor e serviço para preencher sozinho. */
-export async function lerAnexos(moradorId: string, arquivos: Arquivo[], texto = ''): Promise<{ fornecedor: string; nicho: string; servico: string } | null> {
-  if (!CLOUD || (!arquivos.some((a) => a.path) && !texto.trim())) return null
+/** Lê UM arquivo do orçamento com IA (no servidor) e devolve os campos para a comparação. Sem IA, devolve null. */
+export async function lerArquivo(moradorId: string, arquivo: Arquivo | null, texto = ''): Promise<Record<string, unknown> | null> {
+  if (!CLOUD || (!arquivo?.path && !texto.trim())) return null
   try {
-    const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-ler', morador: moradorId, arquivos: arquivos.map((a) => a.path).filter(Boolean), texto } })
-    if (error || !data || (data as { erro?: string }).erro) return null
-    return data as { fornecedor: string; nicho: string; servico: string }
+    const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-ler', morador: moradorId, arquivo: arquivo?.path || '', texto } })
+    const o = (data as { orcamento?: Record<string, unknown> } | null)?.orcamento
+    if (error || !o) return null
+    return o
   } catch {
     return null
   }
+}
+
+/** Abre o próprio cadastro pelo link "usar em outro aparelho". */
+export async function euMorador(id: string): Promise<Morador | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null
+  if (!CLOUD) return readLocal().moradores.find((m) => m.id === id) || null
+  const { data, error } = await sb().rpc('ape_eu', { p_id: id })
+  return error ? null : moradorOf(data as Record<string, unknown> | null)
 }
 
 /** É a dona olhando a página (logada no planê)? */
@@ -225,16 +242,30 @@ export async function novosEnvios(): Promise<number> {
   return error ? 0 : count ?? 0
 }
 
-export async function enviar(moradorId: string, e: { nicho: string; fornecedor: string; texto: string; files: File[]; arquivos?: Arquivo[] }, onStep?: (t: string) => void): Promise<void> {
+/** Publica o orçamento direto na comparação (o morador revisou o que foi lido do arquivo). */
+export async function publicar(moradorId: string, o: Orcamento, arquivos: Arquivo[]): Promise<string> {
+  const dados = { ...o, arquivos: arquivos.map((a) => ({ nome: a.nome, tipo: a.tipo })) }
+  if (!CLOUD) {
+    const id = 'm' + Date.now().toString(36)
+    writeLocal((l) => {
+      l.orcamentos.unshift({ ...dados, id, criado: new Date().toISOString(), morador: moradorId } as Orcamento)
+      l.envios.unshift({ id: crypto.randomUUID(), moradorId, nicho: o.nicho, fornecedor: o.fornecedor, texto: '', arquivos, status: 'publicado', orcamento: id, criado: new Date().toISOString() })
+    })
+    return id
+  }
+  const { data, error } = await sb().rpc('ape_publicar', { p_morador: moradorId, p_dados: dados, p_arquivos: arquivos })
+  fail(error)
+  return String(data)
+}
+/** O morador corrige (dados) ou apaga (null) um orçamento que ele mesmo mandou. */
+export async function meuOrcamento(moradorId: string, id: string, o: Orcamento | null) {
   if (!CLOUD) {
     writeLocal((l) => {
-      l.envios.unshift({ id: crypto.randomUUID(), moradorId, nicho: e.nicho, fornecedor: e.fornecedor, texto: e.texto, arquivos: e.files.map((f) => ({ path: '', nome: f.name, tipo: f.type })), status: 'novo', criado: new Date().toISOString() })
+      l.orcamentos = o ? l.orcamentos.map((x) => (x.id === id ? { ...o, id, morador: moradorId } as Orcamento : x)) : l.orcamentos.filter((x) => x.id !== id)
     })
     return
   }
-  const arquivos = e.arquivos?.length ? e.arquivos : await subirArquivos(e.files, onStep)
-  onStep?.('Guardando o orçamento…')
-  const { error } = await sb().rpc('ape_enviar', { p_morador: moradorId, p_nicho: e.nicho, p_fornecedor: e.fornecedor, p_texto: e.texto, p_arquivos: arquivos })
+  const { error } = await sb().rpc('ape_meu_orcamento', { p_morador: moradorId, p_id: id, p_dados: o })
   fail(error)
 }
 
@@ -363,13 +394,26 @@ export const admin = {
 }
 
 /* ===== loja: pagamento pelo Asaas (função "pagamentos" do Supabase) ===== */
+export type StatusPedido = 'pendente' | 'pago' | 'cancelado' | 'reembolsado'
+export interface Entrega { produto: string; nome: string; path: string; tipo: string }
 export interface Pedido {
-  status: 'pendente' | 'pago' | 'cancelado'
+  status: StatusPedido
   itens: { id: string; nome: string; preco: number }[]
+  subtotal?: number
+  desconto?: number
   total: number
+  forma?: string
   nome?: string
-  arquivos?: { produto: string; nome: string; url: string }[]
+  criado?: string
+  pago_em?: string
+  cortesia?: boolean
+  pix?: { img: string; copia: string; expira?: string } | null
+  arquivos?: Entrega[]
+  bonus?: { liberado: boolean; em: string | null }
+  plataforma?: { token: string; validade: string } | null
 }
+/** Na prévia (sem nuvem) o pedido fica no navegador, para testar o caminho inteiro. */
+export interface PedidoLocal extends Pedido { token: string; cpf: string; email: string; tel: string }
 const PED = 'ape-pedidos'
 export const pedidosLocais = (): { token: string; criado: string; total: number }[] => {
   try {
@@ -378,53 +422,230 @@ export const pedidosLocais = (): { token: string; criado: string; total: number 
     return []
   }
 }
-/** Cria o pedido e devolve o link de pagamento do Asaas (o preço é calculado na função, não aqui). */
-export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; tel: string; email?: string; forma: 'pix' | 'cartao'; aceite: boolean }): Promise<{ url: string; token: string; total: number }> {
-  if (!CLOUD) throw new Error('Na prévia não dá para pagar de verdade.')
-  const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-criar', ...d } })
-  const erro = (data as { erro?: string } | null)?.erro
-  if (error || erro || !data?.url) throw new Error(erro || (error?.message?.includes('non-2xx') ? 'o pagamento ainda não está ligado' : error?.message) || 'sem resposta')
+const lembrar = (token: string, total: number) => {
   try {
-    localStorage.setItem(PED, JSON.stringify([{ token: data.token, criado: new Date().toISOString(), total: data.total }, ...pedidosLocais()].slice(0, 20)))
+    localStorage.setItem(PED, JSON.stringify([{ token, criado: new Date().toISOString(), total }, ...pedidosLocais().filter((p) => p.token !== token)].slice(0, 20)))
   } catch {
     /* ok */
   }
-  return data as { url: string; token: string; total: number }
+}
+const invoke = async <T,>(body: Record<string, unknown>): Promise<T> => {
+  const { data, error } = await sb().functions.invoke('pagamentos', { body })
+  const erro = (data as { erro?: string } | null)?.erro
+  if (erro) throw new Error(erro)
+  if (error) {
+    // a função devolve o motivo no corpo mesmo com erro
+    const ctx = (error as { context?: Response }).context
+    const msg = ctx ? ((await ctx.json().catch(() => null)) as { erro?: string } | null)?.erro : ''
+    throw new Error(msg || (error.message?.includes('non-2xx') ? 'o pagamento ainda não está ligado' : error.message) || 'sem resposta')
+  }
+  return data as T
+}
+export interface NovoPedido { token: string; total: number; forma: 'pix' | 'cartao'; pix: Pedido['pix']; url: string | null }
+/** Cria o pedido (o preço é calculado na função, não aqui). Pix: o QR aparece na página; cartão: abre a página segura do Asaas. */
+export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; cpf: string; tel: string; email: string; forma: 'pix' | 'cartao'; aceite: boolean }, produtos: Produto[], pixPct: number): Promise<NovoPedido> {
+  if (!CLOUD) {
+    const c = conta(d.itens, produtos, d.forma, pixPct)
+    const token = crypto.randomUUID()
+    const ped: PedidoLocal = { token, status: 'pendente', itens: c.itens.map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco.replace(/[^\d,]/g, '').replace(',', '.')) })), subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma: d.forma, nome: d.nome, criado: new Date().toISOString(), cpf: d.cpf, email: d.email, tel: d.tel, pix: d.forma === 'pix' ? { img: '', copia: '00020126580014BR.GOV.BCB.PIX-previa-' + token.slice(0, 8) } : null }
+    writeLocal((l) => {
+      l.pedidos = [ped, ...(l.pedidos || [])]
+    })
+    lembrar(token, c.total)
+    return { token, total: c.total, forma: d.forma, pix: ped.pix, url: null }
+  }
+  const r = await invoke<NovoPedido>({ acao: 'ape-criar', ...d })
+  lembrar(r.token, r.total)
+  return r
+}
+const KIT_DIAS: Record<string, number> = { plataforma: 365, 'kit-completo': 30 }
+/** Prévia: simula o pagamento confirmado (só sem nuvem). */
+export function simularPagamento(token: string) {
+  writeLocal((l) => {
+    const p = (l.pedidos || []).find((x) => x.token === token)
+    if (!p || p.status !== 'pendente') return
+    p.status = 'pago'
+    p.pago_em = new Date().toISOString()
+    p.pix = null
+    const dias = p.itens.reduce((t, i) => t + (KIT_DIAS[i.id] || 0), 0)
+    if (dias) {
+      const tk = crypto.randomUUID()
+      const v = new Date()
+      v.setDate(v.getDate() + dias)
+      l.plataforma = { ...(l.plataforma || {}), [tk]: { nome: p.nome || '', validade: v.toISOString().slice(0, 10), cortesia: false, dados: {}, atualizado: new Date().toISOString() } }
+      p.plataforma = { token: tk, validade: v.toISOString().slice(0, 10) }
+    }
+  })
 }
 export async function verPedido(token: string): Promise<Pedido | null> {
-  if (!CLOUD) return null
-  const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-pedido', token } })
-  if (error || !data || (data as { erro?: string }).erro) return null
-  return data as Pedido
+  if (!CLOUD) {
+    const p = (readLocal().pedidos || []).find((x) => x.token === token)
+    if (!p) return null
+    if (p.status !== 'pago') return p
+    const ids = [...new Set(p.itens.flatMap((i) => PRODUTOS.find((x) => x.id === i.id)?.combo || [i.id]))].filter((id) => id !== 'plataforma')
+    const libera = new Date(new Date(p.pago_em!).getTime() + 7 * 864e5)
+    return { ...p, arquivos: ids.map((id) => ({ produto: PRODUTOS.find((x) => x.id === id)?.nome || id, nome: `${id}.pdf`, path: `${id}/${id}.pdf`, tipo: 'pdf' })), bonus: { liberado: libera.getTime() <= Date.now(), em: libera.toISOString() } }
+  }
+  try {
+    return await invoke<Pedido>({ acao: 'ape-pedido', token })
+  } catch {
+    return null
+  }
+}
+/** Link para baixar um arquivo (o PDF sai com a licença de quem comprou no rodapé). */
+export async function baixarArquivo(token: string, path: string): Promise<string> {
+  if (!CLOUD) throw new Error('Na prévia os arquivos não são baixados.')
+  return (await invoke<{ url: string }>({ acao: 'ape-baixar', token, path })).url
+}
+/** Recupera as compras em outro aparelho, com o CPF e o e-mail usados na compra. */
+export async function recuperarCompras(cpf: string, email: string): Promise<{ pedidos: { token: string; criado: string; total: number; status: StatusPedido; itens: string[] }[]; plataforma: { token: string; validade: string } | null }> {
+  if (!CLOUD) {
+    const l = readLocal()
+    const ps = (l.pedidos || []).filter((p) => p.cpf === cpf && p.email.toLowerCase() === email.toLowerCase())
+    return { pedidos: ps.map((p) => ({ token: p.token, criado: p.criado || '', total: p.total, status: p.status, itens: p.itens.map((i) => i.nome) })), plataforma: ps.find((p) => p.plataforma)?.plataforma || null }
+  }
+  const r = await invoke<Awaited<ReturnType<typeof recuperarCompras>>>({ acao: 'ape-recuperar', cpf, email })
+  r.pedidos.forEach((p) => lembrar(p.token, Number(p.total)))
+  return r
 }
 
-/* ===== painel: pedidos e arquivos que a loja entrega ===== */
+/* ===== plataforma do apê (área de quem comprou) ===== */
+export interface PlatGasto { id: string; comodo: string; item: string; previsto: number | null; pago: number | null; status: 'planejado' | 'comprado' | 'pago'; data: string; obs: string }
+export interface PlatParcela { id: string; descricao: string; valor: number | null; vezes: number | null; inicio: string; dia: number | null }
+export interface PlatEtapa { id: string; nome: string; feita: boolean; data: string; quem: string; obs: string }
+export interface PlatVistoria { id: string; comodo: string; item: string; status: 'ok' | 'problema' | 'pendente'; obs: string; foto?: string }
+export interface PlatContato { id: string; nome: string; servico: string; tel: string; obs: string }
+export interface PlatDados {
+  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string }
+  gastos?: PlatGasto[]
+  parcelas?: PlatParcela[]
+  etapas?: PlatEtapa[]
+  vistoria?: PlatVistoria[]
+  contatos?: PlatContato[]
+  notas?: string
+}
+export interface PlatAcesso { nome: string; validade: string; ativo: boolean; cortesia: boolean; dados: PlatDados; atualizado: string }
+export async function platAbrir(token: string): Promise<PlatAcesso | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(token)) return null
+  if (!CLOUD) {
+    const a = readLocal().plataforma?.[token]
+    return a ? { ...a, ativo: a.validade >= new Date().toISOString().slice(0, 10) } : null
+  }
+  const { data, error } = await sb().rpc('ape_plat_abrir', { p_token: token })
+  if (error || !data) return null
+  return data as PlatAcesso
+}
+export async function platSalvar(token: string, dados: PlatDados): Promise<string> {
+  if (!CLOUD) {
+    const quando = new Date().toISOString()
+    writeLocal((l) => {
+      if (l.plataforma?.[token]) l.plataforma[token] = { ...l.plataforma[token], dados, atualizado: quando }
+    })
+    return quando
+  }
+  const { data, error } = await sb().rpc('ape_plat_salvar', { p_token: token, p_dados: dados })
+  fail(error)
+  return String(data)
+}
+
+/* ===== painel: pedidos, clientes, cortesias, plataforma e arquivos que a loja entrega ===== */
 export interface PedidoAdmin {
   id: string
+  token: string
   nome: string
   tel: string
   email: string
+  cpf: string
   itens: { id: string; nome: string; preco: number }[]
+  subtotal: number
   total: number
   desconto: number
-  status: Pedido['status']
+  status: StatusPedido
   forma: string
   criado: string
   pago_em: string | null
   baixados: number
+  cortesia: boolean
+  aceite: { versao: string; em: string } | null
+  obs: string
 }
+export interface PlatAdmin { id: string; token: string; nome: string; email: string; cpf: string; tel: string; validade: string; cortesia: boolean; criado: string; atualizado: string; pedido: string | null }
 export const loja = {
   async pedidos(): Promise<PedidoAdmin[]> {
-    if (!CLOUD) return []
-    const { data, error } = await sb().from('ape_pedidos').select('*').order('criado', { ascending: false }).limit(300)
+    if (!CLOUD) return (readLocal().pedidos || []).map((p) => ({ id: p.token, token: p.token, nome: p.nome || '', tel: p.tel, email: p.email, cpf: p.cpf, itens: p.itens, subtotal: p.subtotal || p.total, total: p.total, desconto: p.desconto || 0, status: p.status, forma: p.forma || '', criado: p.criado || '', pago_em: p.pago_em || null, baixados: 0, cortesia: !!p.cortesia, aceite: null, obs: '' }))
+    const { data, error } = await sb().from('ape_pedidos').select('*').order('criado', { ascending: false }).limit(500)
     fail(error)
-    return (data ?? []).map((r) => ({ ...(r as PedidoAdmin), total: Number(r.total), desconto: Number(r.desconto) }))
+    return (data ?? []).map((r) => ({ ...(r as PedidoAdmin), cpf: String(r.cpf ?? ''), total: Number(r.total), subtotal: Number(r.subtotal), desconto: Number(r.desconto), cortesia: !!r.cortesia, obs: String(r.obs ?? '') }))
+  },
+  /** Pedido de cortesia (sem pagar): para a dona testar como cliente ou dar acesso a alguém. Já sai pago. */
+  async cortesia(d: { nome: string; email: string; cpf: string; tel: string; itens: Produto[]; obs?: string }): Promise<string> {
+    const itens = d.itens.map((p) => ({ id: p.id, nome: p.nome, preco: 0, cat: p.cat }))
+    if (!CLOUD) {
+      const token = crypto.randomUUID()
+      writeLocal((l) => {
+        l.pedidos = [{ token, status: 'pendente', itens, total: 0, subtotal: 0, desconto: 0, forma: 'cortesia', nome: d.nome, criado: new Date().toISOString(), cpf: d.cpf, email: d.email, tel: d.tel, cortesia: true }, ...(l.pedidos || [])]
+      })
+      simularPagamento(token)
+      lembrar(token, 0)
+      return token
+    }
+    const { data, error } = await sb().from('ape_pedidos').insert({ nome: d.nome, email: d.email.toLowerCase(), cpf: d.cpf.replace(/\D/g, ''), tel: d.tel.replace(/\D/g, ''), itens, subtotal: 0, desconto: 0, total: 0, status: 'pago', forma: 'cortesia', cortesia: true, pago_em: new Date().toISOString(), obs: d.obs || 'cortesia' }).select('token').single()
+    fail(error)
+    lembrar(String(data!.token), 0)
+    return String(data!.token)
+  },
+  async marcar(id: string, campos: Partial<Pick<PedidoAdmin, 'status' | 'obs'>>) {
+    if (!CLOUD) return
+    const { error } = await sb().from('ape_pedidos').update(campos).eq('id', id)
+    fail(error)
+  },
+  /** Reembolso pelo Asaas (e fecha downloads e plataforma do pedido). */
+  async reembolsar(id: string) {
+    if (!CLOUD) {
+      writeLocal((l) => {
+        const p = (l.pedidos || []).find((x) => x.token === id)
+        if (p) p.status = p.status === 'pago' ? 'reembolsado' : 'cancelado'
+      })
+      return
+    }
+    await invoke({ acao: 'ape-reembolsar', id })
+  },
+  async plataformas(): Promise<PlatAdmin[]> {
+    if (!CLOUD) return Object.entries(readLocal().plataforma || {}).map(([token, a]) => ({ id: token, token, nome: a.nome, email: '', cpf: '', tel: '', validade: a.validade, cortesia: a.cortesia, criado: '', atualizado: a.atualizado, pedido: null }))
+    const { data, error } = await sb().from('ape_plataforma').select('id, token, nome, email, cpf, tel, validade, cortesia, criado, atualizado, pedido').order('criado', { ascending: false })
+    fail(error)
+    return (data ?? []) as PlatAdmin[]
+  },
+  async novaPlataforma(d: { nome: string; email?: string; cpf?: string; tel?: string; dias: number; cortesia: boolean }): Promise<string> {
+    const v = new Date()
+    v.setDate(v.getDate() + d.dias)
+    const validade = v.toISOString().slice(0, 10)
+    if (!CLOUD) {
+      const token = crypto.randomUUID()
+      writeLocal((l) => {
+        l.plataforma = { ...(l.plataforma || {}), [token]: { nome: d.nome, validade, cortesia: d.cortesia, dados: {}, atualizado: new Date().toISOString() } }
+      })
+      return token
+    }
+    const { data, error } = await sb().from('ape_plataforma').insert({ nome: d.nome, email: (d.email || '').toLowerCase(), cpf: (d.cpf || '').replace(/\D/g, ''), tel: (d.tel || '').replace(/\D/g, ''), validade, cortesia: d.cortesia }).select('token').single()
+    fail(error)
+    return String(data!.token)
+  },
+  async validade(id: string, validade: string) {
+    if (!CLOUD) {
+      writeLocal((l) => {
+        if (l.plataforma?.[id]) l.plataforma[id].validade = validade
+      })
+      return
+    }
+    const { error } = await sb().from('ape_plataforma').update({ validade }).eq('id', id)
+    fail(error)
   },
   async arquivos(produto: string): Promise<{ nome: string; tamanho: number }[]> {
     if (!CLOUD) return []
     const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 20 })
     fail(error)
-    return (data ?? []).filter((f) => f.name && !f.name.startsWith('.')).map((f) => ({ nome: f.name, tamanho: Number(f.metadata?.size ?? 0) }))
+    return (data ?? []).filter((f) => f.name && !f.name.startsWith('.') && f.id).map((f) => ({ nome: f.name, tamanho: Number(f.metadata?.size ?? 0) }))
   },
   async enviarArquivo(produto: string, f: File) {
     if (!CLOUD) throw new Error('Na prévia os arquivos não ficam guardados.')

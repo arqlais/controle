@@ -441,10 +441,13 @@ try {
     await page.locator('.ape-oc button', { hasText: /entrar no grupo/i }).first().click(); await page.waitForTimeout(300)
     ok(await page.locator('.ape-oc', { hasText: /você está no grupo/i }).count() >= 1, `apê ${vp.name}: entra na compra em grupo`)
     await page.evaluate(() => (location.hash = '#/ape/enviar')); await page.waitForTimeout(300)
-    await page.fill('#e-forn', 'Loja Teste'); await page.fill('#e-txt', 'Piso 30 m² por R$ 3.000 à vista')
-    await page.locator('.ape-form button[type=submit]').click(); await page.waitForTimeout(400)
-    ok(await page.locator('.ape-done').count() === 1, `apê ${vp.name}: envia orçamento`)
-    for (const h of ['#/ape', '#/ape/enviar', '#/ape/loja', '#/ape-admin']) {
+    await page.locator('.ape-more summary').first().click()
+    await page.fill('textarea[aria-label="Texto do orçamento"]', 'Loja Teste\nPiso vinílico colado 30 m²\nTotal: R$ 3.000,00\nÀ vista: R$ 2.850,00\nPrazo: 5 dias')
+    await page.getByRole('button', { name: 'ler o texto' }).click(); await page.waitForTimeout(600)
+    ok(/Loja Teste/.test(await page.locator('.ape-lido').innerText().catch(() => '')), `apê ${vp.name}: lê o orçamento colado`)
+    await page.locator('form.ape-form button[type=submit]').click(); await page.waitForTimeout(600)
+    ok(await page.locator('.ape-done').count() === 1, `apê ${vp.name}: publica o orçamento na comparação`)
+    for (const h of ['#/ape', '#/ape/enviar', '#/ape/loja', '#/ape/checkout', '#/ape/minha:demo', '#/ape-admin']) {
       await page.evaluate((h) => (location.hash = h), h); await page.waitForTimeout(500)
       ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `apê ${vp.name}: ${h} cabe na tela`)
     }

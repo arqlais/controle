@@ -3,10 +3,10 @@ import { askGemini, readFile, type Attachment } from '../components/AIChat'
 import { ask, toast } from '../components/dialog'
 import { href } from '../router'
 import { useStore } from '../store'
-import { admin, apeCloud, loja, type Ajustes, type PedidoAdmin } from './api'
+import { admin, apeCloud, loja, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, DESCONTOS, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, PIX_PCT, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -14,7 +14,7 @@ import './ape.css'
 /* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'entregas'
+type Tab = 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar'
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -107,14 +107,16 @@ export default function ApeAdmin() {
           <div className="ape-atabs" role="tablist">
             {(
               [
-                ['recebidos', <>Recebidos{novos ? <em>{novos}</em> : null}</>],
+                ['recebidos', <>Enviados{novos ? <em>{novos}</em> : null}</>],
                 ['novo', draft && !draft.novo ? 'Editar' : 'Adicionar'],
                 ['lista', `Orçamentos (${orcs.length})`],
                 ['moradores', `Cadastros (${moradores.length})`],
                 ['grupos', 'Compras em grupo'],
-                ['loja', 'Loja'],
+                ['loja', 'Produtos e preços'],
                 ['pedidos', 'Vendas'],
-                ['entregas', 'Arquivos para entregar'],
+                ['clientes', 'Clientes'],
+                ['entregas', 'Arquivos'],
+                ['testar', 'Testar como cliente'],
               ] as [Tab, React.ReactNode][]
             ).map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>
@@ -151,8 +153,10 @@ export default function ApeAdmin() {
           {tab === 'moradores' && <Moradores moradores={moradores} envios={envios} interesses={interesses} orcs={orcs} escolhas={escolhas} pedidos={pedidos} onChange={load} />}
           {tab === 'grupos' && <Grupos orcs={orcs} interesses={interesses} />}
           {tab === 'loja' && ajustes && <Loja ajustes={ajustes} onSaved={setAjustes} />}
-          {tab === 'pedidos' && <Vendas />}
+          {tab === 'pedidos' && <Vendas pedidos={pedidos} onChange={load} />}
+          {tab === 'clientes' && ajustes && <Clientes pedidos={pedidos} produtos={ajustes.produtos} onChange={load} />}
           {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
+          {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
         </div>
       </div>
     </div>
@@ -179,7 +183,7 @@ function Thinking({ t }: { t: string }) {
 
 function Recebidos({ envios, aiKey, onDraft, onChange }: { envios: Envio[]; aiKey: string; onDraft: (d: Draft) => void; onChange: () => void }) {
   const [busy, setBusy] = useState('')
-  const [ver, setVer] = useState<'novo' | 'todos'>('novo')
+  const [ver, setVer] = useState<'novo' | 'todos'>('todos')
   const list = envios.filter((e) => ver === 'todos' || e.status === 'novo')
 
   const baixar = async (e: Envio) => {
@@ -672,17 +676,29 @@ function Grupos({ orcs, interesses }: { orcs: Orcamento[]; interesses: Interesse
 function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) => void }) {
   const [ps, setPs] = useState<Produto[]>(ajustes.produtos)
   const [whats, setWhats] = useState(ajustes.whatsapp || '')
-  const [faixas, setFaixas] = useState((ajustes.descontos || DESCONTOS).map(([k, v]) => `${k}:${v}`).join(', '))
+  const [pixPct, setPixPct] = useState(String(ajustes.pixPct ?? PIX_PCT))
+  const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
+  const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
   const [busy, setBusy] = useState(false)
+  const [abrir, setAbrir] = useState<string | null>(null)
+  const calcd = comPrecos(ps) // preço dos kits calculado sozinho
+  const pix = Math.min(10, Math.max(0, num(pixPct) ?? PIX_PCT))
   const set = (i: number, patch: Partial<Produto>) => setPs((l) => l.map((p, j) => (j === i ? { ...p, ...patch } : p)))
+  const margem = (p: Produto) => {
+    const v = reais(p.preco)
+    const lp = liquido(Math.round(v * (100 - pix)) / 100, 'pix', taxas)
+    const lc = liquido(v, 'cartao', taxas)
+    return { v, lp, lc, ruim: Math.min(lp, lc) < 3 }
+  }
   const save = async () => {
+    const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
+    if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const descontos = faixas.split(/[,;\n]/).map((x) => x.split(/[:=x×]/).map((n) => parseInt(n, 10))).filter(([k, v]) => k > 1 && v > 0 && v < 90).sort((a, b) => a[0] - b[0]) as [number, number][]
-    const a = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, descontos: descontos.length ? descontos : DESCONTOS }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, taxas, vendedor: vend }
     try {
       await admin.salvarAjustes(a)
-      onSaved(a)
-      toast('Loja salva.')
+      onSaved({ ...a, produtos: comPrecos(ps) })
+      toast('Loja salva: os preços já valem no pagamento.')
     } catch (e) {
       toast(`Não consegui salvar (${(e as Error).message}).`)
     }
@@ -690,105 +706,111 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   }
   return (
     <div className="ape-form">
-      <div className="ape-f" style={{ maxWidth: 360 }}>
-        <label htmlFor="l-whats">WhatsApp que recebe os pedidos</label>
-        <input id="l-whats" inputMode="tel" value={whats} onChange={(e) => setWhats(e.target.value)} placeholder={fmtTel(APE.whatsapp)} />
-        <span className="ape-hint">Vazio: usa o {fmtTel(APE.whatsapp)}.</span>
-      </div>
-      <div className="ape-f" style={{ maxWidth: 420 }}>
-        <label htmlFor="l-faixas">Desconto por quantidade de arquivos (itens:%)</label>
-        <input id="l-faixas" value={faixas} onChange={(e) => setFaixas(e.target.value)} placeholder="2:10, 3:15, 4:20, 6:25" />
-        <span className="ape-hint">Ex.: "2:10, 3:15" = 2 arquivos têm 10% e 3 ou mais têm 15%. Os kits têm preço fixo.</span>
-      </div>
-      <div className="ape-banner">Os preços daqui valem também no pagamento: a cobrança é calculada no servidor com a loja salva. Depois de mudar preços, toque em "salvar loja".</div>
-      {ps.map((p, i) => (
-        <div key={p.id} className="ape-panel" style={{ display: 'grid', gap: 10, background: 'var(--a-bg)' }}>
-          <div className="ape-frow">
-            <div className="ape-f">
-              <label htmlFor={`p-nome-${i}`}>Produto</label>
-              <input id={`p-nome-${i}`} value={p.nome} onChange={(e) => set(i, { nome: e.target.value })} />
+      <div className="ape-banner">Os preços daqui valem também no pagamento (a cobrança é calculada no servidor com a loja salva). Desconto só no Pix; cartão à vista, sem parcelas. Kits: escolha o desconto do kit e o preço sai sozinho, sempre terminando em ,90.</div>
+      <div className="ape-panel ape-adm-box">
+        <p className="ape-eyebrow">pagamento e margem</p>
+        <div className="ape-frow">
+          <div className="ape-f"><label htmlFor="l-pix">Desconto no Pix (%)</label><input id="l-pix" inputMode="decimal" value={pixPct} onChange={(e) => setPixPct(e.target.value)} /><span className="ape-hint">De 0 a 10. Sugerido: 5.</span></div>
+          <div className="ape-f"><label htmlFor="l-tp">Taxa do Pix (<span className="ape-keep">R$</span> por venda)</label><input id="l-tp" inputMode="decimal" value={String(taxas.pix).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, pix: num(e.target.value) ?? 0 })} /></div>
+          <div className="ape-f"><label htmlFor="l-tc">Taxa do cartão (% + <span className="ape-keep">R$</span>)</label>
+            <div className="ape-frow" style={{ gap: 6 }}>
+              <input id="l-tc" inputMode="decimal" value={String(taxas.cartaoPct).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, cartaoPct: num(e.target.value) ?? 0 })} aria-label="Taxa do cartão em %" />
+              <input inputMode="decimal" value={String(taxas.cartaoFixo).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, cartaoFixo: num(e.target.value) ?? 0 })} aria-label="Taxa fixa do cartão em R$" />
             </div>
-            <div className="ape-f">
-              <label htmlFor={`p-preco-${i}`}>Preço (vazio = sob consulta)</label>
-              <input id={`p-preco-${i}`} value={p.preco} onChange={(e) => set(i, { preco: e.target.value })} placeholder="R$ 47" />
-            </div>
-            <div className="ape-f">
-              <label htmlFor={`p-tag-${i}`}>Etiqueta</label>
-              <input id={`p-tag-${i}`} value={p.tag} onChange={(e) => set(i, { tag: e.target.value })} />
-            </div>
-          </div>
-          <div className="ape-frow">
-            <div className="ape-f">
-              <label htmlFor={`p-cat-${i}`}>Seção da loja</label>
-              <select id={`p-cat-${i}`} value={p.cat || 'arquivos'} onChange={(e) => set(i, { cat: e.target.value as Categoria })}>
-                {CATEGORIAS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}
-              </select>
-            </div>
-            <div className="ape-f">
-              <label htmlFor={`p-de-${i}`}>Preço "de" (riscado) ou outra opção</label>
-              <input id={`p-de-${i}`} value={p.preco_de || ''} onChange={(e) => set(i, { preco_de: e.target.value })} placeholder="R$ 32,80" />
-            </div>
-            <div className="ape-f">
-              <label htmlFor={`p-un-${i}`}>Depois do preço</label>
-              <input id={`p-un-${i}`} value={p.unidade || ''} onChange={(e) => set(i, { unidade: e.target.value })} placeholder="por ano" />
-            </div>
-          </div>
-          <div className="ape-f">
-            <label htmlFor={`p-desc-${i}`}>Descrição</label>
-            <textarea id={`p-desc-${i}`} style={{ minHeight: 60 }} value={p.desc} onChange={(e) => set(i, { desc: e.target.value })} />
-          </div>
-          <div className="ape-frow">
-            <div className="ape-f">
-              <label htmlFor={`p-fmt-${i}`}>Formato</label>
-              <input id={`p-fmt-${i}`} value={p.formato || ''} onChange={(e) => set(i, { formato: e.target.value })} placeholder="PDF · 9 páginas" />
-            </div>
-            <div className="ape-f">
-              <label htmlFor={`p-ent-${i}`}>Como a pessoa recebe</label>
-              <input id={`p-ent-${i}`} value={p.entrega || ''} onChange={(e) => set(i, { entrega: e.target.value })} />
-            </div>
-          </div>
-          <div className="ape-f">
-            <label htmlFor={`p-it-${i}`}>O que vem (um por linha)</label>
-            <textarea id={`p-it-${i}`} style={{ minHeight: 80 }} value={(p.itens || []).join('\n')} onChange={(e) => set(i, { itens: e.target.value.split('\n') })} onBlur={(e) => set(i, { itens: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} />
-          </div>
-          {(p.cat || 'arquivos') === 'combos' && (
-            <div className="ape-f">
-              <label>Produtos do combo</label>
-              <div className="ape-acts">
-                {ps.filter((x) => (x.cat || 'arquivos') !== 'combos').map((x) => (
-                  <label key={x.id} className="ape-tog">
-                    <input type="checkbox" checked={(p.combo || []).includes(x.id)} onChange={(e) => set(i, { combo: e.target.checked ? [...(p.combo || []), x.id] : (p.combo || []).filter((y) => y !== x.id) })} /> {x.nome}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="ape-f">
-            <label htmlFor={`p-nu-${i}`}>O que tem dentro, em números (um por linha)</label>
-            <textarea id={`p-nu-${i}`} style={{ minHeight: 50 }} value={(p.numeros || []).join('\n')} onChange={(e) => set(i, { numeros: e.target.value.split('\n') })} onBlur={(e) => set(i, { numeros: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} placeholder="9 páginas" />
-          </div>
-          <div className="ape-f">
-            <label htmlFor={`p-am-${i}`}>Imagens de amostra (endereço, uma por linha)</label>
-            <textarea id={`p-am-${i}`} style={{ minHeight: 50 }} value={(p.amostras || []).join('\n')} onChange={(e) => set(i, { amostras: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} />
-            <span className="ape-hint">As amostras ficam na pasta do site (ape/amostras). Também dá para colar o endereço de uma imagem na internet.</span>
-          </div>
-          <div className="ape-acts">
-            <label className="ape-tog">
-              <input type="checkbox" checked={p.ativo} onChange={(e) => set(i, { ativo: e.target.checked })} /> Mostrar na loja
-            </label>
-            <label className="ape-tog">
-              <input type="checkbox" checked={!!p.destaque} onChange={(e) => set(i, { destaque: e.target.checked })} /> Destaque
-            </label>
-            <button className="ape-btn ghost sm" onClick={() => setPs((l) => l.filter((_, j) => j !== i))}><ApeIcon name="trash" />Tirar</button>
           </div>
         </div>
-      ))}
+        <span className="ape-hint">Confira as taxas no seu plano do Asaas (Minha conta → Taxas). Elas só servem para mostrar quanto sobra de cada venda.</span>
+      </div>
+      <div className="ape-panel ape-adm-box">
+        <p className="ape-eyebrow">quem vende (aparece nos termos e no rodapé da loja)</p>
+        <div className="ape-frow">
+          <div className="ape-f"><label htmlFor="v-nome">Nome ou razão social</label><input id="v-nome" value={vend.nome} onChange={(e) => setVend({ ...vend, nome: e.target.value })} /></div>
+          <div className="ape-f"><label htmlFor="v-doc"><span className="ape-keep">CPF</span> ou <span className="ape-keep">CNPJ</span></label><input id="v-doc" value={vend.doc} onChange={(e) => setVend({ ...vend, doc: e.target.value })} /></div>
+        </div>
+        <div className="ape-frow">
+          <div className="ape-f"><label htmlFor="v-cid">Cidade/<span className="ape-keep">UF</span></label><input id="v-cid" value={vend.cidade} onChange={(e) => setVend({ ...vend, cidade: e.target.value })} /></div>
+          <div className="ape-f"><label htmlFor="v-mail">E-mail de atendimento</label><input id="v-mail" value={vend.email} onChange={(e) => setVend({ ...vend, email: e.target.value })} /></div>
+          <div className="ape-f"><label htmlFor="l-whats"><span className="ape-keep">WhatsApp</span> de atendimento</label><input id="l-whats" inputMode="tel" value={whats} onChange={(e) => setWhats(e.target.value)} placeholder={fmtTel(APE.whatsapp)} /></div>
+        </div>
+        <span className="ape-hint">A lei do comércio eletrônico (Decreto 7.962/2013) pede nome e CPF/CNPJ de quem vende, visíveis na loja. Com CNPJ (MEI), use o CNPJ.</span>
+      </div>
+      <div className="ape-adm-prods">
+        {calcd.map((p, i) => {
+          const m = margem(p)
+          const soma = (p.combo || []).reduce((t, id) => t + reais(calcd.find((x) => x.id === id)?.preco), 0)
+          return (
+            <div key={p.id} className={`ape-adm-prod ${p.ativo ? '' : 'off'}`}>
+              <div className="ape-adm-prod-h">
+                <div className="t">
+                  <b>{p.nome}</b>
+                  <span className="ape-keep">{p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · soma ${brl(soma)} · −${p.kitPct || 0}%` : (CATEGORIAS.find(([c]) => c === (p.cat || 'arquivos')) || [])[1]}</span>
+                </div>
+                <div className="r">
+                  <b className="ape-keep">{p.preco || 'sob consulta'}</b>
+                  {noCarrinho(p) && m.v > 0 && <span className={`ape-pill ape-keep ${m.ruim ? 'rosa' : 'azul'}`} title="Quanto sobra depois da taxa">sobra {brl(m.lp)} Pix · {brl(m.lc)} cartão</span>}
+                  <button className="ape-btn ghost sm" onClick={() => setAbrir(abrir === p.id ? null : p.id)}><ApeIcon name="edit" />{abrir === p.id ? 'fechar' : 'editar'}</button>
+                </div>
+              </div>
+              {abrir === p.id && (
+                <div className="ape-adm-prod-b">
+                  <div className="ape-frow">
+                    <div className="ape-f"><label>Nome</label><input value={ps[i].nome} onChange={(e) => set(i, { nome: e.target.value })} /></div>
+                    {p.cat === 'combos' ? (
+                      <div className="ape-f"><label>Desconto do kit (%)</label><input inputMode="numeric" value={ps[i].kitPct ?? ''} onChange={(e) => set(i, { kitPct: num(e.target.value) ?? 0 })} /><span className="ape-hint ape-keep">Preço: {p.preco} (sai sozinho)</span></div>
+                    ) : (
+                      <div className="ape-f"><label>Preço</label><input value={ps[i].preco} onChange={(e) => set(i, { preco: e.target.value })} placeholder="R$ 19,90" /></div>
+                    )}
+                    <div className="ape-f"><label>Etiqueta</label><input value={ps[i].tag} onChange={(e) => set(i, { tag: e.target.value })} /></div>
+                  </div>
+                  <div className="ape-frow">
+                    <div className="ape-f"><label>Seção</label>
+                      <select value={ps[i].cat || 'arquivos'} onChange={(e) => set(i, { cat: e.target.value as Categoria })}>
+                        {CATEGORIAS.filter(([c]) => c !== 'projeto').map(([c, l]) => <option key={c} value={c}>{l}</option>)}
+                      </select>
+                    </div>
+                    {(ps[i].cat || 'arquivos') === 'arquivos' && (
+                      <div className="ape-f"><label>Etapa</label>
+                        <select value={ps[i].fase || 'comprei'} onChange={(e) => set(i, { fase: e.target.value as Produto['fase'] })}>
+                          <option value="comprando">para quem vai comprar</option>
+                          <option value="comprei">para quem já comprou</option>
+                        </select>
+                      </div>
+                    )}
+                    <div className="ape-f"><label>Formato</label><input value={ps[i].formato || ''} onChange={(e) => set(i, { formato: e.target.value })} placeholder="PDF" /></div>
+                  </div>
+                  <div className="ape-f"><label>Descrição</label><textarea style={{ minHeight: 60 }} value={ps[i].desc} onChange={(e) => set(i, { desc: e.target.value })} /></div>
+                  <div className="ape-f"><label>O que vem (um por linha)</label><textarea style={{ minHeight: 80 }} value={(ps[i].itens || []).join('\n')} onChange={(e) => set(i, { itens: e.target.value.split('\n') })} onBlur={(e) => set(i, { itens: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} /></div>
+                  {(ps[i].cat || 'arquivos') === 'combos' && (
+                    <div className="ape-f">
+                      <label>Arquivos do kit</label>
+                      <div className="ape-acts">
+                        {ps.filter((x) => (x.cat || 'arquivos') === 'arquivos').map((x) => (
+                          <label key={x.id} className="ape-tog">
+                            <input type="checkbox" checked={(ps[i].combo || []).includes(x.id)} onChange={(e) => set(i, { combo: e.target.checked ? [...(ps[i].combo || []), x.id] : (ps[i].combo || []).filter((y) => y !== x.id) })} /> {x.nome}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="ape-f"><label>Em números (um por linha)</label><textarea style={{ minHeight: 50 }} value={(ps[i].numeros || []).join('\n')} onChange={(e) => set(i, { numeros: e.target.value.split('\n') })} onBlur={(e) => set(i, { numeros: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} /></div>
+                  <div className="ape-f"><label>Imagens de amostra (uma por linha)</label><textarea style={{ minHeight: 50 }} value={(ps[i].amostras || []).join('\n')} onChange={(e) => set(i, { amostras: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} /></div>
+                  <div className="ape-acts">
+                    <label className="ape-tog"><input type="checkbox" checked={ps[i].ativo} onChange={(e) => set(i, { ativo: e.target.checked })} /> Mostrar na loja</label>
+                    <label className="ape-tog"><input type="checkbox" checked={!!ps[i].destaque} onChange={(e) => set(i, { destaque: e.target.checked })} /> Destaque</label>
+                    <button className="ape-btn ghost sm" onClick={() => setPs((l) => l.filter((_, j) => j !== i))}><ApeIcon name="trash" />Tirar</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
       <div className="ape-acts">
         <button className="ape-btn primary" disabled={busy} onClick={() => void save()}><ApeIcon name="check" />Salvar loja</button>
-        <button className="ape-btn" onClick={() => setPs((l) => [...l, { id: 'p' + Date.now().toString(36), nome: 'Novo produto', desc: '', preco: '', tag: '', ativo: false, cat: 'arquivos' }])}>
+        <button className="ape-btn" onClick={() => { const id = 'p' + Date.now().toString(36); setPs((l) => [...l, { id, nome: 'Novo produto', desc: '', preco: 'R$ 9,90', tag: '', ativo: false, cat: 'arquivos', fase: 'comprei' }]); setAbrir(id) }}>
           <ApeIcon name="plus" />Novo produto
         </button>
-        <button className="ape-btn ghost" onClick={async () => { if (await ask('Trocar a loja pela sugerida (com preços e textos de exemplo)? O que você mudou aqui se perde.', { confirmLabel: 'trocar' })) setPs(PRODUTOS) }}>
+        <button className="ape-btn ghost" onClick={async () => { if (await ask('Trocar a loja pela sugerida (preços e textos sugeridos)? O que você mudou aqui se perde.', { confirmLabel: 'trocar' })) setPs(PRODUTOS) }}>
           voltar para a loja sugerida
         </button>
       </div>
@@ -797,63 +819,222 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
 }
 
 /* ===== vendas da loja ===== */
-function Vendas() {
-  const [ps, setPs] = useState<PedidoAdmin[] | null>(null)
-  const [erro, setErro] = useState('')
-  const [ver, setVer] = useState<'pago' | 'todos'>('pago')
-  useEffect(() => {
-    loja.pedidos().then(setPs, (e) => {
-      setErro(String((e as Error).message))
-      setPs([])
-    })
-  }, [])
-  if (!ps) return <Thinking t="carregando as vendas…" />
-  const pagos = ps.filter((p) => p.status === 'pago')
+const cpfMask = (c: string) => (c && c.length === 11 ? `***.${c.slice(3, 6)}.${c.slice(6, 9)}-**` : '')
+const linkPedido = (t: string) => `https://useplane.com.br/ape/#pedido:${t}`
+function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () => void }) {
+  const [ver, setVer] = useState<'pago' | 'pendente' | 'todos'>('pago')
+  const [q, setQ] = useState('')
+  const pagos = pedidos.filter((p) => p.status === 'pago' && !p.cortesia)
   const mes = new Date().toISOString().slice(0, 7)
   const doMes = pagos.filter((p) => (p.pago_em || p.criado).slice(0, 7) === mes)
-  const list = ver === 'pago' ? pagos : ps
+  const t = q.trim().toLowerCase()
+  const list = pedidos.filter((p) => (ver === 'todos' ? true : p.status === ver)).filter((p) => !t || [p.nome, p.email, p.cpf, p.tel].join(' ').toLowerCase().includes(t))
+  const reembolsar = async (p: PedidoAdmin) => {
+    const pago = p.status === 'pago'
+    if (!(await ask(pago ? `Reembolsar ${brl(p.total)} para ${p.nome}? O valor volta pelo Asaas, os downloads e a plataforma deste pedido param de funcionar.` : `Cancelar o pedido pendente de ${p.nome}?`, { confirmLabel: pago ? 'reembolsar' : 'cancelar pedido', danger: true }))) return
+    try {
+      await loja.reembolsar(p.id)
+      toast(pago ? 'Reembolso pedido ao Asaas.' : 'Pedido cancelado.')
+      onChange()
+    } catch (e) {
+      toast(`Não consegui (${(e as Error).message}).`)
+    }
+  }
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      {erro && <div className="ape-banner warn">Não consegui ler as vendas ({erro}). Confira se o arquivo supabase/atualizacao-2026-11-05-ape-loja.sql já rodou.</div>}
-      {!apeCloud && <div className="ape-banner">Na prévia não há vendas de verdade.</div>}
+      {!apeCloud && <div className="ape-banner">Prévia: as vendas são as de teste deste navegador.</div>}
       <div className="ape-stats">
-        <div className="ape-stat"><b className="num">{brl(doMes.reduce((t, p) => t + p.total, 0))}</b><span>vendido no mês</span></div>
+        <div className="ape-stat"><b className="num">{brl(doMes.reduce((s, p) => s + p.total, 0))}</b><span>vendido no mês</span></div>
         <div className="ape-stat"><b className="num">{doMes.length}</b><span>vendas no mês</span></div>
-        <div className="ape-stat"><b className="num">{brl(pagos.reduce((t, p) => t + p.total, 0))}</b><span>total vendido</span></div>
+        <div className="ape-stat"><b className="num">{brl(pagos.reduce((s, p) => s + p.total, 0))}</b><span>total vendido</span></div>
       </div>
       <div className="ape-toolbar">
-        <p className="ape-note" style={{ margin: 0, flex: 1 }}>Quem pagou recebe os arquivos sozinho. Pedidos "pendentes" são carrinhos que abriram o pagamento e ainda não pagaram: dá para chamar no WhatsApp.</p>
-        <select className="ape-sel" value={ver} onChange={(e) => setVer(e.target.value as 'pago' | 'todos')} aria-label="Mostrar">
-          <option value="pago">só pagos</option>
+        <label className="ape-search"><ApeIcon name="search" /><input type="search" placeholder="Nome, e-mail, CPF ou telefone" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" /></label>
+        <select className="ape-sel" value={ver} onChange={(e) => setVer(e.target.value as typeof ver)} aria-label="Mostrar">
+          <option value="pago">pagos</option>
+          <option value="pendente">aguardando pagamento</option>
           <option value="todos">todos</option>
         </select>
       </div>
       <div className="ape-rows">
-        {!list.length && <div className="ape-empty"><b>nenhuma venda ainda</b><span>As compras pela loja aparecem aqui.</span></div>}
-        {list.map((p) => (
-          <div key={p.id} className="ape-row">
-            <div className="t">
-              <b>{p.nome} · {brl(p.total)}{p.desconto ? ` (−${brl(p.desconto)})` : ''}</b>
-              <span>{p.itens.map((i) => i.nome).join(' + ')}</span>
-              <span>{dmy(p.criado)} · {p.status === 'pago' ? `pago${p.forma ? ` no ${p.forma === 'cartao' ? 'cartão' : 'Pix'}` : ''} · baixou ${p.baixados}x` : p.status}{p.email ? ` · ${p.email}` : ''}</span>
+        {!list.length && <div className="ape-empty"><b>nada por aqui</b><span>As compras pela loja aparecem aqui.</span></div>}
+        {list.map((p) => {
+          const dias = p.pago_em ? Math.floor((Date.now() - new Date(p.pago_em).getTime()) / 864e5) : null
+          return (
+            <div key={p.id} className="ape-row ape-venda">
+              <div className="t">
+                <b>{p.nome} · <span className="ape-keep">{p.cortesia ? 'cortesia' : brl(p.total)}</span></b>
+                <span>{p.itens.map((i) => i.nome).join(' + ')}</span>
+                <span>{dmy(p.criado)} · <span className={`ape-pill ${p.status === 'pago' ? 'azul' : p.status === 'pendente' ? '' : 'rosa'}`}>{p.status}</span>{p.status === 'pago' && !p.cortesia ? ` · ${p.forma === 'cartao' ? 'cartão' : 'Pix'} · baixou ${p.baixados}x${dias != null && dias <= 7 ? ` · dentro dos 7 dias (${dias}d)` : ''}` : ''}</span>
+                <span>{[p.email, cpfMask(p.cpf), p.tel ? fmtTel(p.tel) : '', p.aceite ? `termos ${p.aceite.versao}` : ''].filter(Boolean).join(' · ')}</span>
+              </div>
+              <div className="r">
+                <button className="ape-btn ghost sm" onClick={() => { void navigator.clipboard?.writeText(linkPedido(p.token)); toast('Link do pedido copiado.') }}><ApeIcon name="copy" />link</button>
+                {waNum(p.tel) && (
+                  <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra no planê.apê. Seus arquivos ficam aqui: ${linkPedido(p.token)}` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra no planê.apê. Ficou alguma dúvida? O pagamento fica aqui: ${linkPedido(p.token)}`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>
+                )}
+                {(p.status === 'pago' || p.status === 'pendente') && <button className="ape-btn ghost sm danger" onClick={() => void reembolsar(p)}>{p.status === 'pago' ? (p.cortesia ? 'tirar acesso' : 'reembolsar') : 'cancelar'}</button>}
+              </div>
             </div>
-            <div className="r">
-              {waNum(p.tel) && (
-                <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra na loja do apê 😊 Conseguiu baixar tudo certinho?` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra na loja do apê. Ficou alguma dúvida? Posso te ajudar 😊`)} target="_blank" rel="noreferrer">
-                  <ApeIcon name="chat" />WhatsApp
-                </a>
-              )}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
+    </div>
+  )
+}
+
+/* ===== clientes: quem comprou (por CPF), acessos à plataforma e cortesias ===== */
+function Clientes({ pedidos, produtos, onChange }: { pedidos: PedidoAdmin[]; produtos: Produto[]; onChange: () => void }) {
+  const [plats, setPlats] = useState<PlatAdmin[]>([])
+  const [q, setQ] = useState('')
+  const [nova, setNova] = useState(false)
+  const load = useCallback(() => void loja.plataformas().then(setPlats, () => setPlats([])), [])
+  useEffect(load, [load, pedidos])
+  const clientes = useMemo(() => {
+    const m = new Map<string, { nome: string; email: string; cpf: string; tel: string; pedidos: PedidoAdmin[] }>()
+    for (const p of pedidos) {
+      if (p.status === 'cancelado') continue
+      const k = p.cpf || p.email || p.tel || p.id
+      const c = m.get(k) || { nome: p.nome, email: p.email, cpf: p.cpf, tel: p.tel, pedidos: [] }
+      c.pedidos.push(p)
+      m.set(k, c)
+    }
+    return [...m.values()].sort((a, b) => b.pedidos[0].criado.localeCompare(a.pedidos[0].criado))
+  }, [pedidos])
+  const t = q.trim().toLowerCase()
+  const vis = clientes.filter((c) => !t || [c.nome, c.email, c.cpf, c.tel].join(' ').toLowerCase().includes(t))
+  const mais30 = async (pl: PlatAdmin) => {
+    const base = pl.validade > new Date().toISOString().slice(0, 10) ? new Date(pl.validade) : new Date()
+    base.setDate(base.getDate() + 30)
+    await loja.validade(pl.id, base.toISOString().slice(0, 10)).then(load, (e) => toast(String(e.message)))
+    toast('Acesso estendido por mais 30 dias.')
+  }
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div className="ape-toolbar">
+        <label className="ape-search"><ApeIcon name="search" /><input type="search" placeholder="Buscar cliente" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar cliente" /></label>
+        <button className="ape-btn primary sm" onClick={() => setNova(!nova)}><ApeIcon name="gift" />dar cortesia</button>
+      </div>
+      {nova && <Cortesia produtos={produtos} onDone={() => { setNova(false); onChange() }} />}
+      <div className="ape-rows">
+        {!vis.length && <div className="ape-empty"><b>nenhum cliente ainda</b><span>Quem comprar aparece aqui, com as compras e o acesso à plataforma.</span></div>}
+        {vis.map((c) => {
+          const pagos = c.pedidos.filter((p) => p.status === 'pago')
+          const pl = plats.find((x) => (c.cpf && x.cpf === c.cpf) || c.pedidos.some((p) => p.id === x.pedido))
+          return (
+            <div key={c.cpf || c.email || c.pedidos[0].id} className="ape-row">
+              <div className="t">
+                <b>{c.nome}</b>
+                <span>{[c.email, cpfMask(c.cpf), c.tel ? fmtTel(c.tel) : ''].filter(Boolean).join(' · ')}</span>
+                <span className="ape-keep">{pagos.length} compra{pagos.length === 1 ? '' : 's'} · {brl(pagos.reduce((s, p) => s + p.total, 0))}{c.pedidos.some((p) => p.status === 'reembolsado') ? ' · teve reembolso' : ''}</span>
+                {pl && <span>plataforma até {dmy(pl.validade)}{pl.cortesia ? ' (cortesia)' : ''}</span>}
+              </div>
+              <div className="r">
+                {pl && <a className="ape-btn ghost sm" href={href('ape', `minha:${pl.token}`)} target="_blank" rel="noreferrer"><ApeIcon name="eye" />plataforma</a>}
+                {pl && <button className="ape-btn ghost sm" onClick={() => void mais30(pl)}>+30 dias</button>}
+                {waNum(c.tel) && <a className="ape-btn sm" href={wa(waNum(c.tel), `Oi, ${firstName(c.nome)}!`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" /></a>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {plats.filter((p) => !p.pedido).length > 0 && (
+        <>
+          <p className="ape-eyebrow">acessos à plataforma sem compra</p>
+          <div className="ape-rows">
+            {plats.filter((p) => !p.pedido).map((p) => (
+              <div key={p.id} className="ape-row">
+                <div className="t"><b>{p.nome}</b><span>até {dmy(p.validade)}{p.cortesia ? ' · cortesia' : ''}</span></div>
+                <div className="r">
+                  <a className="ape-btn ghost sm" href={href('ape', `minha:${p.token}`)} target="_blank" rel="noreferrer"><ApeIcon name="eye" />abrir</a>
+                  <button className="ape-btn ghost sm" onClick={() => void mais30(p)}>+30 dias</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Pedido de cortesia: a pessoa recebe a página do pedido como se tivesse comprado (sem pagar). */
+function Cortesia({ produtos, onDone, eu }: { produtos: Produto[]; onDone: (token: string) => void; eu?: { nome: string; email: string } }) {
+  const vendaveis = produtos.filter((p) => p.ativo && noCarrinho(p))
+  const [nome, setNome] = useState(eu?.nome || '')
+  const [email, setEmail] = useState(eu?.email || '')
+  const [cpf, setCpf] = useState('')
+  const [tel, setTel] = useState('')
+  const [ids, setIds] = useState<string[]>(eu ? vendaveis.filter((p) => p.cat !== 'arquivos').map((p) => p.id) : [])
+  const [busy, setBusy] = useState(false)
+  const criar = async () => {
+    if (nome.trim().length < 3 || !ids.length) return toast('Coloque o nome e escolha o que liberar.')
+    setBusy(true)
+    try {
+      const token = await loja.cortesia({ nome: nome.trim(), email, cpf, tel, itens: vendaveis.filter((p) => ids.includes(p.id)), obs: eu ? 'teste da dona' : 'cortesia' })
+      toast('Cortesia criada: o link do pedido foi copiado.')
+      void navigator.clipboard?.writeText(linkPedido(token)).catch(() => null)
+      onDone(token)
+    } catch (e) {
+      toast(`Não consegui (${(e as Error).message}). Confira se a atualização do banco de 07/11 já rodou.`)
+    }
+    setBusy(false)
+  }
+  return (
+    <div className="ape-panel ape-adm-box">
+      <p className="ape-eyebrow">{eu ? 'seu acesso de teste' : 'cortesia'}</p>
+      <div className="ape-frow">
+        <div className="ape-f"><label>Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+        <div className="ape-f"><label>E-mail</label><input value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+      </div>
+      <div className="ape-frow">
+        <div className="ape-f"><label><span className="ape-keep">CPF</span> (opcional; recupera em outro aparelho)</label><input value={cpf} onChange={(e) => setCpf(e.target.value)} /></div>
+        <div className="ape-f"><label><span className="ape-keep">WhatsApp</span> (opcional)</label><input value={tel} onChange={(e) => setTel(e.target.value)} /></div>
+      </div>
+      <div className="ape-f">
+        <label>O que liberar</label>
+        <div className="ape-acts">
+          {vendaveis.map((p) => (
+            <label key={p.id} className="ape-tog"><input type="checkbox" checked={ids.includes(p.id)} onChange={(e) => setIds(e.target.checked ? [...ids, p.id] : ids.filter((x) => x !== p.id))} /> {p.nome}</label>
+          ))}
+        </div>
+      </div>
+      <div className="ape-acts">
+        <button className="ape-btn primary" disabled={busy} onClick={() => void criar()}><ApeIcon name="gift" />{busy ? 'criando…' : 'criar e copiar o link'}</button>
+      </div>
+    </div>
+  )
+}
+
+/* ===== testar como cliente: a dona vê a compra e o pós-compra como quem compra ===== */
+function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos: PedidoAdmin[]; onChange: () => void }) {
+  const meus = pedidos.filter((p) => p.cortesia && p.obs === 'teste da dona')
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div className="ape-banner">Aqui você vê tudo como cliente. O <b>acesso de teste</b> é um pedido de cortesia (sem pagar) com a página do pedido, os downloads com o seu nome no rodapé, o bônus (no 8º dia) e a plataforma do apê. Para testar o pagamento de verdade, faça uma compra pequena na loja e depois reembolse em "vendas".</div>
+      <div className="ape-acts">
+        <a className="ape-btn" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="bag" />abrir a loja</a>
+        <a className="ape-btn" href={href('ape', 'checkout')} target="_blank" rel="noreferrer"><ApeIcon name="shield" />abrir o checkout</a>
+        <a className="ape-btn" href={href('ape', 'minha:demo')} target="_blank" rel="noreferrer"><ApeIcon name="phone" />demonstração da plataforma</a>
+      </div>
+      {meus.length > 0 && (
+        <div className="ape-rows">
+          {meus.map((p) => (
+            <div key={p.id} className="ape-row">
+              <div className="t"><b>Teste de {dmy(p.criado)}</b><span>{p.itens.map((i) => i.nome).join(' + ')}</span></div>
+              <div className="r"><a className="ape-btn primary sm" href={href('ape', `pedido:${p.token}`)} target="_blank" rel="noreferrer"><ApeIcon name="eye" />abrir como cliente</a></div>
+            </div>
+          ))}
+        </div>
+      )}
+      <Cortesia produtos={produtos} eu={{ nome: 'Laís (teste)', email: '' }} onDone={(token) => { onChange(); window.open(href('ape', `pedido:${token}`), '_blank') }} />
     </div>
   )
 }
 
 /* ===== arquivos que a loja entrega (pasta privada) ===== */
 function Entregas({ produtos }: { produtos: Produto[] }) {
-  const itens = produtos.filter((p) => p.cat === 'arquivos' || !p.cat)
+  const itens = [...produtos.filter((p) => p.cat === 'arquivos' || !p.cat), { id: BONUS.id, nome: `Bônus (todas as compras, no 8º dia): ${BONUS.nome}`, desc: '', preco: '', tag: '', ativo: true } as Produto]
   const [arqs, setArqs] = useState<Record<string, { nome: string; tamanho: number }[]>>({})
   const [busy, setBusy] = useState('')
   const load = useCallback(async () => {
@@ -876,13 +1057,35 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
     }
     setBusy('')
   }
+  const enviarVarios = async (files: FileList | null) => {
+    if (!files?.length) return
+    setBusy('varios')
+    const sem: string[] = []
+    for (const f of Array.from(files)) {
+      const base = f.name.replace(/\.[^.]+$/, '').toLowerCase()
+      const p = itens.find((x) => x.id === base) || [...itens].sort((a, b) => b.id.length - a.id.length).find((x) => base.startsWith(x.id + '-') || base.startsWith(x.id + '_'))
+      if (!p) {
+        sem.push(f.name)
+        continue
+      }
+      await loja.enviarArquivo(p.id, f).catch(() => sem.push(f.name))
+    }
+    setBusy('')
+    toast(sem.length ? `Enviados, menos: ${sem.join(', ')} (o nome não bate com nenhum produto).` : 'Todos os arquivos foram guardados.')
+    await load()
+  }
   const apagar = async (id: string, nome: string) => {
     if (!(await ask(`Tirar o arquivo ${nome}? Quem comprar não recebe mais ele.`, { confirmLabel: 'tirar', danger: true }))) return
     await loja.apagarArquivo(id, nome).then(load, () => toast('Não consegui tirar.'))
   }
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      <div className="ape-banner">Envie aqui o arquivo de verdade de cada produto (PDF ou planilha). Ele fica numa pasta privada: só quem pagou baixa, por um link que vale 24 horas e é refeito a cada visita à página do pedido. Os kits entregam os arquivos de cada item.</div>
+      <div className="ape-banner">Envie aqui o arquivo de verdade de cada produto (PDF ou planilha). Ele fica numa pasta privada: só quem pagou baixa, por um link temporário. Os PDFs saem com o nome e parte do CPF de quem comprou no rodapé. Os kits entregam os arquivos de cada item.</div>
+      <label className="ape-btn" style={{ cursor: 'pointer', justifySelf: 'start' }}>
+        <ApeIcon name="plus" />{busy === 'varios' ? 'enviando…' : 'enviar vários de uma vez (pelo nome do arquivo)'}
+        <input type="file" hidden multiple accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void enviarVarios(e.target.files)} />
+      </label>
+      <span className="ape-hint">Ex.: "checklist.pdf" vai para o Checklist de vistoria, "planilha-compra-rosa.xlsx" para a Planilha de custos da compra (as 4 cores ficam juntas), "bonus.pdf" para o bônus.</span>
       {!apeCloud && <div className="ape-banner warn">Na prévia os arquivos não ficam guardados.</div>}
       <div className="ape-rows">
         {itens.map((p) => {

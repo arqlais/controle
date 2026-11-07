@@ -2,7 +2,7 @@
 
 > A loja é aberta para todo mundo (divulgada no Instagram @apzinho_1204). **Os orçamentos são só dos moradores do San Levi**: quem marca "outro lugar" no cadastro vê a loja, mas não os orçamentos (a tabela não é mais pública; o morador lê pela função `ape_orcamentos_morador`). Cada morador marca **"vou fechar com este"** (um por serviço) e todos veem quantos vizinhos escolheram cada fornecedor; a compra em grupo continua como opção. Ao **anexar** um orçamento, a página sobe o arquivo e a IA (Gemini, com a chave da dona no planê ou o segredo `GEMINI_API_KEY`) já preenche fornecedor e serviço. O San Levi é uma opção no cadastro (com torre e apê); quem é de outro lugar informa só nome, WhatsApp e, se quiser, o condomínio. Os textos deixam claro que a página só organiza o que as pessoas mandam: a responsabilidade pelos orçamentos é de quem envia e do fornecedor (aviso na lista e no rodapé).
 
-Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo código, mesmo Supabase, mesmo domínio e o mesmo design (Poppins + The Seasons, símbolo do planê, pílulas, menu de baixo no celular), com as cores do apê 1204 e público próprio.
+Orçamentos dos futuros moradores do San Levi, dentro do planê: mesmo código, mesmo Supabase, mesmo domínio e o mesmo design (Poppins + The Seasons, símbolo do planê, pílulas, menu de baixo no celular), com as cores do apê 1204 e público próprio.
 
 ## Endereços
 
@@ -10,7 +10,8 @@ Orçamentos dos futuros moradores do San Levi (MRV), dentro do planê: mesmo có
 - **Moradores do San Levi:** `useplane.com.br/ape/sanlevi` abre os orçamentos (pede cadastro; quem não é do San Levi vê só a loja).
 - **Mesmo apê:** no cadastro, se a torre e o apê já têm outra pessoa, aparece "Este apê já tem cadastro: Maria S. Você mora junto?" (só primeiro nome e inicial). No painel → cadastros, a dona vê tudo de cada pessoa (orçamentos, escolhas, grupos, compras) e quem divide o mesmo apê.
 
-- **Moradores:** `useplane.com.br/#/ape` (abas `#/ape/enviar` e `#/ape/loja`). Sem login: na primeira vez a pessoa informa nome completo, torre, apê e telefone.
+- **Moradores:** `useplane.com.br/#/ape` (abas `#/ape/enviar` e `#/ape/loja`). Sem login nem senha: na primeira vez a pessoa informa nome completo, torre, apê e telefone, e fica guardado no aparelho. Para usar em outro aparelho: tocar no próprio nome → "usar em outro aparelho" (copia um link pessoal).
+- **A dona** vê os orçamentos sem cadastro; para enviar orçamento como moradora, a página pede o cadastro (agora com a tela, antes dava só o aviso).
 - **Dona:** no planê, menu **plataforma → planê.apê** (`#/ape-admin`). Logada no planê, a dona também vê os exemplos e os ocultos na página dos moradores.
 
 ## O que cada lado faz
@@ -33,23 +34,55 @@ A diferença em relação à página antiga (Artifact): agora os moradores **gra
 
 ## Loja do apê
 
-Seções: **arquivos úteis**, **kits**, **plataforma do apê** e **projeto do seu apê**. Os detalhes mostram só mockups, sem marca d'água (capa nítida, páginas de dentro desfocadas; planilhas num notebook com dados de exemplo), todos em 4:3 para não cortar e "o que tem dentro" em números; o conteúdo não aparece antes da compra.
+Seções: **o que você precisa?** (diferença entre arquivos, kits e plataforma), **arquivos e planilhas** (para quem vai comprar e para quem já comprou), **kits**, **plataforma do apê**, **projetos e reformas** (serviço à parte), 7 dias para desistir, dúvidas e **minhas compras**. Os detalhes mostram mockups (capa nítida, páginas de dentro desfocadas, com a arte do próprio arquivo no fundo).
 
-**Carrinho:** arquivos e kits vão para o carrinho. Quanto mais arquivos avulsos, maior o desconto (padrão 2 = 10%, 3 = 15%, 4 = 20%, 6+ = 25%; muda em planê.apê → loja). Os kits têm preço fixo; um arquivo que já está num kit do carrinho sai sozinho. O carrinho sugere arquivos que faltam para o próximo desconto e a troca pelo kit completo quando compensa. Plataforma e projeto continuam pelo WhatsApp.
+**Preços (sem prejuízo em nenhuma venda):** o único desconto é o **Pix (5%)**; cartão à vista, **sem parcelamento**. Kits têm o desconto no preço, que sai sozinho: soma dos arquivos menos o % do kit, arredondado para baixo até terminar em ,90 (`comPrecos` em `src/ape/model.ts`, a mesma conta no servidor). O kit completo dá **1 mês** de plataforma. O painel mostra quanto sobra de cada venda depois da taxa do Asaas (padrão: Pix R$ 1,99; cartão 2,99% + R$ 0,49; confira no seu plano). Menor sobra: R$ 10,27 (arquivo de R$ 12,90 no Pix).
 
-**Checkout:** página própria (`#/ape/checkout`), no mesmo formato do checkout do planê: 1 seus itens · 2 seus dados · 3 forma de pagamento (Pix ou cartão em até 3x sem juros: 2x a partir de R$ 30, 3x a partir de R$ 60) · 4 confirmar (termos da compra e 7 dias de arrependimento), com o resumo do pedido ao lado.
+| | preço | no Pix |
+| --- | --- | --- |
+| guia de compra do imóvel · planilha de custos da compra · checklist de vistoria | R$ 19,90 | R$ 18,90 |
+| planilha de obra e compras | R$ 24,90 | R$ 23,65 |
+| planner de decoração | R$ 17,90 | R$ 17,00 |
+| guia do financiamento e dos seguros · guia de medidas | R$ 16,90 | R$ 16,05 |
+| guia de orçamentos · planilha do enxoval | R$ 14,90 | R$ 14,15 |
+| checklist da visita · checklist de entregas · lista da mudança | R$ 12,90 | R$ 12,25 |
+| kit vou comprar (4 arquivos, −35%) | R$ 44,90 | R$ 42,65 |
+| kit chaves na mão (3, −23%) | R$ 34,90 | R$ 33,15 |
+| kit obra sem susto (3, −29%) | R$ 39,90 | R$ 37,90 |
+| kit completo (12, −56%, + 1 mês de plataforma) | R$ 89,90 | R$ 85,40 |
+| plataforma do apê (12 meses) | R$ 79,00 | R$ 75,05 |
 
-**Pagamento:** Pix ou cartão pelo Asaas (mesma conta das assinaturas do planê, função `pagamentos`). O preço é calculado no servidor com a loja salva. Pagou → a página do pedido (`useplane.com.br/ape/#pedido:...`) mostra os botões de baixar (links de 24 h, refeitos a cada visita). Sem Asaas ligado, o carrinho oferece "finalizar pelo WhatsApp".
+"Monte seu kit" com desconto por quantidade saiu: os kits prontos já cobrem as etapas e o carrinho sugere trocar arquivos soltos pelo kit quando sai mais barato (ou quase).
 
-Preços sugeridos (editáveis): **vai comprar um apê?** guia de compra na planta R$ 19,90 · planilha de custos da compra R$ 19,90 · checklist do decorado e documentos R$ 12,90 · **já comprou?** checklist de vistoria R$ 19,90 · planilha de obra R$ 24,90 · planner de decoração R$ 17,90 · guia de medidas R$ 16,90 · guia de orçamentos R$ 14,90 · planilha do enxoval R$ 14,90 · checklist de entregas R$ 12,90 · lista da mudança R$ 12,90 · **kits** vou comprar meu apê R$ 34,90 · chaves na mão R$ 34,90 · obra sem susto R$ 39,90 · apê completo (11 arquivos) R$ 79,90 · plataforma R$ 79/ano. Projeto: sem preço na página, só "projeto em parceria com engenheiro civil" com botão de orçamento no WhatsApp. Sem consultoria.
+**Checkout** (`#/ape/checkout`): 1 confira os itens · 2 seus dados (nome completo, CPF validado, e-mail e celular, todos obrigatórios) · 3 forma de pagamento (Pix −5% ou cartão à vista) · 4 termos de uso (resumo + termos completos: licença pessoal, Lei 9.610/98, identificação nos PDFs, art. 49 do CDC, bônus que não condiciona a desistência, LGPD, foro). Quem vende (nome e CPF/CNPJ) aparece nos termos e no rodapé da loja: preencha em painel → produtos e preços (exigência do Decreto 7.962/2013).
+
+**Pagamento:** a função `pagamentos` cria o cliente e a cobrança no Asaas. Pix: o QR Code e o copia e cola aparecem na própria página do pedido, que confere o pagamento sozinha. Cartão: abre a página segura do Asaas e volta para o pedido.
+
+**Depois de pagar** (`useplane.com.br/ape/#pedido:...`): botões de baixar (cada PDF sai com nome, parte do CPF e número do pedido no rodapé de todas as páginas, feito uma vez e guardado), o link da plataforma (se comprou) e o **bônus** (calendário de manutenção e garantias do 1º ano), liberado no 8º dia. Em outro aparelho: "minhas compras" com CPF + e-mail.
+
+**Plataforma do apê** (`#/ape/minha:<token>`): área de quem comprou, sem senha (o link é a chave, fica guardado no aparelho). Resumo, gastos por cômodo, parcelas dos próximos 12 meses, etapas da compra e da obra, vistoria com fotos e resumo para imprimir, contatos. Salva sozinha na nuvem. Demonstração com dados de exemplo em `#/ape/minha:demo` (não salva nada). Vencido o prazo, fica só para consulta.
+
+**Projetos e reformas:** seção separada dos produtos digitais. A Laís (estudante de Arquitetura e Urbanismo) trabalha em parceria com o pai, engenheiro civil: serviços com responsabilidade técnica (ART) são assinados por ele; valores e condições sempre numa proposta escrita antes de começar. Botão "pedir proposta no WhatsApp".
+
+**Painel → aba por aba:** enviados pelos moradores · adicionar · orçamentos · cadastros · compras em grupo · **produtos e preços** (desconto do Pix, taxas, quem vende, preço, % dos kits e quanto sobra) · **vendas** (busca, link do pedido, WhatsApp, reembolso pelo Asaas, cancelar pendentes) · **clientes** (por CPF, compras, acesso à plataforma, +30 dias, cortesias) · **arquivos** (um por produto + bônus; "enviar vários de uma vez" pelo nome do arquivo: `checklist.pdf`, `planilha-compra.xlsx`, `bonus.pdf`…) · **testar como cliente** (cria o seu acesso de teste: pedido de cortesia com os arquivos e a plataforma, e abre a página do pedido como cliente).
+
+**Reembolso:** em vendas → reembolsar. O valor volta pelo Asaas, os downloads e a plataforma daquele pedido param.
 
 **Para a venda funcionar (uma vez):**
-1. Supabase → Edge Functions → Secrets: `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` (os mesmos das assinaturas; se já existem, nada a fazer). Webhook do Asaas apontando para a função `pagamentos` (ver o topo de `supabase/functions/pagamentos/index.ts`).
-2. Asaas → Minha conta → Informações comerciais: site `useplane.com.br` (para o Asaas voltar para a página do pedido depois do pagamento).
-3. planê.apê → **arquivos para entregar**: envie o arquivo de cada produto. Sem arquivo, quem comprar vê "fale no WhatsApp".
-4. planê.apê → **loja** → "salvar loja" uma vez (assim o servidor usa os seus preços).
+1. Supabase → Edge Functions → Secrets: `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` (os mesmos das assinaturas). Webhook do Asaas apontando para a função `pagamentos`.
+2. Asaas → Minha conta → Informações comerciais: site `useplane.com.br` (para voltar à página do pedido depois do cartão).
+3. planê.apê → **arquivos**: envie os arquivos (dá para mandar todos de uma vez, com os nomes que vieram).
+4. planê.apê → **produtos e preços**: preencha "quem vende" e toque em "salvar loja".
 
 **Os arquivos pagos não ficam no site nem no GitHub** (o repositório é público): ficam na pasta privada `ape-arquivos` do Supabase. No site ficam só os mockups em `public/ape/amostras`.
+
+## Comparador de orçamentos
+
+Em **enviar**, o morador anexa um ou mais PDFs/prints (ou cola o texto). **Cada arquivo vira um orçamento**, lido sozinho: a IA (Gemini 2.5 Flash, no servidor) puxa fornecedor, serviço, valores, itens com quantidades, materiais, prazo, garantia, pagamento e contatos; sem IA (ou se ela falhar), regras simples leem o texto do PDF (e-mail, telefone, CNPJ, valores, prazo). A pessoa só completa o que faltou (fornecedor, serviço ou valor) e publica **direto na comparação** (sem esperar a dona); depois pode corrigir ou apagar em "seus orçamentos". A dona pode ocultar ou editar no painel.
+
+Por que IA: orçamento de obra não tem padrão (cada fornecedor manda de um jeito, muitos são fotos), e as regras sozinhas não separam itens nem escopo. O custo é baixo (um arquivo por chamada, limite de 40 leituras por dia por morador) e as regras servem de reserva.
+
+Na lista, cada serviço com 2 ou mais orçamentos tem **"comparar lado a lado"**: destaques (menor preço por m² ou à vista, mais completo, maior garantia, menor prazo), preço e pagamento, prazos, materiais, **o que está incluso** em cada um (inclui / não inclui / não fala) conforme o serviço, itens e quantidades, **diferenças** (áreas, espessuras, só material, quantidades, garantia faltando) e, por fornecedor, o que os outros incluem e ele não fala, o que pode custar a mais e o que falta informar, com botão para perguntar ao fornecedor no WhatsApp. Serviços: pisos, revestimentos, marcenaria, pedras, box, gesso, elétrica, hidráulica, impermeabilização, serralheria, ar, pintura, cortinas, telas, vidros, iluminação, móveis, eletros e mão de obra.
 
 ## Segurança
 
