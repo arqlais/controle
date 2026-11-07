@@ -361,9 +361,11 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     const texto = String(body.texto ?? '').slice(0, 12000)
     if (!parts.length && !texto.trim()) return json({ erro: 'nada para ler' }, 400)
     await db.from('ape_leituras').insert({ morador })
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
+    // chave do Google AI Studio (AIza…) ou do Vertex AI no modo express (AQ.…)
+    const vertex = key.startsWith('AQ.')
+    const r = await fetch(vertex ? `https://aiplatform.googleapis.com/v1/publishers/google/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(key)}` : 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+      headers: vertex ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: { temperature: 0.1, responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } } }),
     })
     const out = (await r.json().catch(() => ({}))) as J

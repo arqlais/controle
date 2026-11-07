@@ -90,9 +90,14 @@ const isNetError = (e: unknown) => e instanceof TypeError || /load failed|failed
 
 /** Uma chamada ao Gemini, recebendo a resposta aos pouquinhos (assim o celular não derruba a conexão enquanto a IA pensa). */
 async function callGemini(model: string, key: string, body: string, onText?: (t: string) => void) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+  // chave do Google AI Studio (AIza…) ou do Vertex AI no modo express (AQ.…): cada uma tem o seu endereço
+  const vertex = key.trim().startsWith('AQ.')
+  const url = vertex
+    ? `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:streamGenerateContent?alt=sse&key=${encodeURIComponent(key.trim())}`
+    : `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`
+  const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    headers: vertex ? { 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json', 'x-goog-api-key': key },
     body,
   })
   if (!res.ok || !res.body) {
