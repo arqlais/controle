@@ -21,6 +21,7 @@ export interface Publico {
   minhas: string[] // orçamentos que este morador escolheu
   bloqueado: boolean // não é morador do San Levi: não vê os orçamentos
   meus: string[] // orçamentos que este morador mandou (pode corrigir ou apagar)
+  pendente: boolean // é do San Levi mas ainda não entrou com o código nem foi aprovado
 }
 
 const LOCAL = 'ape-previa-v1'
@@ -60,7 +61,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) } }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
-  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
+  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
 
 export const apeCloud = CLOUD
 
@@ -76,8 +77,10 @@ export async function loadPublico(me?: Morador | null, dona = false): Promise<Pu
     for (const e of l.escolhas || []) escolhas[e.orcamento] = (escolhas[e.orcamento] || 0) + 1
     const minhas = (l.escolhas || []).filter((e) => e.morador === morador).map((e) => e.orcamento)
     const meus = l.orcamentos.filter((o) => (o as Orcamento & { morador?: string }).morador === morador && morador).map((o) => o.id)
-    return { orcamentos: sl || dona ? l.orcamentos : [], ajustes: ajustesOf(l.ajustes), contagens, escolhas, minhas, bloqueado: !sl && !dona, meus }
+    return { orcamentos: sl || dona ? l.orcamentos : [], ajustes: ajustesOf(l.ajustes), contagens, escolhas, minhas, bloqueado: !sl && !dona, meus, pendente: false }
   }
+  const eu = sl && !dona ? await euMorador(morador) : null
+  const pendente = sl && !dona && eu?.aprovado === false
   const [o, a, c] = await Promise.all([
     dona ? sb().from('ape_orcamentos').select('*') : sl ? sb().rpc('ape_orcamentos_morador', { p_morador: morador }) : Promise.resolve({ data: [], error: null }),
     sb().from('ape_ajustes').select('data').eq('id', 1).maybeSingle(),
@@ -94,7 +97,7 @@ export async function loadPublico(me?: Morador | null, dona = false): Promise<Pu
   }
   const rows = (o.data ?? []) as (Parameters<typeof rowToOrc>[0] & { meu?: boolean })[]
   const meus = rows.filter((r) => r.meu || (dona && r.morador && r.morador === morador)).map((r) => r.id)
-  return { orcamentos: rows.map(rowToOrc), ajustes: ajustesOf(a.data?.data), contagens, escolhas, minhas, bloqueado: !sl && !dona, meus }
+  return { orcamentos: rows.map(rowToOrc), ajustes: ajustesOf(a.data?.data), contagens, escolhas, minhas, bloqueado: !sl && !dona, meus, pendente }
 }
 
 /** "Vou fechar com este" (um por serviço; tocar de novo desmarca). Devolve o orçamento escolhido ou ''. */
@@ -161,6 +164,14 @@ export async function lerArquivo(moradorId: string, arquivo: Arquivo | null, tex
   } catch (e) {
     return { o: null, erro: String((e as Error).message) }
   }
+}
+
+/** Morador do San Levi digita o código do condomínio (a Laís passa no grupo). */
+export async function codigoSL(moradorId: string, codigo: string): Promise<boolean> {
+  if (!CLOUD) return true
+  const { data, error } = await sb().rpc('ape_codigo_sl', { p_morador: moradorId, p_codigo: codigo })
+  fail(error)
+  return data === true
 }
 
 /** Abre o próprio cadastro pelo link "usar em outro aparelho". */
@@ -331,6 +342,21 @@ export const admin = {
     const { data, error } = await sb().from('ape_moradores').select('*').order('criado', { ascending: false })
     fail(error)
     return (data ?? []).map((r) => moradorOf(r)!)
+  },
+  async aprovarMorador(id: string, aprovado: boolean) {
+    if (!CLOUD) return
+    const { error } = await sb().from('ape_moradores').update({ aprovado }).eq('id', id)
+    fail(error)
+  },
+  async codigo(): Promise<string> {
+    if (!CLOUD) return ''
+    const { data } = await sb().from('ape_segredos').select('dados').eq('id', 'codigo-sl').maybeSingle()
+    return String((data?.dados as { codigo?: string } | undefined)?.codigo ?? '')
+  },
+  async salvarCodigo(codigo: string) {
+    if (!CLOUD) return
+    const { error } = await sb().from('ape_segredos').upsert({ id: 'codigo-sl', dados: { codigo: codigo.trim() } })
+    fail(error)
   },
   async removerMorador(id: string) {
     if (!CLOUD) {

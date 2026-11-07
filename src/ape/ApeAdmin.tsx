@@ -546,6 +546,8 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <div className="ape-banner">Só você vê esta lista: todo mundo que se cadastrou, o que mandou, com quem escolheu fechar, os grupos e as compras na loja.</div>
+      <CodigoCondominio />
+      {sl.filter((m) => !m.aprovado).length > 0 && <div className="ape-banner warn">{sl.filter((m) => !m.aprovado).length} cadastro(s) do {APE.condominio} esperando aprovação: eles ainda não veem os orçamentos.</div>}
       <div className="ape-stats">
         <div className="ape-stat"><b className="num">{sl.length}</b><span>moradores do {APE.condominio}</span></div>
         <div className="ape-stat"><b className="num">{aps}</b><span>apês diferentes</span></div>
@@ -604,6 +606,9 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
                     <ApeIcon name="chat" />WhatsApp
                   </a>
                 )}
+                {ehSanLevi(m) && (m.aprovado
+                  ? <button className="ape-btn ghost sm" onClick={() => void admin.aprovarMorador(m.id, false).then(onChange)} title="Tirar o acesso aos orçamentos">tirar acesso</button>
+                  : <button className="ape-btn primary sm" onClick={() => void admin.aprovarMorador(m.id, true).then(onChange)}>aprovar</button>)}
                 <button className="ape-btn ghost sm" onClick={() => void remover(m)} aria-label={`Apagar ${m.nome}`}><ApeIcon name="trash" /></button>
               </div>
             </div>
@@ -1040,6 +1045,23 @@ function Cortesia({ produtos, onDone, eu }: { produtos: Produto[]; onDone: (toke
       <div className="ape-acts">
         <button className="ape-btn primary" disabled={busy} onClick={() => void criar()}><ApeIcon name="gift" />{busy ? 'criando…' : 'criar e copiar o link'}</button>
       </div>
+    </div>
+  )
+}
+
+/* código do condomínio: quem digita entra nos orçamentos sem esperar aprovação */
+function CodigoCondominio() {
+  const [cod, setCod] = useState('')
+  const [salvo, setSalvo] = useState('')
+  useEffect(() => void admin.codigo().then((c) => { setCod(c); setSalvo(c) }), [])
+  return (
+    <div className="ape-panel ape-adm-box">
+      <p className="ape-eyebrow">código do condomínio</p>
+      <div className="ape-frow" style={{ alignItems: 'end' }}>
+        <div className="ape-f"><label htmlFor="cod-sl">Código (passe no grupo dos moradores)</label><input id="cod-sl" value={cod} onChange={(e) => setCod(e.target.value)} placeholder="ex.: sanlevi2027" /></div>
+        <button className="ape-btn primary" disabled={cod.trim() === salvo} onClick={() => void admin.salvarCodigo(cod).then(() => { setSalvo(cod.trim()); toast('Código salvo. Quem tiver o código entra nos orçamentos.') }, (e) => toast(String(e.message)))}>salvar código</button>
+      </div>
+      <span className="ape-hint">{salvo ? 'Quem se cadastrar como morador e digitar este código entra sozinho. Sem o código, você aprova um por um aqui embaixo. Trocou o código? Quem já entrou continua.' : 'Sem código, cada cadastro novo do San Levi espera a sua aprovação aqui embaixo.'}</span>
     </div>
   )
 }

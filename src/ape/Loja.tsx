@@ -305,26 +305,27 @@ function ServicosSec({ whats, me }: { whats: string; me: Morador | null }) {
     ['reforma', 'execução com equipe e cronograma'],
   ]
   return (
-    <section className="ape-servicos ape-panel" id="loja-servicos">
-      <div className="ape-serv-esq">
-        <p className="ape-eyebrow">serviço à parte</p>
-        <h3 className="ape-sec-t">precisa de um <em>projeto?</em></h3>
-        <div className="ape-serv-eu">
+    <section className="ape-proj" id="loja-servicos">
+      <div className="ape-proj-txt">
+        <span className="ape-proj-tag">serviço à parte · sob orçamento</span>
+        <h3>precisa de um <em>projeto?</em></h3>
+        <div className="ape-proj-eu">
           <span className="ape-me-av">L</span>
           <p>Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho junto com o meu pai, que é engenheiro civil. Fazemos projetos, serviços técnicos e reformas, inclusive para quem acabou de receber as chaves.</p>
         </div>
-        <ol className="ape-serv-passos">
-          <li><b>1</b><span>Você conta o que precisa</span></li>
-          <li><b>2</b><span>Recebe uma proposta por escrito: escopo, valor, prazo e pagamento</span></li>
-          <li><b>3</b><span>Só começa depois que você aprovar</span></li>
+        <ul className="ape-proj-chips">{servicos.map(([t]) => <li key={t}>{t}</li>)}</ul>
+        <ol className="ape-proj-passos">
+          <li><b>1</b>você conta o que precisa</li>
+          <li><b>2</b>recebe a proposta por escrito</li>
+          <li><b>3</b>só começa se você aprovar</li>
         </ol>
-        <a className="ape-btn primary" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir proposta no WhatsApp</a>
+        <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir proposta no WhatsApp</a>
+        <p className="ape-proj-nota">Serviços com responsabilidade técnica (ART) são assinados pelo engenheiro civil. Valores e prazos sempre numa proposta antes de começar. Não faz parte da loja nem da plataforma.</p>
       </div>
-      <div className="ape-serv-dir">
-        <ul className="ape-serv-lista">
-          {servicos.map(([t, d]) => <li key={t}><ApeIcon name="check" /><span><b>{t}</b>{d}</span></li>)}
-        </ul>
-        <p className="ape-note ape-serv-nota">Serviços que pedem responsabilidade técnica (ART) são assinados pelo engenheiro civil; a {APE.dona} desenvolve os projetos com ele, como estudante. Visita técnica, quando precisar, tem valor informado antes. Não faz parte da loja nem da plataforma.</p>
+      <div className="ape-proj-img">
+        <img src="ape/amostras/projeto-3d.jpg" alt="Imagem 3D de um projeto de interiores feito pela Laís" loading="lazy" />
+        <span className="ape-hf p1"><span className="ic"><ApeIcon name="ruler" /></span><span><b>nas suas medidas</b><small>planta com móveis</small></span></span>
+        <span className="ape-hf p2"><span className="ic sec"><ApeIcon name="eye" /></span><span><b>veja antes de fazer</b><small>imagens 3D</small></span></span>
       </div>
     </section>
   )

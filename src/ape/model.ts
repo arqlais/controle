@@ -111,6 +111,7 @@ export interface Morador {
   nome: string
   condominio?: string // 'San Levi' ou o nome que a pessoa digitou
   moraJunto?: boolean // confirmou que mora no mesmo apê de quem já tinha cadastro
+  aprovado?: boolean // San Levi: digitou o código do condomínio ou a Laís aprovou
   torre: string
   ap: string
   tel: string

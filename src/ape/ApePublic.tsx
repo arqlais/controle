@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, escolher, euMorador, mesmoAp, loadPublico, queroGrupo, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, queroGrupo, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -147,6 +147,8 @@ export function ApePublic({ sub }: { sub?: string }) {
             <span>Confira a internet e tente de novo em instantes.</span>
             <button className="ape-btn" onClick={() => void recarregar()}>tentar de novo</button>
           </div>
+        ) : (view === 'orcamentos' || view === 'enviar') && d.pendente && me ? (
+          <CodigoSL me={me} whats={whats} onOk={() => { const m = { ...me, aprovado: true }; setMe(m); write(CAD, m); void recarregar() }} />
         ) : view === 'orcamentos' ? (
           <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} onEscolha={(id, nicho, ficou) => {
             // um por serviço: tira a escolha anterior do mesmo serviço
@@ -205,6 +207,41 @@ export function ApePublic({ sub }: { sub?: string }) {
   )
 }
 
+/* ===== área do San Levi fechada: código do condomínio ou aprovação da Laís ===== */
+function CodigoSL({ me, whats, onOk }: { me: Morador; whats: string; onOk: () => void }) {
+  const [cod, setCod] = useState('')
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const entrar = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!cod.trim()) return setMsg('Digite o código.')
+    setBusy(true)
+    try {
+      if (await codigoSL(me.id, cod)) onOk()
+      else setMsg('Código não confere. Confira no grupo dos moradores.')
+    } catch (x) {
+      setMsg(String((x as Error).message))
+    }
+    setBusy(false)
+  }
+  return (
+    <section className="ape-conta-login">
+      <form className="ape-panel ape-form" onSubmit={entrar} noValidate>
+        <ApeIcon name="shield" size={28} />
+        <div>
+          <p className="ape-eyebrow">área dos moradores do {APE.condominio}</p>
+          <h2 className="ape-h2">falta o <em>código</em> do condomínio</h2>
+          <p className="ape-note" style={{ margin: '4px 0 0' }}>Os orçamentos ficam só entre os vizinhos. Digite o código que a {APE.dona} passou no grupo dos moradores, ou peça para ela aprovar o seu cadastro (T{me.torre} · {me.ap}).</p>
+        </div>
+        <div className="ape-f"><label htmlFor="sl-cod">Código do condomínio</label><input id="sl-cod" value={cod} onChange={(e) => setCod(e.target.value)} autoComplete="off" /></div>
+        {msg && <p className="ape-err" role="alert">{msg}</p>}
+        <button className="ape-btn primary" type="submit" disabled={busy}>{busy ? 'conferindo…' : 'entrar'}</button>
+        <a className="ape-btn" href={wa(whats, `Oi, ${APE.dona}! Sou ${me.nome}, T${me.torre} · ${me.ap} do ${APE.condominio}. Pode aprovar o meu cadastro nos orçamentos?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir aprovação no WhatsApp</a>
+      </form>
+    </section>
+  )
+}
+
 /* ===== menu da página de vendas (loja aberta a todos) ===== */
 function ShopNav({ morador }: { morador: boolean }) {
   const cart = useCarrinho()
@@ -228,9 +265,12 @@ function ShopNav({ morador }: { morador: boolean }) {
           <button onClick={() => ir('loja-kits')}>kits</button>
           <button onClick={() => ir('loja-plataforma')}>plataforma</button>
           <button onClick={() => ir('loja-servicos')}>projetos</button>
-          <a href={href('ape', 'conta')}>minha conta</a>
           {morador && <a href={href('ape')}>área do {APE.condominio}</a>}
         </nav>
+        <a className="ape-entrarbtn" href={href('ape', 'conta')} aria-label="Minha conta: entrar">
+          <ApeIcon name="user" />
+          <span>entrar</span>
+        </a>
         <a className="ape-cartbtn" href={href('ape', 'loja:carrinho')} onClick={() => window.dispatchEvent(new Event('ape-abrir-carrinho'))} aria-label={`Carrinho com ${n} itens`}>
           <ApeIcon name="bag" />
           <span>carrinho</span>
