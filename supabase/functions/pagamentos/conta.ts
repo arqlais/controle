@@ -84,21 +84,51 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return novo as J
   }
   const senhaOk = (s: string) => s.length >= 8
+  const moradorDe = async (id: string | null | undefined) => {
+    if (!id) return null
+    const { data } = await db.from('ape_moradores').select('id, nome, condominio, torre, ap, tel, mora_junto, aprovado, criado').eq('id', id).maybeSingle()
+    return data
+  }
 
   async function conta(body: J) {
     const op = String(body.op ?? '')
     const email = String(body.email ?? '').trim().toLowerCase()
 
     if (op === 'entrar') {
-      const { data: c } = await db.from('ape_clientes').select('id, senha').eq('email', email).maybeSingle()
+      const { data: c } = await db.from('ape_clientes').select('id, senha, morador').eq('email', email).maybeSingle()
       if (!c?.senha || !(await confere(String(body.senha ?? ''), c.senha))) return json({ erro: 'E-mail ou senha não conferem.' }, 400)
-      return json({ token: await novaSessao(c.id) })
+      return json({ token: await novaSessao(c.id), morador: await moradorDe(c.morador) })
+    }
+
+    if (op === 'morador') {
+      // cadastro de morador: nome, torre, apê, e-mail, celular e senha (CPF só se um dia comprar na loja)
+      const nome = String(body.nome ?? '').trim().replace(/\s+/g, ' ').slice(0, 120)
+      const tel = String(body.tel ?? '').replace(/\D/g, '').slice(0, 13)
+      const sl = body.condominio === 'San Levi' || !body.condominio
+      const torre = String(body.torre ?? '').trim().slice(0, 10)
+      const ap = String(body.ap ?? '').trim().slice(0, 10)
+      const senha = String(body.senha ?? '')
+      if (nome.split(' ').length < 2) return json({ erro: 'Coloque o nome completo.' }, 400)
+      if (!mailOk(email)) return json({ erro: 'Confira o e-mail.' }, 400)
+      if (tel.length < 10) return json({ erro: 'Coloque o celular com DDD.' }, 400)
+      if (sl && (!torre || !ap)) return json({ erro: 'Coloque a torre e o apê.' }, 400)
+      if (!senhaOk(senha)) return json({ erro: 'A senha precisa de pelo menos 8 caracteres.' }, 400)
+      const { data: ja } = await db.from('ape_clientes').select('id, senha, morador').eq('email', email).maybeSingle()
+      if (ja?.senha) return json({ erro: 'Esse e-mail já tem conta. Toque em "já tenho conta" e entre.' }, 400)
+      const { data: m, error } = await db.from('ape_moradores').insert({ nome, tel, torre: sl ? torre : '', ap: sl ? ap : '', condominio: sl ? 'San Levi' : String(body.condominio ?? '').slice(0, 80), mora_junto: body.junto === true, aprovado: sl }).select('*').single()
+      if (error || !m) return json({ erro: 'Não deu para cadastrar agora.' }, 500)
+      const h = await hash(senha)
+      const cli = ja
+        ? (await db.from('ape_clientes').update({ senha: h, morador: m.id, nome, tel }).eq('id', ja.id).select('id').single()).data
+        : (await db.from('ape_clientes').insert({ email, nome, tel, senha: h, morador: m.id }).select('id').single()).data
+      return json({ token: await novaSessao(cli!.id), morador: await moradorDe(m.id) })
     }
 
     if (op === 'esqueci' || op === 'primeiro') {
       // manda um código de 6 números para criar ou trocar a senha (só para quem comprou com esse e-mail)
       if (!mailOk(email)) return json({ erro: 'Confira o e-mail.' }, 400)
-      if (!(await temCompra(email))) return json({ ok: true }) // não diz se o e-mail existe
+      const { data: temConta } = await db.from('ape_clientes').select('id').eq('email', email).maybeSingle()
+      if (!temConta && !(await temCompra(email))) return json({ ok: true }) // não diz se o e-mail existe
       const codigo = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0')
       await db.from('ape_codigos').upsert({ email, codigo: await sha(`${email}:${codigo}`), tentativas: 0, expira: new Date(Date.now() + 30 * 60e3).toISOString() })
       const enviado = await mandar(email, '', `Seu código do planê.apê: ${codigo}`, layout('Seu código', `<p>Use este código para ${op === 'primeiro' ? 'criar' : 'trocar'} a sua senha. Ele vale por 30 minutos.</p><p style="font-size:30px;font-weight:700;letter-spacing:6px;color:#4e6472">${codigo}</p><p style="font-size:12px;color:#8a817a">Se não foi você, ignore este e-mail.</p>`))
@@ -116,7 +146,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       const c = await garanteCliente(email)
       await db.from('ape_clientes').update({ senha: await hash(String(body.senha)), atualizado: new Date().toISOString() }).eq('id', c.id)
       await db.from('ape_codigos').delete().eq('email', email)
-      return json({ token: await novaSessao(c.id) })
+      return json({ token: await novaSessao(c.id), morador: await moradorDe(c.morador) })
     }
 
     if (op === 'criar') {
@@ -138,7 +168,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       const { data: peds } = await db.from('ape_pedidos').select('id, token, itens, total, status, forma, criado, pago_em, cortesia, cancelamento').eq('email', c.email).neq('status', 'pendente').order('criado', { ascending: false })
       const { data: plats } = await db.from('ape_plataforma').select('token, validade, cortesia').or(`email.eq.${c.email}${c.cpf ? `,cpf.eq.${c.cpf}` : ''}`).order('validade', { ascending: false })
       const { data: fb } = await db.from('ape_feedback').select('tipo, texto, nota, publicado, criado').eq('cliente', c.id).order('criado', { ascending: false })
-      return json({ perfil: { nome: c.nome, email: c.email, tel: c.tel, foto: c.foto, cpf: c.cpf ? `***.${c.cpf.slice(3, 6)}.${c.cpf.slice(6, 9)}-**` : '' }, pedidos: peds ?? [], plataformas: plats ?? [], feedback: fb ?? [] })
+      return json({ morador: await moradorDe(c.morador), perfil: { nome: c.nome, email: c.email, tel: c.tel, foto: c.foto, cpf: c.cpf ? `***.${c.cpf.slice(3, 6)}.${c.cpf.slice(6, 9)}-**` : '' }, pedidos: peds ?? [], plataformas: plats ?? [], feedback: fb ?? [] })
     }
     if (op === 'perfil') {
       const foto = String(body.foto ?? c.foto)

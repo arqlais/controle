@@ -13,6 +13,10 @@ on:
         description: 'nome do arquivo em ape-import/ (só para importar)'
         required: false
         default: 'pacote.bin'
+      destino:
+        description: 'vazio = arquivos da loja; envios = orçamentos reais'
+        required: false
+        default: ''
 
 jobs:
   rodar:
@@ -24,7 +28,7 @@ jobs:
       - name: Chamar o servidor
         run: |
           if [ "${{ inputs.etapa }}" = "importar" ]; then
-            BODY=$(jq -n --arg u "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/ape-import/${{ inputs.pacote }}" '{acao: "ape-importar", url: $u}')
+            BODY=$(jq -n --arg u "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/ape-import/${{ inputs.pacote }}" --arg d "${{ inputs.destino }}" '{acao: "ape-importar", url: $u, destino: $d}')
           elif [ "${{ inputs.etapa }}" = "testar-ia" ]; then
             BODY='{"acao":"ape-testar-ia"}'
           else

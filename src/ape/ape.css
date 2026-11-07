@@ -1156,3 +1156,45 @@
 @media print { .ape-pa-lado, .ape-pa-top, .ape-pa-ola, .ape-pa-duas { display: none !important; } .ape-pa { display: block; background: #fff; } }
 .ape-proj-img .ape-hf.p1 { left: 10px; }
 .ape-proj-img .ape-hf.p2 { right: 10px; }
+
+/* área dos orçamentos: para que serve, passo a passo e pastas por serviço */
+.ape-orc-hero { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: center; background: var(--a-card); border: 1px solid var(--a-line); border-radius: var(--a-radius); padding: 22px 24px; box-shadow: var(--a-shadow); }
+.ape-orc-hero h2 { font-size: clamp(22px, 3.6vw, 30px); margin: 0 0 8px; }
+.ape-orc-hero p { margin: 0 0 14px; color: var(--a-muted); max-width: 60ch; }
+.ape-comofunc-btn { justify-self: start; }
+.ape-comofunc { background: var(--a-pri-soft); border-radius: var(--a-radius); padding: 16px 18px; display: grid; gap: 12px; }
+.ape-comofunc-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ape-comofunc-h b { font-size: 15px; color: var(--a-pri); text-transform: lowercase; }
+.ape-comofunc ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ape-comofunc li { background: var(--a-card); border-radius: 16px; padding: 14px; display: grid; gap: 8px; align-content: start; font-size: 12.5px; color: var(--a-muted); }
+.ape-comofunc li b { display: block; color: var(--a-ink); font-size: 14px; margin-bottom: 2px; text-transform: lowercase; }
+.ape-pastas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+.ape-pasta { position: relative; display: grid; gap: 4px; justify-items: start; text-align: left; border: 1.5px solid var(--a-line); background: var(--a-card); border-radius: 6px 16px 16px 16px; padding: 18px 14px 12px; box-shadow: var(--a-shadow); min-width: 0; transition: transform 0.15s, border-color 0.15s; }
+.ape-pasta::before { content: ''; position: absolute; top: -8px; left: -1.5px; width: 46%; height: 10px; border: 1.5px solid var(--a-line); border-bottom: 0; border-radius: 8px 10px 0 0; background: var(--a-card); }
+.ape-pasta:hover { transform: translateY(-2px); border-color: var(--a-pri); }
+.ape-pasta.on { border-color: var(--a-pri); background: var(--a-pri-soft); }
+.ape-pasta.on::before { border-color: var(--a-pri); background: var(--a-pri-soft); }
+.ape-pasta-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--a-pri-soft); color: var(--a-pri); display: grid; place-items: center; }
+.ape-pasta.on .ape-pasta-ic { background: var(--a-card); }
+.ape-pasta b { font-size: 13.5px; text-transform: lowercase; line-height: 1.25; }
+.ape-pasta small { font-size: 11.5px; color: var(--a-muted); }
+.ape-pastas { padding-top: 8px; }
+.ape-original { max-width: 860px; }
+.ape-original-i { display: grid; gap: 8px; }
+.ape-original-i iframe { width: 100%; height: min(70vh, 720px); border: 1px solid var(--a-line); border-radius: 12px; background: #fff; }
+.ape-original-i img { width: 100%; border-radius: 12px; border: 1px solid var(--a-line); }
+@media (max-width: 860px) {
+  .ape-orc-hero { grid-template-columns: minmax(0, 1fr); }
+  .ape-comofunc ol { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .ape-comofunc ol { grid-template-columns: minmax(0, 1fr); }
+  .ape-comofunc li { grid-template-columns: 48px minmax(0, 1fr); align-items: center; }
+}
+.ape-adm-foto { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 14px; align-items: start; }
+.ape-adm-foto img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 14px; }
+.ape-adm-foto > div { display: grid; gap: 8px; justify-items: start; }
+@media (max-width: 560px) { .ape-adm-foto { grid-template-columns: minmax(0, 1fr); } }
+.ape-proj-eu { margin: 0; font-size: 14.5px; color: rgba(255, 255, 255, 0.9); max-width: 52ch; }
+.ape-proj-local { margin: 0; display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: #f3d9cc; }
+.ape-proj-img img { aspect-ratio: 4 / 3; object-fit: cover; }

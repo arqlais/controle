@@ -686,6 +686,8 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [pixPct, setPixPct] = useState(String(ajustes.pixPct ?? PIX_PCT))
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
+  const [fotoProjeto, setFotoProjeto] = useState(ajustes.fotoProjeto || '')
+  const [subindo, setSubindo] = useState(false)
   const [busy, setBusy] = useState(false)
   const [abrir, setAbrir] = useState<string | null>(null)
   const calcd = comPrecos(ps) // preço dos kits calculado sozinho
@@ -701,7 +703,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, taxas, vendedor: vend }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, taxas, vendedor: vend, fotoProjeto }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })
@@ -727,6 +729,19 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
           </div>
         </div>
         <span className="ape-hint">Confira as taxas no seu plano do Asaas (Minha conta → Taxas). Elas só servem para mostrar quanto sobra de cada venda.</span>
+      </div>
+      <div className="ape-panel ape-adm-box">
+        <p className="ape-eyebrow">foto da seção de projetos</p>
+        <div className="ape-adm-foto">
+          <img src={fotoProjeto || 'ape/amostras/projeto-3d.jpg'} alt="Foto atual da seção de projetos" />
+          <div>
+            <label className="ape-btn primary sm" style={{ cursor: 'pointer' }}><ApeIcon name="clip" />{subindo ? 'enviando…' : 'trocar foto'}
+              <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setSubindo(true); try { setFotoProjeto(await loja.fotoPublica('projeto', f)); toast('Foto enviada. Toque em "salvar loja" para publicar.') } catch (x) { toast(String((x as Error).message)) } setSubindo(false) }} />
+            </label>
+            {fotoProjeto && <button className="ape-btn ghost sm" onClick={() => setFotoProjeto('')}>voltar para a padrão</button>}
+            <span className="ape-hint">Qualquer formato (deitada, em pé ou quadrada): a foto se ajusta sozinha no quadro, sem tirar nada do lugar. Depois toque em "salvar loja".</span>
+          </div>
+        </div>
       </div>
       <div className="ape-panel ape-adm-box">
         <p className="ape-eyebrow">quem vende (aparece nos termos e no rodapé da loja)</p>

@@ -172,7 +172,10 @@ export function comparar(orcs: Orcamento[]): Comparacao {
   }
   const prazos = orcs.map((o) => o.prazo).filter(Boolean)
   const garantias = orcs.map((o) => o.garantia)
-  if (garantias.some(Boolean) && garantias.some((g) => !g)) divergencias.push(`Nem todos informam garantia: ${orcs.filter((o) => !o.garantia).map((o) => o.fornecedor).join(', ')} não ${orcs.filter((o) => !o.garantia).length > 1 ? 'falam' : 'fala'} nada.`)
+  const semGar = [...new Set(orcs.filter((o) => !o.garantia).map((o) => o.fornecedor))]
+  if (garantias.some(Boolean) && semGar.length) divergencias.push(`Nem todos informam garantia: ${semGar.join(', ')} não ${semGar.length > 1 ? 'falam' : 'fala'} nada.`)
+  const mats = [...new Set(orcs.map((o) => (o.materiais || [])[0]).filter(Boolean))]
+  if (mats.length > 1) divergencias.push(`Os materiais são diferentes (${mats.join(', ')}): o menor preço pode ser só por causa do material. Compare o mesmo material entre os fornecedores.`)
   // informações que faltam pedir
   const pendentes = orcs.map((o, i) => {
     const p: string[] = []
@@ -230,36 +233,49 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   if (cnpj) out.cnpj = digits(cnpj[0])
   const ig = t.match(/@([a-z0-9_.]{3,30})(?![\w.]*\.(com|br))/i)
   if (ig && !email?.[0].includes(ig[0])) out.instagram = '@' + ig[1]
-  // fornecedor: linha com LTDA/ME/EIRELI ou a primeira linha "de título"
-  const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|comercio|marcenaria|marmoraria|pisos|vidra[cç]aria|gesso|el[eé]trica|serralheria)\b/i.test(l) && l.length < 70)
-  out.fornecedor = (emp || linhas.find((l) => l.length > 3 && l.length < 50 && !/or[cç]amento|proposta|cliente|data|^\d/i.test(l)) || '').replace(/\s{2,}/g, ' ')
-  // valores: total, à vista, parcelas
+  // fornecedor: linha com LTDA/ME/EIRELI, o que vem depois do rótulo "Empresa", ou a primeira linha de título (sem endereço nem rótulos)
+  const ruim = /\b(cep|cnpj|cpf|avenida|av\.|rua|bairro|endere[cç]o|empresa|cliente|data|telefone|assinatura|total|observa[cç][oõ]es|garantia|prazo|validade|instru[cç][oõ]es|or[cç]amento|proposta|cria[cç][aã]o|atualiza[cç][aã]o|quant|produto|material|valor)\b/i
+  const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|marmoraria|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados)\b/i.test(l) && l.length < 80)
+  const iEmp = linhas.findIndex((l) => /\bempresa\b/i.test(l))
+  const depoisEmp = iEmp >= 0 ? (linhas[iEmp + 1] || '').split(/\s{2,}/).pop() : ''
+  const limpaNome = (x: string) => x.split(/\s{2,}/).filter((p) => !ruim.test(p) && !/^\d+$/.test(p.trim())).pop()?.trim() || ''
+  out.fornecedor = (limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\s{2,}/g, ' ')
+  // valores: total (com R$), à vista / Pix, parcelas
   const valor = (re: RegExp) => {
     const m = t.match(re)
     return m ? num(m[1]) : null
   }
-  out.valor_total = valor(/(?:valor\s+)?total(?:\s+geral)?[^\d\n]{0,25}R?\$?\s*([\d.]+,\d{2})/i)
-  out.valor_avista = valor(/(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,25}R?\$?\s*([\d.]+,\d{2})/i)
+  out.valor_total = valor(/(?:valor\s+)?total(?:\s+geral)?[^\d\n]{0,25}R\$\s*([\d.]+,\d{2})/i)
+  out.valor_avista = valor(/(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,25}R\$\s*([\d.]+,\d{2})/i)
   const parc = t.match(/(\d{1,2})\s*x\s*(?:de\s*)?R?\$?\s*([\d.]+,\d{2})/i)
   if (parc) {
     out.parcelas_max = Number(parc[1])
     out.valor_parcela = num(parc[2])
   }
-  if (out.valor_total == null) {
-    const todos = [...t.matchAll(/R\$\s*([\d.]+,\d{2})/g)].map((m) => num(m[1]) || 0)
-    if (todos.length) out.valor_total = Math.max(...todos)
-  }
   const area = t.match(/([\d.,]+)\s*m(?:2|²)/i)
   if (area) out.area_m2 = num(area[1])
-  const prazo = t.match(/prazo[^:\n]*:?\s*([^\n]{3,60})/i)
-  if (prazo) out.prazo = prazo[1].trim()
-  const gar = t.match(/garantia[^:\n]*:?\s*([^\n]{3,60})/i)
-  if (gar) out.garantia = gar[1].trim()
-  const val = t.match(/validade[^\d\n]{0,20}(\d{1,3})\s*dias/i)
-  if (val) {
-    const d = new Date()
-    d.setDate(d.getDate() + Number(val[1]))
+  const prazo = t.match(/prazo[^\n]{0,40}?(\d+\s*(?:a\s*\d+\s*)?dias(?:\s*[uú]teis)?)/i)
+  if (prazo) out.prazo = prazo[1].trim().toLowerCase()
+  const gar = t.match(/garantia[ \t]*(?:de|:)?[ \t]*([^\n;]{3,70})/i)
+  if (gar) out.garantia = gar[1].trim().toLowerCase()
+  const dataOrc = t.match(/(\d{2})\/(\d{2})\/(\d{4})/)
+  const dias = t.match(/(?:validade[^\d\n]{0,20}|v[áa]lid[oa]\s+por\s+)(\d{1,3})\s*dias/i)
+  if (dias) {
+    const d = dataOrc ? new Date(`${dataOrc[3]}-${dataOrc[2]}-${dataOrc[1]}T00:00:00`) : new Date()
+    d.setDate(d.getDate() + Number(dias[1]))
     out.validade = d.toISOString().slice(0, 10)
+  }
+  const naoInc = [...t.matchAll(/([^\n.,;]{3,60}?)\s+n[aã]o\s+est[aã]o?\s+inclus[oa]s?/gi)].map((m) => `${m[1].trim()} (não incluso)`)
+  if (naoInc.length) out.nao_inclui = naoInc
+  // opções de material com total próprio: "Total em Quartzo branco R$ 5.190,00" (e o Pix de cada uma, se tiver)
+  const ops = [...t.matchAll(/total\s+em\s+([^\n]+?)\s+R\$\s*([\d.]+,\d{2})/gi)].filter((m) => !/desconto|pix/i.test(m[1]))
+  if (ops.length > 1) {
+    ;(out as Record<string, unknown>).opcoes = ops.map((m) => {
+      const nome = m[1].trim()
+      const pix = t.match(new RegExp(`total\\s+em\\s+${nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+com\\s+desconto[^\\n]*?R\\$\\s*([\\d.]+,\\d{2})`, 'i'))
+      return { nome, valor_total: num(m[2]), valor_avista: pix ? num(pix[1]) : null }
+    })
+    out.valor_total = num(ops[0][2])
   }
   // itens: linhas com valor no fim
   out.itens = linhas

@@ -360,8 +360,9 @@ Formato:
 "inclui": ["o que o orçamento diz que inclui (mão de obra, frete, instalação...)"],
 "nao_inclui": ["o que diz que NÃO inclui ou fica por conta do cliente"],
 "alertas": ["o que está vago ou costuma gerar custo extra e não aparece (ex.: frete, rodapé, retirada de entulho, regularização)"],
+"opcoes": [{"nome": "opção de material ou modelo, ex.: Quartzo branco", "valor_total": número, "valor_avista": número ou null}] (só se o orçamento tiver opções alternativas de material/modelo com totais diferentes; senão []),
 "completude": 1 a 5}
-Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
+Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
 
   async function ler(body: J) {
     const morador = String(body.morador ?? '')
@@ -435,6 +436,18 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     const iv = buf.slice(2 + n, 14 + n)
     const zip = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aes, buf.slice(14 + n)))
     const arquivos = unzipSync(zip)
+    if (body.destino === 'envios') {
+      // orçamentos reais mandados pela dona: vão para a pasta dos envios, com o caminho que o SQL usa
+      const st2 = db.storage.from('ape-envios')
+      const feitos2: string[] = []
+      for (const [nome, dados] of Object.entries(arquivos)) {
+        if (nome.endsWith('/')) continue
+        const path = `envios/importados/${nome.split('/').pop()}`
+        const { error } = await st2.upload(path, dados, { contentType: /\.pdf$/i.test(nome) ? 'application/pdf' : 'image/jpeg', upsert: true })
+        if (!error) feitos2.push(path)
+      }
+      return json({ ok: true, guardados: feitos2 })
+    }
     const { map } = await loja()
     const ids = [...Object.keys(map).filter((id) => map[id].cat === 'arquivos'), 'bonus'].sort((a, b) => b.length - a.length)
     const st = db.storage.from('ape-arquivos')
@@ -480,5 +493,31 @@ Regras: números em reais sem R$ (1234.5). Não invente: o que não estiver escr
     })
   }
 
-  return { criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos }
+  /** O morador aprovado (ou a dona) vê os arquivos originais de um orçamento, como foram mandados. */
+  async function verOriginal(req: Request, body: J) {
+    const id = String(body.orcamento ?? '')
+    let pode = false
+    const morador = String(body.morador ?? '')
+    if (/^[0-9a-f-]{36}$/i.test(morador)) {
+      const { data: m } = await db.from('ape_moradores').select('aprovado, condominio').eq('id', morador).maybeSingle()
+      pode = !!m?.aprovado && (m.condominio ?? 'San Levi') === 'San Levi'
+    }
+    if (!pode) {
+      const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+      const { data: u } = jwt ? await db.auth.getUser(jwt) : { data: { user: null } }
+      if (u?.user) pode = !!(await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()).data
+    }
+    if (!pode) return json({ erro: 'só para moradores do San Levi' }, 403)
+    const { data: envs } = await db.from('ape_envios').select('arquivos').eq('orcamento', id)
+    const st = db.storage.from('ape-envios')
+    const out: { nome: string; tipo: string; url: string }[] = []
+    for (const e of envs ?? []) for (const a of (e.arquivos ?? []) as J[]) {
+      if (!a.path) continue
+      const { data: u } = await st.createSignedUrl(String(a.path), 60 * 30)
+      if (u?.signedUrl) out.push({ nome: String(a.nome ?? 'arquivo'), tipo: String(a.tipo ?? ''), url: u.signedUrl })
+    }
+    return json({ arquivos: out })
+  }
+
+  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos }
 }

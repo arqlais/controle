@@ -70,6 +70,20 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
       if (base.nicho === 'outros') base.nicho = (nichoDoTexto(textoLocal + ' ' + base.servico) || 'outros') as Orcamento['nicho']
       if (!base.servico) base.servico = base.nicho !== 'outros' ? nicho(base.nicho).l : ''
       if (t !== 'orcamento') base.tipo = t
+      // orçamento com opções de material (ex.: quartzo ou granito): cada opção vira um orçamento, para comparar igual com igual
+      const fonteOp = ((ia as Record<string, unknown> | null)?.opcoes ?? (regra as Record<string, unknown>).opcoes) as Record<string, unknown>[] | undefined
+      const opcoes = (Array.isArray(fonteOp) ? fonteOp : []).filter((x) => x && num(x.valor_total) != null)
+      if (opcoes.length > 1 && t === 'orcamento') {
+        const variante = (x: Record<string, unknown>): Orcamento => ({ ...base, id: blankOrcamento().id, servico: `${base.servico || nicho(base.nicho).l} · ${String(x.nome || 'opção')}`, valor_total: num(x.valor_total), valor_avista: num(x.valor_avista), desconto_avista_pct: null, materiais: [String(x.nome || ''), ...(base.materiais || [])].filter(Boolean) })
+        setLidos((ls) => {
+          const i = ls.findIndex((l) => l.key === key)
+          if (i < 0) return ls
+          const atual = ls[i]
+          const extras = opcoes.slice(1).map((x) => ({ ...atual, key: crypto.randomUUID(), o: variante(x), status: 'pronto' as const, msg: 'opção separada do mesmo arquivo' }))
+          return [...ls.slice(0, i), { ...atual, o: variante(opcoes[0]), status: 'pronto', msg: `lido automaticamente · ${opcoes.length} opções separadas` }, ...extras, ...ls.slice(i + 1)]
+        })
+        return
+      }
       atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : `${lido.erro ? `leitura automática indisponível (${lido.erro}) · ` : ''}${textoLocal ? 'lido pelo texto do arquivo' : 'complete os dados'}` }))
     } catch (x) {
       atualizar(key, (l) => ({ ...l, status: 'erro', msg: String((x as Error).message) }))
@@ -110,6 +124,13 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     if (!prontos.length) return setErr(lidos.some((l) => l.status === 'lendo') ? 'Espere terminar de ler.' : 'Anexe um orçamento.')
     const incompleto = prontos.find((l) => faltando(l.o).length)
     if (incompleto) return setErr(`Complete ${faltando(incompleto.o).map((f) => (f === 'nicho' ? 'o serviço' : f === 'valor' ? 'o valor' : f === 'contato' ? 'o WhatsApp, telefone ou Instagram' : 'o fornecedor')).join(', ')} do item ${prontos.indexOf(incompleto) + 1}.`)
+    // orçamento repetido: pergunta antes (mesmo serviço, mesmo fornecedor e o mesmo valor)
+    const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+    const valor = (o: Orcamento) => num(o.valor_avista) ?? num(o.valor_total)
+    for (const l of prontos) {
+      const igual = orcamentos.find((x) => x.nicho === l.o.nicho && norm(x.fornecedor) === norm(l.o.fornecedor) && (valor(x) == null || valor(l.o) == null || Math.abs((valor(x) || 0) - (valor(l.o) || 0)) <= Math.max(1, (valor(l.o) || 0) * 0.01)))
+      if (igual && !confirm(`Já existe um orçamento de ${igual.fornecedor} em ${nicho(igual.nicho).l.toLowerCase()}${valor(igual) != null ? ` com ${brl(valor(igual))}` : ''}${igual.criado ? `, mandado em ${new Date(igual.criado).toLocaleDateString('pt-BR')}` : ''}. É outro orçamento mesmo? Toque em OK para mandar assim mesmo, ou em Cancelar para revisar.`)) return
+    }
     setBusy('publicando…')
     const ok: Orcamento[] = []
     for (const l of prontos) {

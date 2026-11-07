@@ -10,6 +10,7 @@ export interface Ajustes {
   lojaV?: number
   pixPct?: number // desconto no Pix (padrão 5%)
   taxas?: Taxas // taxas do Asaas, só para conferir a margem no painel
+  fotoProjeto?: string // foto da seção de projetos (o painel troca; pasta pública ape-publico)
   vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
 }
 export interface Vendedor { nome: string; doc: string; cidade: string; email: string }
@@ -58,7 +59,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   const pixPct = typeof a.pixPct === 'number' && a.pixPct >= 0 && a.pixPct <= 10 ? a.pixPct : PIX_PCT
   // imagens de amostra vêm sempre do site (são refeitas junto com os arquivos)
   const base = atual ? a.produtos!.map((p) => { const d = PRODUTOS.find((x) => x.id === p.id); return d?.amostras ? { ...p, amostras: d.amostras } : p }) : PRODUTOS
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) } }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -688,6 +689,15 @@ export const loja = {
     const { error } = await sb().storage.from('ape-arquivos').upload(`${produto}/${nome}`, f, { upsert: true, contentType: f.type || undefined })
     fail(error)
   },
+  /** Foto pública da loja (ex.: projetos): sobe para a pasta pública e devolve o endereço. */
+  async fotoPublica(nome: string, f: File): Promise<string> {
+    if (!CLOUD) throw new Error('Na prévia a foto não fica guardada.')
+    const ext = (f.name.match(/\.\w+$/) || ['.jpg'])[0].toLowerCase()
+    const path = `${nome}-${Date.now()}${ext}`
+    const { error } = await sb().storage.from('ape-publico').upload(path, f, { upsert: true, contentType: f.type || undefined })
+    fail(error)
+    return sb().storage.from('ape-publico').getPublicUrl(path).data.publicUrl
+  },
   async apagarArquivo(produto: string, nome: string) {
     const { error } = await sb().storage.from('ape-arquivos').remove([`${produto}/${nome}`])
     fail(error)
@@ -745,4 +755,17 @@ export const painelConta = {
     const { error } = await sb().from('ape_feedback').update({ publicado }).eq('id', id)
     fail(error)
   },
+}
+
+/** Morador cria a conta (e-mail e senha) ou entra; devolve o cadastro para guardar no aparelho. */
+export async function moradorConta(op: 'morador' | 'entrar', dados: Record<string, unknown>): Promise<Morador | null> {
+  const r = await contaApi<{ token: string; morador: Record<string, unknown> | null }>(op, dados)
+  guardarSessao(r.token)
+  return moradorOf(r.morador)
+}
+/** Arquivos originais de um orçamento (PDF, foto), como foram mandados. */
+export async function verOriginal(moradorId: string | undefined, orcamento: string): Promise<{ nome: string; tipo: string; url: string }[]> {
+  if (!CLOUD) return []
+  const r = await invoke<{ arquivos: { nome: string; tipo: string; url: string }[] }>({ acao: 'ape-original', morador: moradorId || '', orcamento })
+  return r.arquivos
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, queroGrupo, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, souDona, verOriginal, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -362,37 +362,45 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         </div>
       )}
       {!apeCloud && <div className="ape-banner">Prévia: os dados ficam só neste navegador e os orçamentos são de exemplo.</div>}
-      <section className="ape-panel ape-hero">
+      <section className="ape-orc-hero">
         <div>
-          <h2>
-            orçamentos de quem está montando o apê, <em>lado a lado</em>
-          </h2>
-          <p>Quem está montando o apê manda os orçamentos que recebeu e eles ficam lado a lado, por serviço: o que está incluso, o que fica de fora, à vista e parcelado.</p>
-          <div className="ape-acts" style={{ marginTop: 14 }}>
+          <p className="ape-eyebrow">área dos moradores do {APE.condominio}</p>
+          <h2>todos os orçamentos do grupo, <em>organizados</em></h2>
+          <p>Antes, cada orçamento se perdia no meio das mensagens do grupo. Aqui eles ficam guardados em pastas por serviço, do jeito que foram recebidos (PDF ou foto), e você compara lado a lado para escolher com quem fechar.</p>
+          <div className="ape-acts">
+            <a className="ape-btn primary" href={href('ape', 'enviar')}><ApeIcon name="send" />mandar um orçamento</a>
             <Compartilhar />
           </div>
         </div>
         <div className="ape-stats">
           <div className="ape-stat"><b className="num">{vis.filter(ehOrcamento).length}</b><span>orçamentos</span></div>
-          <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>serviços</span></div>
+          <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>pastas</span></div>
           <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos e tabelas</span></div>
         </div>
       </section>
+      <ComoFunciona />
+      <div className="ape-pastas" role="group" aria-label="Pastas por serviço">
+        <button className={`ape-pasta ${nf === 'todos' ? 'on' : ''}`} onClick={() => setFiltro('todos')}>
+          <span className="ape-pasta-ic"><ApeIcon name="list" /></span>
+          <b>todas</b>
+          <small>{vis.length} {vis.length === 1 ? 'item' : 'itens'}</small>
+        </button>
+        {NICHOS.filter((n) => counts[n[0]]).map((n) => {
+          const doN = vis.filter((o) => o.nicho === n[0] && ehOrcamento(o))
+          const menor = Math.min(...doN.map((o) => calc(o).avista ?? Infinity))
+          return (
+            <button key={n[0]} className={`ape-pasta ${nf === n[0] ? 'on' : ''}`} onClick={() => setFiltro(n[0])}>
+              <span className="ape-pasta-ic"><ApeIcon name={n[2]} /></span>
+              <b>{n[1]}</b>
+              <small>{counts[n[0]]} {counts[n[0]] === 1 ? 'item' : 'itens'}{Number.isFinite(menor) ? <> · desde <span className="ape-keep">{brl(menor)}</span></> : null}</small>
+            </button>
+          )
+        })}
+      </div>
       <p className="ape-aviso">
         <ApeIcon name="alert" />
-        <span>Os orçamentos vêm de quem está montando o apê e aparecem como foram enviados. O "mais compensa" é um cálculo automático (preço, o que está incluso e validade), não uma indicação. Confira tudo com o fornecedor antes de fechar.</span>
+        <span>Os orçamentos vêm dos vizinhos e aparecem como foram enviados. O "mais compensa" é um cálculo automático, não uma indicação: confira tudo com o fornecedor antes de fechar.</span>
       </p>
-      <div className="ape-chips" role="group" aria-label="Filtrar por serviço">
-        <button className="ape-chip" aria-pressed={nf === 'todos'} onClick={() => setFiltro('todos')}>
-          Todos <span>{vis.length}</span>
-        </button>
-        {NICHOS.filter((n) => counts[n[0]]).map((n) => (
-          <button key={n[0]} className="ape-chip" aria-pressed={nf === n[0]} onClick={() => setFiltro(n[0])}>
-            <ApeIcon name={n[2]} />
-            {n[1]} <span>{counts[n[0]]}</span>
-          </button>
-        ))}
-      </div>
       <div className="ape-toolbar">
         <label className="ape-search">
           <ApeIcon name="search" />
@@ -487,6 +495,57 @@ function Contatos({ lista, me }: { lista: Orcamento[]; me: Morador | null }) {
   )
 }
 
+/* como funciona: passo a passo ilustrado (aberto na primeira visita) */
+function ComoFunciona() {
+  const [aberto, setAberto] = useState(() => !read<boolean>('ape-tutorial-visto'))
+  const fechar = () => {
+    write('ape-tutorial-visto', true)
+    setAberto(false)
+  }
+  if (!aberto)
+    return <button className="ape-btn ghost sm ape-comofunc-btn" onClick={() => setAberto(true)}><ApeIcon name="sparkle" />como funciona?</button>
+  return (
+    <section className="ape-comofunc" aria-label="Como funciona">
+      <div className="ape-comofunc-h">
+        <b>como funciona, em 4 passos</b>
+        <button className="ape-btn ghost sm" onClick={fechar}>entendi</button>
+      </div>
+      <ol>
+        <li><ApeArt name="grupo" size={48} /><span><b>1. peça o orçamento</b>ao fornecedor, como sempre (WhatsApp, e-mail, visita)</span></li>
+        <li><ApeArt name="anexo" size={48} tone="sec" /><span><b>2. mande aqui</b>toque em "enviar" e anexe o PDF ou o print. Pode ser só o contato ou a tabela de preços também</span></li>
+        <li><ApeArt name="comparar" size={48} /><span><b>3. compare</b>abra a pasta do serviço: preço, o que inclui, prazo, garantia e o arquivo original</span></li>
+        <li><ApeArt name="carrinho" size={48} tone="sec" /><span><b>4. escolha</b>marque "vou fechar com este" e, se der, entre no grupo para ganhar desconto</span></li>
+      </ol>
+    </section>
+  )
+}
+
+/* arquivo original do orçamento (PDF ou foto), como foi mandado */
+function Original({ o, me, onClose }: { o: Orcamento; me: Morador | null; onClose: () => void }) {
+  const [l, setL] = useState<{ nome: string; tipo: string; url: string }[] | null>(null)
+  const [erro, setErro] = useState('')
+  useEffect(() => {
+    verOriginal(me?.id, o.id).then(setL, (e) => setErro(String(e.message)))
+  }, [o.id])
+  return (
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Arquivo original" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in ape-original">
+        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        <div className="ape-sheet-b">
+          <p className="ape-eyebrow">como foi recebido</p>
+          <h2 className="ape-h2">{o.fornecedor}</h2>
+          {erro ? <p className="ape-err">{erro}</p> : !l ? <span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>abrindo…</span> : !l.length ? <p className="ape-note">Este orçamento veio sem arquivo (foi digitado ou colado).</p> : l.map((a) => (
+            <div key={a.url} className="ape-original-i">
+              {/pdf/i.test(a.tipo) || /\.pdf$/i.test(a.nome) ? <iframe src={a.url} title={a.nome} /> : <img src={a.url} alt={a.nome} />}
+              <a className="ape-btn sm" href={a.url} target="_blank" rel="noopener noreferrer"><ApeIcon name="download" />abrir {a.nome}</a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, onEscolha }: { x: Item; a: Analise; isTop: boolean; me: Morador | null; whats: string; count: number; escolhas: number; minha: boolean; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void }) {
   const { o, c } = x
   const [busy, setBusy] = useState(false)
@@ -505,6 +564,7 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
     ) : null
 
   const [esc, setEsc] = useState(false)
+  const [original, setOriginal] = useState(false)
   const fechar = async () => {
     if (!me?.id) return show('Faça o cadastro para escolher.')
     setEsc(true)
@@ -640,6 +700,9 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
           <ApeIcon name={minha ? 'check' : 'star'} />
           {minha ? 'minha escolha' : 'vou fechar com este'}
         </button>
+        {(o.arquivos?.length || o.enviado) && (
+          <button className="ape-btn ghost" onClick={() => setOriginal(true)}><ApeIcon name="file" />ver o original</button>
+        )}
         {c.gp > 0 &&
           (joined ? (
             <a className="ape-btn rose" href={wa(whats, msgGrupo(o, me))} target="_blank" rel="noopener noreferrer" title="Você já está na lista do grupo">
@@ -653,6 +716,7 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
             </button>
           ))}
       </div>
+      {original && <Original o={o} me={me} onClose={() => setOriginal(false)} />}
     </article>
   )
 }
@@ -714,6 +778,22 @@ function Cta({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[]; me?: M
 /* ===== cadastro ===== */
 function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?: boolean; onDone: (m: Morador) => void; onCancel?: () => void }) {
   const [copiado, setCopiado] = useState(false)
+  const [modo, setModo] = useState<'novo' | 'entrar'>('novo')
+  const [email, setEmail] = useState('')
+  const [senha, setSenha] = useState('')
+  const entrar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    setBusy(true)
+    try {
+      const m = await moradorConta('entrar', { email: email.trim().toLowerCase(), senha })
+      if (m) onDone(m)
+      else setErr('Essa conta ainda não tem cadastro de morador. Toque em "criar conta".')
+    } catch (x) {
+      setErr(String((x as Error).message))
+    }
+    setBusy(false)
+  }
   const [nome, setNome] = useState(me?.nome || '')
   const [sl, setSl] = useState(me ? ehSanLevi(me) : true)
   const [cond, setCond] = useState(me && !ehSanLevi(me) ? me.condominio || '' : '')
@@ -743,11 +823,20 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
     if (sl && (!m.torre || !m.ap)) return setErr('Coloque a torre e o apê.')
     if (sl && outros.length && junto !== true) return setErr(junto === false ? 'Confira a torre e o apê.' : `Este apê já tem cadastro (${outros.join(', ')}). Confirme se você mora junto.`)
     if (m.tel.length < 10 || m.tel.length > 13) return setErr('Coloque o WhatsApp com DDD.')
+    if (!me && apeCloud) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) return setErr('Coloque um e-mail válido.')
+      if (senha.length < 8) return setErr('A senha precisa de pelo menos 8 caracteres.')
+    }
     setErr('')
     setBusy(true)
     try {
-      const id = await cadastrar({ ...m, id: me?.id })
-      onDone({ ...m, id })
+      if (!me && apeCloud) {
+        const novo = await moradorConta('morador', { ...m, junto: m.moraJunto, email: email.trim().toLowerCase(), senha })
+        if (novo) onDone(novo)
+      } else {
+        const id = await cadastrar({ ...m, id: me?.id })
+        onDone({ ...m, id, aprovado: me?.aprovado ?? true })
+      }
     } catch (e) {
       setErr(`Não deu para entrar agora (${(e as Error).message}). Confira a internet e tente de novo.`)
     }
@@ -756,6 +845,20 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
 
   return (
     <div className="ape-gate" role="dialog" aria-modal="true" aria-labelledby="g-t">
+      {modo === 'entrar' && !me ? (
+        <form onSubmit={entrar} noValidate>
+          <h2 id="g-t">entrar na <em>sua conta</em></h2>
+          <p>Use o e-mail e a senha do seu cadastro.</p>
+          <div className="ape-f"><label htmlFor="g-email2">E-mail</label><input id="g-email2" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="ape-f"><label htmlFor="g-senha2">Senha</label><input id="g-senha2" type="password" autoComplete="current-password" value={senha} onChange={(e) => setSenha(e.target.value)} /></div>
+          {err && <p className="ape-err" role="alert">{err}</p>}
+          <button className="ape-btn primary wide" type="submit" disabled={busy}>{busy ? 'entrando…' : 'entrar'}</button>
+          <div className="ape-conta-links">
+            <button type="button" className="ape-linkish ape-link" onClick={() => { setModo('novo'); setErr('') }}>criar conta</button>
+            <a className="ape-link" href={href('ape', 'conta')}>esqueci a senha</a>
+          </div>
+        </form>
+      ) : (
       <form onSubmit={submit} noValidate>
         <h2 id="g-t">
           {me ? <>seus <em>dados</em></> : <>boas-vindas ao <em>planê.apê</em></>}
@@ -763,7 +866,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
         {owner && !me ? (
           <p>Você está logada como dona e já vê todos os orçamentos. Para <b>enviar</b> orçamentos como moradora, faça o seu cadastro aqui (fica guardado neste aparelho).</p>
         ) : !me ? (
-          <p>Os orçamentos são exclusivos dos moradores do {APE.condominio}. Conte rapidinho quem é você: seus dados não aparecem na página e ficam guardados neste aparelho, sem senha.</p>
+          <p>Os orçamentos são só dos moradores do {APE.condominio}. Crie a sua conta em 1 minuto: seus dados não aparecem para os vizinhos. O <span className="ape-keep">CPF</span> só é pedido se um dia você comprar algo na loja.</p>
         ) : null}
         <div className="ape-f">
           <label htmlFor="g-nome">Nome completo</label>
@@ -820,6 +923,12 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
             <button className="ape-btn ghost" type="button" onClick={onCancel}>cancelar</button>
           )}
         </div>
+        {!me && apeCloud && (
+          <div className="ape-conta-links" style={{ justifyContent: 'center' }}>
+            <span className="ape-note">Já tem conta?</span>
+            <button type="button" className="ape-linkish ape-link" onClick={() => { setModo('entrar'); setErr('') }}>entrar</button>
+          </div>
+        )}
         {me && (
           <button type="button" className="ape-btn ghost sm ape-outro" onClick={() => { void navigator.clipboard?.writeText(`https://useplane.com.br/ape/sanlevi/#entrar:${me.id}`); setCopiado(true) }}>
             <ApeIcon name={copiado ? 'check' : 'phone'} />
@@ -827,6 +936,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
           </button>
         )}
       </form>
+      )}
     </div>
   )
 }

@@ -170,7 +170,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       )}
 
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} />}
-      <ServicosSec whats={whats} me={me} />
+      <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} />
 
       <section className="ape-panel ape-garantia">
         <ApeArt name="entregas" size={56} tone="sec" />
@@ -294,38 +294,27 @@ function Depoimentos() {
 }
 
 /* ===== serviços: separado dos produtos digitais, sempre com proposta antes ===== */
-function ServicosSec({ whats, me }: { whats: string; me: Morador | null }) {
+function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; foto?: string }) {
   const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria uma proposta de projeto/reforma para a minha casa/apê.`
   const servicos: [string, string][] = [
-    ['layout e interiores', 'planta com móveis e acabamentos'],
-    ['marcenaria', 'desenho dos planejados'],
-    ['elétrica e iluminação', 'tomadas, pontos e luminárias'],
-    ['vistoria técnica', 'acompanhamento nas chaves'],
-    ['acompanhamento de obra', 'visitas e conferência'],
-    ['reforma', 'execução com equipe e cronograma'],
+    ['projeto de interiores', ''],
+    ['marcenaria', ''],
+    ['elétrica e iluminação', ''],
+    ['vistoria de imóvel', ''],
+    ['reforma', ''],
   ]
   return (
     <section className="ape-proj" id="loja-servicos">
       <div className="ape-proj-txt">
         <span className="ape-proj-tag">serviço à parte · sob orçamento</span>
         <h3>precisa de um <em>projeto?</em></h3>
-        <div className="ape-proj-eu">
-          <span className="ape-me-av">L</span>
-          <p>Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho junto com o meu pai, que é engenheiro civil. Fazemos projetos, serviços técnicos e reformas, inclusive para quem acabou de receber as chaves.</p>
-        </div>
+        <p className="ape-proj-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho com o meu pai, engenheiro civil, em projetos e reformas.</p>
         <ul className="ape-proj-chips">{servicos.map(([t]) => <li key={t}>{t}</li>)}</ul>
-        <ol className="ape-proj-passos">
-          <li><b>1</b>você conta o que precisa</li>
-          <li><b>2</b>recebe a proposta por escrito</li>
-          <li><b>3</b>só começa se você aprovar</li>
-        </ol>
-        <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir proposta no WhatsApp</a>
-        <p className="ape-proj-nota">Serviços com responsabilidade técnica (ART) são assinados pelo engenheiro civil. Valores e prazos sempre numa proposta antes de começar. Não faz parte da loja nem da plataforma.</p>
+        <p className="ape-proj-local"><ApeIcon name="home" />vistoria de imóvel em Santo André e região (SP)</p>
+        <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir orçamento no WhatsApp</a>
       </div>
       <div className="ape-proj-img">
-        <img src="ape/amostras/projeto-3d.jpg" alt="Imagem 3D de um projeto de interiores feito pela Laís" loading="lazy" />
-        <span className="ape-hf p1"><span className="ic"><ApeIcon name="ruler" /></span><span><b>nas suas medidas</b><small>planta com móveis</small></span></span>
-        <span className="ape-hf p2"><span className="ic sec"><ApeIcon name="eye" /></span><span><b>veja antes de fazer</b><small>imagens 3D</small></span></span>
+        <img src={foto || 'ape/amostras/projeto-3d.jpg'} alt="Projeto de interiores" loading="lazy" />
       </div>
     </section>
   )
