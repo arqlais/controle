@@ -7,7 +7,7 @@ import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, typ
 import { ApeIcon } from './ApeIcon'
 import { emailOk } from './shared'
 import {
-  APE, BONUS, SELOS, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -18,10 +18,9 @@ import './ape.css'
 type Tab = 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
 /* o painel em 4 partes: início (o que precisa de atenção), San Levi, loja e testar */
 const SECOES: [string, string, Tab[]][] = [
-  ['inicio', 'início', ['inicio']],
-  ['sanlevi', 'San Levi', ['moradores', 'lista', 'recebidos', 'novo', 'grupos']],
+  ['inicio', 'geral', ['inicio', 'testar']],
+  ['sanlevi', 'San Levi', ['moradores', 'recebidos', 'lista', 'grupos', 'novo']],
   ['loja', 'loja', ['pedidos', 'clientes', 'loja', 'entregas', 'opiniao']],
-  ['testar', 'testar como cliente', ['testar']],
 ]
 interface Draft {
   o: Orcamento
@@ -44,6 +43,8 @@ export default function ApeAdmin() {
   const [erro, setErro] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
 
+  const [menu, setMenu] = useState(false)
+  const [fechado, setFechado] = useState(() => { try { return !!localStorage.getItem('ape-adm-mini') } catch { return false } })
   const load = useCallback(async () => {
     try {
       const [o, e, m, i, a, es, pe] = await Promise.all([admin.orcamentos(), admin.envios(), admin.moradores(), admin.interesses(), admin.ajustes(), admin.escolhas(), loja.pedidos().catch(() => [] as PedidoAdmin[])])
@@ -104,8 +105,8 @@ export default function ApeAdmin() {
           </a>
         </div>
       </div>
-      <div className="ape ape-admin">
-        <div className="ape-panel" style={{ display: 'grid', gap: 14 }}>
+      <div className={`ape ape-admin ape-adm-wrap ${fechado ? 'mini' : ''}`}>
+        <div className="ape-panel ape-adm-main" style={{ display: 'grid', gap: 14 }}>
           {erro && (
             <div className="ape-banner warn">
               Não consegui ler os dados do {APE.name} ({erro}). Confira se o arquivo <b>supabase/ape.sql</b> já foi rodado no Supabase.
@@ -113,27 +114,36 @@ export default function ApeAdmin() {
           )}
           {!apeCloud && <div className="ape-banner">Prévia: tudo fica só neste navegador.</div>}
           {(() => {
-            const sec = SECOES.find((x) => x[2].includes(tab)) || SECOES[0]
-            const ROT: Record<Tab, React.ReactNode> = {
-              inicio: 'início', moradores: `cadastros (${moradores.length})`, lista: `orçamentos (${orcs.length})`, recebidos: <>enviados{novos ? <em>{novos}</em> : null}</>, novo: draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', grupos: 'compras em grupo',
-              pedidos: <>vendas{pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length ? <em>{pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length}</em> : null}</>, clientes: 'clientes', loja: 'produtos e preços', entregas: 'arquivos', opiniao: 'depoimentos e sugestões', testar: 'testar como cliente',
+            const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
+            const ITENS: Record<Tab, [string, string, number?]> = {
+              inicio: ['início', 'home'], moradores: ['cadastros', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'list'], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', 'plus'], grupos: ['fechar em grupo', 'users'],
+              pedidos: ['vendas', 'bag', nCancel], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'tag'], entregas: ['arquivos', 'file'], opiniao: ['depoimentos', 'star'], testar: ['testar como cliente', 'eye'],
             }
+            const atual = ITENS[tab]
             return (
               <>
-                <div className="ape-adm-secoes" role="tablist" aria-label="Partes do painel">
-                  {SECOES.map(([id, l, tabs]) => (
-                    <button key={id} role="tab" aria-selected={sec[0] === id} onClick={() => setTab(tabs[0])}>{l}</button>
-                  ))}
-                </div>
-                {sec[2].length > 1 && (
-                  <div className="ape-atabs" role="tablist" aria-label={sec[1]}>
-                    {sec[2].map((k) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{ROT[k]}</button>)}
+                <button className="ape-adm-menubtn" onClick={() => setMenu(true)} aria-label="Abrir o menu do painel"><ApeIcon name="list" /><span>{atual[0]}</span></button>
+                {menu && <div className="ape-adm-scrim" onClick={() => setMenu(false)} />}
+                <nav className={`ape-adm-side ${fechado ? 'mini' : ''} ${menu ? 'aberto' : ''}`} aria-label="Menu do painel">
+                  <div className="ape-adm-side-top">
+                    <button className="ape-adm-toggle" onClick={() => { setFechado(!fechado); try { localStorage.setItem('ape-adm-mini', fechado ? '' : '1') } catch { /* sem armazenamento */ } }} aria-label={fechado ? 'Abrir o menu' : 'Recolher o menu'} title={fechado ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
+                    <button className="ape-adm-x" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
                   </div>
-                )}
+                  {SECOES.map(([id, l, tabs]) => (
+                    <div key={id} className="ape-adm-grupo">
+                      <p className="ape-adm-gt">{l}</p>
+                      {tabs.map((k) => (
+                        <button key={k} className="ape-adm-it" aria-current={tab === k ? 'page' : undefined} title={ITENS[k][0]} onClick={() => { setTab(k); setMenu(false) }}>
+                          <ApeIcon name={ITENS[k][1]} /><span>{ITENS[k][0]}</span>{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </nav>
               </>
             )
           })()}
-          {tab === 'inicio' && <Inicio moradores={moradores} orcs={orcs} pedidos={pedidos} envios={envios} ir={setTab} />}
+          {tab === 'inicio' && <Inicio moradores={moradores} orcs={orcs} pedidos={pedidos} envios={envios} interesses={interesses} ir={setTab} />}
           {tab === 'recebidos' && (
             <Recebidos
               envios={envios}
@@ -161,7 +171,7 @@ export default function ApeAdmin() {
             ))}
           {tab === 'lista' && <Lista orcs={orcs} interesses={interesses} onEdit={edit} onChange={load} />}
           {tab === 'moradores' && <Moradores moradores={moradores} envios={envios} interesses={interesses} orcs={orcs} escolhas={escolhas} pedidos={pedidos} onChange={load} />}
-          {tab === 'grupos' && <Grupos orcs={orcs} interesses={interesses} />}
+          {tab === 'grupos' && <Grupos orcs={orcs} interesses={interesses} onSaved={load} />}
           {tab === 'loja' && ajustes && <Loja ajustes={ajustes} onSaved={setAjustes} />}
           {tab === 'pedidos' && <Vendas pedidos={pedidos} onChange={load} />}
           {tab === 'clientes' && ajustes && <Clientes pedidos={pedidos} produtos={ajustes.produtos} onChange={load} />}
@@ -175,7 +185,9 @@ export default function ApeAdmin() {
 }
 
 /* ===== início do painel: o que precisa da sua atenção e os números principais ===== */
-function Inicio({ moradores, orcs, pedidos, envios, ir }: { moradores: Morador[]; orcs: Orcamento[]; pedidos: PedidoAdmin[]; envios: Envio[]; ir: (t: Tab) => void }) {
+function Inicio({ moradores, orcs, pedidos, envios, interesses, ir }: { moradores: Morador[]; orcs: Orcamento[]; pedidos: PedidoAdmin[]; envios: Envio[]; interesses: Interesse[]; ir: (t: Tab) => void }) {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const metas = orcs.filter((o) => ehOrcamento(o) && !(num(o.grupo_pct) && (!o.grupo_ate || o.grupo_ate >= hoje)) && interesses.filter((i) => i.orcamento === o.id).length + (num(o.interessados) || 0) >= (num(o.grupo_min) || GRUPO_META)).length
   const sl = moradores.filter(ehSanLevi)
   const aguardando = sl.filter((m) => !m.aprovado).length
   const cancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
@@ -187,6 +199,7 @@ function Inicio({ moradores, orcs, pedidos, envios, ir }: { moradores: Morador[]
   const pend: [string, string, Tab][] = [
     ...(cancel ? [[`${cancel} pedido(s) de cancelamento para decidir`, 'abrir vendas', 'pedidos'] as [string, string, Tab]] : []),
     ...(aguardando ? [[`${aguardando} cadastro(s) do ${APE.condominio} aguardando aprovação`, 'abrir cadastros', 'moradores'] as [string, string, Tab]] : []),
+    ...(metas ? [[`${metas} grupo(s) bateram a meta: negocie com o fornecedor`, 'abrir grupos', 'grupos'] as [string, string, Tab]] : []),
   ]
   return (
     <div style={{ display: 'grid', gap: 14 }}>
@@ -693,63 +706,91 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
   )
 }
 
-function Grupos({ orcs, interesses }: { orcs: Orcamento[]; interesses: Interesse[] }) {
-  const com = orcs.filter((o) => num(o.grupo_pct))
-  if (!com.length)
+function Grupos({ orcs, interesses, onSaved }: { orcs: Orcamento[]; interesses: Interesse[]; onSaved: () => void }) {
+  const lista = orcs
+    .filter((o) => ehOrcamento(o) && (interesses.some((i) => i.orcamento === o.id) || num(o.grupo_pct) || num(o.interessados)))
+    .map((o) => ({ o, ppl: interesses.filter((i) => i.orcamento === o.id) }))
+    .sort((x, y) => y.ppl.length + (num(y.o.interessados) || 0) - (x.ppl.length + (num(x.o.interessados) || 0)))
+  if (!lista.length)
     return (
       <div className="ape-empty">
-        <b>Nenhuma compra em grupo ainda</b>
-        <span>Quando um orçamento tiver desconto em grupo, os apês interessados aparecem aqui.</span>
+        <b>Ninguém marcou interesse ainda</b>
+        <span>Quando os vizinhos marcarem "tenho interesse em fechar em grupo" num orçamento, a lista aparece aqui, com a meta e a mensagem pronta para o fornecedor.</span>
       </div>
     )
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      {com.map((o) => {
-        const ppl = interesses.filter((i) => i.orcamento === o.id)
-        const fora = num(o.interessados) || 0
-        const total = ppl.length + fora
-        const min = num(o.grupo_min)
-        const tels = ppl.map((i) => i.morador).filter((m): m is Morador => !!m)
-        const copiar = async () => {
-          try {
-            await navigator.clipboard.writeText(tels.map((m) => `${m.nome} · ${ondeMora(m)} · ${fmtTel(m.tel)}`).join('\n'))
-            toast('Lista copiada.')
-          } catch {
-            toast('Não consegui copiar.')
-          }
-        }
-        return (
-          <div key={o.id} className="ape-envio">
-            <div className="ape-row" style={{ padding: 0, border: 0 }}>
-              <div className="t">
-                <b>
-                  {o.fornecedor} · {nicho(o.nicho).l}
-                </b>
-                <span>
-                  {total} apê{total === 1 ? '' : 's'}
-                  {min ? ` de ${min} para liberar ${o.grupo_pct}%` : ` · ${o.grupo_pct}% em grupo`}
-                  {fora ? ` (${fora} por fora)` : ''}
-                </span>
+      <div className="ape-banner">Como funciona: os vizinhos marcam interesse; ao bater a meta ({GRUPO_META} apês, ou o mínimo do fornecedor), mande a mensagem ao fornecedor, negocie e registre aqui o desconto e o prazo. A condição aparece no orçamento para todos.</div>
+      {lista.map(({ o, ppl }) => <GrupoItem key={o.id} o={o} ppl={ppl} onSaved={onSaved} />)}
+    </div>
+  )
+}
+
+function GrupoItem({ o, ppl, onSaved }: { o: Orcamento; ppl: Interesse[]; onSaved: () => void }) {
+  const fora = num(o.interessados) || 0
+  const total = ppl.length + fora
+  const meta = num(o.grupo_min) || GRUPO_META
+  const batida = total >= meta
+  const pessoas = ppl.map((i) => i.morador).filter((m): m is Morador => !!m)
+  const [pctTxt, setPct] = useState(o.grupo_pct != null ? String(o.grupo_pct).replace('.', ',') : '')
+  const [desc, setDesc] = useState(o.grupo_desc || '')
+  const [ate, setAte] = useState(o.grupo_ate || '')
+  const [busy, setBusy] = useState(false)
+  const acab = acabamentoDe(o)
+  const msg = `Oi! Aqui é a ${APE.dona}, do grupo de moradores do ${APE.condominio}. Somos ${total} apartamentos interessados em fechar ${nicho(o.nicho).l.toLowerCase()}${acab ? ` (${acab})` : ''} com vocês, a partir do orçamento que vocês mandaram. Qual condição especial vocês fazem para o grupo (desconto e prazo para fechar)? Cada morador fecha o seu contrato direto com vocês.`
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(pessoas.map((m) => `${m.nome} · ${ondeMora(m)} · ${fmtTel(m.tel)}`).join('\n'))
+      toast('Lista copiada.')
+    } catch {
+      toast('Não consegui copiar.')
+    }
+  }
+  const salvar = async () => {
+    setBusy(true)
+    try {
+      await admin.salvar({ ...o, grupo_pct: num(pctTxt), grupo_desc: desc.trim(), grupo_ate: ate || undefined })
+      toast(num(pctTxt) ? 'Condição do grupo publicada no orçamento.' : 'Salvo.')
+      onSaved()
+    } catch (e) {
+      toast(`Não consegui salvar (${(e as Error).message}).`)
+    }
+    setBusy(false)
+  }
+  const n = waNum(o.whatsapp || o.telefone)
+  return (
+    <div className={`ape-envio ape-adm-grupo ${batida ? 'batida' : ''}`}>
+      <div className="ape-row" style={{ padding: 0, border: 0 }}>
+        <div className="t">
+          <b>{o.fornecedor} · {nicho(o.nicho).l}{acab ? ` · ${acab}` : ''}</b>
+          <span>{total} de {meta} apês{fora ? ` (${fora} por fora)` : ''}{num(o.grupo_pct) ? ` · grupo: −${o.grupo_pct}%${o.grupo_ate ? ` até ${dmy(o.grupo_ate)}` : ''}` : ''}</span>
+        </div>
+        <div className="r">{batida ? <span className="ape-pill rosa"><ApeIcon name="star" />meta batida</span> : <span className="ape-pill">faltam {meta - total}</span>}</div>
+      </div>
+      <div className="ape-bar"><i style={{ width: `${Math.min(100, (total / meta) * 100)}%` }} /></div>
+      <div className="ape-acts">
+        {n ? <a className={`ape-btn sm ${batida ? 'primary' : ''}`} href={wa(n, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />mensagem ao fornecedor</a> : <button className="ape-btn sm" onClick={() => void navigator.clipboard?.writeText(msg).then(() => toast('Mensagem copiada.'))}><ApeIcon name="copy" />copiar mensagem</button>}
+        {pessoas.length > 0 && <button className="ape-btn sm" onClick={() => void copiar()}><ApeIcon name="copy" />copiar contatos</button>}
+      </div>
+      {pessoas.length > 0 && (
+        <details className="ape-more">
+          <summary><ApeIcon name="chev" />{pessoas.length} interessado{pessoas.length > 1 ? 's' : ''}</summary>
+          <div className="ape-rows">
+            {pessoas.map((m) => (
+              <div key={m.id} className="ape-row" style={{ padding: '6px 0' }}>
+                <div className="t"><b style={{ fontSize: 13 }}>{m.nome}</b><span>{ondeMora(m) || 'sem endereço'} · {fmtTel(m.tel)}</span></div>
+                {waNum(m.tel) && <div className="r"><a className="ape-btn ghost sm" href={wa(waNum(m.tel)!, `Oi, ${firstName(m.nome)}! Aqui é a ${APE.dona}, do planê.apê. Sobre o grupo de ${nicho(o.nicho).l.toLowerCase()} com ${o.fornecedor}: `)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" /></a></div>}
               </div>
-              <div className="r">
-                {tels.length > 0 && <button className="ape-btn sm" onClick={() => void copiar()}><ApeIcon name="copy" />Copiar contatos</button>}
-              </div>
-            </div>
-            {tels.length > 0 && (
-              <div className="ape-rows">
-                {tels.map((m) => (
-                  <div key={m.id} className="ape-row" style={{ padding: '6px 0' }}>
-                    <div className="t">
-                      <b style={{ fontSize: 13 }}>{m.nome}</b>
-                      <span>{ondeMora(m) || 'sem endereço'} · {fmtTel(m.tel)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            ))}
           </div>
-        )
-      })}
+        </details>
+      )}
+      <div className="ape-frow">
+        <div className="ape-f"><label>Desconto do grupo (%)</label><input inputMode="decimal" value={pctTxt} onChange={(e) => setPct(e.target.value)} placeholder="ex.: 8" /></div>
+        <div className="ape-f"><label>Condição (curta)</label><input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="ex.: à vista, medição no mesmo dia" /></div>
+        <div className="ape-f"><label>Vale até</label><input type="date" value={ate} onChange={(e) => setAte(e.target.value)} /></div>
+      </div>
+      <div className="ape-acts"><button className="ape-btn primary sm" disabled={busy} onClick={() => void salvar()}><ApeIcon name="check" />{busy ? 'salvando…' : 'publicar condição do grupo'}</button></div>
     </div>
   )
 }

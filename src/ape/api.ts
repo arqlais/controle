@@ -301,6 +301,17 @@ export async function meuOrcamento(moradorId: string, id: string, o: Orcamento |
   fail(error)
 }
 
+export async function sairGrupo(orcamento: string, moradorId: string): Promise<number> {
+  if (!CLOUD) {
+    const l = writeLocal((l) => {
+      l.interesses = l.interesses.filter((i) => !(i.orcamento === orcamento && i.morador === moradorId))
+    })
+    return l.interesses.filter((i) => i.orcamento === orcamento).length
+  }
+  const { data, error } = await sb().rpc('ape_sair_grupo', { p_orcamento: orcamento, p_morador: moradorId })
+  fail(error)
+  return Number(data) || 0
+}
 export async function queroGrupo(orcamento: string, moradorId: string): Promise<number> {
   if (!CLOUD) {
     const l = writeLocal((l) => {
@@ -563,9 +574,15 @@ export interface PlatParcela { id: string; descricao: string; valor: number | nu
 export interface PlatEtapa { id: string; nome: string; feita: boolean; data: string; quem: string; obs: string }
 export interface PlatVistoria { id: string; comodo: string; item: string; status: 'ok' | 'problema' | 'pendente'; obs: string; foto?: string }
 export interface PlatContato { id: string; nome: string; servico: string; tel: string; obs: string }
+export interface PlatGarantia { id: string; item: string; onde: string; compra: string; meses: number | null; nota: boolean; obs: string }
+export interface PlatManut { id: string; oque: string; cada: number | null; ultima: string }
+export interface PlatDoc { id: string; nome: string; tenho: boolean; onde: string }
 export interface PlatDados {
   perfil?: { nome: string; foto: string }
-  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string }
+  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string; condominio?: string; torre?: string; ap?: string; moradores?: string; capa?: string }
+  garantias?: PlatGarantia[]
+  manutencao?: PlatManut[]
+  documentos?: PlatDoc[]
   gastos?: PlatGasto[]
   parcelas?: PlatParcela[]
   etapas?: PlatEtapa[]

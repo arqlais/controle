@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, sairGrupo, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop,
-  ehSanLevi, ehOrcamento, ondeMora, plantaDoAp, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  APE, GRUPO_META, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, digits, dmy, firstName, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop,
+  ehSanLevi, ehOrcamento, ondeMora, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
+import { MenuConta, Voltar } from './Navega'
 import { Assinatura, AvisoCookies, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
@@ -71,7 +72,6 @@ export function ApePublic({ sub }: { sub?: string }) {
 
   const vis = useMemo(() => (d ? d.orcamentos.filter((o) => (owner || !apeCloud ? true : !o.exemplo && !o.oculto)) : []), [d, owner])
   const whats = d?.ajustes.whatsapp || APE.whatsapp
-  const first = me ? firstName(me.nome) : ''
 
   const onCadastro = (m: Morador) => {
     setMe(m)
@@ -89,7 +89,7 @@ export function ApePublic({ sub }: { sub?: string }) {
   return (
     <div className={`ape ${publico ? 'ape-publico' : ''}`}>
       {publico ? (
-        <ShopNav morador={morador || owner} />
+        <ShopNav morador={morador || owner} owner={owner} nome={me?.nome} voltar={view !== 'loja'} />
       ) : (
         <header className="ape-top">
           <div className="wrap">
@@ -101,15 +101,10 @@ export function ApePublic({ sub }: { sub?: string }) {
                   <small>orçamentos do {APE.condominio} · só moradores</small>
                 </div>
               </a>
-              {me && (
-                <button className="ape-me" onClick={() => setEditing(true)} aria-label="Meus dados">
-                  <span>
-                    oi, <b>{first}</b>
-                    {ondeMora(me) && <span className="ape-me-ap"> · {ehSanLevi(me) && me.torre ? `T${me.torre} · ${me.ap}` : ondeMora(me)}</span>}
-                  </span>
-                  <span className="ape-av">{first.charAt(0).toUpperCase()}</span>
-                </button>
-              )}
+              <div className="ape-top-r">
+                {view !== 'orcamentos' && <Voltar para={href('ape')} />}
+                <MenuConta nome={me?.nome} owner={owner} morador={!!me && ehSanLevi(me)} extra={me ? [{ l: `meus dados${ondeMora(me) ? ` (${ehSanLevi(me) && me.torre ? `T${me.torre} · ${me.ap}` : ondeMora(me)})` : ''}`, i: 'edit', onClick: () => setEditing(true) }] : []} />
+              </div>
             </div>
             <nav className="ape-tabs" aria-label="Seções">
               <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>
@@ -243,7 +238,7 @@ function CodigoSL({ me, whats, onOk }: { me: Morador; whats: string; onOk: () =>
 }
 
 /* ===== menu da página de vendas (loja aberta a todos) ===== */
-function ShopNav({ morador }: { morador: boolean }) {
+function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; owner?: boolean; nome?: string; voltar?: boolean }) {
   const cart = useCarrinho()
   const n = cart.ids.length
   const ir = (id: string) => {
@@ -253,6 +248,7 @@ function ShopNav({ morador }: { morador: boolean }) {
   return (
     <header className="ape-top ape-shopnav">
       <div className="wrap ape-brand">
+        {voltar && <Voltar para={href('ape', 'loja')} />}
         <a className="ape-logo" href={href('ape', 'loja')} aria-label={`${APE.name}: loja`}>
           <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
           <div>
@@ -267,10 +263,7 @@ function ShopNav({ morador }: { morador: boolean }) {
           <button onClick={() => ir('loja-servicos')}>projetos</button>
           {morador && <a href={href('ape')}>área do {APE.condominio}</a>}
         </nav>
-        <a className="ape-entrarbtn" href={href('ape', 'conta')} aria-label="Minha conta: entrar">
-          <ApeIcon name="user" />
-          <span>entrar</span>
-        </a>
+        <MenuConta nome={nome} owner={owner} morador={morador} />
         <a className="ape-cartbtn" href={href('ape', 'loja:carrinho')} onClick={() => window.dispatchEvent(new Event('ape-abrir-carrinho'))} aria-label={`Carrinho com ${n} itens`}>
           <ApeIcon name="bag" />
           <span>carrinho</span>
@@ -351,7 +344,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
   let list = vis.filter((o) => nf === 'todos' || o.nicho === nf)
   if (term) list = list.filter((o) => [o.fornecedor, o.servico, o.resumo, ...(o.inclui || [])].join(' ').toLowerCase().includes(term))
   if (validos) list = list.filter((o) => calc(o).st !== 'vencido')
-  if (pl !== 'todas') list = list.filter((o) => !o.planta || o.planta === pl)
+  if (pl !== 'todas') list = list.filter((o) => { const x = plantaDe(o).p; return !x || x === pl })
   const groups = NICHOS.map((n) => n[0]).filter((id) => list.some((o) => o.nicho === id))
   let ctaDone = false
 
@@ -409,6 +402,15 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         <ApeIcon name="alert" />
         <span>Cada orçamento foi feito para um apê: as plantas de canto (finais 01, 02, 11 e 12) e de corredor (finais 03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Por isso separamos por acabamento e mostramos a planta: dá para ver qual fornecedor sai mais em conta, mesmo sem ser igualzinho. O "mais compensa" é um cálculo automático, não uma indicação.</span>
       </p>
+      <details className="ape-grupo-como">
+        <summary><ApeIcon name="users" /><span><b>como funciona o fechar em grupo</b><small>mais apês = mais força para pedir desconto</small></span><ApeIcon name="chev" /></summary>
+        <ol>
+          <li><b>1</b><span>No orçamento que te interessa, marque <b>"tenho interesse em fechar em grupo"</b>. Não é compromisso: dá para desmarcar.</span></li>
+          <li><b>2</b><span>Juntou {GRUPO_META} apês (ou o mínimo que o fornecedor pediu), a {APE.dona} leva a lista ao fornecedor e negocia um desconto para todos.</span></li>
+          <li><b>3</b><span>A condição do grupo aparece no próprio orçamento, com o prazo para fechar.</span></li>
+          <li><b>4</b><span>Cada um fecha direto com o fornecedor, com o seu contrato e o seu pagamento, dizendo "grupo {APE.condominio}". O planê.apê não cobra nada por isso.</span></li>
+        </ol>
+      </details>
       <div className="ape-toolbar">
         <label className="ape-search">
           <ApeIcon name="search" />
@@ -560,13 +562,13 @@ export function RecolherDetalhes() {
 function Linha({ x, isTop, me, children }: { x: Item; isTop: boolean; me: Morador | null; children: ReactNode }) {
   const [on, setOn] = useState(false)
   const { o, c } = x
-  const minha = !!o.planta && o.planta === plantaDoAp(me?.ap)
+  const minha = !!plantaDe(o).p && plantaDe(o).p === plantaDoAp(me?.ap)
   return (
     <div className={`ape-linha ${on ? 'on' : ''} ${isTop ? 'top' : ''}`}>
       <button className="ape-linha-h" aria-expanded={on} onClick={() => setOn(!on)}>
         <span className="t">
           <b>{isTop && <ApeIcon name="star" />}{o.fornecedor || 'Fornecedor sem nome'}</b>
-          <small>{o.servico}{o.planta ? ` · ${o.planta}${minha ? ' (a sua)' : ''}` : ''}</small>
+          <small>{o.servico}{plantaDe(o).p ? ` · ${plantaDe(o).p}${minha ? ' (a sua)' : ''}` : ''}</small>
         </span>
         <span className="v num">{brl(c.avista)}<small>à vista</small></span>
         <ApeIcon name="chev" />
@@ -588,7 +590,9 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
   const why = isTop ? whyTop(x, a) : []
   const vendorWa = waNum(o.whatsapp)
   const total = (num(o.interessados) || 0) + count
-  const falta = num(o.grupo_min) ? Math.max(0, (num(o.grupo_min) || 0) - total) : null
+  const meta = num(o.grupo_min) || GRUPO_META
+  const falta = Math.max(0, meta - total)
+  const condicao = c.gp > 0 && (!o.grupo_ate || o.grupo_ate >= new Date().toISOString().slice(0, 10))
   const venc =
     c.st === 'vencido' ? (
       <span className="ape-pill rosa"><ApeIcon name="clock" />Vencido em {dmy(o.validade)}</span>
@@ -611,6 +615,20 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
       show('Não deu para salvar agora. Tente de novo.')
     }
     setEsc(false)
+  }
+  const sair = async () => {
+    if (!me?.id) return
+    setBusy(true)
+    try {
+      const n = await sairGrupo(o.id, me.id)
+      onCount(o.id, n)
+      setJoined(false)
+      write(GRUPOS, (read<string[]>(GRUPOS) || []).filter((x) => x !== o.id))
+      show('Interesse desmarcado.')
+    } catch {
+      show('Não deu para desmarcar agora. Tente de novo.')
+    }
+    setBusy(false)
   }
   const entrar = async () => {
     if (!me?.id) return show('Faça o cadastro para entrar no grupo.')
@@ -673,7 +691,7 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
       )}
       <div className="ape-tags">
         {o.exemplo && <span className="ape-pill rosa">Exemplo</span>}
-        {o.planta ? <span className={`ape-pill ${o.planta === plantaDoAp(me?.ap) ? 'azul' : ''}`}><ApeIcon name="home" />{PLANTA_ROT[o.planta]}{o.planta === plantaDoAp(me?.ap) ? ' (a sua)' : ''}</span> : <span className="ape-pill"><ApeIcon name="home" />planta não informada</span>}
+        {(() => { const { p, provavel } = plantaDe(o); const sua = !!p && p === plantaDoAp(me?.ap); return p ? <span className={`ape-pill ${sua ? 'azul' : ''}`} title={provavel ? 'Identificada pelas medidas do orçamento' : undefined}><ApeIcon name="home" />{provavel ? 'provável ' : ''}{PLANTA_ROT[p]}{sua ? ' (a sua)' : ''}</span> : <span className="ape-pill"><ApeIcon name="home" />planta não informada</span> })()}
         {o.oculto && <span className="ape-pill rosa"><ApeIcon name="eye" />Oculto</span>}
         {x.badges.map((b) => (
           <span key={b.label} className={`ape-pill ${b.tone}`}><ApeIcon name={b.icon} />{b.label}</span>
@@ -683,22 +701,26 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
           <span className="ape-pill rosa"><ApeIcon name="alert" />{o.nao_inclui.length} ite{o.nao_inclui.length > 1 ? 'ns' : 'm'} fora</span>
         )}
       </div>
-      {c.gp > 0 && (total > 0 || num(o.grupo_min)) && (
-        <div className="ape-meta">
-          <div className="ape-meta-t">
-            <span>
-              <ApeIcon name="users" /> {total ? `${total} ${total > 1 ? 'apês já querem' : 'apê já quer'} fechar em grupo` : 'seja o primeiro apê do grupo'}
-            </span>
-            {num(o.grupo_min) ? <b className="num">{falta ? `${total} de ${num(o.grupo_min)}` : 'meta batida'}</b> : null}
-          </div>
-          {num(o.grupo_min) ? (
-            <div className="ape-bar" role="progressbar" aria-valuemin={0} aria-valuemax={num(o.grupo_min) || 0} aria-valuenow={Math.min(total, num(o.grupo_min) || 0)} aria-label="Apês no grupo">
-              <i style={{ width: `${Math.min(100, (total / (num(o.grupo_min) || 1)) * 100)}%` }} />
-            </div>
-          ) : null}
-          {falta ? <span className="ape-note">faltam {falta} para liberar −{pct(c.gp)}</span> : null}
+      <div className={`ape-grupo ${joined ? 'on' : ''} ${condicao ? 'cond' : ''}`}>
+        <button type="button" className="ape-grupo-check" aria-pressed={joined} disabled={busy} onClick={() => void (joined ? sair() : entrar())}>
+          <span className="box" aria-hidden="true">{joined && <ApeIcon name="check" />}</span>
+          <span className="t"><b>{joined ? 'você quer fechar em grupo' : 'tenho interesse em fechar em grupo'}</b><small>{joined ? 'toque para desmarcar' : 'sem compromisso · dá para desmarcar'}</small></span>
+        </button>
+        <div className="ape-meta-t">
+          <span><ApeIcon name="users" /> {total} {total === 1 ? 'apê interessado' : 'apês interessados'}</span>
+          <b className="num">{falta ? `${total} de ${meta}` : 'meta batida'}</b>
         </div>
-      )}
+        <div className="ape-bar" role="progressbar" aria-valuemin={0} aria-valuemax={meta} aria-valuenow={Math.min(total, meta)} aria-label="Apês no grupo">
+          <i style={{ width: `${Math.min(100, (total / meta) * 100)}%` }} />
+        </div>
+        <span className="ape-note">
+          {condicao
+            ? <>Condição do grupo: <b>−{pct(c.gp)}</b>{o.grupo_desc ? ` (${o.grupo_desc})` : ''}{o.grupo_ate ? `, até ${dmy(o.grupo_ate)}` : ''}. Para fechar, fale com o fornecedor e diga "grupo {APE.condominio}".</>
+            : falta
+              ? `Faltam ${falta}. Com ${meta} apês, a ${APE.dona} leva a lista ao fornecedor e negocia um desconto para todo mundo.`
+              : `Meta batida! A ${APE.dona} está negociando com o fornecedor; a condição do grupo aparece aqui.`}
+        </span>
+      </div>
       {(escolhas > 0 || minha) && (
         <div className="ape-escolha">
           <ApeIcon name="check" />

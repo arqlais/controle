@@ -432,7 +432,8 @@ function BotaoCompra({ p, cart, onAdd, me, whats, wide = true }: { p: Produto; c
 function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; n?: number; byId: ById; onOpen: () => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const img = p.amostras?.[0]
   return (
-    <article className={`ape-prod ${p.destaque ? 'top' : ''}`}>
+    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo ? 'com-selo' : ''}`}>
+      {p.selo && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
       <button className="ape-thumb" onClick={onOpen} aria-label={`Ver ${p.nome} por dentro`}>
         {img ? (
           <img src={img} alt="" loading="lazy" />
@@ -440,7 +441,6 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
           <span className="ape-thumb-ic"><ApeArt name={p.arte || 'casa'} size={56} /></span>
         )}
         <span className="ape-ver"><ApeIcon name="eye" />ver por dentro</span>
-        {p.selo && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
       </button>
       <div className="ape-prod-h">
         {n ? <span className="ape-prod-n">{n}</span> : null}
@@ -1023,7 +1023,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
               const img = amostraDe(produto)
               const cores = fs.filter((a) => a.cor)
               return (
-                <article key={produto} className="ape-entrega">
+                <article key={produto} className={`ape-entrega ${/^b[oô]nus/i.test(produto) ? 'bonus' : ''}`}>
                   {img ? <img src={img} alt="" loading="lazy" /> : <span className="ape-entrega-ic"><ApeIcon name="file" /></span>}
                   <div className="ape-entrega-b">
                     <b>{i + 1}. {produto}</b>
@@ -1055,15 +1055,17 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
         )
       )}
       {err && <p className="ape-err" role="alert">{err}</p>}
-      {p.bonus && (
-        <div className={`ape-bonus ${p.bonus.liberado ? 'on' : ''}`}>
-          <ApeIcon name="gift" />
-          <span>
-            <b>{p.bonus.liberado ? `bônus: ${BONUS.nome.toLowerCase()}` : 'bônus surpresa'}</b>
-            <span>{p.bonus.liberado ? 'Liberado: ele está na lista acima.' : `Ainda é segredo: ele abre aqui em ${p.bonus.em ? dmy(p.bonus.em) : '7 dias'}. Volte nesta página.`}</span>
-          </span>
+      {p.bonus && (p.bonus.liberado ? (
+        <div className="ape-bonus2 on">
+          <span className="ic"><ApeIcon name="gift" /></span>
+          <span className="t"><small>bônus liberado</small><b>{BONUS.nome}</b><span>Ele está na lista de arquivos acima. Aproveite!</span></span>
         </div>
-      )}
+      ) : (
+        <div className="ape-bonus2">
+          <span className="ic"><ApeIcon name="lock" /><i>?</i></span>
+          <span className="t"><small>bônus surpresa · trancado</small><b>abre em {p.bonus.em ? Math.max(1, Math.ceil((new Date(p.bonus.em).getTime() - Date.now()) / 864e5)) : 7} dia(s)</b><span>Um arquivo que não está à venda, pensado para quem acabou de pegar as chaves. Volte aqui {p.bonus.em ? `em ${dmy(p.bonus.em)}` : 'no 8º dia'} para abrir.</span></span>
+        </div>
+      ))}
       {!p.cortesia && (
         <div className="ape-conta-convite">
           <ApeIcon name="shield" />

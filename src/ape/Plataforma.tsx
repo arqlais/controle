@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { href } from '../router'
-import { platAbrir, platSalvar, type PlatAcesso, type PlatContato, type PlatDados, type PlatEtapa, type PlatGasto, type PlatParcela, type PlatVistoria } from './api'
+import { platAbrir, platSalvar, type PlatAcesso, type PlatContato, type PlatDados, type PlatDoc, type PlatEtapa, type PlatGarantia, type PlatGasto, type PlatManut, type PlatParcela, type PlatVistoria } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, brl, dmy, firstName, fmtTel, num, wa, waNum } from './model'
@@ -47,6 +47,7 @@ const novo = (): PlatDados => ({
   etapas: [...ETAPAS_COMPRA, ...ETAPAS_OBRA].map((nome) => ({ id: uid(), nome, feita: false, data: '', quem: '', obs: '' })),
   vistoria: VISTORIA.flatMap(([c, l]) => l.map((item) => ({ id: uid(), comodo: c, item, status: 'pendente' as const, obs: '' }))),
   contatos: [],
+  documentos: DOCS.map((nome) => ({ id: uid(), nome, tenho: false, onde: '' })),
   notas: '',
 })
 
@@ -83,10 +84,17 @@ async function fotoLeve(f: File): Promise<string> {
   return c.toDataURL('image/jpeg', 0.7)
 }
 
-type Aba = 'resumo' | 'gastos' | 'parcelas' | 'etapas' | 'vistoria' | 'contatos'
-const ABAS: [Aba, string, string][] = [
-  ['resumo', 'resumo', 'home'], ['gastos', 'gastos', 'tag'], ['parcelas', 'parcelas', 'clock'], ['etapas', 'etapas', 'list'], ['vistoria', 'vistoria', 'check'], ['contatos', 'contatos', 'chat'],
+type Aba = 'resumo' | 'gastos' | 'parcelas' | 'etapas' | 'vistoria' | 'contatos' | 'garantias' | 'documentos' | 'calculadoras'
+/** Menu lateral em grupos, como no planê arquitetura. */
+const GRUPOS: [string, [Aba, string, string][]][] = [
+  ['', [['resumo', 'resumo', 'home']]],
+  ['dinheiro', [['gastos', 'compras e gastos', 'tag'], ['parcelas', 'parcelas', 'clock']]],
+  ['obra', [['etapas', 'etapas', 'list'], ['vistoria', 'vistoria', 'check'], ['contatos', 'fornecedores', 'chat']]],
+  ['casa', [['garantias', 'garantias e manutenção', 'shield'], ['documentos', 'documentos', 'file']]],
+  ['ferramentas', [['calculadoras', 'calculadoras', 'ruler']]],
 ]
+const ABAS = GRUPOS.flatMap((g) => g[1])
+const BNAV: Aba[] = ['resumo', 'gastos', 'etapas', 'vistoria']
 
 export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const demo = token === 'demo'
@@ -95,10 +103,13 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const [aba, setAba] = useState<Aba>('resumo')
   const [salvo, setSalvo] = useState<'ok' | 'salvando' | 'erro'>('ok')
   const [editar, setEditar] = useState(false)
+  const [menu, setMenu] = useState(false)
+  const [mini, setMini] = useState(() => !!read<boolean>('ape-pp-mini'))
   const [tema, setTema] = useState<'claro' | 'escuro'>(() => read<'claro' | 'escuro'>('ape-tema') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'))
   const trocarTema = () => setTema((t) => { const n = t === 'escuro' ? 'claro' : 'escuro'; write('ape-tema', n); return n })
   const timer = useRef(0)
   const pendente = useRef<PlatDados | null>(null)
+  const historico = useRef<Aba[]>([])
   // fechou a aba ou trocou de app antes de salvar: salva na hora
   useEffect(() => {
     if (demo) return
@@ -129,7 +140,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
       setAcc(a)
       if (a) {
         setDados(Object.keys(a.dados || {}).length ? a.dados : novo())
-        write('ape-plat', token) // "minha plataforma" neste aparelho
+        write('ape-plat', token) // "minha plataforma" neste aparelho (atalho em todas as páginas)
       }
     })
   }, [token])
@@ -156,9 +167,9 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
       <main className="wrap ape-main">
         <div className="ape-panel ape-empty">
           <b>link de acesso não encontrado</b>
-          <span>Confira se copiou o link inteiro. Você também acha o acesso em "minhas compras", com o CPF e o e-mail da compra.</span>
+          <span>Confira se copiou o link inteiro. Você também acha o acesso em "minha conta", com o e-mail da compra.</span>
           <div className="ape-acts" style={{ justifyContent: 'center' }}>
-            <a className="ape-btn primary" href={href('ape', 'loja')}>ir para a loja</a>
+            <a className="ape-btn primary" href={href('ape', 'conta')}>minha conta</a>
             <a className="ape-btn" href={wa(whats, 'Oi! Não estou conseguindo abrir a minha plataforma do apê.')} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />WhatsApp</a>
           </div>
         </div>
@@ -167,56 +178,88 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const im = dados.imovel || novo().imovel!
   const nome = dados.perfil?.nome || acc.nome
   const foto = dados.perfil?.foto || ''
-  const ir = (a: Aba) => {
+  const ir = (a: Aba, voltando = false) => {
+    if (!voltando && a !== aba) historico.current.push(aba)
     setAba(a)
+    setMenu(false)
     window.scrollTo(0, 0)
   }
+  const voltar = () => {
+    const ant = historico.current.pop()
+    if (ant) ir(ant, true)
+    else if (aba !== 'resumo') ir('resumo', true)
+    else if (window.history.length > 1) window.history.back()
+    else window.location.hash = '#/ape/conta'
+  }
   const statusSalvo = demo ? 'demonstração: nada é salvo' : salvo === 'salvando' ? 'salvando…' : salvo === 'erro' ? 'não salvou: confira a internet' : 'tudo salvo'
-  const titulo = ABAS.find((x) => x[0] === aba)?.[1] || ''
+  const atual = ABAS.find((x) => x[0] === aba)!
+  const casa = [im.condominio, im.torre ? `torre ${im.torre}` : '', im.ap ? `apê ${im.ap}` : ''].filter(Boolean).join(' · ') || im.nome || 'meu apê'
+  const sub = <M,>(k: keyof PlatDados) => (fn: (l: M[]) => M[]) => mudar((d) => ({ ...d, [k]: fn(((d[k] as unknown) as M[]) || []) }))
   return (
-    <div className="ape-pa" data-tema={tema}>
-      <aside className="ape-pa-lado">
-        <a className="ape-logo" href={href('ape', 'loja')} aria-label="planê.apê">
-          <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
-          <div><h1>planê<span>.apê</span></h1><small>plataforma do apê</small></div>
-        </a>
-        <button className="ape-pa-eu" onClick={() => setEditar(true)} title="Editar meus dados">
-          <Avatar nome={nome} foto={foto} />
-          <span><b>{firstName(nome) || 'meu apê'}</b><small>{im.nome || 'meu apê'} · editar</small></span>
+    <div className={`ape-pp ${mini ? 'mini' : ''} ${menu ? 'menu-aberto' : ''}`} data-tema={tema}>
+      <aside className="ape-pp-side" aria-label="Menu da plataforma">
+        <div className="ape-pp-marca">
+          <a className="ape-pp-logo" href={href('ape', 'loja')} aria-label="planê.apê">
+            <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+            <span className="t">planê<b>.apê</b></span>
+          </a>
+          <button className="ape-pp-ic so-pc" onClick={() => { setMini(!mini); write('ape-pp-mini', !mini) }} aria-label={mini ? 'Abrir o menu' : 'Recolher o menu'} title={mini ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
+          <button className="ape-pp-ic so-cel" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
+        </div>
+        <button className="ape-pp-casa" onClick={() => setEditar(true)} title="Meus dados e o imóvel">
+          <span className="ape-pp-casa-foto">{im.capa ? <img src={im.capa} alt="" /> : <ApeIcon name="home" />}</span>
+          <span className="t"><small>minha casa</small><b>{casa}</b></span>
         </button>
-        <nav className="ape-pa-nav" aria-label="Seções da plataforma">
-          {ABAS.map(([id, l, i]) => (
-            <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)}><ApeIcon name={i} /><span>{l}</span></button>
+        <nav className="ape-pp-nav">
+          {GRUPOS.map(([g, itens]) => (
+            <div key={g || 'inicio'} className="ape-pp-grupo">
+              {g && <span className="ape-pp-gt">{g}</span>}
+              {itens.map(([id, l, i]) => (
+                <button key={id} className={aba === id ? 'on' : ''} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)} title={l}>
+                  <ApeIcon name={i} /><span>{l}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
-        <div className="ape-pa-pe">
-          <button className="ape-pa-tema" onClick={trocarTema}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /><span>{tema === 'escuro' ? 'modo claro' : 'modo escuro'}</span></button>
-          <a className="ape-pa-tema" href={href('ape', 'conta')}><ApeIcon name="user" /><span>minha conta</span></a>
-          <span className={`ape-salvo ${salvo}`}>{statusSalvo}</span>
+        <button className="ape-pp-perfil" onClick={() => setEditar(true)} title="Meus dados">
+          <Avatar nome={nome} foto={foto} />
+          <span className="t"><b>{firstName(nome) || 'meu perfil'}</b><small>meus dados</small></span>
+        </button>
+        <div className="ape-pp-pe">
+          <button className="ape-pp-ic" onClick={trocarTema} title={tema === 'escuro' ? 'modo claro' : 'modo escuro'} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+          <a className="ape-pp-ic" href={href('ape', 'conta')} title="minha conta e compras" aria-label="Minha conta"><ApeIcon name="user" /></a>
+          <a className="ape-pp-ic" href={href('ape', 'loja')} title="loja" aria-label="Loja"><ApeIcon name="bag" /></a>
+          <span className={`ape-salvo ${salvo}`} title={statusSalvo}><i />{mini ? '' : statusSalvo}</span>
         </div>
       </aside>
-      <div className="ape-pa-main">
-        <header className="ape-pa-top">
-          <button className="ape-pa-eu sm" onClick={() => setEditar(true)} aria-label="Editar meus dados"><Avatar nome={nome} foto={foto} /></button>
-          <div><small>planê<span>.apê</span></small><b>{titulo}</b></div>
-          <button className="ape-pa-ic" onClick={trocarTema} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+      <div className="ape-pp-scrim" onClick={() => setMenu(false)} />
+      <div className="ape-pp-main">
+        <header className="ape-pp-top">
+          <button className="ape-pp-ic so-cel" onClick={() => setMenu(true)} aria-label="Abrir o menu"><ApeIcon name="list" /></button>
+          <button className="ape-voltar" onClick={voltar} aria-label="Voltar"><ApeIcon name="chev" /><span>voltar</span></button>
+          <div className="ape-pp-tit"><ApeIcon name={atual[2]} /><h1>{atual[1]}</h1></div>
+          <button className="ape-pp-ic so-cel" onClick={trocarTema} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+          <button className="ape-pp-av-btn" onClick={() => setEditar(true)} aria-label="Meus dados"><Avatar nome={nome} foto={foto} /></button>
         </header>
-        <main className="ape-pa-cont">
-          {demo && <div className="ape-banner"><ApeIcon name="eye" />Demonstração com dados de exemplo: mexa à vontade, fica só neste aparelho. <a className="ape-link" href={href('ape', 'loja')}>quero a minha</a></div>}
+        <main className="ape-pp-cont">
+          {demo && <div className="ape-banner"><ApeIcon name="eye" />Demonstração com dados de exemplo: fica só neste aparelho.</div>}
           {!acc.ativo && <div className="ape-banner warn">O seu acesso venceu em {dmy(acc.validade)}. Os dados continuam aqui para consulta. <a className="ape-link" href={href('ape', 'loja:plataforma')}>renovar</a></div>}
-          {aba === 'resumo' && <Resumo acc={acc} dados={dados} im={im} nome={nome} foto={foto} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
-          {aba === 'gastos' && <Gastos lista={dados.gastos || []} orcamento={im.orcamento} mudar={(fn) => mudar((d) => ({ ...d, gastos: fn(d.gastos || []) }))} />}
-          {aba === 'parcelas' && <Parcelas lista={dados.parcelas || []} mudar={(fn) => mudar((d) => ({ ...d, parcelas: fn(d.parcelas || []) }))} />}
-          {aba === 'etapas' && <Etapas lista={dados.etapas || []} mudar={(fn) => mudar((d) => ({ ...d, etapas: fn(d.etapas || []) }))} />}
-          {aba === 'vistoria' && <Vistoria lista={dados.vistoria || []} nome={nome} mudar={(fn) => mudar((d) => ({ ...d, vistoria: fn(d.vistoria || []) }))} />}
-          {aba === 'contatos' && <Contatos lista={dados.contatos || []} mudar={(fn) => mudar((d) => ({ ...d, contatos: fn(d.contatos || []) }))} />}
+          {aba === 'resumo' && <Resumo acc={acc} dados={dados} im={im} nome={nome} foto={foto} casa={casa} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
+          {aba === 'gastos' && <Gastos lista={dados.gastos || []} orcamento={im.orcamento} mudar={sub<PlatGasto>('gastos')} />}
+          {aba === 'parcelas' && <Parcelas lista={dados.parcelas || []} mudar={sub<PlatParcela>('parcelas')} />}
+          {aba === 'etapas' && <Etapas lista={dados.etapas || []} mudar={sub<PlatEtapa>('etapas')} />}
+          {aba === 'vistoria' && <Vistoria lista={dados.vistoria || []} nome={nome} mudar={sub<PlatVistoria>('vistoria')} />}
+          {aba === 'contatos' && <Contatos lista={dados.contatos || []} mudar={sub<PlatContato>('contatos')} />}
+          {aba === 'garantias' && <Garantias lista={dados.garantias || []} manut={dados.manutencao || []} entrega={im.entrega} mudar={sub<PlatGarantia>('garantias')} mudarM={sub<PlatManut>('manutencao')} />}
+          {aba === 'documentos' && <Documentos lista={dados.documentos || []} mudar={sub<PlatDoc>('documentos')} />}
+          {aba === 'calculadoras' && <Calculadoras m2={im.m2} />}
           <Assinatura />
         </main>
       </div>
-      <nav className="ape-bnav ape-plat-bnav" aria-label="Seções da plataforma">
-        {ABAS.map(([id, l, i]) => (
-          <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)}><ApeIcon name={i} />{l}</button>
-        ))}
+      <nav className="ape-pp-bnav" aria-label="Seções principais">
+        {BNAV.map((id) => { const x = ABAS.find((y) => y[0] === id)!; return <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)}><ApeIcon name={x[2]} /><span>{id === 'gastos' ? 'gastos' : x[1]}</span></button> })}
+        <button onClick={() => setMenu(true)} aria-label="Mais seções"><ApeIcon name="list" /><span>mais</span></button>
       </nav>
       {editar && <EditarDados dados={dados} nomeConta={acc.nome} onClose={() => setEditar(false)} mudar={mudar} />}
     </div>
@@ -260,9 +303,19 @@ function EditarDados({ dados, nomeConta, onClose, mudar }: { dados: PlatDados; n
           </div>
           <div className="ape-f"><label>Seu nome</label><input value={p.nome} onChange={(e) => setP({ ...p, nome: e.target.value })} /></div>
           <p className="ape-eyebrow" style={{ marginTop: 6 }}>o imóvel</p>
+          <div className="ape-conta-foto">
+            <span className="ape-pp-casa-foto lg">{im.capa ? <img src={im.capa} alt="" /> : <ApeIcon name="home" />}</span>
+            <label className="ape-btn sm"><ApeIcon name="clip" />{im.capa ? 'trocar foto do imóvel' : 'foto do imóvel'}<input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) set('capa', await fotoLeve(f)) }} /></label>
+            {im.capa && <button className="ape-btn ghost sm" onClick={() => set('capa', '')}>tirar</button>}
+          </div>
           <div className="ape-frow">
-            <div className="ape-f"><label>Nome</label><input value={im.nome} onChange={(e) => set('nome', e.target.value)} placeholder="meu apê" /></div>
+            <div className="ape-f"><label>Condomínio ou nome</label><input value={im.condominio ?? ''} onChange={(e) => set('condominio', e.target.value)} placeholder="ex.: San Levi" /></div>
             <div className="ape-f"><label>Tipo</label><select value={im.tipo} onChange={(e) => set('tipo', e.target.value)}><option value="apê">apê</option><option value="casa">casa</option></select></div>
+          </div>
+          <div className="ape-frow ape-frow3">
+            <div className="ape-f"><label>Torre / bloco</label><input value={im.torre ?? ''} onChange={(e) => set('torre', e.target.value)} /></div>
+            <div className="ape-f"><label>Apê / número</label><input value={im.ap ?? ''} onChange={(e) => set('ap', e.target.value)} /></div>
+            <div className="ape-f"><label>Quem vai morar</label><input value={im.moradores ?? ''} onChange={(e) => set('moradores', e.target.value)} placeholder="ex.: Laís e Igor" /></div>
           </div>
           <div className="ape-frow">
             <div className="ape-f"><label>Em que etapa você está</label>
@@ -286,61 +339,141 @@ function EditarDados({ dados, nomeConta, onClose, mudar }: { dados: PlatDados; n
 type Mudar<T> = (fn: (l: T[]) => T[]) => void
 
 const FASE: Record<string, string> = { comprando: 'comprando', planta: 'comprei na planta', pronto: 'comprei pronto', obra: 'em obra', morando: 'morando' }
-function Resumo({ acc, dados, im, nome, foto, token, demo, mudar, irPara, onEditar }: { acc: PlatAcesso; dados: PlatDados; im: NonNullable<PlatDados['imovel']>; nome: string; foto: string; token: string; demo: boolean; mudar: (fn: (d: PlatDados) => PlatDados) => void; irPara: (a: Aba) => void; onEditar: () => void }) {
+
+/* ---------- gráficos simples (SVG, nas cores do planê.apê) ---------- */
+function Rosca({ partes, centro, sub }: { partes: { v: number; c: string; l: string }[]; centro: string; sub: string }) {
+  const tot = partes.reduce((t, p) => t + p.v, 0) || 1
+  const R = 42, C = 2 * Math.PI * R
+  let acc = 0
+  return (
+    <div className="ape-rosca">
+      <svg viewBox="0 0 100 100" role="img" aria-label={partes.map((p) => `${p.l}: ${Math.round((p.v / tot) * 100)}%`).join(', ')}>
+        <circle cx="50" cy="50" r={R} fill="none" stroke="var(--a-sand)" strokeWidth="12" />
+        {partes.filter((p) => p.v > 0).map((p) => {
+          const len = (p.v / tot) * C
+          const el = <circle key={p.l} cx="50" cy="50" r={R} fill="none" stroke={p.c} strokeWidth="12" strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-acc} transform="rotate(-90 50 50)" strokeLinecap="butt" />
+          acc += len
+          return el
+        })}
+      </svg>
+      <div className="ape-rosca-c"><b className="ape-keep">{centro}</b><small>{sub}</small></div>
+    </div>
+  )
+}
+function Barras({ dados, destaque = 0 }: { dados: { l: string; v: number; t?: string }[]; destaque?: number }) {
+  const max = Math.max(1, ...dados.map((d) => d.v))
+  return (
+    <div className="ape-barras" role="img" aria-label={dados.map((d) => `${d.l}: ${brl(d.v)}`).join(', ')}>
+      {dados.map((d, i) => (
+        <div key={d.l + i} className={`ape-barra ${i === destaque ? 'on' : ''}`} title={d.t || brl(d.v)}>
+          <span className="v ape-keep">{d.v ? (d.v >= 1000 ? `${(d.v / 1000).toFixed(1).replace('.', ',')} mil` : Math.round(d.v)) : ''}</span>
+          <i style={{ height: `${Math.max(d.v ? 4 : 0, (d.v / max) * 100)}%` }} />
+          <span className="l">{d.l}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Resumo({ acc, dados, im, nome, foto, casa, token, demo, mudar, irPara, onEditar }: { acc: PlatAcesso; dados: PlatDados; im: NonNullable<PlatDados['imovel']>; nome: string; foto: string; casa: string; token: string; demo: boolean; mudar: (fn: (d: PlatDados) => PlatDados) => void; irPara: (a: Aba) => void; onEditar: () => void }) {
   const g = dados.gastos || []
   const previsto = g.reduce((t, x) => t + (x.previsto || 0), 0)
   const pago = g.reduce((t, x) => t + (x.pago || 0), 0)
-  const ms = meses(dados.parcelas || [], 3)
+  const comprado = g.filter((x) => x.status === 'comprado').reduce((t, x) => t + (x.previsto || 0), 0)
+  const ms = meses(dados.parcelas || [], 6)
   const et = dados.etapas || []
   const feitas = et.filter((e) => e.feita).length
-  const proximas = et.filter((e) => !e.feita).slice(0, 3)
+  const proximas = et.filter((e) => !e.feita).slice(0, 4)
   const vi = dados.vistoria || []
   const probl = vi.filter((v) => v.status === 'problema').length
+  const okV = vi.filter((v) => v.status === 'ok').length
   const [copiado, setCopiado] = useState(false)
   const link = `https://useplane.com.br/ape/#minha:${token}`
   const dias = im.entrega ? Math.round((new Date(im.entrega + 'T00:00:00').getTime() - Date.now()) / 864e5) : null
   const meta = im.orcamento || previsto
+  const hojeS = hoje()
+  const vencendo = (dados.garantias || []).map((x) => ({ x, v: venceEm(x) })).filter((y) => y.v && y.v >= hojeS && diasAte(y.v) <= 90)
+  const manut = (dados.manutencao || []).filter((m) => proxima(m) && proxima(m)! <= somaDias(hojeS, 15))
+  const docs = dados.documentos || []
+  const porComodo = [...g.reduce((m, x) => m.set(x.comodo, (m.get(x.comodo) || 0) + (x.pago || x.previsto || 0)), new Map<string, number>())].sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const avisos: [string, string, Aba][] = [
+    ...(probl ? [[`${probl} problema${probl > 1 ? 's' : ''} na vistoria para a construtora corrigir`, 'alert', 'vistoria'] as [string, string, Aba]] : []),
+    ...vencendo.map((y) => [`garantia de ${y.x.item || 'item'} vence em ${dmy(y.v!)}`, 'shield', 'garantias'] as [string, string, Aba]),
+    ...manut.map((m) => [`manutenção: ${m.oque} (${proxima(m)! < hojeS ? 'atrasada' : `até ${dmy(proxima(m)!)}`})`, 'clock', 'garantias'] as [string, string, Aba]),
+  ]
   return (
     <>
-      <section className="ape-pa-ola">
+      <section className="ape-pp-ola" style={im.capa ? { backgroundImage: `linear-gradient(90deg, color-mix(in srgb, var(--a-pri) 92%, transparent), color-mix(in srgb, var(--a-pri) 45%, transparent)), url(${im.capa})` } : undefined}>
         <Avatar nome={nome} foto={foto} />
-        <div>
+        <div className="t">
           <h2>olá{nome ? `, ${firstName(nome)}` : ''}!</h2>
-          <p>{[im.nome || 'meu apê', im.tipo, im.m2 ? `${String(im.m2).replace('.', ',')} m²` : '', FASE[im.fase]].filter(Boolean).join(' · ')}{dias != null ? ` · ${dias > 0 ? `faltam ${dias} dias para as chaves` : dias === 0 ? 'chaves hoje!' : `chaves em ${dmy(im.entrega)}`}` : ''}</p>
+          <p>{[casa, im.m2 ? `${String(im.m2).replace('.', ',')} m²` : '', FASE[im.fase], im.moradores ? `${im.moradores}` : ''].filter(Boolean).join(' · ')}</p>
+          {dias != null && <span className="ape-pp-chaves"><ApeIcon name="clock" />{dias > 0 ? `faltam ${dias} dias para as chaves` : dias === 0 ? 'chaves hoje!' : `chaves recebidas em ${dmy(im.entrega)}`}</span>}
         </div>
         <button className="ape-btn sm" onClick={onEditar}><ApeIcon name="edit" />editar</button>
       </section>
-      <div className="ape-plat-kpis">
-        <button className="ape-kpi" onClick={() => irPara('gastos')}>
-          <span><ApeIcon name="tag" />gasto até agora</span>
+      {avisos.length > 0 && (
+        <section className="ape-pp-avisos">
+          {avisos.slice(0, 4).map(([t, i, a]) => <button key={t} onClick={() => irPara(a)}><ApeIcon name={i} /><span>{t}</span><ApeIcon name="chev" /></button>)}
+        </section>
+      )}
+      <div className="ape-pp-kpis">
+        <button className="ape-pp-kpi" onClick={() => irPara('gastos')}>
+          <span className="h"><ApeIcon name="tag" />gasto até agora</span>
           <b className="ape-keep">{brl(pago)}</b>
-          {meta ? <i className="ape-kpi-bar"><em style={{ width: `${Math.min(100, (pago / meta) * 100)}%` }} /></i> : null}
-          <small className="ape-keep">{meta ? `de ${brl(meta)} ${im.orcamento ? 'planejados' : 'previstos'}` : 'toque para lançar'}</small>
+          <small className="ape-keep">{meta ? `${Math.round((pago / meta) * 100)}% de ${brl(meta)}` : 'toque para lançar'}</small>
         </button>
-        <button className="ape-kpi" onClick={() => irPara('parcelas')}><span><ApeIcon name="clock" />parcelas este mês</span><b className="ape-keep">{brl(ms[0]?.total || 0)}</b><small className="ape-keep">próximo mês: {brl(ms[1]?.total || 0)}</small></button>
-        <button className="ape-kpi" onClick={() => irPara('etapas')}><span><ApeIcon name="list" />etapas</span><b>{feitas} de {et.length}</b><i className="ape-kpi-bar"><em style={{ width: `${et.length ? (feitas / et.length) * 100 : 0}%` }} /></i><small>{proximas[0]?.nome || 'tudo feito!'}</small></button>
-        <button className="ape-kpi" onClick={() => irPara('vistoria')}><span><ApeIcon name="check" />vistoria</span><b>{probl ? `${probl} problema${probl > 1 ? 's' : ''}` : 'sem problemas'}</b><small>{vi.filter((v) => v.status === 'pendente').length} itens a conferir</small></button>
+        <button className="ape-pp-kpi" onClick={() => irPara('parcelas')}><span className="h"><ApeIcon name="clock" />parcelas do mês</span><b className="ape-keep">{brl(ms[0]?.total || 0)}</b><small className="ape-keep">próximo: {brl(ms[1]?.total || 0)}</small></button>
+        <button className="ape-pp-kpi" onClick={() => irPara('etapas')}><span className="h"><ApeIcon name="list" />etapas</span><b>{feitas}<small> de {et.length}</small></b><i className="ape-kpi-bar"><em style={{ width: `${et.length ? (feitas / et.length) * 100 : 0}%` }} /></i></button>
+        <button className="ape-pp-kpi" onClick={() => irPara('documentos')}><span className="h"><ApeIcon name="file" />documentos</span><b>{docs.filter((d) => d.tenho).length}<small> de {docs.length || DOCS.length}</small></b><small>guardados</small></button>
       </div>
-      <div className="ape-pa-duas">
-        <section className="ape-panel ape-pa-passos">
-          <p className="ape-eyebrow">próximos passos</p>
-          {proximas.length ? proximas.map((e) => (
-            <label key={e.id} className="ape-pa-passo">
-              <input type="checkbox" onChange={() => mudar((d) => ({ ...d, etapas: (d.etapas || []).map((x) => (x.id === e.id ? { ...x, feita: true, data: x.data || new Date().toISOString().slice(0, 10) } : x)) }))} />
-              <span><b>{e.nome}</b>{e.data ? <small>{dmy(e.data)}</small> : null}</span>
-            </label>
-          )) : <p className="ape-note">Todas as etapas feitas.</p>}
-          <button className="ape-linkish ape-link" onClick={() => irPara('etapas')}>ver todas as etapas</button>
+      <div className="ape-pp-duas">
+        <section className="ape-panel ape-pp-card">
+          <div className="ape-pp-card-h"><p className="ape-eyebrow">orçamento da obra</p><button className="ape-linkish ape-link" onClick={() => irPara('gastos')}>ver gastos</button></div>
+          {previsto || pago || meta ? (
+            <div className="ape-pp-rosca-l">
+              <Rosca partes={[{ v: pago, c: 'var(--a-pri)', l: 'pago' }, { v: comprado, c: 'var(--a-sec)', l: 'comprado' }, { v: Math.max(0, (meta || 0) - pago - comprado), c: 'color-mix(in srgb, var(--a-pri) 22%, var(--a-sand))', l: 'falta' }]} centro={meta ? `${Math.round((pago / meta) * 100)}%` : '0%'} sub="pago" />
+              <ul className="ape-legenda">
+                <li><i style={{ background: 'var(--a-pri)' }} />pago<b className="ape-keep">{brl(pago)}</b></li>
+                <li><i style={{ background: 'var(--a-sec)' }} />comprado, a pagar<b className="ape-keep">{brl(comprado)}</b></li>
+                <li><i style={{ background: 'color-mix(in srgb, var(--a-pri) 22%, var(--a-sand))' }} />ainda falta<b className="ape-keep">{brl(Math.max(0, (meta || 0) - pago - comprado))}</b></li>
+              </ul>
+            </div>
+          ) : <EmptyCard t="Coloque quanto quer gastar e lance os gastos para ver o gráfico." b="lançar gasto" onClick={() => irPara('gastos')} />}
         </section>
-        <section className="ape-panel ape-pa-atalhos">
-          <p className="ape-eyebrow">atalhos</p>
-          <button onClick={() => irPara('gastos')}><ApeIcon name="plus" />lançar um gasto</button>
-          <button onClick={() => irPara('parcelas')}><ApeIcon name="plus" />lançar uma parcela</button>
-          <button onClick={() => irPara('vistoria')}><ApeIcon name="check" />fazer a vistoria</button>
-          <button onClick={() => irPara('contatos')}><ApeIcon name="chat" />guardar um contato</button>
+        <section className="ape-panel ape-pp-card">
+          <div className="ape-pp-card-h"><p className="ape-eyebrow">parcelas dos próximos 6 meses</p><button className="ape-linkish ape-link" onClick={() => irPara('parcelas')}>ver parcelas</button></div>
+          {ms.some((m) => m.total) ? <Barras dados={ms.map((m) => ({ l: new Date(m.mes + '-01T00:00:00').toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''), v: m.total, t: m.itens.join(', ') }))} /> : <EmptyCard t="Cadastre o que é parcelado e veja quanto sai em cada mês." b="lançar parcela" onClick={() => irPara('parcelas')} />}
         </section>
       </div>
-      <section className="ape-panel">
+      <div className="ape-pp-duas">
+        <section className="ape-panel ape-pp-card">
+          <div className="ape-pp-card-h"><p className="ape-eyebrow">próximos passos</p><button className="ape-linkish ape-link" onClick={() => irPara('etapas')}>todas as etapas</button></div>
+          <div className="ape-pp-check">
+            {proximas.length ? proximas.map((e) => (
+              <label key={e.id}>
+                <input type="checkbox" onChange={() => mudar((d) => ({ ...d, etapas: (d.etapas || []).map((x) => (x.id === e.id ? { ...x, feita: true, data: x.data || hoje() } : x)) }))} />
+                <span className="box"><ApeIcon name="check" /></span>
+                <span className="t"><b>{e.nome}</b>{e.data ? <small>{dmy(e.data)}</small> : null}</span>
+              </label>
+            )) : <p className="ape-note">Todas as etapas feitas. Parabéns!</p>}
+          </div>
+        </section>
+        <section className="ape-panel ape-pp-card">
+          <div className="ape-pp-card-h"><p className="ape-eyebrow">{porComodo.length ? 'onde o dinheiro vai' : 'vistoria'}</p><button className="ape-linkish ape-link" onClick={() => irPara(porComodo.length ? 'gastos' : 'vistoria')}>abrir</button></div>
+          {porComodo.length ? (
+            <div className="ape-hbarras">
+              {porComodo.map(([c, v]) => <div key={c}><span>{c}</span><i><em style={{ width: `${(v / porComodo[0][1]) * 100}%` }} /></i><b className="ape-keep">{brl(v)}</b></div>)}
+            </div>
+          ) : (
+            <div className="ape-pp-rosca-l">
+              <Rosca partes={[{ v: okV, c: 'var(--a-pri)', l: 'ok' }, { v: probl, c: 'var(--a-sec)', l: 'problema' }, { v: vi.length - okV - probl, c: 'var(--a-sand)', l: 'a conferir' }]} centro={`${okV + probl}/${vi.length}`} sub="conferidos" />
+              <ul className="ape-legenda"><li><i style={{ background: 'var(--a-pri)' }} />ok<b>{okV}</b></li><li><i style={{ background: 'var(--a-sec)' }} />problema<b>{probl}</b></li><li><i style={{ background: 'var(--a-sand)' }} />a conferir<b>{vi.length - okV - probl}</b></li></ul>
+            </div>
+          )}
+        </section>
+      </div>
+      <section className="ape-panel ape-pp-card">
         <p className="ape-eyebrow">anotações</p>
         <div className="ape-f"><textarea value={dados.notas || ''} onChange={(e) => mudar((d) => ({ ...d, notas: e.target.value }))} placeholder="Senha do interfone, medidas, ideias…" aria-label="Anotações" /></div>
       </section>
@@ -352,6 +485,9 @@ function Resumo({ acc, dados, im, nome, foto, token, demo, mudar, irPara, onEdit
       )}
     </>
   )
+}
+function EmptyCard({ t, b, onClick }: { t: string; b: string; onClick: () => void }) {
+  return <div className="ape-pp-vazio"><span>{t}</span><button className="ape-btn sm" onClick={onClick}><ApeIcon name="plus" />{b}</button></div>
 }
 
 function Gastos({ lista, orcamento, mudar }: { lista: PlatGasto[]; orcamento: number | null; mudar: Mudar<PlatGasto> }) {
@@ -563,5 +699,185 @@ function Contatos({ lista, mudar }: { lista: PlatContato[]; mudar: Mudar<PlatCon
         ))}
       </div>
     </section>
+  )
+}
+
+/* ---------- garantias, manutenção e documentos ---------- */
+const somaDias = (d: string, n: number) => { const x = new Date(d + 'T00:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
+const somaMeses = (d: string, n: number) => { const x = new Date(d + 'T00:00:00'); x.setMonth(x.getMonth() + n); return x.toISOString().slice(0, 10) }
+const diasAte = (d: string) => Math.round((new Date(d + 'T00:00:00').getTime() - new Date(hoje() + 'T00:00:00').getTime()) / 864e5)
+const venceEm = (g: PlatGarantia) => (g.compra && g.meses ? somaMeses(g.compra, g.meses) : '')
+const proxima = (m: PlatManut) => (m.cada ? (m.ultima ? somaMeses(m.ultima, m.cada) : hoje()) : '')
+/** Prazos comuns de garantia do imóvel novo (o que vale é o manual do proprietário). */
+const GARANTIAS_IMOVEL: [string, number][] = [['instalações elétricas e hidráulicas', 36], ['revestimentos e rejuntes', 24], ['impermeabilização', 60], ['esquadrias (janelas e portas)', 12], ['pintura', 24], ['estrutura e segurança', 60]]
+const MANUT: [string, number][] = [['lavar os filtros do ar-condicionado', 1], ['limpar ralos e sifões', 3], ['higienizar o ar-condicionado (técnico)', 6], ['revisar o silicone da pia, do tanque e do box', 6], ['testar o DR no quadro de luz', 6], ['trocar o filtro de água', 6], ['conferir rejuntes e manchas no teto', 12], ['conferir a validade da mangueira de gás', 12]]
+export const DOCS = ['contrato de compra e venda', 'contrato do financiamento', 'matrícula atualizada do imóvel', 'comprovante do ITBI', 'escritura / registro em cartório', 'manual do proprietário', 'termo de vistoria e de entrega das chaves', 'planta do apê', 'notas fiscais de móveis e serviços', 'apólice do seguro residencial', 'regulamento e convenção do condomínio']
+
+function Garantias({ lista, manut, entrega, mudar, mudarM }: { lista: PlatGarantia[]; manut: PlatManut[]; entrega: string; mudar: Mudar<PlatGarantia>; mudarM: Mudar<PlatManut> }) {
+  const set = (id: string, k: keyof PlatGarantia, v: unknown) => mudar((l) => l.map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const setM = (id: string, k: keyof PlatManut, v: unknown) => mudarM((l) => l.map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const h = hoje()
+  const ordem = [...lista].sort((a, b) => (venceEm(a) || '9') .localeCompare(venceEm(b) || '9'))
+  return (
+    <>
+      <section className="ape-panel ape-plat-sec">
+        <div className="ape-plat-sec-h">
+          <div><p className="ape-eyebrow">garantias</p><span className="ape-note">Anote o que comprou e até quando vale a garantia. O resumo avisa 90 dias antes de vencer.</span></div>
+          <button className="ape-btn primary sm" onClick={() => mudar((l) => [{ id: uid(), item: '', onde: '', compra: h, meses: 12, nota: false, obs: '' }, ...l])}><ApeIcon name="plus" />garantia</button>
+        </div>
+        {!lista.some((x) => x.onde === 'construtora') && (
+          <button className="ape-pp-sugestao" onClick={() => mudar((l) => [...GARANTIAS_IMOVEL.map(([item, meses]) => ({ id: uid(), item, onde: 'construtora', compra: entrega || h, meses, nota: true, obs: '' })), ...l])}>
+            <ApeIcon name="sparkle" /><span><b>colocar as garantias do imóvel</b><small>prazos comuns da construtora{entrega ? `, contando da entrega (${dmy(entrega)})` : ''}; confira no seu manual</small></span>
+          </button>
+        )}
+        {!lista.length && <div className="ape-empty"><ApeArt name="contrato" size={44} /><span>Eletros, móveis planejados, box, ar-condicionado: cada um tem uma garantia.</span></div>}
+        <div className="ape-plat-list">
+          {ordem.map((g) => {
+            const v = venceEm(g)
+            const d = v ? diasAte(v) : null
+            return (
+              <div key={g.id} className="ape-plat-item">
+                <div className="ape-pp-item-h">
+                  <input className="ape-etapa-n" value={g.item} onChange={(e) => set(g.id, 'item', e.target.value)} placeholder="o que é (ex.: geladeira)" aria-label="Item" />
+                  {v ? <span className={`ape-pill ${d! < 0 ? 'rosa' : d! <= 90 ? 'terra' : 'azul'}`}>{d! < 0 ? `venceu em ${dmy(v)}` : d! <= 90 ? `vence em ${d} dias` : `até ${dmy(v)}`}</span> : null}
+                </div>
+                <div className="ape-frow ape-frow3">
+                  <div className="ape-f"><label>Onde comprou</label><input value={g.onde} onChange={(e) => set(g.id, 'onde', e.target.value)} /></div>
+                  <div className="ape-f"><label>Data da compra</label><input type="date" value={g.compra} onChange={(e) => set(g.id, 'compra', e.target.value)} /></div>
+                  <div className="ape-f"><label>Garantia (meses)</label><input inputMode="numeric" value={g.meses ?? ''} onChange={(e) => set(g.id, 'meses', num(e.target.value))} /></div>
+                </div>
+                <div className="ape-acts">
+                  <label className="ape-tog"><input type="checkbox" checked={g.nota} onChange={(e) => set(g.id, 'nota', e.target.checked)} />nota fiscal guardada</label>
+                  <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== g.id))} aria-label="Apagar"><ApeIcon name="trash" /></button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+      <section className="ape-panel ape-plat-sec">
+        <div className="ape-plat-sec-h">
+          <div><p className="ape-eyebrow">manutenção da casa</p><span className="ape-note">O que revisar e de quanto em quanto tempo. Toque em "fiz hoje" e a próxima data se ajusta sozinha.</span></div>
+          <button className="ape-btn primary sm" onClick={() => mudarM((l) => [...l, { id: uid(), oque: '', cada: 6, ultima: '' }])}><ApeIcon name="plus" />tarefa</button>
+        </div>
+        {!manut.length && (
+          <button className="ape-pp-sugestao" onClick={() => mudarM(() => MANUT.map(([oque, cada]) => ({ id: uid(), oque, cada, ultima: '' })))}>
+            <ApeIcon name="sparkle" /><span><b>usar a lista pronta</b><small>{MANUT.length} cuidados que evitam dor de cabeça no primeiro ano</small></span>
+          </button>
+        )}
+        <div className="ape-pp-manut">
+          {manut.map((m) => {
+            const p = proxima(m)
+            const atras = !!p && p < h
+            return (
+              <div key={m.id} className={`ape-pp-manut-i ${atras ? 'atras' : ''}`}>
+                <div className="t">
+                  <input value={m.oque} onChange={(e) => setM(m.id, 'oque', e.target.value)} aria-label="Tarefa" placeholder="o que fazer" />
+                  <small>a cada <input inputMode="numeric" value={m.cada ?? ''} onChange={(e) => setM(m.id, 'cada', num(e.target.value))} aria-label="Meses" /> {m.cada === 1 ? 'mês' : 'meses'} · {m.ultima ? `feito em ${dmy(m.ultima)} · próxima ${dmy(p)}` : 'ainda não feito'}</small>
+                </div>
+                <button className={`ape-btn sm ${atras || !m.ultima ? 'primary' : ''}`} onClick={() => setM(m.id, 'ultima', h)}><ApeIcon name="check" />fiz hoje</button>
+                <button className="ape-btn ghost sm" onClick={() => mudarM((l) => l.filter((x) => x.id !== m.id))} aria-label="Apagar"><ApeIcon name="trash" /></button>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    </>
+  )
+}
+
+function Documentos({ lista, mudar }: { lista: PlatDoc[]; mudar: Mudar<PlatDoc> }) {
+  const docs = lista.length ? lista : DOCS.map((nome) => ({ id: nome, nome, tenho: false, onde: '' }))
+  const set = (id: string, k: keyof PlatDoc, v: unknown) => mudar((l) => (l.length ? l : docs).map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const ok = docs.filter((d) => d.tenho).length
+  return (
+    <section className="ape-panel ape-plat-sec">
+      <div className="ape-plat-sec-h">
+        <div><p className="ape-eyebrow">documentos do imóvel</p><span className="ape-note">{ok} de {docs.length} guardados. Anote onde está cada um (pasta, gaveta ou link do Drive).</span></div>
+        <button className="ape-btn primary sm" onClick={() => mudar((l) => [...(l.length ? l : docs), { id: uid(), nome: '', tenho: false, onde: '' }])}><ApeIcon name="plus" />documento</button>
+      </div>
+      <div className="ape-bar"><i style={{ width: `${docs.length ? (ok / docs.length) * 100 : 0}%` }} /></div>
+      <div className="ape-pp-check ape-pp-docs">
+        {docs.map((d) => (
+          <div key={d.id} className={`ape-pp-doc ${d.tenho ? 'ok' : ''}`}>
+            <label className="ck"><input type="checkbox" checked={d.tenho} onChange={(e) => set(d.id, 'tenho', e.target.checked)} /><span className="box"><ApeIcon name="check" /></span></label>
+            <div className="t">
+              <input value={d.nome} onChange={(e) => set(d.id, 'nome', e.target.value)} aria-label="Documento" placeholder="nome do documento" />
+              <input className="onde" value={d.onde} onChange={(e) => set(d.id, 'onde', e.target.value)} placeholder="onde está? (pasta azul, link do Drive…)" aria-label="Onde está" />
+            </div>
+            {/^https?:\/\//.test(d.onde) && <a className="ape-btn ghost sm" href={d.onde} target="_blank" rel="noopener noreferrer" aria-label="Abrir link"><ApeIcon name="share" /></a>}
+          </div>
+        ))}
+      </div>
+      <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="shield" /> Dica: guarde cópias digitais numa pasta só (Drive, iCloud) e cole o link aqui. Não salve documentos com senha à vista.</p>
+    </section>
+  )
+}
+
+/* ---------- calculadoras ---------- */
+function Calculadoras({ m2 }: { m2: number | null }) {
+  const [pa, setPa] = useState({ larg: '', comp: '', sobra: '10', caixa: '2,2' })
+  const area = (num(pa.larg) || 0) * (num(pa.comp) || 0)
+  const comSobra = area * (1 + (num(pa.sobra) || 0) / 100)
+  const caixas = num(pa.caixa) ? Math.ceil(comSobra / num(pa.caixa)!) : 0
+  const [ti, setTi] = useState({ larg: '', comp: '', alt: '2,50', portas: '1', janelas: '1', demaos: '2', rende: '12', teto: true })
+  const per = 2 * ((num(ti.larg) || 0) + (num(ti.comp) || 0))
+  const parede = Math.max(0, per * (num(ti.alt) || 0) - (num(ti.portas) || 0) * 1.6 - (num(ti.janelas) || 0) * 2)
+  const teto = ti.teto ? (num(ti.larg) || 0) * (num(ti.comp) || 0) : 0
+  const litros = num(ti.rende) ? ((parede + teto) * (num(ti.demaos) || 1)) / num(ti.rende)! : 0
+  const [ar, setAr] = useState({ m2: m2 ? String(m2).replace('.', ',') : '', pessoas: '2', sol: false, eletros: '1' })
+  const btu = (num(ar.m2) || 0) * 600 + Math.max(0, (num(ar.pessoas) || 0) - 2) * 600 + (num(ar.eletros) || 0) * 600
+  const btuFinal = btu * (ar.sol ? 1.15 : 1)
+  const padrao = [7000, 9000, 12000, 18000, 24000, 30000].find((x) => x >= btuFinal) || 30000
+  const [lu, setLu] = useState({ m2: '', tipo: '150' })
+  const lumens = (num(lu.m2) || 0) * Number(lu.tipo)
+  const f = (n: number, d = 1) => n.toFixed(d).replace('.', ',')
+  return (
+    <div className="ape-pp-calcs">
+      <section className="ape-panel ape-pp-calc">
+        <h3><ApeIcon name="tile" />piso e revestimento</h3>
+        <div className="ape-frow ape-frow3">
+          <div className="ape-f"><label>Largura (m)</label><input inputMode="decimal" value={pa.larg} onChange={(e) => setPa({ ...pa, larg: e.target.value })} /></div>
+          <div className="ape-f"><label>Comprimento (m)</label><input inputMode="decimal" value={pa.comp} onChange={(e) => setPa({ ...pa, comp: e.target.value })} /></div>
+          <div className="ape-f"><label>Sobra (%)</label><select value={pa.sobra} onChange={(e) => setPa({ ...pa, sobra: e.target.value })}><option value="10">10% reto</option><option value="15">15% diagonal</option><option value="20">20% espinha</option></select></div>
+        </div>
+        <div className="ape-f"><label>m² por caixa</label><input inputMode="decimal" value={pa.caixa} onChange={(e) => setPa({ ...pa, caixa: e.target.value })} /></div>
+        <div className="ape-pp-res"><b>{area ? `${f(comSobra, 2)} m²` : '—'}</b><span>{area ? `${f(area, 2)} m² + sobra · ${caixas} caixa${caixas === 1 ? '' : 's'}` : 'preencha as medidas'}</span></div>
+      </section>
+      <section className="ape-panel ape-pp-calc">
+        <h3><ApeIcon name="brush" />tinta</h3>
+        <div className="ape-frow ape-frow3">
+          <div className="ape-f"><label>Largura (m)</label><input inputMode="decimal" value={ti.larg} onChange={(e) => setTi({ ...ti, larg: e.target.value })} /></div>
+          <div className="ape-f"><label>Comprimento (m)</label><input inputMode="decimal" value={ti.comp} onChange={(e) => setTi({ ...ti, comp: e.target.value })} /></div>
+          <div className="ape-f"><label>Pé-direito (m)</label><input inputMode="decimal" value={ti.alt} onChange={(e) => setTi({ ...ti, alt: e.target.value })} /></div>
+        </div>
+        <div className="ape-frow ape-frow3">
+          <div className="ape-f"><label>Portas</label><input inputMode="numeric" value={ti.portas} onChange={(e) => setTi({ ...ti, portas: e.target.value })} /></div>
+          <div className="ape-f"><label>Janelas</label><input inputMode="numeric" value={ti.janelas} onChange={(e) => setTi({ ...ti, janelas: e.target.value })} /></div>
+          <div className="ape-f"><label>Demãos</label><input inputMode="numeric" value={ti.demaos} onChange={(e) => setTi({ ...ti, demaos: e.target.value })} /></div>
+        </div>
+        <div className="ape-acts"><div className="ape-f" style={{ flex: 1 }}><label>Rende (m² por litro, vem na lata)</label><input inputMode="decimal" value={ti.rende} onChange={(e) => setTi({ ...ti, rende: e.target.value })} /></div><label className="ape-tog"><input type="checkbox" checked={ti.teto} onChange={(e) => setTi({ ...ti, teto: e.target.checked })} />pintar o teto</label></div>
+        <div className="ape-pp-res"><b>{litros ? `${f(litros)} litros` : '—'}</b><span>{litros ? `${f(parede + teto)} m² · ${litros <= 3.6 ? '1 galão (3,6 L)' : litros <= 18 ? `${Math.ceil(litros / 3.6)} galões ou 1 lata de 18 L` : `${Math.ceil(litros / 18)} latas de 18 L`}` : 'preencha as medidas'}</span></div>
+      </section>
+      <section className="ape-panel ape-pp-calc">
+        <h3><ApeIcon name="snow" />ar-condicionado (BTUs)</h3>
+        <div className="ape-frow ape-frow3">
+          <div className="ape-f"><label>Área (m²)</label><input inputMode="decimal" value={ar.m2} onChange={(e) => setAr({ ...ar, m2: e.target.value })} /></div>
+          <div className="ape-f"><label>Pessoas</label><input inputMode="numeric" value={ar.pessoas} onChange={(e) => setAr({ ...ar, pessoas: e.target.value })} /></div>
+          <div className="ape-f"><label>Eletrônicos</label><input inputMode="numeric" value={ar.eletros} onChange={(e) => setAr({ ...ar, eletros: e.target.value })} /></div>
+        </div>
+        <label className="ape-tog"><input type="checkbox" checked={ar.sol} onChange={(e) => setAr({ ...ar, sol: e.target.checked })} />bate sol da tarde</label>
+        <div className="ape-pp-res"><b>{btu ? `${padrao.toLocaleString('pt-BR')} BTUs` : '—'}</b><span>{btu ? `cálculo: ${Math.round(btuFinal).toLocaleString('pt-BR')} BTUs · prefira inverter` : 'preencha a área'}</span></div>
+      </section>
+      <section className="ape-panel ape-pp-calc">
+        <h3><ApeIcon name="bolt" />iluminação</h3>
+        <div className="ape-frow">
+          <div className="ape-f"><label>Área (m²)</label><input inputMode="decimal" value={lu.m2} onChange={(e) => setLu({ ...lu, m2: e.target.value })} /></div>
+          <div className="ape-f"><label>Cômodo</label><select value={lu.tipo} onChange={(e) => setLu({ ...lu, tipo: e.target.value })}><option value="125">quarto</option><option value="175">sala e jantar</option><option value="275">cozinha</option><option value="225">banheiro</option><option value="200">área de serviço</option><option value="400">escritório</option></select></div>
+        </div>
+        <div className="ape-pp-res"><b>{lumens ? `${Math.round(lumens).toLocaleString('pt-BR')} lúmens` : '—'}</b><span>{lumens ? `≈ ${Math.ceil(lumens / 850)} lâmpadas LED de 9 W (850 lm) · ${lu.tipo === '275' || lu.tipo === '225' || lu.tipo === '200' || lu.tipo === '400' ? '4.000 K (neutra)' : '2.700 a 3.000 K (quente)'}` : 'preencha a área'}</span></div>
+      </section>
+      <p className="ape-note" style={{ margin: 0 }}>Contas práticas de referência. Para compra grande, confirme com o fornecedor.</p>
+    </div>
   )
 }

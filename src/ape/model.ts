@@ -8,6 +8,8 @@ export const APE = {
   dona: 'Laís',
   semestre: '9º', // semestre da Laís em Arquitetura e Urbanismo (aparece em projetos e reformas)
   doApe: 'apê 1204',
+  torre: '2', // o apê da Laís no San Levi: torre 2, apê 1204 (planta de corredor)
+  moradores: 'Laís e Igor',
   meuApe: '40 m²', // o apê da Laís (exemplo padrão nos materiais)
   instagram: '@apzinho_1204',
   whatsapp: '5511969288192', // da Laís: grupo, loja e dúvidas
@@ -53,6 +55,7 @@ export interface Orcamento {
   grupo_pct: number | null
   grupo_min: number | null
   grupo_desc: string
+  grupo_ate?: string // até quando vale a condição negociada para o grupo (AAAA-MM-DD)
   area_m2: number | null
   inclui: string[]
   nao_inclui: string[]
@@ -86,6 +89,23 @@ export function plantaDoAp(ap: string | undefined | null): Planta {
   const f = Number(d.slice(-2))
   if (!f || f > 12) return ''
   return [1, 2, 11, 12].includes(f) ? 'canto' : 'corredor'
+}
+/** Medidas que só aparecem numa das plantas (planta do pavimento tipo, em cm). Cozinha e banheiro são iguais nas duas. */
+const MEDIDAS_PLANTA: Record<'canto' | 'corredor', number[]> = { canto: [435, 264, 221, 511, 699], corredor: [533, 314, 501, 346, 187, 847] }
+/** Tenta descobrir a planta pelas medidas escritas no orçamento (ex.: "5,33 m", "533 cm"). Vazio se não der para saber. */
+export function plantaPelaMedida(texto: string): Planta {
+  const nums = new Set<number>()
+  for (const m of String(texto).matchAll(/(\d{1,2})[,.](\d{2})(?!\d)|(?<![\d,.])(\d{3})(?![\d,.])/g)) nums.add(m[3] ? Number(m[3]) : Number(m[1]) * 100 + Number(m[2]))
+  const conta = (l: number[]) => l.filter((n) => nums.has(n) || nums.has(n - 1) || nums.has(n + 1)).length
+  const a = conta(MEDIDAS_PLANTA.canto), b = conta(MEDIDAS_PLANTA.corredor)
+  return a > b ? 'canto' : b > a ? 'corredor' : ''
+}
+/** Planta do orçamento: a marcada por quem mandou ou pela dona; senão, a provável pelas medidas. */
+export function plantaDe(o: Orcamento): { p: Planta; provavel: boolean } {
+  if (o.planta) return { p: o.planta, provavel: false }
+  const t = [o.servico, o.resumo, ...(o.itens || []).map((i) => i.descricao), ...o.inclui].join(' ')
+  const p = plantaPelaMedida(t)
+  return { p, provavel: !!p }
 }
 export const PLANTA_ROT: Record<string, string> = { canto: 'planta de canto', corredor: 'planta de corredor', '': 'planta não informada' }
 /** Acabamento do orçamento (quartzo, granito, porcelanato…), para comparar igual com igual dentro de cada serviço. */
@@ -358,6 +378,8 @@ export function parcelas(total: number, jurosPct = JUROS_PCT): { n: number; parc
 /** Selos de destaque que dá para escolher no painel. */
 export const SELOS = ['mais vendido', 'queridinho', 'mais procurado', 'melhor custo-benefício', 'novidade', 'essencial', 'últimas vagas']
 /** Único desconto da loja além dos kits: Pix (a taxa do Pix é menor que a do cartão). Sem parcelamento. */
+/** Quantos apês interessados para a dona levar a lista ao fornecedor e negociar (quando o fornecedor não disse o mínimo). */
+export const GRUPO_META = 5
 export const PIX_PCT = 5
 /** Taxas do Asaas usadas para conferir a margem (confira no seu plano e ajuste no painel). */
 export interface Taxas { pix: number; cartaoPct: number; cartaoFixo: number }
@@ -564,6 +586,7 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
   if (raw2.enviado === true) o.enviado = true
   if (raw2.tipo === 'tabela' || raw2.tipo === 'contato') o.tipo = raw2.tipo
   if (raw2.planta === 'canto' || raw2.planta === 'corredor') o.planta = raw2.planta
+  if (typeof raw2.grupo_ate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw2.grupo_ate)) o.grupo_ate = raw2.grupo_ate
   if (typeof raw2.acabamento === 'string' && raw2.acabamento.trim()) o.acabamento = raw2.acabamento.trim().slice(0, 40)
   if (!o.whatsapp && o.telefone && digits(o.telefone).length === 11) o.whatsapp = digits(o.telefone)
   return o

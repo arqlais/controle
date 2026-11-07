@@ -191,7 +191,9 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
                 </div>
                 <span className={`ape-pill ${p.status === 'pago' ? 'azul' : 'rosa'}`}>{p.status === 'pago' ? (c?.status === 'pedido' ? 'cancelamento em análise' : 'liberado') : p.status}</span>
               </header>
-              {p.status === 'pago' && bonus && <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="gift" /> bônus {bonus.getTime() <= Date.now() ? 'liberado' : `chega em ${dmy(bonus.toISOString())}`}</p>}
+              {p.status === 'pago' && bonus && (bonus.getTime() <= Date.now()
+                ? <div className="ape-bonus-mini on"><ApeIcon name="gift" /><span><b>bônus liberado</b><small>abra os arquivos: ele está lá, separado dos outros</small></span></div>
+                : <div className="ape-bonus-mini"><ApeIcon name="lock" /><span><b>bônus surpresa</b><small>trancado · abre em {Math.max(1, Math.ceil((bonus.getTime() - Date.now()) / 864e5))} dia(s), {dmy(bonus.toISOString())}</small></span></div>)}
               {c?.status === 'negado' && <p className="ape-note" style={{ margin: 0 }}>Cancelamento não aprovado{c.resposta ? `: ${c.resposta}` : ''}.</p>}
               <div className="ape-acts">
                 {p.status === 'pago' && <a className="ape-btn primary sm" href={href('ape', `pedido:${p.token}`)}><ApeIcon name="download" />abrir arquivos</a>}
