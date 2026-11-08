@@ -181,6 +181,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
+      <div className="ape-garantias">
       <section className="ape-surpresa" aria-label="Bônus surpresa">
         <div className="ape-surpresa-box" aria-hidden="true">
           <ApeIcon name="lock" />
@@ -204,6 +205,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           <p className="ape-note" style={{ margin: 0 }}>Não era o que esperava? Em até 7 dias você pede o dinheiro de volta, inteiro, sem precisar explicar (art. 49 do Código de Defesa do Consumidor).</p>
         </div>
       </section>
+      </div>
 
       <Depoimentos />
       <section className="ape-faq" id="loja-duvidas">
@@ -545,7 +547,7 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
         )}
         <span className="ape-ver"><ApeIcon name="eye" />ver por dentro</span>
       </button>
-      <div className="ape-prod-h">
+      <div className="ape-prod-h" onClick={onOpen}>
         {n ? <span className="ape-prod-n">{n}</span> : null}
         <h3>{p.nome}</h3>
       </div>

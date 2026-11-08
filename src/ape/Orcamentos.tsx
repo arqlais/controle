@@ -109,7 +109,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
         <div className="ape-stats">
           <div className="ape-stat"><b className="num">{vis.filter(ehOrcamento).length}</b><span>orçamentos</span></div>
           <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>pastas</span></div>
-          <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos e tabelas</span></div>
+          <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos</span></div>
         </div>
       </section>
       <div className="ape-pastas" role="group" aria-label="Pastas por serviço">
@@ -135,11 +135,11 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           <ApeIcon name="search" />
           <input type="search" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
         </label>
-        <button type="button" className={`ape-btn sm ape-filtros-btn ${filtros ? 'on' : ''}`} aria-expanded={filtros} onClick={() => setFiltros(!filtros)}><ApeIcon name="gear" />filtros{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0) ? <em>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0)}</em> : null}</button>
+        <button type="button" className={`ape-btn sm ape-filtros-btn ${filtros ? 'on' : ''}`} aria-expanded={filtros} onClick={() => setFiltros(!filtros)}><ApeIcon name="gear" /><span className="l">filtros</span>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0) ? <em>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0)}</em> : null}</button>
         <div className="ape-vista" role="group" aria-label="Ver como">
-          <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista" aria-label="ver em lista"><ApeIcon name="list" /></button>
-          <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em blocos" aria-label="ver em blocos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg></button>
-          <button aria-pressed={vista === 'pastas'} onClick={() => setVista('pastas')} title="ver os arquivos (prints e PDFs)" aria-label="ver os arquivos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg></button>
+          <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista" aria-label="ver em lista"><ApeIcon name="list" /><span>lista</span></button>
+          <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em cartões, lado a lado" aria-label="ver em cartões"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg><span>cartões</span></button>
+          <button aria-pressed={vista === 'pastas'} onClick={() => setVista('pastas')} title="ver os arquivos (prints e PDFs)" aria-label="ver os anexos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg><span>anexos</span></button>
         </div>
       </div>
       {filtros && (

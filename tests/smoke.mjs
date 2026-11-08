@@ -438,7 +438,7 @@ try {
     ok(gate, `apê ${vp.name}: pede o cadastro na entrada`)
     await page.fill('#g-nome', 'Maria Teste Silva'); await page.fill('#g-torre', '2'); await page.fill('#g-ap', '304'); await page.fill('#g-tel', '11988887777')
     await page.locator('.ape-gate button[type=submit]').click(); await page.waitForTimeout(400)
-    await page.locator('.ape-vista button[aria-label="ver em blocos"]').click(); await page.waitForTimeout(200)
+    await page.locator('.ape-vista button[aria-label="ver em cartões"]').click(); await page.waitForTimeout(200)
     ok(await page.locator('.ape-oc.top').count() >= 1, `apê ${vp.name}: mostra o "mais compensa"`)
     await page.locator('.ape-oc .ape-grupo-check').first().click(); await page.waitForTimeout(300)
     ok(await page.locator('.ape-oc .ape-grupo.on').count() >= 1, `apê ${vp.name}: entra na compra em grupo`)

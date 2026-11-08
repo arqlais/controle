@@ -2182,3 +2182,45 @@
 /* aviso do rodapé colado na assinatura (sem o vão grande no meio) */
 .ape:not(.ape-publico) .ape-main { padding-bottom: 14px; }
 @media (max-width: 760px) { .ape:not(.ape-publico) .ape-main { padding-bottom: 14px; } }
+
+/* ver como: ícone + nome (lista, cartões, anexos) */
+.ape-vista button span { font-size: 12px; }
+.ape-toolbar2 .ape-vista button { width: auto; padding: 0 10px; gap: 5px; }
+.ape .ape-menuconta-pop .sair { border-top: 1px solid var(--a-line); color: var(--a-muted); }
+/* brinde e 7 dias lado a lado */
+.ape-garantias { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+.ape-garantias > section { margin: 0; height: 100%; }
+@media (max-width: 760px) {
+  /* San Levi no celular: sem o carrinho no topo (a loja tem o dela) */
+  .ape:not(.ape-publico) .ape-shopnav .ape-cartbtn { display: none; }
+  .ape-toolbar2 .ape-filtros-btn .l { display: none; }
+  .ape-toolbar2 .ape-filtros-btn { width: 40px; padding: 0; justify-content: center; position: relative; }
+  .ape-toolbar2 .ape-filtros-btn em { position: absolute; top: -4px; right: -4px; }
+  .ape-toolbar2 .ape-vista { margin-left: auto; }
+  .ape-toolbar2 .ape-vista button { padding: 0 9px; }
+  .ape-toolbar2 .ape-filtros-btn { margin-left: 0; }
+  /* brinde e 7 dias: dois quadradinhos curtos */
+  .ape-garantias { gap: 10px; }
+  .ape-garantias .ape-note, .ape-garantias .ape-surpresa-l, .ape-garantias .ape-eyebrow { display: none !important; }
+  .ape-garantias .ape-art { width: 40px !important; height: 40px !important; }
+  .ape-garantias > section { display: grid !important; grid-template-columns: 1fr !important; justify-items: start; gap: 8px !important; padding: 14px !important; text-align: left; }
+  .ape-garantias .ape-surpresa-box { width: 40px !important; height: 40px !important; }
+  .ape-garantias .ape-sec-t { font-size: 15px !important; line-height: 1.3; margin: 0; }
+  /* arquivos da loja mais curtos: nome, preço e comprar; o resto em "ver por dentro" */
+  .ape-prod .ape-prod-desc, .ape-prod .ape-prod-extra, .ape-prod .ape-tags .ape-pill:nth-child(n+2) { display: none; }
+  .ape-prod .ape-acts > .ape-btn.wide:first-child { display: none; }
+  .ape-prod .ape-thumb { aspect-ratio: 16 / 10; }
+  .ape-prod { gap: 8px !important; }
+  .ape-prod-h { cursor: pointer; }
+}
+@media (max-width: 760px) {
+  .ape .ape-prod .ape-prod-desc { display: none !important; }
+  /* abertura do San Levi enxuta: título, botão e os números numa linha */
+  .ape-orc-hero > div > p:not(.ape-eyebrow) { display: none; }
+  .ape-orc-hero h2 { font-size: 20px !important; }
+  .ape-orc-hero { padding: 16px !important; gap: 12px !important; }
+  .ape-orc-hero .ape-stats { gap: 6px !important; }
+  .ape-orc-hero .ape-stat { padding: 8px 10px !important; display: flex !important; align-items: baseline; gap: 5px; min-height: 0 !important; }
+  .ape-orc-hero .ape-stat b { font-size: 16px !important; }
+  .ape-orc-hero .ape-stat span { font-size: 11px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}

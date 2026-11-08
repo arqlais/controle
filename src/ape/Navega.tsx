@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { href } from '../router'
-import { sessaoLocal } from './api'
+import { contaApi, guardarSessao, sessaoLocal } from './api'
 import { ApeIcon } from './ApeIcon'
 import { APE } from './model'
 import { read } from './shared'
@@ -22,6 +22,15 @@ export function Voltar({ para = href('ape', 'loja'), rotulo = 'voltar' }: { para
 type Extra = { l: string; i: string; onClick: () => void }
 
 /** Atalhos em todas as páginas: área do San Levi, minha conta, plataforma, loja e (para a dona) o painel. */
+/** Sai da conta neste aparelho (conta da loja e cadastro de morador) e volta para a tela de entrar. */
+function sairDaConta() {
+  void contaApi('sair').catch(() => null)
+  guardarSessao('')
+  try { for (const k of ['ape-cadastro', 'ape-plat']) localStorage.removeItem(k) } catch { /* ok */ }
+  location.hash = '#/ape/conta'
+  location.reload()
+}
+
 export function MenuConta({ nome, owner = false, morador = false, extra = [], so }: { nome?: string; owner?: boolean; morador?: boolean; extra?: Extra[]; so?: string[] }) {
   const [aberto, setAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -66,6 +75,9 @@ export function MenuConta({ nome, owner = false, morador = false, extra = [], so
               <span>{l}</span>
             </a>
           ))}
+          {(logado || !!nome) && (
+            <button role="menuitem" className="sair" onClick={() => { setAberto(false); sairDaConta() }}><ApeIcon name="x" />sair da conta</button>
+          )}
         </div>
       )}
     </div>
