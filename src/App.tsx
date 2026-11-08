@@ -550,7 +550,7 @@ export default function App() {
   if (route.page === 'ape-admin' && access.has('painelDona') && !access.legacy)
     return (
       <Suspense fallback={<div className="loading-screen" />}>
-        <ApeAdmin />
+        <ApeAdmin dark={dark} setDark={setDark} />
       </Suspense>
     )
 

@@ -452,8 +452,8 @@ try {
       await page.evaluate((h) => (location.hash = h), h); await page.waitForTimeout(500)
       ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `apê ${vp.name}: ${h} cabe na tela`)
     }
-    if (await page.locator('.ape-pp-bnav').isVisible().catch(() => false)) await page.locator('.ape-pp-bnav button', { hasText: /enviados/i }).click().catch(() => {})
-    else await page.locator('.ape-pp-nav button', { hasText: /enviados/i }).click().catch(() => {})
+    if (await page.locator('.bottom-nav').isVisible().catch(() => false)) await page.locator('.bottom-nav a', { hasText: /enviados/i }).click().catch(() => {})
+    else await page.locator('.sidebar nav a', { hasText: /enviados/i }).click().catch(() => {})
     await page.waitForTimeout(300)
     ok(await page.locator('.ape-envio', { hasText: 'Loja Teste' }).count() === 1, `apê ${vp.name}: dona recebe o orçamento enviado`)
     ok(errors.length === 0, `apê ${vp.name}: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)

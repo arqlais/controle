@@ -3,6 +3,10 @@ import { askGemini, readFile, type Attachment } from '../components/AIChat'
 import { ask, toast } from '../components/dialog'
 import { href } from '../router'
 import { useStore } from '../store'
+import { Icon } from '../components/Icon'
+import { BrandMark } from '../components/PlaneMark'
+import { AvatarGlyph } from '../components/Avatar'
+import { PLATFORM } from '../plans'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import { MARK_SVG, emailOk } from './shared'
@@ -16,12 +20,6 @@ import './ape.css'
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
 type Tab = 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
-/* o painel em 4 partes: início (o que precisa de atenção), San Levi, loja e testar */
-const SECOES: [string, string, Tab[]][] = [
-  ['inicio', 'geral', ['inicio', 'testar']],
-  ['sanlevi', 'San Levi', ['moradores', 'recebidos', 'lista', 'grupos', 'novo']],
-  ['loja', 'loja', ['pedidos', 'clientes', 'loja', 'entregas', 'opiniao']],
-]
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -29,7 +27,7 @@ interface Draft {
   envio?: string // id do envio que virou este orçamento
 }
 
-export default function ApeAdmin() {
+export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; setDark?: (d: boolean) => void } = {}) {
   const { data } = useStore()
   const aiKey = data.settings.aiKey || ''
   const [tab, setTab] = useState<Tab>('inicio')
@@ -43,10 +41,7 @@ export default function ApeAdmin() {
   const [erro, setErro] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
 
-  const [tema, setTema] = useState<'claro' | 'escuro'>(() => { try { return (JSON.parse(localStorage.getItem('ape-tema') || 'null') as 'claro' | 'escuro') || 'claro' } catch { return 'claro' } })
-  const trocarTema = () => setTema((t) => { const n = t === 'escuro' ? 'claro' : 'escuro'; try { localStorage.setItem('ape-tema', JSON.stringify(n)) } catch { /* sem armazenamento */ } return n })
   const [menu, setMenu] = useState(false)
-  const [fechado, setFechado] = useState(() => { try { return !!localStorage.getItem('ape-adm-mini') } catch { return false } })
   const load = useCallback(async () => {
     try {
       const [o, e, m, i, a, es, pe] = await Promise.all([admin.orcamentos(), admin.envios(), admin.moradores(), admin.interesses(), admin.ajustes(), admin.escolhas(), loja.pedidos().catch(() => [] as PedidoAdmin[])])
@@ -74,12 +69,15 @@ export default function ApeAdmin() {
   }
 
   const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
+  // mesmos ícones do planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
-    inicio: ['início', 'home'], moradores: ['cadastros', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'list'], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', 'plus'], grupos: ['fechar em grupo', 'users'],
-    pedidos: ['vendas', 'bag', nCancel], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'tag'], entregas: ['arquivos', 'file'], opiniao: ['depoimentos', 'star'], testar: ['testar como cliente', 'eye'],
+    inicio: ['início', 'home'], moradores: ['cadastros', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file'], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', 'plus'], grupos: ['fechar em grupo', 'target'],
+    pedidos: ['vendas', 'wallet', nCancel], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos da loja', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], [APE.condominio, ['moradores', 'recebidos', 'lista', 'grupos', 'novo']], ['loja', ['pedidos', 'clientes', 'loja', 'entregas', 'opiniao']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
+  const minhaPlat = (() => { try { return JSON.parse(localStorage.getItem('ape-plat') || 'null') as string | null } catch { return null } })()
   const copiar = async (u: string, d: string) => {
     try {
       await navigator.clipboard.writeText(u)
@@ -88,64 +86,77 @@ export default function ApeAdmin() {
       toast(u.replace('https://', ''))
     }
   }
+  const link = (k: Tab) => (
+    <a key={k} href={href('ape-admin')} className={tab === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
+      <Icon name={ITENS[k][1]} />
+      <span>{ITENS[k][0]}</span>
+      {ITENS[k][2] ? <em className="nav-alert">{ITENS[k][2]}</em> : null}
+    </a>
+  )
   return (
-    <div className={`ape ape-pp ape-adm ${fechado ? 'mini' : ''} ${menu ? 'menu-aberto' : ''}`} data-tema={tema}>
-      <aside className="ape-pp-side" aria-label="Menu do painel">
-        <div className="ape-pp-marca">
-          <a className="ape-pp-logo" href={href('inicio')} aria-label="Voltar para o planê">
-            <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
-            <span className="t">planê<b>.apê</b></span>
-          </a>
-          <button className="ape-pp-ic so-pc" onClick={() => { setFechado(!fechado); try { localStorage.setItem('ape-adm-mini', fechado ? '' : '1') } catch { /* sem armazenamento */ } }} aria-label={fechado ? 'Abrir o menu' : 'Recolher o menu'} title={fechado ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
-          <button className="ape-pp-ic so-cel" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
-        </div>
-        <a className="ape-pp-voltarplane" href={href('inicio')} title="voltar para o planê arquitetura">
-          <ApeIcon name="chev" /><span>voltar ao <b>planê</b></span>
+    <div className={`app ape-adm-app ${menu ? 'menu-open' : ''}`}>
+      <aside className="sidebar">
+        <a className="platform-mark" href={href('inicio')} aria-label="planê">
+          <BrandMark place="menu" size={34} />
+          {PLATFORM.name}
         </a>
-        <div className="ape-pp-casa as-div">
-          <span className="ape-pp-casa-foto"><ApeIcon name="gear" /></span>
-          <span className="t"><small>só você vê</small><b>painel da dona</b></span>
-        </div>
-        <nav className="ape-pp-nav">
-          {SECOES.map(([id, l, tabs]) => (
-            <div key={id} className="ape-pp-grupo">
-              <span className="ape-pp-gt">{l}</span>
-              {tabs.map((k) => (
-                <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => ir(k)} title={ITENS[k][0]}>
-                  <ApeIcon name={ITENS[k][1]} /><span>{ITENS[k][0]}</span>{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}
-                </button>
-              ))}
-            </div>
+        <a className="brand" href={href('ape-admin')} onClick={(e) => { e.preventDefault(); ir('inicio') }} title="planê.apê: painel">
+          <span className="brand-photo"><span className="ape-adm-markmini" dangerouslySetInnerHTML={{ __html: MARK_SVG }} /></span>
+          <span className="brand-text">
+            <span className="brand-kicker">painel da loja</span>
+            <span className="brand-name">planê.apê<i>.</i></span>
+          </span>
+        </a>
+        <nav>
+          {GRUPOS_MENU.map(([g, tabs]) => (
+            <Fragment key={g || 'inicio'}>
+              {g && <span className="nav-group-label nav-main-label">{g}</span>}
+              {tabs.map(link)}
+            </Fragment>
           ))}
-          <div className="ape-pp-grupo">
-            <span className="ape-pp-gt">páginas</span>
-            <a className="ape-pp-navlink" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="página de vendas"><ApeIcon name="bag" /><span>página de vendas ↗</span></a>
-            <a className="ape-pp-navlink" href={href('ape')} target="_blank" rel="noreferrer" title="página dos moradores"><ApeIcon name="list" /><span>página dos moradores ↗</span></a>
+          <div className="nav-group is-plataforma">
+            <span className="nav-group-label">plataforma</span>
+            <a className="is-tool" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer" title="Abrir a plataforma do apê que você vende"><Icon name="smartphone" /><span>plataforma do apê</span></a>
+            <a className="is-tool" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="Página de vendas (como os visitantes veem)"><Icon name="eye" /><span>página de vendas</span></a>
+            <a className="is-tool" href={href('ape')} target="_blank" rel="noreferrer" title="Página dos moradores do San Levi"><Icon name="building" /><span>página dos moradores</span></a>
+            <a href={href('ape-admin')} className={`is-tool ${tab === 'testar' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); ir('testar') }} title="Ver tudo como cliente, com tudo liberado"><Icon name="user" /><span>ver como cliente</span></a>
+            <a className="is-tool" href={href('inicio')} title="Voltar para o planê arquitetura"><Icon name="chevronL" /><span>voltar ao planê</span></a>
           </div>
         </nav>
-        <div className="ape-pp-pe">
-          <button className="ape-pp-ic" onClick={trocarTema} title={tema === 'escuro' ? 'modo claro' : 'modo escuro'} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
-          <button className="ape-pp-ic" onClick={() => void copiar('https://useplane.com.br/ape/sanlevi/', 'link dos moradores')} title="copiar o link dos moradores" aria-label="Copiar o link dos moradores"><ApeIcon name="users" /></button>
-          <button className="ape-pp-ic" onClick={() => void copiar('https://useplane.com.br/ape/', 'link da loja')} title="copiar o link da loja" aria-label="Copiar o link da loja"><ApeIcon name="copy" /></button>
-          <a className="ape-pp-ic" href={href('inicio')} title="voltar para o planê" aria-label="Voltar para o planê"><ApeIcon name="home" /></a>
+        <a href={href('perfil')} className="profile-chip" title="Perfil do estúdio e conta">
+          <span className="profile-chip-avatar"><AvatarGlyph s={data.settings} size={18} /></span>
+          <span className="grow">
+            <b>{data.settings.ownerName || data.settings.brandName || 'meu perfil'}</b>
+            <small>dona do planê.apê</small>
+          </span>
+        </a>
+        <div className="sidebar-foot">
+          {setDark && <button className="icon-btn" onClick={() => setDark(!dark)} title="Tema claro/escuro (só neste aparelho)"><Icon name={dark ? 'sun' : 'moon'} /></button>}
+          <button className="icon-btn" onClick={() => void copiar('https://useplane.com.br/ape/sanlevi/', 'link dos moradores')} title="Copiar o link dos moradores" aria-label="Copiar o link dos moradores"><Icon name="link" /></button>
+          <button className="icon-btn" onClick={() => void copiar('https://useplane.com.br/ape/', 'link da loja')} title="Copiar o link da loja" aria-label="Copiar o link da loja"><Icon name="copy" /></button>
         </div>
       </aside>
-      <div className="ape-pp-scrim" onClick={() => setMenu(false)} />
-      <div className="ape-pp-main">
-        <header className="ape-pp-top">
-          <button className="ape-pp-ic so-cel" onClick={() => setMenu(true)} aria-label="Abrir o menu"><ApeIcon name="list" /></button>
-          <button className="ape-voltar" onClick={() => (tab !== 'inicio' ? ir('inicio') : (window.location.hash = '#/inicio'))} aria-label="Voltar"><ApeIcon name="chev" /><span>{tab !== 'inicio' ? 'início' : 'planê'}</span></button>
-          <div className="ape-pp-tit"><ApeIcon name={atual[1]} /><h1>{atual[0]}</h1></div>
-          <a className="ape-btn sm so-pc" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="eye" />loja</a>
-          <a className="ape-btn sm so-pc" href={href('ape')} target="_blank" rel="noreferrer"><ApeIcon name="eye" />moradores</a>
+      <div className="scrim" onClick={() => setMenu(false)} />
+      <div className="main">
+        <header className="topbar">
+          <button className="icon-btn only-mobile" onClick={() => setMenu(true)} aria-label="Menu"><Icon name="menu" /></button>
+          <button className="back-btn" onClick={() => (tab !== 'inicio' ? ir('inicio') : (window.location.hash = '#/inicio'))} aria-label="Voltar" title={tab !== 'inicio' ? 'Voltar para o início do painel' : 'Voltar para o planê'}>
+            <Icon name="chevronL" size={18} />
+            <span className="hide-mobile">voltar</span>
+          </button>
+          <div className="ape-adm-titulo"><Icon name={atual[1]} /><b>{atual[0]}</b></div>
+          <a className="btn hide-mobile" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer"><Icon name="smartphone" size={16} /> plataforma</a>
+          <button className="btn primary" onClick={() => ir('testar')}><Icon name="eye" size={16} /> <span className="hide-mobile">ver como cliente</span></button>
         </header>
-        <main className="ape-pp-cont ape-admin">
-          {erro && (
-            <div className="ape-banner warn">
-              Não consegui ler os dados do {APE.name} ({erro}). Confira se o arquivo <b>supabase/ape.sql</b> já foi rodado no Supabase.
-            </div>
-          )}
-          {!apeCloud && <div className="ape-banner">Prévia: tudo fica só neste navegador.</div>}
+        <main className="content">
+          <div className="page">
+            <div className="ape ape-admin ape-adm-conteudo">
+              {erro && (
+                <div className="ape-banner warn">
+                  Não consegui ler os dados do {APE.name} ({erro}). Confira se o arquivo <b>supabase/ape.sql</b> já foi rodado no Supabase.
+                </div>
+              )}
+              {!apeCloud && <div className="ape-banner">Prévia: tudo fica só neste navegador.</div>}
           <div className="ape-panel ape-adm-corpo">
           {tab === 'inicio' && <Inicio moradores={moradores} orcs={orcs} pedidos={pedidos} envios={envios} interesses={interesses} ir={setTab} />}
           {tab === 'recebidos' && (
@@ -183,11 +194,17 @@ export default function ApeAdmin() {
           {tab === 'opiniao' && <Opinioes />}
           {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
           </div>
+            </div>
+          </div>
         </main>
       </div>
-      <nav className="ape-pp-bnav" aria-label="Seções principais">
-        {(['inicio', 'recebidos', 'pedidos', 'grupos'] as Tab[]).map((k) => <button key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => ir(k)}><ApeIcon name={ITENS[k][1]} /><span>{k === 'recebidos' ? 'enviados' : ITENS[k][0].split(' ')[0]}</span>{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}</button>)}
-        <button onClick={() => setMenu(true)}><ApeIcon name="list" /><span>mais</span></button>
+      <nav className="bottom-nav">
+        {(['inicio', 'recebidos', 'lista', 'pedidos', 'testar'] as Tab[]).map((k) => (
+          <a key={k} href={href('ape-admin')} className={tab === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
+            <Icon name={ITENS[k][1]} />
+            <span>{k === 'testar' ? 'cliente' : ITENS[k][0].split(' ')[0]}</span>
+          </a>
+        ))}
       </nav>
     </div>
   )
@@ -1282,7 +1299,7 @@ function Opinioes() {
 /* ===== testar como cliente: a dona vê a compra e o pós-compra como quem compra ===== */
 /** Um toque: a dona vira cliente com tudo liberado (todos os arquivos, plataforma e o bônus já aberto). */
 function TudoLiberado({ produtos, onDone }: { produtos: Produto[]; onDone: () => void }) {
-  const [email, setEmail] = useState(() => localStorage.getItem('ape-teste-email') || 'equipe.plane@gmail.com')
+  const [email, setEmail] = useState(() => localStorage.getItem('ape-teste-email') || 'lala.av03@gmail.com')
   const [token, setToken] = useState('')
   const [busy, setBusy] = useState(false)
   const vendaveis = produtos.filter((p) => p.ativo && noCarrinho(p))
@@ -1329,12 +1346,18 @@ function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos:
   const meus = pedidos.filter((p) => p.cortesia && p.obs === 'teste da dona')
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      <TudoLiberado produtos={produtos} onDone={onChange} />
-      <div className="ape-banner">Aqui você vê tudo como cliente. O <b>acesso de teste</b> é um pedido de cortesia (sem pagar) com a página do pedido, os downloads com o seu nome no rodapé, o bônus (no 8º dia) e a plataforma do apê. Para testar o pagamento de verdade, faça uma compra pequena na loja e depois reembolse em "vendas".</div>
-      <div className="ape-acts">
-        <a className="ape-btn" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="bag" />abrir a loja</a>
-        <a className="ape-btn" href={href('ape', 'checkout')} target="_blank" rel="noreferrer"><ApeIcon name="shield" />abrir o checkout</a>
+      <div className="ape-vercli">
+        {([
+          ['bag', 'loja', 'como um visitante vê', href('ape', 'loja')],
+          ['building', `área do ${APE.condominio}`, 'orçamentos dos moradores', href('ape')],
+          ['user', 'minha conta', 'compras, plataforma e bônus', href('ape', 'conta')],
+          ['smartphone', 'minha plataforma', 'a plataforma que você vende', href('ape', `minha:${(() => { try { return JSON.parse(localStorage.getItem('ape-plat') || 'null') || 'demo' } catch { return 'demo' } })()}`)],
+        ] as const).map(([i, t, d, h]) => (
+          <a key={t} className="ape-vercli-i" href={h} target="_blank" rel="noreferrer"><Icon name={i} size={22} /><b>{t}</b><small>{d}</small></a>
+        ))}
       </div>
+      <TudoLiberado produtos={produtos} onDone={onChange} />
+      <p className="ape-note" style={{ margin: 0 }}>O acesso de teste é uma compra de cortesia (sem pagar): página do pedido, downloads com o seu nome no rodapé, bônus já aberto e a plataforma, sem vencer até você tirar o acesso. Para testar o pagamento de verdade, faça uma compra pequena na loja e depois reembolse em "vendas".</p>
       {meus.length > 0 && (
         <div className="ape-rows">
           {meus.map((p) => (
