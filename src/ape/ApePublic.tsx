@@ -263,14 +263,14 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
 
 /* ===== orçamentos ===== */
 function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEditar }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void; onEditar: () => void; onRecarregar?: () => void }) {
-  const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean; vista?: 'blocos' | 'lista' }>(UI) || {}
+  const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean; vista?: Vista }>(UI) || {}
   const [filtro, setFiltro] = useState(saved.nicho || 'todos')
   const [sort, setSort] = useState<Sort>(saved.sort && SORTS[saved.sort] ? saved.sort : 'compensa')
   const [validos, setValidos] = useState(!!saved.validos)
   const minhaPlanta = plantaDoAp(me?.ap)
   const [pl, setPl] = useState<'todas' | 'canto' | 'corredor'>('todas')
   const [q, setQ] = useState('')
-  const [vista, setVista] = useState<'blocos' | 'lista'>(saved.vista === 'blocos' ? 'blocos' : 'lista')
+  const [vista, setVista] = useState<Vista>(saved.vista === 'blocos' || saved.vista === 'pastas' ? saved.vista : 'lista')
   const [filtros, setFiltros] = useState(false)
   useEffect(() => {
     write(UI, { nicho: filtro, sort, validos, vista })
@@ -386,6 +386,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         <div className="ape-vista" role="group" aria-label="Ver como">
           <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista" aria-label="ver em lista"><ApeIcon name="list" /></button>
           <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em blocos" aria-label="ver em blocos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg></button>
+          <button aria-pressed={vista === 'pastas'} onClick={() => setVista('pastas')} title="ver os arquivos (prints e PDFs)" aria-label="ver os arquivos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg></button>
         </div>
       </div>
       {filtros && (
@@ -452,6 +453,12 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
               </div>
             )
           }
+          // pastas: cada orçamento como chegou (print, PDF ou digitado), só para ver e achar o fornecedor
+          const pastas = () => (
+            <div className="ape-docs">
+              {[...doServico].sort((p, q) => String(q.criado || '').localeCompare(String(p.criado || ''))).map((o) => <Doc key={o.id} o={o} me={me} />)}
+            </div>
+          )
           return (
             <div key={id} className="ape-orc-grupo" style={{ display: 'grid', gap: 18 }}>
               <section className="ape-nicho" aria-label={n.l}>
@@ -465,8 +472,8 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
                     </span>
                   </div>
                 </div>
-                {orcs.length ? (vista === 'lista' ? recebidos() : fileira()) : null}
-                {extras.length > 0 && <Contatos lista={extras} me={me} />}
+                {vista === 'pastas' ? pastas() : orcs.length ? (vista === 'lista' ? recebidos() : fileira()) : null}
+                {vista !== 'pastas' && extras.length > 0 && <Contatos lista={extras} me={me} />}
               </section>
             </div>
           )
@@ -540,6 +547,42 @@ export function RecolherDetalhes() {
   )
 }
 
+type Vista = 'blocos' | 'lista' | 'pastas'
+const capi = (t: string) => t ? t.charAt(0).toUpperCase() + t.slice(1) : t
+/** O que foi orçado (a pedra, o piso, o móvel...) para vir em destaque; e o serviço sem o material. */
+function produtoDe(o: Orcamento): string {
+  const m = (o.materiais?.[0] || '').trim()
+  const s = o.servico.split(' · ').slice(1).join(' · ').trim()
+  return capi(m || s)
+}
+const servicoBase = (o: Orcamento) => o.servico.split(' · ')[0].trim()
+const recebidoEm = (o: Orcamento) => (o.criado ? dmy(String(o.criado).slice(0, 10)) : '')
+
+/** Modo pastas: o orçamento como chegou; toca e abre o print ou o PDF. */
+function Doc({ o, me }: { o: Orcamento; me: Morador | null }) {
+  const [ver, setVer] = useState(false)
+  const c = calc(o)
+  const arq = o.arquivos || []
+  const pdf = arq.some((a) => /pdf/i.test(a.tipo || '') || /\.pdf$/i.test(a.nome || ''))
+  const tipo = !arq.length ? 'digitado' : pdf ? 'PDF' : arq.length > 1 ? `${arq.length} prints` : 'print'
+  const prod = produtoDe(o)
+  const extra = !ehOrcamento(o)
+  return (
+    <>
+      <button type="button" className={`ape-doc ${c.st === 'vencido' ? 'venc' : ''}`} onClick={() => setVer(true)}>
+        <span className="ic"><ApeIcon name={!arq.length ? 'edit' : pdf ? 'file' : 'clip'} /><small>{tipo}</small></span>
+        <span className="t">
+          <b>{o.fornecedor || 'Fornecedor sem nome'}</b>
+          <small>{extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : prod || servicoBase(o)}</small>
+          <em>{[recebidoEm(o) && `recebido ${recebidoEm(o)}`, c.st === 'vencido' ? 'venceu' : ''].filter(Boolean).join(' · ')}</em>
+        </span>
+        {!extra && c.avista != null && <span className="v num">{brl(c.avista)}</span>}
+      </button>
+      {ver && <Original o={o} me={me} onClose={() => setVer(false)} />}
+    </>
+  )
+}
+
 /** Modo lista: uma linha por orçamento; toca para abrir o cartão completo ali mesmo. */
 function Linha({ x, isTop, me, children }: { x: Item; isTop: boolean; me: Morador | null; children: ReactNode }) {
   const [on, setOn] = useState(false)
@@ -549,9 +592,10 @@ function Linha({ x, isTop, me, children }: { x: Item; isTop: boolean; me: Morado
     <div className={`ape-linha ${on ? 'on' : ''} ${isTop ? 'top' : ''}`}>
       <button className="ape-linha-h" aria-expanded={on} onClick={() => setOn(!on)}>
         <span className="t">
-          <b>{isTop && <ApeIcon name="star" />}{o.fornecedor || 'Fornecedor sem nome'}</b>
-          <small>{o.servico}{plantaDe(o).p ? ` · ${plantaDe(o).p}${minha ? ' (a sua)' : ''}` : ''}</small>
+          <b>{isTop && <ApeIcon name="star" />}{produtoDe(o) || o.fornecedor || 'Fornecedor sem nome'}</b>
+          <small>{[produtoDe(o) ? o.fornecedor : '', servicoBase(o), plantaDe(o).p ? `${plantaDe(o).p}${minha ? ' (a sua)' : ''}` : ''].filter(Boolean).join(' · ')}</small>
         </span>
+        <span className="d">{c.st === 'vencido' ? <span className="ape-pill rosa"><ApeIcon name="clock" />venceu</span> : recebidoEm(o) ? <small>recebido<br />{recebidoEm(o)}</small> : null}</span>
         <span className="v num">{brl(c.avista)}<small>à vista</small></span>
         <ApeIcon name="chev" />
       </button>
@@ -576,9 +620,7 @@ function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show,
   const falta = Math.max(0, meta - total)
   const condicao = c.gp > 0 && (!o.grupo_ate || o.grupo_ate >= new Date().toISOString().slice(0, 10))
   const venc =
-    c.st === 'vencido' ? (
-      <span className="ape-pill rosa"><ApeIcon name="clock" />Vencido em {dmy(o.validade)}</span>
-    ) : c.st === 'vence' ? (
+    c.st === 'vencido' ? null : c.st === 'vence' ? (
       <span className="ape-pill rosa"><ApeIcon name="clock" />Vence {c.dias === 0 ? 'hoje' : `em ${c.dias} dia${(c.dias || 0) > 1 ? 's' : ''}`}</span>
     ) : c.st === 'ok' ? (
       <span className="ape-pill"><ApeIcon name="clock" />Válido até {dmy(o.validade)}</span>
@@ -644,13 +686,15 @@ function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show,
 
   return (
     <article className={`ape-oc ${isTop ? 'top' : ''} ${c.st === 'vencido' ? 'vencido' : ''} ${o.oculto ? 'oculto' : ''}`}>
-      {acab && <span className="ape-oc-acab"><ApeIcon name="tag" />{acab}</span>}
-      {isTop && <span className="ape-crown" title={why.join(' · ')}><ApeIcon name="star" />Mais compensa</span>}
-      <div className="ape-oc-h">
-        <b>{o.fornecedor || 'Fornecedor sem nome'}</b>
-        <span>{o.servico}</span>
+      <div className="ape-oc-top">
+        {acab && <span className="ape-oc-acab"><ApeIcon name="tag" />{acab}</span>}
+        {isTop && <span className="ape-crown" title={why.join(' · ')}><ApeIcon name="star" />Mais compensa</span>}
+        {c.st === 'vencido' && <span className="ape-pill rosa"><ApeIcon name="clock" />venceu{o.validade ? ` em ${dmy(o.validade)}` : ''}</span>}
       </div>
-      {o.resumo && <p className="ape-resumo">{o.resumo}</p>}
+      <div className="ape-oc-h">
+        <b title={produtoDe(o) || o.fornecedor}>{produtoDe(o) || o.fornecedor || 'Fornecedor sem nome'}</b>
+        <span>{produtoDe(o) ? `${o.fornecedor || 'Fornecedor sem nome'} · ${servicoBase(o)}` : o.servico}</span>
+      </div>
       <div className={`ape-pr n${1 + ((c.parcelas || 0) >= 2 ? 1 : 0) + (c.grupo != null ? 1 : 0) + (c.m2 != null ? 1 : 0)}`}>
         <div className="ape-pbox hl">
           <span className="l">À vista</span>
@@ -735,6 +779,7 @@ function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show,
       <details className="ape-more">
         <summary><ApeIcon name="chev" />o que está incluso e o que não está</summary>
         <div className="ape-lists">
+          {o.resumo && <p className="ape-resumo">{o.resumo}</p>}
           {o.inclui.length > 0 && <Lista cls="y" t="Inclui" icon="check" itens={o.inclui} />}
           {o.nao_inclui.length > 0 && <Lista cls="n" t="Não inclui" icon="x" itens={o.nao_inclui} />}
           {o.alertas.length > 0 && <Lista cls="a" t="Antes de fechar, confira" icon="alert" itens={o.alertas} />}
@@ -752,8 +797,10 @@ function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show,
           <RecolherDetalhes />
         </div>
       </details>
-      <div className="ape-acts">
-        {vendorWa ? (
+      <div className="ape-acts ape-oc-acts">
+        {vendorWa && c.st === 'vencido' ? (
+          <a className="ape-btn sm" href={wa(vendorWa, `Oi! ${me ? `Sou ${me.nome}, ` : ''}do ${APE.condominio}. Vi o orçamento de ${nicho(o.nicho).l.toLowerCase()} que vocês mandaram${o.validade ? ` (validade ${dmy(o.validade)})` : ''}. Ele ainda vale? Se mudou, pode me mandar o valor atualizado?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />perguntar se ainda vale</a>
+        ) : vendorWa ? (
           <a className="ape-btn primary wide" href={wa(vendorWa, msgFornecedor(o, me))} target="_blank" rel="noopener noreferrer">
             <ApeIcon name="chat" />
             falar com o fornecedor
