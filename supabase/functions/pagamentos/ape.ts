@@ -152,7 +152,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (parc.n > 1) c.total = parc.total
     const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
     const aceite = { versao: TERMOS_VERSAO, em: new Date().toISOString() }
-    const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma }).select('id, token').single()
+    const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma, parcelas: parc.n }).select('id, token').single()
     if (error || !ped) throw new Error(error?.message ?? 'não deu para criar o pedido')
     await contaApi.lead({ email, nome, tel }, 'carrinho').catch(() => null)
     const customer = await cliente(nome, cpf, email, tel)
@@ -371,6 +371,28 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
   const contaApi = makeConta({ db, asaas, json, site, env }, reembolsarPedido)
 
   /** Reenvia o aviso de reembolso para o cliente (só a dona). */
+  /** Rotina diária (idempotente, sem dados na resposta): lembrete único do Pix não pago e aviso do bônus liberado. */
+  async function rotina() {
+    const agora = Date.now()
+    let lembretes = 0, bonus = 0
+    const { data: pend } = await db.from('ape_pedidos').select('*').eq('status', 'pendente').is('lembrete_em', null)
+      .lt('criado', new Date(agora - 60 * 60e3).toISOString()).gt('criado', new Date(agora - 26 * 60 * 60e3).toISOString()).limit(40)
+    for (const ped of pend ?? []) {
+      // não lembra quem já pagou outro pedido depois
+      const { count } = await db.from('ape_pedidos').select('id', { count: 'exact', head: true }).eq('email', ped.email).eq('status', 'pago').gte('criado', ped.criado)
+      await db.from('ape_pedidos').update({ lembrete_em: new Date().toISOString() }).eq('id', ped.id)
+      if (!count && (await contaApi.emailLembretePix(ped).catch(() => false))) lembretes++
+    }
+    const { data: pagos } = await db.from('ape_pedidos').select('*').eq('status', 'pago').eq('cortesia', false).eq('bonus_email', false)
+      .lte('pago_em', new Date(agora - BONUS_DIAS * 864e5).toISOString()).limit(40)
+    for (const ped of pagos ?? []) {
+      await db.from('ape_pedidos').update({ bonus_email: true }).eq('id', ped.id)
+      const temArq = ((ped.itens ?? []) as J[]).some((i) => i.id !== 'plataforma')
+      if (temArq && !ped.cancelamento?.status && (await contaApi.emailBonus(ped).catch(() => false))) bonus++
+    }
+    return json({ ok: true, lembretes, bonus })
+  }
+
   async function avisarReembolso(req: Request, body: J) {
     const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
     const { data: u } = await db.auth.getUser(jwt)
@@ -595,5 +617,5 @@ Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total
     return json({ arquivos: out })
   }
 
-  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, testarEmail: contaApi.testarEmail, avisarReembolso }
+  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, testarEmail: contaApi.testarEmail, avisarReembolso, rotina }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
-import { baixarArquivo, contaApi, guardarSessao, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
+import { baixarArquivo, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
@@ -22,6 +22,8 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   PRODUTOS_LOJA = produtos
   const ativos = produtos.filter((p) => p.ativo)
   const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei' | 'escolhas'>('todos')
+  const [abertas, setAbertas] = useState<string[]>([])
+  const PREVIA = 4
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
   const cart = useCarrinho()
@@ -76,6 +78,14 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         </div>
         <HeroArt pix={pixPct} />
       </section>
+
+      {plat && (
+        <button type="button" className="ape-platbanner" onClick={() => ir('loja-plataforma')}>
+          <span className="ico"><ApeIcon name="phone" /></span>
+          <span className="txt"><b>novidade: plataforma do apê</b><small>gastos, parcelas, obra e vistoria num lugar só, por menos de <span className="ape-keep">R$ {Math.ceil(reais(plat.preco) / 12)}</span> por mês</small></span>
+          <em>conhecer<ApeIcon name="chev" /></em>
+        </button>
+      )}
 
       <div className="ape-marquee" aria-hidden="true">
         <div className="ape-marquee-track">
@@ -145,10 +155,15 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
                 </div>
               </div>
               <div className="ape-shop">
-                {lista.map((p, i) => (
+                {(cat !== 'todos' || abertas.includes(f.id) ? lista : lista.slice(0, PREVIA)).map((p, i) => (
                   <ProdCard key={p.id} n={i + 1} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />
                 ))}
               </div>
+              {cat === 'todos' && lista.length > PREVIA && (
+                <button type="button" className="ape-vermais" aria-expanded={abertas.includes(f.id)} onClick={() => setAbertas(abertas.includes(f.id) ? abertas.filter((x) => x !== f.id) : [...abertas, f.id])}>
+                  {abertas.includes(f.id) ? 'mostrar menos' : `ver mais ${lista.length - PREVIA} ${lista.length - PREVIA === 1 ? 'arquivo' : 'arquivos'} desta etapa`}<ApeIcon name="chev" />
+                </button>
+              )}
             </section>
           )
         })}
@@ -171,7 +186,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       )}
 
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
-      <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} />
+      <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
       <section className="ape-surpresa" aria-label="Bônus surpresa">
         <div className="ape-surpresa-box" aria-hidden="true">
@@ -229,7 +244,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           </button>
         </section>
       )}
-      <MinhasCompras />
+      <MinhasCompras nome={me?.nome} />
       <Vendedor v={ajustes.vendedor} whats={whats} />
       {cart.ids.length > 0 && !verCarrinho && (
         <button key={cart.ids.length} className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
@@ -312,7 +327,7 @@ function Depoimentos() {
 }
 
 /* ===== serviços: separado dos produtos digitais, sempre com proposta antes ===== */
-function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; foto?: string }) {
+function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | null; foto?: string; foto2?: string }) {
   const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria uma proposta de projeto/reforma para a minha casa/apê.`
   const servicos: [string, string][] = [
     ['projeto de interiores', ''],
@@ -331,8 +346,9 @@ function ServicosSec({ whats, me, foto }: { whats: string; me: Morador | null; f
         <p className="ape-proj-local"><ApeIcon name="home" />vistoria de entrega das chaves em Santo André, ABC e região (SP)</p>
         <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir orçamento no WhatsApp</a>
       </div>
-      <div className="ape-proj-img">
+      <div className={`ape-proj-img ${foto && foto2 ? 'duas' : ''}`}>
         <img src={foto || 'ape/amostras/projeto-3d.jpg'} alt="Projeto de interiores" loading="lazy" />
+        {foto && foto2 && <img src={foto2} alt="Projeto de interiores, outro ambiente" loading="lazy" />}
       </div>
     </section>
   )
@@ -382,8 +398,8 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
         </div>
         <ol className="ape-plat-steps">
           <li><b>1</b>Paga uma vez: Pix, cartão à vista ou parcelado</li>
-          <li><b>2</b>O link de acesso aparece na hora, na página do pedido</li>
-          <li><b>3</b>Usa por 12 meses, sem senha: o link é a sua chave</li>
+          <li><b>2</b>Cria o seu acesso com e-mail e senha, na hora</li>
+          <li><b>3</b>Usa por 12 meses no celular ou no computador, em minha conta</li>
         </ol>
         <div className="ape-acts" style={{ flexDirection: 'column' }}>
           <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
@@ -897,7 +913,9 @@ function Vendedor({ v, whats }: { v?: Vendedor; whats: string }) {
 }
 
 /* ===== minhas compras: neste aparelho ou recuperadas pelo CPF + e-mail ===== */
-function MinhasCompras() {
+function MinhasCompras({ nome }: { nome?: string }) {
+  const logado = !!sessaoLocal()
+  const primeiro = (nome || '').trim().split(' ')[0] || nomeLocal()
   const [l, setL] = useState(pedidosLocais())
   const [abrir, setAbrir] = useState(false)
   const [cpf, setCpf] = useState('')
@@ -920,10 +938,13 @@ function MinhasCompras() {
   return (
     <section className="ape-panel ape-minhas" id="loja-compras">
       <div className="ape-minhas-h">
-        <p className="ape-eyebrow">minhas compras</p>
+        <div className="ape-minhas-ola">
+          {logado && primeiro ? <b>oie, {primeiro}!</b> : null}
+          <p className="ape-eyebrow">minhas compras{l.length ? ' neste aparelho' : ''}</p>
+        </div>
         <div className="ape-acts" style={{ gap: 6 }}>
-          <a className="ape-btn primary sm" href={href('ape', 'conta')}><ApeIcon name="shield" />entrar na minha conta</a>
-          <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'sem senha? buscar pelo CPF'}</button>
+          <a className="ape-btn primary sm" href={href('ape', 'conta')}><ApeIcon name={logado ? 'user' : 'shield'} />{logado ? 'abrir minha conta' : 'entrar na minha conta'}</a>
+          {!logado && <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'sem senha? buscar pelo CPF'}</button>}
         </div>
       </div>
       {l.length > 0 ? (
@@ -936,7 +957,7 @@ function MinhasCompras() {
           ))}
         </div>
       ) : (
-        !abrir && <span className="ape-note">As compras feitas neste aparelho aparecem aqui.</span>
+        !abrir && <span className="ape-note">{logado ? 'Todas as suas compras ficam em minha conta.' : 'As compras feitas neste aparelho aparecem aqui.'}</span>
       )}
       {abrir && (
         <form className="ape-frow ape-recuperar" onSubmit={buscar} noValidate>

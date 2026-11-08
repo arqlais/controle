@@ -1,9 +1,12 @@
 // planê.apê: conta do cliente (e-mail e senha), e-mails da loja (Brevo), pedido de cancelamento e depoimentos.
 import type { Deps } from './ape.ts'
+import { botao, brl, caixa, moldura, numPedido, passos, primeiro, resumoPedido } from './emails.ts'
 
 type J = Record<string, any>
 const mailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
+const tel = (t: unknown) => { const d = String(t ?? '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, ''); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, -4)}-${d.slice(-4)}` : d }
+const lista = (ped: J) => ((ped?.itens ?? []) as J[]).map((i) => esc(i.nome)).join(', ')
 const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u))
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 
@@ -30,15 +33,7 @@ export function makeConta({ db, json, site, env }: Deps, reembolsarPedido: (id: 
   const DONO = env('OWNER_EMAIL', env('REPLY_TO', 'equipe.plane@gmail.com'))
 
   /* ===== e-mail (Brevo, a mesma conta dos avisos do planê) ===== */
-  const layout = (titulo: string, texto: string, botao?: string, url?: string) => `<!doctype html><html><body style="margin:0;background:#f5f1eb;font-family:Poppins,Arial,sans-serif;color:#2b2826">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 14px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:18px;padding:28px">
-<tr><td style="font-size:18px;font-weight:700;padding-bottom:18px">planê<span style="color:#9b593f">.apê</span></td></tr>
-<tr><td style="font-size:22px;font-weight:700;padding-bottom:10px">${titulo}</td></tr>
-<tr><td style="font-size:14px;line-height:1.6;color:#4a4542">${texto}</td></tr>
-${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="display:inline-block;background:#4e6472;color:#ffffff;text-decoration:none;font-weight:600;padding:13px 26px;border-radius:999px">${esc(botao)}</a></td></tr>` : ''}
-<tr><td style="font-size:11px;color:#8a817a;padding-top:24px">planê.apê · useplane.com.br/ape · @apzinho_1204 · uso pessoal: proibida a reprodução, distribuição ou revenda dos materiais.</td></tr>
-</table></td></tr></table></body></html>`
+  const PAINEL = `${site.replace(/\/$/, '')}/#/ape-admin`
   async function mandar(para: string, nome: string, assunto: string, html: string) {
     const key = env('BREVO_API_KEY')
     if (!key || !mailOk(para)) return false
@@ -50,16 +45,82 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return !!r?.ok
   }
 
-  /** E-mail da compra: link dos arquivos e convite para criar a senha (uma vez por pedido). */
+  /** E-mail da compra: resumo do pedido, passo a passo para criar o acesso e o que vem depois (uma vez por pedido). */
   async function emailCompra(ped: J) {
     if (!ped?.email || ped.email_enviado) return
     const link = `${APE}#pedido:${ped.token}`
-    const itens = ((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')
-    const ok = await mandar(ped.email, ped.nome, 'Sua compra no planê.apê: arquivos liberados', layout(
-      `Obrigada, ${esc(String(ped.nome || '').split(' ')[0])}!`,
-      `<p>Seu pagamento foi confirmado:</p><ul>${itens}</ul><p>Para abrir os seus arquivos, toque no botão abaixo e <b>crie a sua senha</b> com este e-mail. Depois é só entrar em <b>minha conta</b>, de qualquer aparelho: lá ficam os arquivos, a plataforma (se comprou) e o bônus surpresa, que abre 7 dias depois da compra.</p><p style="font-size:12px;color:#8a817a">Os PDFs saem com o seu nome no rodapé (uso pessoal e intransferível). Direito de arrependimento: 7 dias, em minha conta.</p>`,
-      'criar meu acesso', link))
+    const itens = (ped.itens ?? []) as J[]
+    const temPlat = itens.some((i) => i.id === 'plataforma')
+    const temArq = itens.some((i) => i.id !== 'plataforma')
+    const html = moldura({
+      site,
+      previa: `Pagamento confirmado. Crie o seu acesso para abrir ${temArq ? 'os arquivos' : 'a plataforma'}.`,
+      kicker: 'pagamento confirmado',
+      titulo: `Obrigada, ${primeiro(ped.nome)}! Está tudo liberado.`,
+      corpo: `<p style="margin:0 0 6px">Recebemos o seu pagamento. Agora é só criar o seu acesso, leva menos de 1 minuto:</p>
+${passos([
+  'Toque em <b>criar meu acesso</b>, aqui embaixo.',
+  `Crie uma senha usando <b>este e-mail</b> (${esc(ped.email)}).`,
+  temArq ? 'Pronto: os seus arquivos abrem na hora para baixar. Os PDFs saem com o seu nome no rodapé.' : 'Pronto: a sua plataforma do apê abre na hora.',
+])}
+<div style="padding:8px 0 2px">${botao('criar meu acesso', link)}</div>
+${resumoPedido(ped)}
+${temPlat ? caixa('<b>Plataforma do apê</b>: vale por 12 meses a partir de hoje. Ela fica em <b>minha conta → minha plataforma</b> e funciona no celular e no computador. Dica: no celular, use "adicionar à tela de início" para abrir como um aplicativo.') : ''}
+${temArq ? caixa('<b>Tem um bônus surpresa a caminho.</b> É um arquivo que não está à venda na loja, pensado para quem acabou de pegar as chaves. Ele abre sozinho no 8º dia, em minha conta, e a gente te avisa por e-mail.', 'sec') : ''}
+<p style="margin:14px 0 0;font-size:12px;color:#8a817a">Depois do primeiro acesso, entre sempre por <b>minha conta</b>, de qualquer aparelho, com o seu e-mail e senha. Você tem 7 dias de direito de arrependimento, também em minha conta.</p>`,
+      botao2: ['criar meu acesso', link],
+      ajuda: `Oi! Fiz o pedido nº ${numPedido(ped)} no planê.apê e preciso de ajuda`,
+    })
+    const ok = await mandar(ped.email, ped.nome, `Pagamento confirmado: crie o seu acesso (pedido nº ${numPedido(ped)})`, html)
     if (ok) await db.from('ape_pedidos').update({ email_enviado: true }).eq('id', ped.id)
+  }
+
+  /** Lembrete único para quem gerou o Pix e não pagou (entre 1 hora e 3 dias depois). */
+  async function emailLembretePix(ped: J) {
+    const html = moldura({
+      site,
+      previa: 'O seu pedido ainda está esperando o pagamento.',
+      kicker: 'seu pedido está guardado',
+      titulo: `${primeiro(ped.nome)}, faltou só o pagamento`,
+      corpo: `<p style="margin:0">O seu carrinho ficou guardado. Se ainda quiser, é só tocar no botão abaixo: lá aparece o Pix (copia e cola ou QR Code) ou dá para pagar no cartão.</p>${resumoPedido(ped, 'o que ficou no carrinho')}<p style="margin:0;font-size:12px;color:#8a817a">Se já pagou, pode ignorar este e-mail: a confirmação chega em seguida. Se desistiu, tudo bem, não vamos insistir.</p>`,
+      botao: ['concluir o pagamento', `${APE}#pedido:${ped.token}`],
+      ajuda: 'Oi! Tive uma dúvida para pagar o meu pedido no planê.apê',
+    })
+    return await mandar(ped.email, ped.nome, 'Seu pedido no planê.apê está esperando o pagamento', html)
+  }
+
+  /** Aviso do bônus liberado (8º dia depois da compra). */
+  async function emailBonus(ped: J) {
+    const html = moldura({
+      site,
+      previa: 'O cadeado abriu: o seu bônus surpresa já está em minha conta.',
+      kicker: 'bônus liberado',
+      titulo: 'O seu bônus surpresa abriu!',
+      corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! Passou uma semana desde a sua compra e o presente chegou: o <b>Calendário de manutenção e garantias do 1º ano</b>.</p>${caixa('O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item (portas, janelas, pintura, elétrica, hidráulica, impermeabilização). Ótimo para não perder nenhum prazo com a construtora.')}<p style="margin:0">Ele já está em <b>minha conta</b>, junto com os seus arquivos, com o seu nome no rodapé.</p>`,
+      botao: ['abrir o meu bônus', `${APE}#conta`],
+      ajuda: 'Oi! Tenho uma dúvida sobre o bônus do planê.apê',
+    })
+    return await mandar(ped.email, ped.nome, 'O seu bônus surpresa do planê.apê abriu', html)
+  }
+
+  /** Boas-vindas para quem se cadastra na área dos moradores. */
+  async function emailBoasVindas(email: string, nome: string, sl: boolean) {
+    const html = moldura({
+      site,
+      previa: 'O seu cadastro está feito. Veja o que dá para fazer na área dos moradores.',
+      kicker: sl ? 'área dos moradores do San Levi' : 'cadastro feito',
+      titulo: `Bem-vindo(a), ${primeiro(nome)}!`,
+      corpo: `<p style="margin:0 0 6px">${sl ? 'O seu cadastro na área dos moradores está pronto. Ali, os vizinhos compartilham os orçamentos que receberam para a casa nova:' : 'O seu cadastro está pronto. Veja o que dá para fazer:'}</p>
+${passos(sl ? [
+  '<b>Ver os orçamentos</b> dos vizinhos (marcenaria, piso, gesso, vidros, cortinas e mais), em lista ou em blocos.',
+  '<b>Comparar</b> até 4 lado a lado, com cores, e marcar com quem vai fechar.',
+  '<b>Enviar os seus</b> orçamentos (arquivo ou texto) para ajudar os vizinhos.',
+  '<b>Fechar em grupo</b>: marque interesse e, quando juntar gente, peça desconto ao fornecedor.',
+] : ['Veja a <b>loja</b> com guias, checklists e planilhas para cada fase da casa nova.', 'Tudo o que comprar fica em <b>minha conta</b>.'])}`,
+      botao: [sl ? 'abrir a área dos moradores' : 'abrir a loja', sl ? APE : `${APE}#loja`],
+      botao2: sl ? ['ver a loja de arquivos', `${APE}#loja`] : undefined,
+    })
+    return await mandar(email, nome, sl ? 'Bem-vindo(a) à área dos moradores do San Levi' : 'Bem-vindo(a) ao planê.apê', html)
   }
 
   /* ===== sessão ===== */
@@ -122,6 +183,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       const cli = ja
         ? (await db.from('ape_clientes').update({ senha: h, morador: m.id, nome, tel }).eq('id', ja.id).select('id').single()).data
         : (await db.from('ape_clientes').insert({ email, nome, tel, senha: h, morador: m.id }).select('id').single()).data
+      await emailBoasVindas(email, nome, sl).catch(() => null)
       return json({ token: await novaSessao(cli!.id), morador: await moradorDe(m.id) })
     }
 
@@ -132,7 +194,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       if (!temConta && !(await temCompra(email))) return json({ ok: true }) // não diz se o e-mail existe
       const codigo = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0')
       await db.from('ape_codigos').upsert({ email, codigo: await sha(`${email}:${codigo}`), tentativas: 0, expira: new Date(Date.now() + 30 * 60e3).toISOString() })
-      const enviado = await mandar(email, '', `Seu código do planê.apê: ${codigo}`, layout('Seu código', `<p>Use este código para ${op === 'primeiro' ? 'criar' : 'trocar'} a sua senha. Ele vale por 30 minutos.</p><p style="font-size:30px;font-weight:700;letter-spacing:6px;color:#4e6472">${codigo}</p><p style="font-size:12px;color:#8a817a">Se não foi você, ignore este e-mail.</p>`))
+      const enviado = await mandar(email, '', `Seu código do planê.apê: ${codigo}`, moldura({ site, previa: `Código: ${codigo}`, kicker: op === 'primeiro' ? 'criar senha' : 'trocar senha', titulo: 'Seu código de acesso', corpo: `<p style="margin:0">Use este código para ${op === 'primeiro' ? 'criar' : 'trocar'} a sua senha. Ele vale por 30 minutos.</p>${caixa(`<div style="font-size:34px;font-weight:700;letter-spacing:10px;text-align:center;color:#4e6472">${codigo}</div>`)}<p style="margin:0;font-size:12px;color:#8a817a">Se não foi você, ignore este e-mail: ninguém entra sem este código.</p>` }))
       return json({ ok: true, enviado })
     }
 
@@ -195,7 +257,10 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       const motivo = String(body.motivo ?? '').slice(0, 800)
       await db.from('ape_pedidos').update({ cancelamento: { status: 'pedido', motivo, em: new Date().toISOString() } }).eq('id', ped.id)
       const dias = ped.pago_em ? Math.floor((Date.now() - new Date(ped.pago_em).getTime()) / 864e5) : 0
-      await mandar(DONO, 'Laís', `Pedido de cancelamento: ${ped.nome}`, layout('Pedido de cancelamento', `<p><b>${esc(ped.nome)}</b> (${esc(ped.email)}) pediu para cancelar a compra de ${dias} dia(s) atrás:</p><ul>${((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')}</ul><p>Motivo: ${esc(motivo || 'não informado')}</p><p>${dias <= 7 ? 'Está dentro dos 7 dias do direito de arrependimento: a lei garante o reembolso.' : 'Passou dos 7 dias: você decide.'}</p>`, 'abrir o painel', `${site.replace(/\/$/, '')}/#/ape-admin`))
+      await mandar(DONO, 'Laís', `Pedido de cancelamento: ${ped.nome} (${brl(ped.total)})`, moldura({ site, dona: true, ajuda: false, kicker: 'pedido de cancelamento', titulo: `${esc(ped.nome)} pediu para cancelar`,
+        corpo: `<p style="margin:0">${esc(ped.email)}${ped.tel ? ` · ${tel(ped.tel)}` : ''} · compra de ${dias} dia(s) atrás.</p>${resumoPedido(ped)}${caixa(`<b>Motivo:</b> ${esc(motivo || 'não informado')}`, 'sec')}<p style="margin:0">${dias <= 7 ? 'Está dentro dos 7 dias do direito de arrependimento: a lei garante o reembolso (a taxa do Asaas não volta).' : 'Passou dos 7 dias: você decide se aprova.'} Para responder, abra o painel → vendas.</p>`,
+        botao: ['abrir o painel', PAINEL] }))
+      await mandar(ped.email, ped.nome, 'Recebemos o seu pedido de cancelamento', moldura({ site, kicker: 'pedido de cancelamento', titulo: 'Recebemos o seu pedido', corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! O seu pedido de cancelamento da compra nº ${numPedido(ped)} chegou. A resposta vem por e-mail, normalmente em até 2 dias úteis.</p>${resumoPedido(ped)}` }))
       return json({ ok: true })
     }
     if (op === 'feedback') {
@@ -204,7 +269,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       if (texto.length < 5) return json({ erro: 'Escreva um pouco mais.' }, 400)
       const nota = tipo === 'depoimento' ? Math.min(5, Math.max(1, Number(body.nota) || 5)) : null
       await db.from('ape_feedback').insert({ cliente: c.id, tipo, texto, nota, nome: String(c.nome || '').split(' ')[0] })
-      await mandar(DONO, 'Laís', tipo === 'depoimento' ? `Novo depoimento de ${c.nome}` : `Nova sugestão de ${c.nome}`, layout(tipo === 'depoimento' ? 'Novo depoimento' : 'Nova sugestão', `<p>${esc(texto)}</p><p>${esc(c.nome)} · ${esc(c.email)}</p>${tipo === 'depoimento' ? '<p>Para mostrar na loja, publique no painel → depoimentos.</p>' : ''}`))
+      await mandar(DONO, 'Laís', tipo === 'depoimento' ? `Novo depoimento de ${c.nome}` : `Nova sugestão de ${c.nome}`, moldura({ site, dona: true, ajuda: false, kicker: tipo === 'depoimento' ? `novo depoimento${nota ? ` · nota ${nota}` : ''}` : 'nova sugestão', titulo: esc(c.nome), corpo: `${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">${esc(c.email)}</p>${tipo === 'depoimento' ? '<p>Para mostrar na loja, publique no painel → produtos → depoimentos.</p>' : ''}`, botao: ['abrir o painel', PAINEL] }))
       return json({ ok: true })
     }
     return json({ erro: 'Ação desconhecida.' }, 400)
@@ -223,7 +288,7 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     const r = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ sender: { email: remetente, name: 'planê.apê' }, to: [{ email: DONO }], subject: 'Teste de e-mail do planê.apê', htmlContent: layout('Teste de e-mail', '<p>Se você está lendo isto, os e-mails do planê.apê estão funcionando: compra, venda confirmada e cancelamento.</p>') }),
+      body: JSON.stringify({ sender: { email: remetente, name: 'planê.apê' }, to: [{ email: DONO }], subject: 'Teste de e-mail do planê.apê', htmlContent: moldura({ site, dona: true, ajuda: false, kicker: 'teste', titulo: 'Os e-mails estão funcionando', corpo: '<p style="margin:0">Se você está lendo isto, os e-mails do planê.apê estão saindo: compra, venda confirmada, lembrete do Pix, bônus liberado, boas-vindas, cancelamento e reembolso.</p>' }) }),
     }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response)
     const texto = await r.text().catch(() => '')
     return json({ ok: r.ok, status: r.status, para: DONO, remetente, detalhe: texto.slice(0, 400) })
@@ -233,13 +298,16 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
   async function emailReembolso(ped: J) {
     if (!ped?.email || ped.cortesia) return false
     const v = `R$ ${Number(ped.total).toFixed(2).replace('.', ',')}`
-    return await mandar(ped.email, ped.nome, 'Seu reembolso do planê.apê', layout('Reembolso feito', `<p>Oi, ${esc(String(ped.nome || '').split(' ')[0])}! O reembolso de <b>${v}</b> da sua compra no planê.apê foi feito.</p><p>${ped.forma === 'cartao' ? 'No cartão, o valor aparece como crédito em até 2 faturas, conforme o seu banco.' : 'No Pix, o valor volta para a conta que fez o pagamento, normalmente na hora.'}</p><p>Os links de download e o acesso à plataforma deste pedido foram desativados. Se ficou alguma dúvida, é só responder este e-mail.</p>`))
+    return await mandar(ped.email, ped.nome, `Reembolso feito: ${v} (pedido nº ${numPedido(ped)})`, moldura({ site, previa: `O reembolso de ${v} foi feito.`, kicker: 'reembolso', titulo: 'O seu reembolso foi feito', corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! Devolvemos <b>${v}</b> referente à sua compra no planê.apê.</p>${caixa(ped.forma === 'cartao' ? '<b>Cartão de crédito:</b> o valor aparece como crédito na fatura em até 2 faturas, conforme o seu banco. Se a compra foi parcelada, todas as parcelas são canceladas.' : '<b>Pix:</b> o valor volta para a conta que fez o pagamento, normalmente na hora (pode levar até 1 dia útil).')}${resumoPedido(ped, 'pedido reembolsado')}<p style="margin:0">Os links de download e o acesso à plataforma deste pedido foram desativados. Pedimos que apague os arquivos baixados. Obrigada por ter conhecido o planê.apê.</p>`, ajuda: `Oi! Tenho uma dúvida sobre o reembolso do pedido nº ${numPedido(ped)}` }))
   }
 
   /** Aviso para a dona a cada venda confirmada. */
   async function avisarVenda(ped: J) {
-    const itens = ((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')
-    await mandar(DONO, 'Laís', `Venda confirmada: R$ ${Number(ped.total).toFixed(2).replace('.', ',')} · ${ped.nome}`, layout('Pagamento recebido', `<p><b>${esc(ped.nome)}</b> (${esc(ped.email)}) pagou <b>R$ ${Number(ped.total).toFixed(2).replace('.', ',')}</b> no ${ped.forma === 'cartao' ? 'cartão' : 'Pix'}${ped.cortesia ? ' (cortesia)' : ''}:</p><ul>${itens}</ul>`, 'abrir o painel', `${site.replace(/\/$/, '')}/#/ape-admin`))
+    const n = Number(ped.parcelas) || 1
+    const taxa = ped.forma === 'cartao' ? Number(ped.total) * 0.0299 + 0.49 : 1.99
+    await mandar(DONO, 'Laís', `Venda confirmada: ${brl(ped.total)} · ${ped.nome}`, moldura({ site, dona: true, ajuda: false, previa: `${ped.nome} pagou ${brl(ped.total)}: ${lista(ped)}`, kicker: ped.cortesia ? 'cortesia liberada' : 'pagamento recebido', titulo: `${brl(ped.total)} de ${esc(ped.nome)}`,
+      corpo: `<p style="margin:0">${esc(ped.email)}${ped.tel ? ` · ${tel(ped.tel)}` : ''}</p>${resumoPedido(ped)}${ped.cortesia ? '' : caixa(`Sobra aproximada depois da taxa do Asaas: <b>${brl(Number(ped.total) - taxa)}</b>${n > 1 ? ` (parcelado em ${n}x: o Asaas repassa conforme o seu plano)` : ''}.`)}<p style="margin:0">O cliente já recebeu o e-mail para criar o acesso. Os arquivos saem com o nome dele no rodapé.</p>`,
+      botao: ['abrir o painel', PAINEL] }))
   }
   /** Guarda o contato como lead no Brevo (lista de e-mail marketing): "carrinho" ao começar a compra, "cliente" ao pagar. */
   async function lead(p: J, etapa: 'carrinho' | 'cliente') {
@@ -274,7 +342,11 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
       }
     }
     await db.from('ape_pedidos').update({ cancelamento: { ...(ped.cancelamento ?? {}), status: aprovar ? 'aprovado' : 'negado', resposta, decidido_em: new Date().toISOString() } }).eq('id', ped.id)
-    await mandar(ped.email, ped.nome, aprovar ? 'Seu cancelamento foi aprovado' : 'Sobre o seu pedido de cancelamento', layout(aprovar ? 'Cancelamento aprovado' : 'Pedido de cancelamento', aprovar ? `<p>O valor de R$ ${Number(ped.total).toFixed(2).replace('.', ',')} volta pelo mesmo meio de pagamento (no cartão, pode levar até 2 faturas). Os links de download foram desativados e pedimos que apague os arquivos baixados.</p>${resposta ? `<p>${esc(resposta)}</p>` : ''}` : `<p>${esc(resposta || 'Seu pedido de cancelamento não pôde ser aprovado. Responda este e-mail se quiser conversar.')}</p>`))
+    await mandar(ped.email, ped.nome, aprovar ? 'Seu cancelamento foi aprovado' : 'Sobre o seu pedido de cancelamento', moldura({ site, kicker: 'pedido de cancelamento', titulo: aprovar ? 'Cancelamento aprovado' : 'Sobre o seu pedido de cancelamento',
+      corpo: aprovar
+        ? `<p style="margin:0">Oi, ${primeiro(ped.nome)}! O cancelamento foi aprovado e devolvemos <b>${brl(ped.total)}</b>.</p>${caixa(ped.forma === 'cartao' ? '<b>Cartão:</b> o crédito aparece em até 2 faturas, conforme o seu banco.' : '<b>Pix:</b> o valor volta para a conta que pagou, normalmente na hora.')}${resposta ? `<p>${esc(resposta)}</p>` : ''}${resumoPedido(ped, 'pedido cancelado')}<p style="margin:0">Os links de download foram desativados e pedimos que apague os arquivos baixados.</p>`
+        : `<p style="margin:0">Oi, ${primeiro(ped.nome)}!</p>${caixa(esc(resposta || 'Seu pedido de cancelamento não pôde ser aprovado.'))}<p style="margin:0">Se quiser conversar, é só responder este e-mail.</p>`,
+      ajuda: `Oi! Tenho uma dúvida sobre o cancelamento do pedido nº ${numPedido(ped)}` }))
     return json({ ok: true })
   }
 
@@ -284,5 +356,5 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus }
 }

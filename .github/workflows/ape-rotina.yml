@@ -1,0 +1,21 @@
+name: planê.apê, e-mails automáticos
+
+# A cada 3 horas: lembrete único para quem gerou o Pix e não pagou, e aviso do bônus liberado (8º dia).
+# A função só manda o que está pendente e marca no banco, então rodar de novo não repete e-mail.
+on:
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  rotina:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rodar a rotina
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://lbggvjebkhdcybpkxzxs.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY || 'sb_publishable_uqo6nAVMS7iZsidCPNQRhg_YA9RNaYA' }} # chave pública (a mesma de src/supaConfig.ts)
+        run: |
+          r=$(curl -s -w ' %{http_code}' -X POST "$SUPABASE_URL/functions/v1/pagamentos" -H "apikey: $SUPABASE_ANON_KEY" -H 'Content-Type: application/json' -d '{"acao":"ape-rotina"}')
+          echo "$r"
+          case "$r" in *' 200') ;; *) exit 1 ;; esac

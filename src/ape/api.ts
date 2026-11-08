@@ -13,6 +13,7 @@ export interface Ajustes {
   taxas?: Taxas // taxas do Asaas, só para conferir a margem no painel
   fotoPainel?: string // foto do painel da dona (o símbolo do San Levi se vazio)
   fotoProjeto?: string // foto da seção de projetos (o painel troca; pasta pública ape-publico)
+  fotoProjeto2?: string // segunda foto (opcional): com duas, aparecem lado a lado
   vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
 }
 export interface Vendedor { nome: string; doc: string; cidade: string; email: string }
@@ -74,7 +75,7 @@ const ajustesOf = (d: unknown): Ajustes => {
       for (const id of m.novos) if (!base.some((p) => p.id === id)) { const d = PRODUTOS.find((x) => x.id === id); if (d) base.push(d) }
     }
   }
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoPainel: a.fotoPainel || '' }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -744,11 +745,18 @@ export const loja = {
     const { error } = await sb().from('ape_plataforma').update({ validade }).eq('id', id)
     fail(error)
   },
-  async arquivos(produto: string): Promise<{ nome: string; tamanho: number }[]> {
+  async arquivos(produto: string): Promise<{ nome: string; tamanho: number; em?: string }[]> {
     if (!CLOUD) return []
     const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 20 })
     fail(error)
-    return (data ?? []).filter((f) => f.name && !f.name.startsWith('.') && f.id).map((f) => ({ nome: f.name, tamanho: Number(f.metadata?.size ?? 0) }))
+    return (data ?? []).filter((f) => f.name && !f.name.startsWith('.') && f.id).map((f) => ({ nome: f.name, tamanho: Number(f.metadata?.size ?? 0), em: f.updated_at || f.created_at || '' }))
+  },
+  /** Link temporário (10 min) para a dona ver o arquivo como está guardado. */
+  async urlArquivo(produto: string, nome: string): Promise<string> {
+    if (!CLOUD) throw new Error('Na prévia os arquivos não ficam guardados.')
+    const { data, error } = await sb().storage.from('ape-arquivos').createSignedUrl(`${produto}/${nome}`, 600)
+    fail(error)
+    return data!.signedUrl
   },
   async enviarArquivo(produto: string, f: File) {
     if (!CLOUD) throw new Error('Na prévia os arquivos não ficam guardados.')
@@ -783,7 +791,22 @@ export const sessaoLocal = () => {
 export const guardarSessao = (t: string) => {
   try {
     if (t) localStorage.setItem(SESSAO, t)
-    else localStorage.removeItem(SESSAO)
+    else { localStorage.removeItem(SESSAO); localStorage.removeItem('ape-nome') }
+  } catch {
+    /* ok */
+  }
+}
+/** Primeiro nome de quem está logado neste aparelho (para o "oie, Fulana"). */
+export const nomeLocal = () => {
+  try {
+    return sessaoLocal() ? localStorage.getItem('ape-nome') || '' : ''
+  } catch {
+    return ''
+  }
+}
+export const guardarNome = (n: string) => {
+  try {
+    localStorage.setItem('ape-nome', String(n || '').trim().split(' ')[0])
   } catch {
     /* ok */
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { href } from '../router'
-import { contaApi, guardarSessao, sessaoLocal, apeCloud, type MinhaConta } from './api'
+import { contaApi, guardarNome, guardarSessao, sessaoLocal, apeCloud, type MinhaConta } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, brl, dmy, firstName, fmtTel, wa } from './model'
@@ -21,7 +21,9 @@ export function Conta({ sub, whats }: { sub?: string; whats: string }) {
   const carregar = async () => {
     if (!sessao) return
     try {
-      setConta(await contaApi<MinhaConta>('eu'))
+      const c = await contaApi<MinhaConta>('eu')
+      setConta(c)
+      if (c?.perfil?.nome) guardarNome(c.perfil.nome)
     } catch (e) {
       setErro(String((e as Error).message))
       if (/entre de novo/i.test(String((e as Error).message))) sair()

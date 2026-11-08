@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, sairGrupo, condicaoGrupo, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, nomeLocal, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, sairGrupo, condicaoGrupo, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -8,7 +8,7 @@ import {
   ehSanLevi, ehOrcamento, ondeMora, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { BotaoCarrinho, MenuConta, Voltar } from './Navega'
-import { SanLeviArte, SanLeviIcone } from './SanLevi'
+import { SanLeviArte } from './SanLevi'
 import { Assinatura, AvisoCookies, MARK_SVG, mascaraTel, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
@@ -90,7 +90,7 @@ export function ApePublic({ sub }: { sub?: string }) {
   return (
     <div className={`ape ${publico ? 'ape-publico' : ''}`}>
       {publico ? (
-        <ShopNav morador={morador || owner} owner={owner} nome={me?.nome} voltar={view !== 'loja'} />
+        <ShopNav morador={morador || owner} owner={owner} nome={me?.nome || nomeLocal()} voltar={view !== 'loja'} />
       ) : (
         <header className="ape-top">
           <div className="wrap">
@@ -252,7 +252,6 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
           <button onClick={() => ir('loja-kits')}>kits</button>
           <button onClick={() => ir('loja-plataforma')}>plataforma</button>
           <button onClick={() => ir('loja-servicos')}>projetos</button>
-          {morador && <a href={href('ape')} className="ape-link-sl"><SanLeviIcone size={16} />área do {APE.condominio}</a>}
         </nav>
         <MenuConta nome={nome} owner={owner} morador={morador} so={['sanlevi', 'plataforma', 'conta']} />
         <BotaoCarrinho n={n} />

@@ -9,8 +9,8 @@ import { AvatarGlyph } from '../components/Avatar'
 import { PLATFORM } from '../plans'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
-import { emailOk } from './shared'
-import { SanLeviArte, SanLeviIcone } from './SanLevi'
+import { emailOk, Recolhe } from './shared'
+import { SanLeviArte } from './SanLevi'
 import {
   APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
@@ -74,12 +74,13 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   // mesmos ícones do planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
     inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
-    pedidos: ['vendas', 'wallet', nCancel], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
+    pedidos: ['vendas', 'wallet', nCancel], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
   // menu enxuto: cada item abre uma tela; telas parecidas ficam juntas, em abas dentro dela
-  const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], loja: ['loja', 'entregas', 'opiniao'], pedidos: ['pedidos', 'leads'] }
+  const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], pedidos: ['pedidos', 'leads'] }
   const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
-  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], [APE.condominio, ['moradores', 'lista', 'grupos']], ['loja', ['pedidos', 'clientes', 'loja']]]
+  // do mais usado para o menos usado: vendas no dia a dia, depois o San Levi, depois a vitrine (muda pouco)
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes']], [APE.condominio, ['lista', 'moradores', 'grupos']], ['vitrine da loja', ['loja', 'entregas', 'opiniao']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
   const minhaPlat = (() => { try { return JSON.parse(localStorage.getItem('ape-plat') || 'null') as string | null } catch { return null } })()
@@ -130,17 +131,16 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
         <nav>
           {GRUPOS_MENU.map(([g, tabs]) => (
             <Fragment key={g || 'inicio'}>
-              {g && <span className="nav-group-label nav-main-label ape-adm-gl">{g === APE.condominio && <SanLeviIcone size={13} />}{g}</span>}
+              {g && <span className="nav-group-label nav-main-label ape-adm-gl">{g}</span>}
               {tabs.map(link)}
             </Fragment>
           ))}
           <div className="nav-group is-plataforma">
-            <span className="nav-group-label">plataforma</span>
+            <span className="nav-group-label">ver e testar</span>
+            <a href={href('ape-admin')} className={`is-tool ${tab === 'testar' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); ir('testar') }} title="Ver tudo como cliente, com tudo liberado"><Icon name="eye" /><span>ver como cliente</span></a>
             <a className="is-tool" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer" title="Abrir a plataforma do apê que você vende"><Icon name="smartphone" /><span>plataforma do apê</span></a>
-            <a className="is-tool" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="Página de vendas (como os visitantes veem)"><Icon name="eye" /><span>página de vendas</span></a>
-            <a className="is-tool" href={href('ape')} target="_blank" rel="noreferrer" title="Página dos moradores do San Levi"><SanLeviIcone /><span>página dos moradores</span></a>
-            <a href={href('ape-admin')} className={`is-tool ${tab === 'testar' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); ir('testar') }} title="Ver tudo como cliente, com tudo liberado"><Icon name="user" /><span>ver como cliente</span></a>
-            <a className="is-tool" href={href('inicio')} title="Voltar para o planê arquitetura"><Icon name="chevronL" /><span>voltar ao planê</span></a>
+            <a className="is-tool" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="Página de vendas (como os visitantes veem)"><Icon name="link" /><span>página da loja</span></a>
+            <a className="is-tool" href={href('ape')} target="_blank" rel="noreferrer" title="Página dos moradores do San Levi"><Icon name="users" /><span>página dos moradores</span></a>
           </div>
         </nav>
         <a href={href('perfil')} className="profile-chip" title="Perfil do estúdio e conta">
@@ -151,6 +151,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           </span>
         </a>
         <div className="sidebar-foot">
+          <a className="icon-btn ape-adm-voltaico" href={href('inicio')} title="Voltar para o planê arquitetura" aria-label="Voltar para o planê arquitetura"><Icon name="chevronL" /><span>planê arq.</span></a>
           {setDark && <button className="icon-btn" onClick={() => setDark(!dark)} title="Tema claro/escuro (só neste aparelho)"><Icon name={dark ? 'sun' : 'moon'} /></button>}
           <button className="icon-btn" onClick={() => void copiar('https://useplane.com.br/ape/sanlevi/', 'link dos moradores')} title="Copiar o link dos moradores" aria-label="Copiar o link dos moradores"><Icon name="link" /></button>
           <button className="icon-btn" onClick={() => void copiar('https://useplane.com.br/ape/', 'link da loja')} title="Copiar o link da loja" aria-label="Copiar o link da loja"><Icon name="copy" /></button>
@@ -225,7 +226,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
         </main>
       </div>
       <nav className="bottom-nav">
-        {(['inicio', 'moradores', 'lista', 'pedidos', 'testar'] as Tab[]).map((k) => (
+        {(['inicio', 'pedidos', 'lista', 'moradores', 'testar'] as Tab[]).map((k) => (
           <a key={k} href={href('ape-admin')} className={grupoDe(tab) === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
             <Icon name={ITENS[k][1]} />
             <span>{k === 'testar' ? 'cliente' : ITENS[k][0].split(' ')[0]}</span>
@@ -869,6 +870,8 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
   const [fotoProjeto, setFotoProjeto] = useState(ajustes.fotoProjeto || '')
+  const [fotoProjeto2, setFotoProjeto2] = useState(ajustes.fotoProjeto2 || '')
+  const [subindo2, setSubindo2] = useState(false)
   const [subindo, setSubindo] = useState(false)
   const [busy, setBusy] = useState(false)
   const [abrir, setAbrir] = useState<string | null>(null)
@@ -887,7 +890,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, fotoProjeto, fotoPainel: ajustes.fotoPainel || '' }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '' }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })
@@ -917,14 +920,23 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
       </div>
       <div className="ape-panel ape-adm-box">
         <p className="ape-eyebrow">foto da seção de projetos</p>
-        <div className="ape-adm-foto">
-          <img src={fotoProjeto || 'ape/amostras/projeto-3d.jpg'} alt="Foto atual da seção de projetos" />
+        <div className="ape-adm-fotoproj">
+          <div className={`ape-adm-fotoprev ${fotoProjeto && fotoProjeto2 ? 'duas' : ''}`}>
+            <img src={fotoProjeto || 'ape/amostras/projeto-3d.jpg'} alt="Foto 1 da seção de projetos" />
+            {fotoProjeto && fotoProjeto2 && <img src={fotoProjeto2} alt="Foto 2 da seção de projetos" />}
+          </div>
           <div>
-            <label className="ape-btn primary sm" style={{ cursor: 'pointer' }}><ApeIcon name="clip" />{subindo ? 'enviando…' : 'trocar foto'}
-              <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setSubindo(true); try { setFotoProjeto(await loja.fotoPublica('projeto', f)); toast('Foto enviada. Toque em "salvar loja" para publicar.') } catch (x) { toast(String((x as Error).message)) } setSubindo(false) }} />
-            </label>
-            {fotoProjeto && <button className="ape-btn ghost sm" onClick={() => setFotoProjeto('')}>voltar para a padrão</button>}
-            <span className="ape-hint">Qualquer formato (deitada, em pé ou quadrada): a foto se ajusta sozinha no quadro, sem tirar nada do lugar. Depois toque em "salvar loja".</span>
+            <div className="ape-acts">
+              <label className="ape-btn primary sm" style={{ cursor: 'pointer' }}><ApeIcon name="clip" />{subindo ? 'enviando…' : fotoProjeto ? 'trocar foto 1' : 'colocar foto 1'}
+                <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setSubindo(true); try { setFotoProjeto(await loja.fotoPublica('projeto', f)); toast('Foto enviada. Toque em "salvar loja" para publicar.') } catch (x) { toast(String((x as Error).message)) } setSubindo(false) }} />
+              </label>
+              <label className="ape-btn sm" style={{ cursor: 'pointer' }}><ApeIcon name="plus" />{subindo2 ? 'enviando…' : fotoProjeto2 ? 'trocar foto 2' : 'somar foto 2'}
+                <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setSubindo2(true); try { setFotoProjeto2(await loja.fotoPublica('projeto2', f)); toast('Foto 2 enviada. Toque em "salvar loja" para publicar.') } catch (x) { toast(String((x as Error).message)) } setSubindo2(false) }} />
+              </label>
+              {fotoProjeto2 && <button className="ape-btn ghost sm" onClick={() => setFotoProjeto2('')}>usar só uma</button>}
+              {fotoProjeto && <button className="ape-btn ghost sm" onClick={() => { setFotoProjeto(''); setFotoProjeto2('') }}>voltar para a padrão</button>}
+            </div>
+            <span className="ape-hint">Uma foto: aparece inteira no quadro 4:3 (deitada fica melhor). Duas fotos: aparecem lado a lado, cada uma em pé (ótimo para renders verticais). Depois toque em "salvar loja".</span>
           </div>
         </div>
       </div>
@@ -1476,25 +1488,46 @@ function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos:
 }
 
 /* ===== arquivos que a loja entrega (pasta privada) ===== */
+type ArqLoja = { nome: string; tamanho: number; em?: string }
+const ehPlanilha = (n: string) => /\.(xlsx?|csv)$/i.test(n)
+const kb = (t: number) => (t >= 1024 * 1024 ? `${(t / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(t / 1024))} KB`)
+const dataCurta = (d?: string) => (d ? new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '')
+
 function Entregas({ produtos }: { produtos: Produto[] }) {
-  const itens = [...produtos.filter((p) => p.cat === 'arquivos' || !p.cat), { id: BONUS.id, nome: `Bônus (todas as compras, no 8º dia): ${BONUS.nome}`, desc: '', preco: '', tag: '', ativo: true } as Produto]
-  const [arqs, setArqs] = useState<Record<string, { nome: string; tamanho: number }[]>>({})
+  const itens = useMemo(() => [...produtos.filter((p) => p.cat === 'arquivos' || !p.cat), { id: BONUS.id, nome: `Bônus: ${BONUS.nome}`, desc: '', preco: '', tag: 'chega no 8º dia', ativo: true, fase: 'bonus' } as unknown as Produto], [produtos])
+  const [arqs, setArqs] = useState<Record<string, ArqLoja[]>>({})
+  const [carregou, setCarregou] = useState(false)
   const [busy, setBusy] = useState('')
+  const [busca, setBusca] = useState('')
+  const [filtro, setFiltro] = useState<'todos' | 'sem' | 'pdf' | 'planilha'>('todos')
+  const [ver, setVer] = useState<{ id: string; nome: string; arq: string; url: string; v: number } | null>(null)
   const load = useCallback(async () => {
-    const out: Record<string, { nome: string; tamanho: number }[]> = {}
-    for (const p of itens) out[p.id] = await loja.arquivos(p.id).catch(() => [])
+    const out: Record<string, ArqLoja[]> = {}
+    await Promise.all(itens.map(async (p) => { out[p.id] = await loja.arquivos(p.id).catch(() => []) }))
     setArqs(out)
-  }, [produtos])
-  useEffect(() => {
-    void load()
-  }, [load])
-  const enviar = async (id: string, files: FileList | null) => {
-    if (!files?.length) return
+    setCarregou(true)
+  }, [itens])
+  useEffect(() => { void load() }, [load])
+
+  const abrir = async (id: string, nome: string, arq: string) => {
+    try {
+      setVer({ id, nome, arq, url: await loja.urlArquivo(id, arq), v: Date.now() })
+    } catch (e) {
+      toast((e as Error).message)
+    }
+  }
+  /** Trocar: guarda o novo e tira o antigo do mesmo tipo (se o nome mudou). Assim nunca ficam dois PDFs no mesmo produto. */
+  const trocar = async (id: string, f: File | undefined, antigo?: string) => {
+    if (!f) return
     setBusy(id)
     try {
-      for (const f of Array.from(files)) await loja.enviarArquivo(id, f)
-      toast('Arquivo guardado: quem comprar recebe este.')
+      await loja.enviarArquivo(id, f)
+      const novoNome = f.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.() -]+/g, '-')
+      const velho = antigo ?? (arqs[id] || []).find((a) => ehPlanilha(a.nome) === ehPlanilha(novoNome) && !ehPlanilha(novoNome))?.nome
+      if (velho && velho !== novoNome) await loja.apagarArquivo(id, velho).catch(() => null)
+      toast('Arquivo trocado: quem comprar a partir de agora recebe este.')
       await load()
+      if (ver?.id === id) await abrir(id, ver.nome, novoNome)
     } catch (e) {
       toast(`Não consegui enviar (${(e as Error).message}).`)
     }
@@ -1507,10 +1540,7 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
     for (const f of Array.from(files)) {
       const base = f.name.replace(/\.[^.]+$/, '').toLowerCase()
       const p = itens.find((x) => x.id === base) || [...itens].sort((a, b) => b.id.length - a.id.length).find((x) => base.startsWith(x.id + '-') || base.startsWith(x.id + '_'))
-      if (!p) {
-        sem.push(f.name)
-        continue
-      }
+      if (!p) { sem.push(f.name); continue }
       await loja.enviarArquivo(p.id, f).catch(() => sem.push(f.name))
     }
     setBusy('')
@@ -1520,40 +1550,114 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
   const apagar = async (id: string, nome: string) => {
     if (!(await ask(`Tirar o arquivo ${nome}? Quem comprar não recebe mais ele.`, { confirmLabel: 'tirar', danger: true }))) return
     await loja.apagarArquivo(id, nome).then(load, () => toast('Não consegui tirar.'))
+    if (ver?.arq === nome) setVer(null)
   }
+
+  const com = itens.filter((p) => (arqs[p.id] || []).length).length
+  const q = busca.trim().toLowerCase()
+  const visiveis = itens.filter((p) => {
+    const l = arqs[p.id] || []
+    if (q && !p.nome.toLowerCase().includes(q) && !p.id.includes(q)) return false
+    if (filtro === 'sem') return !l.length
+    if (filtro === 'pdf') return l.some((a) => !ehPlanilha(a.nome))
+    if (filtro === 'planilha') return l.some((a) => ehPlanilha(a.nome))
+    return true
+  })
+  const GRUPOS: [string, string][] = [['comprando', 'para quem vai comprar'], ['comprei', 'para quem já comprou'], ['escolhas', 'escolhas da casa'], ['bonus', 'bônus']]
+  const faseDe = (p: Produto) => String((p as { fase?: string }).fase || 'comprei')
+
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <div className="ape-banner">Envie aqui o arquivo de verdade de cada produto (PDF ou planilha). Ele fica numa pasta privada: só quem pagou baixa, por um link temporário. Os PDFs saem com o nome e parte do CPF de quem comprou no rodapé. Os kits entregam os arquivos de cada item.</div>
-      <label className="ape-btn" style={{ cursor: 'pointer', justifySelf: 'start' }}>
-        <ApeIcon name="plus" />{busy === 'varios' ? 'enviando…' : 'enviar vários de uma vez (pelo nome do arquivo)'}
-        <input type="file" hidden multiple accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void enviarVarios(e.target.files)} />
-      </label>
-      <span className="ape-hint">Ex.: "checklist.pdf" vai para o Checklist de vistoria, "planilha-compra-rosa.xlsx" para a Planilha de custos da compra (as 4 cores ficam juntas), "bonus.pdf" para o bônus.</span>
-      {!apeCloud && <div className="ape-banner warn">Na prévia os arquivos não ficam guardados.</div>}
-      <div className="ape-rows">
-        {itens.map((p) => {
-          const l = arqs[p.id] || []
-          return (
-            <div key={p.id} className="ape-row">
-              <div className="t">
-                <b>{p.nome}</b>
-                {l.length ? l.map((f) => (
-                  <span key={f.nome}>
-                    <ApeIcon name="file" /> {f.nome} · {Math.max(1, Math.round(f.tamanho / 1024))} KB{' '}
-                    <button className="ape-btn ghost sm" onClick={() => void apagar(p.id, f.nome)} aria-label={`Tirar ${f.nome}`}><ApeIcon name="trash" /></button>
-                  </span>
-                )) : <span style={{ color: 'var(--a-ter)' }}>sem arquivo: quem comprar não vai receber nada</span>}
-              </div>
-              <div className="r">
-                <label className="ape-btn sm primary" style={{ cursor: 'pointer' }}>
-                  <ApeIcon name="plus" />{busy === p.id ? 'enviando…' : l.length ? 'trocar / somar' : 'enviar arquivo'}
-                  <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void enviar(p.id, e.target.files)} />
-                </label>
-              </div>
-            </div>
-          )
-        })}
+    <div className="ape-arqs">
+      <div className="ape-panel ape-arqs-topo">
+        <div className="ape-arqs-resumo">
+          <div>
+            <b>{carregou ? `${com} de ${itens.length}` : '…'}</b>
+            <span>produtos com arquivo pronto para entregar</span>
+          </div>
+          <span className="ape-arqs-barra" aria-hidden="true"><i style={{ width: `${itens.length ? (com / itens.length) * 100 : 0}%` }} /></span>
+        </div>
+        <div className="ape-arqs-ferr">
+          <input className="ape-arqs-busca" type="search" placeholder="procurar arquivo" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Procurar arquivo" />
+          <div className="ape-seg ape-arqs-filtro" role="radiogroup">
+            {([['todos', 'todos'], ['sem', 'sem arquivo'], ['pdf', 'PDFs'], ['planilha', 'planilhas']] as const).map(([k, l]) => (
+              <button key={k} role="radio" aria-checked={filtro === k} onClick={() => setFiltro(k)}>{l}</button>
+            ))}
+          </div>
+          <label className="ape-btn sm" style={{ cursor: 'pointer' }}>
+            <ApeIcon name="plus" />{busy === 'varios' ? 'enviando…' : 'enviar vários'}
+            <input type="file" hidden multiple accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void enviarVarios(e.target.files)} />
+          </label>
+        </div>
+        <Recolhe titulo="como funciona">
+          <p className="ape-hint">Cada produto entrega o arquivo guardado aqui (pasta privada: só quem pagou baixa, por link temporário). Os PDFs saem com o nome de quem comprou no rodapé. Para editar: abra o PDF no Canva, ajuste, baixe como PDF e toque em <b>trocar</b>. Em "enviar vários", o nome do arquivo diz o produto: "checklist.pdf", "planilha-compra-rosa.xlsx", "bonus.pdf".</p>
+        </Recolhe>
+        {!apeCloud && <div className="ape-banner warn">Na prévia os arquivos não ficam guardados.</div>}
       </div>
+
+      {GRUPOS.map(([g, titulo]) => {
+        const lista = visiveis.filter((p) => faseDe(p) === g)
+        if (!lista.length) return null
+        return (
+          <section key={g} className="ape-arqs-grupo">
+            <p className="ape-eyebrow">{titulo} <small>{lista.length}</small></p>
+            <div className="ape-arqs-grade">
+              {lista.map((p) => {
+                const l = arqs[p.id] || []
+                const pdf = l.find((a) => !ehPlanilha(a.nome))
+                return (
+                  <article key={p.id} className={`ape-arq ${l.length ? '' : 'falta'}`}>
+                    <button type="button" className="ape-arq-capa" onClick={() => pdf ? void abrir(p.id, p.nome, pdf.nome) : l[0] && void abrir(p.id, p.nome, l[0].nome)} disabled={!l.length} aria-label={`Ver ${p.nome}`}>
+                      <ApeIcon name={l.length ? (pdf ? 'file' : 'tag') : 'alert'} />
+                      <span>{l.length ? (pdf ? 'ver PDF' : 'ver planilha') : 'sem arquivo'}</span>
+                    </button>
+                    <div className="ape-arq-info">
+                      <b>{p.nome}</b>
+                      {l.length ? (
+                        <ul>
+                          {l.map((f) => (
+                            <li key={f.nome}>
+                              <button type="button" className="ape-arq-nome" onClick={() => void abrir(p.id, p.nome, f.nome)} title="ver">{f.nome}</button>
+                              <small>{kb(f.tamanho)}{f.em ? ` · ${dataCurta(f.em)}` : ''}</small>
+                              <button type="button" className="ape-icobtn" onClick={() => void apagar(p.id, f.nome)} aria-label={`Tirar ${f.nome}`}><ApeIcon name="trash" /></button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <span className="ape-arq-falta">quem comprar não recebe nada: envie o arquivo</span>}
+                    </div>
+                    <label className={`ape-btn sm ${l.length ? '' : 'primary'}`} style={{ cursor: 'pointer' }}>
+                      <ApeIcon name={l.length ? 'share' : 'plus'} />{busy === p.id ? 'enviando…' : l.length ? 'trocar' : 'enviar'}
+                      <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void trocar(p.id, e.target.files?.[0])} />
+                    </label>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
+      {!visiveis.length && <div className="ape-panel ape-empty"><b>nada por aqui</b><span>Mude a busca ou o filtro.</span></div>}
+
+      {ver && (
+        <div className="ape-sheet ape-prev" onClick={(e) => e.target === e.currentTarget && setVer(null)}>
+          <div className="ape-sheet-in ape-prev-in" role="dialog" aria-label={`Prévia: ${ver.nome}`}>
+            <header className="ape-prev-top">
+              <div><b>{ver.nome}</b><small>{ver.arq} · como está guardado (o nome do cliente entra no rodapé na hora do download)</small></div>
+              <button type="button" className="ape-icobtn" onClick={() => setVer(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
+            </header>
+            {ehPlanilha(ver.arq)
+              ? <div className="ape-prev-vazio"><ApeIcon name="tag" /><b>Planilhas não abrem aqui</b><span>Baixe para conferir no Excel ou no Google Planilhas.</span></div>
+              : <iframe key={ver.v} className="ape-prev-frame" src={`${ver.url}#view=FitH`} title={`Prévia de ${ver.nome}`} />}
+            <footer className="ape-prev-acts">
+              <a className="ape-btn sm" href={ver.url} target="_blank" rel="noreferrer"><ApeIcon name="eye" />abrir em tela cheia</a>
+              <a className="ape-btn sm" href={ver.url} download={ver.arq}><ApeIcon name="download" />baixar</a>
+              <label className="ape-btn sm primary" style={{ cursor: 'pointer' }}>
+                <ApeIcon name="share" />{busy === ver.id ? 'enviando…' : 'trocar este arquivo'}
+                <input type="file" hidden accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void trocar(ver.id, e.target.files?.[0], ver.arq)} />
+              </label>
+            </footer>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
