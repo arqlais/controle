@@ -1626,12 +1626,12 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
                         ) : <small>{l[0].nome} · {kb(l[0].tamanho)}{ultimo ? ` · ${dataCurta(ultimo)}` : ''}</small>}
                     </div>
                     <div className="ape-arqr-acts">
-                      {l.length > 0 && <button type="button" className="ape-icobtn" onClick={() => void abrir(p.id, p.nome, (pdf || l[0]).nome)} title={pdf ? 'ver o PDF' : 'baixar a planilha'} aria-label={`Ver ${p.nome}`}><ApeIcon name="eye" /></button>}
+                      {l.length > 0 ? <button type="button" className="ape-icobtn" onClick={() => void abrir(p.id, p.nome, (pdf || l[0]).nome)} title={pdf ? 'ver o PDF' : 'baixar a planilha'} aria-label={`Ver ${p.nome}`}><ApeIcon name="eye" /></button> : <span className="ape-arqr-vazio" />}
                       <label className={`ape-btn sm ${l.length ? 'ghost' : 'primary'}`} style={{ cursor: 'pointer' }} title={planilhas.length > 1 ? 'Envie com o mesmo nome (ex.: planilha-rosa.xlsx) para trocar aquela cor' : 'Troca o arquivo atual'}>
                         <ApeIcon name={l.length ? 'share' : 'plus'} />{busy === p.id ? 'enviando…' : l.length ? 'trocar' : 'enviar'}
                         <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void trocar(p.id, e.target.files?.[0])} />
                       </label>
-                      {l.length === 1 && <button type="button" className="ape-icobtn" onClick={() => void apagar(p.id, l[0].nome)} aria-label={`Tirar ${l[0].nome}`} title="tirar"><ApeIcon name="trash" /></button>}
+                      {l.length === 1 ? <button type="button" className="ape-icobtn" onClick={() => void apagar(p.id, l[0].nome)} aria-label={`Tirar ${l[0].nome}`} title="tirar"><ApeIcon name="trash" /></button> : <span className="ape-arqr-vazio" />}
                     </div>
                   </div>
                 )

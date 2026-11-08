@@ -2293,3 +2293,8 @@
 .ape-proj-img.duas, .ape-adm-fotoprev.duas { aspect-ratio: auto !important; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
 .ape-proj-img.duas img, .ape-adm-fotoprev.duas img { aspect-ratio: 4 / 5 !important; height: auto !important; width: 100%; object-fit: cover; }
 .ape-proj-serv li { overflow-wrap: anywhere; }
+/* botões das linhas de arquivo sempre nas mesmas colunas */
+.ape-arqr-acts { display: grid; grid-template-columns: 34px 104px 34px; gap: 4px; align-items: center; justify-items: center; }
+.ape-arqr-acts .ape-btn { width: 100%; justify-content: center; }
+.ape-arqr-vazio { width: 34px; height: 34px; }
+@media (max-width: 560px) { .ape-arqr-acts { justify-content: start; } }
