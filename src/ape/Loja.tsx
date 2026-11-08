@@ -167,6 +167,26 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         <p className="ape-note ape-tipos-nota"><b>arquivos</b> ficam com você para sempre · a <b>plataforma</b> junta tudo, com os seus dados, por 12 meses.</p>
       </section>
 
+      {/* os que mais chamam atenção, misturados (arquivos e kits), numa fileira que rola */}
+      {(() => {
+        const nota = (p: Produto) => (p.destaque ? 4 : 0) + (p.selo ? 3 : 0) + ((p.amostras || []).length ? 1 : 0)
+        const arqTop = [...arquivos].sort((x, y) => nota(y) - nota(x)).slice(0, 7)
+        const kitTop2 = [...kits].sort((x, y) => nota(y) - nota(x)).slice(0, 2)
+        const mix = arqTop.flatMap((p, i) => (i === 2 && kitTop2[0] ? [kitTop2[0], p] : i === 5 && kitTop2[1] ? [kitTop2[1], p] : [p]))
+        if (!mix.length) return null
+        return (
+          <section className="ape-nicho ape-destaques" aria-label="Os mais procurados">
+            <div className="ape-destaques-h">
+              <h3 className="ape-sec-t">os mais <em>queridos</em></h3>
+              <a className="ape-esc-todos" href={href('ape', 'loja:arquivos')}>ver todos<ApeIcon name="chev" /></a>
+            </div>
+            <Fileira n={mix.length} rotulo="arquivos">
+              {mix.map((p) => <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />)}
+            </Fileira>
+          </section>
+        )
+      })()}
+
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 

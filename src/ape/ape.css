@@ -2347,3 +2347,6 @@
 .ape-esc-todos { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--a-pri); text-decoration: none; white-space: nowrap; }
 .ape-esc-todos .ape-i { width: 14px; height: 14px; transform: rotate(-90deg); }
 .ape-esc.plat b { color: var(--a-ink); }
+.ape-destaques { display: grid; gap: 12px; }
+.ape-destaques-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ape-destaques-h .ape-sec-t { margin: 0; }
