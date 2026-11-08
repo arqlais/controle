@@ -2372,3 +2372,17 @@
 .ape-cf-levar { justify-self: start; }
 .ape-cf .ape-frow { align-items: start; }
 .ape-cf-res small { text-transform: none; }
+
+/* página de vendas no celular: menos texto de cara */
+@media (max-width: 560px) {
+  .ape .ape-tipos-nota, .ape .ape-nhead .ape-note { display: none; }
+  .ape .ape-shop .ape-card p, .ape .ape-shop [class*='desc'] { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ape .ape-story p:not(.ape-eyebrow) { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; }
+  .ape .ape-lp-hero .ape-lead { font-size: 14.5px; }
+  .ape .ape-plat-head .ape-lead { font-size: 14px; }
+  .ape .ape-tipo > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+@media (max-width: 560px) { .ape .ape-prod-desc { -webkit-line-clamp: 2; } }
+@media (max-width: 760px) { .ape-fileira-seta { display: none !important; } }
+.ape-proj-serv li { overflow-wrap: normal; word-break: normal; hyphens: none; }
+@media (max-width: 560px) { .ape-proj-serv li { font-size: 12.5px; gap: 8px; padding: 8px 10px; } .ape-proj-serv .ic { width: 26px; height: 26px; } }
