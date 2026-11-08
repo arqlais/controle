@@ -438,7 +438,7 @@ function PlatCelulares() {
 }
 
 /** Uma linha só de cartões: rola para o lado (setas no computador) e "ver tudo" abre em grade. */
-function Fileira({ n, rotulo, children }: { n: number; rotulo: string; children: ReactNode }) {
+export function Fileira({ n, rotulo, children, cls = '' }: { n: number; rotulo: string; children: ReactNode; cls?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const [tudo, setTudo] = useState(false)
   const [sobra, setSobra] = useState(false)
@@ -479,7 +479,7 @@ function Fileira({ n, rotulo, children }: { n: number; rotulo: string; children:
     return () => { el.removeEventListener('pointerdown', desce); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', sobe); el.removeEventListener('click', clique, true) }
   }, [tudo])
   return (
-    <div className={`ape-fileira ${tudo ? 'tudo' : ''} ${sobra && !tudo ? `sobra ${pos}` : ''}`}>
+    <div className={`ape-fileira ${cls} ${tudo ? 'tudo' : ''} ${sobra && !tudo ? `sobra ${pos}` : ''}`}>
       <div className="ape-fileira-vp">
         {!tudo && sobra && pos !== 'ini' && <button type="button" className="ape-fileira-seta e" onClick={() => rolar(-1)} aria-label="Ver os anteriores"><ApeIcon name="chev" /></button>}
         <div ref={ref} className="ape-shop ape-fileira-l" onScroll={medir}>{children}</div>

@@ -11,7 +11,7 @@ import { BotaoCarrinho, MenuConta, Voltar } from './Navega'
 import { SanLeviArte } from './SanLevi'
 import { ehPet, EditarFamilia, type Membro } from './Familia'
 import { Assinatura, AvisoCookies, MARK_SVG, mascaraTel, read, useCarrinho, useToast, write } from './shared'
-import { Checkout, Loja, PedidoPage } from './Loja'
+import { Checkout, Fileira, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
 import { Plataforma } from './Plataforma'
 import { Comparar, Original } from './Comparar'
@@ -334,7 +334,6 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
   if (validos) list = list.filter((o) => calc(o).st !== 'vencido')
   if (pl !== 'todas') list = list.filter((o) => { const x = plantaDe(o).p; return !x || x === pl })
   const groups = NICHOS.map((n) => n[0]).filter((id) => list.some((o) => o.nicho === id))
-  let ctaDone = false
 
   return (
     <>
@@ -381,7 +380,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
       <div className="ape-toolbar ape-toolbar2">
         <label className="ape-search">
           <ApeIcon name="search" />
-          <input type="search" placeholder="Buscar fornecedor ou item…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
+          <input type="search" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
         </label>
         <button type="button" className={`ape-btn sm ape-filtros-btn ${filtros ? 'on' : ''}`} aria-expanded={filtros} onClick={() => setFiltros(!filtros)}><ApeIcon name="gear" />filtros{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0) ? <em>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0)}</em> : null}</button>
         <div className="ape-vista" role="group" aria-label="Ver como">
@@ -402,6 +401,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         </div>
       )}
       <Entenda />
+      <DicaLoja nicho={(groups[0] || 'outros') as Nicho} produtos={d.ajustes.produtos} />
       <div className="ape-orc-lista" style={{ display: 'grid', gap: 26 }}>
         {!list.length && (
           <div className="ape-panel ape-empty">
@@ -409,13 +409,11 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
             <span>Nenhum orçamento com esse filtro. Tente limpar a busca ou mostrar os vencidos.</span>
           </div>
         )}
-        {groups.map((id, gi) => {
+        {groups.map((id) => {
           const doServico = list.filter((o) => o.nicho === id)
           const extras = doServico.filter((o) => !ehOrcamento(o))
           const orcs = doServico.filter(ehOrcamento)
           const n = nicho(id)
-          const showCta = !ctaDone && (gi === 0 || nf !== 'todos')
-          if (showCta) ctaDone = true
           const fecharCom = async (o: Orcamento) => {
             if (!me?.id) return
             try {
@@ -427,21 +425,30 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
             }
           }
           const acabs = [...new Set(orcs.map(acabamentoDe))].sort((x, y) => (x ? 0 : 1) - (y ? 0 : 1) || x.localeCompare(y))
-          const bloco = (lista: Orcamento[], titulo?: string) => {
-            const a = analyze(lista)
-            const sorted = [...a.items].sort(SORTS[sort][1])
-            const top = sort === 'compensa' && a.top ? a.top : null
-            const rest = top ? sorted.filter((x) => x !== top) : sorted
-            const card = (x: Item, isTop: boolean) => <Card key={x.o.id} x={x} a={a} isTop={isTop} me={me} whats={whats} count={d.contagens[x.o.id] || 0} escolhas={d.escolhas[x.o.id] || 0} minha={d.minhas.includes(x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+          const card = (x: Item, a: Analise, isTop: boolean, acab = '') => <Card key={x.o.id} x={x} a={a} isTop={isTop} acab={acab} me={me} whats={whats} count={d.contagens[x.o.id] || 0} escolhas={d.escolhas[x.o.id] || 0} minha={d.minhas.includes(x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+          // blocos: tudo do serviço numa fileira só, lado a lado (cada cartão diz o acabamento); "mais compensa" é por acabamento
+          const fileira = () => {
+            const itens = acabs.flatMap((ac) => {
+              const a = analyze(orcs.filter((o) => acabamentoDe(o) === ac))
+              const sorted = [...a.items].sort(SORTS[sort][1])
+              const top = sort === 'compensa' && a.top ? a.top : null
+              return [...(top ? [top] : []), ...sorted.filter((x) => x !== top)].map((x) => ({ x, a, top: x === top, ac }))
+            })
             return (
-              <div key={titulo || 'geral'} className="ape-acab">
-                {titulo !== undefined && <h4 className="ape-acab-h"><ApeIcon name="tag" />{titulo || 'outros acabamentos'} <span>{lista.length} orçamento{lista.length > 1 ? 's' : ''}</span></h4>}
-                <Comparar orcs={lista} me={me} minhas={d.minhas} onFechar={me?.id ? fecharCom : undefined} />
-                {vista === 'lista' ? (
-                  <div className="ape-linhas">{[...(top ? [top] : []), ...rest].map((x) => <Linha key={x.o.id} x={x} isTop={x === top} me={me}>{card(x, x === top)}</Linha>)}</div>
-                ) : (
-                  <div className="ape-grid">{[...(top ? [top] : []), ...rest].map((x) => card(x, x === top))}</div>
-                )}
+              <div className="ape-acab">
+                <Comparar orcs={orcs} me={me} minhas={d.minhas} onFechar={me?.id ? fecharCom : undefined} />
+                <Fileira n={itens.length} rotulo="orçamentos" cls="ape-fileira-orc">{itens.map((i) => card(i.x, i.a, i.top, acabs.length > 1 ? i.ac || 'outros acabamentos' : ''))}</Fileira>
+              </div>
+            )
+          }
+          // lista: como foi recebido (do mais novo para o mais antigo), sem ranking
+          const recebidos = () => {
+            const a = analyze(orcs)
+            const lista = [...a.items].sort((p, q) => String(q.o.criado || '').localeCompare(String(p.o.criado || '')))
+            return (
+              <div className="ape-acab">
+                <Comparar orcs={orcs} me={me} minhas={d.minhas} onFechar={me?.id ? fecharCom : undefined} />
+                <div className="ape-linhas">{lista.map((x) => <Linha key={x.o.id} x={x} isTop={false} me={me}>{card(x, a, false, acabs.length > 1 ? acabamentoDe(x.o) || 'outros acabamentos' : '')}</Linha>)}</div>
               </div>
             )
           }
@@ -458,10 +465,9 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
                     </span>
                   </div>
                 </div>
-                {acabs.length > 1 ? acabs.map((ac) => bloco(orcs.filter((o) => acabamentoDe(o) === ac), ac)) : orcs.length ? bloco(orcs) : null}
+                {orcs.length ? (vista === 'lista' ? recebidos() : fileira()) : null}
                 {extras.length > 0 && <Contatos lista={extras} me={me} />}
               </section>
-              {showCta && <Cta nicho={id} produtos={d.ajustes.produtos} me={me} whats={whats} />}
             </div>
           )
         })}
@@ -559,7 +565,7 @@ function Linha({ x, isTop, me, children }: { x: Item; isTop: boolean; me: Morado
   )
 }
 
-function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, onEscolha }: { x: Item; a: Analise; isTop: boolean; me: Morador | null; whats: string; count: number; escolhas: number; minha: boolean; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void }) {
+function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show, onCount, onEscolha }: { x: Item; a: Analise; isTop: boolean; acab?: string; me: Morador | null; whats: string; count: number; escolhas: number; minha: boolean; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void }) {
   const { o, c } = x
   const [busy, setBusy] = useState(false)
   const [joined, setJoined] = useState(() => (read<string[]>(GRUPOS) || []).includes(o.id))
@@ -638,6 +644,7 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
 
   return (
     <article className={`ape-oc ${isTop ? 'top' : ''} ${c.st === 'vencido' ? 'vencido' : ''} ${o.oculto ? 'oculto' : ''}`}>
+      {acab && <span className="ape-oc-acab"><ApeIcon name="tag" />{acab}</span>}
       {isTop && <span className="ape-crown" title={why.join(' · ')}><ApeIcon name="star" />Mais compensa</span>}
       <div className="ape-oc-h">
         <b>{o.fornecedor || 'Fornecedor sem nome'}</b>
@@ -796,6 +803,33 @@ function Lista({ cls, t, icon, itens }: { cls: string; t: string; icon: string; 
         ))}
       </ul>
     </div>
+  )
+}
+
+/** Dica discreta da loja na área dos orçamentos: aparece de vez em quando (depois de rolar um pouco), fecha num toque e some por uns dias. */
+const DICA = 'ape-dica-orc'
+function DicaLoja({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[] }) {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const ate = read<number>(DICA) || 0
+    if (Date.now() < ate) return
+    let feito = false
+    const abre = () => { if (!feito) { feito = true; setOn(true) } }
+    const t = window.setTimeout(abre, 40000)
+    const rola = () => { if (window.scrollY > window.innerHeight * 1.2) abre() }
+    window.addEventListener('scroll', rola, { passive: true })
+    return () => { window.clearTimeout(t); window.removeEventListener('scroll', rola) }
+  }, [])
+  const ativos = produtos.filter((p) => p.ativo)
+  const p = ativos.find((x) => x.id === (CTA_BY[n] || 'guia')) || ativos.find((x) => x.id === 'guia') || ativos[0]
+  if (!on || !p) return null
+  const fechar = () => { write(DICA, Date.now() + 5 * 864e5); setOn(false) }
+  return (
+    <aside className="ape-dica" role="complementary" aria-label="Dica">
+      <span className="ic"><ApeIcon name="sparkle" /></span>
+      <a href={href('ape', `loja:${p.id}`)} onClick={fechar}><small>dica</small><b>{p.nome}</b></a>
+      <button type="button" className="ape-icobtn" onClick={fechar} aria-label="Fechar a dica"><ApeIcon name="x" /></button>
+    </aside>
   )
 }
 
