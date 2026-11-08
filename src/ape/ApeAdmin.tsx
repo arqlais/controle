@@ -740,7 +740,7 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
                   {!ehSanLevi(m) && <span className="ape-pill ape-keep" style={{ marginLeft: 6 }}>{m.condominio || 'outro lugar'}</span>}
                 </b>
                 <span>
-                  {ehSanLevi(m) ? `T${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>{m.familia?.length ? <span className="ape-adm-fam">{m.familia.map((t, k) => <MembroIcone key={k} tipo={t as TipoMembro} size={15} />)}</span> : m.pessoas ? ` · ${m.pessoas} pessoa(s)` : ''}{ehSanLevi(m) && !m.aprovado ? ' · aguardando aprovação' : ''}
+                  {ehSanLevi(m) ? `T${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>{m.familia?.length ? <span className="ape-adm-fam">{m.familia.map((x, k) => { const f = typeof x === 'string' ? { tipo: x } : x; return <span key={k} className="ape-adm-fam-m" title={[f.nome, f.papel].filter(Boolean).join(' · ') || f.tipo}><MembroIcone tipo={f.tipo as TipoMembro} size={15} />{f.nome ? <small>{f.nome}</small> : null}</span> })}</span> : m.pessoas ? ` · ${m.pessoas} pessoa(s)` : ''}{ehSanLevi(m) && !m.aprovado ? ' · aguardando aprovação' : ''}
                   {m.criado ? ` · desde ${dmy(m.criado)}` : ''}
                 </span>
                 {x.junto.length > 0 && (

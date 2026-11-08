@@ -9,7 +9,7 @@ import {
 } from './model'
 import { BotaoCarrinho, MenuConta, Voltar } from './Navega'
 import { SanLeviArte } from './SanLevi'
-import { ehPet, MembroIcone, rotuloMembro, type TipoMembro } from './Familia'
+import { ehPet, EditarFamilia, type Membro } from './Familia'
 import { Assinatura, AvisoCookies, MARK_SVG, mascaraTel, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
@@ -823,7 +823,7 @@ function Cta({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[]; me?: M
 function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?: boolean; onDone: (m: Morador) => void; onCancel?: () => void }) {
   const [copiado, setCopiado] = useState(false)
   const [modo, setModo] = useState<'novo' | 'entrar'>('novo')
-  const [familia, setFamilia] = useState<TipoMembro[]>(['adulto'])
+  const [familia, setFamilia] = useState<Membro[]>([{ id: 'eu', nome: '', tipo: 'adulto', papel: 'eu' }])
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const entrar = async (e: FormEvent) => {
@@ -876,7 +876,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
     setBusy(true)
     try {
       if (!me && apeCloud) {
-        const novo = await moradorConta('morador', { ...m, junto: m.moraJunto, email: email.trim().toLowerCase(), senha, pessoas: familia.filter((t) => !ehPet(t)).length || null, familia })
+        const novo = await moradorConta('morador', { ...m, junto: m.moraJunto, email: email.trim().toLowerCase(), senha, pessoas: familia.filter((x) => !ehPet(x.tipo)).length || null, familia: familia.map((x, i) => ({ tipo: x.tipo, nome: (x.nome || (i === 0 ? nome.trim().split(' ')[0] : '')).trim(), papel: (x.papel || '').trim() })) })
         if (novo) onDone(novo)
       } else {
         const id = await cadastrar({ ...m, id: me?.id })
@@ -965,20 +965,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
         {!me && (
           <div className="ape-f ape-gfam">
             <label>Quem vai morar com você? <span className="ape-opc">opcional</span></label>
-            <div className="ape-gfam-linha" aria-live="polite">
-              {familia.map((t, i) => (
-                <button key={i} type="button" className={`ape-gfam-m ${ehPet(t) ? 'pet' : ''}`} onClick={() => i > 0 && setFamilia(familia.filter((_, k) => k !== i))} title={i === 0 ? 'você' : `tirar ${rotuloMembro(t)}`} aria-label={i === 0 ? 'você' : `Tirar ${rotuloMembro(t)}`}>
-                  <MembroIcone tipo={t} size={20} />
-                  <small>{i === 0 ? 'você' : rotuloMembro(t)}</small>
-                  {i > 0 && <i aria-hidden="true">×</i>}
-                </button>
-              ))}
-            </div>
-            <div className="ape-gfam-add" role="group" aria-label="Adicionar quem vai morar">
-              {([['adulto', 'adulto'], ['crianca', 'criança'], ['bebe', 'bebê'], ['cachorro', 'cachorro'], ['gato', 'gato'], ['pet', 'outro pet']] as [TipoMembro, string][]).map(([t, l]) => (
-                <button key={t} type="button" className={ehPet(t) ? 'pet' : ''} onClick={() => familia.length < 12 && setFamilia([...familia, t])} aria-label={`Adicionar ${l}`}><MembroIcone tipo={t} size={18} /><span>+ {l}</span></button>
-              ))}
-            </div>
+            <EditarFamilia membros={familia} mudar={(l) => setFamilia(l.length ? l : [{ id: 'eu', nome: '', tipo: 'adulto', papel: 'eu' }])} />
           </div>
         )}
         {!me && apeCloud && (

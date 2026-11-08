@@ -154,7 +154,7 @@ export interface Morador {
   condominio?: string // 'San Levi' ou o nome que a pessoa digitou
   moraJunto?: boolean // confirmou que mora no mesmo apê de quem já tinha cadastro
   pessoas?: number | null // quantas pessoas vão morar (opcional)
-  familia?: string[] // quem vai morar, com símbolos (adulto, criança, cachorro…)
+  familia?: ({ tipo: string; nome?: string; papel?: string } | string)[] // quem vai morar, com símbolos e nomes
   aprovado?: boolean // San Levi: digitou o código do condomínio ou a Laís aprovou
   torre: string
   ap: string

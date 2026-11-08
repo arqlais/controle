@@ -178,7 +178,7 @@ ${passos(sl ? [
       if (ja?.senha) return json({ erro: 'Esse e-mail já tem conta. Toque em "já tenho conta" e entre.' }, 400)
       const pessoas = Math.min(20, Math.max(0, Number(body.pessoas) || 0)) || null
       const TIPOS = ['adulto', 'crianca', 'bebe', 'idoso', 'cachorro', 'gato', 'passaro', 'peixe', 'roedor', 'pet']
-      const familia = (Array.isArray(body.familia) ? body.familia : []).map(String).filter((t: string) => TIPOS.includes(t)).slice(0, 12)
+      const familia = (Array.isArray(body.familia) ? body.familia : []).map((x: J) => (typeof x === 'string' ? { tipo: x } : { tipo: String(x?.tipo ?? ''), nome: String(x?.nome ?? '').trim().slice(0, 40), papel: String(x?.papel ?? '').trim().slice(0, 40) })).filter((x: J) => TIPOS.includes(x.tipo)).slice(0, 12)
       const { data: m, error } = await db.from('ape_moradores').insert({ nome, tel, torre: sl ? torre : '', ap: sl ? ap : '', condominio: sl ? 'San Levi' : String(body.condominio ?? '').slice(0, 80), mora_junto: body.junto === true, aprovado: sl, pessoas, ...(familia.length ? { familia } : {}) }).select('*').single()
       if (error || !m) return json({ erro: 'Não deu para cadastrar agora.' }, 500)
       const h = await hash(senha)

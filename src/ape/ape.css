@@ -2399,3 +2399,6 @@
 .ape-gfam-add button.pet { color: var(--a-sec); }
 .ape-gfam-add button .ape-i { width: 18px; height: 18px; }
 .ape-adm-fam { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 6px; color: var(--a-pri); }
+.ape-adm-fam-m { display: inline-flex; align-items: center; gap: 2px; margin-right: 4px; }
+.ape-adm-fam-m small { font-size: 11px; color: var(--a-muted); }
+.ape-gfam .ape-fam-ed-l { background: var(--a-bg); }
