@@ -2258,3 +2258,38 @@
 .ape .ape-oc .ape-pbox .v { font-size: 14px; white-space: nowrap; }
 .ape .ape-oc .ape-pbox .l { font-size: 10.5px; }
 .ape .ape-oc .ape-pbox .h { font-size: 10.5px; line-height: 1.35; }
+
+/* painel: arquivos em lista compacta, uma linha por produto */
+.ape-arqs-lista { display: grid; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 16px; overflow: hidden; }
+.ape-arqr { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; }
+.ape-arqr + .ape-arqr { border-top: 1px solid var(--a-line); }
+.ape-arqr.falta { background: color-mix(in srgb, var(--a-sec-soft) 55%, transparent); }
+.ape-arqr-ic { width: 38px; height: 38px; border-radius: 11px; background: var(--a-pri-soft); color: var(--a-pri); display: grid; place-items: center; }
+.ape-arqr.falta .ape-arqr-ic { background: var(--a-sec-soft); color: var(--a-sec); }
+.ape-arqr-ic .ape-i { width: 18px; height: 18px; }
+.ape-arqr-t { min-width: 0; display: grid; gap: 3px; }
+.ape-arqr-t b { font-size: 14px; color: var(--a-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ape-arqr-t small { font-size: 12px; color: var(--a-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ape-arqr-t small.falta { color: var(--a-sec); }
+.ape-arqr-cores { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.ape-cor-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--a-ink); background: var(--a-bg); border: 1px solid var(--a-line); border-radius: 999px; padding: 1px 4px 1px 7px; }
+.ape-cor-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--a-muted); }
+.ape-cor-chip.c-azul i { background: #6b8fb5; } .ape-cor-chip.c-rosa i { background: #d89aa8; } .ape-cor-chip.c-roxa i { background: #9a8ac0; } .ape-cor-chip.c-verde i { background: #8fae9b; }
+.ape-cor-chip button { border: 0; background: none; color: var(--a-muted); font-size: 14px; line-height: 1; padding: 0 2px; cursor: pointer; }
+.ape-cor-chip button:hover { color: var(--a-sec); }
+.ape-arqr-acts { display: flex; align-items: center; gap: 4px; }
+@media (max-width: 560px) {
+  .ape-arqr { grid-template-columns: 34px minmax(0, 1fr); row-gap: 8px; }
+  .ape-arqr-ic { width: 34px; height: 34px; }
+  .ape-arqr-acts { grid-column: 2; justify-content: flex-start; }
+}
+
+/* projetos: serviços em grade com símbolo; fotos 1 em 4:3 ou 2 em 4:5 */
+.ape-proj-serv { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ape-proj-serv li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; background: color-mix(in srgb, #fff 9%, transparent); border: 1px solid color-mix(in srgb, #fff 16%, transparent); color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.25; min-width: 0; }
+.ape-proj-serv .ic { width: 30px; height: 30px; border-radius: 9px; background: color-mix(in srgb, #fff 92%, transparent); color: var(--a-pri); display: grid; place-items: center; flex: none; }
+.ape-proj-serv .ic .ape-i { width: 16px; height: 16px; }
+@media (max-width: 380px) { .ape-proj-serv li { font-size: 12.5px; padding: 8px 10px; } }
+.ape-proj-img.duas, .ape-adm-fotoprev.duas { aspect-ratio: auto !important; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+.ape-proj-img.duas img, .ape-adm-fotoprev.duas img { aspect-ratio: 4 / 5 !important; height: auto !important; width: 100%; object-fit: cover; }
+.ape-proj-serv li { overflow-wrap: anywhere; }

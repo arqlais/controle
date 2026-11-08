@@ -1600,35 +1600,40 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
         return (
           <section key={g} className="ape-arqs-grupo">
             <p className="ape-eyebrow">{titulo} <small>{lista.length}</small></p>
-            <div className="ape-arqs-grade">
+            <div className="ape-arqs-lista">
               {lista.map((p) => {
                 const l = arqs[p.id] || []
                 const pdf = l.find((a) => !ehPlanilha(a.nome))
+                const planilhas = l.filter((a) => ehPlanilha(a.nome))
+                const cor = (n: string) => (n.match(/-(azul|rosa|roxa|verde)\./)?.[1] || n.replace(/\.[^.]+$/, ''))
+                const ultimo = l.map((a) => a.em || '').sort().pop()
                 return (
-                  <article key={p.id} className={`ape-arq ${l.length ? '' : 'falta'}`}>
-                    <button type="button" className="ape-arq-capa" onClick={() => pdf ? void abrir(p.id, p.nome, pdf.nome) : l[0] && void abrir(p.id, p.nome, l[0].nome)} disabled={!l.length} aria-label={`Ver ${p.nome}`}>
-                      <ApeIcon name={l.length ? (pdf ? 'file' : 'tag') : 'alert'} />
-                      <span>{l.length ? (pdf ? 'ver PDF' : 'ver planilha') : 'sem arquivo'}</span>
-                    </button>
-                    <div className="ape-arq-info">
+                  <div key={p.id} className={`ape-arqr ${l.length ? '' : 'falta'}`}>
+                    <span className="ape-arqr-ic" aria-hidden="true"><ApeIcon name={!l.length ? 'alert' : pdf ? 'file' : 'tag'} /></span>
+                    <div className="ape-arqr-t">
                       <b>{p.nome}</b>
-                      {l.length ? (
-                        <ul>
-                          {l.map((f) => (
-                            <li key={f.nome}>
-                              <button type="button" className="ape-arq-nome" onClick={() => void abrir(p.id, p.nome, f.nome)} title="ver">{f.nome}</button>
-                              <small>{kb(f.tamanho)}{f.em ? ` · ${dataCurta(f.em)}` : ''}</small>
-                              <button type="button" className="ape-icobtn" onClick={() => void apagar(p.id, f.nome)} aria-label={`Tirar ${f.nome}`}><ApeIcon name="trash" /></button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : <span className="ape-arq-falta">quem comprar não recebe nada: envie o arquivo</span>}
+                      {!l.length ? <small className="falta">sem arquivo: quem comprar não recebe nada</small>
+                        : planilhas.length > 1 ? (
+                          <span className="ape-arqr-cores">
+                            {planilhas.map((f) => (
+                              <span key={f.nome} className={`ape-cor-chip c-${cor(f.nome)}`} title={`${f.nome} · ${kb(f.tamanho)}`}>
+                                <i />{cor(f.nome)}
+                                <button type="button" onClick={() => void apagar(p.id, f.nome)} aria-label={`Tirar ${f.nome}`}>×</button>
+                              </span>
+                            ))}
+                            <small>{dataCurta(ultimo)}</small>
+                          </span>
+                        ) : <small>{l[0].nome} · {kb(l[0].tamanho)}{ultimo ? ` · ${dataCurta(ultimo)}` : ''}</small>}
                     </div>
-                    <label className={`ape-btn sm ${l.length ? '' : 'primary'}`} style={{ cursor: 'pointer' }}>
-                      <ApeIcon name={l.length ? 'share' : 'plus'} />{busy === p.id ? 'enviando…' : l.length ? 'trocar' : 'enviar'}
-                      <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void trocar(p.id, e.target.files?.[0])} />
-                    </label>
-                  </article>
+                    <div className="ape-arqr-acts">
+                      {l.length > 0 && <button type="button" className="ape-icobtn" onClick={() => void abrir(p.id, p.nome, (pdf || l[0]).nome)} title={pdf ? 'ver o PDF' : 'baixar a planilha'} aria-label={`Ver ${p.nome}`}><ApeIcon name="eye" /></button>}
+                      <label className={`ape-btn sm ${l.length ? 'ghost' : 'primary'}`} style={{ cursor: 'pointer' }} title={planilhas.length > 1 ? 'Envie com o mesmo nome (ex.: planilha-rosa.xlsx) para trocar aquela cor' : 'Troca o arquivo atual'}>
+                        <ApeIcon name={l.length ? 'share' : 'plus'} />{busy === p.id ? 'enviando…' : l.length ? 'trocar' : 'enviar'}
+                        <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void trocar(p.id, e.target.files?.[0])} />
+                      </label>
+                      {l.length === 1 && <button type="button" className="ape-icobtn" onClick={() => void apagar(p.id, l[0].nome)} aria-label={`Tirar ${l[0].nome}`} title="tirar"><ApeIcon name="trash" /></button>}
+                    </div>
+                  </div>
                 )
               })}
             </div>

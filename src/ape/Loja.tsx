@@ -80,7 +80,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       {plat && (
         <button type="button" className="ape-platbanner" onClick={() => ir('loja-plataforma')}>
           <span className="ico"><ApeIcon name="phone" /></span>
-          <span className="txt"><b>novidade: plataforma do apê</b><small>gastos, parcelas, obra e vistoria num lugar só, por menos de <span className="ape-keep">R$ {Math.ceil(reais(plat.preco) / 12)}</span> por mês</small></span>
+          <span className="txt"><b>novidade: plataforma do apê</b><small>gastos, parcelas, obra e vistoria num lugar só, em 12x de menos de <span className="ape-keep">R$ {Math.ceil(parcelas(reais(plat.preco), ajustes.jurosPct ?? JUROS_PCT).slice(-1)[0]?.parcela || reais(plat.preco) / 12)}</span></small></span>
           <em>conhecer<ApeIcon name="chev" /></em>
         </button>
       )}
@@ -322,11 +322,12 @@ function Depoimentos() {
 function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | null; foto?: string; foto2?: string }) {
   const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria uma proposta de projeto/reforma para a minha casa/apê.`
   const servicos: [string, string][] = [
-    ['projeto de interiores', ''],
-    ['marcenaria', ''],
-    ['elétrica e iluminação', ''],
-    ['vistoria de entrega das chaves', ''],
-    ['reforma', ''],
+    ['projeto de interiores', 'sofa'],
+    ['marcenaria planejada', 'tool'],
+    ['elétrica e iluminação', 'bolt'],
+    ['vistoria das chaves', 'check'],
+    ['reforma', 'brush'],
+    ['acompanhar a obra', 'home'],
   ]
   return (
     <section className="ape-proj" id="loja-servicos">
@@ -334,7 +335,7 @@ function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | 
         <span className="ape-proj-tag">serviço à parte · sob orçamento</span>
         <h3>precisa de um <em>projeto?</em></h3>
         <p className="ape-proj-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho com o meu pai, engenheiro civil, em projetos e reformas.</p>
-        <ul className="ape-proj-chips">{servicos.map(([t]) => <li key={t}>{t}</li>)}</ul>
+        <ul className="ape-proj-serv">{servicos.map(([t, i]) => <li key={t}><span className="ic"><ApeIcon name={i} /></span>{t}</li>)}</ul>
         <p className="ape-proj-local"><ApeIcon name="home" />vistoria de entrega das chaves em Santo André, ABC e região (SP)</p>
         <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />orçamento no WhatsApp</a>
       </div>
@@ -385,7 +386,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
           <span className="ape-note">12 meses de acesso · pagamento único</span>
           <div className="ape-price ape-keep">{p.preco} <small>à vista</small></div>
           {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão <small>(com juros)</small></div>}
-          <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>menos de <b className="ape-keep">R$ {Math.ceil(mes)} por mês</b> para deixar a casa nova toda organizada (<span className="ape-keep">{brl(mes)}</span> por mês, pagando à vista)</span></div>
+          <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>preço de cafezinho: <b className="ape-keep">menos de R$ {Math.ceil(ult.n > 1 ? ult.parcela : mes)} por mês</b>{ult.n > 1 ? ` em ${ult.n}x` : ''} para a casa nova toda organizada</span></div>
           <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>
         <ol className="ape-plat-steps">
