@@ -5,7 +5,7 @@ import { href } from '../router'
 import { useStore } from '../store'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
-import { emailOk } from './shared'
+import { MARK_SVG, emailOk } from './shared'
 import {
   APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
@@ -43,6 +43,8 @@ export default function ApeAdmin() {
   const [erro, setErro] = useState('')
   const [draft, setDraft] = useState<Draft | null>(null)
 
+  const [tema, setTema] = useState<'claro' | 'escuro'>(() => { try { return (JSON.parse(localStorage.getItem('ape-tema') || 'null') as 'claro' | 'escuro') || 'claro' } catch { return 'claro' } })
+  const trocarTema = () => setTema((t) => { const n = t === 'escuro' ? 'claro' : 'escuro'; try { localStorage.setItem('ape-tema', JSON.stringify(n)) } catch { /* sem armazenamento */ } return n })
   const [menu, setMenu] = useState(false)
   const [fechado, setFechado] = useState(() => { try { return !!localStorage.getItem('ape-adm-mini') } catch { return false } })
   const load = useCallback(async () => {
@@ -71,78 +73,77 @@ export default function ApeAdmin() {
     setTab('novo')
   }
 
+  const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
+  const ITENS: Record<Tab, [string, string, number?]> = {
+    inicio: ['início', 'home'], moradores: ['cadastros', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'list'], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', 'plus'], grupos: ['fechar em grupo', 'users'],
+    pedidos: ['vendas', 'bag', nCancel], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'tag'], entregas: ['arquivos', 'file'], opiniao: ['depoimentos', 'star'], testar: ['testar como cliente', 'eye'],
+  }
+  const atual = ITENS[tab]
+  const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
+  const copiar = async (u: string, d: string) => {
+    try {
+      await navigator.clipboard.writeText(u)
+      toast(`Copiado: ${u.replace('https://', '')} (${d}).`)
+    } catch {
+      toast(u.replace('https://', ''))
+    }
+  }
   return (
-    <div className="page">
-      <div className="page-head">
-        <div>
-          <p className="eyebrow">
-            <ApeIcon name="home" /> só você vê
-          </p>
-          <h1>
-            {APE.name} <em>{APE.condominio}</em>
-          </h1>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {([['https://useplane.com.br/ape/sanlevi/', 'link dos moradores', 'abre os orçamentos (só San Levi)'], ['https://useplane.com.br/ape/', 'link da loja', 'página de vendas aberta a todos']] as const).map(([u, l, d]) => (
-            <button
-              key={u}
-              className="btn"
-              title={d}
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(u)
-                  toast(`Copiado: ${u.replace('https://', '')} (${d}).`)
-                } catch {
-                  toast(u.replace('https://', ''))
-                }
-              }}
-            >
-              <ApeIcon name="copy" /> copiar {l}
-            </button>
-          ))}
-          <a className="btn" href={href('ape')} target="_blank" rel="noreferrer">
-            <ApeIcon name="eye" /> abrir a página dos moradores
+    <div className={`ape ape-pp ape-adm ${fechado ? 'mini' : ''} ${menu ? 'menu-aberto' : ''}`} data-tema={tema}>
+      <aside className="ape-pp-side" aria-label="Menu do painel">
+        <div className="ape-pp-marca">
+          <a className="ape-pp-logo" href={href('inicio')} aria-label="Voltar para o planê">
+            <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+            <span className="t">planê<b>.apê</b></span>
           </a>
+          <button className="ape-pp-ic so-pc" onClick={() => { setFechado(!fechado); try { localStorage.setItem('ape-adm-mini', fechado ? '' : '1') } catch { /* sem armazenamento */ } }} aria-label={fechado ? 'Abrir o menu' : 'Recolher o menu'} title={fechado ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
+          <button className="ape-pp-ic so-cel" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
         </div>
-      </div>
-      <div className={`ape ape-admin ape-adm-wrap ${fechado ? 'mini' : ''}`}>
-        <div className="ape-panel ape-adm-main" style={{ display: 'grid', gap: 14 }}>
+        <div className="ape-pp-casa as-div">
+          <span className="ape-pp-casa-foto"><ApeIcon name="gear" /></span>
+          <span className="t"><small>só você vê</small><b>painel da dona</b></span>
+        </div>
+        <nav className="ape-pp-nav">
+          {SECOES.map(([id, l, tabs]) => (
+            <div key={id} className="ape-pp-grupo">
+              <span className="ape-pp-gt">{l}</span>
+              {tabs.map((k) => (
+                <button key={k} className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => ir(k)} title={ITENS[k][0]}>
+                  <ApeIcon name={ITENS[k][1]} /><span>{ITENS[k][0]}</span>{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}
+                </button>
+              ))}
+            </div>
+          ))}
+          <div className="ape-pp-grupo">
+            <span className="ape-pp-gt">páginas</span>
+            <a className="ape-pp-navlink" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="página de vendas"><ApeIcon name="bag" /><span>página de vendas ↗</span></a>
+            <a className="ape-pp-navlink" href={href('ape')} target="_blank" rel="noreferrer" title="página dos moradores"><ApeIcon name="list" /><span>página dos moradores ↗</span></a>
+          </div>
+        </nav>
+        <div className="ape-pp-pe">
+          <button className="ape-pp-ic" onClick={trocarTema} title={tema === 'escuro' ? 'modo claro' : 'modo escuro'} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+          <button className="ape-pp-ic" onClick={() => void copiar('https://useplane.com.br/ape/sanlevi/', 'link dos moradores')} title="copiar o link dos moradores" aria-label="Copiar o link dos moradores"><ApeIcon name="users" /></button>
+          <button className="ape-pp-ic" onClick={() => void copiar('https://useplane.com.br/ape/', 'link da loja')} title="copiar o link da loja" aria-label="Copiar o link da loja"><ApeIcon name="copy" /></button>
+          <a className="ape-pp-ic" href={href('inicio')} title="voltar para o planê" aria-label="Voltar para o planê"><ApeIcon name="home" /></a>
+        </div>
+      </aside>
+      <div className="ape-pp-scrim" onClick={() => setMenu(false)} />
+      <div className="ape-pp-main">
+        <header className="ape-pp-top">
+          <button className="ape-pp-ic so-cel" onClick={() => setMenu(true)} aria-label="Abrir o menu"><ApeIcon name="list" /></button>
+          <button className="ape-voltar" onClick={() => (tab !== 'inicio' ? ir('inicio') : (window.location.hash = '#/inicio'))} aria-label="Voltar"><ApeIcon name="chev" /><span>{tab !== 'inicio' ? 'início' : 'planê'}</span></button>
+          <div className="ape-pp-tit"><ApeIcon name={atual[1]} /><h1>{atual[0]}</h1></div>
+          <a className="ape-btn sm so-pc" href={href('ape', 'loja')} target="_blank" rel="noreferrer"><ApeIcon name="eye" />loja</a>
+          <a className="ape-btn sm so-pc" href={href('ape')} target="_blank" rel="noreferrer"><ApeIcon name="eye" />moradores</a>
+        </header>
+        <main className="ape-pp-cont ape-admin">
           {erro && (
             <div className="ape-banner warn">
               Não consegui ler os dados do {APE.name} ({erro}). Confira se o arquivo <b>supabase/ape.sql</b> já foi rodado no Supabase.
             </div>
           )}
           {!apeCloud && <div className="ape-banner">Prévia: tudo fica só neste navegador.</div>}
-          {(() => {
-            const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
-            const ITENS: Record<Tab, [string, string, number?]> = {
-              inicio: ['início', 'home'], moradores: ['cadastros', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'list'], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', 'plus'], grupos: ['fechar em grupo', 'users'],
-              pedidos: ['vendas', 'bag', nCancel], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'tag'], entregas: ['arquivos', 'file'], opiniao: ['depoimentos', 'star'], testar: ['testar como cliente', 'eye'],
-            }
-            const atual = ITENS[tab]
-            return (
-              <>
-                <button className="ape-adm-menubtn" onClick={() => setMenu(true)} aria-label="Abrir o menu do painel"><ApeIcon name="list" /><span>{atual[0]}</span></button>
-                {menu && <div className="ape-adm-scrim" onClick={() => setMenu(false)} />}
-                <nav className={`ape-adm-side ${fechado ? 'mini' : ''} ${menu ? 'aberto' : ''}`} aria-label="Menu do painel">
-                  <div className="ape-adm-side-top">
-                    <button className="ape-adm-toggle" onClick={() => { setFechado(!fechado); try { localStorage.setItem('ape-adm-mini', fechado ? '' : '1') } catch { /* sem armazenamento */ } }} aria-label={fechado ? 'Abrir o menu' : 'Recolher o menu'} title={fechado ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
-                    <button className="ape-adm-x" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
-                  </div>
-                  {SECOES.map(([id, l, tabs]) => (
-                    <div key={id} className="ape-adm-grupo">
-                      <p className="ape-adm-gt">{l}</p>
-                      {tabs.map((k) => (
-                        <button key={k} className="ape-adm-it" aria-current={tab === k ? 'page' : undefined} title={ITENS[k][0]} onClick={() => { setTab(k); setMenu(false) }}>
-                          <ApeIcon name={ITENS[k][1]} /><span>{ITENS[k][0]}</span>{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}
-                        </button>
-                      ))}
-                    </div>
-                  ))}
-                </nav>
-              </>
-            )
-          })()}
+          <div className="ape-panel ape-adm-corpo">
           {tab === 'inicio' && <Inicio moradores={moradores} orcs={orcs} pedidos={pedidos} envios={envios} interesses={interesses} ir={setTab} />}
           {tab === 'recebidos' && (
             <Recebidos
@@ -178,8 +179,13 @@ export default function ApeAdmin() {
           {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
           {tab === 'opiniao' && <Opinioes />}
           {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
-        </div>
+          </div>
+        </main>
       </div>
+      <nav className="ape-pp-bnav" aria-label="Seções principais">
+        {(['inicio', 'recebidos', 'pedidos', 'grupos'] as Tab[]).map((k) => <button key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => ir(k)}><ApeIcon name={ITENS[k][1]} /><span>{k === 'recebidos' ? 'enviados' : ITENS[k][0].split(' ')[0]}</span>{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}</button>)}
+        <button onClick={() => setMenu(true)}><ApeIcon name="list" /><span>mais</span></button>
+      </nav>
     </div>
   )
 }
@@ -720,7 +726,7 @@ function Grupos({ orcs, interesses, onSaved }: { orcs: Orcamento[]; interesses: 
     )
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      <div className="ape-banner">Como funciona: os vizinhos marcam interesse; ao bater a meta ({GRUPO_META} apês, ou o mínimo do fornecedor), mande a mensagem ao fornecedor, negocie e registre aqui o desconto e o prazo. A condição aparece no orçamento para todos.</div>
+      <div className="ape-banner">Os próprios vizinhos puxam a negociação: quem marcou interesse pede o desconto ao fornecedor e registra a condição no orçamento. Aqui você só acompanha e, se precisar, corrige.</div>
       {lista.map(({ o, ppl }) => <GrupoItem key={o.id} o={o} ppl={ppl} onSaved={onSaved} />)}
     </div>
   )
@@ -833,15 +839,15 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   }
   return (
     <div className="ape-form">
-      <div className="ape-banner">Os preços daqui valem também no pagamento (a cobrança é calculada no servidor com a loja salva). Desconto só no Pix; cartão à vista, sem parcelas. Kits: escolha o desconto do kit e o preço sai sozinho, sempre terminando em ,90.</div>
+      <div className="ape-banner">Os preços daqui valem também no pagamento (a cobrança é calculada no servidor com a loja salva). Pix com desconto; cartão à vista sem juros ou parcelado com os juros que você define abaixo. Kits: escolha o desconto do kit e o preço sai sozinho, sempre terminando em ,90.</div>
       <div className="ape-panel ape-adm-box">
         <p className="ape-eyebrow">pagamento e margem</p>
-        <div className="ape-frow">
+        <div className="ape-frow ape-adm-taxas">
           <div className="ape-f"><label htmlFor="l-pix">Desconto no Pix (%)</label><input id="l-pix" inputMode="decimal" value={pixPct} onChange={(e) => setPixPct(e.target.value)} /><span className="ape-hint">De 0 a 10. Sugerido: 5.</span></div>
           <div className="ape-f"><label htmlFor="l-juros">Juros do cartão parcelado (% ao mês)</label><input id="l-juros" inputMode="decimal" value={jurosTxt} onChange={(e) => setJurosTxt(e.target.value)} /><span className="ape-hint ape-keep">1x sem juros. Plataforma em {exPlat[exPlat.length - 1].n}x: {brl(exPlat[exPlat.length - 1].parcela)} (total {brl(exPlat[exPlat.length - 1].total)}). Cobre a taxa do Asaas no parcelado.</span></div>
           <div className="ape-f"><label htmlFor="l-tp">Taxa do Pix (<span className="ape-keep">R$</span> por venda)</label><input id="l-tp" inputMode="decimal" value={String(taxas.pix).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, pix: num(e.target.value) ?? 0 })} /></div>
           <div className="ape-f"><label htmlFor="l-tc">Taxa do cartão (% + <span className="ape-keep">R$</span>)</label>
-            <div className="ape-frow" style={{ gap: 6 }}>
+            <div className="ape-par">
               <input id="l-tc" inputMode="decimal" value={String(taxas.cartaoPct).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, cartaoPct: num(e.target.value) ?? 0 })} aria-label="Taxa do cartão em %" />
               <input inputMode="decimal" value={String(taxas.cartaoFixo).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, cartaoFixo: num(e.target.value) ?? 0 })} aria-label="Taxa fixa do cartão em R$" />
             </div>
@@ -968,6 +974,14 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
 /* ===== vendas da loja ===== */
 const cpfMask = (c: string) => (c && c.length === 11 ? `***.${c.slice(3, 6)}.${c.slice(6, 9)}-**` : '')
 const linkPedido = (t: string) => `https://useplane.com.br/ape/#pedido:${t}`
+/** Itens da compra em uma linha: "Kit completo + Plataforma" ou "Guia de compra + 14 itens". */
+const resumoItens = (itens: { nome: string; id?: string }[]) => {
+  const kit = itens.find((i) => /^kit/i.test(i.nome))
+  const base = kit ? [kit, ...itens.filter((i) => i !== kit && (i.id === 'plataforma' || /plataforma/i.test(i.nome)))] : itens.slice(0, 2)
+  const resto = itens.length - base.length
+  return base.map((i) => i.nome).join(' + ') + (resto > 0 ? ` + ${resto} ${resto === 1 ? 'item' : 'itens'}` : '')
+}
+
 function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () => void }) {
   const [ver, setVer] = useState<'pago' | 'pendente' | 'todos'>('pago')
   const [q, setQ] = useState('')
@@ -1013,7 +1027,7 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
               <div key={p.id} className="ape-row ape-venda">
                 <div className="t">
                   <b>{p.nome} · <span className="ape-keep">{brl(p.total)}</span> · comprou há {dias} dia(s)</b>
-                  <span>{p.itens.map((i) => i.nome).join(' + ')} · baixou {p.baixados}x</span>
+                  <span title={p.itens.map((i) => i.nome).join(' + ')}>{resumoItens(p.itens)} · baixou {p.baixados}x</span>
                   <span>Motivo: {p.cancelamento?.motivo || 'não informado'}</span>
                   <span className={dias <= 7 ? '' : 'ape-ferr'}>{dias <= 7 ? 'Dentro dos 7 dias: o reembolso é direito do cliente (art. 49 do CDC).' : 'Passou dos 7 dias: você pode negar, explicando o motivo.'}</span>
                 </div>
@@ -1047,7 +1061,7 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
             <div key={p.id} className="ape-row ape-venda">
               <div className="t">
                 <b>{p.nome} · <span className="ape-keep">{p.cortesia ? 'cortesia' : brl(p.total)}</span></b>
-                <span>{p.itens.map((i) => i.nome).join(' + ')}</span>
+                <span title={p.itens.map((i) => i.nome).join(' + ')}>{resumoItens(p.itens)}</span>
                 <span>{dmy(p.criado)} · <span className={`ape-pill ${p.status === 'pago' ? 'azul' : p.status === 'pendente' ? '' : 'rosa'}`}>{p.status}</span>{p.status === 'pago' && !p.cortesia ? ` · ${p.forma === 'cartao' ? 'cartão' : 'Pix'} · baixou ${p.baixados}x${dias != null && dias <= 7 ? ` · dentro dos 7 dias (${dias}d)` : ''}` : ''}</span>
                 <span>{[p.email, cpfMask(p.cpf), p.tel ? fmtTel(p.tel) : '', p.aceite ? `termos ${p.aceite.versao}` : ''].filter(Boolean).join(' · ')}</span>
               </div>
@@ -1073,6 +1087,8 @@ function Clientes({ pedidos, produtos, onChange }: { pedidos: PedidoAdmin[]; pro
   const [nova, setNova] = useState(false)
   const load = useCallback(() => void loja.plataformas().then(setPlats, () => setPlats([])), [])
   useEffect(load, [load, pedidos])
+  const [editando, setEditando] = useState('')
+  const [form, setForm] = useState({ nome: '', email: '', tel: '' })
   const clientes = useMemo(() => {
     const m = new Map<string, { nome: string; email: string; cpf: string; tel: string; pedidos: PedidoAdmin[] }>()
     for (const p of pedidos) {
@@ -1104,8 +1120,9 @@ function Clientes({ pedidos, produtos, onChange }: { pedidos: PedidoAdmin[]; pro
         {vis.map((c) => {
           const pagos = c.pedidos.filter((p) => p.status === 'pago')
           const pl = plats.find((x) => (c.cpf && x.cpf === c.cpf) || c.pedidos.some((p) => p.id === x.pedido))
+          const chave = c.cpf || c.email || c.pedidos[0].id
           return (
-            <div key={c.cpf || c.email || c.pedidos[0].id} className="ape-row">
+            <div key={chave} className="ape-row ape-adm-cli">
               <div className="t">
                 <b>{c.nome}</b>
                 <span>{[c.email, cpfMask(c.cpf), c.tel ? fmtTel(c.tel) : ''].filter(Boolean).join(' · ')}</span>
@@ -1116,7 +1133,27 @@ function Clientes({ pedidos, produtos, onChange }: { pedidos: PedidoAdmin[]; pro
                 {pl && <a className="ape-btn ghost sm" href={href('ape', `minha:${pl.token}`)} target="_blank" rel="noreferrer"><ApeIcon name="eye" />plataforma</a>}
                 {pl && <button className="ape-btn ghost sm" onClick={() => void mais30(pl)}>+30 dias</button>}
                 {waNum(c.tel) && <a className="ape-btn sm" href={wa(waNum(c.tel), `Oi, ${firstName(c.nome)}!`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" /></a>}
+                <button className="ape-btn ghost sm" onClick={() => { setEditando(chave); setForm({ nome: c.nome, email: c.email, tel: c.tel }) }} aria-label="Editar cliente"><ApeIcon name="edit" /></button>
+                {!c.pedidos.some((p) => p.status === 'pago' && !p.cortesia) && (
+                  <button className="ape-btn ghost sm" aria-label="Excluir cliente" onClick={async () => {
+                    if (!(await ask(`Excluir ${c.nome} e ${c.pedidos.length === 1 ? 'a compra de teste/cortesia' : `as ${c.pedidos.length} compras de teste/cortesia`}? Tira também o acesso à plataforma.`, { confirmLabel: 'excluir', danger: true }))) return
+                    await loja.excluirPedidos(c.pedidos.map((p) => p.id)).then(() => { toast('Excluído.'); onChange() }, (e) => toast(`Não consegui (${(e as Error).message}).`))
+                  }}><ApeIcon name="trash" /></button>
+                )}
               </div>
+              {editando === chave && (
+                <div className="ape-adm-editcli">
+                  <div className="ape-frow ape-frow3">
+                    <div className="ape-f"><label>Nome</label><input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} /></div>
+                    <div className="ape-f"><label>E-mail</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                    <div className="ape-f"><label>Celular</label><input inputMode="tel" value={form.tel} onChange={(e) => setForm({ ...form, tel: e.target.value })} /></div>
+                  </div>
+                  <div className="ape-acts">
+                    <button className="ape-btn primary sm" onClick={async () => { await loja.editarCliente(c.pedidos.map((p) => p.id), form).then(() => { toast('Cliente atualizado.'); setEditando(''); onChange() }, (e) => toast(`Não consegui (${(e as Error).message}).`)) }}><ApeIcon name="check" />salvar</button>
+                    <button className="ape-btn ghost sm" onClick={() => setEditando('')}>cancelar</button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}
@@ -1285,7 +1322,7 @@ function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos:
         <div className="ape-rows">
           {meus.map((p) => (
             <div key={p.id} className="ape-row">
-              <div className="t"><b>Teste de {dmy(p.criado)}</b><span>{p.itens.map((i) => i.nome).join(' + ')}</span></div>
+              <div className="t"><b>Teste de {dmy(p.criado)}</b><span title={p.itens.map((i) => i.nome).join(' + ')}>{resumoItens(p.itens)}</span></div>
               <div className="r"><a className="ape-btn primary sm" href={href('ape', `pedido:${p.token}`)} target="_blank" rel="noreferrer"><ApeIcon name="eye" />abrir como cliente</a></div>
             </div>
           ))}

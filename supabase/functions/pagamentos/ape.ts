@@ -186,8 +186,20 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const ids = ((ped.itens ?? []) as J[]).map((i) => String(i.id))
     const dias = (ids.includes('plataforma') ? 365 : 0) + (ids.includes('kit-completo') ? 30 * KIT_PLATAFORMA_MESES : 0)
     if (!dias) return null
+    // acesso de teste da dona: não vence (fica até ela tirar o acesso no painel)
+    const teste = ped.obs === 'teste da dona'
     const { data: ja } = await db.from('ape_plataforma').select('token, validade').eq('pedido', ped.id).maybeSingle()
-    if (ja) return ja
+    if (ja) {
+      if (teste && ja.validade < '2099-01-01') {
+        await db.from('ape_plataforma').update({ validade: '2099-12-31' }).eq('pedido', ped.id)
+        return { ...ja, validade: '2099-12-31' }
+      }
+      return ja
+    }
+    if (teste) {
+      const { data: t } = await db.from('ape_plataforma').insert({ nome: ped.nome, email: ped.email, cpf: ped.cpf, tel: ped.tel, pedido: ped.id, validade: '2099-12-31', cortesia: true }).select('token, validade').single()
+      return t
+    }
     // a mesma pessoa já tem acesso? soma os dias no acesso dela
     if (ped.cpf) {
       const { data: outro } = await db.from('ape_plataforma').select('id, token, validade').eq('cpf', ped.cpf).order('validade', { ascending: false }).limit(1).maybeSingle()

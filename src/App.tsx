@@ -546,6 +546,14 @@ export default function App() {
     }
   }
 
+  // painel do planê.apê: tela inteira, com o menu próprio (sem o menu do planê ao lado)
+  if (route.page === 'ape-admin' && access.has('painelDona') && !access.legacy)
+    return (
+      <Suspense fallback={<div className="loading-screen" />}>
+        <ApeAdmin />
+      </Suspense>
+    )
+
   // a dona vê a página de vendas como um visitante, com uma barra para editar ou voltar
   if (route.page === 'vendas' && access.isOwner)
     return (

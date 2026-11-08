@@ -121,9 +121,9 @@ export async function escolher(orcamento: string, moradorId: string, nicho: stri
     let out = ''
     writeLocal((l) => {
       l.escolhas = l.escolhas || []
-      const ja = l.escolhas.find((e) => e.morador === moradorId && e.nicho === nicho)
-      l.escolhas = l.escolhas.filter((e) => !(e.morador === moradorId && e.nicho === nicho))
-      if (ja?.orcamento !== orcamento) {
+      const ja = l.escolhas.find((e) => e.morador === moradorId && e.orcamento === orcamento)
+      l.escolhas = l.escolhas.filter((e) => !(e.morador === moradorId && e.orcamento === orcamento))
+      if (!ja) {
         l.escolhas.push({ morador: moradorId, nicho, orcamento })
         out = orcamento
       }
@@ -301,6 +301,15 @@ export async function meuOrcamento(moradorId: string, id: string, o: Orcamento |
   fail(error)
 }
 
+/** Um vizinho do grupo registra a condição que conseguiu com o fornecedor (desconto, condição e prazo). */
+export async function condicaoGrupo(moradorId: string, orcamento: string, c: { pct: number | null; desc: string; ate: string }) {
+  if (!CLOUD) {
+    writeLocal((l) => { l.orcamentos = l.orcamentos.map((o) => (o.id === orcamento ? { ...o, grupo_pct: c.pct, grupo_desc: c.desc, grupo_ate: c.ate || undefined } : o)) })
+    return
+  }
+  const { error } = await sb().rpc('ape_grupo_condicao', { p_morador: moradorId, p_orcamento: orcamento, p_pct: c.pct, p_desc: c.desc, p_ate: c.ate })
+  fail(error)
+}
 export async function sairGrupo(orcamento: string, moradorId: string): Promise<number> {
   if (!CLOUD) {
     const l = writeLocal((l) => {
@@ -697,6 +706,22 @@ export const loja = {
     const { data, error } = await sb().from('ape_plataforma').insert({ nome: d.nome, email: (d.email || '').toLowerCase(), cpf: (d.cpf || '').replace(/\D/g, ''), tel: (d.tel || '').replace(/\D/g, ''), validade, cortesia: d.cortesia }).select('token').single()
     fail(error)
     return String(data!.token)
+  },
+  /** Corrige nome, e-mail ou telefone de um cliente (em todas as compras dele). */
+  async editarCliente(ids: string[], campos: { nome: string; email: string; tel: string }) {
+    if (!CLOUD) return
+    const { error } = await sb().from('ape_pedidos').update({ nome: campos.nome, email: campos.email.toLowerCase(), tel: campos.tel.replace(/\D/g, '') }).in('id', ids)
+    fail(error)
+  },
+  /** Apaga compras (usado para testes e cortesias): tira também o acesso à plataforma ligado a elas. */
+  async excluirPedidos(ids: string[]) {
+    if (!CLOUD) {
+      writeLocal((l) => { l.pedidos = (l.pedidos || []).filter((p) => !ids.includes(p.token)) })
+      return
+    }
+    await sb().from('ape_plataforma').delete().in('pedido', ids)
+    const { error } = await sb().from('ape_pedidos').delete().in('id', ids)
+    fail(error)
   },
   async validade(id: string, validade: string) {
     if (!CLOUD) {

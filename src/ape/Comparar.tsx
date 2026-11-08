@@ -6,17 +6,25 @@ import { brl, dmy, fmtTel, nicho, waNum, wa, type Morador, type Orcamento } from
 
 /* Comparação lado a lado de um serviço: não só o preço — escopo, materiais, prazos, pagamento, garantia,
    o que falta em cada um, divergências e custos que podem aparecer depois. */
-export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }) {
+/** Cores de cada coluna (A, B, C, D), da paleta do planê.apê, para não confundir um orçamento com outro. */
+const CORES = ['var(--a-pri)', 'var(--a-sec)', 'var(--a-ter)', '#7d7391']
+const MAX = 4
+export function Comparar({ orcs: todos, me, minhas = [], onFechar }: { orcs: Orcamento[]; me: Morador | null; minhas?: string[]; onFechar?: (o: Orcamento) => void }) {
   const [aberto, setAberto] = useState(false)
   const [original, setOriginal] = useState<Orcamento | null>(null)
-  if (orcs.length < 2) return null
+  const [sel, setSel] = useState<string[]>(() => todos.slice(0, MAX).map((o) => o.id))
+  if (todos.length < 2) return null
   if (!aberto)
     return (
       <button className="ape-btn ape-comparar-btn" onClick={() => setAberto(true)}>
         <ApeIcon name="list" />
-        comparar os {orcs.length} lado a lado: escopo, prazos, garantia e o que falta
+        comparar {todos.length > 2 ? `até ${Math.min(MAX, todos.length)} de ${todos.length}` : 'os 2'} lado a lado: escopo, prazos, garantia e o que falta
       </button>
     )
+  const orcs = todos.filter((o) => sel.includes(o.id))
+  const letra = (o: Orcamento) => String.fromCharCode(65 + todos.indexOf(o))
+  const cor = (o: Orcamento) => CORES[todos.indexOf(o) % CORES.length]
+  const alternar = (id: string) => setSel((l) => (l.includes(id) ? (l.length > 2 ? l.filter((x) => x !== id) : l) : l.length >= MAX ? [...l.slice(1), id] : [...l, id]))
   const c = comparar(orcs)
   const col = (i: number) => orcs[i].fornecedor || `orçamento ${i + 1}`
   const linha = (l: string, vals: (string | null | undefined)[], cls = '') => (
@@ -38,10 +46,20 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
         <b>comparação lado a lado</b>
         <button className="ape-btn ghost sm" onClick={() => setAberto(false)}>fechar</button>
       </header>
+      {todos.length > 2 && (
+        <div className="ape-cmp-sel" role="group" aria-label="Quais comparar">
+          <span>comparar ({orcs.length} de até {MAX}):</span>
+          {todos.map((o) => (
+            <button key={o.id} type="button" aria-pressed={sel.includes(o.id)} onClick={() => alternar(o.id)} style={{ ['--c' as string]: cor(o) }}>
+              <i>{letra(o)}</i>{o.fornecedor || 'sem nome'}
+            </button>
+          ))}
+        </div>
+      )}
       {c.destaques.length > 0 && (
         <div className="ape-cmp-dest">
           {c.destaques.map((d) => (
-            <span key={d.l} className="ape-pill azul"><ApeIcon name="star" />{d.l}: <b>{col(d.i)}</b>{d.porque ? ` (${d.porque})` : ''}</span>
+            <span key={d.l} className="ape-pill azul"><ApeIcon name="star" />{d.l}: <b>{letra(orcs[d.i])} · {col(d.i)}</b>{d.porque ? ` (${d.porque})` : ''}</span>
           ))}
         </div>
       )}
@@ -51,10 +69,11 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
             <tr>
               <th />
               {orcs.map((o, i) => (
-                <th key={i} scope="col">
-                  <span className="ape-cmp-col-h">{col(i)}</span>
+                <th key={i} scope="col" className="ape-cmp-th" style={{ ['--c' as string]: cor(o) }}>
+                  <span className="ape-cmp-col-h"><i className="ape-cmp-letra">{letra(o)}</i>{col(i)}</span>
                   {o.servico && <small className="ape-cmp-col-s">{o.servico.split(' · ').slice(1).join(' · ') || ''}</small>}
                   {(o.arquivos?.length || o.enviado) ? <button className="ape-cmp-orig" onClick={() => setOriginal(o)}><ApeIcon name="file" />ver original</button> : <small className="ape-cmp-vazio">sem arquivo</small>}
+                  {onFechar && <button className={`ape-cmp-fechar ${minhas.includes(o.id) ? 'on' : ''}`} onClick={() => onFechar(o)} aria-pressed={minhas.includes(o.id)}><ApeIcon name={minhas.includes(o.id) ? 'check' : 'star'} />{minhas.includes(o.id) ? 'vou fechar' : 'vou fechar com este'}</button>}
                 </th>
               ))}
             </tr>
@@ -119,8 +138,8 @@ export function Comparar({ orcs, me }: { orcs: Orcamento[]; me: Morador | null }
       )}
       <div className="ape-cmp-cols">
         {orcs.map((o, i) => (
-          <div key={o.id} className="ape-cmp-col">
-            <b>{col(i)}</b>
+          <div key={o.id} className="ape-cmp-col" style={{ ['--c' as string]: cor(o) }}>
+            <b><i className="ape-cmp-letra">{letra(o)}</i>{col(i)}</b>
             {c.faltas[i].length > 0 && <p><span>os outros incluem e este não fala:</span> {c.faltas[i].join(', ')}</p>}
             {c.extras[i].length > 0 && <p><span>pode custar a mais:</span> {c.extras[i].join(' · ')}</p>}
             {c.pendentes[i].length > 0 && <p><span>falta informar:</span> {c.pendentes[i].join(', ')}</p>}

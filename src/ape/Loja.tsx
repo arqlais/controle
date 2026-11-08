@@ -175,7 +175,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
 
       <section className="ape-surpresa" aria-label="Bônus surpresa">
         <div className="ape-surpresa-box" aria-hidden="true">
-          <ApeIcon name="gift" />
+          <ApeIcon name="lock" />
           <span className="q">?</span>
         </div>
         <div>
@@ -285,7 +285,7 @@ function HeroArt({ pix }: { pix: number }) {
       </div>
       <div className="ape-hf f1"><span className="ic"><ApeIcon name="check" /></span><span><b>vistoria feita</b><small>2 problemas anotados</small></span></div>
       <div className="ape-hf f2"><span className="ic sec"><ApeIcon name="tag" /></span><span><b className="ape-keep">{pix}% off no Pix</b><small>baixa na hora</small></span></div>
-      <div className="ape-hf f3"><span className="ic"><ApeIcon name="gift" /></span><span><b>bônus surpresa</b><small>abre no 8º dia</small></span></div>
+      <div className="ape-hf f3"><span className="ic"><ApeIcon name="lock" /></span><span><b>bônus surpresa</b><small>abre no 8º dia</small></span></div>
     </div>
   )
 }
@@ -345,12 +345,12 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
   const ult = ops[ops.length - 1]
   const mes = v / 12
   const recursos: [string, string, string][] = [
-    ['planilha', 'gastos por cômodo', 'Quanto planejou, quanto já foi e quanto falta.'],
-    ['calculo', 'parcelas do mês', 'Tudo somado mês a mês, sem surpresa.'],
-    ['projeto3d', 'etapas da compra e da obra', 'Na ordem certa, com datas e o que já foi feito.'],
-    ['vistoria', 'vistoria com fotos', 'Marque cada item e imprima o resumo.'],
-    ['grupo', 'contatos', 'Fornecedores com WhatsApp a um toque.'],
-    ['celular', 'celular e computador', 'É um site: nada para instalar.'],
+    ['planilha', 'quanto já foi e quanto falta', 'Gráfico do orçamento e gastos por cômodo, sem planilha.'],
+    ['calculo', 'parcelas do mês', 'Tudo que é parcelado somado mês a mês, sem susto.'],
+    ['vistoria', 'vistoria de entrega das chaves', 'Marque ok ou problema, tire foto e imprima o resumo.'],
+    ['projeto3d', 'etapas da obra na ordem', 'Do contrato à mudança, com o próximo passo sempre à vista.'],
+    ['contrato', 'garantias e manutenção', 'Avisa antes de vencer e lembra o que revisar na casa.'],
+    ['medidas', 'calculadoras', 'Piso, tinta, ar-condicionado e iluminação, na hora.'],
   ]
   return (
     <section className="ape-plat" id="loja-plataforma">
@@ -360,7 +360,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
         <p className="ape-lead">Diferente dos arquivos, aqui você registra o <b>seu</b> caso e acompanha do começo ao fim: gastos, parcelas, etapas, vistoria e contatos.</p>
       </div>
       <div className="ape-plat-grid">
-        <img src="ape/amostras/m-plataforma.jpg" alt="Telas de exemplo da plataforma do apê" loading="lazy" />
+        <PlatCelulares />
         <div className="ape-plat-feats">
           {recursos.map(([a, t, d]) => (
             <div key={t} className="ape-plat-f">
@@ -375,7 +375,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
           <span className="ape-note">12 meses de acesso · pagamento único</span>
           <div className="ape-price ape-keep">{p.preco} <small>à vista</small></div>
           {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão <small>(com juros)</small></div>}
-          <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>menos de <b className="ape-keep">R$ 10 por mês</b> para deixar a casa nova toda organizada (<span className="ape-keep">{brl(mes)}</span>/mês à vista)</span></div>
+          <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>menos de <b className="ape-keep">R$ {Math.ceil(mes)} por mês</b> para deixar a casa nova toda organizada (<span className="ape-keep">{brl(mes)}</span> por mês, pagando à vista)</span></div>
           <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>
         <ol className="ape-plat-steps">
@@ -388,6 +388,41 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
         </div>
       </div>
     </section>
+  )
+}
+
+/* três celulares (proporção de iPhone) com telas de verdade da plataforma: resumo, gastos e vistoria */
+function PlatCelulares() {
+  return (
+    <div className="ape-iphs" aria-label="Telas da plataforma do apê no celular" role="img">
+      <div className="ape-iph lado l">
+        <div className="tela">
+          <div className="iph-top"><b>compras e gastos</b></div>
+          {[['piso vinílico', 'sala · pago', 'R$ 3.780'], ['marcenaria', 'cozinha · comprado', 'R$ 14.000'], ['box', 'banheiro · planejado', 'R$ 1.300'], ['pintura', 'geral · planejado', 'R$ 3.500']].map(([a, b, c]) => (
+            <div key={a} className="iph-linha"><i /><span><b>{a}</b><small>{b}</small></span><em>{c}</em></div>
+          ))}
+        </div>
+      </div>
+      <div className="ape-iph meio">
+        <div className="tela">
+          <div className="iph-ola"><span className="av">L</span><span><b>olá, Laís!</b><small>San Levi · torre 2 · apê 1204</small></span></div>
+          <div className="iph-kpis"><div><small>gasto até agora</small><b>R$ 18.420</b></div><div><small>parcelas do mês</small><b>R$ 1.400</b></div></div>
+          <div className="iph-card">
+            <small>orçamento da obra</small>
+            <div className="iph-rosca"><svg viewBox="0 0 42 42"><circle cx="21" cy="21" r="16" fill="none" stroke="var(--a-pri-soft)" strokeWidth="6" /><circle cx="21" cy="21" r="16" fill="none" stroke="var(--a-pri)" strokeWidth="6" strokeDasharray="46 100" transform="rotate(-90 21 21)" /><circle cx="21" cy="21" r="16" fill="none" stroke="var(--a-sec)" strokeWidth="6" strokeDasharray="22 100" strokeDashoffset="-46" transform="rotate(-90 21 21)" /></svg><span><b>46%</b><small>pago</small></span></div>
+          </div>
+          <div className="iph-card"><small>próximos passos</small>{['medição da marcenaria', 'gesso e forro', 'pintura'].map((t, i) => <div key={t} className="iph-ck"><i className={i === 0 ? 'ok' : ''} />{t}</div>)}</div>
+        </div>
+      </div>
+      <div className="ape-iph lado r">
+        <div className="tela">
+          <div className="iph-top"><b>vistoria</b></div>
+          {[['porta abre sem raspar', 'ok'], ['tomadas funcionando', 'ok'], ['caimento do box', 'pr'], ['rejunte completo', 'ok'], ['janela veda', '']].map(([a, b]) => (
+            <div key={a} className={`iph-vist ${b}`}><span>{a}</span><em>{b === 'ok' ? 'ok' : b === 'pr' ? 'problema' : 'conferir'}</em></div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -522,7 +557,7 @@ function Detalhe({ p, byId, produtos, me, whats, onClose, onOpen, cart, onAdd, p
             {noCarrinho(p) && <span><ApeIcon name="download" />{p.cat === 'plataforma' ? 'acesso na hora' : 'baixa na hora'}</span>}
             {noCarrinho(p) && <span><ApeIcon name="user" />uso pessoal</span>}
             {noCarrinho(p) && <span><ApeIcon name="shield" />7 dias para desistir</span>}
-            {noCarrinho(p) && <span><ApeIcon name="gift" />bônus surpresa</span>}
+            {noCarrinho(p) && <span><ApeIcon name="lock" />bônus surpresa</span>}
           </div>
           <div className="ape-dbuy">
             <Preco p={p} byId={byId} pixPct={pixPct} />
@@ -788,7 +823,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           </div>
           <ul className="ape-inc">
             <li><ApeIcon name="download" />baixa assim que o pagamento confirma</li>
-            <li><ApeIcon name="gift" />bônus surpresa no 8º dia</li>
+            <li><ApeIcon name="lock" />bônus surpresa no 8º dia</li>
             <li><ApeIcon name="shield" />pagamento processado pelo Asaas</li>
           </ul>
         </aside>
@@ -1016,6 +1051,15 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
       )}
       {p.arquivos?.length ? (
         <>
+          <details className="ape-comousar-arq">
+            <summary><ApeIcon name="sparkle" /><b>como usar os seus arquivos</b><ApeIcon name="chev" /></summary>
+            <ol>
+              <li><b>PDFs</b><span>Toque em baixar. Dá para imprimir ou usar no celular e no tablet (marque com o dedo ou a caneta num app de PDF).</span></li>
+              <li><b>Planilhas</b><span>Escolha a cor e baixe. Abre no Excel, no Numbers ou no Google Planilhas (Arquivo, Importar). Digite só nas células azuis: o resto se calcula sozinho.</span></li>
+              <li><b>Plataforma</b><span>Toque em "abrir a minha plataforma do apê". No celular, use "adicionar à tela de início" para abrir como um app.</span></li>
+              <li><b>Sempre à mão</b><span>Crie a sua senha em "minha conta" com o e-mail da compra e baixe de novo quando quiser, de qualquer aparelho.</span></li>
+            </ol>
+          </details>
           <p className="ape-eyebrow">seus arquivos</p>
           <div className="ape-entregas">
             {[...new Set(p.arquivos.map((a) => a.produto))].map((produto, i) => {
@@ -1057,7 +1101,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
       {err && <p className="ape-err" role="alert">{err}</p>}
       {p.bonus && (p.bonus.liberado ? (
         <div className="ape-bonus2 on">
-          <span className="ic"><ApeIcon name="gift" /></span>
+          <span className="ic"><ApeIcon name="unlock" /></span>
           <span className="t"><small>bônus liberado</small><b>{BONUS.nome}</b><span>Ele está na lista de arquivos acima. Aproveite!</span></span>
         </div>
       ) : (

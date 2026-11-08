@@ -22,7 +22,7 @@ export function Voltar({ para = href('ape', 'loja'), rotulo = 'voltar' }: { para
 type Extra = { l: string; i: string; onClick: () => void }
 
 /** Atalhos em todas as páginas: área do San Levi, minha conta, plataforma, loja e (para a dona) o painel. */
-export function MenuConta({ nome, owner = false, morador = false, extra = [] }: { nome?: string; owner?: boolean; morador?: boolean; extra?: Extra[] }) {
+export function MenuConta({ nome, owner = false, morador = false, extra = [], so }: { nome?: string; owner?: boolean; morador?: boolean; extra?: Extra[]; so?: string[] }) {
   const [aberto, setAberto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const logado = !!sessaoLocal()
@@ -39,13 +39,13 @@ export function MenuConta({ nome, owner = false, morador = false, extra = [] }: 
     }
   }, [aberto])
   const inicial = (nome || '').trim().charAt(0).toUpperCase()
-  const links: [string, string, string, boolean?][] = [
-    [`área do ${APE.condominio}`, 'list', href('ape'), !morador && !owner],
-    ['enviar orçamento', 'send', href('ape', 'enviar'), !morador && !owner],
-    ['minha plataforma', 'phone', plat ? href('ape', `minha:${plat}`) : href('ape', 'conta')],
-    [logado ? 'minha conta e compras' : 'entrar na minha conta', 'user', href('ape', 'conta')],
-    ['loja', 'bag', href('ape', 'loja')],
+  // a área do San Levi só aparece para quem é morador (ou para a dona)
+  const todos: [string, string, string, string][] = [
+    ['sanlevi', `área do ${APE.condominio}`, 'list', href('ape')],
+    ['plataforma', 'minha plataforma', 'phone', plat ? href('ape', `minha:${plat}`) : href('ape', 'conta')],
+    ['conta', logado ? 'minha conta e compras' : 'entrar na minha conta', 'user', href('ape', 'conta')],
   ]
+  const links = todos.filter(([k]) => (k !== 'sanlevi' || morador || owner) && (!so || so.includes(k))).map(([, l, i, h]) => [l, i, h] as const)
   return (
     <div className="ape-menuconta" ref={ref}>
       <button type="button" className={`ape-menuconta-btn ${inicial ? 'com-nome' : ''}`} aria-expanded={aberto} aria-haspopup="menu" aria-label="Abrir atalhos: minha conta, plataforma e área do San Levi" onClick={() => setAberto(!aberto)}>
@@ -58,15 +58,32 @@ export function MenuConta({ nome, owner = false, morador = false, extra = [] }: 
           {extra.map((x) => (
             <button key={x.l} role="menuitem" onClick={() => { setAberto(false); x.onClick() }}><ApeIcon name={x.i} />{x.l}</button>
           ))}
-          {links.map(([l, i, h, so]) => (
+          {links.map(([l, i, h]) => (
             <a key={l} role="menuitem" href={h} onClick={() => setAberto(false)}>
               <ApeIcon name={i} />
-              <span>{l}{so ? <small>só moradores do {APE.condominio}</small> : null}</span>
+              <span>{l}</span>
             </a>
           ))}
-          {owner && <a role="menuitem" href={href('ape-admin')} onClick={() => setAberto(false)}><ApeIcon name="gear" />painel da dona</a>}
+          {owner && (!so || so.includes('painel')) && <a role="menuitem" href={href('ape-admin')} onClick={() => setAberto(false)}><ApeIcon name="gear" />painel da dona</a>}
         </div>
       )}
     </div>
+  )
+}
+
+/** Carrinho em destaque em todas as páginas: número de itens e um "pulo" quando entra algo. */
+export function BotaoCarrinho({ n }: { n: number }) {
+  const [pula, setPula] = useState(false)
+  const ant = useRef(n)
+  useEffect(() => {
+    if (n > ant.current) { setPula(true); const t = window.setTimeout(() => setPula(false), 700); ant.current = n; return () => window.clearTimeout(t) }
+    ant.current = n
+  }, [n])
+  return (
+    <a className={`ape-cartbtn ${n ? 'tem' : ''} ${pula ? 'pula' : ''}`} href={href('ape', 'loja:carrinho')} onClick={() => window.dispatchEvent(new Event('ape-abrir-carrinho'))} aria-label={`Carrinho com ${n} ${n === 1 ? 'item' : 'itens'}`}>
+      <ApeIcon name="bag" />
+      <span>carrinho</span>
+      {n ? <em>{n}</em> : null}
+    </a>
   )
 }

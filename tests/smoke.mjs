@@ -442,7 +442,7 @@ try {
     await page.locator('.ape-oc button', { hasText: /entrar no grupo/i }).first().click(); await page.waitForTimeout(300)
     ok(await page.locator('.ape-oc', { hasText: /você está no grupo/i }).count() >= 1, `apê ${vp.name}: entra na compra em grupo`)
     await page.evaluate(() => (location.hash = '#/ape/enviar')); await page.waitForTimeout(300)
-    await page.locator('.ape-more summary').first().click()
+    await page.locator('.ape-como-veio button', { hasText: 'texto' }).click()
     await page.fill('textarea[aria-label="Texto do orçamento"]', 'Loja Teste\nPiso vinílico colado 30 m²\nTotal: R$ 3.000,00\nÀ vista: R$ 2.850,00\nPrazo: 5 dias')
     await page.getByRole('button', { name: 'ler o texto' }).click(); await page.waitForTimeout(600)
     ok(/Loja Teste/.test(await page.locator('.ape-lido').innerText().catch(() => '')), `apê ${vp.name}: lê o orçamento colado`)
@@ -452,8 +452,9 @@ try {
       await page.evaluate((h) => (location.hash = h), h); await page.waitForTimeout(500)
       ok(!(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)), `apê ${vp.name}: ${h} cabe na tela`)
     }
-    if (await page.locator('.ape-adm-menubtn').isVisible().catch(() => false)) { await page.locator('.ape-adm-menubtn').click(); await page.waitForTimeout(300) }
-    await page.locator('.ape-adm-it', { hasText: /enviados/i }).click().catch(() => {}); await page.waitForTimeout(300)
+    if (await page.locator('.ape-pp-bnav').isVisible().catch(() => false)) await page.locator('.ape-pp-bnav button', { hasText: /enviados/i }).click().catch(() => {})
+    else await page.locator('.ape-pp-nav button', { hasText: /enviados/i }).click().catch(() => {})
+    await page.waitForTimeout(300)
     ok(await page.locator('.ape-envio', { hasText: 'Loja Teste' }).count() === 1, `apê ${vp.name}: dona recebe o orçamento enviado`)
     ok(errors.length === 0, `apê ${vp.name}: nenhum erro de JavaScript${errors.length ? ' → ' + errors.join(' | ') : ''}`)
     await page.close()

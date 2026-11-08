@@ -55,6 +55,7 @@ export interface Orcamento {
   grupo_pct: number | null
   grupo_min: number | null
   grupo_desc: string
+  grupo_por?: string // quem registrou a condição (torre e apê)
   grupo_ate?: string // até quando vale a condição negociada para o grupo (AAAA-MM-DD)
   area_m2: number | null
   inclui: string[]
@@ -586,6 +587,7 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
   if (raw2.enviado === true) o.enviado = true
   if (raw2.tipo === 'tabela' || raw2.tipo === 'contato') o.tipo = raw2.tipo
   if (raw2.planta === 'canto' || raw2.planta === 'corredor') o.planta = raw2.planta
+  if (typeof raw2.grupo_por === 'string') o.grupo_por = raw2.grupo_por.slice(0, 30)
   if (typeof raw2.grupo_ate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw2.grupo_ate)) o.grupo_ate = raw2.grupo_ate
   if (typeof raw2.acabamento === 'string' && raw2.acabamento.trim()) o.acabamento = raw2.acabamento.trim().slice(0, 40)
   if (!o.whatsapp && o.telefone && digits(o.telefone).length === 11) o.whatsapp = digits(o.telefone)

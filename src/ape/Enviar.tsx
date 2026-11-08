@@ -41,6 +41,7 @@ const mesmoFornecedor = (a: Orcamento, b: Orcamento) => {
 
 export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro }: { me: Morador | null; whats: string; orcamentos: Orcamento[]; meusIds: string[]; onPublicado: () => void; onCadastro: () => void }) {
   const [lidos, setLidos] = useState<Lido[]>([])
+  const [comoVeio, setComoVeio] = useState<'arquivo' | 'texto'>('arquivo')
   const [texto, setTexto] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState('')
@@ -229,19 +230,24 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
             <button type="button" className="ape-btn" onClick={novoContato}><ApeIcon name="plus" />mais um contato</button>
           </>
         )}
-        {tipo !== 'contato' && <label className="ape-drop" htmlFor="e-files">
+        {tipo !== 'contato' && (
+          <div className="ape-como-veio" role="radiogroup" aria-label="Como veio">
+            <button type="button" role="radio" aria-checked={comoVeio === 'arquivo'} onClick={() => setComoVeio('arquivo')}><ApeIcon name="clip" /><b>arquivo ou print</b><small>PDF, foto, captura de tela</small></button>
+            <button type="button" role="radio" aria-checked={comoVeio === 'texto'} onClick={() => setComoVeio('texto')}><ApeIcon name="chat" /><b>texto</b><small>veio por mensagem? cole aqui</small></button>
+          </div>
+        )}
+        {tipo !== 'contato' && comoVeio === 'arquivo' && <label className="ape-drop" htmlFor="e-files">
           <ApeIcon name="clip" />
           <b>{tipo === 'tabela' ? (lidos.length ? 'anexar mais' : 'anexar a tabela de preços') : lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
           <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => { anexar([...(e.target.files || [])]); e.target.value = '' }} />
           <span className="ape-note">{tipo === 'orcamento' ? 'Cada arquivo vira um orçamento.' : 'Cada arquivo vira um item.'} Até 10 por vez, de até 15 MB.</span>
         </label>}
-        {tipo !== 'contato' && <details className="ape-more">
-          <summary><ApeIcon name="chev" />veio por mensagem? cole o texto</summary>
-          <div className="ape-f" style={{ marginTop: 8 }}>
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" aria-label="Texto do orçamento" />
-            <button type="button" className="ape-btn sm" onClick={lerColado} disabled={!texto.trim()}>ler o texto</button>
+        {tipo !== 'contato' && comoVeio === 'texto' && (
+          <div className="ape-f">
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" aria-label="Texto do orçamento" style={{ minHeight: 140 }} />
+            <button type="button" className="ape-btn primary sm" onClick={lerColado} disabled={!texto.trim()}><ApeIcon name="check" />ler o texto</button>
           </div>
-        </details>}
+        )}
 
         {lidos.map((l, i) => (
           <LidoCard key={l.key} n={i + 1} l={l} podeJuntar={i > 0 && lidos[i - 1].status === 'pronto' && l.status === 'pronto' && (mesmoFornecedor(lidos[i - 1].o, l.o) || !l.o.fornecedor)} onJuntar={() => juntar(i)}

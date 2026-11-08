@@ -24,7 +24,8 @@ const VISTORIA: [string, string[]][] = [
   ['geral', ['quadro de luz com disjuntores identificados', 'medidores de água e luz', 'esquadrias sem riscos', 'teto sem manchas de infiltração']],
 ]
 export const DEMO: PlatDados = {
-  imovel: { tipo: 'apê', fase: 'obra', m2: 40, orcamento: 45000, entrega: '2026-12-15', nome: 'meu apê' },
+  perfil: { nome: 'Ana (exemplo)', foto: '' },
+  imovel: { tipo: 'apê', fase: 'obra', m2: 40, orcamento: 45000, entrega: '2026-12-15', nome: 'meu apê', condominio: 'Residencial Exemplo', torre: '1', ap: '304', moradores: 'Ana e Pedro' },
   gastos: [
     { id: 'g1', comodo: 'sala', item: 'piso vinílico', previsto: 4200, pago: 3780, status: 'pago', data: '2026-11-02', obs: 'Pix com 10%' },
     { id: 'g2', comodo: 'cozinha', item: 'marcenaria da cozinha', previsto: 14000, pago: null, status: 'comprado', data: '2026-11-20', obs: '10x sem juros' },
@@ -38,7 +39,10 @@ export const DEMO: PlatDados = {
   etapas: [...ETAPAS_OBRA].map((nome, i) => ({ id: `e${i}`, nome, feita: i < 2, data: i < 2 ? '2026-11-0' + (i + 1) : '', quem: '', obs: '' })),
   vistoria: VISTORIA.flatMap(([c, l]) => l.map((item, k) => ({ id: `${c}${k}`, comodo: c, item, status: (c === 'banheiro' && k === 2 ? 'problema' : k === 0 ? 'ok' : 'pendente') as PlatVistoria['status'], obs: c === 'banheiro' && k === 2 ? 'água empoça no canto do box' : '' }))),
   contatos: [{ id: 'c1', nome: 'Marcenaria (exemplo)', servico: 'marcenaria', tel: '11900000000', obs: 'medição dia 20' }],
-  notas: '',
+  garantias: [{ id: 'w1', item: 'geladeira', onde: 'loja (exemplo)', compra: '2026-11-10', meses: 12, nota: true, obs: '' }, { id: 'w2', item: 'impermeabilização', onde: 'construtora', compra: '2026-12-15', meses: 60, nota: true, obs: '' }],
+  manutencao: [{ id: 'm1', oque: 'lavar os filtros do ar-condicionado', cada: 1, ultima: '2026-10-01' }, { id: 'm2', oque: 'limpar ralos e sifões', cada: 3, ultima: '' }],
+  documentos: [{ id: 'd1', nome: 'contrato de compra e venda', tenho: true, onde: 'pasta azul' }, { id: 'd2', nome: 'manual do proprietário', tenho: true, onde: 'link do Drive' }, { id: 'd3', nome: 'termo de vistoria e de entrega das chaves', tenho: false, onde: '' }],
+  notas: 'Senha do interfone: 304. Medir a parede da TV antes do painel.',
 }
 const novo = (): PlatDados => ({
   imovel: { tipo: 'apê', fase: 'obra', m2: null, orcamento: null, entrega: '', nome: 'meu apê' },
@@ -110,6 +114,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const timer = useRef(0)
   const pendente = useRef<PlatDados | null>(null)
   const historico = useRef<Aba[]>([])
+  const [exemplo, setExemplo] = useState(false)
   // fechou a aba ou trocou de app antes de salvar: salva na hora
   useEffect(() => {
     if (demo) return
@@ -145,6 +150,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
     })
   }, [token])
   const mudar = (fn: (d: PlatDados) => PlatDados) => {
+    if (exemplo) return
     if (acc && !acc.ativo) return
     setDados((d) => {
       const next = fn(d)
@@ -175,9 +181,10 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
         </div>
       </main>
     )
-  const im = dados.imovel || novo().imovel!
-  const nome = dados.perfil?.nome || acc.nome
-  const foto = dados.perfil?.foto || ''
+  const vistos = exemplo ? DEMO : dados
+  const im = vistos.imovel || novo().imovel!
+  const nome = vistos.perfil?.nome || acc.nome
+  const foto = vistos.perfil?.foto || ''
   const ir = (a: Aba, voltando = false) => {
     if (!voltando && a !== aba) historico.current.push(aba)
     setAba(a)
@@ -194,6 +201,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const statusSalvo = demo ? 'demonstração: nada é salvo' : salvo === 'salvando' ? 'salvando…' : salvo === 'erro' ? 'não salvou: confira a internet' : 'tudo salvo'
   const atual = ABAS.find((x) => x[0] === aba)!
   const casa = [im.condominio, im.torre ? `torre ${im.torre}` : '', im.ap ? `apê ${im.ap}` : ''].filter(Boolean).join(' · ') || im.nome || 'meu apê'
+  const dadosV = vistos
   const sub = <M,>(k: keyof PlatDados) => (fn: (l: M[]) => M[]) => mudar((d) => ({ ...d, [k]: fn(((d[k] as unknown) as M[]) || []) }))
   return (
     <div className={`ape-pp ${mini ? 'mini' : ''} ${menu ? 'menu-aberto' : ''}`} data-tema={tema}>
@@ -228,6 +236,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
         </button>
         <div className="ape-pp-pe">
           <button className="ape-pp-ic" onClick={trocarTema} title={tema === 'escuro' ? 'modo claro' : 'modo escuro'} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+          <button className={`ape-pp-ic ${exemplo ? 'on' : ''}`} onClick={() => setExemplo(!exemplo)} title={exemplo ? 'sair do exemplo' : 'ver exemplo preenchido'} aria-label={exemplo ? 'Sair do exemplo' : 'Ver exemplo preenchido'}><ApeIcon name="eye" /></button>
           <a className="ape-pp-ic" href={href('ape', 'conta')} title="minha conta e compras" aria-label="Minha conta"><ApeIcon name="user" /></a>
           <a className="ape-pp-ic" href={href('ape', 'loja')} title="loja" aria-label="Loja"><ApeIcon name="bag" /></a>
           <span className={`ape-salvo ${salvo}`} title={statusSalvo}><i />{mini ? '' : statusSalvo}</span>
@@ -244,15 +253,17 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
         </header>
         <main className="ape-pp-cont">
           {demo && <div className="ape-banner"><ApeIcon name="eye" />Demonstração com dados de exemplo: fica só neste aparelho.</div>}
+          {exemplo && <div className="ape-banner ape-pp-exemplo"><ApeIcon name="eye" /><span>Você está vendo um <b>exemplo preenchido</b>. Pode olhar tudo: nada aqui é salvo e os seus dados continuam guardados.</span><button className="ape-btn primary sm" onClick={() => setExemplo(false)}>voltar para os meus dados</button></div>}
+          {aba === 'resumo' && !exemplo && <ComoUsar onExemplo={() => setExemplo(true)} />}
           {!acc.ativo && <div className="ape-banner warn">O seu acesso venceu em {dmy(acc.validade)}. Os dados continuam aqui para consulta. <a className="ape-link" href={href('ape', 'loja:plataforma')}>renovar</a></div>}
-          {aba === 'resumo' && <Resumo acc={acc} dados={dados} im={im} nome={nome} foto={foto} casa={casa} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
-          {aba === 'gastos' && <Gastos lista={dados.gastos || []} orcamento={im.orcamento} mudar={sub<PlatGasto>('gastos')} />}
-          {aba === 'parcelas' && <Parcelas lista={dados.parcelas || []} mudar={sub<PlatParcela>('parcelas')} />}
-          {aba === 'etapas' && <Etapas lista={dados.etapas || []} mudar={sub<PlatEtapa>('etapas')} />}
-          {aba === 'vistoria' && <Vistoria lista={dados.vistoria || []} nome={nome} mudar={sub<PlatVistoria>('vistoria')} />}
-          {aba === 'contatos' && <Contatos lista={dados.contatos || []} mudar={sub<PlatContato>('contatos')} />}
-          {aba === 'garantias' && <Garantias lista={dados.garantias || []} manut={dados.manutencao || []} entrega={im.entrega} mudar={sub<PlatGarantia>('garantias')} mudarM={sub<PlatManut>('manutencao')} />}
-          {aba === 'documentos' && <Documentos lista={dados.documentos || []} mudar={sub<PlatDoc>('documentos')} />}
+          {aba === 'resumo' && <Resumo acc={acc} dados={dadosV} im={im} nome={nome} foto={foto} casa={casa} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
+          {aba === 'gastos' && <Gastos lista={dadosV.gastos || []} orcamento={im.orcamento} mudar={sub<PlatGasto>('gastos')} />}
+          {aba === 'parcelas' && <Parcelas lista={dadosV.parcelas || []} mudar={sub<PlatParcela>('parcelas')} />}
+          {aba === 'etapas' && <Etapas lista={dadosV.etapas || []} mudar={sub<PlatEtapa>('etapas')} />}
+          {aba === 'vistoria' && <Vistoria lista={dadosV.vistoria || []} nome={nome} mudar={sub<PlatVistoria>('vistoria')} />}
+          {aba === 'contatos' && <Contatos lista={dadosV.contatos || []} mudar={sub<PlatContato>('contatos')} />}
+          {aba === 'garantias' && <Garantias lista={dadosV.garantias || []} manut={dadosV.manutencao || []} entrega={im.entrega} mudar={sub<PlatGarantia>('garantias')} mudarM={sub<PlatManut>('manutencao')} />}
+          {aba === 'documentos' && <Documentos lista={dadosV.documentos || []} mudar={sub<PlatDoc>('documentos')} />}
           {aba === 'calculadoras' && <Calculadoras m2={im.m2} />}
           <Assinatura />
         </main>
@@ -263,6 +274,25 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
       </nav>
       {editar && <EditarDados dados={dados} nomeConta={acc.nome} onClose={() => setEditar(false)} mudar={mudar} />}
     </div>
+  )
+}
+
+/** Passo a passo de como usar (aparece até a pessoa tocar em "entendi"; volta pelo "como usar"). */
+function ComoUsar({ onExemplo }: { onExemplo: () => void }) {
+  const [aberto, setAberto] = useState(() => !read<boolean>('ape-pp-tour'))
+  if (!aberto) return <button className="ape-pp-comousar-btn" onClick={() => setAberto(true)}><ApeIcon name="sparkle" />como usar a plataforma</button>
+  const passos: [string, string, string][] = [
+    ['edit', 'coloque os seus dados', 'Toque em "editar": foto, condomínio, torre, apê e quem vai morar.'],
+    ['tag', 'lance gastos e parcelas', 'Cada compra entra em "compras e gastos"; o que é parcelado, em "parcelas". Os gráficos se montam sozinhos.'],
+    ['check', 'siga as etapas e faça a vistoria', 'Marque cada etapa feita. Na vistoria, toque em ok ou problema e tire foto.'],
+    ['shield', 'guarde garantias e documentos', 'O resumo avisa quando uma garantia vai vencer e o que revisar na casa.'],
+  ]
+  return (
+    <section className="ape-panel ape-pp-comousar">
+      <div className="ape-pp-card-h"><p className="ape-eyebrow">como usar, em 4 passos</p><button className="ape-linkish ape-link" onClick={() => { write('ape-pp-tour', true); setAberto(false) }}>entendi</button></div>
+      <ol>{passos.map(([i, t, d], k) => <li key={t}><span className="n">{k + 1}</span><ApeIcon name={i} /><span><b>{t}</b><small>{d}</small></span></li>)}</ol>
+      <div className="ape-acts"><button className="ape-btn primary sm" onClick={onExemplo}><ApeIcon name="eye" />ver tudo preenchido (exemplo)</button><button className="ape-btn ghost sm" onClick={() => { write('ape-pp-tour', true); setAberto(false) }}>começar</button></div>
+    </section>
   )
 }
 
