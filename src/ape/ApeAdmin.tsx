@@ -456,7 +456,16 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
   return (
     <div className="ape-form">
       <div className="ape-banner">{draft.ia ? 'Confira o que a IA leu e corrija o que precisar antes de publicar.' : 'Preencha o que tiver e publique.'}</div>
-      <div className="ape-frow">
+      <fieldset className="ape-ed-bloco c3"><legend><ApeIcon name="file" />o orçamento</legend>
+      <div className="ape-ed-grid">
+        {(['fornecedor', 'nicho', 'servico'] as (keyof Orcamento)[]).map((k) => {
+          const f = FIELDS.find((x) => x[0] === k)!
+          const id = `d-${k}`
+          const v = vals[k] ?? ''
+          return f[2] === 'nicho'
+            ? <div key={k} className="ape-f"><label htmlFor={id}>{f[1]}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}>{NICHOS.map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
+            : <div key={k} className="ape-f"><label htmlFor={id}>{f[1]}</label><input id={id} value={v} onChange={(e) => set(k, e.target.value)} /></div>
+        })}
         <div className="ape-f">
           <label htmlFor="d-planta">Planta</label>
           <select id="d-planta" value={planta} onChange={(e) => setPlanta(e.target.value as Planta)}>
@@ -466,49 +475,39 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
           </select>
         </div>
         <div className="ape-f">
-          <label htmlFor="d-acab">Acabamento (separa na página)</label>
+          <label htmlFor="d-acab">Acabamento</label>
           <input id="d-acab" list="d-acabs" placeholder={acabamentoDe({ ...draft.o, acabamento: '' }) || 'ex.: quartzo, granito'} value={acab} onChange={(e) => setAcab(e.target.value)} />
           <datalist id="d-acabs">{['quartzo', 'granito', 'mármore', 'ultracompacto', 'porcelanato', 'cerâmica', 'vinílico', 'laminado', 'MDF', 'gesso', 'vidro temperado'].map((x) => <option key={x} value={x} />)}</datalist>
         </div>
-        {FIELDS.map(([k, l, t]) => {
-          const id = `d-${k}`
-          const v = vals[k] ?? ''
-          if (t === 'nicho')
-            return (
-              <div key={k} className="ape-f">
-                <label htmlFor={id}>{l}</label>
-                <select id={id} value={v} onChange={(e) => set(k, e.target.value)}>
-                  {NICHOS.map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}
-                </select>
-              </div>
-            )
-          if (t === 'bool')
-            return (
-              <div key={k} className="ape-f">
-                <label htmlFor={id}>{l}</label>
-                <select id={id} value={v} onChange={(e) => set(k, e.target.value)}>
-                  <option value="">Não informado</option>
-                  <option value="nao">Sem juros</option>
-                  <option value="sim">Com juros</option>
-                </select>
-              </div>
-            )
-          if (t === 'lines' || t === 'area')
-            return (
-              <div key={k} className="ape-f full">
-                <label htmlFor={id}>{l}</label>
-                <textarea id={id} style={{ minHeight: t === 'area' ? 60 : 80 }} value={v} onChange={(e) => set(k, e.target.value)} />
-              </div>
-            )
-          return (
-            <div key={k} className="ape-f">
-              <label htmlFor={id}>{l}</label>
-              <input id={id} type={t === 'date' ? 'date' : 'text'} inputMode={t === 'num' ? 'decimal' : undefined} value={v} onChange={(e) => set(k, e.target.value)} />
-            </div>
-          )
-        })}
+        <div className="ape-f full"><label htmlFor="d-resumo">Resumo simples</label><textarea id="d-resumo" style={{ minHeight: 56 }} value={vals.resumo ?? ''} onChange={(e) => set('resumo', e.target.value)} /></div>
       </div>
-      <div className="ape-acts">
+      </fieldset>
+        {(() => {
+          const campo = (k: keyof Orcamento) => {
+            const f = FIELDS.find((x) => x[0] === k)
+            if (!f) return null
+            const [, l, t] = f
+            const id = `d-${k}`
+            const v = vals[k] ?? ''
+            if (t === 'nicho') return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}>{NICHOS.map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
+            if (t === 'bool') return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}><option value="">Não informado</option><option value="nao">Sem juros</option><option value="sim">Com juros</option></select></div>
+            if (t === 'lines' || t === 'area') return <div key={k} className="ape-f full"><label htmlFor={id}>{l}</label><textarea id={id} style={{ minHeight: t === 'area' ? 56 : 84 }} value={v} onChange={(e) => set(k, e.target.value)} /></div>
+            return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><input id={id} type={t === 'date' ? 'date' : 'text'} inputMode={t === 'num' ? 'decimal' : undefined} value={v} onChange={(e) => set(k, e.target.value)} /></div>
+          }
+          const bloco = (t: string, i: string, ks: (keyof Orcamento)[], cols = 3) => (
+            <fieldset className={`ape-ed-bloco c${cols}`}><legend><ApeIcon name={i} />{t}</legend><div className="ape-ed-grid">{ks.map(campo)}</div></fieldset>
+          )
+          return (
+            <>
+              {bloco('contato', 'chat', ['contato', 'whatsapp', 'instagram'])}
+              {bloco('valores', 'tag', ['valor_total', 'valor_avista', 'desconto_avista_pct', 'parcelas_max', 'valor_parcela', 'juros', 'area_m2'], 4)}
+              {bloco('condições', 'clock', ['validade', 'prazo', 'garantia', 'pagamento', 'completude'], 4)}
+              <fieldset className="ape-ed-bloco"><legend><ApeIcon name="list" />o que inclui</legend><div className="ape-ed-grid um">{(['inclui', 'nao_inclui', 'alertas'] as (keyof Orcamento)[]).map(campo)}</div></fieldset>
+              <details className="ape-ed-bloco ape-ed-det"><summary><ApeIcon name="users" />compra em grupo <small>(opcional)</small></summary><div className="ape-ed-grid">{(['grupo_pct', 'grupo_min', 'interessados', 'grupo_desc'] as (keyof Orcamento)[]).map(campo)}</div></details>
+            </>
+          )
+        })()}
+      <div className="ape-acts ape-ed-barra">
         <button className="ape-btn primary" disabled={busy} onClick={() => void save()}>
           <ApeIcon name="check" />{draft.novo ? 'Publicar na página' : 'Salvar alterações'}
         </button>
@@ -536,6 +535,12 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
 function Lista({ orcs, interesses, onEdit, onChange }: { orcs: Orcamento[]; interesses: Interesse[]; onEdit: (o: Orcamento) => void; onChange: () => void }) {
   const ex = orcs.filter((o) => o.exemplo)
   const sorted = [...orcs].sort((a, b) => String(b.criado).localeCompare(String(a.criado)))
+  const [sel, setSel] = useState<string[]>([])
+  const apagar = async (ids: string[]) => {
+    const nomes = orcs.filter((o) => ids.includes(o.id)).map((o) => o.fornecedor)
+    if (!(await ask(ids.length === 1 ? `Apagar o orçamento da ${nomes[0]}? Some da página dos moradores.` : `Apagar ${ids.length} orçamentos (${nomes.slice(0, 3).join(', ')}${ids.length > 3 ? '…' : ''})?`, { confirmLabel: 'apagar', danger: true }))) return
+    await admin.remover(ids).then(() => { toast(ids.length === 1 ? 'Apagado.' : `${ids.length} apagados.`); setSel([]); onChange() }, () => toast('Não consegui apagar.'))
+  }
   const rmEx = async () => {
     if (!(await ask(`Apagar os ${ex.length} orçamentos de exemplo?`, { confirmLabel: 'apagar', danger: true }))) return
     await admin.remover(ex.map((o) => o.id)).then(onChange, () => toast('Não consegui apagar.'))
@@ -560,12 +565,20 @@ function Lista({ orcs, interesses, onEdit, onChange }: { orcs: Orcamento[]; inte
           </div>
         )
       )}
+      {sel.length > 0 && (
+        <div className="ape-banner ape-sel-barra">
+          <span><b>{sel.length}</b> selecionado{sel.length > 1 ? 's' : ''}</span>
+          <button className="ape-btn danger sm" onClick={() => void apagar(sel)}><ApeIcon name="trash" />apagar selecionados</button>
+          <button className="ape-btn ghost sm" onClick={() => setSel([])}>limpar</button>
+        </div>
+      )}
       <div className="ape-rows">
         {sorted.map((o) => {
           const c = calc(o)
           const n = interesses.filter((i) => i.orcamento === o.id).length + (num(o.interessados) || 0)
           return (
-            <div key={o.id} className="ape-row">
+            <div key={o.id} className={`ape-row ape-lista-row ${sel.includes(o.id) ? 'sel' : ''}`}>
+              <label className="ape-lista-ck" aria-label={`Selecionar ${o.fornecedor}`}><input type="checkbox" checked={sel.includes(o.id)} onChange={(e) => setSel((l) => (e.target.checked ? [...l, o.id] : l.filter((x) => x !== o.id)))} /></label>
               <div className="t">
                 <b>
                   {o.fornecedor}
@@ -578,7 +591,8 @@ function Lista({ orcs, interesses, onEdit, onChange }: { orcs: Orcamento[]; inte
                 </span>
               </div>
               <div className="r">
-                <button className="ape-btn sm" onClick={() => onEdit(o)}><ApeIcon name="edit" />Editar</button>
+                <button className="ape-btn sm" onClick={() => onEdit(o)}><ApeIcon name="edit" />editar</button>
+                <button className="ape-btn ghost sm" onClick={() => void apagar([o.id])} aria-label={`Apagar ${o.fornecedor}`} title="apagar"><ApeIcon name="trash" /></button>
               </div>
             </div>
           )
