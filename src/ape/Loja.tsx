@@ -14,12 +14,15 @@ const COR: Record<string, string> = { azul: '#4e6472', rosa: '#a86b78', roxa: '#
 const amostraDe = (nome: string) => PRODUTOS_LOJA.find((p) => p.nome === nome)?.amostras?.[0]
 let PRODUTOS_LOJA: Produto[] = []
 let PIX = 5 // desconto do Pix da loja salva (definido ao abrir a loja)
+// cada selo ("mais vendido", "queridinho"...) aparece num produto só, para não repetir
+let SELO_OK = new Set<string>()
 
 export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Morador | null; whats: string; abrir?: string }) {
   const produtos = ajustes.produtos
   const pixPct = ajustes.pixPct ?? 5
   PIX = pixPct
   PRODUTOS_LOJA = produtos
+  { const vistos = new Set<string>(); SELO_OK = new Set(produtos.filter((p) => p.ativo && p.selo).filter((p) => { const k = (p.selo || '').trim().toLowerCase(); if (vistos.has(k)) return false; vistos.add(k); return true }).map((p) => p.id)) }
   const ativos = produtos.filter((p) => p.ativo)
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
@@ -201,6 +204,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           ['Quais formas de pagamento?', `Pix, com ${pixPct}% de desconto, ou cartão de crédito: à vista sem juros ou em até 12x com juros (parcela mínima de R$ 5).`],
           ['Tem desconto levando mais?', 'Os kits já têm o desconto no preço e saem bem mais em conta que os arquivos separados. Além disso, o Pix tem desconto em qualquer compra.'],
           ['Posso compartilhar?', 'Pode usar com quem mora com você, na sua casa. Os arquivos são de uso pessoal: não podem ser repassados, revendidos, postados ou enviados em grupos. Cada PDF sai com o nome de quem comprou.'],
+          ['Funciona no celular?', 'Sim. Os PDFs abrem em qualquer celular, tablet ou computador, e as planilhas funcionam no Excel, no Google Planilhas e no Numbers. A plataforma do apê é feita para usar no celular.'],
           ['Substitui um profissional?', 'Não. São guias práticos para você se organizar e não errar no básico. Regras de financiamento e seguro mudam de banco para banco e de contrato para contrato: confirme sempre com o seu banco e com profissionais.'],
         ].map(([q, r]) => (
           <details key={q} className="ape-faq-i">
@@ -267,37 +271,16 @@ function HeroArt({ pix }: { pix: number }) {
   )
 }
 
-/* situações de quem está montando o apê: personagens de EXEMPLO (marcados como tal), não são depoimentos */
-const SITUACOES: { nome: string; onde: string; fase: string; texto: string; ajuda: string; cor: string; arte: string }[] = [
-  { nome: 'Júlia e Rafa', onde: 'apê na planta', fase: 'vão assinar o contrato', texto: 'Na dúvida entre financiar pelo banco ou pela construtora, sem saber quanto vai custar de verdade com ITBI e cartório.', ajuda: 'guia de compra e planilha de custos', cor: 'azul', arte: 'contrato' },
-  { nome: 'Marina', onde: 'apê de 52 m²', fase: 'recebe as chaves em março', texto: 'Com medo de deixar passar defeito na vistoria e depois ter que brigar com a construtora.', ajuda: 'checklist de vistoria', cor: 'terra', arte: 'vistoria' },
-  { nome: 'Paulo e Bia', onde: 'casa térrea', fase: 'fechando a marcenaria', texto: 'Três orçamentos com preços muito diferentes e nenhum fala a mesma coisa sobre material e prazo.', ajuda: 'guia de orçamentos e guia da marcenaria', cor: 'madeira', arte: 'orcamento' },
-]
+/* números de verdade (aparecem sozinhos quando já são muitos) */
 function Situacoes() {
   const [num, setNum] = useState<{ moradores: number; compras: number } | null>(null)
   useEffect(() => void numerosLoja().then(setNum), [])
+  if (!num || (num.moradores < 10 && num.compras < 20)) return null
   return (
-    <section className="ape-situ" aria-label="Situações de quem está montando o apê">
-      <div className="ape-situ-h">
-        <h3 className="ape-sec-t">é <em>você?</em></h3>
-        <span className="ape-note">situações de exemplo, de quem está montando a casa</span>
-      </div>
-      <div className="ape-situ-l">
-        {SITUACOES.map((x) => (
-          <article key={x.nome} className={`ape-situ-i ${x.cor}`}>
-            <div className="h"><ApeArt name={x.arte} size={34} /><span><b>{x.nome}</b><small>{x.onde} · {x.fase}</small></span></div>
-            <p>{x.texto}</p>
-            <span className="ajuda"><ApeIcon name="check" />{x.ajuda}</span>
-          </article>
-        ))}
-      </div>
-      {num && (num.moradores >= 10 || num.compras >= 20) && (
-        <p className="ape-situ-num">
-          {num.moradores >= 10 && <span><b className="num">{num.moradores}</b> moradores do {APE.condominio} usam o planê.apê</span>}
-          {num.compras >= 20 && <span><b className="num">{num.compras}</b> compras na loja</span>}
-        </p>
-      )}
-    </section>
+    <p className="ape-situ-num">
+      {num.moradores >= 10 && <span><b className="num">{num.moradores}</b> moradores do {APE.condominio} usam o planê.apê</span>}
+      {num.compras >= 20 && <span><b className="num">{num.compras}</b> compras na loja</span>}
+    </p>
   )
 }
 
@@ -622,8 +605,8 @@ function BotaoCompra({ p, cart, onAdd, me, whats, wide = true }: { p: Produto; c
 function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; n?: number; byId: ById; onOpen: () => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const img = p.amostras?.[0]
   return (
-    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo ? 'com-selo' : ''} ${p.cat === 'combos' ? 'kit' : `f-${p.fase || 'comprei'}`}`}>
-      {p.selo && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
+    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo && SELO_OK.has(p.id) ? 'com-selo' : ''} ${p.cat === 'combos' ? 'kit' : `f-${p.fase || 'comprei'}`}`}>
+      {p.selo && SELO_OK.has(p.id) && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
       <button className="ape-thumb" onClick={onOpen} aria-label={`Ver ${p.nome} por dentro`}>
         {img ? (
           <img src={img} alt="" loading="lazy" />

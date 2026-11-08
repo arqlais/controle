@@ -2424,3 +2424,12 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
   .ape-situ-l::-webkit-scrollbar { display: none; }
   .ape-situ-i { flex: 0 0 82%; scroll-snap-align: start; }
 }
+/* plataforma: preço à esquerda, "adicionar" grande ao lado (sem ficar perdido) */
+.ape .ape-plat-buy:has(.ape-plat-steps.curto) { grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); }
+.ape .ape-plat-buy:has(.ape-plat-steps.curto) > .ape-acts { align-self: center; }
+.ape .ape-plat-buy > .ape-acts .ape-btn { width: 100%; min-height: 54px; font-size: 15px; justify-content: center; }
+@media (max-width: 760px) { .ape .ape-plat-buy:has(.ape-plat-steps.curto) { grid-template-columns: minmax(0, 1fr); } }
+/* cartão da plataforma: "conhecer" como botão de verdade */
+.ape-esc.plat .ape-esc-todos { background: var(--a-sec); color: #fff; padding: 11px 20px; border-radius: 999px; font-size: 14px; box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--a-sec) 70%, transparent); }
+.ape-esc.plat:hover .ape-esc-todos { filter: brightness(1.05); }
+.ape-esc.plat .ape-esc-todos .ape-i { color: #fff; }
