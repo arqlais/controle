@@ -18,7 +18,7 @@ export function Comparar({ orcs: todos, me, minhas = [], onFechar }: { orcs: Orc
     return (
       <button className="ape-btn ape-comparar-btn" onClick={() => setAberto(true)}>
         <ApeIcon name="list" />
-        comparar {todos.length > 2 ? `até ${Math.min(MAX, todos.length)} de ${todos.length}` : 'os 2'} lado a lado: escopo, prazos, garantia e o que falta
+        <span>comparar {todos.length > 2 ? `até ${Math.min(MAX, todos.length)} de ${todos.length}` : 'os 2'} lado a lado</span>
       </button>
     )
   const orcs = todos.filter((o) => sel.includes(o.id))

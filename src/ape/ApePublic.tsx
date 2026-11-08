@@ -269,7 +269,8 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
   const minhaPlanta = plantaDoAp(me?.ap)
   const [pl, setPl] = useState<'todas' | 'canto' | 'corredor'>('todas')
   const [q, setQ] = useState('')
-  const [vista, setVista] = useState<'blocos' | 'lista'>(saved.vista === 'lista' ? 'lista' : 'blocos')
+  const [vista, setVista] = useState<'blocos' | 'lista'>(saved.vista === 'blocos' ? 'blocos' : 'lista')
+  const [filtros, setFiltros] = useState(false)
   useEffect(() => {
     write(UI, { nicho: filtro, sort, validos, vista })
   }, [filtro, sort, validos, vista])
@@ -346,19 +347,14 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
         <div>
           <p className="ape-eyebrow">área dos moradores do {APE.condominio}</p>
           <h2>todos os orçamentos do grupo, <em>organizados</em></h2>
-          <p>Antes, cada orçamento se perdia no meio das mensagens do grupo. Aqui eles ficam guardados em pastas por serviço, do jeito que foram recebidos (PDF ou foto), e você compara lado a lado para escolher com quem fechar.</p>
+          <p>Os orçamentos do grupo em pastas por serviço, como foram recebidos, para comparar e escolher com quem fechar.</p>
           <div className="ape-acts">
-            <a className="ape-btn primary" href={href('ape', 'enviar')}><ApeIcon name="send" />mandar um orçamento</a>
+            <a className="ape-btn primary" href={href('ape', 'enviar')}><ApeIcon name="send" />mandar orçamento</a>
             <Compartilhar />
           </div>
         </div>
-        <div className="ape-stats">
-          <div className="ape-stat"><b className="num">{vis.filter(ehOrcamento).length}</b><span>orçamentos</span></div>
-          <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>pastas</span></div>
-          <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos e tabelas</span></div>
-        </div>
+        <p className="ape-orc-num"><b className="num">{vis.filter(ehOrcamento).length}</b> orçamentos · <b className="num">{Object.keys(counts).length}</b> pastas · <b className="num">{vis.length - vis.filter(ehOrcamento).length}</b> contatos e tabelas</p>
       </section>
-      <ComoFunciona />
       <div className="ape-pastas" role="group" aria-label="Pastas por serviço">
         <button className={`ape-pasta ${nf === 'todos' ? 'on' : ''}`} onClick={() => setFiltro('todos')}>
           <span className="ape-pasta-ic"><ApeIcon name="list" /></span>
@@ -377,44 +373,31 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
           )
         })}
       </div>
-      <div className="ape-plantas" role="group" aria-label="Planta">
-        <span>planta:</span>
-        {(['todas', 'canto', 'corredor'] as const).map((x) => (
-          <button key={x} className="ape-chip" aria-pressed={pl === x} onClick={() => setPl(x)}>{x === 'todas' ? 'todas' : x}{x === minhaPlanta ? ' · a sua' : ''}</button>
-        ))}
-      </div>
-      <details className="ape-aviso ape-aviso-d">
-        <summary><ApeIcon name="alert" /><span>Separamos por <b>acabamento</b> e mostramos a <b>planta</b> de cada orçamento. <u>entenda</u></span></summary>
-        <p>Cada orçamento foi feito para um apê: as plantas de canto (finais 01, 02, 11 e 12) e de corredor (finais 03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Mesmo sem ser igualzinho, dá para ver qual fornecedor sai mais em conta. Quando o orçamento não diz a planta, o site tenta descobrir pelas medidas. O "mais compensa" é um cálculo automático, não uma indicação.</p>
-      </details>
-      <details className="ape-grupo-como">
-        <summary><ApeIcon name="users" /><span><b>como funciona o fechar em grupo</b><small>mais apês = mais força para pedir desconto</small></span><ApeIcon name="chev" /></summary>
-        <ol>
-          <li><b>1</b><span>No orçamento que te interessa, marque <b>"tenho interesse em fechar em grupo"</b>. Não é compromisso: dá para desmarcar.</span></li>
-          <li><b>2</b><span>Juntou {GRUPO_META} apês (ou o mínimo que o fornecedor pediu)? Qualquer vizinho do grupo, de preferência quem mandou o orçamento, toca em <b>pedir desconto de grupo</b> e fala com o fornecedor: a mensagem já vem pronta, só com o número de apês.</span></li>
-          <li><b>3</b><span>Conseguiu? Registre o desconto e o prazo no próprio orçamento ("registrar o desconto do grupo"). Ele aparece para todos.</span></li>
-                    <li><b>4</b><span>Cada um fecha direto com o fornecedor, com o seu contrato e o seu pagamento, dizendo "grupo {APE.condominio}". O planê.apê não cobra nada por isso.</span></li>
-        </ol>
-      </details>
-      <div className="ape-toolbar">
+      <div className="ape-toolbar ape-toolbar2">
         <label className="ape-search">
           <ApeIcon name="search" />
           <input type="search" placeholder="Buscar fornecedor ou item…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
         </label>
-        <select className="ape-sel" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Ordenar por">
-          {Object.entries(SORTS).map(([k, s]) => (
-            <option key={k} value={k}>{s[0]}</option>
-          ))}
-        </select>
+        <button type="button" className={`ape-btn sm ape-filtros-btn ${filtros ? 'on' : ''}`} aria-expanded={filtros} onClick={() => setFiltros(!filtros)}><ApeIcon name="gear" />filtros{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0) ? <em>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0)}</em> : null}</button>
         <div className="ape-vista" role="group" aria-label="Ver como">
-          <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em blocos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg>blocos</button>
-          <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista"><ApeIcon name="list" />lista</button>
+          <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista" aria-label="ver em lista"><ApeIcon name="list" /></button>
+          <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em blocos" aria-label="ver em blocos"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg></button>
         </div>
-        <label className="ape-tog">
-          <input type="checkbox" checked={validos} onChange={(e) => setValidos(e.target.checked)} /> Só dentro da validade
-        </label>
       </div>
-      <div style={{ display: 'grid', gap: 26 }}>
+      {filtros && (
+        <div className="ape-panel ape-filtros">
+          <div className="ape-filtros-l"><span>planta</span>
+            <div className="ape-chips-l">{(['todas', 'canto', 'corredor'] as const).map((x) => <button key={x} className="ape-chip" aria-pressed={pl === x} onClick={() => setPl(x)}>{x}{x === minhaPlanta ? ' · a sua' : ''}</button>)}</div>
+          </div>
+          <div className="ape-filtros-l"><span>ordem</span>
+            <select className="ape-sel" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Ordenar por">{Object.entries(SORTS).map(([k, x]) => <option key={k} value={k}>{x[0]}</option>)}</select>
+          </div>
+          <label className="ape-tog"><input type="checkbox" checked={validos} onChange={(e) => setValidos(e.target.checked)} /> só dentro da validade</label>
+          <button type="button" className="ape-btn ghost sm" onClick={() => setFiltros(false)}>fechar</button>
+        </div>
+      )}
+      <Entenda />
+      <div className="ape-orc-lista" style={{ display: 'grid', gap: 26 }}>
         {!list.length && (
           <div className="ape-panel ape-empty">
             <b>nada por aqui</b>
@@ -461,7 +444,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
             )
           }
           return (
-            <div key={id} style={{ display: 'grid', gap: 18 }}>
+            <div key={id} className="ape-orc-grupo" style={{ display: 'grid', gap: 18 }}>
               <section className="ape-nicho" aria-label={n.l}>
                 <div className="ape-nhead">
                   <span className="ape-nic"><ApeIcon name={n.i} /></span>
@@ -520,27 +503,23 @@ function Contatos({ lista, me }: { lista: Orcamento[]; me: Morador | null }) {
 }
 
 /* como funciona: passo a passo ilustrado (aberto na primeira visita) */
-function ComoFunciona() {
-  const [aberto, setAberto] = useState(() => !read<boolean>('ape-tutorial-visto'))
-  const fechar = () => {
-    write('ape-tutorial-visto', true)
-    setAberto(false)
-  }
-  if (!aberto)
-    return <button className="ape-btn ghost sm ape-comofunc-btn" onClick={() => setAberto(true)}><ApeIcon name="sparkle" />como funciona?</button>
+/** Tudo o que explica a área num lugar só, fechado por padrão: como funciona, planta e acabamento, fechar em grupo. */
+function Entenda() {
   return (
-    <section className="ape-comofunc" aria-label="Como funciona">
-      <div className="ape-comofunc-h">
-        <b>como funciona, em 4 passos</b>
-        <button className="ape-btn ghost sm" onClick={fechar}>entendi</button>
+    <details className="ape-entenda">
+      <summary><ApeIcon name="sparkle" /><span><b>como funciona</b><small>passo a passo, planta e acabamento, fechar em grupo</small></span><ApeIcon name="chev" /></summary>
+      <div className="ape-entenda-b">
+        <ol className="ape-entenda-passos">
+          <li><ApeArt name="grupo" size={36} /><span><b>peça o orçamento</b>ao fornecedor, como sempre</span></li>
+          <li><ApeArt name="anexo" size={36} tone="sec" /><span><b>mande aqui</b>PDF, print, texto ou só o contato</span></li>
+          <li><ApeArt name="comparar" size={36} /><span><b>compare</b>preço, o que inclui, prazo, garantia e o original</span></li>
+          <li><ApeArt name="carrinho" size={36} tone="sec" /><span><b>escolha</b>"vou fechar com este" e, se der, feche em grupo</span></li>
+        </ol>
+        <p className="ape-entenda-t"><b>planta e acabamento.</b> Canto (finais 01, 02, 11 e 12) e corredor (03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Por isso os orçamentos ficam separados por acabamento e mostram a planta; quando não dizem, o site descobre pelas medidas. O "mais compensa" é um cálculo automático, não uma indicação.</p>
+        <p className="ape-entenda-t"><b>fechar em grupo.</b> Marque "tenho interesse" no orçamento (não é compromisso). Juntou {GRUPO_META} apês? Qualquer vizinho toca em "pedir desconto de grupo": a mensagem já vem pronta. Conseguiu, registre o desconto no orçamento. Cada um fecha direto com o fornecedor, dizendo "grupo {APE.condominio}". O planê.apê não cobra nada.</p>
+        <RecolherDetalhes />
       </div>
-      <ol>
-        <li><ApeArt name="grupo" size={48} /><span><b>1. peça o orçamento</b>ao fornecedor, como sempre (WhatsApp, e-mail, visita)</span></li>
-        <li><ApeArt name="anexo" size={48} tone="sec" /><span><b>2. mande aqui</b>toque em "enviar" e anexe o PDF ou o print. Pode ser só o contato ou a tabela de preços também</span></li>
-        <li><ApeArt name="comparar" size={48} /><span><b>3. compare</b>abra a pasta do serviço: preço, o que inclui, prazo, garantia e o arquivo original</span></li>
-        <li><ApeArt name="carrinho" size={48} tone="sec" /><span><b>4. escolha</b>marque "vou fechar com este" e, se der, entre no grupo para ganhar desconto</span></li>
-      </ol>
-    </section>
+    </details>
   )
 }
 

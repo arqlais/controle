@@ -2114,8 +2114,10 @@
 .ape-card .ape-tags, .ape-shop .ape-tags { display: flex; flex-wrap: nowrap; gap: 6px; min-width: 0; overflow: hidden; }
 .ape-shop .ape-tags .ape-pill { white-space: nowrap; flex: 0 0 auto; }
 .ape-shop .ape-tags .ape-pill:first-child:not(:only-child) { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 1.6; }
-.ape .ape-btn { white-space: nowrap; }
-.ape .ape-btn.ape-quebra, .ape .ape-tipo, .ape .ape-btn.full-text { white-space: normal; }
+.ape .ape-btn.sm, .ape .ape-proj-btn { white-space: nowrap; }
+.ape .ape-btn { max-width: 100%; min-width: 0; }
+.ape .ape-comparar-btn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; justify-content: flex-start; }
+.ape .ape-comparar-btn > span, .ape .ape-comparar-btn { min-width: 0; }
 
 /* celular: menos altura, nada sozinho numa linha */
 @media (max-width: 560px) {
@@ -2174,3 +2176,60 @@
 .ape-surpresa-box, .ape-bonus2:not(.on) .ic, .ape-bonus-mini:not(.on) svg { animation-iteration-count: 4 !important; }
 .ape-fileira-seta { top: 118px; }
 .ape-fileira-seta.e { left: -16px; } .ape-fileira-seta.d { right: -16px; }
+
+/* área de orçamentos mais limpa: números numa linha, filtros escondidos num botão, explicações num lugar só */
+.ape-orc-num { margin: 10px 0 0; font-size: 13px; color: var(--a-muted); }
+.ape-orc-num b { color: var(--a-ink); font-size: 15px; }
+.ape-toolbar2 { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.ape-toolbar2 .ape-search { flex: 1 1 auto; min-width: 0; }
+.ape-filtros-btn { flex: none; position: relative; }
+.ape-filtros-btn.on { border-color: var(--a-pri); color: var(--a-pri); }
+.ape-filtros-btn em { font-style: normal; background: var(--a-sec); color: #fff; border-radius: 999px; min-width: 18px; height: 18px; display: inline-grid; place-items: center; font-size: 11px; margin-left: 2px; }
+.ape-toolbar2 .ape-vista { flex: none; }
+.ape-toolbar2 .ape-vista button { width: 38px; padding: 0; justify-content: center; }
+.ape-filtros { display: grid; gap: 12px; padding: 14px; }
+.ape-filtros-l { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ape-filtros-l > span { font-size: 12px; font-weight: 700; color: var(--a-muted); min-width: 44px; }
+.ape-chips-l { display: flex; gap: 6px; flex-wrap: wrap; }
+.ape-filtros > .ape-btn { justify-self: end; }
+.ape-entenda { border: 1px solid var(--a-line); border-radius: 16px; background: var(--a-card); }
+.ape-entenda > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; }
+.ape-entenda > summary::-webkit-details-marker { display: none; }
+.ape-entenda > summary > span { flex: 1; display: grid; gap: 1px; min-width: 0; }
+.ape-entenda > summary b { font-size: 14px; } .ape-entenda > summary small { font-size: 12px; color: var(--a-muted); }
+.ape-entenda > summary > .ape-i:first-child { color: var(--a-sec); }
+.ape-entenda > summary > .ape-i:last-child { transition: transform .2s; }
+.ape-entenda[open] > summary > .ape-i:last-child { transform: rotate(180deg); }
+.ape-entenda-b { padding: 0 14px 12px; display: grid; gap: 10px; }
+.ape-entenda-passos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ape-entenda-passos li { display: flex; gap: 8px; align-items: flex-start; background: var(--a-bg); border-radius: 12px; padding: 10px; font-size: 12px; color: var(--a-muted); line-height: 1.4; }
+.ape-entenda-passos li b { display: block; color: var(--a-ink); font-size: 13px; }
+.ape-entenda-t { margin: 0; font-size: 13px; line-height: 1.55; color: var(--a-muted); }
+.ape-entenda-t b { color: var(--a-ink); }
+@media (min-width: 900px) { .ape-entenda-passos { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* lista de orçamentos nunca mais larga que a tela */
+.ape-orc-lista, .ape-orc-grupo { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.ape-orc-lista > *, .ape-orc-grupo > *, .ape-orc-grupo .ape-nicho, .ape-acab, .ape-linhas, .ape-linha, .ape-grid { min-width: 0; max-width: 100%; }
+.ape-linha-h { min-width: 0; }
+.ape-linha-h .t { min-width: 0; }
+.ape-linha-h .t b, .ape-linha-h .t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+@media (max-width: 480px) { .ape-top .ape-logo small { display: none; } }
+@media (max-width: 560px) {
+  /* topo da área: os dois botões lado a lado */
+  .ape-orc-hero .ape-acts { flex-wrap: nowrap; gap: 8px; }
+  .ape-orc-hero .ape-acts > * { flex: 0 1 auto; min-width: 0; }
+  /* cartão aberto dentro da lista: o nome já está na linha de cima */
+  .ape-linha-b .ape-oc-h { display: none; }
+  /* preços: três por linha quando couber, nada sozinho embaixo */
+  .ape-pr { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)) !important; gap: 6px !important; }
+  .ape-pbox { padding: 9px 10px !important; min-width: 0; }
+  .ape-pbox .v { font-size: 13.5px !important; white-space: nowrap; }
+  .ape-pbox .l { font-size: 10.5px !important; }
+  .ape-pbox .h { font-size: 10.5px !important; line-height: 1.35; }
+}
+@media (max-width: 560px) {
+  .ape-orc-hero .ape-acts .ape-btn { white-space: nowrap; }
+  .ape-orc-hero .ape-acts .ape-btn.primary { flex: 1 1 auto; justify-content: center; }
+  .ape-orc-hero .ape-acts .ape-btn:not(.primary) { font-size: 0; gap: 0; width: 46px; min-width: 46px; padding: 0; justify-content: center; flex: none; }
+  .ape-orc-hero .ape-acts .ape-btn:not(.primary) .ape-i { width: 18px; height: 18px; }
+}

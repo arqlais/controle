@@ -462,7 +462,7 @@ ORCAMENTO:
 "alertas": ["o que está vago ou costuma gerar custo extra e não aparece (ex.: frete, rodapé, retirada de entulho, regularização)"],
 "opcoes": [{"nome": "opção de material ou modelo, ex.: Quartzo branco", "valor_total": número, "valor_avista": número ou null}] (só se o orçamento tiver opções alternativas de material/modelo com totais diferentes; senão []),
 "completude": 1 a 5}
-Regras: números em reais sem R$ (1234.5). Na dúvida se é um orçamento ou dois, separe quando o serviço (nicho) ou o fornecedor muda. Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
+Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos jeitos: "R$ 3.500,00", "3500", "3,5 mil", "R$3.500", à mão, numa tabela, com o valor antigo riscado e o novo ao lado (use o novo, o que vale), ou só como parcelas ("10x de 350": total 3500). Sem total escrito, some os itens. Leia com atenção a imagem inteira, inclusive carimbos, rodapés e textos pequenos, antes de deixar valor_total null. Na dúvida se é um orçamento ou dois, separe quando o serviço (nicho) ou o fornecedor muda. Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
 
   async function ler(body: J) {
     const morador = String(body.morador ?? '')

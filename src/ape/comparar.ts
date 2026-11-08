@@ -243,10 +243,20 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   // valores: total (com R$), à vista / Pix, parcelas
   const valor = (re: RegExp) => {
     const m = t.match(re)
-    return m ? num(m[1]) : null
+    // "11.500" sem vírgula é onze mil e quinhentos (ponto de milhar), não 11,5
+    return m ? num(/^\d{1,3}(?:\.\d{3})+$/.test(m[1]) ? m[1].replace(/\./g, '') : m[1]) : null
   }
-  out.valor_total = valor(/(?:valor\s+)?total(?:\s+geral)?[^\d\n]{0,25}R\$\s*([\d.]+,\d{2})/i)
-  out.valor_avista = valor(/(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,25}R\$\s*([\d.]+,\d{2})/i)
+  // o preço aparece de muitos jeitos: "R$ 3.500,00", "R$3.500", "R $ 3500,00", "3.500,00" sem R$, "3,5 mil"
+  const DIN = String.raw`(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+,\d{2}|\d{3,})`
+  out.valor_total = valor(new RegExp(String.raw`(?:valor\s+)?total(?:\s+(?:geral|final|do\s+or[cç]amento|a\s+pagar))?[^\d\n]{0,40}?(?:R\s?\$\s*)?` + DIN, 'i'))
+  out.valor_avista = valor(new RegExp(String.raw`(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,40}?(?:R\s?\$\s*)?` + DIN, 'i'))
+  if (out.valor_total == null) {
+    const mil = t.match(/(\d+(?:,\d+)?)\s*mil\b/i)
+    // sem "total" escrito: o maior valor em reais do texto costuma ser o total
+    const todos = [...t.matchAll(/R\s?\$\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)/gi)].map((m) => num(/^\d{1,3}(?:\.\d{3})+$/.test(m[1]) ? m[1].replace(/\./g, '') : m[1]) || 0).filter((v) => v >= 50)
+    if (todos.length) out.valor_total = Math.max(...todos)
+    else if (mil) out.valor_total = (num(mil[1]) || 0) * 1000 || null
+  }
   const parc = t.match(/(\d{1,2})\s*x\s*(?:de\s*)?R?\$?\s*([\d.]+,\d{2})/i)
   if (parc) {
     out.parcelas_max = Number(parc[1])
