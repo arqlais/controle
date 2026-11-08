@@ -83,7 +83,9 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes']], [APE.condominio, ['lista', 'moradores', 'grupos']], ['vitrine da loja', ['loja', 'entregas', 'opiniao']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
-  const minhaPlat = (() => { try { return JSON.parse(localStorage.getItem('ape-plat') || 'null') as string | null } catch { return null } })()
+  // a plataforma da própria dona (acesso de teste sem vencimento), buscada no banco: o link guardado no aparelho pode estar velho
+  const [minhaPlat, setMinhaPlat] = useState<string | null>(null)
+  useEffect(() => { void loja.minhaPlataforma().then((t) => setMinhaPlat(t || null), () => null) }, [])
   const trocarFoto = async (f?: File) => {
     if (!f || !ajustes) return
     try {
@@ -1617,7 +1619,7 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
                           <span className="ape-arqr-cores">
                             {planilhas.map((f) => (
                               <span key={f.nome} className={`ape-cor-chip c-${cor(f.nome)}`} title={`${f.nome} · ${kb(f.tamanho)}`}>
-                                <i />{cor(f.nome)}
+                                <button type="button" className="ape-cor-ver" onClick={() => void abrir(p.id, p.nome, f.nome)} title={`baixar ${f.nome}`}><i />{cor(f.nome)}</button>
                                 <button type="button" onClick={() => void apagar(p.id, f.nome)} aria-label={`Tirar ${f.nome}`}>×</button>
                               </span>
                             ))}
@@ -1650,11 +1652,11 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
               <button type="button" className="ape-icobtn" onClick={() => setVer(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
             </header>
             {ehPlanilha(ver.arq)
-              ? <div className="ape-prev-vazio"><ApeIcon name="tag" /><b>Planilhas não abrem aqui</b><span>Baixe para conferir no Excel ou no Google Planilhas.</span></div>
+              ? <div className="ape-prev-vazio"><ApeIcon name="tag" /><b>{ver.arq}</b><span>Planilha não abre aqui: baixe para conferir no Excel ou no Google Planilhas.</span></div>
               : <iframe key={ver.v} className="ape-prev-frame" src={`${ver.url}#view=FitH`} title={`Prévia de ${ver.nome}`} />}
             <footer className="ape-prev-acts">
               <a className="ape-btn sm" href={ver.url} target="_blank" rel="noreferrer"><ApeIcon name="eye" />abrir em tela cheia</a>
-              <a className="ape-btn sm" href={ver.url} download={ver.arq}><ApeIcon name="download" />baixar</a>
+              <a className={`ape-btn sm ${ehPlanilha(ver.arq) ? 'primary' : ''}`} href={`${ver.url}${ver.url.includes('?') ? '&' : '?'}download=${encodeURIComponent(ver.arq)}`} download={ver.arq}><ApeIcon name="download" />baixar {ehPlanilha(ver.arq) ? ver.arq.replace(/^.*-(azul|rosa|roxa|verde)\..*$/, 'a $1') : ''}</a>
               <label className="ape-btn sm primary" style={{ cursor: 'pointer' }}>
                 <ApeIcon name="share" />{busy === ver.id ? 'enviando…' : 'trocar este arquivo'}
                 <input type="file" hidden accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void trocar(ver.id, e.target.files?.[0], ver.arq)} />

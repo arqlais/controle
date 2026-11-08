@@ -2298,3 +2298,7 @@
 .ape-arqr-acts .ape-btn { width: 100%; justify-content: center; }
 .ape-arqr-vazio { width: 34px; height: 34px; }
 @media (max-width: 560px) { .ape-arqr-acts { justify-content: start; } }
+.ape-cor-ver { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; padding: 0; font: inherit; color: inherit; cursor: pointer; }
+.ape-cor-ver:hover { color: var(--a-pri); text-decoration: underline; }
+.ape-cor-chip > button:not(.ape-cor-ver) { border: 0; background: none; color: var(--a-muted); font-size: 14px; line-height: 1; padding: 0 2px; cursor: pointer; }
+.ape-cor-chip .ape-cor-ver { font-size: 11.5px; color: var(--a-ink); padding: 0; line-height: 1.4; }

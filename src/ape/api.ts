@@ -748,6 +748,15 @@ export const loja = {
     const { error } = await sb().from('ape_plataforma').update({ validade }).eq('id', id)
     fail(error)
   },
+  /** A plataforma do apê da própria dona (o acesso de teste que não vence). */
+  async minhaPlataforma(): Promise<string> {
+    if (!CLOUD) return ''
+    const q1 = await sb().from('ape_plataforma').select('token').eq('email', 'lala.av03@gmail.com').order('validade', { ascending: false }).limit(1)
+    const t1 = (q1.data?.[0] as { token?: string } | undefined)?.token
+    if (t1) return t1
+    const q2 = await sb().from('ape_plataforma').select('token').gte('validade', '2099-01-01').limit(1)
+    return String((q2.data?.[0] as { token?: string } | undefined)?.token || '')
+  },
   async arquivos(produto: string): Promise<{ nome: string; tamanho: number; em?: string }[]> {
     if (!CLOUD) return []
     const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 20 })
