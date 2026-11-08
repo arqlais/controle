@@ -388,7 +388,7 @@ export const TAXAS: Taxas = { pix: 1.99, cartaoPct: 2.99, cartaoFixo: 0.49 }
 /** Meses de plataforma que o kit completo dá de presente (no máximo 1). */
 export const KIT_PLATAFORMA_MESES = 1
 /** Bônus de todas as compras, liberado 7 dias depois do pagamento (não é vendido; não muda o direito de arrependimento). */
-export const BONUS = { id: 'bonus', surpresa: 'bônus surpresa', pista: 'Um arquivo que não está à venda na loja, pensado para quem acabou de pegar as chaves. Ele chega fechado e só abre no 8º dia.', nome: 'Calendário de manutenção e garantias do 1º ano', desc: 'O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item. Chega 7 dias depois da compra.', dias: 7 }
+export const BONUS = { id: 'bonus', surpresa: 'bônus surpresa', pista: 'Um arquivo exclusivo, que não tem à venda na loja, pensado para quem acabou de pegar as chaves. Chega de presente uma semana depois da compra.', nome: 'Calendário de manutenção e garantias do 1º ano', desc: 'O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item. Chega 7 dias depois da compra.', dias: 7 }
 const arq = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega'>): Produto => ({ cat: 'arquivos', ativo: true, entrega: NA_HORA, fase: 'comprei', ...p })
 const kit = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega' | 'preco' | 'itens'> & { itens?: string[] }): Produto => ({ cat: 'combos', ativo: true, entrega: NA_HORA, preco: '', itens: [], ...p })
 export const PRODUTOS: Produto[] = [

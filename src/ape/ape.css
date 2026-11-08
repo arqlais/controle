@@ -2066,3 +2066,5 @@
 .ape-fileira-seta.e { left: -14px; } .ape-fileira-seta.e .ape-i { transform: rotate(90deg); }
 .ape-fileira-seta.d { right: -14px; } .ape-fileira-seta.d .ape-i { transform: rotate(-90deg); }
 @media (hover: none) { .ape-fileira-seta { display: none; } }
+.ape .ape-cartbtn { width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
+.ape .ape-cartbtn svg { width: 20px; height: 20px; }

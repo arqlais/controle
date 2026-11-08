@@ -81,7 +81,6 @@ export function BotaoCarrinho({ n }: { n: number }) {
   return (
     <a className={`ape-cartbtn ${n ? 'tem' : ''} ${pula ? 'pula' : ''}`} href={href('ape', 'loja:carrinho')} onClick={() => window.dispatchEvent(new Event('ape-abrir-carrinho'))} aria-label={`Carrinho com ${n} ${n === 1 ? 'item' : 'itens'}`}>
       <ApeIcon name="bag" />
-      <span>carrinho</span>
       {n ? <em>{n}</em> : null}
     </a>
   )

@@ -66,7 +66,7 @@ ${passos([
 <div style="padding:8px 0 2px">${botao('criar meu acesso', link)}</div>
 ${resumoPedido(ped)}
 ${temPlat ? caixa('<b>Plataforma do apê</b>: vale por 12 meses a partir de hoje. Ela fica em <b>minha conta → minha plataforma</b> e funciona no celular e no computador. Dica: no celular, use "adicionar à tela de início" para abrir como um aplicativo.') : ''}
-${temArq ? caixa('<b>Tem um bônus surpresa a caminho.</b> É um arquivo que não está à venda na loja, pensado para quem acabou de pegar as chaves. Ele abre sozinho no 8º dia, em minha conta, e a gente te avisa por e-mail.', 'sec') : ''}
+${temArq ? caixa('<b>Tem um brinde surpresa a caminho.</b> Um arquivo exclusivo, que não tem à venda na loja, chega de presente em minha conta uma semana depois da compra. A gente te avisa por e-mail.', 'sec') : ''}
 <p style="margin:14px 0 0;font-size:12px;color:#8a817a">Depois do primeiro acesso, entre sempre por <b>minha conta</b>, de qualquer aparelho, com o seu e-mail e senha. Você tem 7 dias de direito de arrependimento, também em minha conta.</p>`,
       botao2: ['criar meu acesso', link],
       ajuda: `Oi! Fiz o pedido nº ${numPedido(ped)} no planê.apê e preciso de ajuda`,
@@ -93,7 +93,7 @@ ${temArq ? caixa('<b>Tem um bônus surpresa a caminho.</b> É um arquivo que nã
   async function emailBonus(ped: J) {
     const html = moldura({
       site,
-      previa: 'O cadeado abriu: o seu bônus surpresa já está em minha conta.',
+      previa: 'Chegou o seu brinde exclusivo: já está em minha conta.',
       kicker: 'bônus liberado',
       titulo: 'O seu bônus surpresa abriu!',
       corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! Passou uma semana desde a sua compra e o presente chegou: o <b>Calendário de manutenção e garantias do 1º ano</b>.</p>${caixa('O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item (portas, janelas, pintura, elétrica, hidráulica, impermeabilização). Ótimo para não perder nenhum prazo com a construtora.')}<p style="margin:0">Ele já está em <b>minha conta</b>, junto com os seus arquivos, com o seu nome no rodapé.</p>`,

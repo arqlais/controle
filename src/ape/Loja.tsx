@@ -188,12 +188,12 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         </div>
         <div>
           <p className="ape-eyebrow">em toda compra</p>
-          <h3 className="ape-sec-t">um <em>bônus surpresa</em> no 8º dia</h3>
+          <h3 className="ape-sec-t">um <em>brinde surpresa</em> depois de 7 dias</h3>
           <p className="ape-note" style={{ margin: 0 }}>{BONUS.pista}</p>
           <ul className="ape-surpresa-l">
-            <li><ApeIcon name="lock" />chega fechado</li>
-            <li><ApeIcon name="clock" />abre no 8º dia</li>
-            <li><ApeIcon name="sparkle" />não está à venda</li>
+            <li><ApeIcon name="gift" />brinde em toda compra</li>
+            <li><ApeIcon name="sparkle" />exclusivo</li>
+            <li><ApeIcon name="tag" />não tem à venda</li>
           </ul>
         </div>
       </section>
