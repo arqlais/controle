@@ -229,6 +229,13 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ ok: r.ok, status: r.status, para: DONO, remetente, detalhe: texto.slice(0, 400) })
   }
 
+  /** Aviso para o cliente quando a dona reembolsa pela tela de vendas. */
+  async function emailReembolso(ped: J) {
+    if (!ped?.email || ped.cortesia) return false
+    const v = `R$ ${Number(ped.total).toFixed(2).replace('.', ',')}`
+    return await mandar(ped.email, ped.nome, 'Seu reembolso do planê.apê', layout('Reembolso feito', `<p>Oi, ${esc(String(ped.nome || '').split(' ')[0])}! O reembolso de <b>${v}</b> da sua compra no planê.apê foi feito.</p><p>${ped.forma === 'cartao' ? 'No cartão, o valor aparece como crédito em até 2 faturas, conforme o seu banco.' : 'No Pix, o valor volta para a conta que fez o pagamento, normalmente na hora.'}</p><p>Os links de download e o acesso à plataforma deste pedido foram desativados. Se ficou alguma dúvida, é só responder este e-mail.</p>`))
+  }
+
   /** Aviso para a dona a cada venda confirmada. */
   async function avisarVenda(ped: J) {
     const itens = ((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')
@@ -277,5 +284,5 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso }
 }

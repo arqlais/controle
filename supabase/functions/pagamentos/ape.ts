@@ -370,6 +370,19 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
   }
   const contaApi = makeConta({ db, asaas, json, site, env }, reembolsarPedido)
 
+  /** Reenvia o aviso de reembolso para o cliente (só a dona). */
+  async function avisarReembolso(req: Request, body: J) {
+    const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const { data: u } = await db.auth.getUser(jwt)
+    if (!u?.user) return json({ erro: 'Entre na sua conta.' }, 401)
+    const { data: adm } = await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()
+    if (!adm) return json({ erro: 'Só a dona.' }, 403)
+    const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', String(body.id ?? '')).maybeSingle()
+    if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
+    const ok = await contaApi.emailReembolso(ped)
+    return ok ? json({ ok: true }) : json({ erro: 'O Brevo não enviou: use "testar e-mail" em ver como cliente para ver o motivo.' }, 400)
+  }
+
   /** Reembolso (só a dona, logada): devolve no Asaas, fecha os downloads e a plataforma do pedido. */
   async function reembolsar(req: Request, body: J) {
     const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
@@ -377,10 +390,11 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (!u?.user) return json({ erro: 'Entre na sua conta.' }, 401)
     const { data: adm } = await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()
     if (!adm) return json({ erro: 'Só a dona pode reembolsar.' }, 403)
-    const { data: ped } = await db.from('ape_pedidos').select('id').eq('id', String(body.id ?? '')).maybeSingle()
+    const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', String(body.id ?? '')).maybeSingle()
     if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
     try {
       await reembolsarPedido(ped.id, body.manual === true)
+      if (ped.status === 'pago') await contaApi.emailReembolso(ped).catch(() => null)
     } catch (e) {
       // o Asaas devolve usando o saldo da conta: sem saldo, avisa para a dona devolver por fora e marcar
       if (/saldo insuficiente/i.test(String(e))) return json({ erro: 'O Asaas ainda não tem saldo para devolver esse valor (o estorno usa o saldo da sua conta).', semSaldo: true }, 400)
@@ -581,5 +595,5 @@ Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total
     return json({ arquivos: out })
   }
 
-  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, testarEmail: contaApi.testarEmail }
+  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, testarEmail: contaApi.testarEmail, avisarReembolso }
 }

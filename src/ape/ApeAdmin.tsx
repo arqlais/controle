@@ -1181,6 +1181,7 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
                 {waNum(p.tel) && (
                   <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra no planê.apê. Seus arquivos ficam aqui: ${linkPedido(p.token)}` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra no planê.apê. Ficou alguma dúvida? O pagamento fica aqui: ${linkPedido(p.token)}`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>
                 )}
+                {p.status === 'reembolsado' && !p.cortesia && <button className="ape-btn ghost sm" onClick={() => void painelConta.avisarReembolso(p.id).then(() => toast(`E-mail de reembolso enviado para ${p.email}.`), (e) => toast(String((e as Error).message)))}><ApeIcon name="send" />avisar o cliente</button>}
                 {(p.status === 'pago' || p.status === 'pendente') && <button className="ape-btn ghost sm danger" onClick={() => void reembolsar(p)}>{p.status === 'pago' ? (p.cortesia ? 'tirar acesso' : 'reembolsar') : 'cancelar'}</button>}
               </div>
             </div>
