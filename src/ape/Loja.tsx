@@ -271,16 +271,36 @@ function HeroArt({ pix }: { pix: number }) {
   )
 }
 
-/* números de verdade (aparecem sozinhos quando já são muitos) */
+/* situações de quem está montando o apê: personagens de EXEMPLO (marcados como tal), não são depoimentos */
+const SITUACOES: { nome: string; onde: string; fase: string; texto: string; ajuda: string; cor: string; arte: string }[] = [
+  { nome: 'Júlia e Rafa', onde: 'apê na planta', fase: 'vão assinar o contrato', texto: 'Na dúvida entre financiar pelo banco ou pela construtora, sem saber quanto vai custar de verdade com ITBI e cartório.', ajuda: 'guia de compra e planilha de custos', cor: 'azul', arte: 'contrato' },
+  { nome: 'Marina', onde: 'apê de 52 m²', fase: 'recebe as chaves em março', texto: 'Com medo de deixar passar defeito na vistoria e depois ter que brigar com a construtora.', ajuda: 'checklist de vistoria', cor: 'terra', arte: 'vistoria' },
+  { nome: 'Paulo e Bia', onde: 'casa térrea', fase: 'fechando a marcenaria', texto: 'Três orçamentos com preços muito diferentes e nenhum fala a mesma coisa sobre material e prazo.', ajuda: 'guia de orçamentos e guia da marcenaria', cor: 'madeira', arte: 'orcamento' },
+]
 function Situacoes() {
   const [num, setNum] = useState<{ moradores: number; compras: number } | null>(null)
   useEffect(() => void numerosLoja().then(setNum), [])
-  if (!num || (num.moradores < 10 && num.compras < 20)) return null
   return (
-    <p className="ape-situ-num">
-      {num.moradores >= 10 && <span><b className="num">{num.moradores}</b> moradores do {APE.condominio} usam o planê.apê</span>}
-      {num.compras >= 20 && <span><b className="num">{num.compras}</b> compras na loja</span>}
-    </p>
+    <section className="ape-situ" aria-label="Situações de quem está montando o apê">
+      <div className="ape-situ-h">
+        <h3 className="ape-sec-t">é <em>você?</em></h3>
+      </div>
+      <div className="ape-situ-l">
+        {SITUACOES.map((x) => (
+          <article key={x.nome} className={`ape-situ-i ${x.cor}`}>
+            <div className="h"><ApeArt name={x.arte} size={34} /><span><b>{x.nome}</b><small>{x.onde} · {x.fase}</small></span></div>
+            <p>{x.texto}</p>
+            <span className="ajuda"><ApeIcon name="check" />{x.ajuda}</span>
+          </article>
+        ))}
+      </div>
+      {num && (num.moradores >= 10 || num.compras >= 20) && (
+        <p className="ape-situ-num">
+          {num.moradores >= 10 && <span><b className="num">{num.moradores}</b> moradores do {APE.condominio} usam o planê.apê</span>}
+          {num.compras >= 20 && <span><b className="num">{num.compras}</b> compras na loja</span>}
+        </p>
+      )}
+    </section>
   )
 }
 
