@@ -99,6 +99,9 @@ export default function ApeAdmin() {
           <button className="ape-pp-ic so-pc" onClick={() => { setFechado(!fechado); try { localStorage.setItem('ape-adm-mini', fechado ? '' : '1') } catch { /* sem armazenamento */ } }} aria-label={fechado ? 'Abrir o menu' : 'Recolher o menu'} title={fechado ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
           <button className="ape-pp-ic so-cel" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
         </div>
+        <a className="ape-pp-voltarplane" href={href('inicio')} title="voltar para o planê arquitetura">
+          <ApeIcon name="chev" /><span>voltar ao <b>planê</b></span>
+        </a>
         <div className="ape-pp-casa as-div">
           <span className="ape-pp-casa-foto"><ApeIcon name="gear" /></span>
           <span className="t"><small>só você vê</small><b>painel da dona</b></span>
