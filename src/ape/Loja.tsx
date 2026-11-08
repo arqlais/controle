@@ -442,45 +442,47 @@ function Fileira({ n, rotulo, children }: { n: number; rotulo: string; children:
   const [tudo, setTudo] = useState(false)
   const [sobra, setSobra] = useState(false)
   const [pos, setPos] = useState<'ini' | 'meio' | 'fim'>('ini')
+  const quadro = useRef(0)
   const medir = useCallback(() => {
-    const el = ref.current
-    if (!el) return
-    setSobra(el.scrollWidth > el.clientWidth + 4)
-    setPos(el.scrollLeft < 8 ? 'ini' : el.scrollLeft + el.clientWidth >= el.scrollWidth - 8 ? 'fim' : 'meio')
+    if (quadro.current) return
+    // no máximo uma medida por quadro: rolar não re-desenha os cartões à toa
+    quadro.current = requestAnimationFrame(() => {
+      quadro.current = 0
+      const el = ref.current
+      if (!el) return
+      const s = el.scrollWidth > el.clientWidth + 4
+      const p = el.scrollLeft < 8 ? 'ini' : el.scrollLeft + el.clientWidth >= el.scrollWidth - 8 ? 'fim' : 'meio'
+      setSobra((v) => (v === s ? v : s))
+      setPos((v) => (v === p ? v : p))
+    })
   }, [])
+  const rolar = (d: number) => ref.current?.scrollBy({ left: d * ref.current.clientWidth * 0.9, behavior: 'smooth' })
   useEffect(() => {
     medir()
     window.addEventListener('resize', medir)
     return () => window.removeEventListener('resize', medir)
   }, [medir, n, tudo])
-  // rodinha do mouse anda para o lado enquanto houver para onde ir; nas pontas, a página rola normal
   useEffect(() => {
     const el = ref.current
     if (!el || tudo) return
-    const roda = (e: WheelEvent) => {
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-      const max = el.scrollWidth - el.clientWidth
-      if ((e.deltaY > 0 && el.scrollLeft >= max - 2) || (e.deltaY < 0 && el.scrollLeft <= 2)) return
-      e.preventDefault()
-      el.scrollLeft += e.deltaY
-    }
     // arrastar com o mouse (no dedo já é nativo)
     let x0 = 0, s0 = 0, arrastando = false, moveu = false
     const desce = (e: PointerEvent) => { if (e.pointerType !== 'mouse' || e.button !== 0) return; arrastando = true; moveu = false; x0 = e.clientX; s0 = el.scrollLeft }
     const move = (e: PointerEvent) => { if (!arrastando) return; const d = e.clientX - x0; if (Math.abs(d) > 5) { moveu = true; el.classList.add('arrastando') } el.scrollLeft = s0 - d }
     const sobe = () => { arrastando = false; el.classList.remove('arrastando') }
     const clique = (e: MouseEvent) => { if (moveu) { e.preventDefault(); e.stopPropagation(); moveu = false } }
-    el.addEventListener('wheel', roda, { passive: false })
     el.addEventListener('pointerdown', desce)
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', sobe)
     el.addEventListener('click', clique, true)
-    return () => { el.removeEventListener('wheel', roda); el.removeEventListener('pointerdown', desce); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', sobe); el.removeEventListener('click', clique, true) }
+    return () => { el.removeEventListener('pointerdown', desce); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', sobe); el.removeEventListener('click', clique, true) }
   }, [tudo])
   return (
     <div className={`ape-fileira ${tudo ? 'tudo' : ''} ${sobra && !tudo ? `sobra ${pos}` : ''}`}>
       <div className="ape-fileira-vp">
+        {!tudo && sobra && pos !== 'ini' && <button type="button" className="ape-fileira-seta e" onClick={() => rolar(-1)} aria-label="Ver os anteriores"><ApeIcon name="chev" /></button>}
         <div ref={ref} className="ape-shop ape-fileira-l" onScroll={medir}>{children}</div>
+        {!tudo && sobra && pos !== 'fim' && <button type="button" className="ape-fileira-seta d" onClick={() => rolar(1)} aria-label="Ver os próximos"><ApeIcon name="chev" /></button>}
       </div>
       {(sobra || tudo) && (
         <button type="button" className="ape-vermais" aria-expanded={tudo} onClick={() => { setTudo(!tudo); if (tudo) ref.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
