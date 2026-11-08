@@ -105,7 +105,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
         })
         return
       }
-      atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : `${lido.erro ? `leitura automática indisponível (${lido.erro}) · ` : ''}${textoLocal ? 'lido pelo texto do arquivo' : 'complete os dados'}` }))
+      atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : textoLocal ? (lido.erro ? 'lido pelo texto (a leitura de imagem está fora do ar agora)' : 'lido pelo texto do arquivo') : lido.erro ? 'a leitura de imagem está fora do ar agora: complete os dados ou cole o texto da conversa em "texto"' : 'complete os dados' }))
     } catch (x) {
       atualizar(key, (l) => ({ ...l, status: 'erro', msg: String((x as Error).message) }))
     }

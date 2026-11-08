@@ -235,11 +235,11 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   if (ig && !email?.[0].includes(ig[0])) out.instagram = '@' + ig[1]
   // fornecedor: linha com LTDA/ME/EIRELI, o que vem depois do rótulo "Empresa", ou a primeira linha de título (sem endereço nem rótulos)
   const ruim = /\b(cep|cnpj|cpf|avenida|av\.|rua|bairro|endere[cç]o|empresa|cliente|data|telefone|assinatura|total|observa[cç][oõ]es|garantia|prazo|validade|instru[cç][oõ]es|or[cç]amento|proposta|cria[cç][aã]o|atualiza[cç][aã]o|quant|produto|material|valor)\b/i
-  const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|marmoraria|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados)\b/i.test(l) && l.length < 80)
+  const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|marmoraria|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados|aquecedores|aquecedor a g[aá]s|instala[cç][oõ]es|com[eé]rcio|distribuidora|materiais)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l))
   const iEmp = linhas.findIndex((l) => /\bempresa\b/i.test(l))
   const depoisEmp = iEmp >= 0 ? (linhas[iEmp + 1] || '').split(/\s{2,}/).pop() : ''
   const limpaNome = (x: string) => x.split(/\s{2,}/).filter((p) => !ruim.test(p) && !/^\d+$/.test(p.trim())).pop()?.trim() || ''
-  out.fornecedor = (limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\s{2,}/g, ' ')
+  out.fornecedor = (limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\s{2,}/g, ' ')
   // valores: total (com R$), à vista / Pix, parcelas
   const valor = (re: RegExp) => {
     const m = t.match(re)
@@ -287,6 +287,45 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
     })
     out.valor_total = num(ops[0][2])
   }
+  // condições: desconto à vista em %, parcelas e juros, o que está incluso
+  const pct = t.match(/(\d{1,2})\s*%\s*(?:de\s+)?desconto|desconto[^\n%]{0,50}?(\d{1,2})\s*%/i)
+  if (pct) out.desconto_avista_pct = Number(pct[1] || pct[2])
+  const ate = t.match(/at[ée]\s*(\d{1,2})\s*(?:x|vezes)/i)
+  if (ate && !out.parcelas_max) out.parcelas_max = Number(ate[1])
+  if (/sem\s+juros/i.test(t)) out.juros = false
+  const inc: string[] = []
+  if (/inclu\w*[^.\n]{0,60}material|material[^.\n]{0,40}inclu/i.test(t)) inc.push('material')
+  if (/m[ãa]o\s+de\s+obra/i.test(t) && /inclu/i.test(t)) inc.push('mão de obra')
+  if (/instala[çc][ãa]o/i.test(t) && /inclu/i.test(t)) inc.push('instalação')
+  if (inc.length) out.inclui = [...new Set([...(out.inclui || []), ...inc])]
+  // várias opções numa mensagem (WhatsApp): "1ª opção: ... Preço: R$ 2.980,00" ou "Rinnai 15 litros - 2.400,00"
+  if (!(out as Record<string, unknown>).opcoes) {
+    const dinheiro = (x: string) => num(/^\d{1,3}(?:\.\d{3})+$/.test(x) ? x.replace(/\./g, '') : x)
+    const blocos = t.split(/(?=\b\d{1,2}\s*[ªaº°]?\s*op[çc][ãa]o\b)/i).filter((b) => /^\d{1,2}\s*[ªaº°]?\s*op[çc][ãa]o/i.test(b))
+    let lista: { nome: string; valor_total: number | null }[] = []
+    if (blocos.length > 1) {
+      lista = blocos.map((b) => {
+        const marca = b.match(/marca\s+([\wÀ-ú/]+)/i)?.[1]
+        const modelo = b.match(/modelo\s+([\w-]+)/i)?.[1]
+        const titulo = b.replace(/^\d{1,2}\s*[ªaº°]?\s*op[çc][ãa]o\s*:?\s*/i, '').split(/[\n,.]/)[0].trim()
+        const preco = b.match(/R\s?\$\s*(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d+(?:,\d{2})?)/i)?.[1]
+        const nome = marca && modelo ? `${marca} ${modelo}` : marca && !titulo.toLowerCase().includes(marca.toLowerCase()) ? marca : titulo
+        return { nome: nome.slice(0, 60), valor_total: preco ? dinheiro(preco) : null }
+      })
+    } else {
+      lista = linhas
+        .map((l) => l.match(/^(.{3,60}?)\s*[-–:]\s*(?:R\s?\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d{3,}(?:,\d{2})?)\s*$/i))
+        .filter((m): m is RegExpMatchArray => !!m && !/total|parcela|entrada|sinal/i.test(m[1]))
+        .map((m) => ({ nome: m[1].replace(/\s*\(.*?\)\s*/g, ' ').trim(), valor_total: dinheiro(m[2]) }))
+    }
+    lista = lista.filter((x) => x.valor_total && x.valor_total >= 50)
+    if (lista.length > 1) {
+      const d = out.desconto_avista_pct || 0
+      ;(out as Record<string, unknown>).opcoes = lista.map((x) => ({ ...x, valor_avista: d ? Math.round(x.valor_total! * (1 - d / 100) * 100) / 100 : null }))
+      out.valor_total = lista[0].valor_total
+      out.valor_avista = d ? Math.round(lista[0].valor_total! * (1 - d / 100) * 100) / 100 : out.valor_avista
+    }
+  }
   // itens: linhas com valor no fim
   out.itens = linhas
     .map((l) => l.match(/^(.{4,90}?)\s+(?:(\d+(?:[.,]\d+)?)\s*(m²|m2|un|und|ml|pç|pc|vb|cx)\s+)?.*?R?\$\s*([\d.]+,\d{2})$/i))
@@ -302,7 +341,7 @@ export function nichoDoTexto(txt: string): Nicho | '' {
   const regras: [Nicho, RegExp][] = [
     ['piso-vinilico', /vinilic/], ['piso-laminado', /laminad/], ['piso-ceramico', /porcelanato|ceramic/], ['revestimentos', /revestimento|pastilha|azulejo/],
     ['marcenaria', /marcenaria|planejad|mdf|armario/], ['marmoraria', /granito|marmore|quartzo|bancada|marmoraria/], ['box', /\bbox\b/],
-    ['gesso', /gesso|drywall|sanca|forro/], ['eletrica', /eletric|tomada|disjuntor/], ['hidraulica', /hidraulic|encanamento|esgoto/],
+    ['gesso', /gesso|drywall|sanca|forro/], ['eletrica', /eletric|tomada|disjuntor/], ['hidraulica', /hidraulic|encanamento|esgoto|aquecedor|boiler|pressurizador/],
     ['impermeabilizacao', /impermeabiliz/], ['serralheria', /serralheri|grade|portao|corrimao/], ['ar', /ar.condicionado|split|btu/],
     ['pintura', /pintura|tinta|massa corrida/], ['cortinas', /cortina|persiana/], ['telas', /tela de protecao|rede de protecao/],
     ['vidros', /vidro|espelho|vidracaria/], ['iluminacao', /luminaria|spot|pendente|iluminacao/],
