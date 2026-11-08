@@ -38,7 +38,7 @@ export function ApePublic({ sub }: { sub?: string }) {
   const [toast, show] = useToast()
 
   useEffect(() => {
-    document.title = `${APE.name} · do contrato às chaves`
+    document.title = `Planê.apê · ${location.pathname.includes("sanlevi") ? `orçamentos do ${APE.condominio}` : "do contrato às chaves"}`
     // "adicionar à tela de início" abre direto o planê.apê, com o ícone dele
     const swap = (sel: string, attr: string, val: string) => {
       const el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(sel)
@@ -93,36 +93,23 @@ export function ApePublic({ sub }: { sub?: string }) {
       {publico ? (
         <ShopNav morador={morador || owner} owner={owner} nome={me?.nome || nomeLocal()} voltar={view !== 'loja'} />
       ) : (
-        <header className="ape-top">
-          <div className="wrap">
-            <div className="ape-brand">
-              <a className="ape-logo" href={href('ape')} aria-label={`${APE.name}: início`}>
-                <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
-                <div>
-                  <h1>planê<span>.apê</span></h1>
-                  <small>orçamentos do {APE.condominio} · só moradores</small>
-                </div>
-              </a>
-              <div className="ape-top-r">
-                {view !== 'orcamentos' && <Voltar para={href('ape')} />}
-                <CarrinhoTopo />
-                <MenuConta nome={me?.nome} owner={owner} morador={!!me && ehSanLevi(me)} so={['plataforma', 'conta']} extra={me ? [{ l: `meus dados${ondeMora(me) ? ` (${ehSanLevi(me) && me.torre ? `T${me.torre} · ${me.ap}` : ondeMora(me)})` : ''}`, i: 'edit', onClick: () => setEditing(true) }] : []} />
+        <header className="ape-top ape-shopnav">
+          <div className="wrap ape-brand">
+            {view !== 'orcamentos' && <Voltar para={href('ape')} />}
+            <a className="ape-logo" href={href('ape')} aria-label={`${APE.name}: início`}>
+              <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+              <div>
+                <h1>planê<span>.apê</span></h1>
+                <small>{APE.condominio} · só moradores</small>
               </div>
-            </div>
-            <nav className="ape-tabs" aria-label="Seções">
-              <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>
-                <ApeIcon name="list" />
-                Orçamentos <span className="cnt num">{vis.length}</span>
-              </a>
-              <a href={href('ape', 'enviar')} aria-current={view === 'enviar' ? 'page' : undefined}>
-                <ApeIcon name="send" />
-                Enviar orçamento
-              </a>
-              <a href={href('ape', 'loja')}>
-                <ApeIcon name="bag" />
-                Loja do apê
-              </a>
+            </a>
+            <nav className="ape-shoplinks" aria-label="Seções">
+              <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>orçamentos <span className="cnt num">{vis.length}</span></a>
+              <a href={href('ape', 'enviar')} aria-current={view === 'enviar' ? 'page' : undefined}>enviar</a>
+              <a href={href('ape', 'loja')}>loja</a>
             </nav>
+            <MenuConta nome={me?.nome} owner={owner} morador={!!me && ehSanLevi(me)} so={['plataforma', 'conta']} extra={me ? [{ l: `meus dados${ondeMora(me) ? ` (${ehSanLevi(me) && me.torre ? `T${me.torre} · ${me.ap}` : ondeMora(me)})` : ''}`, i: 'edit', onClick: () => setEditing(true) }] : []} />
+            <CarrinhoTopo />
           </div>
         </header>
       )}

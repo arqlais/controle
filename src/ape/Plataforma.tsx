@@ -147,7 +147,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
     }
   }, [token, demo])
   useEffect(() => {
-    document.title = 'plataforma do apê · planê.apê'
+    document.title = 'Planê.apê · plataforma do apê'
     if (demo) {
       setAcc({ nome: 'Exemplo', validade: '2027-11-07', ativo: true, cortesia: false, dados: DEMO, atualizado: '' })
       setDados(read<PlatDados>('ape-plat-demo') || DEMO)

@@ -2458,3 +2458,9 @@
 .ape-doc .t em { font-style: normal; font-size: 11px; color: var(--a-muted); }
 .ape-doc.venc .t em { color: var(--a-sec); font-weight: 600; }
 .ape-doc .v { font-weight: 700; color: var(--a-sec); font-size: 14px; white-space: nowrap; }
+
+/* San Levi com o mesmo cabeçalho da loja: links numa pílula, seção atual destacada */
+.ape-shopnav .ape-shoplinks a { padding: 8px 14px; color: var(--a-ink); opacity: .78; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.ape-shopnav .ape-shoplinks a:hover { opacity: 1; background: var(--a-card); }
+.ape-shopnav .ape-shoplinks a[aria-current='page'] { opacity: 1; background: var(--a-card); box-shadow: 0 2px 8px -4px rgba(43, 40, 38, .25); }
+.ape-shoplinks .cnt { font-size: 10.5px; background: var(--a-pri-soft); color: var(--a-pri); border-radius: 999px; padding: 0 7px; font-weight: 600; }
