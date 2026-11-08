@@ -55,6 +55,27 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
     { id: 'comprei', l: 'para quem já comprou', d: 'Vistoria, obra, orçamentos, mudança e decoração.', arte: 'vistoria', chip: 'já comprei' },
     { id: 'escolhas', l: 'para escolher acabamentos e materiais', d: 'Pedras, pisos, marcenaria, banheiro, cozinha, luz, tomadas, tintas, gesso, ar, cortinas e segurança: prós, contras e preços de cada opção.', arte: 'orcamento', chip: 'acabamentos' },
   ]
+  const modais = (
+    <>
+      {cart.ids.length > 0 && !verCarrinho && (
+        <button key={cart.ids.length} className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
+          <ApeIcon name="bag" />
+          <span>{tot.itens.length} {tot.itens.length > 1 ? 'itens' : 'item'} · <b className="ape-keep">{brl(tot.subtotal)}</b></span>
+          <b className="go">finalizar<ApeIcon name="chev" /></b>
+        </button>
+      )}
+      {aberto && <Detalhe p={aberto} byId={byId} produtos={produtos} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} cart={cart} onAdd={(p) => { adicionar(p); setAberto(null) }} pixPct={pixPct} />}
+      {verCarrinho && <CarrinhoSheet produtos={produtos} pixPct={pixPct} cart={cart} onClose={() => setVerCarrinho(false)} onOpen={(p) => { setVerCarrinho(false); setAberto(p) }} />}
+      {toast}
+    </>
+  )
+  if (abrir?.startsWith('arquivos'))
+    return (
+      <>
+        <Catalogo fases={fases} arquivos={arquivos} kits={kits} ini={abrir.split('-')[1]} byId={byId} onOpen={setAberto} cart={cart} onAdd={adicionar} me={me} whats={whats} />
+        {modais}
+      </>
+    )
   return (
     <>
       <section className="ape-lp-hero">
@@ -64,7 +85,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           <h2>do contrato às chaves, <em>sem susto</em></h2>
           <p className="ape-lead">Guias, checklists e planilhas para cada etapa: comprar, receber as chaves, fazer a obra, mudar e decorar.</p>
           <div className="ape-acts">
-            <button className="ape-btn primary" onClick={() => ir('loja-arquivos')}><ApeIcon name="bag" />ver os arquivos</button>
+            <a className="ape-btn primary" href={href('ape', 'loja:arquivos')}><ApeIcon name="bag" />ver os arquivos</a>
             {kitTop && <button className="ape-btn" onClick={() => setAberto(kitTop)}><ApeIcon name="gift" />{kitTop.nome} · <span className="ape-keep">{kitTop.preco}</span></button>}
           </div>
           <div className="ape-trust">
@@ -106,7 +127,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       <section className="ape-tipos" aria-label="O que tem na loja">
         <h3 className="ape-sec-t">o que você <em>precisa?</em></h3>
         <div className="ape-tipos-grid">
-          <button className="ape-tipo" onClick={() => ir('loja-arquivos')}>
+          <button className="ape-tipo" onClick={() => { location.hash = '#/ape/loja:arquivos' }}>
             <ApeArt name="planilha" size={40} />
             <b>arquivos e planilhas</b>
             <span>Cada um resolve <u>uma tarefa</u>: baixa, usa e pronto. Fica com você.</span>
@@ -131,12 +152,29 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       </section>
 
       <div id="loja-arquivos" className="ape-anchor" />
-      <ArquivosCel fases={fases} arquivos={arquivos} onOpen={setAberto} cart={cart} onAdd={adicionar} me={me} whats={whats} />
+      <section className="ape-arqlinks" aria-label="Arquivos por etapa">
+        <div className="ape-arqlinks-h">
+          <h3 className="ape-sec-t">os <em>arquivos</em></h3>
+          <a href={href('ape', 'loja:arquivos')}>ver todos os {arquivos.length}<ApeIcon name="chev" /></a>
+        </div>
+        <div className="ape-arqlinks-l">
+          {fases.map((f) => {
+            const lista = arquivos.filter((p) => (p.fase || 'comprei') === f.id)
+            if (!lista.length) return null
+            return (
+              <a key={f.id} href={href('ape', `loja:arquivos-${f.id}`)}>
+                <b>{f.l}</b>
+                <small>{lista.length} arquivos · desde <span className="ape-keep">{brl(Math.min(...lista.map((p) => pixDe(reais(p.preco)))))}</span></small>
+                <ApeIcon name="chev" />
+              </a>
+            )
+          })}
+        </div>
+      </section>
 
       {kits.length > 0 && (
         <section id="loja-kits" className="ape-nicho ape-reveal" aria-label="Kits">
-          <div className="ape-nhead ape-nhead-art">
-            <ApeArt name="casa" size={40} tone="sec" />
+          <div className="ape-nhead">
             <div>
               <h3>kits</h3>
               <span className="ape-note">O preço do kit sai sozinho: a soma dos arquivos com o desconto do kit. No Pix, ainda tem {pixPct}% off.</span>
@@ -212,16 +250,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       )}
       <MinhasCompras nome={me?.nome} />
       <Vendedor v={ajustes.vendedor} whats={whats} />
-      {cart.ids.length > 0 && !verCarrinho && (
-        <button key={cart.ids.length} className="ape-cartfab" onClick={() => setVerCarrinho(true)}>
-          <ApeIcon name="bag" />
-          <span>{tot.itens.length} {tot.itens.length > 1 ? 'itens' : 'item'} · <b className="ape-keep">{brl(tot.subtotal)}</b></span>
-          <b className="go">finalizar<ApeIcon name="chev" /></b>
-        </button>
-      )}
-      {aberto && <Detalhe p={aberto} byId={byId} produtos={produtos} me={me} whats={whats} onClose={() => setAberto(null)} onOpen={setAberto} cart={cart} onAdd={(p) => { adicionar(p); setAberto(null) }} pixPct={pixPct} />}
-      {verCarrinho && <CarrinhoSheet produtos={produtos} pixPct={pixPct} cart={cart} onClose={() => setVerCarrinho(false)} onOpen={(p) => { setVerCarrinho(false); setAberto(p) }} />}
-      {toast}
+      {modais}
     </>
   )
 }
@@ -473,60 +502,54 @@ const somaAvulsos = (p: Produto, byId: ById) => (p.combo || []).reduce((t, id) =
 
 type Fase = { id: 'comprando' | 'comprei' | 'escolhas'; l: string; d: string; arte: string; chip: string }
 const pixDe = (v: number) => Math.round((v - Math.round(v * PIX / 100 * 100) / 100) * 100) / 100
-/** Celular: os arquivos viram uma lista curta de categorias; tocando, abre tudo separado por categoria. */
-function ArquivosCel({ fases, arquivos, onOpen, cart, onAdd, me, whats }: { fases: Fase[]; arquivos: Produto[]; onOpen: (p: Produto) => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
-  const [aba, setAba] = useState<Fase['id'] | null>(null)
+/** Página só dos arquivos: tudo separado por etapa, como uma loja de verdade (com explicação e jeito de conversa). */
+function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, whats }: { fases: Fase[]; arquivos: Produto[]; kits: Produto[]; ini?: string; byId: ById; onOpen: (p: Produto) => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const cats = fases.map((f) => ({ f, lista: arquivos.filter((p) => (p.fase || 'comprei') === f.id) })).filter((c) => c.lista.length)
+  const [ativa, setAtiva] = useState<string>(ini || 'todos')
   useEffect(() => {
-    if (!aba) return
-    const k = (e: KeyboardEvent) => e.key === 'Escape' && setAba(null)
-    window.addEventListener('keydown', k)
-    document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = '' }
-  }, [aba])
-  const atual = cats.find((c) => c.f.id === aba)
+    if (ini) window.setTimeout(() => document.getElementById(`cat-${ini}`)?.scrollIntoView({ block: 'start' }), 80)
+    else window.scrollTo(0, 0)
+  }, [ini])
+  const ir = (id: string) => {
+    setAtiva(id)
+    if (id === 'todos') window.scrollTo({ top: 0, behavior: 'smooth' })
+    else document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  const maxKit = Math.max(0, ...kits.map((k) => k.kitPct || 0))
   return (
-    <section className="ape-arqcel" aria-label="Arquivos">
-      <div className="ape-arqcel-h"><b>arquivos</b><span>{arquivos.length} arquivos · toque numa etapa</span></div>
-      <div className="ape-arqcel-cats">
+    <div className="ape-catalogo">
+      <section className="ape-cat-hero">
+        <a className="ape-cat-voltar" href={href('ape', 'loja')}><ApeIcon name="chev" />loja do apê</a>
+        <h2>todos os <em>arquivos</em></h2>
+        <p>Guias, checklists e planilhas que eu fiz montando o meu apê. Escolha a sua etapa, espie as páginas em "ver por dentro" e leve só o que fizer sentido para você.</p>
+        <ul>
+          <li><ApeIcon name="download" />baixa na hora</li>
+          <li><ApeIcon name="tag" />{PIX}% off no Pix</li>
+          <li><ApeIcon name="shield" />7 dias para desistir</li>
+        </ul>
+      </section>
+      <nav className="ape-cat-nav" aria-label="Etapas">
+        <button aria-pressed={ativa === 'todos'} onClick={() => ir('todos')}>todos <small>{arquivos.length}</small></button>
+        {cats.map(({ f, lista }) => <button key={f.id} aria-pressed={ativa === f.id} onClick={() => ir(f.id)}>{f.chip} <small>{lista.length}</small></button>)}
+      </nav>
       {cats.map(({ f, lista }) => (
-        <button key={f.id} type="button" className="ape-arqcel-cat" onClick={() => setAba(f.id)}>
-          <ApeArt name={f.arte} size={34} />
-          <span className="t"><b>{f.l}</b><small>{lista.length} arquivos · desde <span className="ape-keep">{brl(Math.min(...lista.map((p) => pixDe(reais(p.preco)))))}</span></small></span>
-          <ApeIcon name="chev" />
-        </button>
-      ))}
-      </div>
-      {atual && (
-        <div className="ape-sheet ape-arqcel-sheet" role="dialog" aria-modal="true" aria-label={atual.f.l} onClick={(e) => e.target === e.currentTarget && setAba(null)}>
-          <div className="ape-sheet-in">
-            <button className="ape-x" onClick={() => setAba(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
-            <div className="ape-sheet-b">
-              <p className="ape-eyebrow">arquivos</p>
-              <div className="ape-chips">
-                {cats.map(({ f }) => <button key={f.id} className="ape-chip" aria-pressed={f.id === aba} onClick={() => setAba(f.id)}>{f.chip}</button>)}
-              </div>
-              <p className="ape-note" style={{ margin: 0 }}>{atual.f.d}</p>
-              <div className="ape-arqcel-l">
-                {atual.lista.map((p) => (
-                  <div key={p.id} className="ape-arqcel-i">
-                    <button type="button" className="th" onClick={() => onOpen(p)} aria-label={`Ver ${p.nome} por dentro`}>
-                      {p.amostras?.[0] ? <img src={p.amostras[0]} alt="" loading="lazy" /> : <ApeArt name={p.arte || 'casa'} size={30} />}
-                    </button>
-                    <button type="button" className="t" onClick={() => onOpen(p)}>
-                      <b>{p.nome}</b>
-                      <small><span className="ape-keep">{brl(pixDe(reais(p.preco)))}</span> no Pix{p.selo ? ` · ${p.selo.toLowerCase()}` : ''}</small>
-                    </button>
-                    <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} wide={false} />
-                  </div>
-                ))}
-              </div>
-              <p className="ape-note" style={{ margin: 0 }}>Toque no nome para ver por dentro.</p>
-            </div>
+        <section key={f.id} id={`cat-${f.id}`} className="ape-cat-sec" aria-label={f.l}>
+          <div className="ape-cat-sec-h">
+            <h3>{f.l}</h3>
+            <p>{f.d}</p>
           </div>
-        </div>
+          <div className="ape-cat-grid">
+            {lista.map((p) => <ProdCard key={p.id} p={p} byId={byId} onOpen={() => onOpen(p)} cart={cart} onAdd={onAdd} me={me} whats={whats} />)}
+          </div>
+        </section>
+      ))}
+      {kits.length > 0 && (
+        <a className="ape-cat-kits" href={href('ape', 'loja')} onClick={() => window.setTimeout(() => document.getElementById('loja-kits')?.scrollIntoView({ block: 'start' }), 120)}>
+          <span><b>quer a etapa inteira?</b><small>Os kits juntam os arquivos da mesma etapa{maxKit ? ` e saem até ${maxKit}% mais barato` : ''}.</small></span>
+          <em>ver os kits<ApeIcon name="chev" /></em>
+        </a>
       )}
-    </section>
+    </div>
   )
 }
 

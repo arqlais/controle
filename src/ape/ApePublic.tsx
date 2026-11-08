@@ -219,8 +219,8 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
   const cart = useCarrinho()
   const n = cart.ids.length
   const ir = (id: string) => {
-    if (!location.hash.startsWith('#/ape/loja')) location.hash = '#/ape/loja'
-    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+    if (!location.hash.startsWith('#/ape/loja') || location.hash.startsWith('#/ape/loja:arquivos')) location.hash = '#/ape/loja'
+    window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 160)
   }
   return (
     <header className="ape-top ape-shopnav">
@@ -234,7 +234,7 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
           </div>
         </a>
         <nav className="ape-shoplinks" aria-label="Loja">
-          <button onClick={() => ir('loja-arquivos')}>arquivos</button>
+          <button onClick={() => { location.hash = '#/ape/loja:arquivos' }}>arquivos</button>
           <button onClick={() => ir('loja-kits')}>kits</button>
           <button onClick={() => ir('loja-plataforma')}>plataforma</button>
           <button onClick={() => ir('loja-servicos')}>projetos</button>

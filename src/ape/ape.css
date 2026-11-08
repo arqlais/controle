@@ -2187,9 +2187,6 @@
 .ape-vista button span { font-size: 12px; }
 .ape-toolbar2 .ape-vista button { width: auto; padding: 0 10px; gap: 5px; }
 .ape .ape-menuconta-pop .sair { border-top: 1px solid var(--a-line); color: var(--a-muted); }
-/* brinde e 7 dias lado a lado */
-.ape-garantias { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
-.ape-garantias > section { margin: 0; height: 100%; }
 @media (max-width: 760px) {
   /* San Levi no celular: sem o carrinho no topo (a loja tem o dela) */
   .ape:not(.ape-publico) .ape-shopnav .ape-cartbtn { display: none; }
@@ -2199,13 +2196,6 @@
   .ape-toolbar2 .ape-vista { margin-left: auto; }
   .ape-toolbar2 .ape-vista button { padding: 0 9px; }
   .ape-toolbar2 .ape-filtros-btn { margin-left: 0; }
-  /* brinde e 7 dias: dois quadradinhos curtos */
-  .ape-garantias { gap: 10px; }
-  .ape-garantias .ape-note, .ape-garantias .ape-surpresa-l, .ape-garantias .ape-eyebrow { display: none !important; }
-  .ape-garantias .ape-art { width: 40px !important; height: 40px !important; }
-  .ape-garantias > section { display: grid !important; grid-template-columns: 1fr !important; justify-items: start; gap: 8px !important; padding: 14px !important; text-align: left; }
-  .ape-garantias .ape-surpresa-box { width: 40px !important; height: 40px !important; }
-  .ape-garantias .ape-sec-t { font-size: 15px !important; line-height: 1.3; margin: 0; }
   /* arquivos da loja mais curtos: nome, preço e comprar; o resto em "ver por dentro" */
   .ape-prod .ape-prod-desc, .ape-prod .ape-prod-extra, .ape-prod .ape-tags .ape-pill:nth-child(n+2) { display: none; }
   .ape-prod .ape-acts > .ape-btn.wide:first-child { display: none; }
@@ -2225,31 +2215,90 @@
   .ape-orc-hero .ape-stat span { font-size: 11px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
-/* loja: arquivos em categorias que abrem a lista completa (celular e computador) */
-.ape-arqcel { display: grid; gap: 10px; }
-.ape-arqcel-cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
-@media (max-width: 760px) { .ape-arqcel-cats { grid-template-columns: 1fr; gap: 8px; } }
-.ape-arqcel-cat:hover { border-color: var(--a-pri); }
-@media (min-width: 761px) { .ape-arqcel-sheet .ape-sheet-in { max-width: 860px; } .ape-arqcel-l { grid-template-columns: 1fr 1fr; } .ape-arqcel-i + .ape-arqcel-i { border-top: 0; } .ape-arqcel-i { border-bottom: 1px solid var(--a-line); } }
-.ape-arqcel-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 0 2px; }
-.ape-arqcel-h b { font-size: 18px; font-weight: 600; }
-.ape-arqcel-h span { font-size: 12px; color: var(--a-muted); }
-.ape-arqcel-cat { display: grid; grid-template-columns: 40px minmax(0, 1fr) 16px; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 16px; padding: 12px 14px; font: inherit; color: var(--a-ink); cursor: pointer; }
-.ape-arqcel-cat .t { display: grid; gap: 2px; min-width: 0; }
-.ape-arqcel-cat b { font-size: 14px; font-weight: 600; }
-.ape-arqcel-cat small { font-size: 12px; color: var(--a-muted); }
-.ape-arqcel-cat > .ape-i { width: 16px; height: 16px; transform: rotate(-90deg); color: var(--a-muted); }
-.ape-arqcel-sheet .ape-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0; }
-.ape-arqcel-sheet .ape-chips::-webkit-scrollbar { display: none; }
-.ape-arqcel-sheet .ape-chip { flex: none; }
-.ape-arqcel-l { display: grid; border: 1px solid var(--a-line); border-radius: 16px; overflow: hidden; background: var(--a-card); }
-.ape-arqcel-i { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px 12px; }
-.ape-arqcel-i + .ape-arqcel-i { border-top: 1px solid var(--a-line); }
-.ape-arqcel-i .th { width: 52px; height: 52px; border-radius: 10px; overflow: hidden; background: var(--a-sand); border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; }
-.ape-arqcel-i .th img { width: 100%; height: 100%; object-fit: cover; }
-.ape-arqcel-i .t { display: grid; gap: 2px; min-width: 0; text-align: left; border: 0; background: none; padding: 0; font: inherit; color: var(--a-ink); cursor: pointer; }
-.ape-arqcel-i .t b { font-size: 13.5px; font-weight: 600; line-height: 1.3; }
-.ape-arqcel-i .t small { font-size: 12px; color: var(--a-muted); }
-.ape-arqcel-i .ape-btn { padding: 7px 12px; font-size: 12px; white-space: nowrap; }
-.ape-arqcel-i .ape-btn .ape-i { width: 14px; height: 14px; }
-@media (min-width: 761px) { .ape .ape-arqcel-sheet .ape-sheet-in { max-width: 900px !important; width: min(900px, calc(100vw - 48px)) !important; } }
+
+
+/* ===== loja mais leve: menos caixa branca, menos símbolo ===== */
+.ape .ape-tipo { background: transparent; box-shadow: none; border-color: color-mix(in srgb, var(--a-line) 80%, transparent); }
+.ape .ape-tipo:hover { background: var(--a-card); }
+/* arquivos: três etapas em texto, levando para a página dos arquivos */
+.ape-arqlinks { display: grid; gap: 10px; }
+.ape-arqlinks-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ape-arqlinks-h .ape-sec-t { margin: 0; }
+.ape-arqlinks-h a, .ape-cat-kits em { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--a-pri); text-decoration: none; white-space: nowrap; font-style: normal; }
+.ape-arqlinks-h a .ape-i, .ape-cat-kits em .ape-i { width: 14px; height: 14px; transform: rotate(-90deg); }
+.ape-arqlinks-l { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--a-line); border-bottom: 1px solid var(--a-line); }
+.ape-arqlinks-l a { display: grid; grid-template-columns: minmax(0, 1fr) 14px; align-items: center; column-gap: 8px; padding: 14px 16px; text-decoration: none; color: var(--a-ink); transition: background .2s; }
+.ape-arqlinks-l a + a { border-left: 1px solid var(--a-line); }
+.ape-arqlinks-l a:hover { background: color-mix(in srgb, var(--a-card) 70%, transparent); }
+.ape-arqlinks-l b { font-size: 14px; font-weight: 600; }
+.ape-arqlinks-l small { grid-column: 1; font-size: 12px; color: var(--a-muted); }
+.ape-arqlinks-l .ape-i { grid-column: 2; grid-row: 1 / span 2; width: 14px; height: 14px; transform: rotate(-90deg); color: var(--a-muted); }
+@media (max-width: 760px) {
+  .ape-arqlinks-l { grid-template-columns: 1fr; }
+  .ape-arqlinks-l a { padding: 12px 4px; }
+  .ape-arqlinks-l a + a { border-left: 0; border-top: 1px solid var(--a-line); }
+}
+/* brinde e 7 dias: uma faixa fina */
+.ape-garantias { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--a-line); border-radius: 18px; overflow: hidden; background: color-mix(in srgb, var(--a-card) 55%, transparent); }
+.ape .ape-garantias > section { display: grid !important; grid-template-columns: 38px minmax(0, 1fr) !important; align-items: center; gap: 12px !important; padding: 12px 16px !important; margin: 0; background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; text-align: left !important; flex-direction: row !important; }
+.ape .ape-garantias > section + section { border-left: 1px solid var(--a-line) !important; }
+.ape .ape-garantias .ape-surpresa-box { width: 38px !important; height: 38px !important; border-radius: 11px; box-shadow: none; animation: none; }
+.ape .ape-garantias .ape-surpresa-box svg { width: 18px; height: 18px; }
+.ape .ape-garantias .ape-surpresa-box .q { width: 15px; height: 15px; font-size: 9px; top: -4px; right: -4px; }
+.ape .ape-garantias .ape-art { width: 38px !important; height: 38px !important; }
+.ape .ape-garantias .ape-eyebrow, .ape .ape-garantias .ape-surpresa-l { display: none !important; }
+.ape .ape-garantias .ape-sec-t { font-size: 15px !important; line-height: 1.3; margin: 0 0 2px; }
+.ape .ape-garantias .ape-note { font-size: 12px !important; line-height: 1.45; display: -webkit-box !important; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 760px) {
+  .ape-garantias { grid-template-columns: 1fr; }
+  .ape .ape-garantias > section + section { border-left: 0 !important; border-top: 1px solid var(--a-line) !important; }
+}
+/* dúvidas: lista leve em duas colunas no computador */
+.ape .ape-faq { gap: 0; grid-template-columns: 1fr 1fr; column-gap: 32px; }
+.ape .ape-faq > .ape-sec-t { grid-column: 1 / -1; margin-bottom: 8px; }
+.ape .ape-faq-i { background: none; border: 0; border-bottom: 1px solid var(--a-line); border-radius: 0; padding: 0 2px; }
+.ape .ape-faq-i summary { padding: 13px 0; font-size: 14px; }
+@media (max-width: 760px) { .ape .ape-faq { grid-template-columns: 1fr; } }
+.ape .ape-minhas { background: color-mix(in srgb, var(--a-card) 55%, transparent); box-shadow: none; }
+
+/* ===== página dos arquivos ===== */
+.ape-catalogo { display: grid; gap: 26px; }
+.ape-cat-hero { display: grid; gap: 10px; max-width: 720px; padding-top: 6px; }
+.ape-cat-voltar { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--a-muted); text-decoration: none; width: max-content; }
+.ape-cat-voltar .ape-i { width: 14px; height: 14px; transform: rotate(90deg); }
+.ape-cat-hero h2 { margin: 0; font-size: clamp(26px, 5vw, 38px); line-height: 1.1; letter-spacing: -.01em; }
+.ape-cat-hero h2 em { font-family: var(--a-serif, 'Cormorant Garamond', serif); font-style: italic; font-weight: 500; color: var(--a-sec); }
+.ape-cat-hero p { margin: 0; color: var(--a-muted); font-size: 14.5px; line-height: 1.6; }
+.ape-cat-hero ul { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--a-muted); }
+.ape-cat-hero li { display: inline-flex; align-items: center; gap: 6px; }
+.ape-cat-hero li .ape-i { width: 14px; height: 14px; color: var(--a-pri); }
+.ape-cat-nav { position: sticky; top: calc(64px + env(safe-area-inset-top, 0px)); z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 8px 0; background: var(--a-bg); margin-block: -8px; }
+.ape-cat-nav::-webkit-scrollbar { display: none; }
+.ape-cat-nav button { flex: none; border: 1px solid var(--a-line); background: transparent; border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--a-ink); cursor: pointer; }
+.ape-cat-nav button small { font-weight: 500; color: var(--a-muted); margin-left: 2px; }
+.ape-cat-nav button[aria-pressed='true'] { background: var(--a-pri); border-color: var(--a-pri); color: #fff; }
+.ape-cat-nav button[aria-pressed='true'] small { color: rgba(255, 255, 255, .75); }
+.ape-cat-sec { display: grid; gap: 14px; scroll-margin-top: 130px; }
+.ape-cat-sec-h h3 { margin: 0; font-size: 19px; font-weight: 600; }
+.ape-cat-sec-h p { margin: 2px 0 0; color: var(--a-muted); font-size: 13px; }
+.ape-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; align-items: stretch; }
+.ape-cat-grid .ape-prod { height: 100%; }
+@media (max-width: 760px) {
+  .ape-catalogo { gap: 22px; }
+  .ape-cat-nav { top: calc(56px + env(safe-area-inset-top, 0px)); }
+  .ape-cat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .ape-cat-grid .ape-prod { padding: 10px !important; border-radius: 16px; }
+  .ape-cat-grid .ape-prod h3 { font-size: 13.5px !important; line-height: 1.3; }
+  .ape-cat-grid .ape-prod .ape-tags { display: none; }
+  .ape-cat-grid .ape-prod .ape-thumb { aspect-ratio: 5 / 4; }
+  .ape-cat-grid .ape-prod .ape-ver { display: none; }
+  .ape-cat-grid .ape-prod .ape-selo { font-size: 10px; padding: 3px 8px; }
+  .ape-cat-grid .ape-precos-pix { font-size: 16px !important; }
+  .ape-cat-grid .ape-precos-cartao { font-size: 11px; }
+  .ape-cat-grid .ape-precos-eco { display: none; }
+  .ape-cat-grid .ape-prod .ape-btn { padding: 9px 10px; font-size: 12.5px; }
+}
+.ape-cat-kits { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 18px; border: 1px dashed color-mix(in srgb, var(--a-sec) 40%, var(--a-line)); border-radius: 18px; text-decoration: none; color: var(--a-ink); }
+.ape-cat-kits span { display: grid; gap: 2px; }
+.ape-cat-kits b { font-size: 15px; font-weight: 600; }
+.ape-cat-kits small { font-size: 12.5px; color: var(--a-muted); }
