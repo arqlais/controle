@@ -27,7 +27,7 @@ const VISTORIA: [string, string[]][] = [
 ]
 export const DEMO: PlatDados = {
   perfil: { nome: 'Ana (exemplo)', foto: '' },
-  imovel: { tipo: 'apê', fase: 'obra', m2: 40, orcamento: 45000, entrega: '2026-12-15', nome: 'meu apê', condominio: 'Residencial Exemplo', torre: '1', ap: '304', moradores: 'Ana e Pedro' },
+  imovel: { tipo: 'apê', fase: 'obra', m2: 40, orcamento: 45000, entrega: '2026-12-15', nome: 'meu apê', condominio: 'Vila Jardins', torre: '1', ap: '304', moradores: 'Ana e Pedro' },
   gastos: [
     { id: 'g1', comodo: 'sala', item: 'piso vinílico', previsto: 4200, pago: 3780, status: 'pago', data: '2026-11-02', obs: 'Pix com 10%' },
     { id: 'g2', comodo: 'cozinha', item: 'marcenaria da cozinha', previsto: 14000, pago: null, status: 'comprado', data: '2026-11-20', obs: '10x sem juros' },

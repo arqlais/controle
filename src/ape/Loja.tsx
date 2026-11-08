@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
 import { baixarArquivo, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
@@ -22,8 +22,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   PRODUTOS_LOJA = produtos
   const ativos = produtos.filter((p) => p.ativo)
   const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei' | 'escolhas'>('todos')
-  const [abertas, setAbertas] = useState<string[]>([])
-  const PREVIA = 4
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
   const cart = useCarrinho()
@@ -154,16 +152,11 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
                   <span className="ape-note">{f.d}</span>
                 </div>
               </div>
-              <div className="ape-shop">
-                {(cat !== 'todos' || abertas.includes(f.id) ? lista : lista.slice(0, PREVIA)).map((p, i) => (
+              <Fileira n={lista.length} rotulo="arquivos">
+                {lista.map((p, i) => (
                   <ProdCard key={p.id} n={i + 1} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />
                 ))}
-              </div>
-              {cat === 'todos' && lista.length > PREVIA && (
-                <button type="button" className="ape-vermais" aria-expanded={abertas.includes(f.id)} onClick={() => setAbertas(abertas.includes(f.id) ? abertas.filter((x) => x !== f.id) : [...abertas, f.id])}>
-                  {abertas.includes(f.id) ? 'mostrar menos' : `ver mais ${lista.length - PREVIA} ${lista.length - PREVIA === 1 ? 'arquivo' : 'arquivos'} desta etapa`}<ApeIcon name="chev" />
-                </button>
-              )}
+              </Fileira>
             </section>
           )
         })}
@@ -177,11 +170,11 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
               <span className="ape-note">O preço do kit sai sozinho: a soma dos arquivos com o desconto do kit. No Pix, ainda tem {pixPct}% off.</span>
             </div>
           </div>
-          <div className="ape-shop">
+          <Fileira n={kits.length} rotulo="kits">
             {kits.map((p) => (
               <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />
             ))}
-          </div>
+          </Fileira>
         </section>
       )}
 
@@ -423,7 +416,7 @@ function PlatCelulares() {
       </div>
       <div className="ape-iph meio">
         <div className="tela">
-          <div className="iph-ola"><span className="av">A</span><span><b>olá, Ana!</b><small>Residencial Exemplo · torre 1 · apê 304</small></span></div>
+          <div className="iph-ola"><span className="av">A</span><span><b>olá, Ana!</b><small>Vila Jardins · torre 1 · apê 304</small></span></div>
           <div className="iph-kpis"><div><small>gasto até agora</small><b>R$ 18.420</b></div><div><small>parcelas do mês</small><b>R$ 1.400</b></div></div>
           <div className="iph-card">
             <small>orçamento da obra</small>
@@ -440,6 +433,40 @@ function PlatCelulares() {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Uma linha só de cartões: rola para o lado (setas no computador) e "ver tudo" abre em grade. */
+function Fileira({ n, rotulo, children }: { n: number; rotulo: string; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [tudo, setTudo] = useState(false)
+  const [sobra, setSobra] = useState(false)
+  const [pos, setPos] = useState<'ini' | 'meio' | 'fim'>('ini')
+  const medir = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    setSobra(el.scrollWidth > el.clientWidth + 4)
+    setPos(el.scrollLeft < 8 ? 'ini' : el.scrollLeft + el.clientWidth >= el.scrollWidth - 8 ? 'fim' : 'meio')
+  }, [])
+  useEffect(() => {
+    medir()
+    window.addEventListener('resize', medir)
+    return () => window.removeEventListener('resize', medir)
+  }, [medir, n, tudo])
+  const rolar = (d: number) => ref.current?.scrollBy({ left: d * ref.current.clientWidth * 0.85, behavior: 'smooth' })
+  return (
+    <div className={`ape-fileira ${tudo ? 'tudo' : ''}`}>
+      <div className="ape-fileira-vp">
+        {!tudo && sobra && pos !== 'ini' && <button type="button" className="ape-fileira-seta e" onClick={() => rolar(-1)} aria-label="Ver os anteriores"><ApeIcon name="chev" /></button>}
+        <div ref={ref} className="ape-shop ape-fileira-l" onScroll={medir}>{children}</div>
+        {!tudo && sobra && pos !== 'fim' && <button type="button" className="ape-fileira-seta d" onClick={() => rolar(1)} aria-label="Ver os próximos"><ApeIcon name="chev" /></button>}
+      </div>
+      {(sobra || tudo) && (
+        <button type="button" className="ape-vermais" aria-expanded={tudo} onClick={() => { setTudo(!tudo); if (tudo) ref.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
+          {tudo ? 'mostrar em uma linha' : `ver todos os ${n} ${rotulo}`}<ApeIcon name="chev" />
+        </button>
+      )}
     </div>
   )
 }
