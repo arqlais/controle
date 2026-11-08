@@ -78,7 +78,7 @@ const ajustesOf = (d: unknown): Ajustes => {
   return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
-  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
+  r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), familia: Array.isArray(r.familia) ? (r.familia as string[]) : undefined, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
 
 export const apeCloud = CLOUD
 

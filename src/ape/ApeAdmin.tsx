@@ -11,6 +11,7 @@ import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, typ
 import { ApeIcon } from './ApeIcon'
 import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
+import { MembroIcone, type TipoMembro } from './Familia'
 import {
   APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
@@ -739,7 +740,7 @@ function Moradores({ moradores, envios, interesses, orcs, escolhas, pedidos, onC
                   {!ehSanLevi(m) && <span className="ape-pill ape-keep" style={{ marginLeft: 6 }}>{m.condominio || 'outro lugar'}</span>}
                 </b>
                 <span>
-                  {ehSanLevi(m) ? `T${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>{m.pessoas ? ` · ${m.pessoas} pessoa(s)` : ''}{ehSanLevi(m) && !m.aprovado ? ' · aguardando aprovação' : ''}
+                  {ehSanLevi(m) ? `T${m.torre || '?'} · apê ${m.ap || '?'}` : 'não é do San Levi'} · <span className="ape-tel">{fmtTel(m.tel)}</span>{m.familia?.length ? <span className="ape-adm-fam">{m.familia.map((t, k) => <MembroIcone key={k} tipo={t as TipoMembro} size={15} />)}</span> : m.pessoas ? ` · ${m.pessoas} pessoa(s)` : ''}{ehSanLevi(m) && !m.aprovado ? ' · aguardando aprovação' : ''}
                   {m.criado ? ` · desde ${dmy(m.criado)}` : ''}
                 </span>
                 {x.junto.length > 0 && (

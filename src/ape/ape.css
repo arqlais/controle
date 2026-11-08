@@ -2386,3 +2386,16 @@
 @media (max-width: 760px) { .ape-fileira-seta { display: none !important; } }
 .ape-proj-serv li { overflow-wrap: normal; word-break: normal; hyphens: none; }
 @media (max-width: 560px) { .ape-proj-serv li { font-size: 12.5px; gap: 8px; padding: 8px 10px; } .ape-proj-serv .ic { width: 26px; height: 26px; } }
+
+/* cadastro: quem vai morar, com símbolos */
+.ape-gfam-linha { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border-radius: 16px; background: var(--a-bg); min-height: 64px; align-items: flex-start; }
+.ape-gfam-m { position: relative; display: grid; justify-items: center; gap: 2px; border: 0; background: none; padding: 0; cursor: pointer; font: inherit; color: var(--a-ink); width: 52px; }
+.ape-gfam-m > .ape-i { width: 40px; height: 40px; padding: 10px; box-sizing: border-box; border-radius: 50%; background: var(--a-card); color: var(--a-pri); box-shadow: 0 4px 12px -6px rgba(43, 40, 38, .35); }
+.ape-gfam-m.pet > .ape-i { background: var(--a-sec-soft); color: var(--a-sec); }
+.ape-gfam-m small { font-size: 10.5px; color: var(--a-muted); white-space: nowrap; }
+.ape-gfam-m i { position: absolute; top: -3px; right: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--a-card); border: 1px solid var(--a-line); font-style: normal; font-size: 11px; line-height: 14px; text-align: center; color: var(--a-muted); }
+.ape-gfam-add { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ape-gfam-add button { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-pri); border-radius: 999px; padding: 6px 10px 6px 7px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.ape-gfam-add button.pet { color: var(--a-sec); }
+.ape-gfam-add button .ape-i { width: 18px; height: 18px; }
+.ape-adm-fam { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 6px; color: var(--a-pri); }
