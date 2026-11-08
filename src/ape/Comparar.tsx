@@ -64,7 +64,7 @@ export function Comparar({ orcs: todos, me, minhas = [], onFechar }: { orcs: Orc
         </div>
       )}
       <div className="ape-cmp-scroll">
-        <table className="ape-cmp-t">
+        <table className={`ape-cmp-t n${orcs.length}`} style={{ ['--n' as string]: orcs.length }}>
           <thead>
             <tr>
               <th />
