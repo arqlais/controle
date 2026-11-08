@@ -64,7 +64,7 @@ export function useCarrinho(): Carrinho {
 export function Assinatura() {
   return (
     <p className="ape-sign">
-      <b>planê<span>.apê</span></b> · {SITE_APE} · {APE.instagram} · © {new Date().getFullYear()} todos os direitos reservados
+      <b>planê<span>.apê</span></b> · <a className="ape-sign-site" href="#/ape/loja">{SITE_APE}</a> · <a href={`https://instagram.com/${APE.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer">{APE.instagram}</a> · © {new Date().getFullYear()} todos os direitos reservados
     </p>
   )
 }

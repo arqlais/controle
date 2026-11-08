@@ -2068,3 +2068,6 @@
 @media (hover: none) { .ape-fileira-seta { display: none; } }
 .ape .ape-cartbtn { width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; border-radius: 50%; }
 .ape .ape-cartbtn svg { width: 20px; height: 20px; }
+.ape-sign a { color: inherit; text-decoration: none; }
+.ape-sign a:hover { color: var(--a-pri); text-decoration: underline; }
+.ape-sign .ape-sign-site { font-weight: 700; color: var(--a-pri); }
