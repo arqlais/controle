@@ -128,7 +128,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
             </button>
           )}
         </div>
-        <p className="ape-note ape-tipos-nota">Os arquivos são materiais prontos para tarefas específicas. A plataforma é uma ferramenta onde você registra e acompanha o seu caso. Um não depende do outro.</p>
+        <p className="ape-note ape-tipos-nota"><b>arquivos</b> ficam com você para sempre · a <b>plataforma</b> junta tudo, com os seus dados, por 12 meses.</p>
       </section>
 
       <div id="loja-arquivos" className="ape-anchor" />

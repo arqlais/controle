@@ -73,7 +73,7 @@ export function Comparar({ orcs: todos, me, minhas = [], onFechar }: { orcs: Orc
                   <span className="ape-cmp-col-h"><i className="ape-cmp-letra">{letra(o)}</i>{col(i)}</span>
                   {o.servico && <small className="ape-cmp-col-s">{o.servico.split(' · ').slice(1).join(' · ') || ''}</small>}
                   {(o.arquivos?.length || o.enviado) ? <button className="ape-cmp-orig" onClick={() => setOriginal(o)}><ApeIcon name="file" />ver original</button> : <small className="ape-cmp-vazio">sem arquivo</small>}
-                  {onFechar && <button className={`ape-cmp-fechar ${minhas.includes(o.id) ? 'on' : ''}`} onClick={() => onFechar(o)} aria-pressed={minhas.includes(o.id)}><ApeIcon name={minhas.includes(o.id) ? 'check' : 'star'} />{minhas.includes(o.id) ? 'vou fechar' : 'vou fechar com este'}</button>}
+                  {onFechar && <button className={`ape-cmp-fechar ${minhas.includes(o.id) ? 'on' : ''}`} onClick={() => onFechar(o)} aria-pressed={minhas.includes(o.id)}><ApeIcon name={minhas.includes(o.id) ? 'check' : 'star'} />{minhas.includes(o.id) ? 'minha escolha' : 'marcar como escolha'}</button>}
                 </th>
               ))}
             </tr>
