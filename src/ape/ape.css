@@ -2445,19 +2445,20 @@
   .ape-linha-h .d { grid-column: 1; grid-row: 2; justify-items: start; }
   .ape-linha-h .t { grid-row: 1; }
 }
-/* pastas: os orçamentos como chegaram */
-.ape-docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px; }
-.ape-doc { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; text-align: left; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 14px; padding: 10px 14px 10px 10px; cursor: pointer; color: var(--a-ink); font: inherit; transition: border-color .2s, transform .2s; }
+/* pastas: os anexos num lugar só, com a prévia */
+.ape-docs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+@media (max-width: 600px) { .ape-docs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }
+.ape-doc { position: relative; display: grid; gap: 8px; text-align: left; background: var(--a-card); border: 1px solid var(--a-line); border-radius: 14px; padding: 8px 8px 10px; cursor: pointer; color: var(--a-ink); font: inherit; min-width: 0; transition: border-color .2s, transform .2s; }
 .ape-doc:hover { border-color: var(--a-pri); transform: translateY(-1px); }
-.ape-doc .ic { width: 52px; height: 56px; border-radius: 10px; background: var(--a-sand); color: var(--a-pri); display: grid; place-items: center; align-content: center; gap: 2px; }
-.ape-doc .ic .ape-i { width: 20px; height: 20px; }
-.ape-doc .ic small { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--a-muted); }
-.ape-doc .t { display: grid; gap: 1px; min-width: 0; }
-.ape-doc .t b { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ape-doc .t small { font-size: 12px; color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ape-doc .t em { font-style: normal; font-size: 11px; color: var(--a-muted); }
-.ape-doc.venc .t em { color: var(--a-sec); font-weight: 600; }
-.ape-doc .v { font-weight: 700; color: var(--a-sec); font-size: 14px; white-space: nowrap; }
+.ape-doc .mini { aspect-ratio: 4 / 5; border-radius: 9px; background: var(--a-sand); color: var(--a-muted); display: grid; place-items: center; overflow: hidden; }
+.ape-doc .mini .ape-i { width: 26px; height: 26px; opacity: .7; }
+.ape-doc .mini img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+.ape-doc .tipo, .ape-doc .venc { position: absolute; top: 14px; font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border-radius: 999px; padding: 2px 8px; }
+.ape-doc .tipo { left: 14px; background: var(--a-card); color: var(--a-muted); box-shadow: 0 1px 4px rgba(43, 40, 38, .12); }
+.ape-doc .venc { right: 14px; background: var(--a-sec-soft); color: var(--a-sec); }
+.ape-doc .t { display: grid; gap: 1px; min-width: 0; padding: 0 2px; }
+.ape-doc .t b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ape-doc .t small { font-size: 11.5px; color: var(--a-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* San Levi com o mesmo cabeçalho da loja: links numa pílula, seção atual destacada */
 .ape-shopnav .ape-shoplinks a { padding: 8px 14px; color: var(--a-ink); opacity: .78; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }

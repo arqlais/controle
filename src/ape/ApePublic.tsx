@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, nomeLocal, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, sairGrupo, condicaoGrupo, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, nomeLocal, codigoSL, escolher, euMorador, mesmoAp, loadPublico, moradorConta, queroGrupo, sairGrupo, condicaoGrupo, souDona, apeCloud, verOriginal, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -545,25 +545,60 @@ function produtoDe(o: Orcamento): string {
 const servicoBase = (o: Orcamento) => o.servico.split(' · ')[0].trim()
 const recebidoEm = (o: Orcamento) => (o.criado ? dmy(String(o.criado).slice(0, 10)) : '')
 
-/** Modo pastas: o orçamento como chegou; toca e abre o print ou o PDF. */
+/** Miniatura do anexo (1ª página do PDF ou o print), carregada só quando aparece na tela. */
+const MINIS = new Map<string, Promise<string>>()
+async function miniDe(me: Morador | null, o: Orcamento): Promise<string> {
+  const l = await verOriginal(me?.id, o.id)
+  const a = l[0]
+  if (!a) return ''
+  if (!(/pdf/i.test(a.tipo) || /\.pdf$/i.test(a.nome))) return a.url
+  const pdfjs = await import('pdfjs-dist')
+  pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+  const pdf = await pdfjs.getDocument({ url: a.url }).promise
+  const pg = await pdf.getPage(1)
+  const v0 = pg.getViewport({ scale: 1 })
+  const vp = pg.getViewport({ scale: 360 / v0.width })
+  const cv = document.createElement('canvas')
+  cv.width = vp.width; cv.height = vp.height
+  await pg.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
+  return cv.toDataURL('image/jpeg', 0.8)
+}
+function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [src, setSrc] = useState('')
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !o.arquivos?.length) return
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return
+      io.disconnect()
+      if (!MINIS.has(o.id)) MINIS.set(o.id, miniDe(me, o).catch(() => ''))
+      void MINIS.get(o.id)!.then(setSrc)
+    }, { rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [o.id])
+  return <span ref={ref} className={`mini ${src ? 'ok' : ''}`}>{src ? <img src={src} alt="" loading="lazy" /> : <ApeIcon name={icone} />}</span>
+}
+
+/** Modo pastas: os anexos num lugar só, com a prévia; toca e abre o original. */
 function Doc({ o, me }: { o: Orcamento; me: Morador | null }) {
   const [ver, setVer] = useState(false)
   const c = calc(o)
   const arq = o.arquivos || []
   const pdf = arq.some((a) => /pdf/i.test(a.tipo || '') || /\.pdf$/i.test(a.nome || ''))
   const tipo = !arq.length ? 'digitado' : pdf ? 'PDF' : arq.length > 1 ? `${arq.length} prints` : 'print'
-  const prod = produtoDe(o)
   const extra = !ehOrcamento(o)
   return (
     <>
-      <button type="button" className={`ape-doc ${c.st === 'vencido' ? 'venc' : ''}`} onClick={() => setVer(true)}>
-        <span className="ic"><ApeIcon name={!arq.length ? 'edit' : pdf ? 'file' : 'clip'} /><small>{tipo}</small></span>
+      <button type="button" className="ape-doc" onClick={() => setVer(true)} title={`${o.fornecedor} · ${o.servico}`}>
+        <Miniatura o={o} me={me} icone={!arq.length ? 'edit' : pdf ? 'file' : 'clip'} />
+        <span className="tipo">{tipo}</span>
+        {c.st === 'vencido' && <span className="venc">venceu</span>}
         <span className="t">
           <b>{o.fornecedor || 'Fornecedor sem nome'}</b>
-          <small>{extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : prod || servicoBase(o)}</small>
-          <em>{[recebidoEm(o) && `recebido ${recebidoEm(o)}`, c.st === 'vencido' ? 'venceu' : ''].filter(Boolean).join(' · ')}</em>
+          <small>{extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : produtoDe(o) || servicoBase(o)}</small>
         </span>
-        {!extra && c.avista != null && <span className="v num">{brl(c.avista)}</span>}
       </button>
       {ver && <Original o={o} me={me} onClose={() => setVer(false)} />}
     </>
