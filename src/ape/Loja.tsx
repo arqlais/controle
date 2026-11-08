@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
-import { baixarArquivo, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
+import { baixarArquivo, numerosLoja, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
@@ -86,7 +86,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           <p className="ape-lead">Guias, checklists e planilhas para cada etapa: comprar, receber as chaves, fazer a obra, mudar e decorar.</p>
           <div className="ape-acts">
             <a className="ape-btn primary" href={href('ape', 'loja:arquivos')}><ApeIcon name="bag" />ver os arquivos</a>
-            {kitTop && <button className="ape-btn" onClick={() => setAberto(kitTop)}><ApeIcon name="gift" />{kitTop.nome} · <span className="ape-keep">{kitTop.preco}</span></button>}
           </div>
           <div className="ape-trust">
             <span><ApeIcon name="tag" /><span className="ape-keep">{pixPct}% off no Pix</span></span>
@@ -97,13 +96,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         <HeroArt pix={pixPct} />
       </section>
 
-      {plat && (
-        <button type="button" className="ape-platbanner" onClick={() => ir('loja-plataforma')}>
-          <span className="ico"><ApeIcon name="phone" /></span>
-          <span className="txt"><b>novidade: plataforma do apê</b><small>gastos, parcelas, obra e vistoria num lugar só, em 12x de menos de <span className="ape-keep">R$ {Math.ceil(parcelas(reais(plat.preco), ajustes.jurosPct ?? JUROS_PCT).slice(-1)[0]?.parcela || reais(plat.preco) / 12)}</span></small></span>
-          <em>conhecer<ApeIcon name="chev" /></em>
-        </button>
-      )}
 
       <div className="ape-marquee" aria-hidden="true">
         <div className="ape-marquee-track">
@@ -164,7 +156,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
             </button>
           )}
         </div>
-        <p className="ape-note ape-tipos-nota"><b>arquivos</b> ficam com você para sempre · a <b>plataforma</b> junta tudo, com os seus dados, por 12 meses.</p>
       </section>
 
       {/* os que mais chamam atenção, misturados (arquivos e kits), numa fileira que rola */}
@@ -184,6 +175,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         )
       })()}
 
+      <Situacoes />
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
@@ -275,6 +267,40 @@ function HeroArt({ pix }: { pix: number }) {
   )
 }
 
+/* situações de quem está montando o apê: personagens de EXEMPLO (marcados como tal), não são depoimentos */
+const SITUACOES: { nome: string; onde: string; fase: string; texto: string; ajuda: string; cor: string; arte: string }[] = [
+  { nome: 'Júlia e Rafa', onde: 'apê na planta', fase: 'vão assinar o contrato', texto: 'Na dúvida entre financiar pelo banco ou pela construtora, sem saber quanto vai custar de verdade com ITBI e cartório.', ajuda: 'guia de compra e planilha de custos', cor: 'azul', arte: 'contrato' },
+  { nome: 'Marina', onde: 'apê de 52 m²', fase: 'recebe as chaves em março', texto: 'Com medo de deixar passar defeito na vistoria e depois ter que brigar com a construtora.', ajuda: 'checklist de vistoria', cor: 'terra', arte: 'vistoria' },
+  { nome: 'Paulo e Bia', onde: 'casa térrea', fase: 'fechando a marcenaria', texto: 'Três orçamentos com preços muito diferentes e nenhum fala a mesma coisa sobre material e prazo.', ajuda: 'guia de orçamentos e guia da marcenaria', cor: 'madeira', arte: 'orcamento' },
+]
+function Situacoes() {
+  const [num, setNum] = useState<{ moradores: number; compras: number } | null>(null)
+  useEffect(() => void numerosLoja().then(setNum), [])
+  return (
+    <section className="ape-situ" aria-label="Situações de quem está montando o apê">
+      <div className="ape-situ-h">
+        <h3 className="ape-sec-t">é <em>você?</em></h3>
+        <span className="ape-note">situações de exemplo, de quem está montando a casa</span>
+      </div>
+      <div className="ape-situ-l">
+        {SITUACOES.map((x) => (
+          <article key={x.nome} className={`ape-situ-i ${x.cor}`}>
+            <div className="h"><ApeArt name={x.arte} size={34} /><span><b>{x.nome}</b><small>{x.onde} · {x.fase}</small></span></div>
+            <p>{x.texto}</p>
+            <span className="ajuda"><ApeIcon name="check" />{x.ajuda}</span>
+          </article>
+        ))}
+      </div>
+      {num && (num.moradores >= 10 || num.compras >= 20) && (
+        <p className="ape-situ-num">
+          {num.moradores >= 10 && <span><b className="num">{num.moradores}</b> moradores do {APE.condominio} usam o planê.apê</span>}
+          {num.compras >= 20 && <span><b className="num">{num.compras}</b> compras na loja</span>}
+        </p>
+      )}
+    </section>
+  )
+}
+
 /* depoimentos publicados pela dona (só aparecem se houver) */
 function Depoimentos() {
   const [l, setL] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
@@ -341,6 +367,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
     ['enxoval', 'enxoval e mudança', 'Com prioridade e passo a passo.'],
     ['contrato', 'garantias e documentos', 'Avisa antes de vencer e guarda cada papel.'],
   ]
+  const [mais, setMais] = useState(false)
   return (
     <section className="ape-plat" id="loja-plataforma">
       <div className="ape-plat-head">
@@ -351,12 +378,13 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
       <div className="ape-plat-grid">
         <PlatCelulares />
         <div className="ape-plat-feats">
-          {recursos.map(([a, t, d]) => (
+          {(mais ? recursos : recursos.slice(0, 4)).map(([a, t, d]) => (
             <div key={t} className="ape-plat-f">
               <ApeArt name={a} size={32} />
               <span><b>{t}</b>{d}</span>
             </div>
           ))}
+          <button type="button" className="ape-plat-mais" aria-expanded={mais} onClick={() => setMais(!mais)}>{mais ? 'mostrar menos' : `e mais ${recursos.length - 4} recursos`}<ApeIcon name="chev" /></button>
         </div>
       </div>
       <div className="ape-plat-buy">
@@ -367,7 +395,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
           <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>preço de cafezinho: <b className="ape-keep">menos de R$ {Math.ceil(ult.n > 1 ? ult.parcela : mes)} por mês</b>{ult.n > 1 ? ` em ${ult.n}x` : ''} para a casa nova toda organizada</span></div>
           <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>
-        <ol className="ape-plat-steps">
+        <ol className={`ape-plat-steps ${mais ? '' : 'curto'}`}>
           <li><b>1</b>Paga uma vez: Pix, cartão à vista ou parcelado</li>
           <li><b>2</b>Cria o seu acesso com e-mail e senha, na hora</li>
           <li><b>3</b>Usa por 12 meses no celular ou no computador, em minha conta</li>
@@ -522,11 +550,6 @@ function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, w
         <a className="ape-cat-voltar" href={href('ape', 'loja')}><ApeIcon name="chev" />loja do apê</a>
         <h2>todos os <em>arquivos</em></h2>
         <p>Guias, checklists e planilhas que eu fiz montando o meu apê. Escolha a sua etapa, espie as páginas em "ver por dentro" e leve só o que fizer sentido para você.</p>
-        <ul>
-          <li><ApeIcon name="download" />baixa na hora</li>
-          <li><ApeIcon name="tag" />{PIX}% off no Pix</li>
-          <li><ApeIcon name="shield" />7 dias para desistir</li>
-        </ul>
       </section>
       <nav className="ape-cat-nav" aria-label="Etapas">
         <button aria-pressed={ativa === 'todos'} onClick={() => ir('todos')}>todos <small>{arquivos.length}</small></button>
@@ -599,7 +622,7 @@ function BotaoCompra({ p, cart, onAdd, me, whats, wide = true }: { p: Produto; c
 function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; n?: number; byId: ById; onOpen: () => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const img = p.amostras?.[0]
   return (
-    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo ? 'com-selo' : ''} ${p.cat === 'combos' ? 'kit' : ''}`}>
+    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo ? 'com-selo' : ''} ${p.cat === 'combos' ? 'kit' : `f-${p.fase || 'comprei'}`}`}>
       {p.selo && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
       <button className="ape-thumb" onClick={onOpen} aria-label={`Ver ${p.nome} por dentro`}>
         {img ? (

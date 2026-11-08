@@ -222,6 +222,18 @@ export async function conferirCadastro(local: Morador | null): Promise<Morador |
   }
 }
 
+/** Números de verdade para a loja (moradores do San Levi aprovados e compras pagas). */
+export async function numerosLoja(): Promise<{ moradores: number; compras: number }> {
+  if (!CLOUD) return { moradores: 0, compras: 0 }
+  try {
+    const { data } = await sb().rpc('ape_numeros')
+    const d = (data || {}) as { moradores?: number; compras?: number }
+    return { moradores: Number(d.moradores) || 0, compras: Number(d.compras) || 0 }
+  } catch {
+    return { moradores: 0, compras: 0 }
+  }
+}
+
 /** É a dona olhando a página (logada no planê)? */
 export async function souDona(): Promise<boolean> {
   if (!CLOUD) return false

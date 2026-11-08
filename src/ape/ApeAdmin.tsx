@@ -271,6 +271,7 @@ function Inicio({ moradores, orcs, pedidos, envios, interesses, ir }: { moradore
         <button onClick={() => ir('pedidos')}><span><ApeIcon name="bag" />vendas no mês</span><b className="num ape-keep">{brl(vendasMes.reduce((t, p) => t + p.total, 0))}</b><small>{vendasMes.length} venda(s)</small></button>
         <button onClick={() => ir('clientes')}><span><ApeIcon name="user" />clientes da loja</span><b className="num">{new Set(pedidos.filter((p) => p.status === 'pago').map((p) => p.cpf || p.email)).size}</b><small>quem já comprou</small></button>
       </div>
+      <MaisVendidos pedidos={pedidos} />
       <div className="ape-adm-atalhos">
         <p className="ape-eyebrow">atalhos</p>
         <button className="ape-btn sm" onClick={() => ir('novo')}><ApeIcon name="plus" />adicionar orçamento</button>
@@ -278,6 +279,46 @@ function Inicio({ moradores, orcs, pedidos, envios, interesses, ir }: { moradore
         <button className="ape-btn sm" onClick={() => ir('entregas')}><ApeIcon name="file" />arquivos da loja</button>
         <button className="ape-btn sm" onClick={() => ir('testar')}><ApeIcon name="eye" />ver como cliente</button>
       </div>
+    </div>
+  )
+}
+
+/** O que vendeu: os arquivos, kits e a plataforma mais comprados na semana e no mês (sem cortesias). */
+function MaisVendidos({ pedidos }: { pedidos: PedidoAdmin[] }) {
+  const [per, setPer] = useState<7 | 30>(7)
+  const desde = Date.now() - per * 864e5
+  const conta = new Map<string, { nome: string; n: number; total: number }>()
+  for (const p of pedidos) {
+    if (p.status !== 'pago' || p.cortesia || new Date(p.pago_em || p.criado).getTime() < desde) continue
+    for (const i of p.itens || []) {
+      const c = conta.get(i.id) || { nome: i.nome, n: 0, total: 0 }
+      c.n += 1; c.total += i.preco || 0
+      conta.set(i.id, c)
+    }
+  }
+  const lista = [...conta.values()].sort((a, b) => b.n - a.n || b.total - a.total).slice(0, 6)
+  const max = Math.max(1, ...lista.map((x) => x.n))
+  return (
+    <div className="ape-adm-vend">
+      <div className="ape-adm-vend-h">
+        <p className="ape-eyebrow">o que vendeu</p>
+        <div className="ape-vista" role="group" aria-label="Período">
+          <button aria-pressed={per === 7} onClick={() => setPer(7)}>7 dias</button>
+          <button aria-pressed={per === 30} onClick={() => setPer(30)}>30 dias</button>
+        </div>
+      </div>
+      {lista.length ? (
+        <ol>
+          {lista.map((x) => (
+            <li key={x.nome}>
+              <span className="t">{x.nome}</span>
+              <i><em style={{ width: `${(x.n / max) * 100}%` }} /></i>
+              <b className="num">{x.n}</b>
+              <small className="ape-keep">{brl(x.total)}</small>
+            </li>
+          ))}
+        </ol>
+      ) : <p className="ape-note" style={{ margin: 0 }}>Nenhuma venda paga {per === 7 ? 'nesta semana' : 'nos últimos 30 dias'}. Cortesias não entram na conta.</p>}
     </div>
   )
 }
