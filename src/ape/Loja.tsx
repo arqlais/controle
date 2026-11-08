@@ -176,11 +176,8 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         if (!mix.length) return null
         return (
           <section className="ape-nicho ape-destaques" aria-label="Os mais procurados">
-            <div className="ape-destaques-h">
-              <h3 className="ape-sec-t">os mais <em>queridos</em></h3>
-              <a className="ape-esc-todos" href={href('ape', 'loja:arquivos')}>ver todos<ApeIcon name="chev" /></a>
-            </div>
-            <Fileira n={mix.length} rotulo="arquivos">
+            <h3 className="ape-sec-t">os mais <em>queridos</em></h3>
+            <Fileira n={mix.length} rotulo="arquivos" todos={{ href: href('ape', 'loja:arquivos'), l: `ver todos os ${arquivos.length} arquivos e kits` }}>
               {mix.map((p) => <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />)}
             </Fileira>
           </section>
@@ -419,7 +416,7 @@ function PlatCelulares() {
 }
 
 /** Uma linha só de cartões: rola para o lado (setas no computador) e "ver tudo" abre em grade. */
-export function Fileira({ n, rotulo, children, cls = '' }: { n: number; rotulo: string; children: ReactNode; cls?: string }) {
+export function Fileira({ n, rotulo, children, cls = '', todos }: { n: number; rotulo: string; children: ReactNode; cls?: string; todos?: { href: string; l: string } }) {
   const ref = useRef<HTMLDivElement>(null)
   const [tudo, setTudo] = useState(false)
   const [sobra, setSobra] = useState(false)
@@ -466,7 +463,9 @@ export function Fileira({ n, rotulo, children, cls = '' }: { n: number; rotulo: 
         <div ref={ref} className="ape-shop ape-fileira-l" onScroll={medir}>{children}</div>
         {!tudo && sobra && pos !== 'fim' && <button type="button" className="ape-fileira-seta d" onClick={() => rolar(1)} aria-label="Ver os próximos"><ApeIcon name="chev" /></button>}
       </div>
-      {(sobra || tudo) && (
+      {todos ? (
+        <a className="ape-vermais" href={todos.href}>{todos.l}<ApeIcon name="chev" /></a>
+      ) : (sobra || tudo) && (
         <button type="button" className="ape-vermais" aria-expanded={tudo} onClick={() => { setTudo(!tudo); if (tudo) ref.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
           {tudo ? 'mostrar em uma linha' : `ver todos os ${n} ${rotulo}`}<ApeIcon name="chev" />
         </button>

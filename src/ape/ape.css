@@ -2362,3 +2362,5 @@
 .ape-trancado .ic { width: 52px; height: 52px; border-radius: 16px; background: var(--a-sec-soft); color: var(--a-sec); display: grid; place-items: center; }
 .ape-trancado .ic .ape-i { width: 24px; height: 24px; }
 .ape-trancado .ape-acts { justify-content: center; }
+a.ape-vermais { text-decoration: none; }
+a.ape-vermais .ape-i { transform: rotate(-90deg); }
