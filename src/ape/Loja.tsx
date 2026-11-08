@@ -21,7 +21,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   PIX = pixPct
   PRODUTOS_LOJA = produtos
   const ativos = produtos.filter((p) => p.ativo)
-  const [cat, setCat] = useState<'todos' | 'comprando' | 'comprei' | 'escolhas'>('todos')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
   const cart = useCarrinho()
@@ -51,7 +50,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   const plat = ativos.find((p) => p.cat === 'plataforma')
   const arquivos = ativos.filter((p) => (p.cat || 'arquivos') === 'arquivos')
   const kits = ativos.filter((p) => p.cat === 'combos')
-  const fases: { id: 'comprando' | 'comprei' | 'escolhas'; l: string; d: string; arte: string; chip: string }[] = [
+  const fases: Fase[] = [
     { id: 'comprando', l: 'para quem vai comprar', d: 'Na planta ou pronto: visita, simulação, financiamento, seguros e contrato.', arte: 'contrato', chip: 'vou comprar' },
     { id: 'comprei', l: 'para quem já comprou', d: 'Vistoria, obra, orçamentos, mudança e decoração.', arte: 'vistoria', chip: 'já comprei' },
     { id: 'escolhas', l: 'para escolher acabamentos e materiais', d: 'Pedras, pisos, marcenaria, banheiro, cozinha, luz, tomadas, tintas, gesso, ar, cortinas e segurança: prós, contras e preços de cada opção.', arte: 'orcamento', chip: 'acabamentos' },
@@ -132,34 +131,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       </section>
 
       <div id="loja-arquivos" className="ape-anchor" />
-      <div className="ape-chips" role="group" aria-label="Filtrar os arquivos">
-        <button className="ape-chip" aria-pressed={cat === 'todos'} onClick={() => setCat('todos')}>todos</button>
-        {fases.map((f) => (
-          <button key={f.id} className="ape-chip" aria-pressed={cat === f.id} onClick={() => setCat(f.id)}>{f.chip}</button>
-        ))}
-      </div>
-      {fases
-        .filter((f) => cat === 'todos' || cat === f.id)
-        .map((f) => {
-          const lista = arquivos.filter((p) => (p.fase || 'comprei') === f.id)
-          if (!lista.length) return null
-          return (
-            <section key={f.id} id={`loja-${f.id}`} className="ape-nicho ape-reveal" aria-label={f.l}>
-              <div className="ape-nhead ape-nhead-art">
-                <ApeArt name={f.arte} size={40} />
-                <div>
-                  <h3>{f.l}</h3>
-                  <span className="ape-note">{f.d}</span>
-                </div>
-              </div>
-              <Fileira n={lista.length} rotulo="arquivos">
-                {lista.map((p, i) => (
-                  <ProdCard key={p.id} n={i + 1} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />
-                ))}
-              </Fileira>
-            </section>
-          )
-        })}
+      <ArquivosCel fases={fases} arquivos={arquivos} onOpen={setAberto} cart={cart} onAdd={adicionar} me={me} whats={whats} />
 
       {kits.length > 0 && (
         <section id="loja-kits" className="ape-nicho ape-reveal" aria-label="Kits">
@@ -498,6 +470,65 @@ export function Fileira({ n, rotulo, children, cls = '' }: { n: number; rotulo: 
 
 /* ===== cartões e preço ===== */
 const somaAvulsos = (p: Produto, byId: ById) => (p.combo || []).reduce((t, id) => t + (reais(byId(id)?.preco) || 0), 0)
+
+type Fase = { id: 'comprando' | 'comprei' | 'escolhas'; l: string; d: string; arte: string; chip: string }
+const pixDe = (v: number) => Math.round((v - Math.round(v * PIX / 100 * 100) / 100) * 100) / 100
+/** Celular: os arquivos viram uma lista curta de categorias; tocando, abre tudo separado por categoria. */
+function ArquivosCel({ fases, arquivos, onOpen, cart, onAdd, me, whats }: { fases: Fase[]; arquivos: Produto[]; onOpen: (p: Produto) => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
+  const [aba, setAba] = useState<Fase['id'] | null>(null)
+  const cats = fases.map((f) => ({ f, lista: arquivos.filter((p) => (p.fase || 'comprei') === f.id) })).filter((c) => c.lista.length)
+  useEffect(() => {
+    if (!aba) return
+    const k = (e: KeyboardEvent) => e.key === 'Escape' && setAba(null)
+    window.addEventListener('keydown', k)
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', k); document.body.style.overflow = '' }
+  }, [aba])
+  const atual = cats.find((c) => c.f.id === aba)
+  return (
+    <section className="ape-arqcel" aria-label="Arquivos">
+      <div className="ape-arqcel-h"><b>arquivos</b><span>{arquivos.length} arquivos · toque numa etapa</span></div>
+      <div className="ape-arqcel-cats">
+      {cats.map(({ f, lista }) => (
+        <button key={f.id} type="button" className="ape-arqcel-cat" onClick={() => setAba(f.id)}>
+          <ApeArt name={f.arte} size={34} />
+          <span className="t"><b>{f.l}</b><small>{lista.length} arquivos · desde <span className="ape-keep">{brl(Math.min(...lista.map((p) => pixDe(reais(p.preco)))))}</span></small></span>
+          <ApeIcon name="chev" />
+        </button>
+      ))}
+      </div>
+      {atual && (
+        <div className="ape-sheet ape-arqcel-sheet" role="dialog" aria-modal="true" aria-label={atual.f.l} onClick={(e) => e.target === e.currentTarget && setAba(null)}>
+          <div className="ape-sheet-in">
+            <button className="ape-x" onClick={() => setAba(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
+            <div className="ape-sheet-b">
+              <p className="ape-eyebrow">arquivos</p>
+              <div className="ape-chips">
+                {cats.map(({ f }) => <button key={f.id} className="ape-chip" aria-pressed={f.id === aba} onClick={() => setAba(f.id)}>{f.chip}</button>)}
+              </div>
+              <p className="ape-note" style={{ margin: 0 }}>{atual.f.d}</p>
+              <div className="ape-arqcel-l">
+                {atual.lista.map((p) => (
+                  <div key={p.id} className="ape-arqcel-i">
+                    <button type="button" className="th" onClick={() => onOpen(p)} aria-label={`Ver ${p.nome} por dentro`}>
+                      {p.amostras?.[0] ? <img src={p.amostras[0]} alt="" loading="lazy" /> : <ApeArt name={p.arte || 'casa'} size={30} />}
+                    </button>
+                    <button type="button" className="t" onClick={() => onOpen(p)}>
+                      <b>{p.nome}</b>
+                      <small><span className="ape-keep">{brl(pixDe(reais(p.preco)))}</span> no Pix{p.selo ? ` · ${p.selo.toLowerCase()}` : ''}</small>
+                    </button>
+                    <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} wide={false} />
+                  </div>
+                ))}
+              </div>
+              <p className="ape-note" style={{ margin: 0 }}>Toque no nome para ver por dentro.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
 
 function Preco({ p, byId, pixPct }: { p: Produto; byId: ById; pixPct?: number }) {
   const soma = somaAvulsos(p, byId)
