@@ -2433,3 +2433,18 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape-esc.plat .ape-esc-todos { background: var(--a-sec); color: #fff; padding: 11px 20px; border-radius: 999px; font-size: 14px; box-shadow: 0 10px 22px -12px color-mix(in srgb, var(--a-sec) 70%, transparent); }
 .ape-esc.plat:hover .ape-esc-todos { filter: brightness(1.05); }
 .ape-esc.plat .ape-esc-todos .ape-i { color: #fff; }
+/* plataforma: preço, "preço de cafezinho" e botão lado a lado, sem vazio */
+@media (min-width: 761px) {
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) { grid-template-columns: minmax(0, 1fr) 260px; align-items: center; column-gap: 28px; padding: 20px 24px; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 28px; row-gap: 4px; align-items: center; max-width: none; width: 100%; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-note,
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-price,
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-plat-parc { grid-column: 1; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-plat-mes { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-pill { grid-column: 2; grid-row: 3; justify-self: start; }
+}
+@media (min-width: 761px) {
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-plat-mes { font-size: 13.5px; padding: 12px 16px; align-self: end; max-width: 420px; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-pill { align-self: start; }
+}
+.ape .iph-kpis b { white-space: nowrap; font-size: clamp(10px, 1.1em, 13px); letter-spacing: -.01em; }
