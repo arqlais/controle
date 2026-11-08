@@ -2302,3 +2302,9 @@
 .ape-cat-kits span { display: grid; gap: 2px; }
 .ape-cat-kits b { font-size: 15px; font-weight: 600; }
 .ape-cat-kits small { font-size: 12.5px; color: var(--a-muted); }
+/* brinde inteiro (o design do cadeado) na página dos arquivos */
+.ape-catalogo .ape-surpresa { padding: 26px 28px; gap: 26px; }
+.ape-catalogo .ape-surpresa .ape-sec-t { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.15; margin: 4px 0 6px; }
+.ape-catalogo .ape-surpresa .ape-note { font-size: 14px; }
+.ape-catalogo .ape-surpresa-box { width: 96px; height: 96px; border-radius: 26px; }
+.ape-catalogo .ape-surpresa-box svg { width: 34px; height: 34px; }

@@ -192,21 +192,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
       <div className="ape-garantias">
-      <section className="ape-surpresa" aria-label="Bônus surpresa">
-        <div className="ape-surpresa-box" aria-hidden="true">
-          <ApeIcon name="lock" />
-          <span className="q">?</span>
-        </div>
-        <div>
-          <p className="ape-eyebrow">em toda compra</p>
-          <h3 className="ape-sec-t">um <em>brinde surpresa</em> depois de 7 dias</h3>
-          <p className="ape-note" style={{ margin: 0 }}>{BONUS.pista}</p>
-          <ul className="ape-surpresa-l">
-            <li><ApeIcon name="gift" />brinde em toda compra</li>
-            <li><ApeIcon name="sparkle" />exclusivo, não tem à venda</li>
-          </ul>
-        </div>
-      </section>
+      <Surpresa />
 
       <section className="ape-panel ape-garantia">
         <ApeArt name="entregas" size={56} tone="sec" />
@@ -502,6 +488,27 @@ const somaAvulsos = (p: Produto, byId: ById) => (p.combo || []).reduce((t, id) =
 
 type Fase = { id: 'comprando' | 'comprei' | 'escolhas'; l: string; d: string; arte: string; chip: string }
 const pixDe = (v: number) => Math.round((v - Math.round(v * PIX / 100 * 100) / 100) * 100) / 100
+/** O brinde surpresa (cadeado com "?"): inteiro na página dos arquivos, numa faixa fina na loja. */
+function Surpresa() {
+  return (
+    <section className="ape-surpresa" aria-label="Bônus surpresa">
+    <div className="ape-surpresa-box" aria-hidden="true">
+      <ApeIcon name="lock" />
+      <span className="q">?</span>
+    </div>
+    <div>
+      <p className="ape-eyebrow">em toda compra</p>
+      <h3 className="ape-sec-t">um <em>brinde surpresa</em> depois de 7 dias</h3>
+      <p className="ape-note" style={{ margin: 0 }}>{BONUS.pista}</p>
+      <ul className="ape-surpresa-l">
+        <li><ApeIcon name="gift" />brinde em toda compra</li>
+        <li><ApeIcon name="sparkle" />exclusivo, não tem à venda</li>
+      </ul>
+    </div>
+  </section>
+  )
+}
+
 /** Página só dos arquivos: tudo separado por etapa, como uma loja de verdade (com explicação e jeito de conversa). */
 function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, whats }: { fases: Fase[]; arquivos: Produto[]; kits: Produto[]; ini?: string; byId: ById; onOpen: (p: Produto) => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const cats = fases.map((f) => ({ f, lista: arquivos.filter((p) => (p.fase || 'comprei') === f.id) })).filter((c) => c.lista.length)
@@ -543,6 +550,7 @@ function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, w
           </div>
         </section>
       ))}
+      <Surpresa />
       {kits.length > 0 && (
         <a className="ape-cat-kits" href={href('ape', 'loja')} onClick={() => window.setTimeout(() => document.getElementById('loja-kits')?.scrollIntoView({ block: 'start' }), 120)}>
           <span><b>quer a etapa inteira?</b><small>Os kits juntam os arquivos da mesma etapa{maxKit ? ` e saem até ${maxKit}% mais barato` : ''}.</small></span>
