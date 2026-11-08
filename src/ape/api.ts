@@ -11,6 +11,7 @@ export interface Ajustes {
   pixPct?: number // desconto no Pix (padrão 5%)
   jurosPct?: number // juros ao mês do cartão parcelado (padrão 2,99%)
   taxas?: Taxas // taxas do Asaas, só para conferir a margem no painel
+  fotoPainel?: string // foto do painel da dona (o símbolo do San Levi se vazio)
   fotoProjeto?: string // foto da seção de projetos (o painel troca; pasta pública ape-publico)
   vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
 }
@@ -73,7 +74,7 @@ const ajustesOf = (d: unknown): Ajustes => {
       for (const id of m.novos) if (!base.some((p) => p.id === id)) { const d = PRODUTOS.find((x) => x.id === id); if (d) base.push(d) }
     }
   }
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '' }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoPainel: a.fotoPainel || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -586,7 +587,17 @@ export interface PlatContato { id: string; nome: string; servico: string; tel: s
 export interface PlatGarantia { id: string; item: string; onde: string; compra: string; meses: number | null; nota: boolean; obs: string }
 export interface PlatManut { id: string; oque: string; cada: number | null; ultima: string }
 export interface PlatDoc { id: string; nome: string; tenho: boolean; onde: string }
+export interface PlatOrc { id: string; servico: string; fornecedor: string; valor: number | null; status: 'pedido' | 'recebido' | 'fechado' | 'descartado'; tel: string; obs: string }
+export interface PlatConta { id: string; nome: string; valor: number | null; quando: 'mensal' | 'anual'; dia: number | null }
+export interface PlatMedida { id: string; comodo: string; larg: number | null; comp: number | null; alt: number | null; obs: string }
+export interface PlatCompra { id: string; comodo: string; item: string; prio: 'essencial' | 'logo' | 'pode esperar'; preco: number | null; comprado: boolean; onde: string }
+export interface PlatTarefa { id: string; fase: string; item: string; feito: boolean }
 export interface PlatDados {
+  orcamentos?: PlatOrc[]
+  contas?: PlatConta[]
+  medidas?: PlatMedida[]
+  compras?: PlatCompra[]
+  mudanca?: PlatTarefa[]
   perfil?: { nome: string; foto: string }
   imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string; condominio?: string; torre?: string; ap?: string; moradores?: string; capa?: string }
   garantias?: PlatGarantia[]

@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Icon } from '../components/Icon'
+import { SanLeviArte } from './SanLevi'
 import { href } from '../router'
-import { platAbrir, platSalvar, type PlatAcesso, type PlatContato, type PlatDados, type PlatDoc, type PlatEtapa, type PlatGarantia, type PlatGasto, type PlatManut, type PlatParcela, type PlatVistoria } from './api'
+import { platAbrir, platSalvar, type PlatAcesso, type PlatContato, type PlatDados, type PlatDoc, type PlatEtapa, type PlatGarantia, type PlatGasto, type PlatManut, type PlatParcela, type PlatVistoria, type PlatOrc, type PlatConta, type PlatMedida, type PlatCompra, type PlatTarefa } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, brl, dmy, firstName, fmtTel, num, wa, waNum } from './model'
@@ -42,6 +44,11 @@ export const DEMO: PlatDados = {
   garantias: [{ id: 'w1', item: 'geladeira', onde: 'loja (exemplo)', compra: '2026-11-10', meses: 12, nota: true, obs: '' }, { id: 'w2', item: 'impermeabilização', onde: 'construtora', compra: '2026-12-15', meses: 60, nota: true, obs: '' }],
   manutencao: [{ id: 'm1', oque: 'lavar os filtros do ar-condicionado', cada: 1, ultima: '2026-10-01' }, { id: 'm2', oque: 'limpar ralos e sifões', cada: 3, ultima: '' }],
   documentos: [{ id: 'd1', nome: 'contrato de compra e venda', tenho: true, onde: 'pasta azul' }, { id: 'd2', nome: 'manual do proprietário', tenho: true, onde: 'link do Drive' }, { id: 'd3', nome: 'termo de vistoria e de entrega das chaves', tenho: false, onde: '' }],
+  orcamentos: [{ id: 'o1', servico: 'pedras', fornecedor: 'Marmoraria A', valor: 4540, status: 'recebido', tel: '', obs: 'quartzo, com instalação' }, { id: 'o2', servico: 'pedras', fornecedor: 'Marmoraria B', valor: 3770, status: 'recebido', tel: '', obs: 'granito' }],
+  contas: [{ id: 'k1', nome: 'condomínio', valor: 420, quando: 'mensal', dia: 10 }, { id: 'k2', nome: 'luz', valor: 120, quando: 'mensal', dia: 15 }, { id: 'k3', nome: 'internet', valor: 100, quando: 'mensal', dia: 5 }, { id: 'k4', nome: 'IPTU', valor: 900, quando: 'anual', dia: null }],
+  medidas: [{ id: 'md1', comodo: 'sala', larg: 3.15, comp: 4.6, alt: 2.5, obs: '' }, { id: 'md2', comodo: 'quarto 1', larg: 2.64, comp: 3.1, alt: 2.5, obs: '' }],
+  compras: [{ id: 'cp1', comodo: 'cozinha', item: 'jogo de panelas', prio: 'essencial', preco: 350, comprado: true, onde: '' }, { id: 'cp2', comodo: 'quarto', item: 'cortina blackout', prio: 'logo', preco: 250, comprado: false, onde: '' }],
+  mudanca: [{ id: 'mu1', fase: '30 dias antes', item: 'orçar 3 empresas de mudança', feito: true }, { id: 'mu2', fase: '30 dias antes', item: 'agendar o elevador com o condomínio', feito: false }],
   notas: 'Senha do interfone: 304. Medir a parede da TV antes do painel.',
 }
 const novo = (): PlatDados => ({
@@ -88,14 +95,14 @@ async function fotoLeve(f: File): Promise<string> {
   return c.toDataURL('image/jpeg', 0.7)
 }
 
-type Aba = 'resumo' | 'gastos' | 'parcelas' | 'etapas' | 'vistoria' | 'contatos' | 'garantias' | 'documentos' | 'calculadoras'
-/** Menu lateral em grupos, como no planê arquitetura. */
+type Aba = 'resumo' | 'gastos' | 'parcelas' | 'orcamentos' | 'contas' | 'etapas' | 'vistoria' | 'contatos' | 'medidas' | 'compras' | 'mudanca' | 'garantias' | 'documentos' | 'calculadoras'
+/** Menu em grupos, como no planê arquitetura, com símbolos que dizem o que é cada coisa. */
 const GRUPOS: [string, [Aba, string, string][]][] = [
   ['', [['resumo', 'resumo', 'home']]],
-  ['dinheiro', [['gastos', 'compras e gastos', 'tag'], ['parcelas', 'parcelas', 'clock']]],
-  ['obra', [['etapas', 'etapas', 'list'], ['vistoria', 'vistoria', 'check'], ['contatos', 'fornecedores', 'chat']]],
-  ['casa', [['garantias', 'garantias e manutenção', 'shield'], ['documentos', 'documentos', 'file']]],
-  ['ferramentas', [['calculadoras', 'calculadoras', 'ruler']]],
+  ['dinheiro', [['gastos', 'gastos', 'wallet'], ['parcelas', 'parcelas', 'calendar'], ['orcamentos', 'orçamentos', 'file'], ['contas', 'contas da casa', 'bell']]],
+  ['obra', [['etapas', 'etapas da obra', 'layers'], ['vistoria', 'vistoria', 'check'], ['contatos', 'fornecedores', 'phone'], ['medidas', 'medidas do apê', 'ruler']]],
+  ['casa nova', [['compras', 'compras da casa', 'sofa'], ['mudanca', 'mudança', 'box'], ['garantias', 'garantias e manutenção', 'lock'], ['documentos', 'documentos', 'folder']]],
+  ['ferramentas', [['calculadoras', 'calculadoras', 'grid']]],
 ]
 const ABAS = GRUPOS.flatMap((g) => g[1])
 const BNAV: Aba[] = ['resumo', 'gastos', 'etapas', 'vistoria']
@@ -108,7 +115,6 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const [salvo, setSalvo] = useState<'ok' | 'salvando' | 'erro'>('ok')
   const [editar, setEditar] = useState(false)
   const [menu, setMenu] = useState(false)
-  const [mini, setMini] = useState(() => !!read<boolean>('ape-pp-mini'))
   const [tema, setTema] = useState<'claro' | 'escuro'>(() => read<'claro' | 'escuro'>('ape-tema') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'))
   const trocarTema = () => setTema((t) => { const n = t === 'escuro' ? 'claro' : 'escuro'; write('ape-tema', n); return n })
   const timer = useRef(0)
@@ -203,55 +209,59 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const casa = [im.condominio, im.torre ? `torre ${im.torre}` : '', im.ap ? `apê ${im.ap}` : ''].filter(Boolean).join(' · ') || im.nome || 'meu apê'
   const dadosV = vistos
   const sub = <M,>(k: keyof PlatDados) => (fn: (l: M[]) => M[]) => mudar((d) => ({ ...d, [k]: fn(((d[k] as unknown) as M[]) || []) }))
+  const navA = (id: Aba, l: string, i: string) => (
+    <a key={id} href="#" className={aba === id ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(id) }} title={l}>
+      <Icon name={i} />
+      <span>{l}</span>
+    </a>
+  )
+  const ehSL = /san levi/i.test(im.condominio || '')
   return (
-    <div className={`ape-pp ${mini ? 'mini' : ''} ${menu ? 'menu-aberto' : ''}`} data-tema={tema}>
-      <aside className="ape-pp-side" aria-label="Menu da plataforma">
-        <div className="ape-pp-marca">
-          <a className="ape-pp-logo" href={href('ape', 'loja')} aria-label="planê.apê">
-            <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
-            <span className="t">planê<b>.apê</b></span>
-          </a>
-          <button className="ape-pp-ic so-pc" onClick={() => { setMini(!mini); write('ape-pp-mini', !mini) }} aria-label={mini ? 'Abrir o menu' : 'Recolher o menu'} title={mini ? 'abrir o menu' : 'recolher o menu'}><ApeIcon name="list" /></button>
-          <button className="ape-pp-ic so-cel" onClick={() => setMenu(false)} aria-label="Fechar o menu"><ApeIcon name="x" /></button>
-        </div>
-        <button className="ape-pp-casa" onClick={() => setEditar(true)} title="Meus dados e o imóvel">
-          <span className="ape-pp-casa-foto">{im.capa ? <img src={im.capa} alt="" /> : <ApeIcon name="home" />}</span>
-          <span className="t"><small>minha casa</small><b>{casa}</b></span>
-        </button>
-        <nav className="ape-pp-nav">
+    <div className={`ape ape-shell app ape-cli ${menu ? 'menu-open' : ''}`} data-tema={tema}>
+      <aside className="sidebar">
+        <a className="platform-mark" href={href('ape', 'loja')} aria-label="planê.apê">
+          <span className="ape-cli-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
+          <span>planê<b className="ape-cli-mark-b">.apê</b></span>
+        </a>
+        <a className="brand ape-adm-brand" href="#" onClick={(e) => { e.preventDefault(); setEditar(true) }} title="Minha casa: foto e dados do imóvel">
+          <span className="brand-photo ape-adm-foto">
+            {im.capa ? <img src={im.capa} alt="" /> : ehSL ? <SanLeviArte size={46} /> : <span className="ape-cli-casa"><Icon name="home" size={22} /></span>}
+          </span>
+          <span className="brand-text">
+            <span className="brand-kicker">minha casa</span>
+            <span className="brand-name ape-cli-casa-nome">{casa}</span>
+          </span>
+        </a>
+        <nav>
           {GRUPOS.map(([g, itens]) => (
-            <div key={g || 'inicio'} className="ape-pp-grupo">
-              {g && <span className="ape-pp-gt">{g}</span>}
-              {itens.map(([id, l, i]) => (
-                <button key={id} className={aba === id ? 'on' : ''} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)} title={l}>
-                  <ApeIcon name={i} /><span>{l}</span>
-                </button>
-              ))}
-            </div>
+            <Fragment key={g || 'inicio'}>
+              {g && <span className="nav-group-label nav-main-label">{g}</span>}
+              {itens.map(([id, l, i]) => navA(id, l, i))}
+            </Fragment>
           ))}
         </nav>
-        <button className="ape-pp-perfil" onClick={() => setEditar(true)} title="Meus dados">
-          <Avatar nome={nome} foto={foto} />
-          <span className="t"><b>{firstName(nome) || 'meu perfil'}</b><small>meus dados</small></span>
-        </button>
-        <div className="ape-pp-pe">
-          <button className="ape-pp-ic" onClick={trocarTema} title={tema === 'escuro' ? 'modo claro' : 'modo escuro'} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
-          <button className={`ape-pp-ic ${exemplo ? 'on' : ''}`} onClick={() => setExemplo(!exemplo)} title={exemplo ? 'sair do exemplo' : 'ver exemplo preenchido'} aria-label={exemplo ? 'Sair do exemplo' : 'Ver exemplo preenchido'}><ApeIcon name="eye" /></button>
-          <a className="ape-pp-ic" href={href('ape', 'conta')} title="minha conta e compras" aria-label="Minha conta"><ApeIcon name="user" /></a>
-          <a className="ape-pp-ic" href={href('ape', 'loja')} title="loja" aria-label="Loja"><ApeIcon name="bag" /></a>
-          <span className={`ape-salvo ${salvo}`} title={statusSalvo}><i />{mini ? '' : statusSalvo}</span>
+        <a href="#" className="profile-chip" onClick={(e) => { e.preventDefault(); setEditar(true) }} title="Meus dados">
+          <span className="profile-chip-avatar">{foto ? <img src={foto} alt="" /> : (firstName(nome).charAt(0).toUpperCase() || '?')}</span>
+          <span className="grow"><b>{firstName(nome) || 'meu perfil'}</b><small>meus dados e foto</small></span>
+        </a>
+        <div className="sidebar-foot">
+          <button className="icon-btn" onClick={trocarTema} title="Tema claro/escuro (só neste aparelho)" aria-label="Tema claro ou escuro"><Icon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+          <button className={`icon-btn sample-toggle ${exemplo ? 'is-on' : ''}`} onClick={() => setExemplo(!exemplo)} title={exemplo ? 'Sair do exemplo' : 'Ver exemplo preenchido'} aria-label={exemplo ? 'Sair do exemplo' : 'Ver exemplo preenchido'}><Icon name={exemplo ? 'eye' : 'eye-off'} size={16} /><span>exemplo</span></button>
+          <a className="icon-btn" href={href('ape', 'conta')} title="Minha conta e compras" aria-label="Minha conta"><Icon name="user" /></a>
+          <span className={`ape-salvo ${salvo}`} title={statusSalvo}><i /></span>
         </div>
       </aside>
-      <div className="ape-pp-scrim" onClick={() => setMenu(false)} />
-      <div className="ape-pp-main">
-        <header className="ape-pp-top">
-          <button className="ape-pp-ic so-cel" onClick={() => setMenu(true)} aria-label="Abrir o menu"><ApeIcon name="list" /></button>
-          <button className="ape-voltar" onClick={voltar} aria-label="Voltar"><ApeIcon name="chev" /><span>voltar</span></button>
-          <div className="ape-pp-tit"><ApeIcon name={atual[2]} /><h1>{atual[1]}</h1></div>
-          <button className="ape-pp-ic so-cel" onClick={trocarTema} aria-label={tema === 'escuro' ? 'Modo claro' : 'Modo escuro'}><ApeIcon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
-          <button className="ape-pp-av-btn" onClick={() => setEditar(true)} aria-label="Meus dados"><Avatar nome={nome} foto={foto} /></button>
+      <div className="scrim" onClick={() => setMenu(false)} />
+      <div className="main">
+        <header className="topbar">
+          <button className="icon-btn only-mobile" onClick={() => setMenu(true)} aria-label="Menu"><Icon name="menu" /></button>
+          <button className="back-btn" onClick={voltar} aria-label="Voltar" title="Voltar para a tela anterior"><Icon name="chevronL" size={18} /><span className="hide-mobile">voltar</span></button>
+          <div className="ape-adm-titulo"><Icon name={atual[2]} /><b>{atual[1]}</b></div>
+          <button className="icon-btn only-mobile" onClick={trocarTema} aria-label="Tema claro ou escuro"><Icon name={tema === 'escuro' ? 'sun' : 'moon'} /></button>
+          <span className={`ape-salvo-top ${salvo} hide-mobile`}>{statusSalvo}</span>
         </header>
-        <main className="ape-pp-cont">
+        <main className="content">
+          <div className="page ape-pp-cont">
           {demo && <div className="ape-banner"><ApeIcon name="eye" />Demonstração com dados de exemplo: fica só neste aparelho.</div>}
           {exemplo && <div className="ape-banner ape-pp-exemplo"><ApeIcon name="eye" /><span>Você está vendo um <b>exemplo preenchido</b>. Pode olhar tudo: nada aqui é salvo e os seus dados continuam guardados.</span><button className="ape-btn primary sm" onClick={() => setExemplo(false)}>voltar para os meus dados</button></div>}
           {aba === 'resumo' && !exemplo && <ComoUsar onExemplo={() => setExemplo(true)} />}
@@ -259,18 +269,24 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
           {aba === 'resumo' && <Resumo acc={acc} dados={dadosV} im={im} nome={nome} foto={foto} casa={casa} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
           {aba === 'gastos' && <Gastos lista={dadosV.gastos || []} orcamento={im.orcamento} mudar={sub<PlatGasto>('gastos')} />}
           {aba === 'parcelas' && <Parcelas lista={dadosV.parcelas || []} mudar={sub<PlatParcela>('parcelas')} />}
+          {aba === 'orcamentos' && <Orcs lista={dadosV.orcamentos || []} mudar={sub<PlatOrc>('orcamentos')} virarGasto={(o) => mudar((d) => ({ ...d, gastos: [{ id: uid(), comodo: 'geral', item: `${o.servico} (${o.fornecedor})`, previsto: o.valor, pago: null, status: 'comprado', data: hoje(), obs: 'fechado pelos orçamentos' }, ...(d.gastos || [])] }))} />}
+          {aba === 'contas' && <Contas lista={dadosV.contas || []} mudar={sub<PlatConta>('contas')} />}
           {aba === 'etapas' && <Etapas lista={dadosV.etapas || []} mudar={sub<PlatEtapa>('etapas')} />}
           {aba === 'vistoria' && <Vistoria lista={dadosV.vistoria || []} nome={nome} mudar={sub<PlatVistoria>('vistoria')} />}
           {aba === 'contatos' && <Contatos lista={dadosV.contatos || []} mudar={sub<PlatContato>('contatos')} />}
+          {aba === 'medidas' && <Medidas lista={dadosV.medidas || []} mudar={sub<PlatMedida>('medidas')} />}
+          {aba === 'compras' && <Compras lista={dadosV.compras || []} mudar={sub<PlatCompra>('compras')} />}
+          {aba === 'mudanca' && <Mudanca lista={dadosV.mudanca || []} entrega={im.entrega} mudar={sub<PlatTarefa>('mudanca')} />}
           {aba === 'garantias' && <Garantias lista={dadosV.garantias || []} manut={dadosV.manutencao || []} entrega={im.entrega} mudar={sub<PlatGarantia>('garantias')} mudarM={sub<PlatManut>('manutencao')} />}
           {aba === 'documentos' && <Documentos lista={dadosV.documentos || []} mudar={sub<PlatDoc>('documentos')} />}
           {aba === 'calculadoras' && <Calculadoras m2={im.m2} />}
           <Assinatura />
+          </div>
         </main>
       </div>
-      <nav className="ape-pp-bnav" aria-label="Seções principais">
-        {BNAV.map((id) => { const x = ABAS.find((y) => y[0] === id)!; return <button key={id} aria-current={aba === id ? 'page' : undefined} onClick={() => ir(id)}><ApeIcon name={x[2]} /><span>{id === 'gastos' ? 'gastos' : x[1]}</span></button> })}
-        <button onClick={() => setMenu(true)} aria-label="Mais seções"><ApeIcon name="list" /><span>mais</span></button>
+      <nav className="bottom-nav">
+        {BNAV.map((id) => { const x = ABAS.find((y) => y[0] === id)!; return <a key={id} href="#" className={aba === id ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(id) }}><Icon name={x[2]} /><span>{id === 'etapas' ? 'etapas' : x[1]}</span></a> })}
+        <a href="#" onClick={(e) => { e.preventDefault(); setMenu(true) }}><Icon name="menu" /><span>mais</span></a>
       </nav>
       {editar && <EditarDados dados={dados} nomeConta={acc.nome} onClose={() => setEditar(false)} mudar={mudar} />}
     </div>
@@ -931,5 +947,198 @@ function Calculadoras({ m2 }: { m2: number | null }) {
       </section>
       <p className="ape-note" style={{ margin: 0 }}>Contas práticas de referência. Para compra grande, confirme com o fornecedor.</p>
     </div>
+  )
+}
+
+/* ---------- orçamentos que a pessoa recebeu (compara e, quando fecha, vira gasto) ---------- */
+function Orcs({ lista, mudar, virarGasto }: { lista: PlatOrc[]; mudar: Mudar<PlatOrc>; virarGasto: (o: PlatOrc) => void }) {
+  const [aberto, setAberto] = useState('')
+  const set = (id: string, k: keyof PlatOrc, v: unknown) => mudar((l) => l.map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const servicos = [...new Set(lista.map((o) => o.servico.trim().toLowerCase() || 'sem serviço'))]
+  const ST: Record<PlatOrc['status'], string> = { pedido: 'pedi', recebido: 'recebi', fechado: 'fechei', descartado: 'descartei' }
+  return (
+    <section className="ape-panel ape-plat-sec">
+      <div className="ape-plat-sec-h">
+        <div><p className="ape-eyebrow">orçamentos</p><span className="ape-note">Anote cada orçamento que pediu e recebeu. O mais barato de cada serviço aparece marcado; quando fechar, ele vira gasto.</span></div>
+        <button className="ape-btn primary sm" onClick={() => { const id = uid(); setAberto(id); mudar((l) => [{ id, servico: '', fornecedor: '', valor: null, status: 'pedido', tel: '', obs: '' }, ...l]) }}><ApeIcon name="plus" />orçamento</button>
+      </div>
+      {!lista.length && <div className="ape-empty"><ApeArt name="comparar" size={44} /><span>Piso, marcenaria, pedras… guarde os orçamentos aqui e veja qual sai mais em conta.</span></div>}
+      {servicos.map((sv) => {
+        const doSv = lista.filter((o) => (o.servico.trim().toLowerCase() || 'sem serviço') === sv)
+        const validos = doSv.filter((o) => o.valor && o.status !== 'descartado')
+        const menor = validos.length > 1 ? Math.min(...validos.map((o) => o.valor!)) : null
+        return (
+          <div key={sv} className="ape-plat-list">
+            <h4 className="ape-acab-h"><ApeIcon name="tag" />{sv}<span>{doSv.length} orçamento{doSv.length > 1 ? 's' : ''}</span></h4>
+            {doSv.map((o) => aberto !== o.id ? (
+              <button key={o.id} className={`ape-pp-linha ${o.status === 'descartado' ? 'apagado' : ''}`} onClick={() => setAberto(o.id)}>
+                <span className={`st ${o.status === 'fechado' ? 'pago' : ''}`} aria-hidden="true"><ApeIcon name={o.status === 'fechado' ? 'check' : 'file'} /></span>
+                <span className="t"><b>{o.fornecedor || 'fornecedor sem nome'}{menor != null && o.valor === menor ? <em className="ape-pp-menor">mais barato</em> : null}</b><small>{ST[o.status]}{o.obs ? ` · ${o.obs}` : ''}</small></span>
+                <span className="v ape-keep">{o.valor ? brl(o.valor) : '—'}</span>
+                <ApeIcon name="chev" />
+              </button>
+            ) : (
+              <div key={o.id} className="ape-plat-item aberto">
+                <div className="ape-frow">
+                  <div className="ape-f"><label>Serviço</label><input value={o.servico} onChange={(e) => set(o.id, 'servico', e.target.value)} placeholder="ex.: piso, pedras" /></div>
+                  <div className="ape-f"><label>Fornecedor</label><input value={o.fornecedor} onChange={(e) => set(o.id, 'fornecedor', e.target.value)} /></div>
+                </div>
+                <div className="ape-frow ape-frow3">
+                  <div className="ape-f"><label>Valor (<span className="ape-keep">R$</span>)</label><input inputMode="decimal" value={o.valor ?? ''} onChange={(e) => set(o.id, 'valor', num(e.target.value))} /></div>
+                  <div className="ape-f"><label>Situação</label><select value={o.status} onChange={(e) => set(o.id, 'status', e.target.value)}><option value="pedido">pedi</option><option value="recebido">recebi</option><option value="fechado">fechei</option><option value="descartado">descartei</option></select></div>
+                  <div className="ape-f"><label><span className="ape-keep">WhatsApp</span></label><input inputMode="tel" value={o.tel} onChange={(e) => set(o.id, 'tel', e.target.value)} /></div>
+                </div>
+                <div className="ape-f"><label>Obs.</label><input value={o.obs} onChange={(e) => set(o.id, 'obs', e.target.value)} placeholder="o que inclui, prazo, garantia…" /></div>
+                <div className="ape-acts ape-pp-item-acts">
+                  <button className="ape-btn primary sm" onClick={() => setAberto('')}><ApeIcon name="check" />pronto</button>
+                  {o.status !== 'fechado' && o.valor ? <button className="ape-btn sm" onClick={() => { set(o.id, 'status', 'fechado'); virarGasto(o); setAberto('') }}><ApeIcon name="star" />fechei com este</button> : null}
+                  {waNum(o.tel) && <a className="ape-btn ghost sm" href={wa(waNum(o.tel), `Oi! Sobre o orçamento de ${o.servico}:`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" /></a>}
+                  <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== o.id))} aria-label="Apagar"><ApeIcon name="trash" />apagar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
+/* ---------- contas da casa (quanto vai custar morar por mês) ---------- */
+const CONTAS: [string, PlatConta['quando']][] = [['condomínio', 'mensal'], ['luz', 'mensal'], ['água', 'mensal'], ['gás', 'mensal'], ['internet', 'mensal'], ['IPTU', 'anual'], ['seguro residencial', 'anual']]
+function Contas({ lista, mudar }: { lista: PlatConta[]; mudar: Mudar<PlatConta> }) {
+  const set = (id: string, k: keyof PlatConta, v: unknown) => mudar((l) => l.map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const mes = lista.reduce((t, c) => t + (c.valor || 0) / (c.quando === 'anual' ? 12 : 1), 0)
+  return (
+    <section className="ape-panel ape-plat-sec">
+      <div className="ape-plat-sec-h">
+        <div><p className="ape-eyebrow">contas da casa</p><span className="ape-note">Quanto vai custar morar, todo mês. As anuais (IPTU, seguro) entram divididas por 12.</span></div>
+        <button className="ape-btn primary sm" onClick={() => mudar((l) => [...l, { id: uid(), nome: '', valor: null, quando: 'mensal', dia: null }])}><ApeIcon name="plus" />conta</button>
+      </div>
+      <div className="ape-pp-res"><b className="ape-keep">{brl(mes)} por mês</b><span className="ape-keep">{brl(mes * 12)} por ano</span></div>
+      {!lista.length && <button className="ape-pp-sugestao" onClick={() => mudar(() => CONTAS.map(([nome, quando]) => ({ id: uid(), nome, valor: null, quando, dia: null })))}><ApeIcon name="sparkle" /><span><b>usar a lista das contas comuns</b><small>condomínio, luz, água, gás, internet, IPTU e seguro</small></span></button>}
+      <div className="ape-pp-manut">
+        {lista.map((c) => (
+          <div key={c.id} className="ape-pp-conta">
+            <input className="n" value={c.nome} onChange={(e) => set(c.id, 'nome', e.target.value)} placeholder="nome da conta" aria-label="Conta" />
+            <input className="v" inputMode="decimal" value={c.valor ?? ''} onChange={(e) => set(c.id, 'valor', num(e.target.value))} placeholder="R$" aria-label="Valor" />
+            <select value={c.quando} onChange={(e) => set(c.id, 'quando', e.target.value)} aria-label="Frequência"><option value="mensal">por mês</option><option value="anual">por ano</option></select>
+            <input className="d" inputMode="numeric" value={c.dia ?? ''} onChange={(e) => set(c.id, 'dia', num(e.target.value))} placeholder="dia" aria-label="Dia do vencimento" />
+            <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== c.id))} aria-label="Apagar"><ApeIcon name="trash" /></button>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ---------- medidas do apê (piso, cortinas, móveis) ---------- */
+const COMODOS_M = ['sala', 'cozinha', 'área de serviço', 'banheiro', 'quarto 1', 'quarto 2', 'varanda']
+function Medidas({ lista, mudar }: { lista: PlatMedida[]; mudar: Mudar<PlatMedida> }) {
+  const set = (id: string, k: keyof PlatMedida, v: unknown) => mudar((l) => l.map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const area = (m: PlatMedida) => (m.larg && m.comp ? m.larg * m.comp : 0)
+  const total = lista.reduce((t, m) => t + area(m), 0)
+  const f = (n: number) => n.toFixed(2).replace('.', ',')
+  return (
+    <section className="ape-panel ape-plat-sec">
+      <div className="ape-plat-sec-h">
+        <div><p className="ape-eyebrow">medidas do apê</p><span className="ape-note">Meça uma vez e use em tudo: piso, rodapé, tinta, cortinas e móveis. Em metros (ex.: 3,15).</span></div>
+        <button className="ape-btn primary sm" onClick={() => mudar((l) => [...l, { id: uid(), comodo: '', larg: null, comp: null, alt: 2.5, obs: '' }])}><ApeIcon name="plus" />cômodo</button>
+      </div>
+      {!lista.length && <button className="ape-pp-sugestao" onClick={() => mudar(() => COMODOS_M.map((comodo) => ({ id: uid(), comodo, larg: null, comp: null, alt: 2.5, obs: '' })))}><ApeIcon name="sparkle" /><span><b>começar com os cômodos de um apê</b><small>sala, cozinha, área de serviço, banheiro, 2 quartos e varanda</small></span></button>}
+      {total > 0 && <div className="ape-pp-res"><b>{f(total)} m²</b><span>somando os cômodos medidos</span></div>}
+      <div className="ape-pp-medidas">
+        {lista.map((m) => (
+          <div key={m.id} className="ape-pp-medida">
+            <input className="n" value={m.comodo} onChange={(e) => set(m.id, 'comodo', e.target.value)} placeholder="cômodo" aria-label="Cômodo" />
+            <label><small>largura</small><input inputMode="decimal" defaultValue={m.larg != null ? String(m.larg).replace('.', ',') : ''} onBlur={(e) => set(m.id, 'larg', num(e.target.value))} /></label>
+            <label><small>comprimento</small><input inputMode="decimal" defaultValue={m.comp != null ? String(m.comp).replace('.', ',') : ''} onBlur={(e) => set(m.id, 'comp', num(e.target.value))} /></label>
+            <label><small>pé-direito</small><input inputMode="decimal" defaultValue={m.alt != null ? String(m.alt).replace('.', ',') : ''} onBlur={(e) => set(m.id, 'alt', num(e.target.value))} /></label>
+            <span className="r">{area(m) ? <><b>{f(area(m))} m²</b><small>perímetro {f(2 * ((m.larg || 0) + (m.comp || 0)))} m</small></> : <small>—</small>}</span>
+            <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== m.id))} aria-label="Apagar"><ApeIcon name="trash" /></button>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ---------- compras da casa (enxoval e itens para morar) ---------- */
+const COMPRAS: [string, string, PlatCompra['prio']][] = [
+  ['cozinha', 'jogo de panelas', 'essencial'], ['cozinha', 'pratos, copos e talheres', 'essencial'], ['cozinha', 'micro-ondas', 'logo'], ['cozinha', 'liquidificador', 'pode esperar'],
+  ['área de serviço', 'vassoura, rodo e balde', 'essencial'], ['área de serviço', 'varal', 'essencial'], ['área de serviço', 'ferro de passar', 'logo'],
+  ['banheiro', 'toalhas', 'essencial'], ['banheiro', 'tapete e lixeira', 'essencial'], ['banheiro', 'organizadores', 'pode esperar'],
+  ['quarto', 'colchão e travesseiros', 'essencial'], ['quarto', 'jogo de cama', 'essencial'], ['quarto', 'cortina blackout', 'logo'],
+  ['sala', 'roteador de internet', 'essencial'], ['sala', 'cortina', 'logo'], ['sala', 'tapete', 'pode esperar'], ['geral', 'kit de ferramentas', 'logo'], ['geral', 'lâmpadas', 'essencial'],
+]
+function Compras({ lista, mudar }: { lista: PlatCompra[]; mudar: Mudar<PlatCompra> }) {
+  const set = (id: string, k: keyof PlatCompra, v: unknown) => mudar((l) => l.map((x) => (x.id === id ? { ...x, [k]: v } : x)))
+  const [filtro, setFiltro] = useState<'todas' | PlatCompra['prio']>('todas')
+  const feitas = lista.filter((c) => c.comprado).length
+  const falta = lista.filter((c) => !c.comprado).reduce((t, c) => t + (c.preco || 0), 0)
+  const vis = lista.filter((c) => filtro === 'todas' || c.prio === filtro)
+  return (
+    <section className="ape-panel ape-plat-sec">
+      <div className="ape-plat-sec-h">
+        <div><p className="ape-eyebrow">compras da casa</p><span className="ape-note ape-keep">{feitas} de {lista.length} comprados · faltam {brl(falta)}</span></div>
+        <button className="ape-btn primary sm" onClick={() => mudar((l) => [{ id: uid(), comodo: 'geral', item: '', prio: 'logo', preco: null, comprado: false, onde: '' }, ...l])}><ApeIcon name="plus" />item</button>
+      </div>
+      <div className="ape-bar"><i style={{ width: `${lista.length ? (feitas / lista.length) * 100 : 0}%` }} /></div>
+      {!lista.length && <button className="ape-pp-sugestao" onClick={() => mudar(() => COMPRAS.map(([comodo, item, prio]) => ({ id: uid(), comodo, item, prio, preco: null, comprado: false, onde: '' })))}><ApeIcon name="sparkle" /><span><b>usar a lista pronta do enxoval</b><small>{COMPRAS.length} itens com prioridade: essencial, logo e pode esperar</small></span></button>}
+      {lista.length > 0 && (
+        <div className="ape-chips" role="group" aria-label="Prioridade">
+          {(['todas', 'essencial', 'logo', 'pode esperar'] as const).map((x) => <button key={x} className="ape-chip" aria-pressed={filtro === x} onClick={() => setFiltro(x)}>{x}</button>)}
+        </div>
+      )}
+      <div className="ape-pp-check">
+        {vis.map((c) => (
+          <div key={c.id} className={`ape-pp-doc ${c.comprado ? 'ok' : ''}`}>
+            <label className="ck"><input type="checkbox" checked={c.comprado} onChange={(e) => set(c.id, 'comprado', e.target.checked)} /><span className="box"><ApeIcon name="check" /></span></label>
+            <div className="t">
+              <input value={c.item} onChange={(e) => set(c.id, 'item', e.target.value)} placeholder="item" aria-label="Item" />
+              <span className="ape-pp-sub"><span className={`ape-pp-prio p-${c.prio.replace(' ', '-')}`}>{c.prio}</span>{c.comodo}</span>
+            </div>
+            <input className="ape-pp-preco" inputMode="decimal" value={c.preco ?? ''} onChange={(e) => set(c.id, 'preco', num(e.target.value))} placeholder="R$" aria-label="Preço" />
+            <button className="ape-btn ghost sm" onClick={() => mudar((l) => l.filter((x) => x.id !== c.id))} aria-label="Apagar"><ApeIcon name="trash" /></button>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ---------- mudança, semana a semana ---------- */
+const MUDANCA: [string, string[]][] = [
+  ['30 dias antes', ['orçar 3 empresas de mudança', 'agendar o elevador e o horário com o condomínio', 'pedir a ligação de luz, água, gás e internet', 'separar o que vai doar ou vender']],
+  ['15 dias antes', ['comprar caixas, fita e plástico bolha', 'começar a embalar o que não usa no dia a dia', 'trocar o endereço no banco e nas compras online']],
+  ['7 dias antes', ['confirmar a empresa e o horário', 'descongelar a geladeira (um dia antes)', 'separar a caixa do primeiro dia']],
+  ['no dia', ['conferir a lista de volumes', 'anotar a leitura dos medidores', 'proteger piso e portas do apê novo']],
+  ['depois', ['montar a cama e organizar a cozinha primeiro', 'conferir se não faltou nada', 'trocar o endereço nos documentos']],
+]
+function Mudanca({ lista, entrega, mudar }: { lista: PlatTarefa[]; entrega: string; mudar: Mudar<PlatTarefa> }) {
+  const set = (id: string, v: boolean) => mudar((l) => l.map((x) => (x.id === id ? { ...x, feito: v } : x)))
+  const feitas = lista.filter((t) => t.feito).length
+  const fases = [...new Set(lista.map((t) => t.fase))]
+  return (
+    <section className="ape-panel ape-plat-sec">
+      <div className="ape-plat-sec-h">
+        <div><p className="ape-eyebrow">mudança</p><span className="ape-note">{lista.length ? `${feitas} de ${lista.length} feitas` : 'O passo a passo da mudança, para nada ficar para trás.'}{entrega ? ` · chaves em ${dmy(entrega)}` : ''}</span></div>
+        {lista.length > 0 && <button className="ape-btn primary sm" onClick={() => { const item = prompt('O que fazer?')?.trim(); if (item) mudar((l) => [...l, { id: uid(), fase: 'depois', item, feito: false }]) }}><ApeIcon name="plus" />tarefa</button>}
+      </div>
+      {!lista.length && <button className="ape-pp-sugestao" onClick={() => mudar(() => MUDANCA.flatMap(([fase, itens]) => itens.map((item) => ({ id: uid(), fase, item, feito: false }))))}><ApeIcon name="sparkle" /><span><b>usar o passo a passo da mudança</b><small>do mês antes até depois de morar, em {MUDANCA.reduce((t, m) => t + m[1].length, 0)} tarefas</small></span></button>}
+      {lista.length > 0 && <div className="ape-bar"><i style={{ width: `${(feitas / lista.length) * 100}%` }} /></div>}
+      {fases.map((f) => (
+        <div key={f} className="ape-pp-check">
+          <h4 className="ape-acab-h"><ApeIcon name="clock" />{f}</h4>
+          {lista.filter((t) => t.fase === f).map((t) => (
+            <label key={t.id}>
+              <input type="checkbox" checked={t.feito} onChange={(e) => set(t.id, e.target.checked)} />
+              <span className="box"><ApeIcon name="check" /></span>
+              <span className="t"><b style={t.feito ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}>{t.item}</b></span>
+            </label>
+          ))}
+        </div>
+      ))}
+    </section>
   )
 }

@@ -345,12 +345,14 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
   const ult = ops[ops.length - 1]
   const mes = v / 12
   const recursos: [string, string, string][] = [
-    ['planilha', 'quanto já foi e quanto falta', 'Gráfico do orçamento e gastos por cômodo, sem planilha.'],
-    ['calculo', 'parcelas do mês', 'Tudo que é parcelado somado mês a mês, sem susto.'],
-    ['vistoria', 'vistoria de entrega das chaves', 'Marque ok ou problema, tire foto e imprima o resumo.'],
-    ['projeto3d', 'etapas da obra na ordem', 'Do contrato à mudança, com o próximo passo sempre à vista.'],
-    ['contrato', 'garantias e manutenção', 'Avisa antes de vencer e lembra o que revisar na casa.'],
-    ['medidas', 'calculadoras', 'Piso, tinta, ar-condicionado e iluminação, na hora.'],
+    ['planilha', 'gastos e parcelas', 'Gráfico do orçamento, gastos por cômodo e o que é parcelado mês a mês.'],
+    ['comparar', 'orçamentos', 'Anote cada orçamento, veja o mais barato e, quando fechar, ele vira gasto.'],
+    ['vistoria', 'vistoria de entrega das chaves', 'Ok ou problema em cada item, com foto e resumo para imprimir.'],
+    ['projeto3d', 'etapas da obra', 'Do contrato à mudança, com o próximo passo sempre à vista.'],
+    ['medidas', 'medidas do apê', 'Meça uma vez e use para piso, tinta, cortinas e móveis.'],
+    ['enxoval', 'compras da casa e mudança', 'Enxoval com prioridade e o passo a passo da mudança.'],
+    ['calculo', 'contas da casa', 'Quanto vai custar morar por mês: condomínio, luz, internet, IPTU.'],
+    ['contrato', 'garantias, manutenção e documentos', 'Avisa antes de vencer e guarda onde está cada papel.'],
   ]
   return (
     <section className="ape-plat" id="loja-plataforma">

@@ -4,6 +4,7 @@ import { sessaoLocal } from './api'
 import { ApeIcon } from './ApeIcon'
 import { APE } from './model'
 import { read } from './shared'
+import { SanLeviIcone } from './SanLevi'
 
 /** Voltar: volta para a tela anterior; se a pessoa chegou direto (link), vai para a tela "mãe". */
 export function Voltar({ para = href('ape', 'loja'), rotulo = 'voltar' }: { para?: string; rotulo?: string }) {
@@ -60,7 +61,7 @@ export function MenuConta({ nome, owner = false, morador = false, extra = [], so
           ))}
           {links.map(([l, i, h]) => (
             <a key={l} role="menuitem" href={h} onClick={() => setAberto(false)}>
-              <ApeIcon name={i} />
+              {i === 'list' ? <SanLeviIcone /> : <ApeIcon name={i} />}
               <span>{l}</span>
             </a>
           ))}

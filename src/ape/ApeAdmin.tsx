@@ -9,7 +9,8 @@ import { AvatarGlyph } from '../components/Avatar'
 import { PLATFORM } from '../plans'
 import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
-import { MARK_SVG, emailOk } from './shared'
+import { emailOk } from './shared'
+import { SanLeviArte, SanLeviIcone } from './SanLevi'
 import {
   APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
@@ -71,13 +72,28 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
   // mesmos ícones do planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
-    inicio: ['início', 'home'], moradores: ['cadastros', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file'], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar orçamento' : 'adicionar orçamento', 'plus'], grupos: ['fechar em grupo', 'target'],
-    pedidos: ['vendas', 'wallet', nCancel], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos da loja', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
+    inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
+    pedidos: ['vendas', 'wallet', nCancel], clientes: ['clientes', 'user'], loja: ['produtos', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
-  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], [APE.condominio, ['moradores', 'recebidos', 'lista', 'grupos', 'novo']], ['loja', ['pedidos', 'clientes', 'loja', 'entregas', 'opiniao']]]
+  // menu enxuto: cada item abre uma tela; telas parecidas ficam juntas, em abas dentro dela
+  const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], loja: ['loja', 'entregas', 'opiniao'] }
+  const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], [APE.condominio, ['moradores', 'lista', 'grupos']], ['loja', ['pedidos', 'clientes', 'loja']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
   const minhaPlat = (() => { try { return JSON.parse(localStorage.getItem('ape-plat') || 'null') as string | null } catch { return null } })()
+  const trocarFoto = async (f?: File) => {
+    if (!f || !ajustes) return
+    try {
+      const url = await loja.fotoPublica('painel', f)
+      const a = { ...ajustes, fotoPainel: url }
+      await admin.salvarAjustes(a)
+      setAjustes(a)
+      toast('Foto do painel trocada.')
+    } catch (e) {
+      toast(`Não consegui trocar a foto (${(e as Error).message}).`)
+    }
+  }
   const copiar = async (u: string, d: string) => {
     try {
       await navigator.clipboard.writeText(u)
@@ -87,30 +103,33 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
     }
   }
   const link = (k: Tab) => (
-    <a key={k} href={href('ape-admin')} className={tab === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
+    <a key={k} href={href('ape-admin')} className={grupoDe(tab) === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
       <Icon name={ITENS[k][1]} />
       <span>{ITENS[k][0]}</span>
       {ITENS[k][2] ? <em className="nav-alert">{ITENS[k][2]}</em> : null}
     </a>
   )
   return (
-    <div className={`app ape-adm-app ${menu ? 'menu-open' : ''}`}>
+    <div className={`ape ape-shell app ape-adm-app ${menu ? "menu-open" : ""}`} data-tema={dark ? "escuro" : "claro"}>
       <aside className="sidebar">
         <a className="platform-mark" href={href('inicio')} aria-label="planê">
           <BrandMark place="menu" size={34} />
           {PLATFORM.name}
         </a>
-        <a className="brand" href={href('ape-admin')} onClick={(e) => { e.preventDefault(); ir('inicio') }} title="planê.apê: painel">
-          <span className="brand-photo"><span className="ape-adm-markmini" dangerouslySetInnerHTML={{ __html: MARK_SVG }} /></span>
+        <div className="brand ape-adm-brand" title="planê.apê: painel">
+          <label className="brand-photo ape-adm-foto" title="Trocar a foto do painel">
+            {ajustes?.fotoPainel ? <img src={ajustes.fotoPainel} alt="" /> : <SanLeviArte size={46} />}
+            <input type="file" accept="image/*" hidden onChange={(e) => void trocarFoto(e.target.files?.[0])} />
+          </label>
           <span className="brand-text">
             <span className="brand-kicker">painel da loja</span>
             <span className="brand-name">planê.apê<i>.</i></span>
           </span>
-        </a>
+        </div>
         <nav>
           {GRUPOS_MENU.map(([g, tabs]) => (
             <Fragment key={g || 'inicio'}>
-              {g && <span className="nav-group-label nav-main-label">{g}</span>}
+              {g && <span className="nav-group-label nav-main-label ape-adm-gl">{g === APE.condominio && <SanLeviIcone size={13} />}{g}</span>}
               {tabs.map(link)}
             </Fragment>
           ))}
@@ -118,7 +137,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
             <span className="nav-group-label">plataforma</span>
             <a className="is-tool" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer" title="Abrir a plataforma do apê que você vende"><Icon name="smartphone" /><span>plataforma do apê</span></a>
             <a className="is-tool" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="Página de vendas (como os visitantes veem)"><Icon name="eye" /><span>página de vendas</span></a>
-            <a className="is-tool" href={href('ape')} target="_blank" rel="noreferrer" title="Página dos moradores do San Levi"><Icon name="building" /><span>página dos moradores</span></a>
+            <a className="is-tool" href={href('ape')} target="_blank" rel="noreferrer" title="Página dos moradores do San Levi"><SanLeviIcone /><span>página dos moradores</span></a>
             <a href={href('ape-admin')} className={`is-tool ${tab === 'testar' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); ir('testar') }} title="Ver tudo como cliente, com tudo liberado"><Icon name="user" /><span>ver como cliente</span></a>
             <a className="is-tool" href={href('inicio')} title="Voltar para o planê arquitetura"><Icon name="chevronL" /><span>voltar ao planê</span></a>
           </div>
@@ -157,6 +176,11 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
                 </div>
               )}
               {!apeCloud && <div className="ape-banner">Prévia: tudo fica só neste navegador.</div>}
+              {JUNTOS[grupoDe(tab)] && (
+                <div className="ape-atabs ape-adm-sub" role="tablist">
+                  {JUNTOS[grupoDe(tab)]!.map((k) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => ir(k)}><Icon name={ITENS[k][1]} size={15} />{ITENS[k][0]}{ITENS[k][2] ? <em>{ITENS[k][2]}</em> : null}</button>)}
+                </div>
+              )}
           <div className="ape-panel ape-adm-corpo">
           {tab === 'inicio' && <Inicio moradores={moradores} orcs={orcs} pedidos={pedidos} envios={envios} interesses={interesses} ir={setTab} />}
           {tab === 'recebidos' && (
@@ -199,8 +223,8 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
         </main>
       </div>
       <nav className="bottom-nav">
-        {(['inicio', 'recebidos', 'lista', 'pedidos', 'testar'] as Tab[]).map((k) => (
-          <a key={k} href={href('ape-admin')} className={tab === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
+        {(['inicio', 'moradores', 'lista', 'pedidos', 'testar'] as Tab[]).map((k) => (
+          <a key={k} href={href('ape-admin')} className={grupoDe(tab) === k ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(k) }}>
             <Icon name={ITENS[k][1]} />
             <span>{k === 'testar' ? 'cliente' : ITENS[k][0].split(' ')[0]}</span>
           </a>
@@ -861,7 +885,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, fotoProjeto }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, fotoProjeto, fotoPainel: ajustes.fotoPainel || '' }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })

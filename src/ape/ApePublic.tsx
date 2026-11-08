@@ -8,6 +8,7 @@ import {
   ehSanLevi, ehOrcamento, ondeMora, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { BotaoCarrinho, MenuConta, Voltar } from './Navega'
+import { SanLeviArte, SanLeviIcone } from './SanLevi'
 import { Assinatura, AvisoCookies, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
@@ -221,7 +222,7 @@ function CodigoSL({ me, whats, onOk }: { me: Morador; whats: string; onOk: () =>
       <form className="ape-panel ape-form" onSubmit={entrar} noValidate>
         <ApeIcon name="shield" size={28} />
         <div>
-          <p className="ape-eyebrow">área dos moradores do {APE.condominio}</p>
+          <p className="ape-eyebrow ape-eyebrow-sl"><SanLeviArte size={34} />área dos moradores do {APE.condominio}</p>
           <h2 className="ape-h2">falta o <em>código</em> do condomínio</h2>
           <p className="ape-note" style={{ margin: '4px 0 0' }}>Os orçamentos ficam só entre os vizinhos. Digite o código que a {APE.dona} passou no grupo dos moradores, ou peça para ela aprovar o seu cadastro (T{me.torre} · {me.ap}).</p>
         </div>
@@ -263,7 +264,7 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
           <button onClick={() => ir('loja-kits')}>kits</button>
           <button onClick={() => ir('loja-plataforma')}>plataforma</button>
           <button onClick={() => ir('loja-servicos')}>projetos</button>
-          {morador && <a href={href('ape')}>área do {APE.condominio}</a>}
+          {morador && <a href={href('ape')} className="ape-link-sl"><SanLeviIcone size={16} />área do {APE.condominio}</a>}
         </nav>
         <MenuConta nome={nome} owner={owner} morador={morador} so={['sanlevi', 'plataforma', 'conta', 'painel']} />
         <BotaoCarrinho n={n} />
@@ -947,6 +948,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
       {onCancel && <button type="button" className="ape-gate-x" onClick={onCancel} aria-label="Fechar"><ApeIcon name="x" /></button>}
       {modo === 'entrar' && !me ? (
         <form onSubmit={entrar} noValidate>
+          <SanLeviArte size={52} className="ape-gate-sl" />
           <h2 id="g-t">entrar na <em>sua conta</em></h2>
           <p>Use o e-mail e a senha do seu cadastro.</p>
           <div className="ape-f"><label htmlFor="g-email2">E-mail</label><input id="g-email2" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
@@ -960,6 +962,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
         </form>
       ) : (
       <form onSubmit={submit} noValidate>
+        <SanLeviArte size={52} className="ape-gate-sl" />
         <h2 id="g-t">
           {me ? <>seus <em>dados</em></> : <>boas-vindas ao <em>planê.apê</em></>}
         </h2>

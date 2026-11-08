@@ -1856,3 +1856,94 @@
 .ape-vercli-i b { font-size: 14.5px; text-transform: lowercase; }
 .ape-vercli-i small { font-size: 12px; color: var(--a-muted); }
 @media (max-width: 900px) { .ape-vercli { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ===== estrutura do planê arquitetura com as cores do planê.apê (painel e plataforma do cliente) ===== */
+.ape-shell {
+  --bg: var(--a-bg); --surface: var(--a-card); --surface-2: var(--a-sand); --text: var(--a-ink); --muted: var(--a-muted); --border: var(--a-line);
+  --accent: var(--a-pri); --accent-contrast: #fff; --accent-soft: var(--a-sec); --accent-ink: var(--a-pri); --accent-tint: var(--a-pri-soft); --slate: var(--a-pri);
+  --nav-active-bg: var(--a-pri); --nav-active-text: #fff; --sidebar-text: var(--a-ink); --shadow: var(--a-shadow); --shadow-btn: var(--a-shadow-btn);
+  --font-body: var(--a-body);
+  min-height: 100vh; min-height: 100dvh; background: var(--a-bg); color: var(--a-ink); overflow-x: visible;
+}
+.ape-shell[data-tema='escuro'] {
+  --a-bg: #1b1e21; --a-card: #24282c; --a-ink: #ece7e1; --a-muted: #a59d95; --a-line: #363b40;
+  --a-pri: #9db4c3; --a-pri-soft: #2b3640; --a-sec: #d79a7f; --a-sec-soft: #3b2d27; --a-ter: #cfa27a; --a-ter-soft: #3b3128; --a-sand: #2b2f33;
+  --a-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px -12px rgba(0, 0, 0, 0.5);
+  --accent-contrast: #15191c; --nav-active-text: #15191c;
+  color-scheme: dark;
+}
+.ape-shell .sidebar { background: color-mix(in srgb, var(--a-card) 86%, transparent); }
+.ape-shell[data-tema='escuro'] .sidebar { background: color-mix(in srgb, var(--a-card) 94%, transparent); }
+.ape-shell .sidebar nav a.active svg, .ape-shell .bottom-nav a.active svg { color: inherit; }
+.ape-shell .nav-group.is-plataforma { background: color-mix(in srgb, var(--a-sec-soft) 70%, transparent); border-color: color-mix(in srgb, var(--a-sec) 25%, transparent); }
+.ape-adm-gl { display: flex; align-items: center; gap: 6px; }
+.ape-adm-gl svg { width: 13px; height: 13px; }
+.ape-adm-brand { flex-direction: row !important; align-items: center; gap: 12px !important; }
+.ape-adm-foto { position: relative; width: 52px; height: 52px; border-radius: 16px; overflow: visible; cursor: pointer; flex: none; display: grid; place-items: center; background: none; }
+.ape-adm-foto img { width: 52px; height: 52px; border-radius: 16px; object-fit: cover; }
+.ape-adm-foto .ape-sanlevi { width: 52px; height: 52px; }
+.ape-adm-foto-ed { position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--a-card); border: 1px solid var(--a-line); display: grid; place-items: center; color: var(--a-pri); box-shadow: var(--a-shadow); }
+.ape-adm-sub { margin-bottom: 2px; }
+.ape-adm-sub button { display: inline-flex; align-items: center; gap: 6px; }
+.ape-adm-sub button em { font-style: normal; background: var(--a-sec); color: #fff; border-radius: 999px; padding: 0 6px; font-size: 11px; }
+.ape-eyebrow-sl { display: flex; align-items: center; gap: 10px; }
+.ape-eyebrow-sl::before { display: none; }
+.ape-gate-sl { justify-self: start; }
+.ape-link-sl { display: inline-flex !important; align-items: center; gap: 6px; }
+
+/* plataforma do cliente no molde do planê */
+.ape-cli .platform-mark { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--a-ink); text-decoration: none; }
+.ape-cli-mark { width: 30px; height: 30px; display: grid; place-items: center; }
+.ape-cli-mark svg { width: 30px; height: 30px; }
+.ape-cli-mark-b { color: var(--a-sec); }
+.ape-cli-casa { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-cli-casa-nome { font-size: 18px !important; line-height: 1.15 !important; white-space: normal; }
+.ape-cli .page.ape-pp-cont { padding: 0; max-width: 1240px; }
+.ape-cli .sidebar-foot .ape-salvo { margin-left: auto; display: inline-grid; place-items: center; width: 22px; height: 22px; }
+.ape-cli .sidebar-foot .ape-salvo i, .ape-salvo-top::before { width: 8px; height: 8px; border-radius: 50%; background: var(--a-pri); display: block; }
+.ape-cli .sidebar-foot .ape-salvo.salvando i { background: var(--a-ter); }
+.ape-cli .sidebar-foot .ape-salvo.erro i { background: var(--a-sec); }
+.ape-salvo-top { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--a-muted); white-space: nowrap; }
+.ape-salvo-top::before { content: ''; }
+.ape-salvo-top.salvando::before { background: var(--a-ter); }
+.ape-salvo-top.erro::before { background: var(--a-sec); }
+.ape-pp-linha.apagado { opacity: 0.55; }
+.ape-pp-menor { font-style: normal; margin-left: 8px; background: var(--a-pri); color: #fff; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; vertical-align: middle; }
+.ape-pp-conta { display: grid; grid-template-columns: minmax(0, 1fr) 110px 110px 64px auto; gap: 8px; align-items: center; background: var(--a-bg); border-radius: 12px; padding: 8px 10px; }
+.ape-pp-conta input, .ape-pp-conta select { border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); border-radius: 10px; padding: 8px 10px; font-size: 14px; min-width: 0; }
+.ape-pp-conta input.n { border-color: transparent; background: none; font-weight: 600; }
+.ape-pp-medidas { display: grid; gap: 8px; }
+.ape-pp-medida { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 0.8fr)) minmax(0, 1fr) auto; gap: 8px; align-items: end; background: var(--a-bg); border-radius: 12px; padding: 10px; }
+.ape-pp-medida input { border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); border-radius: 10px; padding: 8px 10px; font-size: 14px; width: 100%; min-width: 0; }
+.ape-pp-medida input.n { border-color: transparent; background: none; font-weight: 600; align-self: center; }
+.ape-pp-medida label { display: grid; gap: 3px; }
+.ape-pp-medida small { font-size: 11px; color: var(--a-muted); }
+.ape-pp-medida .r { display: grid; align-self: center; }
+.ape-pp-sub { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--a-muted); }
+.ape-pp-prio { border-radius: 999px; padding: 1px 8px; font-size: 10.5px; font-weight: 700; background: var(--a-sand); color: var(--a-muted); }
+.ape-pp-prio.p-essencial { background: var(--a-sec); color: #fff; }
+.ape-pp-prio.p-logo { background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-pp-preco { width: 92px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); border-radius: 10px; padding: 8px 10px; font-size: 14px; flex: none; }
+@media (max-width: 640px) {
+  .ape-pp-conta { grid-template-columns: minmax(0, 1fr) 96px auto; }
+  .ape-pp-conta select, .ape-pp-conta input.d { grid-row: 2; }
+  .ape-pp-conta select { grid-column: 1; }
+  .ape-pp-conta input.d { grid-column: 2; }
+  .ape-pp-medida { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ape-pp-medida input.n { grid-column: 1 / -1; }
+  .ape-pp-medida .r { grid-column: 1 / 3; }
+  .ape-pp-preco { width: 74px; }
+}
+/* foto do canto do menu: redonda e pequena como no planê, com o desenho preenchendo */
+.ape-shell .brand .brand-photo.ape-adm-foto { width: 44px !important; height: 44px !important; overflow: hidden !important; border-radius: 50% !important; padding: 0; cursor: pointer; background: var(--a-pri-soft) !important; }
+.ape-shell .brand .brand-photo.ape-adm-foto img, .ape-shell .brand .brand-photo.ape-adm-foto svg.ape-sanlevi { width: 100% !important; height: 100% !important; border-radius: 0 !important; display: block; }
+.ape-shell .brand .brand-photo .ape-cli-casa { width: 100%; height: 100%; border-radius: 0; }
+.ape-shell .brand .brand-photo .ape-cli-casa svg { width: 20px !important; height: 20px !important; }
+.ape-shell .brand { padding-bottom: 18px; }
+.ape-cli-casa-nome { font-size: 16px !important; }
+.ape-pp-prio { white-space: nowrap; }
+.ape-pp-sub { flex-wrap: wrap; }
+@media (max-width: 640px) { .ape-pp-doc .t input { font-size: 14px; } .ape-pp-preco { width: 66px; padding: 7px 8px; } }
+.ape-shell .brand .brand-photo.ape-adm-foto { display: block !important; position: relative; }
+.ape-shell .brand .brand-photo.ape-adm-foto > img, .ape-shell .brand .brand-photo.ape-adm-foto > svg.ape-sanlevi, .ape-shell .brand .brand-photo.ape-adm-foto > .ape-cli-casa { position: absolute; inset: 0; width: 44px !important; height: 44px !important; max-width: none !important; }
+.ape-shell .brand .brand-photo.ape-adm-foto > .ape-cli-casa { display: grid; place-items: center; }
