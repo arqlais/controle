@@ -875,7 +875,7 @@
 
 /* faixa com os nomes dos arquivos: corre sem parar */
 .ape .ape-marquee { overflow: hidden; border-block: 1px solid var(--a-line); padding: 10px 0; margin-inline: -16px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
-.ape .ape-marquee-track { display: flex; width: max-content; animation: ape-corre 150s linear infinite; }
+.ape .ape-marquee-track { display: flex; width: max-content; animation: ape-corre 100s linear infinite; }
 .ape .ape-marquee:hover .ape-marquee-track { animation-play-state: paused; }
 .ape .ape-marquee-track > span { display: flex; gap: 26px; padding-right: 26px; }
 .ape .ape-marquee b { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; font-weight: 600; color: var(--a-muted); white-space: nowrap; }
@@ -2012,7 +2012,6 @@
 .ape-shopnav .ape-shoplinks button { padding: 8px 14px; color: var(--a-ink); opacity: .78; }
 .ape-shopnav .ape-shoplinks button:hover { opacity: 1; background: var(--a-card); box-shadow: 0 2px 8px -4px rgba(43, 40, 38, .25); }
 .ape-shopnav .ape-brand { gap: 10px; }
-@media (prefers-reduced-motion: reduce) { .ape .ape-marquee-track { animation: none; } }
 .ape-shell .sidebar-foot .ape-adm-voltaico { width: auto; padding: 0 12px 0 8px; gap: 4px; display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; text-decoration: none; color: var(--a-muted); margin-right: auto; }
 
 /* loja: aviso da plataforma no alto, celulares inteiros e menores, prévia dos arquivos */
