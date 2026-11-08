@@ -104,7 +104,7 @@ export function AvisoCookies() {
   if (ok) return null
   return (
     <div className="ape-cookies" role="region" aria-label="Aviso de cookies">
-      <p>Usamos só o armazenamento necessário para o site funcionar: carrinho, cadastro e suas compras neste aparelho. Não usamos cookies de propaganda nem rastreamento.</p>
+      <p>Só guardamos o necessário para o site funcionar (carrinho e cadastro). Sem cookies de propaganda.</p>
       <button className="ape-btn primary sm" onClick={() => { write('ape-cookies', true); setOk(true) }}>entendi</button>
     </div>
   )
@@ -136,4 +136,14 @@ export function mascaraTel(v: string) {
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
+/* Esc fecha a janela aberta (a de cima), em qualquer tela do planê.apê */
+if (typeof window !== 'undefined' && !(window as unknown as { __apeEsc?: boolean }).__apeEsc) {
+  ;(window as unknown as { __apeEsc?: boolean }).__apeEsc = true
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return
+    const bs = [...document.querySelectorAll<HTMLElement>('.ape-sheet .ape-x, .ape-gate-x, .ape-prev .ape-icobtn[aria-label="Fechar"]')]
+    bs[bs.length - 1]?.click()
+  })
 }

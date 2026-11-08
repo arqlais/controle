@@ -75,6 +75,25 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
       // orçamento com opções de material (ex.: quartzo ou granito): cada opção vira um orçamento, para comparar igual com igual
       const fonteOp = ((ia as Record<string, unknown> | null)?.opcoes ?? (regra as Record<string, unknown>).opcoes) as Record<string, unknown>[] | undefined
       const opcoes = (Array.isArray(fonteOp) ? fonteOp : []).filter((x) => x && num(x.valor_total) != null)
+      // um arquivo com vários orçamentos (fornecedores ou serviços diferentes): cada um vira um cartão
+      const varios = (lido.lista || []).slice(1)
+      if (varios.length && t === 'orcamento') {
+        const montar = (x: Record<string, unknown>): Orcamento => {
+          const o = cleanOrcamento(x, { nicho: 'outros' })
+          if (o.nicho === 'outros') o.nicho = (nichoDoTexto(String(o.servico || '')) || 'outros') as Orcamento['nicho']
+          if (!o.servico) o.servico = o.nicho !== 'outros' ? nicho(o.nicho).l : ''
+          return o
+        }
+        setLidos((ls) => {
+          const i = ls.findIndex((l) => l.key === key)
+          if (i < 0) return ls
+          const atual = ls[i]
+          const n = varios.length + 1
+          const extras = varios.map((x) => ({ ...atual, key: crypto.randomUUID(), o: montar(x), status: 'pronto' as const, msg: 'separado do mesmo arquivo' }))
+          return [...ls.slice(0, i), { ...atual, o: { ...base, id: atual.o.id }, status: 'pronto', msg: `lido automaticamente · ${n} orçamentos no mesmo arquivo, separados` }, ...extras, ...ls.slice(i + 1)]
+        })
+        return
+      }
       if (opcoes.length > 1 && t === 'orcamento') {
         const variante = (x: Record<string, unknown>): Orcamento => ({ ...base, id: blankOrcamento().id, servico: `${base.servico || nicho(base.nicho).l} · ${String(x.nome || 'opção')}`, valor_total: num(x.valor_total), valor_avista: num(x.valor_avista), desconto_avista_pct: null, materiais: [String(x.nome || ''), ...(base.materiais || [])].filter(Boolean) })
         setLidos((ls) => {

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
-import { SanLeviArte } from './SanLevi'
+import { EditarFamilia, Familinha } from './Familia'
 import { href } from '../router'
 import { platAbrir, platSalvar, type PlatAcesso, type PlatContato, type PlatDados, type PlatDoc, type PlatEtapa, type PlatGarantia, type PlatGasto, type PlatManut, type PlatParcela, type PlatVistoria, type PlatOrc, type PlatConta, type PlatMedida, type PlatCompra, type PlatTarefa } from './api'
 import { ApeArt } from './ApeArt'
@@ -27,7 +27,7 @@ const VISTORIA: [string, string[]][] = [
 ]
 export const DEMO: PlatDados = {
   perfil: { nome: 'Ana (exemplo)', foto: '' },
-  imovel: { tipo: 'apê', fase: 'obra', m2: 40, orcamento: 45000, entrega: '2026-12-15', nome: 'meu apê', condominio: 'Vila Jardins', torre: '1', ap: '304', moradores: 'Ana e Pedro' },
+  imovel: { tipo: 'apê', fase: 'obra', m2: 40, orcamento: 45000, entrega: '2026-12-15', nome: 'meu apê', condominio: 'Vila Jardins', torre: '1', ap: '304', moradores: 'Ana e Pedro', familia: [{ id: 'f1', nome: 'Ana', tipo: 'adulto' }, { id: 'f2', nome: 'Pedro', tipo: 'adulto' }, { id: 'f3', nome: 'Bento', tipo: 'cachorro', papel: 'vira-lata' }] },
   gastos: [
     { id: 'g1', comodo: 'sala', item: 'piso vinílico', previsto: 4200, pago: 3780, status: 'pago', data: '2026-11-02', obs: 'Pix com 10%' },
     { id: 'g2', comodo: 'cozinha', item: 'marcenaria da cozinha', previsto: 14000, pago: null, status: 'comprado', data: '2026-11-20', obs: '10x sem juros' },
@@ -215,7 +215,6 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
       <span>{l}</span>
     </a>
   )
-  const ehSL = /san levi/i.test(im.condominio || '')
   return (
     <div className={`ape ape-shell app ape-cli ${menu ? 'menu-open' : ''}`} data-tema={tema}>
       <aside className="sidebar">
@@ -225,7 +224,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
         </a>
         <a className="brand ape-adm-brand" href="#" onClick={(e) => { e.preventDefault(); setEditar(true) }} title="Minha casa: foto e dados do imóvel">
           <span className="brand-photo ape-adm-foto">
-            {im.capa ? <img src={im.capa} alt="" /> : ehSL ? <SanLeviArte size={46} /> : <span className="ape-cli-casa"><Icon name="home" size={22} /></span>}
+            {im.capa ? <img src={im.capa} alt="" /> : <span className="ape-cli-casa"><ApeIcon name={im.simbolo || 'home'} /></span>}
           </span>
           <span className="brand-text">
             <span className="brand-kicker">minha casa</span>
@@ -328,6 +327,8 @@ async function fotoPerfil(f: File) {
 }
 
 /** Meus dados: nome, foto e o imóvel, numa janela só. */
+const SIMBOLOS: [string, string][] = [['home', 'casa'], ['sofa', 'sofá'], ['brush', 'pincel'], ['sparkle', 'brilho'], ['star', 'estrela'], ['gift', 'presente']]
+
 function EditarDados({ dados, nomeConta, onClose, mudar }: { dados: PlatDados; nomeConta: string; onClose: () => void; mudar: (fn: (d: PlatDados) => PlatDados) => void }) {
   const [p, setP] = useState(dados.perfil || { nome: nomeConta, foto: '' })
   const [im, setIm] = useState(dados.imovel || novo().imovel!)
@@ -337,9 +338,9 @@ function EditarDados({ dados, nomeConta, onClose, mudar }: { dados: PlatDados; n
   }
   const set = (k: keyof NonNullable<PlatDados['imovel']>, v: unknown) => setIm({ ...im, [k]: v })
   return (
-    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Meus dados" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Meus dados" onClick={(e) => e.target === e.currentTarget && salvar()}>
       <div className="ape-sheet-in">
-        <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
+        <button className="ape-x" onClick={salvar} aria-label="Fechar (salva o que mudou)"><ApeIcon name="x" /></button>
         <div className="ape-sheet-b">
           <h2 className="ape-h2">meus <em>dados</em></h2>
           <div className="ape-conta-foto">
@@ -348,20 +349,27 @@ function EditarDados({ dados, nomeConta, onClose, mudar }: { dados: PlatDados; n
             {p.foto && <button className="ape-btn ghost sm" onClick={() => setP({ ...p, foto: '' })}>tirar</button>}
           </div>
           <div className="ape-f"><label>Seu nome</label><input value={p.nome} onChange={(e) => setP({ ...p, nome: e.target.value })} /></div>
-          <p className="ape-eyebrow" style={{ marginTop: 6 }}>o imóvel</p>
-          <div className="ape-conta-foto">
-            <span className="ape-pp-casa-foto lg">{im.capa ? <img src={im.capa} alt="" /> : <ApeIcon name="home" />}</span>
-            <label className="ape-btn sm"><ApeIcon name="clip" />{im.capa ? 'trocar foto do imóvel' : 'foto do imóvel'}<input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) set('capa', await fotoLeve(f)) }} /></label>
-            {im.capa && <button className="ape-btn ghost sm" onClick={() => set('capa', '')}>tirar</button>}
+          <p className="ape-eyebrow" style={{ marginTop: 6 }}>símbolo ou foto da casa</p>
+          <div className="ape-simbolos" role="radiogroup" aria-label="Símbolo da casa">
+            {SIMBOLOS.map(([k, l]) => (
+              <button key={k} type="button" role="radio" aria-checked={!im.capa && (im.simbolo || 'home') === k} title={l} aria-label={l} onClick={() => setIm({ ...im, simbolo: k, capa: '' })}><ApeIcon name={k} /></button>
+            ))}
+            <label className={`ape-simb-foto ${im.capa ? 'on' : ''}`} title="Usar uma foto (qualquer foto)">
+              {im.capa ? <img src={im.capa} alt="" /> : <ApeIcon name="clip" />}
+              <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) set('capa', await fotoLeve(f)) }} />
+            </label>
           </div>
+          <span className="ape-hint">Escolha um símbolo ou toque no clipe para usar a foto que quiser.</span>
+          <p className="ape-eyebrow" style={{ marginTop: 6 }}>quem vai morar</p>
+          <EditarFamilia membros={im.familia || []} mudar={(l) => setIm({ ...im, familia: l, moradores: l.filter((m) => m.nome).map((m) => m.nome).join(', ') })} />
+          <p className="ape-eyebrow" style={{ marginTop: 6 }}>o imóvel</p>
           <div className="ape-frow">
             <div className="ape-f"><label>Condomínio ou nome</label><input value={im.condominio ?? ''} onChange={(e) => set('condominio', e.target.value)} placeholder="ex.: San Levi" /></div>
             <div className="ape-f"><label>Tipo</label><select value={im.tipo} onChange={(e) => set('tipo', e.target.value)}><option value="apê">apê</option><option value="casa">casa</option></select></div>
           </div>
-          <div className="ape-frow ape-frow3">
+          <div className="ape-frow">
             <div className="ape-f"><label>Torre / bloco</label><input value={im.torre ?? ''} onChange={(e) => set('torre', e.target.value)} /></div>
             <div className="ape-f"><label>Apê / número</label><input value={im.ap ?? ''} onChange={(e) => set('ap', e.target.value)} /></div>
-            <div className="ape-f"><label>Quem vai morar</label><input value={im.moradores ?? ''} onChange={(e) => set('moradores', e.target.value)} placeholder="ex.: Laís e Igor" /></div>
           </div>
           <div className="ape-frow">
             <div className="ape-f"><label>Em que etapa você está</label>
@@ -453,7 +461,8 @@ function Resumo({ acc, dados, im, nome, foto, casa, token, demo, mudar, irPara, 
         <Avatar nome={nome} foto={foto} />
         <div className="t">
           <h2>olá{nome ? `, ${firstName(nome)}` : ''}!</h2>
-          <p>{[casa, im.m2 ? `${String(im.m2).replace('.', ',')} m²` : '', FASE[im.fase], im.moradores ? `${im.moradores}` : ''].filter(Boolean).join(' · ')}</p>
+          <p>{[casa, im.m2 ? `${String(im.m2).replace('.', ',')} m²` : '', FASE[im.fase], !im.familia?.length && im.moradores ? `${im.moradores}` : ''].filter(Boolean).join(' · ')}</p>
+          <Familinha membros={im.familia || []} onEditar={demo ? undefined : onEditar} />
           {dias != null && <span className="ape-pp-chaves"><ApeIcon name="clock" />{dias > 0 ? `faltam ${dias} dias para as chaves` : dias === 0 ? 'chaves hoje!' : `chaves recebidas em ${dmy(im.entrega)}`}</span>}
         </div>
         <button className="ape-btn sm" onClick={onEditar}><ApeIcon name="edit" />editar</button>

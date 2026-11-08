@@ -159,7 +159,9 @@ export async function subirArquivos(files: File[], onStep?: (t: string) => void)
     onStep?.(`subindo ${i + 1} de ${files.length}…`)
     const f = await leve(f0)
     const path = `${pasta}/${i + 1}-${safeName(f.name)}`
-    const { error } = await sb().storage.from('ape-envios').upload(path, f, { contentType: f.type || undefined, upsert: false })
+    const tipo = f.type || (/\.pdf$/i.test(f.name) ? 'application/pdf' : /\.png$/i.test(f.name) ? 'image/png' : /\.webp$/i.test(f.name) ? 'image/webp' : /\.hei[cf]$/i.test(f.name) ? 'image/heic' : /\.jpe?g$/i.test(f.name) ? 'image/jpeg' : '')
+    if (!tipo || !/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/i.test(tipo)) throw new Error(`O arquivo ${f.name} precisa ser PDF ou foto (JPG, PNG ou HEIC). Se for Word ou Excel, salve como PDF ou cole o texto.`)
+    const { error } = await sb().storage.from('ape-envios').upload(path, f, { contentType: tipo, upsert: false })
     if (error) throw new Error(/size|large/i.test(error.message) ? `O arquivo ${f.name} é grande demais (máximo 15 MB).` : /mime|type/i.test(error.message) ? `O arquivo ${f.name} não é PDF nem imagem.` : error.message)
     out.push({ path, nome: f.name, tipo: f.type })
   }
@@ -167,13 +169,14 @@ export async function subirArquivos(files: File[], onStep?: (t: string) => void)
 }
 
 /** Lê UM arquivo do orçamento com IA (no servidor) e devolve os campos para a comparação, ou o motivo de não ter lido. */
-export async function lerArquivo(moradorId: string, arquivo: Arquivo | null, texto = ''): Promise<{ o: Record<string, unknown> | null; erro?: string }> {
+export async function lerArquivo(moradorId: string, arquivo: Arquivo | null, texto = ''): Promise<{ o: Record<string, unknown> | null; lista?: Record<string, unknown>[]; erro?: string }> {
   if (!CLOUD) return { o: null, erro: 'prévia sem IA' }
   if (!arquivo?.path && !texto.trim()) return { o: null }
   try {
     const { data, error } = await sb().functions.invoke('pagamentos', { body: { acao: 'ape-ler', morador: moradorId, arquivo: arquivo?.path || '', texto } })
     const o = (data as { orcamento?: Record<string, unknown> } | null)?.orcamento
-    if (o) return { o }
+    const lista = (data as { orcamentos?: Record<string, unknown>[] } | null)?.orcamentos
+    if (o) return { o, lista: Array.isArray(lista) ? lista : [o] }
     let erro = (data as { erro?: string } | null)?.erro || ''
     const ctx = (error as { context?: Response } | null)?.context
     if (!erro && ctx) erro = ((await ctx.json().catch(() => null)) as { erro?: string } | null)?.erro || ''
@@ -600,7 +603,7 @@ export interface PlatDados {
   compras?: PlatCompra[]
   mudanca?: PlatTarefa[]
   perfil?: { nome: string; foto: string }
-  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string; condominio?: string; torre?: string; ap?: string; moradores?: string; capa?: string }
+  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string; condominio?: string; torre?: string; ap?: string; moradores?: string; capa?: string; simbolo?: string; familia?: { id: string; nome: string; tipo: import('./Familia').TipoMembro; papel?: string }[] }
   garantias?: PlatGarantia[]
   manutencao?: PlatManut[]
   documentos?: PlatDoc[]

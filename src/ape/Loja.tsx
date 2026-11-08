@@ -192,8 +192,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           <p className="ape-note" style={{ margin: 0 }}>{BONUS.pista}</p>
           <ul className="ape-surpresa-l">
             <li><ApeIcon name="gift" />brinde em toda compra</li>
-            <li><ApeIcon name="sparkle" />exclusivo</li>
-            <li><ApeIcon name="tag" />não tem à venda</li>
+            <li><ApeIcon name="sparkle" />exclusivo, não tem à venda</li>
           </ul>
         </div>
       </section>
@@ -202,7 +201,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         <ApeArt name="entregas" size={56} tone="sec" />
         <div>
           <h3 className="ape-sec-t">7 dias para <em>desistir</em></h3>
-          <p className="ape-note" style={{ margin: 0 }}>Comprou e não era o que esperava? Em até 7 dias depois da compra você pede o dinheiro de volta, inteiro, pelo WhatsApp ou e-mail, sem precisar explicar (art. 49 do Código de Defesa do Consumidor). Toda compra ainda ganha um <b>bônus surpresa</b> no 8º dia, que não muda nem atrasa o seu direito de desistir.</p>
+          <p className="ape-note" style={{ margin: 0 }}>Comprou e não era o que esperava? Em até 7 dias depois da compra você pede o dinheiro de volta, inteiro, pelo WhatsApp ou e-mail, sem precisar explicar (art. 49 do Código de Defesa do Consumidor). O brinde surpresa não muda nem atrasa o seu direito de desistir.</p>
         </div>
       </section>
 
@@ -337,7 +336,7 @@ function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | 
         <p className="ape-proj-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho com o meu pai, engenheiro civil, em projetos e reformas.</p>
         <ul className="ape-proj-chips">{servicos.map(([t]) => <li key={t}>{t}</li>)}</ul>
         <p className="ape-proj-local"><ApeIcon name="home" />vistoria de entrega das chaves em Santo André, ABC e região (SP)</p>
-        <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir orçamento no WhatsApp</a>
+        <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />orçamento no WhatsApp</a>
       </div>
       <div className={`ape-proj-img ${foto && foto2 ? 'duas' : ''}`}>
         <img src={foto || 'ape/amostras/projeto-3d.jpg'} alt="Projeto de interiores" loading="lazy" />
@@ -454,13 +453,34 @@ function Fileira({ n, rotulo, children }: { n: number; rotulo: string; children:
     window.addEventListener('resize', medir)
     return () => window.removeEventListener('resize', medir)
   }, [medir, n, tudo])
-  const rolar = (d: number) => ref.current?.scrollBy({ left: d * ref.current.clientWidth * 0.85, behavior: 'smooth' })
+  // rodinha do mouse anda para o lado enquanto houver para onde ir; nas pontas, a página rola normal
+  useEffect(() => {
+    const el = ref.current
+    if (!el || tudo) return
+    const roda = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      const max = el.scrollWidth - el.clientWidth
+      if ((e.deltaY > 0 && el.scrollLeft >= max - 2) || (e.deltaY < 0 && el.scrollLeft <= 2)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+    // arrastar com o mouse (no dedo já é nativo)
+    let x0 = 0, s0 = 0, arrastando = false, moveu = false
+    const desce = (e: PointerEvent) => { if (e.pointerType !== 'mouse' || e.button !== 0) return; arrastando = true; moveu = false; x0 = e.clientX; s0 = el.scrollLeft }
+    const move = (e: PointerEvent) => { if (!arrastando) return; const d = e.clientX - x0; if (Math.abs(d) > 5) { moveu = true; el.classList.add('arrastando') } el.scrollLeft = s0 - d }
+    const sobe = () => { arrastando = false; el.classList.remove('arrastando') }
+    const clique = (e: MouseEvent) => { if (moveu) { e.preventDefault(); e.stopPropagation(); moveu = false } }
+    el.addEventListener('wheel', roda, { passive: false })
+    el.addEventListener('pointerdown', desce)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', sobe)
+    el.addEventListener('click', clique, true)
+    return () => { el.removeEventListener('wheel', roda); el.removeEventListener('pointerdown', desce); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', sobe); el.removeEventListener('click', clique, true) }
+  }, [tudo])
   return (
-    <div className={`ape-fileira ${tudo ? 'tudo' : ''}`}>
+    <div className={`ape-fileira ${tudo ? 'tudo' : ''} ${sobra && !tudo ? `sobra ${pos}` : ''}`}>
       <div className="ape-fileira-vp">
-        {!tudo && sobra && pos !== 'ini' && <button type="button" className="ape-fileira-seta e" onClick={() => rolar(-1)} aria-label="Ver os anteriores"><ApeIcon name="chev" /></button>}
         <div ref={ref} className="ape-shop ape-fileira-l" onScroll={medir}>{children}</div>
-        {!tudo && sobra && pos !== 'fim' && <button type="button" className="ape-fileira-seta d" onClick={() => rolar(1)} aria-label="Ver os próximos"><ApeIcon name="chev" /></button>}
       </div>
       {(sobra || tudo) && (
         <button type="button" className="ape-vermais" aria-expanded={tudo} onClick={() => { setTudo(!tudo); if (tudo) ref.current?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
@@ -971,7 +991,7 @@ function MinhasCompras({ nome }: { nome?: string }) {
         </div>
         <div className="ape-acts" style={{ gap: 6 }}>
           <a className="ape-btn primary sm" href={href('ape', 'conta')}><ApeIcon name={logado ? 'user' : 'shield'} />{logado ? 'abrir minha conta' : 'entrar na minha conta'}</a>
-          {!logado && <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'sem senha? buscar pelo CPF'}</button>}
+          {!logado && <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'buscar pelo CPF'}</button>}
         </div>
       </div>
       {l.length > 0 ? (

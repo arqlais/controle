@@ -434,7 +434,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     return btoa(s)
   }
   /** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que uma admin colocou no planê (configurações → assistente). */
-  const MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
+  const MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
   async function geminiKey() {
     const k = env('GEMINI_API_KEY').trim()
     if (k) return k
@@ -446,8 +446,10 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     }
     return ''
   }
-  const PROMPT = (hoje: string, texto: string) => `Você lê UM orçamento de obra, reforma ou móveis (pode ser PDF, foto ou texto) e devolve só JSON, sem comentários. Hoje é ${hoje}.
-Formato:
+  const PROMPT = (hoje: string, texto: string) => `Você lê orçamentos de obra, reforma ou móveis (PDF, foto ou texto) e devolve só JSON, sem comentários. Hoje é ${hoje}.
+O material pode ter MAIS DE UM orçamento: de fornecedores diferentes, ou do mesmo fornecedor para serviços diferentes (ex.: marcenaria da cozinha e box do banheiro, ou piso e rodapé com totais separados). Cada orçamento separado vira um item da lista. Itens de um mesmo orçamento com um total só ficam juntos.
+Formato: {"orcamentos": [ORCAMENTO, ...]}
+ORCAMENTO:
 {"fornecedor": "empresa ou profissional que fez o orçamento (nunca o cliente)", "nicho": um destes ids: ${NICHOS},
 "servico": "o que está sendo orçado, até 10 palavras", "resumo": "1 frase simples: o que é e o preço que importa",
 "contato": "nome do vendedor", "whatsapp": "só dígitos com DDD", "telefone": "só dígitos", "email": "", "instagram": "", "cnpj": "só dígitos", "endereco": "",
@@ -460,7 +462,7 @@ Formato:
 "alertas": ["o que está vago ou costuma gerar custo extra e não aparece (ex.: frete, rodapé, retirada de entulho, regularização)"],
 "opcoes": [{"nome": "opção de material ou modelo, ex.: Quartzo branco", "valor_total": número, "valor_avista": número ou null}] (só se o orçamento tiver opções alternativas de material/modelo com totais diferentes; senão []),
 "completude": 1 a 5}
-Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
+Regras: números em reais sem R$ (1234.5). Na dúvida se é um orçamento ou dois, separe quando o serviço (nicho) ou o fornecedor muda. Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
 
   async function ler(body: J) {
     const morador = String(body.morador ?? '')
@@ -486,7 +488,8 @@ Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total
     for (const model of MODELOS) {
       const cfg: J = { temperature: 0.1, responseMimeType: 'application/json', ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
       r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: cfg }) })
-      if (r.status !== 404 && r.status !== 402) break
+      // modelo indisponível, sem cota ou instável: tenta o próximo (cada modelo tem a sua cota)
+      if (r.ok || (r.status === 400 && !/model|not (found|supported)|no longer/i.test(await r.clone().text().catch(() => ''))) || r.status === 403) break
     }
     if (!r) return json({ erro: 'não deu para ler agora' }, 502)
     const out = (await r.json().catch(() => ({}))) as J
@@ -502,8 +505,9 @@ Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total
     } catch {
       /* resposta fora do formato: devolve vazio */
     }
-    if (!NICHOS.split(', ').includes(String(v.nicho))) v.nicho = ''
-    return json({ orcamento: v })
+    const lista = (Array.isArray(v.orcamentos) ? v.orcamentos : [v]).filter((o: J) => o && typeof o === 'object' && (o.fornecedor || o.valor_total != null || o.servico)).slice(0, 12) as J[]
+    for (const o of lista) if (!NICHOS.split(', ').includes(String(o.nicho))) o.nicho = ''
+    return json({ orcamento: lista[0] ?? {}, orcamentos: lista })
   }
 
   /* ===== arquivos da loja enviados criptografados (pelo GitHub): só este servidor tem a chave para abrir ===== */

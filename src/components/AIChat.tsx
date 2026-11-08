@@ -142,6 +142,7 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
     })),
     generationConfig: { temperature: 0.6 },
   }
+  let ultimo = 0
   for (const model of MODELS) {
     // o 2.5 "pensa" antes de responder: limitado para a resposta começar logo
     const body = JSON.stringify(model.startsWith('gemini-2.5') ? { ...payload, generationConfig: { ...payload.generationConfig, thinkingConfig: { thinkingBudget: 1024 } } } : payload)
@@ -159,6 +160,8 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
     if (!r) throw new Error(NET_ERROR)
     if (r.status === 200) return r.text.trim() || 'Não consegui responder agora. Tente reformular a pergunta.'
     if (r.status === 404 || (r.status === 400 && /model|not (found|supported)|no longer/i.test(r.error))) continue // modelo indisponível: tenta o próximo
+    // limite ou instabilidade em um modelo: cada modelo tem a sua cota, então tenta o próximo antes de desistir
+    if (r.status === 429 || r.status >= 500) { ultimo = r.status; continue }
     const msg = r.error
     if (r.status === 400 && /api key/i.test(msg)) throw new Error('A chave do Gemini não é válida. Confira em configurações → assistente.')
     if (r.status === 400 && /image|mime|inline/i.test(msg)) throw new Error('A IA não conseguiu ler esse anexo. Tente mandar como foto (JPG) ou PDF.')
@@ -169,6 +172,8 @@ export async function askGemini(key: string, system: string, history: Msg[], onT
     if (r.status >= 500) throw new Error('O Gemini está instável agora. Tente de novo em instantes.')
     throw new Error(msg || `Erro ${r.status} ao falar com o Gemini.`)
   }
+  if (ultimo === 429) throw new Error('Limite de uso do Gemini atingido por agora. Tente de novo em alguns minutos.')
+  if (ultimo >= 500) throw new Error('O Gemini está instável agora. Tente de novo em instantes.')
   throw new Error('Nenhum modelo do Gemini disponível para esta chave.')
 }
 
