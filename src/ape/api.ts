@@ -808,6 +808,10 @@ export async function depoimentos(): Promise<{ texto: string; nota: number | nul
   }
 }
 export const painelConta = {
+  async testarEmail(): Promise<{ ok: boolean; status?: number; para?: string; remetente?: string; detalhe?: string }> {
+    if (!CLOUD) return { ok: false, detalhe: 'Na prévia não manda e-mail.' }
+    return invoke({ acao: 'ape-testar-email' })
+  },
   async decidir(id: string, decisao: 'aprovar' | 'negar', resposta: string, manual = false) {
     if (!CLOUD) return
     await invoke({ acao: 'ape-decidir', id, decisao, resposta, manual })

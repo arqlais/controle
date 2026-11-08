@@ -1419,6 +1419,29 @@ function TudoLiberado({ produtos, onDone }: { produtos: Produto[]; onDone: () =>
   )
 }
 
+/** Testa os e-mails (Brevo): manda um para a dona e mostra a resposta. */
+function TestarEmail() {
+  const [r, setR] = useState<{ ok: boolean; status?: number; para?: string; remetente?: string; detalhe?: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const testar = async () => {
+    setBusy(true)
+    try { setR(await painelConta.testarEmail()) } catch (e) { setR({ ok: false, detalhe: (e as Error).message }) }
+    setBusy(false)
+  }
+  return (
+    <div className="ape-panel ape-adm-box">
+      <p className="ape-eyebrow">e-mails</p>
+      <p className="ape-note" style={{ margin: 0 }}>Manda um e-mail de teste para você e mostra o que o Brevo respondeu. Se não chegar, olhe o spam.</p>
+      <div className="ape-acts"><button className="ape-btn sm" disabled={busy} onClick={() => void testar()}><ApeIcon name="send" />{busy ? 'enviando…' : 'testar e-mail'}</button></div>
+      {r && (
+        <div className={`ape-banner ${r.ok ? '' : 'warn'}`}>
+          {r.ok ? <>Enviado para <b>{r.para}</b> (remetente {r.remetente}). Confira a caixa de entrada e o spam.</> : <>Não foi{r.status ? ` (Brevo ${r.status})` : ''}: {r.detalhe || 'sem resposta'}{r.remetente ? ` · remetente: ${r.remetente}` : ''}</>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos: PedidoAdmin[]; onChange: () => void }) {
   const meus = pedidos.filter((p) => p.cortesia && p.obs === 'teste da dona')
   return (
@@ -1434,6 +1457,7 @@ function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos:
         ))}
       </div>
       <TudoLiberado produtos={produtos} onDone={onChange} />
+      <TestarEmail />
       <p className="ape-note" style={{ margin: 0 }}>O acesso de teste é uma compra de cortesia (sem pagar): página do pedido, downloads com o seu nome no rodapé, bônus já aberto e a plataforma, sem vencer até você tirar o acesso. Para testar o pagamento de verdade, faça uma compra pequena na loja e depois reembolse em "vendas".</p>
       {meus.length > 0 && (
         <div className="ape-rows">

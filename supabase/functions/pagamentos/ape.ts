@@ -581,5 +581,5 @@ Regras: números em reais sem R$ (1234.5). Com opções de material, valor_total
     return json({ arquivos: out })
   }
 
-  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos }
+  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, testarEmail: contaApi.testarEmail }
 }

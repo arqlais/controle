@@ -210,6 +210,25 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ erro: 'Ação desconhecida.' }, 400)
   }
 
+  /** Teste do e-mail (só a dona): manda um e-mail para ela e devolve o que o Brevo respondeu. */
+  async function testarEmail(req: Request) {
+    const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const { data: u } = await db.auth.getUser(jwt)
+    if (!u?.user) return json({ erro: 'Entre na sua conta.' }, 401)
+    const { data: adm } = await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()
+    if (!adm) return json({ erro: 'Só a dona.' }, 403)
+    const key = env('BREVO_API_KEY')
+    const remetente = env('SENDER_EMAIL', 'equipe.plane@gmail.com')
+    if (!key) return json({ ok: false, para: DONO, remetente, detalhe: 'Falta o segredo BREVO_API_KEY no Supabase.' })
+    const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ sender: { email: remetente, name: 'planê.apê' }, to: [{ email: DONO }], subject: 'Teste de e-mail do planê.apê', htmlContent: layout('Teste de e-mail', '<p>Se você está lendo isto, os e-mails do planê.apê estão funcionando: compra, venda confirmada e cancelamento.</p>') }),
+    }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response)
+    const texto = await r.text().catch(() => '')
+    return json({ ok: r.ok, status: r.status, para: DONO, remetente, detalhe: texto.slice(0, 400) })
+  }
+
   /** Aviso para a dona a cada venda confirmada. */
   async function avisarVenda(ped: J) {
     const itens = ((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')
@@ -258,5 +277,5 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail }
 }
