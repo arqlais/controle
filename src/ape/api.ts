@@ -900,6 +900,15 @@ export const painelConta = {
     const { error } = await sb().from('ape_feedback').update({ publicado }).eq('id', id)
     fail(error)
   },
+  /** A dona adiciona um depoimento que recebeu (WhatsApp, Instagram...). Entra já publicado na loja. */
+  async addDepoimento(nome: string, texto: string, nota: number | null) {
+    const { error } = await sb().from('ape_feedback').insert({ tipo: 'depoimento', nome: nome.trim().slice(0, 80), texto: texto.trim().slice(0, 1200), nota, publicado: true })
+    fail(error)
+  },
+  async apagarFeedback(id: string) {
+    const { error } = await sb().from('ape_feedback').delete().eq('id', id)
+    fail(error)
+  },
 }
 
 /** Morador cria a conta (e-mail e senha) ou entra; devolve o cadastro para guardar no aparelho. */

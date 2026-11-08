@@ -1416,16 +1416,43 @@ function Opinioes() {
   const [l, setL] = useState<Awaited<ReturnType<typeof painelConta.feedback>> | null>(null)
   const load = useCallback(() => void painelConta.feedback().then(setL), [])
   useEffect(load, [load])
-  if (!l) return <Thinking t="carregando…" />
-  if (!l.length) return <div className="ape-empty"><b>nada ainda</b><span>Depoimentos e sugestões de quem comprou aparecem aqui. Os depoimentos que você publicar aparecem na loja, só com o primeiro nome.</span></div>
+  const [nome, setNome] = useState('')
+  const [texto, setTexto] = useState('')
+  const [nota, setNota] = useState(5)
+  const [busy, setBusy] = useState(false)
+  const add = async () => {
+    if (!nome.trim() || texto.trim().length < 10) return toast('Coloque o nome e o que a pessoa disse.')
+    setBusy(true)
+    try { await painelConta.addDepoimento(nome, texto, nota || null); setNome(''); setTexto(''); setNota(5); load(); toast('Depoimento publicado na loja.') } catch (e) { toast(`Não deu (${(e as Error).message}).`) }
+    setBusy(false)
+  }
   return (
-    <div className="ape-rows">
-      {l.map((f) => (
-        <div key={f.id} className="ape-row">
-          <div className="t"><b>{f.tipo === 'depoimento' ? `depoimento${f.nota ? ` · ${'★'.repeat(f.nota)}` : ''}` : 'sugestão'} · {f.nome} · {dmy(f.criado)}</b><span>{f.texto}</span></div>
-          <div className="r">{f.tipo === 'depoimento' && <button className={`ape-btn sm ${f.publicado ? 'rose' : 'primary'}`} onClick={() => void painelConta.publicar(f.id, !f.publicado).then(load, (e) => toast(String(e.message)))}>{f.publicado ? 'tirar da loja' : 'publicar na loja'}</button>}</div>
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div className="ape-panel ape-adm-box">
+        <p className="ape-eyebrow">adicionar depoimento</p>
+        <p className="ape-note" style={{ margin: 0 }}>Recebeu um elogio no WhatsApp ou no Instagram? Cole aqui (com a permissão da pessoa) e ele aparece na loja, em "quem comprou conta".</p>
+        <div className="ape-frow">
+          <div className="ape-f"><label>Nome que aparece</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="ex.: Carla, moradora do Residencial Bosque" /></div>
+          <div className="ape-f"><label>Nota</label><select value={nota} onChange={(e) => setNota(Number(e.target.value))}>{[5, 4, 3, 0].map((n) => <option key={n} value={n}>{n ? '★'.repeat(n) : 'sem nota'}</option>)}</select></div>
         </div>
-      ))}
+        <div className="ape-f"><label>O que a pessoa disse</label><textarea rows={3} value={texto} onChange={(e) => setTexto(e.target.value)} /></div>
+        <div className="ape-acts"><button className="ape-btn primary" disabled={busy} onClick={() => void add()}><ApeIcon name="plus" />publicar na loja</button></div>
+      </div>
+      {!l ? <Thinking t="carregando…" /> : !l.length ? (
+        <div className="ape-empty"><b>nada ainda</b><span>Depoimentos e sugestões de quem comprou aparecem aqui. Os depoimentos publicados aparecem na loja.</span></div>
+      ) : (
+        <div className="ape-rows">
+          {l.map((f) => (
+            <div key={f.id} className="ape-row">
+              <div className="t"><b>{f.tipo === 'depoimento' ? `depoimento${f.nota ? ` · ${'★'.repeat(f.nota)}` : ''}` : 'sugestão'} · {f.nome} · {dmy(f.criado)}</b><span>{f.texto}</span></div>
+              <div className="r">
+                {f.tipo === 'depoimento' && <button className={`ape-btn sm ${f.publicado ? 'rose' : 'primary'}`} onClick={() => void painelConta.publicar(f.id, !f.publicado).then(load, (e) => toast(String(e.message)))}>{f.publicado ? 'tirar da loja' : 'publicar na loja'}</button>}
+                <button className="ape-icobtn" title="Apagar" aria-label="Apagar" onClick={() => { if (confirm('Apagar de vez?')) void painelConta.apagarFeedback(f.id).then(load, (e) => toast(String(e.message))) }}><ApeIcon name="trash" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
