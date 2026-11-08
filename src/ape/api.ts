@@ -202,6 +202,26 @@ export async function euMorador(id: string): Promise<Morador | null> {
   return error ? null : moradorOf(data as Record<string, unknown> | null)
 }
 
+/**
+ * Confere se o cadastro guardado neste aparelho ainda existe. Se ele foi apagado (por exemplo, cadastros
+ * repetidos que a dona juntou), puxa o cadastro certo pela conta logada. Nunca apaga nada no banco.
+ * Devolve: o cadastro certo, null (não há cadastro válido) ou undefined (sem internet: deixa como está).
+ */
+export async function conferirCadastro(local: Morador | null): Promise<Morador | null | undefined> {
+  if (!CLOUD) return local
+  try {
+    if (local?.id) {
+      const ok = await euMorador(local.id)
+      if (ok) return ok
+    }
+    if (!sessaoLocal()) return local?.id ? null : local
+    const r = await contaApi<{ morador: Record<string, unknown> | null }>('eu')
+    return moradorOf(r.morador) || (local?.id ? null : local)
+  } catch {
+    return undefined
+  }
+}
+
 /** É a dona olhando a página (logada no planê)? */
 export async function souDona(): Promise<boolean> {
   if (!CLOUD) return false

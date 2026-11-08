@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, conferirCadastro, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -61,6 +61,16 @@ export function ApePublic({ sub }: { sub?: string }) {
       location.hash = '#/ape'
     })
   }, [view])
+  // o cadastro guardado neste aparelho pode ter ficado velho (cadastros repetidos apagados): acha o certo pela conta
+  useEffect(() => {
+    let vivo = true
+    void conferirCadastro(me).then((m) => {
+      if (!vivo || m === undefined) return
+      if (m && (m.id !== me?.id || m.aprovado !== me?.aprovado || m.condominio !== me?.condominio)) { setMe(m); write(CAD, m) }
+      else if (!m && me?.id) { setMe(null); try { localStorage.removeItem(CAD) } catch { /* ok */ } show('O cadastro deste aparelho estava desatualizado. Entre de novo com o seu e-mail para ver os orçamentos.') }
+    })
+    return () => { vivo = false }
+  }, [me?.id])
   // os orçamentos dependem de quem é: morador do San Levi (ou a dona) vê; os outros, não
   const recarregar = () => loadPublico(me, owner).then(setD, () => setD(null))
   useEffect(() => {
