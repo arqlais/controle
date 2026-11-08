@@ -30,6 +30,14 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-08-editor-do-site',
+    date: '2026-11-08',
+    kind: 'melhoria',
+    title: 'atalho para o editor do site',
+    text: 'Botão de lápis no topo (e "editor do site" no menu, em plataforma) abre o editor do lais3d.com.br, onde você edita os PDFs.',
+    feature: 'painelDona',
+  },
+  {
     id: '2026-10-29-ajustes-celular',
     date: '2026-10-29',
     kind: 'correcao',
