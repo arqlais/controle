@@ -114,6 +114,8 @@ const SIMPLE_NAV = ['inicio', 'orcamentos', 'clientes', 'projetos', 'financeiro'
 // o que é de cliente final e fica fora do menu de quem só presta serviço para escritórios
 const FREELA_HIDDEN = ['paineis', 'briefings']
 // telas que dependem do plano (src/plans.ts)
+// editor do site lais3d.com.br (onde a dona edita os PDFs)
+const SITE_EDITOR = 'https://lais3d.com.br/admin'
 const NEEDS: Record<string, Feature> = { 'dados-contrato': 'dadosContrato', contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', 'ape-admin': 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
@@ -702,6 +704,13 @@ export default function App() {
                   <span>app no celular</span>
                 </button>
               )}
+              {/* editor do site lais3d (PDFs): só da dona */}
+              {g.key === 'plataforma' && access.isOwner && (
+                <a className="is-tool" href={SITE_EDITOR} target="_blank" rel="noreferrer" title="Editor do site lais3d.com.br, onde edita os PDFs (abre em outra aba)" aria-label="Editor do site">
+                  <Icon name="edit" />
+                  <span>editor do site ↗</span>
+                </a>
+              )}
               {/* atalho para o portfólio: só da dona */}
               {g.key === 'ajustes' && siteUrl && access.isOwner && (
                 <a className="is-tool" href={siteUrl} target="_blank" rel="noreferrer" title="Meu portfólio (abre em outra aba)" aria-label="Meu portfólio">
@@ -777,6 +786,11 @@ export default function App() {
             <button className={`icon-btn photo-btn hide-phone ${photo ? 'is-on' : ''}`} onClick={togglePhoto} aria-pressed={photo} aria-label="Modo foto" title={photo ? 'Modo foto ligado: toque para voltar ao normal' : 'Modo foto: esconde valores, sobrenomes e dados dos clientes para tirar print'}>
               <Icon name="camera" />
             </button>
+          )}
+          {access.isOwner && (
+            <a className="icon-btn site-editor-btn" href={SITE_EDITOR} target="_blank" rel="noreferrer" aria-label="Editor do site (PDFs)" title="Editor do site lais3d.com.br, onde edita os PDFs (abre em outra aba)">
+              <Icon name="edit" />
+            </a>
           )}
           {!access.legacy && <NoticesButton />}
           {!access.legacy && <NewsButton count={news.unseen.length} onOpen={() => (news.unseen.length ? setNewsOpen(true) : setHistoryOpen(true))} />}
