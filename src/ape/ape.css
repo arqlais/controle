@@ -2173,7 +2173,7 @@
 .ape .ape-marquee-track, .ape-hf, .ape-surpresa-box { will-change: transform; }
 .ape .ape-cartbtn.tem, .ape .ape-cartfab { animation-iteration-count: 1, 3 !important; }
 .ape .ape-cartbtn.tem { animation-iteration-count: 3 !important; }
-.ape-surpresa-box, .ape-bonus2:not(.on) .ic, .ape-bonus-mini:not(.on) svg { animation-iteration-count: 4 !important; }
+/* o cadeado do brinde balança sempre (movimento leve, não pesa) */
 .ape-fileira-seta { top: 118px; }
 .ape-fileira-seta.e { left: -16px; } .ape-fileira-seta.d { right: -16px; }
 
