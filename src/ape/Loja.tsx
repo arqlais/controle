@@ -423,7 +423,7 @@ function PlatCelulares() {
       </div>
       <div className="ape-iph meio">
         <div className="tela">
-          <div className="iph-ola"><span className="av">L</span><span><b>olá, Laís!</b><small>San Levi · torre 2 · apê 1204</small></span></div>
+          <div className="iph-ola"><span className="av">A</span><span><b>olá, Ana!</b><small>Residencial Exemplo · torre 1 · apê 304</small></span></div>
           <div className="iph-kpis"><div><small>gasto até agora</small><b>R$ 18.420</b></div><div><small>parcelas do mês</small><b>R$ 1.400</b></div></div>
           <div className="iph-card">
             <small>orçamento da obra</small>
