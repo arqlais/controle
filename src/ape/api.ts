@@ -596,14 +596,17 @@ export interface PlatConta { id: string; nome: string; valor: number | null; qua
 export interface PlatMedida { id: string; comodo: string; larg: number | null; comp: number | null; alt: number | null; obs: string }
 export interface PlatCompra { id: string; comodo: string; item: string; prio: 'essencial' | 'logo' | 'pode esperar'; preco: number | null; comprado: boolean; onde: string }
 export interface PlatTarefa { id: string; fase: string; item: string; feito: boolean }
+/** Compra do imóvel (jornada "acabei de comprar"): entrada, financiamento, juros de obra, ITBI e o passo a passo. */
+export interface PlatCompraImovel { valor: number | null; entrada: number | null; sinal: number | null; entradaVezes: number | null; financiado: number | null; banco: string; taxaAno: number | null; prazo: number | null; sistema: 'SAC' | 'Price'; inicio: string; obraPct: number | null; itbiPct: number | null; cartorio: number | null; passos: { id: string; item: string; feito: boolean }[] }
 export interface PlatDados {
+  compra?: PlatCompraImovel
   orcamentos?: PlatOrc[]
   contas?: PlatConta[]
   medidas?: PlatMedida[]
   compras?: PlatCompra[]
   mudanca?: PlatTarefa[]
   perfil?: { nome: string; foto: string }
-  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string; condominio?: string; torre?: string; ap?: string; moradores?: string; capa?: string; simbolo?: string; familia?: { id: string; nome: string; tipo: import('./Familia').TipoMembro; papel?: string }[] }
+  imovel?: { tipo: 'apê' | 'casa'; fase: 'comprando' | 'planta' | 'pronto' | 'obra' | 'morando'; m2: number | null; orcamento: number | null; entrega: string; nome: string; condominio?: string; torre?: string; ap?: string; moradores?: string; capa?: string; simbolo?: string; jornada?: 'compra' | 'chaves'; familia?: { id: string; nome: string; tipo: import('./Familia').TipoMembro; papel?: string }[] }
   garantias?: PlatGarantia[]
   manutencao?: PlatManut[]
   documentos?: PlatDoc[]

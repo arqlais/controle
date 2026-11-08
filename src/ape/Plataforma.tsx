@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { EditarFamilia, Familinha } from './Familia'
+import { CompraFin, compraVazia, contasCompra } from './PlatCompra'
 import { href } from '../router'
 import { platAbrir, platSalvar, type PlatAcesso, type PlatContato, type PlatDados, type PlatDoc, type PlatEtapa, type PlatGarantia, type PlatGasto, type PlatManut, type PlatParcela, type PlatVistoria, type PlatOrc, type PlatConta, type PlatMedida, type PlatCompra, type PlatTarefa } from './api'
 import { ApeArt } from './ApeArt'
@@ -95,17 +96,21 @@ async function fotoLeve(f: File): Promise<string> {
   return c.toDataURL('image/jpeg', 0.7)
 }
 
-type Aba = 'resumo' | 'gastos' | 'parcelas' | 'orcamentos' | 'contas' | 'etapas' | 'vistoria' | 'contatos' | 'medidas' | 'compras' | 'mudanca' | 'garantias' | 'documentos' | 'calculadoras'
+type Aba = 'resumo' | 'compra' | 'gastos' | 'parcelas' | 'orcamentos' | 'contas' | 'etapas' | 'vistoria' | 'contatos' | 'medidas' | 'compras' | 'mudanca' | 'garantias' | 'documentos' | 'calculadoras'
 /** Menu em grupos, como no planê arquitetura, com símbolos que dizem o que é cada coisa. */
-const GRUPOS: [string, [Aba, string, string][]][] = [
-  ['', [['resumo', 'resumo', 'home']]],
-  ['dinheiro', [['gastos', 'gastos', 'wallet'], ['parcelas', 'parcelas', 'calendar'], ['orcamentos', 'orçamentos', 'file'], ['contas', 'contas da casa', 'bell']]],
-  ['obra', [['etapas', 'etapas da obra', 'layers'], ['vistoria', 'vistoria', 'check'], ['contatos', 'fornecedores', 'phone'], ['medidas', 'medidas do apê', 'ruler']]],
-  ['casa nova', [['compras', 'compras da casa', 'sofa'], ['mudanca', 'mudança', 'box'], ['garantias', 'garantias e manutenção', 'lock'], ['documentos', 'documentos', 'folder']]],
-  ['ferramentas', [['calculadoras', 'calculadoras', 'grid']]],
-]
-const ABAS = GRUPOS.flatMap((g) => g[1])
-const BNAV: Aba[] = ['resumo', 'gastos', 'etapas', 'vistoria']
+type Jornada = 'compra' | 'chaves'
+type Item = [Aba, string, string]
+const I: Record<Aba, Item> = {
+  resumo: ['resumo', 'resumo', 'home'], compra: ['compra', 'compra e financiamento', 'wallet'], gastos: ['gastos', 'gastos', 'wallet'], parcelas: ['parcelas', 'parcelas', 'calendar'], orcamentos: ['orcamentos', 'orçamentos', 'file'], contas: ['contas', 'contas da casa', 'bell'],
+  etapas: ['etapas', 'etapas da obra', 'layers'], vistoria: ['vistoria', 'vistoria', 'check'], contatos: ['contatos', 'fornecedores', 'phone'], medidas: ['medidas', 'medidas do apê', 'ruler'],
+  compras: ['compras', 'compras e enxoval', 'sofa'], mudanca: ['mudanca', 'mudança', 'box'], garantias: ['garantias', 'garantias e manutenção', 'lock'], documentos: ['documentos', 'documentos', 'folder'], calculadoras: ['calculadoras', 'calculadoras', 'grid'],
+}
+/** Menu em grupos, como no planê arquitetura. Muda conforme a fase: quem acabou de comprar vê a compra primeiro; quem vai receber as chaves vê a obra. */
+const gruposDe = (j: Jornada): [string, Item[]][] => j === 'compra'
+  ? [['', [I.resumo]], ['minha compra', [I.compra, I.parcelas, I.gastos]], ['planejar a casa', [I.orcamentos, I.compras, I.medidas, I.contas]], ['quando chegar a hora', [I.etapas, I.vistoria, I.contatos, I.mudanca]], ['guardar', [I.documentos, I.garantias]], ['ferramentas', [I.calculadoras]]]
+  : [['', [I.resumo]], ['obra e chaves', [I.etapas, I.vistoria, I.contatos, I.medidas]], ['dinheiro', [I.gastos, I.parcelas, I.orcamentos, I.compra, I.contas]], ['casa nova', [I.compras, I.mudanca, I.garantias, I.documentos]], ['ferramentas', [I.calculadoras]]]
+const ABAS = Object.values(I)
+const bnavDe = (j: Jornada): Aba[] => (j === 'compra' ? ['resumo', 'compra', 'parcelas', 'compras'] : ['resumo', 'gastos', 'etapas', 'vistoria'])
 
 export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const demo = token === 'demo'
@@ -121,6 +126,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   const pendente = useRef<PlatDados | null>(null)
   const historico = useRef<Aba[]>([])
   const [exemplo, setExemplo] = useState(false)
+  const [jornadaTela, setJornadaTela] = useState<Jornada | null>(null)
   // fechou a aba ou trocou de app antes de salvar: salva na hora
   useEffect(() => {
     if (demo) return
@@ -206,6 +212,9 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   }
   const statusSalvo = demo ? 'demonstração: nada é salvo' : salvo === 'salvando' ? 'salvando…' : salvo === 'erro' ? 'não salvou: confira a internet' : 'tudo salvo'
   const atual = ABAS.find((x) => x[0] === aba)!
+  // na demonstração (ou vendo o exemplo) a troca de fase vale só na tela, sem salvar
+  const jornada: Jornada = ((demo || exemplo) && jornadaTela) || im.jornada || (im.fase === 'comprando' || im.fase === 'planta' ? 'compra' : 'chaves')
+  const escolherJornada = (j: Jornada) => (demo || exemplo ? setJornadaTela(j) : mudar((d) => ({ ...d, imovel: { ...(d.imovel || novo().imovel!), jornada: j } })))
   const casa = [im.condominio, im.torre ? `torre ${im.torre}` : '', im.ap ? `apê ${im.ap}` : ''].filter(Boolean).join(' · ') || im.nome || 'meu apê'
   const dadosV = vistos
   const sub = <M,>(k: keyof PlatDados) => (fn: (l: M[]) => M[]) => mudar((d) => ({ ...d, [k]: fn(((d[k] as unknown) as M[]) || []) }))
@@ -232,7 +241,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
           </span>
         </a>
         <nav>
-          {GRUPOS.map(([g, itens]) => (
+          {gruposDe(jornada).map(([g, itens]) => (
             <Fragment key={g || 'inicio'}>
               {g && <span className="nav-group-label nav-main-label">{g}</span>}
               {itens.map(([id, l, i]) => navA(id, l, i))}
@@ -265,7 +274,8 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
           {exemplo && <div className="ape-banner ape-pp-exemplo"><ApeIcon name="eye" /><span>Você está vendo um <b>exemplo preenchido</b>. Pode olhar tudo: nada aqui é salvo e os seus dados continuam guardados.</span><button className="ape-btn primary sm" onClick={() => setExemplo(false)}>voltar para os meus dados</button></div>}
           {aba === 'resumo' && !exemplo && <ComoUsar onExemplo={() => setExemplo(true)} />}
           {!acc.ativo && <div className="ape-banner warn">O seu acesso venceu em {dmy(acc.validade)}. Os dados continuam aqui para consulta. <a className="ape-link" href={href('ape', 'loja:plataforma')}>renovar</a></div>}
-          {aba === 'resumo' && <Resumo acc={acc} dados={dadosV} im={im} nome={nome} foto={foto} casa={casa} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
+          {aba === 'resumo' && <Resumo jornada={jornada} escolhido={!!im.jornada || !!jornadaTela} escolherJornada={escolherJornada} acc={acc} dados={dadosV} im={im} nome={nome} foto={foto} casa={casa} token={token} demo={demo} mudar={mudar} irPara={ir} onEditar={() => setEditar(true)} />}
+          {aba === 'compra' && <CompraFin c={dadosV.compra || compraVazia()} mudar={(fn) => mudar((d) => ({ ...d, compra: fn(d.compra || compraVazia()) }))} levarParcelas={(l) => { mudar((d) => ({ ...d, parcelas: [...l, ...(d.parcelas || [])] })); ir('parcelas') }} />}
           {aba === 'gastos' && <Gastos lista={dadosV.gastos || []} orcamento={im.orcamento} mudar={sub<PlatGasto>('gastos')} />}
           {aba === 'parcelas' && <Parcelas lista={dadosV.parcelas || []} mudar={sub<PlatParcela>('parcelas')} />}
           {aba === 'orcamentos' && <Orcs lista={dadosV.orcamentos || []} mudar={sub<PlatOrc>('orcamentos')} virarGasto={(o) => mudar((d) => ({ ...d, gastos: [{ id: uid(), comodo: 'geral', item: `${o.servico} (${o.fornecedor})`, previsto: o.valor, pago: null, status: 'comprado', data: hoje(), obs: 'fechado pelos orçamentos' }, ...(d.gastos || [])] }))} />}
@@ -284,7 +294,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
         </main>
       </div>
       <nav className="bottom-nav">
-        {BNAV.map((id) => { const x = ABAS.find((y) => y[0] === id)!; return <a key={id} href="#" className={aba === id ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(id) }}><Icon name={x[2]} /><span>{id === 'etapas' ? 'etapas' : x[1]}</span></a> })}
+        {bnavDe(jornada).map((id) => { const x = ABAS.find((y) => y[0] === id)!; return <a key={id} href="#" className={aba === id ? 'active' : ''} onClick={(e) => { e.preventDefault(); ir(id) }}><Icon name={x[2]} /><span>{({ etapas: 'etapas', compra: 'compra', compras: 'enxoval', garantias: 'garantias' } as Partial<Record<Aba, string>>)[id] || x[1]}</span></a> })}
         <a href="#" onClick={(e) => { e.preventDefault(); setMenu(true) }}><Icon name="menu" /><span>mais</span></a>
       </nav>
       {editar && <EditarDados dados={dados} nomeConta={acc.nome} onClose={() => setEditar(false)} mudar={mudar} />}
@@ -429,7 +439,7 @@ function Barras({ dados, destaque = 0 }: { dados: { l: string; v: number; t?: st
   )
 }
 
-function Resumo({ acc, dados, im, nome, foto, casa, token, demo, mudar, irPara, onEditar }: { acc: PlatAcesso; dados: PlatDados; im: NonNullable<PlatDados['imovel']>; nome: string; foto: string; casa: string; token: string; demo: boolean; mudar: (fn: (d: PlatDados) => PlatDados) => void; irPara: (a: Aba) => void; onEditar: () => void }) {
+function Resumo({ jornada, escolhido, escolherJornada, acc, dados, im, nome, foto, casa, token, demo, mudar, irPara, onEditar }: { jornada: 'compra' | 'chaves'; escolhido: boolean; escolherJornada: (j: 'compra' | 'chaves') => void; acc: PlatAcesso; dados: PlatDados; im: NonNullable<PlatDados['imovel']>; nome: string; foto: string; casa: string; token: string; demo: boolean; mudar: (fn: (d: PlatDados) => PlatDados) => void; irPara: (a: Aba) => void; onEditar: () => void }) {
   const g = dados.gastos || []
   const previsto = g.reduce((t, x) => t + (x.previsto || 0), 0)
   const pago = g.reduce((t, x) => t + (x.pago || 0), 0)
@@ -467,6 +477,22 @@ function Resumo({ acc, dados, im, nome, foto, casa, token, demo, mudar, irPara, 
         </div>
         <button className="ape-btn sm" onClick={onEditar}><ApeIcon name="edit" />editar</button>
       </section>
+      <section className={`ape-jornada ${escolhido ? '' : 'nova'}`} aria-label="Em que fase você está">
+        {!escolhido && <p><b>em que fase você está?</b> A plataforma se organiza para ela (dá para trocar quando quiser).</p>}
+        <div className="ape-jornada-op" role="radiogroup">
+          <button role="radio" aria-checked={jornada === 'compra'} onClick={() => escolherJornada('compra')}><ApeIcon name="tag" /><span><b>acabei de comprar</b><small>entrada, juros de obra e financiamento</small></span></button>
+          <button role="radio" aria-checked={jornada === 'chaves'} onClick={() => escolherJornada('chaves')}><ApeIcon name="home" /><span><b>vou receber as chaves</b><small>obra, vistoria e mudança</small></span></button>
+        </div>
+      </section>
+      {jornada === 'compra' && (() => { const r = contasCompra(dados.compra || compraVazia()); const c = dados.compra; return (
+        <button className="ape-cf-mini" onClick={() => irPara('compra')}>
+          <span className="t"><b>minha compra</b><small>{c?.valor ? `imóvel de ${brl(c.valor)}` : 'coloque os números do contrato'}</small></span>
+          <span className="v"><small>entrada</small><b className="ape-keep">{r.parcelaEntrada ? `${c?.entradaVezes}x ${brl(r.parcelaEntrada)}` : '—'}</b></span>
+          <span className="v"><small>juros de obra</small><b className="ape-keep">{r.jurosObraHoje ? brl(r.jurosObraHoje) : '—'}</b></span>
+          <span className="v"><small>financiamento</small><b className="ape-keep">{r.primeira ? brl(r.primeira) : '—'}</b></span>
+          <ApeIcon name="chev" />
+        </button>
+      ) })()}
       {avisos.length > 0 && (
         <section className="ape-pp-avisos">
           {avisos.slice(0, 4).map(([t, i, a]) => <button key={t} onClick={() => irPara(a)}><ApeIcon name={i} /><span>{t}</span><ApeIcon name="chev" /></button>)}
