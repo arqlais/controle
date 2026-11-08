@@ -5,7 +5,7 @@ import { escolher, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, 
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, GRUPO_META, CTA_BY, CTA_COPY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  APE, GRUPO_META, CTA_BY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { read, write } from './shared'
 import { Fileira } from './Loja'
@@ -668,22 +668,15 @@ function DicaLoja({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[] })
   )
 }
 
-function Cta({ nicho: n, produtos }: { nicho: Nicho; produtos: Produto[]; me?: Morador | null; whats?: string }) {
-  const ativos = produtos.filter((p) => p.ativo)
-  const p = ativos.find((p) => p.id === (CTA_BY[n] || (n === 'outros' ? 'kit-completo' : 'checklist'))) || ativos[0]
-  if (!p) return null
-  const copy = CTA_COPY[p.id] || ['Loja do apê', p.nome, p.desc]
+function Cta(_: { nicho: Nicho; produtos: Produto[]; me?: Morador | null; whats?: string }) {
   return (
     <aside className="ape-cta">
       <div>
-        <span className="k">{copy[0]}</span>
-        <h3>{copy[1]}</h3>
-        <p>{copy[2]}</p>
+        <span className="k">loja do apê</span>
+        <h3>Conheça arquivos úteis para quem está montando o apê</h3>
+        <p>Guias, checklists e planilhas para cada etapa: comprar, receber as chaves, fazer a obra e mudar.</p>
       </div>
-      <a className="ape-btn" href={href('ape', `loja:${p.id}`)}>
-        <ApeIcon name="eye" />
-        {p.preco ? `${p.preco} · ` : ''}ver como é
-      </a>
+      <a className="ape-btn" href={href('ape', 'loja:arquivos')}>conhecer os arquivos<ApeIcon name="chev" /></a>
     </aside>
   )
 }

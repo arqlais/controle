@@ -2350,3 +2350,15 @@
 .ape-destaques { display: grid; gap: 12px; }
 .ape-destaques-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .ape-destaques-h .ape-sec-t { margin: 0; }
+/* convite da loja nos orçamentos: discreto, sem brigar com o "enviar" */
+.ape .ape-cta { background: color-mix(in srgb, var(--a-sec-soft) 70%, var(--a-card)); color: var(--a-ink); box-shadow: none; border: 1px solid color-mix(in srgb, var(--a-sec) 20%, var(--a-line)); padding: 16px 18px; }
+.ape .ape-cta .k { color: var(--a-sec); }
+.ape .ape-cta h3 { color: var(--a-ink); font-size: 16px; }
+.ape .ape-cta p { color: var(--a-muted); font-size: 13px; }
+.ape .ape-cta .ape-btn { background: var(--a-card); color: var(--a-sec); border-color: color-mix(in srgb, var(--a-sec) 30%, var(--a-line)); }
+.ape .ape-cta .ape-btn .ape-i { transform: rotate(-90deg); }
+@media (max-width: 600px) { .ape .ape-cta { grid-template-columns: 1fr; } }
+.ape-trancado { justify-items: center; text-align: center; gap: 10px; padding: 34px 20px; }
+.ape-trancado .ic { width: 52px; height: 52px; border-radius: 16px; background: var(--a-sec-soft); color: var(--a-sec); display: grid; place-items: center; }
+.ape-trancado .ic .ape-i { width: 24px; height: 24px; }
+.ape-trancado .ape-acts { justify-content: center; }

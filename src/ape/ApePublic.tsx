@@ -101,11 +101,13 @@ export function ApePublic({ sub }: { sub?: string }) {
                 <small>{APE.condominio} · só moradores</small>
               </div>
             </a>
+            {(morador || owner) && (
             <nav className="ape-shoplinks" aria-label="Seções">
               <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>orçamentos <span className="cnt num">{vis.length}</span></a>
               <a href={href('ape', 'enviar')} aria-current={view === 'enviar' ? 'page' : undefined}>enviar</a>
               <a href={href('ape', 'loja')}>loja</a>
             </nav>
+            )}
             <MenuConta nome={me?.nome} owner={owner} morador={!!me && ehSanLevi(me)} so={['plataforma', 'conta']} extra={me ? [{ l: `meus dados${ondeMora(me) ? ` (${ehSanLevi(me) && me.torre ? `T${me.torre} · ${me.ap}` : ondeMora(me)})` : ''}`, i: 'edit', onClick: () => setEditing(true) }] : []} />
             <CarrinhoTopo />
           </div>
@@ -126,6 +128,16 @@ export function ApePublic({ sub }: { sub?: string }) {
           </div>
         ) : (view === 'orcamentos' || view === 'enviar') && d.pendente && me ? (
           <CodigoSL me={me} whats={whats} onOk={() => { const m = { ...me, aprovado: true }; setMe(m); write(CAD, m); void recarregar() }} />
+        ) : (view === 'orcamentos' || view === 'enviar') && !morador && !owner ? (
+          <section className="ape-panel ape-empty ape-trancado">
+            <span className="ic"><ApeIcon name="lock" /></span>
+            <b>área exclusiva dos moradores do {APE.condominio}</b>
+            <span>Os orçamentos do grupo só aparecem para quem mora no {APE.condominio}. {me ? 'O seu cadastro não está marcado como morador daqui.' : 'Entre ou faça o seu cadastro para ver.'}</span>
+            <div className="ape-acts">
+              {!me && <button className="ape-btn primary" onClick={() => setEditing(true)}><ApeIcon name="user" />entrar ou cadastrar</button>}
+              <a className="ape-btn" href={href('ape', 'loja')}><ApeIcon name="bag" />ver a loja do apê</a>
+            </div>
+          </section>
         ) : view === 'orcamentos' ? (
           <Orcamentos vis={vis} d={d} owner={owner} me={me} whats={whats} show={show} onCount={(id, n) => setD({ ...d, contagens: { ...d.contagens, [id]: n } })} onEscolha={(id, _nicho, ficou) => {
             // pode escolher mais de um no mesmo serviço: marca ou desmarca só este
@@ -145,7 +157,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         )}
         <Assinatura />
       </main>
-      {(!publico || morador) && (
+      {(morador || owner) && (
         <nav className="ape-bnav" aria-label="Seções">
           <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>
             <ApeIcon name="list" />
