@@ -2233,3 +2233,28 @@
   .ape-orc-hero .ape-acts .ape-btn:not(.primary) { font-size: 0; gap: 0; width: 46px; min-width: 46px; padding: 0; justify-content: center; flex: none; }
   .ape-orc-hero .ape-acts .ape-btn:not(.primary) .ape-i { width: 18px; height: 18px; }
 }
+
+/* cartão de orçamento enxuto */
+.ape-grupo-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ape-grupo-top .ape-grupo-check { flex: 1 1 auto; min-width: 0; }
+.ape-grupo-top .ape-grupo-check .t small { display: inline; margin-left: 6px; }
+.ape-grupo-top .ape-grupo-check .t b { display: inline; }
+.ape-grupo-n { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--a-muted); white-space: nowrap; flex: none; }
+.ape-grupo-n .ape-i { width: 15px; height: 15px; }
+.ape-grupo-n b { color: var(--a-ink); }
+.ape-oc .ape-grupo { padding: 10px 12px; gap: 8px; }
+.ape-oc .ape-grupo .ape-bar { height: 5px; }
+.ape-oc > .ape-acts { gap: 8px; align-items: center; }
+.ape-oc .ape-pr { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+.ape-grupo-top .ape-grupo-check .t { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.ape-grupo-top .ape-grupo-check .t small { margin-left: 0; }
+.ape .ape-oc .ape-pr.n1 { grid-template-columns: minmax(0, 220px); }
+.ape .ape-oc .ape-pr.n2, .ape .ape-oc .ape-pr.n4 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.ape .ape-oc .ape-pr.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.ape-oc .ape-tags { gap: 4px; }
+.ape-oc .ape-tags .ape-pill { font-size: 11px; padding: 3px 8px; }
+.ape .ape-oc .ape-pr { gap: 6px; }
+.ape .ape-oc .ape-pbox { padding: 9px 10px; min-width: 0; }
+.ape .ape-oc .ape-pbox .v { font-size: 14px; white-space: nowrap; }
+.ape .ape-oc .ape-pbox .l { font-size: 10.5px; }
+.ape .ape-oc .ape-pbox .h { font-size: 10.5px; line-height: 1.35; }

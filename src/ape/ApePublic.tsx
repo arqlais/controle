@@ -353,7 +353,11 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
             <Compartilhar />
           </div>
         </div>
-        <p className="ape-orc-num"><b className="num">{vis.filter(ehOrcamento).length}</b> orçamentos · <b className="num">{Object.keys(counts).length}</b> pastas · <b className="num">{vis.length - vis.filter(ehOrcamento).length}</b> contatos e tabelas</p>
+        <div className="ape-stats">
+          <div className="ape-stat"><b className="num">{vis.filter(ehOrcamento).length}</b><span>orçamentos</span></div>
+          <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>pastas</span></div>
+          <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos e tabelas</span></div>
+        </div>
       </section>
       <div className="ape-pastas" role="group" aria-label="Pastas por serviço">
         <button className={`ape-pasta ${nf === 'todos' ? 'on' : ''}`} onClick={() => setFiltro('todos')}>
@@ -435,10 +439,7 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
                 {vista === 'lista' ? (
                   <div className="ape-linhas">{[...(top ? [top] : []), ...rest].map((x) => <Linha key={x.o.id} x={x} isTop={x === top} me={me}>{card(x, x === top)}</Linha>)}</div>
                 ) : (
-                  <>
-                    {top && card(top, true)}
-                    {rest.length > 0 && <div className="ape-grid">{rest.map((x) => card(x, false))}</div>}
-                  </>
+                  <div className="ape-grid">{[...(top ? [top] : []), ...rest].map((x) => card(x, x === top))}</div>
                 )}
               </div>
             )
@@ -636,13 +637,13 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
 
   return (
     <article className={`ape-oc ${isTop ? 'top' : ''} ${c.st === 'vencido' ? 'vencido' : ''} ${o.oculto ? 'oculto' : ''}`}>
-      {isTop && <span className="ape-crown"><ApeIcon name="star" />Mais compensa</span>}
+      {isTop && <span className="ape-crown" title={why.join(' · ')}><ApeIcon name="star" />Mais compensa</span>}
       <div className="ape-oc-h">
         <b>{o.fornecedor || 'Fornecedor sem nome'}</b>
         <span>{o.servico}</span>
       </div>
       {o.resumo && <p className="ape-resumo">{o.resumo}</p>}
-      <div className="ape-pr">
+      <div className={`ape-pr n${1 + ((c.parcelas || 0) >= 2 ? 1 : 0) + (c.grupo != null ? 1 : 0) + (c.m2 != null ? 1 : 0)}`}>
         <div className="ape-pbox hl">
           <span className="l">À vista</span>
           <span className="v num">{brl(c.avista)}</span>
@@ -670,16 +671,9 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
           </div>
         )}
       </div>
-      {why.length > 0 && (
-        <ul className="ape-why">
-          {why.map((w) => (
-            <li key={w}><ApeIcon name="check" /><span>{w}</span></li>
-          ))}
-        </ul>
-      )}
       <div className="ape-tags">
         {o.exemplo && <span className="ape-pill rosa">Exemplo</span>}
-        {(() => { const { p, provavel } = plantaDe(o); const sua = !!p && p === plantaDoAp(me?.ap); return p ? <span className={`ape-pill ${sua ? 'azul' : ''}`} title={provavel ? 'Identificada pelas medidas do orçamento' : undefined}><ApeIcon name="home" />{provavel ? 'provável ' : ''}{PLANTA_ROT[p]}{sua ? ' (a sua)' : ''}</span> : <span className="ape-pill"><ApeIcon name="home" />planta não informada</span> })()}
+        {(() => { const { p, provavel } = plantaDe(o); const sua = !!p && p === plantaDoAp(me?.ap); return p ? <span className={`ape-pill ${sua ? 'azul' : ''}`} title={provavel ? 'Identificada pelas medidas do orçamento' : undefined}><ApeIcon name="home" />{provavel ? 'provável ' : ''}{PLANTA_ROT[p]}{sua ? ' (a sua)' : ''}</span> : null })()}
         {o.oculto && <span className="ape-pill rosa"><ApeIcon name="eye" />Oculto</span>}
         {x.badges.map((b) => (
           <span key={b.label} className={`ape-pill ${b.tone}`}><ApeIcon name={b.icon} />{b.label}</span>
@@ -690,24 +684,23 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
         )}
       </div>
       <div className={`ape-grupo ${joined ? 'on' : ''} ${condicao ? 'cond' : ''}`}>
-        <button type="button" className="ape-grupo-check" aria-pressed={joined} disabled={busy} onClick={() => void (joined ? sair() : entrar())}>
-          <span className="box" aria-hidden="true">{joined && <ApeIcon name="check" />}</span>
-          <span className="t"><b>{joined ? 'você quer fechar em grupo' : 'tenho interesse em fechar em grupo'}</b><small>{joined ? 'toque para desmarcar' : 'sem compromisso · dá para desmarcar'}</small></span>
-        </button>
-        <div className="ape-meta-t">
-          <span><ApeIcon name="users" /> {total} {total === 1 ? 'apê interessado' : 'apês interessados'}</span>
-          <b className="num">{falta ? `${total} de ${meta}` : 'meta batida'}</b>
+        <div className="ape-grupo-top">
+          <button type="button" className="ape-grupo-check" aria-pressed={joined} disabled={busy} onClick={() => void (joined ? sair() : entrar())}>
+            <span className="box" aria-hidden="true">{joined && <ApeIcon name="check" />}</span>
+            <span className="t"><b>{joined ? 'quero fechar em grupo' : 'fechar em grupo'}</b><small>{joined ? 'toque para desmarcar' : 'sem compromisso'}</small></span>
+          </button>
+          <span className="ape-grupo-n" title={`${total} ${total === 1 ? 'apê interessado' : 'apês interessados'}`}><ApeIcon name="users" /><b className="num">{falta ? `${total} de ${meta}` : 'meta batida'}</b></span>
         </div>
         <div className="ape-bar" role="progressbar" aria-valuemin={0} aria-valuemax={meta} aria-valuenow={Math.min(total, meta)} aria-label="Apês no grupo">
           <i style={{ width: `${Math.min(100, (total / meta) * 100)}%` }} />
         </div>
-        <span className="ape-note">
+        {(joined || condicao || !falta) && <span className="ape-note">
           {condicao
             ? <>Condição do grupo: <b>−{pct(c.gp)}</b>{o.grupo_desc ? ` (${o.grupo_desc})` : ''}{o.grupo_ate ? `, até ${dmy(o.grupo_ate)}` : ''}{o.grupo_por ? ` · registrada por ${o.grupo_por}` : ''}. Para fechar, fale com o fornecedor e diga "grupo {APE.condominio}".</>
             : falta
               ? `Faltam ${falta}. Com ${meta} apês, quem quiser puxa a conversa com o fornecedor e pede um desconto para todos.`
               : 'Meta batida! Quem quiser (de preferência quem mandou o orçamento) já pode pedir o desconto de grupo ao fornecedor.'}
-        </span>
+        </span>}
         {joined && (
           <div className="ape-acts ape-grupo-acts">
             {vendorWa && total >= 2 && <a className={`ape-btn sm ${falta ? '' : 'primary'}`} href={wa(vendorWa, `Oi! Somos ${total} apartamentos do ${APE.condominio} interessados em fechar ${nicho(o.nicho).l.toLowerCase()} com vocês, a partir do orçamento que vocês mandaram. Qual condição especial vocês fazem para o grupo (desconto e prazo para fechar)? Cada morador fecha o seu contrato direto com vocês.`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />pedir desconto de grupo</a>}
@@ -757,28 +750,14 @@ function Card({ x, a, isTop, me, whats, count, escolhas, minha, show, onCount, o
             <ApeIcon name="chat" />
             falar com o fornecedor
           </a>
-        ) : (
-          <span className="ape-note">Contato do fornecedor não informado</span>
-        )}
-        <button className={`ape-btn ${minha ? 'rose' : ''}`} onClick={() => void fechar()} disabled={esc} aria-pressed={minha} title={minha ? 'Tocar de novo desmarca' : 'Marca este como o que você vai contratar (um por serviço)'}>
+        ) : null}
+        <button className={`ape-btn sm ${minha ? 'rose' : ''}`} onClick={() => void fechar()} disabled={esc} aria-pressed={minha} title={minha ? 'Tocar de novo desmarca' : 'Marca este como o que você vai contratar (um por serviço)'}>
           <ApeIcon name={minha ? 'check' : 'star'} />
           {minha ? 'minha escolha' : 'vou fechar com este'}
         </button>
         {(o.arquivos?.length || o.enviado) && (
-          <button className="ape-btn ghost" onClick={() => setOriginal(true)}><ApeIcon name="file" />ver o original</button>
+          <button className="ape-btn ghost sm" onClick={() => setOriginal(true)}><ApeIcon name="file" />ver o original</button>
         )}
-        {c.gp > 0 &&
-          (joined ? (
-            <a className="ape-btn rose" href={wa(whats, msgGrupo(o, me))} target="_blank" rel="noopener noreferrer" title="Você já está na lista do grupo">
-              <ApeIcon name="check" />
-              você está no grupo
-            </a>
-          ) : (
-            <button className="ape-btn blue" onClick={entrar} disabled={busy}>
-              <ApeIcon name="users" />
-              entrar no grupo
-            </button>
-          ))}
       </div>
       {original && <Original o={o} me={me} onClose={() => setOriginal(false)} />}
     </article>
