@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
-import { baixarArquivo, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
+import { baixarArquivo, contaApi, guardarSessao, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
-import { Recolhe, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
+import { Recolhe, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
 
@@ -748,7 +748,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
             </div>
             <div className="ape-frow">
               <div className="ape-f"><label htmlFor="co-email">E-mail</label><input id="co-email" type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={() => setTocou({ ...tocou, email: true })} autoComplete="email" />{campo('email')}</div>
-              <div className="ape-f"><label htmlFor="co-tel">Celular (<span className="ape-keep">WhatsApp</span>)</label><input id="co-tel" type="tel" inputMode="tel" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => { setTel(fmtTel(tel)); setTocou({ ...tocou, tel: true }) }} autoComplete="tel" placeholder="(11) 90000-0000" />{campo('tel')}</div>
+              <div className="ape-f"><label htmlFor="co-tel">Celular (<span className="ape-keep">WhatsApp</span>)</label><input id="co-tel" type="tel" inputMode="tel" value={tel} onChange={(e) => setTel(mascaraTel(e.target.value))} onBlur={() => setTocou({ ...tocou, tel: true })} autoComplete="tel" placeholder="(11) 90000-0000" />{campo('tel')}</div>
             </div>
             <span className="ape-hint">Usamos para emitir a cobrança, entregar os arquivos, identificar a sua licença e recuperar a compra em outro aparelho. Dados do cartão você digita só na página segura do Asaas.</span>
           </CoStep>
@@ -952,6 +952,51 @@ function MinhasCompras() {
 }
 
 /* ===== página do pedido: Pix na tela, arquivos, bônus e plataforma ===== */
+/** Depois de pagar: cria o acesso (senha) e já entra na área com os arquivos. */
+function CriarAcesso({ p, token, onPronto }: { p: Pedido; token: string; onPronto: () => void }) {
+  const [modo, setModo] = useState<'criar' | 'entrar'>('criar')
+  const [senha, setSenha] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const enviar = async (e: FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    if (senha.length < 8) return setErr('A senha precisa de pelo menos 8 caracteres.')
+    setBusy(true)
+    try {
+      const r = await contaApi<{ token: string }>(modo, { email: p.email, senha, pedido: token })
+      guardarSessao(r.token)
+      onPronto()
+    } catch (x) {
+      const m = (x as Error).message
+      if (/já tem senha/i.test(m)) { setModo('entrar'); setErr('Esse e-mail já tem conta: digite a sua senha para entrar.') } else setErr(m)
+    }
+    setBusy(false)
+  }
+  return (
+    <section className="ape-panel ape-form ape-pedido ape-acesso">
+      <div className="ape-done" style={{ padding: 0 }}>
+        <ApeIcon name="check" />
+        <h2 className="ape-h2">{p.cortesia ? 'acesso' : 'pagamento'} <em>confirmado</em></h2>
+        <p className="ape-note" style={{ margin: 0 }}>Obrigada{p.nome ? `, ${firstName(p.nome)}` : ''}! Agora {modo === 'criar' ? 'crie a sua senha' : 'entre com a sua senha'} para abrir a sua área com os arquivos{p.plataforma ? ', a plataforma' : ''} e o bônus.</p>
+      </div>
+      <form className="ape-acesso-f" onSubmit={enviar} noValidate>
+        <div className="ape-f"><label>E-mail da compra</label><input value={p.email || ''} readOnly /></div>
+        <div className="ape-f"><label htmlFor="ac-senha">{modo === 'criar' ? 'Crie uma senha (8 ou mais caracteres)' : 'Sua senha'}</label><input id="ac-senha" type="password" autoComplete={modo === 'criar' ? 'new-password' : 'current-password'} value={senha} onChange={(e) => setSenha(e.target.value)} autoFocus /></div>
+        {err && <p className="ape-err" role="alert">{err}</p>}
+        <button className="ape-btn primary" type="submit" disabled={busy}>{busy ? 'abrindo…' : modo === 'criar' ? 'criar acesso e ver meus arquivos' : 'entrar e ver meus arquivos'}</button>
+        <button type="button" className="ape-linkish ape-link" onClick={() => { setModo(modo === 'criar' ? 'entrar' : 'criar'); setErr('') }}>{modo === 'criar' ? 'já tenho senha: entrar' : 'ainda não tenho senha: criar'}</button>
+      </form>
+      <ul className="ape-acesso-l">
+        <li><ApeIcon name="download" />seus arquivos, com o seu nome no rodapé</li>
+        {p.plataforma && <li><ApeIcon name="phone" />a plataforma do apê, por 12 meses</li>}
+        <li><ApeIcon name="lock" />o bônus surpresa, que abre no 8º dia</li>
+        <li><ApeIcon name="user" />tudo em um lugar, de qualquer aparelho</li>
+      </ul>
+    </section>
+  )
+}
+
 export function PedidoPage({ token, whats, produtos }: { token: string; whats: string; produtos?: Produto[] }) {
   if (produtos) PRODUTOS_LOJA = produtos
   const [p, setP] = useState<Pedido | null | undefined>(undefined)
@@ -1034,6 +1079,8 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
       </section>
     )
   const plat = p.plataforma
+  // como na Hotmart e na Kiwify: primeiro a pessoa cria o acesso (e-mail e senha), depois vê os arquivos
+  if (apeCloud && !sessaoLocal()) return <CriarAcesso p={p} token={token} onPronto={() => setN(n + 1)} />
   return (
     <section className="ape-panel ape-form ape-pedido">
       <div className="ape-done" style={{ padding: 0 }}>
@@ -1112,14 +1159,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
           <span className="t"><small>bônus surpresa · trancado</small><b>abre em {p.bonus.em ? Math.max(1, Math.ceil((new Date(p.bonus.em).getTime() - Date.now()) / 864e5)) : 7} dia(s)</b><span>Um arquivo que não está à venda, pensado para quem acabou de pegar as chaves. Volte aqui {p.bonus.em ? `em ${dmy(p.bonus.em)}` : 'no 8º dia'} para abrir.</span></span>
         </div>
       ))}
-      {!p.cortesia && (
-        <div className="ape-conta-convite">
-          <ApeIcon name="shield" />
-          <span><b>acesse quando quiser</b>Crie a sua senha com o e-mail da compra e encontre os arquivos, a plataforma e o bônus em minha conta, de qualquer aparelho.</span>
-          <a className="ape-btn sm" href={href('ape', `conta:criar:${token}:${encodeURIComponent(p.email || '')}`)}>criar senha</a>
-        </div>
-      )}
-      <p className="ape-note" style={{ margin: 0 }}>Precisa de ajuda ou quer desistir (até 7 dias depois da compra)? <a className="ape-link" href={wa(whats, `Oi! Sobre o pedido ${token.slice(0, 8)}:`)} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
+      <p className="ape-note" style={{ margin: 0 }}>Tudo também fica em <a className="ape-link" href={href('ape', 'conta')}>minha conta</a>, de qualquer aparelho. Precisa de ajuda? <a className="ape-link" href={wa(whats, `Oi! Sobre o pedido ${token.slice(0, 8)}:`)} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
     </section>
   )
 }

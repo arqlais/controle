@@ -65,7 +65,6 @@ export function MenuConta({ nome, owner = false, morador = false, extra = [], so
               <span>{l}</span>
             </a>
           ))}
-          {owner && (!so || so.includes('painel')) && <a role="menuitem" href={href('ape-admin')} onClick={() => setAberto(false)}><ApeIcon name="gear" />painel da dona</a>}
         </div>
       )}
     </div>

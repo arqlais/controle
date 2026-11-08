@@ -154,6 +154,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const aceite = { versao: TERMOS_VERSAO, em: new Date().toISOString() }
     const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma }).select('id, token').single()
     if (error || !ped) throw new Error(error?.message ?? 'não deu para criar o pedido')
+    await contaApi.lead({ email, nome, tel }, 'carrinho').catch(() => null)
     const customer = await cliente(nome, cpf, email, tel)
     const pay: J = {
       customer,
@@ -222,6 +223,8 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (ped) {
       await liberarPlataforma(ped)
       await contaApi.emailCompra(ped).catch(() => null)
+      await contaApi.avisarVenda(ped).catch(() => null)
+      await contaApi.lead(ped, 'cliente').catch(() => null)
     }
   }
 
@@ -323,7 +326,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const quem = `${ped.nome}${cpfM ? ` · CPF ${cpfM}` : ''} · pedido ${String(ped.token).slice(0, 8)}`
     // só caracteres que a fonte padrão aceita
     const limpa = (s: string) => s.normalize('NFC').replace(/[^\x20-\x7E\xA0-\xFF]/g, '') // Latin-1: acentos e "·" ficam
-    const linha = limpa(`Licenciado para ${quem} · uso pessoal · proibida a reprodução, distribuição ou revenda · planê.apê · useplane.com.br/ape`)
+    const linha = limpa(`planê.apê · useplane.com.br/ape · WhatsApp (11) 96928-8192 · licenciado para ${quem} · uso pessoal e intransferível`)
     for (const page of pdf.getPages()) {
       const { width, height } = page.getSize()
       const size = 6.2
@@ -350,10 +353,11 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
   }
 
   /** Devolve no Asaas (se pago), marca o pedido e fecha downloads e plataforma. */
-  async function reembolsarPedido(id: string) {
+  async function reembolsarPedido(id: string, manual = false) {
     const { data: ped } = await db.from('ape_pedidos').select('*').eq('id', id).maybeSingle()
     if (!ped) return
-    if (ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') {
+    // manual: a dona já devolveu por fora (ex.: o Asaas sem saldo para estornar); só fecha o acesso
+    if (!manual && ped.asaas_pagamento && !ped.cortesia && ped.status === 'pago') {
       // parcelado: estorna o parcelamento inteiro (todas as parcelas), não só uma
       const pg = await asaas(`/payments/${ped.asaas_pagamento}`).catch(() => ({}) as J)
       if (pg?.installment) await asaas(`/installments/${pg.installment}/refund`, { method: 'POST', body: '{}' })
@@ -375,7 +379,13 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (!adm) return json({ erro: 'Só a dona pode reembolsar.' }, 403)
     const { data: ped } = await db.from('ape_pedidos').select('id').eq('id', String(body.id ?? '')).maybeSingle()
     if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
-    await reembolsarPedido(ped.id)
+    try {
+      await reembolsarPedido(ped.id, body.manual === true)
+    } catch (e) {
+      // o Asaas devolve usando o saldo da conta: sem saldo, avisa para a dona devolver por fora e marcar
+      if (/saldo insuficiente/i.test(String(e))) return json({ erro: 'O Asaas ainda não tem saldo para devolver esse valor (o estorno usa o saldo da sua conta).', semSaldo: true }, 400)
+      throw e
+    }
     return json({ ok: true })
   }
 

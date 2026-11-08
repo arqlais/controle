@@ -687,7 +687,7 @@ export const loja = {
     fail(error)
   },
   /** Reembolso pelo Asaas (e fecha downloads e plataforma do pedido). */
-  async reembolsar(id: string) {
+  async reembolsar(id: string, manual = false) {
     if (!CLOUD) {
       writeLocal((l) => {
         const p = (l.pedidos || []).find((x) => x.token === id)
@@ -695,7 +695,7 @@ export const loja = {
       })
       return
     }
-    await invoke({ acao: 'ape-reembolsar', id })
+    await invoke({ acao: 'ape-reembolsar', id, manual })
   },
   async plataformas(): Promise<PlatAdmin[]> {
     if (!CLOUD) return Object.entries(readLocal().plataforma || {}).map(([token, a]) => ({ id: token, token, nome: a.nome, email: '', cpf: '', tel: '', validade: a.validade, cortesia: a.cortesia, criado: '', atualizado: a.atualizado, pedido: null }))
@@ -808,9 +808,9 @@ export async function depoimentos(): Promise<{ texto: string; nota: number | nul
   }
 }
 export const painelConta = {
-  async decidir(id: string, decisao: 'aprovar' | 'negar', resposta: string) {
+  async decidir(id: string, decisao: 'aprovar' | 'negar', resposta: string, manual = false) {
     if (!CLOUD) return
-    await invoke({ acao: 'ape-decidir', id, decisao, resposta })
+    await invoke({ acao: 'ape-decidir', id, decisao, resposta, manual })
   },
   async feedback(): Promise<{ id: string; tipo: string; texto: string; nota: number | null; nome: string; publicado: boolean; criado: string }[]> {
     if (!CLOUD) return []

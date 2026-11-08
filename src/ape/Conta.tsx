@@ -197,7 +197,7 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
               {c?.status === 'negado' && <p className="ape-note" style={{ margin: 0 }}>Cancelamento não aprovado{c.resposta ? `: ${c.resposta}` : ''}.</p>}
               <div className="ape-acts">
                 {p.status === 'pago' && <a className="ape-btn primary sm" href={href('ape', `pedido:${p.token}`)}><ApeIcon name="download" />abrir arquivos</a>}
-                {p.status === 'pago' && !p.cortesia && c?.status !== 'pedido' && cancelar !== p.id && <button className="ape-btn ghost sm" onClick={() => setCancelar(p.id)}>pedir cancelamento</button>}
+                {p.status === 'pago' && !p.cortesia && c?.status !== 'pedido' && cancelar !== p.id && <details className="ape-compra-mais"><summary>precisa de ajuda com esta compra?</summary><p className="ape-note">Fale com a gente no WhatsApp ou, se quiser desistir (até 7 dias depois da compra), <button type="button" className="ape-linkish ape-link" onClick={() => setCancelar(p.id)}>peça o cancelamento</button>.</p></details>}
               </div>
               {cancelar === p.id && (
                 <div className="ape-cancelar">

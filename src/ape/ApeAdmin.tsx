@@ -20,7 +20,7 @@ import './ape.css'
 /* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
+type Tab = 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -70,13 +70,14 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   }
 
   const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
+  const abandonados = carrinhosAbandonados(pedidos)
   // mesmos ícones do planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
     inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
-    pedidos: ['vendas', 'wallet', nCancel], clientes: ['clientes', 'user'], loja: ['produtos', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
+    pedidos: ['vendas', 'wallet', nCancel], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
   // menu enxuto: cada item abre uma tela; telas parecidas ficam juntas, em abas dentro dela
-  const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], loja: ['loja', 'entregas', 'opiniao'] }
+  const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], loja: ['loja', 'entregas', 'opiniao'], pedidos: ['pedidos', 'leads'] }
   const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
   const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], [APE.condominio, ['moradores', 'lista', 'grupos']], ['loja', ['pedidos', 'clientes', 'loja']]]
   const atual = ITENS[tab]
@@ -213,6 +214,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           {tab === 'grupos' && <Grupos orcs={orcs} interesses={interesses} onSaved={load} />}
           {tab === 'loja' && ajustes && <Loja ajustes={ajustes} onSaved={setAjustes} />}
           {tab === 'pedidos' && <Vendas pedidos={pedidos} onChange={load} />}
+          {tab === 'leads' && <Leads lista={abandonados} />}
           {tab === 'clientes' && ajustes && <Clientes pedidos={pedidos} produtos={ajustes.produtos} onChange={load} />}
           {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
           {tab === 'opiniao' && <Opinioes />}
@@ -1040,6 +1042,53 @@ const resumoItens = (itens: { nome: string; id?: string }[]) => {
   return base.map((i) => i.nome).join(' + ') + (resto > 0 ? ` + ${resto} ${resto === 1 ? 'item' : 'itens'}` : '')
 }
 
+/** Quem começou a compra (deixou nome, e-mail e celular) e não pagou: pedidos pendentes há mais de 30 min, sem outra compra paga com o mesmo e-mail. */
+function carrinhosAbandonados(pedidos: PedidoAdmin[]) {
+  const pagos = new Set(pedidos.filter((p) => p.status === 'pago').map((p) => p.email.toLowerCase()))
+  const vistos = new Set<string>()
+  return pedidos
+    .filter((p) => p.status === 'pendente' && !p.cortesia && Date.now() - new Date(p.criado).getTime() > 30 * 60e3 && !pagos.has(p.email.toLowerCase()))
+    .filter((p) => { const k = p.email.toLowerCase(); if (vistos.has(k)) return false; vistos.add(k); return true })
+}
+function Leads({ lista }: { lista: PedidoAdmin[] }) {
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(lista.map((p) => `${p.nome};${p.email};${p.tel}`).join('\n'))
+      toast('Lista copiada (nome;e-mail;celular): cole no Brevo ou numa planilha.')
+    } catch {
+      toast('Não consegui copiar.')
+    }
+  }
+  return (
+    <div style={{ display: 'grid', gap: 12 }}>
+      <div className="ape-banner">Quem preencheu os dados no checkout e não pagou. Uma mensagem simpática, perguntando se ficou alguma dúvida, recupera muita venda. Com o Brevo ligado, esses contatos também vão sozinhos para a sua lista de e-mail.</div>
+      {lista.length > 0 && <div className="ape-acts"><button className="ape-btn sm" onClick={() => void copiar()}><ApeIcon name="copy" />copiar a lista</button></div>}
+      {!lista.length && <div className="ape-empty"><b>nenhum carrinho abandonado</b><span>Quem começar uma compra e não terminar aparece aqui depois de 30 minutos.</span></div>}
+      <div className="ape-rows">
+        {lista.map((p) => {
+          const msg = `Oi, ${firstName(p.nome)}! Aqui é a ${APE.dona}, do planê.apê. Vi que você começou a compra (${resumoItens(p.itens)}) e não finalizou. Ficou alguma dúvida? Se quiser, te ajudo por aqui. Link da loja: https://useplane.com.br/ape/`
+          return (
+            <div key={p.id} className="ape-row">
+              <div className="t">
+                <b>{p.nome}</b>
+                <span title={p.itens.map((i) => i.nome).join(' + ')}>{resumoItens(p.itens)} · <span className="ape-keep">{brl(p.total)}</span></span>
+                <span>{p.email}{p.tel ? ` · ${fmtTel(p.tel)}` : ''} · {dmy(p.criado)}</span>
+              </div>
+              <div className="r">
+                {waNum(p.tel) && <a className="ape-btn primary sm" href={wa(waNum(p.tel)!, msg)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>}
+                <a className="ape-btn sm" href={`mailto:${p.email}?subject=${encodeURIComponent('Sua compra no planê.apê')}&body=${encodeURIComponent(msg)}`}><ApeIcon name="send" />e-mail</a>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const semSaldo = (e: unknown) => /saldo/i.test(String((e as Error)?.message ?? e))
+const MSG_SEM_SALDO = (v: string, nome: string) => `O Asaas ainda não tem saldo para devolver ${v} (o estorno sai do saldo da sua conta; o valor da venda entra menos a taxa). Você pode devolver por Pix direto para ${nome} e marcar aqui como reembolsado: os downloads e a plataforma deste pedido param do mesmo jeito.`
+
 function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () => void }) {
   const [ver, setVer] = useState<'pago' | 'pendente' | 'todos'>('pago')
   const [q, setQ] = useState('')
@@ -1056,7 +1105,9 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
       toast(pago ? 'Reembolso pedido ao Asaas.' : 'Pedido cancelado.')
       onChange()
     } catch (e) {
-      toast(`Não consegui (${(e as Error).message}).`)
+      if (semSaldo(e) && (await ask(MSG_SEM_SALDO(brl(p.total), p.nome), { confirmLabel: 'já devolvi por Pix: marcar' }))) {
+        await loja.reembolsar(p.id, true).then(() => { toast('Marcado como reembolsado.'); onChange() }, (x) => toast(`Não consegui (${(x as Error).message}).`))
+      } else if (!semSaldo(e)) toast(`Não consegui (${(e as Error).message}).`)
     }
   }
   const pendentes = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago')
@@ -1070,7 +1121,9 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
       toast(decisao === 'aprovar' ? 'Cancelamento aprovado e reembolso pedido ao Asaas.' : 'Resposta enviada ao cliente.')
       onChange()
     } catch (e) {
-      toast(`Não consegui (${(e as Error).message}).`)
+      if (semSaldo(e) && (await ask(MSG_SEM_SALDO(brl(p.total), p.nome), { confirmLabel: 'já devolvi por Pix: aprovar' }))) {
+        await painelConta.decidir(p.id, decisao, resposta, true).then(() => { toast('Cancelamento aprovado e marcado como reembolsado.'); onChange() }, (x) => toast(`Não consegui (${(x as Error).message}).`))
+      } else if (!semSaldo(e)) toast(`Não consegui (${(e as Error).message}).`)
     }
   }
   return (

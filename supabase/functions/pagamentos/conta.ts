@@ -25,7 +25,7 @@ async function confere(senha: string, guardada: string) {
 }
 const sha = async (s: string) => b64(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))))
 
-export function makeConta({ db, json, site, env }: Deps, reembolsarPedido: (id: string) => Promise<void>) {
+export function makeConta({ db, json, site, env }: Deps, reembolsarPedido: (id: string, manual?: boolean) => Promise<void>) {
   const APE = `${site.replace(/\/$/, '')}/ape/`
   const DONO = env('OWNER_EMAIL', env('REPLY_TO', 'equipe.plane@gmail.com'))
 
@@ -57,8 +57,8 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     const itens = ((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')
     const ok = await mandar(ped.email, ped.nome, 'Sua compra no planê.apê: arquivos liberados', layout(
       `Obrigada, ${esc(String(ped.nome || '').split(' ')[0])}!`,
-      `<p>Seu pagamento foi confirmado. Seus arquivos já estão liberados:</p><ul>${itens}</ul><p>Para acessar quando quiser, de qualquer aparelho, crie a sua senha em <b>minha conta</b> com este e-mail. Lá ficam os arquivos, a plataforma (se comprou) e o bônus, que chega 7 dias depois da compra.</p><p style="font-size:12px;color:#8a817a">Os PDFs saem com o seu nome no rodapé (licença de uso pessoal). Para desistir, você tem 7 dias: peça em minha conta → minhas compras.</p>`,
-      'ver meus arquivos', link))
+      `<p>Seu pagamento foi confirmado:</p><ul>${itens}</ul><p>Para abrir os seus arquivos, toque no botão abaixo e <b>crie a sua senha</b> com este e-mail. Depois é só entrar em <b>minha conta</b>, de qualquer aparelho: lá ficam os arquivos, a plataforma (se comprou) e o bônus surpresa, que abre 7 dias depois da compra.</p><p style="font-size:12px;color:#8a817a">Os PDFs saem com o seu nome no rodapé (uso pessoal e intransferível). Direito de arrependimento: 7 dias, em minha conta.</p>`,
+      'criar meu acesso', link))
     if (ok) await db.from('ape_pedidos').update({ email_enviado: true }).eq('id', ped.id)
   }
 
@@ -210,6 +210,24 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ erro: 'Ação desconhecida.' }, 400)
   }
 
+  /** Aviso para a dona a cada venda confirmada. */
+  async function avisarVenda(ped: J) {
+    const itens = ((ped.itens ?? []) as J[]).map((i) => `<li>${esc(i.nome)}</li>`).join('')
+    await mandar(DONO, 'Laís', `Venda confirmada: R$ ${Number(ped.total).toFixed(2).replace('.', ',')} · ${ped.nome}`, layout('Pagamento recebido', `<p><b>${esc(ped.nome)}</b> (${esc(ped.email)}) pagou <b>R$ ${Number(ped.total).toFixed(2).replace('.', ',')}</b> no ${ped.forma === 'cartao' ? 'cartão' : 'Pix'}${ped.cortesia ? ' (cortesia)' : ''}:</p><ul>${itens}</ul>`, 'abrir o painel', `${site.replace(/\/$/, '')}/#/ape-admin`))
+  }
+  /** Guarda o contato como lead no Brevo (lista de e-mail marketing): "carrinho" ao começar a compra, "cliente" ao pagar. */
+  async function lead(p: J, etapa: 'carrinho' | 'cliente') {
+    const key = env('BREVO_API_KEY')
+    if (!key || !mailOk(String(p.email ?? ''))) return
+    const lista = Number(env(etapa === 'cliente' ? 'BREVO_LISTA_CLIENTES' : 'BREVO_LISTA_LEADS', '0')) || 0
+    const nome = String(p.nome ?? '').trim()
+    await fetch('https://api.brevo.com/v3/contacts', {
+      method: 'POST',
+      headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify({ email: String(p.email).toLowerCase(), updateEnabled: true, attributes: { NOME: nome.split(' ')[0], SOBRENOME: nome.split(' ').slice(1).join(' '), ETAPA: etapa, ORIGEM: 'planê.apê' }, ...(lista ? { listIds: [lista] } : {}) }),
+    }).catch(() => null)
+  }
+
   /** A dona decide o pedido de cancelamento (aprovar = reembolsa pelo Asaas e fecha o acesso). */
   async function decidir(req: Request, body: J) {
     const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
@@ -221,7 +239,14 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     if (!ped) return json({ erro: 'Pedido não encontrado.' }, 404)
     const aprovar = body.decisao === 'aprovar'
     const resposta = String(body.resposta ?? '').slice(0, 800)
-    if (aprovar) await reembolsarPedido(ped.id)
+    if (aprovar) {
+      try {
+        await reembolsarPedido(ped.id, body.manual === true)
+      } catch (e) {
+        if (/saldo insuficiente/i.test(String(e))) return json({ erro: 'O Asaas ainda não tem saldo para devolver esse valor (o estorno usa o saldo da sua conta).', semSaldo: true }, 400)
+        throw e
+      }
+    }
     await db.from('ape_pedidos').update({ cancelamento: { ...(ped.cancelamento ?? {}), status: aprovar ? 'aprovado' : 'negado', resposta, decidido_em: new Date().toISOString() } }).eq('id', ped.id)
     await mandar(ped.email, ped.nome, aprovar ? 'Seu cancelamento foi aprovado' : 'Sobre o seu pedido de cancelamento', layout(aprovar ? 'Cancelamento aprovado' : 'Pedido de cancelamento', aprovar ? `<p>O valor de R$ ${Number(ped.total).toFixed(2).replace('.', ',')} volta pelo mesmo meio de pagamento (no cartão, pode levar até 2 faturas). Os links de download foram desativados e pedimos que apague os arquivos baixados.</p>${resposta ? `<p>${esc(resposta)}</p>` : ''}` : `<p>${esc(resposta || 'Seu pedido de cancelamento não pôde ser aprovado. Responda este e-mail se quiser conversar.')}</p>`))
     return json({ ok: true })
@@ -233,5 +258,5 @@ ${botao && url ? `<tr><td style="padding-top:20px"><a href="${url}" style="displ
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead }
 }

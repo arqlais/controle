@@ -9,7 +9,7 @@ import {
 } from './model'
 import { BotaoCarrinho, MenuConta, Voltar } from './Navega'
 import { SanLeviArte, SanLeviIcone } from './SanLevi'
-import { Assinatura, AvisoCookies, MARK_SVG, read, useCarrinho, useToast, write } from './shared'
+import { Assinatura, AvisoCookies, MARK_SVG, mascaraTel, read, useCarrinho, useToast, write } from './shared'
 import { Checkout, Loja, PedidoPage } from './Loja'
 import { Enviar } from './Enviar'
 import { Plataforma } from './Plataforma'
@@ -121,12 +121,6 @@ export function ApePublic({ sub }: { sub?: string }) {
                 <ApeIcon name="bag" />
                 Loja do apê
               </a>
-              {owner && (
-                <a href={href('ape-admin')}>
-                  <ApeIcon name="gear" />
-                  Painel
-                </a>
-              )}
             </nav>
           </div>
         </header>
@@ -180,12 +174,6 @@ export function ApePublic({ sub }: { sub?: string }) {
             <ApeIcon name="bag" />
             loja
           </a>
-          {owner && (
-            <a href={href('ape-admin')}>
-              <ApeIcon name="gear" />
-              painel
-            </a>
-          )}
         </nav>
       )}
       {!publico && (
@@ -266,7 +254,7 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
           <button onClick={() => ir('loja-servicos')}>projetos</button>
           {morador && <a href={href('ape')} className="ape-link-sl"><SanLeviIcone size={16} />área do {APE.condominio}</a>}
         </nav>
-        <MenuConta nome={nome} owner={owner} morador={morador} so={['sanlevi', 'plataforma', 'conta', 'painel']} />
+        <MenuConta nome={nome} owner={owner} morador={morador} so={['sanlevi', 'plataforma', 'conta']} />
         <BotaoCarrinho n={n} />
       </div>
     </header>
@@ -352,7 +340,6 @@ function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEdit
       {owner && exemplos > 0 && (
         <div className="ape-banner warn">
           Os cartões marcados como <b>exemplo</b> e os ocultos só aparecem para você.
-          <a className="ape-btn sm" href={href('ape-admin')}>abrir o painel</a>
         </div>
       )}
       {!apeCloud && <div className="ape-banner">Prévia: os dados ficam só neste navegador e os orçamentos são de exemplo.</div>}
@@ -1015,7 +1002,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
         )}
         <div className="ape-f">
           <label htmlFor="g-tel">Celular (<span className="ape-keep">WhatsApp</span>)</label>
-          <input id="g-tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="(11) 90000-0000" value={tel} onChange={(e) => setTel(e.target.value)} onBlur={() => setTel(fmtTel(tel))} required />
+          <input id="g-tel" type="tel" inputMode="tel" autoComplete="tel" placeholder="(11) 90000-0000" value={tel} onChange={(e) => setTel(mascaraTel(e.target.value))} required />
         </div>
         {!me && apeCloud && sl && (
           <div className="ape-f">
