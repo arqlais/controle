@@ -123,70 +123,49 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         </div>
       </section>
 
-      {/* o que é cada coisa: para ninguém achar que está comprando a mesma coisa duas vezes */}
-      <section className="ape-tipos" aria-label="O que tem na loja">
+      {/* o que tem na loja, num bloco só: arquivos por etapa, kits e plataforma */}
+      <section className="ape-oque" aria-label="O que tem na loja">
         <h3 className="ape-sec-t">o que você <em>precisa?</em></h3>
-        <div className="ape-tipos-grid">
-          <button className="ape-tipo" onClick={() => { location.hash = '#/ape/loja:arquivos' }}>
-            <ApeArt name="planilha" size={40} />
-            <b>arquivos e planilhas</b>
-            <span>Cada um resolve <u>uma tarefa</u>: baixa, usa e pronto. Fica com você.</span>
-            <em>a partir de <span className="ape-keep">{brl(Math.min(...arquivos.map((p) => reais(p.preco))))}</span></em>
-          </button>
-          <button className="ape-tipo" onClick={() => ir('loja-kits')}>
-            <ApeArt name="casa" size={40} tone="sec" />
-            <b>kits</b>
-            <span>Os arquivos <u>da mesma etapa</u> juntos, com o desconto já no preço.</span>
-            <em>até {Math.max(0, ...kits.map((k) => k.kitPct || 0))}% mais barato</em>
-          </button>
+        <div className="ape-oque-grid">
+          <div className="ape-esc arq">
+            <div className="ape-esc-h">
+              <ApeArt name="planilha" size={44} />
+              <span><b>arquivos e planilhas</b><small>Cada um resolve <u>uma tarefa</u>: baixa, usa e pronto. Fica com você.</small></span>
+            </div>
+            <div className="ape-esc-l">
+              {fases.map((f) => {
+                const lista = arquivos.filter((p) => (p.fase || 'comprei') === f.id)
+                if (!lista.length) return null
+                return (
+                  <a key={f.id} href={href('ape', `loja:arquivos-${f.id}`)}>
+                    <ApeArt name={f.arte} size={30} />
+                    <span><b>{f.l}</b><small>{lista.length} arquivos · desde <span className="ape-keep">{brl(Math.min(...lista.map((p) => pixDe(reais(p.preco)))))}</span></small></span>
+                    <ApeIcon name="chev" />
+                  </a>
+                )
+              })}
+              {kits.length > 0 && (
+                <a className="kit" href={href('ape', 'loja:arquivos-kits')}>
+                  <ApeArt name="casa" size={30} tone="sec" />
+                  <span><b>kits: a etapa inteira</b><small>{kits.length} kits · até {Math.max(0, ...kits.map((k) => k.kitPct || 0))}% mais barato</small></span>
+                  <ApeIcon name="chev" />
+                </a>
+              )}
+            </div>
+            <a className="ape-esc-todos" href={href('ape', 'loja:arquivos')}>ver todos os {arquivos.length} arquivos e kits<ApeIcon name="chev" /></a>
+          </div>
           {plat && (
-            <button className="ape-tipo" onClick={() => ir('loja-plataforma')}>
-              <ApeArt name="celular" size={40} />
+            <button type="button" className="ape-esc plat" onClick={() => ir('loja-plataforma')}>
+              <ApeArt name="celular" size={44} />
               <b>plataforma do apê</b>
-              <span>Um site para <u>acompanhar a jornada inteira</u> com os seus dados: gastos, parcelas, obra, vistoria.</span>
+              <small>Um site para <u>acompanhar a jornada inteira</u> com os seus dados: gastos, parcelas, obra, vistoria.</small>
               <em>12 meses · <span className="ape-keep">{plat.preco}</span></em>
+              <span className="ape-esc-todos">conhecer<ApeIcon name="chev" /></span>
             </button>
           )}
         </div>
         <p className="ape-note ape-tipos-nota"><b>arquivos</b> ficam com você para sempre · a <b>plataforma</b> junta tudo, com os seus dados, por 12 meses.</p>
       </section>
-
-      <div id="loja-arquivos" className="ape-anchor" />
-      <section className="ape-arqlinks" aria-label="Arquivos por etapa">
-        <div className="ape-arqlinks-h">
-          <h3 className="ape-sec-t">os <em>arquivos</em></h3>
-          <a href={href('ape', 'loja:arquivos')}>ver todos os {arquivos.length}<ApeIcon name="chev" /></a>
-        </div>
-        <div className="ape-arqlinks-l">
-          {fases.map((f) => {
-            const lista = arquivos.filter((p) => (p.fase || 'comprei') === f.id)
-            if (!lista.length) return null
-            return (
-              <a key={f.id} href={href('ape', `loja:arquivos-${f.id}`)}>
-                <b>{f.l}</b>
-                <small>{lista.length} arquivos · desde <span className="ape-keep">{brl(Math.min(...lista.map((p) => pixDe(reais(p.preco)))))}</span></small>
-                <ApeIcon name="chev" />
-              </a>
-            )
-          })}
-        </div>
-      </section>
-
-      {kits.length > 0 && (
-        <section id="loja-kits" className="ape-nicho ape-reveal" aria-label="Kits">
-          <div className="ape-nhead">
-            <div>
-              <h3>kits</h3>
-              <span className="ape-note">O preço do kit sai sozinho: a soma dos arquivos com o desconto do kit. No Pix, ainda tem {pixPct}% off.</span>
-            </div>
-          </div>
-          <Fileira n={kits.length} rotulo="kits">
-            {kits.map((p) => (
-              <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />
-            ))}
-          </Fileira>
-        </section>
-      )}
 
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
@@ -243,7 +222,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
 
 /* capa da loja: as capas dos arquivos soltas, um celular com a plataforma e avisos flutuando (mexe com o mouse) */
 function HeroArt({ pix }: { pix: number }) {
-  const [t, setT] = useState({ x: 0, y: 0 })
   const [feitos, setFeitos] = useState(2)
   useEffect(() => {
     const i = window.setInterval(() => setFeitos((n) => (n >= 5 ? 2 : n + 1)), 1800)
@@ -254,12 +232,6 @@ function HeroArt({ pix }: { pix: number }) {
     <div
       className="ape-hero-art"
       aria-hidden="true"
-      onMouseMove={(e) => {
-        const r = e.currentTarget.getBoundingClientRect()
-        setT({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 })
-      }}
-      onMouseLeave={() => setT({ x: 0, y: 0 })}
-      style={{ ['--tx' as string]: t.x, ['--ty' as string]: t.y }}
     >
       <img className="ape-hp p1" src="ape/amostras/c-compra.jpg" alt="" />
       <img className="ape-hp p2" src="ape/amostras/c-checklist.jpg" alt="" />
@@ -275,7 +247,7 @@ function HeroArt({ pix }: { pix: number }) {
         <div className="ape-hc-card">
           <span>obra, passo a passo</span>
           {etapas.map((e, k) => (
-            <p key={e} className={k < feitos ? 'ok' : ''}><u>{k < feitos ? <ApeIcon name="check" /> : null}</u>{e}</p>
+            <p key={e} className={`${k < feitos ? 'ok' : ''} ${k === feitos - 1 ? 'agora' : ''}`}><u>{k < feitos ? <ApeIcon name="check" /> : null}</u>{e}</p>
           ))}
         </div>
       </div>
@@ -512,6 +484,8 @@ function Surpresa() {
 /** Página só dos arquivos: tudo separado por etapa, como uma loja de verdade (com explicação e jeito de conversa). */
 function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, whats }: { fases: Fase[]; arquivos: Produto[]; kits: Produto[]; ini?: string; byId: ById; onOpen: (p: Produto) => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const cats = fases.map((f) => ({ f, lista: arquivos.filter((p) => (p.fase || 'comprei') === f.id) })).filter((c) => c.lista.length)
+  // kit da etapa: o que só tem arquivos daquela etapa (aparece junto, no começo da etapa)
+  const kitDe = (id: string) => kits.find((k) => (k.combo || []).length > 0 && (k.combo || []).every((c) => (arquivos.find((a) => a.id === c)?.fase || 'comprei') === id))
   const [ativa, setAtiva] = useState<string>(ini || 'todos')
   useEffect(() => {
     if (ini) window.setTimeout(() => document.getElementById(`cat-${ini}`)?.scrollIntoView({ block: 'start' }), 80)
@@ -537,26 +511,33 @@ function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, w
       </section>
       <nav className="ape-cat-nav" aria-label="Etapas">
         <button aria-pressed={ativa === 'todos'} onClick={() => ir('todos')}>todos <small>{arquivos.length}</small></button>
-        {cats.map(({ f, lista }) => <button key={f.id} aria-pressed={ativa === f.id} onClick={() => ir(f.id)}>{f.chip} <small>{lista.length}</small></button>)}
+        {cats.map(({ f, lista }) => <button key={f.id} aria-pressed={ativa === f.id} onClick={() => ir(f.id)}><ApeArt name={f.arte} size={18} />{f.chip} <small>{lista.length}</small></button>)}
+        {kits.length > 0 && <button aria-pressed={ativa === 'kits'} onClick={() => ir('kits')}><ApeArt name="casa" size={18} tone="sec" />kits <small>{kits.length}</small></button>}
       </nav>
       {cats.map(({ f, lista }) => (
         <section key={f.id} id={`cat-${f.id}`} className="ape-cat-sec" aria-label={f.l}>
           <div className="ape-cat-sec-h">
-            <h3>{f.l}</h3>
-            <p>{f.d}</p>
+            <ApeArt name={f.arte} size={40} />
+            <span><h3>{f.l}</h3><p>{f.d}</p></span>
           </div>
           <div className="ape-cat-grid">
+            {(() => { const k = kitDe(f.id); return k ? <ProdCard key={k.id} p={k} byId={byId} onOpen={() => onOpen(k)} cart={cart} onAdd={onAdd} me={me} whats={whats} /> : null })()}
             {lista.map((p) => <ProdCard key={p.id} p={p} byId={byId} onOpen={() => onOpen(p)} cart={cart} onAdd={onAdd} me={me} whats={whats} />)}
           </div>
         </section>
       ))}
-      <Surpresa />
       {kits.length > 0 && (
-        <a className="ape-cat-kits" href={href('ape', 'loja')} onClick={() => window.setTimeout(() => document.getElementById('loja-kits')?.scrollIntoView({ block: 'start' }), 120)}>
-          <span><b>quer a etapa inteira?</b><small>Os kits juntam os arquivos da mesma etapa{maxKit ? ` e saem até ${maxKit}% mais barato` : ''}.</small></span>
-          <em>ver os kits<ApeIcon name="chev" /></em>
-        </a>
+        <section id="cat-kits" className="ape-cat-sec" aria-label="Kits">
+          <div className="ape-cat-sec-h">
+            <ApeArt name="casa" size={40} tone="sec" />
+            <span><h3>kits</h3><p>Os arquivos da mesma etapa juntos{maxKit ? `, até ${maxKit}% mais barato` : ''}. O preço sai sozinho: a soma dos arquivos com o desconto do kit.</p></span>
+          </div>
+          <div className="ape-cat-grid">
+            {kits.map((p) => <ProdCard key={p.id} p={p} byId={byId} onOpen={() => onOpen(p)} cart={cart} onAdd={onAdd} me={me} whats={whats} />)}
+          </div>
+        </section>
       )}
+      <Surpresa />
     </div>
   )
 }
@@ -599,7 +580,7 @@ function BotaoCompra({ p, cart, onAdd, me, whats, wide = true }: { p: Produto; c
 function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; n?: number; byId: ById; onOpen: () => void; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string }) {
   const img = p.amostras?.[0]
   return (
-    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo ? 'com-selo' : ''}`}>
+    <article className={`ape-prod ${p.destaque ? 'top' : ''} ${p.selo ? 'com-selo' : ''} ${p.cat === 'combos' ? 'kit' : ''}`}>
       {p.selo && <span className="ape-selo"><ApeIcon name="star" />{p.selo}</span>}
       <button className="ape-thumb" onClick={onOpen} aria-label={`Ver ${p.nome} por dentro`}>
         {img ? (

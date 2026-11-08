@@ -235,7 +235,7 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
         </a>
         <nav className="ape-shoplinks" aria-label="Loja">
           <button onClick={() => { location.hash = '#/ape/loja:arquivos' }}>arquivos</button>
-          <button onClick={() => ir('loja-kits')}>kits</button>
+          <button onClick={() => { location.hash = '#/ape/loja:arquivos-kits' }}>kits</button>
           <button onClick={() => ir('loja-plataforma')}>plataforma</button>
           <button onClick={() => ir('loja-servicos')}>projetos</button>
         </nav>
