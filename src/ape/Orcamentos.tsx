@@ -344,12 +344,21 @@ function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: 
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return
       io.disconnect()
-      if (!MINIS.has(o.id)) MINIS.set(o.id, miniDe(me, o).catch(() => ''))
-      void MINIS.get(o.id)!.then(setSrc)
+      // guarda só o que deu certo; se falhar, tenta de novo daqui a pouco (o cadastro do aparelho pode estar sendo conferido)
+      const tenta = (n: number) => {
+        const p = MINIS.get(o.id) || miniDe(me, o)
+        MINIS.set(o.id, p)
+        p.then((u) => { if (u) setSrc(u); else throw new Error('vazio') }).catch((e) => {
+          MINIS.delete(o.id)
+          if (n < 2) window.setTimeout(() => tenta(n + 1), 2500)
+          else console.warn('prévia do orçamento', o.id, (e as Error)?.message)
+        })
+      }
+      tenta(0)
     }, { rootMargin: '200px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [o.id])
+  }, [o.id, me?.id])
   return <span ref={ref} className={`mini ${src ? 'ok' : ''}`}>{src ? <img src={src} alt="" loading="lazy" /> : <ApeIcon name={icone} />}</span>
 }
 

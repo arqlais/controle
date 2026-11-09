@@ -302,6 +302,13 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   )
 }
 
+/** Miniatura do print escolhido, direto do aparelho (antes de enviar). */
+function PreviaLocal({ f }: { f: File }) {
+  const [u, setU] = useState('')
+  useEffect(() => { const x = URL.createObjectURL(f); setU(x); return () => URL.revokeObjectURL(x) }, [f])
+  return u ? <img className="ape-lido-th" src={u} alt="" /> : null
+}
+
 function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: { n: number; l: Lido; podeJuntar: boolean; onJuntar: () => void; onChange: (o: Orcamento) => void; onToggle: () => void; onRemove: () => void }) {
   const o = l.o
   const falta = l.status === 'pronto' ? faltando(o) : []
@@ -309,7 +316,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: 
   return (
     <section className={`ape-lido ${falta.length ? 'falta' : ''}`} aria-label={`Orçamento ${n}`}>
       <header>
-        <span className="ape-lido-n">{n}</span>
+        {l.files[0] && /^image\//i.test(l.files[0].type) ? <PreviaLocal f={l.files[0]} /> : <span className="ape-lido-n">{n}</span>}
         <div className="t">
           <b>{l.status === 'lendo' ? 'lendo…' : o.fornecedor || 'fornecedor?'}</b>
           <span>{l.files.map((f) => f.name).join(', ') || 'texto colado'}{l.msg ? ` · ${l.msg}` : ''}</span>

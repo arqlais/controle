@@ -618,6 +618,18 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
       const { data: m } = await db.from('ape_moradores').select('aprovado, condominio').eq('id', morador).maybeSingle()
       pode = !!m?.aprovado && (m.condominio ?? 'San Levi') === 'San Levi'
     }
+    // conta logada (e-mail e senha) de um morador aprovado também abre
+    const sess = String(body.sessao ?? '')
+    if (!pode && /^[0-9a-f-]{36}$/i.test(sess)) {
+      const { data: se } = await db.from('ape_sessoes').select('cliente, expira').eq('token', sess).maybeSingle()
+      if (se && (!se.expira || new Date(se.expira).getTime() > Date.now())) {
+        const { data: cl } = await db.from('ape_clientes').select('morador').eq('id', se.cliente).maybeSingle()
+        if (cl?.morador) {
+          const { data: m2 } = await db.from('ape_moradores').select('aprovado, condominio').eq('id', cl.morador).maybeSingle()
+          pode = !!m2?.aprovado && (m2.condominio ?? 'San Levi') === 'San Levi'
+        }
+      }
+    }
     if (!pode) {
       const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
       const { data: u } = jwt ? await db.auth.getUser(jwt) : { data: { user: null } }

@@ -971,6 +971,6 @@ export async function moradorConta(op: 'morador' | 'entrar', dados: Record<strin
 /** Arquivos originais de um orçamento (PDF, foto), como foram mandados. */
 export async function verOriginal(moradorId: string | undefined, orcamento: string): Promise<{ nome: string; tipo: string; url: string }[]> {
   if (!CLOUD) return []
-  const r = await invoke<{ arquivos: { nome: string; tipo: string; url: string }[] }>({ acao: 'ape-original', morador: moradorId || '', orcamento })
+  const r = await invoke<{ arquivos: { nome: string; tipo: string; url: string }[] }>({ acao: 'ape-original', morador: moradorId || '', sessao: sessaoLocal(), orcamento })
   return r.arquivos
 }
