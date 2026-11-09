@@ -434,7 +434,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     return btoa(s)
   }
   /** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que uma admin colocou no planê (configurações → assistente). */
-  const MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash']
+  const MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash']
   async function geminiKey() {
     const k = env('GEMINI_API_KEY').trim()
     if (k) return k
@@ -485,18 +485,23 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
     await db.from('ape_leituras').insert({ morador })
     // tenta do modelo mais novo para o mais antigo (o Google desliga modelos antigos para contas novas)
     let r: Response | null = null
+    // duas voltas: se todos estiverem ocupados (503) ou no limite (429), espera um pouco e tenta de novo
+    volta: for (let tentativa = 0; tentativa < 2; tentativa++) {
+    if (tentativa) await new Promise((ok) => setTimeout(ok, 2500))
     for (const model of MODELOS) {
       const cfg: J = { temperature: 0.1, responseMimeType: 'application/json', ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
       r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: cfg }) })
       // modelo indisponível, sem cota ou instável: tenta o próximo (cada modelo tem a sua cota)
-      if (r.ok || (r.status === 400 && !/model|not (found|supported)|no longer/i.test(await r.clone().text().catch(() => ''))) || r.status === 403) break
+      if (r.ok || (r.status === 400 && !/model|not (found|supported)|no longer/i.test(await r.clone().text().catch(() => ''))) || r.status === 403) break volta
+    }
+    if (r && r.status !== 503 && r.status !== 429) break
     }
     if (!r) return json({ erro: 'não deu para ler agora' }, 502)
     const out = (await r.json().catch(() => ({}))) as J
     if (!r.ok) {
       const msg = String(out.error?.message ?? '')
       console.log('ape-ler: Gemini respondeu', r.status, msg.slice(0, 300))
-      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 402 ? 'créditos do Gemini acabaram' : r.status === 429 ? 'limite do Gemini atingido' : 'não deu para ler agora', status: r.status }, 502)
+      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 402 ? 'créditos do Gemini acabaram' : r.status === 429 ? 'limite do Gemini atingido' : r.status === 503 ? 'o Gemini está sobrecarregado agora, tente de novo em instantes' : 'não deu para ler agora', status: r.status }, 502)
     }
     const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
     let v: J = {}

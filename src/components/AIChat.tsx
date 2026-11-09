@@ -74,7 +74,7 @@ export const readFile = async (f: File): Promise<Attachment> => {
 }
 
 // do mais novo para o mais antigo: o Google desliga modelos antigos para contas novas, então tenta o próximo se um não existir
-const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash']
+const MODELS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash']
 
 /** Anexos antigos não vão de novo a cada pergunta (só os da última mensagem com arquivo): evita estourar o limite. */
 const keepRecentFiles = (history: Msg[]) => {
