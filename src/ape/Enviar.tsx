@@ -9,6 +9,17 @@ import { APE, opcoesNicho, PLANTA_ROT, plantaDoAp, blankOrcamento, brl, cleanOrc
 /* Enviar orçamento: anexa um ou mais arquivos, cada arquivo vira um orçamento lido sozinho (IA no servidor;
    sem IA, regras simples sobre o texto do PDF). A pessoa só completa o que faltou e publica direto na comparação. */
 
+/** Lê um contato salvo (.vcf, do "compartilhar contato" do iPhone ou do Android): nome, telefone, e-mail e site. */
+function lerVcf(txt: string): { nome: string; tel: string; email: string; site: string }[] {
+  return txt.split(/END:VCARD/i).map((b) => {
+    const pega = (re: RegExp) => (b.match(re)?.[1] || '').trim()
+    const nome = pega(/\nFN[^:]*:(.+)/i) || pega(/\nORG[^:]*:(.+)/i).replace(/;/g, ' ')
+    const tel = pega(/\nTEL[^:]*:(.+)/i).replace(/[^\d+]/g, '')
+    return { nome: nome.replace(/\\,/g, ','), tel, email: pega(/\nEMAIL[^:]*:(.+)/i), site: pega(/\nURL[^:]*:(.+)/i) }
+  }).filter((c) => c.nome || c.tel)
+}
+const podeAgenda = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
+
 interface Lido { key: string; arquivos: Arquivo[]; files: File[]; o: Orcamento; status: 'lendo' | 'pronto' | 'erro'; msg?: string; aberto?: boolean }
 
 async function textoDoPdf(f: File): Promise<string> {
@@ -137,6 +148,14 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     setTexto('')
   }
   /** Só o contato do fornecedor: um cartão para preencher na hora. */
+  const comContato = (cs: { nome: string; tel: string; email?: string; site?: string }[]) => setLidos((ls) => [...ls.filter((l) => !(l.o.tipo === 'contato' && !l.o.fornecedor && !l.o.whatsapp)), ...cs.map((c) => ({ key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento({ tipo: 'contato', fornecedor: c.nome, whatsapp: c.tel, email: c.email || '', instagram: c.site || '' }), status: 'pronto' as const, aberto: false, msg: 'contato anexado: escolha o serviço' }))])
+  const daAgenda = async () => {
+    try {
+      const r = await (navigator as unknown as { contacts: { select: (p: string[], o: { multiple: boolean }) => Promise<{ name?: string[]; tel?: string[]; email?: string[] }[]> } }).contacts.select(['name', 'tel', 'email'], { multiple: true })
+      comContato(r.map((c) => ({ nome: c.name?.[0] || '', tel: (c.tel?.[0] || '').replace(/[^\d+]/g, ''), email: c.email?.[0] || '' })))
+    } catch { /* cancelou */ }
+  }
+  const deVcf = async (fs: File[]) => { const cs = (await Promise.all(fs.map((f) => f.text()))).flatMap(lerVcf); if (cs.length) comContato(cs); else setErr('Não achei nenhum contato nesse arquivo.') }
   const novoContato = () => setLidos((ls) => [...ls, { key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento({ tipo: 'contato' }), status: 'pronto', aberto: false, msg: 'preencha o contato' }])
   /** Duas fotos do mesmo orçamento: junta no de cima (soma os itens, mantém os dados que já tinha). */
   const juntar = (i: number) =>
@@ -255,7 +274,12 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
         {tipo === 'contato' && (
           <>
             <p className="ape-note" style={{ margin: 0 }}>Coloque o nome e o WhatsApp do fornecedor: os vizinhos tocam e já caem na conversa com a empresa.</p>
-            <button type="button" className="ape-btn" onClick={novoContato}><ApeIcon name="plus" />mais um contato</button>
+            <div className="ape-acts ape-contato-add">
+              {podeAgenda && <button type="button" className="ape-btn primary" onClick={() => void daAgenda()}><ApeIcon name="user" />escolher da agenda</button>}
+              <label className={`ape-btn ${podeAgenda ? '' : 'primary'}`}><ApeIcon name="clip" />anexar contato (.vcf)<input type="file" accept=".vcf,text/vcard,text/x-vcard" multiple hidden onChange={(e) => { void deVcf(Array.from(e.target.files || [])); e.target.value = '' }} /></label>
+              <button type="button" className="ape-btn ghost" onClick={novoContato}><ApeIcon name="plus" />digitar</button>
+            </div>
+            <p className="ape-note" style={{ margin: 0, fontSize: 12 }}>No celular: abra o contato no WhatsApp ou na agenda, toque em "compartilhar contato" e escolha salvar em Arquivos; depois anexe aqui.</p>
           </>
         )}
         {tipo !== 'contato' && (
@@ -343,6 +367,9 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: 
                 <div className="ape-f"><label>Instagram ou site</label><input value={o.instagram || ''} onChange={(e) => set('instagram', e.target.value)} placeholder="@loja" /></div>
               </div>
               <div className="ape-f"><label>Comentário (opcional)</label><input value={o.resumo} onChange={(e) => set('resumo', e.target.value)} placeholder="Ex.: atendeu rápido, faz desconto para o condomínio" /></div>
+              {o.whatsapp.replace(/\D/g, '').length >= 10 && (
+                <a className="ape-btn sm" href={wa(o.whatsapp.replace(/\D/g, '').replace(/^(?!55)(\d{10,11})$/, '55$1'), `Oi! Sou morador(a) do ${APE.condominio}. Pode me passar um orçamento${o.nicho !== 'outros' ? ` de ${nicho(o.nicho).l.toLowerCase()}` : ''}?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />mandar mensagem no WhatsApp agora</a>
+              )}
             </div>
           ) : (
           <dl className="ape-lido-res">
