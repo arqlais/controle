@@ -2649,3 +2649,10 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 /* depoimentos: uma cor só, clara e destacada do fundo */
 .ape .ape-depo2.azul, .ape .ape-depo2.terra, .ape .ape-depo2.madeira { background: #fff; border-color: color-mix(in srgb, var(--a-pri) 14%, var(--a-line)); box-shadow: 0 14px 34px -24px rgba(43, 40, 38, .35); }
 .ape .ape-depo2 .av { background: var(--a-pri-soft); color: var(--a-pri) !important; }
+/* plataforma mais compacta: celulares menores e recursos centralizados ao lado */
+@media (min-width: 861px) {
+  .ape .ape-plat { gap: 14px; padding: 24px 26px; }
+  .ape .ape-plat-grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 22px; align-items: center; }
+  .ape .ape-plat .ape-iphs { min-height: 0; transform: scale(.82); transform-origin: center; margin: -40px 0; }
+}
+.ape .ape-plat-feats { align-content: center; }

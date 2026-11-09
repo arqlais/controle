@@ -177,6 +177,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
       <div className="ape-garantias">
+      <Surpresa />
 
       <section className="ape-panel ape-garantia">
         <ApeArt name="entregas" size={56} tone="sec" />
