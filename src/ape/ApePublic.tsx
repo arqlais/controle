@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, conferirCadastro, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
+import { cadastrar, conferirCadastro, marcarDona, registrarVisita, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -79,6 +79,16 @@ export function ApePublic({ sub }: { sub?: string }) {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [route.id])
+  // visitas do site (a dona não conta: o aparelho dela fica marcado quando ela abre logada)
+  useEffect(() => { if (owner) marcarDona() }, [owner])
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      if (owner) return
+      const pg = location.pathname.includes('sanlevi') && view === 'orcamentos' ? 'san levi' : view === 'loja' ? (abrir?.startsWith('arquivos') ? 'arquivos' : 'loja') : view === 'minha' ? 'plataforma' : view === 'orcamentos' ? 'san levi' : view
+      void registrarVisita(pg)
+    }, 1500)
+    return () => window.clearTimeout(t)
+  }, [route.id, sub, owner])
 
   const vis = useMemo(() => (d ? d.orcamentos.filter((o) => (owner || !apeCloud ? true : !o.exemplo && !o.oculto)) : []), [d, owner])
   const whats = d?.ajustes.whatsapp || APE.whatsapp

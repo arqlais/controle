@@ -7,7 +7,7 @@ import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { AvatarGlyph } from '../components/Avatar'
 import { PLATFORM } from '../plans'
-import { admin, apeCloud, loja, painelConta, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
+import { admin, apeCloud, loja, marcarDona, painelConta, type Visita, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
@@ -21,7 +21,7 @@ import './ape.css'
 /* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
+type Tab = 'visitas' | 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -75,13 +75,13 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   // mesmos ícones do planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
     inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
-    pedidos: ['vendas', 'wallet', nCancel], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
+    pedidos: ['vendas', 'wallet', nCancel], visitas: ['visitas do site', 'eye'], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
   // menu enxuto: cada item abre uma tela; telas parecidas ficam juntas, em abas dentro dela
   const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], pedidos: ['pedidos', 'leads'] }
   const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
   // do mais usado para o menos usado: vendas no dia a dia, depois o San Levi, depois a vitrine (muda pouco)
-  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes']], [APE.condominio, ['lista', 'moradores', 'grupos']], ['vitrine da loja', ['loja', 'entregas', 'opiniao']]]
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes', 'visitas']], [APE.condominio, ['lista', 'moradores', 'grupos']], ['vitrine da loja', ['loja', 'entregas', 'opiniao']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
   // a plataforma da própria dona (acesso de teste sem vencimento), buscada no banco: o link guardado no aparelho pode estar velho
@@ -222,6 +222,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           {tab === 'clientes' && ajustes && <Clientes pedidos={pedidos} produtos={ajustes.produtos} onChange={load} />}
           {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
           {tab === 'opiniao' && <Opinioes />}
+          {tab === 'visitas' && <Visitas pedidos={pedidos} />}
           {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
           </div>
             </div>
@@ -319,6 +320,46 @@ function MaisVendidos({ pedidos }: { pedidos: PedidoAdmin[] }) {
           ))}
         </ol>
       ) : <p className="ape-note" style={{ margin: 0 }}>Nenhuma venda paga {per === 7 ? 'nesta semana' : 'nos últimos 30 dias'}. Cortesias não entram na conta.</p>}
+    </div>
+  )
+}
+
+/** Visitas do site: quantas pessoas entraram (sem contar a dona), de onde vieram e o que viram. */
+function Visitas({ pedidos }: { pedidos: PedidoAdmin[] }) {
+  const [l, setL] = useState<Visita[] | null>(null)
+  const [per, setPer] = useState<1 | 7 | 30>(7)
+  useEffect(() => { marcarDona(); void admin.visitas(30).then(setL) }, [])
+  if (!l) return <Thinking t="carregando…" />
+  const desde = (d: number) => Date.now() - d * 864e5
+  const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0)
+  const doPer = l.filter((v) => new Date(v.criado).getTime() >= (per === 1 ? hoje0.getTime() : desde(per)))
+  const pessoas = (x: Visita[]) => new Set(x.map((v) => v.sessao)).size
+  const conta = (k: keyof Visita) => { const m = new Map<string, Set<string>>(); for (const v of doPer) { const s = m.get(v[k]) || new Set(); s.add(v.sessao); m.set(v[k], s) } return [...m].map(([n, s]) => [n, s.size] as const).sort((a, b) => b[1] - a[1]) }
+  const dias = Array.from({ length: 14 }, (_, i) => { const d = new Date(hoje0.getTime() - (13 - i) * 864e5); const fim = d.getTime() + 864e5; return { d, n: pessoas(l.filter((v) => { const t = new Date(v.criado).getTime(); return t >= d.getTime() && t < fim })) } })
+  const max = Math.max(1, ...dias.map((x) => x.n))
+  const vendas = pedidos.filter((p) => p.status === 'pago' && !p.cortesia && new Date(p.pago_em || p.criado).getTime() >= (per === 1 ? hoje0.getTime() : desde(per))).length
+  const lista = (t: string, itens: (readonly [string, number])[]) => (
+    <div className="ape-adm-vend"><p className="ape-eyebrow">{t}</p>{itens.length ? <ol>{itens.slice(0, 6).map(([n, k]) => <li key={n}><span className="t">{n}</span><i><em style={{ width: `${(k / (itens[0][1] || 1)) * 100}%` }} /></i><b className="num">{k}</b><small>{Math.round((k / Math.max(1, pessoas(doPer))) * 100)}%</small></li>)}</ol> : <p className="ape-note" style={{ margin: 0 }}>Ainda sem visitas neste período.</p>}</div>
+  )
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div className="ape-adm-vend-h">
+        <p className="ape-note" style={{ margin: 0 }}>Pessoas que entraram no site, sem contar você. Cada aparelho conta uma vez.</p>
+        <div className="ape-vista" role="group" aria-label="Período">{([[1, 'hoje'], [7, '7 dias'], [30, '30 dias']] as const).map(([k, t]) => <button key={k} aria-pressed={per === k} onClick={() => setPer(k)}>{t}</button>)}</div>
+      </div>
+      <div className="ape-adm-cards">
+        <div><span><ApeIcon name="users" />pessoas</span><b className="num">{pessoas(doPer)}</b><small>{doPer.length} páginas vistas</small></div>
+        <div><span><ApeIcon name="bag" />vendas</span><b className="num">{vendas}</b><small>{pessoas(doPer) ? `${((vendas / pessoas(doPer)) * 100).toFixed(1).replace('.', ',')}% de quem entrou` : 'no período'}</small></div>
+        <div><span><ApeIcon name="phone" />no celular</span><b className="num">{Math.round(((conta('aparelho').find((x) => x[0] === 'celular')?.[1] || 0) / Math.max(1, pessoas(doPer))) * 100)}%</b><small>das pessoas</small></div>
+      </div>
+      <div className="ape-adm-vend">
+        <p className="ape-eyebrow">últimos 14 dias</p>
+        <div className="ape-visdias">{dias.map((x) => <div key={x.d.toISOString()} title={`${x.d.toLocaleDateString('pt-BR')}: ${x.n}`}><b className="num">{x.n || ''}</b><i style={{ height: `${(x.n / max) * 100}%` }} /><small>{x.d.getDate()}</small></div>)}</div>
+      </div>
+      <div className="ape-visgrid">
+        {lista('de onde vieram', conta('origem'))}
+        {lista('o que viram', conta('pagina'))}
+      </div>
     </div>
   )
 }

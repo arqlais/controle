@@ -228,6 +228,25 @@ export async function avisarErroPagamento(d: { nome: string; email: string; tel:
   try { await invoke({ acao: 'ape-erro-pagamento', ...d }) } catch { /* sem conexão: o cliente ainda tem o WhatsApp na tela */ }
 }
 
+/** Conta a visita (sem dado pessoal). Não conta a dona: o aparelho dela fica marcado. */
+const VSESS = 'ape-visita-id', VDONA = 'ape-sou-dona'
+export function marcarDona() { try { localStorage.setItem(VDONA, '1') } catch { /* ok */ } }
+export async function registrarVisita(pagina: string) {
+  if (!CLOUD) return
+  try {
+    if (localStorage.getItem(VDONA)) return
+    let id = localStorage.getItem(VSESS)
+    if (!id) { id = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem(VSESS, id) }
+    const q = new URLSearchParams(location.search)
+    const ref = (document.referrer || '').toLowerCase()
+    const deFora = ref && !ref.includes(location.host)
+    const origem = (q.get('utm_source') || (deFora ? (/instagram/.test(ref) ? 'instagram' : /whatsapp|wa\.me|l\.wl\.co/.test(ref) ? 'whatsapp' : /tiktok/.test(ref) ? 'tiktok' : /google/.test(ref) ? 'google' : /facebook|fb\./.test(ref) ? 'facebook' : new URL(ref).host.replace(/^www\./, '')) : '') || (/instagram/i.test(navigator.userAgent) ? 'instagram' : /tiktok|musical_ly/i.test(navigator.userAgent) ? 'tiktok' : 'direto')).slice(0, 40)
+    const aparelho = /ipad|tablet/i.test(navigator.userAgent) ? 'tablet' : /mobi|android|iphone/i.test(navigator.userAgent) ? 'celular' : 'computador'
+    await sb().rpc('ape_visita', { p_sessao: id, p_pagina: pagina, p_origem: origem, p_aparelho: aparelho })
+  } catch { /* sem armazenamento ou sem conexão: não conta */ }
+}
+export interface Visita { criado: string; sessao: string; pagina: string; origem: string; aparelho: string }
+
 /** Números de verdade para a loja (moradores do San Levi aprovados e compras pagas). */
 export async function numerosLoja(): Promise<{ moradores: number; compras: number }> {
   if (!CLOUD) return { moradores: 0, compras: 0 }
@@ -378,6 +397,13 @@ export async function queroGrupo(orcamento: string, moradorId: string): Promise<
 
 /* ===== painel da dona ===== */
 export const admin = {
+  async visitas(dias = 30): Promise<Visita[]> {
+    if (!CLOUD) return []
+    const desde = new Date(Date.now() - dias * 864e5).toISOString()
+    const { data, error } = await sb().from('ape_visitas').select('criado, sessao, pagina, origem, aparelho').gte('criado', desde).order('criado', { ascending: false }).limit(20000)
+    if (error) return []
+    return data as Visita[]
+  },
   async orcamentos(): Promise<Orcamento[]> {
     return (await loadPublico(null, true)).orcamentos
   },
