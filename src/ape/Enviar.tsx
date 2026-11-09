@@ -50,6 +50,15 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const [planta, setPlanta] = useState<Orcamento['planta']>(() => plantaDoAp(me?.ap))
   const meus = orcamentos.filter((o) => meusIds.includes(o.id))
   useEffect(() => setErr(''), [lidos.length])
+  // vários prints da mesma conversa: o nome da loja costuma estar só no primeiro. Se todos os prontos
+  // apontam para um único fornecedor, completa os que ficaram sem (fornecedor, WhatsApp, serviço).
+  useEffect(() => {
+    const prontos = lidos.filter((l) => l.status === 'pronto')
+    const forns = [...new Set(prontos.map((l) => l.o.fornecedor.trim()).filter(Boolean))]
+    if (forns.length !== 1 || !prontos.some((l) => !l.o.fornecedor.trim())) return
+    const ref = prontos.find((l) => l.o.fornecedor.trim() === forns[0])!.o
+    setLidos((ls) => ls.map((l) => (l.status === 'pronto' && !l.o.fornecedor.trim() ? { ...l, o: { ...l.o, fornecedor: ref.fornecedor, whatsapp: l.o.whatsapp || ref.whatsapp, telefone: l.o.telefone || ref.telefone, instagram: l.o.instagram || ref.instagram, nicho: l.o.nicho === 'outros' ? ref.nicho : l.o.nicho, servico: l.o.servico && l.o.servico !== 'Outros' ? l.o.servico : ref.servico }, msg: `${l.msg} · fornecedor completado pelo outro print` } : l)))
+  }, [lidos])
 
   const atualizar = (key: string, fn: (l: Lido) => Lido) => setLidos((ls) => ls.map((l) => (l.key === key ? fn(l) : l)))
 
