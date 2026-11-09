@@ -2640,3 +2640,12 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
   .ape-catalogo .ape-surpresa .ape-sec-t { font-size: 18px; margin: 0 0 2px; }
   .ape-catalogo .ape-surpresa .ape-note { font-size: 12.5px; }
 }
+/* cartões da loja todos com as mesmas linhas: sem espaço vazio no meio */
+.ape .ape-prod .ape-prod-extra, .ape .ape-prod .ape-precos-eco { display: none !important; }
+.ape .ape-prod .ape-prod-h h3 { min-height: 2.5em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; }
+.ape .ape-prod .ape-prod-h { align-items: flex-start; }
+.ape .ape-prod .ape-precos { margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--a-line); }
+.ape .ape-prod-acts { margin-top: auto; padding-top: 4px; }
+/* depoimentos: uma cor só, clara e destacada do fundo */
+.ape .ape-depo2.azul, .ape .ape-depo2.terra, .ape .ape-depo2.madeira { background: #fff; border-color: color-mix(in srgb, var(--a-pri) 14%, var(--a-line)); box-shadow: 0 14px 34px -24px rgba(43, 40, 38, .35); }
+.ape .ape-depo2 .av { background: var(--a-pri-soft); color: var(--a-pri) !important; }

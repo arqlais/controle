@@ -617,7 +617,7 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
         <h3>{p.nome}</h3>
       </div>
       <div className="ape-tags">
-        {p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
+        {p.combo?.length && somaAvulsos(p, byId) > reais(p.preco) ? <span className="ape-pill terra">{Math.round((1 - reais(p.preco) / somaAvulsos(p, byId)) * 100)}% off · {p.combo.length} arquivos</span> : p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
         {p.combo?.length ? <span className="ape-pill">{p.combo.length} arquivos</span> : (p.numeros || []).slice(0, 1).map((x) => <span key={x} className="ape-pill ape-keep">{x}</span>)}
       </div>
       <p className="ape-prod-desc so-detalhe">{p.desc}</p>
