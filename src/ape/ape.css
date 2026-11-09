@@ -2678,3 +2678,7 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape .ape-depo2 .av { background: rgba(255, 255, 255, .8); }
 .ape .ape-depos2-vp { overflow: visible; }
 @media (max-width: 760px) { .ape .ape-depos2-vp { overflow-x: auto; } }
+/* luz colorida só atrás dos depoimentos (não vaza para as seções de cima e de baixo) */
+.ape .ape-depos2 { overflow: hidden; border-radius: 28px; padding: 18px 16px 22px; margin-inline: -16px; }
+.ape .ape-depos2::before { width: 300px; height: 220px; left: 12%; top: 34%; filter: blur(34px); }
+.ape .ape-depos2::after { width: 320px; height: 220px; right: 10%; top: 30%; bottom: auto; filter: blur(34px); }
