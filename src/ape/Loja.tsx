@@ -177,7 +177,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
       <div className="ape-garantias">
-      <Surpresa />
 
       <section className="ape-panel ape-garantia">
         <ApeArt name="entregas" size={56} tone="sec" />
@@ -531,6 +530,7 @@ function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, w
         <h2>todos os <em>arquivos</em></h2>
         <p>Guias, checklists e planilhas que eu fiz montando o meu apê. Escolha a sua etapa, espie as páginas em "ver por dentro" e leve só o que fizer sentido para você.</p>
       </section>
+      <Surpresa />
       <nav className="ape-cat-nav" aria-label="Etapas">
         <button aria-pressed={ativa === 'todos'} onClick={() => ir('todos')}>todos <small>{arquivos.length}</small></button>
         {cats.map(({ f, lista }) => <button key={f.id} aria-pressed={ativa === f.id} onClick={() => ir(f.id)}><ApeArt name={f.arte} size={18} />{f.chip} <small>{lista.length}</small></button>)}
@@ -594,7 +594,7 @@ function BotaoCompra({ p, cart, onAdd, me, whats, wide = true }: { p: Produto; c
   ) : (
     <button className={`ape-btn primary ${wide ? 'wide' : ''}`} onClick={() => onAdd(p)}>
       <ApeIcon name="plus" />
-      adicionar
+      eu quero
     </button>
   )
 }
@@ -620,12 +620,12 @@ function ProdCard({ p, n, byId, onOpen, cart, onAdd, me, whats }: { p: Produto; 
         {p.tag && <span className={`ape-pill ${p.destaque ? 'azul' : 'terra'}`}>{p.tag}</span>}
         {p.combo?.length ? <span className="ape-pill">{p.combo.length} arquivos</span> : (p.numeros || []).slice(0, 1).map((x) => <span key={x} className="ape-pill ape-keep">{x}</span>)}
       </div>
-      <p className="ape-prod-desc">{p.desc}</p>
+      <p className="ape-prod-desc so-detalhe">{p.desc}</p>
       {(p.itens || []).length > 0 && p.combo?.length ? <p className="ape-note ape-prod-extra"><ApeIcon name="gift" /> {p.itens!.map((x) => x.replace(/^\+\s*/, '')).join(' · ')}</p> : null}
       <Preco p={p} byId={byId} pixPct={PIX} />
-      <div className="ape-acts">
-        <button className="ape-btn wide" onClick={onOpen}>detalhes</button>
-        <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
+      <div className="ape-acts ape-prod-acts">
+        <button className="ape-btn ghost" onClick={onOpen}>detalhes</button>
+        <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} wide={false} />
       </div>
     </article>
   )
