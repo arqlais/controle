@@ -9,8 +9,8 @@ import { brl, dmy, fmtTel, nicho, waNum, wa, type Morador, type Orcamento } from
 /** Cores de cada coluna (A, B, C, D), da paleta do planê.apê, para não confundir um orçamento com outro. */
 const CORES = ['var(--a-pri)', 'var(--a-sec)', 'var(--a-ter)', '#7d7391']
 const MAX = 4
-export function Comparar({ orcs: todos, me, minhas = [], onFechar }: { orcs: Orcamento[]; me: Morador | null; minhas?: string[]; onFechar?: (o: Orcamento) => void }) {
-  const [aberto, setAberto] = useState(false)
+export function Comparar({ orcs: todos, me, minhas = [], onFechar, inicioAberto = false, onSair }: { orcs: Orcamento[]; me: Morador | null; minhas?: string[]; onFechar?: (o: Orcamento) => void; inicioAberto?: boolean; onSair?: () => void }) {
+  const [aberto, setAberto] = useState(inicioAberto)
   const [original, setOriginal] = useState<Orcamento | null>(null)
   const [sel, setSel] = useState<string[]>(() => todos.slice(0, MAX).map((o) => o.id))
   if (todos.length < 2) return null
@@ -44,7 +44,7 @@ export function Comparar({ orcs: todos, me, minhas = [], onFechar }: { orcs: Orc
     <section className="ape-cmp" aria-label="Comparação lado a lado">
       <header className="ape-cmp-h">
         <b>comparação lado a lado</b>
-        <button className="ape-btn ghost sm" onClick={() => setAberto(false)}>fechar</button>
+        <button className="ape-btn ghost sm" onClick={() => (onSair ? onSair() : setAberto(false))}>fechar</button>
       </header>
       {todos.length > 2 && (
         <div className="ape-cmp-sel" role="group" aria-label="Quais comparar">

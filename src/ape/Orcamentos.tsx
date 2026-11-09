@@ -1,5 +1,5 @@
 // planê.apê: área dos orçamentos do San Levi (pastas, lista, blocos, cartões, grupo e dica da loja).
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { href } from '../router'
 import { escolher, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, type Publico } from './api'
 import { ApeArt } from './ApeArt'
@@ -8,7 +8,6 @@ import {
   APE, GRUPO_META, ehNichoNovo, CTA_BY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { read, write } from './shared'
-import { Fileira } from './Loja'
 import { Comparar, Original } from './Comparar'
 
 const UI = 'ape-ui'
@@ -16,18 +15,20 @@ const GRUPOS = 'ape-grupos'
 
 /* ===== orçamentos ===== */
 export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEditar }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void; onEditar: () => void; onRecarregar?: () => void }) {
-  const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean; vista?: Vista }>(UI) || {}
+  const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean }>(UI) || {}
   const [filtro, setFiltro] = useState(saved.nicho || 'todos')
   const [sort, setSort] = useState<Sort>(saved.sort && SORTS[saved.sort] ? saved.sort : 'compensa')
   const [validos, setValidos] = useState(!!saved.validos)
   const minhaPlanta = plantaDoAp(me?.ap)
   const [pl, setPl] = useState<'todas' | 'canto' | 'corredor'>('todas')
   const [q, setQ] = useState('')
-  const [vista, setVista] = useState<Vista>(saved.vista === 'blocos' || saved.vista === 'pastas' ? saved.vista : 'lista')
+  const [sel, setSel] = useState<Record<string, string[]>>({})
+  const [aberto, setAberto] = useState<{ id: string; nicho: string } | null>(null)
+  const [comparando, setComparando] = useState('')
   const [filtros, setFiltros] = useState(false)
   useEffect(() => {
-    write(UI, { nicho: filtro, sort, validos, vista })
-  }, [filtro, sort, validos, vista])
+    write(UI, { nicho: filtro, sort, validos })
+  }, [filtro, sort, validos])
 
   const counts: Record<string, number> = {}
   for (const o of vis) counts[o.nicho] = (counts[o.nicho] || 0) + 1
@@ -137,11 +138,6 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           <input type="search" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
         </label>
         <button type="button" className={`ape-btn sm ape-filtros-btn ${filtros ? 'on' : ''}`} aria-expanded={filtros} onClick={() => setFiltros(!filtros)}><ApeIcon name="gear" /><span className="l">filtros</span>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0) ? <em>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0)}</em> : null}</button>
-        <div className="ape-vista" role="group" aria-label="Ver como">
-          <button aria-pressed={vista === 'lista'} onClick={() => setVista('lista')} title="ver em lista" aria-label="ver em lista"><ApeIcon name="list" /><span>lista</span></button>
-          <button aria-pressed={vista === 'blocos'} onClick={() => setVista('blocos')} title="ver em cartões, lado a lado" aria-label="ver em cartões"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" /></svg><span>cartões</span></button>
-          <button aria-pressed={vista === 'pastas'} onClick={() => setVista('pastas')} title="ver os arquivos (prints e PDFs)" aria-label="ver os anexos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></svg><span>anexos</span></button>
-        </div>
       </div>
       {filtros && (
         <div className="ape-panel ape-filtros">
@@ -180,39 +176,15 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
             }
           }
           const acabs = [...new Set(orcs.map(acabamentoDe))].sort((x, y) => (x ? 0 : 1) - (y ? 0 : 1) || x.localeCompare(y))
-          const card = (x: Item, a: Analise, isTop: boolean, acab = '') => <Card key={x.o.id} x={x} a={a} isTop={isTop} acab={acab} me={me} whats={whats} count={d.contagens[x.o.id] || 0} escolhas={d.escolhas[x.o.id] || 0} minha={d.minhas.includes(x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
-          // blocos: tudo do serviço numa fileira só, lado a lado (cada cartão diz o acabamento); "mais compensa" é por acabamento
-          const fileira = () => {
-            const itens = acabs.flatMap((ac) => {
-              const a = analyze(orcs.filter((o) => acabamentoDe(o) === ac))
-              const sorted = [...a.items].sort(SORTS[sort][1])
-              const top = sort === 'compensa' && a.top ? a.top : null
-              return [...(top ? [top] : []), ...sorted.filter((x) => x !== top)].map((x) => ({ x, a, top: x === top, ac }))
-            })
-            return (
-              <div className="ape-acab">
-                <Comparar orcs={orcs} me={me} minhas={d.minhas} onFechar={me?.id ? fecharCom : undefined} />
-                <Fileira n={itens.length} rotulo="orçamentos" cls="ape-fileira-orc">{itens.map((i) => card(i.x, i.a, i.top, acabs.length > 1 ? i.ac || 'outros acabamentos' : ''))}</Fileira>
-              </div>
-            )
-          }
-          // lista: como foi recebido (do mais novo para o mais antigo), sem ranking
-          const recebidos = () => {
-            const a = analyze(orcs)
-            const lista = [...a.items].sort((p, q) => String(q.o.criado || '').localeCompare(String(p.o.criado || '')))
-            return (
-              <div className="ape-acab">
-                <Comparar orcs={orcs} me={me} minhas={d.minhas} onFechar={me?.id ? fecharCom : undefined} />
-                <div className="ape-linhas">{lista.map((x) => <Linha key={x.o.id} x={x} isTop={false} me={me}>{card(x, a, false, acabs.length > 1 ? acabamentoDe(x.o) || 'outros acabamentos' : '')}</Linha>)}</div>
-              </div>
-            )
-          }
-          // pastas: cada orçamento como chegou (print, PDF ou digitado), só para ver e achar o fornecedor
-          const pastas = () => (
-            <div className="ape-docs">
-              {[...doServico].sort((p, q) => String(q.criado || '').localeCompare(String(p.criado || ''))).map((o) => <Doc key={o.id} o={o} me={me} />)}
-            </div>
-          )
+          // "mais compensa" é por acabamento; na ordem escolhida (o que mais compensa primeiro)
+          const itens = acabs.flatMap((ac) => {
+            const a = analyze(orcs.filter((o) => acabamentoDe(o) === ac))
+            const sorted = [...a.items].sort(SORTS[sort][1])
+            const top = sort === 'compensa' && a.top ? a.top : null
+            return [...(top ? [top] : []), ...sorted.filter((x) => x !== top)].map((x) => ({ x, a, top: x === top, ac }))
+          })
+          const marcados = sel[id] || []
+          const marcar = (oid: string) => setSel((m) => { const l = m[id] || []; return { ...m, [id]: l.includes(oid) ? l.filter((x) => x !== oid) : l.length >= 4 ? [...l.slice(1), oid] : [...l, oid] } })
           return (
             <div key={id} className="ape-orc-grupo" style={{ display: 'grid', gap: 18 }}>
               <section className="ape-nicho" aria-label={n.l}>
@@ -226,13 +198,48 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                     </span>
                   </div>
                 </div>
-                {vista === 'pastas' ? pastas() : orcs.length ? (vista === 'lista' ? recebidos() : fileira()) : null}
-                {vista !== 'pastas' && extras.length > 0 && <Contatos lista={extras} me={me} />}
+                {orcs.length > 0 && (
+                  <div className="ape-docs2">
+                    {itens.map((i) => <Tile key={i.x.o.id} x={i.x} top={i.top} acab={acabs.length > 1 ? i.ac || 'outros' : ''} me={me} minha={d.minhas.includes(i.x.o.id)} marcado={marcados.includes(i.x.o.id)} onMarcar={orcs.length > 1 ? () => marcar(i.x.o.id) : undefined} onAbrir={() => setAberto({ id: i.x.o.id, nicho: id })} />)}
+                  </div>
+                )}
+                {orcs.length > 1 && marcados.length < 2 && <p className="ape-note ape-dica-cmp"><ApeIcon name="check" />marque 2 ou mais para comparar lado a lado</p>}
+                {extras.length > 0 && <Contatos lista={extras} me={me} />}
+                {(() => {
+                  const ab = aberto && aberto.nicho === id ? itens.find((i) => i.x.o.id === aberto.id) : null
+                  if (!ab) return null
+                  return (
+                    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label={ab.x.o.fornecedor} onClick={(e) => e.target === e.currentTarget && setAberto(null)}>
+                      <div className="ape-sheet-in ape-ficha">
+                        <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
+                        <Card x={ab.x} a={ab.a} isTop={ab.top} acab={acabs.length > 1 ? ab.ac || 'outros' : ''} me={me} whats={whats} count={d.contagens[ab.x.o.id] || 0} escolhas={d.escolhas[ab.x.o.id] || 0} minha={d.minhas.includes(ab.x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+                      </div>
+                    </div>
+                  )
+                })()}
+                {comparando === id && marcados.length >= 2 && (
+                  <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Comparar" onClick={(e) => e.target === e.currentTarget && setComparando('')}>
+                    <div className="ape-sheet-in ape-ficha largo">
+                      <Comparar key={marcados.join()} orcs={orcs.filter((o) => marcados.includes(o.id))} me={me} minhas={d.minhas} onFechar={me?.id ? fecharCom : undefined} inicioAberto onSair={() => setComparando('')} />
+                    </div>
+                  </div>
+                )}
               </section>
             </div>
           )
         })}
       </div>
+      {(() => {
+        const g = Object.entries(sel).find(([, l]) => l.length >= 2)
+        if (!g || comparando) return null
+        return (
+          <div className="ape-cmpbar" role="region" aria-label="Comparar">
+            <span><b>{g[1].length}</b> marcados</span>
+            <button className="ape-btn sm ape-cmpbar-go" onClick={() => setComparando(g[0])}><ApeIcon name="list" />comparar</button>
+            <button className="ape-icobtn" aria-label="Limpar" onClick={() => setSel({})}><ApeIcon name="x" /></button>
+          </div>
+        )
+      })()}
     </>
   )
 }
@@ -301,7 +308,6 @@ export function RecolherDetalhes() {
   )
 }
 
-type Vista = 'blocos' | 'lista' | 'pastas'
 const capi = (t: string) => t ? t.charAt(0).toUpperCase() + t.slice(1) : t
 /** O que foi orçado (a pedra, o piso, o móvel...) para vir em destaque; e o serviço sem o material. */
 function produtoDe(o: Orcamento): string {
@@ -310,7 +316,6 @@ function produtoDe(o: Orcamento): string {
   return capi(m || s)
 }
 const servicoBase = (o: Orcamento) => o.servico.split(' · ')[0].trim()
-const recebidoEm = (o: Orcamento) => (o.criado ? dmy(String(o.criado).slice(0, 10)) : '')
 
 /** Miniatura do anexo (1ª página do PDF ou o print), carregada só quando aparece na tela. */
 const MINIS = new Map<string, Promise<string>>()
@@ -348,51 +353,31 @@ function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: 
   return <span ref={ref} className={`mini ${src ? 'ok' : ''}`}>{src ? <img src={src} alt="" loading="lazy" /> : <ApeIcon name={icone} />}</span>
 }
 
-/** Modo pastas: os anexos num lugar só, com a prévia; toca e abre o original. */
-function Doc({ o, me }: { o: Orcamento; me: Morador | null }) {
-  const [ver, setVer] = useState(false)
-  const c = calc(o)
+/** Cartãozinho do orçamento na pasta: prévia do original, quem mandou, o que é e o preço. Toca e abre a ficha. */
+function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item; top: boolean; acab: string; me: Morador | null; minha: boolean; marcado: boolean; onMarcar?: () => void; onAbrir: () => void }) {
+  const { o, c } = x
   const arq = o.arquivos || []
   const pdf = arq.some((a) => /pdf/i.test(a.tipo || '') || /\.pdf$/i.test(a.nome || ''))
-  const tipo = !arq.length ? 'digitado' : pdf ? 'PDF' : arq.length > 1 ? `${arq.length} prints` : 'print'
-  const extra = !ehOrcamento(o)
   return (
-    <>
-      <button type="button" className="ape-doc" onClick={() => setVer(true)} title={`${o.fornecedor} · ${o.servico}`}>
+    <div className={`ape-tile ${marcado ? 'marcado' : ''} ${c.st === 'vencido' ? 'venc' : ''}`}>
+      <button type="button" className="ape-tile-b" onClick={onAbrir} aria-label={`Abrir o orçamento de ${o.fornecedor || 'sem nome'}`}>
         <Miniatura o={o} me={me} icone={!arq.length ? 'edit' : pdf ? 'file' : 'clip'} />
-        <span className="tipo">{tipo}</span>
-        {c.st === 'vencido' && <span className="venc">venceu</span>}
+        <span className="selos">
+          {top && <span className="s top"><ApeIcon name="star" />compensa</span>}
+          {minha && <span className="s minha"><ApeIcon name="check" />minha escolha</span>}
+          {c.st === 'vencido' && <span className="s venc">venceu</span>}
+        </span>
         <span className="t">
-          <b>{o.fornecedor || 'Fornecedor sem nome'}</b>
-          <small>{extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : produtoDe(o) || servicoBase(o)}</small>
+          {acab && <small className="acab">{acab}</small>}
+          <b>{produtoDe(o) || servicoBase(o) || 'orçamento'}</b>
+          <small>{o.fornecedor || 'Fornecedor sem nome'}</small>
+          <span className="v num">{c.avista != null ? brl(c.avista) : 'sem valor'}<small>{c.avista != null ? ' à vista' : ''}</small></span>
         </span>
       </button>
-      {ver && <Original o={o} me={me} onClose={() => setVer(false)} />}
-    </>
-  )
-}
-
-/** Modo lista: uma linha por orçamento; toca para abrir o cartão completo ali mesmo. */
-function Linha({ x, isTop, me, children }: { x: Item; isTop: boolean; me: Morador | null; children: ReactNode }) {
-  const [on, setOn] = useState(false)
-  const { o, c } = x
-  const minha = !!plantaDe(o).p && plantaDe(o).p === plantaDoAp(me?.ap)
-  return (
-    <div className={`ape-linha ${on ? 'on' : ''} ${isTop ? 'top' : ''}`}>
-      <button className="ape-linha-h" aria-expanded={on} onClick={() => setOn(!on)}>
-        <span className="t">
-          <b>{isTop && <ApeIcon name="star" />}{produtoDe(o) || o.fornecedor || 'Fornecedor sem nome'}</b>
-          <small>{[produtoDe(o) ? o.fornecedor : '', servicoBase(o), plantaDe(o).p ? `${plantaDe(o).p}${minha ? ' (a sua)' : ''}` : ''].filter(Boolean).join(' · ')}</small>
-        </span>
-        <span className="d">{c.st === 'vencido' ? <span className="ape-pill rosa"><ApeIcon name="clock" />venceu</span> : recebidoEm(o) ? <small>recebido<br />{recebidoEm(o)}</small> : null}</span>
-        <span className="v num">{brl(c.avista)}<small>à vista</small></span>
-        <ApeIcon name="chev" />
-      </button>
-      {on && (
-        <div className="ape-linha-b">
-          {children}
-          <button type="button" className="ape-more-x" onClick={() => setOn(false)}><ApeIcon name="chev" />recolher</button>
-        </div>
+      {onMarcar && (
+        <button type="button" className="ape-tile-ck" aria-pressed={marcado} onClick={onMarcar} title={marcado ? 'Tirar da comparação' : 'Marcar para comparar'} aria-label={marcado ? 'Tirar da comparação' : 'Marcar para comparar'}>
+          {marcado ? <ApeIcon name="check" /> : null}
+        </button>
       )}
     </div>
   )

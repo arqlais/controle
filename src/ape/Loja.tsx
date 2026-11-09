@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
-import { baixarArquivo, avisarErroPagamento, numerosLoja, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
+import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
@@ -100,6 +100,8 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       </section>
 
 
+      <MinhasCompras nome={me?.nome} />
+
       <div className="ape-marquee" aria-hidden="true">
         <div className="ape-marquee-track">
           {[0, 1].map((k) => (
@@ -125,7 +127,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           <div className="ape-esc arq">
             <div className="ape-esc-h">
               <ApeArt name="planilha" size={44} />
-              <span><b>arquivos e planilhas</b><small>Cada um resolve <u>uma tarefa</u>: baixa, usa e pronto. Fica com você.</small></span>
+              <span><b>arquivos e planilhas</b><small>baixa, usa e fica com você</small></span>
             </div>
             <div className="ape-esc-l">
               {fases.map((f) => {
@@ -134,7 +136,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
                 return (
                   <a key={f.id} href={href('ape', `loja:arquivos-${f.id}`)}>
                     <ApeArt name={f.arte} size={30} />
-                    <span><b>{f.l}</b><small>{lista.length} arquivos · desde <span className="ape-keep">{brl(Math.min(...lista.map((p) => pixDe(reais(p.preco)))))}</span></small></span>
+                    <span><b>{f.chip}</b><small>{lista.length} arquivos</small></span>
                     <ApeIcon name="chev" />
                   </a>
                 )
@@ -142,7 +144,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
               {kits.length > 0 && (
                 <a className="kit" href={href('ape', 'loja:arquivos-kits')}>
                   <ApeArt name="casa" size={30} tone="sec" />
-                  <span><b>kits: a etapa inteira</b><small>{kits.length} kits · até {Math.max(0, ...kits.map((k) => k.kitPct || 0))}% mais barato</small></span>
+                  <span><b>kits</b><small>até {Math.max(0, ...kits.map((k) => k.kitPct || 0))}% off</small></span>
                   <ApeIcon name="chev" />
                 </a>
               )}
@@ -178,7 +180,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         )
       })()}
 
-      <Situacoes />
       {plat && <PlataformaSec p={plat} cart={cart} onAdd={adicionar} me={me} whats={whats} juros={ajustes.jurosPct ?? JUROS_PCT} pix={pixPct} />}
       <ServicosSec whats={whats} me={me} foto={ajustes.fotoProjeto} foto2={ajustes.fotoProjeto2} />
 
@@ -226,7 +227,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           </button>
         </section>
       )}
-      <MinhasCompras nome={me?.nome} />
       <Vendedor v={ajustes.vendedor} whats={whats} />
       {modais}
     </>
@@ -271,55 +271,35 @@ function HeroArt({ pix }: { pix: number }) {
   )
 }
 
-/* situações de quem está montando o apê: personagens de EXEMPLO (marcados como tal), não são depoimentos */
-const SITUACOES: { nome: string; onde: string; fase: string; texto: string; ajuda: string; cor: string; arte: string }[] = [
-  { nome: 'Júlia e Rafa', onde: 'apê na planta', fase: 'vão assinar o contrato', texto: 'Na dúvida entre financiar pelo banco ou pela construtora, sem saber quanto vai custar de verdade com ITBI e cartório.', ajuda: 'guia de compra e planilha de custos', cor: 'azul', arte: 'contrato' },
-  { nome: 'Marina', onde: 'apê de 52 m²', fase: 'recebe as chaves em março', texto: 'Com medo de deixar passar defeito na vistoria e depois ter que brigar com a construtora.', ajuda: 'checklist de vistoria', cor: 'terra', arte: 'vistoria' },
-  { nome: 'Paulo e Bia', onde: 'casa térrea', fase: 'fechando a marcenaria', texto: 'Três orçamentos com preços muito diferentes e nenhum fala a mesma coisa sobre material e prazo.', ajuda: 'guia de orçamentos e guia da marcenaria', cor: 'madeira', arte: 'orcamento' },
-]
-function Situacoes() {
-  const [num, setNum] = useState<{ moradores: number; compras: number } | null>(null)
-  useEffect(() => void numerosLoja().then(setNum), [])
-  return (
-    <section className="ape-situ" aria-label="Situações de quem está montando o apê">
-      <div className="ape-situ-h">
-        <h3 className="ape-sec-t">é <em>você?</em></h3>
-      </div>
-      <div className="ape-situ-l">
-        {SITUACOES.map((x) => (
-          <article key={x.nome} className={`ape-situ-i ${x.cor}`}>
-            <div className="h"><ApeArt name={x.arte} size={34} /><span><b>{x.nome}</b><small>{x.onde} · {x.fase}</small></span></div>
-            <p>{x.texto}</p>
-            <span className="ajuda"><ApeIcon name="check" />{x.ajuda}</span>
-          </article>
-        ))}
-      </div>
-      {num && (num.moradores >= 10 || num.compras >= 20) && (
-        <p className="ape-situ-num">
-          {num.moradores >= 10 && <span><b className="num">{num.moradores}</b> moradores do {APE.condominio} usam o planê.apê</span>}
-          {num.compras >= 20 && <span><b className="num">{num.compras}</b> compras na loja</span>}
-        </p>
-      )}
-    </section>
-  )
-}
-
 /* depoimentos publicados pela dona (só aparecem se houver) */
 function Depoimentos() {
   const [l, setL] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
   useEffect(() => void carregarDepoimentos().then(setL), [])
   if (!l.length) return null
+  const cores = ['azul', 'terra', 'madeira']
+  const cartao = (d: (typeof l)[number], i: number, k: string) => {
+    const [nome, onde] = String(d.nome || '').split(/\s+[-–·]\s+/)
+    return (
+      <figure key={k} className={`ape-depo2 ${cores[i % 3]}`}>
+        <span className="aspas" aria-hidden="true">“</span>
+        <blockquote>{d.texto}</blockquote>
+        <figcaption>
+          <span className="av">{(nome || '?').trim().charAt(0).toUpperCase()}</span>
+          <span><b>{nome}</b>{onde ? <small>{onde}</small> : null}</span>
+          {d.nota ? <span className="nota" aria-label={`${d.nota} de 5`}>{'★'.repeat(d.nota)}</span> : null}
+        </figcaption>
+      </figure>
+    )
+  }
+  const rola = l.length >= 3
   return (
-    <section className="ape-depos" aria-label="Depoimentos">
+    <section className="ape-depos2" aria-label="Depoimentos">
       <h3 className="ape-sec-t">quem comprou <em>conta</em></h3>
-      <div className="ape-depos-grid">
-        {l.map((d, i) => (
-          <figure key={i} className="ape-depo">
-            {d.nota ? <span className="ape-depo-nota" aria-label={`${d.nota} de 5`}>{'★'.repeat(d.nota)}</span> : null}
-            <blockquote>{d.texto}</blockquote>
-            <figcaption>{d.nome}</figcaption>
-          </figure>
-        ))}
+      <div className={`ape-depos2-vp ${rola ? 'rola' : ''}`}>
+        <div className="ape-depos2-track" style={{ ['--n' as string]: l.length }}>
+          {l.map((d, i) => cartao(d, i, 'a' + i))}
+          {rola && l.map((d, i) => cartao(d, i, 'b' + i))}
+        </div>
       </div>
     </section>
   )
@@ -509,7 +489,6 @@ export function Fileira({ n, rotulo, children, cls = '', todos }: { n: number; r
 const somaAvulsos = (p: Produto, byId: ById) => (p.combo || []).reduce((t, id) => t + (reais(byId(id)?.preco) || 0), 0)
 
 type Fase = { id: 'comprando' | 'comprei' | 'escolhas'; l: string; d: string; arte: string; chip: string }
-const pixDe = (v: number) => Math.round((v - Math.round(v * PIX / 100 * 100) / 100) * 100) / 100
 /** O brinde surpresa (cadeado com "?"): inteiro na página dos arquivos, numa faixa fina na loja. */
 function Surpresa() {
   return (
@@ -1084,30 +1063,21 @@ function MinhasCompras({ nome }: { nome?: string }) {
       setMsg(String((x as Error).message))
     }
   }
+  const ultimo = l[0]
   return (
-    <section className="ape-panel ape-minhas" id="loja-compras">
-      <div className="ape-minhas-h">
-        <div className="ape-minhas-ola">
-          {logado && primeiro ? <b>oie, {primeiro}!</b> : null}
-          <p className="ape-eyebrow">minhas compras{l.length ? ' neste aparelho' : ''}</p>
-        </div>
-        <div className="ape-acts" style={{ gap: 6 }}>
-          <a className="ape-btn primary sm" href={href('ape', 'conta')}><ApeIcon name={logado ? 'user' : 'shield'} />{logado ? 'abrir minha conta' : 'entrar na minha conta'}</a>
+    <section className="ape-minhas2" id="loja-compras">
+      <div className="ape-minhas2-l">
+        <span className="ic"><ApeIcon name={l.length ? 'bag' : 'user'} /></span>
+        <span className="t">
+          <b>{logado && primeiro ? `oie, ${primeiro}!` : l.length ? 'suas compras' : 'já comprou?'}</b>
+          <small>{l.length ? `${l.length} ${l.length > 1 ? 'compras' : 'compra'} neste aparelho` : logado ? 'tudo o que você comprou fica na sua conta' : 'entre para baixar de novo os seus arquivos'}</small>
+        </span>
+        <span className="a">
+          {ultimo && <a className="ape-btn sm" href={href('ape', `pedido:${ultimo.token}`)}><ApeIcon name="download" />última compra</a>}
+          <a className="ape-btn primary sm" href={href('ape', 'conta')}>{logado ? 'minha conta' : 'entrar'}</a>
           {!logado && <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'buscar pelo CPF'}</button>}
-        </div>
+        </span>
       </div>
-      {l.length > 0 ? (
-        <div className="ape-rows">
-          {l.slice(0, 6).map((p) => (
-            <a key={p.token} className="ape-row" href={href('ape', `pedido:${p.token}`)}>
-              <span className="t"><b>Pedido de {dmy(p.criado)}</b><span className="ape-keep">{Number(p.total) ? brl(Number(p.total)) : 'cortesia'}</span></span>
-              <span className="r"><span className="ape-pill azul"><ApeIcon name="download" />abrir</span></span>
-            </a>
-          ))}
-        </div>
-      ) : (
-        !abrir && <span className="ape-note">{logado ? 'Todas as suas compras ficam em minha conta.' : 'As compras feitas neste aparelho aparecem aqui.'}</span>
-      )}
       {abrir && (
         <form className="ape-frow ape-recuperar" onSubmit={buscar} noValidate>
           <div className="ape-f"><label htmlFor="rc-cpf"><span className="ape-keep">CPF</span> da compra</label><input id="rc-cpf" inputMode="numeric" value={cpf} onChange={(e) => setCpf(fmtCpf(e.target.value))} placeholder="000.000.000-00" /></div>
