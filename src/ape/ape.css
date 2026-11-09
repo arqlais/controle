@@ -2682,3 +2682,13 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape .ape-depos2 { overflow: hidden; border-radius: 28px; padding: 18px 16px 22px; margin-inline: -16px; }
 .ape .ape-depos2::before { width: 300px; height: 220px; left: 12%; top: 34%; filter: blur(34px); }
 .ape .ape-depos2::after { width: 320px; height: 220px; right: 10%; top: 30%; bottom: auto; filter: blur(34px); }
+/* luz dos depoimentos solta de novo (sem faixa), mas atrás das seções vizinhas, que ficam por cima e opacas */
+.ape .ape-depos2 { overflow: visible; border-radius: 0; padding: 0; margin-inline: 0; isolation: auto; z-index: 0; }
+.ape .ape-depos2::before { width: 360px; height: 340px; left: 6%; top: 8%; filter: blur(44px); z-index: -1; }
+.ape .ape-depos2::after { width: 400px; height: 360px; right: 4%; top: 0; bottom: auto; filter: blur(44px); z-index: -1; }
+.ape .ape-depos2-vp, .ape .ape-depos2 > h3 { position: relative; z-index: 1; }
+.ape .ape-garantias, .ape .ape-story, .ape .ape-faq { position: relative; z-index: 2; }
+.ape .ape-garantias { background: #f7f3ee; }
+.ape .ape-garantias > section:first-child { background: #f6ede7 !important; }
+.ape .ape-garantias > section + section { background: #eef1f3 !important; }
+.ape .ape-story { background: #fff; }
