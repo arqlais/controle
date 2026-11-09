@@ -198,14 +198,23 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                     </span>
                   </div>
                 </div>
-                {orcs.length > 0 && (
-                  <div className="ape-docs2">
+                {(orcs.length > 0 || extras.length > 0) && (
+                  <div className={`ape-docs2 ${acabs.length > 1 ? 'com-acab' : ''}`}>
                     {itens.map((i) => <Tile key={i.x.o.id} x={i.x} top={i.top} acab={acabs.length > 1 ? i.ac || 'outros' : ''} me={me} minha={d.minhas.includes(i.x.o.id)} marcado={marcados.includes(i.x.o.id)} onMarcar={orcs.length > 1 ? () => marcar(i.x.o.id) : undefined} onAbrir={() => setAberto({ id: i.x.o.id, nicho: id })} />)}
+                    {extras.map((o) => <Tile key={o.id} x={{ o, c: calc(o), badges: [] } as unknown as Item} top={false} acab="" me={me} minha={false} marcado={false} onAbrir={() => setAberto({ id: o.id, nicho: id })} />)}
                   </div>
                 )}
                 {orcs.length > 1 && marcados.length < 2 && <p className="ape-note ape-dica-cmp"><ApeIcon name="check" />marque 2 ou mais para comparar lado a lado</p>}
-                {extras.length > 0 && <Contatos lista={extras} me={me} />}
                 {(() => {
+                  const ex = aberto && aberto.nicho === id ? extras.find((o) => o.id === aberto.id) : null
+                  if (ex) return (
+                    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label={ex.fornecedor} onClick={(e) => e.target === e.currentTarget && setAberto(null)}>
+                      <div className="ape-sheet-in ape-ficha">
+                        <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
+                        <Contatos lista={[ex]} me={me} />
+                      </div>
+                    </div>
+                  )
                   const ab = aberto && aberto.nicho === id ? itens.find((i) => i.x.o.id === aberto.id) : null
                   if (!ab) return null
                   return (
@@ -362,11 +371,20 @@ function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: 
   return <span ref={ref} className={`mini ${src ? 'ok' : ''}`}>{src ? <img src={src} alt="" loading="lazy" /> : <ApeIcon name={icone} />}</span>
 }
 
+/** TEXTO TODO EM MAIÚSCULA (comum em PDF) vira frase normal; e "não sei" não é nome de fornecedor. */
+const suave = (t?: string) => {
+  const v = (t || '').trim()
+  if (/^(n[aã]o sei|desconhecid[oa]|sem nome|-+)$/i.test(v)) return ''
+  return v.length > 8 && v === v.toUpperCase() && /[A-ZÀ-Ú]{4}/.test(v) ? v.charAt(0) + v.slice(1).toLowerCase() : v
+}
 /** Cartãozinho do orçamento na pasta: prévia do original, quem mandou, o que é e o preço. Toca e abre a ficha. */
 function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item; top: boolean; acab: string; me: Morador | null; minha: boolean; marcado: boolean; onMarcar?: () => void; onAbrir: () => void }) {
   const { o, c } = x
   const arq = o.arquivos || []
   const pdf = arq.some((a) => /pdf/i.test(a.tipo || '') || /\.pdf$/i.test(a.nome || ''))
+  const extra = o.tipo === 'tabela' || o.tipo === 'contato'
+  const menorItem = Math.min(...(o.itens || []).map((i) => (i.valor != null ? i.valor : Infinity)))
+  const preco = extra ? (Number.isFinite(menorItem) ? brl(menorItem) : '') : c.avista != null ? brl(c.avista) : ''
   return (
     <div className={`ape-tile ${marcado ? 'marcado' : ''} ${c.st === 'vencido' ? 'venc' : ''}`}>
       <button type="button" className="ape-tile-b" onClick={onAbrir} aria-label={`Abrir o orçamento de ${o.fornecedor || 'sem nome'}`}>
@@ -374,13 +392,14 @@ function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item
         <span className="selos">
           {top && <span className="s top"><ApeIcon name="star" />compensa</span>}
           {minha && <span className="s minha"><ApeIcon name="check" />minha escolha</span>}
-          {c.st === 'vencido' && <span className="s venc">venceu</span>}
+          {extra && <span className="s tipo">{o.tipo === 'tabela' ? 'tabela de preços' : 'contato'}</span>}
+          {!extra && c.st === 'vencido' && <span className="s venc">venceu</span>}
         </span>
         <span className="t">
-          {acab && <small className="acab">{acab}</small>}
-          <b>{produtoDe(o) || servicoBase(o) || 'orçamento'}</b>
-          <small>{o.fornecedor || 'Fornecedor sem nome'}</small>
-          <span className="v num">{c.avista != null ? brl(c.avista) : 'sem valor'}<small>{c.avista != null ? ' à vista' : ''}</small></span>
+          <small className="acab">{acab || '\u00a0'}</small>
+          <b>{suave(produtoDe(o) || servicoBase(o)) || (extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : 'orçamento')}</b>
+          <small>{suave(o.fornecedor) || 'Fornecedor sem nome'}</small>
+          <span className="v num">{preco ? <>{extra ? <small>desde </small> : null}{preco}{extra ? null : <small> à vista</small>}</> : <small>{extra ? 'ver valores' : 'sem valor'}</small>}</span>
         </span>
       </button>
       {onMarcar && (

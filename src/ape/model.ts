@@ -591,6 +591,7 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
       .map((i) => ({ descricao: String(i.descricao).trim().slice(0, 160), qtd: num(i.qtd), unidade: String(i.unidade ?? '').slice(0, 12), valor: num(i.valor) }))
   if (Array.isArray(raw2.materiais)) o.materiais = raw2.materiais.map(String).map((x) => x.trim()).filter(Boolean).slice(0, 20)
   for (const k of ['email', 'telefone', 'cnpj', 'endereco'] as const) if (raw2[k] != null && String(raw2[k]).trim()) o[k] = String(raw2[k]).trim().slice(0, 160)
+  if (/^(n[aã]o sei|desconhecid[oa]|sem nome|n\/?a|-+)$/i.test(String(o.fornecedor || '').trim())) o.fornecedor = ''
   if (Array.isArray(raw2.arquivos)) o.arquivos = (raw2.arquivos as { nome?: string; tipo?: string }[]).map((a) => ({ nome: String(a?.nome ?? ''), tipo: String(a?.tipo ?? '') })).slice(0, 8)
   if (raw2.enviado === true) o.enviado = true
   if (raw2.tipo === 'tabela' || raw2.tipo === 'contato') o.tipo = raw2.tipo

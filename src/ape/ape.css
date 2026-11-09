@@ -2562,3 +2562,26 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape .ape-cmpbar .ape-cmpbar-go { background: #fff !important; color: var(--a-ink) !important; border-color: #fff !important; }
 .ape .ape-cmpbar .ape-cmpbar-go .ape-i { color: var(--a-ink); }
 .ape-lido-th { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; object-position: top; flex: none; border: 1px solid var(--a-line); }
+/* cartões sempre do mesmo tamanho: título em 2 linhas fixas e preço sempre embaixo */
+.ape-tile-b { grid-template-rows: auto 1fr; align-content: stretch; }
+.ape-tile-b .t { display: flex; flex-direction: column; gap: 1px; }
+.ape-tile-b .t b { min-height: 2.6em; }
+.ape-tile-b .t .acab { min-height: 1.4em; }
+.ape-tile-b .t .v { margin-top: auto; padding-top: 6px; }
+.ape-tile-b .s.tipo { background: var(--a-ter-soft); color: var(--a-ter); }
+.ape .ape-contato .ape-pill { white-space: nowrap; flex: none; }
+.ape-ficha .ape-contatos { margin: 0; }
+.ape-ficha .ape-contatos > .ape-eyebrow { display: none; }
+.ape-ficha .ape-contato { border: 0; padding: 4px 0 0; box-shadow: none; }
+/* altura igual de verdade: o cartão estica a caixa toda da linha */
+.ape-docs2 > .ape-tile { display: grid; }
+.ape-docs2 > .ape-tile > .ape-tile-b { height: auto; }
+/* etiquetas dos arquivos numa linha só (as que não cabem somem, sem quebrar) */
+.ape .ape-prod .ape-tags { flex-wrap: nowrap; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+.ape .ape-prod .ape-tags .ape-pill { white-space: nowrap; flex: none; }
+.ape .ape-filtros-btn { white-space: nowrap; }
+.ape-docs2 { grid-auto-rows: 1fr; }
+@media (max-width: 460px) {
+  .ape-orc-hero .ape-stat { display: grid !important; justify-items: start; gap: 0 !important; padding: 8px 10px !important; }
+  .ape-orc-hero .ape-stat span { overflow: visible !important; text-overflow: clip !important; }
+}
