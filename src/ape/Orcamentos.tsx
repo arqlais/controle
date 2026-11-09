@@ -25,6 +25,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
   const [sel, setSel] = useState<Record<string, string[]>>({})
   const [aberto, setAberto] = useState<{ id: string; nicho: string } | null>(null)
   const [comparando, setComparando] = useState('')
+  const [ajuda, setAjuda] = useState(false)
   const [filtros, setFiltros] = useState(false)
   useEffect(() => {
     write(UI, { nicho: filtro, sort, validos })
@@ -137,6 +138,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           <ApeIcon name="search" />
           <input type="search" placeholder="Buscar…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar" />
         </label>
+        <button type="button" className="ape-btn sm ape-ajuda-btn" onClick={() => setAjuda(true)} aria-label="Como funciona" title="Como funciona">?</button>
         <button type="button" className={`ape-btn sm ape-filtros-btn ${filtros ? 'on' : ''}`} aria-expanded={filtros} onClick={() => setFiltros(!filtros)}><ApeIcon name="gear" /><span className="l">filtros</span>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0) ? <em>{(pl !== 'todas' ? 1 : 0) + (validos ? 1 : 0) + (sort !== 'compensa' ? 1 : 0)}</em> : null}</button>
       </div>
       {filtros && (
@@ -151,7 +153,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           <button type="button" className="ape-btn ghost sm" onClick={() => setFiltros(false)}>fechar</button>
         </div>
       )}
-      <Entenda />
+      {ajuda && <Entenda onClose={() => setAjuda(false)} />}
       <DicaLoja nicho={(groups[0] || 'outros') as Nicho} produtos={d.ajustes.produtos} />
       <div className="ape-orc-lista" style={{ display: 'grid', gap: 26 }}>
         {!list.length && (
@@ -289,11 +291,13 @@ function Contatos({ lista, me }: { lista: Orcamento[]; me: Morador | null }) {
 
 /* como funciona: passo a passo ilustrado (aberto na primeira visita) */
 /** Tudo o que explica a área num lugar só, fechado por padrão: como funciona, planta e acabamento, fechar em grupo. */
-function Entenda() {
+function Entenda({ onClose }: { onClose: () => void }) {
   return (
-    <details className="ape-entenda">
-      <summary><ApeIcon name="sparkle" /><span><b>como funciona</b><small>passo a passo, planta e acabamento, fechar em grupo</small></span><ApeIcon name="chev" /></summary>
+    <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Como funciona" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in ape-ficha">
+      <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
       <div className="ape-entenda-b">
+        <p className="ape-eyebrow">como funciona</p>
         <ol className="ape-entenda-passos">
           <li><ApeArt name="grupo" size={36} /><span><b>peça o orçamento</b>ao fornecedor, como sempre</span></li>
           <li><ApeArt name="anexo" size={36} tone="sec" /><span><b>mande aqui</b>PDF, print, texto ou só o contato</span></li>
@@ -302,9 +306,9 @@ function Entenda() {
         </ol>
         <p className="ape-entenda-t"><b>planta e acabamento.</b> Canto (finais 01, 02, 11 e 12) e corredor (03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Por isso os orçamentos ficam separados por acabamento e mostram a planta; quando não dizem, o site descobre pelas medidas. O "mais compensa" é um cálculo automático, não uma indicação.</p>
         <p className="ape-entenda-t"><b>fechar em grupo.</b> Marque "tenho interesse" no orçamento (não é compromisso). Juntou {GRUPO_META} apês? Qualquer vizinho toca em "pedir desconto de grupo": a mensagem já vem pronta. Conseguiu, registre o desconto no orçamento. Cada um fecha direto com o fornecedor, dizendo "grupo {APE.condominio}". O planê.apê não cobra nada.</p>
-        <RecolherDetalhes />
       </div>
-    </details>
+      </div>
+    </div>
   )
 }
 

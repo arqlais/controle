@@ -112,13 +112,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         </div>
       </div>
 
-      <section className="ape-story ape-panel">
-        <span className="ape-me-av">L</span>
-        <div>
-          <p className="ape-eyebrow">quem fez</p>
-          <p>Oi! Sou a {APE.dona}, estou me formando em arquitetura e montando o meu apê de {APE.meuApe}. Juntei aqui o que eu precisei e não achei pronto: o que perguntar antes de assinar, o que conferir na vistoria, quanto custa de verdade e como organizar a obra.</p>
-        </div>
-      </section>
 
       {/* o que tem na loja, num bloco só: arquivos por etapa, kits e plataforma */}
       <section className="ape-oque" aria-label="O que tem na loja">
@@ -166,9 +159,9 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       {/* os que mais chamam atenção, misturados (arquivos e kits), numa fileira que rola */}
       {(() => {
         const nota = (p: Produto) => (p.destaque ? 4 : 0) + (p.selo ? 3 : 0) + ((p.amostras || []).length ? 1 : 0)
-        const arqTop = [...arquivos].sort((x, y) => nota(y) - nota(x)).slice(0, 7)
+        const arqTop = [...arquivos].sort((x, y) => nota(y) - nota(x)).slice(0, 5)
         const kitTop2 = [...kits].sort((x, y) => nota(y) - nota(x)).slice(0, 2)
-        const mix = arqTop.flatMap((p, i) => (i === 2 && kitTop2[0] ? [kitTop2[0], p] : i === 5 && kitTop2[1] ? [kitTop2[1], p] : [p]))
+        const mix = arqTop.flatMap((p, i) => (i === 2 && kitTop2[0] ? [kitTop2[0], p] : [p]))
         if (!mix.length) return null
         return (
           <section className="ape-nicho ape-destaques" aria-label="Os mais procurados">
@@ -196,6 +189,13 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       </div>
 
       <Depoimentos />
+      <section className="ape-story ape-panel">
+        <span className="ape-me-av">L</span>
+        <div>
+          <p className="ape-eyebrow">quem fez</p>
+          <p>Oi! Sou a {APE.dona}, estou me formando em arquitetura e montando o meu apê de {APE.meuApe}. Juntei aqui o que eu precisei e não achei pronto: o que perguntar antes de assinar, o que conferir na vistoria, quanto custa de verdade e como organizar a obra.</p>
+        </div>
+      </section>
       <section className="ape-faq" id="loja-duvidas">
         <h3 className="ape-sec-t">dúvidas <em>frequentes</em></h3>
         {[
