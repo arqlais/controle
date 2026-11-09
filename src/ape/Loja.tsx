@@ -281,8 +281,7 @@ function Depoimentos() {
     const [nome, onde] = String(d.nome || '').split(/\s+[-–·]\s+/)
     return (
       <figure key={k} className={`ape-depo2 ${cores[i % 3]}`}>
-        <span className="aspas" aria-hidden="true">“</span>
-        <blockquote>{d.texto}</blockquote>
+                <blockquote>{d.texto}</blockquote>
         <figcaption>
           <span className="av">{(nome || '?').trim().charAt(0).toUpperCase()}</span>
           <span><b>{nome}</b>{onde ? <small>{onde}</small> : null}</span>
@@ -298,7 +297,6 @@ function Depoimentos() {
       <div className={`ape-depos2-vp ${rola ? 'rola' : ''}`}>
         <div className="ape-depos2-track" style={{ ['--n' as string]: l.length }}>
           {l.map((d, i) => cartao(d, i, 'a' + i))}
-          {rola && l.map((d, i) => cartao(d, i, 'b' + i))}
         </div>
       </div>
     </section>
@@ -374,7 +372,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
         <div className="ape-plat-preco">
           <span className="ape-note">12 meses de acesso · pagamento único</span>
           <div className="ape-price ape-keep">{p.preco} <small>à vista</small></div>
-          {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão <small>(com juros)</small></div>}
+          {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão</div>}
           <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>preço de cafezinho: <b className="ape-keep">menos de R$ {Math.ceil(ult.n > 1 ? ult.parcela : mes)} por mês</b>{ult.n > 1 ? ` em ${ult.n}x` : ''} para a casa nova toda organizada</span></div>
           <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>

@@ -2593,3 +2593,27 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 /* "?" de como funciona, ao lado dos filtros */
 .ape .ape-ajuda-btn { width: 40px; padding: 0; justify-content: center; font-weight: 700; font-size: 15px; flex: none; }
 .ape-ficha .ape-entenda-b { display: grid; gap: 12px; padding: 0; }
+/* compra da plataforma: as três partes centralizadas na mesma altura */
+@media (min-width: 761px) {
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) { align-items: center; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco { align-items: center; row-gap: 2px; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-plat-mes { grid-row: 1 / span 2; align-self: end; margin: 0; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-pill { grid-row: 3; align-self: center; }
+  .ape .ape-plat-buy:has(.ape-plat-steps.curto) > .ape-acts { align-self: center; margin: 0; }
+}
+/* depoimentos: cores sólidas claras, sem degradê nem esmaecer nas bordas; rola com o dedo */
+.ape .ape-depos2-vp, .ape .ape-depos2-vp.rola { -webkit-mask-image: none; mask-image: none; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.ape .ape-depos2-vp::-webkit-scrollbar { display: none; }
+.ape .ape-depos2-vp .ape-depos2-track { animation: none !important; width: auto; }
+.ape .ape-depo2 { scroll-snap-align: start; }
+.ape .ape-depo2.azul { background: #eef2f4; }
+.ape .ape-depo2.terra { background: #f8efea; }
+.ape .ape-depo2.madeira { background: #f5eee5; }
+@media (min-width: 761px) {
+  .ape .ape-depos2-track { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .ape .ape-depo2 { flex: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ape .ape-depo2 { animation: ape-up .5s ease both; }
+  .ape .ape-depo2:nth-child(2) { animation-delay: .08s; } .ape .ape-depo2:nth-child(3) { animation-delay: .16s; } .ape .ape-depo2:nth-child(4) { animation-delay: .24s; }
+}
