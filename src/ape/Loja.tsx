@@ -348,7 +348,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
     ['enxoval', 'enxoval e mudança', 'Com prioridade e passo a passo.'],
     ['contrato', 'garantias e documentos', 'Avisa antes de vencer e guarda cada papel.'],
   ]
-  const [mais, setMais] = useState(false)
+  const mais = true
   return (
     <section className="ape-plat" id="loja-plataforma">
       <div className="ape-plat-head">
@@ -365,7 +365,6 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
               <span><b>{t}</b>{d}</span>
             </div>
           ))}
-          <button type="button" className="ape-plat-mais" aria-expanded={mais} onClick={() => setMais(!mais)}>{mais ? 'mostrar menos' : `e mais ${recursos.length - 4} recursos`}<ApeIcon name="chev" /></button>
         </div>
       </div>
       <div className="ape-plat-buy">
@@ -376,7 +375,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
           <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>preço de cafezinho: <b className="ape-keep">menos de R$ {Math.ceil(ult.n > 1 ? ult.parcela : mes)} por mês</b>{ult.n > 1 ? ` em ${ult.n}x` : ''} para a casa nova toda organizada</span></div>
           <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>
-        <ol className={`ape-plat-steps ${mais ? '' : 'curto'}`}>
+        <ol className="ape-plat-steps curto">
           <li><b>1</b>Paga uma vez: Pix, cartão à vista ou parcelado</li>
           <li><b>2</b>Cria o seu acesso com e-mail e senha, na hora</li>
           <li><b>3</b>Usa por 12 meses no celular ou no computador, em minha conta</li>
