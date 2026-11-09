@@ -5,7 +5,7 @@ import { escolher, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, 
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
-  APE, GRUPO_META, CTA_BY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  APE, GRUPO_META, ehNichoNovo, CTA_BY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { read, write } from './shared'
 import { Fileira } from './Loja'
@@ -86,7 +86,8 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
   if (term) list = list.filter((o) => [o.fornecedor, o.servico, o.resumo, ...(o.inclui || [])].join(' ').toLowerCase().includes(term))
   if (validos) list = list.filter((o) => calc(o).st !== 'vencido')
   if (pl !== 'todas') list = list.filter((o) => { const x = plantaDe(o).p; return !x || x === pl })
-  const groups = NICHOS.map((n) => n[0]).filter((id) => list.some((o) => o.nicho === id))
+  const PASTAS: [string, string, string][] = [...NICHOS.filter((n) => n[0] !== 'outros'), ...[...new Set(vis.map((o) => o.nicho).filter(ehNichoNovo))].sort().map((id) => [id, nicho(id).l, 'box'] as [string, string, string]), ...NICHOS.filter((n) => n[0] === 'outros')]
+  const groups = PASTAS.map((n) => n[0]).filter((id) => list.some((o) => o.nicho === id))
 
   return (
     <>
@@ -118,7 +119,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           <b>todas</b>
           <small>{vis.length} {vis.length === 1 ? 'item' : 'itens'}</small>
         </button>
-        {NICHOS.filter((n) => counts[n[0]]).map((n) => {
+        {PASTAS.filter((n) => counts[n[0]]).map((n) => {
           const doN = vis.filter((o) => o.nicho === n[0] && ehOrcamento(o))
           const menor = Math.min(...doN.map((o) => calc(o).avista ?? Infinity))
           return (

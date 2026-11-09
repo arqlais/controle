@@ -341,7 +341,7 @@ export function nichoDoTexto(txt: string): Nicho | '' {
   const regras: [Nicho, RegExp][] = [
     ['piso-vinilico', /vinilic/], ['piso-laminado', /laminad/], ['piso-ceramico', /porcelanato|ceramic/], ['revestimentos', /revestimento|pastilha|azulejo/],
     ['marcenaria', /marcenaria|planejad|mdf|armario/], ['marmoraria', /granito|marmore|quartzo|bancada|marmoraria/], ['box', /\bbox\b/],
-    ['gesso', /gesso|drywall|sanca|forro/], ['eletrica', /eletric|tomada|disjuntor/], ['hidraulica', /hidraulic|encanamento|esgoto|aquecedor|boiler|pressurizador/],
+    ['gesso', /gesso|drywall|sanca|forro/], ['eletrica', /eletric|tomada|disjuntor/], ['aquecedor', /aquecedor|boiler/], ['hidraulica', /hidraulic|encanamento|esgoto|pressurizador/],
     ['impermeabilizacao', /impermeabiliz/], ['serralheria', /serralheri|grade|portao|corrimao/], ['ar', /ar.condicionado|split|btu/],
     ['pintura', /pintura|tinta|massa corrida/], ['cortinas', /cortina|persiana/], ['telas', /tela de protecao|rede de protecao/],
     ['vidros', /vidro|espelho|vidracaria/], ['iluminacao', /luminaria|spot|pendente|iluminacao/],

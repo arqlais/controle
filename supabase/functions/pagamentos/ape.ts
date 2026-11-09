@@ -426,7 +426,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
   }
 
   /* ===== leitura automática do orçamento: um arquivo por vez, já no formato da comparação ===== */
-  const NICHOS = 'piso-vinilico, piso-ceramico, piso-laminado, revestimentos, marcenaria, marmoraria, box, gesso, eletrica, hidraulica, impermeabilizacao, serralheria, ar, pintura, cortinas, telas, vidros, iluminacao, moveis, eletros, mao-de-obra, outros'
+  const NICHOS = 'piso-vinilico, piso-ceramico, piso-laminado, revestimentos, marcenaria, marmoraria, box, gesso, eletrica, hidraulica, aquecedor, impermeabilizacao, serralheria, ar, pintura, cortinas, telas, vidros, iluminacao, moveis, eletros, mao-de-obra, outros'
   const b64 = (buf: ArrayBuffer) => {
     const u = new Uint8Array(buf)
     let s = ''
@@ -450,7 +450,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
 O material pode ter MAIS DE UM orçamento: de fornecedores diferentes, ou do mesmo fornecedor para serviços diferentes (ex.: marcenaria da cozinha e box do banheiro, ou piso e rodapé com totais separados). Cada orçamento separado vira um item da lista. Itens de um mesmo orçamento com um total só ficam juntos.
 Formato: {"orcamentos": [ORCAMENTO, ...]}
 ORCAMENTO:
-{"fornecedor": "empresa ou profissional que fez o orçamento (nunca o cliente)", "nicho": um destes ids: ${NICHOS},
+{"fornecedor": "empresa ou profissional que fez o orçamento (nunca o cliente)", "nicho": um destes ids: ${NICHOS} (se nenhum servir, use "novo"), "nicho_novo": "só quando nicho for novo: nome curto da pasta, no singular e com inicial maiúscula, ex.: Portas, Fechadura digital",
 "servico": "o que está sendo orçado, até 10 palavras", "resumo": "1 frase simples: o que é e o preço que importa",
 "contato": "nome do vendedor", "whatsapp": "só dígitos com DDD", "telefone": "só dígitos", "email": "", "instagram": "", "cnpj": "só dígitos", "endereco": "",
 "valor_total": número ou null (preço cheio/a prazo), "valor_avista": número ou null, "desconto_avista_pct": número ou null, "parcelas_max": número ou null, "valor_parcela": número ou null, "juros": true/false/null,
@@ -464,7 +464,7 @@ ORCAMENTO:
 "completude": 1 a 5}
 PRINTS DE CONVERSA (WhatsApp, Instagram, e-mail): o fornecedor é a loja ou o profissional que está mandando o orçamento. Procure, nesta ordem: o nome no topo da conversa (nome do contato ou da empresa), o nome que assina a mensagem, a marca ou loja citada no texto ("aqui é da Loja X", "Mercogas", "Loja do Aquecedor"), logotipo, @ do Instagram, site ou e-mail. Os balões de quem pergunta e o nome do aparelho são do cliente: ignore. Se o número de WhatsApp aparecer no topo, use em "whatsapp".
 PRODUTO TAMBÉM CONTA: o orçamento pode ser de um produto (aquecedor, chuveiro, geladeira, cooktop, coifa, ar-condicionado, luminária, porta, torneira…), não só de serviço. Em "servico" escreva o produto e o modelo principal, ex.: "Aquecedor a gás 15 L Rinnai". Nunca deixe "servico" vazio se o produto ou o serviço aparece em algum lugar.
-COMO ESCOLHER O NICHO: aquecedor (a gás, elétrico, solar, boiler), chuveiro, torneira, misturador, registro, bomba, caixa d'água, encanamento → hidraulica; geladeira, fogão, cooktop, forno, micro-ondas, coifa, depurador, lava-louça, máquina de lavar → eletros; lustre, luminária, spot, trilho, fita de LED → iluminacao; tomada, disjuntor, quadro, fiação → eletrica; split, multi-split, ar de janela → ar; pedra, bancada, granito, quartzo, mármore → marmoraria; armário planejado → marcenaria; sofá, mesa, cama, cadeira → moveis; persiana, cortina → cortinas; tela de proteção → telas; espelho, vidro → vidros; porta, grade, portão de ferro → serralheria. Use "outros" só se nada servir.
+COMO ESCOLHER O NICHO: aquecedor (a gás, elétrico, solar, boiler) → aquecedor; chuveiro, torneira, misturador, registro, bomba, caixa d'água, encanamento → hidraulica; geladeira, fogão, cooktop, forno, micro-ondas, coifa, depurador, lava-louça, máquina de lavar → eletros; lustre, luminária, spot, trilho, fita de LED → iluminacao; tomada, disjuntor, quadro, fiação → eletrica; split, multi-split, ar de janela → ar; pedra, bancada, granito, quartzo, mármore → marmoraria; armário planejado → marcenaria; sofá, mesa, cama, cadeira → moveis; persiana, cortina → cortinas; tela de proteção → telas; espelho, vidro → vidros; porta, grade, portão de ferro → serralheria. Se nada servir, use "novo" e dê o nome da pasta em "nicho_novo" (nunca "outros" para um produto ou serviço que dá para nomear).
 Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos jeitos: "R$ 3.500,00", "3500", "3,5 mil", "R$3.500", à mão, numa tabela, com o valor antigo riscado e o novo ao lado (use o novo, o que vale), ou só como parcelas ("10x de 350": total 3500). Sem total escrito, some os itens. Leia com atenção a imagem inteira, inclusive carimbos, rodapés e textos pequenos, antes de deixar valor_total null. Na dúvida se é um orçamento ou dois, separe quando o serviço (nicho) ou o fornecedor muda. Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
 
   async function ler(body: J) {
@@ -514,7 +514,13 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
       /* resposta fora do formato: devolve vazio */
     }
     const lista = (Array.isArray(v.orcamentos) ? v.orcamentos : [v]).filter((o: J) => o && typeof o === 'object' && (o.fornecedor || o.valor_total != null || o.servico)).slice(0, 12) as J[]
-    for (const o of lista) if (!NICHOS.split(', ').includes(String(o.nicho))) o.nicho = ''
+    for (const o of lista) {
+      if (NICHOS.split(', ').includes(String(o.nicho)) && o.nicho !== 'outros') continue
+      // pasta nova criada sozinha (ex.: "Portas"): vira x:Portas; sem nome, fica para a pessoa escolher
+      const novo = String(o.nicho_novo ?? '').replace(/[^\p{L}\p{N} \-]/gu, '').trim().slice(0, 40)
+      o.nicho = novo.length >= 2 ? `x:${novo.charAt(0).toUpperCase()}${novo.slice(1)}` : o.nicho === 'outros' ? 'outros' : ''
+      delete o.nicho_novo
+    }
     return json({ orcamento: lista[0] ?? {}, orcamentos: lista })
   }
 

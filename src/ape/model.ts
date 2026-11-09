@@ -16,21 +16,28 @@ export const APE = {
 }
 
 export type Nicho =
-  | 'piso-vinilico' | 'piso-ceramico' | 'piso-laminado' | 'revestimentos' | 'marcenaria' | 'marmoraria' | 'box' | 'gesso' | 'eletrica' | 'hidraulica'
+  | 'piso-vinilico' | 'piso-ceramico' | 'piso-laminado' | 'revestimentos' | 'marcenaria' | 'marmoraria' | 'box' | 'gesso' | 'eletrica' | 'hidraulica' | 'aquecedor'
   | 'impermeabilizacao' | 'serralheria' | 'ar' | 'pintura' | 'cortinas' | 'telas' | 'vidros' | 'iluminacao' | 'moveis' | 'eletros' | 'mao-de-obra' | 'outros'
+  | `x:${string}` // pasta criada sozinha quando o orçamento não cabe em nenhuma das de cima
 
 export const NICHOS: [Nicho, string, string][] = [
   ['piso-vinilico', 'Piso vinílico', 'floor'], ['piso-ceramico', 'Porcelanato e cerâmica', 'tile'], ['piso-laminado', 'Piso laminado', 'floor'],
   ['revestimentos', 'Revestimentos de parede', 'tile'], ['marcenaria', 'Marcenaria e planejados', 'wood'], ['marmoraria', 'Pedras e bancadas', 'stone'],
   ['box', 'Box de banheiro', 'shower'], ['gesso', 'Gesso, forro e sanca', 'ceiling'], ['eletrica', 'Elétrica', 'bolt'],
-  ['hidraulica', 'Hidráulica', 'shower'], ['impermeabilizacao', 'Impermeabilização', 'shield'], ['serralheria', 'Serralheria', 'tool'],
+  ['hidraulica', 'Hidráulica', 'shower'], ['aquecedor', 'Aquecedor', 'bolt'], ['impermeabilizacao', 'Impermeabilização', 'shield'], ['serralheria', 'Serralheria', 'tool'],
   ['ar', 'Ar-condicionado', 'snow'], ['pintura', 'Pintura', 'brush'], ['cortinas', 'Cortinas e persianas', 'curtain'],
   ['telas', 'Telas de proteção', 'net'], ['vidros', 'Vidros e espelhos', 'glass'], ['iluminacao', 'Iluminação', 'sparkle'],
   ['moveis', 'Móveis soltos', 'sofa'], ['eletros', 'Eletrodomésticos', 'fridge'], ['mao-de-obra', 'Mão de obra geral', 'tool'], ['outros', 'Outros', 'box'],
 ]
 const NMAP = Object.fromEntries(NICHOS.map((n) => [n[0], { l: n[1], i: n[2] }])) as Record<string, { l: string; i: string }>
-export const nicho = (id?: string) => NMAP[id || 'outros'] || NMAP.outros
-export const isNicho = (id: unknown): id is Nicho => typeof id === 'string' && !!NMAP[id]
+const capi1 = (t: string) => t.charAt(0).toUpperCase() + t.slice(1)
+export const ehNichoNovo = (id?: string): id is `x:${string}` => !!id && /^x:.{2,40}$/.test(id)
+/** Pasta nova a partir de um nome ("aquecedores" → x:Aquecedores). */
+export const nichoNovo = (nome: string): Nicho => `x:${capi1(nome.trim().replace(/\s+/g, ' ').slice(0, 40))}` as Nicho
+export const nicho = (id?: string) => (ehNichoNovo(id) ? { l: capi1(id.slice(2)), i: 'box' } : NMAP[id || 'outros'] || NMAP.outros)
+export const isNicho = (id: unknown): id is Nicho => typeof id === 'string' && (!!NMAP[id] || ehNichoNovo(id))
+/** As pastas para escolher: as fixas, mais as criadas sozinhas que já existem. */
+export const opcoesNicho = (extras: (string | undefined)[] = []): [string, string][] => [...NICHOS.map((n) => [n[0], n[1]] as [string, string]), ...[...new Set(extras.filter(ehNichoNovo))].map((id) => [id, nicho(id).l] as [string, string])]
 /** Produto da loja sugerido no meio da lista, conforme o serviço. */
 export const CTA_BY: Partial<Record<Nicho, string>> = { marcenaria: 'guia', marmoraria: 'guia', eletrica: 'entregas', hidraulica: 'entregas', gesso: 'guia', ar: 'guia', 'piso-vinilico': 'guia', 'piso-ceramico': 'guia', 'piso-laminado': 'guia', moveis: 'medidas' }
 

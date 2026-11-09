@@ -13,7 +13,7 @@ import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
 import {
-  APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, opcoesNicho, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -619,7 +619,7 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
           const id = `d-${k}`
           const v = vals[k] ?? ''
           return f[2] === 'nicho'
-            ? <div key={k} className="ape-f"><label htmlFor={id}>{f[1]}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}>{NICHOS.map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
+            ? <div key={k} className="ape-f"><label htmlFor={id}>{f[1]}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}>{opcoesNicho([v]).map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
             : <div key={k} className="ape-f"><label htmlFor={id}>{f[1]}</label><input id={id} value={v} onChange={(e) => set(k, e.target.value)} /></div>
         })}
         <div className="ape-f">
@@ -645,7 +645,7 @@ function Editor({ draft, onCancel, onSaved }: { draft: Draft; onCancel: () => vo
             const [, l, t] = f
             const id = `d-${k}`
             const v = vals[k] ?? ''
-            if (t === 'nicho') return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}>{NICHOS.map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
+            if (t === 'nicho') return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}>{opcoesNicho([v]).map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
             if (t === 'bool') return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><select id={id} value={v} onChange={(e) => set(k, e.target.value)}><option value="">Não informado</option><option value="nao">Sem juros</option><option value="sim">Com juros</option></select></div>
             if (t === 'lines' || t === 'area') return <div key={k} className="ape-f full"><label htmlFor={id}>{l}</label><textarea id={id} style={{ minHeight: t === 'area' ? 56 : 84 }} value={v} onChange={(e) => set(k, e.target.value)} /></div>
             return <div key={k} className="ape-f"><label htmlFor={id}>{l}</label><input id={id} type={t === 'date' ? 'date' : 'text'} inputMode={t === 'num' ? 'decimal' : undefined} value={v} onChange={(e) => set(k, e.target.value)} /></div>

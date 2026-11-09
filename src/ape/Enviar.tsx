@@ -4,7 +4,7 @@ import { lerArquivo, meuOrcamento, publicar, subirArquivos, apeCloud } from './a
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { faltando, lerTexto, nichoDoTexto } from './comparar'
-import { APE, NICHOS, PLANTA_ROT, plantaDoAp, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
+import { APE, opcoesNicho, PLANTA_ROT, plantaDoAp, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
 
 /* Enviar orçamento: anexa um ou mais arquivos, cada arquivo vira um orçamento lido sozinho (IA no servidor;
    sem IA, regras simples sobre o texto do PDF). A pessoa só completa o que faltou e publica direto na comparação. */
@@ -327,7 +327,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: 
                 <div className="ape-f"><label>Serviço</label>
                   <select value={o.nicho === 'outros' ? '' : o.nicho} onChange={(e) => set('nicho', e.target.value || 'outros')}>
                     <option value="">Escolha…</option>
-                    {NICHOS.map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
+                    {opcoesNicho([o.nicho]).map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
                   </select>
                 </div>
               </div>
@@ -357,7 +357,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: 
                   <div className="ape-f"><label>Serviço</label>
                     <select value={o.nicho === 'outros' ? '' : o.nicho} onChange={(e) => set('nicho', e.target.value || 'outros')}>
                       <option value="">Escolha…</option>
-                      {NICHOS.map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
+                      {opcoesNicho([o.nicho]).map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
                     </select>
                   </div>
                 )}
@@ -390,7 +390,7 @@ export function EditarOrc({ o, onChange }: { o: Orcamento; onChange: (o: Orcamen
         <div className="ape-f"><label>Fornecedor</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} /></div>
         <div className="ape-f"><label>Serviço</label>
           <select value={o.nicho} onChange={(e) => set('nicho', e.target.value)}>
-            {NICHOS.map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
+            {opcoesNicho([o.nicho]).map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
           </select>
         </div>
       </div>
