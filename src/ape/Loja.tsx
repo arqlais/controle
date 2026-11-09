@@ -22,7 +22,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   const pixPct = ajustes.pixPct ?? 5
   PIX = pixPct
   PRODUTOS_LOJA = produtos
-  { const vistos = new Set<string>(); SELO_OK = new Set(produtos.filter((p) => p.ativo && p.selo).filter((p) => { const k = (p.selo || '').trim().toLowerCase(); if (vistos.has(k)) return false; vistos.add(k); return true }).map((p) => p.id)) }
+  { const com = produtos.filter((p) => p.ativo && p.selo); const um = com.find((p) => /mais vendido/i.test(p.selo || '')) || com[0]; SELO_OK = new Set(um ? [um.id] : []) }
   const ativos = produtos.filter((p) => p.ativo)
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
