@@ -621,5 +621,5 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
     return json({ arquivos: out })
   }
 
-  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, testarEmail: contaApi.testarEmail, avisarReembolso, rotina }
+  return { verOriginal, criar, pedido, baixar, recuperar, reembolsar, ler, marcarPago, chave, importar, testarIa, conta: contaApi.conta, decidir: contaApi.decidir, depoimentos: contaApi.depoimentos, erroPagamento: contaApi.erroPagamento, testarEmail: contaApi.testarEmail, avisarReembolso, rotina }
 }

@@ -311,6 +311,23 @@ ${passos(sl ? [
       corpo: `<p style="margin:0">${esc(ped.email)}${ped.tel ? ` · ${tel(ped.tel)}` : ''}</p>${resumoPedido(ped)}${ped.cortesia ? '' : caixa(`Sobra aproximada depois da taxa do Asaas: <b>${brl(Number(ped.total) - taxa)}</b>${n > 1 ? ` (parcelado em ${n}x: o Asaas repassa conforme o seu plano)` : ''}.`)}<p style="margin:0">O cliente já recebeu o e-mail para criar o acesso. Os arquivos saem com o nome dele no rodapé.</p>`,
       botao: ['abrir o painel', PAINEL] }))
   }
+  /** Aviso imediato para a dona quando o pagamento dá erro na loja (com os dados para ela ajudar ou cobrar direto). */
+  const ultimosErros = new Map<string, number>()
+  async function erroPagamento(body: J) {
+    const email = String(body.email ?? '').trim().toLowerCase().slice(0, 160)
+    const chave = email || String(body.tel ?? '') || 'anon'
+    if (Date.now() - (ultimosErros.get(chave) ?? 0) < 5 * 60 * 1000) return json({ ok: true })
+    ultimosErros.set(chave, Date.now())
+    const itens = (Array.isArray(body.itens) ? body.itens : []).slice(0, 40).map((i: J) => `${esc(String(i.nome ?? '').slice(0, 120))} (${esc(String(i.preco ?? '').slice(0, 20))})`)
+    const nome = esc(String(body.nome ?? '').slice(0, 120)) || 'sem nome'
+    const total = Number(body.total) || 0
+    const zap = String(body.tel ?? '').replace(/\D/g, '').slice(0, 13)
+    await mandar(DONO, 'Laís', `Erro no pagamento: ${nome} · ${brl(total)}`, moldura({ site, dona: true, ajuda: false, previa: `${nome} tentou pagar ${brl(total)} e deu erro.`, kicker: 'erro no pagamento', titulo: `${nome} tentou pagar e deu erro`,
+      corpo: `<p style="margin:0">${esc(email) || 'sem e-mail'}${zap ? ` · ${tel(zap)}` : ''}</p>${caixa(`<b>Itens:</b><br>${itens.join('<br>') || '—'}<br><br><b>Total:</b> ${brl(total)} no ${esc(String(body.forma ?? 'pix'))}${Number(body.parcelas) > 1 ? ` em ${Number(body.parcelas)}x` : ''}<br><b>Erro:</b> ${esc(String(body.erro ?? '').slice(0, 300))}`)}<p style="margin:0">A pessoa viu na tela a opção de falar com você no WhatsApp ou pagar pelo Pix direto. Se ela pagar direto, libere em painel → clientes → dar cortesia.</p>`,
+      botao: zap ? ['chamar no WhatsApp', `https://wa.me/${zap.length <= 11 ? '55' + zap : zap}`] : ['abrir o painel', PAINEL] }))
+    return json({ ok: true })
+  }
+
   /** Guarda o contato como lead no Brevo (lista de e-mail marketing): "carrinho" ao começar a compra, "cliente" ao pagar. */
   async function lead(p: J, etapa: 'carrinho' | 'cliente') {
     const key = env('BREVO_API_KEY')
@@ -358,5 +375,5 @@ ${passos(sl ? [
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus, erroPagamento }
 }

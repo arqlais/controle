@@ -222,6 +222,12 @@ export async function conferirCadastro(local: Morador | null): Promise<Morador |
   }
 }
 
+/** Avisa a dona na hora quando o pagamento dá erro (e-mail com os dados da compra). Nunca falha para quem compra. */
+export async function avisarErroPagamento(d: { nome: string; email: string; tel: string; itens: { nome: string; preco: string }[]; total: number; forma: string; parcelas: number; erro: string }) {
+  if (!CLOUD) return
+  try { await invoke({ acao: 'ape-erro-pagamento', ...d }) } catch { /* sem conexão: o cliente ainda tem o WhatsApp na tela */ }
+}
+
 /** Números de verdade para a loja (moradores do San Levi aprovados e compras pagas). */
 export async function numerosLoja(): Promise<{ moradores: number; compras: number }> {
   if (!CLOUD) return { moradores: 0, compras: 0 }

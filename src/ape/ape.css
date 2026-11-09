@@ -2448,3 +2448,8 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
   .ape .ape-plat-buy:has(.ape-plat-steps.curto) .ape-plat-preco > .ape-pill { align-self: start; }
 }
 .ape .iph-kpis b { white-space: nowrap; font-size: clamp(10px, 1.1em, 13px); letter-spacing: -.01em; }
+/* checkout: erro no pagamento, com saída na hora */
+.ape-co-falhou { display: grid; gap: 8px; padding: 14px 16px; border-radius: 16px; background: var(--a-sec-soft); border: 1px solid color-mix(in srgb, var(--a-sec) 25%, var(--a-line)); }
+.ape-co-falhou b { color: var(--a-sec); font-size: 14px; }
+.ape-co-falhou span, .ape-co-falhou small { font-size: 12.5px; color: var(--a-muted); line-height: 1.5; }
+.ape-co-falhou .ape-acts { gap: 8px; }

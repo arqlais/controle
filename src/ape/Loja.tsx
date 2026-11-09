@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { href } from '../router'
-import { baixarArquivo, numerosLoja, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
+import { baixarArquivo, avisarErroPagamento, numerosLoja, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
@@ -858,6 +858,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
     } catch (x) {
       setErr(`Não deu para abrir o pagamento agora (${(x as Error).message}).`)
       setBusy(false)
+      void avisarErroPagamento({ nome: nome.trim(), email: email.trim().toLowerCase(), tel: digits(tel), itens: t.itens.map((p) => ({ nome: p.nome, preco: p.preco })), total: totalFinal, forma, parcelas: parc?.n || 1, erro: (x as Error).message })
     }
   }
   if (!t.itens.length)
@@ -950,7 +951,15 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
               {busy ? 'abrindo o pagamento…' : forma === 'pix' ? <>pagar <span className="ape-keep">{brl(t.total)}</span> no Pix</> : parc && parc.n > 1 ? <>pagar <span className="ape-keep">{parc.n}x de {brl(parc.parcela)}</span> no cartão</> : <>pagar <span className="ape-keep">{brl(t.total)}</span> no cartão</>}
             </button>
             {err && !busy && err.startsWith('Não deu') && (
-              <a className="ape-btn" href={wa(whats, msgWhats)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />falar no WhatsApp</a>
+              <div className="ape-co-falhou" role="status">
+                <b>a Laís já foi avisada do erro</b>
+                <span>Você pode tentar de novo em instantes ou resolver agora por um destes caminhos:</span>
+                <div className="ape-acts">
+                  <a className="ape-btn primary" href={wa(whats, `${msgWhats}\n\nPosso pagar pelo Pix direto com você?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="tag" />pagar pelo Pix direto</a>
+                  <a className="ape-btn" href={wa(whats, msgWhats)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />avisar no WhatsApp</a>
+                </div>
+                <small>Pagando direto, os arquivos são liberados no seu e-mail assim que o Pix cair.</small>
+              </div>
             )}
           </CoStep>
         </div>
