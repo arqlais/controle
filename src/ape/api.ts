@@ -243,8 +243,21 @@ export async function registrarVisita(pagina: string) {
     const origem = (q.get('utm_source') || (deFora ? (/instagram/.test(ref) ? 'instagram' : /whatsapp|wa\.me|l\.wl\.co/.test(ref) ? 'whatsapp' : /tiktok/.test(ref) ? 'tiktok' : /google/.test(ref) ? 'google' : /facebook|fb\./.test(ref) ? 'facebook' : new URL(ref).host.replace(/^www\./, '')) : '') || (/instagram/i.test(navigator.userAgent) ? 'instagram' : /tiktok|musical_ly/i.test(navigator.userAgent) ? 'tiktok' : 'direto')).slice(0, 40)
     const aparelho = /ipad|tablet/i.test(navigator.userAgent) ? 'tablet' : /mobi|android|iphone/i.test(navigator.userAgent) ? 'celular' : 'computador'
     await sb().rpc('ape_visita', { p_sessao: id, p_pagina: pagina, p_origem: origem, p_aparelho: aparelho })
+    VINFO = { id, origem, aparelho }
+    pingar(pagina)
   } catch { /* sem armazenamento ou sem conexão: não conta */ }
 }
+/* "estou aqui": a cada 30 s enquanto a página está aberta e visível */
+let VINFO: { id: string; origem: string; aparelho: string } | null = null
+let VPAG = ''
+let VTIMER = 0
+function pingar(pagina: string) {
+  VPAG = pagina
+  const vai = () => { if (VINFO && document.visibilityState === 'visible') void sb().rpc('ape_ping', { p_sessao: VINFO.id, p_pagina: VPAG, p_origem: VINFO.origem, p_aparelho: VINFO.aparelho }).then(() => null, () => null) }
+  vai()
+  if (!VTIMER) { VTIMER = window.setInterval(vai, 30000); document.addEventListener('visibilitychange', vai) }
+}
+export interface Online { sessao: string; pagina: string; origem: string; aparelho: string; inicio: string; visto: string; paginas: number }
 export interface Visita { criado: string; sessao: string; pagina: string; origem: string; aparelho: string }
 
 /** Números de verdade para a loja (moradores do San Levi aprovados e compras pagas). */
@@ -397,6 +410,12 @@ export async function queroGrupo(orcamento: string, moradorId: string): Promise<
 
 /* ===== painel da dona ===== */
 export const admin = {
+  async online(): Promise<Online[]> {
+    if (!CLOUD) return []
+    const desde = new Date(Date.now() - 2 * 864e5).toISOString()
+    const { data, error } = await sb().from('ape_online').select('*').gte('visto', desde).order('visto', { ascending: false }).limit(300)
+    return error ? [] : (data as Online[])
+  },
   async visitas(dias = 30): Promise<Visita[]> {
     if (!CLOUD) return []
     const desde = new Date(Date.now() - dias * 864e5).toISOString()

@@ -7,7 +7,7 @@ import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { AvatarGlyph } from '../components/Avatar'
 import { PLATFORM } from '../plans'
-import { admin, apeCloud, loja, marcarDona, painelConta, type Visita, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
+import { admin, apeCloud, loja, marcarDona, painelConta, type Visita, type Online, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
@@ -325,10 +325,21 @@ function MaisVendidos({ pedidos }: { pedidos: PedidoAdmin[] }) {
 }
 
 /** Visitas do site: quantas pessoas entraram (sem contar a dona), de onde vieram e o que viram. */
+const ROT_PAG: Record<string, string> = { checkout: 'finalizar compra', pedido: 'página de pagamento', conta: 'minha conta', enviar: 'enviar orçamento', entrar: 'entrar' }
+const rotPag = (p: string) => ROT_PAG[p] || p
 function Visitas({ pedidos }: { pedidos: PedidoAdmin[] }) {
   const [l, setL] = useState<Visita[] | null>(null)
   const [per, setPer] = useState<1 | 7 | 30>(7)
-  useEffect(() => { marcarDona(); void admin.visitas(30).then(setL) }, [])
+  const [on, setOn] = useState<Online[]>([])
+  const [agora, setAgora] = useState(Date.now())
+  useEffect(() => {
+    marcarDona()
+    void admin.visitas(30).then(setL)
+    const at = () => { void admin.online().then(setOn); setAgora(Date.now()) }
+    at()
+    const t = window.setInterval(at, 20000)
+    return () => window.clearInterval(t)
+  }, [])
   if (!l) return <Thinking t="carregando…" />
   const desde = (d: number) => Date.now() - d * 864e5
   const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0)
@@ -347,6 +358,22 @@ function Visitas({ pedidos }: { pedidos: PedidoAdmin[] }) {
         <p className="ape-note" style={{ margin: 0 }}>Pessoas que entraram no site, sem contar você. Cada aparelho conta uma vez.</p>
         <div className="ape-vista" role="group" aria-label="Período">{([[1, 'hoje'], [7, '7 dias'], [30, '30 dias']] as const).map(([k, t]) => <button key={k} aria-pressed={per === k} onClick={() => setPer(k)}>{t}</button>)}</div>
       </div>
+      {(() => {
+        const ha = (t: string) => { const m = Math.round((agora - new Date(t).getTime()) / 60000); return m < 1 ? 'agora' : m < 60 ? `há ${m} min` : m < 1440 ? `há ${Math.round(m / 60)} h` : 'ontem' }
+        const vivos = on.filter((o) => agora - new Date(o.visto).getTime() < 75000)
+        const recentes = on.filter((o) => !vivos.includes(o)).slice(0, 12)
+        const quente = (p: string) => p === 'checkout' || p === 'pedido'
+        return (
+          <div className="ape-visvivo">
+            <div className="h"><span className={`dot ${vivos.length ? 'on' : ''}`} /><b>{vivos.length ? `${vivos.length} ${vivos.length > 1 ? 'pessoas navegando' : 'pessoa navegando'} agora` : 'ninguém navegando agora'}</b><small>atualiza sozinho</small></div>
+            {vivos.length > 0 && <ul>{vivos.map((o) => <li key={o.sessao} className={quente(o.pagina) ? 'quente' : ''}><ApeIcon name={o.aparelho === 'celular' ? 'phone' : 'eye'} /><span>está em <b>{rotPag(o.pagina)}</b>{quente(o.pagina) ? ' · finalizando a compra' : ''}</span><small>{o.paginas} {o.paginas > 1 ? 'páginas' : 'página'} · veio de {o.origem}</small></li>)}</ul>}
+            {recentes.length > 0 && <>
+              <p className="ape-eyebrow" style={{ margin: '6px 0 0' }}>onde pararam</p>
+              <ul>{recentes.map((o) => <li key={o.sessao} className={quente(o.pagina) ? 'quente' : ''}><ApeIcon name={o.aparelho === 'celular' ? 'phone' : 'eye'} /><span>parou em <b>{rotPag(o.pagina)}</b>{quente(o.pagina) ? ' · saiu sem terminar a compra?' : ''}</span><small>{ha(o.visto)} · {o.paginas} {o.paginas > 1 ? 'páginas' : 'página'} · {o.origem}</small></li>)}</ul>
+            </>}
+          </div>
+        )
+      })()}
       <div className="ape-adm-cards">
         <div><span><ApeIcon name="users" />pessoas</span><b className="num">{pessoas(doPer)}</b><small>{doPer.length} páginas vistas</small></div>
         <div><span><ApeIcon name="bag" />vendas</span><b className="num">{vendas}</b><small>{pessoas(doPer) ? `${((vendas / pessoas(doPer)) * 100).toFixed(1).replace('.', ',')}% de quem entrou` : 'no período'}</small></div>
@@ -358,7 +385,7 @@ function Visitas({ pedidos }: { pedidos: PedidoAdmin[] }) {
       </div>
       <div className="ape-visgrid">
         {lista('de onde vieram', conta('origem'))}
-        {lista('o que viram', conta('pagina'))}
+        {lista('o que viram', conta('pagina').map(([n, k]) => [rotPag(n), k] as const))}
       </div>
     </div>
   )
