@@ -307,7 +307,9 @@ const safeName = (n: string) => n.normalize('NFD').replace(/[̀-ͯ]/g, '').repla
 
 /** Foto ou print grande vira JPEG mais leve (sobe rápido no 4G). PDF e imagens pequenas vão como estão. */
 async function leve(f: File): Promise<File> {
-  if (!/^image\/(jpeg|png|webp)$/i.test(f.type) || f.size < 1.5 * 1024 * 1024) return f
+  // foto do iPhone (HEIC) vira JPG sempre que o aparelho souber abrir: assim a prévia aparece para todo mundo
+  const heic = /^image\/hei[cf]$/i.test(f.type) || /\.hei[cf]$/i.test(f.name)
+  if (!heic && (!/^image\/(jpeg|png|webp)$/i.test(f.type) || f.size < 1.5 * 1024 * 1024)) return f
   try {
     const bmp = await createImageBitmap(f)
     const max = 2200
@@ -320,7 +322,7 @@ async function leve(f: File): Promise<File> {
     ctx.fillRect(0, 0, c.width, c.height)
     ctx.drawImage(bmp, 0, 0, c.width, c.height)
     const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.85))
-    if (!blob || blob.size >= f.size) return f
+    if (!blob || (!heic && blob.size >= f.size)) return f
     return new File([blob], f.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
   } catch {
     return f

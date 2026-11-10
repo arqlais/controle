@@ -57,7 +57,8 @@ export function juntar(a: Orcamento, b: Partial<Orcamento>): Orcamento {
  *  Prioridade: o que a pessoa escreveu > IA > leitura local > palpite feito na hora de anexar. Nada aqui pode travar o envio. */
 export async function lerDepois(moradorId: string, id: string, base: Orcamento, files: File[], arquivos: Arquivo[], texto = '') {
   const palpiteForn = base.forn_auto ? base.fornecedor : ''
-  const pessoa: Orcamento = { ...base, id, fornecedor: base.forn_auto ? '' : base.fornecedor }
+  // a lista de arquivos vai junto sempre: sem ela a prévia some do cartão
+  const pessoa: Orcamento = { ...base, id, fornecedor: base.forn_auto ? '' : base.fornecedor, ...(arquivos.length ? { arquivos: arquivos.map((a) => ({ nome: a.nome, tipo: a.tipo })) } : {}) }
   const trocaPasta = !!base.nicho_auto || base.nicho === 'outros'
   const montar = (ia: Partial<Orcamento> | null, local: Partial<Orcamento> | null): Orcamento => {
     let o = pessoa

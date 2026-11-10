@@ -2724,3 +2724,20 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape-ficha-texto p { margin: 0; white-space: pre-wrap; font-size: 13.5px; line-height: 1.5; max-height: 40vh; overflow: auto; overflow-wrap: anywhere; }
 /* o X de fechar fica por cima da ficha: a prévia começa abaixo dele */
 .ape-ficha > .ape-ficha-previa:nth-child(2), .ape-ficha > .ape-ficha-texto:nth-child(2) { margin-top: 40px; }
+
+/* "folha" do orçamento sem arquivo (texto colado ou digitado): sempre tem imagem */
+.ape-tile-b .mini.papel, .ape-doc .mini.papel { place-items: stretch; background: var(--a-sand); padding: 36px 10px 0; }
+.ape-papel { display: flex; flex-direction: column; gap: 2px; width: 100%; height: 100%; overflow: hidden; background: #fff; border-radius: 6px 6px 0 0; padding: 10px 12px; box-shadow: 0 1px 6px rgba(40, 50, 60, .08); text-align: left; color: #3a3f45; -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+.ape-papel .cab { display: inline-flex; align-items: center; gap: 4px; font-size: 8.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--a-pri); margin-bottom: 3px; }
+.ape-papel .cab .ape-i { width: 10px; height: 10px; }
+.ape-papel b { font-size: 10px; line-height: 1.25; }
+.ape-papel .l { font-size: 8.5px; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ape-papel.grande { height: auto; max-height: 46vh; overflow: auto; border-radius: 12px; padding: 14px 16px; gap: 3px; -webkit-mask-image: none; mask-image: none; box-shadow: none; border: 1px solid var(--a-line); }
+.ape-papel.grande .cab { font-size: 11px; }
+.ape-papel.grande .cab .ape-i { width: 13px; height: 13px; }
+.ape-papel.grande b { font-size: 15px; margin-bottom: 4px; }
+.ape-papel.grande .l { font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; overflow: visible; overflow-wrap: anywhere; }
+.ape-ficha-texto:has(.ape-papel) { padding: 0; border: 0; background: none; }
+.ape-tile-b .mini .carrega { display: grid; justify-items: center; gap: 4px; }
+.ape-tile-b .mini .carrega small { font-size: 11px; }
+.ape-ficha-previa a.vazio { color: var(--a-pri); font-weight: 600; text-decoration: underline; }

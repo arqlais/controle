@@ -362,6 +362,33 @@ async function miniDe(me: Morador | null, o: Orcamento): Promise<string> {
   await pg.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
   return cv.toDataURL('image/jpeg', 0.8)
 }
+/** Orçamento sem arquivo (digitado ou colado): uma "folha" no nosso modelo com o texto, para ter sempre uma imagem. */
+function linhasDoPapel(o: Orcamento): string[] {
+  if (o.texto_original) return o.texto_original.split('\n').map((l) => l.trim()).filter(Boolean)
+  const c = calc(o)
+  return [
+    o.servico || nicho(o.nicho).l,
+    c.avista != null ? `à vista: ${brl(c.avista)}` : '',
+    c.total != null && c.total !== c.avista ? `total: ${brl(c.total)}` : '',
+    o.parcelas_max ? `${o.parcelas_max}x${o.juros === false ? ' sem juros' : ''}` : '',
+    o.prazo ? `prazo: ${o.prazo}` : '',
+    o.garantia ? `garantia: ${o.garantia}` : '',
+    o.pagamento || '',
+    ...(o.inclui || []).slice(0, 4).map((x) => `· ${x}`),
+    o.resumo || '',
+  ].filter(Boolean)
+}
+function Papel({ o, grande }: { o: Orcamento; grande?: boolean }) {
+  const ls = linhasDoPapel(o)
+  return (
+    <span className={`ape-papel ${grande ? 'grande' : ''}`}>
+      <span className="cab"><ApeIcon name={o.texto_original ? 'chat' : 'edit'} />{o.texto_original ? 'mensagem do fornecedor' : 'orçamento digitado'}</span>
+      {o.fornecedor && <b>{o.fornecedor}</b>}
+      {(grande ? ls : ls.slice(0, 9)).map((l, i) => <span key={i} className="l">{l}</span>)}
+    </span>
+  )
+}
+
 /** Na ficha: a prévia grande do arquivo (toca para abrir o original) ou o texto da mensagem, logo em cima das informações. */
 function PreviaFicha({ o, me }: { o: Orcamento; me: Morador | null }) {
   const [st, setSt] = useState<{ img?: string; url?: string; erro?: boolean }>({})
@@ -398,22 +425,15 @@ function PreviaFicha({ o, me }: { o: Orcamento; me: Morador | null }) {
     return (
       <div className="ape-ficha-previa">
         {st.img ? (
-          <a href={st.url} target="_blank" rel="noopener noreferrer" aria-label="Abrir o arquivo original"><img src={st.img} alt="Prévia do orçamento" /><span className="abrir"><ApeIcon name="eye" />toque para ver inteiro</span></a>
+          <a href={st.url} target="_blank" rel="noopener noreferrer" aria-label="Abrir o arquivo original"><img src={st.img} alt="Prévia do orçamento" onError={() => setSt({ erro: true, url: st.url })} /><span className="abrir"><ApeIcon name="eye" />toque para ver inteiro</span></a>
         ) : st.erro ? (
-          <span className="vazio"><ApeIcon name="file" />não deu para mostrar a prévia agora; use "ver o original" aqui embaixo</span>
+          <>{st.url ? <a className="vazio" href={st.url} target="_blank" rel="noopener noreferrer"><ApeIcon name="file" />abrir o arquivo original</a> : <span className="vazio"><ApeIcon name="file" />a prévia não carregou agora; toque em "ver o original" aqui embaixo</span>}</>
         ) : (
           <span className="vazio"><span className="ape-dots"><i /><i /><i /></span>carregando a prévia…</span>
         )}
       </div>
     )
-  if (o.texto_original)
-    return (
-      <div className="ape-ficha-texto">
-        <small><ApeIcon name="chat" />mensagem do fornecedor</small>
-        <p>{o.texto_original}</p>
-      </div>
-    )
-  return null
+  return <div className="ape-ficha-texto"><Papel o={o} grande /></div>
 }
 
 function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: string }) {
@@ -440,7 +460,11 @@ function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: 
     io.observe(el)
     return () => io.disconnect()
   }, [o.id, me?.id])
-  return <span ref={ref} className={`mini ${src ? 'ok' : ''}`}>{src ? <img src={src} alt="" loading="lazy" /> : <ApeIcon name={icone} />}</span>
+  const [quebrou, setQuebrou] = useState(false)
+  if (!o.arquivos?.length) return <span className="mini ok papel"><Papel o={o} /></span>
+  // foto que o navegador não abre (ex.: HEIC do iPhone): mostra a folha com o que foi lido, em vez de um quadrado vazio
+  if (quebrou) return <span className="mini ok papel"><Papel o={o} /></span>
+  return <span ref={ref} className={`mini ${src ? 'ok' : ''}`}>{src ? <img src={src} alt="" loading="lazy" onError={() => setQuebrou(true)} /> : <span className="carrega"><ApeIcon name={icone} /><small>carregando…</small></span>}</span>
 }
 
 /** TEXTO TODO EM MAIÚSCULA (comum em PDF) vira frase normal; e "não sei" não é nome de fornecedor. */
@@ -698,7 +722,7 @@ function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show,
           <ApeIcon name={minha ? 'check' : 'star'} />
           {minha ? 'minha escolha' : 'marcar como escolha'}
         </button>
-        {(o.arquivos?.length || (o.enviado && !o.texto_original)) && (
+        {!!o.arquivos?.length && (
           <button className="ape-btn ghost sm" onClick={() => setOriginal(true)}><ApeIcon name="file" />ver o original</button>
         )}
       </div>

@@ -77,6 +77,10 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const anexar = (list: File[]) => {
     if (!list.length) return
     if (list.length + lidos.length > 10) return setErr('Mande até 10 arquivos por vez.')
+    // só PDF e imagem (print/foto); Word, Excel etc.: explica o que fazer em vez de dar erro mudo
+    const ruim = list.find((f) => !(/pdf$/i.test(f.type) || /\.pdf$/i.test(f.name) || /^image\//i.test(f.type) || /\.(jpe?g|png|webp|hei[cf])$/i.test(f.name)))
+    if (ruim) return setErr(`O arquivo "${ruim.name}" não dá para anexar aqui. Tire um print da tela ou salve como PDF e anexe de novo. Se veio por mensagem, use "cole o texto".`)
+    setErr('')
     const big = list.find((f) => f.size > 15 * 1024 * 1024 && !/^image\//i.test(f.type))
     if (big) return setErr(`O arquivo ${big.name} passa de 15 MB.`)
     const novos: Lido[] = list.map((f) => ({ key: crypto.randomUUID(), arquivos: [], files: [f], o: blankOrcamento(tipo === 'orcamento' ? {} : { tipo }), status: 'lendo' }))
@@ -261,7 +265,8 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
 function PreviaLocal({ f }: { f: File }) {
   const [u, setU] = useState('')
   useEffect(() => { const x = URL.createObjectURL(f); setU(x); return () => URL.revokeObjectURL(x) }, [f])
-  return u ? <img className="ape-lido-th" src={u} alt="" /> : null
+  const [ruim, setRuim] = useState(false)
+  return u && !ruim ? <img className="ape-lido-th" src={u} alt="" onError={() => setRuim(true)} /> : null
 }
 
 function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: number; l: Lido; podeJuntar: boolean; onJuntar: () => void; onChange: (o: Orcamento) => void; onToggle: () => void; onRemove: () => void }) {
