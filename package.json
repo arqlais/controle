@@ -44,7 +44,8 @@
     "pptxgenjs": "^4.0.1",
     "qrcode-generator": "^1.4.4",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

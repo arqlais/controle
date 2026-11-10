@@ -4,7 +4,7 @@ name: planê.apê, e-mails automáticos
 # A função só manda o que está pendente e marca no banco, então rodar de novo não repete e-mail.
 on:
   schedule:
-    - cron: '17 */3 * * *'
+    - cron: '17 * * * *'
   workflow_dispatch:
 
 jobs:

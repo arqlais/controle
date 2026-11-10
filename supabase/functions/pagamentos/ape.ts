@@ -390,7 +390,8 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       const temArq = ((ped.itens ?? []) as J[]).some((i) => i.id !== 'plataforma')
       if (temArq && !ped.cancelamento?.status && (await contaApi.emailBonus(ped).catch(() => false))) bonus++
     }
-    return json({ ok: true, lembretes, bonus })
+    const lidos = await lerPendentes().catch(() => 0)
+    return json({ ok: true, lembretes, bonus, lidos })
   }
 
   async function avisarReembolso(req: Request, body: J) {
@@ -467,6 +468,79 @@ PRODUTO TAMBÉM CONTA: o orçamento pode ser de um produto (aquecedor, chuveiro,
 COMO ESCOLHER O NICHO: aquecedor (a gás, elétrico, solar, boiler) → aquecedor; chuveiro, torneira, misturador, registro, bomba, caixa d'água, encanamento → hidraulica; geladeira, fogão, cooktop, forno, micro-ondas, coifa, depurador, lava-louça, máquina de lavar → eletros; lustre, luminária, spot, trilho, fita de LED → iluminacao; tomada, disjuntor, quadro, fiação → eletrica; split, multi-split, ar de janela → ar; pedra, bancada, granito, quartzo, mármore → marmoraria; armário planejado → marcenaria; sofá, mesa, cama, cadeira → moveis; persiana, cortina → cortinas; tela de proteção → telas; espelho, vidro → vidros; porta, grade, portão de ferro → serralheria. Se nada servir, use "novo" e dê o nome da pasta em "nicho_novo" (nunca "outros" para um produto ou serviço que dá para nomear).
 Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos jeitos: "R$ 3.500,00", "3500", "3,5 mil", "R$3.500", à mão, numa tabela, com o valor antigo riscado e o novo ao lado (use o novo, o que vale), ou só como parcelas ("10x de 350": total 3500). Sem total escrito, some os itens. Leia com atenção a imagem inteira, inclusive carimbos, rodapés e textos pequenos, antes de deixar valor_total null. Na dúvida se é um orçamento ou dois, separe quando o serviço (nicho) ou o fornecedor muda. Com opções de material, valor_total é o da primeira opção e cada opção vai em \"opcoes\". Não invente: o que não estiver escrito fica null, "" ou []. Ignore dados do cliente. Português, frases curtas, sem emojis.${texto ? `\nTEXTO:\n"""${texto}"""` : ''}`
 
+  /** Chama o Gemini (vários modelos, com nova tentativa) e devolve a lista de orçamentos já com a pasta certa. */
+  async function chamarIA(key: string, parts: J[], texto: string): Promise<{ lista?: J[]; erro?: string; status?: number }> {
+    // tenta do modelo mais novo para o mais antigo (o Google desliga modelos antigos para contas novas)
+    let r: Response | null = null
+    // duas voltas: se todos estiverem ocupados (503) ou no limite (429), espera um pouco e tenta de novo
+    volta: for (let tentativa = 0; tentativa < 2; tentativa++) {
+    if (tentativa) await new Promise((ok) => setTimeout(ok, 2500))
+    for (const model of MODELOS) {
+      const cfg: J = { temperature: 0.1, responseMimeType: 'application/json', ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: cfg }) })
+      // modelo indisponível, sem cota ou instável: tenta o próximo (cada modelo tem a sua cota)
+      if (r.ok || (r.status === 400 && !/model|not (found|supported)|no longer/i.test(await r.clone().text().catch(() => ''))) || r.status === 403) break volta
+    }
+    if (r && r.status !== 503 && r.status !== 429) break
+    }
+    if (!r) return { erro: 'não deu para ler agora' }
+    const out = (await r.json().catch(() => ({}))) as J
+    if (!r.ok) {
+      const msg = String(out.error?.message ?? '')
+      console.log('ape-ler: Gemini respondeu', r.status, msg.slice(0, 300))
+      return { status: r.status, erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 402 ? 'créditos do Gemini acabaram' : r.status === 429 ? 'limite do Gemini atingido' : r.status === 503 ? 'o Gemini está sobrecarregado agora, tente de novo em instantes' : 'não deu para ler agora' }
+    }
+    const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
+    let v: J = {}
+    try {
+      v = JSON.parse(txt.replace(/```(json)?/g, '').trim())
+    } catch {
+      /* resposta fora do formato: devolve vazio */
+    }
+    const lista = (Array.isArray(v.orcamentos) ? v.orcamentos : [v]).filter((o: J) => o && typeof o === 'object' && (o.fornecedor || o.valor_total != null || o.servico)).slice(0, 12) as J[]
+    for (const o of lista) {
+      if (NICHOS.split(', ').includes(String(o.nicho)) && o.nicho !== 'outros') continue
+      // pasta nova criada sozinha (ex.: "Portas"): vira x:Portas; sem nome, fica para a pessoa escolher
+      const novo = String(o.nicho_novo ?? '').replace(/[^\p{L}\p{N} \-]/gu, '').trim().slice(0, 40)
+      o.nicho = novo.length >= 2 ? `x:${novo.charAt(0).toUpperCase()}${novo.slice(1)}` : o.nicho === 'outros' ? 'outros' : ''
+      delete o.nicho_novo
+    }
+    return { lista }
+  }
+
+  /** Orçamentos enviados que ainda estão "lendo" (a pessoa saiu antes): a IA lê e completa só o que está vazio. */
+  async function lerPendentes() {
+    const key = await geminiKey()
+    if (!key) return 0
+    const { data: pend } = await db.from('ape_orcamentos').select('id, data').eq('data->>lendo', 'true').lt('criado', new Date(Date.now() - 10 * 60e3).toISOString()).limit(8)
+    let n = 0
+    for (const o of pend ?? []) {
+      const { data: envs } = await db.from('ape_envios').select('arquivos').eq('orcamento', o.id)
+      const parts: J[] = []
+      for (const e of envs ?? []) for (const a of (e.arquivos ?? []) as J[]) {
+        if (!String(a.path ?? '').startsWith('envios/') || parts.length >= 3) continue
+        const { data: f } = await db.storage.from('ape-envios').download(String(a.path))
+        if (f && f.size <= 15 * 1024 * 1024) parts.push({ inlineData: { mimeType: f.type || (String(a.path).endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'), data: b64(await f.arrayBuffer()) } })
+      }
+      const atual = o.data as J
+      let novo: J = { ...atual, lendo: false }
+      if (parts.length) {
+        const res = await chamarIA(key, parts, '')
+        if (res.erro && (res.status === 429 || res.status === 503)) continue // tenta na próxima rodada
+        const ia = (res.lista ?? [])[0] ?? {}
+        for (const [k, v] of Object.entries(ia)) {
+          const vazio = (x: unknown) => x == null || x === '' || (Array.isArray(x) && !x.length)
+          if (!vazio(v) && vazio(novo[k])) novo[k] = v
+        }
+        if (ia.nicho && ia.nicho !== 'outros' && (atual.nicho === 'outros' || atual.nicho_auto)) novo.nicho = ia.nicho
+      }
+      novo.nicho_auto = false
+      await db.from('ape_orcamentos').update({ data: novo, atualizado: new Date().toISOString() }).eq('id', o.id)
+      n++
+    }
+    return n
+  }
+
   async function ler(body: J) {
     const morador = String(body.morador ?? '')
     if (!/^[0-9a-f-]{36}$/i.test(morador)) return json({ erro: 'faça o cadastro' }, 400)
@@ -486,41 +560,9 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
     const texto = String(body.texto ?? '').slice(0, 12000)
     if (!parts.length && !texto.trim()) return json({ erro: 'nada para ler' }, 400)
     await db.from('ape_leituras').insert({ morador })
-    // tenta do modelo mais novo para o mais antigo (o Google desliga modelos antigos para contas novas)
-    let r: Response | null = null
-    // duas voltas: se todos estiverem ocupados (503) ou no limite (429), espera um pouco e tenta de novo
-    volta: for (let tentativa = 0; tentativa < 2; tentativa++) {
-    if (tentativa) await new Promise((ok) => setTimeout(ok, 2500))
-    for (const model of MODELOS) {
-      const cfg: J = { temperature: 0.1, responseMimeType: 'application/json', ...(model.startsWith('gemini-2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}) }
-      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body: JSON.stringify({ contents: [{ role: 'user', parts: [...parts, { text: PROMPT(hojeBR(), texto) }] }], generationConfig: cfg }) })
-      // modelo indisponível, sem cota ou instável: tenta o próximo (cada modelo tem a sua cota)
-      if (r.ok || (r.status === 400 && !/model|not (found|supported)|no longer/i.test(await r.clone().text().catch(() => ''))) || r.status === 403) break volta
-    }
-    if (r && r.status !== 503 && r.status !== 429) break
-    }
-    if (!r) return json({ erro: 'não deu para ler agora' }, 502)
-    const out = (await r.json().catch(() => ({}))) as J
-    if (!r.ok) {
-      const msg = String(out.error?.message ?? '')
-      console.log('ape-ler: Gemini respondeu', r.status, msg.slice(0, 300))
-      return json({ erro: r.status === 400 && /api key/i.test(msg) ? 'chave do Gemini inválida' : r.status === 403 ? `chave sem permissão para o Gemini${msg ? `: ${msg.slice(0, 120)}` : ''}` : r.status === 402 ? 'créditos do Gemini acabaram' : r.status === 429 ? 'limite do Gemini atingido' : r.status === 503 ? 'o Gemini está sobrecarregado agora, tente de novo em instantes' : 'não deu para ler agora', status: r.status }, 502)
-    }
-    const txt = String(out.candidates?.[0]?.content?.parts?.map((x: J) => x.text ?? '').join('') ?? '')
-    let v: J = {}
-    try {
-      v = JSON.parse(txt.replace(/```(json)?/g, '').trim())
-    } catch {
-      /* resposta fora do formato: devolve vazio */
-    }
-    const lista = (Array.isArray(v.orcamentos) ? v.orcamentos : [v]).filter((o: J) => o && typeof o === 'object' && (o.fornecedor || o.valor_total != null || o.servico)).slice(0, 12) as J[]
-    for (const o of lista) {
-      if (NICHOS.split(', ').includes(String(o.nicho)) && o.nicho !== 'outros') continue
-      // pasta nova criada sozinha (ex.: "Portas"): vira x:Portas; sem nome, fica para a pessoa escolher
-      const novo = String(o.nicho_novo ?? '').replace(/[^\p{L}\p{N} \-]/gu, '').trim().slice(0, 40)
-      o.nicho = novo.length >= 2 ? `x:${novo.charAt(0).toUpperCase()}${novo.slice(1)}` : o.nicho === 'outros' ? 'outros' : ''
-      delete o.nicho_novo
-    }
+    const res = await chamarIA(key, parts, texto)
+    if (res.erro) return json({ erro: res.erro, status: res.status }, 502)
+    const lista = res.lista!
     return json({ orcamento: lista[0] ?? {}, orcamentos: lista })
   }
 

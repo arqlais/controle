@@ -412,12 +412,13 @@ function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item
           {top && <span className="s top"><ApeIcon name="star" />compensa</span>}
           {minha && <span className="s minha"><ApeIcon name="check" />minha escolha</span>}
           {extra && <span className="s tipo">{o.tipo === 'tabela' ? 'tabela de preços' : 'contato'}</span>}
+          {o.lendo && <span className="s lendo"><ApeIcon name="sparkle" />lendo…</span>}
           {!extra && c.st === 'vencido' && <span className="s venc">venceu</span>}
         </span>
         <span className="t">
           <small className="acab">{acab || '\u00a0'}</small>
           <b>{suave(produtoDe(o) || servicoBase(o)) || (extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : 'orçamento')}</b>
-          <small>{suave(o.fornecedor) || 'Fornecedor sem nome'}</small>
+          <small>{suave(o.fornecedor) || (o.lendo ? 'lendo o orçamento…' : 'Fornecedor sem nome')}</small>
           <span className="v num">{preco ? <>{extra ? <small>desde </small> : null}{preco}{extra ? null : <small> à vista</small>}</> : <small>{extra ? 'ver valores' : 'sem valor'}</small>}</span>
         </span>
       </button>

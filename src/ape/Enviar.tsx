@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { href } from '../router'
-import { lerArquivo, meuOrcamento, publicar, subirArquivos, apeCloud } from './api'
+import { meuOrcamento, publicar, subirArquivos, apeCloud } from './api'
+import { lerDepois, textoDoPdf } from './leitura'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { faltando, lerTexto, nichoDoTexto } from './comparar'
@@ -20,30 +21,8 @@ function lerVcf(txt: string): { nome: string; tel: string; email: string; site: 
 }
 const podeAgenda = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
 
-interface Lido { key: string; arquivos: Arquivo[]; files: File[]; o: Orcamento; status: 'lendo' | 'pronto' | 'erro'; msg?: string; aberto?: boolean }
+interface Lido { texto?: string; key: string; arquivos: Arquivo[]; files: File[]; o: Orcamento; status: 'lendo' | 'pronto' | 'erro'; msg?: string; aberto?: boolean }
 
-async function textoDoPdf(f: File): Promise<string> {
-  if (!/pdf$/i.test(f.type) && !/\.pdf$/i.test(f.name)) return ''
-  try {
-    const pdfjs = await import('pdfjs-dist')
-    pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
-    const pdf = await pdfjs.getDocument({ data: new Uint8Array(await f.arrayBuffer()) }).promise
-    const out: string[] = []
-    for (let n = 1; n <= Math.min(pdf.numPages, 8); n++) {
-      const c = await (await pdf.getPage(n)).getTextContent()
-      const rows = new Map<number, { x: number; s: string }[]>()
-      for (const it of c.items as { str: string; transform: number[] }[]) {
-        if (!('str' in it) || !it.str.trim()) continue
-        const y = Math.round(it.transform[5] / 3) * 3
-        rows.set(y, [...(rows.get(y) || []), { x: it.transform[4], s: it.str }])
-      }
-      ;[...rows.entries()].sort((a, b) => b[0] - a[0]).forEach(([, r]) => out.push(r.sort((a, b) => a.x - b.x).map((i) => i.s).join(' ').replace(/\s{2,}/g, ' ')))
-    }
-    return out.join('\n')
-  } catch {
-    return ''
-  }
-}
 
 const mesmoFornecedor = (a: Orcamento, b: Orcamento) => {
   const n = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -74,58 +53,20 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const atualizar = (key: string, fn: (l: Lido) => Lido) => setLidos((ls) => ls.map((l) => (l.key === key ? fn(l) : l)))
 
   /** Lê um arquivo (ou o texto colado) e devolve o orçamento já no formato da comparação. */
+  /** Ao anexar: só sobe o arquivo e dá um palpite rápido da pasta (sem IA, sem esperar). A leitura de verdade vem depois de enviar. */
   const ler = async (key: string, file: File | null, txt: string, t: TipoEnvio = tipo) => {
     try {
       let arquivos: Arquivo[] = []
       if (file) arquivos = await subirArquivos([file])
-      atualizar(key, (l) => ({ ...l, arquivos }))
       const textoLocal = file ? await textoDoPdf(file) : txt
-      const lido = me ? await lerArquivo(me.id, arquivos[0] || null, file ? '' : txt) : { o: null }
-      const ia = lido.o
       const regra = textoLocal ? lerTexto(textoLocal) : {}
-      const base = cleanOrcamento({ ...regra, ...(ia || {}) } as Record<string, unknown>, { nicho: 'outros' })
-      // o que a IA não trouxe, as regras completam
-      for (const [k, v] of Object.entries(regra)) {
-        const atual = (base as unknown as Record<string, unknown>)[k]
-        if ((atual == null || atual === '' || (Array.isArray(atual) && !atual.length)) && v != null) (base as unknown as Record<string, unknown>)[k] = v
-      }
-      if (base.nicho === 'outros') base.nicho = (nichoDoTexto(textoLocal + ' ' + base.servico) || 'outros') as Orcamento['nicho']
-      if (!base.servico) base.servico = base.nicho !== 'outros' ? nicho(base.nicho).l : ''
+      const base = cleanOrcamento({ ...regra } as Record<string, unknown>, { nicho: 'outros' })
+      const palpite = nichoDoTexto(`${file?.name || ''} ${textoLocal} ${base.servico}`)
+      if (palpite) base.nicho = palpite as Orcamento['nicho']
+      base.nicho_auto = true
+      base.lendo = true
       if (t !== 'orcamento') base.tipo = t
-      // orçamento com opções de material (ex.: quartzo ou granito): cada opção vira um orçamento, para comparar igual com igual
-      const fonteOp = ((ia as Record<string, unknown> | null)?.opcoes ?? (regra as Record<string, unknown>).opcoes) as Record<string, unknown>[] | undefined
-      const opcoes = (Array.isArray(fonteOp) ? fonteOp : []).filter((x) => x && num(x.valor_total) != null)
-      // um arquivo com vários orçamentos (fornecedores ou serviços diferentes): cada um vira um cartão
-      const varios = (lido.lista || []).slice(1)
-      if (varios.length && t === 'orcamento') {
-        const montar = (x: Record<string, unknown>): Orcamento => {
-          const o = cleanOrcamento(x, { nicho: 'outros' })
-          if (o.nicho === 'outros') o.nicho = (nichoDoTexto(String(o.servico || '')) || 'outros') as Orcamento['nicho']
-          if (!o.servico) o.servico = o.nicho !== 'outros' ? nicho(o.nicho).l : ''
-          return o
-        }
-        setLidos((ls) => {
-          const i = ls.findIndex((l) => l.key === key)
-          if (i < 0) return ls
-          const atual = ls[i]
-          const n = varios.length + 1
-          const extras = varios.map((x) => ({ ...atual, key: crypto.randomUUID(), o: montar(x), status: 'pronto' as const, msg: 'separado do mesmo arquivo' }))
-          return [...ls.slice(0, i), { ...atual, o: { ...base, id: atual.o.id }, status: 'pronto', msg: `lido automaticamente · ${n} orçamentos no mesmo arquivo, separados` }, ...extras, ...ls.slice(i + 1)]
-        })
-        return
-      }
-      if (opcoes.length > 1 && t === 'orcamento') {
-        const variante = (x: Record<string, unknown>): Orcamento => ({ ...base, id: blankOrcamento().id, servico: `${base.servico || nicho(base.nicho).l} · ${String(x.nome || 'opção')}`, valor_total: num(x.valor_total), valor_avista: num(x.valor_avista), desconto_avista_pct: null, materiais: [String(x.nome || ''), ...(base.materiais || [])].filter(Boolean) })
-        setLidos((ls) => {
-          const i = ls.findIndex((l) => l.key === key)
-          if (i < 0) return ls
-          const atual = ls[i]
-          const extras = opcoes.slice(1).map((x) => ({ ...atual, key: crypto.randomUUID(), o: variante(x), status: 'pronto' as const, msg: 'opção separada do mesmo arquivo' }))
-          return [...ls.slice(0, i), { ...atual, o: variante(opcoes[0]), status: 'pronto', msg: `lido automaticamente · ${opcoes.length} opções separadas` }, ...extras, ...ls.slice(i + 1)]
-        })
-        return
-      }
-      atualizar(key, (l) => ({ ...l, o: { ...base, id: l.o.id }, status: 'pronto', msg: ia ? 'lido automaticamente' : textoLocal ? (lido.erro ? 'lido pelo texto (a leitura de imagem está fora do ar agora)' : 'lido pelo texto do arquivo') : lido.erro ? 'a leitura de imagem está fora do ar agora: complete os dados ou cole o texto da conversa em "texto"' : 'complete os dados' }))
+      atualizar(key, (l) => ({ ...l, arquivos, texto: file ? '' : txt, o: { ...base, id: l.o.id }, status: 'pronto', msg: 'pronto para enviar' }))
     } catch (x) {
       atualizar(key, (l) => ({ ...l, status: 'erro', msg: String((x as Error).message) }))
     }
@@ -171,7 +112,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     if (!me) return onCadastro()
     const prontos = lidos.filter((l) => l.status === 'pronto')
     if (!prontos.length) return setErr(lidos.some((l) => l.status === 'lendo') ? 'Espere terminar de ler.' : 'Anexe um orçamento.')
-    const incompleto = prontos.find((l) => faltando(l.o).length)
+    const incompleto = prontos.find((l) => l.o.tipo === 'contato' && faltando(l.o).length)
     if (incompleto) return setErr(`Complete ${faltando(incompleto.o).map((f) => (f === 'nicho' ? 'o serviço' : f === 'valor' ? 'o valor' : f === 'contato' ? 'o WhatsApp, telefone ou Instagram' : 'o fornecedor')).join(', ')} do item ${prontos.indexOf(incompleto) + 1}.`)
     // orçamento repetido: pergunta antes (mesmo serviço, mesmo fornecedor e o mesmo valor)
     const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -184,8 +125,11 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     const ok: Orcamento[] = []
     for (const l of prontos) {
       try {
-        const id = await publicar(me.id, { ...l.o, enviado: true, ap: me.ap, planta: l.o.tipo === 'contato' ? '' : planta }, l.arquivos)
+        const dados = { ...l.o, enviado: true, ap: me.ap, planta: l.o.tipo === 'contato' ? '' : planta, lendo: l.o.tipo !== 'contato' }
+        const id = await publicar(me.id, dados, l.arquivos)
         ok.push({ ...l.o, id })
+        // a leitura acontece agora, em segundo plano: a pessoa não espera
+        if (dados.lendo) void lerDepois(me.id, id, { ...dados, id }, l.files, l.arquivos, l.texto || '').then(() => onPublicado())
       } catch (x) {
         setErr(`Não deu para publicar ${l.o.fornecedor || 'um orçamento'} (${(x as Error).message}).`)
       }
@@ -193,7 +137,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     setBusy('')
     if (ok.length) {
       setFeitos(ok)
-      setLidos((ls) => ls.filter((l) => !ok.some((o) => o.id && l.o.fornecedor === o.fornecedor && l.status === 'pronto')))
+      setLidos((ls) => ls.filter((l) => l.status !== 'pronto'))
       onPublicado()
     }
   }
@@ -333,21 +277,21 @@ function PreviaLocal({ f }: { f: File }) {
   return u ? <img className="ape-lido-th" src={u} alt="" /> : null
 }
 
-function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: { n: number; l: Lido; podeJuntar: boolean; onJuntar: () => void; onChange: (o: Orcamento) => void; onToggle: () => void; onRemove: () => void }) {
+function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: number; l: Lido; podeJuntar: boolean; onJuntar: () => void; onChange: (o: Orcamento) => void; onToggle: () => void; onRemove: () => void }) {
   const o = l.o
   const falta = l.status === 'pronto' ? faltando(o) : []
   const set = (k: keyof Orcamento, v: unknown) => onChange({ ...o, [k]: v } as Orcamento)
   return (
-    <section className={`ape-lido ${falta.length ? 'falta' : ''}`} aria-label={`Orçamento ${n}`}>
+    <section className={`ape-lido ${falta.length && o.tipo === 'contato' ? 'falta' : ''}`} aria-label={`Orçamento ${n}`}>
       <header>
         {l.files[0] && /^image\//i.test(l.files[0].type) ? <PreviaLocal f={l.files[0]} /> : <span className="ape-lido-n">{n}</span>}
         <div className="t">
-          <b>{l.status === 'lendo' ? 'lendo…' : o.fornecedor || 'fornecedor?'}</b>
+          <b>{l.status === 'lendo' ? 'anexando…' : o.fornecedor || (o.tipo === 'contato' ? 'contato' : `orçamento ${n}`)}</b>
           <span>{l.files.map((f) => f.name).join(', ') || 'texto colado'}{l.msg ? ` · ${l.msg}` : ''}</span>
         </div>
         <button type="button" className="ape-btn ghost sm" onClick={onRemove} aria-label="Tirar"><ApeIcon name="trash" /></button>
       </header>
-      {l.status === 'lendo' && <span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>lendo o arquivo…</span>}
+      {l.status === 'lendo' && <span className="ape-thinking"><span className="ape-dots"><i /><i /><i /></span>anexando…</span>}
       {l.status === 'erro' && <p className="ape-err">{l.msg}</p>}
       {l.status === 'pronto' && (
         <>
@@ -372,38 +316,20 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onToggle, onRemove }: 
               )}
             </div>
           ) : (
-          <dl className="ape-lido-res">
-            {o.tipo === 'tabela' && (<><dt>tipo</dt><dd>tabela de preços</dd></>)}
-            <dt>serviço</dt><dd>{o.nicho !== 'outros' ? nicho(o.nicho).l : '—'}{o.servico && o.servico !== nicho(o.nicho).l ? ` · ${o.servico}` : ''}</dd>
-            {o.tipo !== 'tabela' && <dt>valor</dt>}{o.tipo !== 'tabela' && <dd className="ape-keep">{num(o.valor_avista) != null ? `${brl(num(o.valor_avista))} à vista` : num(o.valor_total) != null ? brl(num(o.valor_total)) : '—'}{o.parcelas_max ? ` · ${o.parcelas_max}x` : ''}</dd>}
-            {(o.itens || []).length > 0 && (<><dt>itens</dt><dd>{o.tipo === 'tabela' ? o.itens!.slice(0, 4).map((i) => `${i.descricao}${i.valor != null ? ` ${brl(i.valor)}` : ''}`).join(' · ') + (o.itens!.length > 4 ? ` +${o.itens!.length - 4}` : '') : `${o.itens!.length} itens lidos`}</dd></>)}
-            {(o.whatsapp || o.telefone || o.email) && (<><dt>contato</dt><dd>{[o.whatsapp || o.telefone, o.email].filter(Boolean).join(' · ')}</dd></>)}
-            {o.prazo && (<><dt>prazo</dt><dd>{o.prazo}</dd></>)}
-            {o.garantia && (<><dt>garantia</dt><dd>{o.garantia}</dd></>)}
-          </dl>
-          )}
-          {falta.length > 0 && o.tipo !== 'contato' && (
-            <div className="ape-lido-falta">
-              <span className="ape-note"><ApeIcon name="alert" /> Não deu para ler {falta.length > 1 ? 'estes dados' : 'este dado'}. Complete:</span>
+            <div className="ape-lido-simples">
               <div className="ape-frow">
-                {falta.includes('fornecedor') && <div className="ape-f"><label>Fornecedor</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} placeholder="Nome da loja ou profissional" /></div>}
-                {falta.includes('nicho') && (
-                  <div className="ape-f"><label>Serviço</label>
-                    <select value={o.nicho === 'outros' ? '' : o.nicho} onChange={(e) => set('nicho', e.target.value || 'outros')}>
-                      <option value="">Escolha…</option>
-                      {opcoesNicho([o.nicho]).map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
-                    </select>
-                  </div>
-                )}
-                {falta.includes('valor') && <div className="ape-f"><label>Valor total (<span className="ape-keep">R$</span>)</label><input inputMode="decimal" value={o.valor_total ?? ''} onChange={(e) => set('valor_total', num(e.target.value))} placeholder="0,00" /></div>}
+                <div className="ape-f"><label>Pasta</label>
+                  <select value={o.nicho_auto || o.nicho === 'outros' ? '' : o.nicho} onChange={(e) => onChange({ ...o, nicho: (e.target.value || 'outros') as Orcamento['nicho'], nicho_auto: !e.target.value })}>
+                    <option value="">{o.nicho_auto && o.nicho !== 'outros' ? `${nicho(o.nicho).l} (descoberto sozinho)` : 'o site descobre sozinho'}</option>
+                    {opcoesNicho([o.nicho]).map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
+                  </select>
+                </div>
+                <div className="ape-f"><label>Fornecedor (se souber)</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} placeholder="o site tenta ler sozinho" /></div>
               </div>
+              <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="sparkle" /> Valores, prazo e o resto são lidos sozinhos depois que você enviar.</p>
+              {podeJuntar && <button type="button" className="ape-btn ghost sm" onClick={onJuntar}><ApeIcon name="copy" />é do mesmo orçamento que o {n - 1}</button>}
             </div>
           )}
-          <div className="ape-acts">
-            <button type="button" className="ape-btn ghost sm" onClick={onToggle}><ApeIcon name="edit" />{l.aberto ? 'fechar' : 'corrigir os dados'}</button>
-            {podeJuntar && <button type="button" className="ape-btn ghost sm" onClick={onJuntar}><ApeIcon name="copy" />é do mesmo orçamento que o {n - 1}</button>}
-          </div>
-          {l.aberto && <EditarOrc o={o} onChange={onChange} />}
         </>
       )}
     </section>
