@@ -16,6 +16,7 @@ import { Enviar } from './Enviar'
 import { Plataforma } from './Plataforma'
 import { Conta } from './Conta'
 import { Orcamentos } from './Orcamentos'
+import { Protege } from './Protege'
 import './ape.css'
 
 /* Página pública do planê.apê: os moradores do San Levi se cadastram, comparam os orçamentos,
@@ -99,7 +100,7 @@ export function ApePublic({ sub }: { sub?: string }) {
     setEditing(false)
   }
 
-  if (view === 'minha') return <div className="ape"><Plataforma token={sub!.slice(6)} whats={whats} /></div>
+  if (view === 'minha') return <div className="ape"><Protege chave={sub || ''} whats={whats}><Plataforma token={sub!.slice(6)} whats={whats} /></Protege></div>
 
   // loja, checkout e pedido: página de vendas aberta a todos; orçamentos e envio: só moradores do San Levi
   const publico = view === 'loja' || view === 'checkout' || view === 'pedido' || view === 'conta'
@@ -134,6 +135,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         </header>
       )}
       <main className="wrap ape-main">
+        <Protege chave={`${view}/${sub || ''}`} whats={whats}>
         {d === undefined || view === 'entrar' ? (
           <div className="ape-panel ape-empty">
             <span className="ape-thinking">
@@ -175,6 +177,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         ) : (
           <Loja key={abrir || 'loja'} ajustes={d.ajustes} me={me} whats={whats} abrir={abrir} />
         )}
+        </Protege>
         <Assinatura />
       </main>
       {(morador || owner) && (

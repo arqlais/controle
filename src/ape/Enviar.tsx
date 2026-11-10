@@ -57,7 +57,8 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const ler = async (key: string, file: File | null, txt: string, t: TipoEnvio = tipo) => {
     try {
       let arquivos: Arquivo[] = []
-      if (file) arquivos = await subirArquivos([file])
+      // sinal ruim no celular: tenta de novo antes de mostrar erro
+      if (file) arquivos = await subirArquivos([file]).catch(async () => { await new Promise((r) => setTimeout(r, 1500)); return subirArquivos([file]) })
       const textoLocal = file ? await textoDoPdf(file) : txt
       const regra = textoLocal ? lerTexto(textoLocal) : {}
       const base = cleanOrcamento({ ...regra } as Record<string, unknown>, { nicho: 'outros' })
@@ -65,10 +66,11 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
       if (palpite) base.nicho = palpite as Orcamento['nicho']
       base.nicho_auto = true
       base.lendo = true
+      if (base.fornecedor) base.forn_auto = true
       if (t !== 'orcamento') base.tipo = t
       atualizar(key, (l) => ({ ...l, arquivos, texto: file ? '' : txt, o: { ...base, id: l.o.id }, status: 'pronto', msg: 'pronto para enviar' }))
     } catch (x) {
-      atualizar(key, (l) => ({ ...l, status: 'erro', msg: String((x as Error).message) }))
+      atualizar(key, (l) => ({ ...l, status: 'erro', msg: `Não deu para anexar (${String((x as Error).message || 'sem conexão')}). Confira a internet e anexe de novo, ou tire este e tente outra vez.` }))
     }
   }
 
@@ -309,7 +311,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: numbe
                     {opcoesNicho([o.nicho]).map((x) => <option key={x[0]} value={x[0]}>{x[1]}</option>)}
                   </select>
                 </div>
-                <div className="ape-f"><label>Fornecedor (se souber)</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} placeholder="o site tenta ler sozinho" /></div>
+                <div className="ape-f"><label>Fornecedor (se souber)</label><input value={o.fornecedor} onChange={(e) => onChange({ ...o, fornecedor: e.target.value, forn_auto: false })} placeholder="o site tenta ler sozinho" /></div>
               </div>
               <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="sparkle" /> Valores, prazo e o resto são lidos sozinhos depois que você enviar.</p>
               {podeJuntar && <button type="button" className="ape-btn ghost sm" onClick={onJuntar}><ApeIcon name="copy" />é do mesmo orçamento que o {n - 1}</button>}

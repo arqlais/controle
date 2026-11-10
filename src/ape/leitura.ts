@@ -53,23 +53,42 @@ export function juntar(a: Orcamento, b: Partial<Orcamento>): Orcamento {
   return out as unknown as Orcamento
 }
 
-/** Lê o que dá (sem IA), guarda; depois pede a IA e guarda de novo. Pode rodar com a pessoa já em outra tela. */
+/** Lê o que dá (sem IA), guarda; depois pede a IA e guarda de novo. Pode rodar com a pessoa já em outra tela.
+ *  Prioridade: o que a pessoa escreveu > IA > leitura local > palpite feito na hora de anexar. Nada aqui pode travar o envio. */
 export async function lerDepois(moradorId: string, id: string, base: Orcamento, files: File[], arquivos: Arquivo[], texto = '') {
-  let o: Orcamento = { ...base, id }
-  // 1) sem IA
-  const local = [texto, ...(await Promise.all(files.map(async (f) => (await textoDoPdf(f)) || (await textoDaImagem(f)))))].join('\n').trim()
-  if (local) {
-    const r = cleanOrcamento(lerTexto(local) as Record<string, unknown>, { nicho: 'outros' })
-    const n = nichoDoTexto(local + ' ' + (r.servico || ''))
-    o = juntar(o, { ...r, nicho: (n || r.nicho) as Orcamento['nicho'] })
-    await meuOrcamento(moradorId, id, { ...o, lendo: true }).catch(() => null)
+  const palpiteForn = base.forn_auto ? base.fornecedor : ''
+  const pessoa: Orcamento = { ...base, id, fornecedor: base.forn_auto ? '' : base.fornecedor }
+  const trocaPasta = !!base.nicho_auto || base.nicho === 'outros'
+  const montar = (ia: Partial<Orcamento> | null, local: Partial<Orcamento> | null): Orcamento => {
+    let o = pessoa
+    if (ia) o = juntar(o, { ...ia, nicho: undefined })
+    if (local) o = juntar(o, { ...local, nicho: undefined })
+    if (!o.fornecedor && palpiteForn) o = { ...o, fornecedor: palpiteForn }
+    const pasta = [ia?.nicho, local?.nicho].find((n) => n && n !== 'outros')
+    if (trocaPasta && pasta) o = { ...o, nicho: pasta }
+    // continua "palpite" (a rotina do servidor ainda pode trocar) se não veio da pessoa nem da IA
+    return { ...o, forn_auto: !!o.fornecedor && !pessoa.fornecedor && !ia?.fornecedor }
   }
-  // 2) IA do servidor (se estiver ligada): completa o que faltou
+  let local: Partial<Orcamento> | null = null
+  // 1) sem IA (texto do PDF / da imagem, no aparelho)
   try {
-    const ia = await lerArquivo(moradorId, arquivos[0] || null, arquivos[0] ? '' : texto || local)
-    if (ia.o) o = juntar(o, cleanOrcamento(ia.o, { nicho: 'outros' }))
-  } catch { /* sem IA: fica o que a leitura local achou */ }
-  if (!o.servico && o.nicho !== 'outros') o.servico = ''
-  await meuOrcamento(moradorId, id, { ...o, lendo: false, nicho_auto: false }).catch(() => null)
-  return o
+    const txt = [texto, ...(await Promise.all(files.map(async (f) => (await textoDoPdf(f)) || (await textoDaImagem(f)))))].join('\n').trim()
+    if (txt) {
+      const r = cleanOrcamento(lerTexto(txt) as Record<string, unknown>, { nicho: 'outros' })
+      const n = nichoDoTexto(txt + ' ' + (r.servico || ''))
+      local = { ...r, nicho: (n || r.nicho) as Orcamento['nicho'] }
+      await meuOrcamento(moradorId, id, { ...montar(null, local), lendo: true }).catch(() => null)
+    }
+  } catch { /* segue para a IA */ }
+  // 2) IA do servidor (se estiver ligada): completa e corrige palpites
+  let ia: Partial<Orcamento> | null = null
+  try {
+    const r = await lerArquivo(moradorId, arquivos[0] || null, arquivos[0] ? '' : texto)
+    if (r.o) ia = cleanOrcamento(r.o, { nicho: 'outros' })
+  } catch { /* sem IA: fica o que a leitura local achou; a rotina do servidor tenta de novo se ficar "lendo" */ }
+  const o = montar(ia, local)
+  // se a IA não respondeu, deixa "lendo" para a rotina do servidor terminar depois
+  const fim = { ...o, lendo: !ia && !!arquivos[0], nicho_auto: !ia && trocaPasta }
+  await meuOrcamento(moradorId, id, fim).catch(() => null)
+  return fim
 }

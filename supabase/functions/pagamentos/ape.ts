@@ -533,6 +533,8 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
           if (!vazio(v) && vazio(novo[k])) novo[k] = v
         }
         if (ia.nicho && ia.nicho !== 'outros' && (atual.nicho === 'outros' || atual.nicho_auto)) novo.nicho = ia.nicho
+        // nome do fornecedor que era só palpite (ex.: "Bom dia" de uma mensagem): a IA corrige
+        if (atual.forn_auto && typeof ia.fornecedor === 'string' && ia.fornecedor.trim()) { novo.fornecedor = ia.fornecedor.trim(); novo.forn_auto = false }
       }
       novo.nicho_auto = false
       await db.from('ape_orcamentos').update({ data: novo, atualizado: new Date().toISOString() }).eq('id', o.id)

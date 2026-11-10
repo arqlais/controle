@@ -234,7 +234,7 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   const ig = t.match(/@([a-z0-9_.]{3,30})(?![\w.]*\.(com|br))/i)
   if (ig && !email?.[0].includes(ig[0])) out.instagram = '@' + ig[1]
   // fornecedor: linha com LTDA/ME/EIRELI, o que vem depois do rótulo "Empresa", ou a primeira linha de título (sem endereço nem rótulos)
-  const ruim = /\b(cep|cnpj|cpf|avenida|av\.|rua|bairro|endere[cç]o|empresa|cliente|data|telefone|assinatura|total|observa[cç][oõ]es|garantia|prazo|validade|instru[cç][oõ]es|or[cç]amento|proposta|cria[cç][aã]o|atualiza[cç][aã]o|quant|produto|material|valor)\b/i
+  const ruim = /\b(cep|cnpj|cpf|avenida|av\.|rua|bairro|endere[cç]o|empresa|cliente|data|telefone|assinatura|total|observa[cç][oõ]es|garantia|prazo|validade|instru[cç][oõ]es|or[cç]amento|proposta|cria[cç][aã]o|atualiza[cç][aã]o|quant|produto|material|valor|bom dia|boa tarde|boa noite|ol[aá]|oi|segue|seguem|prezad[oa]s?|lembrando|formas?|pagamento|somente|instalad[oa]|setor)\b/i
   const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|marmoraria|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados|aquecedores|aquecedor a g[aá]s|instala[cç][oõ]es|com[eé]rcio|distribuidora|materiais)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l))
   const iEmp = linhas.findIndex((l) => /\bempresa\b/i.test(l))
   const depoisEmp = iEmp >= 0 ? (linhas[iEmp + 1] || '').split(/\s{2,}/).pop() : ''
@@ -242,10 +242,16 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   // a linha do CNPJ costuma trazer o nome da empresa antes dele ("RDL Engenharia · CNPJ ...")
   const doCnpj = (linhas.find((l) => /cnpj/i.test(l)) || '').split(/\s*[·•|\-–]\s*cnpj|\s+cnpj/i)[0].replace(/^(raz[aã]o social|empresa)\s*:?\s*/i, '').trim()
   const assinatura = linhas.find((l) => /\b(engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|ltda|eireli)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l) && !/cnpj/i.test(l))
-  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\S+@\S+/g, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
+  // mensagem de WhatsApp: o nome vem na despedida ("Grato, L. S Marmoraria", "Att.\nVidraçaria Luz")
+  const iDesp = linhas.findIndex((l) => /^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)\b/i.test(l))
+  const desp = iDesp >= 0 ? (linhas[iDesp].replace(/^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)[\s,.:!-]*/i, '').trim() || linhas[iDesp + 1] || '') : ''
+  const despOk = desp.length >= 3 && desp.length < 60 && !/\d{4}|@|R\$/.test(desp) ? desp : ''
+  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || despOk || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\S+@\S+/g, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
   // valores: total (com R$), à vista / Pix, parcelas
+  // normaliza "$16.470.00" / "16,470.00" (centavos depois do ponto) para "R$ 16.470,00"; "$" sozinho vira "R$"
+  const tv = t.replace(/(\d{1,3}(?:[.,]\d{3})+)\.(\d{2})(?!\d)/g, (_, a: string, c: string) => `${a.replace(/,/g, '.')},${c}`).replace(/(^|[^R\w])\$\s*(?=\d)/g, '$1R$ ')
   const valor = (re: RegExp) => {
-    const m = t.match(re)
+    const m = tv.match(re)
     // "11.500" sem vírgula é onze mil e quinhentos (ponto de milhar), não 11,5
     return m ? num(/^\d{1,3}(?:\.\d{3})+$/.test(m[1]) ? m[1].replace(/\./g, '') : m[1]) : null
   }
@@ -256,7 +262,7 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   if (out.valor_total == null) {
     const mil = t.match(/(\d+(?:,\d+)?)\s*mil\b/i)
     // sem "total" escrito: o maior valor em reais do texto costuma ser o total
-    const todos = [...t.matchAll(/R\s?\$\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)/gi)].map((m) => num(/^\d{1,3}(?:\.\d{3})+$/.test(m[1]) ? m[1].replace(/\./g, '') : m[1]) || 0).filter((v) => v >= 50)
+    const todos = [...tv.matchAll(/R\s?\$\s*(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?)/gi)].map((m) => num(/^\d{1,3}(?:\.\d{3})+$/.test(m[1]) ? m[1].replace(/\./g, '') : m[1]) || 0).filter((v) => v >= 50)
     if (todos.length) out.valor_total = Math.max(...todos)
     else if (mil) out.valor_total = (num(mil[1]) || 0) * 1000 || null
   }
@@ -271,6 +277,8 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   if (prazo) out.prazo = prazo[1].trim().toLowerCase()
   const gar = t.match(/garantia[ \t]*(?:de|:)?[ \t]*([^\n;]{3,70})/i)
   if (gar) out.garantia = gar[1].trim().toLowerCase()
+  const gar2 = t.match(/(\d+\s*(?:anos?|mes(?:es)?|meses|dias))\s+de\s+garantia/i)
+  if (gar2 && (!out.garantia || out.garantia.length < 3)) out.garantia = gar2[1].toLowerCase()
   const dataOrc = t.match(/(\d{2})\/(\d{2})\/(\d{4})/)
   const dias = t.match(/(?:validade[^\d\n]{0,20}|v[áa]lid[oa]\s+por\s+)(\d{1,3})\s*dias/i)
   if (dias) {

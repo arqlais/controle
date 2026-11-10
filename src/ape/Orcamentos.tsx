@@ -202,7 +202,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                 </div>
                 {(orcs.length > 0 || extras.length > 0) && (
                   <div className={`ape-docs2 ${acabs.length > 1 ? 'com-acab' : ''}`}>
-                    {itens.map((i) => <Tile key={i.x.o.id} x={i.x} top={i.top} acab={acabs.length > 1 ? i.ac || 'outros' : ''} me={me} minha={d.minhas.includes(i.x.o.id)} marcado={marcados.includes(i.x.o.id)} onMarcar={orcs.length > 1 ? () => marcar(i.x.o.id) : undefined} onAbrir={() => setAberto({ id: i.x.o.id, nicho: id })} />)}
+                    {itens.map((i) => <Tile key={i.x.o.id} x={i.x} top={i.top} acab={acabs.length > 1 ? i.ac : ''} me={me} minha={d.minhas.includes(i.x.o.id)} marcado={marcados.includes(i.x.o.id)} onMarcar={orcs.length > 1 ? () => marcar(i.x.o.id) : undefined} onAbrir={() => setAberto({ id: i.x.o.id, nicho: id })} />)}
                     {extras.map((o) => <Tile key={o.id} x={{ o, c: calc(o), badges: [] } as unknown as Item} top={false} acab="" me={me} minha={false} marcado={false} onAbrir={() => setAberto({ id: o.id, nicho: id })} />)}
                   </div>
                 )}
