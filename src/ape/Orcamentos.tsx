@@ -1,7 +1,7 @@
 // planê.apê: área dos orçamentos do San Levi (pastas, lista, blocos, cartões, grupo e dica da loja).
 import { useEffect, useRef, useState } from 'react'
 import { href } from '../router'
-import { escolher, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, type Publico } from './api'
+import { admin, escolher, meuOrcamento, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -14,7 +14,7 @@ const UI = 'ape-ui'
 const GRUPOS = 'ape-grupos'
 
 /* ===== orçamentos ===== */
-export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEditar }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void; onEditar: () => void; onRecarregar?: () => void }) {
+export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha, onEditar, onRecarregar }: { vis: Orcamento[]; d: Publico; owner: boolean; me: Morador | null; whats: string; show: (m: string) => void; onCount: (id: string, n: number) => void; onEscolha: (id: string, nicho: string, ficou: boolean) => void; onEditar: () => void; onRecarregar?: () => void }) {
   const saved = read<{ nicho?: string; sort?: Sort; validos?: boolean }>(UI) || {}
   const [filtro, setFiltro] = useState(saved.nicho || 'todos')
   const [sort, setSort] = useState<Sort>(saved.sort && SORTS[saved.sort] ? saved.sort : 'compensa')
@@ -214,6 +214,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                       <div className="ape-sheet-in ape-ficha">
                         <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
                         <Contatos lista={[ex]} me={me} />
+                        <FichaAcoes o={ex} owner={owner} meu={d.meus.includes(ex.id)} me={me} show={show} onFeito={() => { setAberto(null); onRecarregar?.() }} />
                       </div>
                     </div>
                   )
@@ -224,6 +225,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                       <div className="ape-sheet-in ape-ficha">
                         <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
                         <Card x={ab.x} a={ab.a} isTop={ab.top} acab={acabs.length > 1 ? ab.ac || 'outros' : ''} me={me} whats={whats} count={d.contagens[ab.x.o.id] || 0} escolhas={d.escolhas[ab.x.o.id] || 0} minha={d.minhas.includes(ab.x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+                        <FichaAcoes o={ab.x.o} owner={owner} meu={d.meus.includes(ab.x.o.id)} me={me} show={show} onFeito={() => { setAberto(null); onRecarregar?.() }} />
                       </div>
                     </div>
                   )
@@ -381,6 +383,19 @@ const suave = (t?: string) => {
   if (/^(n[aã]o sei|desconhecid[oa]|sem nome|-+)$/i.test(v)) return ''
   return v.length > 8 && v === v.toUpperCase() && /[A-ZÀ-Ú]{4}/.test(v) ? v.charAt(0) + v.slice(1).toLowerCase() : v
 }
+/** Na ficha: quem mandou pode apagar o seu; a dona pode ocultar (some para os vizinhos, continua guardado) ou apagar. */
+function FichaAcoes({ o, owner, meu, me, show, onFeito }: { o: Orcamento; owner: boolean; meu: boolean; me: Morador | null; show: (m: string) => void; onFeito: () => void }) {
+  const [busy, setBusy] = useState(false)
+  if (!owner && !meu) return null
+  const faz = async (f: () => Promise<unknown>, msg: string) => { setBusy(true); try { await f(); show(msg); onFeito() } catch (e) { show(`Não deu (${(e as Error).message}).`) } setBusy(false) }
+  return (
+    <div className="ape-ficha-acoes">
+      {owner && <button className="ape-btn ghost sm" disabled={busy} onClick={() => void faz(() => admin.salvar({ ...o, oculto: !o.oculto }), o.oculto ? 'Voltou a aparecer para os vizinhos.' : 'Oculto: só você vê. Nada foi apagado.')}><ApeIcon name="eye" />{o.oculto ? 'mostrar de novo' : 'ocultar'}</button>}
+      <button className="ape-btn ghost sm danger" disabled={busy} onClick={() => { if (confirm('Apagar de vez? Não dá para desfazer.')) void faz(() => (owner ? admin.remover([o.id]) : meuOrcamento(me!.id, o.id, null)), 'Apagado.') }}><ApeIcon name="trash" />apagar</button>
+    </div>
+  )
+}
+
 /** Cartãozinho do orçamento na pasta: prévia do original, quem mandou, o que é e o preço. Toca e abre a ficha. */
 function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item; top: boolean; acab: string; me: Morador | null; minha: boolean; marcado: boolean; onMarcar?: () => void; onAbrir: () => void }) {
   const { o, c } = x

@@ -2693,3 +2693,4 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape .ape-garantias > section + section { background: #eef1f3 !important; }
 .ape .ape-story { background: #fff; }
 .ape-contato-add { gap: 8px; } .ape-contato-add label.ape-btn { cursor: pointer; }
+.ape-ficha-acoes { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--a-line); padding-top: 12px; margin-top: 8px; }
