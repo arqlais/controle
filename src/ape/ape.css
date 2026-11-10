@@ -2695,3 +2695,17 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape-contato-add { gap: 8px; } .ape-contato-add label.ape-btn { cursor: pointer; }
 .ape-ficha-acoes { display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--a-line); padding-top: 12px; margin-top: 8px; }
 .ape-tile-b .s.lendo { background: var(--a-pri-soft); color: var(--a-pri); }
+
+/* enviar: anexar em destaque, escolhas compactas (gente leiga acha o botão de cara) */
+.ape-drop b.big { font-size: 16px; }
+.ape-drop { padding: 22px 16px; }
+.ape-link-btn { display: inline-flex; align-items: center; gap: 6px; justify-self: start; background: none; border: 0; padding: 4px 2px; color: var(--a-pri); font: inherit; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.ape-link-btn .ape-i { width: 15px; height: 15px; }
+.ape-envio-dica { margin: 0; display: flex; gap: 8px; align-items: flex-start; }
+.ape-envio-dica .ape-i { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--a-pri); }
+@media (max-width: 600px) {
+  .ape .ape-tipos-envio { gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ape-tipos-envio button { padding: 10px 6px; text-align: center; justify-items: center; align-content: center; border-radius: 999px; min-height: 44px; }
+  .ape-tipos-envio button span { display: none; }
+  .ape-tipos-envio button b { font-size: 13px; }
+}

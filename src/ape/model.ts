@@ -260,7 +260,8 @@ export function calc(q: Orcamento): Calc {
   const parcTotal = parcelas && parcela ? parcelas * parcela : null
   const gp = num(q.grupo_pct)
   const grupo = gp && avista ? avista * (1 - gp / 100) : null
-  const area = num(q.area_m2)
+  // preço por m² só faz sentido em serviço cobrado por área (piso, gesso, pintura...): vistoria de 40 m² não vira "R$ 7/m²"
+  const area = /^(piso|revestimentos|gesso|impermeabilizacao|pintura|telas|vidros|marmoraria)/.test(String(q.nicho || '')) ? num(q.area_m2) : null
   const m2 = area && avista ? avista / area : null
   let st: Validade = 'sem'
   let dias: number | null = null

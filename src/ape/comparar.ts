@@ -242,7 +242,7 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   // a linha do CNPJ costuma trazer o nome da empresa antes dele ("RDL Engenharia · CNPJ ...")
   const doCnpj = (linhas.find((l) => /cnpj/i.test(l)) || '').split(/\s*[·•|\-–]\s*cnpj|\s+cnpj/i)[0].replace(/^(raz[aã]o social|empresa)\s*:?\s*/i, '').trim()
   const assinatura = linhas.find((l) => /\b(engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|ltda|eireli)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l) && !/cnpj/i.test(l))
-  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\s{2,}/g, ' ')
+  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\S+@\S+/g, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
   // valores: total (com R$), à vista / Pix, parcelas
   const valor = (re: RegExp) => {
     const m = t.match(re)

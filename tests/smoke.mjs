@@ -444,7 +444,7 @@ try {
     ok(await page.locator('.ape-ficha .ape-grupo.on').count() >= 1, `apê ${vp.name}: entra na compra em grupo`)
     await page.locator('.ape-ficha .ape-x').click(); await page.waitForTimeout(200)
     await page.evaluate(() => (location.hash = '#/ape/enviar')); await page.waitForTimeout(300)
-    await page.locator('.ape-como-veio button', { hasText: 'texto' }).click()
+    await page.locator('.ape-link-btn', { hasText: 'cole o texto' }).click()
     await page.fill('textarea[aria-label="Texto do orçamento"]', 'Loja Teste\nPiso vinílico colado 30 m²\nTotal: R$ 3.000,00\nÀ vista: R$ 2.850,00\nPrazo: 5 dias')
     await page.getByRole('button', { name: 'ler o texto' }).click(); await page.waitForTimeout(600)
     ok(/Loja Teste/.test(await page.locator('.ape-lido').innerText().catch(() => '')), `apê ${vp.name}: lê o orçamento colado`)

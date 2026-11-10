@@ -5,7 +5,7 @@ import { lerDepois, textoDoPdf } from './leitura'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { faltando, lerTexto, nichoDoTexto } from './comparar'
-import { APE, opcoesNicho, PLANTA_ROT, plantaDoAp, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
+import { APE, opcoesNicho, blankOrcamento, brl, cleanOrcamento, ehSanLevi, msgAnexo, nicho, num, wa, type Arquivo, type Morador, type Orcamento, type TipoEnvio } from './model'
 
 /* Enviar orçamento: anexa um ou mais arquivos, cada arquivo vira um orçamento lido sozinho (IA no servidor;
    sem IA, regras simples sobre o texto do PDF). A pessoa só completa o que faltou e publica direto na comparação. */
@@ -37,7 +37,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   const [busy, setBusy] = useState('')
   const [feitos, setFeitos] = useState<Orcamento[]>([])
   const [tipo, setTipo] = useState<TipoEnvio>('orcamento')
-  const [planta, setPlanta] = useState<Orcamento['planta']>(() => plantaDoAp(me?.ap))
+  const planta: Orcamento['planta'] = '' // planta: vale para qualquer uma (quem quiser marca depois em "seus orçamentos")
   const meus = orcamentos.filter((o) => meusIds.includes(o.id))
   useEffect(() => setErr(''), [lidos.length])
   // vários prints da mesma conversa: o nome da loja costuma estar só no primeiro. Se todos os prontos
@@ -186,11 +186,11 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
           <h2 className="ape-h2">compartilhe com os <em>vizinhos</em></h2>
         </div>
         <div className="ape-f">
-          <label>O que você tem?</label>
+          <label>O que você vai mandar?</label>
           <div className="ape-tipos-envio" role="radiogroup" aria-label="O que você tem">
             {([
               ['orcamento', 'orçamento', 'proposta com valores para o seu apê'],
-              ['tabela', 'tabela de preços', 'lista de valores, catálogo ou print'],
+              ['tabela', 'tabela', 'lista de preços, catálogo ou print'],
               ['contato', 'só o contato', 'indicação de fornecedor, sem preço'],
             ] as const).map(([id, l, d]) => (
               <button key={id} type="button" role="radio" aria-checked={tipo === id} onClick={() => { setTipo(id); if (id === 'contato' && !lidos.some((l) => l.o.tipo === 'contato')) novoContato() }}>
@@ -200,21 +200,24 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
             ))}
           </div>
         </div>
-        {tipo !== 'contato' && (
+        {tipo !== 'contato' && comoVeio === 'arquivo' && <label className="ape-drop" htmlFor="e-files">
+          <ApeIcon name="clip" />
+          <b className="big">{tipo === 'tabela' ? (lidos.length ? 'anexar mais' : 'anexar a tabela de preços') : lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
+          <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => { anexar([...(e.target.files || [])]); e.target.value = '' }} />
+          <span className="ape-note">PDF, foto ou print do WhatsApp. Pode escolher vários de uma vez.</span>
+        </label>}
+        {tipo !== 'contato' && comoVeio === 'texto' && (
           <div className="ape-f">
-            <label>Para qual planta é? <span className="ape-opc">{me?.ap ? `seu apê ${me.ap} é ${PLANTA_ROT[plantaDoAp(me.ap)] || 'de planta não identificada'}` : ''}</span></label>
-            <div className="ape-seg" role="radiogroup" aria-label="Planta">
-              {([['canto', 'canto', 'finais 01, 02, 11, 12'], ['corredor', 'corredor', 'finais 03 a 10'], ['', 'não sei', 'tudo bem']] as const).map(([id, l, d]) => (
-                <button key={id || 'nao'} type="button" role="radio" className="ape-seg2" aria-checked={planta === id} onClick={() => setPlanta(id)}><b>{l}</b><small>{d}</small></button>
-              ))}
-            </div>
+            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" aria-label="Texto do orçamento" style={{ minHeight: 140 }} />
+            <button type="button" className="ape-btn primary sm" onClick={lerColado} disabled={!texto.trim()}><ApeIcon name="check" />ler o texto</button>
           </div>
         )}
-        {tipo !== 'contato' && <ol className="ape-steps ape-steps-num">
-          <li><b>1</b><span>{tipo === 'tabela' ? 'Anexe o print ou o PDF da tabela de preços' : 'Anexe o PDF ou os prints (pode mandar vários de uma vez)'}</span></li>
-          <li><b>2</b><span>Confira o que foi lido e complete só o que faltar</span></li>
-          <li><b>3</b><span>{tipo === 'orcamento' ? 'Publique: entra direto na comparação, sem os seus dados' : 'Publique: aparece em "contatos e tabelas" do serviço, sem os seus dados'}</span></li>
-        </ol>}
+
+        {tipo !== 'contato' && (
+          <button type="button" className="ape-link-btn" onClick={() => setComoVeio(comoVeio === 'texto' ? 'arquivo' : 'texto')}>
+            <ApeIcon name={comoVeio === 'texto' ? 'clip' : 'chat'} />{comoVeio === 'texto' ? 'voltar para anexar' : 'recebeu por mensagem? cole o texto'}
+          </button>
+        )}
         {tipo === 'contato' && (
           <>
             <p className="ape-note" style={{ margin: 0 }}>Coloque o nome e o WhatsApp do fornecedor: os vizinhos tocam e já caem na conversa com a empresa.</p>
@@ -226,25 +229,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
             <p className="ape-note" style={{ margin: 0, fontSize: 12 }}>No celular: abra o contato no WhatsApp ou na agenda, toque em "compartilhar contato" e escolha salvar em Arquivos; depois anexe aqui.</p>
           </>
         )}
-        {tipo !== 'contato' && (
-          <div className="ape-como-veio" role="radiogroup" aria-label="Como veio">
-            <button type="button" role="radio" aria-checked={comoVeio === 'arquivo'} onClick={() => setComoVeio('arquivo')}><ApeIcon name="clip" /><b>arquivo ou print</b><small>PDF, foto, captura de tela</small></button>
-            <button type="button" role="radio" aria-checked={comoVeio === 'texto'} onClick={() => setComoVeio('texto')}><ApeIcon name="chat" /><b>texto</b><small>veio por mensagem? cole aqui</small></button>
-          </div>
-        )}
-        {tipo !== 'contato' && comoVeio === 'arquivo' && <label className="ape-drop" htmlFor="e-files">
-          <ApeIcon name="clip" />
-          <b>{tipo === 'tabela' ? (lidos.length ? 'anexar mais' : 'anexar a tabela de preços') : lidos.length ? 'anexar mais' : 'anexar PDF ou prints'}</b>
-          <input id="e-files" type="file" multiple accept="application/pdf,image/*" onChange={(e) => { anexar([...(e.target.files || [])]); e.target.value = '' }} />
-          <span className="ape-note">{tipo === 'orcamento' ? 'Cada arquivo vira um orçamento.' : 'Cada arquivo vira um item.'} Até 10 por vez, de até 15 MB.</span>
-        </label>}
-        {tipo !== 'contato' && comoVeio === 'texto' && (
-          <div className="ape-f">
-            <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Cole aqui o que o fornecedor mandou: valores, parcelas, o que inclui, validade…" aria-label="Texto do orçamento" style={{ minHeight: 140 }} />
-            <button type="button" className="ape-btn primary sm" onClick={lerColado} disabled={!texto.trim()}><ApeIcon name="check" />ler o texto</button>
-          </div>
-        )}
-
+        {tipo !== 'contato' && !lidos.length && <p className="ape-note ape-envio-dica"><ApeIcon name="sparkle" />Depois de publicar, o site lê sozinho o valor e o fornecedor e coloca na pasta certa. Seus dados não aparecem.</p>}
         {lidos.map((l, i) => (
           <LidoCard key={l.key} n={i + 1} l={l} podeJuntar={i > 0 && lidos[i - 1].status === 'pronto' && l.status === 'pronto' && (mesmoFornecedor(lidos[i - 1].o, l.o) || !l.o.fornecedor)} onJuntar={() => juntar(i)}
             onChange={(o) => atualizar(l.key, (x) => ({ ...x, o }))} onToggle={() => atualizar(l.key, (x) => ({ ...x, aberto: !x.aberto }))} onRemove={() => setLidos((ls) => ls.filter((x) => x.key !== l.key))} />
@@ -263,7 +248,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
           </div>
         )}
         {!apeCloud && <p className="ape-note" style={{ margin: 0 }}>Prévia: a leitura usa só o texto do PDF (sem IA).</p>}
-        <p className="ape-note" style={{ margin: 0 }}>Seu nome e telefone ficam guardados só para identificar quem mandou. Na página, o orçamento aparece sem os seus dados.</p>
+        {lidos.length > 0 && <p className="ape-note" style={{ margin: 0 }}>Seu nome e telefone ficam guardados só para identificar quem mandou. Na página, o orçamento aparece sem os seus dados.</p>}
       </form>
       {meus.length > 0 && <SeusOrcamentos me={me} lista={meus} onMudou={onPublicado} />}
     </>

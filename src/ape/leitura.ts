@@ -13,7 +13,16 @@ export async function textoDoPdf(f: File): Promise<string> {
     const out: string[] = []
     for (let i = 1; i <= Math.min(pdf.numPages, 6); i++) {
       const c = await (await pdf.getPage(i)).getTextContent()
-      out.push(c.items.map((it) => ('str' in it ? it.str : '')).join(' '))
+      // mantém as quebras de linha do PDF: as regras de fornecedor/CNPJ leem linha a linha
+      let s = '', y: number | null = null
+      for (const it of c.items) {
+        if (!('str' in it)) continue
+        const ny = it.transform?.[5] ?? null
+        if (y != null && ny != null && Math.abs(ny - y) > 2 && !s.endsWith('\n')) s += '\n'
+        s += it.str + (it.hasEOL ? '\n' : ' ')
+        y = ny
+      }
+      out.push(s.replace(/[ \t]+\n/g, '\n'))
     }
     return out.join('\n')
   } catch {
