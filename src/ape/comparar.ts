@@ -225,7 +225,7 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   const out: Partial<Orcamento> = {}
   const email = t.match(/[\w.+-]+@[\w-]+\.[\w.]+/)
   if (email) out.email = email[0]
-  const tels = [...t.matchAll(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\d{4}[-\s.]?\d{4}/g)].map((m) => digits(m[0])).filter((d) => d.length >= 10 && d.length <= 13)
+  const tels = [...t.matchAll(/(?:\+?55\s?)?\(?\d{2}\)?\s?(?:9\s?)?\d{4}[-\s.]?\d{4}/g)].map((m) => digits(m[0])).filter((d) => d.length >= 10 && d.length <= 13)
   const cel = tels.find((d) => d.replace(/^55/, '').length === 11)
   if (cel) out.whatsapp = cel.replace(/^55/, '')
   if (tels[0]) out.telefone = tels[0].replace(/^55/, '')
@@ -239,7 +239,10 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   const iEmp = linhas.findIndex((l) => /\bempresa\b/i.test(l))
   const depoisEmp = iEmp >= 0 ? (linhas[iEmp + 1] || '').split(/\s{2,}/).pop() : ''
   const limpaNome = (x: string) => x.split(/\s{2,}/).filter((p) => !ruim.test(p) && !/^\d+$/.test(p.trim())).pop()?.trim() || ''
-  out.fornecedor = (limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\s{2,}/g, ' ')
+  // a linha do CNPJ costuma trazer o nome da empresa antes dele ("RDL Engenharia · CNPJ ...")
+  const doCnpj = (linhas.find((l) => /cnpj/i.test(l)) || '').split(/\s*[·•|\-–]\s*cnpj|\s+cnpj/i)[0].replace(/^(raz[aã]o social|empresa)\s*:?\s*/i, '').trim()
+  const assinatura = linhas.find((l) => /\b(engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|ltda|eireli)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l) && !/cnpj/i.test(l))
+  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\s{2,}/g, ' ')
   // valores: total (com R$), à vista / Pix, parcelas
   const valor = (re: RegExp) => {
     const m = t.match(re)
@@ -338,15 +341,24 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
 /** Nicho pelo texto (quando não deu para ler com IA). */
 export function nichoDoTexto(txt: string): Nicho | '' {
   const t = sem(txt)
+  // pontua cada pasta pelo número de palavras dela no texto (a 1ª linha / nome do arquivo vale o triplo);
+  // assim "forros" num rodapé de vistoria não vira gesso
   const regras: [Nicho, RegExp][] = [
-    ['piso-vinilico', /vinilic/], ['piso-laminado', /laminad/], ['piso-ceramico', /porcelanato|ceramic/], ['revestimentos', /revestimento|pastilha|azulejo/],
-    ['marcenaria', /marcenaria|planejad|mdf|armario/], ['marmoraria', /granito|marmore|quartzo|bancada|marmoraria/], ['box', /\bbox\b/],
-    ['gesso', /gesso|drywall|sanca|forro/], ['eletrica', /eletric|tomada|disjuntor/], ['aquecedor', /aquecedor|boiler/], ['hidraulica', /hidraulic|encanamento|esgoto|pressurizador/],
-    ['impermeabilizacao', /impermeabiliz/], ['serralheria', /serralheri|grade|portao|corrimao/], ['ar', /ar.condicionado|split|btu/],
-    ['pintura', /pintura|tinta|massa corrida/], ['cortinas', /cortina|persiana/], ['telas', /tela de protecao|rede de protecao/],
-    ['vidros', /vidro|espelho|vidracaria/], ['iluminacao', /luminaria|spot|pendente|iluminacao/],
+    ['vistoria', /vistoria|laudo|\bart\b|entrega (de|das) chaves|revistoria/g],
+    ['piso-vinilico', /vinilic/g], ['piso-laminado', /laminad/g], ['piso-ceramico', /porcelanato|ceramic/g], ['revestimentos', /revestimento|pastilha|azulejo/g],
+    ['marcenaria', /marcenaria|planejad|mdf|armario/g], ['marmoraria', /granito|marmore|quartzo|bancada|marmoraria/g], ['box', /\bbox\b/g],
+    ['gesso', /gesso|drywall|sanca|forro/g], ['eletrica', /eletric|tomada|disjuntor/g], ['aquecedor', /aquecedor|boiler/g], ['hidraulica', /hidraulic|encanamento|esgoto|pressurizador/g],
+    ['impermeabilizacao', /impermeabiliz/g], ['serralheria', /serralheri|grade|portao|corrimao/g], ['ar', /ar.condicionado|split|btu/g],
+    ['pintura', /pintura|tinta|massa corrida/g], ['cortinas', /cortina|persiana/g], ['telas', /tela de protecao|rede de protecao/g],
+    ['vidros', /vidro|espelho|vidracaria/g], ['iluminacao', /luminaria|spot|pendente|iluminacao/g],
   ]
-  return regras.find(([, re]) => re.test(t))?.[0] || ''
+  const topo = t.split('\n').slice(0, 3).join(' ')
+  let melhor: Nicho | '' = '', pts = 0
+  for (const [n, re] of regras) {
+    const p = (t.match(re) || []).length + 2 * (topo.match(re) || []).length
+    if (p > pts) { pts = p; melhor = n }
+  }
+  return melhor
 }
 
 /** O que ainda falta preencher para o orçamento entrar bem na comparação (a pessoa só completa isso). */

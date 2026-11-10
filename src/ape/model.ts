@@ -16,7 +16,7 @@ export const APE = {
 }
 
 export type Nicho =
-  | 'piso-vinilico' | 'piso-ceramico' | 'piso-laminado' | 'revestimentos' | 'marcenaria' | 'marmoraria' | 'box' | 'gesso' | 'eletrica' | 'hidraulica' | 'aquecedor'
+  | 'piso-vinilico' | 'piso-ceramico' | 'piso-laminado' | 'revestimentos' | 'marcenaria' | 'marmoraria' | 'box' | 'gesso' | 'eletrica' | 'hidraulica' | 'aquecedor' | 'vistoria'
   | 'impermeabilizacao' | 'serralheria' | 'ar' | 'pintura' | 'cortinas' | 'telas' | 'vidros' | 'iluminacao' | 'moveis' | 'eletros' | 'mao-de-obra' | 'outros'
   | `x:${string}` // pasta criada sozinha quando o orçamento não cabe em nenhuma das de cima
 
@@ -24,7 +24,7 @@ export const NICHOS: [Nicho, string, string][] = [
   ['piso-vinilico', 'Piso vinílico', 'floor'], ['piso-ceramico', 'Porcelanato e cerâmica', 'tile'], ['piso-laminado', 'Piso laminado', 'floor'],
   ['revestimentos', 'Revestimentos de parede', 'tile'], ['marcenaria', 'Marcenaria e planejados', 'wood'], ['marmoraria', 'Pedras e bancadas', 'stone'],
   ['box', 'Box de banheiro', 'shower'], ['gesso', 'Gesso, forro e sanca', 'ceiling'], ['eletrica', 'Elétrica', 'bolt'],
-  ['hidraulica', 'Hidráulica', 'shower'], ['aquecedor', 'Aquecedor', 'bolt'], ['impermeabilizacao', 'Impermeabilização', 'shield'], ['serralheria', 'Serralheria', 'tool'],
+  ['hidraulica', 'Hidráulica', 'shower'], ['aquecedor', 'Aquecedor', 'bolt'], ['vistoria', 'Vistoria de entrega', 'check'], ['impermeabilizacao', 'Impermeabilização', 'shield'], ['serralheria', 'Serralheria', 'tool'],
   ['ar', 'Ar-condicionado', 'snow'], ['pintura', 'Pintura', 'brush'], ['cortinas', 'Cortinas e persianas', 'curtain'],
   ['telas', 'Telas de proteção', 'net'], ['vidros', 'Vidros e espelhos', 'glass'], ['iluminacao', 'Iluminação', 'sparkle'],
   ['moveis', 'Móveis soltos', 'sofa'], ['eletros', 'Eletrodomésticos', 'fridge'], ['mao-de-obra', 'Mão de obra geral', 'tool'], ['outros', 'Outros', 'box'],
