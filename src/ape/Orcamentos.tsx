@@ -30,6 +30,16 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
   useEffect(() => {
     write(UI, { nicho: filtro, sort, validos })
   }, [filtro, sort, validos])
+  // acabou de publicar: abre direto a ficha do que mandou (com a prévia)
+  useEffect(() => {
+    let id = ''
+    try { id = localStorage.getItem('ape-abrir') || '' } catch { /* ok */ }
+    const o = id ? vis.find((x) => x.id === id) : null
+    if (!o) return
+    try { localStorage.removeItem('ape-abrir') } catch { /* ok */ }
+    setFiltro(o.nicho)
+    setAberto({ id: o.id, nicho: o.nicho })
+  }, [vis])
 
   const counts: Record<string, number> = {}
   for (const o of vis) counts[o.nicho] = (counts[o.nicho] || 0) + 1
@@ -213,6 +223,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                     <div className="ape-sheet" role="dialog" aria-modal="true" aria-label={ex.fornecedor} onClick={(e) => e.target === e.currentTarget && setAberto(null)}>
                       <div className="ape-sheet-in ape-ficha">
                         <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
+                        <PreviaFicha o={ex} me={me} />
                         <Contatos lista={[ex]} me={me} />
                         <FichaAcoes o={ex} owner={owner} meu={d.meus.includes(ex.id)} me={me} show={show} onFeito={() => { setAberto(null); onRecarregar?.() }} />
                       </div>
@@ -224,7 +235,8 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                     <div className="ape-sheet" role="dialog" aria-modal="true" aria-label={ab.x.o.fornecedor} onClick={(e) => e.target === e.currentTarget && setAberto(null)}>
                       <div className="ape-sheet-in ape-ficha">
                         <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
-                        <Card x={ab.x} a={ab.a} isTop={ab.top} acab={acabs.length > 1 ? ab.ac || 'outros' : ''} me={me} whats={whats} count={d.contagens[ab.x.o.id] || 0} escolhas={d.escolhas[ab.x.o.id] || 0} minha={d.minhas.includes(ab.x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+                        <PreviaFicha o={ab.x.o} me={me} />
+                        <Card x={ab.x} a={ab.a} isTop={ab.top} acab={acabs.length > 1 ? ab.ac : ''} me={me} whats={whats} count={d.contagens[ab.x.o.id] || 0} escolhas={d.escolhas[ab.x.o.id] || 0} minha={d.minhas.includes(ab.x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
                         <FichaAcoes o={ab.x.o} owner={owner} meu={d.meus.includes(ab.x.o.id)} me={me} show={show} onFeito={() => { setAberto(null); onRecarregar?.() }} />
                       </div>
                     </div>
@@ -350,6 +362,60 @@ async function miniDe(me: Morador | null, o: Orcamento): Promise<string> {
   await pg.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
   return cv.toDataURL('image/jpeg', 0.8)
 }
+/** Na ficha: a prévia grande do arquivo (toca para abrir o original) ou o texto da mensagem, logo em cima das informações. */
+function PreviaFicha({ o, me }: { o: Orcamento; me: Morador | null }) {
+  const [st, setSt] = useState<{ img?: string; url?: string; erro?: boolean }>({})
+  const tem = !!o.arquivos?.length
+  useEffect(() => {
+    if (!tem) return
+    let vivo = true
+    const tenta = async (n: number): Promise<void> => {
+      try {
+        const l = await verOriginal(me?.id, o.id)
+        const a = l[0]
+        if (!a) throw new Error('sem arquivo')
+        let img = a.url
+        if (/pdf/i.test(a.tipo) || /\.pdf$/i.test(a.nome)) {
+          const pdfjs = await import('pdfjs-dist')
+          pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+          const pg = await (await pdfjs.getDocument({ url: a.url }).promise).getPage(1)
+          const vp = pg.getViewport({ scale: 900 / pg.getViewport({ scale: 1 }).width })
+          const cv = document.createElement('canvas')
+          cv.width = vp.width; cv.height = vp.height
+          await pg.render({ canvasContext: cv.getContext('2d')!, viewport: vp }).promise
+          img = cv.toDataURL('image/jpeg', 0.85)
+        }
+        if (vivo) setSt({ img, url: a.url })
+      } catch {
+        if (n < 2) { await new Promise((r) => setTimeout(r, 2000)); if (vivo) return tenta(n + 1) }
+        if (vivo) setSt({ erro: true })
+      }
+    }
+    void tenta(0)
+    return () => { vivo = false }
+  }, [o.id, me?.id, tem])
+  if (tem)
+    return (
+      <div className="ape-ficha-previa">
+        {st.img ? (
+          <a href={st.url} target="_blank" rel="noopener noreferrer" aria-label="Abrir o arquivo original"><img src={st.img} alt="Prévia do orçamento" /><span className="abrir"><ApeIcon name="eye" />toque para ver inteiro</span></a>
+        ) : st.erro ? (
+          <span className="vazio"><ApeIcon name="file" />não deu para mostrar a prévia agora; use "ver o original" aqui embaixo</span>
+        ) : (
+          <span className="vazio"><span className="ape-dots"><i /><i /><i /></span>carregando a prévia…</span>
+        )}
+      </div>
+    )
+  if (o.texto_original)
+    return (
+      <div className="ape-ficha-texto">
+        <small><ApeIcon name="chat" />mensagem do fornecedor</small>
+        <p>{o.texto_original}</p>
+      </div>
+    )
+  return null
+}
+
 function Miniatura({ o, me, icone }: { o: Orcamento; me: Morador | null; icone: string }) {
   const ref = useRef<HTMLSpanElement>(null)
   const [src, setSrc] = useState('')
@@ -632,7 +698,7 @@ function Card({ x, a, isTop, acab = '', me, whats, count, escolhas, minha, show,
           <ApeIcon name={minha ? 'check' : 'star'} />
           {minha ? 'minha escolha' : 'marcar como escolha'}
         </button>
-        {(o.arquivos?.length || o.enviado) && (
+        {(o.arquivos?.length || (o.enviado && !o.texto_original)) && (
           <button className="ape-btn ghost sm" onClick={() => setOriginal(true)}><ApeIcon name="file" />ver o original</button>
         )}
       </div>

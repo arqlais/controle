@@ -524,8 +524,9 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
       }
       const atual = o.data as J
       let novo: J = { ...atual, lendo: false }
-      if (parts.length) {
-        const res = await chamarIA(key, parts, '')
+      const textoMsg = typeof atual.texto_original === 'string' ? atual.texto_original.slice(0, 6000) : ''
+      if (parts.length || textoMsg) {
+        const res = await chamarIA(key, parts, parts.length ? '' : textoMsg)
         if (res.erro && (res.status === 429 || res.status === 503)) continue // tenta na próxima rodada
         const ia = (res.lista ?? [])[0] ?? {}
         for (const [k, v] of Object.entries(ia)) {

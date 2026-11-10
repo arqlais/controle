@@ -84,6 +84,7 @@ export interface Orcamento {
   lendo?: boolean // anexado agora: a leitura dos valores ainda vai acontecer
   nicho_auto?: boolean // a pasta foi deduzida (a leitura pode trocar)
   forn_auto?: boolean // o nome do fornecedor foi um palpite (a leitura completa pode trocar)
+  texto_original?: string // orçamento que veio como mensagem: o texto como foi colado (aparece na ficha)
   enviado?: boolean // mandado por um morador (vai direto para a comparação)
   tipo?: TipoEnvio // orçamento (padrão), tabela de preços ou só o contato do fornecedor
   planta?: Planta // San Levi: planta de canto (finais 01, 02, 11, 12) ou de corredor (03 a 10)
@@ -262,7 +263,7 @@ export function calc(q: Orcamento): Calc {
   const gp = num(q.grupo_pct)
   const grupo = gp && avista ? avista * (1 - gp / 100) : null
   // preço por m² só faz sentido em serviço cobrado por área (piso, gesso, pintura...): vistoria de 40 m² não vira "R$ 7/m²"
-  const area = /^(piso|revestimentos|gesso|impermeabilizacao|pintura|telas|vidros|marmoraria)/.test(String(q.nicho || '')) ? num(q.area_m2) : null
+  const area = /^(piso|revestimentos|gesso|impermeabilizacao|pintura|telas|vidros)/.test(String(q.nicho || '')) ? num(q.area_m2) : null
   const m2 = area && avista ? avista / area : null
   let st: Validade = 'sem'
   let dias: number | null = null
@@ -601,6 +602,7 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
   if (raw2.lendo === true) o.lendo = true
   if (raw2.nicho_auto === true) o.nicho_auto = true
   if (raw2.forn_auto === true) o.forn_auto = true
+  if (typeof raw2.texto_original === 'string' && raw2.texto_original.trim()) o.texto_original = raw2.texto_original.trim().slice(0, 6000)
   if (raw2.tipo === 'tabela' || raw2.tipo === 'contato') o.tipo = raw2.tipo
   if (raw2.planta === 'canto' || raw2.planta === 'corredor') o.planta = raw2.planta
   if (typeof raw2.grupo_por === 'string') o.grupo_por = raw2.grupo_por.slice(0, 30)

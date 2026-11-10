@@ -238,10 +238,13 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|marmoraria|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados|aquecedores|aquecedor a g[aá]s|instala[cç][oõ]es|com[eé]rcio|distribuidora|materiais)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l))
   const iEmp = linhas.findIndex((l) => /\bempresa\b/i.test(l))
   const depoisEmp = iEmp >= 0 ? (linhas[iEmp + 1] || '').split(/\s{2,}/).pop() : ''
-  const limpaNome = (x: string) => x.split(/\s{2,}/).filter((p) => !ruim.test(p) && !/^\d+$/.test(p.trim())).pop()?.trim() || ''
+  const EMPRESA = /\b(ltda|eireli|me|mei|s\/a|engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|marmoraria|m[aá]rmores?|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados|aquecedores|instala[cç][aã]o|montagem|com[eé]rcio|distribuidora|materiais)\b/i
+  // "Rei do Marmore Instalação e Montagem Ltda (1)   Página: 1" → só o pedaço com cara de empresa
+  const limpaNome = (x: string) => { const ps = x.split(/\s{2,}/).map((p) => p.replace(/\(\d+\)\s*$/, '').trim()).filter((p) => p && !/^\d+$/.test(p) && !/^p[aá]gina\b/i.test(p)); return (ps.find((p) => EMPRESA.test(p)) || ps.filter((p) => !ruim.test(p)).pop() || '').trim() }
   // a linha do CNPJ costuma trazer o nome da empresa antes dele ("RDL Engenharia · CNPJ ...")
-  const doCnpj = (linhas.find((l) => /cnpj/i.test(l)) || '').split(/\s*[·•|\-–]\s*cnpj|\s+cnpj/i)[0].replace(/^(raz[aã]o social|empresa)\s*:?\s*/i, '').trim()
-  const assinatura = linhas.find((l) => /\b(engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|ltda|eireli)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l) && !/cnpj/i.test(l))
+  // só vale se a linha tiver um CNPJ de verdade (formulário com campo vazio "CNPJ/CPF: . . / -" não conta)
+  const doCnpj = (linhas.find((l) => /cnpj/i.test(l) && /\d{2}\.?\d{3}\.?\d{3}/.test(l)) || '').split(/\s*[·•|\-–]\s*cnpj|\s+cnpj/i)[0].replace(/^(raz[aã]o social|empresa)\s*:?\s*/i, '').trim()
+  const assinatura = linhas.find((l) => /\b(engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|ltda|eireli)\b/i.test(l) && !/cnpj|cpf|endere[cç]o/i.test(l) && l.length < 90 && !/\d+,\d{2}/.test(l) && !/cnpj/i.test(l))
   // mensagem de WhatsApp: o nome vem na despedida ("Grato, L. S Marmoraria", "Att.\nVidraçaria Luz")
   const iDesp = linhas.findIndex((l) => /^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)\b/i.test(l))
   const desp = iDesp >= 0 ? (linhas[iDesp].replace(/^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)[\s,.:!-]*/i, '').trim() || linhas[iDesp + 1] || '') : ''
@@ -257,7 +260,13 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   }
   // o preço aparece de muitos jeitos: "R$ 3.500,00", "R$3.500", "R $ 3500,00", "3.500,00" sem R$, "3,5 mil"
   const DIN = String.raw`(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+,\d{2}|\d{3,})`
-  out.valor_total = valor(new RegExp(String.raw`(?:valor\s+)?total(?:\s+(?:geral|final|do\s+or[cç]amento|a\s+pagar))?[^\d\n]{0,40}?(?:R\s?\$\s*)?` + DIN, 'i'))
+  out.valor_total = valor(new RegExp(String.raw`(?:valor\s+)?total(?:\s+(?:geral|final|do\s+or[cç]amento|a\s+pagar))?[^\d\n]{0,40}?\n?[^\d\n]{0,12}?(?:R\s?\$\s*)?` + DIN, 'i'))
+  // tabela de sistema: cabeçalho "Liquido  Frete  Total" e os números na linha de baixo (o último é o total)
+  if (out.valor_total == null) {
+    const iT = linhas.findIndex((l) => /\btotal\s*$/i.test(l) && /\s{2,}/.test(l))
+    const nums = iT >= 0 ? (linhas[iT + 1] || '').match(/\d{1,3}(?:\.\d{3})*,\d{2}/g) : null
+    if (nums) out.valor_total = num(nums[nums.length - 1].replace(/\./g, ''))
+  }
   out.valor_avista = valor(new RegExp(String.raw`(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,40}?(?:R\s?\$\s*)?` + DIN, 'i'))
   if (out.valor_total == null) {
     const mil = t.match(/(\d+(?:,\d+)?)\s*mil\b/i)
@@ -272,7 +281,8 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
     out.valor_parcela = num(parc[2])
   }
   const area = t.match(/([\d.,]+)\s*m(?:2|²)/i)
-  if (area) out.area_m2 = num(area[1])
+  // área de verdade (piso, pintura...): 3 a 500 m²; "1 M2" de coluna de sistema não conta
+  if (area) { const a = num(area[1]); if (a != null && a >= 3 && a <= 500) out.area_m2 = a }
   const prazo = t.match(/prazo[^\n]{0,40}?(\d+\s*(?:a\s*\d+\s*)?dias(?:\s*[uú]teis)?)/i)
   if (prazo) out.prazo = prazo[1].trim().toLowerCase()
   const gar = t.match(/garantia[ \t]*(?:de|:)?[ \t]*([^\n;]{3,70})/i)

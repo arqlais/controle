@@ -2709,3 +2709,18 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
   .ape-tipos-envio button span { display: none; }
   .ape-tipos-envio button b { font-size: 13px; }
 }
+
+/* ficha: prévia do orçamento em cima das informações */
+.ape-ficha-previa { margin: 4px 0 14px; border-radius: 14px; overflow: hidden; border: 1px solid var(--a-line); background: var(--a-bg); }
+.ape-ficha-previa a { display: block; position: relative; }
+.ape-ficha-previa img { display: block; width: 100%; max-height: 52vh; object-fit: contain; object-position: top; background: #fff; }
+.ape-ficha-previa .abrir { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: color-mix(in srgb, var(--a-card) 92%, transparent); color: var(--a-pri); font-size: 12.5px; font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+.ape-ficha-previa .abrir .ape-i { width: 15px; height: 15px; }
+.ape-ficha-previa .vazio { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 120px; padding: 16px; color: var(--a-muted); font-size: 13px; text-align: center; }
+.ape-ficha-previa .vazio .ape-i { width: 18px; height: 18px; flex: none; }
+.ape-ficha-texto { margin: 4px 0 14px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--a-line); background: var(--a-bg); }
+.ape-ficha-texto small { display: inline-flex; align-items: center; gap: 6px; color: var(--a-muted); font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.ape-ficha-texto small .ape-i { width: 14px; height: 14px; }
+.ape-ficha-texto p { margin: 0; white-space: pre-wrap; font-size: 13.5px; line-height: 1.5; max-height: 40vh; overflow: auto; overflow-wrap: anywhere; }
+/* o X de fechar fica por cima da ficha: a prévia começa abaixo dele */
+.ape-ficha > .ape-ficha-previa:nth-child(2), .ape-ficha > .ape-ficha-texto:nth-child(2) { margin-top: 40px; }

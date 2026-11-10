@@ -127,7 +127,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     const ok: Orcamento[] = []
     for (const l of prontos) {
       try {
-        const dados = { ...l.o, enviado: true, ap: me.ap, planta: l.o.tipo === 'contato' ? '' : planta, lendo: l.o.tipo !== 'contato' }
+        const dados = { ...l.o, enviado: true, ap: me.ap, planta: l.o.tipo === 'contato' ? '' : planta, lendo: l.o.tipo !== 'contato', ...(l.texto?.trim() ? { texto_original: l.texto.trim().slice(0, 6000) } : {}) }
         const id = await publicar(me.id, dados, l.arquivos)
         ok.push({ ...l.o, id })
         // a leitura acontece agora, em segundo plano: a pessoa não espera
@@ -174,7 +174,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
         <h2 className="ape-h2">{feitos.length > 1 ? `${feitos.length} itens` : feitos[0]?.tipo === 'contato' ? 'contato' : feitos[0]?.tipo === 'tabela' ? 'tabela' : 'orçamento'} <em>publicado{feitos.length > 1 ? 's' : feitos[0]?.tipo === 'tabela' ? 'a' : ''}</em></h2>
         <p className="ape-note" style={{ maxWidth: '46ch', margin: 0 }}>Já está lado a lado com os outros, sem os seus dados. Se algo saiu errado, você corrige em "seus orçamentos".</p>
         <div className="ape-acts" style={{ justifyContent: 'center' }}>
-          <a className="ape-btn primary" href={href('ape')} onClick={() => { try { localStorage.setItem('ape-ui', JSON.stringify({ nicho: feitos[0].nicho })) } catch { /* ok */ } }}><ApeIcon name="list" />ver a comparação</a>
+          <a className="ape-btn primary" href={href('ape')} onClick={() => { try { localStorage.setItem('ape-ui', JSON.stringify({ nicho: feitos[0].nicho })); if (feitos.length === 1 && feitos[0].id) localStorage.setItem('ape-abrir', feitos[0].id) } catch { /* ok */ } }}><ApeIcon name="list" />{feitos.length === 1 ? 'ver na pasta' : 'ver nas pastas'}</a>
           <button className="ape-btn" onClick={() => setFeitos([])}><ApeIcon name="plus" />mandar outro</button>
         </div>
       </section>
