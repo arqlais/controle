@@ -47,7 +47,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     const forns = [...new Set(prontos.map((l) => l.o.fornecedor.trim()).filter(Boolean))]
     if (forns.length !== 1 || !prontos.some((l) => !l.o.fornecedor.trim())) return
     const ref = prontos.find((l) => l.o.fornecedor.trim() === forns[0])!.o
-    setLidos((ls) => ls.map((l) => (l.status === 'pronto' && !l.o.fornecedor.trim() ? { ...l, o: { ...l.o, fornecedor: ref.fornecedor, whatsapp: l.o.whatsapp || ref.whatsapp, telefone: l.o.telefone || ref.telefone, instagram: l.o.instagram || ref.instagram, nicho: l.o.nicho === 'outros' ? ref.nicho : l.o.nicho, servico: l.o.servico && l.o.servico !== 'Outros' ? l.o.servico : ref.servico }, msg: `${l.msg} · fornecedor completado pelo outro print` } : l)))
+    setLidos((ls) => ls.map((l) => (l.status === 'pronto' && !l.o.fornecedor.trim() ? { ...l, o: { ...l.o, forn_auto: true, fornecedor: ref.fornecedor, whatsapp: l.o.whatsapp || ref.whatsapp, telefone: l.o.telefone || ref.telefone, instagram: l.o.instagram || ref.instagram, nicho: l.o.nicho === 'outros' ? ref.nicho : l.o.nicho, servico: l.o.servico && l.o.servico !== 'Outros' ? l.o.servico : ref.servico }, msg: `${l.msg} · fornecedor completado pelo outro print` } : l)))
   }, [lidos])
 
   const atualizar = (key: string, fn: (l: Lido) => Lido) => setLidos((ls) => ls.map((l) => (l.key === key ? fn(l) : l)))

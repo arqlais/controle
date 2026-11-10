@@ -249,7 +249,7 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   const iDesp = linhas.findIndex((l) => /^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)\b/i.test(l))
   const desp = iDesp >= 0 ? (linhas[iDesp].replace(/^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)[\s,.:!-]*/i, '').trim() || linhas[iDesp + 1] || '') : ''
   const despOk = desp.length >= 3 && desp.length < 60 && !/\d{4}|@|R\$/.test(desp) ? desp : ''
-  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || despOk || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 50 && !ruim.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\S+@\S+/g, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
+  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || despOk || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 45 && l.split(/\s+/).length <= 6 && !ruim.test(l) && !/[!?()]|\p{Extended_Pictographic}|\b(aproveite\w*|promo\w*|valores?|inclui|lembrando|pagamentos?|confira|oferta)\b/iu.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\S+@\S+/g, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
   // valores: total (com R$), à vista / Pix, parcelas
   // normaliza "$16.470.00" / "16,470.00" (centavos depois do ponto) para "R$ 16.470,00"; "$" sozinho vira "R$"
   const tv = t.replace(/(\d{1,3}(?:[.,]\d{3})+)\.(\d{2})(?!\d)/g, (_, a: string, c: string) => `${a.replace(/,/g, '.')},${c}`).replace(/(^|[^R\w])\$\s*(?=\d)/g, '$1R$ ')
@@ -267,7 +267,10 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
     const nums = iT >= 0 ? (linhas[iT + 1] || '').match(/\d{1,3}(?:\.\d{3})*,\d{2}/g) : null
     if (nums) out.valor_total = num(nums[nums.length - 1].replace(/\./g, ''))
   }
-  out.valor_avista = valor(new RegExp(String.raw`(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,40}?(?:R\s?\$\s*)?` + DIN, 'i'))
+  // "1.800 a vista" (número antes) vale mais que "à vista ... 2.000" (que pode ser o preço do cartão)
+  out.valor_avista = valor(new RegExp(String.raw`(?:R\s?\$\s*)?` + DIN + String.raw`[ \t]*(?:reais[ \t]*)?(?:[aà][ \t]+vista|no[ \t]+pix)`, 'i'))
+  if (out.valor_avista == null) out.valor_avista = valor(new RegExp(String.raw`(?:[aà]\s+vista|pix|dinheiro)[^\d\n]{0,40}?(?:R\s?\$\s*)?` + DIN, 'i'))
+  if (out.valor_total == null) out.valor_total = valor(new RegExp(String.raw`(?:R\s?\$\s*)?` + DIN + String.raw`[ \t]*(?:reais[ \t]*)?(?:no[ \t]+cart[aã]o|a[ \t]+prazo|parcelado)`, 'i'))
   if (out.valor_total == null) {
     const mil = t.match(/(\d+(?:,\d+)?)\s*mil\b/i)
     // sem "total" escrito: o maior valor em reais do texto costuma ser o total
@@ -333,6 +336,22 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
         const nome = marca && modelo ? `${marca} ${modelo}` : marca && !titulo.toLowerCase().includes(marca.toLowerCase()) ? marca : titulo
         return { nome: nome.slice(0, 60), valor_total: preco ? dinheiro(preco) : null }
       })
+    } else if (linhas.filter((l) => /\d[\d.,]*\s*(?:reais\s*)?(?:[aà]\s+vista|no\s+pix)/i.test(l)).length > 1) {
+      // promoção com várias pedras: "Preto São Gabriel ) 3.900 a vista ou 4.600 no cartão"
+      const NUM = String.raw`(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d{3,}(?:,\d{2})?)`
+      const re = new RegExp(String.raw`^(.{3,60}?)\s*[)\-–:=]+\s*(?:R\s?\$\s*)?` + NUM + String.raw`\s*(?:reais\s*)?(?:[aà]\s+vista|no\s+pix)(?:.*?(?:R\s?\$\s*)?` + NUM + String.raw`\s*(?:reais\s*)?(?:no\s+cart|cart[aã]o|parcelad|a\s+prazo))?`, 'i')
+      const ops2 = linhas.map((l) => l.match(re)).filter((m): m is RegExpMatchArray => !!m)
+      if (ops2.length > 1) {
+        const o2 = ops2.map((m) => ({ nome: m[1].replace(/[()]/g, '').trim(), valor_avista: dinheiro(m[2]), valor_total: m[3] ? dinheiro(m[3]) : dinheiro(m[2]) }))
+        ;(out as Record<string, unknown>).opcoes = o2
+        // o card mostra a opção mais barata; as outras aparecem como materiais e no resumo
+        const min = o2.reduce((a, b) => ((b.valor_avista || 1e12) < (a.valor_avista || 1e12) ? b : a))
+        out.valor_avista = min.valor_avista
+        out.valor_total = min.valor_total
+        out.materiais = o2.map((x) => x.nome)
+        out.resumo = o2.map((x) => `${x.nome}: R$ ${x.valor_avista?.toLocaleString('pt-BR')} à vista${x.valor_total && x.valor_total !== x.valor_avista ? ` ou R$ ${x.valor_total.toLocaleString('pt-BR')} no cartão` : ''}`).join(' · ')
+        lista = []
+      }
     } else {
       lista = linhas
         .map((l) => l.match(/^(.{3,60}?)\s*[-–:]\s*(?:R\s?\$\s*)?(\d{1,3}(?:\.\d{3})+(?:,\d{2})?|\d{3,}(?:,\d{2})?)\s*$/i))
