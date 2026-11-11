@@ -1,4 +1,4 @@
-// planê.apê: área dos orçamentos do San Levi (pastas, lista, blocos, cartões, grupo e dica da loja).
+// planê apzinho: área dos orçamentos do San Levi (pastas, lista, blocos, cartões, grupo e dica da loja).
 import { useEffect, useRef, useState } from 'react'
 import { href } from '../router'
 import { admin, escolher, meuOrcamento, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, type Publico } from './api'
@@ -313,7 +313,7 @@ function agendaDe(vis: Orcamento[]): Fornecedor[] {
 /** Cartão de contato (.vcf): no iPhone abre a tela "novo contato" já preenchida. */
 function vcf(f: Fornecedor): string {
   const tel = f.tel ? (f.tel.startsWith('55') ? '+' + f.tel : '+55' + f.tel) : ''
-  const nota = `${f.nichos.map((n) => nicho(n).l).join(', ')} · indicado no planê.apê (${APE.condominio})`
+  const nota = `${f.nichos.map((n) => nicho(n).l).join(', ')} · indicado no planê apzinho (${APE.condominio})`
   const linhas = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${f.nome || 'Fornecedor'}`, `ORG:${f.nome || ''}`, tel && `TEL;TYPE=CELL:${tel}`, f.email && `EMAIL:${f.email}`, f.ig && `URL:${/^https?:/.test(f.ig) ? f.ig : 'https://instagram.com/' + f.ig.replace(/^@/, '')}`, `NOTE:${nota}`, 'END:VCARD'].filter(Boolean)
   return URL.createObjectURL(new Blob([linhas.join('\r\n')], { type: 'text/vcard' }))
 }
@@ -416,7 +416,7 @@ function Entenda({ onClose }: { onClose: () => void }) {
           <li><ApeArt name="carrinho" size={36} tone="sec" /><span><b>escolha</b>marque a sua escolha e, se der, feche em grupo</span></li>
         </ol>
         <p className="ape-entenda-t"><b>planta e acabamento.</b> Canto (finais 01, 02, 11 e 12) e corredor (03 a 10) têm medidas diferentes, e cada vizinho escolhe o seu acabamento. Por isso os orçamentos ficam separados por acabamento e mostram a planta; quando não dizem, o site descobre pelas medidas. O "mais compensa" é um cálculo automático, não uma indicação.</p>
-        <p className="ape-entenda-t"><b>fechar em grupo.</b> Marque "tenho interesse" no orçamento (não é compromisso). Juntou {GRUPO_META} apês? Qualquer vizinho toca em "pedir desconto de grupo": a mensagem já vem pronta. Conseguiu, registre o desconto no orçamento. Cada um fecha direto com o fornecedor, dizendo "grupo {APE.condominio}". O planê.apê não cobra nada.</p>
+        <p className="ape-entenda-t"><b>fechar em grupo.</b> Marque "tenho interesse" no orçamento (não é compromisso). Juntou {GRUPO_META} apês? Qualquer vizinho toca em "pedir desconto de grupo": a mensagem já vem pronta. Conseguiu, registre o desconto no orçamento. Cada um fecha direto com o fornecedor, dizendo "grupo {APE.condominio}". O planê apzinho não cobra nada.</p>
       </div>
       </div>
     </div>

@@ -1,10 +1,11 @@
-// planê.apê: loja (pedido com CPF, Pix na página, cartão no Asaas), entrega com marca de licença, bônus de 7 dias,
+// planê apzinho: loja (pedido com CPF, Pix na página, cartão no Asaas), entrega com marca de licença, bônus de 7 dias,
 // plataforma do apê, recuperação de compras, reembolso e leitura automática dos orçamentos.
 // Importado pelo index.ts da função "pagamentos". O preço nunca vem do navegador.
 
 import { PDFDocument, StandardFonts, rgb, degrees } from 'npm:pdf-lib@1.17.1'
 import { unzipSync } from 'npm:fflate@0.8.2'
 import { makeConta } from './conta.ts'
+import { frenteDoId, marcaDe } from './emails.ts'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 type J = Record<string, any>
@@ -47,6 +48,25 @@ const ARQ: Record<string, [string, number]> = {
   cortinas: ['Guia de cortinas e persianas', 12.9],
   seguranca: ['Guia de segurança e proteção do apê', 12.9],
 }
+/* outras frentes da planê (mesma loja): planê arquivos e planê arq. O que não tem arquivo ainda começa desligado. */
+const EXTRAS: Record<string, [string, number, boolean]> = {
+  'beleza-fim-de-ano': ['Kit avisos de fim de ano', 19.9, true],
+  'beleza-precos': ['Tabela de preços editável', 14.9, false],
+  'beleza-anamnese': ['Fichas de anamnese', 19.9, false],
+  'beleza-termo': ['Termo de consentimento e uso de imagem', 12.9, false],
+  'beleza-vale': ['Vale-presente e cartão fidelidade', 12.9, false],
+  'beleza-caixa': ['Planilha de agenda e caixa', 17.9, false],
+  'free-proposta': ['Modelo de proposta', 19.9, false],
+  'free-contrato': ['Modelo de contrato de prestação de serviço', 24.9, false],
+  'free-briefing': ['Briefing para o cliente preencher', 12.9, false],
+  'free-preco-hora': ['Calculadora de preço por hora', 16.9, false],
+  'arq-proposta': ['Proposta de projeto de interiores', 24.9, false],
+  'arq-contrato': ['Contrato de projeto de interiores', 29.9, false],
+  'arq-briefing': ['Briefing residencial', 14.9, false],
+  'arq-levantamento': ['Checklist de levantamento', 12.9, false],
+  'arq-honorarios': ['Calculadora de honorários', 19.9, false],
+  'arq-manual': ['Manual do cliente', 19.9, false],
+}
 const ESCOLHAS = ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca']
 const PLATAFORMA_PRECO = 89.9
 const JUROS_PCT = 2.99
@@ -70,10 +90,9 @@ const reais = (v: unknown) => {
   return Number.isFinite(n) ? n : 0
 }
 export const precoKit = (soma: number, pct: number) => c2(Math.max(0.9, Math.floor(soma * (1 - pct / 100) - 0.9 + 1e-9) + 0.9))
-type Item = { id: string; nome: string; preco: number; cat: string; combo: string[] }
+type Item = { id: string; nome: string; preco: number; cat: string; combo: string[]; frente?: string }
 
 export function makeApe({ db, asaas, json, site, env }: Deps) {
-  const APE_SITE = `${site.replace(/\/$/, '')}/ape/`
 
   async function loja() {
     const { data } = await db.from('ape_ajustes').select('data').eq('id', 1).maybeSingle()
@@ -87,13 +106,16 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       if (!saved.some((p) => p.id === 'kit-escolhas')) saved.push({ id: 'kit-escolhas', nome: KITS['kit-escolhas'][0], cat: 'combos', ativo: true, combo: ESCOLHAS, kitPct: KITS['kit-escolhas'][1], preco: 0 })
     }
     if (saved) {
-      for (const p of saved) if (p.ativo !== false && ['arquivos', 'combos', 'plataforma'].includes(p.cat ?? 'arquivos')) map[p.id] = { id: p.id, nome: String(p.nome), preco: reais(p.preco), cat: p.cat ?? 'arquivos', combo: Array.isArray(p.combo) ? p.combo.map(String) : [] }
+      // produtos das outras frentes que o painel ainda não salvou (loja v9): entram com o padrão
+      for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (!saved.some((p) => p.id === id)) saved.push({ id, nome, preco, cat: 'arquivos', ativo, frente: frenteDoId(id) })
+      for (const p of saved) if (p.ativo !== false && ['arquivos', 'combos', 'plataforma'].includes(p.cat ?? 'arquivos')) map[p.id] = { id: p.id, nome: String(p.nome), preco: reais(p.preco), cat: p.cat ?? 'arquivos', combo: Array.isArray(p.combo) ? p.combo.map(String) : [], frente: p.frente || frenteDoId(String(p.id)) }
       // kit com % de desconto: o preço sai da soma dos arquivos (igual ao site)
       for (const p of saved) if (map[p.id] && p.cat === 'combos' && Number(p.kitPct) > 0) map[p.id].preco = precoKit(map[p.id].combo.reduce((t, id) => t + (map[id]?.cat === 'arquivos' ? map[id].preco : reais(saved.find((x) => x.id === id)?.preco)), 0), Number(p.kitPct))
     } else {
       for (const [id, [nome, preco]] of Object.entries(ARQ)) map[id] = { id, nome, preco, cat: 'arquivos', combo: [] }
       for (const [id, [nome, pct, combo]] of Object.entries(KITS)) map[id] = { id, nome, preco: precoKit(combo.reduce((t, x) => t + ARQ[x][1], 0), pct), cat: 'combos', combo }
       map.plataforma = { id: 'plataforma', nome: 'Plataforma do apê (12 meses)', preco: PLATAFORMA_PRECO, cat: 'plataforma', combo: [] }
+      for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (ativo) map[id] = { id, nome, preco, cat: 'arquivos', combo: [], frente: frenteDoId(id) }
     }
     const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
     const jurosPct = a.jurosPct != null && Number.isFinite(Number(a.jurosPct)) ? Math.min(10, Math.max(0, Number(a.jurosPct))) : JUROS_PCT
@@ -104,7 +126,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     let uniq = [...new Set(ids)].filter((id) => map[id])
     const noKit = new Set(uniq.flatMap((id) => (map[id].cat === 'combos' ? map[id].combo : [])))
     uniq = uniq.filter((id) => !(map[id].cat === 'arquivos' && noKit.has(id)))
-    const itens = uniq.map((id) => ({ id, nome: map[id].nome, preco: map[id].preco, cat: map[id].cat }))
+    const itens = uniq.map((id) => ({ id, nome: map[id].nome, preco: map[id].preco, cat: map[id].cat, frente: map[id].frente || frenteDoId(id) }))
     const subtotal = c2(itens.reduce((t, i) => t + i.preco, 0))
     const desconto = forma === 'pix' ? c2(subtotal * pixPct / 100) : 0
     return { itens, subtotal, desconto, total: c2(subtotal - desconto) }
@@ -161,9 +183,9 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       billingType: forma === 'cartao' ? 'CREDIT_CARD' : 'PIX',
       ...(parc.n > 1 ? { installmentCount: parc.n, installmentValue: parc.parcela } : { value: c.total }),
       dueDate: hojeBR(),
-      description: ('planê.apê · ' + c.itens.map((i) => i.nome).join(' + ') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} com juros` : '')).slice(0, 480),
+      description: (marcaDe(c.itens).nome + ' · ' + c.itens.map((i) => i.nome).join(' + ') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} com juros` : '')).slice(0, 480),
       externalReference: `ape|${ped.id}`,
-      callback: { successUrl: `${APE_SITE}#pedido:${ped.token}`, autoRedirect: true },
+      callback: { successUrl: `${site.replace(/\/$/, '')}/${marcaDe(c.itens).path}/#pedido:${ped.token}`, autoRedirect: true },
     }
     let made: J
     try {
@@ -256,6 +278,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const { map } = await loja()
     const itens = (ped.itens ?? []) as J[]
     const ids = [...new Set(itens.flatMap((i) => (map[i.id]?.cat === 'combos' ? map[i.id].combo : KITS[i.id]?.[2] ?? [i.id])))].filter((id) => id !== 'plataforma')
+    const marca = marcaDe(itens as { id: string; frente?: string }[])
     const st = db.storage.from('ape-arquivos')
     const out: { produto: string; nome: string; path: string; tipo: string; cor: string; baixa: string }[] = []
     const pasta = async (id: string, produto: string) => {
@@ -264,14 +287,15 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
         if (!f.name || f.name.startsWith('.') || !f.id) continue
         const cor = (f.name.match(/-(azul|rosa|roxa|verde)\.[^.]+$/i) || [])[1]?.toLowerCase() || ''
         const ext = (f.name.match(/\.[^.]+$/) || [''])[0].toLowerCase()
-        // nome bonito no download: "Guia de compra do imóvel - planê.apê.pdf" / "Planilha do enxoval (rosa) - planê.apê.xlsx"
-        const baixa = `${produto.replace(/[\\/:*?"<>|]/g, '')}${cor ? ` (${cor})` : ''} - planê.apê${ext}`
+        // nome bonito no download: "Guia de compra do imóvel - planê apzinho.pdf" / "Planilha do enxoval (rosa) - planê apzinho.xlsx"
+        const baixa = `${produto.replace(/[\\/:*?"<>|]/g, '')}${cor ? ` (${cor})` : ''} - ${marca.nome}${ext}`
         out.push({ produto, nome: f.name, path: `${id}/${f.name}`, tipo: ext === '.pdf' ? 'pdf' : /\.xlsx?$/.test(ext) ? 'planilha' : 'arquivo', cor, baixa })
       }
     }
-    for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? id)
+    for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? EXTRAS[id]?.[0] ?? id)
     const libera = ped.pago_em ? new Date(new Date(ped.pago_em).getTime() + BONUS_DIAS * 864e5) : null
-    const bonusLiberado = !!libera && libera.getTime() <= Date.now()
+    // o bônus (manutenção do 1º ano) é do apê: compra só de outras frentes não tem
+    const bonusLiberado = !!libera && libera.getTime() <= Date.now() && marca.id === 'apzinho'
     if (bonusLiberado) await pasta('bonus', 'Bônus - manutenção e garantias do 1º ano')
     return { arquivos: out, bonus: { liberado: bonusLiberado, em: libera?.toISOString() ?? null } }
   }
@@ -326,7 +350,8 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const quem = `${ped.nome}${cpfM ? ` · CPF ${cpfM}` : ''} · pedido ${String(ped.token).slice(0, 8)}`
     // só caracteres que a fonte padrão aceita
     const limpa = (s: string) => s.normalize('NFC').replace(/[^\x20-\x7E\xA0-\xFF]/g, '') // Latin-1: acentos e "·" ficam
-    const linha = limpa(`planê.apê · useplane.com.br/ape · WhatsApp (11) 96928-8192 · licenciado para ${quem} · uso pessoal e intransferível`)
+    const m = marcaDe((ped.itens ?? []) as { id: string; frente?: string }[])
+    const linha = limpa(`${m.nome} · useplane.com.br/${m.path === 'ape' ? 'apzinho' : m.path} · WhatsApp (11) 96928-8192 · licenciado para ${quem} · uso pessoal e intransferível`)
     for (const page of pdf.getPages()) {
       const { width, height } = page.getSize()
       const size = 6.2
@@ -336,8 +361,8 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       // marca bem leve na lateral, para identificar cópias
       page.drawText(limpa(`licenciado para ${ped.nome}`), { x: width - 6, y: height * 0.3, size: 6, font, color: rgb(0.6, 0.58, 0.56), opacity: 0.35, rotate: degrees(90) })
     }
-    pdf.setTitle(pdf.getTitle() ?? 'planê.apê')
-    pdf.setAuthor('planê.apê · useplane.com.br/ape')
+    pdf.setTitle(pdf.getTitle() ?? m.nome)
+    pdf.setAuthor(`${m.nome} · useplane.com.br`)
     pdf.setSubject(limpa(`Licenciado para ${quem}`))
     return await pdf.save()
   }
@@ -387,7 +412,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       .lte('pago_em', new Date(agora - BONUS_DIAS * 864e5).toISOString()).limit(40)
     for (const ped of pagos ?? []) {
       await db.from('ape_pedidos').update({ bonus_email: true }).eq('id', ped.id)
-      const temArq = ((ped.itens ?? []) as J[]).some((i) => i.id !== 'plataforma')
+      const temArq = ((ped.itens ?? []) as J[]).some((i) => i.id !== 'plataforma') && marcaDe(ped.itens ?? []).id === 'apzinho'
       if (temArq && !ped.cancelamento?.status && (await contaApi.emailBonus(ped).catch(() => false))) bonus++
     }
     const lidos = await lerPendentes().catch(() => 0)

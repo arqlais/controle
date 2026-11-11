@@ -1,4 +1,4 @@
-// planê.apê: se uma tela der erro inesperado, mostra um aviso simples no lugar dela (nunca a página em branco).
+// planê apzinho: se uma tela der erro inesperado, mostra um aviso simples no lugar dela (nunca a página em branco).
 // Versão nova no ar com a página aberta: recarrega sozinho uma vez.
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { ApeIcon } from './ApeIcon'
@@ -31,7 +31,7 @@ export class Protege extends Component<{ children: ReactNode; chave: string; wha
         <span>Nada do que você mandou se perde. Toque em recarregar; se continuar, avise a gente pelo WhatsApp.</span>
         <div className="ape-acts">
           <button className="ape-btn primary" onClick={() => location.reload()}><ApeIcon name="check" />recarregar</button>
-          <a className="ape-btn" href={wa(this.props.whats, `Oi! O site do planê.apê deu um erro aqui (${location.hash || 'início'}): ${msg}`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />avisar no WhatsApp</a>
+          <a className="ape-btn" href={wa(this.props.whats, `Oi! O site do planê apzinho deu um erro aqui (${location.hash || 'início'}): ${msg}`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />avisar no WhatsApp</a>
         </div>
       </section>
     )

@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { markSvg } from '../components/PlaneMark'
+import { currentRoute } from '../router'
 import { APE } from './model'
 import { ApeIcon } from './ApeIcon'
 
-/* Peças usadas em várias telas do planê.apê (página dos moradores, loja, plataforma). */
+/* Peças usadas em várias telas do planê apzinho (página dos moradores, loja, plataforma). */
 
 // símbolo do planê nas cores do apê (conteúdo fixo)
 export const MARK_SVG = markSvg('quadrado', '#4e6472', '#ffffff')
@@ -36,15 +37,25 @@ export function useToast(): [ReactNode, (m: string) => void] {
 }
 
 /* carrinho: menu, loja e checkout leem o mesmo (localStorage + evento) */
-const CARRINHO = 'ape-carrinho'
+/* A mesma loja (checkout, pedido, minha conta) atende as três frentes da planê. A rota aberta diz qual:
+   #/ape (planê apzinho), #/arquivos (planê arquivos) ou #/arq (planê arq). Cada uma tem o seu carrinho. */
+export type RotaLoja = 'ape' | 'arquivos' | 'arq'
+export const lojaRota = (): RotaLoja => {
+  const p = currentRoute().page
+  return p === 'arquivos' || p === 'arq' ? p : 'ape'
+}
+export const LOJA_NOME: Record<RotaLoja, string> = { ape: 'planê apzinho', arquivos: 'planê arquivos', arq: 'planê arq' }
+export const lojaNome = () => LOJA_NOME[lojaRota()]
+const chaveCarrinho = () => (lojaRota() === 'ape' ? 'ape-carrinho' : `${lojaRota()}-carrinho`)
 export type Carrinho = { ids: string[]; add: (id: string) => void; remove: (id: string) => void; limpar: () => void; tem: (id: string) => boolean }
 export function useCarrinho(): Carrinho {
+  const CARRINHO = chaveCarrinho()
   const [ids, setIds] = useState<string[]>(() => read<string[]>(CARRINHO) || [])
   useEffect(() => {
     const sync = () => setIds(read<string[]>(CARRINHO) || [])
     window.addEventListener('ape-carrinho', sync)
     return () => window.removeEventListener('ape-carrinho', sync)
-  }, [])
+  }, [CARRINHO])
   const mudar = (fn: (l: string[]) => string[]) => {
     const next = fn(read<string[]>(CARRINHO) || [])
     write(CARRINHO, next)
@@ -64,7 +75,7 @@ export function useCarrinho(): Carrinho {
 export function Assinatura() {
   return (
     <p className="ape-sign">
-      <b>planê<span>.apê</span></b> · <a className="ape-sign-site" href="#/ape/loja">{SITE_APE}</a> · <a href={`https://instagram.com/${APE.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer">{APE.instagram}</a> · © {new Date().getFullYear()} todos os direitos reservados
+      <b>planê<span> apzinho</span></b> · <a className="ape-sign-site" href="#/ape/loja">{SITE_APE}</a> · <a href={`https://instagram.com/${APE.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer">{APE.instagram}</a> · © {new Date().getFullYear()} todos os direitos reservados
     </p>
   )
 }
@@ -138,7 +149,7 @@ export function mascaraTel(v: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-/* Esc fecha a janela aberta (a de cima), em qualquer tela do planê.apê */
+/* Esc fecha a janela aberta (a de cima), em qualquer tela do planê apzinho */
 if (typeof window !== 'undefined' && !(window as unknown as { __apeEsc?: boolean }).__apeEsc) {
   ;(window as unknown as { __apeEsc?: boolean }).__apeEsc = true
   window.addEventListener('keydown', (e) => {

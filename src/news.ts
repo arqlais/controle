@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-11-frentes',
+    date: '2026-11-11',
+    kind: 'novo',
+    title: 'planê arq e loja de modelos',
+    text: 'A planê agora tem página principal e a vitrine planê arq, com modelos de proposta, contrato e briefing para comprar avulsos (os que ainda não saíram têm o botão "me avise").',
+  },
+  {
     id: '2026-11-08-editor-do-site',
     date: '2026-11-08',
     kind: 'melhoria',

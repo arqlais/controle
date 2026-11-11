@@ -1,4 +1,4 @@
-// planê.apê: modelos dos e-mails (HTML de e-mail: tabelas e estilos inline, para abrir bem no Gmail, Outlook e celular).
+// planê apzinho: modelos dos e-mails (HTML de e-mail: tabelas e estilos inline, para abrir bem no Gmail, Outlook e celular).
 type J = Record<string, any>
 
 export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
@@ -57,9 +57,23 @@ const ajuda = (assunto: string) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:22px;border-top:1px solid ${C.line}"><tr><td style="padding-top:16px;font-size:13px;line-height:1.6;color:${C.txt}">
 <b style="color:${C.ink}">Precisa de ajuda?</b> Responda este e-mail ou chame no <a href="${zap(assunto)}" style="color:${C.pri};font-weight:600">WhatsApp (11) 96928-8192</a>.</td></tr></table>`
 
+/* As três frentes da planê usam a mesma loja. O pedido diz qual: cada item guarda a frente
+   (ou ela sai do começo do id: beleza-/free- = arquivos, arq-/kit-arq- = arq; o resto é do apê). */
+export type Marca = { id: 'apzinho' | 'arquivos' | 'arq'; nome: string; sufixo: string; path: string; slogan: string }
+export const frenteDoId = (id: string) => (/^(beleza|free)-/.test(id) ? 'arquivos' : /^(kit-)?arq-/.test(id) ? 'arq' : 'apzinho')
+export function marcaDe(itens: { id?: unknown; frente?: string }[] = []): Marca {
+  const fs = new Set(itens.map((i) => i.frente || frenteDoId(String(i.id))))
+  const f = fs.size === 1 ? [...fs][0] : 'apzinho'
+  if (f === 'arquivos') return { id: 'arquivos', nome: 'planê arquivos', sufixo: 'arquivos', path: 'arquivos', slogan: 'arquivos prontos para mandar' }
+  if (f === 'arq') return { id: 'arq', nome: 'planê arq', sufixo: 'arq', path: 'arq', slogan: 'para quem projeta' }
+  return { id: 'apzinho', nome: 'planê apzinho', sufixo: 'apzinho', path: 'ape', slogan: 'organize o seu apê' }
+}
+export const APZINHO = marcaDe([])
+
 /** Moldura de todos os e-mails: faixa com a marca, título, texto, botão, ajuda e rodapé. */
-export function moldura(o: { previa?: string; kicker?: string; titulo: string; corpo: string; botao?: [string, string]; botao2?: [string, string]; ajuda?: string | false; site: string; dona?: boolean }) {
-  const ape = `${o.site.replace(/\/$/, '')}/ape/`
+export function moldura(o: { previa?: string; kicker?: string; titulo: string; corpo: string; botao?: [string, string]; botao2?: [string, string]; ajuda?: string | false; site: string; dona?: boolean; marca?: Marca }) {
+  const m = o.marca || APZINHO
+  const ape = `${o.site.replace(/\/$/, '')}/${m.path}/`
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${esc(o.titulo)}</title></head>
 <body style="margin:0;padding:0;background:${C.bg};font-family:Poppins,'Segoe UI',Arial,sans-serif;color:${C.ink};-webkit-text-size-adjust:100%">
 ${o.previa ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(o.previa)}</div>` : ''}
@@ -67,8 +81,8 @@ ${o.previa ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">$
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
 <tr><td style="background:${C.pri};border-radius:20px 20px 0 0;padding:20px 26px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td style="font-size:19px;font-weight:700;color:#ffffff">planê<span style="color:#f1c9b6">.apê</span></td>
-    <td align="right" style="font-size:12px;color:#dfe6ea">${o.dona ? 'aviso da loja' : 'organize o seu apê'}</td>
+    <td style="font-size:19px;font-weight:700;color:#ffffff">planê<span style="color:#f1c9b6"> ${m.sufixo}</span></td>
+    <td align="right" style="font-size:12px;color:#dfe6ea">${o.dona ? 'aviso da loja' : m.slogan}</td>
   </tr></table>
 </td></tr>
 <tr><td style="background:#ffffff;border-radius:0 0 20px 20px;padding:28px 26px 24px">
@@ -77,13 +91,13 @@ ${o.previa ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">$
   <div style="font-size:14px;line-height:1.65;color:${C.txt}">${o.corpo}</div>
   ${o.botao ? `<div style="padding-top:20px">${botao(o.botao[0], o.botao[1])}</div>` : ''}
   ${o.botao2 ? `<div style="padding-top:10px">${botao(o.botao2[0], o.botao2[1], 'sec')}</div>` : ''}
-  ${o.ajuda === false ? '' : ajuda(o.ajuda || 'Oi! Preciso de ajuda com o planê.apê')}
+  ${o.ajuda === false ? '' : ajuda(o.ajuda || `Oi! Preciso de ajuda com o ${m.nome}`)}
 </td></tr>
 <tr><td align="center" style="padding:18px 10px 6px;font-size:12px;color:${C.mut};line-height:1.7">
   <a href="${ape}#conta" style="color:${C.pri};text-decoration:none;font-weight:600">minha conta</a> &nbsp;·&nbsp;
   <a href="${ape}#loja" style="color:${C.pri};text-decoration:none;font-weight:600">loja</a> &nbsp;·&nbsp;
   <a href="https://wa.me/${WHATS}" style="color:${C.pri};text-decoration:none;font-weight:600">WhatsApp</a><br>
-  planê.apê · useplane.com.br/ape<br>
+  ${m.nome} · useplane.com.br/${m.path === 'ape' ? 'apzinho' : m.path}<br>
   <span style="font-size:11px">Materiais de uso pessoal e intransferível: proibida a reprodução, distribuição ou revenda.</span>
 </td></tr>
 </table></td></tr></table></body></html>`

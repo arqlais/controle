@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { novosEnvios } from './api'
 
-/** Quantos orçamentos de moradores chegaram e a dona ainda não viu (aviso no menu "planê.apê"). */
+/** Quantos orçamentos de moradores chegaram e a dona ainda não viu (aviso no menu "planê apzinho"). */
 export function useApeNovos(enabled: boolean) {
   const [n, setN] = useState(0)
   useEffect(() => {

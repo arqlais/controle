@@ -147,7 +147,7 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
     }
   }, [token, demo])
   useEffect(() => {
-    document.title = 'Planê.apê · plataforma do apê'
+    document.title = 'Planê apzinho · plataforma do apê'
     if (demo) {
       setAcc({ nome: 'Exemplo', validade: '2027-11-07', ativo: true, cortesia: false, dados: DEMO, atualizado: '' })
       setDados(read<PlatDados>('ape-plat-demo') || DEMO)
@@ -227,9 +227,9 @@ export function Plataforma({ token, whats }: { token: string; whats: string }) {
   return (
     <div className={`ape ape-shell app ape-cli ${menu ? 'menu-open' : ''}`} data-tema={tema}>
       <aside className="sidebar">
-        <a className="platform-mark" href={href('ape', 'loja')} aria-label="planê.apê">
+        <a className="platform-mark" href={href('ape', 'loja')} aria-label="planê apzinho">
           <span className="ape-cli-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
-          <span>planê<b className="ape-cli-mark-b">.apê</b></span>
+          <span>planê<b className="ape-cli-mark-b"> apzinho</b></span>
         </a>
         <a className="brand ape-adm-brand" href="#" onClick={(e) => { e.preventDefault(); setEditar(true) }} title="Minha casa: foto e dados do imóvel">
           <span className="brand-photo ape-adm-foto">
@@ -404,7 +404,7 @@ type Mudar<T> = (fn: (l: T[]) => T[]) => void
 
 const FASE: Record<string, string> = { comprando: 'comprando', planta: 'comprei na planta', pronto: 'comprei pronto', obra: 'em obra', morando: 'morando' }
 
-/* ---------- gráficos simples (SVG, nas cores do planê.apê) ---------- */
+/* ---------- gráficos simples (SVG, nas cores do planê apzinho) ---------- */
 function Rosca({ partes, centro, sub }: { partes: { v: number; c: string; l: string }[]; centro: string; sub: string }) {
   const tot = partes.reduce((t, p) => t + p.v, 0) || 1
   const R = 42, C = 2 * Math.PI * R
@@ -768,7 +768,7 @@ function Vistoria({ lista, nome, mudar }: { lista: PlatVistoria[]; nome: string;
         </ol>
         <p>Peço a correção dos itens acima antes do recebimento definitivo do imóvel.</p>
         <p>Assinatura: ______________________________</p>
-        <p className="ape-print-sign">planê.apê · useplane.com.br/ape · {APE.instagram}</p>
+        <p className="ape-print-sign">planê apzinho · useplane.com.br/ape · {APE.instagram}</p>
       </div>
     </section>
   )

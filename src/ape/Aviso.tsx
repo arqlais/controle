@@ -1,4 +1,4 @@
-// planê.apê: lembrete de que os dados são lidos automaticamente e podem ter erro (sempre conferir no original).
+// planê apzinho: lembrete de que os dados são lidos automaticamente e podem ter erro (sempre conferir no original).
 import { ApeIcon } from './ApeIcon'
 
 export function AvisoLeitura({ curto }: { curto?: boolean }) {

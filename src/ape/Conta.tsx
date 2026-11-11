@@ -4,7 +4,7 @@ import { contaApi, guardarNome, guardarSessao, sessaoLocal, apeCloud, type Minha
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import { APE, brl, dmy, firstName, fmtTel, wa } from './model'
-import { emailOk } from './shared'
+import { emailOk, lojaRota } from './shared'
 
 /* Minha conta (quem comprou na loja): entra com e-mail e senha e encontra as compras, os arquivos,
    a plataforma do apê, o bônus, o perfil e o espaço para sugestões e depoimentos. */
@@ -172,7 +172,7 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
     return (
       <section className="ape-panel ape-empty">
         <b>nenhuma compra com este e-mail</b>
-        <a className="ape-btn primary" href={href('ape', 'loja')}>ir para a loja</a>
+        <a className="ape-btn primary" href={href(lojaRota(), 'loja')}>ir para a loja</a>
       </section>
     )
   return (
@@ -198,7 +198,7 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
                 : <div className="ape-bonus-mini"><ApeIcon name="lock" /><span><b>bônus surpresa</b><small>trancado · abre em {Math.max(1, Math.ceil((bonus.getTime() - Date.now()) / 864e5))} dia(s), {dmy(bonus.toISOString())}</small></span></div>)}
               {c?.status === 'negado' && <p className="ape-note" style={{ margin: 0 }}>Cancelamento não aprovado{c.resposta ? `: ${c.resposta}` : ''}.</p>}
               <div className="ape-acts">
-                {p.status === 'pago' && <a className="ape-btn primary sm" href={href('ape', `pedido:${p.token}`)}><ApeIcon name="download" />abrir arquivos</a>}
+                {p.status === 'pago' && <a className="ape-btn primary sm" href={href(lojaRota(), `pedido:${p.token}`)}><ApeIcon name="download" />abrir arquivos</a>}
                 {p.status === 'pago' && !p.cortesia && c?.status !== 'pedido' && cancelar !== p.id && <details className="ape-compra-mais"><summary>precisa de ajuda com esta compra?</summary><p className="ape-note">Fale com a gente no WhatsApp ou, se quiser desistir (até 7 dias depois da compra), <button type="button" className="ape-linkish ape-link" onClick={() => setCancelar(p.id)}>peça o cancelamento</button>.</p></details>}
               </div>
               {cancelar === p.id && (
@@ -215,7 +215,7 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
           )
         })}
       </div>
-      <p className="ape-note" style={{ margin: 0 }}>Dúvidas? <a className="ape-link" href={wa(whats, 'Oi! Tenho uma dúvida sobre a minha compra no planê.apê.')} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
+      <p className="ape-note" style={{ margin: 0 }}>Dúvidas? <a className="ape-link" href={wa(whats, 'Oi! Tenho uma dúvida sobre a minha compra no planê apzinho.')} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
     </section>
   )
 }

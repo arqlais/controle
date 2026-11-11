@@ -71,6 +71,8 @@ function set(r: Route, writeHash: boolean, fromBack = false) {
 }
 
 export const go = (page: string, id?: string) => set({ page, id }, true)
+/** Tela aberta agora (sem precisar de hook). */
+export const currentRoute = () => current
 /** Setinha de voltar: volta para a tela anterior (ou para a lista, se abriu direto num item). */
 // tela com alterações não salvas pode pedir confirmação antes de sair pela setinha
 let leaveGuard: null | (() => Promise<boolean>) = null

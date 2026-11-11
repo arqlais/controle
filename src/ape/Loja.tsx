@@ -3,10 +3,10 @@ import { href } from '../router'
 import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, JUROS_PCT, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
-import { Recolhe, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
+import { APE, BONUS, JUROS_PCT, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
+import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
-/* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
+/* Loja do planê apzinho: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
 
 type ById = (id: string) => Produto | undefined
 const COR: Record<string, string> = { azul: '#4e6472', rosa: '#a86b78', roxa: '#6e5f86', verde: '#5f7566' }
@@ -23,7 +23,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   PIX = pixPct
   PRODUTOS_LOJA = produtos
   { const com = produtos.filter((p) => p.ativo && p.selo); const um = com.find((p) => /mais vendido/i.test(p.selo || '')) || com[0]; SELO_OK = new Set(um ? [um.id] : []) }
-  const ativos = produtos.filter((p) => p.ativo)
+  const ativos = produtos.filter((p) => p.ativo && frenteDe(p) === 'apzinho')
   const [aberto, setAberto] = useState<Produto | null>(() => ativos.find((p) => p.id === abrir) || null)
   const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
   const cart = useCarrinho()
@@ -88,7 +88,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           <h2>do contrato às chaves, <em>sem susto</em></h2>
           <p className="ape-lead">Guias, checklists e planilhas para cada etapa: comprar, receber as chaves, fazer a obra, mudar e decorar.</p>
           <div className="ape-acts">
-            <a className="ape-btn primary" href={href('ape', 'loja:arquivos')}><ApeIcon name="bag" />ver os arquivos</a>
+            <a className="ape-btn primary" href={href(lojaRota(), 'loja:arquivos')}><ApeIcon name="bag" />ver os arquivos</a>
           </div>
           <div className="ape-trust">
             <span><ApeIcon name="tag" /><span className="ape-keep">{pixPct}% off no Pix</span></span>
@@ -127,7 +127,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
                 const lista = arquivos.filter((p) => (p.fase || 'comprei') === f.id)
                 if (!lista.length) return null
                 return (
-                  <a key={f.id} href={href('ape', `loja:arquivos-${f.id}`)}>
+                  <a key={f.id} href={href(lojaRota(), `loja:arquivos-${f.id}`)}>
                     <ApeArt name={f.arte} size={30} />
                     <span><b>{f.chip}</b><small>{lista.length} arquivos</small></span>
                     <ApeIcon name="chev" />
@@ -135,14 +135,14 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
                 )
               })}
               {kits.length > 0 && (
-                <a className="kit" href={href('ape', 'loja:arquivos-kits')}>
+                <a className="kit" href={href(lojaRota(), 'loja:arquivos-kits')}>
                   <ApeArt name="casa" size={30} tone="sec" />
                   <span><b>kits</b><small>até {Math.max(0, ...kits.map((k) => k.kitPct || 0))}% off</small></span>
                   <ApeIcon name="chev" />
                 </a>
               )}
             </div>
-            <a className="ape-esc-todos" href={href('ape', 'loja:arquivos')}>ver todos os {arquivos.length} arquivos e kits<ApeIcon name="chev" /></a>
+            <a className="ape-esc-todos" href={href(lojaRota(), 'loja:arquivos')}>ver todos os {arquivos.length} arquivos e kits<ApeIcon name="chev" /></a>
           </div>
           {plat && (
             <button type="button" className="ape-esc plat" onClick={() => ir('loja-plataforma')}>
@@ -166,7 +166,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         return (
           <section className="ape-nicho ape-destaques" aria-label="Os mais procurados">
             <h3 className="ape-sec-t">os mais <em>queridos</em></h3>
-            <Fileira n={mix.length} rotulo="arquivos" todos={{ href: href('ape', 'loja:arquivos'), l: `ver todos os ${arquivos.length} arquivos e kits` }}>
+            <Fileira n={mix.length} rotulo="arquivos" todos={{ href: href(lojaRota(), 'loja:arquivos'), l: `ver todos os ${arquivos.length} arquivos e kits` }}>
               {mix.map((p) => <ProdCard key={p.id} p={p} byId={byId} onOpen={() => setAberto(p)} cart={cart} onAdd={adicionar} me={me} whats={whats} />)}
             </Fileira>
           </section>
@@ -305,7 +305,7 @@ function Depoimentos() {
 
 /* ===== serviços: separado dos produtos digitais, sempre com proposta antes ===== */
 function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | null; foto?: string; foto2?: string }) {
-  const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria uma proposta de projeto/reforma para a minha casa/apê.`
+  const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê apzinho e queria uma proposta de projeto/reforma para a minha casa/apê.`
   const servicos: [string, string][] = [
     ['projeto de interiores', 'sofa'],
     ['marcenaria planejada', 'tool'],
@@ -526,7 +526,7 @@ function Catalogo({ fases, arquivos, kits, ini, byId, onOpen, cart, onAdd, me, w
   return (
     <div className="ape-catalogo">
       <section className="ape-cat-hero">
-        <a className="ape-cat-voltar" href={href('ape', 'loja')}><ApeIcon name="chev" />loja do apê</a>
+        <a className="ape-cat-voltar" href={href(lojaRota(), 'loja')}><ApeIcon name="chev" />loja do apê</a>
         <h2>todos os <em>arquivos</em></h2>
         <p>Guias, checklists e planilhas que eu fiz montando o meu apê. Escolha a sua etapa, espie as páginas em "ver por dentro" e leve só o que fizer sentido para você.</p>
       </section>
@@ -729,7 +729,7 @@ function kitSugerido(ids: string[], produtos: Produto[]) {
   return melhor
 }
 
-function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen }: { produtos: Produto[]; pixPct: number; cart: Carrinho; onClose: () => void; onOpen: (p: Produto) => void }) {
+export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen }: { produtos: Produto[]; pixPct: number; cart: Carrinho; onClose: () => void; onOpen: (p: Produto) => void }) {
   const t = conta(cart.ids, produtos, 'pix', pixPct)
   useEffect(() => {
     t.repetidos.forEach((id) => cart.remove(id)) // arquivo que já está num kit do carrinho sai sozinho
@@ -776,7 +776,7 @@ function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen }: { produtos: 
                 <dt>total</dt><dd className="num ape-keep">{brl(t.subtotal)}</dd>
                 <dt>no Pix (−{pixPct}%)</dt><dd className="num ape-keep"><b>{brl(t.totalPix)}</b></dd>
               </dl>
-              <a className="ape-btn primary" href={href('ape', 'checkout')} onClick={onClose}>
+              <a className="ape-btn primary" href={href(lojaRota(), 'checkout')} onClick={onClose}>
                 <ApeIcon name="shield" />
                 finalizar compra
               </a>
@@ -831,7 +831,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
       const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), cpf: digits(cpf), tel: digits(tel), email: email.trim().toLowerCase(), forma, parcelas: parc?.n || 1, aceite: true }, produtos, pixPct)
       cart.limpar()
       if (r.forma === 'cartao' && r.url) window.location.href = r.url
-      else window.location.hash = `#/ape/pedido:${r.token}`
+      else window.location.hash = `#/${lojaRota()}/pedido:${r.token}`
     } catch (x) {
       setErr(`Não deu para abrir o pagamento agora (${(x as Error).message}).`)
       setBusy(false)
@@ -844,7 +844,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
         <ApeIcon name="bag" size={26} />
         <b>seu carrinho está vazio</b>
         <span>Escolha arquivos ou um kit na loja.</span>
-        <a className="ape-btn primary" href={href('ape', 'loja')}>ir para a loja</a>
+        <a className="ape-btn primary" href={href(lojaRota(), 'loja')}>ir para a loja</a>
       </section>
     )
   const msgWhats = `Oi! Sou ${nome || 'uma pessoa interessada'}. Tentei comprar e deu erro:\n${t.itens.map((p) => `• ${p.nome} (${p.preco})`).join('\n')}\nTotal: ${brl(totalFinal)} no ${forma === 'cartao' ? (parc && parc.n > 1 ? `cartão em ${parc.n}x` : 'cartão') : 'Pix'}`
@@ -855,7 +855,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           <p className="ape-eyebrow"><ApeIcon name="shield" /> compra segura</p>
           <h2 className="ape-h2">finalizar <em>compra</em></h2>
         </div>
-        <a className="ape-btn ghost so-pc-ape" href={href('ape', 'loja')}>voltar para a loja</a>
+        <a className="ape-btn ghost so-pc-ape" href={href(lojaRota(), 'loja')}>voltar para a loja</a>
       </div>
       <form className="ape-co" onSubmit={submit} noValidate>
         <div className="ape-co-steps">
@@ -967,7 +967,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           </div>
           <ul className="ape-inc">
             <li><ApeIcon name="download" />baixa assim que o pagamento confirma</li>
-            <li><ApeIcon name="lock" />bônus surpresa no 8º dia</li>
+            {lojaRota() === 'ape' && <li><ApeIcon name="lock" />bônus surpresa no 8º dia</li>}
             <li><ApeIcon name="shield" />pagamento processado pelo Asaas</li>
           </ul>
         </aside>
@@ -999,9 +999,9 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
         <button className="ape-x" onClick={onClose} aria-label="Fechar"><ApeIcon name="x" /></button>
         <div className="ape-sheet-b">
           <h2 className="ape-h2">termos de uso e <em>privacidade</em></h2>
-          <p className="ape-note" style={{ margin: 0 }}>Versão de 7/11/2026 · loja planê.apê ({SITE_APE})</p>
+          <p className="ape-note" style={{ margin: 0 }}>Versão de 7/11/2026 · loja {lojaNome()} ({lojaRota() === 'ape' ? SITE_APE : `useplane.com.br/${lojaRota()}`})</p>
           <ol className="ape-termos">
-            <li><b>Quem vende.</b> {quem}, responsável pela loja planê.apê. Contato: {v?.email || 'equipe.plane@gmail.com'}, WhatsApp e Instagram {APE.instagram}.</li>
+            <li><b>Quem vende.</b> {quem}, responsável pela loja {lojaNome()}. Contato: {v?.email || 'equipe.plane@gmail.com'}, WhatsApp e Instagram {APE.instagram}.</li>
             <li><b>O que você compra.</b> Uma licença de uso pessoal, individual e intransferível de conteúdos digitais (PDFs e planilhas) e, se escolher, 12 meses de acesso à plataforma do apê. A compra não transfere a propriedade dos materiais.</li>
             <li><b>O que pode.</b> Usar os materiais para a sua casa, com quem mora com você, no celular, tablet ou computador, e imprimir para uso próprio.</li>
             <li><b>O que não pode.</b> Copiar, compartilhar, enviar em grupos, publicar, distribuir, revender, alugar ou usar com clientes, no todo ou em parte, sem autorização por escrito. Os materiais são protegidos pela Lei de Direitos Autorais (Lei 9.610/98).</li>
@@ -1009,7 +1009,7 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>Conteúdo informativo.</b> Os materiais são guias práticos e não substituem a orientação de profissionais habilitados, do seu banco, da construtora ou do contrato. Regras de financiamento e seguro variam conforme o banco, o programa e o contrato.</li>
             <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: Pix com {pixPct}% de desconto ou cartão de crédito à vista (sem juros) ou parcelado em até 12x com juros informados antes de pagar. O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
             <li><b>Entrega e conta.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma; você também recebe o link por e-mail. Com o e-mail da compra você cria uma senha em minha conta e acessa tudo de qualquer aparelho. Guarde a senha e não a compartilhe.</li>
-            <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus surpresa gratuito (um arquivo extra, revelado quando é liberado). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>
+            {lojaRota() === 'ape' && <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus surpresa gratuito (um arquivo extra, revelado quando é liberado). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>}
             <li><b>Direito de arrependimento e cancelamento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor). Peça em minha conta → minhas compras (ou pelo WhatsApp ou e-mail). Dentro dos 7 dias o pedido é sempre aprovado e devolvemos o valor integral, pelo mesmo meio de pagamento. Depois desse prazo, o pedido é analisado caso a caso. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>
             <li><b>Problemas.</b> Arquivo com defeito ou que não abre: corrigimos, trocamos ou devolvemos o valor, como prevê o Código de Defesa do Consumidor.</li>
             <li><b>Plataforma do apê.</b> O acesso dura 12 meses a partir da liberação (ou 1 mês no presente do kit completo), por um link pessoal que funciona como chave: guarde-o e não compartilhe. Os dados que você registra são seus; depois do prazo, a plataforma fica só para consulta.</li>
@@ -1028,7 +1028,7 @@ function Vendedor({ v, whats }: { v?: Vendedor; whats: string }) {
   const [termos, setTermos] = useState(false)
   return (
     <p className="ape-note ape-vendedor">
-      Dúvidas: <a className="ape-link" href={wa(whats, 'Oi! Tenho uma dúvida sobre a loja do planê.apê.')} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+      Dúvidas: <a className="ape-link" href={wa(whats, `Oi! Tenho uma dúvida sobre a loja do ${lojaNome()}.`)} target="_blank" rel="noopener noreferrer">WhatsApp</a>
       {v?.email && <> · <a className="ape-link" href={`mailto:${v.email}`}>{v.email}</a></>}
       {' · '}
       <button className="ape-linkish ape-link" onClick={() => setTermos(true)}>termos de uso e privacidade</button>
@@ -1071,8 +1071,8 @@ function MinhasCompras({ nome }: { nome?: string }) {
           <small>{l.length ? `${l.length} ${l.length > 1 ? 'compras' : 'compra'} neste aparelho` : logado ? 'tudo o que você comprou fica na sua conta' : 'entre para baixar de novo os seus arquivos'}</small>
         </span>
         <span className="a">
-          {ultimo && <a className="ape-btn sm" href={href('ape', `pedido:${ultimo.token}`)}><ApeIcon name="download" />última compra</a>}
-          <a className="ape-btn primary sm" href={href('ape', 'conta')}>{logado ? 'minha conta' : 'entrar'}</a>
+          {ultimo && <a className="ape-btn sm" href={href(lojaRota(), `pedido:${ultimo.token}`)}><ApeIcon name="download" />última compra</a>}
+          <a className="ape-btn primary sm" href={href(lojaRota(), 'conta')}>{logado ? 'minha conta' : 'entrar'}</a>
           {!logado && <button className="ape-btn ghost sm" onClick={() => setAbrir(!abrir)}>{abrir ? 'fechar' : 'buscar pelo CPF'}</button>}
         </span>
       </div>
@@ -1128,7 +1128,7 @@ function CriarAcesso({ p, token, onPronto }: { p: Pedido; token: string; onPront
       <ul className="ape-acesso-l">
         <li><ApeIcon name="download" />seus arquivos, com o seu nome no rodapé</li>
         {p.plataforma && <li><ApeIcon name="phone" />a plataforma do apê, por 12 meses</li>}
-        <li><ApeIcon name="lock" />o bônus surpresa, que abre no 8º dia</li>
+        {lojaRota() === 'ape' && <li><ApeIcon name="lock" />o bônus surpresa, que abre no 8º dia</li>}
         <li><ApeIcon name="user" />tudo em um lugar, de qualquer aparelho</li>
       </ul>
     </section>
@@ -1177,8 +1177,8 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
         <b>pedido não encontrado</b>
         <span>Confira o link ou procure em "minhas compras" com o CPF e o e-mail.</span>
         <div className="ape-acts" style={{ justifyContent: 'center' }}>
-          <a className="ape-btn" href={href('ape', 'loja')}>ir para a loja</a>
-          <a className="ape-btn" href={wa(whats, `Oi! Fiz uma compra na loja do planê.apê e não estou achando o meu pedido (${token.slice(0, 8)}).`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />WhatsApp</a>
+          <a className="ape-btn" href={href(lojaRota(), 'loja')}>ir para a loja</a>
+          <a className="ape-btn" href={wa(whats, `Oi! Fiz uma compra na loja do ${lojaNome()} e não estou achando o meu pedido (${token.slice(0, 8)}).`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />WhatsApp</a>
         </div>
       </section>
     )
@@ -1187,7 +1187,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
       <section className="ape-panel ape-empty">
         <b>{p.status === 'reembolsado' ? 'pedido reembolsado' : 'pedido cancelado'}</b>
         <span>{p.status === 'reembolsado' ? 'O valor foi devolvido e a licença foi cancelada.' : 'Este pedido não foi pago. Você pode fazer um novo quando quiser.'}</span>
-        <a className="ape-btn primary" href={href('ape', 'loja')}>ir para a loja</a>
+        <a className="ape-btn primary" href={href(lojaRota(), 'loja')}>ir para a loja</a>
       </section>
     )
   if (p.status !== 'pago')
@@ -1286,7 +1286,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
         )
       )}
       {err && <p className="ape-err" role="alert">{err}</p>}
-      {p.bonus && (p.bonus.liberado ? (
+      {p.bonus && lojaRota() === 'ape' && (p.bonus.liberado ? (
         <div className="ape-bonus2 on">
           <span className="ic"><ApeIcon name="unlock" /></span>
           <span className="t"><small>bônus liberado</small><b>{BONUS.nome}</b><span>Ele está na lista de arquivos acima. Aproveite!</span></span>
@@ -1297,7 +1297,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
           <span className="t"><small>bônus surpresa · trancado</small><b>abre em {p.bonus.em ? Math.max(1, Math.ceil((new Date(p.bonus.em).getTime() - Date.now()) / 864e5)) : 7} dia(s)</b><span>Um arquivo que não está à venda, pensado para quem acabou de pegar as chaves. Volte aqui {p.bonus.em ? `em ${dmy(p.bonus.em)}` : 'no 8º dia'} para abrir.</span></span>
         </div>
       ))}
-      <p className="ape-note" style={{ margin: 0 }}>Tudo também fica em <a className="ape-link" href={href('ape', 'conta')}>minha conta</a>, de qualquer aparelho. Precisa de ajuda? <a className="ape-link" href={wa(whats, `Oi! Sobre o pedido ${token.slice(0, 8)}:`)} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
+      <p className="ape-note" style={{ margin: 0 }}>Tudo também fica em <a className="ape-link" href={href(lojaRota(), 'conta')}>minha conta</a>, de qualquer aparelho. Precisa de ajuda? <a className="ape-link" href={wa(whats, `Oi! Sobre o pedido ${token.slice(0, 8)}:`)} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
     </section>
   )
 }

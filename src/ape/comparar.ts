@@ -1,4 +1,4 @@
-/* planê.apê: comparação de orçamentos além do preço — escopo, materiais, quantidades, prazos, pagamento,
+/* planê apzinho: comparação de orçamentos além do preço — escopo, materiais, quantidades, prazos, pagamento,
    garantia, o que falta em cada um, divergências e custos que podem aparecer depois.
    Também tem a leitura "sem IA" (regras simples) usada quando a leitura automática não está disponível. */
 

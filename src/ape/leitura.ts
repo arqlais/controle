@@ -1,4 +1,4 @@
-// planê.apê: leitura do orçamento DEPOIS de enviado. Primeiro sem IA (texto do PDF e texto da imagem, no próprio
+// planê apzinho: leitura do orçamento DEPOIS de enviado. Primeiro sem IA (texto do PDF e texto da imagem, no próprio
 // aparelho), depois a IA do servidor completa o que faltar. Só preenche o que está vazio: nada que a pessoa escreveu muda.
 import { lerArquivo, meuOrcamento } from './api'
 import { lerTexto, nichoDoTexto } from './comparar'

@@ -1,4 +1,4 @@
-/* Ícones do planê.apê (traço fino, mesma linguagem dos ícones do planê). Conteúdo fixo, sem nada vindo de fora. */
+/* Ícones do planê apzinho (traço fino, mesma linguagem dos ícones do planê). Conteúdo fixo, sem nada vindo de fora. */
 const P: Record<string, string> = {
   floor: '<path d="M3 17l9 4 9-4M3 12l9 4 9-4M12 3L3 7.5l9 4 9-4z"/>',
   tile: '<rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1"/><rect x="13" y="13" width="7.5" height="7.5" rx="1"/>',

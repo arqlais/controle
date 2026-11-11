@@ -22,6 +22,8 @@ const ProposalPublic = lazy(() => import('./ProposalPublic').then((m) => ({ defa
 const ContractSignPublic = lazy(() => import('./ContractSignPublic').then((m) => ({ default: m.ContractSignPublic })))
 const ContractDataPublic = lazy(() => import('./ContractDataPublic').then((m) => ({ default: m.ContractDataPublic })))
 const ApePublic = lazy(() => import('../ape/ApePublic').then((m) => ({ default: m.ApePublic })))
+const Hub = lazy(() => import('../frentes/Hub').then((m) => ({ default: m.Hub })))
+const Vitrine = lazy(() => import('../frentes/Vitrine').then((m) => ({ default: m.Vitrine })))
 const StudioPagePublic = lazy(() => import('./StudioPagePublic').then((m) => ({ default: m.StudioPagePublic })))
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
@@ -49,8 +51,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (route.page === 'pagina' && route.id) return <Suspense fallback={wait}><StudioPagePublic code={route.id} /></Suspense>
   // dados para o contrato: o cliente preenche empresa, dados pessoais, sócios e quem assina
   if (route.page === 'dados' && route.id) return <Suspense fallback={wait}><ContractDataPublic id={route.id} /></Suspense>
-  // planê.apê: orçamentos dos futuros moradores (página pública, sem login)
+  // planê apzinho: orçamentos dos futuros moradores (página pública, sem login)
   if (route.page === 'ape') return <Suspense fallback={wait}><ApePublic sub={route.id} /></Suspense>
+  // as três frentes da planê: página principal e vitrines de arquivos (src/frentes, plano em docs/FRENTES.md)
+  if (route.page === 'plane') return <Suspense fallback={wait}><Hub /></Suspense>
+  if (route.page === 'arquivos' || route.page === 'arq') return <Suspense fallback={wait}><Vitrine id={route.page} sub={route.id} /></Suspense>
   // painel do afiliado (link secreto)
   if (route.page === 'parceiro' && route.id) return <Suspense fallback={wait}><AffiliatePanel token={route.id} /></Suspense>
   return <Gate>{children}</Gate>
@@ -113,6 +118,8 @@ function PublicScreens({ onEnter, onSignup }: { onEnter?: () => void; onSignup?:
       </AuthLayout>
     )
   if (route.page === 'entrar') return <Login onEnter={onEnter} />
+  // quem nunca entrou neste aparelho e abriu o endereço principal: a página da planê, com as três frentes
+  if (route.page === 'inicio' && !lastBrand() && CLOUD) return <Suspense fallback={<div className="loading-screen" />}><Hub /></Suspense>
   if (route.page === 'vendas' || !lastBrand() || !CLOUD) return <Suspense fallback={<div className="loading-screen" />}><Landing /></Suspense>
   return <Login onEnter={onEnter} />
 }

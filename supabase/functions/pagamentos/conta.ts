@@ -1,6 +1,6 @@
-// planê.apê: conta do cliente (e-mail e senha), e-mails da loja (Brevo), pedido de cancelamento e depoimentos.
+// planê apzinho: conta do cliente (e-mail e senha), e-mails da loja (Brevo), pedido de cancelamento e depoimentos.
 import type { Deps } from './ape.ts'
-import { botao, brl, caixa, moldura, numPedido, passos, primeiro, resumoPedido } from './emails.ts'
+import { botao, brl, caixa, marcaDe, moldura, numPedido, passos, primeiro, resumoPedido } from './emails.ts'
 
 type J = Record<string, any>
 const mailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)
@@ -34,13 +34,13 @@ export function makeConta({ db, json, site, env }: Deps, reembolsarPedido: (id: 
 
   /* ===== e-mail (Brevo, a mesma conta dos avisos do planê) ===== */
   const PAINEL = `${site.replace(/\/$/, '')}/#/ape-admin`
-  async function mandar(para: string, nome: string, assunto: string, html: string) {
+  async function mandar(para: string, nome: string, assunto: string, html: string, remetente = 'planê apzinho') {
     const key = env('BREVO_API_KEY')
     if (!key || !mailOk(para)) return false
     const r = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ sender: { email: env('SENDER_EMAIL', 'equipe.plane@gmail.com'), name: 'planê.apê' }, replyTo: { email: DONO, name: 'planê.apê' }, to: [{ email: para, name: nome || undefined }], subject: assunto, htmlContent: html }),
+      body: JSON.stringify({ sender: { email: env('SENDER_EMAIL', 'equipe.plane@gmail.com'), name: remetente }, replyTo: { email: DONO, name: remetente }, to: [{ email: para, name: nome || undefined }], subject: assunto, htmlContent: html }),
     }).catch(() => null)
     return !!r?.ok
   }
@@ -48,8 +48,9 @@ export function makeConta({ db, json, site, env }: Deps, reembolsarPedido: (id: 
   /** E-mail da compra: resumo do pedido, passo a passo para criar o acesso e o que vem depois (uma vez por pedido). */
   async function emailCompra(ped: J) {
     if (!ped?.email || ped.email_enviado) return
-    const link = `${APE}#pedido:${ped.token}`
     const itens = (ped.itens ?? []) as J[]
+    const m = marcaDe(itens)
+    const link = `${site.replace(/\/$/, '')}/${m.path}/#pedido:${ped.token}`
     const temPlat = itens.some((i) => i.id === 'plataforma')
     const temArq = itens.some((i) => i.id !== 'plataforma')
     const html = moldura({
@@ -66,27 +67,30 @@ ${passos([
 <div style="padding:8px 0 2px">${botao('criar meu acesso', link)}</div>
 ${resumoPedido(ped)}
 ${temPlat ? caixa('<b>Plataforma do apê</b>: vale por 12 meses a partir de hoje. Ela fica em <b>minha conta → minha plataforma</b> e funciona no celular e no computador. Dica: no celular, use "adicionar à tela de início" para abrir como um aplicativo.') : ''}
-${temArq ? caixa('<b>Tem um brinde surpresa a caminho.</b> Um arquivo exclusivo, que não tem à venda na loja, chega de presente em minha conta uma semana depois da compra. A gente te avisa por e-mail.', 'sec') : ''}
+${temArq && m.id === 'apzinho' ? caixa('<b>Tem um brinde surpresa a caminho.</b> Um arquivo exclusivo, que não tem à venda na loja, chega de presente em minha conta uma semana depois da compra. A gente te avisa por e-mail.', 'sec') : ''}
 <p style="margin:14px 0 0;font-size:12px;color:#8a817a">Depois do primeiro acesso, entre sempre por <b>minha conta</b>, de qualquer aparelho, com o seu e-mail e senha. Você tem 7 dias de direito de arrependimento, também em minha conta.</p>`,
       botao2: ['criar meu acesso', link],
-      ajuda: `Oi! Fiz o pedido nº ${numPedido(ped)} no planê.apê e preciso de ajuda`,
+      ajuda: `Oi! Fiz o pedido nº ${numPedido(ped)} no ${m.nome} e preciso de ajuda`,
+      marca: m,
     })
-    const ok = await mandar(ped.email, ped.nome, `Pagamento confirmado: crie o seu acesso (pedido nº ${numPedido(ped)})`, html)
+    const ok = await mandar(ped.email, ped.nome, `Pagamento confirmado: crie o seu acesso (pedido nº ${numPedido(ped)})`, html, m.nome)
     if (ok) await db.from('ape_pedidos').update({ email_enviado: true }).eq('id', ped.id)
   }
 
   /** Lembrete único para quem gerou o Pix e não pagou (entre 1 hora e 3 dias depois). */
   async function emailLembretePix(ped: J) {
+    const m = marcaDe(ped.itens ?? [])
     const html = moldura({
       site,
       previa: 'O seu pedido ainda está esperando o pagamento.',
       kicker: 'seu pedido está guardado',
       titulo: `${primeiro(ped.nome)}, faltou só o pagamento`,
       corpo: `<p style="margin:0">O seu carrinho ficou guardado. Se ainda quiser, é só tocar no botão abaixo: lá aparece o Pix (copia e cola ou QR Code) ou dá para pagar no cartão.</p>${resumoPedido(ped, 'o que ficou no carrinho')}<p style="margin:0;font-size:12px;color:#8a817a">Se já pagou, pode ignorar este e-mail: a confirmação chega em seguida. Se desistiu, tudo bem, não vamos insistir.</p>`,
-      botao: ['concluir o pagamento', `${APE}#pedido:${ped.token}`],
-      ajuda: 'Oi! Tive uma dúvida para pagar o meu pedido no planê.apê',
+      botao: ['concluir o pagamento', `${site.replace(/\/$/, '')}/${m.path}/#pedido:${ped.token}`],
+      ajuda: `Oi! Tive uma dúvida para pagar o meu pedido no ${m.nome}`,
+      marca: m,
     })
-    return await mandar(ped.email, ped.nome, 'Seu pedido no planê.apê está esperando o pagamento', html)
+    return await mandar(ped.email, ped.nome, `Seu pedido no ${m.nome} está esperando o pagamento`, html, m.nome)
   }
 
   /** Aviso do bônus liberado (8º dia depois da compra). */
@@ -98,9 +102,9 @@ ${temArq ? caixa('<b>Tem um brinde surpresa a caminho.</b> Um arquivo exclusivo,
       titulo: 'O seu bônus surpresa abriu!',
       corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! Passou uma semana desde a sua compra e o presente chegou: o <b>Calendário de manutenção e garantias do 1º ano</b>.</p>${caixa('O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item (portas, janelas, pintura, elétrica, hidráulica, impermeabilização). Ótimo para não perder nenhum prazo com a construtora.')}<p style="margin:0">Ele já está em <b>minha conta</b>, junto com os seus arquivos, com o seu nome no rodapé.</p>`,
       botao: ['abrir o meu bônus', `${APE}#conta`],
-      ajuda: 'Oi! Tenho uma dúvida sobre o bônus do planê.apê',
+      ajuda: 'Oi! Tenho uma dúvida sobre o bônus do planê apzinho',
     })
-    return await mandar(ped.email, ped.nome, 'O seu bônus surpresa do planê.apê abriu', html)
+    return await mandar(ped.email, ped.nome, 'O seu bônus surpresa do planê apzinho abriu', html)
   }
 
   /** Boas-vindas para quem se cadastra na área dos moradores. */
@@ -120,7 +124,7 @@ ${passos(sl ? [
       botao: [sl ? 'abrir a área dos moradores' : 'abrir a loja', sl ? APE : `${APE}#loja`],
       botao2: sl ? ['ver a loja de arquivos', `${APE}#loja`] : undefined,
     })
-    return await mandar(email, nome, sl ? 'Bem-vindo(a) à área dos moradores do San Levi' : 'Bem-vindo(a) ao planê.apê', html)
+    return await mandar(email, nome, sl ? 'Bem-vindo(a) à área dos moradores do San Levi' : 'Bem-vindo(a) ao planê apzinho', html)
   }
 
   /* ===== sessão ===== */
@@ -196,7 +200,7 @@ ${passos(sl ? [
       if (!temConta && !(await temCompra(email))) return json({ ok: true }) // não diz se o e-mail existe
       const codigo = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0')
       await db.from('ape_codigos').upsert({ email, codigo: await sha(`${email}:${codigo}`), tentativas: 0, expira: new Date(Date.now() + 30 * 60e3).toISOString() })
-      const enviado = await mandar(email, '', `Seu código do planê.apê: ${codigo}`, moldura({ site, previa: `Código: ${codigo}`, kicker: op === 'primeiro' ? 'criar senha' : 'trocar senha', titulo: 'Seu código de acesso', corpo: `<p style="margin:0">Use este código para ${op === 'primeiro' ? 'criar' : 'trocar'} a sua senha. Ele vale por 30 minutos.</p>${caixa(`<div style="font-size:34px;font-weight:700;letter-spacing:10px;text-align:center;color:#4e6472">${codigo}</div>`)}<p style="margin:0;font-size:12px;color:#8a817a">Se não foi você, ignore este e-mail: ninguém entra sem este código.</p>` }))
+      const enviado = await mandar(email, '', `Seu código do planê apzinho: ${codigo}`, moldura({ site, previa: `Código: ${codigo}`, kicker: op === 'primeiro' ? 'criar senha' : 'trocar senha', titulo: 'Seu código de acesso', corpo: `<p style="margin:0">Use este código para ${op === 'primeiro' ? 'criar' : 'trocar'} a sua senha. Ele vale por 30 minutos.</p>${caixa(`<div style="font-size:34px;font-weight:700;letter-spacing:10px;text-align:center;color:#4e6472">${codigo}</div>`)}<p style="margin:0;font-size:12px;color:#8a817a">Se não foi você, ignore este e-mail: ninguém entra sem este código.</p>` }))
       return json({ ok: true, enviado })
     }
 
@@ -290,7 +294,7 @@ ${passos(sl ? [
     const r = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ sender: { email: remetente, name: 'planê.apê' }, to: [{ email: DONO }], subject: 'Teste de e-mail do planê.apê', htmlContent: moldura({ site, dona: true, ajuda: false, kicker: 'teste', titulo: 'Os e-mails estão funcionando', corpo: '<p style="margin:0">Se você está lendo isto, os e-mails do planê.apê estão saindo: compra, venda confirmada, lembrete do Pix, bônus liberado, boas-vindas, cancelamento e reembolso.</p>' }) }),
+      body: JSON.stringify({ sender: { email: remetente, name: 'planê apzinho' }, to: [{ email: DONO }], subject: 'Teste de e-mail do planê apzinho', htmlContent: moldura({ site, dona: true, ajuda: false, kicker: 'teste', titulo: 'Os e-mails estão funcionando', corpo: '<p style="margin:0">Se você está lendo isto, os e-mails do planê apzinho estão saindo: compra, venda confirmada, lembrete do Pix, bônus liberado, boas-vindas, cancelamento e reembolso.</p>' }) }),
     }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response)
     const texto = await r.text().catch(() => '')
     return json({ ok: r.ok, status: r.status, para: DONO, remetente, detalhe: texto.slice(0, 400) })
@@ -300,7 +304,7 @@ ${passos(sl ? [
   async function emailReembolso(ped: J) {
     if (!ped?.email || ped.cortesia) return false
     const v = `R$ ${Number(ped.total).toFixed(2).replace('.', ',')}`
-    return await mandar(ped.email, ped.nome, `Reembolso feito: ${v} (pedido nº ${numPedido(ped)})`, moldura({ site, previa: `O reembolso de ${v} foi feito.`, kicker: 'reembolso', titulo: 'O seu reembolso foi feito', corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! Devolvemos <b>${v}</b> referente à sua compra no planê.apê.</p>${caixa(ped.forma === 'cartao' ? '<b>Cartão de crédito:</b> o valor aparece como crédito na fatura em até 2 faturas, conforme o seu banco. Se a compra foi parcelada, todas as parcelas são canceladas.' : '<b>Pix:</b> o valor volta para a conta que fez o pagamento, normalmente na hora (pode levar até 1 dia útil).')}${resumoPedido(ped, 'pedido reembolsado')}<p style="margin:0">Os links de download e o acesso à plataforma deste pedido foram desativados. Pedimos que apague os arquivos baixados. Obrigada por ter conhecido o planê.apê.</p>`, ajuda: `Oi! Tenho uma dúvida sobre o reembolso do pedido nº ${numPedido(ped)}` }))
+    return await mandar(ped.email, ped.nome, `Reembolso feito: ${v} (pedido nº ${numPedido(ped)})`, moldura({ site, previa: `O reembolso de ${v} foi feito.`, kicker: 'reembolso', titulo: 'O seu reembolso foi feito', corpo: `<p style="margin:0">Oi, ${primeiro(ped.nome)}! Devolvemos <b>${v}</b> referente à sua compra no planê apzinho.</p>${caixa(ped.forma === 'cartao' ? '<b>Cartão de crédito:</b> o valor aparece como crédito na fatura em até 2 faturas, conforme o seu banco. Se a compra foi parcelada, todas as parcelas são canceladas.' : '<b>Pix:</b> o valor volta para a conta que fez o pagamento, normalmente na hora (pode levar até 1 dia útil).')}${resumoPedido(ped, 'pedido reembolsado')}<p style="margin:0">Os links de download e o acesso à plataforma deste pedido foram desativados. Pedimos que apague os arquivos baixados. Obrigada por ter conhecido o planê apzinho.</p>`, ajuda: `Oi! Tenho uma dúvida sobre o reembolso do pedido nº ${numPedido(ped)}` }))
   }
 
   /** Aviso para a dona a cada venda confirmada. */
@@ -342,7 +346,7 @@ ${passos(sl ? [
     if (nova || !ultimo || agora - new Date(String(ultimo.criado)).getTime() > 15 * 60e3) {
       const quem = nome || String(conv!.nome || '') || 'visitante'
       const c = contato || String(conv!.contato || '')
-      await mandar(DONO, 'Laís', `Suporte planê.apê: ${ASSUNTOS[String(conv!.assunto)] || 'mensagem'} de ${quem}`, moldura({ site, dona: true, ajuda: false, previa: texto.slice(0, 90), kicker: `suporte · ${ORIGENS[String(conv!.origem)] || 'visitante'} · ${ASSUNTOS[String(conv!.assunto)] || ''}`, titulo: esc(quem),
+      await mandar(DONO, 'Laís', `Suporte planê apzinho: ${ASSUNTOS[String(conv!.assunto)] || 'mensagem'} de ${quem}`, moldura({ site, dona: true, ajuda: false, previa: texto.slice(0, 90), kicker: `suporte · ${ORIGENS[String(conv!.origem)] || 'visitante'} · ${ASSUNTOS[String(conv!.assunto)] || ''}`, titulo: esc(quem),
         corpo: `${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">${esc(c) || 'sem contato'}${conv!.pagina ? ` · página ${esc(String(conv!.pagina))}` : ''}</p><p>Responda pela caixa de mensagens do site ou do painel: a pessoa vê a resposta na hora.</p>`,
         botao: ['responder agora', 'https://useplane.com.br/#/ape-admin'] }))
     }
@@ -367,7 +371,7 @@ ${passos(sl ? [
     await db.from('ape_chat').insert({ conversa: conv.id, de: 'dona', texto })
     await db.from('ape_conversas').update({ atualizado: new Date().toISOString(), nao_lidas: 0 }).eq('id', conv.id)
     // se a pessoa deixou e-mail, a resposta chega lá também (caso ela tenha saído do site)
-    if (mailOk(String(conv.contato || ''))) await mandar(String(conv.contato), String(conv.nome || ''), 'A Laís respondeu a sua mensagem no planê.apê', moldura({ site, kicker: 'suporte planê.apê', titulo: `Oi${conv.nome ? `, ${primeiro(String(conv.nome))}` : ''}!`, corpo: `<p style="margin:0">Respondi a sua mensagem:</p>${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">Para continuar a conversa, abra o site no mesmo aparelho e toque em <b>ajuda</b>, ou responda este e-mail.</p>`, botao: ['abrir o site', 'https://useplane.com.br/ape/'] }))
+    if (mailOk(String(conv.contato || ''))) await mandar(String(conv.contato), String(conv.nome || ''), 'A Laís respondeu a sua mensagem no planê apzinho', moldura({ site, kicker: 'suporte planê apzinho', titulo: `Oi${conv.nome ? `, ${primeiro(String(conv.nome))}` : ''}!`, corpo: `<p style="margin:0">Respondi a sua mensagem:</p>${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">Para continuar a conversa, abra o site no mesmo aparelho e toque em <b>ajuda</b>, ou responda este e-mail.</p>`, botao: ['abrir o site', 'https://useplane.com.br/ape/'] }))
     return json({ ok: true })
   }
 
@@ -391,9 +395,9 @@ ${passos(sl ? [
     const { error } = await db.from('ape_feedback').insert({ tipo, texto, nota, nome: nome || 'visitante', contato, pagina })
     const zap = contato.replace(/\D/g, '')
     const ehEmail = mailOk(contato)
-    const responder: [string, string] = ehEmail ? ['responder por e-mail', `mailto:${contato}?subject=${encodeURIComponent('Re: sua mensagem no planê.apê')}`] : zap.length >= 10 ? ['responder no WhatsApp', `https://wa.me/${zap.length <= 11 ? '55' + zap : zap}?text=${encodeURIComponent(`Oi${nome ? `, ${nome.split(' ')[0]}` : ''}! Aqui é a Laís do planê.apê, recebi a sua mensagem.`)}`] : ['abrir o painel', PAINEL]
+    const responder: [string, string] = ehEmail ? ['responder por e-mail', `mailto:${contato}?subject=${encodeURIComponent('Re: sua mensagem no planê apzinho')}`] : zap.length >= 10 ? ['responder no WhatsApp', `https://wa.me/${zap.length <= 11 ? '55' + zap : zap}?text=${encodeURIComponent(`Oi${nome ? `, ${nome.split(' ')[0]}` : ''}! Aqui é a Laís do planê apzinho, recebi a sua mensagem.`)}`] : ['abrir o painel', PAINEL]
     // o e-mail sai mesmo se o banco falhar: a mensagem nunca se perde
-    const foi = await mandar(DONO, 'Laís', `${tipo === 'problema' ? 'Problema no site' : 'Mensagem'} no planê.apê: ${tipos[tipo]} de ${nome || 'visitante'}`, moldura({ site, dona: true, ajuda: false, previa: texto.slice(0, 90), kicker: `fale comigo · ${tipos[tipo]}${nota ? ` · nota ${nota}` : ''}`, titulo: esc(nome || 'visitante'),
+    const foi = await mandar(DONO, 'Laís', `${tipo === 'problema' ? 'Problema no site' : 'Mensagem'} no planê apzinho: ${tipos[tipo]} de ${nome || 'visitante'}`, moldura({ site, dona: true, ajuda: false, previa: texto.slice(0, 90), kicker: `fale comigo · ${tipos[tipo]}${nota ? ` · nota ${nota}` : ''}`, titulo: esc(nome || 'visitante'),
       corpo: `${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">${esc(contato) || 'sem contato'}${pagina ? ` · página ${esc(pagina)}` : ''}</p>${tipo === 'depoimento' ? '<p>Para mostrar na loja, publique no painel → opiniões.</p>' : ''}`,
       botao: responder }))
     if (error && !foi) return json({ erro: 'Não deu para enviar agora. Chame no WhatsApp.' }, 500)
@@ -426,7 +430,7 @@ ${passos(sl ? [
     await fetch('https://api.brevo.com/v3/contacts', {
       method: 'POST',
       headers: { 'api-key': key, 'Content-Type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ email: String(p.email).toLowerCase(), updateEnabled: true, attributes: { NOME: nome.split(' ')[0], SOBRENOME: nome.split(' ').slice(1).join(' '), ETAPA: etapa, ORIGEM: 'planê.apê' }, ...(lista ? { listIds: [lista] } : {}) }),
+      body: JSON.stringify({ email: String(p.email).toLowerCase(), updateEnabled: true, attributes: { NOME: nome.split(' ')[0], SOBRENOME: nome.split(' ').slice(1).join(' '), ETAPA: etapa, ORIGEM: 'planê apzinho' }, ...(lista ? { listIds: [lista] } : {}) }),
     }).catch(() => null)
   }
 

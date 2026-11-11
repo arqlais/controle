@@ -1,8 +1,8 @@
-/* planê.apê — orçamentos dos futuros moradores (por enquanto, só o San Levi).
+/* planê apzinho — orçamentos dos futuros moradores (por enquanto, só o San Levi).
    Aqui fica o que não depende de tela: nome, serviços, cálculo do "mais compensa" e as mensagens. */
 
 export const APE = {
-  name: 'planê.apê',
+  name: 'planê apzinho',
   condominio: 'San Levi',
   apes: '38 a 40 m²',
   dona: 'Laís',
@@ -158,7 +158,12 @@ export interface Produto {
   arte?: string // desenho que representa o produto
   selo?: string // selo de destaque no cartão (ex.: "mais vendido")
   kitPct?: number // kits: % de desconto sobre a soma dos arquivos (o preço sai sozinho)
+  frente?: Frente // vitrine onde aparece: vazio = planê apzinho (a loja do apê)
+  nicho?: string // dentro da vitrine: beleza, freelancer, arquitetura…
 }
+/** As três frentes da planê. A loja do apê é a "apzinho"; arquivos e arq usam o mesmo checkout. */
+export type Frente = 'apzinho' | 'arquivos' | 'arq'
+export const frenteDe = (p: Pick<Produto, 'frente'>): Frente => p.frente || 'apzinho'
 
 export interface Morador {
   id: string
@@ -371,10 +376,11 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 /* ===== produtos e exemplos ===== */
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
-export const LOJA_VERSAO = 8
+export const LOJA_VERSAO = 9
 /** O que cada versão da loja muda nos produtos que a dona já salvou (o resto do que ela editou continua). */
 export const MIGRA_LOJA: Record<number, { novos: string[]; troca: Record<string, (keyof Produto)[]> }> = {
   8: { novos: ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca', 'kit-escolhas'], troca: { plataforma: ['preco', 'unidade'], 'kit-completo': ['combo', 'kitPct', 'desc', 'amostras'] } },
+  9: { novos: ['beleza-fim-de-ano', 'beleza-precos', 'beleza-anamnese', 'beleza-termo', 'beleza-vale', 'beleza-caixa', 'free-proposta', 'free-contrato', 'free-briefing', 'free-preco-hora', 'arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-levantamento', 'arq-honorarios', 'arq-manual', 'kit-arq-primeiro'], troca: {} },
 }
 /** Juros ao mês do cartão parcelado (o painel muda). Parcela mínima: R$ 5. */
 export const JUROS_PCT = 2.99
@@ -403,8 +409,8 @@ export const TAXAS: Taxas = { pix: 1.99, cartaoPct: 2.99, cartaoFixo: 0.49 }
 export const KIT_PLATAFORMA_MESES = 1
 /** Bônus de todas as compras, liberado 7 dias depois do pagamento (não é vendido; não muda o direito de arrependimento). */
 export const BONUS = { id: 'bonus', surpresa: 'bônus surpresa', pista: 'Um arquivo exclusivo, que não tem à venda, de presente uma semana depois da compra.', nome: 'Calendário de manutenção e garantias do 1º ano', desc: 'O que revisar em cada mês do primeiro ano na casa nova e até quando vale a garantia de cada item. Chega 7 dias depois da compra.', dias: 7 }
-const arq = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega'>): Produto => ({ cat: 'arquivos', ativo: true, entrega: NA_HORA, fase: 'comprei', ...p })
-const kit = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega' | 'preco' | 'itens'> & { itens?: string[] }): Produto => ({ cat: 'combos', ativo: true, entrega: NA_HORA, preco: '', itens: [], ...p })
+const arq = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega'> & { ativo?: boolean }): Produto => ({ cat: 'arquivos', ativo: true, entrega: NA_HORA, fase: 'comprei', ...p })
+const kit = (p: Omit<Produto, 'cat' | 'ativo' | 'entrega' | 'preco' | 'itens'> & { itens?: string[]; ativo?: boolean }): Produto => ({ cat: 'combos', ativo: true, entrega: NA_HORA, preco: '', itens: [], ...p })
 export const PRODUTOS: Produto[] = [
   /* vai comprar */
   arq({ id: 'compra', selo: 'mais vendido', arte: 'contrato', fase: 'comprando', nome: 'Guia de compra do imóvel', tag: 'na planta ou pronto', destaque: true, preco: 'R$ 19,90', formato: 'PDF', amostras: [AM('m-compra.jpg')], numeros: ['8 páginas', 'na planta e pronto', '12 perguntas prontas'],
@@ -495,6 +501,45 @@ export const PRODUTOS: Produto[] = [
   { id: 'plataforma', selo: 'novidade', cat: 'plataforma', nome: 'Plataforma do apê', tag: 'acesso por 1 ano', destaque: true, preco: 'R$ 89,90', unidade: '12 meses de acesso', formato: 'site: abre no celular e no computador, sem instalar nada', entrega: 'Pagou, o link de acesso aparece na página do pedido na hora.', amostras: [AM('m-plataforma.jpg')], arte: 'celular',
     desc: 'Um site para acompanhar a sua jornada do começo ao fim: gastos, parcelas, etapas da obra, vistoria com fotos e contatos, atualizados por você, num lugar só.',
     itens: ['Gastos por cômodo: quanto planejou, quanto já foi e quanto falta', 'Parcelas dos próximos meses, somadas sozinhas', 'Etapas da compra e da obra, com datas e o que já foi feito', 'Vistoria com fotos e resumo para imprimir', 'Contatos dos fornecedores com WhatsApp a um toque', 'Abre no celular e no computador, sem instalar nada', 'Pagamento único: 12 meses de acesso, sem mensalidade'], ativo: true },
+
+  /* ===== planê arquivos (vitrine /arquivos): o que ainda não tem arquivo fica "em breve" (ativo: false) ===== */
+  arq({ id: 'beleza-fim-de-ano', frente: 'arquivos', nicho: 'beleza', selo: 'novidade', arte: 'calendario', fase: undefined, nome: 'Kit avisos de fim de ano', tag: 'para a sua cliente', destaque: true, preco: 'R$ 19,90', formato: 'PDF + mensagens prontas', numeros: ['agenda de dezembro', 'recesso e volta', 'mensagens prontas'],
+    desc: 'Avisos prontos para mandar às clientes: agenda de fim de ano, últimos horários, recesso e data de volta, com as mensagens para o WhatsApp.',
+    itens: ['Avisos de agenda aberta para dezembro', 'Últimos horários antes das festas', 'Recesso e data de volta', 'Mensagens prontas para copiar no WhatsApp', 'Como preencher em poucos minutos'] }),
+  arq({ id: 'beleza-precos', frente: 'arquivos', nicho: 'beleza', ativo: false, arte: 'orcamento', fase: undefined, nome: 'Tabela de preços editável', tag: 'Canva', preco: 'R$ 14,90', formato: 'modelo do Canva', numeros: ['feed e stories', 'cores editáveis'],
+    desc: 'Tabela de serviços e valores para o feed, os stories e o WhatsApp, editável no Canva gratuito.' }),
+  arq({ id: 'beleza-anamnese', frente: 'arquivos', nicho: 'beleza', ativo: false, arte: 'vistoria', fase: undefined, nome: 'Fichas de anamnese', tag: 'atendimento', preco: 'R$ 19,90', formato: 'PDF preenchível', numeros: ['sobrancelha e cílios', 'unhas', 'estética'],
+    desc: 'Fichas de anamnese para sobrancelha, cílios, unhas e estética: preencher no celular ou imprimir.' }),
+  arq({ id: 'beleza-termo', frente: 'arquivos', nicho: 'beleza', ativo: false, arte: 'contrato', fase: undefined, nome: 'Termo de consentimento e uso de imagem', tag: 'segurança', preco: 'R$ 12,90', formato: 'PDF preenchível', numeros: ['consentimento', 'uso de imagem'],
+    desc: 'Termo de consentimento do procedimento e autorização para postar fotos do resultado.' }),
+  arq({ id: 'beleza-vale', frente: 'arquivos', nicho: 'beleza', ativo: false, arte: 'presente', fase: undefined, nome: 'Vale-presente e cartão fidelidade', tag: 'Canva', preco: 'R$ 12,90', formato: 'modelo do Canva', numeros: ['vale-presente', 'cartão fidelidade'],
+    desc: 'Vale-presente para as datas comemorativas e cartão fidelidade, editáveis no Canva gratuito.' }),
+  arq({ id: 'beleza-caixa', frente: 'arquivos', nicho: 'beleza', ativo: false, arte: 'planilha', fase: undefined, nome: 'Planilha de agenda e caixa', tag: 'organização', preco: 'R$ 17,90', formato: 'Excel · abre no Google Planilhas', numeros: ['agenda do mês', 'entradas e saídas'],
+    desc: 'Agenda do mês, quanto entrou, quanto saiu e quanto sobrou, com as contas automáticas.' }),
+  arq({ id: 'free-proposta', frente: 'arquivos', nicho: 'freelancer', ativo: false, arte: 'orcamento', fase: undefined, nome: 'Modelo de proposta', tag: 'freelancer', preco: 'R$ 19,90', formato: 'modelo do Canva + PDF', numeros: ['escopo', 'prazo', 'forma de pagamento'],
+    desc: 'Proposta de serviço clara e bonita: o que entra, o que não entra, prazo, valor e forma de pagamento.' }),
+  arq({ id: 'free-contrato', frente: 'arquivos', nicho: 'freelancer', ativo: false, arte: 'contrato', fase: undefined, nome: 'Modelo de contrato de prestação de serviço', tag: 'freelancer', preco: 'R$ 24,90', formato: 'Word e Google Docs', numeros: ['cláusulas comentadas', 'revisões e prazos'],
+    desc: 'Contrato com as cláusulas que mais evitam problema: revisões, prazos, pagamento e uso do trabalho.' }),
+  arq({ id: 'free-briefing', frente: 'arquivos', nicho: 'freelancer', ativo: false, arte: 'decorado', fase: undefined, nome: 'Briefing para o cliente preencher', tag: 'freelancer', preco: 'R$ 12,90', formato: 'PDF preenchível + Google Forms', numeros: ['perguntas prontas'],
+    desc: 'As perguntas certas antes de começar, para o cliente responder sozinho.' }),
+  arq({ id: 'free-preco-hora', frente: 'arquivos', nicho: 'freelancer', ativo: false, arte: 'calculo', fase: undefined, nome: 'Calculadora de preço por hora', tag: 'freelancer', preco: 'R$ 16,90', formato: 'Excel · abre no Google Planilhas', numeros: ['custos do mês', 'preço mínimo'],
+    desc: 'Quanto cobrar por hora e por projeto a partir dos seus custos e de quanto quer ganhar.' }),
+
+  /* ===== planê arq (vitrine /arq): os mesmos modelos que a gestão usa, vendidos avulsos ===== */
+  arq({ id: 'arq-proposta', frente: 'arq', nicho: 'arquitetura', ativo: false, arte: 'orcamento', fase: undefined, nome: 'Proposta de projeto de interiores', tag: 'modelo', preco: 'R$ 24,90', formato: 'modelo do Canva + PDF', numeros: ['etapas do projeto', 'o que entra e o que não entra'],
+    desc: 'Proposta com etapas, entregas, prazos, valor e forma de pagamento, pronta para personalizar.' }),
+  arq({ id: 'arq-contrato', frente: 'arq', nicho: 'arquitetura', ativo: false, arte: 'contrato', fase: undefined, nome: 'Contrato de projeto de interiores', tag: 'modelo', preco: 'R$ 29,90', formato: 'Word e Google Docs', numeros: ['revisões', 'acompanhamento de obra', 'direitos autorais'],
+    desc: 'Contrato com revisões, visitas, acompanhamento de obra e direitos autorais. Revise com um advogado antes de usar.' }),
+  arq({ id: 'arq-briefing', frente: 'arq', nicho: 'arquitetura', ativo: false, arte: 'decorado', fase: undefined, nome: 'Briefing residencial', tag: 'modelo', preco: 'R$ 14,90', formato: 'PDF preenchível', numeros: ['família e rotina', 'cômodo por cômodo'],
+    desc: 'Rotina, gostos e necessidades da família, cômodo por cômodo, para o cliente preencher.' }),
+  arq({ id: 'arq-levantamento', frente: 'arq', nicho: 'arquitetura', ativo: false, arte: 'medidas', fase: undefined, nome: 'Checklist de levantamento', tag: 'na visita', preco: 'R$ 12,90', formato: 'PDF · imprimir ou usar no tablet', numeros: ['medidas', 'pontos elétricos e hidráulicos'],
+    desc: 'O que medir e fotografar na primeira visita, para não precisar voltar.' }),
+  arq({ id: 'arq-honorarios', frente: 'arq', nicho: 'arquitetura', ativo: false, arte: 'calculo', fase: undefined, nome: 'Calculadora de honorários', tag: 'planilha', preco: 'R$ 19,90', formato: 'Excel · abre no Google Planilhas', numeros: ['por m²', 'por hora', 'por etapa'],
+    desc: 'Compare o valor do projeto por m², por hora e por etapa, com os seus custos.' }),
+  arq({ id: 'arq-manual', frente: 'arq', nicho: 'arquitetura', ativo: false, arte: 'casa', fase: undefined, nome: 'Manual do cliente', tag: 'Canva', preco: 'R$ 19,90', formato: 'modelo do Canva', numeros: ['etapas', 'o que esperar'],
+    desc: 'Para mandar ao cliente no começo: como funciona cada etapa, prazos e combinados.' }),
+  kit({ id: 'kit-arq-primeiro', frente: 'arq', nicho: 'arquitetura', ativo: false, nome: 'Kit primeiro cliente', tag: 'kit', arte: 'contrato', kitPct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'],
+    desc: 'Proposta, contrato, briefing e manual do cliente, com desconto.' }),
 ]
 
 /** Pode ir para o carrinho (arquivos, kits e a plataforma). */

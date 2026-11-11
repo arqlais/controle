@@ -1,4 +1,4 @@
-/* Símbolo do San Levi: as duas torres com as janelas em grade e o sol atrás, nas cores do planê.apê.
+/* Símbolo do San Levi: as duas torres com as janelas em grade e o sol atrás, nas cores do planê apzinho.
    Usado em tudo que é do condomínio (área dos moradores, orçamentos, cadastros, foto do painel). */
 
 const janelas = (x0: number, y0: number, cols: number, rows: number, dx: number, dy: number, w: number, h: number, cor: string) => {

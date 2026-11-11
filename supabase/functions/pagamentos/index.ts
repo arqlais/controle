@@ -15,7 +15,7 @@
 //             · mensal no cartão = assinatura recorrente (cobra todo mês sozinho)
 //             · cartão no semestral/anual = parcelado em até 6x/12x sem juros (taxa já embutida no preço)
 //             · Pix = QR Code na hora
-//   ape-* → loja do planê.apê (ver ape.ts): pedido com CPF (Pix na página ou cartão no Asaas), entrega com a licença
+//   ape-* → loja do planê apzinho (ver ape.ts): pedido com CPF (Pix na página ou cartão no Asaas), entrega com a licença
 //             de quem comprou nos PDFs, bônus depois de 7 dias, plataforma do apê, recuperar compras, reembolso e
 //             leitura automática dos orçamentos (Gemini: segredo GEMINI_API_KEY ou a chave que a dona colocou no planê).
 //   webhook → o Asaas avisa cada pagamento; tudo é conferido de novo direto no Asaas. Confirmado, a conta é liberada sozinha,
@@ -177,7 +177,7 @@ async function webhook(req: Request) {
   if (!id || !/^PAYMENT_(CONFIRMED|RECEIVED)$/.test(String(body.event ?? ''))) return json({ ok: true })
   const p = await asaas(`/payments/${id}`)
   if (!['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(p.status))) return json({ ok: true })
-  // compra da loja do planê.apê
+  // compra da loja do planê apzinho
   const ext = String(p.externalReference ?? '')
   if (ext.startsWith('ape|')) {
     await ape.marcarPago(ext.slice(4), p)
@@ -203,7 +203,7 @@ async function webhook(req: Request) {
 }
 
 
-/* planê.apê: loja, entregas, plataforma e leitura dos orçamentos (ver ape.ts) */
+/* planê apzinho: loja, entregas, plataforma e leitura dos orçamentos (ver ape.ts) */
 const ape = makeApe({ db, asaas, json, site: SITE, env })
 
 Deno.serve(async (req) => {

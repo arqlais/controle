@@ -7,7 +7,7 @@ import { brl, dmy, fmtTel, nicho, waNum, wa, type Morador, type Orcamento } from
 
 /* Comparação lado a lado de um serviço: não só o preço — escopo, materiais, prazos, pagamento, garantia,
    o que falta em cada um, divergências e custos que podem aparecer depois. */
-/** Cores de cada coluna (A, B, C, D), da paleta do planê.apê, para não confundir um orçamento com outro. */
+/** Cores de cada coluna (A, B, C, D), da paleta do planê apzinho, para não confundir um orçamento com outro. */
 const CORES = ['var(--a-pri)', 'var(--a-sec)', 'var(--a-ter)', '#7d7391']
 const MAX = 4
 export function Comparar({ orcs: todos, me, minhas = [], onFechar, inicioAberto = false, onSair }: { orcs: Orcamento[]; me: Morador | null; minhas?: string[]; onFechar?: (o: Orcamento) => void; inicioAberto?: boolean; onSair?: () => void }) {

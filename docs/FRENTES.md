@@ -121,3 +121,21 @@ Marcado ● = já dá para vender com o que você tem.
 - **Serviço de implantação**: você configura o planê com a marca, os modelos e os clientes do escritório (cobrança única).
 - **Indicação**: assinante que indica ganha mês grátis.
 - **Pacote para turmas/estágio**: preço para estudantes e grupos de formandos (conversa com a sua fase).
+
+## O que já está no ar (11/11/2026)
+
+- **Página principal** (`src/frentes/Hub.tsx`): aparece em `useplane.com.br` para quem nunca entrou no sistema neste aparelho; sempre em `#/plane`. Duas composições para escolher: cards (padrão) e lista (`useplane.com.br/?v=lista`).
+- **Vitrines** (`src/frentes/Vitrine.tsx`): `useplane.com.br/arquivos` e `useplane.com.br/arq`. Usam o mesmo catálogo, carrinho (um por frente), checkout, pedido, minha conta, Asaas e entrega da loja do apê. Produto sem arquivo ainda fica em "em breve" com o botão "me avise" (WhatsApp).
+- **planê apzinho**: novo nome do planê.apê em todo o site, e-mails e PDFs. `/ape` continua funcionando; `/apzinho` é o endereço novo.
+- **Servidor** (`supabase/functions/pagamentos`): cada pedido sabe a frente pelos itens. O nome na cobrança do Asaas, o link de volta, o nome do arquivo baixado, o rodapé do PDF e os e-mails saem com a marca certa. O bônus surpresa é só do apê.
+
+### Para pôr um produto à venda
+
+1. Painel do apê → **arquivos**: envie o arquivo com o id do produto no nome (ex.: `beleza-fim-de-ano.pdf`).
+2. Painel → **produtos e preços**: ligue o produto (ele mostra "planê arquivos · em breve" ou "planê arq · em breve") e salve a loja.
+3. Pronto: sai do "em breve" e entra na vitrine com o botão de comprar.
+
+### O que a Laís faz fora do site
+
+- Renomear os Instagrams: @amvi.packs → @plane.arquivos, @apzinho_1204 → @plane.apzinho, @amvi.arq → @plane.arq (só reservar). Se algum @ estiver ocupado, troque em `src/frentes/frentes.ts`.
+- Agendar os posts no Meta Business Suite.

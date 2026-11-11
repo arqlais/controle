@@ -1,4 +1,4 @@
-/* Desenhos do planê.apê: traço fino + um preenchimento suave, nas cores do apê (variáveis --a-*).
+/* Desenhos do planê apzinho: traço fino + um preenchimento suave, nas cores do apê (variáveis --a-*).
    Um por produto/assunto, para a pessoa entender de relance. Conteúdo fixo, sem nada vindo de fora. */
 
 const S = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"'
@@ -27,6 +27,8 @@ const ARTS: Record<string, string> = {
   grupo: `${A('M6 40c2-8 8-12 14-12s12 4 14 12z')}<g ${S}><circle cx="20" cy="20" r="7"/><path d="M6 44c2-9 8-13 14-13s12 4 14 13"/><circle cx="42" cy="22" r="6"/><path d="M36 33c2-1 4-2 6-2 6 0 10 4 12 11"/></g>${B('M44 46h14v10H44z')}<g ${S}><path d="M48 51h6"/></g>`,
   carrinho: `${A('M14 18h40l-5 22H19z')}<g ${S}><path d="M6 10h6l7 32h30l5-22H14"/><circle cx="22" cy="50" r="3.5"/><circle cx="44" cy="50" r="3.5"/></g>${B('M28 22h8v12h-8z')}`,
   download: `${A('M8 40h48v14H8z')}<g ${S}><path d="M32 10v28M22 28l10 10 10-10"/><path d="M8 40v10a4 4 0 0 0 4 4h40a4 4 0 0 0 4-4V40"/></g>${B('M40 46h8v4h-8z')}`,
+  calendario: `${A('M8 14h48v40H8z')}<g ${S}><rect x="8" y="12" width="48" height="42" rx="4"/><path d="M8 24h48M20 6v10M44 6v10M16 32h6M29 32h6M42 32h6M16 42h6M29 42h6"/></g>${B('M41 39h9v8h-9z')}`,
+  presente: `${A('M10 26h44v28H10z')}<g ${S}><rect x="8" y="20" width="48" height="10" rx="2"/><path d="M12 30v22a2 2 0 0 0 2 2h36a2 2 0 0 0 2-2V30M32 20v34"/><path d="M32 20c-4-8-14-10-14-3 0 3 6 3 14 3zM32 20c4-8 14-10 14-3 0 3-6 3-14 3z"/></g>${B('M28 30h8v24h-8z')}`,
 }
 
 export function ApeArt({ name, size = 56, tone = 'pri' }: { name: string; size?: number; tone?: 'pri' | 'sec' | 'ter' }) {
