@@ -2741,3 +2741,19 @@ a.ape-vermais .ape-i { transform: rotate(-90deg); }
 .ape-tile-b .mini .carrega { display: grid; justify-items: center; gap: 4px; }
 .ape-tile-b .mini .carrega small { font-size: 11px; }
 .ape-ficha-previa a.vazio { color: var(--a-pri); font-weight: 600; text-decoration: underline; }
+
+/* aba contatos */
+.ape-stat-btn { font: inherit; text-align: left; cursor: pointer; border: 0; }
+.ape-stat-btn:hover { box-shadow: 0 0 0 2px var(--a-pri-soft); }
+.ape-agenda { display: grid; gap: 22px; }
+.ape-agenda > .ape-note { margin: 0; }
+.ape-agenda-g h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 17px; text-transform: lowercase; }
+.ape-agenda-lista { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.ape-agenda-it { display: grid; gap: 10px; padding: 14px 16px; border-radius: 16px; background: var(--a-card); border: 1px solid var(--a-line); }
+.ape-agenda-it .t { display: grid; gap: 2px; min-width: 0; }
+.ape-agenda-it .t b { font-size: 15px; overflow-wrap: anywhere; }
+.ape-agenda-it .t small { color: var(--a-muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.ape-agenda-it .t small.info { color: var(--a-pri); }
+.ape-agenda-it .t small.nota { font-style: italic; }
+.ape-agenda-it .acts { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 600px) { .ape-agenda-lista { grid-template-columns: minmax(0, 1fr); } }

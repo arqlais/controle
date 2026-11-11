@@ -43,7 +43,8 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
 
   const counts: Record<string, number> = {}
   for (const o of vis) counts[o.nicho] = (counts[o.nicho] || 0) + 1
-  const nf = filtro !== 'todos' && !counts[filtro] ? 'todos' : filtro
+  const nf = filtro === CONTATOS ? CONTATOS : filtro !== 'todos' && !counts[filtro] ? 'todos' : filtro
+  const agenda = agendaDe(vis)
   const exemplos = vis.filter((o) => o.exemplo).length
 
   if (d.bloqueado && !owner)
@@ -122,7 +123,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
         <div className="ape-stats">
           <div className="ape-stat"><b className="num">{vis.filter(ehOrcamento).length}</b><span>orçamentos</span></div>
           <div className="ape-stat"><b className="num">{Object.keys(counts).length}</b><span>pastas</span></div>
-          <div className="ape-stat"><b className="num">{vis.length - vis.filter(ehOrcamento).length}</b><span>contatos</span></div>
+          <button type="button" className="ape-stat ape-stat-btn" onClick={() => setFiltro(CONTATOS)}><b className="num">{agenda.length}</b><span>contatos</span></button>
         </div>
       </section>
       <div className="ape-pastas" role="group" aria-label="Pastas por serviço">
@@ -131,6 +132,13 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           <b>todas</b>
           <small>{vis.length} {vis.length === 1 ? 'item' : 'itens'}</small>
         </button>
+        {agenda.length > 0 && (
+          <button className={`ape-pasta ${nf === CONTATOS ? 'on' : ''}`} onClick={() => setFiltro(CONTATOS)}>
+            <span className="ape-pasta-ic"><ApeIcon name="phone" /></span>
+            <b>contatos</b>
+            <small>{agenda.length} {agenda.length === 1 ? 'fornecedor' : 'fornecedores'}</small>
+          </button>
+        )}
         {PASTAS.filter((n) => counts[n[0]]).map((n) => {
           const doN = vis.filter((o) => o.nicho === n[0] && ehOrcamento(o))
           const menor = Math.min(...doN.map((o) => calc(o).avista ?? Infinity))
@@ -165,6 +173,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
       )}
       {ajuda && <Entenda onClose={() => setAjuda(false)} />}
       <DicaLoja nicho={(groups[0] || 'outros') as Nicho} produtos={d.ajustes.produtos} />
+      {nf === CONTATOS ? <Agenda lista={agenda} me={me} termo={term} onPasta={(id) => setFiltro(id)} /> : (
       <div className="ape-orc-lista" style={{ display: 'grid', gap: 26 }}>
         {!list.length && (
           <div className="ape-panel ape-empty">
@@ -254,6 +263,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
           )
         })}
       </div>
+      )}
       {(() => {
         const g = Object.entries(sel).find(([, l]) => l.length >= 2)
         if (!g || comparando) return null
@@ -266,6 +276,75 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
         )
       })()}
     </>
+  )
+}
+
+/* ===== aba contatos: todos os fornecedores (dos orçamentos, contatos e tabelas), sem repetir, separados por serviço ===== */
+const CONTATOS = '__contatos'
+interface Fornecedor { chave: string; nome: string; tel: string; ig: string; email: string; nichos: string[]; orcs: number; menor: number | null; nota: string }
+function agendaDe(vis: Orcamento[]): Fornecedor[] {
+  const norm = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  const m = new Map<string, Fornecedor>()
+  for (const o of vis) {
+    if (o.exemplo) continue
+    const tel = waNum(o.whatsapp || o.telefone || '') || ''
+    const ig = (o.instagram || '').trim()
+    const email = (o.email || '').trim()
+    if (!tel && !ig && !email && o.tipo !== 'contato') continue
+    const nome = (o.fornecedor || '').trim()
+    if (!nome && !tel) continue
+    const chave = tel || norm(nome)
+    const atual = m.get(chave) || [...m.values()].find((f) => nome && norm(f.nome) === norm(nome))
+    const v = ehOrcamento(o) ? calc(o).avista : null
+    if (atual) {
+      if (!atual.nichos.includes(o.nicho)) atual.nichos.push(o.nicho)
+      if (ehOrcamento(o)) atual.orcs++
+      if (v != null && (atual.menor == null || v < atual.menor)) atual.menor = v
+      atual.tel ||= tel; atual.ig ||= ig; atual.email ||= email; if (!atual.nome && nome) atual.nome = nome
+      if (!atual.nota && o.tipo === 'contato' && o.resumo) atual.nota = o.resumo
+    } else m.set(chave, { chave, nome, tel, ig, email, nichos: [o.nicho], orcs: ehOrcamento(o) ? 1 : 0, menor: v, nota: o.tipo === 'contato' ? o.resumo || '' : '' })
+  }
+  return [...m.values()].sort((a, b) => (a.nome || 'zz').localeCompare(b.nome || 'zz'))
+}
+/** Cartão de contato (.vcf): no iPhone abre a tela "novo contato" já preenchida. */
+function vcf(f: Fornecedor): string {
+  const tel = f.tel ? (f.tel.startsWith('55') ? '+' + f.tel : '+55' + f.tel) : ''
+  const nota = `${f.nichos.map((n) => nicho(n).l).join(', ')} · indicado no planê.apê (${APE.condominio})`
+  const linhas = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${f.nome || 'Fornecedor'}`, `ORG:${f.nome || ''}`, tel && `TEL;TYPE=CELL:${tel}`, f.email && `EMAIL:${f.email}`, f.ig && `URL:${/^https?:/.test(f.ig) ? f.ig : 'https://instagram.com/' + f.ig.replace(/^@/, '')}`, `NOTE:${nota}`, 'END:VCARD'].filter(Boolean)
+  return URL.createObjectURL(new Blob([linhas.join('\r\n')], { type: 'text/vcard' }))
+}
+function Agenda({ lista, me, termo, onPasta }: { lista: Fornecedor[]; me: Morador | null; termo: string; onPasta: (nicho: string) => void }) {
+  const fs = termo ? lista.filter((f) => [f.nome, f.tel, f.ig, ...f.nichos.map((n) => nicho(n).l)].join(' ').toLowerCase().includes(termo)) : lista
+  const grupos = [...new Set(fs.map((f) => f.nichos[0]))].sort((a, b) => nicho(a).l.localeCompare(nicho(b).l))
+  if (!fs.length) return <div className="ape-panel ape-empty"><b>nenhum contato</b><span>{termo ? 'Nada com essa busca.' : 'Os contatos aparecem aqui sozinhos quando um orçamento traz WhatsApp, telefone ou Instagram, ou quando alguém manda só o contato.'}</span></div>
+  return (
+    <div className="ape-agenda">
+      <p className="ape-note">Todos os fornecedores que os vizinhos mandaram, sem repetir. Toque em <b>salvar na agenda</b> para guardar no seu celular.</p>
+      {grupos.map((g) => (
+        <section key={g} className="ape-agenda-g">
+          <h3><span className="ape-pasta-ic"><ApeIcon name={nicho(g).i || 'box'} /></span>{nicho(g).l}</h3>
+          <div className="ape-agenda-lista">
+            {fs.filter((f) => f.nichos[0] === g).map((f) => (
+              <article key={f.chave} className="ape-agenda-it">
+                <div className="t">
+                  <b>{f.nome || 'Fornecedor sem nome'}</b>
+                  <small>{[f.tel ? fmtTel(f.tel.replace(/^55/, '')) : '', f.ig].filter(Boolean).join(' · ') || f.email || 'sem telefone'}</small>
+                  <small className="info">{f.orcs ? `${f.orcs} ${f.orcs > 1 ? 'orçamentos' : 'orçamento'}${f.menor != null ? ` · desde ${brl(f.menor)}` : ''}` : 'indicação de vizinho'}{f.nichos.length > 1 ? ` · também ${f.nichos.slice(1).map((n) => nicho(n).l.toLowerCase()).join(', ')}` : ''}</small>
+                  {f.nota && <small className="nota">“{f.nota}”</small>}
+                </div>
+                <div className="acts">
+                  {f.tel && <a className="ape-btn sm primary" href={wa(f.tel.startsWith('55') ? f.tel : '55' + f.tel, `Oi! ${me ? `Sou ${me.nome.split(' ')[0]}, ` : ''}vi o seu contato com os vizinhos do ${APE.condominio}. Pode me passar um orçamento de ${nicho(f.nichos[0]).l.toLowerCase()}?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />WhatsApp</a>}
+                  {f.tel && <a className="ape-btn sm" href={`tel:+${f.tel.startsWith('55') ? f.tel : '55' + f.tel}`}><ApeIcon name="phone" />ligar</a>}
+                  {(f.tel || f.email) && <a className="ape-btn sm" href={vcf(f)} download={`${(f.nome || 'fornecedor').replace(/[^\wÀ-ú ]+/g, '').trim() || 'fornecedor'}.vcf`}><ApeIcon name="user" />salvar na agenda</a>}
+                  {f.ig && !/\s/.test(f.ig) && <a className="ape-btn sm ghost" href={/^https?:/.test(f.ig) ? f.ig : `https://instagram.com/${f.ig.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer">{/^https?:/.test(f.ig) ? 'site' : f.ig.startsWith('@') ? f.ig : '@' + f.ig}</a>}
+                  {f.orcs > 0 && <button type="button" className="ape-btn sm ghost" onClick={() => onPasta(f.nichos[0])}><ApeIcon name="list" />ver orçamentos</button>}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   )
 }
 

@@ -20,6 +20,7 @@ function lerVcf(txt: string): { nome: string; tel: string; email: string; site: 
   }).filter((c) => c.nome || c.tel)
 }
 const podeAgenda = typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
+const iphone = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
 
 interface Lido { texto?: string; key: string; arquivos: Arquivo[]; files: File[]; o: Orcamento; status: 'lendo' | 'pronto' | 'erro'; msg?: string; aberto?: boolean }
 
@@ -43,11 +44,11 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
   // vários prints da mesma conversa: o nome da loja costuma estar só no primeiro. Se todos os prontos
   // apontam para um único fornecedor, completa os que ficaram sem (fornecedor, WhatsApp, serviço).
   useEffect(() => {
-    const prontos = lidos.filter((l) => l.status === 'pronto')
+    const prontos = lidos.filter((l) => l.status === 'pronto' && l.o.tipo !== 'contato')
     const forns = [...new Set(prontos.map((l) => l.o.fornecedor.trim()).filter(Boolean))]
     if (forns.length !== 1 || !prontos.some((l) => !l.o.fornecedor.trim())) return
     const ref = prontos.find((l) => l.o.fornecedor.trim() === forns[0])!.o
-    setLidos((ls) => ls.map((l) => (l.status === 'pronto' && !l.o.fornecedor.trim() ? { ...l, o: { ...l.o, forn_auto: true, fornecedor: ref.fornecedor, whatsapp: l.o.whatsapp || ref.whatsapp, telefone: l.o.telefone || ref.telefone, instagram: l.o.instagram || ref.instagram, nicho: l.o.nicho === 'outros' ? ref.nicho : l.o.nicho, servico: l.o.servico && l.o.servico !== 'Outros' ? l.o.servico : ref.servico }, msg: `${l.msg} · fornecedor completado pelo outro print` } : l)))
+    setLidos((ls) => ls.map((l) => (l.status === 'pronto' && l.o.tipo !== 'contato' && !l.o.fornecedor.trim() ? { ...l, o: { ...l.o, forn_auto: true, fornecedor: ref.fornecedor, whatsapp: l.o.whatsapp || ref.whatsapp, telefone: l.o.telefone || ref.telefone, instagram: l.o.instagram || ref.instagram, nicho: l.o.nicho === 'outros' ? ref.nicho : l.o.nicho, servico: l.o.servico && l.o.servico !== 'Outros' ? l.o.servico : ref.servico }, msg: `${l.msg} · fornecedor completado pelo outro print` } : l)))
   }, [lidos])
 
   const atualizar = (key: string, fn: (l: Lido) => Lido) => setLidos((ls) => ls.map((l) => (l.key === key ? fn(l) : l)))
@@ -103,7 +104,8 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
     } catch { /* cancelou */ }
   }
   const deVcf = async (fs: File[]) => { const cs = (await Promise.all(fs.map((f) => f.text()))).flatMap(lerVcf); if (cs.length) comContato(cs); else setErr('Não achei nenhum contato nesse arquivo.') }
-  const novoContato = () => setLidos((ls) => [...ls, { key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento({ tipo: 'contato' }), status: 'pronto', aberto: false, msg: 'preencha o contato' }])
+  // já tem um contato em branco? usa ele (não empilha cartões vazios)
+  const novoContato = () => setLidos((ls) => ls.some((l) => l.o.tipo === 'contato' && !l.o.fornecedor && !l.o.whatsapp) ? ls : [...ls, { key: crypto.randomUUID(), arquivos: [], files: [], o: blankOrcamento({ tipo: 'contato' }), status: 'pronto', aberto: false, msg: 'preencha o contato' }])
   /** Duas fotos do mesmo orçamento: junta no de cima (soma os itens, mantém os dados que já tinha). */
   const juntar = (i: number) =>
     setLidos((ls) => {
@@ -229,10 +231,13 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
             <p className="ape-note" style={{ margin: 0 }}>Coloque o nome e o WhatsApp do fornecedor: os vizinhos tocam e já caem na conversa com a empresa.</p>
             <div className="ape-acts ape-contato-add">
               {podeAgenda && <button type="button" className="ape-btn primary" onClick={() => void daAgenda()}><ApeIcon name="user" />escolher da agenda</button>}
-              <label className={`ape-btn ${podeAgenda ? '' : 'primary'}`}><ApeIcon name="clip" />anexar contato (.vcf)<input type="file" accept=".vcf,text/vcard,text/x-vcard" multiple hidden onChange={(e) => { void deVcf(Array.from(e.target.files || [])); e.target.value = '' }} /></label>
-              <button type="button" className="ape-btn ghost" onClick={novoContato}><ApeIcon name="plus" />digitar</button>
+              {iphone && <button type="button" className="ape-btn primary" onClick={() => { novoContato(); window.setTimeout(() => { const i = [...document.querySelectorAll<HTMLInputElement>('.ape-lido .ape-lido-edit input')].find((x) => !x.value); i?.scrollIntoView({ block: 'center', behavior: 'smooth' }); i?.focus() }, 80) }}><ApeIcon name="plus" />digitar o contato</button>}
+              <label className={`ape-btn ${podeAgenda || iphone ? (iphone ? 'ghost' : '') : 'primary'}`}><ApeIcon name="clip" />{iphone ? 'tenho o arquivo .vcf' : 'anexar contato (.vcf)'}<input type="file" accept=".vcf,text/vcard,text/x-vcard" multiple hidden onChange={(e) => { void deVcf(Array.from(e.target.files || [])); e.target.value = '' }} /></label>
+              {!iphone && <button type="button" className="ape-btn ghost" onClick={novoContato}><ApeIcon name="plus" />digitar</button>}
             </div>
-            <p className="ape-note" style={{ margin: 0, fontSize: 12 }}>No celular: abra o contato no WhatsApp ou na agenda, toque em "compartilhar contato" e escolha salvar em Arquivos; depois anexe aqui.</p>
+            <p className="ape-note" style={{ margin: 0, fontSize: 12 }}>{iphone
+              ? 'No iPhone, o próprio aparelho não deixa sites abrirem a agenda. O mais rápido: toque em digitar e cole o nome e o número (copie no WhatsApp ou na agenda, segurando em cima do número).'
+              : podeAgenda ? 'Escolha da agenda do celular, ou digite. Todo contato também aparece na aba contatos.' : 'Digite o nome e o WhatsApp, ou anexe um cartão de contato (.vcf). Todo contato também aparece na aba contatos.'}</p>
           </>
         )}
         {tipo !== 'contato' && !lidos.length && <p className="ape-note ape-envio-dica"><ApeIcon name="sparkle" />Depois de publicar, o site lê sozinho o valor e o fornecedor e coloca na pasta certa. Seus dados não aparecem.</p>}
@@ -279,7 +284,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: numbe
         {l.files[0] && /^image\//i.test(l.files[0].type) ? <PreviaLocal f={l.files[0]} /> : <span className="ape-lido-n">{n}</span>}
         <div className="t">
           <b>{l.status === 'lendo' ? 'anexando…' : o.fornecedor || (o.tipo === 'contato' ? 'contato' : `orçamento ${n}`)}</b>
-          <span>{l.files.map((f) => f.name).join(', ') || 'texto colado'}{l.msg ? ` · ${l.msg}` : ''}</span>
+          <span>{l.files.map((f) => f.name).join(', ') || (o.tipo === 'contato' ? 'contato do fornecedor' : 'texto colado')}{l.msg ? ` · ${l.msg}` : ''}</span>
         </div>
         <button type="button" className="ape-btn ghost sm" onClick={onRemove} aria-label="Tirar"><ApeIcon name="trash" /></button>
       </header>
@@ -290,7 +295,15 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: numbe
           {o.tipo === 'contato' ? (
             <div className="ape-lido-edit">
               <div className="ape-frow">
-                <div className="ape-f"><label>Fornecedor</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} placeholder="Nome da loja ou profissional" /></div>
+                <div className="ape-f"><label>Fornecedor</label><input value={o.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} onPaste={(e) => {
+                  // colou "Marmoraria Derick +55 11 98888-7777" (copiado do WhatsApp/agenda): separa nome e telefone
+                  const t = e.clipboardData.getData('text')
+                  const tel = t.match(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/)
+                  if (!tel) return
+                  e.preventDefault()
+                  const nome = t.replace(tel[0], ' ').split('\n').map((x) => x.replace(/[~:|·-]+/g, ' ').trim()).find((x) => x.length > 1) || o.fornecedor
+                  onChange({ ...o, fornecedor: nome.slice(0, 80), whatsapp: o.whatsapp || tel[0].replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '') })
+                }} placeholder="Nome da loja ou profissional" /></div>
                 <div className="ape-f"><label>Serviço</label>
                   <select value={o.nicho === 'outros' ? '' : o.nicho} onChange={(e) => set('nicho', e.target.value || 'outros')}>
                     <option value="">Escolha…</option>
@@ -318,6 +331,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: numbe
                 </div>
                 <div className="ape-f"><label>Fornecedor (se souber)</label><input value={o.fornecedor} onChange={(e) => onChange({ ...o, fornecedor: e.target.value, forn_auto: false })} placeholder="o site tenta ler sozinho" /></div>
               </div>
+              <div className="ape-f"><label><span className="ape-keep">WhatsApp</span> do fornecedor (se tiver)</label><input inputMode="tel" value={o.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="(11) 90000-0000 · vai para a aba contatos" /></div>
               <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="sparkle" /> Valores, prazo e o resto são lidos sozinhos depois que você enviar.</p>
               {podeJuntar && <button type="button" className="ape-btn ghost sm" onClick={onJuntar}><ApeIcon name="copy" />é do mesmo orçamento que o {n - 1}</button>}
             </div>
