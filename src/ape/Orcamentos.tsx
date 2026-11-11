@@ -4,8 +4,9 @@ import { href } from '../router'
 import { admin, escolher, meuOrcamento, queroGrupo, sairGrupo, condicaoGrupo, apeCloud, verOriginal, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
+import { AvisoLeitura } from './Aviso'
 import {
-  APE, GRUPO_META, ehNichoNovo, CTA_BY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
+  APE, GRUPO_META, ehNichoNovo, CTA_BY, NICHOS, SORTS, analyze, brl, calc, dmy, fmtTel, msgFornecedor, msgGrupo, nicho, num, pct, wa, waNum, whyTop, ehOrcamento, servicoGenerico, nomeBonito, opcoesNicho, plantaDoAp, plantaDe, acabamentoDe, PLANTA_ROT, type Analise, type Item, type Morador, type Nicho, type Orcamento, type Produto, type Sort,
 } from './model'
 import { read, write } from './shared'
 import { Comparar, Original } from './Comparar'
@@ -172,6 +173,7 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
         </div>
       )}
       {ajuda && <Entenda onClose={() => setAjuda(false)} />}
+      <AvisoLeitura />
       <DicaLoja nicho={(groups[0] || 'outros') as Nicho} produtos={d.ajustes.produtos} />
       {nf === CONTATOS ? <Agenda lista={agenda} me={me} termo={term} onPasta={(id) => setFiltro(id)} /> : (
       <div className="ape-orc-lista" style={{ display: 'grid', gap: 26 }}>
@@ -246,6 +248,8 @@ export function Orcamentos({ vis, d, owner, me, whats, show, onCount, onEscolha,
                         <button className="ape-x" onClick={() => setAberto(null)} aria-label="Fechar"><ApeIcon name="x" /></button>
                         <PreviaFicha o={ab.x.o} me={me} />
                         <Card x={ab.x} a={ab.a} isTop={ab.top} acab={acabs.length > 1 ? ab.ac : ''} me={me} whats={whats} count={d.contagens[ab.x.o.id] || 0} escolhas={d.escolhas[ab.x.o.id] || 0} minha={d.minhas.includes(ab.x.o.id)} show={show} onCount={onCount} onEscolha={onEscolha} />
+                        <div className="ape-ficha-contato"><p className="ape-eyebrow">contato do fornecedor</p><IconesContato f={fornDe(ab.x.o)} me={me} /></div>
+                        <AvisoLeitura curto />
                         <FichaAcoes o={ab.x.o} owner={owner} meu={d.meus.includes(ab.x.o.id)} me={me} show={show} onFeito={() => { setAberto(null); onRecarregar?.() }} />
                       </div>
                     </div>
@@ -457,7 +461,8 @@ async function miniDe(me: Morador | null, o: Orcamento): Promise<string> {
 }
 /** Orçamento sem arquivo (digitado ou colado): uma "folha" no nosso modelo com o texto, para ter sempre uma imagem. */
 function linhasDoPapel(o: Orcamento): string[] {
-  if (o.texto_original) return o.texto_original.split('\n').map((l) => l.trim()).filter(Boolean)
+  // texto de WhatsApp: sem emoji e sem os *asteriscos* de negrito, para ler limpo
+  if (o.texto_original) return o.texto_original.split('\n').map((l) => l.replace(/\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3]/gu, '').replace(/[*_~]+/g, '').replace(/\s{2,}/g, ' ').trim()).filter((l) => l && /[\p{L}\p{N}]/u.test(l))
   const c = calc(o)
   return [
     o.servico || nicho(o.nicho).l,
@@ -569,15 +574,66 @@ const suave = (t?: string) => {
 /** Na ficha: quem mandou pode apagar o seu; a dona pode ocultar (some para os vizinhos, continua guardado) ou apagar. */
 function FichaAcoes({ o, owner, meu, me, show, onFeito }: { o: Orcamento; owner: boolean; meu: boolean; me: Morador | null; show: (m: string) => void; onFeito: () => void }) {
   const [busy, setBusy] = useState(false)
+  const [ed, setEd] = useState<Orcamento | null>(null)
   if (!owner && !meu) return null
   const faz = async (f: () => Promise<unknown>, msg: string) => { setBusy(true); try { await f(); show(msg); onFeito() } catch (e) { show(`Não deu (${(e as Error).message}).`) } setBusy(false) }
+  const salvar = () => {
+    if (!ed) return
+    const novo: Orcamento = { ...ed, fornecedor: nomeBonitoUI(ed.fornecedor), forn_auto: false, nicho_auto: false, lendo: false }
+    void faz(() => (owner ? admin.salvar(novo) : meuOrcamento(me!.id, o.id, novo)), 'Salvo. Obrigada por corrigir!')
+  }
+  const set = (k: keyof Orcamento, v: unknown) => setEd((x) => (x ? ({ ...x, [k]: v } as Orcamento) : x))
+  if (ed) {
+    const contato = ed.tipo === 'contato'
+    return (
+      <div className="ape-editar">
+        <p className="ape-eyebrow">{owner && !meu ? 'editar (só você vê este botão)' : 'corrigir o que você mandou'}</p>
+        <div className="ape-frow">
+          <div className="ape-f"><label>Fornecedor</label><input value={ed.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} /></div>
+          <div className="ape-f"><label>Pasta</label><select value={ed.nicho} onChange={(e) => set('nicho', e.target.value)}>{opcoesNicho([ed.nicho]).map((n) => <option key={n[0]} value={n[0]}>{n[1]}</option>)}</select></div>
+        </div>
+        {!contato && <div className="ape-f"><label>O que é <span className="ape-opc">aparece como título</span></label><input value={ed.servico} onChange={(e) => set('servico', e.target.value)} placeholder="Ex.: Vistoria com laudo e ART" /></div>}
+        <div className="ape-frow">
+          <div className="ape-f"><label>WhatsApp</label><input inputMode="tel" value={ed.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="(11) 90000-0000" /></div>
+          <div className="ape-f"><label>Telefone</label><input inputMode="tel" value={ed.telefone || ''} onChange={(e) => set('telefone', e.target.value)} /></div>
+        </div>
+        <div className="ape-frow">
+          <div className="ape-f"><label>Instagram ou site</label><input value={ed.instagram || ''} onChange={(e) => set('instagram', e.target.value)} placeholder="@loja" /></div>
+          <div className="ape-f"><label>E-mail</label><input type="email" inputMode="email" value={ed.email || ''} onChange={(e) => set('email', e.target.value)} /></div>
+        </div>
+        {!contato && (
+          <>
+            <div className="ape-frow">
+              <div className="ape-f"><label>Valor à vista (R$)</label><input inputMode="decimal" value={ed.valor_avista ?? ''} onChange={(e) => set('valor_avista', num(e.target.value))} /></div>
+              <div className="ape-f"><label>Valor total / no cartão (R$)</label><input inputMode="decimal" value={ed.valor_total ?? ''} onChange={(e) => set('valor_total', num(e.target.value))} /></div>
+            </div>
+            <div className="ape-frow">
+              <div className="ape-f"><label>Prazo</label><input value={ed.prazo} onChange={(e) => set('prazo', e.target.value)} placeholder="Ex.: 30 dias" /></div>
+              <div className="ape-f"><label>Garantia</label><input value={ed.garantia} onChange={(e) => set('garantia', e.target.value)} placeholder="Ex.: 1 ano" /></div>
+            </div>
+            <div className="ape-frow">
+              <div className="ape-f"><label>Parcelas (máx.)</label><input inputMode="numeric" value={ed.parcelas_max ?? ''} onChange={(e) => set('parcelas_max', num(e.target.value))} /></div>
+              <div className="ape-f"><label>Válido até</label><input type="date" value={ed.validade || ''} onChange={(e) => set('validade', e.target.value)} /></div>
+            </div>
+          </>
+        )}
+        <div className="ape-f"><label>{contato ? 'Comentário' : 'Resumo'} <span className="ape-opc">opcional</span></label><input value={ed.resumo} onChange={(e) => set('resumo', e.target.value)} /></div>
+        <div className="ape-acts">
+          <button className="ape-btn primary" disabled={busy} onClick={salvar}><ApeIcon name="check" />{busy ? 'salvando…' : 'salvar'}</button>
+          <button className="ape-btn ghost" disabled={busy} onClick={() => setEd(null)}>cancelar</button>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="ape-ficha-acoes">
+      <button className="ape-btn ghost sm" disabled={busy} onClick={() => setEd({ ...o })}><ApeIcon name="edit" />editar</button>
       {owner && <button className="ape-btn ghost sm" disabled={busy} onClick={() => void faz(() => admin.salvar({ ...o, oculto: !o.oculto }), o.oculto ? 'Voltou a aparecer para os vizinhos.' : 'Oculto: só você vê. Nada foi apagado.')}><ApeIcon name="eye" />{o.oculto ? 'mostrar de novo' : 'ocultar'}</button>}
       <button className="ape-btn ghost sm danger" disabled={busy} onClick={() => { if (confirm('Apagar de vez? Não dá para desfazer.')) void faz(() => (owner ? admin.remover([o.id]) : meuOrcamento(me!.id, o.id, null)), 'Apagado.') }}><ApeIcon name="trash" />apagar</button>
     </div>
   )
 }
+const nomeBonitoUI = (t: string) => nomeBonito(t)
 
 /** Cartãozinho do orçamento na pasta: prévia do original, quem mandou, o que é e o preço. Toca e abre a ficha. */
 function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item; top: boolean; acab: string; me: Morador | null; minha: boolean; marcado: boolean; onMarcar?: () => void; onAbrir: () => void }) {
@@ -600,7 +656,7 @@ function Tile({ x, top, acab, me, minha, marcado, onMarcar, onAbrir }: { x: Item
         </span>
         <span className="t">
           <small className="acab">{acab || '\u00a0'}</small>
-          <b>{suave(produtoDe(o) || servicoBase(o)) || (extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : 'orçamento')}</b>
+          <b>{suave(produtoDe(o) || (servicoGenerico(servicoBase(o)) ? '' : servicoBase(o))) || (extra ? (o.tipo === 'tabela' ? 'tabela de preços' : 'contato') : o.nicho !== 'outros' ? nicho(o.nicho).l : 'orçamento')}</b>
           <small>{suave(o.fornecedor) || (o.lendo ? 'lendo o orçamento…' : 'Fornecedor sem nome')}</small>
           <span className="v num">{preco ? <>{extra ? <small>desde </small> : null}{preco}{extra ? null : <small> à vista</small>}</> : <small>{extra ? 'ver valores' : 'sem valor'}</small>}</span>
         </span>

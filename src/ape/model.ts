@@ -579,6 +579,27 @@ export const FIELDS: [keyof Orcamento, string, 'text' | 'nicho' | 'area' | 'num'
   ['inclui', 'Inclui (um por linha)', 'lines'], ['nao_inclui', 'Não inclui (um por linha)', 'lines'], ['alertas', 'Antes de fechar, confira (um por linha)', 'lines'],
 ]
 
+/** Nome de fornecedor bem escrito: sem emoji, cada palavra com a primeira maiúscula ("MARMORARIA DERICK" → "Marmoraria Derick"),
+ *  "e/de/da/do" minúsculos, siglas curtas mantidas (RDL) quando o resto não está todo em maiúsculas. */
+const MINUSC = new Set(['e', 'de', 'da', 'do', 'das', 'dos', 'em', 'a', 'o', 'para', 'com', 'du', 'di'])
+const FORMAS: Record<string, string> = { ltda: 'Ltda', me: 'ME', mei: 'MEI', eireli: 'Eireli', 's/a': 'S/A', sa: 'S/A' }
+export function nomeBonito(t: string): string {
+  const v = String(t || '').replace(/\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3]/gu, ' ').replace(/[*_~`]+/g, '').replace(/\s+/g, ' ').trim().replace(/^[\s·•|,;:!.\-–]+|[\s·•|,;:!\-–]+$/g, '')
+  const letras = v.replace(/[^A-Za-zÀ-ú]/g, '')
+  const tudoMaius = letras.length > 0 && letras === letras.toUpperCase()
+  return v.split(' ').map((w, i) => {
+    const low = w.toLowerCase()
+    const so = low.replace(/[^a-zà-ú/]/g, '')
+    if (FORMAS[so]) return w.replace(new RegExp(so.replace('/', '\\/'), 'i'), FORMAS[so])
+    const l = w.replace(/[^A-Za-zÀ-ú]/g, '')
+    if (!tudoMaius && l.length >= 2 && l.length <= 4 && l === l.toUpperCase()) return w // sigla: RDL, MRV
+    if (i > 0 && MINUSC.has(low)) return low
+    return low.replace(/[a-zà-ú]/, (c) => c.toUpperCase())
+  }).join(' ').slice(0, 80)
+}
+/** "Orçamento", "Proposta" etc. não dizem o serviço: fica vazio para o título usar o nome da pasta. */
+export const servicoGenerico = (s: string) => /^(or[cç]amento|proposta|cota[cç][aã]o|pedido)s?(\s+(de\s+)?(servi[cç]os?|comercial|t[eé]cnic[ao]))?(\s*(n[º°o.]?|#)\s*\d+)?\.?$/i.test(String(s || '').trim())
+
 /** Limpa o que veio da IA (ou de um JSON antigo) para o formato do orçamento. */
 export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcamento> = {}): Orcamento {
   const o = base(keep)
@@ -598,6 +619,8 @@ export function cleanOrcamento(raw: Record<string, unknown>, keep: Partial<Orcam
   if (Array.isArray(raw2.materiais)) o.materiais = raw2.materiais.map(String).map((x) => x.trim()).filter(Boolean).slice(0, 20)
   for (const k of ['email', 'telefone', 'cnpj', 'endereco'] as const) if (raw2[k] != null && String(raw2[k]).trim()) o[k] = String(raw2[k]).trim().slice(0, 160)
   if (/^(n[aã]o sei|desconhecid[oa]|sem nome|n\/?a|-+)$/i.test(String(o.fornecedor || '').trim())) o.fornecedor = ''
+  o.fornecedor = nomeBonito(o.fornecedor)
+  if (servicoGenerico(o.servico)) o.servico = ''
   if (Array.isArray(raw2.arquivos)) o.arquivos = (raw2.arquivos as { nome?: string; tipo?: string }[]).map((a) => ({ nome: String(a?.nome ?? ''), tipo: String(a?.tipo ?? '') })).slice(0, 8)
   if (raw2.enviado === true) o.enviado = true
   if (raw2.lendo === true) o.lendo = true

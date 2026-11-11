@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { verOriginal } from './api'
 import { ApeIcon } from './ApeIcon'
+import { AvisoLeitura } from './Aviso'
 import { comparar } from './comparar'
 import { brl, dmy, fmtTel, nicho, waNum, wa, type Morador, type Orcamento } from './model'
 
@@ -46,6 +47,7 @@ export function Comparar({ orcs: todos, me, minhas = [], onFechar, inicioAberto 
         <b>comparação lado a lado</b>
         <button className="ape-btn ghost sm" onClick={() => (onSair ? onSair() : setAberto(false))}>fechar</button>
       </header>
+      <AvisoLeitura curto />
       {todos.length > 2 && (
         <div className="ape-cmp-sel" role="group" aria-label="Quais comparar">
           <span>comparar ({orcs.length} de até {MAX}):</span>

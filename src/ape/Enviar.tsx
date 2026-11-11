@@ -240,7 +240,7 @@ export function Enviar({ me, whats, orcamentos, meusIds, onPublicado, onCadastro
               : podeAgenda ? 'Escolha da agenda do celular, ou digite. Todo contato também aparece na aba contatos.' : 'Digite o nome e o WhatsApp, ou anexe um cartão de contato (.vcf). Todo contato também aparece na aba contatos.'}</p>
           </>
         )}
-        {tipo !== 'contato' && !lidos.length && <p className="ape-note ape-envio-dica"><ApeIcon name="sparkle" />Depois de publicar, o site lê sozinho o valor e o fornecedor e coloca na pasta certa. Seus dados não aparecem.</p>}
+        {tipo !== 'contato' && !lidos.length && <p className="ape-note ape-envio-dica"><ApeIcon name="sparkle" />Depois de publicar, o site lê sozinho o valor e o fornecedor e coloca na pasta certa. A leitura é automática e pode errar: confira depois em "seus orçamentos" e corrija se precisar. Seus dados não aparecem.</p>}
         {lidos.map((l, i) => (
           <LidoCard key={l.key} n={i + 1} l={l} podeJuntar={i > 0 && lidos[i - 1].status === 'pronto' && l.status === 'pronto' && (mesmoFornecedor(lidos[i - 1].o, l.o) || !l.o.fornecedor)} onJuntar={() => juntar(i)}
             onChange={(o) => atualizar(l.key, (x) => ({ ...x, o }))} onToggle={() => atualizar(l.key, (x) => ({ ...x, aberto: !x.aberto }))} onRemove={() => setLidos((ls) => ls.filter((x) => x.key !== l.key))} />
@@ -332,7 +332,7 @@ function LidoCard({ n, l, podeJuntar, onJuntar, onChange, onRemove }: { n: numbe
                 <div className="ape-f"><label>Fornecedor (se souber)</label><input value={o.fornecedor} onChange={(e) => onChange({ ...o, fornecedor: e.target.value, forn_auto: false })} placeholder="o site tenta ler sozinho" /></div>
               </div>
               <div className="ape-f"><label><span className="ape-keep">WhatsApp</span> do fornecedor (se tiver)</label><input inputMode="tel" value={o.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} placeholder="(11) 90000-0000 · vai para a aba contatos" /></div>
-              <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="sparkle" /> Valores, prazo e o resto são lidos sozinhos depois que você enviar.</p>
+              <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="sparkle" /> Valores, prazo e o resto são lidos sozinhos depois que você enviar. Pode ter erro: confira depois de publicar.</p>
               {podeJuntar && <button type="button" className="ape-btn ghost sm" onClick={onJuntar}><ApeIcon name="copy" />é do mesmo orçamento que o {n - 1}</button>}
             </div>
           )}

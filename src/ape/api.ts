@@ -964,6 +964,10 @@ export const painelConta = {
     const { error } = await sb().from('ape_feedback').insert({ tipo: 'depoimento', nome: nome.trim().slice(0, 80), texto: texto.trim().slice(0, 1200), nota, publicado: true })
     fail(error)
   },
+  async marcarLido(id: string, lido = true) {
+    const { error } = await sb().from('ape_feedback').update({ lido }).eq('id', id)
+    fail(error)
+  },
   async apagarFeedback(id: string) {
     const { error } = await sb().from('ape_feedback').delete().eq('id', id)
     fail(error)

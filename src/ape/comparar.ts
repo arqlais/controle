@@ -218,9 +218,11 @@ export function comparar(orcs: Orcamento[]): Comparacao {
   return { orcs, precos, escopo, faltas, divergencias, extras, destaques, pendentes }
 }
 
+const MINUSC_NOME = new Set(['e', 'de', 'da', 'do', 'das', 'dos', 'em'])
 /* ===== leitura sem IA: tira o que dá do texto do PDF (contatos, valores, fornecedor) ===== */
 export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento['itens'] } {
-  const t = txt.replace(/\r/g, '')
+  // sem emoji e sem *negrito*/_itálico_ do WhatsApp: não atrapalham nome nem valores
+  const t = txt.replace(/\r/g, '').replace(/\p{Extended_Pictographic}|[\u{1F1E6}-\u{1F1FF}\uFE0F\u200D\u20E3]/gu, ' ').replace(/(^|\s)[*_~]+|[*_~]+(?=\s|$)/gm, '$1')
   const linhas = t.split('\n').map((l) => l.trim()).filter(Boolean)
   const out: Partial<Orcamento> = {}
   const email = t.match(/[\w.+-]+@[\w-]+\.[\w.]+/)
@@ -233,6 +235,13 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   if (cnpj) out.cnpj = digits(cnpj[0])
   const ig = t.match(/@([a-z0-9_.]{3,30})(?![\w.]*\.(com|br))/i)
   if (ig && !email?.[0].includes(ig[0])) out.instagram = '@' + ig[1]
+  // link do Instagram ou site da empresa
+  const igUrl = t.match(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/([a-z0-9_.]{2,30})/i)
+  if (igUrl) out.instagram = '@' + igUrl[1].replace(/\.$/, '')
+  if (!out.instagram) {
+    const site = t.match(/\b(?:https?:\/\/)?(?:www\.)[a-z0-9-]+(?:\.[a-z]{2,})+(?:\/\S*)?|https?:\/\/(?!wa\.me|api\.whatsapp|maps\.)[a-z0-9-]+(?:\.[a-z]{2,})+(?:\/\S*)?/i)
+    if (site) out.instagram = /^https?:/i.test(site[0]) ? site[0] : 'https://' + site[0]
+  }
   // fornecedor: linha com LTDA/ME/EIRELI, o que vem depois do rótulo "Empresa", ou a primeira linha de título (sem endereço nem rótulos)
   const ruim = /\b(cep|cnpj|cpf|avenida|av\.|rua|bairro|endere[cç]o|empresa|cliente|data|telefone|assinatura|total|observa[cç][oõ]es|garantia|prazo|validade|instru[cç][oõ]es|or[cç]amento|proposta|cria[cç][aã]o|atualiza[cç][aã]o|quant|produto|material|valor|bom dia|boa tarde|boa noite|ol[aá]|oi|segue|seguem|prezad[oa]s?|lembrando|formas?|pagamento|somente|instalad[oa]|setor)\b/i
   const emp = linhas.find((l) => /\b(ltda|eireli|\bme\b|mei|s\/a|marmoraria|marcenaria|pisos|vidra[cç]aria|gesso|serralheria|superf[ií]cies|m[oó]veis|planejados|aquecedores|aquecedor a g[aá]s|instala[cç][oõ]es|com[eé]rcio|distribuidora|materiais)\b/i.test(l) && l.length < 80 && !/\d+,\d{2}/.test(l))
@@ -245,11 +254,23 @@ export function lerTexto(txt: string): Partial<Orcamento> & { itens?: Orcamento[
   // só vale se a linha tiver um CNPJ de verdade (formulário com campo vazio "CNPJ/CPF: . . / -" não conta)
   const doCnpj = (linhas.find((l) => /cnpj/i.test(l) && /\d{2}\.?\d{3}\.?\d{3}/.test(l)) || '').split(/\s*[·•|\-–]\s*cnpj|\s+cnpj/i)[0].replace(/^(raz[aã]o social|empresa)\s*:?\s*/i, '').trim()
   const assinatura = linhas.find((l) => /\b(engenharia|arquitetura|construtora|reformas|representa[cç][oõ]es|servi[cç]os|ltda|eireli)\b/i.test(l) && !/cnpj|cpf|endere[cç]o/i.test(l) && l.length < 90 && !/\d+,\d{2}/.test(l) && !/cnpj/i.test(l))
+  // último recurso: linha com cara de nome (palavras com inicial maiúscula, curta, sem lista/valor/frase).
+  // Em mensagem o nome costuma vir assinando no fim; em documento, no topo.
+  const nomeDeLinha = () => {
+    const ok = (l: string) => {
+      if (l.length < 3 || l.length > 45 || !/^[A-ZÀ-Ú]/.test(l) || /\d|R\$|@|[!?:;()]|\.$/.test(l) || ruim.test(l)) return false
+      if (/\b(aproveite\w*|promo\w*|valores?|inclui\w*|incluso|lembrando|pagamentos?|confira|oferta|an[aá]lise|vistoria\s+(completa|t[eé]cnica)|laudo|relat[oó]rio|contrato|emiss[aã]o|segue|obrigad[oa])\b/i.test(l)) return false
+      const ws = l.split(/\s+/)
+      return ws.length <= 5 && ws.every((w) => MINUSC_NOME.has(w.toLowerCase()) || /^[A-ZÀ-Ú0-9]/.test(w) || /^[A-Z]\.?$/.test(w))
+    }
+    const cands = linhas.filter(ok)
+    return (/cnpj|proposta|or[cç]amento\s+n/i.test(t) ? cands[0] : cands[cands.length - 1]) || ''
+  }
   // mensagem de WhatsApp: o nome vem na despedida ("Grato, L. S Marmoraria", "Att.\nVidraçaria Luz")
   const iDesp = linhas.findIndex((l) => /^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)\b/i.test(l))
   const desp = iDesp >= 0 ? (linhas[iDesp].replace(/^(grat[oa]|obrigad[oa]|att\.?|atenciosamente|abra[cç]os?|at\.?te|cordialmente)[\s,.:!-]*/i, '').trim() || linhas[iDesp + 1] || '') : ''
   const despOk = desp.length >= 3 && desp.length < 60 && !/\d{4}|@|R\$/.test(desp) ? desp : ''
-  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || despOk || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || linhas.find((l) => l.length > 3 && l.length < 45 && l.split(/\s+/).length <= 6 && !ruim.test(l) && !/[!?()]|\p{Extended_Pictographic}|\b(aproveite\w*|promo\w*|valores?|inclui|lembrando|pagamentos?|confira|oferta)\b/iu.test(l) && !/^\d|R\$|@|\d+,\d{2}|\d+(?:[.,]\d+)?\s*(?:m|cm|mm|m²)\b|[.,;:]$/i.test(l) && !/^[a-zà-ú]/.test(l)) || '').replace(/\S+@\S+/g, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
+  out.fornecedor = ((doCnpj.length >= 3 && doCnpj.length < 70 && !/\d{2}\.\d{3}/.test(doCnpj) ? doCnpj : '') || despOk || limpaNome(assinatura || '') || limpaNome(emp || '') || (depoisEmp && !ruim.test(depoisEmp) ? depoisEmp.trim() : '') || nomeDeLinha()|| '').replace(/\S+@\S+/g, ' ').replace(/@[\w.]+/g, ' ').replace(/(?:https?:\/\/)?(?:www\.)?instagram\.com\/\S*/gi, ' ').replace(/(?:\+?55\s?)?\(?\d{2}\)?\s?9?\s?\d{4}[-\s.]?\d{4}/g, ' ').replace(/https?:\/\/\S+|www\.\S+/gi, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•|,;:\-–]+|[\s·•|,;:\-–]+$/g, '')
   // valores: total (com R$), à vista / Pix, parcelas
   // normaliza "$16.470.00" / "16,470.00" (centavos depois do ponto) para "R$ 16.470,00"; "$" sozinho vira "R$"
   const tv = t.replace(/(\d{1,3}(?:[.,]\d{3})+)\.(\d{2})(?!\d)/g, (_, a: string, c: string) => `${a.replace(/,/g, '.')},${c}`).replace(/(^|[^R\w])\$\s*(?=\d)/g, '$1R$ ')

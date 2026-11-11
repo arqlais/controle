@@ -9,6 +9,7 @@ import { AvatarGlyph } from '../components/Avatar'
 import { PLATFORM } from '../plans'
 import { admin, apeCloud, loja, marcarDona, painelConta, type Visita, type Online, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
+import { CaixaDona } from './FaleComigo'
 import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
@@ -175,6 +176,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
         <main className="content">
           <div className="page">
             <div className="ape ape-admin ape-adm-conteudo">
+              {apeCloud && <CaixaDona painel />}
               {erro && (
                 <div className="ape-banner warn">
                   Não consegui ler os dados do {APE.name} ({erro}). Confira se o arquivo <b>supabase/ape.sql</b> já foi rodado no Supabase.

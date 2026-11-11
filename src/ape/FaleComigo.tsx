@@ -85,3 +85,82 @@ export function FaleComigo({ me, whats }: { me: Morador | null; whats: string })
     </>
   )
 }
+
+/* ===== para a dona: caixa de mensagens ao vivo (atualiza sozinha e avisa no navegador quando chega) ===== */
+type Msg = { id: string; tipo: string; texto: string; nota: number | null; nome: string; criado: string; contato?: string; pagina?: string; lido?: boolean }
+const ROT: Record<string, string> = { duvida: 'dúvida', problema: 'algo não funcionou', depoimento: 'depoimento', sugestao: 'sugestão' }
+export function CaixaDona({ painel }: { painel?: boolean }) {
+  const [msgs, setMsgs] = useState<Msg[]>([])
+  const [aberto, setAberto] = useState(false)
+  const [avisos, setAvisos] = useState(typeof Notification !== 'undefined' && Notification.permission === 'granted')
+  useEffect(() => {
+    let vivo = true
+    let vistos: Set<string> | null = null
+    const busca = async () => {
+      try {
+        const { painelConta } = await import('./api')
+        const l = ((await painelConta.feedback()) as Msg[]).filter((m) => ['duvida', 'problema', 'depoimento', 'sugestao', 'mensagem'].includes(m.tipo))
+        if (!vivo) return
+        const novas = l.filter((m) => !m.lido && vistos && !vistos.has(m.id))
+        if (novas.length && typeof Notification !== 'undefined' && Notification.permission === 'granted')
+          for (const m of novas.slice(0, 3)) new Notification(`planê.apê · ${ROT[m.tipo] || 'mensagem'} de ${m.nome}`, { body: m.texto.slice(0, 140), tag: m.id })
+        vistos = new Set(l.map((m) => m.id))
+        setMsgs(l)
+      } catch { /* sem conexão: tenta de novo na próxima */ }
+    }
+    void busca()
+    const t = window.setInterval(() => { if (document.visibilityState === 'visible') void busca() }, 15000)
+    const vis = () => document.visibilityState === 'visible' && void busca()
+    document.addEventListener('visibilitychange', vis)
+    return () => { vivo = false; clearInterval(t); document.removeEventListener('visibilitychange', vis) }
+  }, [])
+  const novas = msgs.filter((m) => !m.lido)
+  const lido = async (m: Msg, v = true) => {
+    setMsgs((l) => l.map((x) => (x.id === m.id ? { ...x, lido: v } : x)))
+    try { const { painelConta } = await import('./api'); await painelConta.marcarLido(m.id, v) } catch { /* ok */ }
+  }
+  const responder = (m: Msg): [string, string] | null => {
+    const c = (m.contato || '').trim()
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c)) return ['e-mail', `mailto:${c}?subject=${encodeURIComponent('Re: sua mensagem no planê.apê')}`]
+    const z = c.replace(/\D/g, '')
+    if (z.length >= 10) return ['WhatsApp', wa(z.length <= 11 ? '55' + z : z, `Oi${m.nome && m.nome !== 'visitante' ? `, ${m.nome.split(' ')[0]}` : ''}! Aqui é a Laís do planê.apê, recebi a sua mensagem.`)]
+    return null
+  }
+  return (
+    <>
+      <button type="button" className={`ape-caixafab ${painel ? 'painel' : ''} ${novas.length ? 'tem' : ''}`} onClick={() => setAberto(true)} aria-label={`Mensagens dos clientes${novas.length ? `: ${novas.length} novas` : ''}`}>
+        <ApeIcon name="inbox" /><span>mensagens</span>{novas.length > 0 && <em>{novas.length}</em>}
+      </button>
+      {aberto && (
+        <div className="ape-sheet" role="dialog" aria-modal="true" aria-label="Mensagens" onClick={(e) => e.target === e.currentTarget && setAberto(false)}>
+          <div className="ape-sheet-in ape-ficha ape-caixa">
+            <button className="ape-x" onClick={() => setAberto(false)} aria-label="Fechar"><ApeIcon name="x" /></button>
+            <p className="ape-eyebrow">fale comigo · ao vivo</p>
+            <h2 className="ape-h2" style={{ marginTop: 0 }}>mensagens <em>{novas.length ? `${novas.length} nova${novas.length > 1 ? 's' : ''}` : 'em dia'}</em></h2>
+            {typeof Notification !== 'undefined' && !avisos && (
+              <button className="ape-btn sm" onClick={() => void Notification.requestPermission().then((r) => setAvisos(r === 'granted'))}><ApeIcon name="alert" />avisar neste aparelho quando chegar</button>
+            )}
+            <p className="ape-note" style={{ margin: 0 }}>Atualiza sozinha a cada 15 segundos com o site aberto. Toda mensagem também chega no seu e-mail.</p>
+            {!msgs.length && <div className="ape-empty"><b>nenhuma mensagem ainda</b><span>Quando alguém usar o balão "fale comigo", aparece aqui.</span></div>}
+            <div className="ape-caixa-lista">
+              {[...novas, ...msgs.filter((m) => m.lido)].slice(0, 60).map((m) => {
+                const r = responder(m)
+                return (
+                  <article key={m.id} className={`ape-caixa-it ${m.lido ? 'lida' : ''}`}>
+                    <div className="h"><b>{m.nome || 'visitante'}</b><span className={`ape-pill ${m.tipo === 'problema' ? 'terra' : 'azul'}`}>{ROT[m.tipo] || 'mensagem'}{m.nota ? ` · ${'★'.repeat(m.nota)}` : ''}</span></div>
+                    <p>{m.texto}</p>
+                    <small>{new Date(m.criado).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}{m.contato ? ` · ${m.contato}` : ''}{m.pagina ? ` · ${m.pagina}` : ''}</small>
+                    <div className="ape-acts">
+                      {r && <a className="ape-btn sm primary" href={r[1]} target="_blank" rel="noopener noreferrer" onClick={() => void lido(m)}><ApeIcon name={r[0] === 'WhatsApp' ? 'wpp' : 'mail'} />responder no {r[0]}</a>}
+                      <button className="ape-btn sm ghost" onClick={() => void lido(m, !m.lido)}><ApeIcon name="check" />{m.lido ? 'marcar como nova' : 'marcar como lida'}</button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
