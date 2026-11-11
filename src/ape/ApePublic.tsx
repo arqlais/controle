@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
-import { cadastrar, conferirCadastro, marcarDona, registrarVisita, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
+import { sessaoLocal, cadastrar, conferirCadastro, marcarDona, registrarVisita, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
 import {
@@ -101,7 +101,7 @@ export function ApePublic({ sub }: { sub?: string }) {
     setEditing(false)
   }
 
-  if (view === 'minha') return <div className="ape"><Protege chave={sub || ''} whats={whats}><Plataforma token={sub!.slice(6)} whats={whats} /></Protege></div>
+  if (view === 'minha') return <div className="ape"><Protege chave={sub || ''} whats={whats}><Plataforma token={sub!.slice(6)} whats={whats} /></Protege>{!owner && <FaleComigo me={me} whats={whats} origem="cliente" />}</div>
 
   // loja, checkout e pedido: página de vendas aberta a todos; orçamentos e envio: só moradores do San Levi
   const publico = view === 'loja' || view === 'checkout' || view === 'pedido' || view === 'conta'
@@ -181,7 +181,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         </Protege>
         <Assinatura />
       </main>
-      {owner ? <CaixaDona /> : <FaleComigo me={me} whats={whats} />}
+      {owner ? <CaixaDona /> : <FaleComigo me={me} whats={whats} origem={morador ? 'sanlevi' : sessaoLocal() ? 'cliente' : 'visitante'} />}
       {(morador || owner) && (
         <nav className="ape-bnav" aria-label="Seções">
           <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>

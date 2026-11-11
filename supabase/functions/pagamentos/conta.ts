@@ -311,6 +311,66 @@ ${passos(sl ? [
       corpo: `<p style="margin:0">${esc(ped.email)}${ped.tel ? ` · ${tel(ped.tel)}` : ''}</p>${resumoPedido(ped)}${ped.cortesia ? '' : caixa(`Sobra aproximada depois da taxa do Asaas: <b>${brl(Number(ped.total) - taxa)}</b>${n > 1 ? ` (parcelado em ${n}x: o Asaas repassa conforme o seu plano)` : ''}.`)}<p style="margin:0">O cliente já recebeu o e-mail para criar o acesso. Os arquivos saem com o nome dele no rodapé.</p>`,
       botao: ['abrir o painel', PAINEL] }))
   }
+  /* ===== suporte ao vivo: conversa entre quem visita (pelo código da conversa) e a dona ===== */
+  const ORIGENS: Record<string, string> = { sanlevi: 'morador(a) do San Levi', cliente: 'cliente da loja/plataforma', visitante: 'visitante' }
+  const ASSUNTOS: Record<string, string> = { duvida: 'dúvida', problema: 'algo não funcionou' }
+  const chatHist = new Map<string, number[]>()
+  async function chatEnviar(req: Request, body: J) {
+    const texto = String(body.texto ?? '').trim().slice(0, 2000)
+    if (!texto) return json({ erro: 'Escreva a mensagem.' }, 400)
+    const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim()
+    const agora = Date.now()
+    const h = (chatHist.get(ip) ?? []).filter((t) => agora - t < 864e5)
+    if (h.filter((t) => agora - t < 60e3).length >= 12 || h.length >= 300) return json({ erro: 'Muitas mensagens seguidas. Espere um pouquinho.' }, 429)
+    chatHist.set(ip, [...h, agora])
+    const nome = String(body.nome ?? '').trim().slice(0, 80)
+    const contato = String(body.contato ?? '').trim().slice(0, 120)
+    let conv: J | null = null
+    const token = String(body.token ?? '')
+    if (token) conv = (await db.from('ape_conversas').select('*').eq('token', token).maybeSingle()).data
+    const nova = !conv
+    if (!conv) {
+      const tk = crypto.randomUUID() + crypto.randomUUID().slice(0, 8)
+      const { data, error } = await db.from('ape_conversas').insert({ token: tk, nome, contato, origem: ORIGENS[String(body.origem)] ? String(body.origem) : 'visitante', assunto: ASSUNTOS[String(body.assunto)] ? String(body.assunto) : 'duvida', pagina: String(body.pagina ?? '').slice(0, 120) }).select('*').single()
+      if (error) return json({ erro: 'Não deu para abrir a conversa agora.' }, 500)
+      conv = data
+    }
+    const { data: ultimo } = await db.from('ape_chat').select('criado').eq('conversa', conv!.id).eq('de', 'cliente').order('criado', { ascending: false }).limit(1).maybeSingle()
+    await db.from('ape_chat').insert({ conversa: conv!.id, de: 'cliente', texto })
+    await db.from('ape_conversas').update({ atualizado: new Date().toISOString(), nao_lidas: (Number(conv!.nao_lidas) || 0) + 1, resolvida: false, ...(nome ? { nome } : {}), ...(contato ? { contato } : {}) }).eq('id', conv!.id)
+    // e-mail para a dona: conversa nova, ou mensagem depois de 15 min de silêncio (sem encher a caixa)
+    if (nova || !ultimo || agora - new Date(String(ultimo.criado)).getTime() > 15 * 60e3) {
+      const quem = nome || String(conv!.nome || '') || 'visitante'
+      const c = contato || String(conv!.contato || '')
+      await mandar(DONO, 'Laís', `Suporte planê.apê: ${ASSUNTOS[String(conv!.assunto)] || 'mensagem'} de ${quem}`, moldura({ site, dona: true, ajuda: false, previa: texto.slice(0, 90), kicker: `suporte · ${ORIGENS[String(conv!.origem)] || 'visitante'} · ${ASSUNTOS[String(conv!.assunto)] || ''}`, titulo: esc(quem),
+        corpo: `${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">${esc(c) || 'sem contato'}${conv!.pagina ? ` · página ${esc(String(conv!.pagina))}` : ''}</p><p>Responda pela caixa de mensagens do site ou do painel: a pessoa vê a resposta na hora.</p>`,
+        botao: ['responder agora', 'https://useplane.com.br/#/ape-admin'] }))
+    }
+    return await chatLer({ token: conv!.token })
+  }
+  async function chatLer(body: J) {
+    const { data: conv } = await db.from('ape_conversas').select('id, token, resolvida').eq('token', String(body.token ?? '')).maybeSingle()
+    if (!conv) return json({ erro: 'Conversa não encontrada.', sumiu: true }, 404)
+    const { data: msgs } = await db.from('ape_chat').select('id, de, texto, criado').eq('conversa', conv.id).order('criado', { ascending: true }).limit(200)
+    return json({ token: conv.token, resolvida: conv.resolvida, msgs: msgs ?? [] })
+  }
+  async function chatResponder(req: Request, body: J) {
+    const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+    const { data: u } = await db.auth.getUser(jwt)
+    if (!u?.user) return json({ erro: 'Entre na sua conta.' }, 401)
+    const { data: adm } = await db.from('admins').select('user_id').eq('user_id', u.user.id).maybeSingle()
+    if (!adm) return json({ erro: 'Só a dona responde.' }, 403)
+    const texto = String(body.texto ?? '').trim().slice(0, 3000)
+    if (!texto) return json({ erro: 'Escreva a resposta.' }, 400)
+    const { data: conv } = await db.from('ape_conversas').select('*').eq('id', String(body.conversa ?? '')).maybeSingle()
+    if (!conv) return json({ erro: 'Conversa não encontrada.' }, 404)
+    await db.from('ape_chat').insert({ conversa: conv.id, de: 'dona', texto })
+    await db.from('ape_conversas').update({ atualizado: new Date().toISOString(), nao_lidas: 0 }).eq('id', conv.id)
+    // se a pessoa deixou e-mail, a resposta chega lá também (caso ela tenha saído do site)
+    if (mailOk(String(conv.contato || ''))) await mandar(String(conv.contato), String(conv.nome || ''), 'A Laís respondeu a sua mensagem no planê.apê', moldura({ site, kicker: 'suporte planê.apê', titulo: `Oi${conv.nome ? `, ${primeiro(String(conv.nome))}` : ''}!`, corpo: `<p style="margin:0">Respondi a sua mensagem:</p>${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">Para continuar a conversa, abra o site no mesmo aparelho e toque em <b>ajuda</b>, ou responda este e-mail.</p>`, botao: ['abrir o site', 'https://useplane.com.br/ape/'] }))
+    return json({ ok: true })
+  }
+
   /** Balão "fale comigo": guarda a mensagem e manda e-mail para a dona na hora (com botão para responder). */
   const ultimasMsgs = new Map<string, number[]>()
   async function mensagem(req: Request, body: J) {
@@ -404,5 +464,5 @@ ${passos(sl ? [
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus, erroPagamento, mensagem }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus, erroPagamento, mensagem, chatEnviar, chatLer, chatResponder }
 }

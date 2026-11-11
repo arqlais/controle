@@ -223,6 +223,42 @@ export async function conferirCadastro(local: Morador | null): Promise<Morador |
 }
 
 /** Avisa a dona na hora quando o pagamento dá erro (e-mail com os dados da compra). Nunca falha para quem compra. */
+/* ===== suporte ao vivo ===== */
+export type ChatMsg = { id: string; de: 'cliente' | 'dona'; texto: string; criado: string }
+export type Conversa = { id: string; nome: string; contato: string; origem: string; assunto: string; pagina: string; nao_lidas: number; resolvida: boolean; criado: string; atualizado: string }
+const CHAT_LOCAL = 'ape-chat-previa'
+export async function chatEnviar(d: { token: string; texto: string; nome: string; contato: string; origem: string; assunto: string; pagina: string }): Promise<{ token: string; msgs: ChatMsg[] }> {
+  if (!CLOUD) {
+    // prévia: guarda só neste navegador
+    const l = JSON.parse(localStorage.getItem(CHAT_LOCAL) || '[]') as ChatMsg[]
+    l.push({ id: crypto.randomUUID(), de: 'cliente', texto: d.texto, criado: new Date().toISOString() })
+    localStorage.setItem(CHAT_LOCAL, JSON.stringify(l))
+    return { token: 'previa', msgs: l }
+  }
+  return invoke({ acao: 'ape-chat', ...d })
+}
+export async function chatLer(token: string): Promise<{ msgs: ChatMsg[]; sumiu?: boolean }> {
+  if (!CLOUD) return { msgs: JSON.parse(localStorage.getItem(CHAT_LOCAL) || '[]') }
+  try { return await invoke({ acao: 'ape-chat-ler', token }) } catch (e) { if (/não encontrada/i.test(String((e as Error).message))) return { msgs: [], sumiu: true }; throw e }
+}
+export const suporte = {
+  async conversas(): Promise<Conversa[]> {
+    if (!CLOUD) return []
+    const { data, error } = await sb().from('ape_conversas').select('id, nome, contato, origem, assunto, pagina, nao_lidas, resolvida, criado, atualizado').order('atualizado', { ascending: false }).limit(150)
+    if (error) return []
+    return data as Conversa[]
+  },
+  async mensagens(id: string): Promise<ChatMsg[]> {
+    const { data, error } = await sb().from('ape_chat').select('id, de, texto, criado').eq('conversa', id).order('criado', { ascending: true }).limit(300)
+    fail(error)
+    return data as ChatMsg[]
+  },
+  async responder(conversa: string, texto: string) { await invoke({ acao: 'ape-chat-responder', conversa, texto }) },
+  async lida(id: string) { await sb().from('ape_conversas').update({ nao_lidas: 0 }).eq('id', id) },
+  async resolver(id: string, resolvida: boolean) { const { error } = await sb().from('ape_conversas').update({ resolvida }).eq('id', id); fail(error) },
+  async apagar(id: string) { const { error } = await sb().from('ape_conversas').delete().eq('id', id); fail(error) },
+}
+
 /** Balão "fale comigo": a mensagem vai para a dona (fica no painel e chega por e-mail). */
 export async function mandarMensagem(d: { tipo: string; texto: string; nome: string; contato: string; pagina: string; nota?: number | null }) {
   if (!CLOUD) return

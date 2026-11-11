@@ -2820,3 +2820,35 @@ a.ape-ico:hover > span { transform: translateY(-1px); }
 .ape-caixa-it small { color: var(--a-muted); font-size: 12px; overflow-wrap: anywhere; }
 .ape-ficha-contato { margin: 12px 0 4px; display: grid; gap: 8px; }
 .ape-ficha-contato .ape-eyebrow { margin: 0; }
+
+/* suporte: um ícone só ("ajuda"), conversa ao vivo */
+.ape-chatfab em { font-style: normal; background: var(--a-sec); color: #fff; border-radius: 999px; padding: 1px 7px; font-size: 12px; }
+.ape-chatfab.tem { background: var(--a-pri); color: #fff; }
+.ape:has(.ape-dica) .ape-chatfab, .ape:has(.ape-dica) .ape-caixafab { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 760px) { .ape:has(.ape-dica) .ape-chatfab, .ape:has(.ape-dica) .ape-caixafab { bottom: calc(156px + env(safe-area-inset-bottom, 0px)); } .ape-chatfab em { position: absolute; top: -4px; right: -4px; } .ape-chatfab { position: fixed; } }
+.ape-chat-menu { display: grid; gap: 8px; }
+.ape-chat-menu button { display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left; border: 1px solid var(--a-line); background: var(--a-card); border-radius: 16px; padding: 12px 14px; font: inherit; cursor: pointer; }
+.ape-chat-menu button:hover { border-color: var(--a-pri); }
+.ape-chat-menu .ic { grid-row: span 2; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-chat-menu .ic .ape-i { width: 20px; height: 20px; }
+.ape-chat-menu b { font-size: 15px; }
+.ape-chat-menu small { color: var(--a-muted); font-size: 12.5px; }
+.ape-chat-topo { display: flex; gap: 10px; align-items: center; padding-right: 40px; }
+.ape-chat-topo .ape-btn .ape-i { transform: rotate(90deg); }
+.ape-chat-topo div { display: grid; gap: 1px; min-width: 0; }
+.ape-chat-topo small { color: var(--a-muted); font-size: 12px; overflow-wrap: anywhere; }
+.ape-chat-msgs { display: flex; flex-direction: column; gap: 8px; max-height: 46vh; min-height: 140px; overflow-y: auto; padding: 10px; border-radius: 16px; background: var(--a-bg); border: 1px solid var(--a-line); }
+.ape-chat-bolha { margin: 0; max-width: 82%; padding: 9px 12px; border-radius: 16px; font-size: 14px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; display: grid; gap: 3px; }
+.ape-chat-bolha small { font-size: 10.5px; opacity: .7; }
+.ape-chat-bolha.dona { align-self: flex-start; background: var(--a-card); border: 1px solid var(--a-line); border-bottom-left-radius: 6px; }
+.ape-chat-bolha.cliente { align-self: flex-end; background: var(--a-pri); color: #fff; border-bottom-right-radius: 6px; }
+.ape-chat-envio { display: flex; gap: 8px; align-items: flex-end; }
+.ape-chat-envio textarea { flex: 1; min-height: 46px; max-height: 140px; resize: vertical; }
+.ape-chat-envio .ape-btn { flex: none; width: 48px; height: 48px; padding: 0; justify-content: center; }
+.ape-caixa-filtros { display: grid; gap: 8px; }
+.ape-caixa-filtros .ape-chips-l { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ape-caixa-filtros .ape-chip .num { opacity: .6; margin-left: 2px; }
+button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 100%; }
+.ape-caixa-it .pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.ape-caixa-it em { font-style: normal; background: var(--a-sec); color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px; }
+.ape-caixa-it.nova { border-color: var(--a-pri); box-shadow: 0 0 0 2px var(--a-pri-soft); }
