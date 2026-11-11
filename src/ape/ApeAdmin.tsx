@@ -1507,12 +1507,12 @@ function Opinioes() {
         <div className="ape-acts"><button className="ape-btn primary" disabled={busy} onClick={() => void add()}><ApeIcon name="plus" />publicar na loja</button></div>
       </div>
       {!l ? <Thinking t="carregando…" /> : !l.length ? (
-        <div className="ape-empty"><b>nada ainda</b><span>Depoimentos e sugestões de quem comprou aparecem aqui. Os depoimentos publicados aparecem na loja.</span></div>
+        <div className="ape-empty"><b>nada ainda</b><span>Mensagens do balão "fale comigo", depoimentos e sugestões aparecem aqui (e chegam no seu e-mail). Os depoimentos publicados aparecem na loja.</span></div>
       ) : (
         <div className="ape-rows">
           {l.map((f) => (
             <div key={f.id} className="ape-row">
-              <div className="t"><b>{f.tipo === 'depoimento' ? `depoimento${f.nota ? ` · ${'★'.repeat(f.nota)}` : ''}` : 'sugestão'} · {f.nome} · {dmy(f.criado)}</b><span>{f.texto}</span></div>
+              <div className="t"><b>{f.tipo === 'depoimento' ? `depoimento${f.nota ? ` · ${'★'.repeat(f.nota)}` : ''}` : ({ duvida: 'dúvida', problema: 'problema no site', sugestao: 'sugestão' } as Record<string, string>)[f.tipo] || 'mensagem'} · {f.nome} · {dmy(f.criado)}</b><span>{f.texto}</span>{(f.contato || f.pagina) && <small className="ape-note">{[f.contato, f.pagina && `página ${f.pagina}`].filter(Boolean).join(' · ')}</small>}</div>
               <div className="r">
                 {f.tipo === 'depoimento' && <button className={`ape-btn sm ${f.publicado ? 'rose' : 'primary'}`} onClick={() => void painelConta.publicar(f.id, !f.publicado).then(load, (e) => toast(String(e.message)))}>{f.publicado ? 'tirar da loja' : 'publicar na loja'}</button>}
                 <button className="ape-icobtn" title="Apagar" aria-label="Apagar" onClick={() => { if (confirm('Apagar de vez?')) void painelConta.apagarFeedback(f.id).then(load, (e) => toast(String(e.message))) }}><ApeIcon name="trash" /></button>

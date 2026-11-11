@@ -223,6 +223,12 @@ export async function conferirCadastro(local: Morador | null): Promise<Morador |
 }
 
 /** Avisa a dona na hora quando o pagamento dá erro (e-mail com os dados da compra). Nunca falha para quem compra. */
+/** Balão "fale comigo": a mensagem vai para a dona (fica no painel e chega por e-mail). */
+export async function mandarMensagem(d: { tipo: string; texto: string; nome: string; contato: string; pagina: string; nota?: number | null }) {
+  if (!CLOUD) return
+  await invoke({ acao: 'ape-mensagem', ...d })
+}
+
 export async function avisarErroPagamento(d: { nome: string; email: string; tel: string; itens: { nome: string; preco: string }[]; total: number; forma: string; parcelas: number; erro: string }) {
   if (!CLOUD) return
   try { await invoke({ acao: 'ape-erro-pagamento', ...d }) } catch { /* sem conexão: o cliente ainda tem o WhatsApp na tela */ }
@@ -943,9 +949,9 @@ export const painelConta = {
     if (!CLOUD) return
     await invoke({ acao: 'ape-decidir', id, decisao, resposta, manual })
   },
-  async feedback(): Promise<{ id: string; tipo: string; texto: string; nota: number | null; nome: string; publicado: boolean; criado: string }[]> {
+  async feedback(): Promise<{ id: string; tipo: string; texto: string; nota: number | null; nome: string; publicado: boolean; criado: string; contato?: string; pagina?: string }[]> {
     if (!CLOUD) return []
-    const { data, error } = await sb().from('ape_feedback').select('id, tipo, texto, nota, nome, publicado, criado').order('criado', { ascending: false }).limit(200)
+    const { data, error } = await sb().from('ape_feedback').select('*').order('criado', { ascending: false }).limit(200)
     if (error) return []
     return data as never
   },

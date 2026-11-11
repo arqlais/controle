@@ -17,6 +17,7 @@ import { Plataforma } from './Plataforma'
 import { Conta } from './Conta'
 import { Orcamentos } from './Orcamentos'
 import { Protege } from './Protege'
+import { FaleComigo } from './FaleComigo'
 import './ape.css'
 
 /* Página pública do planê.apê: os moradores do San Levi se cadastram, comparam os orçamentos,
@@ -180,6 +181,7 @@ export function ApePublic({ sub }: { sub?: string }) {
         </Protege>
         <Assinatura />
       </main>
+      {!owner && <FaleComigo me={me} whats={whats} />}
       {(morador || owner) && (
         <nav className="ape-bnav" aria-label="Seções">
           <a href={href('ape')} aria-current={view === 'orcamentos' ? 'page' : undefined}>

@@ -311,6 +311,35 @@ ${passos(sl ? [
       corpo: `<p style="margin:0">${esc(ped.email)}${ped.tel ? ` · ${tel(ped.tel)}` : ''}</p>${resumoPedido(ped)}${ped.cortesia ? '' : caixa(`Sobra aproximada depois da taxa do Asaas: <b>${brl(Number(ped.total) - taxa)}</b>${n > 1 ? ` (parcelado em ${n}x: o Asaas repassa conforme o seu plano)` : ''}.`)}<p style="margin:0">O cliente já recebeu o e-mail para criar o acesso. Os arquivos saem com o nome dele no rodapé.</p>`,
       botao: ['abrir o painel', PAINEL] }))
   }
+  /** Balão "fale comigo": guarda a mensagem e manda e-mail para a dona na hora (com botão para responder). */
+  const ultimasMsgs = new Map<string, number[]>()
+  async function mensagem(req: Request, body: J) {
+    const texto = String(body.texto ?? '').trim().slice(0, 2000)
+    if (texto.length < 3) return json({ erro: 'Escreva a sua mensagem.' }, 400)
+    const tipos: Record<string, string> = { duvida: 'dúvida', problema: 'problema no site', depoimento: 'depoimento', sugestao: 'sugestão' }
+    const tipo = tipos[String(body.tipo)] ? String(body.tipo) : 'duvida'
+    const nome = String(body.nome ?? '').trim().slice(0, 80)
+    const contato = String(body.contato ?? '').trim().slice(0, 120)
+    const pagina = String(body.pagina ?? '').slice(0, 120)
+    // contra abuso: até 3 por minuto e 20 por dia por aparelho/contato
+    const chave = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() + '|' + contato.toLowerCase()
+    const agora = Date.now()
+    const hist = (ultimasMsgs.get(chave) ?? []).filter((t) => agora - t < 864e5)
+    if (hist.filter((t) => agora - t < 60e3).length >= 3 || hist.length >= 20) return json({ erro: 'Muitas mensagens seguidas. Espere um pouquinho ou chame no WhatsApp.' }, 429)
+    ultimasMsgs.set(chave, [...hist, agora])
+    const nota = tipo === 'depoimento' && Number(body.nota) ? Math.min(5, Math.max(1, Number(body.nota))) : null
+    const { error } = await db.from('ape_feedback').insert({ tipo, texto, nota, nome: nome || 'visitante', contato, pagina })
+    const zap = contato.replace(/\D/g, '')
+    const ehEmail = mailOk(contato)
+    const responder: [string, string] = ehEmail ? ['responder por e-mail', `mailto:${contato}?subject=${encodeURIComponent('Re: sua mensagem no planê.apê')}`] : zap.length >= 10 ? ['responder no WhatsApp', `https://wa.me/${zap.length <= 11 ? '55' + zap : zap}?text=${encodeURIComponent(`Oi${nome ? `, ${nome.split(' ')[0]}` : ''}! Aqui é a Laís do planê.apê, recebi a sua mensagem.`)}`] : ['abrir o painel', PAINEL]
+    // o e-mail sai mesmo se o banco falhar: a mensagem nunca se perde
+    const foi = await mandar(DONO, 'Laís', `${tipo === 'problema' ? 'Problema no site' : 'Mensagem'} no planê.apê: ${tipos[tipo]} de ${nome || 'visitante'}`, moldura({ site, dona: true, ajuda: false, previa: texto.slice(0, 90), kicker: `fale comigo · ${tipos[tipo]}${nota ? ` · nota ${nota}` : ''}`, titulo: esc(nome || 'visitante'),
+      corpo: `${caixa(esc(texto).replace(/\n/g, '<br>'))}<p style="margin:0">${esc(contato) || 'sem contato'}${pagina ? ` · página ${esc(pagina)}` : ''}</p>${tipo === 'depoimento' ? '<p>Para mostrar na loja, publique no painel → opiniões.</p>' : ''}`,
+      botao: responder }))
+    if (error && !foi) return json({ erro: 'Não deu para enviar agora. Chame no WhatsApp.' }, 500)
+    return json({ ok: true })
+  }
+
   /** Aviso imediato para a dona quando o pagamento dá erro na loja (com os dados para ela ajudar ou cobrar direto). */
   const ultimosErros = new Map<string, number>()
   async function erroPagamento(body: J) {
@@ -375,5 +404,5 @@ ${passos(sl ? [
     return json({ depoimentos: data ?? [] })
   }
 
-  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus, erroPagamento }
+  return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus, erroPagamento, mensagem }
 }

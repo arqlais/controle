@@ -313,6 +313,31 @@ function vcf(f: Fornecedor): string {
   const linhas = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${f.nome || 'Fornecedor'}`, `ORG:${f.nome || ''}`, tel && `TEL;TYPE=CELL:${tel}`, f.email && `EMAIL:${f.email}`, f.ig && `URL:${/^https?:/.test(f.ig) ? f.ig : 'https://instagram.com/' + f.ig.replace(/^@/, '')}`, `NOTE:${nota}`, 'END:VCARD'].filter(Boolean)
   return URL.createObjectURL(new Blob([linhas.join('\r\n')], { type: 'text/vcard' }))
 }
+/** Ícones de contato: o que o fornecedor não tiver fica apagado (cinza), para todo mundo ver o que dá para usar. */
+function IconesContato({ f, me }: { f: Fornecedor; me: Morador | null }) {
+  const n = f.tel ? (f.tel.startsWith('55') ? f.tel : '55' + f.tel) : ''
+  const ig = f.ig.trim()
+  const igUrl = !ig || /\s/.test(ig) ? '' : /^https?:/.test(ig) ? ig : `https://instagram.com/${ig.replace(/^@/, '').replace(/^instagram\.com\//i, '')}`
+  const msg = `Oi! ${me ? `Sou ${me.nome.split(' ')[0]}, ` : ''}vi o seu contato com os vizinhos do ${APE.condominio}. Pode me passar um orçamento de ${nicho(f.nichos[0]).l.toLowerCase()}?`
+  const itens: [string, string, string, string | null, boolean?][] = [
+    ['wpp', 'WhatsApp', 'mandar mensagem no WhatsApp', n ? wa(n, msg) : null],
+    ['call', 'ligar', 'ligar', n ? `tel:+${n}` : null],
+    ['mail', 'e-mail', 'mandar e-mail', f.email ? `mailto:${f.email}?subject=${encodeURIComponent(`Orçamento · ${APE.condominio}`)}&body=${encodeURIComponent(msg)}` : null],
+    ['insta', 'Instagram', 'abrir o Instagram', igUrl || null],
+    ['userplus', 'salvar', 'salvar na agenda do celular', n || f.email ? 'vcf' : null, true],
+  ]
+  return (
+    <div className="ape-icos" role="group" aria-label={`Contato de ${f.nome || 'fornecedor'}`}>
+      {itens.map(([ic, l, t, href, baixar]) => href ? (
+        <a key={ic} className={`ape-ico ${ic}`} href={baixar ? vcf(f) : href} {...(baixar ? { download: `${(f.nome || 'fornecedor').replace(/[^\wÀ-ú ]+/g, '').trim() || 'fornecedor'}.vcf` } : { target: '_blank', rel: 'noopener noreferrer' })} title={t} aria-label={t}><span><ApeIcon name={ic} /></span><small>{l}</small></a>
+      ) : (
+        <span key={ic} className={`ape-ico off ${ic}`} title={`sem ${l.toLowerCase()} informado`} aria-label={`sem ${l.toLowerCase()} informado`}><span><ApeIcon name={ic} /></span><small>{l}</small></span>
+      ))}
+    </div>
+  )
+}
+const fornDe = (o: Orcamento): Fornecedor => ({ chave: o.id, nome: o.fornecedor || '', tel: waNum(o.whatsapp || o.telefone || '') || '', ig: o.instagram || '', email: o.email || '', nichos: [o.nicho], orcs: 0, menor: null, nota: '' })
+
 function Agenda({ lista, me, termo, onPasta }: { lista: Fornecedor[]; me: Morador | null; termo: string; onPasta: (nicho: string) => void }) {
   const fs = termo ? lista.filter((f) => [f.nome, f.tel, f.ig, ...f.nichos.map((n) => nicho(n).l)].join(' ').toLowerCase().includes(termo)) : lista
   const grupos = [...new Set(fs.map((f) => f.nichos[0]))].sort((a, b) => nicho(a).l.localeCompare(nicho(b).l))
@@ -332,13 +357,8 @@ function Agenda({ lista, me, termo, onPasta }: { lista: Fornecedor[]; me: Morado
                   <small className="info">{f.orcs ? `${f.orcs} ${f.orcs > 1 ? 'orçamentos' : 'orçamento'}${f.menor != null ? ` · desde ${brl(f.menor)}` : ''}` : 'indicação de vizinho'}{f.nichos.length > 1 ? ` · também ${f.nichos.slice(1).map((n) => nicho(n).l.toLowerCase()).join(', ')}` : ''}</small>
                   {f.nota && <small className="nota">“{f.nota}”</small>}
                 </div>
-                <div className="acts">
-                  {f.tel && <a className="ape-btn sm primary" href={wa(f.tel.startsWith('55') ? f.tel : '55' + f.tel, `Oi! ${me ? `Sou ${me.nome.split(' ')[0]}, ` : ''}vi o seu contato com os vizinhos do ${APE.condominio}. Pode me passar um orçamento de ${nicho(f.nichos[0]).l.toLowerCase()}?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />WhatsApp</a>}
-                  {f.tel && <a className="ape-btn sm" href={`tel:+${f.tel.startsWith('55') ? f.tel : '55' + f.tel}`}><ApeIcon name="phone" />ligar</a>}
-                  {(f.tel || f.email) && <a className="ape-btn sm" href={vcf(f)} download={`${(f.nome || 'fornecedor').replace(/[^\wÀ-ú ]+/g, '').trim() || 'fornecedor'}.vcf`}><ApeIcon name="user" />salvar na agenda</a>}
-                  {f.ig && !/\s/.test(f.ig) && <a className="ape-btn sm ghost" href={/^https?:/.test(f.ig) ? f.ig : `https://instagram.com/${f.ig.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer">{/^https?:/.test(f.ig) ? 'site' : f.ig.startsWith('@') ? f.ig : '@' + f.ig}</a>}
-                  {f.orcs > 0 && <button type="button" className="ape-btn sm ghost" onClick={() => onPasta(f.nichos[0])}><ApeIcon name="list" />ver orçamentos</button>}
-                </div>
+                <IconesContato f={f} me={me} />
+                {f.orcs > 0 && <button type="button" className="ape-link-btn" onClick={() => onPasta(f.nichos[0])}><ApeIcon name="list" />ver {f.orcs > 1 ? `os ${f.orcs} orçamentos` : 'o orçamento'}</button>}
               </article>
             ))}
           </div>
@@ -355,8 +375,6 @@ function Contatos({ lista, me }: { lista: Orcamento[]; me: Morador | null }) {
       <p className="ape-eyebrow">contatos e tabelas</p>
       <div className="ape-contatos-grid">
         {lista.map((o) => {
-          const n = waNum(o.whatsapp || o.telefone)
-          const ig = (o.instagram || '').replace(/^@/, '')
           return (
             <article key={o.id} className="ape-contato">
               <div className="t">
@@ -369,11 +387,7 @@ function Contatos({ lista, me }: { lista: Orcamento[]; me: Morador | null }) {
                   {o.itens!.slice(0, 8).map((i, k) => <li key={k}><span>{i.descricao}{i.unidade ? ` (${i.unidade})` : ''}</span><b className="num">{i.valor != null ? brl(i.valor) : '—'}</b></li>)}
                 </ul>
               )}
-              <div className="ape-acts">
-                {n && <a className="ape-btn sm primary" href={wa(n, `Oi! ${me ? `Sou ${me.nome}, ` : ''}vi o seu contato com os vizinhos do ${APE.condominio}. Pode me passar um orçamento de ${nicho(o.nicho).l.toLowerCase()}?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />chamar no WhatsApp</a>}
-                {ig && !/\s/.test(ig) && <a className="ape-btn sm" href={/^https?:/.test(o.instagram || '') ? o.instagram : `https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer">{/^https?:/.test(o.instagram || '') ? 'site' : `@${ig}`}</a>}
-                {!n && !ig && <span className="ape-note">{o.email || 'sem contato informado'}</span>}
-              </div>
+              <IconesContato f={fornDe(o)} me={me} />
             </article>
           )
         })}

@@ -50,6 +50,11 @@ const P: Record<string, string> = {
   phone: '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
   ruler: '<path d="M3 17.5L17.5 3l3.5 3.5L6.5 21z"/><path d="M7 13.5l1.5 1.5M10 10.5l2 2M13 7.5l1.5 1.5"/>',
   home: '<path d="M3.5 11L12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5M10 20v-5.5h4V20"/>',
+  wpp: '<path d="M4 20l1.3-3.9A8.5 8.5 0 1 1 8 18.8z"/><path d="M9.2 8.6c.1 3.3 2.9 6.1 6.2 6.2l.9-1.4-1.9-.9-.9.8a5 5 0 0 1-2.8-2.8l.8-.9-.9-1.9z"/>',
+  call: '<path d="M5.5 4h3l1.6 4.2-2 1.4a11.5 11.5 0 0 0 6.3 6.3l1.4-2 4.2 1.6v3a2 2 0 0 1-2.1 2A16.5 16.5 0 0 1 3.5 6.1 2 2 0 0 1 5.5 4z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M4 7l8 6 8-6"/>',
+  insta: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.8"/><path d="M17 7h.01"/>',
+  userplus: '<circle cx="10" cy="8" r="4"/><path d="M3 21c1-4 3.8-6.5 7-6.5 1.4 0 2.7.4 3.8 1.2M18 14.5v6M15 17.5h6"/>',
   download: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M4.5 19.5h15"/>',
 }
 
