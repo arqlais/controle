@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-12-vitrines',
+    date: '2026-11-12',
+    kind: 'melhoria',
+    title: 'vitrines novas e sistema um pouco mais leve',
+    text: 'A página principal e as vitrines ganharam o mesmo visual da página de vendas, com os modelos vistos por dentro. O sistema abre um pouco mais rápido.',
+  },
+  {
     id: '2026-11-12-checkup',
     date: '2026-11-12',
     kind: 'melhoria',

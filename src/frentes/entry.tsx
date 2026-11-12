@@ -6,6 +6,8 @@ import '@fontsource/poppins/latin-400.css'
 import '@fontsource/poppins/latin-500.css'
 import '@fontsource/poppins/latin-600.css'
 import '@fontsource/poppins/latin-700.css'
+// o mesmo desenho da página de vendas da planê.arq (botões, cartões, seções lp-*)
+import '../styles.css'
 import './frentes.css'
 
 /* Entrada leve das páginas públicas (principal, planê.arquivos e planê.arq): não carrega o sistema.

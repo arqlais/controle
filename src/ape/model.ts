@@ -376,11 +376,12 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 /* ===== produtos e exemplos ===== */
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
-export const LOJA_VERSAO = 9
+export const LOJA_VERSAO = 10
 /** O que cada versão da loja muda nos produtos que a dona já salvou (o resto do que ela editou continua). */
 export const MIGRA_LOJA: Record<number, { novos: string[]; troca: Record<string, (keyof Produto)[]> }> = {
   8: { novos: ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca', 'kit-escolhas'], troca: { plataforma: ['preco', 'unidade'], 'kit-completo': ['combo', 'kitPct', 'desc', 'amostras'] } },
   9: { novos: ['beleza-fim-de-ano', 'beleza-precos', 'beleza-anamnese', 'beleza-termo', 'beleza-vale', 'beleza-caixa', 'free-proposta', 'free-contrato', 'free-briefing', 'free-preco-hora', 'arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-levantamento', 'arq-honorarios', 'arq-manual', 'kit-arq-primeiro'], troca: {} },
+  10: { novos: ['kit-beleza'], troca: {} },
 }
 /** Juros ao mês do cartão parcelado (o painel muda). Parcela mínima: R$ 5. */
 export const JUROS_PCT = 2.99
@@ -503,56 +504,58 @@ export const PRODUTOS: Produto[] = [
     itens: ['Gastos por cômodo: quanto planejou, quanto já foi e quanto falta', 'Parcelas dos próximos meses, somadas sozinhas', 'Etapas da compra e da obra, com datas e o que já foi feito', 'Vistoria com fotos e resumo para imprimir', 'Contatos dos fornecedores com WhatsApp a um toque', 'Abre no celular e no computador, sem instalar nada', 'Pagamento único: 12 meses de acesso, sem mensalidade'], ativo: true },
 
   /* ===== planê.arquivos (vitrine /arquivos) e planê.arq (vitrine /arq): o produto que ainda não tem arquivo fica "em breve" (ativo: false) ===== */
-  arq({ id: 'beleza-fim-de-ano', frente: 'arquivos', nicho: 'beleza', selo: 'novidade', arte: 'calendario', fase: undefined, nome: 'Kit avisos de fim de ano', tag: 'para a sua cliente', destaque: true, preco: 'R$ 19,90', formato: 'PowerPoint (abre no Canva e no Google Slides) + Word e PDF', amostras: [AM('f-beleza-fim-de-ano.jpg')], numeros: ['6 artes', 'stories e feed', '7 mensagens prontas'],
+  arq({ id: 'beleza-fim-de-ano', frente: 'arquivos', nicho: 'beleza', selo: 'novidade', arte: 'calendario', fase: undefined, nome: 'Kit avisos de fim de ano', tag: 'para a sua cliente', destaque: true, preco: 'R$ 19,90', formato: 'PowerPoint (abre no Canva e no Google Slides) + Word e PDF', amostras: [AM('m2-beleza-fim-de-ano.webp'), AM('p-beleza-fim-de-ano-2.webp'), AM('p-beleza-fim-de-ano-3.webp')], numeros: ['6 artes', 'stories e feed', '7 mensagens prontas'],
     desc: 'Avisos prontos para mandar às clientes: agenda de fim de ano, últimos horários, recesso e data de volta, com as mensagens para o WhatsApp.',
     itens: ['6 artes editáveis para stories e para o feed: agenda aberta, últimos horários, horários especiais, recesso, volta e boas festas', '7 mensagens prontas para o WhatsApp, inclusive aviso de reajuste', 'Passo a passo para editar no Canva e postar no dia certo'] }),
-  arq({ id: 'beleza-precos', frente: 'arquivos', nicho: 'beleza', arte: 'orcamento', fase: undefined, nome: 'Tabela de preços editável', tag: 'editável', preco: 'R$ 14,90', formato: 'PowerPoint (abre no Canva e no Google Slides) + PDF', amostras: [AM('f-beleza-precos.jpg')], numeros: ['feed e stories', 'PDF para o balcão'],
+  arq({ id: 'beleza-precos', frente: 'arquivos', nicho: 'beleza', arte: 'orcamento', fase: undefined, nome: 'Tabela de preços editável', tag: 'editável', preco: 'R$ 14,90', formato: 'PowerPoint (abre no Canva e no Google Slides) + PDF', amostras: [AM('m2-beleza-precos.webp'), AM('p-beleza-precos-1.webp')], numeros: ['feed e stories', 'PDF para o balcão'],
     desc: 'Tabela de serviços e valores para o feed, os stories e o WhatsApp. Troque os serviços, os preços e as cores no Canva.',
     itens: ['Versão para o feed (1080 x 1350)', 'Versão para os stories (1080 x 1920)', 'PDF para imprimir e deixar no balcão', 'Três grupos de serviços, fáceis de trocar'] }),
-  arq({ id: 'beleza-anamnese', frente: 'arquivos', nicho: 'beleza', selo: 'essencial', arte: 'vistoria', fase: undefined, nome: 'Fichas de anamnese', tag: 'atendimento', preco: 'R$ 19,90', formato: 'Word (abre no Google Docs) + PDF para imprimir', amostras: [AM('f-beleza-anamnese.jpg')], numeros: ['3 fichas', 'saúde sim/não', 'registro de atendimentos'],
+  arq({ id: 'beleza-anamnese', frente: 'arquivos', nicho: 'beleza', selo: 'essencial', arte: 'vistoria', fase: undefined, nome: 'Fichas de anamnese', tag: 'atendimento', preco: 'R$ 19,90', formato: 'Word (abre no Google Docs) + PDF para imprimir', amostras: [AM('m2-beleza-anamnese.webp'), AM('p-beleza-anamnese-2.webp'), AM('p-beleza-anamnese-3.webp')], numeros: ['3 fichas', 'saúde sim/não', 'registro de atendimentos'],
     desc: 'Fichas de anamnese para sobrancelha e cílios, unhas e estética: preencher no celular ou imprimir.',
     itens: ['Ficha de sobrancelha e cílios', 'Ficha de unhas', 'Ficha de estética facial e corporal', 'Perguntas de saúde com sim e não', 'Autorização de fotos e tabela para registrar cada atendimento'] }),
-  arq({ id: 'beleza-termo', frente: 'arquivos', nicho: 'beleza', arte: 'contrato', fase: undefined, nome: 'Termo de consentimento e uso de imagem', tag: 'segurança', preco: 'R$ 12,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-beleza-termo.jpg')], numeros: ['consentimento', 'uso de imagem', 'LGPD'],
+  arq({ id: 'beleza-termo', frente: 'arquivos', nicho: 'beleza', arte: 'contrato', fase: undefined, nome: 'Termo de consentimento e uso de imagem', tag: 'segurança', preco: 'R$ 12,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-beleza-termo.webp'), AM('p-beleza-termo-2.webp'), AM('p-beleza-termo-3.webp')], numeros: ['consentimento', 'uso de imagem', 'LGPD'],
     desc: 'Termo de consentimento do procedimento e autorização para postar fotos do resultado.',
     itens: ['Termo de consentimento para procedimento estético', 'Autorização de uso de imagem com opções (com ou sem rosto)', 'Texto de proteção de dados (LGPD)'] }),
-  arq({ id: 'beleza-vale', frente: 'arquivos', nicho: 'beleza', arte: 'presente', fase: undefined, nome: 'Vale-presente e cartão fidelidade', tag: 'editável', preco: 'R$ 12,90', formato: 'PowerPoint (abre no Canva) + PDF para imprimir', amostras: [AM('f-beleza-vale.jpg')], numeros: ['frente e verso', '8 por folha A4'],
+  arq({ id: 'beleza-vale', frente: 'arquivos', nicho: 'beleza', arte: 'presente', fase: undefined, nome: 'Vale-presente e cartão fidelidade', tag: 'editável', preco: 'R$ 12,90', formato: 'PowerPoint (abre no Canva) + PDF para imprimir', amostras: [AM('m2-beleza-vale.webp'), AM('p-beleza-vale-1.webp'), AM('p-beleza-vale-4.webp')], numeros: ['frente e verso', '8 por folha A4'],
     desc: 'Vale-presente para as datas comemorativas e cartão fidelidade com 10 selos, prontos para imprimir.',
     itens: ['Vale-presente (frente e verso)', 'Cartão fidelidade com 10 selos (frente e verso)', 'Tamanho de cartão de visita (85 x 55 mm)', 'PDF com 8 cartões por folha'] }),
-  arq({ id: 'beleza-caixa', frente: 'arquivos', nicho: 'beleza', arte: 'planilha', fase: undefined, nome: 'Planilha de agenda e caixa', tag: 'organização', preco: 'R$ 17,90', formato: 'Excel · abre no Google Planilhas', numeros: ['agenda do mês', 'entradas e saídas', 'contas automáticas'],
+  arq({ id: 'beleza-caixa', amostras: [AM('m2-beleza-caixa.webp')], frente: 'arquivos', nicho: 'beleza', arte: 'planilha', fase: undefined, nome: 'Planilha de agenda e caixa', tag: 'organização', preco: 'R$ 17,90', formato: 'Excel · abre no Google Planilhas', numeros: ['agenda do mês', 'entradas e saídas', 'contas automáticas'],
     desc: 'Agenda do mês, quanto entrou, quanto saiu e quanto sobrou, com as contas automáticas.',
     itens: ['Lista de serviços e preços que preenche a agenda sozinha', 'Agenda com forma de pagamento e "já pagou?"', 'Saídas por categoria', 'Resumo: entrou, a receber, saiu, sobrou e ticket médio'] }),
-  arq({ id: 'free-proposta', frente: 'arquivos', nicho: 'freelancer', arte: 'orcamento', fase: undefined, nome: 'Modelo de proposta', tag: 'freelancer', preco: 'R$ 19,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-free-proposta.jpg')], numeros: ['escopo', 'prazo', 'forma de pagamento'],
+  kit({ id: 'kit-beleza', frente: 'arquivos', nicho: 'beleza', selo: 'melhor custo-benefício', amostras: [AM('m2-kit-beleza.webp')], nome: 'Kit atendimento completo', tag: 'kit', arte: 'presente', kitPct: 30, combo: ['beleza-anamnese', 'beleza-termo', 'beleza-precos', 'beleza-vale'],
+    desc: 'Fichas de anamnese, termo de consentimento, tabela de preços e vale-presente com fidelidade, com desconto.' }),
+  arq({ id: 'free-proposta', frente: 'arquivos', nicho: 'freelancer', arte: 'orcamento', fase: undefined, nome: 'Modelo de proposta', tag: 'freelancer', preco: 'R$ 19,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-free-proposta.webp'), AM('p-free-proposta-2.webp'), AM('p-free-proposta-3.webp')], numeros: ['escopo', 'prazo', 'forma de pagamento'],
     desc: 'Proposta de serviço clara e bonita: o que entra, o que não entra, prazo, valor e forma de pagamento.',
     itens: ['O que está e o que não está incluído', 'Etapas e prazos', 'Investimento e forma de pagamento', 'Próximos passos e aceite'] }),
-  arq({ id: 'free-contrato', frente: 'arquivos', nicho: 'freelancer', arte: 'contrato', fase: undefined, nome: 'Modelo de contrato de prestação de serviço', tag: 'freelancer', preco: 'R$ 24,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-free-contrato.jpg')], numeros: ['12 cláusulas', 'revisões e prazos', 'direitos de uso'],
+  arq({ id: 'free-contrato', frente: 'arquivos', nicho: 'freelancer', arte: 'contrato', fase: undefined, nome: 'Modelo de contrato de prestação de serviço', tag: 'freelancer', preco: 'R$ 24,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-free-contrato.webp'), AM('p-free-contrato-2.webp'), AM('p-free-contrato-3.webp')], numeros: ['12 cláusulas', 'revisões e prazos', 'direitos de uso'],
     desc: 'Contrato com as cláusulas que mais evitam problema: revisões, prazos, pagamento, atraso, direitos de uso e cancelamento.',
     itens: ['Objeto, escopo e o que não está incluído', 'Prazos, pagamento e multa por atraso', 'Rodadas de revisão', 'Direitos de uso e portfólio', 'Cancelamento, LGPD e foro'] }),
-  arq({ id: 'free-briefing', frente: 'arquivos', nicho: 'freelancer', arte: 'decorado', fase: undefined, nome: 'Briefing para o cliente preencher', tag: 'freelancer', preco: 'R$ 12,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-free-briefing.jpg')], numeros: ['6 seções', 'perguntas prontas'],
+  arq({ id: 'free-briefing', frente: 'arquivos', nicho: 'freelancer', arte: 'decorado', fase: undefined, nome: 'Briefing para o cliente preencher', tag: 'freelancer', preco: 'R$ 12,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-free-briefing.webp'), AM('p-free-briefing-2.webp'), AM('p-free-briefing-3.webp')], numeros: ['6 seções', 'perguntas prontas'],
     desc: 'As perguntas certas antes de começar, para o cliente responder sozinho.',
     itens: ['Negócio e público', 'Objetivo do projeto', 'Gosto, referências e o que não quer', 'Prazos, investimento e materiais'] }),
-  arq({ id: 'free-preco-hora', frente: 'arquivos', nicho: 'freelancer', arte: 'calculo', fase: undefined, nome: 'Calculadora de preço por hora', tag: 'freelancer', preco: 'R$ 16,90', formato: 'Excel · abre no Google Planilhas', numeros: ['custos do mês', 'preço mínimo', 'preço do projeto'],
+  arq({ id: 'free-preco-hora', amostras: [AM('m2-free-preco-hora.webp')], frente: 'arquivos', nicho: 'freelancer', arte: 'calculo', fase: undefined, nome: 'Calculadora de preço por hora', tag: 'freelancer', preco: 'R$ 16,90', formato: 'Excel · abre no Google Planilhas', numeros: ['custos do mês', 'preço mínimo', 'preço do projeto'],
     desc: 'Quanto cobrar por hora e por projeto a partir dos seus custos e de quanto quer ganhar.',
     itens: ['Custos do mês, impostos e reserva', 'Horas realmente pagas', 'Preço mínimo por hora', 'Preço de um projeto por etapa, com margem'] }),
 
-  arq({ id: 'arq-proposta', frente: 'arq', nicho: 'arquitetura', arte: 'orcamento', fase: undefined, nome: 'Proposta de projeto de interiores', tag: 'modelo', preco: 'R$ 24,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-arq-proposta.jpg')], numeros: ['5 etapas', 'o que não está incluído', 'honorários'],
+  arq({ id: 'arq-proposta', frente: 'arq', nicho: 'arquitetura', arte: 'orcamento', fase: undefined, nome: 'Proposta de projeto de interiores', tag: 'modelo', preco: 'R$ 24,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-arq-proposta.webp'), AM('p-arq-proposta-2.webp'), AM('p-arq-proposta-3.webp')], numeros: ['5 etapas', 'o que não está incluído', 'honorários'],
     desc: 'Proposta com ambientes, etapas, entregas, prazos, honorários e forma de pagamento, pronta para personalizar.',
     itens: ['Ambientes e áreas', 'Etapas, entregas e prazos', 'O que não está incluído', 'Honorários, acompanhamento opcional e forma de pagamento', 'Próximos passos e aceite'] }),
-  arq({ id: 'arq-contrato', frente: 'arq', nicho: 'arquitetura', arte: 'contrato', fase: undefined, nome: 'Contrato de projeto de interiores', tag: 'modelo', preco: 'R$ 29,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-arq-contrato.jpg')], numeros: ['14 cláusulas', 'revisões e visitas', 'direitos autorais'],
+  arq({ id: 'arq-contrato', frente: 'arq', nicho: 'arquitetura', arte: 'contrato', fase: undefined, nome: 'Contrato de projeto de interiores', tag: 'modelo', preco: 'R$ 29,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-arq-contrato.webp'), AM('p-arq-contrato-2.webp'), AM('p-arq-contrato-3.webp')], numeros: ['14 cláusulas', 'revisões e visitas', 'direitos autorais'],
     desc: 'Contrato com etapas, revisões, visitas, acompanhamento de obra, RRT e direitos autorais. Revise com um advogado antes de usar.',
     itens: ['Etapas e aprovações por escrito', 'Honorários e atraso', 'Revisões, visitas e acompanhamento de obra', 'Responsabilidade técnica e direitos autorais', 'Rescisão, LGPD e foro'] }),
-  arq({ id: 'arq-briefing', frente: 'arq', nicho: 'arquitetura', arte: 'decorado', fase: undefined, nome: 'Briefing residencial', tag: 'modelo', preco: 'R$ 14,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('f-arq-briefing.jpg')], numeros: ['família e rotina', 'cômodo por cômodo'],
+  arq({ id: 'arq-briefing', frente: 'arq', nicho: 'arquitetura', arte: 'decorado', fase: undefined, nome: 'Briefing residencial', tag: 'modelo', preco: 'R$ 14,90', formato: 'Word (abre no Google Docs) + PDF', amostras: [AM('m2-arq-briefing.webp'), AM('p-arq-briefing-2.webp'), AM('p-arq-briefing-3.webp')], numeros: ['família e rotina', 'cômodo por cômodo'],
     desc: 'Rotina, gostos e necessidades da família, cômodo por cômodo, para o cliente preencher.',
     itens: ['O imóvel e quem mora', 'Gosto e referências', 'Perguntas de cada cômodo', 'Obra, orçamento e prioridades'] }),
-  arq({ id: 'arq-levantamento', frente: 'arq', nicho: 'arquitetura', arte: 'medidas', fase: undefined, nome: 'Checklist de levantamento', tag: 'na visita', preco: 'R$ 12,90', formato: 'PDF para imprimir ou usar no tablet + Word', amostras: [AM('f-arq-levantamento.jpg')], numeros: ['+40 itens', 'elétrica e hidráulica', 'fotos'],
+  arq({ id: 'arq-levantamento', frente: 'arq', nicho: 'arquitetura', arte: 'medidas', fase: undefined, nome: 'Checklist de levantamento', tag: 'na visita', preco: 'R$ 12,90', formato: 'PDF para imprimir ou usar no tablet + Word', amostras: [AM('m2-arq-levantamento.webp'), AM('p-arq-levantamento-1.webp'), AM('p-arq-levantamento-2.webp')], numeros: ['+40 itens', 'elétrica e hidráulica', 'fotos'],
     desc: 'O que medir, fotografar e perguntar na primeira visita, para não precisar voltar.',
     itens: ['O que levar', 'Medidas, elétrica, hidráulica e gás', 'Acabamentos e problemas existentes', 'Lista de fotos e regras do condomínio', 'Tabela de anotações por ambiente'] }),
-  arq({ id: 'arq-honorarios', frente: 'arq', nicho: 'arquitetura', arte: 'calculo', fase: undefined, nome: 'Calculadora de honorários', tag: 'planilha', preco: 'R$ 19,90', formato: 'Excel · abre no Google Planilhas', numeros: ['por m²', 'por hora', '% da obra'],
+  arq({ id: 'arq-honorarios', amostras: [AM('m2-arq-honorarios.webp')], frente: 'arq', nicho: 'arquitetura', arte: 'calculo', fase: undefined, nome: 'Calculadora de honorários', tag: 'planilha', preco: 'R$ 19,90', formato: 'Excel · abre no Google Planilhas', numeros: ['por m²', 'por hora', '% da obra'],
     desc: 'Compare o valor do projeto por m², por hora e por porcentagem da obra, com os seus custos.',
     itens: ['Valor da sua hora a partir dos custos', 'Por m², com valor por tipo de ambiente', 'Por hora, etapa por etapa', 'Comparação dos três métodos e valor sugerido'] }),
-  arq({ id: 'arq-manual', frente: 'arq', nicho: 'arquitetura', arte: 'casa', fase: undefined, nome: 'Manual do cliente', tag: 'editável', preco: 'R$ 19,90', formato: 'PowerPoint (abre no Canva) + PDF', amostras: [AM('f-arq-manual.jpg')], numeros: ['8 páginas', 'etapas', 'combinados'],
+  arq({ id: 'arq-manual', frente: 'arq', nicho: 'arquitetura', arte: 'casa', fase: undefined, nome: 'Manual do cliente', tag: 'editável', preco: 'R$ 19,90', formato: 'PowerPoint (abre no Canva) + PDF', amostras: [AM('m2-arq-manual.webp'), AM('p-arq-manual-2.webp'), AM('p-arq-manual-3.webp')], numeros: ['8 páginas', 'etapas', 'combinados'],
     desc: 'Para mandar ao cliente no começo: como funciona cada etapa, a obra, os combinados e o contato.',
     itens: ['Boas-vindas', 'O que acontece em cada etapa', 'Durante a obra', 'Como a gente conversa', 'Editável com a sua marca'] }),
-  kit({ id: 'kit-arq-primeiro', frente: 'arq', nicho: 'arquitetura', selo: 'melhor custo-benefício', nome: 'Kit primeiro cliente', tag: 'kit', arte: 'contrato', kitPct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'], amostras: [AM('f-arq-proposta.jpg')],
+  kit({ id: 'kit-arq-primeiro', frente: 'arq', nicho: 'arquitetura', selo: 'melhor custo-benefício', nome: 'Kit primeiro cliente', tag: 'kit', arte: 'contrato', kitPct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'], amostras: [AM('m2-kit-arq-primeiro.webp')],
     desc: 'Proposta, contrato, briefing e manual do cliente, com desconto.' }),
 ]
 
@@ -585,7 +588,21 @@ export function liquido(total: number, forma: 'pix' | 'cartao', t: Taxas = TAXAS
 }
 /** A mesma conta da função de pagamento: kit tem preço fixo (já com desconto), arquivo avulso paga o preço da etiqueta,
  *  e o Pix ganha PIX_PCT% sobre o total. Um arquivo que já está num kit do carrinho sai, para não pagar duas vezes. */
-export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao' = 'pix', pixPct = PIX_PCT) {
+/** Cupom de desconto (painel → produtos e preços). Vale para as frentes listadas (vazio = todas) até a data. */
+export interface Cupom { codigo: string; pct: number; ate?: string; frentes?: Frente[]; ativo?: boolean }
+/** Cupom de lançamento das vitrines novas (o painel troca ou desliga). */
+export const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 15, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
+export const hojeISO = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
+/** Acha um cupom válido (ativo, dentro da data). A mesma regra roda no servidor. */
+export function acharCupom(cupons: Cupom[] | undefined, codigo: string, hoje = hojeISO()): Cupom | null {
+  const c = (cupons || []).find((x) => x.ativo !== false && x.codigo.trim().toUpperCase() === codigo.trim().toUpperCase())
+  if (!c || !(c.pct > 0) || c.pct > 50) return null
+  return c.ate && hoje > c.ate ? null : c
+}
+/** Cupom válido hoje para uma frente (para mostrar o aviso na vitrine). */
+export const cupomDaFrente = (cupons: Cupom[] | undefined, f: Frente) => (cupons || []).find((c) => acharCupom(cupons, c.codigo) && (!c.frentes?.length || c.frentes.includes(f))) || null
+
+export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao' = 'pix', pixPct = PIX_PCT, cupom: Cupom | null = null) {
   const map = new Map(produtos.filter((p) => p.ativo && noCarrinho(p)).map((p) => [p.id, p]))
   let uniq = [...new Set(ids)].filter((id) => map.has(id))
   const dentro = new Set(uniq.flatMap((id) => (map.get(id)!.cat === 'combos' ? map.get(id)!.combo || [] : [])))
@@ -593,13 +610,17 @@ export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao
   uniq = uniq.filter((id) => !repetidos.includes(id))
   const itens = uniq.map((id) => map.get(id)!)
   const subtotal = c2(itens.reduce((t, p) => t + reais(p.preco), 0))
-  const pixDesconto = c2(subtotal * pixPct / 100)
-  const totalPix = c2(subtotal - pixDesconto)
+  // cupom: só nos itens das frentes dele; o desconto do Pix vem depois, sobre o que sobrou
+  const elegiveis = cupom ? itens.filter((p) => !cupom.frentes?.length || cupom.frentes.includes(frenteDe(p))) : []
+  const cupomDesc = cupom ? c2(elegiveis.reduce((t, p) => t + reais(p.preco), 0) * cupom.pct / 100) : 0
+  const base = c2(subtotal - cupomDesc)
+  const pixDesconto = c2(base * pixPct / 100)
+  const totalPix = c2(base - pixDesconto)
   const desconto = forma === 'pix' ? pixDesconto : 0
   // quanto os kits do carrinho economizam em relação aos arquivos separados (só para mostrar)
   const preco = new Map(produtos.map((p) => [p.id, reais(p.preco)]))
   const economiaKits = c2(itens.filter((p) => p.cat === 'combos').reduce((t, p) => t + (p.combo || []).reduce((s, id) => s + (preco.get(id) || 0), 0) - reais(p.preco), 0))
-  return { itens, subtotal, desconto, pixDesconto, totalPix, total: c2(subtotal - desconto), repetidos, economiaKits, pixPct }
+  return { itens, subtotal, cupomDesc, base, desconto, pixDesconto, totalPix, total: c2(base - desconto), repetidos, economiaKits, pixPct }
 }
 
 export const CTA_COPY: Record<string, [string, string, string]> = {

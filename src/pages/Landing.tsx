@@ -14,6 +14,8 @@ import { STATUS, allPayments, deadlineInfo, fmtDate, isOpen, money, paymentState
 import type { Settings } from '../types'
 import { go } from '../router'
 import { CycleToggle, PlanPrice, cycleHint, useCycle } from '../components/PlanPrice'
+// estilos só da página de vendas (separados de platform.css: quem usa o sistema não baixa)
+import './landing.css'
 
 import { LANDING_PROFILE_KEY, inviteFromUrl } from '../components/Signup'
 

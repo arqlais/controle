@@ -67,7 +67,18 @@ const EXTRAS: Record<string, [string, number, boolean]> = {
   'arq-honorarios': ['Calculadora de honorários', 19.9, true],
   'arq-manual': ['Manual do cliente', 19.9, true],
 }
-const KIT_ARQ = { id: 'kit-arq-primeiro', nome: 'Kit primeiro cliente', pct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'] }
+const KIT_ARQ = { id: 'kit-arq-primeiro', nome: 'Kit primeiro cliente', pct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'], frente: 'arq' }
+const KIT_BELEZA = { id: 'kit-beleza', nome: 'Kit atendimento completo', pct: 30, combo: ['beleza-anamnese', 'beleza-termo', 'beleza-precos', 'beleza-vale'], frente: 'arquivos' }
+const KITS_EXTRAS = [KIT_ARQ, KIT_BELEZA]
+/* cupons (painel → produtos e preços); sem nenhum salvo, vale o de lançamento das vitrines novas. Mesma regra de src/ape/model.ts */
+type Cupom = { codigo: string; pct: number; ate?: string; frentes?: string[]; ativo?: boolean }
+const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 15, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
+function acharCupom(cupons: Cupom[], codigo: string): Cupom | null {
+  const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
+  const c = cupons.find((x) => x.ativo !== false && String(x.codigo).trim().toUpperCase() === codigo.trim().toUpperCase())
+  if (!c || !(Number(c.pct) > 0) || Number(c.pct) > 50) return null
+  return c.ate && hoje > c.ate ? null : { ...c, pct: Number(c.pct) }
+}
 const ESCOLHAS = ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca']
 const PLATAFORMA_PRECO = 89.9
 const JUROS_PCT = 2.99
@@ -109,7 +120,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (saved) {
       // produtos das outras frentes que o painel ainda não salvou (loja v9): entram com o padrão
       for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (!saved.some((p) => p.id === id)) saved.push({ id, nome, preco, cat: 'arquivos', ativo, frente: frenteDoId(id) })
-      if (!saved.some((p) => p.id === KIT_ARQ.id)) saved.push({ id: KIT_ARQ.id, nome: KIT_ARQ.nome, cat: 'combos', ativo: true, combo: KIT_ARQ.combo, kitPct: KIT_ARQ.pct, preco: 0, frente: 'arq' })
+      for (const k of KITS_EXTRAS) if (!saved.some((p) => p.id === k.id)) saved.push({ id: k.id, nome: k.nome, cat: 'combos', ativo: true, combo: k.combo, kitPct: k.pct, preco: 0, frente: k.frente })
       for (const p of saved) if (p.ativo !== false && ['arquivos', 'combos', 'plataforma'].includes(p.cat ?? 'arquivos')) map[p.id] = { id: p.id, nome: String(p.nome), preco: reais(p.preco), cat: p.cat ?? 'arquivos', combo: Array.isArray(p.combo) ? p.combo.map(String) : [], frente: p.frente || frenteDoId(String(p.id)) }
       // kit com % de desconto: o preço sai da soma dos arquivos (igual ao site)
       for (const p of saved) if (map[p.id] && p.cat === 'combos' && Number(p.kitPct) > 0) map[p.id].preco = precoKit(map[p.id].combo.reduce((t, id) => t + (map[id]?.cat === 'arquivos' ? map[id].preco : reais(saved.find((x) => x.id === id)?.preco)), 0), Number(p.kitPct))
@@ -118,21 +129,25 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       for (const [id, [nome, pct, combo]] of Object.entries(KITS)) map[id] = { id, nome, preco: precoKit(combo.reduce((t, x) => t + ARQ[x][1], 0), pct), cat: 'combos', combo }
       map.plataforma = { id: 'plataforma', nome: 'Plataforma do apê (12 meses)', preco: PLATAFORMA_PRECO, cat: 'plataforma', combo: [] }
       for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (ativo) map[id] = { id, nome, preco, cat: 'arquivos', combo: [], frente: frenteDoId(id) }
-      map[KIT_ARQ.id] = { id: KIT_ARQ.id, nome: KIT_ARQ.nome, preco: precoKit(KIT_ARQ.combo.reduce((t, x) => t + (EXTRAS[x]?.[1] ?? 0), 0), KIT_ARQ.pct), cat: 'combos', combo: KIT_ARQ.combo, frente: 'arq' }
+      for (const k of KITS_EXTRAS) map[k.id] = { id: k.id, nome: k.nome, preco: precoKit(k.combo.reduce((t, x) => t + (EXTRAS[x]?.[1] ?? 0), 0), k.pct), cat: 'combos', combo: k.combo, frente: k.frente }
     }
     const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
     const jurosPct = a.jurosPct != null && Number.isFinite(Number(a.jurosPct)) ? Math.min(10, Math.max(0, Number(a.jurosPct))) : JUROS_PCT
-    return { map, pixPct, jurosPct }
+    const cupons: Cupom[] = Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO
+    return { map, pixPct, jurosPct, cupons }
   }
 
-  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number) {
+  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number, cupom: Cupom | null = null) {
     let uniq = [...new Set(ids)].filter((id) => map[id])
     const noKit = new Set(uniq.flatMap((id) => (map[id].cat === 'combos' ? map[id].combo : [])))
     uniq = uniq.filter((id) => !(map[id].cat === 'arquivos' && noKit.has(id)))
     const itens = uniq.map((id) => ({ id, nome: map[id].nome, preco: map[id].preco, cat: map[id].cat, frente: map[id].frente || frenteDoId(id) }))
     const subtotal = c2(itens.reduce((t, i) => t + i.preco, 0))
-    const desconto = forma === 'pix' ? c2(subtotal * pixPct / 100) : 0
-    return { itens, subtotal, desconto, total: c2(subtotal - desconto) }
+    // cupom só nos itens das frentes dele; o Pix vem depois, sobre o que sobrou (igual ao site)
+    const cupomDesc = cupom ? c2(itens.filter((i) => !cupom.frentes?.length || cupom.frentes.includes(i.frente || 'apzinho')).reduce((t, i) => t + i.preco, 0) * cupom.pct / 100) : 0
+    const base = c2(subtotal - cupomDesc)
+    const pix = forma === 'pix' ? c2(base * pixPct / 100) : 0
+    return { itens, subtotal, cupomDesc, desconto: c2(cupomDesc + pix), total: c2(base - pix) }
   }
 
   const cpfOk = (v: string) => {
@@ -166,8 +181,9 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const falta = [nome.split(' ').length < 2 && 'nome completo', !cpfOk(cpf) && 'CPF válido', !emailOk(email) && 'e-mail válido', tel.length < 10 && 'telefone com DDD'].filter(Boolean)
     if (falta.length) return json({ erro: `Confira: ${falta.join(', ')}.` }, 400)
     if (body.aceite !== true) return json({ erro: 'Aceite os termos de uso antes de pagar.' }, 400)
-    const { map, pixPct, jurosPct } = await loja()
-    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct)
+    const { map, pixPct, jurosPct, cupons } = await loja()
+    const cupom = body.cupom ? acharCupom(cupons, String(body.cupom).slice(0, 40)) : null
+    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct, cupom)
     if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
     if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
     // cartão parcelado: o servidor refaz a conta dos juros (não confia no valor que veio do site)
@@ -177,7 +193,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (parc.n > 1) c.total = parc.total
     const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
     const aceite = { versao: TERMOS_VERSAO, em: new Date().toISOString() }
-    const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma, parcelas: parc.n }).select('id, token').single()
+    const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma, parcelas: parc.n, ...(cupom ? { cupom: cupom.codigo } : {}) }).select('id, token').single()
     if (error || !ped) throw new Error(error?.message ?? 'não deu para criar o pedido')
     await contaApi.lead({ email, nome, tel }, 'carrinho').catch(() => null)
     const customer = await cliente(nome, cpf, email, tel)
@@ -186,7 +202,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       billingType: forma === 'cartao' ? 'CREDIT_CARD' : 'PIX',
       ...(parc.n > 1 ? { installmentCount: parc.n, installmentValue: parc.parcela } : { value: c.total }),
       dueDate: hojeBR(),
-      description: (marcaDe(c.itens).nome + ' · ' + c.itens.map((i) => i.nome).join(' + ') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} com juros` : '')).slice(0, 480),
+      description: (marcaDe(c.itens).nome + ' · ' + c.itens.map((i) => i.nome).join(' + ') + (cupom ? ` · cupom ${cupom.codigo}` : '') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} com juros` : '')).slice(0, 480),
       externalReference: `ape|${ped.id}`,
       callback: { successUrl: `${site.replace(/\/$/, '')}/${marcaDe(c.itens).path}/#pedido:${ped.token}`, autoRedirect: true },
     }

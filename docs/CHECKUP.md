@@ -36,3 +36,13 @@ Falsos alarmes conferidos na imagem: perguntas frequentes fechadas, cartões que
 10. **E-mail pós-compra com a frente vizinha** (comprou arquivo de arq → 14 dias da gestão).
 11. **Estilos do sistema** (~450 KB num arquivo só): dividir por tela deixa o login e o painel mais rápidos.
 12. **Fonte The Seasons** (33 KB): dá para cortar só as letras usadas.
+
+## Segunda rodada · 12/11/2026
+
+- **Visual**: página principal e vitrines refeitas no desenho da página de vendas da planê.arq (topo de vidro, título com itálico, janela com cartões flutuantes, faixa rosé, seções alternadas, perguntas frequentes, faixa escura e rodapé). Os componentes ficam em `src/frentes/ui.tsx` e usam as mesmas classes `lp-*`.
+- **Mockups**: cenas novas para os 18 produtos, com as páginas reais de cada arquivo (folhas em leque, celulares com os stories, cartões impressos e janela de planilha), em `public/ape/amostras/m2-*.webp`, e páginas de dentro para a galeria do detalhe (`p-*.webp`).
+- **Depoimentos** (item 7): seção "quem usa, conta" em cada vitrine, só com depoimentos reais publicados no painel e da própria frente (o servidor descobre a frente pela compra de quem escreveu ou pela página).
+- **Google** (item 8): `useplane.com.br/arquivos/` e `/arq/` abrem a própria vitrine, com título, descrição, imagem de compartilhamento e a lista de produtos em JSON-LD; `sitemap.xml` e `robots.txt` gerados a cada publicação (`vite.config.ts`).
+- **Cupom e kit beleza** (item 9): cupom `LANCAMENTO` (15% em planê.arquivos e planê.arq até 31/12), com aviso na vitrine, campo no checkout e editor no painel (produtos e preços → cupons). Kit atendimento completo (anamnese, termo, tabela de preços e vale-presente, 30% off).
+- **E-mail pós-compra** (item 10): quem compra na planê.arq recebe o convite para a gestão (14 dias grátis); quem compra na planê.arquivos, o link da loja.
+- **Estilos** (item 11): as regras da página de vendas saíram de `platform.css` para `src/pages/landing.css`. Quem usa o sistema baixa 47 KB a menos; a página de vendas e a de entrar ficaram idênticas pixel a pixel (comparadas antes e depois em notebook e celular).

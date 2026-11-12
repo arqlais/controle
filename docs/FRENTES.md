@@ -159,3 +159,9 @@ Feitos para todos os produtos das duas vitrines, na identidade da planê (bege, 
 | Manual do cliente | PowerPoint e PDF |
 
 Os arquivos não ficam no repositório (ele é público): sobem criptografados em `ape-import/` e o servidor guarda na pasta privada (workflow "planê.apê · arquivos da loja", etapa importar). As capas das vitrines ficam em `public/ape/amostras/f-*.jpg`.
+
+## Cupons e kits (12/11/2026)
+
+- Painel do apê → **produtos e preços → cupons de desconto**: código, %, data final e para quais lojas vale. Sem nenhum salvo, vale o `LANCAMENTO` (15% em planê.arquivos e planê.arq até 31/12/2026).
+- O desconto do cupom vale sobre os itens das lojas marcadas; o desconto do Pix vem depois. O pedido guarda o cupom (coluna `cupom` em `ape_pedidos`).
+- Kits: planê.arq tem o **Kit primeiro cliente** (30%); planê.arquivos tem o **Kit atendimento completo** (30%).

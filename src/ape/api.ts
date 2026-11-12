@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { APE, EXEMPLOS, JUROS_PCT, LOJA_VERSAO, MIGRA_LOJA, PIX_PCT, PRODUTOS, TAXAS, comPrecos, conta, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
+import { APE, CUPONS_PADRAO, EXEMPLOS, JUROS_PCT, LOJA_VERSAO, MIGRA_LOJA, PIX_PCT, PRODUTOS, TAXAS, acharCupom, comPrecos, conta, type Cupom, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
 
 /* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -14,6 +14,7 @@ export interface Ajustes {
   fotoPainel?: string // foto do painel da dona (o símbolo do San Levi se vazio)
   fotoProjeto?: string // foto da seção de projetos (o painel troca; pasta pública ape-publico)
   fotoProjeto2?: string // segunda foto (opcional): com duas, aparecem lado a lado
+  cupons?: Cupom[] // cupons de desconto (sem nenhum salvo, vale o de lançamento)
   vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
 }
 export interface Vendedor { nome: string; doc: string; cidade: string; email: string }
@@ -75,7 +76,7 @@ const ajustesOf = (d: unknown): Ajustes => {
       for (const id of m.novos) if (!base.some((p) => p.id === id)) { const d = PRODUTOS.find((x) => x.id === id); if (d) base.push(d) }
     }
   }
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '' }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, cupons: Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '' }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), familia: Array.isArray(r.familia) ? (r.familia as string[]) : undefined, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -643,9 +644,9 @@ const invoke = async <T,>(body: Record<string, unknown>): Promise<T> => {
 }
 export interface NovoPedido { token: string; total: number; forma: 'pix' | 'cartao'; pix: Pedido['pix']; url: string | null }
 /** Cria o pedido (o preço é calculado na função, não aqui). Pix: o QR aparece na página; cartão: abre a página segura do Asaas. */
-export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; cpf: string; tel: string; email: string; forma: 'pix' | 'cartao'; parcelas?: number; aceite: boolean }, produtos: Produto[], pixPct: number): Promise<NovoPedido> {
+export async function criarPedido(d: { itens: string[]; morador?: string; nome: string; cpf: string; tel: string; email: string; forma: 'pix' | 'cartao'; parcelas?: number; aceite: boolean; cupom?: string }, produtos: Produto[], pixPct: number, cupons?: Cupom[]): Promise<NovoPedido> {
   if (!CLOUD) {
-    const c = conta(d.itens, produtos, d.forma, pixPct)
+    const c = conta(d.itens, produtos, d.forma, pixPct, d.cupom ? acharCupom(cupons, d.cupom) : null)
     const token = crypto.randomUUID()
     const ped: PedidoLocal = { token, status: 'pendente', itens: c.itens.map((p) => ({ id: p.id, nome: p.nome, preco: Number(p.preco.replace(/[^\d,]/g, '').replace(',', '.')) })), subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma: d.forma, nome: d.nome, criado: new Date().toISOString(), cpf: d.cpf, email: d.email, tel: d.tel, pix: d.forma === 'pix' ? { img: '', copia: '00020126580014BR.GOV.BCB.PIX-previa-' + token.slice(0, 8) } : null }
     writeLocal((l) => {
@@ -964,10 +965,13 @@ export async function contaApi<T = Record<string, unknown>>(op: string, dados: R
   if (!CLOUD) throw new Error('Na prévia não há contas de verdade.')
   return invoke<T>({ acao: 'ape-conta', op, sessao: sessaoLocal(), ...dados })
 }
-export async function depoimentos(): Promise<{ texto: string; nota: number | null; nome: string; criado: string }[]> {
+/** Depoimentos publicados no painel. Cada um diz de qual frente veio (pela compra de quem escreveu
+ *  ou pela página onde foi escrito): cada loja mostra só os seus. */
+export async function depoimentos(frente: 'apzinho' | 'arquivos' | 'arq' = 'apzinho'): Promise<{ texto: string; nota: number | null; nome: string; criado: string; frente?: string }[]> {
   if (!CLOUD) return []
   try {
-    return (await invoke<{ depoimentos: { texto: string; nota: number | null; nome: string; criado: string }[] }>({ acao: 'ape-depoimentos' })).depoimentos
+    const l = (await invoke<{ depoimentos: { texto: string; nota: number | null; nome: string; criado: string; frente?: string }[] }>({ acao: 'ape-depoimentos' })).depoimentos
+    return l.filter((d) => (d.frente || 'apzinho') === frente)
   } catch {
     return []
   }

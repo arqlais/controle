@@ -1,171 +1,198 @@
-import { useEffect, type ReactNode } from 'react'
-import { PlaneMark } from '../components/PlaneMark'
+import { useEffect, useRef } from 'react'
 import { Icon } from '../components/Icon'
-import { PLATFORM } from '../plans'
-import { FRENTES, instaUrl, type FrenteInfo } from './frentes'
+import { BrandMark } from '../components/PlaneMark'
+import { frente, type FrenteInfo } from './frentes'
+import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal } from './ui'
 import './frentes.css'
 
-/* Página principal (useplane.com.br para quem não está logado): o que é a planê e as três frentes.
-   Quem já é assinante vai direto para o sistema; quem abriu por engano acha o caminho em um toque.
-   Duas composições para a Laís escolher: "cards" (padrão) e "lista" (?v=lista). */
+/* Página principal da planê (useplane.com.br para quem não está logado), no desenho da página de vendas
+   da planê.arq: o que é a planê e as três frentes, cada uma com os seus arquivos de verdade. */
 
-const layout = (): 'cards' | 'lista' => {
-  try {
-    return new URLSearchParams(location.search).get('v') === 'lista' || /[?&]v=lista/.test(location.hash) ? 'lista' : 'cards'
-  } catch {
-    return 'cards'
-  }
-}
+const AM = (f: string) => `ape/amostras/${f}`
+
+const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, string, string]; precos: string }[] = [
+  {
+    f: frente('arquivos'),
+    titulo: 'para quem atende cliente',
+    itens: ['avisos, fichas e termos prontos para mandar', 'editáveis no Canva, no Word e no Excel', 'beleza, freelancers e pequenos negócios'],
+    imgs: [AM('m2-beleza-fim-de-ano.webp'), AM('m2-beleza-anamnese.webp'), AM('m2-beleza-caixa.webp')],
+    precos: 'a partir de R$ 12,90',
+  },
+  {
+    f: frente('arq'),
+    titulo: 'para quem projeta',
+    itens: ['proposta, contrato e briefing do jeito que o escritório usa', 'calculadora de honorários e manual do cliente', 'gestão completa com 14 dias grátis'],
+    imgs: [AM('m2-kit-arq-primeiro.webp'), AM('m2-arq-honorarios.webp'), AM('m2-arq-contrato.webp')],
+    precos: 'modelos a partir de R$ 12,90',
+  },
+  {
+    f: frente('apzinho'),
+    titulo: 'para quem compra apê',
+    itens: ['guias da compra, do financiamento e dos acabamentos', 'checklist de vistoria e planilhas da obra', 'plataforma para acompanhar tudo por 12 meses'],
+    imgs: [AM('m-kit-completo.jpg'), AM('m-checklist.jpg'), AM('m-planilha.jpg')],
+    precos: 'arquivos a partir de R$ 12,90',
+  },
+]
+
+const FAIXA = ['fichas de anamnese', 'tabela de preços', 'contratos', 'propostas', 'briefing', 'planilhas', 'vale-presente', 'honorários', 'vistoria do apê', 'guias da obra']
+
+const PORQUE = [
+  { icone: 'sparkle', t: 'pronto para usar', s: 'Troque o que está entre [colchetes] e mande no mesmo dia.' },
+  { icone: 'edit', t: 'do seu jeito', s: 'Canva, Word, Google Docs e Excel: cores, textos e marca são seus.' },
+  { icone: 'download', t: 'baixa na hora', s: 'Pagou no Pix ou no cartão, o botão de baixar aparece.' },
+  { icone: 'heart', t: 'feito por quem usa', s: 'Cada arquivo nasce de uma necessidade real do dia a dia.' },
+]
 
 export function Hub() {
-  const v = layout()
+  const root = useRef<HTMLDivElement>(null)
+  useReveal(root)
   useEffect(() => {
     document.title = 'Planê · arquivos, gestão e apê'
+    window.scrollTo(0, 0)
     // a vitrine já vai baixando enquanto a pessoa lê (o toque no card abre na hora)
     const pre = () => void import('./Vitrine')
     const w = window as Window & { requestIdleCallback?: (f: () => void) => number }
-    // quem está economizando dados no celular não baixa nada antes da hora
     if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
     if (w.requestIdleCallback) w.requestIdleCallback(pre)
     else setTimeout(pre, 1500)
   }, [])
   return (
-    <div className={`fr fr-hub fr-hub-${v}`}>
-      <FrTop />
-      <main className="fr-wrap">
-        <section className="fr-hero">
-          <p className="fr-eyebrow">planê</p>
-          <h1>
-            arquivos e ferramentas para <em>organizar</em> o trabalho e a casa
-          </h1>
-          <p className="fr-lead">Três frentes, um jeito só: simples, bonito e pronto para usar.</p>
-        </section>
-
-        <section className={v === 'lista' ? 'fr-lista' : 'fr-cards'} aria-label="frentes da planê">
-          {FRENTES.map((f, i) => (
-            <FrenteCard key={f.id} f={f} n={i + 1} />
-          ))}
-        </section>
-
-        <div className="fr-stripes" aria-hidden="true" />
-
-        <section className="fr-sobre">
-          <div className="fr-glass">
-            <p className="fr-eyebrow">quem faz</p>
-            <h2>
-              feita por quem <em>usa</em>
-            </h2>
-            <p>
-              A planê nasceu para organizar o trabalho de uma designer freelancer e estudante de arquitetura. Virou gestão para outros profissionais, loja de arquivos e
-              um guia para quem está comprando o primeiro apê.
-            </p>
-          </div>
-          <ul className="fr-facts">
-            <li>
-              <Icon name="check" />
-              <span>arquivos editáveis, entregues na hora</span>
-            </li>
-            <li>
-              <Icon name="lock" />
-              <span>Pix ou cartão, com 7 dias para desistir</span>
-            </li>
-            <li>
-              <Icon name="smartphone" />
-              <span>tudo abre no celular e no computador</span>
-            </li>
-          </ul>
-        </section>
-      </main>
-      <FrFoot />
-    </div>
-  )
-}
-
-function FrenteCard({ f, n }: { f: FrenteInfo; n: number }) {
-  return (
-    <a className={`fr-card fr-card-${f.id}`} href={f.rota}>
-      <span className="fr-card-ic">
-        <Icon name={f.icone} />
-      </span>
-      <span className="fr-card-t">
-        <small>
-          {String(n).padStart(2, '0')} · {f.para}
-        </small>
-        <b>
-          planê<em>.{f.marca}</em>
-        </b>
-        <span className="fr-card-frase">{f.frase}</span>
-        <span className="fr-card-desc">{f.desc}</span>
-      </span>
-      <span className="fr-card-go">
-        {f.botao}
-        <Icon name="arrowRight" />
-      </span>
-    </a>
-  )
-}
-
-/** Topo das páginas da planê (principal e vitrines). */
-export function FrTop({ titulo, extra }: { titulo?: FrenteInfo; extra?: ReactNode }) {
-  return (
-    <header className="fr-top">
-      <div className="fr-wrap fr-top-in">
-        <a className="fr-brand" href="#/plane" aria-label="planê: página principal">
-          <PlaneMark size={30} />
-          <span>
-            planê{titulo && <em>.{titulo.marca}</em>}
-          </span>
-        </a>
-        <nav className="fr-nav" aria-label="frentes">
-          {FRENTES.map((f) => (
-            <a key={f.id} href={f.rota} className={titulo?.id === f.id ? 'on' : ''}>
-              {f.marca}
-            </a>
-          ))}
-        </nav>
-        <div className="fr-top-r">
-          {extra}
-          {!titulo && (
-            <a className="fr-btn ghost sm" href="#/entrar">
-              <Icon name="user" />
+    <div className="lp fr" ref={root}>
+      <Topo
+        acoes={
+          <>
+            <a className="btn ghost small" href="#/entrar">
               entrar
             </a>
-          )}
-        </div>
-      </div>
-    </header>
-  )
-}
+            <a className="btn primary small" href="#/arquivos">
+              ver os arquivos
+            </a>
+          </>
+        }
+      />
 
-export function FrFoot() {
-  return (
-    <footer className="fr-foot">
-      <div className="fr-wrap fr-foot-in">
-        <a className="fr-brand" href="#/plane">
-          <PlaneMark size={24} />
-          <span>planê</span>
-        </a>
-        <nav aria-label="frentes">
-          {FRENTES.map((f) => (
-            <a key={f.id} href={f.rota}>
-              {f.marca}
-            </a>
-          ))}
-        </nav>
-        <nav aria-label="contato">
-          {FRENTES.map((f) => (
-            <a key={f.id} href={instaUrl(f.instagram)} target="_blank" rel="noopener noreferrer">
-              <Icon name="instagram" />
-              {f.instagram}
-            </a>
-          ))}
-          <a href={`mailto:${PLATFORM.email}`}>
-            <Icon name="mail" />
-            {PLATFORM.email}
-          </a>
-        </nav>
-        <small>© {new Date().getFullYear()} planê · {PLATFORM.domain}</small>
+      <section className="lp-hero">
+        <div className="lp-wrap lp-hero-in">
+          <div className="lp-hero-text">
+            <p className="lp-kicker">
+              <span className="lp-dot" /> arquivos, gestão e apê, num lugar só
+            </p>
+            <h1>
+              o seu trabalho e a sua casa, <em>organizados</em>
+            </h1>
+            <p className="lp-lead">Arquivos prontos para mandar hoje, gestão para quem projeta e guias para quem compra apê. Simples, bonito e do seu jeito.</p>
+            <p className="lp-auto-chip">
+              <Icon name="sparkle" size={14} /> baixa na hora ou testa grátis por 14 dias
+            </p>
+            <div className="row gap-s wrap">
+              <a className="btn primary lp-cta lp-shine" href="#/arquivos">
+                ver os arquivos <Icon name="arrowRight" size={16} />
+              </a>
+              <button className="btn ghost lp-cta" onClick={() => rolar('frentes')}>
+                conhecer a planê
+              </button>
+            </div>
+            <p className="muted small">Pix ou cartão · 7 dias para desistir</p>
+          </div>
+          <div className="lp-hero-art" aria-hidden>
+            <Janela label="useplane.com.br/arquivos">
+              <div className="fr-mini">
+                {[
+                  ['m2-beleza-fim-de-ano.webp', 'Kit avisos de fim de ano', 'R$ 19,90'],
+                  ['m2-beleza-anamnese.webp', 'Fichas de anamnese', 'R$ 19,90'],
+                  ['m2-arq-contrato.webp', 'Contrato de interiores', 'R$ 29,90'],
+                  ['m2-beleza-caixa.webp', 'Agenda e caixa', 'R$ 17,90'],
+                ].map(([img, n, p]) => (
+                  <span key={img} className="fr-mini-i">
+                    <img src={AM(img)} alt="" width={240} height={180} />
+                    <b>{n}</b>
+                    <small className="num">{p}</small>
+                  </span>
+                ))}
+              </div>
+            </Janela>
+            <Flutua n={1} icone="download" titulo="baixa na hora" sub="depois do Pix ou do cartão" tom="good" />
+            <Flutua n={2} icone="edit" titulo="editável" sub="Canva, Word e Excel" />
+            <Flutua n={3} icone="sparkle" titulo="14 dias grátis" sub="gestão planê.arq" tom="warn" />
+          </div>
+        </div>
+      </section>
+
+      <Faixa itens={FAIXA} />
+
+      <div id="frentes">
+        {LINHAS.map((l, i) => (
+          <section key={l.f.id} className={`lp-section ${i % 2 === 0 ? 'lp-alt' : ''}`}>
+            <div className={`lp-wrap fr-row ${i % 2 ? 'is-inv' : ''}`}>
+              <div className="fr-row-t" data-reveal>
+                <p className="eyebrow">
+                  {String(i + 1).padStart(2, '0')} · {l.titulo}
+                </p>
+                <h2>
+                  planê<em>.{l.f.marca}</em>
+                </h2>
+                <p className="fr-row-frase">{l.f.frase}</p>
+                <ul className="fr-checks">
+                  {l.itens.map((t) => (
+                    <li key={t}>
+                      <Icon name="check" size={16} /> {t}
+                    </li>
+                  ))}
+                </ul>
+                <div className="row gap-s wrap">
+                  <a className="btn primary lp-cta" href={l.f.rota}>
+                    {l.f.botao} <Icon name="arrowRight" size={16} />
+                  </a>
+                  <span className="muted small">{l.precos}</span>
+                </div>
+              </div>
+              <a className="fr-colagem" href={l.f.rota} aria-label={l.f.botao} data-reveal>
+                <img className="a" src={l.imgs[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
+                <img className="b" src={l.imgs[1]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
+                <img className="c" src={l.imgs[2]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
+              </a>
+            </div>
+          </section>
+        ))}
       </div>
-    </footer>
+
+      <section className="lp-section lp-diffs">
+        <div className="lp-wrap">
+          <Cabeca eyebrow="por que a planê" title={<>simples por fora, <em>caprichado</em> por dentro</>} />
+          <div className="lp-diffs-grid">
+            {PORQUE.map((d, i) => (
+              <article key={d.t} className="lp-diff" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
+                <span className="lp-diff-ico">
+                  <Icon name={d.icone} size={20} />
+                </span>
+                <b>{d.t}</b>
+                <small>{d.s}</small>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-section lp-story-sec lp-alt">
+        <div className="lp-wrap lp-story lp-me-story" data-reveal>
+          <span className="lp-me-wrap">
+            <span className="lp-me fr-me">
+              <BrandMark place="rodape" size={46} />
+            </span>
+          </span>
+          <p className="eyebrow">quem faz</p>
+          <h2>
+            feita por quem <em>usa</em>
+          </h2>
+          <p className="lp-story-text">
+            A planê nasceu para organizar o trabalho de uma designer e estudante de arquitetura. Virou gestão para outros profissionais, loja de arquivos e um guia para quem está
+            comprando o primeiro apê. Cada arquivo é usado na prática antes de ir para a loja.
+          </p>
+        </div>
+      </section>
+
+      <Final titulo={<>comece pelo que você <em>precisa hoje</em></>} texto="Arquivos que baixam na hora e gestão com 14 dias grátis." botao="ver os arquivos" href="#/arquivos" />
+      <Rodape />
+    </div>
   )
 }

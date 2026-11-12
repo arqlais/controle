@@ -3,7 +3,7 @@ import { href } from '../router'
 import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, JUROS_PCT, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
+import { APE, BONUS, JUROS_PCT, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
 import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
@@ -795,8 +795,20 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
   const pixPct = ajustes.pixPct ?? 5
   const cart = useCarrinho()
   const [forma, setForma] = useState<'pix' | 'cartao'>('pix')
-  const t = conta(cart.ids, produtos, forma, pixPct)
-  const opcoes = parcelas(t.subtotal, ajustes.jurosPct ?? JUROS_PCT)
+  // cupom: vem digitado ou do aviso da vitrine (guardado neste aparelho)
+  const [cupomTxt, setCupomTxt] = useState(() => { try { return localStorage.getItem('plane-cupom') || '' } catch { return '' } })
+  const [cupomMsg, setCupomMsg] = useState('')
+  const cupom = cupomTxt ? acharCupom(ajustes.cupons, cupomTxt) : null
+  const t = conta(cart.ids, produtos, forma, pixPct, cupom)
+  const aplicarCupom = () => {
+    const c = acharCupom(ajustes.cupons, cupomTxt)
+    if (!cupomTxt.trim()) return setCupomMsg('')
+    if (!c) return setCupomMsg('Cupom inválido ou vencido.')
+    const tt = conta(cart.ids, produtos, forma, pixPct, c)
+    setCupomMsg(tt.cupomDesc > 0 ? `Cupom aplicado: ${c.pct}% de desconto.` : 'Este cupom não vale para os itens do carrinho.')
+    try { localStorage.setItem('plane-cupom', c.codigo) } catch { /* ok */ }
+  }
+  const opcoes = parcelas(t.base, ajustes.jurosPct ?? JUROS_PCT)
   const [nParc, setNParc] = useState(1)
   const parc = forma === 'cartao' ? opcoes.find((o) => o.n === nParc) || opcoes[0] : null
   const totalFinal = parc ? parc.total : t.total
@@ -828,7 +840,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
     if (!aceite) return setErr('Leia e aceite os termos de uso para continuar.')
     setBusy(true)
     try {
-      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), cpf: digits(cpf), tel: digits(tel), email: email.trim().toLowerCase(), forma, parcelas: parc?.n || 1, aceite: true }, produtos, pixPct)
+      const r = await criarPedido({ itens: t.itens.map((p) => p.id), morador: me?.id, nome: nome.trim(), cpf: digits(cpf), tel: digits(tel), email: email.trim().toLowerCase(), forma, parcelas: parc?.n || 1, aceite: true, ...(cupom && t.cupomDesc > 0 ? { cupom: cupom.codigo } : {}) }, produtos, pixPct, ajustes.cupons)
       cart.limpar()
       if (r.forma === 'cartao' && r.url) window.location.href = r.url
       else window.location.hash = `#/${lojaRota()}/pedido:${r.token}`
@@ -911,7 +923,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           </CoStep>
           <CoStep n={4} title="termos de uso">
             <ul className="ape-termos-curto">
-              <li><ApeIcon name="check" />Uso pessoal e individual, na sua casa.</li>
+              <li><ApeIcon name="check" />{lojaRota() === 'ape' ? 'Uso pessoal e individual, na sua casa.' : 'Uso no seu próprio negócio, com as suas clientes, quantas vezes quiser.'}</li>
               <li><ApeIcon name="check" />Os materiais são protegidos por direitos autorais: não pode copiar, compartilhar, distribuir ou revender.</li>
               <li><ApeIcon name="check" />Cada PDF sai com o seu nome e parte do CPF no rodapé.</li>
               <li><ApeIcon name="check" />7 dias para desistir, com o dinheiro de volta.</li>
@@ -949,6 +961,12 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
             </div>
           ))}
           {t.economiaKits > 0 && <div className="ape-co-line ape-co-off"><span>já economizando nos kits</span><span className="num ape-keep">{brl(t.economiaKits)}</span></div>}
+          {cupom && t.cupomDesc > 0 && (
+            <div className="ape-co-line ape-co-off">
+              <span>cupom {cupom.codigo} ({cupom.pct}%)</span>
+              <span className="num ape-keep">−{brl(t.cupomDesc)}</span>
+            </div>
+          )}
           {t.desconto > 0 && (
             <div className="ape-co-line ape-co-off">
               <span>desconto do Pix ({pixPct}%)</span>
@@ -958,12 +976,20 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           {parc && parc.n > 1 && (
             <div className="ape-co-line">
               <span>juros do parcelamento ({parc.n}x)</span>
-              <span className="num ape-keep">+{brl(parc.total - t.subtotal)}</span>
+              <span className="num ape-keep">+{brl(parc.total - t.base)}</span>
             </div>
           )}
           <div className="ape-co-line ape-co-total">
             <span>total{parc && parc.n > 1 ? ` · ${parc.n}x de ${brl(parc.parcela)}` : ''}</span>
             <b className="num ape-keep">{brl(totalFinal)}</b>
+          </div>
+          <div className="ape-cupom">
+            <label htmlFor="co-cupom">cupom de desconto</label>
+            <div>
+              <input id="co-cupom" value={cupomTxt} onChange={(e) => { setCupomTxt(e.target.value.toUpperCase()); setCupomMsg('') }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); aplicarCupom() } }} placeholder="se tiver" autoComplete="off" autoCapitalize="characters" />
+              <button type="button" className="ape-btn sm" onClick={aplicarCupom}>aplicar</button>
+            </div>
+            {cupomMsg && <small role="status">{cupomMsg}</small>}
           </div>
           <ul className="ape-inc">
             <li><ApeIcon name="download" />baixa assim que o pagamento confirma</li>

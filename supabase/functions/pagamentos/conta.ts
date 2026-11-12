@@ -67,6 +67,8 @@ ${passos([
 <div style="padding:8px 0 2px">${botao('criar meu acesso', link)}</div>
 ${resumoPedido(ped)}
 ${temPlat ? caixa('<b>Plataforma do apê</b>: vale por 12 meses a partir de hoje. Ela fica em <b>minha conta → minha plataforma</b> e funciona no celular e no computador. Dica: no celular, use "adicionar à tela de início" para abrir como um aplicativo.') : ''}
+${m.id === 'arq' ? caixa(`<b>Quer que os modelos se preencham sozinhos?</b> A gestão planê.arq organiza clientes, propostas, contratos com assinatura e cobranças. São 14 dias grátis: <a href="${site.replace(/\/$/, '')}/#/vendas" style="color:#3e4b57;font-weight:600">conhecer a gestão</a>.`, 'sec') : ''}
+${m.id === 'arquivos' ? caixa(`<b>Mais arquivos prontos para o seu atendimento</b> estão na loja: fichas, termos, tabela de preços, vale-presente e planilhas. <a href="${site.replace(/\/$/, '')}/arquivos/" style="color:#3e4b57;font-weight:600">ver a loja</a>.`, 'sec') : ''}
 ${temArq && m.id === 'apzinho' ? caixa('<b>Tem um brinde surpresa a caminho.</b> Um arquivo exclusivo, que não tem à venda na loja, chega de presente em minha conta uma semana depois da compra. A gente te avisa por e-mail.', 'sec') : ''}
 <p style="margin:14px 0 0;font-size:12px;color:#8a817a">Depois do primeiro acesso, entre sempre por <b>minha conta</b>, de qualquer aparelho, com o seu e-mail e senha. Você tem 7 dias de direito de arrependimento, também em minha conta.</p>`,
       botao2: ['criar meu acesso', link],
@@ -464,8 +466,20 @@ ${passos(sl ? [
 
   /** Depoimentos publicados (aparecem na loja). */
   async function depoimentos() {
-    const { data } = await db.from('ape_feedback').select('texto, nota, nome, criado').eq('tipo', 'depoimento').eq('publicado', true).order('criado', { ascending: false }).limit(12)
-    return json({ depoimentos: data ?? [] })
+    const { data } = await db.from('ape_feedback').select('texto, nota, nome, criado, pagina, cliente').eq('tipo', 'depoimento').eq('publicado', true).order('criado', { ascending: false }).limit(30)
+    // de qual frente veio: pela página onde foi escrito ou pela última compra de quem escreveu
+    const frenteDaPagina = (p: string) => (/^#?\/?arquivos/.test(p) ? 'arquivos' : /^#?\/?arq\b/.test(p) ? 'arq' : '')
+    const out = []
+    for (const d of (data ?? []) as J[]) {
+      let frente = frenteDaPagina(String(d.pagina || ''))
+      if (!frente && d.cliente) {
+        const { data: cli } = await db.from('ape_clientes').select('email').eq('id', d.cliente).maybeSingle()
+        const { data: ped } = cli?.email ? await db.from('ape_pedidos').select('itens').eq('email', cli.email).eq('status', 'pago').order('criado', { ascending: false }).limit(1).maybeSingle() : { data: null }
+        if (ped) frente = marcaDe(ped.itens ?? []).id
+      }
+      out.push({ texto: d.texto, nota: d.nota, nome: d.nome, criado: d.criado, frente: frente || 'apzinho' })
+    }
+    return json({ depoimentos: out })
   }
 
   return { conta, decidir, depoimentos, emailCompra, avisarVenda, lead, testarEmail, emailReembolso, emailLembretePix, emailBonus, erroPagamento, mensagem, chatEnviar, chatLer, chatResponder }

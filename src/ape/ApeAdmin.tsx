@@ -15,7 +15,7 @@ import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
 import {
   APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, opcoesNicho, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
-  CATEGORIAS, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
+  CATEGORIAS, CUPONS_PADRAO, type Cupom, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
 
@@ -983,6 +983,8 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [jurosTxt, setJurosTxt] = useState(String(ajustes.jurosPct ?? JUROS_PCT).replace('.', ','))
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
+  const [cupons, setCupons] = useState<Cupom[]>(ajustes.cupons || CUPONS_PADRAO)
+  const setCupom = (i: number, patch: Partial<Cupom>) => setCupons((l) => l.map((c, j) => (j === i ? { ...c, ...patch } : c)))
   const [fotoProjeto, setFotoProjeto] = useState(ajustes.fotoProjeto || '')
   const [fotoProjeto2, setFotoProjeto2] = useState(ajustes.fotoProjeto2 || '')
   const [subindo2, setSubindo2] = useState(false)
@@ -1004,7 +1006,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '' }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, cupons: cupons.filter((c) => c.codigo.trim()).map((c) => ({ ...c, codigo: c.codigo.trim().toUpperCase().replace(/\s+/g, '') })), fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '' }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })
@@ -1031,6 +1033,32 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
           </div>
         </div>
         <span className="ape-hint">Confira as taxas no seu plano do Asaas (Minha conta → Taxas). Elas só servem para mostrar quanto sobra de cada venda.</span>
+      </div>
+      <div className="ape-panel ape-adm-box">
+        <p className="ape-eyebrow">cupons de desconto</p>
+        <div className="ape-rows">
+          {cupons.map((c, i) => (
+            <div key={i} className="ape-frow ape-adm-cupom">
+              <div className="ape-f"><label htmlFor={`cp-c${i}`}>Código</label><input id={`cp-c${i}`} value={c.codigo} onChange={(e) => setCupom(i, { codigo: e.target.value.toUpperCase() })} placeholder="LANCAMENTO" /></div>
+              <div className="ape-f"><label htmlFor={`cp-p${i}`}>Desconto (%)</label><input id={`cp-p${i}`} inputMode="numeric" value={String(c.pct)} onChange={(e) => setCupom(i, { pct: Math.min(50, Math.max(0, num(e.target.value) ?? 0)) })} /></div>
+              <div className="ape-f"><label htmlFor={`cp-a${i}`}>Vale até</label><input id={`cp-a${i}`} type="date" value={c.ate || ''} onChange={(e) => setCupom(i, { ate: e.target.value || undefined })} /></div>
+              <div className="ape-f"><label>Vale para</label>
+                <div className="ape-acts">
+                  {([['arquivos', 'planê.arquivos'], ['arq', 'planê.arq'], ['apzinho', 'planê.apê']] as const).map(([f, l]) => {
+                    const on = !c.frentes?.length || c.frentes.includes(f)
+                    return <button key={f} type="button" className={`ape-btn sm ${on ? 'primary' : 'ghost'}`} aria-pressed={on} onClick={() => { const atual = c.frentes?.length ? c.frentes : (['arquivos', 'arq', 'apzinho'] as const).slice(); setCupom(i, { frentes: on ? atual.filter((x) => x !== f) : [...atual, f] }) }}>{l}</button>
+                  })}
+                </div>
+              </div>
+              <div className="ape-acts">
+                <button type="button" className={`ape-btn sm ${c.ativo === false ? 'ghost' : ''}`} onClick={() => setCupom(i, { ativo: c.ativo === false })}>{c.ativo === false ? 'desligado' : 'ligado'}</button>
+                <button type="button" className="ape-btn ghost sm" onClick={() => setCupons((l) => l.filter((_, j) => j !== i))} aria-label={`Apagar o cupom ${c.codigo}`}><ApeIcon name="trash" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="ape-acts"><button type="button" className="ape-btn sm" onClick={() => setCupons((l) => [...l, { codigo: '', pct: 10, ativo: true }])}><ApeIcon name="plus" />novo cupom</button></div>
+        <span className="ape-hint">O cupom vale sobre o preço dos itens das lojas marcadas; o desconto do Pix vem depois. Na vitrine aparece o aviso do cupom válido. Toque em "salvar loja" depois de mudar.</span>
       </div>
       <div className="ape-panel ape-adm-box">
         <p className="ape-eyebrow">foto da seção de projetos</p>
