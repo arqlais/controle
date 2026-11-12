@@ -187,7 +187,10 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
           <div className="lp-hero-text">
             {cupom && (
               <button className="lp-ref-pill fr-cupom" onClick={usarCupom}>
-                <Icon name={usou ? 'check' : 'gift'} size={14} /> cupom <b>{cupom.codigo}</b>: <span className="num">{cupom.pct}%</span> off{cupom.ate ? ` até ${cupom.ate.slice(8, 10)}/${cupom.ate.slice(5, 7)}` : ''} · {usou ? 'guardado' : 'toque para usar'}
+                <Icon name={usou ? 'check' : 'gift'} size={14} />
+                <span>
+                  cupom <b>{cupom.codigo}</b>: <span className="num">{cupom.pct}%</span> off{cupom.ate ? ` até ${cupom.ate.slice(8, 10)}/${cupom.ate.slice(5, 7)}` : ''} · {usou ? 'guardado' : 'toque para usar'}
+                </span>
               </button>
             )}
             <p className="lp-kicker">
