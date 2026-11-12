@@ -2,6 +2,10 @@
    Só a paleta azul e rosa do planê; fundo bege uniforme, sem degradê nem manchas.
    Poppins em tudo (números inclusive); The Seasons itálico só em palavras, nunca em números. */
 
+@font-face { font-family: 'The Seasons'; font-style: italic; font-weight: 400; font-display: swap; src: url('../fonts/the-seasons-italic.woff2') format('woff2'); }
+html, body { margin: 0; background: #f5f1ee; }
+.fr-loading-full { min-height: 100vh; }
+
 .fr {
   --f-bg: #f5f1ee;
   --f-card: #ffffff;
@@ -50,7 +54,7 @@
 .fr button { font: inherit; color: inherit; cursor: pointer; }
 .fr .icon { flex: none; }
 .fr .num { font-family: var(--f-body); font-variant-numeric: tabular-nums; }
-.fr h1, .fr h2 { margin: 0; font-family: var(--f-body); font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; text-wrap: balance; color: var(--f-ink); }
+.fr h1, .fr h2 { margin: 0; font-family: var(--f-body); font-weight: 600; letter-spacing: -0.03em; line-height: 1.16; text-wrap: balance; color: var(--f-ink); }
 .fr h1 em, .fr h2 em, .fr b em, .fr-brand em { font-family: var(--f-display); font-style: italic; font-weight: 400; letter-spacing: 0; color: var(--f-rose); font-size: 1.12em; }
 .fr-wrap { width: min(1120px, 100%); margin: 0 auto; padding: 0 16px; }
 @media (min-width: 720px) { .fr-wrap { padding: 0 28px; } }
@@ -62,10 +66,10 @@
 /* topo: vidro discreto */
 .fr-top { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--f-bg) 82%, transparent); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); border-bottom: 1px solid color-mix(in srgb, var(--f-line) 70%, transparent); }
 .fr-top-in { display: flex; align-items: center; gap: 18px; height: 64px; }
-.fr-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 19px; letter-spacing: -0.02em; }
+.fr-brand { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; font-size: 19px; letter-spacing: -0.02em; }
 .fr-brand svg { border-radius: 9px; }
 .fr-nav { display: flex; gap: 4px; margin-left: auto; background: color-mix(in srgb, #fff 55%, transparent); border: 1px solid var(--f-line); border-radius: 14px; padding: 4px; }
-.fr-nav a { padding: 6px 14px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--f-muted); }
+.fr-nav a { padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 500; color: var(--f-muted); }
 .fr-nav a.on, .fr-nav a:hover { background: #fff; color: var(--f-ink); box-shadow: 0 1px 2px rgba(62, 75, 87, 0.08); }
 .fr-top-r { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 760px) {
@@ -88,7 +92,7 @@
 
 /* hero */
 .fr-hero { padding: 56px 0 30px; }
-.fr-hero h1 { font-size: clamp(32px, 6.4vw, 58px); max-width: 17ch; margin-bottom: 14px; }
+.fr-hero h1 { font-size: clamp(32px, 6.4vw, 58px); max-width: 17ch; margin-bottom: 20px; }
 .fr-hero-v { padding: 44px 0 22px; }
 .fr-hero-v h1 { font-size: clamp(30px, 5.6vw, 48px); }
 
@@ -150,7 +154,7 @@
 .fr-gestao p { margin: 4px 0 0; font-size: 13.5px; }
 @media (max-width: 760px) { .fr-gestao { grid-template-columns: 1fr; } }
 .fr-chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 18px; }
-.fr-chips button { border: 1px solid var(--f-line); background: #fff; border-radius: 12px; padding: 7px 14px; font-size: 13px; font-weight: 500; color: var(--f-muted); }
+.fr-chips button { min-height: 40px; border: 1px solid var(--f-line); background: #fff; border-radius: 12px; padding: 7px 16px; font-size: 13px; font-weight: 500; color: var(--f-muted); }
 .fr-chips button.on { background: var(--f-ink); border-color: var(--f-ink); color: #fff; }
 
 .fr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
@@ -191,7 +195,7 @@
 .fr-garantias .icon { color: var(--f-rose); }
 @media (max-width: 720px) { .fr-garantias { grid-template-columns: 1fr; } }
 
-.fr-cartbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 30; width: min(520px, calc(100% - 32px)); display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 18px; background: color-mix(in srgb, var(--f-ink) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; font-size: 13px; box-shadow: 0 18px 40px -16px rgba(47, 58, 69, 0.6); }
+.fr-cartbar { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 30; width: min(520px, calc(100% - 32px)); display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 18px; background: color-mix(in srgb, var(--f-ink) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: #fff; font-size: 13px; box-shadow: 0 18px 40px -16px rgba(47, 58, 69, 0.6); }
 .fr-cartbar > span { display: inline-flex; gap: 6px; align-items: center; }
 .fr-cartbar > span:last-child { font-weight: 600; }
 
@@ -204,3 +208,30 @@
 .fr-ficha { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 13px; }
 .fr-ficha dt { color: var(--f-muted); }
 .fr-ficha dd { margin: 0; }
+
+/* ===== movimento: entrada suave, retorno ao tocar e carregamento (sem nada para quem pede menos movimento) ===== */
+.fr a:focus-visible, .fr button:focus-visible { outline: 2px solid var(--f-rose); outline-offset: 3px; }
+.fr-card:active, .fr-btn:active, .fr-chips button:active { transform: scale(0.98); }
+.fr-btn, .fr-chips button, .fr-nav a { transition: transform 0.15s, background 0.2s, border-color 0.2s, color 0.2s, opacity 0.15s; }
+.fr-prod { transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s; }
+@media (hover: hover) { .fr-prod:hover { transform: translateY(-3px); border-color: var(--f-rose-soft); } .fr-prod:hover .fr-sheet:not(.back) { transform: rotate(-2deg) translateY(-4px); } }
+.fr-sheet { transition: transform 0.35s cubic-bezier(.2, .7, .2, 1); }
+.fr-cart .num { display: inline-block; }
+.fr-cart.tem .num { animation: fr-pula 0.45s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes fr-pula { 0% { transform: scale(0.6); } 100% { transform: scale(1); } }
+@keyframes fr-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .fr-hero > *, .fr-card, .fr-prod, .fr-breve-i, .fr-sobre > *, .fr-gestao, .fr-chips, .fr-garantias > div { animation: fr-up 0.6s cubic-bezier(.2, .7, .2, 1) backwards; }
+  .fr-hero > :nth-child(2) { animation-delay: 0.05s; } .fr-hero > :nth-child(3) { animation-delay: 0.1s; }
+  .fr-card:nth-child(1), .fr-prod:nth-child(1) { animation-delay: 0.12s; }
+  .fr-card:nth-child(2), .fr-prod:nth-child(2) { animation-delay: 0.18s; }
+  .fr-card:nth-child(3), .fr-prod:nth-child(3) { animation-delay: 0.24s; }
+  .fr-prod:nth-child(4) { animation-delay: 0.3s; } .fr-prod:nth-child(5) { animation-delay: 0.34s; } .fr-prod:nth-child(n+6) { animation-delay: 0.38s; }
+  .fr-cartbar { animation: fr-up 0.35s ease backwards; }
+}
+@media (prefers-reduced-motion: reduce) { .fr *, .fr *::before, .fr *::after { transition: none !important; animation: none !important; } }
+/* esqueleto enquanto a vitrine carrega */
+.fr-skel { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; padding: 44px 0 60px; }
+.fr-skel > div { height: 380px; border-radius: 22px; background: #fff; border: 1px solid var(--f-line); animation: fr-pulsa 1.4s ease-in-out infinite alternate; }
+.fr-skel > div:first-child { grid-column: 1 / -1; height: 120px; background: var(--f-sand); }
+@keyframes fr-pulsa { from { opacity: 1; } to { opacity: 0.55; } }

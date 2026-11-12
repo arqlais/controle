@@ -4254,3 +4254,13 @@ a.cd-go, a.cd-go:visited { color: #fff; text-decoration: none; }
   .page-head .row.head-acts.head-acts { gap: 6px; }
   .page-head .row.head-acts.head-acts > .btn.primary:not(.head-save) { padding-left: 10px; padding-right: 10px; gap: 4px; }
 }
+
+/* checkup 12/11 (identidade da planê: fundo bege uniforme, sem manchas coloridas nem degradê nas páginas públicas) */
+.lp-blobs { display: none; }
+.lp-all { background: var(--bg); }
+.lp-tap { min-height: 40px; display: inline-flex; align-items: center; }
+.lp-mini-row .grow > .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* o cartão "sinal recebido" não cobre o último nome da lista no computador */
+@media (min-width: 600px) { .lp-float-2 { bottom: -22px; } }
+/* celular pequeno (320-360 px): o rótulo da etapa quebra em duas linhas em vez de cortar */
+@media (max-width: 380px) { .lp-step-label { white-space: normal; overflow-wrap: anywhere; font-size: 10.5px; hyphens: auto; } .lp-steps button, .lp-steps li { min-width: 0; } }

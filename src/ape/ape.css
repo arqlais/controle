@@ -2852,3 +2852,8 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
 .ape-caixa-it .pills { display: flex; flex-wrap: wrap; gap: 4px; }
 .ape-caixa-it em { font-style: normal; background: var(--a-sec); color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px; }
 .ape-caixa-it.nova { border-color: var(--a-pri); box-shadow: 0 0 0 2px var(--a-pri-soft); }
+
+/* checkup 12/11: alvos de toque de pelo menos 40 px no celular */
+.ape-tap button { min-height: 40px; display: inline-flex; align-items: center; }
+.ape-menuconta-btn { min-height: 40px; }
+.ape-logo { min-height: 44px; display: inline-flex; align-items: center; }

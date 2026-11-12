@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-12-checkup',
+    date: '2026-11-12',
+    kind: 'melhoria',
+    title: 'páginas mais rápidas e ajustes no celular',
+    text: 'As páginas públicas abrem bem mais rápido, os botões ficaram mais fáceis de tocar no celular e alguns textos que encostavam ou cortavam foram corrigidos.',
+  },
+  {
     id: '2026-11-11-frentes',
     date: '2026-11-11',
     kind: 'novo',

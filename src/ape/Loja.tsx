@@ -920,7 +920,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
               <input type="checkbox" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
               <span>
                 Li e aceito os{' '}
-                <button type="button" className="ape-linkish ape-link" onClick={() => setTermos(true)}>termos de uso e a política de privacidade</button>.
+                <a href="#termos" role="button" className="ape-link" onClick={(e) => { e.preventDefault(); setTermos(true) }}>termos de uso e a política de privacidade</a>.
               </span>
             </label>
             {err && <p className="ape-err" role="alert">{err}</p>}

@@ -21,6 +21,13 @@ export function Hub() {
   const v = layout()
   useEffect(() => {
     document.title = 'Planê · arquivos, gestão e apê'
+    // a vitrine já vai baixando enquanto a pessoa lê (o toque no card abre na hora)
+    const pre = () => void import('./Vitrine')
+    const w = window as Window & { requestIdleCallback?: (f: () => void) => number }
+    // quem está economizando dados no celular não baixa nada antes da hora
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
+    if (w.requestIdleCallback) w.requestIdleCallback(pre)
+    else setTimeout(pre, 1500)
   }, [])
   return (
     <div className={`fr fr-hub fr-hub-${v}`}>

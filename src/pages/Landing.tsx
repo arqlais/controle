@@ -651,7 +651,7 @@ export default function Landing() {
                   {p.highlights.length > 5 && (
                     <button
                       type="button"
-                      className="link small"
+                      className="link small lp-tap"
                       onClick={() => {
                         const d = document.querySelector<HTMLDetailsElement>('.lp-compare')
                         if (d) {
@@ -1194,7 +1194,7 @@ function PainelScreen({ compact }: { compact?: boolean }) {
               <div key={p.id} className="lp-mini-row">
                 <i style={{ background: STATUS[p.status]?.color }} />
                 <span className="grow">
-                  {p.title}
+                  <span className="t">{p.title}</span>
                   <small className="muted">{client(p.clientId)}</small>
                 </span>
                 <em className={`tone-${dl.tone}`}>{dl.text}</em>

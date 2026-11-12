@@ -94,7 +94,7 @@ function Entrar({ inicial, pedido, emailInicial, onEntrou }: { inicial: Modo; pe
         )}
         {msg && <p className={/enviamos|código/i.test(msg) && !/não confere|vencido/i.test(msg) ? 'ape-note' : 'ape-err'} role="status">{msg}</p>}
         <button className="ape-btn primary" type="submit" disabled={busy}>{busy ? 'aguarde…' : modo === 'entrar' ? 'entrar' : modo === 'codigo' || modo === 'criar' ? 'salvar e entrar' : 'mandar código'}</button>
-        <div className="ape-conta-links">
+        <div className="ape-conta-links ape-tap">
           {modo !== 'entrar' && <button type="button" className="ape-linkish ape-link" onClick={() => { setModo('entrar'); setMsg('') }}>já tenho senha</button>}
           {modo === 'entrar' && <button type="button" className="ape-linkish ape-link" onClick={() => { setModo('primeiro'); setMsg('') }}>primeiro acesso</button>}
           {modo === 'entrar' && <button type="button" className="ape-linkish ape-link" onClick={() => { setModo('esqueci'); setMsg('') }}>esqueci a senha</button>}

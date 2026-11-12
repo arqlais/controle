@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { loadPublico, type Ajustes } from '../ape/api'
 import { ApeArt } from '../ape/ApeArt'
 import { APE, conta, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
-import { CarrinhoSheet, Checkout, PedidoPage } from '../ape/Loja'
-import { Conta } from '../ape/Conta'
+// checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
+const Checkout = lazy(() => import('../ape/Loja').then((m) => ({ default: m.Checkout })))
+const PedidoPage = lazy(() => import('../ape/Loja').then((m) => ({ default: m.PedidoPage })))
+const CarrinhoSheet = lazy(() => import('../ape/Loja').then((m) => ({ default: m.CarrinhoSheet })))
+const Conta = lazy(() => import('../ape/Conta').then((m) => ({ default: m.Conta })))
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { FrFoot, FrTop } from './Hub'
 import { frente, type FrenteId } from './frentes'
-import '../ape/ape.css'
 import './frentes.css'
 
 /* Vitrine de uma frente da planê (#/arquivos e #/arq). Mesmo catálogo, checkout, pedido e entrega
@@ -21,8 +23,20 @@ const NICHOS: Record<string, string> = { beleza: 'beleza', freelancer: 'freelanc
 export function Vitrine({ id, sub }: { id: Exclude<FrenteId, 'apzinho'>; sub?: string }) {
   const f = frente(id)
   const [aj, setAj] = useState<Ajustes | null>(null)
+  // o estilo do checkout, do carrinho e dos avisos baixa logo depois da vitrine aparecer
+  const [estilo, setEstilo] = useState(false)
+  useEffect(() => {
+    void import('../ape/ape.css').then(() => setEstilo(true))
+  }, [])
   useEffect(() => {
     void loadPublico(null, false).then((d) => setAj(d.ajustes), () => setAj({ produtos: [] }))
+    // o checkout já vai baixando enquanto a pessoa escolhe
+    const pre = () => void import('../ape/Loja')
+    const w = window as Window & { requestIdleCallback?: (f: () => void) => number }
+    // quem está economizando dados no celular não baixa nada antes da hora
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
+    if (w.requestIdleCallback) w.requestIdleCallback(pre)
+    else setTimeout(pre, 1500)
   }, [])
   useEffect(() => {
     document.title = `${f.nome} · ${f.frase}`
@@ -34,15 +48,16 @@ export function Vitrine({ id, sub }: { id: Exclude<FrenteId, 'apzinho'>; sub?: s
   const carrinhoBtn = (
     <a className={`fr-btn sm fr-cart ${cart.ids.length ? 'tem' : ''}`} href={href(id, 'loja:carrinho')} aria-label={`Carrinho com ${cart.ids.length} itens`}>
       <Icon name="box" />
-      <span className="num">{cart.ids.length}</span>
+      <span className="num" key={cart.ids.length}>{cart.ids.length}</span>
     </a>
   )
   return (
     <div className={`ape fr fr-vitrine fr-v-${id}`}>
       <FrTop titulo={f} extra={carrinhoBtn} />
       <main className="fr-wrap">
-        {!aj ? (
-          <div className="fr-loading" aria-label="carregando" />
+        <Suspense fallback={<div className="fr-loading" aria-label="carregando" />}>
+        {!aj || (view !== 'loja' && !estilo) ? (
+          <div className="fr-skel" aria-label="carregando"><div /><div /><div /><div /></div>
         ) : view === 'checkout' ? (
           <div className="fr-sub"><Checkout ajustes={aj} me={null} whats={whats} /></div>
         ) : view === 'pedido' ? (
@@ -50,16 +65,17 @@ export function Vitrine({ id, sub }: { id: Exclude<FrenteId, 'apzinho'>; sub?: s
         ) : view === 'conta' ? (
           <div className="fr-sub"><Conta sub={sub} whats={whats} /></div>
         ) : (
-          <Prateleira id={id} aj={aj} whats={whats} abrir={sub?.startsWith('loja:') ? sub.slice(5) : undefined} />
+          <Prateleira id={id} aj={aj} whats={whats} estilo={estilo} abrir={sub?.startsWith('loja:') ? sub.slice(5) : undefined} />
         )}
+        </Suspense>
       </main>
       <FrFoot />
-      <AvisoCookies />
+      {estilo && <AvisoCookies />}
     </div>
   )
 }
 
-function Prateleira({ id, aj, whats, abrir }: { id: Exclude<FrenteId, 'apzinho'>; aj: Ajustes; whats: string; abrir?: string }) {
+function Prateleira({ id, aj, whats, abrir, estilo }: { id: Exclude<FrenteId, 'apzinho'>; aj: Ajustes; whats: string; abrir?: string; estilo: boolean }) {
   const f = frente(id)
   const pixPct = aj.pixPct ?? 5
   const daqui = useMemo(() => aj.produtos.filter((p) => frenteDe(p) === id), [aj, id])
@@ -216,8 +232,9 @@ function Prateleira({ id, aj, whats, abrir }: { id: Exclude<FrenteId, 'apzinho'>
         </a>
       )}
 
-      {aberto && <Detalhe p={aberto} pixTxt={pix(aberto)} pixPct={pixPct} noCarrinho={cart.tem(aberto.id)} onAdd={() => add(aberto)} onClose={() => setAberto(null)} />}
-      {verCarrinho && (
+      {aberto && estilo && <Detalhe p={aberto} pixTxt={pix(aberto)} pixPct={pixPct} noCarrinho={cart.tem(aberto.id)} onAdd={() => add(aberto)} onClose={() => setAberto(null)} />}
+      {verCarrinho && estilo && (
+        <Suspense fallback={null}>
         <CarrinhoSheet
           produtos={aj.produtos}
           pixPct={pixPct}
@@ -231,6 +248,7 @@ function Prateleira({ id, aj, whats, abrir }: { id: Exclude<FrenteId, 'apzinho'>
             setAberto(p)
           }}
         />
+        </Suspense>
       )}
       {toast}
     </>
@@ -244,7 +262,7 @@ function Mockup({ p }: { p: Produto }) {
       <span className="fr-sheet back" />
       {p.amostras?.[0] ? (
         <span className="fr-sheet capa">
-          <img src={p.amostras[0]} alt="" loading="lazy" />
+          <img src={p.amostras[0]} alt="" loading="lazy" decoding="async" width={300} height={424} />
         </span>
       ) : (
         <span className="fr-sheet">
