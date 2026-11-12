@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-12-estilos',
+    date: '2026-11-12',
+    kind: 'novo',
+    title: 'arquivos em três estilos',
+    text: 'Na planê.arquivos, cada arquivo de beleza vem nos estilos criativo, minimalista e chique na mesma compra. Dá para ver cada estilo antes de comprar.',
+  },
+  {
     id: '2026-11-12-loja-beleza',
     date: '2026-11-12',
     kind: 'novo',

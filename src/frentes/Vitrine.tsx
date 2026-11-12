@@ -6,6 +6,7 @@ import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto 
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
 import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { ESTILOS, imgEstilo, temEstilos, type Estilo } from './estilos'
 import './frentes.css'
 
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
@@ -479,10 +480,12 @@ const USO: Record<string, [string, string]> = { imprimir: ['printer', 'imprimir'
 /** Cartão de produto da vitrine (também na faixa de kits). */
 function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; i?: number; kit?: boolean; pix: string; noCarrinho: boolean; onAdd: () => void; onVer: () => void }) {
   const u = p.uso ? USO[p.uso] : null
+  const [est, setEst] = useState<Estilo>('criativo')
+  const capa = temEstilos(p.id) ? imgEstilo(p.id, est, p.amostras?.[0]) : p.amostras?.[0]
   return (
     <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
       <button className="fr-card-img" onClick={onVer} aria-label={`Ver ${p.nome} por dentro`}>
-        {p.amostras?.[0] && <img src={p.amostras[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
+        {capa && <img key={capa} className={est !== 'criativo' ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
         {p.selo && <span className="fr-selo">{p.selo}</span>}
         <span className="fr-ver">
           <Icon name="eye" size={14} /> ver por dentro
@@ -494,6 +497,7 @@ function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; 
         </small>
         <b>{p.nome}</b>
         <p>{p.desc}</p>
+        {temEstilos(p.id) && <Estilos est={est} onEst={setEst} />}
         {u && (
           <span className="fr-uso-tag">
             <Icon name={u[0]} size={13} /> {u[1]}
@@ -516,9 +520,23 @@ function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; 
   )
 }
 
+/** Bolinhas para trocar o estilo (criativo, minimalista, chique). */
+function Estilos({ est, onEst }: { est: Estilo; onEst: (e: Estilo) => void }) {
+  return (
+    <div className="fr-estilos" role="radiogroup" aria-label="Estilo">
+      {ESTILOS.map((e) => (
+        <button key={e.id} role="radio" aria-checked={est === e.id} className={est === e.id ? 'is-on' : ''} onClick={() => onEst(e.id)}>
+          <i style={{ background: e.cor }} /> {e.nome}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** Detalhe do produto: galeria (mockup e páginas de dentro), o que vem, formato e preço. */
 function Detalhe({ p, pixTxt, pixPct, noCarrinho, onAdd, onClose }: { p: Produto; pixTxt: string; pixPct: number; noCarrinho: boolean; onAdd: () => void; onClose: () => void }) {
-  const fotos = p.amostras || []
+  const est = temEstilos(p.id)
+  const fotos = est ? [(p.amostras || [])[0], imgEstilo(p.id, 'minimalista')!, imgEstilo(p.id, 'chique')!, ...(p.amostras || []).slice(1)].filter(Boolean) as string[] : p.amostras || []
   const [i, setI] = useState(0)
   const trilho = useRef<HTMLDivElement>(null)
   const ir = (n: number) => {
@@ -556,6 +574,12 @@ function Detalhe({ p, pixTxt, pixPct, noCarrinho, onAdd, onClose }: { p: Produto
           <p className="eyebrow">{p.tag}</p>
           <h2>{p.nome}</h2>
           <p className="muted">{p.desc}</p>
+          {est && (
+            <div className="fr-estilos-d">
+              <small>três estilos na mesma compra</small>
+              <Estilos est={(['criativo', 'minimalista', 'chique'] as Estilo[])[Math.min(i, 2)]} onEst={(e) => ir(ESTILOS.findIndex((x) => x.id === e))} />
+            </div>
+          )}
           {!!p.numeros?.length && (
             <div className="fr-nums">
               {p.numeros.map((n) => (

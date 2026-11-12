@@ -14,11 +14,16 @@ OUT = sys.argv[1]
 HTMLDIR = sys.argv[2]
 FONTS = sys.argv[3]  # pasta com as fontes woff2
 
-INK = RGBColor(0x3E, 0x4B, 0x57)
-ROSE = RGBColor(0xA8, 0x8A, 0x80)
-MUTED = RGBColor(0x8B, 0x93, 0x9A)
-LINE = 'D9CCC6'
-FILL = 'F4E8E5'
+# estilo do arquivo: criativo (planê azul e rosé), minimalista (preto e branco) ou chique (preto, dourado e taupe)
+ESTILO = os.environ.get('ESTILO', 'criativo')
+SUF = '' if ESTILO == 'criativo' else f'--{ESTILO}'
+_T = {
+    'criativo': ('3E4B57', 'A88A80', '8B939A', 'D9CCC6', 'F4E8E5', 'Poppins'),
+    'minimalista': ('1F1F1F', '1F1F1F', '8A8A8A', 'CFCFCF', 'F1F1F1', 'Cormorant Garamond'),
+    'chique': ('2B2622', 'A9844F', '8C8178', 'DCCDB3', 'F3ECE1', 'Cormorant Garamond'),
+}[ESTILO]
+INK, ROSE, MUTED = (RGBColor.from_string(c) for c in _T[:3])
+LINE, FILL, TFONT = _T[3], _T[4], _T[5]
 FONT = 'Poppins'
 
 FRENTE = lambda pid: 'planê.arq' if pid.startswith('arq') else 'planê.arquivos'
@@ -34,12 +39,17 @@ def run(p, text, size=10, bold=False, color=INK, italic=False):
     r.font.color.rgb = color
     return r
 
-def para(d, text='', size=10, bold=False, color=INK, before=0, after=4, italic=False):
+def para(d, text='', size=10, bold=False, color=INK, before=0, after=4, italic=False, titulo=False):
     p = d.add_paragraph()
     p.paragraph_format.space_before = Pt(before)
     p.paragraph_format.space_after = Pt(after)
     if text:
-        run(p, text, size, bold, color, italic)
+        if titulo and ESTILO != 'criativo':
+            r = run(p, text.upper(), size + 2, False, color, italic)
+            r.font.name = TFONT; r._element.rPr.rFonts.set(qn('w:eastAsia'), TFONT)
+            sp = OxmlElement('w:spacing'); sp.set(qn('w:val'), '40'); r._element.rPr.append(sp)
+        else:
+            run(p, text, size, bold, color, italic)
     return p
 
 def borda(cell, lados=('bottom',), cor=LINE, sz=6):
@@ -71,7 +81,7 @@ def docx_doc(pid, d):
     st = doc.styles['Normal']; st.font.name = FONT; st.font.size = Pt(10); st.font.color.rgb = INK
     capa = True
     para(doc, FRENTE(pid), 9, True, ROSE, after=2)
-    para(doc, d['titulo'], 22, True, INK, after=10)
+    para(doc, d['titulo'], 22, True, INK, after=10, titulo=True)
     for b in d['blocos']:
         k = b[0]
         if k == 'quebra':
@@ -92,7 +102,7 @@ def docx_doc(pid, d):
             celula(c, b[1], 9, color=INK)
             para(doc, after=4)
         elif k == 'h1':
-            para(doc, b[1], 17, True, INK, after=2)
+            para(doc, b[1], 17, True, INK, after=2, titulo=True)
         elif k == 'sub':
             para(doc, b[1], 9, color=MUTED, after=10)
         elif k == 'h2':
@@ -141,9 +151,9 @@ def docx_doc(pid, d):
             para(doc, after=18)
             t = doc.add_table(rows=1, cols=len(b[1]))
             for i, lab in enumerate(b[1]):
-                c = t.rows[0].cells[i]; borda(c, ('top',), '3E4B57', 6); celula(c, lab, 8.5, color=MUTED)
+                c = t.rows[0].cells[i]; borda(c, ('top',), _T[0], 6); celula(c, lab, 8.5, color=MUTED)
     os.makedirs(OUT, exist_ok=True)
-    doc.save(os.path.join(OUT, f'{pid}.docx'))
+    doc.save(os.path.join(OUT, f'{pid}{SUF}.docx'))
 
 # ---------------- HTML (PDF) ----------------
 E = html.escape
@@ -161,7 +171,6 @@ body {{ margin: 0; font-family: Poppins, sans-serif; font-size: 9.6pt; line-heig
 .capa h1 {{ font-size: 30pt; line-height: 1.08; letter-spacing: -.03em; margin: 6mm 0 5mm; font-weight: 600; max-width: 140mm; }}
 .capa h1 em {{ font-family: Seasons, serif; font-weight: 400; color: #a88a80; letter-spacing: 0; }}
 .capa .lead {{ font-size: 11.5pt; color: #6f7a83; max-width: 135mm; }}
-.capa .faixa {{ height: 12mm; margin: 10mm 0; border-radius: 3mm; background: repeating-linear-gradient(90deg, #f5f1ee 0 5mm, #f4e8e5 5mm 10mm); }}
 .passos {{ margin-top: auto; background: #fff; border-radius: 5mm; padding: 7mm 8mm; }}
 .passos b.t {{ display: block; font-size: 8.5pt; color: #a88a80; letter-spacing: .12em; margin-bottom: 3mm; }}
 .passos div {{ display: flex; gap: 4mm; padding: 2mm 0; border-top: 1px solid #ebe1dc; }}
@@ -192,11 +201,67 @@ ul {{ margin: 0 0 2mm; padding-left: 5mm; }} li {{ margin: 0 0 1.4mm; }} li::mar
 .perg {{ break-inside: avoid; margin-bottom: 2mm; }}
 .perg b {{ font-weight: 500; }}
 .perg span {{ display: block; border-bottom: 1px solid #d9ccc6; height: 8mm; }}
-.logo {{ float: right; width: 34mm; height: 13mm; border: 1.4px dashed #d6b3ab; border-radius: 3mm; display: grid; place-items: center; color: #a88a80; font-size: 8.5pt; font-weight: 600; margin: 0 0 2mm 6mm; }}
+.logo {{ float: right; width: 34mm; height: 13mm; border: 1px solid #d6b3ab; border-radius: 3mm; display: grid; place-items: center; color: #a88a80; font-size: 8.5pt; font-weight: 600; margin: 0 0 2mm 6mm; }}
 .mapa {{ text-align: center; margin: 2mm 0 4mm; break-inside: avoid; }} .mapa img {{ max-width: 120mm; max-height: 95mm; }}
 .ass {{ display: flex; gap: 10mm; margin: 14mm 0 4mm; break-inside: avoid; }}
 .ass div {{ flex: 1; border-top: 1.2px solid #3e4b57; padding-top: 1.5mm; font-size: 8.2pt; color: #8b939a; }}
 """
+
+EXTRA = {
+'criativo': '.capa .mono {{ display: none; }}',
+'minimalista': '''
+@font-face {{ font-family: Cormorant; font-weight: 300; src: url('{F}/cormorant-garamond-latin-300-normal.woff2'); }}
+@font-face {{ font-family: Cormorant; font-weight: 500; src: url('{F}/cormorant-garamond-latin-500-normal.woff2'); }}
+@font-face {{ font-family: Vibes; src: url('{F}/great-vibes-latin-400-normal.woff2'); }}
+body {{ color: #1f1f1f; }}
+.capa {{ background: #fff; border: .4mm solid #1f1f1f; border-radius: 0; align-items: center; text-align: center; justify-content: center; }}
+.capa .mono {{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; font: 300 200mm/1 Cormorant, serif; color: #f3f3f3; z-index: 0; }}
+.capa > * {{ position: relative; z-index: 1; }}
+.capa .frente {{ font-weight: 500; letter-spacing: .4em; font-size: 7.5pt; color: #1f1f1f; }}
+.capa h1 {{ font: 300 34pt/1.05 Cormorant, serif; text-transform: uppercase; letter-spacing: .14em; max-width: 150mm; margin: 10mm 0 2mm; }}
+.capa h1 em {{ display: block; font: 400 30pt/1 Vibes, cursive; text-transform: none; letter-spacing: 0; color: #1f1f1f; margin-top: 2mm; }}
+.capa .lead {{ color: #555; max-width: 120mm; margin-top: 8mm; }}
+.passos {{ margin-top: 14mm; width: 100%; border: .3mm solid #1f1f1f; border-radius: 0; text-align: left; }}
+.passos b.t, .passos div i {{ color: #1f1f1f; }}
+.capa .nota {{ border: .3mm solid #1f1f1f; border-radius: 0; background: #fff; text-align: left; }}
+.nota {{ background: #f1f1f1; border-radius: 0; }}
+h1.doc {{ font: 300 21pt/1.1 Cormorant, serif; text-transform: uppercase; letter-spacing: .12em; }}
+.sub {{ border-bottom: .3mm solid #1f1f1f; color: #777; }}
+h2 {{ display: inline-block; background: #1f1f1f; color: #fff; text-transform: uppercase; letter-spacing: .22em; font-size: 7.6pt; font-weight: 500; padding: 1.2mm 3mm; margin: 6mm 0 3mm; }}
+th {{ background: #f1f1f1; border-radius: 0 !important; text-transform: uppercase; letter-spacing: .08em; font-size: 7.4pt; }}
+.campo, .perg span {{ border-color: #bdbdbd; color: #777; }}
+.box {{ border-color: #1f1f1f; border-radius: 0; }} li::marker {{ color: #1f1f1f; }} .sn td:nth-child(2) {{ color: #1f1f1f; }}
+.logo {{ border-color: #1f1f1f; border-radius: 0; color: #1f1f1f; text-transform: uppercase; letter-spacing: .2em; font-size: 7pt; }}
+.ass div {{ border-color: #1f1f1f; }}
+''',
+'chique': '''
+@font-face {{ font-family: Cormorant; font-weight: 300; src: url('{F}/cormorant-garamond-latin-300-normal.woff2'); }}
+@font-face {{ font-family: Cormorant; font-weight: 500; src: url('{F}/cormorant-garamond-latin-500-normal.woff2'); }}
+@font-face {{ font-family: Vibes; src: url('{F}/great-vibes-latin-400-normal.woff2'); }}
+body {{ color: #2b2622; }}
+.capa {{ background: #15120f; color: #efe6d8; border-radius: 0; align-items: center; text-align: center; justify-content: center; }}
+.capa::after {{ content: ''; position: absolute; inset: 6mm; border: .3mm solid #b8955c; pointer-events: none; }}
+.capa .mono {{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; font: 300 200mm/1 Cormorant, serif; color: #1d1915; z-index: 0; }}
+.capa > * {{ position: relative; z-index: 1; }}
+.capa .frente {{ font-weight: 500; letter-spacing: .4em; font-size: 7.5pt; color: #c9a86a; }}
+.capa h1 {{ font: 300 34pt/1.05 Cormorant, serif; text-transform: uppercase; letter-spacing: .12em; color: #efe6d8; max-width: 150mm; margin: 10mm 0 2mm; }}
+.capa h1 em {{ display: block; font: 400 34pt/1 Vibes, cursive; text-transform: none; letter-spacing: 0; color: #c9a86a; margin-top: 1mm; }}
+.capa .lead {{ color: #b9ad9d; max-width: 120mm; margin-top: 8mm; }}
+.passos {{ margin-top: 14mm; width: 100%; background: transparent; border: .3mm solid #b8955c; border-radius: 0; text-align: left; }}
+.passos b.t, .passos div i {{ color: #c9a86a; }} .passos div {{ border-color: #3a332b; }}
+.capa .nota {{ background: #211d19; border-radius: 0; text-align: left; }}
+.nota {{ background: #f3ece1; border-radius: 0; border-left: .6mm solid #b8955c; }}
+h1.doc {{ font: 300 22pt/1.1 Cormorant, serif; text-transform: uppercase; letter-spacing: .1em; }}
+.sub {{ border-bottom: .3mm solid #b8955c; }}
+h2 {{ font: 500 12pt Cormorant, serif; color: #a9844f; text-transform: uppercase; letter-spacing: .18em; }}
+th {{ background: #f3ece1; border-radius: 0 !important; }}
+.campo, .perg span {{ border-color: #dccdb3; }}
+.box {{ border-color: #a9844f; }} li::marker {{ color: #a9844f; }} .sn td:nth-child(2) {{ color: #a9844f; }}
+.logo {{ border-color: #b8955c; border-radius: 0; color: #a9844f; }}
+.ass div {{ border-color: #a9844f; }}
+''',
+}[ESTILO].replace('{{', '{').replace('}}', '}').replace('{F}', FONTS)
+CSS += EXTRA
 
 def h_titulo(t):
     # última palavra em itálico (The Seasons): nunca número
@@ -215,9 +280,9 @@ def html_doc(pid, d):
         capa.append(blocos[i]); i += 1
     tem_capa = i < len(blocos)
     if tem_capa:
-        out.append(f'<section class="capa"><span class="frente">{FRENTE(pid)}</span><h1>{h_titulo(d["titulo"])}</h1>')
+        out.append(f'<section class="capa"><span class="mono">{E(d["titulo"][0].upper())}</span><span class="frente">{"[SEU ESPAÇO]" if ESTILO != "criativo" else FRENTE(pid)}</span><h1>{h_titulo(d["titulo"])}</h1>')
         for b in capa:
-            if b[0] == 'lead': out.append(f'<p class="lead">{E(b[1])}</p><div class="faixa"></div>')
+            if b[0] == 'lead': out.append(f'<p class="lead">{E(b[1])}</p>')
             elif b[0] == 'nota': out.append(f'<div class="nota">{E(b[1])}</div>')
         passos = next((b for b in capa if b[0] == 'passos'), None)
         if passos:
@@ -255,7 +320,7 @@ def html_doc(pid, d):
         elif k == 'assinatura': out.append('<div class="ass">' + ''.join(f'<div>{E(l)}</div>' for l in b[1]) + '</div>')
     out.append('</body></html>')
     os.makedirs(HTMLDIR, exist_ok=True)
-    open(os.path.join(HTMLDIR, f'{pid}.html'), 'w').write(''.join(out))
+    open(os.path.join(HTMLDIR, f'{pid}{SUF}.html'), 'w').write(''.join(out))
 
 for pid, d in DOCS.items():
     docx_doc(pid, d)

@@ -21,13 +21,11 @@ rgb = RGBColor.from_string
 
 # ---------- imagem "arraste sua foto aqui" ----------
 def placeholder(w, h, texto='arraste sua foto aqui'):
-    nome = f'{TMP}/ph-{w}x{h}-{abs(hash(texto)) % 9999}.png'
+    nome = f'{TMP}/ph2-{w}x{h}-{abs(hash(texto)) % 9999}.png'
     if os.path.exists(nome): return nome
     k = 2
     im = Image.new('RGB', (w * k, h * k), '#EADDD8')
     d = ImageDraw.Draw(im)
-    for x in range(-h * k, w * k, 36 * k):
-        d.line([(x, 0), (x + h * k, h * k)], fill='#E2D2CC', width=14 * k)
     cx, cy = w * k // 2, h * k // 2
     r = int(min(w, h) * k * 0.12)
     d.rounded_rectangle([cx - r, cy - int(r * 0.75) - 20 * k, cx + r, cy + int(r * 0.75) - 20 * k], radius=int(r * 0.25), outline='#A88A80', width=5 * k)

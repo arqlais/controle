@@ -5,7 +5,7 @@ Marque aqui o que for terminando (troque `[ ]` por `[x]`) e publique junto.
 
 ## Pedido em andamento (12/11)
 
-1. [ ] **3 estilos em cada arquivo**: minimalista, chique e criativo, sem separar por categoria. A compra
+1. [x] **3 estilos em cada arquivo** (feito em 27 arquivos de beleza: artes, documentos e certificado; faltam as planilhas, os arquivos antigos de beleza (anamnese, termo, tabela de preços, caixa) e os da planê.arq): minimalista, chique e criativo, sem separar por categoria. A compra
    leva os três estilos do mesmo arquivo, e a cliente escolhe qual usar. Na loja, o cartão e o detalhe têm a
    troca de estilo (bolinhas), que muda o mockup.
    - **minimalista**: fundo branco ou off-white, tinta preta, título serifado fino em caixa alta e espaçado,
@@ -14,17 +14,17 @@ Marque aqui o que for terminando (troque `[ ]` por `[x]`) e publique junto.
    - **chique**: fundo preto, dourado e taupe, título serifado e cursivo dourado, fotos redondas com aro
      dourado, molduras de linha fina. Referência: catálogo de nail designer que a dona mandou.
    - **criativo**: a colagem que já existe (polaroid, fita, adesivo, coração), em azul e rosé.
-   - Ideias boas das referências: cartão de cuidados com **QR code** ("escaneie e confira os cuidados") e
+   - [ ] Ideias boas das referências (ainda não feitas): cartão de cuidados com **QR code** ("escaneie e confira os cuidados") e
      cartão de **lembrança** pequeno (5,9 x 10 cm).
-2. [ ] **Nada de "linha de traços"**: a fileira de tracinhos que ficava embaixo do título dos documentos e o
+2. [x] **Nada de "linha de traços"**: a fileira de tracinhos que ficava embaixo do título dos documentos e o
    listrado dentro do espaço da foto saem de todos os arquivos.
 3. [ ] **Fotos**: onde fizer sentido, usar foto de banco gratuito (Unsplash ou Pexels, uso comercial
    liberado) só como exemplo; a cliente troca arrastando a foto dela por cima. A rede deste ambiente bloqueia
    esses sites; se continuar bloqueado, manter o espaço "arraste sua foto aqui" liso, sem listras.
-4. [ ] **Ilustração**: nada amador. Corpo e rosto só com traço limpo e proporção certa; se não ficar bom,
+4. [ ] **Ilustração**: nada amador (os desenhos de rosto, olhos e corpo das fichas são os antigos; revisar ou trocar por foto). Corpo e rosto só com traço limpo e proporção certa; se não ficar bom,
    usar foto em vez de desenho.
-5. [ ] **Conferência**: nenhum texto sobreposto, espaçamento e proporção certos, testar tudo aberto no Canva.
-6. [ ] **Visual da plataforma**: poucas manchas suaves (azul e rosé, desfocadas) atrás do topo e de 1 ou 2
+5. [ ] **Conferência** (artes e documentos conferidos em PDF; falta abrir no Canva): nenhum texto sobreposto, espaçamento e proporção certos, testar tudo aberto no Canva.
+6. [x] **Visual da plataforma**: poucas manchas suaves (azul e rosé, desfocadas) atrás do topo e de 1 ou 2
    seções, com cartões de vidro líquido (fundo translúcido + desfoque + borda clara). Sem excesso, sem repetir
    em toda seção, sem degradê de fundo inteiro.
 7. [x] **Instagram de cada frente** (decidido em 12/11):

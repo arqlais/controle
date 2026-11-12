@@ -240,3 +240,13 @@ html, body { margin: 0; background: var(--bg); }
 }
 .fr-com-manchas .lp-diff { transition: transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s; }
 @media (hover: hover) { .fr-com-manchas .lp-diff:hover { transform: translateY(-3px); box-shadow: inset 0 1px 0 #fff, 0 26px 50px -26px rgba(62, 75, 87, 0.5); } }
+
+/* troca de estilo dos arquivos (criativo, minimalista, chique) */
+.fr-estilos { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
+.fr-estilos button { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 11px 4px 6px; border-radius: var(--pill); border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 70%, transparent); font: 500 12px var(--font-body); color: var(--muted); cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+.fr-estilos button i { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(62, 75, 87, .25); }
+.fr-estilos button.is-on { color: var(--text); border-color: var(--text); background: var(--surface); }
+.fr-card-img img.is-estilo { object-fit: contain; padding: 14px; background: var(--surface-2); animation: fr-surge .35s ease; }
+@keyframes fr-surge { from { opacity: .3; } to { opacity: 1; } }
+.fr-estilos-d { display: grid; gap: 6px; margin: 4px 0 10px; }
+.fr-estilos-d small { color: var(--muted); font-size: 12px; }
