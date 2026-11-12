@@ -8,7 +8,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
 OUT, HTMLDIR, FONTS = sys.argv[1], sys.argv[2], sys.argv[3]
-BG, CARD, INK, ROSE, BLUSH, SAND, MUTED = 'F5F1EE', 'FFFFFF', '3E4B57', 'A88A80', 'F4E8E5', 'EFE5E1', '8B939A'
+BG, CARD, INK, ROSE, BLUSH, SAND, MUTED = 'FBF2EC', 'FFFFFF', '45394A', 'C9785D', 'F6E1DA', 'F3E3C7', '9A8C93'
 PX = 9525  # 1 px em EMU (96 dpi)
 rgb = lambda h: RGBColor.from_string(h)
 
@@ -49,6 +49,7 @@ def texto(s, x, y, w, h, partes, tam=28, cor=INK, alinha='l', meio=False):
     return tb
 
 def listras(s, x, y, w, h, passo=24):
+    return  # sem a fileira de traços
     # faixa listrada bege e rosé, começando e terminando no bege
     n = int(w // passo)
     for i in range(1, n, 2):
@@ -98,8 +99,8 @@ def vale(p):
     texto(s, 100, 545, W - 200, 40, '[WhatsApp]  ·  [@seuperfil]  ·  agende com antecedência', 20, MUTED, 'c')
     s = slide(p)  # frente fidelidade
     caixa(s, 40, 40, W - 80, H - 80, INK, 0.06)
-    texto(s, 100, 110, 700, 60, '[SEU ESPAÇO]', 22, 'D6B3AB')
-    texto(s, 100, 170, 820, 200, [('cartão ', {'b': True, 'tam': 84, 'cor': 'FFFFFF'}), ('fidelidade', {'i': True, 'cor': 'D6B3AB', 'tam': 100})])
+    texto(s, 100, 110, 700, 60, '[SEU ESPAÇO]', 22, 'EDB5A8')
+    texto(s, 100, 170, 820, 200, [('cartão ', {'b': True, 'tam': 84, 'cor': 'FFFFFF'}), ('fidelidade', {'i': True, 'cor': 'EDB5A8', 'tam': 100})])
     texto(s, 100, 470, W - 200, 80, 'a cada 10 atendimentos, o 11º é presente', 26, 'E8EBEE')
     s = slide(p)  # verso fidelidade
     caixa(s, 40, 40, W - 80, H - 80, CARD, 0.06)

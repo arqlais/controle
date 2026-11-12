@@ -33,8 +33,8 @@ export const NEWS: News[] = [
     id: '2026-11-12-estilos',
     date: '2026-11-12',
     kind: 'novo',
-    title: 'arquivos em três estilos',
-    text: 'Na planê.arquivos, cada arquivo de beleza vem nos estilos criativo, minimalista e chique na mesma compra. Dá para ver cada estilo antes de comprar.',
+    title: 'arquivos em quatro estilos',
+    text: 'Na planê.arquivos, cada arquivo vem nos estilos delicado, criativo, minimalista e elegante na mesma compra, e dá para ver cada um antes de comprar. Chegaram também o cartão de cuidados com QR code e o cartão lembrança, e a loja ficou mais leve no celular.',
   },
   {
     id: '2026-11-12-loja-beleza',

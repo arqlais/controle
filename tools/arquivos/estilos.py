@@ -12,10 +12,16 @@ from lxml import etree
 from peca import Peca, PX, TMP, FONTE_DIR, rgb
 
 TEMAS = {
-    'minimalista': dict(bg='FFFFFF', ink='1F1F1F', ac='1F1F1F', mut='8A8A8A', fio='1F1F1F', card='F3F3F3', eti='1F1F1F', eti_txt='FFFFFF',
-                        foto='ECECEC', foto_txt='9A9A9A', mono='F2F2F2', forma='rect'),
-    'chique': dict(bg='15120F', ink='EFE6D8', ac='C9A86A', mut='A79B8B', fio='B8955C', card='211D19', eti='C9A86A', eti_txt='15120F',
-                   foto='2A2520', foto_txt='9C8662', mono='1C1814', forma='arco'),
+    'minimalista': dict(bg='FFFFFF', ink='1F1F1F', ac='1F1F1F', mut='8A8A8A', fio='1F1F1F', fio_l='D6D6D6', card='F3F3F3', eti='1F1F1F', eti_txt='FFFFFF',
+                        foto='ECECEC', foto_txt='9A9A9A', mono='F2F2F2', forma='rect', aro=False, sans=False),
+    'elegante': dict(bg='15120F', ink='EFE6D8', ac='C9A86A', mut='A79B8B', fio='B8955C', fio_l='B8955C', card='211D19', eti='C9A86A', eti_txt='15120F',
+                     foto='2A2520', foto_txt='9C8662', mono='1C1814', forma='arco', aro=True, sans=False),
+    # delicado: a mesma pegada do site da planê (bege, azul acinzentado, rosé, cantos redondos)
+    'delicado': dict(bg='F5F1EE', ink='3E4B57', ac='A88A80', mut='8B939A', fio='D6B3AB', fio_l='E6D7D1', card='FFFFFF', eti='3E4B57', eti_txt='FFFFFF',
+                     foto='EADFDA', foto_txt='A88A80', mono='EFE7E3', forma='rr', aro=False, sans=True),
+    # criativo (peças novas): cores mais vivas, sem exagero
+    'criativo': dict(bg='FBF2EC', ink='45394A', ac='C9785D', mut='9A8C93', fio='EDB5A8', fio_l='F0D9D0', card='FFFFFF', eti='C9785D', eti_txt='FFFFFF',
+                     foto='F3DCD3', foto_txt='C9785D', mono='F6E6DE', forma='rr', aro=False, sans=True),
 }
 SERIF, SCRIPT, BODY = 'Cormorant Garamond', 'Great Vibes', 'Poppins'
 
@@ -90,19 +96,32 @@ class EPeca(Peca):
         if forma == 'arco': w = min(w, h * 0.8)
         pic = self.s.shapes.add_picture(placeholder(int(w), int(h), self.T['foto'], self.T['foto_txt'], texto), Emu(int(x * PX)), Emu(int(y * PX)), Emu(int(w * PX)), Emu(int(h * PX)))
         geo = pic._element.spPr.find(qn('a:prstGeom'))
+        if forma == 'rr':
+            geo.set('prst', 'roundRect')
+            av = geo.find(qn('a:avLst'))
+            if av is None: av = etree.SubElement(geo, qn('a:avLst'))
+            gd = etree.SubElement(av, qn('a:gd')); gd.set('name', 'adj'); gd.set('fmla', 'val 7000')
         if forma in ('circ', 'arco'):
             geo.set('prst', 'ellipse' if forma == 'circ' else 'round2SameRect')
             if forma == 'arco':
                 av = geo.find(qn('a:avLst'))
                 if av is None: av = etree.SubElement(geo, qn('a:avLst'))
                 gd = etree.SubElement(av, qn('a:gd')); gd.set('name', 'adj1'); gd.set('fmla', 'val 50000')
-        if aro if aro is not None else self.tema == 'chique':
+        if aro if aro is not None else self.T['aro']:
             m = 14 * self.k
             self.aro(x - m, y - m, w + 2 * m, h + 2 * m, forma)
         return w
 
     def etiqueta(self, cx, y, t, cheia=True, tam=None):
-        k = self.k; tam = tam or 26 * k; spc = tam * 0.22
+        k = self.k; tam = tam or 26 * k
+        if self.T['sans']:
+            tam *= 1.15; w = self.larg(t, tam, BODY) * 1.08 + 80 * k; h = tam + 40 * k; x = cx - w / 2
+            if cheia: self.ret(x, y, w, h, self.T['eti'], 0.5)
+            else:
+                sh = self.ret(x, y, w, h, self.T['card'], 0.5, linha=self.T['fio'], lw=1.2)
+            self.tx(x, y, w, h, t, BODY, tam, self.T['eti_txt'] if cheia else self.T['ink'], 'c', True, b=True)
+            return h
+        spc = tam * 0.22
         w = self.larg(t.upper(), tam, BODY, spc) * 1.02 + 70 * k; h = tam + 34 * k
         x = cx - w / 2
         if cheia: self.ret(x, y, w, h, self.T['eti'])
@@ -113,6 +132,17 @@ class EPeca(Peca):
     def titulo(self, cx, y, w, forte, cursiva, tam=96):
         """Caixa alta espaçada + palavra cursiva logo abaixo. Devolve a altura usada."""
         k = self.k
+        if self.T['sans']:
+            F = forte.strip(); t = tam * 0.92
+            while self.larg(F, t, BODY) * 1.08 > w and t > 30 * k: t *= 0.94
+            self.tx(cx - w / 2, y, w, t * 1.2, F, BODY, t, self.T['ink'], 'c', b=True)
+            h = t * 1.12
+            if cursiva:
+                ct = tam * 1.12
+                while self.larg(cursiva, ct, SERIF) * 0.8 > w and ct > 30 * k: ct *= 0.94
+                self.tx(cx - w / 2, y + h - ct * 0.18, w, ct * 1.3, cursiva, SERIF, ct, self.T['ac'], 'c', it=True)
+                h += ct * 1.05
+            return h
         F = forte.upper().strip(); spc = tam * 0.12
         while self.larg(F, tam, SERIF, spc) > w and tam > 30 * k: tam *= 0.94; spc = tam * 0.12
         self.tx(cx - w / 2, y, w, tam * 1.15, F, SERIF, tam, self.T['ink'], 'c', spc=spc)
@@ -140,6 +170,7 @@ class EPeca(Peca):
         return h
 
     def mono(self, letra):
+        if self.T['sans']: return
         d = self.W * 1.05
         self.tx(-0.025 * self.W, self.H / 2 - d * 0.62, d, d * 1.2, letra.upper(), SERIF, d, self.T['mono'], 'c')
 
@@ -181,7 +212,8 @@ def capa(p, c):
         y0 = 70 * k + p.olho(70 * k, c.get('olho', '[SEU ESPAÇO]')) + G * k
         fh = lim - h_txt - y0 - 2 * G * k
         fw = min(W - 260 * k, fh * 0.78)
-        fw = p.foto(W / 2 - fw / 2, y0 + 14 * k, fw, fh - 28 * k, 'arco')
+        if p.T['forma'] == 'rr': fw = W - 180 * k
+        fw = p.foto(W / 2 - fw / 2, y0 + 14 * k, fw, fh - 28 * k, p.T['forma'])
         y = y0 + fh + G * k
     y += p.titulo(W / 2, y, tw, c['forte'], c.get('cursiva', ''), tam) + G * k * 0.6
     for nome, h in blocos:
@@ -203,7 +235,8 @@ def antes_depois(p, c):
     fh = min(fw * 1.45, lim - y - h_fim - lab - G * k)
     for i, t in enumerate(['antes', 'depois']):
         x = m + i * (fw + gap)
-        w2 = p.foto(x, y + (14 * k if p.tema == 'chique' else 0), fw, fh - (28 * k if p.tema == 'chique' else 0), 'arco' if p.tema == 'chique' else 'rect')
+        a = 14 * k if p.T['aro'] else 0
+        w2 = p.foto(x, y + a, fw, fh - 2 * a, p.T['forma'])
         p.tx(x, y + fh + 18 * k, w2, 40 * k, t.upper(), BODY, 22 * k, p.T['mut'], 'c', spc=22 * k * 0.5)
     y += fh + lab + G * k * 0.5
     if c.get('selo'): y += p.etiqueta(W / 2, y, c['selo']) + G * k
@@ -230,11 +263,17 @@ def lista(p, c):
     y += max(0, (folga - 2 * extra * len(itens)) / 2)
     for i, (t, h) in enumerate(zip(itens, alturas)):
         h += 2 * extra
-        p.fio(m, y, w, p.T['fio'] if p.tema == 'chique' else 'D6D6D6', 1.5)
-        p.tx(m, y, 100 * k, h, f'{i + 1:02d}', SERIF, tam * 1.5, p.T['ac'], 'l', True)
-        p.tx(m + 120 * k, y, w - 120 * k, h, t, BODY, tam, p.T['ink'], 'l', True, esp=1.15)
+        if p.T['sans']:
+            p.ret(m - 20 * k, y + 8 * k, w + 40 * k, h - 16 * k, p.T['card'], 0.18)
+            d = 64 * k
+            p.ret(m + 6 * k, y + h / 2 - d / 2, d, d, p.T['eti'] if i % 2 == 0 else p.T['fio'], 0, forma=MSO_SHAPE.OVAL)
+            p.tx(m + 6 * k, y + h / 2 - d / 2, d, d, str(i + 1), BODY, 28 * k, 'FFFFFF', 'c', True, b=True)
+        else:
+            p.fio(m, y, w, p.T['fio_l'], 1.5)
+            p.tx(m, y, 100 * k, h, f'{i + 1:02d}', SERIF, tam * 1.5, p.T['ac'], 'l', True)
+        p.tx(m + 120 * k, y, w - 140 * k, h, t, BODY, tam, p.T['ink'], 'l', True, esp=1.15)
         y += h
-    p.fio(m, y, w, p.T['fio'] if p.tema == 'chique' else 'D6D6D6', 1.5)
+    if not p.T['sans']: p.fio(m, y, w, p.T['fio_l'], 1.5)
 
 def depoimento(p, c):
     k, W, H = p.k, p.W, p.H
@@ -270,8 +309,10 @@ def agenda(p, c):
     for i, (d, hrs) in enumerate(dias):
         x = m + (i % cols) * (cw + gap); yy = y + (i // cols) * (ch + gap)
         on = i == c.get('destaque', 1)
-        if on: p.ret(x, yy, cw, ch, p.T['eti'])
-        else: p.moldura(x, yy, cw, ch, p.T['fio'] if p.tema == 'chique' else 'BDBDBD', 1)
+        r = 0.16 if p.T['sans'] else 0
+        if on: p.ret(x, yy, cw, ch, p.T['eti'], r)
+        elif p.T['sans']: p.ret(x, yy, cw, ch, p.T['card'], r)
+        else: p.moldura(x, yy, cw, ch, p.T['fio_l'] if p.T['aro'] else 'BDBDBD', 1)
         cor = p.T['eti_txt'] if on else p.T['ink']
         p.tx(x, yy + 30 * k, cw, 50 * k, d.upper(), SERIF, 40 * k, cor, 'c', spc=40 * k * 0.12)
         p.tx(x, yy + 96 * k, cw, 40 * k, hrs, BODY, 24 * k, p.T['eti_txt'] if on else p.T['mut'], 'c')
@@ -279,8 +320,9 @@ def agenda(p, c):
     h_selo = (60 * k + G * k) if c.get('selo') else 0
     fh = lim - y - h_selo - G * k
     if fh > 320 * k:
-        fw = min(W - 2 * m, fh * (0.8 if p.tema == 'chique' else 1.6))
-        fw = p.foto(W / 2 - fw / 2, y + (14 * k if p.tema == 'chique' else 0), fw, fh - (28 * k if p.tema == 'chique' else 0))
+        a = 14 * k if p.T['aro'] else 0
+        fw = min(W - 2 * m, fh * (0.8 if p.T['forma'] == 'arco' else 1.6))
+        fw = p.foto(W / 2 - fw / 2, y + a, fw, fh - 2 * a)
         y += fh + G * k * 0.6
     if c.get('selo'): p.etiqueta(W / 2, y, c['selo'])
 
@@ -288,7 +330,8 @@ def aviso(p, c):
     k, W, H = p.k, p.W, p.H
     p.mono(c['forte'].strip()[0])
     m = 70 * k
-    p.moldura(m, m, W - 2 * m, H - 2 * m, p.T['fio'] if p.tema == 'chique' else p.T['ink'], 1)
+    if p.T['sans']: p.ret(m, m + 40 * k, W - 2 * m, H - 2 * m - 80 * k, p.T['card'], 0.05)
+    else: p.moldura(m, m, W - 2 * m, H - 2 * m, p.T['fio'] if p.T['aro'] else p.T['ink'], 1)
     tw = W - 300 * k
     h_t = 100 * k * 1.05 + 100 * k * 1.15 * 1.15
     tam = 36 * k
@@ -307,22 +350,34 @@ def aviso(p, c):
 def precos(p, c):
     k, W, H = p.k, p.W, p.H
     p.rodape('[AGENDE PELO WHATSAPP] · @SEUPERFIL')
-    y = 90 * k
-    y += p.olho(y) + G * k * 0.6
-    y += p.titulo(W / 2, y, W - 200 * k, c['forte'], c.get('cursiva', ''), 96 * k) + G * k
+    y = 80 * k
+    y += p.olho(y) + G * k * 0.4
+    y += p.titulo(W / 2, y, W - 200 * k, c['forte'], c.get('cursiva', ''), 88 * k) + G * k * 0.6
     m = 110 * k
-    for grupo, itens in c['grupos']:
-        p.tx(m, y, W - 2 * m, 80 * k, grupo, SCRIPT, 60 * k, p.T['ac'], 'l'); y += 86 * k
-        for s, v in itens:
-            p.tx(m, y, W * 0.55, 56 * k, s, BODY, 30 * k, p.T['ink'], 'l', True)
-            p.tx(W - m - 300 * k, y, 300 * k, 56 * k, v, SERIF, 36 * k, p.T['ink'], 'r', True)
-            y += 62 * k
-            p.fio(m, y, W - 2 * m, p.T['fio'] if p.tema == 'chique' else 'DADADA', 1.2); y += 14 * k
-        y += G * k
+    grupos = c['grupos']; n_lin = sum(len(i) for _, i in grupos)
+    disp = H - 150 * k - y
+    gh = 70 * k; lh = (disp - len(grupos) * (gh + 24 * k)) / n_lin
+    lh = max(48 * k, min(76 * k, lh)); tam = min(30 * k, lh * 0.46)
+    for grupo, itens in grupos:
+        if p.T['sans']: p.tx(m, y, W - 2 * m, gh, grupo, SERIF, 52 * k, p.T['ac'], 'l', True, it=True)
+        else: p.tx(m, y, W - 2 * m, gh, grupo, SCRIPT, 54 * k, p.T['ac'], 'l', True)
+        y += gh
+        for sv, v in itens:
+            p.tx(m, y, W * 0.55, lh - 6 * k, sv, BODY, tam, p.T['ink'], 'l', True)
+            p.tx(W - m - 300 * k, y, 300 * k, lh - 6 * k, v, BODY if p.T['sans'] else SERIF, tam * (1 if p.T['sans'] else 1.2), p.T['ink'], 'r', True, b=p.T['sans'])
+            y += lh - 6 * k
+            p.fio(m, y, W - 2 * m, p.T['fio_l'], 1.2); y += 6 * k
+        y += 24 * k
 
 def destaque(p, c):
     k, W, H = p.k, p.W, p.H
     d = 640 * k; x = W / 2 - d / 2; y = H / 2 - d / 2
+    if p.T['sans']:
+        p.ret(x, y, d, d, c.get('cor') or p.T['ac'], 0, forma=MSO_SHAPE.OVAL)
+        tam = 64 * k
+        while p.larg(c['palavra'], tam, BODY) > d * 0.75: tam *= 0.93
+        p.tx(x, H / 2 - 50 * k, d, 100 * k, c['palavra'], BODY, tam, 'FFFFFF', 'c', True, b=True)
+        return
     p.aro(x, y, d, d, 'circ', p.T['ac'], 1.5)
     p.aro(x + 26 * k, y + 26 * k, d - 52 * k, d - 52 * k, 'circ', p.T['ac'], 0.75)
     pal = c['palavra']

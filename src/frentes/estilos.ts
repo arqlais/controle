@@ -1,12 +1,12 @@
-/* Estilos dos arquivos da planê.arquivos: cada arquivo destes vem nos três estilos na mesma compra.
+/* Estilos dos arquivos da planê.arquivos: cada arquivo destes vem nos quatro estilos na mesma compra.
    As prévias ficam em public/ape/amostras/e-<id>--<estilo>.webp (geradas por tools/arquivos). */
-export type Estilo = 'criativo' | 'minimalista' | 'chique'
-export const ESTILOS: { id: Estilo; nome: string; cor: string }[] = [
-  { id: 'criativo', nome: 'criativo', cor: '#d6b3ab' },
-  { id: 'minimalista', nome: 'minimalista', cor: '#ffffff' },
-  { id: 'chique', nome: 'chique', cor: '#15120f' },
+export type Estilo = 'delicado' | 'criativo' | 'minimalista' | 'elegante'
+export const ESTILOS: { id: Estilo; nome: string; cor: string; aro?: string }[] = [
+  { id: 'delicado', nome: 'delicado', cor: '#e9dcd6', aro: '#a88a80' },
+  { id: 'criativo', nome: 'criativo', cor: '#e8a48f', aro: '#c9785d' },
+  { id: 'minimalista', nome: 'minimalista', cor: '#ffffff', aro: '#1f1f1f' },
+  { id: 'elegante', nome: 'elegante', cor: '#15120f', aro: '#c9a86a' },
 ]
-const COM_ESTILOS = new Set<string>(["beleza-antes-depois", "beleza-biosseguranca", "beleza-carrossel", "beleza-cartao-agendamento", "beleza-certificado", "beleza-depoimentos", "beleza-destaques", "beleza-mensagens", "beleza-politica", "beleza-recibo", "beleza-stories-mes", "cab-anamnese", "cab-cuidados", "cab-tecnica", "cil-mapeamento", "dep-ficha", "est-avaliacao", "est-cuidados", "est-protocolo", "mas-ficha", "noiva-contrato", "noiva-ficha", "noiva-orcamento", "sob-cuidados", "sob-visagismo", "unha-catalogo", "unha-cuidados"])
+const COM_ESTILOS = new Set<string>(["beleza-fim-de-ano", "beleza-precos", "beleza-anamnese", "beleza-termo", "beleza-vale", "free-proposta", "free-contrato", "free-briefing", "arq-proposta", "arq-contrato", "arq-briefing", "arq-levantamento", "beleza-stories-mes", "beleza-antes-depois", "beleza-depoimentos", "beleza-carrossel", "beleza-destaques", "beleza-politica", "beleza-cartao-agendamento", "beleza-recibo", "beleza-mensagens", "beleza-certificado", "beleza-biosseguranca", "sob-cuidados", "sob-visagismo", "cil-mapeamento", "unha-cuidados", "unha-catalogo", "cab-anamnese", "cab-cuidados", "cab-tecnica", "est-avaliacao", "est-protocolo", "est-cuidados", "noiva-orcamento", "noiva-contrato", "noiva-ficha", "dep-ficha", "mas-ficha", "beleza-cuidados-qr", "beleza-lembranca"])
 export const temEstilos = (id: string) => COM_ESTILOS.has(id)
-/** imagem do arquivo no estilo; no criativo, a capa de sempre */
-export const imgEstilo = (id: string, e: Estilo, capa?: string) => (e === 'criativo' ? capa : `ape/amostras/e-${id}--${e}.webp`)
+export const imgEstilo = (id: string, e: Estilo) => `ape/amostras/e-${id}--${e}.webp`

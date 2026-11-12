@@ -12,7 +12,8 @@ from pptx.oxml.ns import qn
 from lxml import etree
 
 PX = 9525
-INK, ROSE, SOFT, BLUSH, BG, WHITE, SAND, MUTED = '3E4B57', 'A88A80', 'D6B3AB', 'F4E8E5', 'F4EBE8', 'FFFFFF', 'EFE5E1', '8B939A'
+INK, ROSE, SOFT, BLUSH, BG, WHITE, SAND, MUTED = '45394A', 'C9785D', 'EDB5A8', 'F6E1DA', 'FBF2EC', 'FFFFFF', 'F3E3C7', '9A8C93'
+LILAS = 'CBBFE0'
 SCRIPT = 'Cormorant Garamond'
 FONTE_DIR = os.path.expanduser('~/.fonts')
 TMP = os.path.join(os.environ.get('CONTEUDO', os.path.expanduser('~/conteudo')), 'ph')
@@ -21,21 +22,21 @@ rgb = RGBColor.from_string
 
 # ---------- imagem "arraste sua foto aqui" ----------
 def placeholder(w, h, texto='arraste sua foto aqui'):
-    nome = f'{TMP}/ph2-{w}x{h}-{abs(hash(texto)) % 9999}.png'
+    nome = f'{TMP}/ph3-{w}x{h}-{abs(hash(texto)) % 9999}.png'
     if os.path.exists(nome): return nome
     k = 2
-    im = Image.new('RGB', (w * k, h * k), '#EADDD8')
+    im = Image.new('RGB', (w * k, h * k), '#F3DCD3')
     d = ImageDraw.Draw(im)
     cx, cy = w * k // 2, h * k // 2
     r = int(min(w, h) * k * 0.12)
-    d.rounded_rectangle([cx - r, cy - int(r * 0.75) - 20 * k, cx + r, cy + int(r * 0.75) - 20 * k], radius=int(r * 0.25), outline='#A88A80', width=5 * k)
-    d.ellipse([cx - r // 2.6, cy - r // 2.6 - 20 * k, cx + r // 2.6, cy + r // 2.6 - 20 * k], outline='#A88A80', width=5 * k)
+    d.rounded_rectangle([cx - r, cy - int(r * 0.75) - 20 * k, cx + r, cy + int(r * 0.75) - 20 * k], radius=int(r * 0.25), outline='#C9785D', width=5 * k)
+    d.ellipse([cx - r // 2.6, cy - r // 2.6 - 20 * k, cx + r // 2.6, cy + r // 2.6 - 20 * k], outline='#C9785D', width=5 * k)
     try:
         f = ImageFont.truetype(f'{FONTE_DIR}/poppins-latin-600-normal.ttf', max(18, int(min(w, h) * 0.055)) * k)
     except Exception:
         f = ImageFont.load_default()
     tw = d.textlength(texto, font=f)
-    d.text((cx - tw / 2, cy + int(r * 0.75)), texto, fill='#A88A80', font=f)
+    d.text((cx - tw / 2, cy + int(r * 0.75)), texto, fill='#C9785D', font=f)
     im.save(nome)
     return nome
 
@@ -97,7 +98,7 @@ class Peca:
         m = w * 0.06
         self.foto(x + m, y + m, w - 2 * m, h - m - h * 0.16, rot)
         if legenda: self.txt(x + m, y + h - h * 0.14, w - 2 * m, h * 0.12, [(legenda, {'i': True, 'tam': max(34, int(w * 0.075))})], al='c', meio=True, rot=rot)
-        if fita: self.ret(x + w * 0.32, y - 26, w * 0.36, 58, SOFT, 0, rot - 6, alpha=0.8)
+        if fita: self.ret(x + w * 0.32, y - 26, w * 0.36, 58, LILAS, 0, rot - 6, alpha=0.85)
 
     def titulo(self, x, y, w, forte, cursiva, tam=150, cor=INK, al='l'):
         self.txt(x, y, w, tam * 1.1, [(forte, {'b': True, 'tam': tam})], cor=cor, al=al)

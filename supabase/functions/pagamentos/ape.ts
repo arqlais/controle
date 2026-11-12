@@ -662,6 +662,14 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
     const st = db.storage.from('ape-arquivos')
     const feitos: string[] = []
     const fora: string[] = []
+    // estilo que mudou de nome ("chique" virou "elegante"): tira os arquivos antigos das pastas dos produtos
+    const { data: pastas } = await st.list('', { limit: 1000 })
+    for (const pasta of pastas ?? []) {
+      if (pasta.name === 'entregas' || pasta.id) continue
+      const { data: fs0 } = await st.list(pasta.name, { limit: 200 })
+      const velhos0 = (fs0 ?? []).filter((f) => /--chique\./.test(f.name)).map((f) => `${pasta.name}/${f.name}`)
+      if (velhos0.length) await st.remove(velhos0)
+    }
     for (const [nome, dados] of Object.entries(arquivos)) {
       if (nome.endsWith('/') || nome.startsWith('__')) continue
       const base = nome.split('/').pop()!.replace(/\.[^.]+$/, '').toLowerCase()

@@ -18,9 +18,10 @@ FONTS = sys.argv[3]  # pasta com as fontes woff2
 ESTILO = os.environ.get('ESTILO', 'criativo')
 SUF = '' if ESTILO == 'criativo' else f'--{ESTILO}'
 _T = {
-    'criativo': ('3E4B57', 'A88A80', '8B939A', 'D9CCC6', 'F4E8E5', 'Poppins'),
+    'criativo': ('45394A', 'C9785D', '9A8C93', 'EDD3C8', 'F6E1DA', 'Poppins'),
+    'delicado': ('3E4B57', 'A88A80', '8B939A', 'D9CCC6', 'F4E8E5', 'Poppins'),
     'minimalista': ('1F1F1F', '1F1F1F', '8A8A8A', 'CFCFCF', 'F1F1F1', 'Cormorant Garamond'),
-    'chique': ('2B2622', 'A9844F', '8C8178', 'DCCDB3', 'F3ECE1', 'Cormorant Garamond'),
+    'elegante': ('2B2622', 'A9844F', '8C8178', 'DCCDB3', 'F3ECE1', 'Cormorant Garamond'),
 }[ESTILO]
 INK, ROSE, MUTED = (RGBColor.from_string(c) for c in _T[:3])
 LINE, FILL, TFONT = _T[3], _T[4], _T[5]
@@ -44,7 +45,7 @@ def para(d, text='', size=10, bold=False, color=INK, before=0, after=4, italic=F
     p.paragraph_format.space_before = Pt(before)
     p.paragraph_format.space_after = Pt(after)
     if text:
-        if titulo and ESTILO != 'criativo':
+        if titulo and ESTILO in ('minimalista', 'elegante'):
             r = run(p, text.upper(), size + 2, False, color, italic)
             r.font.name = TFONT; r._element.rPr.rFonts.set(qn('w:eastAsia'), TFONT)
             sp = OxmlElement('w:spacing'); sp.set(qn('w:val'), '40'); r._element.rPr.append(sp)
@@ -80,7 +81,7 @@ def docx_doc(pid, d):
         s.top_margin = s.bottom_margin = Cm(2); s.left_margin = s.right_margin = Cm(2.2)
     st = doc.styles['Normal']; st.font.name = FONT; st.font.size = Pt(10); st.font.color.rgb = INK
     capa = True
-    para(doc, FRENTE(pid), 9, True, ROSE, after=2)
+    para(doc, "[SEU ESPAÇO]", 9, True, ROSE, after=2)
     para(doc, d['titulo'], 22, True, INK, after=10, titulo=True)
     for b in d['blocos']:
         k = b[0]
@@ -209,6 +210,7 @@ ul {{ margin: 0 0 2mm; padding-left: 5mm; }} li {{ margin: 0 0 1.4mm; }} li::mar
 
 EXTRA = {
 'criativo': '.capa .mono {{ display: none; }}',
+'delicado': '.capa .mono {{ display: none; }}',
 'minimalista': '''
 @font-face {{ font-family: Cormorant; font-weight: 300; src: url('{F}/cormorant-garamond-latin-300-normal.woff2'); }}
 @font-face {{ font-family: Cormorant; font-weight: 500; src: url('{F}/cormorant-garamond-latin-500-normal.woff2'); }}
@@ -234,7 +236,7 @@ th {{ background: #f1f1f1; border-radius: 0 !important; text-transform: uppercas
 .logo {{ border-color: #1f1f1f; border-radius: 0; color: #1f1f1f; text-transform: uppercase; letter-spacing: .2em; font-size: 7pt; }}
 .ass div {{ border-color: #1f1f1f; }}
 ''',
-'chique': '''
+'elegante': '''
 @font-face {{ font-family: Cormorant; font-weight: 300; src: url('{F}/cormorant-garamond-latin-300-normal.woff2'); }}
 @font-face {{ font-family: Cormorant; font-weight: 500; src: url('{F}/cormorant-garamond-latin-500-normal.woff2'); }}
 @font-face {{ font-family: Vibes; src: url('{F}/great-vibes-latin-400-normal.woff2'); }}
@@ -261,6 +263,9 @@ th {{ background: #f3ece1; border-radius: 0 !important; }}
 .ass div {{ border-color: #a9844f; }}
 ''',
 }[ESTILO].replace('{{', '{').replace('}}', '}').replace('{F}', FONTS)
+if ESTILO == 'criativo':
+    for a, b in [('#3e4b57', '#45394a'), ('#a88a80', '#c9785d'), ('#f5f1ee', '#fbf2ec'), ('#f4e8e5', '#f6e1da'), ('#d6b3ab', '#edb5a8'), ('#ebe1dc', '#f0dcd3'), ('#d9ccc6', '#edd3c8'), ('#6f7a83', '#7c6e78'), ('#8b939a', '#9a8c93')]:
+        CSS = CSS.replace(a, b)
 CSS += EXTRA
 
 def h_titulo(t):
@@ -280,7 +285,7 @@ def html_doc(pid, d):
         capa.append(blocos[i]); i += 1
     tem_capa = i < len(blocos)
     if tem_capa:
-        out.append(f'<section class="capa"><span class="mono">{E(d["titulo"][0].upper())}</span><span class="frente">{"[SEU ESPAÇO]" if ESTILO != "criativo" else FRENTE(pid)}</span><h1>{h_titulo(d["titulo"])}</h1>')
+        out.append(f'<section class="capa"><span class="mono">{E(d["titulo"][0].upper())}</span><span class="frente">[SEU ESPAÇO]</span><h1>{h_titulo(d["titulo"])}</h1>')
         for b in capa:
             if b[0] == 'lead': out.append(f'<p class="lead">{E(b[1])}</p>')
             elif b[0] == 'nota': out.append(f'<div class="nota">{E(b[1])}</div>')

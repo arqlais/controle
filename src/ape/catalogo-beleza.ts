@@ -303,6 +303,62 @@ export const CATALOGO_BELEZA: Produto[] = [
   ]
  },
  {
+  "frente": "arquivos",
+  "nicho": "beleza",
+  "sub": "todos",
+  "cat": "arquivos",
+  "ativo": true,
+  "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+  "id": "beleza-cuidados-qr",
+  "uso": "imprimir",
+  "tipo": "cuidados",
+  "nome": "Cartão de cuidados com QR code",
+  "tag": "cuidados",
+  "preco": "R$ 9,90",
+  "formato": "PowerPoint (abre no Canva e no Google Slides) + PDF",
+  "numeros": [
+   "5,9 x 10 cm",
+   "5 procedimentos"
+  ],
+  "desc": "Cartão pequeno para entregar depois do atendimento: a cliente aponta a câmera e abre os seus cuidados. Cole o seu QR code (o Canva gera de graça).",
+  "itens": [
+   "5 cartões (sobrancelha, lash lifting, cílios, micropigmentação e um livre)",
+   "Espaço para o seu QR code",
+   "Tamanho 5,9 x 10 cm para imprimir"
+  ],
+  "amostras": [
+   "ape/amostras/e-beleza-cuidados-qr--delicado.webp"
+  ]
+ },
+ {
+  "frente": "arquivos",
+  "nicho": "beleza",
+  "sub": "todos",
+  "cat": "arquivos",
+  "ativo": true,
+  "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+  "id": "beleza-lembranca",
+  "uso": "imprimir",
+  "tipo": "atendimento",
+  "nome": "Cartão lembrança",
+  "tag": "atendimento",
+  "preco": "R$ 9,90",
+  "formato": "PowerPoint (abre no Canva e no Google Slides) + PDF",
+  "numeros": [
+   "5,9 x 10 cm",
+   "3 frases"
+  ],
+  "desc": "Cartãozinho de agradecimento com espaço para foto, para a cliente levar junto com o resultado.",
+  "itens": [
+   "3 cartões: obrigada, foi um prazer e volte sempre",
+   "Espaço para a sua foto",
+   "Tamanho 5,9 x 10 cm para imprimir"
+  ],
+  "amostras": [
+   "ape/amostras/e-beleza-lembranca--delicado.webp"
+  ]
+ },
+ {
   "id": "beleza-biosseguranca",
   "frente": "arquivos",
   "nicho": "beleza",

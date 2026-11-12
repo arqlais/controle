@@ -3,35 +3,31 @@
 Atualizado em 12/11/2026. Quem continuar: leia este arquivo, `CLAUDE.md` e `docs/FRENTES.md` antes de mexer.
 Marque aqui o que for terminando (troque `[ ]` por `[x]`) e publique junto.
 
-## Pedido em andamento (12/11)
+## Feito em 12/11 (segunda rodada)
 
-1. [x] **3 estilos em cada arquivo** (feito em 27 arquivos de beleza: artes, documentos e certificado; faltam as planilhas, os arquivos antigos de beleza (anamnese, termo, tabela de preços, caixa) e os da planê.arq): minimalista, chique e criativo, sem separar por categoria. A compra
-   leva os três estilos do mesmo arquivo, e a cliente escolhe qual usar. Na loja, o cartão e o detalhe têm a
-   troca de estilo (bolinhas), que muda o mockup.
-   - **minimalista**: fundo branco ou off-white, tinta preta, título serifado fino em caixa alta e espaçado,
-     um detalhe cursivo, etiquetas em caixa preta com letra branca, monograma grande e apagado no fundo, foto
-     sangrando a página. Referência: material de curso de sobrancelha que a dona mandou.
-   - **chique**: fundo preto, dourado e taupe, título serifado e cursivo dourado, fotos redondas com aro
-     dourado, molduras de linha fina. Referência: catálogo de nail designer que a dona mandou.
-   - **criativo**: a colagem que já existe (polaroid, fita, adesivo, coração), em azul e rosé.
-   - [ ] Ideias boas das referências (ainda não feitas): cartão de cuidados com **QR code** ("escaneie e confira os cuidados") e
-     cartão de **lembrança** pequeno (5,9 x 10 cm).
-2. [x] **Nada de "linha de traços"**: a fileira de tracinhos que ficava embaixo do título dos documentos e o
-   listrado dentro do espaço da foto saem de todos os arquivos.
-3. [ ] **Fotos**: onde fizer sentido, usar foto de banco gratuito (Unsplash ou Pexels, uso comercial
-   liberado) só como exemplo; a cliente troca arrastando a foto dela por cima. A rede deste ambiente bloqueia
-   esses sites; se continuar bloqueado, manter o espaço "arraste sua foto aqui" liso, sem listras.
-4. [ ] **Ilustração**: nada amador (os desenhos de rosto, olhos e corpo das fichas são os antigos; revisar ou trocar por foto). Corpo e rosto só com traço limpo e proporção certa; se não ficar bom,
-   usar foto em vez de desenho.
-5. [ ] **Conferência** (artes e documentos conferidos em PDF; falta abrir no Canva): nenhum texto sobreposto, espaçamento e proporção certos, testar tudo aberto no Canva.
-6. [x] **Visual da plataforma**: poucas manchas suaves (azul e rosé, desfocadas) atrás do topo e de 1 ou 2
-   seções, com cartões de vidro líquido (fundo translúcido + desfoque + borda clara). Sem excesso, sem repetir
-   em toda seção, sem degradê de fundo inteiro.
-7. [x] **Instagram de cada frente** (decidido em 12/11):
-   - planê.apê → **@apzinho_1204** (perfil pessoal do apê, mostra a obra; foco é renda extra, não venda).
-   - planê.arquivos → **@plane.arquivos** (perfil próprio; fala de toda a plataforma, foco em vender arquivos).
-   - planê.arq → **@sou.plane** continua (não criar um terceiro perfil agora; renomear para @plane.arq só se
-     um dia quiser separar).
+- [x] **4 estilos em cada arquivo**, na mesma compra: **delicado** (a pegada do site da planê: bege, azul
+  acinzentado e rosé, cantos redondos), **criativo** (colagem com cores mais vivas: terracota, pêssego,
+  lilás e ameixa, sem exagero), **minimalista** (preto e branco, serifa fina espaçada, cursiva) e **elegante**
+  (preto, dourado e taupe; antes se chamava "chique"). Vale para artes, documentos (Word e PDF), planilhas e
+  os modelos de freelancer e da planê.arq. Nomes dos arquivos: `<id>.ext` é o criativo; os outros levam
+  `--delicado`, `--minimalista` ou `--elegante`. A importação apaga sozinha os antigos `--chique`.
+- [x] Sem a fileira de traços e sem listras no espaço da foto, em todos os arquivos.
+- [x] Desenhos novos das fichas (rosto com proporção, mapa de cílios em 7 zonas, corpo de frente e de costas),
+  em vetor com curvas suaves (`tools/arquivos/mapas_svg.py`).
+- [x] Produtos novos: **Cartão de cuidados com QR code** e **Cartão lembrança** (5,9 x 10 cm), nos 4 estilos.
+- [x] Loja: bolinhas para ver cada estilo (cartão e detalhe), celular com cartões em 2 colunas, filtros atrás
+  do botão "filtrar", "ver todos", topo e "como funciona" mais curtos. Página principal com menos texto no celular.
+- [x] Manchas suaves + vidro líquido na página principal e nas vitrines.
+- [x] Instagrams: apê → @apzinho_1204; arquivos → @plane.arquivos; arq → @sou.plane.
+
+## O que ainda falta
+
+- [ ] **Mockups (as cenas com celular e folhas)** ainda mostram o criativo antigo (rosé). As prévias de cada estilo
+  já são as novas; refazer as cenas com `mock.py`/`mock_b.py` + `shot-t.cjs` a partir das páginas novas.
+- [ ] **Fotos de exemplo**: a rede deste ambiente bloqueia Unsplash/Pexels. Liberando, trocar o
+  "arraste sua foto aqui" por foto de uso comercial liberado (nunca foto do Google: dá problema de direito autoral).
+- [ ] Planilhas não têm prévia por estilo na loja (os 4 estilos vão no download).
+- [ ] Abrir umas artes no Canva para conferir fontes (Poppins, Cormorant Garamond, Great Vibes).
 
 ## Ações da dona (fora do código)
 

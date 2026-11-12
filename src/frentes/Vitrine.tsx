@@ -154,6 +154,7 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
   const [tipo, setTipo] = useState('')
   const [busca, setBusca] = useState('')
   const [limite, setLimite] = useState(12)
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false)
   const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
   const doNicho = daqui.filter((p) => p.ativo && (!nicho || p.nicho === nicho))
   const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))]
@@ -287,6 +288,10 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
                 <Icon name="search" size={16} />
                 <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar: anamnese, cuidados, stories…" aria-label="Buscar arquivos" />
               </label>
+              <button className={`fr-filtrar ${filtrosAbertos ? 'is-on' : ''}`} onClick={() => setFiltrosAbertos((v) => !v)} aria-expanded={filtrosAbertos}>
+                <Icon name="list" size={16} /> filtrar{[sub, uso, tipo].filter(Boolean).length > 0 && <span className="num">{[sub, uso, tipo].filter(Boolean).length}</span>}
+              </button>
+              <div className={`fr-filtros-mais ${filtrosAbertos ? 'is-open' : ''}`}>
               <div className="lp-aud fr-uso" role="tablist" aria-label="para imprimir ou para mandar">
                 {([['', 'tudo'], ['imprimir', 'para imprimir'], ['digital', 'para mandar']] as const).map(([v, l]) => (
                   <button key={v} role="tab" aria-selected={uso === v} className={uso === v ? 'is-on' : ''} onClick={() => setUso(v)}>
@@ -309,6 +314,7 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
                   ))}
                 </div>
               )}
+              </div>
               <p className="fr-conta muted small">
                 <span className="num">{arqsF.length}</span> {arqsF.length === 1 ? 'arquivo' : 'arquivos'}
                 {kitsF.length > 0 && <> e <span className="num">{kitsF.length}</span> {kitsF.length === 1 ? 'kit' : 'kits'}</>}
@@ -341,7 +347,10 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
               {arqsF.length > limite && (
                 <div className="fr-mais">
                   <button className="btn ghost lp-cta" onClick={() => setLimite((l) => l + 12)}>
-                    ver mais <span className="num">{arqsF.length - limite}</span>
+                    ver mais <span className="num">{Math.min(12, arqsF.length - limite)}</span>
+                  </button>
+                  <button className="btn primary lp-cta" onClick={() => setLimite(9999)}>
+                    ver todos os <span className="num">{arqsF.length}</span>
                   </button>
                 </div>
               )}
@@ -480,12 +489,12 @@ const USO: Record<string, [string, string]> = { imprimir: ['printer', 'imprimir'
 /** Cartão de produto da vitrine (também na faixa de kits). */
 function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; i?: number; kit?: boolean; pix: string; noCarrinho: boolean; onAdd: () => void; onVer: () => void }) {
   const u = p.uso ? USO[p.uso] : null
-  const [est, setEst] = useState<Estilo>('criativo')
-  const capa = temEstilos(p.id) ? imgEstilo(p.id, est, p.amostras?.[0]) : p.amostras?.[0]
+  const [est, setEst] = useState<Estilo | null>(null)
+  const capa = est && temEstilos(p.id) ? imgEstilo(p.id, est) : p.amostras?.[0]
   return (
     <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
       <button className="fr-card-img" onClick={onVer} aria-label={`Ver ${p.nome} por dentro`}>
-        {capa && <img key={capa} className={est !== 'criativo' ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
+        {capa && <img key={capa} className={est ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
         {p.selo && <span className="fr-selo">{p.selo}</span>}
         <span className="fr-ver">
           <Icon name="eye" size={14} /> ver por dentro
@@ -498,6 +507,11 @@ function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; 
         <b>{p.nome}</b>
         <p>{p.desc}</p>
         {temEstilos(p.id) && <Estilos est={est} onEst={setEst} />}
+        {temEstilos(p.id) && (
+          <span className="fr-estilos-mini" aria-label={`${ESTILOS.length} estilos`}>
+            {ESTILOS.map((e) => <i key={e.id} style={{ background: e.cor }} />)} <span className="num">{ESTILOS.length}</span> estilos
+          </span>
+        )}
         {u && (
           <span className="fr-uso-tag">
             <Icon name={u[0]} size={13} /> {u[1]}
@@ -509,9 +523,9 @@ function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; 
         </div>
         <div className="row gap-s">
           <button className={`btn small ${noCarrinho ? 'ghost' : 'primary'}`} onClick={onAdd} disabled={noCarrinho}>
-            <Icon name={noCarrinho ? 'check' : 'plus'} size={14} /> {noCarrinho ? 'no carrinho' : 'adicionar'}
+            <Icon name={noCarrinho ? 'check' : 'plus'} size={14} /> <span className="fr-add-t">{noCarrinho ? 'no carrinho' : 'adicionar'}</span>
           </button>
-          <button className="btn ghost small" onClick={onVer}>
+          <button className="btn ghost small fr-det" onClick={onVer}>
             detalhes
           </button>
         </div>
@@ -520,15 +534,16 @@ function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; 
   )
 }
 
-/** Bolinhas para trocar o estilo (criativo, minimalista, chique). */
-function Estilos({ est, onEst }: { est: Estilo; onEst: (e: Estilo) => void }) {
+/** Bolinhas para trocar o estilo (delicado, criativo, minimalista, elegante) + o nome do escolhido. */
+function Estilos({ est, onEst }: { est: Estilo | null; onEst: (e: Estilo) => void }) {
   return (
     <div className="fr-estilos" role="radiogroup" aria-label="Estilo">
       {ESTILOS.map((e) => (
-        <button key={e.id} role="radio" aria-checked={est === e.id} className={est === e.id ? 'is-on' : ''} onClick={() => onEst(e.id)}>
-          <i style={{ background: e.cor }} /> {e.nome}
+        <button key={e.id} role="radio" aria-checked={est === e.id} aria-label={e.nome} title={e.nome} className={est === e.id ? 'is-on' : ''} onClick={() => onEst(e.id)} style={{ ['--c' as string]: e.cor, ['--a' as string]: e.aro }}>
+          <i />
         </button>
       ))}
+      <span className="fr-estilos-nome">{est ?? `${ESTILOS.length} estilos`}</span>
     </div>
   )
 }
@@ -536,7 +551,7 @@ function Estilos({ est, onEst }: { est: Estilo; onEst: (e: Estilo) => void }) {
 /** Detalhe do produto: galeria (mockup e páginas de dentro), o que vem, formato e preço. */
 function Detalhe({ p, pixTxt, pixPct, noCarrinho, onAdd, onClose }: { p: Produto; pixTxt: string; pixPct: number; noCarrinho: boolean; onAdd: () => void; onClose: () => void }) {
   const est = temEstilos(p.id)
-  const fotos = est ? [(p.amostras || [])[0], imgEstilo(p.id, 'minimalista')!, imgEstilo(p.id, 'chique')!, ...(p.amostras || []).slice(1)].filter(Boolean) as string[] : p.amostras || []
+  const fotos = est ? ([(p.amostras || [])[0], ...ESTILOS.map((e) => imgEstilo(p.id, e.id)), ...(p.amostras || []).slice(1)].filter(Boolean) as string[]) : p.amostras || []
   const [i, setI] = useState(0)
   const trilho = useRef<HTMLDivElement>(null)
   const ir = (n: number) => {
@@ -576,8 +591,8 @@ function Detalhe({ p, pixTxt, pixPct, noCarrinho, onAdd, onClose }: { p: Produto
           <p className="muted">{p.desc}</p>
           {est && (
             <div className="fr-estilos-d">
-              <small>três estilos na mesma compra</small>
-              <Estilos est={(['criativo', 'minimalista', 'chique'] as Estilo[])[Math.min(i, 2)]} onEst={(e) => ir(ESTILOS.findIndex((x) => x.id === e))} />
+              <small><span className="num">{ESTILOS.length}</span> estilos na mesma compra: toque para ver</small>
+              <Estilos est={i >= 1 && i <= ESTILOS.length ? ESTILOS[i - 1].id : null} onEst={(e) => ir(ESTILOS.findIndex((x) => x.id === e) + 1)} />
             </div>
           )}
           {!!p.numeros?.length && (

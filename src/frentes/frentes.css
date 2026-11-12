@@ -241,12 +241,68 @@ html, body { margin: 0; background: var(--bg); }
 .fr-com-manchas .lp-diff { transition: transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.3s; }
 @media (hover: hover) { .fr-com-manchas .lp-diff:hover { transform: translateY(-3px); box-shadow: inset 0 1px 0 #fff, 0 26px 50px -26px rgba(62, 75, 87, 0.5); } }
 
-/* troca de estilo dos arquivos (criativo, minimalista, chique) */
-.fr-estilos { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 4px; }
-.fr-estilos button { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 4px 11px 4px 6px; border-radius: var(--pill); border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 70%, transparent); font: 500 12px var(--font-body); color: var(--muted); cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
-.fr-estilos button i { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(62, 75, 87, .25); }
-.fr-estilos button.is-on { color: var(--text); border-color: var(--text); background: var(--surface); }
+/* troca de estilo dos arquivos: bolinhas de 32px (fácil de tocar) e o nome do estilo escolhido */
+.fr-estilos { display: flex; align-items: center; gap: 4px; margin: 2px 0 4px; }
+.fr-estilos button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.fr-estilos button i { width: 20px; height: 20px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(62, 75, 87, .22); transition: box-shadow .2s, transform .2s; }
+.fr-estilos button.is-on i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--a); transform: scale(1.05); }
+.fr-estilos-nome { margin-left: 6px; font-size: 12.5px; color: var(--muted); }
 .fr-card-img img.is-estilo { object-fit: contain; padding: 14px; background: var(--surface-2); animation: fr-surge .35s ease; }
 @keyframes fr-surge { from { opacity: .3; } to { opacity: 1; } }
 .fr-estilos-d { display: grid; gap: 6px; margin: 4px 0 10px; }
 .fr-estilos-d small { color: var(--muted); font-size: 12px; }
+
+/* celular: menos texto na vertical. Cartões em 2 colunas (só foto, nome e preço; o resto fica no detalhe),
+   filtros atrás do botão "filtrar", topo mais curto e "como funciona" numa linha. */
+.fr-filtrar, .fr-estilos-mini { display: none; }
+.fr-filtros-mais { display: grid; gap: 12px; min-width: 0; }
+.fr-estilos-mini { align-items: center; gap: 3px; font-size: 11px; color: var(--muted); }
+.fr-estilos-mini i { width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(62, 75, 87, .3); flex: none; }
+.fr-estilos-mini .num { margin-left: 3px; }
+.fr-mais { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .fr-filtros { grid-template-columns: 1fr auto; display: grid; gap: 10px; align-items: center; }
+  .fr-filtros > .fr-busca { min-width: 0; }
+  .fr-filtrar { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 16px; border-radius: var(--pill); border: 1px solid var(--border); background: var(--surface); font: 600 13px var(--font-body); color: var(--text); cursor: pointer; }
+  .fr-filtrar.is-on { background: var(--text); color: var(--surface); border-color: var(--text); }
+  .fr-filtrar .num { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 10px; background: var(--accent-soft); color: #fff; font-size: 11px; }
+  .fr-filtros-mais { display: none; grid-column: 1 / -1; }
+  .fr-filtros-mais.is-open { display: grid; gap: 10px; animation: fr-surge .25s ease; }
+  .fr-filtros > .fr-conta { grid-column: 1 / -1; margin: 0; }
+  .fr-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fr-grid .fr-card { border-radius: 18px; }
+  .fr-grid .fr-card-b { padding: 10px 12px 12px; gap: 4px; }
+  .fr-grid .fr-card-b > b { font-size: 14px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .fr-grid .fr-card-b > p, .fr-grid .fr-uso-tag, .fr-grid .fr-estilos, .fr-grid .fr-det, .fr-grid .fr-preco small, .fr-grid .fr-ver, .fr-grid .fr-tag { display: none; }
+  .fr-grid .fr-estilos-mini { display: inline-flex; }
+  .fr-grid .fr-card-b { position: relative; }
+  .fr-grid .fr-card-b > .row { position: absolute; right: 10px; bottom: 10px; margin: 0; }
+  .fr-grid .fr-card-b > .row .btn { width: 38px; height: 38px; min-height: 38px; padding: 0; border-radius: 50%; justify-content: center; }
+  .fr-grid .fr-add-t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .fr-grid .fr-preco { padding-right: 44px; min-height: 38px; align-items: center; margin: auto 0 0; }
+  .fr-grid .fr-preco .num { font-size: 16px; }
+  .fr-grid .fr-selo { font-size: 10px; padding: 3px 8px; top: 8px; left: 8px; }
+  .fr-kits-trilho .fr-card-b > p { display: none; }
+  .fr-kits-trilho .fr-card-b { padding: 12px 14px 14px; }
+  .fr-kits-trilho .fr-uso-tag, .fr-kits-trilho .fr-det { display: none; }
+  .fr .lp-hero .lp-kicker, .fr .lp-hero .lp-auto-chip, .fr .lp-hero .muted.small { display: none; }
+  .fr .lp-hero .lp-lead { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .fr .lp-hero-art { max-width: 320px; margin-inline: auto; }
+  .fr .lp-hero-art .lp-float-2, .fr .lp-hero-art .lp-float-3 { display: none; }
+  #como .lp-diffs-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  #como .lp-diff { padding: 14px 10px; text-align: center; align-items: center; gap: 8px; }
+  #como .lp-diff small { display: none; }
+  #como .lp-diff b { font-size: 12.5px; line-height: 1.3; }
+  .fr-mais .btn { flex: 1 1 140px; }
+}
+
+.fr .fr-cupom, .fr .fr-cupom b { color: var(--text); }
+.fr .fr-cupom svg { color: var(--accent-ink); }
+@media (max-width: 720px) {
+  .fr-row .fr-checks { display: none; }
+  .fr-row .fr-row-frase { margin-bottom: 14px; }
+  .fr-com-manchas .lp-diff small { display: none; }
+  .fr-com-manchas .lp-diff { padding: 16px 14px; gap: 8px; }
+  .fr-colagem { max-width: 340px; margin-inline: auto; width: 100%; }
+  .fr-kits-trilho .fr-card-img { aspect-ratio: 16 / 10; }
+}
