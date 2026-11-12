@@ -108,6 +108,16 @@ export function Flutua({ n, icone, titulo, sub, tom }: { n: 1 | 2 | 3; icone: st
   )
 }
 
+/** Duas manchas desfocadas (azul e rosé) atrás de uma seção. Só no topo e em mais uma seção, para não repetir. */
+export function Manchas({ v = 'a' }: { v?: 'a' | 'b' }) {
+  return (
+    <div className={`fr-manchas fr-manchas-${v}`} aria-hidden>
+      <i />
+      <i />
+    </div>
+  )
+}
+
 /** Faixa rosé com palavras que correm. */
 export function Faixa({ itens }: { itens: string[] }) {
   return (

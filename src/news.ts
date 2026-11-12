@@ -41,7 +41,7 @@ export const NEWS: News[] = [
     date: '2026-11-12',
     kind: 'melhoria',
     title: 'vitrines novas e sistema um pouco mais leve',
-    text: 'A página principal e as vitrines ganharam o mesmo visual da página de vendas, com os modelos vistos por dentro. O sistema abre um pouco mais rápido.',
+    text: 'A página principal e as vitrines ganharam o mesmo visual da página de vendas, com os modelos vistos por dentro, manchas suaves e cartões de vidro. O sistema abre um pouco mais rápido.',
   },
   {
     id: '2026-11-12-checkup',

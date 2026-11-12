@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { frente, type FrenteInfo } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal } from './ui'
+import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import './frentes.css'
 
 /* Página principal da planê (useplane.com.br para quem não está logado), no desenho da página de vendas
@@ -72,6 +72,7 @@ export function Hub() {
       />
 
       <section className="lp-hero">
+        <Manchas />
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
             <p className="lp-kicker">
@@ -156,7 +157,8 @@ export function Hub() {
         ))}
       </div>
 
-      <section className="lp-section lp-diffs">
+      <section className="lp-section lp-diffs fr-com-manchas">
+        <Manchas v="b" />
         <div className="lp-wrap">
           <Cabeca eyebrow="por que a planê" title={<>simples por fora, <em>caprichado</em> por dentro</>} />
           <div className="lp-diffs-grid">

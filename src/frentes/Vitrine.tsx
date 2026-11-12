@@ -5,7 +5,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal } from './ui'
+import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import './frentes.css'
 
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
@@ -199,6 +199,7 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
       <Topo atual={f} acoes={acoes} />
 
       <section className="lp-hero">
+        <Manchas />
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
             {cupom && (
@@ -244,7 +245,8 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
 
       {nomes.length > 0 && <Faixa itens={nomes} />}
 
-      <section className="lp-section lp-alt" id="como">
+      <section className="lp-section lp-alt fr-com-manchas" id="como">
+        <Manchas v="b" />
         <div className="lp-wrap">
           <Cabeca eyebrow="como funciona" title={<>três passos, <em>sem complicação</em></>} />
           <div className="lp-diffs-grid fr-3">
