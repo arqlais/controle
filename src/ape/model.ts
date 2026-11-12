@@ -13,7 +13,7 @@ export const APE = {
   torre: '2', // o apê da Laís no San Levi: torre 2, apê 1204 (planta de corredor)
   moradores: 'Laís e Igor',
   meuApe: '40 m²', // o apê da Laís (exemplo padrão nos materiais)
-  instagram: '@plane.ape',
+  instagram: '@apzinho_1204',
   whatsapp: '5511969288192', // da Laís: grupo, loja e dúvidas
 }
 

@@ -40,9 +40,9 @@
 | perfil hoje | vira | uso |
 | --- | --- | --- |
 | @amvi.packs | **@plane.arquivos** | loja (já é de arquivos, aproveita os seguidores) |
-| @sou.plane | **@sou.plane** (fica) | marca-mãe: as três frentes e a gestão (é onde os assinantes já estão; o @ já está no sistema) |
-| @apzinho_1204 | **@plane.ape** | planê.apê; "apzinho" e o "apê 1204" viram série fixa de conteúdo (bastidores da compra) |
-| @amvi.arq | **@plane.arq** | planê.arq: conteúdo para quem projeta e os modelos à venda |
+| @sou.plane | **@sou.plane** (fica) | planê.arq e marca-mãe: gestão e modelos de arquitetura (é onde os assinantes já estão; o @ já está no sistema) |
+| @apzinho_1204 | **@apzinho_1204** (fica) | planê.apê; perfil pessoal do apê, mostra a evolução da obra; o foco é renda extra, não venda |
+| @amvi.arq | parado | planê.arq usa o @sou.plane (decidido em 12/11: sem um terceiro perfil para gerenciar) |
 | design parado | reservar como **@plane.beleza** se o nicho crescer; até lá, parado | — |
 | @laisamaraldesigner · @arq.lais | ficam pessoais | portfólio; link na bio para o hub |
 
@@ -137,7 +137,7 @@ Marcado ● = já dá para vender com o que você tem.
 
 ### O que a Laís faz fora do site
 
-- Renomear os Instagrams: @amvi.packs → @plane.arquivos, @apzinho_1204 → @plane.ape, @amvi.arq → @plane.arq (perfil da planê.arq). Se algum @ estiver ocupado, troque em `src/frentes/frentes.ts`.
+- Instagram: @amvi.packs → @plane.arquivos; @apzinho_1204 e @sou.plane ficam como estão. Se algum @ mudar, troque em `src/frentes/frentes.ts`.
 - Agendar os posts no Meta Business Suite.
 
 ## Arquivos dos produtos (12/11/2026)
