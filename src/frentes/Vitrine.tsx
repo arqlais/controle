@@ -5,7 +5,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal } from './ui'
+import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal } from './ui'
 import './frentes.css'
 
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
@@ -27,13 +27,13 @@ const TEXTO: Record<Id, {
   flutua: [string, string, string, string?][]; catalogo: ReactNode; faq: [string, string][]; final: ReactNode
 }> = {
   arquivos: {
-    kicker: 'para profissionais da beleza, freelancers e pequenos negócios',
+    kicker: 'para profissionais da beleza: sobrancelha, cílios, unhas, cabelo, estética e noivas',
     titulo: <>arquivos prontos para <em>mandar hoje</em></>,
-    lead: 'Avisos, fichas, termos, tabelas e planilhas editáveis. Troque o que está entre colchetes, salve e mande para a cliente no mesmo dia.',
+    lead: 'Mais de 40 arquivos para imprimir e para mandar: fichas, termos, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
     chip: 'editável no Canva, no Word e no Excel',
-    arte: AM('m2-beleza-fim-de-ano.webp'),
+    arte: AM('t-beleza-stories-mes.webp'),
     arteLabel: 'useplane.com.br/arquivos',
-    flutua: [['download', 'baixa na hora', 'depois do Pix ou do cartão', 'good'], ['edit', 'do seu jeito', 'cores, textos e marca'], ['lock', '5% off no Pix', 'ou cartão, 7 dias para desistir', 'warn']],
+    flutua: [['download', 'baixa na hora', 'depois do Pix ou do cartão', 'good'], ['image', 'com as suas fotos', 'arraste no Canva'], ['printer', 'imprimir ou mandar', 'A4, A6, cartões e stories', 'warn']],
     catalogo: <>os <em>arquivos</em></>,
     faq: [
       ['como recebo os arquivos?', 'Pagou no Pix ou no cartão, a página do pedido mostra os botões de baixar na hora. O link também chega por e-mail e fica guardado em minha conta.'],
@@ -49,7 +49,7 @@ const TEXTO: Record<Id, {
     titulo: <>do primeiro cliente ao <em>primeiro escritório</em></>,
     lead: 'Os mesmos modelos que a gestão planê.arq usa, para comprar avulsos: proposta, contrato, briefing, levantamento, honorários e manual do cliente.',
     chip: 'Word, PDF, Canva e Excel',
-    arte: AM('m2-kit-arq-primeiro.webp'),
+    arte: AM('t-kit-arq-primeiro.webp'),
     arteLabel: 'useplane.com.br/arq',
     flutua: [['file', 'kit primeiro cliente', '4 modelos com 30% off', 'good'], ['edit', 'com a sua marca', 'logo, cores e textos'], ['sparkle', 'gestão grátis', '14 dias para testar', 'warn']],
     catalogo: <>os <em>modelos</em></>,
@@ -145,13 +145,29 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
   const root = useRef<HTMLDivElement>(null)
   const pixPct = aj?.pixPct ?? 5
   const daqui = useMemo(() => (aj?.produtos || []).filter((p) => frenteDe(p) === id), [aj, id])
+  // filtros: nicho, sub-nicho, uso (imprimir ou mandar), tipo e busca
   const nichos = [...new Set(daqui.filter((p) => p.ativo).map((p) => p.nicho || 'outros'))]
   const [nicho, setNicho] = useState('')
-  const ativos = daqui.filter((p) => p.ativo && (!nicho || p.nicho === nicho))
+  const [sub, setSub] = useState('')
+  const [uso, setUso] = useState<'' | 'imprimir' | 'digital'>('')
+  const [tipo, setTipo] = useState('')
+  const [busca, setBusca] = useState('')
+  const [limite, setLimite] = useState(12)
+  const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const doNicho = daqui.filter((p) => p.ativo && (!nicho || p.nicho === nicho))
+  const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))]
+  const tipos = [...new Set(doNicho.map((p) => p.tipo).filter((x): x is string => !!x && x !== 'kits'))]
+  const filtrados = doNicho.filter((p) => (!sub || p.sub === sub || p.sub === 'todos') && (!uso || p.uso === uso || p.uso === 'ambos') && (!tipo || p.tipo === tipo) && (!busca.trim() || norm(`${p.nome} ${p.desc} ${p.sub || ''} ${p.tipo || ''} ${p.tag}`).includes(norm(busca.trim()))))
+  const kitsF = filtrados.filter((p) => p.cat === 'combos')
+  const arqsF = filtrados.filter((p) => p.cat !== 'combos')
+  const ativos = filtrados
+  const algumFiltro = !!(sub || uso || tipo || busca.trim())
+  const limpar = () => { setSub(''); setUso(''); setTipo(''); setBusca(''); setLimite(12) }
+  useEffect(() => setLimite(12), [nicho, sub, uso, tipo, busca])
   const breve = daqui.filter((p) => !p.ativo)
   const [depos, setDepos] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
   useEffect(() => void carregarDepoimentos(id).then(setDepos), [id])
-  useReveal(root, `${ativos.length}-${nicho}-${depos.length}`)
+  useReveal(root, `${ativos.length}-${nicho}-${sub}-${uso}-${tipo}-${limite}-${depos.length}`)
   const cart = useCarrinho()
   const [aberto, setAberto] = useState<Produto | null>(null)
   useEffect(() => {
@@ -218,9 +234,7 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
             <p className="muted small">Pix com {pixPct}% de desconto · baixa na hora · 7 dias para desistir</p>
           </div>
           <div className="lp-hero-art" aria-hidden>
-            <Janela label={T.arteLabel}>
-              <img className="fr-hero-img" src={T.arte} alt="" width={1200} height={900} />
-            </Janela>
+            <img className="fr-hero-solta" src={T.arte} alt="" />
             {T.flutua.map(([ic, t, s, tom], i) => (
               <Flutua key={t} n={(i + 1) as 1 | 2 | 3} icone={ic} titulo={t} sub={s} tom={tom as 'good' | 'warn' | undefined} />
             ))}
@@ -264,39 +278,71 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
               ))}
             </div>
           )}
+          {aj && (
+            <div className="fr-filtros" data-reveal>
+              <label className="fr-busca">
+                <Icon name="search" size={16} />
+                <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar: anamnese, cuidados, stories…" aria-label="Buscar arquivos" />
+              </label>
+              <div className="lp-aud fr-uso" role="tablist" aria-label="para imprimir ou para mandar">
+                {([['', 'tudo'], ['imprimir', 'para imprimir'], ['digital', 'para mandar']] as const).map(([v, l]) => (
+                  <button key={v} role="tab" aria-selected={uso === v} className={uso === v ? 'is-on' : ''} onClick={() => setUso(v)}>
+                    {v === 'imprimir' ? <Icon name="printer" size={14} /> : v === 'digital' ? <Icon name="smartphone" size={14} /> : null} {l}
+                  </button>
+                ))}
+              </div>
+              {subs.length > 1 && (
+                <div className="fr-chips" role="group" aria-label="área">
+                  <button className={!sub ? 'is-on' : ''} onClick={() => setSub('')}>todas as áreas</button>
+                  {subs.map((x) => (
+                    <button key={x} className={sub === x ? 'is-on' : ''} onClick={() => setSub(sub === x ? '' : x)}>{x}</button>
+                  ))}
+                </div>
+              )}
+              {tipos.length > 1 && (
+                <div className="fr-chips is-tipo" role="group" aria-label="tipo">
+                  {tipos.map((x) => (
+                    <button key={x} className={tipo === x ? 'is-on' : ''} onClick={() => setTipo(tipo === x ? '' : x)}>{x}</button>
+                  ))}
+                </div>
+              )}
+              <p className="fr-conta muted small">
+                <span className="num">{arqsF.length}</span> {arqsF.length === 1 ? 'arquivo' : 'arquivos'}
+                {kitsF.length > 0 && <> e <span className="num">{kitsF.length}</span> {kitsF.length === 1 ? 'kit' : 'kits'}</>}
+                {algumFiltro && <button className="link" onClick={limpar}>limpar filtros</button>}
+              </p>
+            </div>
+          )}
           {!aj ? (
             <div className="fr-skel" aria-label="carregando"><div /><div /><div /></div>
-          ) : (
-            <div className="fr-grid" key={nicho}>
-              {ativos.map((p, i) => (
-                <article key={p.id} className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
-                  <button className="fr-card-img" onClick={() => setAberto(p)} aria-label={`Ver ${p.nome} por dentro`}>
-                    {p.amostras?.[0] && <img src={p.amostras[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
-                    {p.selo && <span className="fr-selo">{p.selo}</span>}
-                    <span className="fr-ver">
-                      <Icon name="eye" size={14} /> ver por dentro
-                    </span>
-                  </button>
-                  <div className="fr-card-b">
-                    <small className="fr-tag">{p.cat === 'combos' ? `kit · ${(p.combo || []).length} modelos` : NICHOS[p.nicho || ''] || p.tag}</small>
-                    <b>{p.nome}</b>
-                    <p>{p.desc}</p>
-                    <div className="fr-preco">
-                      <span className="num">{p.preco}</span>
-                      <small className="num">{pix(p)} no Pix</small>
-                    </div>
-                    <div className="row gap-s">
-                      <button className={`btn small ${cart.tem(p.id) ? 'ghost' : 'primary'}`} onClick={() => add(p)} disabled={cart.tem(p.id)}>
-                        <Icon name={cart.tem(p.id) ? 'check' : 'plus'} size={14} /> {cart.tem(p.id) ? 'no carrinho' : 'adicionar'}
-                      </button>
-                      <button className="btn ghost small" onClick={() => setAberto(p)}>
-                        detalhes
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
+          ) : !filtrados.length ? (
+            <div className="card fr-vazio">
+              <b>nada encontrado com esses filtros</b>
+              <button className="btn ghost small" onClick={limpar}>ver todos</button>
             </div>
+          ) : (
+            <>
+              {kitsF.length > 0 && !tipo && (
+                <div className="fr-kits">
+                  <p className="eyebrow">kits com desconto</p>
+                  <div className="fr-kits-trilho">
+                    {kitsF.map((p) => <Cartao key={p.id} p={p} kit pix={pix(p)} noCarrinho={cart.tem(p.id)} onAdd={() => add(p)} onVer={() => setAberto(p)} />)}
+                  </div>
+                </div>
+              )}
+              <div className="fr-grid">
+                {(tipo === 'kits' ? kitsF : arqsF).slice(0, limite).map((p, i) => (
+                  <Cartao key={p.id} p={p} i={i} pix={pix(p)} noCarrinho={cart.tem(p.id)} onAdd={() => add(p)} onVer={() => setAberto(p)} />
+                ))}
+              </div>
+              {arqsF.length > limite && (
+                <div className="fr-mais">
+                  <button className="btn ghost lp-cta" onClick={() => setLimite((l) => l + 12)}>
+                    ver mais <span className="num">{arqsF.length - limite}</span>
+                  </button>
+                </div>
+              )}
+            </>
           )}
           {breve.length > 0 && (
             <div className="fr-breve" data-reveal>
@@ -423,6 +469,48 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
         {estilo && <AvisoCookies />}
       </div>
     </div>
+  )
+}
+
+const USO: Record<string, [string, string]> = { imprimir: ['printer', 'imprimir'], digital: ['smartphone', 'digital'], ambos: ['layers', 'imprimir e digital'] }
+
+/** Cartão de produto da vitrine (também na faixa de kits). */
+function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; i?: number; kit?: boolean; pix: string; noCarrinho: boolean; onAdd: () => void; onVer: () => void }) {
+  const u = p.uso ? USO[p.uso] : null
+  return (
+    <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
+      <button className="fr-card-img" onClick={onVer} aria-label={`Ver ${p.nome} por dentro`}>
+        {p.amostras?.[0] && <img src={p.amostras[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
+        {p.selo && <span className="fr-selo">{p.selo}</span>}
+        <span className="fr-ver">
+          <Icon name="eye" size={14} /> ver por dentro
+        </span>
+      </button>
+      <div className="fr-card-b">
+        <small className="fr-tag">
+          {p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · ${p.kitPct || 0}% off` : p.sub && p.sub !== 'todos' ? p.sub : NICHOS[p.nicho || ''] || p.tag}
+        </small>
+        <b>{p.nome}</b>
+        <p>{p.desc}</p>
+        {u && (
+          <span className="fr-uso-tag">
+            <Icon name={u[0]} size={13} /> {u[1]}
+          </span>
+        )}
+        <div className="fr-preco">
+          <span className="num">{p.preco}</span>
+          <small className="num">{pix} no Pix</small>
+        </div>
+        <div className="row gap-s">
+          <button className={`btn small ${noCarrinho ? 'ghost' : 'primary'}`} onClick={onAdd} disabled={noCarrinho}>
+            <Icon name={noCarrinho ? 'check' : 'plus'} size={14} /> {noCarrinho ? 'no carrinho' : 'adicionar'}
+          </button>
+          <button className="btn ghost small" onClick={onVer}>
+            detalhes
+          </button>
+        </div>
+      </div>
+    </article>
   )
 }
 

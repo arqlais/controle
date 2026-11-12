@@ -49,7 +49,7 @@ html, body { margin: 0; background: var(--bg); }
 .fr-checks li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
 .fr-checks svg { color: var(--accent-ink); margin-top: 3px; flex: none; }
 .fr-colagem { position: relative; display: block; aspect-ratio: 4 / 3.3; }
-.fr-colagem img { position: absolute; width: 74%; height: auto; border-radius: calc(20px * var(--rs, 1)); border: 1px solid var(--border); box-shadow: 0 30px 60px -30px rgba(62, 75, 87, 0.45); transition: transform 0.5s cubic-bezier(.2, .7, .2, 1); }
+.fr-colagem img { position: absolute; width: 74%; height: auto; transition: transform 0.5s cubic-bezier(.2, .7, .2, 1); }
 .fr-colagem .a { left: 0; top: 0; z-index: 3; }
 .fr-colagem .b { right: 0; top: 14%; width: 52%; z-index: 2; transform: rotate(3deg); }
 .fr-colagem .c { left: 22%; bottom: 0; width: 46%; z-index: 4; transform: rotate(-2deg); }
@@ -187,3 +187,31 @@ html, body { margin: 0; background: var(--bg); }
 /* aviso do cupom no topo da vitrine (como a faixa de parceria da página de vendas) */
 .fr-cupom { border: 0; cursor: pointer; font: inherit; align-self: flex-start; }
 .fr-cupom b { letter-spacing: 0.06em; }
+
+/* mockup solto (fundo transparente) no hero das vitrines: sem caixa atrás */
+.fr-hero-solta { display: block; width: 100%; height: auto; }
+
+/* filtros do catálogo */
+.fr-filtros { display: grid; gap: 12px; margin-bottom: 26px; }
+.fr-busca { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 0 18px; min-height: 48px; border-radius: var(--pill); background: var(--surface); border: 1px solid var(--border); box-shadow: 0 6px 18px -12px rgba(62, 75, 87, .35); color: var(--muted); }
+.fr-busca input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: var(--text); }
+.fr-uso { margin: 0 !important; }
+.fr-uso button { display: inline-flex; align-items: center; gap: 6px; }
+.fr-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+.fr-chips::-webkit-scrollbar { display: none; }
+.fr-chips button { flex: none; min-height: 38px; padding: 7px 15px; border-radius: var(--pill); border: 1px solid var(--border); background: var(--surface); color: var(--muted); font: 500 13px var(--font-body); cursor: pointer; transition: background .2s, color .2s, border-color .2s; }
+.fr-chips button:hover { border-color: var(--accent-soft); color: var(--text); }
+.fr-chips button.is-on { background: var(--text); border-color: var(--text); color: var(--surface); }
+.fr-chips.is-tipo button { background: color-mix(in srgb, var(--accent-tint) 70%, var(--surface)); border-color: transparent; }
+.fr-chips.is-tipo button.is-on { background: var(--accent-ink); color: #fff; }
+.fr-conta { display: flex; gap: 6px; align-items: center; margin: 0; }
+.fr-conta .link { margin-left: 8px; min-height: 32px; }
+.fr-vazio { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; text-align: center; }
+.fr-uso-tag { display: inline-flex; align-items: center; gap: 6px; width: fit-content; padding: 4px 10px; border-radius: var(--pill); background: var(--bg); color: var(--muted); font-size: 11.5px; font-weight: 500; }
+.fr-mais { display: flex; justify-content: center; margin-top: 28px; }
+/* faixa de kits */
+.fr-kits { margin-bottom: 30px; }
+.fr-kits .eyebrow { margin-bottom: 12px; }
+.fr-kits-trilho { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 320px); gap: 16px; overflow-x: auto; padding: 4px 4px 14px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.fr-kits-trilho .fr-card { scroll-snap-align: start; }
+@media (max-width: 520px) { .fr-kits-trilho { grid-auto-columns: 82%; } .fr-busca { max-width: none; } }

@@ -6,6 +6,7 @@ import { PDFDocument, StandardFonts, rgb, degrees } from 'npm:pdf-lib@1.17.1'
 import { unzipSync } from 'npm:fflate@0.8.2'
 import { makeConta } from './conta.ts'
 import { frenteDoId, marcaDe } from './emails.ts'
+import { BELEZA_ARQUIVOS, BELEZA_KITS } from './catalogo-beleza.ts'
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 type J = Record<string, any>
@@ -69,7 +70,9 @@ const EXTRAS: Record<string, [string, number, boolean]> = {
 }
 const KIT_ARQ = { id: 'kit-arq-primeiro', nome: 'Kit primeiro cliente', pct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'], frente: 'arq' }
 const KIT_BELEZA = { id: 'kit-beleza', nome: 'Kit atendimento completo', pct: 30, combo: ['beleza-anamnese', 'beleza-termo', 'beleza-precos', 'beleza-vale'], frente: 'arquivos' }
-const KITS_EXTRAS = [KIT_ARQ, KIT_BELEZA]
+// catálogo de beleza (gerado junto com src/ape/catalogo-beleza.ts)
+for (const [id, [nome, preco]] of Object.entries(BELEZA_ARQUIVOS)) if (!EXTRAS[id]) EXTRAS[id] = [nome, preco, true]
+const KITS_EXTRAS = [KIT_ARQ, KIT_BELEZA, ...BELEZA_KITS]
 /* cupons (painel → produtos e preços); sem nenhum salvo, vale o de lançamento das vitrines novas. Mesma regra de src/ape/model.ts */
 type Cupom = { codigo: string; pct: number; ate?: string; frentes?: string[]; ativo?: boolean }
 const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 15, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]

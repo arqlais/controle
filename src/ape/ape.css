@@ -2864,3 +2864,18 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
 .ape-cupom > div { display: flex; gap: 6px; }
 .ape-cupom input { flex: 1; min-width: 0; min-height: 40px; border: 1px solid var(--a-line); border-radius: 12px; padding: 0 12px; background: var(--a-card); letter-spacing: 0.06em; font-size: 16px; }
 .ape-cupom small { font-size: 12px; color: var(--a-sec); }
+
+/* painel da dona: filtros de produtos, imagens e resumo por loja */
+.ape-adm-filtros { display: grid; gap: 12px; }
+.ape-adm-filtros .ape-seg { flex-wrap: wrap; }
+.ape-adm-imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.ape-adm-imgs figure { margin: 0; border: 1px solid var(--a-line); border-radius: 14px; overflow: hidden; background: var(--a-card); display: grid; }
+.ape-adm-imgs figure.capa { border-color: var(--a-pri); box-shadow: 0 0 0 2px var(--a-pri-soft); }
+.ape-adm-imgs img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--a-sand); }
+.ape-adm-imgs figcaption { display: flex; gap: 4px; justify-content: flex-end; padding: 6px; }
+.ape-adm-img-add { display: grid; place-items: center; align-content: center; gap: 6px; min-height: 130px; border: 1.5px dashed var(--a-line); border-radius: 14px; color: var(--a-muted); font-size: 12.5px; font-weight: 600; cursor: pointer; text-align: center; padding: 10px; }
+.ape-adm-img-add:hover { border-color: var(--a-pri); color: var(--a-pri); }
+.ape-adm-salvar { position: sticky; bottom: 12px; z-index: 5; background: color-mix(in srgb, var(--a-bg) 88%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); padding: 10px; border-radius: 18px; }
+.ape-adm-lojas .ape-adm-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .ape-adm-lojas .ape-adm-cards { grid-template-columns: 1fr; } }
+.ape-adm-top { color: var(--a-sec) !important; }

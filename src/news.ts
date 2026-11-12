@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-12-loja-beleza',
+    date: '2026-11-12',
+    kind: 'novo',
+    title: 'loja de arquivos com filtros',
+    text: 'A planê.arquivos ganhou mais de 40 arquivos para a área da beleza, com filtros por área, tipo e uso (imprimir ou mandar) e busca.',
+  },
+  {
     id: '2026-11-12-vitrines',
     date: '2026-11-12',
     kind: 'melhoria',

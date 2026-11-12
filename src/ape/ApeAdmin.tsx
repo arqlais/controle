@@ -82,7 +82,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], pedidos: ['pedidos', 'leads'] }
   const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
   // do mais usado para o menos usado: vendas no dia a dia, depois o San Levi, depois a vitrine (muda pouco)
-  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes', 'visitas']], [APE.condominio, ['lista', 'moradores', 'grupos']], ['vitrine da loja', ['loja', 'entregas', 'opiniao']]]
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes', 'visitas']], ['lojas', ['loja', 'entregas', 'opiniao']], [APE.condominio, ['lista', 'moradores', 'grupos']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
   // a plataforma da própria dona (acesso de teste sem vencimento), buscada no banco: o link guardado no aparelho pode estar velho
@@ -128,8 +128,8 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
             <input type="file" accept="image/*" hidden onChange={(e) => void trocarFoto(e.target.files?.[0])} />
           </label>
           <span className="brand-text">
-            <span className="brand-kicker">painel da loja</span>
-            <span className="brand-name">planê.apê<i>.</i></span>
+            <span className="brand-kicker">painel da dona</span>
+            <span className="brand-name">planê<i>.</i></span>
           </span>
         </div>
         <nav>
@@ -143,7 +143,10 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
             <span className="nav-group-label">ver e testar</span>
             <a href={href('ape-admin')} className={`is-tool ${tab === 'testar' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); ir('testar') }} title="Ver tudo como cliente, com tudo liberado"><Icon name="eye" /><span>ver como cliente</span></a>
             <a className="is-tool" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer" title="Abrir a plataforma do apê que você vende"><Icon name="smartphone" /><span>plataforma do apê</span></a>
-            <a className="is-tool" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="Página de vendas (como os visitantes veem)"><Icon name="link" /><span>página da loja</span></a>
+            <a className="is-tool" href="#/plane" target="_blank" rel="noreferrer" title="Página principal da planê"><Icon name="home" /><span>página principal</span></a>
+            <a className="is-tool" href="#/arquivos" target="_blank" rel="noreferrer" title="Vitrine planê.arquivos"><Icon name="file" /><span>planê.arquivos</span></a>
+            <a className="is-tool" href="#/arq" target="_blank" rel="noreferrer" title="Vitrine planê.arq"><Icon name="ruler" /><span>planê.arq</span></a>
+            <a className="is-tool" href={href('ape', 'loja')} target="_blank" rel="noreferrer" title="Loja do apê (como os visitantes veem)"><Icon name="link" /><span>planê.apê</span></a>
             <a className="is-tool" href={href('ape')} target="_blank" rel="noreferrer" title="Página dos moradores do San Levi"><Icon name="users" /><span>página dos moradores</span></a>
           </div>
         </nav>
@@ -151,7 +154,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           <span className="profile-chip-avatar"><AvatarGlyph s={data.settings} size={18} /></span>
           <span className="grow">
             <b>{data.settings.ownerName || data.settings.brandName || 'meu perfil'}</b>
-            <small>dona do planê.apê</small>
+            <small>dona da planê</small>
           </span>
         </a>
         <div className="sidebar-foot">
@@ -274,13 +277,52 @@ function Inicio({ moradores, orcs, pedidos, envios, interesses, ir }: { moradore
         <button onClick={() => ir('pedidos')}><span><ApeIcon name="bag" />vendas no mês</span><b className="num ape-keep">{brl(vendasMes.reduce((t, p) => t + p.total, 0))}</b><small>{vendasMes.length} venda(s)</small></button>
         <button onClick={() => ir('clientes')}><span><ApeIcon name="user" />clientes da loja</span><b className="num">{new Set(pedidos.filter((p) => p.status === 'pago').map((p) => p.cpf || p.email)).size}</b><small>quem já comprou</small></button>
       </div>
+      <PorLoja pedidos={pedidos} ir={ir} />
       <MaisVendidos pedidos={pedidos} />
       <div className="ape-adm-atalhos">
         <p className="ape-eyebrow">atalhos</p>
         <button className="ape-btn sm" onClick={() => ir('novo')}><ApeIcon name="plus" />adicionar orçamento</button>
-        <button className="ape-btn sm" onClick={() => ir('loja')}><ApeIcon name="tag" />mudar preços e foto de projetos</button>
+        <button className="ape-btn sm" onClick={() => ir('loja')}><ApeIcon name="tag" />produtos, preços, imagens e cupons</button>
         <button className="ape-btn sm" onClick={() => ir('entregas')}><ApeIcon name="file" />arquivos da loja</button>
         <button className="ape-btn sm" onClick={() => ir('testar')}><ApeIcon name="eye" />ver como cliente</button>
+      </div>
+    </div>
+  )
+}
+
+/** Vendas de cada loja no mês e hoje (sem cortesias), com o ticket médio e o produto que mais saiu. */
+const LOJAS: [string, string][] = [['arquivos', 'planê.arquivos'], ['arq', 'planê.arq'], ['apzinho', 'planê.apê']]
+const lojaDoItem = (i: { id: string; frente?: string }) => i.frente || (/^(kit-)?arq-/.test(i.id) ? 'arq' : /^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas)-/.test(i.id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza)$/.test(i.id) ? 'arquivos' : 'apzinho')
+function PorLoja({ pedidos, ir }: { pedidos: PedidoAdmin[]; ir: (t: Tab) => void }) {
+  const mes = new Date().toISOString().slice(0, 7)
+  const hoje = new Date().toISOString().slice(0, 10)
+  const pagos = pedidos.filter((p) => p.status === 'pago' && !p.cortesia)
+  const dados = LOJAS.map(([k, nome]) => {
+    let mesT = 0, mesN = 0, hojeT = 0
+    const cont = new Map<string, number>()
+    for (const p of pagos) {
+      const itens = (p.itens || []).filter((i) => lojaDoItem(i as { id: string; frente?: string }) === k)
+      if (!itens.length) continue
+      const valor = itens.reduce((t, i) => t + (i.preco || 0), 0)
+      const d = (p.pago_em || p.criado)
+      if (d.slice(0, 7) === mes) { mesT += valor; mesN += 1; for (const i of itens) cont.set(i.nome, (cont.get(i.nome) || 0) + 1) }
+      if (d.slice(0, 10) === hoje) hojeT += valor
+    }
+    const top = [...cont.entries()].sort((a, b) => b[1] - a[1])[0]
+    return { k, nome, mesT, mesN, hojeT, top }
+  })
+  return (
+    <div className="ape-adm-lojas">
+      <p className="ape-eyebrow">cada loja no mês</p>
+      <div className="ape-adm-cards">
+        {dados.map((d) => (
+          <button key={d.k} onClick={() => ir('pedidos')}>
+            <span><ApeIcon name={d.k === 'apzinho' ? 'home' : d.k === 'arq' ? 'ruler' : 'file'} />{d.nome}</span>
+            <b className="num ape-keep">{brl(d.mesT)}</b>
+            <small>{d.mesN} venda(s){d.mesN ? ` · ticket ${brl(d.mesT / d.mesN)}` : ''}{d.hojeT ? ` · hoje ${brl(d.hojeT)}` : ''}</small>
+            {d.top && <small className="ape-adm-top">mais vendido: {d.top[0]}</small>}
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -991,7 +1033,25 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [subindo, setSubindo] = useState(false)
   const [busy, setBusy] = useState(false)
   const [abrir, setAbrir] = useState<string | null>(null)
+  // filtros da lista (são muitos produtos nas três lojas)
+  const [fFrente, setFFrente] = useState<'' | 'arquivos' | 'arq' | 'apzinho'>('')
+  const [fBusca, setFBusca] = useState('')
+  const [fStatus, setFStatus] = useState<'' | 'venda' | 'breve'>('')
+  const [subindoImg, setSubindoImg] = useState('')
   const calcd = comPrecos(ps) // preço dos kits calculado sozinho
+  const normP = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const visivel = (p: Produto) => (!fFrente || (p.frente || 'apzinho') === fFrente) && (!fStatus || (fStatus === 'venda' ? p.ativo : !p.ativo)) && (!fBusca.trim() || normP(`${p.nome} ${p.id} ${p.sub || ''} ${p.tipo || ''}`).includes(normP(fBusca.trim())))
+  const porFrente = (f: string) => ps.filter((p) => (p.frente || 'apzinho') === f).length
+  const subirImagem = async (i: number, f?: File) => {
+    if (!f) return
+    setSubindoImg(ps[i].id)
+    try {
+      const url = await loja.fotoPublica(`produto-${ps[i].id}`, f)
+      set(i, { amostras: [...(ps[i].amostras || []), url] })
+      toast('Imagem enviada. Toque em "salvar loja" para publicar.')
+    } catch (e) { toast(String((e as Error).message)) }
+    setSubindoImg('')
+  }
   const pix = Math.min(10, Math.max(0, num(pixPct) ?? PIX_PCT))
   const juros = Math.min(10, Math.max(0, num(jurosTxt) ?? JUROS_PCT))
   const exPlat = parcelas(reais(ps.find((p) => p.id === 'plataforma')?.preco) || 89.9, juros)
@@ -1095,8 +1155,22 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
         </div>
         <span className="ape-hint">A lei do comércio eletrônico (Decreto 7.962/2013) pede nome e CPF/CNPJ de quem vende, visíveis na loja. Com CNPJ (MEI), use o CNPJ.</span>
       </div>
+      <div className="ape-panel ape-adm-box ape-adm-filtros">
+        <div className="ape-seg" role="radiogroup" aria-label="loja">
+          {([['', `todas (${ps.length})`], ['arquivos', `planê.arquivos (${porFrente('arquivos')})`], ['arq', `planê.arq (${porFrente('arq')})`], ['apzinho', `planê.apê (${porFrente('apzinho')})`]] as const).map(([k, l]) => (
+            <button key={k} role="radio" aria-checked={fFrente === k} onClick={() => setFFrente(k)}>{l}</button>
+          ))}
+        </div>
+        <div className="ape-frow">
+          <div className="ape-f"><label htmlFor="pf-busca">Procurar</label><input id="pf-busca" type="search" value={fBusca} onChange={(e) => setFBusca(e.target.value)} placeholder="nome, área ou tipo" /></div>
+          <div className="ape-f"><label htmlFor="pf-st">Mostrar</label>
+            <select id="pf-st" value={fStatus} onChange={(e) => setFStatus(e.target.value as typeof fStatus)}><option value="">todos</option><option value="venda">à venda</option><option value="breve">desligados (em breve)</option></select>
+          </div>
+        </div>
+      </div>
       <div className="ape-adm-prods">
         {calcd.map((p, i) => {
+          if (!visivel(p)) return null
           const m = margem(p)
           const soma = (p.combo || []).reduce((t, id) => t + reais(calcd.find((x) => x.id === id)?.preco), 0)
           return (
@@ -1104,7 +1178,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
               <div className="ape-adm-prod-h">
                 <div className="t">
                   <b>{p.nome}</b>
-                  <span className="ape-keep">{p.frente ? `planê.${p.frente}${p.ativo ? '' : ' · em breve'} · ` : ''}{p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · soma ${brl(soma)} · −${p.kitPct || 0}%` : (CATEGORIAS.find(([c]) => c === (p.cat || 'arquivos')) || [])[1]}</span>
+                  <span className="ape-keep">{p.frente ? `planê.${p.frente === 'apzinho' ? 'apê' : p.frente}${p.sub && p.sub !== 'todos' ? ` · ${p.sub}` : ''}${p.ativo ? '' : ' · desligado'} · ` : ''}{p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · soma ${brl(soma)} · −${p.kitPct || 0}%` : (CATEGORIAS.find(([c]) => c === (p.cat || 'arquivos')) || [])[1]}</span>
                 </div>
                 <div className="r">
                   <b className="ape-keep">{p.preco || 'sob consulta'}</b>
@@ -1130,12 +1204,29 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
                     </div>
                   </div>
                   <div className="ape-frow">
+                    <div className="ape-f"><label>Loja</label>
+                      <select value={ps[i].frente || 'apzinho'} onChange={(e) => set(i, { frente: e.target.value === 'apzinho' ? undefined : (e.target.value as Produto['frente']) })}>
+                        <option value="arquivos">planê.arquivos</option><option value="arq">planê.arq</option><option value="apzinho">planê.apê</option>
+                      </select>
+                    </div>
+                    {ps[i].frente && ps[i].frente !== 'apzinho' && (
+                      <>
+                        <div className="ape-f"><label>Nicho</label><input value={ps[i].nicho || ''} onChange={(e) => set(i, { nicho: e.target.value })} placeholder="beleza" list="pf-nichos" /></div>
+                        <div className="ape-f"><label>Área</label><input value={ps[i].sub || ''} onChange={(e) => set(i, { sub: e.target.value })} placeholder="unhas" list="pf-subs" /></div>
+                        <div className="ape-f"><label>Uso</label>
+                          <select value={ps[i].uso || 'ambos'} onChange={(e) => set(i, { uso: e.target.value as Produto['uso'] })}><option value="imprimir">para imprimir</option><option value="digital">para mandar (digital)</option><option value="ambos">os dois</option></select>
+                        </div>
+                        <div className="ape-f"><label>Tipo</label><input value={ps[i].tipo || ''} onChange={(e) => set(i, { tipo: e.target.value })} placeholder="fichas" list="pf-tipos" /></div>
+                      </>
+                    )}
+                  </div>
+                  <div className="ape-frow">
                     <div className="ape-f"><label>Seção</label>
                       <select value={ps[i].cat || 'arquivos'} onChange={(e) => set(i, { cat: e.target.value as Categoria })}>
                         {CATEGORIAS.filter(([c]) => c !== 'projeto').map(([c, l]) => <option key={c} value={c}>{l}</option>)}
                       </select>
                     </div>
-                    {(ps[i].cat || 'arquivos') === 'arquivos' && (
+                    {(ps[i].cat || 'arquivos') === 'arquivos' && (!ps[i].frente || ps[i].frente === 'apzinho') && (
                       <div className="ape-f"><label>Etapa</label>
                         <select value={ps[i].fase || 'comprei'} onChange={(e) => set(i, { fase: e.target.value as Produto['fase'] })}>
                           <option value="comprando">para quem vai comprar</option>
@@ -1160,7 +1251,26 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
                     </div>
                   )}
                   <div className="ape-f"><label>Em números (um por linha)</label><textarea style={{ minHeight: 50 }} value={(ps[i].numeros || []).join('\n')} onChange={(e) => set(i, { numeros: e.target.value.split('\n') })} onBlur={(e) => set(i, { numeros: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} /></div>
-                  <div className="ape-f"><label>Imagens de amostra (uma por linha)</label><textarea style={{ minHeight: 50 }} value={(ps[i].amostras || []).join('\n')} onChange={(e) => set(i, { amostras: e.target.value.split('\n').map((x) => x.trim()).filter(Boolean) })} /></div>
+                  <div className="ape-f">
+                    <label>Imagens (a primeira é a capa na loja)</label>
+                    <div className="ape-adm-imgs">
+                      {(ps[i].amostras || []).map((src, k) => (
+                        <figure key={src + k} className={k === 0 ? 'capa' : ''}>
+                          <img src={src} alt="" loading="lazy" />
+                          <figcaption>
+                            {k > 0 && <button type="button" className="ape-btn ghost sm" onClick={() => { const l = [...(ps[i].amostras || [])]; l.splice(k, 1); l.unshift(src); set(i, { amostras: l }) }} title="Usar como capa">capa</button>}
+                            <button type="button" className="ape-btn ghost sm" onClick={() => set(i, { amostras: (ps[i].amostras || []).filter((_, j) => j !== k) })} aria-label="Tirar a imagem"><ApeIcon name="trash" /></button>
+                          </figcaption>
+                        </figure>
+                      ))}
+                      <label className="ape-adm-img-add">
+                        <ApeIcon name="plus" />
+                        <span>{subindoImg === ps[i].id ? 'enviando…' : 'adicionar imagem'}</span>
+                        <input type="file" accept="image/*" hidden onChange={(e) => void subirImagem(i, e.target.files?.[0])} />
+                      </label>
+                    </div>
+                    <span className="ape-hint">Fotos ou mockups do produto (deitadas, 4:3, ficam melhores). Aparecem no cartão e na galeria do detalhe.</span>
+                  </div>
                   <div className="ape-acts">
                     <label className="ape-tog"><input type="checkbox" checked={ps[i].ativo} onChange={(e) => set(i, { ativo: e.target.checked })} /> Mostrar na loja</label>
                     <label className="ape-tog"><input type="checkbox" checked={!!ps[i].destaque} onChange={(e) => set(i, { destaque: e.target.checked })} /> Destaque</label>
@@ -1172,9 +1282,12 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
           )
         })}
       </div>
-      <div className="ape-acts">
+      <datalist id="pf-nichos">{[...new Set(ps.map((p) => p.nicho).filter(Boolean))].map((x) => <option key={x} value={x} />)}</datalist>
+      <datalist id="pf-subs">{[...new Set(ps.map((p) => p.sub).filter(Boolean))].map((x) => <option key={x} value={x} />)}</datalist>
+      <datalist id="pf-tipos">{[...new Set(ps.map((p) => p.tipo).filter(Boolean))].map((x) => <option key={x} value={x} />)}</datalist>
+      <div className="ape-acts ape-adm-salvar">
         <button className="ape-btn primary" disabled={busy} onClick={() => void save()}><ApeIcon name="check" />Salvar loja</button>
-        <button className="ape-btn" onClick={() => { const id = 'p' + Date.now().toString(36); setPs((l) => [...l, { id, nome: 'Novo produto', desc: '', preco: 'R$ 9,90', tag: '', ativo: false, cat: 'arquivos', fase: 'comprei' }]); setAbrir(id) }}>
+        <button className="ape-btn" onClick={() => { const fr = fFrente || 'arquivos'; const id = (fr === 'arq' ? 'arq-' : fr === 'arquivos' ? 'beleza-' : '') + 'novo-' + Date.now().toString(36); setPs((l) => [...l, { id, nome: 'Novo produto', desc: '', preco: 'R$ 9,90', tag: '', ativo: false, cat: 'arquivos', ...(fr === 'apzinho' ? { fase: 'comprei' as const } : { frente: fr, nicho: fr === 'arq' ? 'arquitetura' : 'beleza', uso: 'ambos' as const }) }]); setAbrir(id); setFStatus(''); setFBusca('') }}>
           <ApeIcon name="plus" />Novo produto
         </button>
         <button className="ape-btn ghost" onClick={async () => { if (await ask('Trocar a loja pela sugerida (preços e textos sugeridos)? O que você mudou aqui se perde.', { confirmLabel: 'trocar' })) setPs(PRODUTOS) }}>
@@ -1187,7 +1300,10 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
 
 /* ===== vendas da loja ===== */
 const cpfMask = (c: string) => (c && c.length === 11 ? `***.${c.slice(3, 6)}.${c.slice(6, 9)}-**` : '')
-const linkPedido = (t: string) => `https://useplane.com.br/ape/#pedido:${t}`
+const linkPedido = (t: string, itens?: { id: string; frente?: string }[]) => {
+  const l = itens?.length ? lojaDoItem(itens[0]) : 'apzinho'
+  return `https://useplane.com.br/${l === 'apzinho' ? 'ape' : l}/#pedido:${t}`
+}
 /** Itens da compra em uma linha: "Kit completo + Plataforma" ou "Guia de compra + 14 itens". */
 const resumoItens = (itens: { nome: string; id?: string }[]) => {
   const kit = itens.find((i) => /^kit/i.test(i.nome))
@@ -1246,11 +1362,13 @@ const MSG_SEM_SALDO = (v: string, nome: string) => `O Asaas ainda não tem saldo
 function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () => void }) {
   const [ver, setVer] = useState<'pago' | 'pendente' | 'todos'>('pago')
   const [q, setQ] = useState('')
-  const pagos = pedidos.filter((p) => p.status === 'pago' && !p.cortesia)
+  const [lojaF, setLojaF] = useState('')
+  const daLoja = (p: PedidoAdmin) => !lojaF || (p.itens || []).some((i) => lojaDoItem(i as { id: string; frente?: string }) === lojaF)
+  const pagos = pedidos.filter((p) => p.status === 'pago' && !p.cortesia && daLoja(p))
   const mes = new Date().toISOString().slice(0, 7)
   const doMes = pagos.filter((p) => (p.pago_em || p.criado).slice(0, 7) === mes)
   const t = q.trim().toLowerCase()
-  const list = pedidos.filter((p) => (ver === 'todos' ? true : p.status === ver)).filter((p) => !t || [p.nome, p.email, p.cpf, p.tel].join(' ').toLowerCase().includes(t))
+  const list = pedidos.filter((p) => (ver === 'todos' ? true : p.status === ver)).filter(daLoja).filter((p) => !t || [p.nome, p.email, p.cpf, p.tel].join(' ').toLowerCase().includes(t))
   const reembolsar = async (p: PedidoAdmin) => {
     const pago = p.status === 'pago'
     if (!(await ask(pago ? `Reembolsar ${brl(p.total)} para ${p.nome}? O valor volta pelo Asaas, os downloads e a plataforma deste pedido param de funcionar.` : `Cancelar o pedido pendente de ${p.nome}?`, { confirmLabel: pago ? 'reembolsar' : 'cancelar pedido', danger: true }))) return
@@ -1317,6 +1435,10 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
           <option value="pendente">aguardando pagamento</option>
           <option value="todos">todos</option>
         </select>
+        <select className="ape-sel" value={lojaF} onChange={(e) => setLojaF(e.target.value)} aria-label="Loja">
+          <option value="">todas as lojas</option>
+          {LOJAS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
+        </select>
       </div>
       <div className="ape-rows">
         {!list.length && <div className="ape-empty"><b>nada por aqui</b><span>As compras pela loja aparecem aqui.</span></div>}
@@ -1331,9 +1453,9 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
                 <span>{[p.email, cpfMask(p.cpf), p.tel ? fmtTel(p.tel) : '', p.aceite ? `termos ${p.aceite.versao}` : ''].filter(Boolean).join(' · ')}</span>
               </div>
               <div className="r">
-                <button className="ape-btn ghost sm" onClick={() => { void navigator.clipboard?.writeText(linkPedido(p.token)); toast('Link do pedido copiado.') }}><ApeIcon name="copy" />link</button>
+                <button className="ape-btn ghost sm" onClick={() => { void navigator.clipboard?.writeText(linkPedido(p.token, p.itens)); toast('Link do pedido copiado.') }}><ApeIcon name="copy" />link</button>
                 {waNum(p.tel) && (
-                  <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra no planê.apê. Seus arquivos ficam aqui: ${linkPedido(p.token)}` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra no planê.apê. Ficou alguma dúvida? O pagamento fica aqui: ${linkPedido(p.token)}`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>
+                  <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra na planê. Seus arquivos ficam aqui: ${linkPedido(p.token, p.itens)}` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra na planê. Ficou alguma dúvida? O pagamento fica aqui: ${linkPedido(p.token, p.itens)}`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>
                 )}
                 {p.status === 'reembolsado' && !p.cortesia && <button className="ape-btn ghost sm" onClick={() => void painelConta.avisarReembolso(p.id).then(() => toast(`E-mail de reembolso enviado para ${p.email}.`), (e) => toast(String((e as Error).message)))}><ApeIcon name="send" />avisar o cliente</button>}
                 {(p.status === 'pago' || p.status === 'pendente') && <button className="ape-btn ghost sm danger" onClick={() => void reembolsar(p)}>{p.status === 'pago' ? (p.cortesia ? 'tirar acesso' : 'reembolsar') : 'cancelar'}</button>}
@@ -1732,8 +1854,10 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
     if (filtro === 'planilha') return l.some((a) => ehPlanilha(a.nome))
     return true
   })
-  const GRUPOS: [string, string][] = [['comprando', 'para quem vai comprar'], ['comprei', 'para quem já comprou'], ['escolhas', 'escolhas da casa'], ['bonus', 'bônus']]
-  const faseDe = (p: Produto) => String((p as { fase?: string }).fase || 'comprei')
+  // apê: pelas etapas; outras lojas: por loja e área
+  const faseDe = (p: Produto) => (p.frente && p.frente !== 'apzinho' ? `${p.frente}|${p.sub || p.nicho || 'geral'}` : String((p as { fase?: string }).fase || 'comprei'))
+  const outros = [...new Set(itens.filter((p) => p.frente && p.frente !== 'apzinho').map(faseDe))].sort()
+  const GRUPOS: [string, string][] = [...outros.map((g) => [g, `planê.${g.split('|')[0]} · ${g.split('|')[1]}`] as [string, string]), ['comprando', 'planê.apê · para quem vai comprar'], ['comprei', 'planê.apê · para quem já comprou'], ['escolhas', 'planê.apê · escolhas da casa'], ['bonus', 'bônus']]
 
   return (
     <div className="ape-arqs">
@@ -1754,7 +1878,7 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
           </div>
           <label className="ape-btn sm" style={{ cursor: 'pointer' }}>
             <ApeIcon name="plus" />{busy === 'varios' ? 'enviando…' : 'enviar vários'}
-            <input type="file" hidden multiple accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void enviarVarios(e.target.files)} />
+            <input type="file" hidden multiple accept=".pdf,.xlsx,.xls,.docx,.pptx,.zip,application/pdf" onChange={(e) => void enviarVarios(e.target.files)} />
           </label>
         </div>
         <Recolhe titulo="como funciona">
@@ -1798,7 +1922,7 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
                       {l.length > 0 ? <button type="button" className="ape-icobtn" onClick={() => void abrir(p.id, p.nome, (pdf || l[0]).nome)} title={pdf ? 'ver o PDF' : 'baixar a planilha'} aria-label={`Ver ${p.nome}`}><ApeIcon name="eye" /></button> : <span className="ape-arqr-vazio" />}
                       <label className={`ape-btn sm ${l.length ? 'ghost' : 'primary'}`} style={{ cursor: 'pointer' }} title={planilhas.length > 1 ? 'Envie com o mesmo nome (ex.: planilha-rosa.xlsx) para trocar aquela cor' : 'Troca o arquivo atual'}>
                         <ApeIcon name={l.length ? 'share' : 'plus'} />{busy === p.id ? 'enviando…' : l.length ? 'trocar' : 'enviar'}
-                        <input type="file" hidden accept=".pdf,.xlsx,.xls,.zip,.docx,application/pdf" onChange={(e) => void trocar(p.id, e.target.files?.[0])} />
+                        <input type="file" hidden accept=".pdf,.xlsx,.xls,.docx,.pptx,.zip,application/pdf" onChange={(e) => void trocar(p.id, e.target.files?.[0])} />
                       </label>
                       {l.length === 1 ? <button type="button" className="ape-icobtn" onClick={() => void apagar(p.id, l[0].nome)} aria-label={`Tirar ${l[0].nome}`} title="tirar"><ApeIcon name="trash" /></button> : <span className="ape-arqr-vazio" />}
                     </div>
@@ -1826,7 +1950,7 @@ function Entregas({ produtos }: { produtos: Produto[] }) {
               <a className={`ape-btn sm ${ehPlanilha(ver.arq) ? 'primary' : ''}`} href={`${ver.url}${ver.url.includes('?') ? '&' : '?'}download=${encodeURIComponent(ver.arq)}`} download={ver.arq}><ApeIcon name="download" />baixar {ehPlanilha(ver.arq) ? ver.arq.replace(/^.*-(azul|rosa|roxa|verde)\..*$/, 'a $1') : ''}</a>
               <label className="ape-btn sm primary" style={{ cursor: 'pointer' }}>
                 <ApeIcon name="share" />{busy === ver.id ? 'enviando…' : 'trocar este arquivo'}
-                <input type="file" hidden accept=".pdf,.xlsx,.xls,application/pdf" onChange={(e) => void trocar(ver.id, e.target.files?.[0], ver.arq)} />
+                <input type="file" hidden accept=".pdf,.xlsx,.xls,.docx,.pptx,.zip,application/pdf" onChange={(e) => void trocar(ver.id, e.target.files?.[0], ver.arq)} />
               </label>
             </footer>
           </div>

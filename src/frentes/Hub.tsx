@@ -14,15 +14,15 @@ const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, s
   {
     f: frente('arquivos'),
     titulo: 'para quem atende cliente',
-    itens: ['avisos, fichas e termos prontos para mandar', 'editáveis no Canva, no Word e no Excel', 'beleza, freelancers e pequenos negócios'],
-    imgs: [AM('m2-beleza-fim-de-ano.webp'), AM('m2-beleza-anamnese.webp'), AM('m2-beleza-caixa.webp')],
+    itens: ['mais de 40 arquivos para a área da beleza', 'para imprimir e para mandar no WhatsApp e nos stories', 'com espaço para as suas fotos, no Canva, no Word e no Excel'],
+    imgs: [AM('t-beleza-stories-mes.webp'), AM('t-sob-cuidados.webp'), AM('t-beleza-cartao-agendamento.webp')],
     precos: 'a partir de R$ 12,90',
   },
   {
     f: frente('arq'),
     titulo: 'para quem projeta',
     itens: ['proposta, contrato e briefing do jeito que o escritório usa', 'calculadora de honorários e manual do cliente', 'gestão completa com 14 dias grátis'],
-    imgs: [AM('m2-kit-arq-primeiro.webp'), AM('m2-arq-honorarios.webp'), AM('m2-arq-contrato.webp')],
+    imgs: [AM('t-kit-arq-primeiro.webp'), AM('t-arq-honorarios.webp'), AM('t-arq-contrato.webp')],
     precos: 'modelos a partir de R$ 12,90',
   },
   {
@@ -34,7 +34,7 @@ const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, s
   },
 ]
 
-const FAIXA = ['fichas de anamnese', 'tabela de preços', 'contratos', 'propostas', 'briefing', 'planilhas', 'vale-presente', 'honorários', 'vistoria do apê', 'guias da obra']
+const FAIXA = ['stories do mês', 'fichas de anamnese', 'cuidados pós', 'visagismo', 'cartão de agendamento', 'contrato de noivas', 'precificação', 'propostas', 'honorários', 'vistoria do apê']
 
 const PORQUE = [
   { icone: 'sparkle', t: 'pronto para usar', s: 'Troque o que está entre [colchetes] e mande no mesmo dia.' },
@@ -98,10 +98,10 @@ export function Hub() {
             <Janela label="useplane.com.br/arquivos">
               <div className="fr-mini">
                 {[
-                  ['m2-beleza-fim-de-ano.webp', 'Kit avisos de fim de ano', 'R$ 19,90'],
-                  ['m2-beleza-anamnese.webp', 'Fichas de anamnese', 'R$ 19,90'],
-                  ['m2-arq-contrato.webp', 'Contrato de interiores', 'R$ 29,90'],
-                  ['m2-beleza-caixa.webp', 'Agenda e caixa', 'R$ 17,90'],
+                  ['m2-beleza-stories-mes.webp', 'Kit stories do mês', 'R$ 24,90'],
+                  ['m2-sob-cuidados.webp', 'Cuidados pós', 'R$ 14,90'],
+                  ['m2-beleza-cartao-agendamento.webp', 'Cartão de agendamento', 'R$ 12,90'],
+                  ['m2-beleza-precificacao.webp', 'Precificação', 'R$ 17,90'],
                 ].map(([img, n, p]) => (
                   <span key={img} className="fr-mini-i">
                     <img src={AM(img)} alt="" width={240} height={180} />

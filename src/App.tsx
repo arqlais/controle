@@ -331,7 +331,7 @@ export default function App() {
   const groups = useMemo(
     () =>
       [
-        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'ape-admin', label: 'planê.apê', icon: 'home' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'ape-admin', label: 'lojas da planê', icon: 'home' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
         { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, ...(settings.simpleMenu && data.quotes.length < 3 ? [] : [{ page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }])] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),

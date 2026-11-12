@@ -165,3 +165,16 @@ Os arquivos não ficam no repositório (ele é público): sobem criptografados e
 - Painel do apê → **produtos e preços → cupons de desconto**: código, %, data final e para quais lojas vale. Sem nenhum salvo, vale o `LANCAMENTO` (15% em planê.arquivos e planê.arq até 31/12/2026).
 - O desconto do cupom vale sobre os itens das lojas marcadas; o desconto do Pix vem depois. O pedido guarda o cupom (coluna `cupom` em `ape_pedidos`).
 - Kits: planê.arq tem o **Kit primeiro cliente** (30%); planê.arquivos tem o **Kit atendimento completo** (30%).
+
+## Catálogo de beleza (12/11/2026)
+
+36 arquivos e 7 kits novos na planê.arquivos, além dos que já existiam. Áreas: sobrancelha e cílios, unhas, cabelo, estética, maquiagem e noivas, depilação, massagem e as que servem para todas. Cada produto diz a **área** (`sub`), o **uso** (`imprimir`, `digital` ou `ambos`) e o **tipo** (divulgação, fichas, cuidados, atendimento, gestão, contratos); a vitrine filtra por eles e tem busca.
+
+- **Artes digitais** (stories, feed, carrossel, destaques, catálogo de unhas): PowerPoint editável, abre no Canva. As fotos são imagens "arraste sua foto aqui": no Canva, arrastar uma foto por cima troca a imagem.
+- **Para imprimir**: fichas, termos, recibo e política em Word e PDF com espaço para a logo; cuidados pós em cartões A6 (4 por folha); cartão de agendamento frente e verso (8 por folha); certificado A4.
+- **Planilhas**: precificação de serviços e estoque com lista de compras.
+- Os dados ficam em `src/ape/catalogo-beleza.ts` (site) e `supabase/functions/pagamentos/catalogo-beleza.ts` (servidor), gerados pelo script de conteúdo.
+
+## Painel da dona (12/11/2026)
+
+O painel (`#/ape-admin`, no menu "lojas da planê") cuida das três lojas: resumo de vendas por loja na entrada, vendas filtradas por loja, produtos filtrados por loja, busca e situação, criação de produto novo com loja, nicho, área, uso e tipo, envio de imagens de cada produto (a primeira é a capa), arquivos agrupados por loja e área, cupons e depoimentos.
