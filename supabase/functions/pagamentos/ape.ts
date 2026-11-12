@@ -106,6 +106,10 @@ const reais = (v: unknown) => {
 }
 export const precoKit = (soma: number, pct: number) => c2(Math.max(0.9, Math.floor(soma * (1 - pct / 100) - 0.9 + 1e-9) + 0.9))
 type Item = { id: string; nome: string; preco: number; cat: string; combo: string[]; frente?: string }
+/** Estilos dos arquivos (o criativo é o arquivo sem sufixo; os outros terminam em "--<estilo>"). */
+export const ESTILOS = ['delicado', 'criativo', 'minimalista', 'elegante'] as const
+const estiloDe = (id: string) => { const m = id.match(/^(.*)--(delicado|criativo|minimalista|elegante)$/); return m ? { base: m[1], estilo: m[2] } : { base: id, estilo: '' } }
+const PARTES: Record<string, string> = { stories: 'stories', feed: 'feed', 'cartoes-a6': 'cartões A6' }
 
 export function makeApe({ db, asaas, json, site, env }: Deps) {
 
@@ -134,10 +138,16 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (ativo) map[id] = { id, nome, preco, cat: 'arquivos', combo: [], frente: frenteDoId(id) }
       for (const k of KITS_EXTRAS) map[k.id] = { id: k.id, nome: k.nome, preco: precoKit(k.combo.reduce((t, x) => t + (EXTRAS[x]?.[1] ?? 0), 0), k.pct), cat: 'combos', combo: k.combo, frente: k.frente }
     }
+    // cada estilo é um produto à parte (mesmo preço): "<id>--<estilo>"; kits no estilo levam os arquivos no mesmo estilo
+    for (const it of Object.values(map)) {
+      if (!['arquivos', 'combos'].includes(it.cat) || !['arquivos', 'arq'].includes(it.frente || frenteDoId(it.id))) continue
+      for (const e of ESTILOS) map[`${it.id}--${e}`] = { ...it, id: `${it.id}--${e}`, nome: `${it.nome} · ${e}`, combo: it.combo.map((c) => `${c}--${e}`) }
+    }
+    const canva: Record<string, string> = a.canva && typeof a.canva === 'object' ? a.canva : {}
     const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
     const jurosPct = a.jurosPct != null && Number.isFinite(Number(a.jurosPct)) ? Math.min(10, Math.max(0, Number(a.jurosPct))) : JUROS_PCT
     const cupons: Cupom[] = Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO
-    return { map, pixPct, jurosPct, cupons }
+    return { map, pixPct, jurosPct, cupons, canva }
   }
 
   function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number, cupom: Cupom | null = null) {
@@ -297,29 +307,38 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
 
   /** Lista o que a pessoa pode baixar: arquivos de cada produto e, depois de 7 dias, o bônus. */
   async function entregas(ped: J) {
-    const { map } = await loja()
+    const { map, canva } = await loja()
     const itens = (ped.itens ?? []) as J[]
     const ids = [...new Set(itens.flatMap((i) => (map[i.id]?.cat === 'combos' ? map[i.id].combo : KITS[i.id]?.[2] ?? [i.id])))].filter((id) => id !== 'plataforma')
     const marca = marcaDe(itens as { id: string; frente?: string }[])
     const st = db.storage.from('ape-arquivos')
-    const out: { produto: string; nome: string; path: string; tipo: string; cor: string; baixa: string }[] = []
+    const out: { produto: string; nome: string; path: string; tipo: string; cor: string; baixa: string; parte?: string }[] = []
+    const links: { produto: string; estilo: string; url: string }[] = []
     const pasta = async (id: string, produto: string) => {
-      const { data: files } = await st.list(id, { limit: 20 })
-      for (const f of files ?? []) {
-        if (!f.name || f.name.startsWith('.') || !f.id) continue
+      const { base, estilo } = estiloDe(id)
+      const { data: todos } = await st.list(base, { limit: 500 })
+      const validos = (todos ?? []).filter((f) => f.name && !f.name.startsWith('.') && f.id)
+      const doEstilo = (n: string) => (estilo === 'criativo' ? !/--(delicado|minimalista|elegante)\./.test(n) : n.includes(`--${estilo}.`))
+      // produto sem arquivos neste estilo (ex.: manual da planê.arq): entrega o que tiver
+      const files = estilo && validos.some((f) => doEstilo(f.name)) ? validos.filter((f) => doEstilo(f.name)) : validos
+      for (const f of files) {
         const cor = (f.name.match(/-(azul|rosa|roxa|verde)\.[^.]+$/i) || [])[1]?.toLowerCase() || ''
         const ext = (f.name.match(/\.[^.]+$/) || [''])[0].toLowerCase()
-        // nome bonito no download: "Guia de compra do imóvel - planê.apê.pdf" / "Planilha do enxoval (rosa) - planê.apê.xlsx"
-        const baixa = `${produto.replace(/[\\/:*?"<>|]/g, '')}${cor ? ` (${cor})` : ''} - ${marca.nome}${ext}`
-        out.push({ produto, nome: f.name, path: `${id}/${f.name}`, tipo: ext === '.pdf' ? 'pdf' : /\.xlsx?$/.test(ext) ? 'planilha' : 'arquivo', cor, baixa })
+        const resto = f.name.slice(0, -ext.length).replace(/--(delicado|criativo|minimalista|elegante)$/, '')
+        const parte = resto.startsWith(base + '-') ? PARTES[resto.slice(base.length + 1)] ?? '' : ''
+        // nome bonito no download: "Kit stories do mês · elegante (stories) - planê.arquivos.pptx"
+        const baixa = `${produto.replace(/[\\/:*?"<>|]/g, '')}${parte ? ` (${parte})` : ''}${cor ? ` (${cor})` : ''} - ${marca.nome}${ext}`
+        out.push({ produto, nome: f.name, path: `${base}/${f.name}`, tipo: ext === '.pdf' ? 'pdf' : /\.xlsx?$/.test(ext) ? 'planilha' : ext === '.pptx' ? 'apresentacao' : ext === '.docx' ? 'word' : 'arquivo', cor, baixa, parte })
       }
+      const url = canva[id] || (estilo ? '' : canva[`${id}--criativo`])
+      if (url) links.push({ produto, estilo, url })
     }
     for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? EXTRAS[id]?.[0] ?? id)
     const libera = ped.pago_em ? new Date(new Date(ped.pago_em).getTime() + BONUS_DIAS * 864e5) : null
     // o bônus (manutenção do 1º ano) é do apê: compra só de outras frentes não tem
     const bonusLiberado = !!libera && libera.getTime() <= Date.now() && marca.id === 'apzinho'
     if (bonusLiberado) await pasta('bonus', 'Bônus - manutenção e garantias do 1º ano')
-    return { arquivos: out, bonus: { liberado: bonusLiberado, em: libera?.toISOString() ?? null } }
+    return { arquivos: out, canva: links, bonus: { liberado: bonusLiberado, em: libera?.toISOString() ?? null } }
   }
 
   async function pedido(body: J) {
@@ -658,7 +677,7 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
       return json({ ok: true, guardados: feitos2 })
     }
     const { map } = await loja()
-    const ids = [...Object.keys(map).filter((id) => map[id].cat === 'arquivos'), 'bonus'].sort((a, b) => b.length - a.length)
+    const ids = [...Object.keys(map).filter((id) => map[id].cat === 'arquivos' && !estiloDe(id).estilo), 'bonus'].sort((a, b) => b.length - a.length)
     const st = db.storage.from('ape-arquivos')
     const feitos: string[] = []
     const fora: string[] = []

@@ -20,7 +20,22 @@ Marque aqui o que for terminando (troque `[ ]` por `[x]`) e publique junto.
 - [x] Manchas suaves + vidro líquido na página principal e nas vitrines.
 - [x] Instagrams: apê → @apzinho_1204; arquivos → @plane.arquivos; arq → @sou.plane.
 
+## Feito em 13/11
+
+- [x] Loja como site de loja: página de vendas (`#/arquivos`), página com todos os produtos (`#/arquivos/produtos`)
+  e página de cada produto (`#/arquivos/p:<id>`), com faixa de oferta animada, carrinho pulsando, selo de
+  desconto, "comprar agora" e barra de compra fixa no celular. Só "ver todos (+N)", sem "ver mais 12".
+- [x] **Cada estilo é uma compra**: no carrinho e no pedido o item é `<id>--<estilo>` (site em
+  `src/frentes/estilos.ts`, servidor em `supabase/functions/pagamentos/ape.ts`); a entrega mostra só os
+  arquivos daquele estilo, com um botão para cada arquivo (antes só aparecia o primeiro).
+- [x] **Links do Canva**: painel da dona → produtos → "links do Canva" (um por arquivo e estilo). Quem compra
+  vê "editar no Canva" na página do pedido.
+
 ## O que ainda falta
+
+- [ ] **Colar os links do Canva** (é a dona que faz; o Canva não deixa criar "link de modelo" por programa):
+  no Canva, Criar design → Importar arquivo (o PowerPoint ou o Word do estilo), depois Compartilhar → Mais →
+  Link de modelo; colar no painel → produtos → links do Canva → salvar loja. O painel mostra quantos faltam.
 
 - [ ] **Mockups (as cenas com celular e folhas)** ainda mostram o criativo antigo (rosé). As prévias de cada estilo
   já são as novas; refazer as cenas com `mock.py`/`mock_b.py` + `shot-t.cjs` a partir das páginas novas.

@@ -1018,6 +1018,8 @@ function GrupoItem({ o, ppl, onSaved }: { o: Orcamento; ppl: Interesse[]; onSave
   )
 }
 
+const ESTILOS_ARQ = ['delicado', 'criativo', 'minimalista', 'elegante']
+
 function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) => void }) {
   const [ps, setPs] = useState<Produto[]>(ajustes.produtos)
   const [whats, setWhats] = useState(ajustes.whatsapp || '')
@@ -1026,6 +1028,8 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
   const [cupons, setCupons] = useState<Cupom[]>(ajustes.cupons || CUPONS_PADRAO)
+  const [canva, setCanva] = useState<Record<string, string>>(ajustes.canva || {})
+  const [soFaltam, setSoFaltam] = useState(true)
   const setCupom = (i: number, patch: Partial<Cupom>) => setCupons((l) => l.map((c, j) => (j === i ? { ...c, ...patch } : c)))
   const [fotoProjeto, setFotoProjeto] = useState(ajustes.fotoProjeto || '')
   const [fotoProjeto2, setFotoProjeto2] = useState(ajustes.fotoProjeto2 || '')
@@ -1066,7 +1070,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, cupons: cupons.filter((c) => c.codigo.trim()).map((c) => ({ ...c, codigo: c.codigo.trim().toUpperCase().replace(/\s+/g, '') })), fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '' }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, cupons: cupons.filter((c) => c.codigo.trim()).map((c) => ({ ...c, codigo: c.codigo.trim().toUpperCase().replace(/\s+/g, '') })), fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '', canva: Object.fromEntries(Object.entries(canva).map(([k, v]) => [k, v.trim()]).filter(([, v]) => /^https:\/\/(www\.)?canva\.com\//.test(v))) }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })
@@ -1095,6 +1099,38 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
         <span className="ape-hint">Confira as taxas no seu plano do Asaas (Minha conta → Taxas). Elas só servem para mostrar quanto sobra de cada venda.</span>
       </div>
       <div className="ape-panel ape-adm-box">
+        <details className="ape-card ape-canva-adm" open={Object.keys(canva).length < 5}>
+          <summary>
+            <b>links do Canva</b>
+            {(() => {
+              const linhas = ps.filter((p) => ['arquivos', 'arq'].includes(p.frente || '') && (p.cat || 'arquivos') === 'arquivos')
+              const chaves = linhas.flatMap((p) => (p.id === 'arq-manual' ? [p.id] : ESTILOS_ARQ.map((e) => `${p.id}--${e}`)))
+              const feitos = chaves.filter((k) => /^https:\/\/(www\.)?canva\.com\//.test(canva[k] || '')).length
+              return <span className="ape-pill">{feitos} de {chaves.length}</span>
+            })()}
+          </summary>
+          <p className="ape-hint">No Canva: abra o arquivo (Criar design → Importar arquivo, com o PowerPoint ou o Word baixado aqui em "arquivos"), toque em Compartilhar → Mais → Link de modelo e cole abaixo. Quem compra aquele estilo recebe o botão "editar no Canva" na página do pedido.</p>
+          <label className="ape-tog"><input type="checkbox" checked={soFaltam} onChange={(e) => setSoFaltam(e.target.checked)} /> mostrar só os que faltam</label>
+          <div className="ape-canva-l">
+            {ps.filter((p) => ['arquivos', 'arq'].includes(p.frente || '') && (p.cat || 'arquivos') === 'arquivos').map((p) => {
+              const ks = p.id === 'arq-manual' ? [p.id] : ESTILOS_ARQ.map((e) => `${p.id}--${e}`)
+              const falta = ks.filter((k) => !canva[k])
+              if (soFaltam && !falta.length) return null
+              return (
+                <div key={p.id} className="ape-canva-p">
+                  <b>{p.nome}</b>
+                  {ks.map((k) => (
+                    <label key={k} className="ape-canva-i">
+                      <span>{k.includes('--') ? k.split('--')[1] : 'link'}</span>
+                      <input type="url" inputMode="url" placeholder="https://www.canva.com/design/…" value={canva[k] || ''} onChange={(e) => setCanva((c) => ({ ...c, [k]: e.target.value }))} className={canva[k] && !/^https:\/\/(www\.)?canva\.com\//.test(canva[k].trim()) ? 'ape-inv' : ''} />
+                    </label>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+          <span className="ape-hint">Só links que começam com https://www.canva.com são salvos. Depois de colar, toque em "salvar loja".</span>
+        </details>
         <p className="ape-eyebrow">cupons de desconto</p>
         <div className="ape-rows">
           {cupons.map((c, i) => (

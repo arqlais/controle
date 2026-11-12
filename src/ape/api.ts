@@ -16,6 +16,7 @@ export interface Ajustes {
   fotoProjeto2?: string // segunda foto (opcional): com duas, aparecem lado a lado
   cupons?: Cupom[] // cupons de desconto (sem nenhum salvo, vale o de lançamento)
   vendedor?: Vendedor // quem vende (aparece nos termos e no rodapé da loja: exigência do comércio eletrônico)
+  canva?: Record<string, string> // link editável do Canva de cada arquivo: "<id>--<estilo>" (ou só "<id>") → link
 }
 export interface Vendedor { nome: string; doc: string; cidade: string; email: string }
 export interface Publico {
@@ -76,7 +77,7 @@ const ajustesOf = (d: unknown): Ajustes => {
       for (const id of m.novos) if (!base.some((p) => p.id === id)) { const d = PRODUTOS.find((x) => x.id === id); if (d) base.push(d) }
     }
   }
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, cupons: Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '' }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, cupons: Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '', canva: a.canva && typeof a.canva === 'object' ? a.canva : {} }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), familia: Array.isArray(r.familia) ? (r.familia as string[]) : undefined, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null
@@ -595,7 +596,7 @@ export const admin = {
 
 /* ===== loja: pagamento pelo Asaas (função "pagamentos" do Supabase) ===== */
 export type StatusPedido = 'pendente' | 'pago' | 'cancelado' | 'reembolsado'
-export interface Entrega { produto: string; nome: string; path: string; tipo: string; cor?: string; baixa?: string }
+export interface Entrega { produto: string; nome: string; path: string; tipo: string; cor?: string; baixa?: string; parte?: string }
 export interface Pedido {
   status: StatusPedido
   itens: { id: string; nome: string; preco: number }[]
@@ -610,6 +611,8 @@ export interface Pedido {
   email?: string
   pix?: { img: string; copia: string; expira?: string } | null
   arquivos?: Entrega[]
+  /** links editáveis do Canva de cada arquivo comprado (a dona cola no painel → produtos) */
+  canva?: { produto: string; estilo: string; url: string }[]
   bonus?: { liberado: boolean; em: string | null }
   plataforma?: { token: string; validade: string } | null
 }

@@ -2879,3 +2879,12 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
 .ape-adm-lojas .ape-adm-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 760px) { .ape-adm-lojas .ape-adm-cards { grid-template-columns: 1fr; } }
 .ape-adm-top { color: var(--a-sec) !important; }
+.ape-entrega-arqs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.ape-canva-adm summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; list-style: none; }
+.ape-canva-adm summary::-webkit-details-marker { display: none; }
+.ape-canva-l { display: grid; gap: 12px; margin: 10px 0; max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.ape-canva-p { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--a-bg, #f7f3f1); }
+.ape-canva-p > b { font-size: 13px; }
+.ape-canva-i { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 12px; }
+.ape-canva-i input { min-width: 0; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid #e3d8d3; font: inherit; font-size: 12.5px; }
+.ape-canva-i input.ape-inv { border-color: #c98b84; }

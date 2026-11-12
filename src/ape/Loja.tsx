@@ -11,7 +11,10 @@ import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtC
 type ById = (id: string) => Produto | undefined
 const COR: Record<string, string> = { azul: '#4e6472', rosa: '#a86b78', roxa: '#6e5f86', verde: '#5f7566' }
 /** Imagem do produto pelo nome (para a página do pedido). */
-const amostraDe = (nome: string) => PRODUTOS_LOJA.find((p) => p.nome === nome)?.amostras?.[0]
+const amostraDe = (nome: string) => PRODUTOS_LOJA.find((p) => p.nome === nome || p.nome === nome.replace(/ · [^·]+$/, ''))?.amostras?.[0]
+/** Nome do botão de cada arquivo da entrega: tipo + parte (ex.: "PowerPoint · stories"). */
+const TIPO_ARQ: Record<string, string> = { pdf: 'PDF', planilha: 'Excel', apresentacao: 'PowerPoint', word: 'Word', arquivo: 'arquivo' }
+const rotuloArq = (a: { tipo: string; parte?: string; nome: string }) => `${TIPO_ARQ[a.tipo] || (/\.pptx$/.test(a.nome) ? 'PowerPoint' : /\.docx$/.test(a.nome) ? 'Word' : 'arquivo')}${a.parte ? ` · ${a.parte}` : ''}`
 let PRODUTOS_LOJA: Produto[] = []
 let PIX = 5 // desconto do Pix da loja salva (definido ao abrir a loja)
 // cada selo ("mais vendido", "queridinho"...) aparece num produto só, para não repetir
@@ -1267,7 +1270,8 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
           <details className="ape-comousar-arq">
             <summary><ApeIcon name="sparkle" /><b>como usar os seus arquivos</b><ApeIcon name="chev" /></summary>
             <ol>
-              <li><b>PDFs</b><span>Toque em baixar. Dá para imprimir ou usar no celular e no tablet (marque com o dedo ou a caneta num app de PDF).</span></li>
+              <li><b>Canva</b><span>"Editar no Canva" abre uma cópia só sua. Sem o botão, baixe o PowerPoint ou o Word e, no Canva, use Criar design → Importar arquivo.</span></li>
+              <li><b>PDFs</b><span>Toque em PDF. Dá para imprimir ou usar no celular e no tablet (marque com o dedo ou a caneta num app de PDF).</span></li>
               <li><b>Planilhas</b><span>Escolha a cor e baixe. Abre no Excel, no Numbers ou no Google Planilhas (Arquivo, Importar). Digite só nas células azuis: o resto se calcula sozinho.</span></li>
               <li><b>Plataforma</b><span>Toque em "abrir a minha plataforma do apê". No celular, use "adicionar à tela de início" para abrir como um app.</span></li>
               <li><b>Sempre à mão</b><span>Crie a sua senha em "minha conta" com o e-mail da compra e baixe de novo quando quiser, de qualquer aparelho.</span></li>
@@ -1279,22 +1283,37 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
               const fs = p.arquivos!.filter((a) => a.produto === produto)
               const img = amostraDe(produto)
               const cores = fs.filter((a) => a.cor)
+              const canva = (p.canva || []).find((c) => c.produto === produto)
+              // ordem: Canva primeiro, depois PowerPoint, Word, PDF e Excel
+              const ordem = ['apresentacao', 'word', 'pdf', 'planilha', 'arquivo']
+              const lista = [...fs].sort((a, b) => ordem.indexOf(a.tipo) - ordem.indexOf(b.tipo) || (a.parte || '').localeCompare(b.parte || ''))
               return (
                 <article key={produto} className={`ape-entrega ${/^b[oô]nus/i.test(produto) ? 'bonus' : ''}`}>
                   {img ? <img src={img} alt="" loading="lazy" /> : <span className="ape-entrega-ic"><ApeIcon name="file" /></span>}
                   <div className="ape-entrega-b">
                     <b>{i + 1}. {produto}</b>
-                    <span className="ape-note">{fs[0].tipo === 'planilha' ? `planilha Excel · ${cores.length > 1 ? `${cores.length} cores: escolha a sua` : 'abre no Google Planilhas'}` : 'PDF com a sua licença no rodapé'}</span>
                     {cores.length > 1 ? (
-                      <div className="ape-cores">
-                        {cores.map((a) => (
-                          <button key={a.path} className="ape-cor" onClick={() => void baixar(a.path)} disabled={!!baixando} title={`Baixar na cor ${a.cor}`}>
-                            <i style={{ background: COR[a.cor!] }} />{baixando === a.path ? 'baixando…' : a.cor}
+                      <>
+                        <span className="ape-note">planilha Excel · {cores.length} cores: escolha a sua</span>
+                        <div className="ape-cores">
+                          {cores.map((a) => (
+                            <button key={a.path} className="ape-cor" onClick={() => void baixar(a.path)} disabled={!!baixando} title={`Baixar na cor ${a.cor}`}>
+                              <i style={{ background: COR[a.cor!] }} />{baixando === a.path ? 'baixando…' : a.cor}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="ape-entrega-arqs">
+                        {canva && (
+                          <a className="ape-btn primary sm" href={canva.url} target="_blank" rel="noopener noreferrer"><ApeIcon name="edit" />editar no Canva</a>
+                        )}
+                        {lista.map((a) => (
+                          <button key={a.path} className={`ape-btn sm ${!canva && a === lista[0] ? 'primary' : ''}`} onClick={() => void baixar(a.path)} disabled={!!baixando}>
+                            <ApeIcon name="download" />{baixando === a.path ? 'preparando…' : rotuloArq(a)}
                           </button>
                         ))}
                       </div>
-                    ) : (
-                      <button className="ape-btn primary sm" onClick={() => void baixar(fs[0].path)} disabled={!!baixando}><ApeIcon name="download" />{baixando === fs[0].path ? 'preparando…' : 'baixar'}</button>
                     )}
                   </div>
                 </article>

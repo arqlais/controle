@@ -33,8 +33,8 @@ export const NEWS: News[] = [
     id: '2026-11-12-estilos',
     date: '2026-11-12',
     kind: 'novo',
-    title: 'arquivos em quatro estilos',
-    text: 'Na planê.arquivos, cada arquivo vem nos estilos delicado, criativo, minimalista e elegante na mesma compra, e dá para ver cada um antes de comprar. Chegaram também o cartão de cuidados com QR code e o cartão lembrança, e a loja ficou mais leve no celular.',
+    title: 'loja nova, com quatro estilos',
+    text: 'A planê.arquivos ganhou página de produtos e página de cada produto. Cada arquivo tem quatro estilos (delicado, criativo, minimalista e elegante), comprados à parte, com botão para editar no Canva na entrega. Chegaram o cartão de cuidados com QR code e o cartão lembrança.',
   },
   {
     id: '2026-11-12-loja-beleza',

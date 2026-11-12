@@ -6,7 +6,7 @@ import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto 
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
 import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
-import { ESTILOS, imgEstilo, temEstilos, type Estilo } from './estilos'
+import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
@@ -38,8 +38,9 @@ const TEXTO: Record<Id, {
     catalogo: <>os <em>arquivos</em></>,
     faq: [
       ['como recebo os arquivos?', 'Pagou no Pix ou no cartão, a página do pedido mostra os botões de baixar na hora. O link também chega por e-mail e fica guardado em minha conta.'],
-      ['preciso do Canva pago?', 'Não. As artes abrem no Canva gratuito (criar design → importar arquivo), no Google Slides ou no PowerPoint. Os documentos abrem no Word ou no Google Docs, e as planilhas no Excel ou no Google Planilhas.'],
-      ['posso mudar cores, fontes e textos?', 'Pode. Tudo é editável e as fontes usadas são gratuitas.'],
+      ['como edito no Canva?', 'Na página do pedido aparece o botão "editar no Canva" de cada arquivo: abre uma cópia só sua, pronta para trocar textos, cores e fotos. Os arquivos também vão em PowerPoint, Word, PDF e Excel.'],
+      ['preciso do Canva pago?', 'Não. Tudo abre no Canva gratuito, e as fontes usadas são gratuitas.'],
+      ['o que são os estilos?', 'Cada arquivo tem 4 estilos: delicado, criativo, minimalista e elegante. Escolha o que combina com o seu espaço; cada estilo é comprado à parte.'],
       ['posso usar com todas as minhas clientes?', 'Sim, no seu próprio negócio, quantas vezes quiser. Só não pode revender nem repassar os arquivos.'],
       ['e se eu não gostar?', 'Você tem 7 dias para desistir, com o dinheiro de volta, direto em minha conta.'],
     ],
@@ -66,9 +67,9 @@ const TEXTO: Record<Id, {
 }
 
 const PASSOS = [
-  { icone: 'search', t: 'escolha', s: 'Veja por dentro: capa, páginas e o formato de cada arquivo.' },
+  { icone: 'search', t: 'escolha o estilo', s: 'Veja cada arquivo por dentro, nos 4 estilos.' },
   { icone: 'lock', t: 'pague no Pix ou no cartão', s: 'Pix com 5% de desconto. Compra segura pelo Asaas.' },
-  { icone: 'download', t: 'baixe e edite', s: 'Os botões de baixar aparecem na hora e ficam em minha conta.' },
+  { icone: 'edit', t: 'edite no Canva', s: 'O link e os arquivos aparecem na hora e ficam em minha conta.' },
 ]
 
 const GESTAO = [
@@ -95,22 +96,27 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
     if (w.requestIdleCallback) w.requestIdleCallback(pre)
     else setTimeout(pre, 1500)
   }, [])
+  // carrinho, checkout e pedido enxergam cada estilo como um produto ("<id>--<estilo>")
+  const ajV = useMemo(() => (aj ? { ...aj, produtos: comEstilos(aj.produtos) } : null), [aj])
+  const pagina: Pagina = sub === 'produtos' ? 'produtos' : sub?.startsWith('p:') ? { produto: sub.slice(2) } : sub?.startsWith('loja:') && sub !== 'loja:carrinho' ? { produto: sub.slice(5) } : 'inicio'
   useEffect(() => {
-    document.title = `${f.nome} · ${f.frase}`
+    const t = typeof pagina === 'object' ? aj?.produtos.find((p) => p.id === pagina.produto)?.nome : pagina === 'produtos' ? 'todos os produtos' : f.frase
+    document.title = `${f.nome} · ${t || f.frase}`
     window.scrollTo(0, 0)
-  }, [id, sub])
+  }, [id, sub, aj])
   const whats = aj?.whatsapp || APE.whatsapp
   const cart = useCarrinho()
   const view = sub === 'checkout' ? 'checkout' : sub?.startsWith('pedido:') ? 'pedido' : sub?.startsWith('conta') ? 'conta' : 'loja'
+  const n = cart.ids.length
   const acoes = (
     <>
       <a className="btn ghost small hide-mobile" href={href(id, 'conta')}>
         minha conta
       </a>
-      <a className={`btn small fr-cart ${cart.ids.length ? 'primary' : 'ghost'}`} href={href(id, 'loja:carrinho')} aria-label={`Carrinho com ${cart.ids.length} itens`}>
+      <a className={`btn small fr-cart ${n ? 'primary is-cheio' : 'ghost'}`} href={href(id, 'loja:carrinho')} aria-label={`Carrinho com ${n} itens`}>
         <Icon name="box" size={16} />
-        <span className="num" key={cart.ids.length}>
-          {cart.ids.length}
+        <span className="num" key={n}>
+          {n}
         </span>
       </a>
     </>
@@ -122,12 +128,12 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
         <main className="lp-wrap fr-sub">
           <div className="ape fr-ape">
             <Suspense fallback={<div className="fr-skel" aria-label="carregando"><div /><div /></div>}>
-              {!aj || !estilo ? (
+              {!ajV || !estilo ? (
                 <div className="fr-skel" aria-label="carregando"><div /><div /></div>
               ) : view === 'checkout' ? (
-                <Checkout ajustes={aj} me={null} whats={whats} />
+                <Checkout ajustes={ajV} me={null} whats={whats} />
               ) : view === 'pedido' ? (
-                <PedidoPage token={sub!.slice(7)} whats={whats} produtos={aj.produtos} />
+                <PedidoPage token={sub!.slice(7)} whats={whats} produtos={ajV.produtos} />
               ) : (
                 <Conta sub={sub} whats={whats} />
               )}
@@ -137,81 +143,143 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
         <Rodape />
       </div>
     )
-  return <Loja id={id} aj={aj} whats={whats} estilo={estilo} acoes={acoes} abrir={sub?.startsWith('loja:') ? sub.slice(5) : undefined} />
+  return <Loja id={id} aj={aj} ajV={ajV} whats={whats} estilo={estilo} acoes={acoes} pagina={pagina} carrinho={sub === 'loja:carrinho'} />
 }
 
-function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | null; whats: string; estilo: boolean; acoes: ReactNode; abrir?: string }) {
+type Pagina = 'inicio' | 'produtos' | { produto: string }
+const rotaProduto = (id: Id, pid: string) => href(id, `p:${pid}`)
+
+function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id; aj: Ajustes | null; ajV: Ajustes | null; whats: string; estilo: boolean; acoes: ReactNode; pagina: Pagina; carrinho: boolean }) {
   const f = frente(id)
-  const T = TEXTO[id]
   const root = useRef<HTMLDivElement>(null)
   const pixPct = aj?.pixPct ?? 5
   const daqui = useMemo(() => (aj?.produtos || []).filter((p) => frenteDe(p) === id), [aj, id])
-  // filtros: nicho, sub-nicho, uso (imprimir ou mandar), tipo e busca
-  const nichos = [...new Set(daqui.filter((p) => p.ativo).map((p) => p.nicho || 'outros'))]
-  const [nicho, setNicho] = useState('')
-  const [sub, setSub] = useState('')
-  const [uso, setUso] = useState<'' | 'imprimir' | 'digital'>('')
-  const [tipo, setTipo] = useState('')
-  const [busca, setBusca] = useState('')
-  const [limite, setLimite] = useState(12)
-  const [filtrosAbertos, setFiltrosAbertos] = useState(false)
-  const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  const doNicho = daqui.filter((p) => p.ativo && (!nicho || p.nicho === nicho))
-  const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))]
-  const tipos = [...new Set(doNicho.map((p) => p.tipo).filter((x): x is string => !!x && x !== 'kits'))]
-  const filtrados = doNicho.filter((p) => (!sub || p.sub === sub || p.sub === 'todos') && (!uso || p.uso === uso || p.uso === 'ambos') && (!tipo || p.tipo === tipo) && (!busca.trim() || norm(`${p.nome} ${p.desc} ${p.sub || ''} ${p.tipo || ''} ${p.tag}`).includes(norm(busca.trim()))))
-  const kitsF = filtrados.filter((p) => p.cat === 'combos')
-  const arqsF = filtrados.filter((p) => p.cat !== 'combos')
-  const ativos = filtrados
-  const algumFiltro = !!(sub || uso || tipo || busca.trim())
-  const limpar = () => { setSub(''); setUso(''); setTipo(''); setBusca(''); setLimite(12) }
-  useEffect(() => setLimite(12), [nicho, sub, uso, tipo, busca])
-  const breve = daqui.filter((p) => !p.ativo)
-  const [depos, setDepos] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
-  useEffect(() => void carregarDepoimentos(id).then(setDepos), [id])
-  useReveal(root, `${ativos.length}-${nicho}-${sub}-${uso}-${tipo}-${limite}-${depos.length}`)
   const cart = useCarrinho()
-  const [aberto, setAberto] = useState<Produto | null>(null)
-  useEffect(() => {
-    if (abrir && abrir !== 'carrinho') setAberto(daqui.find((p) => p.id === abrir) || null)
-  }, [abrir, daqui.length])
-  const [verCarrinho, setVerCarrinho] = useState(abrir === 'carrinho')
-  useEffect(() => setVerCarrinho(abrir === 'carrinho'), [abrir])
   const [toast, show] = useToast()
-  useTravaRolagem(!!aberto || verCarrinho)
-  const add = (p: Produto) => {
-    cart.add(p.id)
-    show('No carrinho.')
-  }
-  const pix = (p: Produto) => fmtPreco(Math.round(reais(p.preco) * (100 - pixPct)) / 100)
-  const tot = conta(cart.ids, aj?.produtos || [], 'pix', pixPct)
-  const nomes = daqui.filter((p) => p.ativo && p.cat !== 'combos').map((p) => p.nome.toLowerCase())
-  // cupom de lançamento (painel → produtos e preços): o toque guarda e o checkout já aplica
+  const [verCarrinho, setVerCarrinho] = useState(carrinho)
+  useEffect(() => setVerCarrinho(carrinho), [carrinho])
+  useTravaRolagem(verCarrinho)
   const cupom = aj ? cupomDaFrente(aj.cupons, id) : null
-  const [usou, setUsou] = useState(false)
+  const [usou, setUsou] = useState(() => {
+    try { return !!cupom && localStorage.getItem('plane-cupom') === cupom.codigo } catch { return false }
+  })
   const usarCupom = () => {
     if (!cupom) return
     try { localStorage.setItem('plane-cupom', cupom.codigo) } catch { /* ok */ }
     setUsou(true)
     show(`Cupom ${cupom.codigo} guardado: o desconto aparece no checkout.`)
   }
+  const add = (p: Produto, e: Estilo = ESTILO_PADRAO) => {
+    const cid = idNoCarrinho(p, e)
+    cart.add(cid)
+    show(temEstilos(p) ? `${p.nome} · ${nomeEstilo(e)} no carrinho.` : `${p.nome} no carrinho.`)
+  }
+  const comprar = (p: Produto, e: Estilo) => {
+    cart.add(idNoCarrinho(p, e))
+    if (cupom && !usou) usarCupom()
+    location.hash = href(id, 'checkout')
+  }
+  const tot = conta(cart.ids, ajV?.produtos || [], 'pix', pixPct)
+  const pagProduto = typeof pagina === 'object' ? daqui.find((p) => p.id === pagina.produto) || null : null
+  useReveal(root, `${typeof pagina === 'object' ? pagina.produto : pagina}-${daqui.length}`)
+  const ctx: Ctx = { id, daqui, pixPct, cupomPct: cupom?.pct || 0, cartIds: cart.ids, add }
 
   return (
-    <div className="lp fr" ref={root}>
+    <div className={`lp fr ${cupom ? 'tem-oferta' : ''}`} ref={root}>
+      {cupom && <Oferta codigo={cupom.codigo} pct={cupom.pct} ate={cupom.ate} usou={usou} onUsar={usarCupom} />}
       <Topo atual={f} acoes={acoes} />
 
+      {pagina === 'inicio' && <Inicio ctx={ctx} aj={aj} whats={whats} />}
+      {pagina === 'produtos' && <Produtos ctx={ctx} aj={aj} whats={whats} />}
+      {typeof pagina === 'object' &&
+        (pagProduto ? (
+          <PaginaProduto key={pagProduto.id} ctx={ctx} p={pagProduto} onComprar={comprar} />
+        ) : (
+          <main className="lp-wrap fr-sub">
+            <div className="card fr-vazio">
+              <b>{aj ? 'produto não encontrado' : 'carregando…'}</b>
+              {aj && <a className="btn primary" href={href(id, 'produtos')}>ver todos os produtos</a>}
+            </div>
+          </main>
+        ))}
+
+      <Rodape />
+
+      {cart.ids.length > 0 && !verCarrinho && typeof pagina !== 'object' && (
+        <a className="fr-cartbar" href={href(id, 'loja:carrinho')}>
+          <span>
+            <b className="num">{tot.itens.length}</b> {tot.itens.length === 1 ? 'item' : 'itens'} · <span className="num">{fmtPreco(tot.totalPix)}</span> no Pix
+          </span>
+          <span>
+            finalizar <Icon name="arrowRight" size={16} />
+          </span>
+        </a>
+      )}
+
+      <div className="ape fr-ape">
+        {verCarrinho && estilo && ajV && (
+          <Suspense fallback={null}>
+            <CarrinhoSheet
+              produtos={ajV.produtos}
+              pixPct={pixPct}
+              cart={cart}
+              onClose={() => {
+                setVerCarrinho(false)
+                history.replaceState(null, '', location.hash.replace('/loja:carrinho', '') || href(id))
+              }}
+              onOpen={(p) => {
+                setVerCarrinho(false)
+                location.hash = rotaProduto(id, estiloDoId(p.id).base)
+              }}
+            />
+          </Suspense>
+        )}
+        {toast}
+        {estilo && <AvisoCookies />}
+      </div>
+    </div>
+  )
+}
+
+interface Ctx { id: Id; daqui: Produto[]; pixPct: number; cupomPct: number; cartIds: string[]; add: (p: Produto, e?: Estilo) => void }
+
+/** Faixa do topo com a oferta: gira devagar, o presente balança e conta os dias que faltam. */
+function Oferta({ codigo, pct, ate, usou, onUsar }: { codigo: string; pct: number; ate?: string; usou: boolean; onUsar: () => void }) {
+  const dias = ate ? Math.ceil((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 864e5) : null
+  return (
+    <button className="fr-oferta" onClick={onUsar}>
+      <span className="fr-oferta-in">
+        <Icon name={usou ? 'check' : 'gift'} size={15} />
+        <span>
+          <b>{pct}% off</b> em tudo com o cupom <b>{codigo}</b>
+          {dias != null && dias > 0 && dias <= 45 ? <> · faltam <span className="num">{dias}</span> {dias === 1 ? 'dia' : 'dias'}</> : ate ? <> · até {ate.slice(8, 10)}/{ate.slice(5, 7)}</> : null}
+        </span>
+        <span className="fr-oferta-b">{usou ? 'cupom guardado' : 'usar cupom'}</span>
+      </span>
+    </button>
+  )
+}
+
+const ordenar = (ps: Produto[]) => [...ps].sort((a, b) => Number(!!b.selo) - Number(!!a.selo))
+
+/** Página de vendas: chama para os mais procurados, os kits e os estilos; o catálogo inteiro fica em "produtos". */
+function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: string }) {
+  const { id, daqui } = ctx
+  const T = TEXTO[id]
+  const ativos = daqui.filter((p) => p.ativo)
+  const arqs = ordenar(ativos.filter((p) => p.cat !== 'combos'))
+  const kits = ativos.filter((p) => p.cat === 'combos')
+  const nomes = arqs.map((p) => p.nome.toLowerCase())
+  const breve = daqui.filter((p) => !p.ativo)
+  const [depos, setDepos] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
+  useEffect(() => void carregarDepoimentos(id).then(setDepos), [id])
+  const vitrine = arqs.find((p) => p.id === 'beleza-stories-mes') || arqs.find((p) => temPrevia(p.id))
+  return (
+    <>
       <section className="lp-hero">
         <Manchas />
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
-            {cupom && (
-              <button className="lp-ref-pill fr-cupom" onClick={usarCupom}>
-                <Icon name={usou ? 'check' : 'gift'} size={14} />
-                <span>
-                  cupom <b>{cupom.codigo}</b>: <span className="num">{cupom.pct}%</span> off{cupom.ate ? ` até ${cupom.ate.slice(8, 10)}/${cupom.ate.slice(5, 7)}` : ''} · {usou ? 'guardado' : 'toque para usar'}
-                </span>
-              </button>
-            )}
             <p className="lp-kicker">
               <span className="lp-dot" /> {T.kicker}
             </p>
@@ -221,20 +289,20 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
               <Icon name="sparkle" size={14} /> {T.chip}
             </p>
             <div className="row gap-s wrap">
-              <button className="btn primary lp-cta lp-shine" onClick={() => rolar('catalogo')}>
-                ver {id === 'arq' ? 'os modelos' : 'os arquivos'} <Icon name="arrowRight" size={16} />
-              </button>
+              <a className="btn primary lp-cta lp-shine fr-pulsa" href={href(id, 'produtos')}>
+                ver todos os {id === 'arq' ? 'modelos' : 'arquivos'} <Icon name="arrowRight" size={16} />
+              </a>
               {id === 'arq' ? (
                 <a className="btn ghost lp-cta" href="#/vendas">
                   conhecer a gestão
                 </a>
               ) : (
-                <button className="btn ghost lp-cta" onClick={() => rolar('como')}>
-                  como funciona
+                <button className="btn ghost lp-cta" onClick={() => rolar('estilos')}>
+                  ver os estilos
                 </button>
               )}
             </div>
-            <p className="muted small">Pix com {pixPct}% de desconto · baixa na hora · 7 dias para desistir</p>
+            <p className="muted small">Pix com {ctx.pixPct}% de desconto · baixa na hora · 7 dias para desistir</p>
           </div>
           <div className="lp-hero-art" aria-hidden>
             <img className="fr-hero-solta" src={T.arte} alt="" />
@@ -247,8 +315,64 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
 
       {nomes.length > 0 && <Faixa itens={nomes} />}
 
-      <section className="lp-section lp-alt fr-com-manchas" id="como">
-        <Manchas v="b" />
+      <section className="lp-section" id="destaques">
+        <div className="lp-wrap">
+          <Cabeca eyebrow="os mais procurados" title={<>comece por <em>estes</em></>} />
+          {!aj ? (
+            <Esqueleto />
+          ) : (
+            <>
+              <div className="fr-grid">
+                {arqs.slice(0, 6).map((p, i) => (
+                  <Cartao key={p.id} p={p} i={i} ctx={ctx} />
+                ))}
+              </div>
+              <div className="fr-mais">
+                <a className="btn primary lp-cta lp-shine" href={href(id, 'produtos')}>
+                  ver todos os <span className="num">{arqs.length + kits.length}</span> produtos <Icon name="arrowRight" size={16} />
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
+      {kits.length > 0 && (
+        <section className="lp-section lp-alt">
+          <div className="lp-wrap">
+            <Cabeca eyebrow="kits com desconto" title={<>leve junto, <em>pague menos</em></>} />
+            <div className="fr-kits-trilho">
+              {kits.map((p, i) => (
+                <Cartao key={p.id} p={p} i={i} ctx={ctx} kit />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {vitrine && temPrevia(vitrine.id) && (
+        <section className="lp-section fr-com-manchas" id="estilos">
+          <Manchas v="b" />
+          <div className="lp-wrap">
+            <Cabeca eyebrow="4 estilos" title={<>o arquivo com <em>a sua cara</em></>} text="Cada arquivo existe em quatro estilos. Escolha o que combina com o seu espaço." centro />
+            <div className="fr-estilos-vitrine">
+              {ESTILOS.map((e, i) => (
+                <a key={e.id} className="fr-estilo-card" href={href(id, 'produtos')} data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
+                  <span className="fr-estilo-img">
+                    <img src={imgEstilo(vitrine.id, e.id)} alt={`${vitrine.nome} no estilo ${e.nome}`} loading="lazy" decoding="async" />
+                  </span>
+                  <b>
+                    <i style={{ background: e.cor, boxShadow: `0 0 0 2px ${e.aro}` }} /> {e.nome}
+                  </b>
+                  <small>{e.frase}</small>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="lp-section lp-alt" id="como">
         <div className="lp-wrap">
           <Cabeca eyebrow="como funciona" title={<>três passos, <em>sem complicação</em></>} />
           <div className="lp-diffs-grid fr-3">
@@ -267,115 +391,8 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
         </div>
       </section>
 
-      <section className="lp-section" id="catalogo">
-        <div className="lp-wrap">
-          <Cabeca eyebrow={f.para} title={T.catalogo} text="Toque para ver por dentro." />
-          {nichos.length > 1 && (
-            <div className="lp-aud fr-tabs" role="tablist" aria-label="nichos" data-reveal>
-              <button role="tab" aria-selected={!nicho} className={!nicho ? 'is-on' : ''} onClick={() => setNicho('')}>
-                todos
-              </button>
-              {nichos.map((n) => (
-                <button key={n} role="tab" aria-selected={nicho === n} className={nicho === n ? 'is-on' : ''} onClick={() => setNicho(n)}>
-                  {NICHOS[n] || n}
-                </button>
-              ))}
-            </div>
-          )}
-          {aj && (
-            <div className="fr-filtros" data-reveal>
-              <label className="fr-busca">
-                <Icon name="search" size={16} />
-                <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar: anamnese, cuidados, stories…" aria-label="Buscar arquivos" />
-              </label>
-              <button className={`fr-filtrar ${filtrosAbertos ? 'is-on' : ''}`} onClick={() => setFiltrosAbertos((v) => !v)} aria-expanded={filtrosAbertos}>
-                <Icon name="list" size={16} /> filtrar{[sub, uso, tipo].filter(Boolean).length > 0 && <span className="num">{[sub, uso, tipo].filter(Boolean).length}</span>}
-              </button>
-              <div className={`fr-filtros-mais ${filtrosAbertos ? 'is-open' : ''}`}>
-              <div className="lp-aud fr-uso" role="tablist" aria-label="para imprimir ou para mandar">
-                {([['', 'tudo'], ['imprimir', 'para imprimir'], ['digital', 'para mandar']] as const).map(([v, l]) => (
-                  <button key={v} role="tab" aria-selected={uso === v} className={uso === v ? 'is-on' : ''} onClick={() => setUso(v)}>
-                    {v === 'imprimir' ? <Icon name="printer" size={14} /> : v === 'digital' ? <Icon name="smartphone" size={14} /> : null} {l}
-                  </button>
-                ))}
-              </div>
-              {subs.length > 1 && (
-                <div className="fr-chips" role="group" aria-label="área">
-                  <button className={!sub ? 'is-on' : ''} onClick={() => setSub('')}>todas as áreas</button>
-                  {subs.map((x) => (
-                    <button key={x} className={sub === x ? 'is-on' : ''} onClick={() => setSub(sub === x ? '' : x)}>{x}</button>
-                  ))}
-                </div>
-              )}
-              {tipos.length > 1 && (
-                <div className="fr-chips is-tipo" role="group" aria-label="tipo">
-                  {tipos.map((x) => (
-                    <button key={x} className={tipo === x ? 'is-on' : ''} onClick={() => setTipo(tipo === x ? '' : x)}>{x}</button>
-                  ))}
-                </div>
-              )}
-              </div>
-              <p className="fr-conta muted small">
-                <span className="num">{arqsF.length}</span> {arqsF.length === 1 ? 'arquivo' : 'arquivos'}
-                {kitsF.length > 0 && <> e <span className="num">{kitsF.length}</span> {kitsF.length === 1 ? 'kit' : 'kits'}</>}
-                {algumFiltro && <button className="link" onClick={limpar}>limpar filtros</button>}
-              </p>
-            </div>
-          )}
-          {!aj ? (
-            <div className="fr-skel" aria-label="carregando"><div /><div /><div /></div>
-          ) : !filtrados.length ? (
-            <div className="card fr-vazio">
-              <b>nada encontrado com esses filtros</b>
-              <button className="btn ghost small" onClick={limpar}>ver todos</button>
-            </div>
-          ) : (
-            <>
-              {kitsF.length > 0 && !tipo && (
-                <div className="fr-kits">
-                  <p className="eyebrow">kits com desconto</p>
-                  <div className="fr-kits-trilho">
-                    {kitsF.map((p) => <Cartao key={p.id} p={p} kit pix={pix(p)} noCarrinho={cart.tem(p.id)} onAdd={() => add(p)} onVer={() => setAberto(p)} />)}
-                  </div>
-                </div>
-              )}
-              <div className="fr-grid">
-                {(tipo === 'kits' ? kitsF : arqsF).slice(0, limite).map((p, i) => (
-                  <Cartao key={p.id} p={p} i={i} pix={pix(p)} noCarrinho={cart.tem(p.id)} onAdd={() => add(p)} onVer={() => setAberto(p)} />
-                ))}
-              </div>
-              {arqsF.length > limite && (
-                <div className="fr-mais">
-                  <button className="btn ghost lp-cta" onClick={() => setLimite((l) => l + 12)}>
-                    ver mais <span className="num">{Math.min(12, arqsF.length - limite)}</span>
-                  </button>
-                  <button className="btn primary lp-cta" onClick={() => setLimite(9999)}>
-                    ver todos os <span className="num">{arqsF.length}</span>
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-          {breve.length > 0 && (
-            <div className="fr-breve" data-reveal>
-              <p className="eyebrow">em breve</p>
-              <div className="fr-breve-l">
-                {breve.map((p) => (
-                  <a key={p.id} className="fr-breve-i" href={wa(whats, `Oi! Quero saber quando sair: ${p.nome} (${f.nome}).`)} target="_blank" rel="noopener noreferrer">
-                    <b>{p.nome}</b>
-                    <span>
-                      <Icon name="bell" size={14} /> me avise
-                    </span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
       {id === 'arq' && (
-        <section className="lp-section lp-alt">
+        <section className="lp-section">
           <div className="lp-wrap">
             <Cabeca eyebrow="quando o escritório crescer" title={<>a gestão planê<em>.arq</em></>} text="Os mesmos modelos, preenchidos sozinhos com os dados de cada cliente. 14 dias grátis, sem cartão." />
             <div className="lp-diffs-grid">
@@ -427,6 +444,26 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
         </section>
       )}
 
+      {breve.length > 0 && (
+        <section className="lp-section">
+          <div className="lp-wrap">
+            <div className="fr-breve" data-reveal>
+              <p className="eyebrow">em breve</p>
+              <div className="fr-breve-l">
+                {breve.map((p) => (
+                  <a key={p.id} className="fr-breve-i" href={wa(whats, `Oi! Quero saber quando sair: ${p.nome} (${frente(id).nome}).`)} target="_blank" rel="noopener noreferrer">
+                    <b>{p.nome}</b>
+                    <span>
+                      <Icon name="bell" size={14} /> me avise
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="lp-section lp-alt" id="duvidas">
         <div className="lp-wrap lp-faq-wrap">
           <Cabeca eyebrow="dúvidas" title={<>perguntas <em>frequentes</em></>} />
@@ -444,70 +481,175 @@ function Loja({ id, aj, whats, estilo, acoes, abrir }: { id: Id; aj: Ajustes | n
         </div>
       </section>
 
-      <Final titulo={T.final} texto="Baixa na hora, edita do seu jeito e usa no mesmo dia." botao={id === 'arq' ? 'ver os modelos' : 'ver os arquivos'} href={`#/${id}`} />
-      <Rodape />
+      <Final titulo={T.final} texto="Baixa na hora, edita no Canva e usa no mesmo dia." botao={id === 'arq' ? 'ver todos os modelos' : 'ver todos os arquivos'} href={href(id, 'produtos')} />
+    </>
+  )
+}
 
-      {cart.ids.length > 0 && !verCarrinho && (
-        <a className="fr-cartbar" href={href(id, 'loja:carrinho')}>
-          <span>
-            <b className="num">{tot.itens.length}</b> {tot.itens.length === 1 ? 'item' : 'itens'} · <span className="num">{fmtPreco(tot.totalPix)}</span> no Pix
-          </span>
-          <span>
-            ver carrinho <Icon name="arrowRight" size={16} />
-          </span>
-        </a>
-      )}
+function Esqueleto() {
+  return <div className="fr-skel" aria-label="carregando"><div /><div /><div /></div>
+}
 
-      {aberto && <Detalhe p={aberto} pixTxt={pix(aberto)} pixPct={pixPct} noCarrinho={cart.tem(aberto.id)} onAdd={() => add(aberto)} onClose={() => setAberto(null)} />}
-      <div className="ape fr-ape">
-        {verCarrinho && estilo && aj && (
-          <Suspense fallback={null}>
-            <CarrinhoSheet
-              produtos={aj.produtos}
-              pixPct={pixPct}
-              cart={cart}
-              onClose={() => {
-                setVerCarrinho(false)
-                history.replaceState(null, '', href(id))
-              }}
-              onOpen={(p) => {
-                setVerCarrinho(false)
-                setAberto(p)
-              }}
-            />
-          </Suspense>
-        )}
-        {toast}
-        {estilo && <AvisoCookies />}
-      </div>
-    </div>
+/** Página com todos os produtos, organizados por área, uso e tipo, com busca. */
+function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) {
+  const { id, daqui } = ctx
+  const f = frente(id)
+  const nichos = [...new Set(daqui.filter((p) => p.ativo).map((p) => p.nicho || 'outros'))]
+  const [nicho, setNicho] = useState('')
+  const [sub, setSub] = useState('')
+  const [uso, setUso] = useState<'' | 'imprimir' | 'digital'>('')
+  const [tipo, setTipo] = useState('')
+  const [busca, setBusca] = useState('')
+  const [todos, setTodos] = useState(false)
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false)
+  const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  const doNicho = daqui.filter((p) => p.ativo && (!nicho || p.nicho === nicho))
+  const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))]
+  const tipos = [...new Set(doNicho.map((p) => p.tipo).filter((x): x is string => !!x && x !== 'kits'))]
+  const filtrados = doNicho.filter((p) => (!sub || p.sub === sub || p.sub === 'todos') && (!uso || p.uso === uso || p.uso === 'ambos') && (!tipo || p.tipo === tipo) && (!busca.trim() || norm(`${p.nome} ${p.desc} ${p.sub || ''} ${p.tipo || ''} ${p.tag}`).includes(norm(busca.trim()))))
+  const kitsF = filtrados.filter((p) => p.cat === 'combos')
+  const arqsF = ordenar(filtrados.filter((p) => p.cat !== 'combos'))
+  const LIM = 12
+  const algumFiltro = !!(sub || uso || tipo || busca.trim())
+  const nFiltros = [sub, uso, tipo].filter(Boolean).length
+  const limpar = () => { setSub(''); setUso(''); setTipo(''); setBusca('') }
+  useEffect(() => setTodos(false), [nicho, sub, uso, tipo, busca])
+  const visiveis = todos ? arqsF : arqsF.slice(0, LIM)
+  return (
+    <main className="fr-produtos">
+      <section className="lp-section fr-produtos-topo">
+        <div className="lp-wrap">
+          <nav className="fr-trilha" aria-label="você está em">
+            <a href={href(id)}>{f.nome}</a>
+            <Icon name="chevronR" size={14} />
+            <span>produtos</span>
+          </nav>
+          <h1 className="fr-produtos-h1">
+            todos os <em>{id === 'arq' ? 'modelos' : 'arquivos'}</em> <span className="num fr-qtd">{daqui.filter((p) => p.ativo).length}</span>
+          </h1>
+          {nichos.length > 1 && (
+            <div className="lp-aud fr-tabs" role="tablist" aria-label="áreas">
+              <button role="tab" aria-selected={!nicho} className={!nicho ? 'is-on' : ''} onClick={() => setNicho('')}>
+                todos
+              </button>
+              {nichos.map((x) => (
+                <button key={x} role="tab" aria-selected={nicho === x} className={nicho === x ? 'is-on' : ''} onClick={() => setNicho(x)}>
+                  {NICHOS[x] || x}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="fr-filtros">
+            <label className="fr-busca">
+              <Icon name="search" size={16} />
+              <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar: anamnese, cuidados, stories…" aria-label="Buscar arquivos" />
+            </label>
+            <button className={`fr-filtrar ${filtrosAbertos ? 'is-on' : ''}`} onClick={() => setFiltrosAbertos((v) => !v)} aria-expanded={filtrosAbertos}>
+              <Icon name="list" size={16} /> filtrar{nFiltros > 0 && <span className="num">{nFiltros}</span>}
+            </button>
+            <div className={`fr-filtros-mais ${filtrosAbertos ? 'is-open' : ''}`}>
+              <div className="lp-aud fr-uso" role="tablist" aria-label="para imprimir ou para mandar">
+                {([['', 'tudo'], ['imprimir', 'para imprimir'], ['digital', 'para mandar']] as const).map(([v, l]) => (
+                  <button key={v} role="tab" aria-selected={uso === v} className={uso === v ? 'is-on' : ''} onClick={() => setUso(v)}>
+                    {v === 'imprimir' ? <Icon name="printer" size={14} /> : v === 'digital' ? <Icon name="smartphone" size={14} /> : null} {l}
+                  </button>
+                ))}
+              </div>
+              {subs.length > 1 && (
+                <div className="fr-chips" role="group" aria-label="área">
+                  <button className={!sub ? 'is-on' : ''} onClick={() => setSub('')}>todas as áreas</button>
+                  {subs.map((x) => (
+                    <button key={x} className={sub === x ? 'is-on' : ''} onClick={() => setSub(sub === x ? '' : x)}>{x}</button>
+                  ))}
+                </div>
+              )}
+              {tipos.length > 1 && (
+                <div className="fr-chips is-tipo" role="group" aria-label="tipo">
+                  {tipos.map((x) => (
+                    <button key={x} className={tipo === x ? 'is-on' : ''} onClick={() => setTipo(tipo === x ? '' : x)}>{x}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="fr-conta muted small">
+              <span className="num">{arqsF.length}</span> {arqsF.length === 1 ? 'arquivo' : 'arquivos'}
+              {kitsF.length > 0 && <> e <span className="num">{kitsF.length}</span> {kitsF.length === 1 ? 'kit' : 'kits'}</>}
+              {algumFiltro && <button className="link" onClick={limpar}>limpar filtros</button>}
+            </p>
+          </div>
+        </div>
+      </section>
+      <section className="lp-section fr-produtos-lista">
+        <div className="lp-wrap">
+          {!aj ? (
+            <Esqueleto />
+          ) : !filtrados.length ? (
+            <div className="card fr-vazio">
+              <b>nada encontrado com esses filtros</b>
+              <button className="btn ghost small" onClick={limpar}>ver todos</button>
+            </div>
+          ) : (
+            <>
+              {kitsF.length > 0 && !tipo && (
+                <div className="fr-kits">
+                  <p className="eyebrow">kits com desconto</p>
+                  <div className="fr-kits-trilho">
+                    {kitsF.map((p) => <Cartao key={p.id} p={p} ctx={ctx} kit />)}
+                  </div>
+                </div>
+              )}
+              <div className="fr-grid">
+                {visiveis.map((p, i) => (
+                  <Cartao key={p.id} p={p} i={i} ctx={ctx} />
+                ))}
+              </div>
+              {arqsF.length > LIM && !todos && (
+                <div className="fr-mais">
+                  <button className="btn primary lp-cta" onClick={() => setTodos(true)}>
+                    ver todos <span className="fr-mais-n num">+{arqsF.length - LIM}</span>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </section>
+    </main>
   )
 }
 
 const USO: Record<string, [string, string]> = { imprimir: ['printer', 'imprimir'], digital: ['smartphone', 'digital'], ambos: ['layers', 'imprimir e digital'] }
+const comCupom = (p: Produto, pct: number) => fmtPreco(Math.round(reais(p.preco) * (100 - pct)) / 100)
 
-/** Cartão de produto da vitrine (também na faixa de kits). */
-function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; i?: number; kit?: boolean; pix: string; noCarrinho: boolean; onAdd: () => void; onVer: () => void }) {
+/** Cartão de produto: abre a página do produto; as bolinhas mostram cada estilo; o "+" põe o estilo escolhido no carrinho. */
+function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean; ctx: Ctx }) {
   const u = p.uso ? USO[p.uso] : null
   const [est, setEst] = useState<Estilo | null>(null)
-  const capa = est && temEstilos(p.id) ? imgEstilo(p.id, est) : p.amostras?.[0]
+  const estilos = temEstilos(p)
+  const previa = temPrevia(p.id)
+  const capa = est && previa ? imgEstilo(p.id, est) : p.amostras?.[0]
+  const noCarrinho = estilosNoCarrinho(ctx.cartIds, p.id)
+  const escolhido = est || ESTILO_PADRAO
+  const ja = estilos ? noCarrinho.includes(escolhido) : noCarrinho.length > 0 || ctx.cartIds.includes(p.id)
+  const link = rotaProduto(ctx.id, p.id)
   return (
     <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
-      <button className="fr-card-img" onClick={onVer} aria-label={`Ver ${p.nome} por dentro`}>
-        {capa && <img key={capa} className={est ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
+      <a className="fr-card-img" href={link} aria-label={`Ver ${p.nome}`}>
+        {capa && <img key={capa} className={est && previa ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
         {p.selo && <span className="fr-selo">{p.selo}</span>}
+        {ctx.cupomPct > 0 && <span className="fr-off num">−{ctx.cupomPct}%</span>}
         <span className="fr-ver">
           <Icon name="eye" size={14} /> ver por dentro
         </span>
-      </button>
+      </a>
       <div className="fr-card-b">
         <small className="fr-tag">
           {p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · ${p.kitPct || 0}% off` : p.sub && p.sub !== 'todos' ? p.sub : NICHOS[p.nicho || ''] || p.tag}
         </small>
-        <b>{p.nome}</b>
+        <a className="fr-card-nome" href={link}>{p.nome}</a>
         <p>{p.desc}</p>
-        {temEstilos(p.id) && <Estilos est={est} onEst={setEst} />}
-        {temEstilos(p.id) && (
+        {estilos && <Estilos est={est} onEst={setEst} />}
+        {estilos && (
           <span className="fr-estilos-mini" aria-label={`${ESTILOS.length} estilos`}>
             {ESTILOS.map((e) => <i key={e.id} style={{ background: e.cor }} />)} <span className="num">{ESTILOS.length}</span> estilos
           </span>
@@ -518,23 +660,29 @@ function Cartao({ p, i = 0, kit, pix, noCarrinho, onAdd, onVer }: { p: Produto; 
           </span>
         )}
         <div className="fr-preco">
-          <span className="num">{p.preco}</span>
-          <small className="num">{pix} no Pix</small>
+          {ctx.cupomPct > 0 ? (
+            <>
+              <span className="num">{comCupom(p, ctx.cupomPct)}</span>
+              <s className="num">{p.preco}</s>
+            </>
+          ) : (
+            <span className="num">{p.preco}</span>
+          )}
         </div>
-        <div className="row gap-s">
-          <button className={`btn small ${noCarrinho ? 'ghost' : 'primary'}`} onClick={onAdd} disabled={noCarrinho}>
-            <Icon name={noCarrinho ? 'check' : 'plus'} size={14} /> <span className="fr-add-t">{noCarrinho ? 'no carrinho' : 'adicionar'}</span>
+        <div className="row gap-s fr-card-acoes">
+          <button className={`btn small ${ja ? 'ghost' : 'primary'}`} onClick={() => ctx.add(p, escolhido)} disabled={ja} aria-label={ja ? 'no carrinho' : `adicionar ${p.nome}${estilos ? ` no estilo ${escolhido}` : ''}`}>
+            <Icon name={ja ? 'check' : 'plus'} size={14} /> <span className="fr-add-t">{ja ? 'no carrinho' : 'adicionar'}</span>
           </button>
-          <button className="btn ghost small fr-det" onClick={onVer}>
+          <a className="btn ghost small fr-det" href={link}>
             detalhes
-          </button>
+          </a>
         </div>
       </div>
     </article>
   )
 }
 
-/** Bolinhas para trocar o estilo (delicado, criativo, minimalista, elegante) + o nome do escolhido. */
+/** Bolinhas para ver cada estilo + o nome do escolhido. */
 function Estilos({ est, onEst }: { est: Estilo | null; onEst: (e: Estilo) => void }) {
   return (
     <div className="fr-estilos" role="radiogroup" aria-label="Estilo">
@@ -548,90 +696,166 @@ function Estilos({ est, onEst }: { est: Estilo | null; onEst: (e: Estilo) => voi
   )
 }
 
-/** Detalhe do produto: galeria (mockup e páginas de dentro), o que vem, formato e preço. */
-function Detalhe({ p, pixTxt, pixPct, noCarrinho, onAdd, onClose }: { p: Produto; pixTxt: string; pixPct: number; noCarrinho: boolean; onAdd: () => void; onClose: () => void }) {
-  const est = temEstilos(p.id)
-  const fotos = est ? ([(p.amostras || [])[0], ...ESTILOS.map((e) => imgEstilo(p.id, e.id)), ...(p.amostras || []).slice(1)].filter(Boolean) as string[]) : p.amostras || []
-  const [i, setI] = useState(0)
-  const trilho = useRef<HTMLDivElement>(null)
-  const ir = (n: number) => {
-    const el = trilho.current
-    if (el) el.scrollTo({ left: n * el.clientWidth, behavior: 'smooth' })
-  }
-  useEffect(() => {
-    const on = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', on)
-    return () => window.removeEventListener('keydown', on)
-  }, [onClose])
+/** Página do produto: galeria, escolha do estilo, preço com cupom, comprar agora e relacionados. */
+function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar: (p: Produto, e: Estilo) => void }) {
+  const { id, pixPct, cupomPct } = ctx
+  const f = frente(id)
+  const estilos = temEstilos(p)
+  const previa = temPrevia(p.id)
+  const [est, setEst] = useState<Estilo>(ESTILO_PADRAO)
+  const fotos = useMemo(() => {
+    const a = p.amostras || []
+    // com estilos: a página no estilo escolhido e a cena do produto (as páginas de dentro são do criativo)
+    return previa ? ([imgEstilo(p.id, est), a[0]].filter(Boolean) as string[]) : a
+  }, [p, est, previa])
+  const [foto, setFoto] = useState(0)
+  useEffect(() => setFoto(0), [est])
+  const noCarrinho = estilosNoCarrinho(ctx.cartIds, p.id)
+  const ja = estilos ? noCarrinho.includes(est) : ctx.cartIds.includes(p.id)
+  const base = reais(p.preco)
+  const comCup = Math.round(base * (100 - cupomPct)) / 100
+  const pix = fmtPreco(Math.round(comCup * (100 - pixPct)) / 100)
+  const rel = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && (x.sub === p.sub || x.tipo === p.tipo))).slice(0, 4)
+  const u = p.uso ? USO[p.uso] : null
   return (
-    <div className="fr-modal" role="dialog" aria-modal="true" aria-label={p.nome} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="fr-modal-in">
-        <button className="fr-x" onClick={onClose} aria-label="Fechar">
-          <Icon name="x" size={18} />
-        </button>
-        <div className="fr-gal">
-          <div className="fr-gal-trilho" ref={trilho} onScroll={(e) => setI(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))}>
-            {fotos.map((src, k) => (
-              <div key={src} className={`fr-gal-i ${k === 0 ? 'is-cena' : 'is-pagina'}`}>
-                <img src={src} alt={k === 0 ? p.nome : `${p.nome}: página ${k + 1}`} decoding="async" />
+    <main className="fr-pp">
+      <div className="lp-wrap">
+        <nav className="fr-trilha" aria-label="você está em">
+          <a href={href(id)}>{f.nome}</a>
+          <Icon name="chevronR" size={14} />
+          <a href={href(id, 'produtos')}>produtos</a>
+          <Icon name="chevronR" size={14} />
+          <span>{p.nome}</span>
+        </nav>
+        <div className="fr-pp-grid">
+          <div className="fr-pp-gal">
+            <div className={`fr-pp-foto ${foto === 0 && previa ? 'is-pagina' : ''}`}>
+              {fotos[foto] && <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" />}
+              {p.selo && <span className="fr-selo">{p.selo}</span>}
+              {cupomPct > 0 && <span className="fr-off num">−{cupomPct}%</span>}
+            </div>
+            {fotos.length > 1 && (
+              <div className="fr-pp-mini">
+                {fotos.map((src, k) => (
+                  <button key={src} className={k === foto ? 'is-on' : ''} onClick={() => setFoto(k)} aria-label={`Imagem ${k + 1}`}>
+                    <img src={src} alt="" loading="lazy" decoding="async" />
+                  </button>
+                ))}
               </div>
-            ))}
-          </div>
-          {fotos.length > 1 && (
-            <div className="fr-gal-pontos">
-              {fotos.map((_, k) => (
-                <button key={k} className={k === i ? 'is-on' : ''} onClick={() => ir(k)} aria-label={`Imagem ${k + 1}`} />
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="fr-modal-b">
-          <p className="eyebrow">{p.tag}</p>
-          <h2>{p.nome}</h2>
-          <p className="muted">{p.desc}</p>
-          {est && (
-            <div className="fr-estilos-d">
-              <small><span className="num">{ESTILOS.length}</span> estilos na mesma compra: toque para ver</small>
-              <Estilos est={i >= 1 && i <= ESTILOS.length ? ESTILOS[i - 1].id : null} onEst={(e) => ir(ESTILOS.findIndex((x) => x.id === e) + 1)} />
-            </div>
-          )}
-          {!!p.numeros?.length && (
-            <div className="fr-nums">
-              {p.numeros.map((n) => (
-                <span key={n}>{n}</span>
-              ))}
-            </div>
-          )}
-          {!!p.itens?.length && (
-            <ul className="fr-checks">
-              {p.itens.map((t) => (
-                <li key={t}>
-                  <Icon name="check" size={16} /> {t}
-                </li>
-              ))}
-            </ul>
-          )}
-          <dl className="fr-ficha">
-            <dt>formato</dt>
-            <dd>{p.formato}</dd>
-            <dt>entrega</dt>
-            <dd>{p.entrega}</dd>
-          </dl>
-          <div className="fr-modal-pe">
-            <div className="fr-preco">
-              <span className="num">{p.preco}</span>
-              <small className="num">
-                {pixTxt} no Pix (−{pixPct}%)
-              </small>
-            </div>
-            {p.ativo && (
-              <button className="btn primary lp-cta" onClick={onAdd} disabled={noCarrinho}>
-                <Icon name={noCarrinho ? 'check' : 'plus'} size={16} /> {noCarrinho ? 'no carrinho' : 'adicionar ao carrinho'}
-              </button>
             )}
           </div>
+          <div className="fr-pp-info">
+            <p className="eyebrow">{p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos` : p.sub && p.sub !== 'todos' ? p.sub : p.tag}</p>
+            <h1>{p.nome}</h1>
+            <p className="fr-pp-desc">{p.desc}</p>
+            {estilos && (
+              <div className="fr-pp-estilos">
+                <b>escolha o estilo</b>
+                <div className="fr-pp-estilos-l" role="radiogroup" aria-label="estilo">
+                  {ESTILOS.map((e) => (
+                    <button key={e.id} role="radio" aria-checked={est === e.id} className={est === e.id ? 'is-on' : ''} onClick={() => setEst(e.id)} style={{ ['--c' as string]: e.cor, ['--a' as string]: e.aro }}>
+                      <i />
+                      <span>{e.nome}</span>
+                    </button>
+                  ))}
+                </div>
+                <small className="muted">{ESTILOS.find((e) => e.id === est)?.frase}. Cada estilo é uma compra.</small>
+              </div>
+            )}
+            <div className="fr-pp-preco">
+              {cupomPct > 0 ? (
+                <>
+                  <span className="num fr-pp-valor">{fmtPreco(comCup)}</span>
+                  <s className="num">{p.preco}</s>
+                  <span className="fr-pp-tag">cupom aplicado no checkout</span>
+                </>
+              ) : (
+                <span className="num fr-pp-valor">{p.preco}</span>
+              )}
+              <small className="muted">
+                ou <b className="num">{pix}</b> no Pix
+              </small>
+            </div>
+            {p.ativo ? (
+              <div className="fr-pp-botoes">
+                <button className="btn primary lp-cta lp-shine fr-pulsa" onClick={() => onComprar(p, est)}>
+                  comprar agora <Icon name="arrowRight" size={16} />
+                </button>
+                <button className="btn ghost lp-cta" onClick={() => ctx.add(p, est)} disabled={ja}>
+                  <Icon name={ja ? 'check' : 'plus'} size={16} /> {ja ? 'no carrinho' : 'adicionar ao carrinho'}
+                </button>
+              </div>
+            ) : (
+              <p className="muted">Em breve.</p>
+            )}
+            <ul className="fr-pp-confia">
+              <li><Icon name="download" size={16} /> baixa na hora</li>
+              <li><Icon name="edit" size={16} /> editável no Canva</li>
+              <li><Icon name="lock" size={16} /> 7 dias para desistir</li>
+            </ul>
+          </div>
         </div>
+
+        <div className="fr-pp-mais">
+          {!!p.itens?.length && (
+            <section>
+              <h2>o que vem</h2>
+              <ul className="fr-checks">
+                {p.itens.map((t) => (
+                  <li key={t}>
+                    <Icon name="check" size={16} /> {t}
+                  </li>
+                ))}
+              </ul>
+              {!!p.numeros?.length && (
+                <div className="fr-nums">
+                  {p.numeros.map((x) => (
+                    <span key={x}>{x}</span>
+                  ))}
+                  {u && <span>{u[1]}</span>}
+                </div>
+              )}
+            </section>
+          )}
+          <section>
+            <h2>como usar</h2>
+            <ol className="fr-pp-passos">
+              <li><b>compre</b><span>Pix ou cartão. A página do pedido abre na hora.</span></li>
+              <li><b>abra no Canva</b><span>Toque em "editar no Canva" ou baixe o arquivo (PowerPoint, Word, PDF ou Excel).</span></li>
+              <li><b>troque o que está entre [colchetes]</b><span>Seu nome, logo, fotos e valores. Pronto para imprimir ou mandar.</span></li>
+            </ol>
+            <dl className="fr-ficha">
+              <dt>formato</dt>
+              <dd>{p.formato}</dd>
+              <dt>entrega</dt>
+              <dd>{p.entrega}</dd>
+            </dl>
+          </section>
+        </div>
+
+        {rel.length > 0 && (
+          <section className="fr-pp-rel">
+            <h2>você também vai <em>gostar</em></h2>
+            <div className="fr-grid">
+              {rel.map((x, i) => (
+                <Cartao key={x.id} p={x} i={i} ctx={ctx} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
-    </div>
+
+      {p.ativo && (
+        <div className="fr-pp-barra">
+          <span>
+            <b className="num">{fmtPreco(comCup)}</b>
+            {estilos && <small>{est}</small>}
+          </span>
+          <button className="btn primary fr-pulsa" onClick={() => onComprar(p, est)}>
+            comprar agora
+          </button>
+        </div>
+      )}
+    </main>
   )
 }
