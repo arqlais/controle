@@ -85,7 +85,7 @@ function FrenteCard({ f, n }: { f: FrenteInfo; n: number }) {
           {String(n).padStart(2, '0')} · {f.para}
         </small>
         <b>
-          planê <em>{f.marca}</em>
+          planê<em>.{f.marca}</em>
         </b>
         <span className="fr-card-frase">{f.frase}</span>
         <span className="fr-card-desc">{f.desc}</span>
@@ -106,7 +106,7 @@ export function FrTop({ titulo, extra }: { titulo?: FrenteInfo; extra?: ReactNod
         <a className="fr-brand" href="#/plane" aria-label="planê: página principal">
           <PlaneMark size={30} />
           <span>
-            planê{titulo && <em> {titulo.marca}</em>}
+            planê{titulo && <em>.{titulo.marca}</em>}
           </span>
         </a>
         <nav className="fr-nav" aria-label="frentes">

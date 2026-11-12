@@ -19,7 +19,7 @@ import {
 } from './model'
 import './ape.css'
 
-/* Painel do planê apzinho (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
+/* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
 type Tab = 'visitas' | 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
@@ -122,14 +122,14 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           <BrandMark place="menu" size={34} />
           {PLATFORM.name}
         </a>
-        <div className="brand ape-adm-brand" title="planê apzinho: painel">
+        <div className="brand ape-adm-brand" title="planê.apê: painel">
           <label className="brand-photo ape-adm-foto" title="Trocar a foto do painel">
             {ajustes?.fotoPainel ? <img src={ajustes.fotoPainel} alt="" /> : <SanLeviArte size={46} />}
             <input type="file" accept="image/*" hidden onChange={(e) => void trocarFoto(e.target.files?.[0])} />
           </label>
           <span className="brand-text">
             <span className="brand-kicker">painel da loja</span>
-            <span className="brand-name">planê apzinho<i>.</i></span>
+            <span className="brand-name">planê.apê<i>.</i></span>
           </span>
         </div>
         <nav>
@@ -151,7 +151,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           <span className="profile-chip-avatar"><AvatarGlyph s={data.settings} size={18} /></span>
           <span className="grow">
             <b>{data.settings.ownerName || data.settings.brandName || 'meu perfil'}</b>
-            <small>dona do planê apzinho</small>
+            <small>dona do planê.apê</small>
           </span>
         </a>
         <div className="sidebar-foot">
@@ -960,7 +960,7 @@ function GrupoItem({ o, ppl, onSaved }: { o: Orcamento; ppl: Interesse[]; onSave
             {pessoas.map((m) => (
               <div key={m.id} className="ape-row" style={{ padding: '6px 0' }}>
                 <div className="t"><b style={{ fontSize: 13 }}>{m.nome}</b><span>{ondeMora(m) || 'sem endereço'} · {fmtTel(m.tel)}</span></div>
-                {waNum(m.tel) && <div className="r"><a className="ape-btn ghost sm" href={wa(waNum(m.tel)!, `Oi, ${firstName(m.nome)}! Aqui é a ${APE.dona}, do planê apzinho. Sobre o grupo de ${nicho(o.nicho).l.toLowerCase()} com ${o.fornecedor}: `)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" /></a></div>}
+                {waNum(m.tel) && <div className="r"><a className="ape-btn ghost sm" href={wa(waNum(m.tel)!, `Oi, ${firstName(m.nome)}! Aqui é a ${APE.dona}, do planê.apê. Sobre o grupo de ${nicho(o.nicho).l.toLowerCase()} com ${o.fornecedor}: `)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" /></a></div>}
               </div>
             ))}
           </div>
@@ -1076,7 +1076,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
               <div className="ape-adm-prod-h">
                 <div className="t">
                   <b>{p.nome}</b>
-                  <span className="ape-keep">{p.frente ? `planê ${p.frente}${p.ativo ? '' : ' · em breve'} · ` : ''}{p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · soma ${brl(soma)} · −${p.kitPct || 0}%` : (CATEGORIAS.find(([c]) => c === (p.cat || 'arquivos')) || [])[1]}</span>
+                  <span className="ape-keep">{p.frente ? `planê.${p.frente}${p.ativo ? '' : ' · em breve'} · ` : ''}{p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · soma ${brl(soma)} · −${p.kitPct || 0}%` : (CATEGORIAS.find(([c]) => c === (p.cat || 'arquivos')) || [])[1]}</span>
                 </div>
                 <div className="r">
                   <b className="ape-keep">{p.preco || 'sob consulta'}</b>
@@ -1192,7 +1192,7 @@ function Leads({ lista }: { lista: PedidoAdmin[] }) {
       {!lista.length && <div className="ape-empty"><b>nenhum carrinho abandonado</b><span>Quem começar uma compra e não terminar aparece aqui depois de 30 minutos.</span></div>}
       <div className="ape-rows">
         {lista.map((p) => {
-          const msg = `Oi, ${firstName(p.nome)}! Aqui é a ${APE.dona}, do planê apzinho. Vi que você começou a compra (${resumoItens(p.itens)}) e não finalizou. Ficou alguma dúvida? Se quiser, te ajudo por aqui. Link da loja: https://useplane.com.br/ape/`
+          const msg = `Oi, ${firstName(p.nome)}! Aqui é a ${APE.dona}, do planê.apê. Vi que você começou a compra (${resumoItens(p.itens)}) e não finalizou. Ficou alguma dúvida? Se quiser, te ajudo por aqui. Link da loja: https://useplane.com.br/ape/`
           return (
             <div key={p.id} className="ape-row">
               <div className="t">
@@ -1202,7 +1202,7 @@ function Leads({ lista }: { lista: PedidoAdmin[] }) {
               </div>
               <div className="r">
                 {waNum(p.tel) && <a className="ape-btn primary sm" href={wa(waNum(p.tel)!, msg)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>}
-                <a className="ape-btn sm" href={`mailto:${p.email}?subject=${encodeURIComponent('Sua compra no planê apzinho')}&body=${encodeURIComponent(msg)}`}><ApeIcon name="send" />e-mail</a>
+                <a className="ape-btn sm" href={`mailto:${p.email}?subject=${encodeURIComponent('Sua compra no planê.apê')}&body=${encodeURIComponent(msg)}`}><ApeIcon name="send" />e-mail</a>
               </div>
             </div>
           )
@@ -1305,7 +1305,7 @@ function Vendas({ pedidos, onChange }: { pedidos: PedidoAdmin[]; onChange: () =>
               <div className="r">
                 <button className="ape-btn ghost sm" onClick={() => { void navigator.clipboard?.writeText(linkPedido(p.token)); toast('Link do pedido copiado.') }}><ApeIcon name="copy" />link</button>
                 {waNum(p.tel) && (
-                  <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra no planê apzinho. Seus arquivos ficam aqui: ${linkPedido(p.token)}` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra no planê apzinho. Ficou alguma dúvida? O pagamento fica aqui: ${linkPedido(p.token)}`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>
+                  <a className="ape-btn sm" href={wa(waNum(p.tel), p.status === 'pago' ? `Oi, ${firstName(p.nome)}! Obrigada pela compra no planê.apê. Seus arquivos ficam aqui: ${linkPedido(p.token)}` : `Oi, ${firstName(p.nome)}! Vi que você começou uma compra no planê.apê. Ficou alguma dúvida? O pagamento fica aqui: ${linkPedido(p.token)}`)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>
                 )}
                 {p.status === 'reembolsado' && !p.cortesia && <button className="ape-btn ghost sm" onClick={() => void painelConta.avisarReembolso(p.id).then(() => toast(`E-mail de reembolso enviado para ${p.email}.`), (e) => toast(String((e as Error).message)))}><ApeIcon name="send" />avisar o cliente</button>}
                 {(p.status === 'pago' || p.status === 'pendente') && <button className="ape-btn ghost sm danger" onClick={() => void reembolsar(p)}>{p.status === 'pago' ? (p.cortesia ? 'tirar acesso' : 'reembolsar') : 'cancelar'}</button>}

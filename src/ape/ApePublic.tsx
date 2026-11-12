@@ -20,7 +20,7 @@ import { Protege } from './Protege'
 import { CaixaDona, FaleComigo } from './FaleComigo'
 import './ape.css'
 
-/* Página pública do planê apzinho: os moradores do San Levi se cadastram, comparam os orçamentos,
+/* Página pública do planê.apê: os moradores do San Levi se cadastram, comparam os orçamentos,
    mandam os seus e escolhem com quem fechar. A loja e a plataforma ficam em Loja.tsx e Plataforma.tsx. */
 
 const CAD = 'ape-cadastro'
@@ -38,8 +38,8 @@ export function ApePublic({ sub }: { sub?: string }) {
   const [toast, show] = useToast()
 
   useEffect(() => {
-    document.title = `Planê apzinho · ${location.pathname.includes("sanlevi") ? `orçamentos do ${APE.condominio}` : "do contrato às chaves"}`
-    // "adicionar à tela de início" abre direto o planê apzinho, com o ícone dele
+    document.title = `Planê.apê · ${location.pathname.includes("sanlevi") ? `orçamentos do ${APE.condominio}` : "do contrato às chaves"}`
+    // "adicionar à tela de início" abre direto o planê.apê, com o ícone dele
     const swap = (sel: string, attr: string, val: string) => {
       const el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(sel)
       if (!el) return () => undefined
@@ -47,7 +47,7 @@ export function ApePublic({ sub }: { sub?: string }) {
       el.setAttribute(attr, val)
       return () => el.setAttribute(attr, old)
     }
-    const undo = [swap('link[rel="manifest"]', 'href', 'ape/manifest.webmanifest'), swap('link[rel="apple-touch-icon"]', 'href', 'ape/icon-180.png'), swap('meta[name="apple-mobile-web-app-title"]', 'content', 'planê apzinho')]
+    const undo = [swap('link[rel="manifest"]', 'href', 'ape/manifest.webmanifest'), swap('link[rel="apple-touch-icon"]', 'href', 'ape/icon-180.png'), swap('meta[name="apple-mobile-web-app-title"]', 'content', 'planê.apê')]
     souDona().then(setOwner, () => setOwner(false))
     return () => undo.forEach((f) => f())
   }, [])
@@ -119,7 +119,7 @@ export function ApePublic({ sub }: { sub?: string }) {
             <a className="ape-logo" href={href('ape')} aria-label={`${APE.name}: início`}>
               <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
               <div>
-                <h1>planê<span> apzinho</span></h1>
+                <h1>planê<span>.apê</span></h1>
                 <small>{APE.condominio} · só moradores</small>
               </div>
             </a>
@@ -266,7 +266,7 @@ function ShopNav({ morador, owner = false, nome, voltar }: { morador: boolean; o
         <a className="ape-logo" href={href('ape', 'loja')} aria-label={`${APE.name}: loja`}>
           <span className="ape-mark" dangerouslySetInnerHTML={{ __html: MARK_SVG }} />
           <div>
-            <h1>planê<span> apzinho</span></h1>
+            <h1>planê<span>.apê</span></h1>
             <small>do contrato às chaves</small>
           </div>
         </a>
@@ -373,7 +373,7 @@ function Cadastro({ me, owner, onDone, onCancel }: { me: Morador | null; owner?:
       <form onSubmit={submit} noValidate>
         <SanLeviArte size={52} className="ape-gate-sl" />
         <h2 id="g-t">
-          {me ? <>seus <em>dados</em></> : <>boas-vindas ao <em>planê apzinho</em></>}
+          {me ? <>seus <em>dados</em></> : <>boas-vindas ao <em>planê.apê</em></>}
         </h2>
         {owner && !me ? (
           <p>Você está logada como dona e já vê todos os orçamentos. Para <b>enviar</b> orçamentos como moradora, faça o seu cadastro aqui (fica guardado neste aparelho).</p>

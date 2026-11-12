@@ -1,4 +1,4 @@
-// planê apzinho: modelos dos e-mails (HTML de e-mail: tabelas e estilos inline, para abrir bem no Gmail, Outlook e celular).
+// planê.apê: modelos dos e-mails (HTML de e-mail: tabelas e estilos inline, para abrir bem no Gmail, Outlook e celular).
 type J = Record<string, any>
 
 export const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
@@ -64,9 +64,9 @@ export const frenteDoId = (id: string) => (/^(beleza|free)-/.test(id) ? 'arquivo
 export function marcaDe(itens: { id?: unknown; frente?: string }[] = []): Marca {
   const fs = new Set(itens.map((i) => i.frente || frenteDoId(String(i.id))))
   const f = fs.size === 1 ? [...fs][0] : 'apzinho'
-  if (f === 'arquivos') return { id: 'arquivos', nome: 'planê arquivos', sufixo: 'arquivos', path: 'arquivos', slogan: 'arquivos prontos para mandar' }
-  if (f === 'arq') return { id: 'arq', nome: 'planê arq', sufixo: 'arq', path: 'arq', slogan: 'para quem projeta' }
-  return { id: 'apzinho', nome: 'planê apzinho', sufixo: 'apzinho', path: 'ape', slogan: 'organize o seu apê' }
+  if (f === 'arquivos') return { id: 'arquivos', nome: 'planê.arquivos', sufixo: '.arquivos', path: 'arquivos', slogan: 'arquivos prontos para mandar' }
+  if (f === 'arq') return { id: 'arq', nome: 'planê.arq', sufixo: '.arq', path: 'arq', slogan: 'para quem projeta' }
+  return { id: 'apzinho', nome: 'planê.apê', sufixo: '.apê', path: 'ape', slogan: 'organize o seu apê' }
 }
 export const APZINHO = marcaDe([])
 
@@ -81,7 +81,7 @@ ${o.previa ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">$
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
 <tr><td style="background:${C.pri};border-radius:20px 20px 0 0;padding:20px 26px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td style="font-size:19px;font-weight:700;color:#ffffff">planê<span style="color:#f1c9b6"> ${m.sufixo}</span></td>
+    <td style="font-size:19px;font-weight:700;color:#ffffff">planê<span style="color:#f1c9b6">${m.sufixo}</span></td>
     <td align="right" style="font-size:12px;color:#dfe6ea">${o.dona ? 'aviso da loja' : m.slogan}</td>
   </tr></table>
 </td></tr>
@@ -97,7 +97,7 @@ ${o.previa ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">$
   <a href="${ape}#conta" style="color:${C.pri};text-decoration:none;font-weight:600">minha conta</a> &nbsp;·&nbsp;
   <a href="${ape}#loja" style="color:${C.pri};text-decoration:none;font-weight:600">loja</a> &nbsp;·&nbsp;
   <a href="https://wa.me/${WHATS}" style="color:${C.pri};text-decoration:none;font-weight:600">WhatsApp</a><br>
-  ${m.nome} · useplane.com.br/${m.path === 'ape' ? 'apzinho' : m.path}<br>
+  ${m.nome} · useplane.com.br/${m.path}<br>
   <span style="font-size:11px">Materiais de uso pessoal e intransferível: proibida a reprodução, distribuição ou revenda.</span>
 </td></tr>
 </table></td></tr></table></body></html>`

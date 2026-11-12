@@ -1,4 +1,4 @@
-# planê apzinho
+# planê.apê
 
 > A loja é aberta para todo mundo (divulgada no Instagram @apzinho_1204). **Os orçamentos são só dos moradores do San Levi**: quem marca "outro lugar" no cadastro vê a loja, mas não os orçamentos (a tabela não é mais pública; o morador lê pela função `ape_orcamentos_morador`). Cada morador marca **"vou fechar com este"** (um por serviço) e todos veem quantos vizinhos escolheram cada fornecedor; a compra em grupo continua como opção. Ao **anexar** um orçamento, a página sobe o arquivo e a IA (Gemini, com a chave da dona no planê ou o segredo `GEMINI_API_KEY`) já preenche fornecedor e serviço. O San Levi é uma opção no cadastro (com torre e apê); quem é de outro lugar informa só nome, WhatsApp e, se quiser, o condomínio. Os textos deixam claro que a página só organiza o que as pessoas mandam: a responsabilidade pelos orçamentos é de quem envia e do fornecedor (aviso na lista e no rodapé).
 
@@ -12,7 +12,7 @@ Orçamentos dos futuros moradores do San Levi, dentro do planê: mesmo código, 
 
 - **Moradores:** `useplane.com.br/#/ape` (abas `#/ape/enviar` e `#/ape/loja`). Sem login nem senha: na primeira vez a pessoa informa nome completo, torre, apê e telefone, e fica guardado no aparelho. Para usar em outro aparelho: tocar no próprio nome → "usar em outro aparelho" (copia um link pessoal).
 - **A dona** vê os orçamentos sem cadastro; para enviar orçamento como moradora, a página pede o cadastro (agora com a tela, antes dava só o aviso).
-- **Dona:** no planê, menu **plataforma → planê apzinho** (`#/ape-admin`). Logada no planê, a dona também vê os exemplos e os ocultos na página dos moradores.
+- **Dona:** no planê, menu **plataforma → planê.apê** (`#/ape-admin`). Logada no planê, a dona também vê os exemplos e os ocultos na página dos moradores.
 
 ## O que cada lado faz
 
@@ -71,8 +71,8 @@ Seções: **o que você precisa?** (diferença entre arquivos, kits e plataforma
 **Para a venda funcionar (uma vez):**
 1. Supabase → Edge Functions → Secrets: `ASAAS_API_KEY` e `ASAAS_WEBHOOK_TOKEN` (os mesmos das assinaturas). Webhook do Asaas apontando para a função `pagamentos`.
 2. Asaas → Minha conta → Informações comerciais: site `useplane.com.br` (para voltar à página do pedido depois do cartão).
-3. planê apzinho → **arquivos**: envie os arquivos (dá para mandar todos de uma vez, com os nomes que vieram).
-4. planê apzinho → **produtos e preços**: preencha "quem vende" e toque em "salvar loja".
+3. planê.apê → **arquivos**: envie os arquivos (dá para mandar todos de uma vez, com os nomes que vieram).
+4. planê.apê → **produtos e preços**: preencha "quem vende" e toque em "salvar loja".
 
 **Os arquivos pagos não ficam no site nem no GitHub** (o repositório é público): ficam na pasta privada `ape-arquivos` do Supabase. No site ficam só os mockups em `public/ape/amostras`.
 
@@ -92,7 +92,7 @@ Na lista, cada serviço com 2 ou mais orçamentos tem **"comparar lado a lado"**
 
 ## Cores
 
-Ficam só no topo de `src/ape/ape.css` (variáveis `--a-*`), tiradas do projeto do apê 1204, na ordem que a Laís escolheu: **azul predominante** (marcenaria `#889AA5`, usado escurecido, `#4E6472`, em botões, "mais compensa", abas e selos), **bege** de base (fundo `#F5F1EB` e caixas `#F0EAE3`) e **terracota** nos detalhes (`#9B593F`: preço à vista, itálicos dos títulos, ".apê" do logo). A madeira (`#8A6038`) fica para grupo e atenção. Os tons escurecidos são para o texto ler bem sobre o fundo claro. A regra de "só azul e rosa" do `CLAUDE.md` vale para o planê; o planê apzinho tem paleta própria, mas segue a mesma ideia: sem verde, amarelo ou vermelho vivos.
+Ficam só no topo de `src/ape/ape.css` (variáveis `--a-*`), tiradas do projeto do apê 1204, na ordem que a Laís escolheu: **azul predominante** (marcenaria `#889AA5`, usado escurecido, `#4E6472`, em botões, "mais compensa", abas e selos), **bege** de base (fundo `#F5F1EB` e caixas `#F0EAE3`) e **terracota** nos detalhes (`#9B593F`: preço à vista, itálicos dos títulos, ".apê" do logo). A madeira (`#8A6038`) fica para grupo e atenção. Os tons escurecidos são para o texto ler bem sobre o fundo claro. A regra de "só azul e rosa" do `CLAUDE.md` vale para o planê; o planê.apê tem paleta própria, mas segue a mesma ideia: sem verde, amarelo ou vermelho vivos.
 
 ## Arquivos
 

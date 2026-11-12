@@ -6,7 +6,7 @@ export type FrenteId = 'arquivos' | 'arq' | 'apzinho'
 
 export interface FrenteInfo {
   id: FrenteId
-  nome: string // "planê arquivos"
+  nome: string // "planê.arquivos"
   marca: string // a palavra que vai em itálico depois de "planê"
   para: string // público, em poucas palavras
   frase: string // a promessa
@@ -21,7 +21,7 @@ export interface FrenteInfo {
 export const FRENTES: FrenteInfo[] = [
   {
     id: 'arquivos',
-    nome: 'planê arquivos',
+    nome: 'planê.arquivos',
     marca: 'arquivos',
     para: 'para quem atende cliente',
     frase: 'arquivos prontos para mandar hoje',
@@ -34,27 +34,27 @@ export const FRENTES: FrenteInfo[] = [
   },
   {
     id: 'arq',
-    nome: 'planê arq',
+    nome: 'planê.arq',
     marca: 'arq',
     para: 'para quem projeta',
     frase: 'do primeiro cliente ao primeiro escritório',
     desc: 'Gestão de propostas, contratos e cobranças, e os modelos que ela usa, para estudantes e escritórios pequenos.',
     rota: '#/arq',
     caminho: 'useplane.com.br/arq',
-    instagram: '@sou.plane',
+    instagram: '@plane.arq',
     icone: 'ruler',
     botao: 'conhecer',
   },
   {
     id: 'apzinho',
-    nome: 'planê apzinho',
-    marca: 'apzinho',
+    nome: 'planê.apê',
+    marca: 'apê',
     para: 'para quem compra apê',
     frase: 'do contrato às chaves',
     desc: 'Guias, checklists e planilhas para comprar na planta ou pronto, e uma plataforma para acompanhar a obra.',
     rota: '#/ape/loja',
-    caminho: 'useplane.com.br/apzinho',
-    instagram: '@plane.apzinho',
+    caminho: 'useplane.com.br/ape',
+    instagram: '@plane.ape',
     icone: 'home',
     botao: 'ver a loja do apê',
   },

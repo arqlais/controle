@@ -1,6 +1,6 @@
 {
-  "name": "Planê apzinho",
-  "short_name": "apzinho",
+  "name": "Planê.apê",
+  "short_name": "planê.apê",
   "description": "Orçamentos de quem está montando o apê, lado a lado",
   "start_url": "../#/ape",
   "scope": "../",

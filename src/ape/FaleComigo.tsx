@@ -1,4 +1,4 @@
-// planê apzinho: suporte. Quem visita (San Levi, cliente ou visitante) tem um ícone só, "ajuda": tira dúvida ou relata
+// planê.apê: suporte. Quem visita (San Levi, cliente ou visitante) tem um ícone só, "ajuda": tira dúvida ou relata
 // um problema numa conversa ao vivo com a dona, ou deixa um depoimento (esse vai para "opiniões", não é conversa).
 // A dona tem a caixa de suporte: conversas separadas por origem e assunto, respondidas dali mesmo.
 import { useEffect, useRef, useState } from 'react'
@@ -74,7 +74,7 @@ export function FaleComigo({ me, whats, origem }: { me: Morador | null; whats: s
     try { await mandarMensagem({ tipo: 'depoimento', texto: texto.trim(), nome: nome.trim(), contato: contato.trim(), pagina: origem, nota }); setTexto(''); setTela('obrigada') } catch (e) { setErr(String((e as Error)?.message || 'Não deu para enviar agora.')) }
     setBusy(false)
   }
-  const zap = wa(whats, 'Oi, Laís! Tenho uma dúvida sobre o planê apzinho.')
+  const zap = wa(whats, 'Oi, Laís! Tenho uma dúvida sobre o planê.apê.')
 
   return (
     <>
@@ -92,7 +92,7 @@ export function FaleComigo({ me, whats, origem }: { me: Morador | null; whats: s
                 <div className="ape-chat-menu">
                   <button type="button" onClick={() => { setAssunto('duvida'); setTela('chat') }}><span className="ic"><ApeIcon name="chat" /></span><b>tirar uma dúvida</b><small>converse comigo aqui mesmo</small></button>
                   <button type="button" onClick={() => { setAssunto('problema'); setTela('chat') }}><span className="ic"><ApeIcon name="alert" /></span><b>algo não funcionou</b><small>conte o que aconteceu que eu resolvo</small></button>
-                  <button type="button" onClick={() => setTela('depoimento')}><span className="ic"><ApeIcon name="star" /></span><b>deixar um depoimento</b><small>conte como o planê apzinho te ajudou</small></button>
+                  <button type="button" onClick={() => setTela('depoimento')}><span className="ic"><ApeIcon name="star" /></span><b>deixar um depoimento</b><small>conte como o planê.apê te ajudou</small></button>
                 </div>
                 <a className="ape-link-btn" href={zap} target="_blank" rel="noopener noreferrer"><ApeIcon name="wpp" />prefiro falar no WhatsApp</a>
               </>
@@ -101,7 +101,7 @@ export function FaleComigo({ me, whats, origem }: { me: Morador | null; whats: s
               <>
                 <div className="ape-chat-topo">
                   {!token && <button type="button" className="ape-btn ghost sm" onClick={() => setTela('menu')} aria-label="Voltar"><ApeIcon name="chev" /></button>}
-                  <div><b>Laís · planê apzinho</b><small>{token ? 'responde por aqui, normalmente em poucos minutos' : assunto === 'problema' ? 'conte o que aconteceu: em qual tela, o que tocou e o que apareceu' : 'escreva a sua dúvida'}</small></div>
+                  <div><b>Laís · planê.apê</b><small>{token ? 'responde por aqui, normalmente em poucos minutos' : assunto === 'problema' ? 'conte o que aconteceu: em qual tela, o que tocou e o que apareceu' : 'escreva a sua dúvida'}</small></div>
                 </div>
                 <div className="ape-chat-msgs" aria-live="polite">
                   {!msgs.length && <p className="ape-chat-bolha dona">Oi! Como posso ajudar? Escreva aqui que eu respondo nesta conversa.</p>}
@@ -128,7 +128,7 @@ export function FaleComigo({ me, whats, origem }: { me: Morador | null; whats: s
                 <div className="ape-chat-nota" role="radiogroup" aria-label="Nota">
                   {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" role="radio" aria-checked={nota === n} aria-label={`${n} de 5`} className={n <= nota ? 'on' : ''} onClick={() => setNota(n)}><ApeIcon name="star" /></button>)}
                 </div>
-                <div className="ape-f"><textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={4} placeholder="Conte como o planê apzinho te ajudou." aria-label="Depoimento" /></div>
+                <div className="ape-f"><textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={4} placeholder="Conte como o planê.apê te ajudou." aria-label="Depoimento" /></div>
                 <div className="ape-f"><label>Seu nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="name" /></div>
                 {err && <p className="ape-err" role="alert">{err}</p>}
                 <div className="ape-acts"><button type="button" className="ape-btn primary" disabled={busy} onClick={() => void depoimento()}><ApeIcon name="send" />{busy ? 'enviando…' : 'enviar depoimento'}</button></div>
@@ -168,7 +168,7 @@ export function CaixaDona({ painel }: { painel?: boolean }) {
     const l = await suporte.conversas()
     const antes = naoLidasAntes.current
     if (antes && typeof Notification !== 'undefined' && Notification.permission === 'granted')
-      for (const c of l) if (c.nao_lidas > (antes.get(c.id) || 0)) new Notification(`planê apzinho · ${c.nome || 'visitante'} (${ORIGEM[c.origem]?.[0] || 'visitante'})`, { body: `${ASSUNTO[c.assunto] || 'mensagem'}: nova mensagem no suporte`, tag: c.id })
+      for (const c of l) if (c.nao_lidas > (antes.get(c.id) || 0)) new Notification(`planê.apê · ${c.nome || 'visitante'} (${ORIGEM[c.origem]?.[0] || 'visitante'})`, { body: `${ASSUNTO[c.assunto] || 'mensagem'}: nova mensagem no suporte`, tag: c.id })
     naoLidasAntes.current = new Map(l.map((c) => [c.id, c.nao_lidas]))
     setConvs(l)
   }
@@ -201,7 +201,7 @@ export function CaixaDona({ painel }: { painel?: boolean }) {
     const v = c.contato.trim()
     if (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return ['mail', `mailto:${v}`]
     const z = v.replace(/\D/g, '')
-    return z.length >= 10 ? ['wpp', wa(z.length <= 11 ? '55' + z : z, `Oi${c.nome ? `, ${c.nome.split(' ')[0]}` : ''}! Aqui é a Laís do planê apzinho.`)] : null
+    return z.length >= 10 ? ['wpp', wa(z.length <= 11 ? '55' + z : z, `Oi${c.nome ? `, ${c.nome.split(' ')[0]}` : ''}! Aqui é a Laís do planê.apê.`)] : null
   }
 
   return (

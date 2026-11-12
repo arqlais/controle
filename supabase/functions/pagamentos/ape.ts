@@ -1,4 +1,4 @@
-// planê apzinho: loja (pedido com CPF, Pix na página, cartão no Asaas), entrega com marca de licença, bônus de 7 dias,
+// planê.apê: loja (pedido com CPF, Pix na página, cartão no Asaas), entrega com marca de licença, bônus de 7 dias,
 // plataforma do apê, recuperação de compras, reembolso e leitura automática dos orçamentos.
 // Importado pelo index.ts da função "pagamentos". O preço nunca vem do navegador.
 
@@ -48,25 +48,26 @@ const ARQ: Record<string, [string, number]> = {
   cortinas: ['Guia de cortinas e persianas', 12.9],
   seguranca: ['Guia de segurança e proteção do apê', 12.9],
 }
-/* outras frentes da planê (mesma loja): planê arquivos e planê arq. O que não tem arquivo ainda começa desligado. */
+/* outras frentes da planê (mesma loja): planê.arquivos e planê.arq. Começam ligados (os arquivos sobem pelo GitHub, etapa "importar"). */
 const EXTRAS: Record<string, [string, number, boolean]> = {
   'beleza-fim-de-ano': ['Kit avisos de fim de ano', 19.9, true],
-  'beleza-precos': ['Tabela de preços editável', 14.9, false],
-  'beleza-anamnese': ['Fichas de anamnese', 19.9, false],
-  'beleza-termo': ['Termo de consentimento e uso de imagem', 12.9, false],
-  'beleza-vale': ['Vale-presente e cartão fidelidade', 12.9, false],
-  'beleza-caixa': ['Planilha de agenda e caixa', 17.9, false],
-  'free-proposta': ['Modelo de proposta', 19.9, false],
-  'free-contrato': ['Modelo de contrato de prestação de serviço', 24.9, false],
-  'free-briefing': ['Briefing para o cliente preencher', 12.9, false],
-  'free-preco-hora': ['Calculadora de preço por hora', 16.9, false],
-  'arq-proposta': ['Proposta de projeto de interiores', 24.9, false],
-  'arq-contrato': ['Contrato de projeto de interiores', 29.9, false],
-  'arq-briefing': ['Briefing residencial', 14.9, false],
-  'arq-levantamento': ['Checklist de levantamento', 12.9, false],
-  'arq-honorarios': ['Calculadora de honorários', 19.9, false],
-  'arq-manual': ['Manual do cliente', 19.9, false],
+  'beleza-precos': ['Tabela de preços editável', 14.9, true],
+  'beleza-anamnese': ['Fichas de anamnese', 19.9, true],
+  'beleza-termo': ['Termo de consentimento e uso de imagem', 12.9, true],
+  'beleza-vale': ['Vale-presente e cartão fidelidade', 12.9, true],
+  'beleza-caixa': ['Planilha de agenda e caixa', 17.9, true],
+  'free-proposta': ['Modelo de proposta', 19.9, true],
+  'free-contrato': ['Modelo de contrato de prestação de serviço', 24.9, true],
+  'free-briefing': ['Briefing para o cliente preencher', 12.9, true],
+  'free-preco-hora': ['Calculadora de preço por hora', 16.9, true],
+  'arq-proposta': ['Proposta de projeto de interiores', 24.9, true],
+  'arq-contrato': ['Contrato de projeto de interiores', 29.9, true],
+  'arq-briefing': ['Briefing residencial', 14.9, true],
+  'arq-levantamento': ['Checklist de levantamento', 12.9, true],
+  'arq-honorarios': ['Calculadora de honorários', 19.9, true],
+  'arq-manual': ['Manual do cliente', 19.9, true],
 }
+const KIT_ARQ = { id: 'kit-arq-primeiro', nome: 'Kit primeiro cliente', pct: 30, combo: ['arq-proposta', 'arq-contrato', 'arq-briefing', 'arq-manual'] }
 const ESCOLHAS = ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca']
 const PLATAFORMA_PRECO = 89.9
 const JUROS_PCT = 2.99
@@ -108,6 +109,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (saved) {
       // produtos das outras frentes que o painel ainda não salvou (loja v9): entram com o padrão
       for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (!saved.some((p) => p.id === id)) saved.push({ id, nome, preco, cat: 'arquivos', ativo, frente: frenteDoId(id) })
+      if (!saved.some((p) => p.id === KIT_ARQ.id)) saved.push({ id: KIT_ARQ.id, nome: KIT_ARQ.nome, cat: 'combos', ativo: true, combo: KIT_ARQ.combo, kitPct: KIT_ARQ.pct, preco: 0, frente: 'arq' })
       for (const p of saved) if (p.ativo !== false && ['arquivos', 'combos', 'plataforma'].includes(p.cat ?? 'arquivos')) map[p.id] = { id: p.id, nome: String(p.nome), preco: reais(p.preco), cat: p.cat ?? 'arquivos', combo: Array.isArray(p.combo) ? p.combo.map(String) : [], frente: p.frente || frenteDoId(String(p.id)) }
       // kit com % de desconto: o preço sai da soma dos arquivos (igual ao site)
       for (const p of saved) if (map[p.id] && p.cat === 'combos' && Number(p.kitPct) > 0) map[p.id].preco = precoKit(map[p.id].combo.reduce((t, id) => t + (map[id]?.cat === 'arquivos' ? map[id].preco : reais(saved.find((x) => x.id === id)?.preco)), 0), Number(p.kitPct))
@@ -116,6 +118,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       for (const [id, [nome, pct, combo]] of Object.entries(KITS)) map[id] = { id, nome, preco: precoKit(combo.reduce((t, x) => t + ARQ[x][1], 0), pct), cat: 'combos', combo }
       map.plataforma = { id: 'plataforma', nome: 'Plataforma do apê (12 meses)', preco: PLATAFORMA_PRECO, cat: 'plataforma', combo: [] }
       for (const [id, [nome, preco, ativo]] of Object.entries(EXTRAS)) if (ativo) map[id] = { id, nome, preco, cat: 'arquivos', combo: [], frente: frenteDoId(id) }
+      map[KIT_ARQ.id] = { id: KIT_ARQ.id, nome: KIT_ARQ.nome, preco: precoKit(KIT_ARQ.combo.reduce((t, x) => t + (EXTRAS[x]?.[1] ?? 0), 0), KIT_ARQ.pct), cat: 'combos', combo: KIT_ARQ.combo, frente: 'arq' }
     }
     const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
     const jurosPct = a.jurosPct != null && Number.isFinite(Number(a.jurosPct)) ? Math.min(10, Math.max(0, Number(a.jurosPct))) : JUROS_PCT
@@ -287,7 +290,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
         if (!f.name || f.name.startsWith('.') || !f.id) continue
         const cor = (f.name.match(/-(azul|rosa|roxa|verde)\.[^.]+$/i) || [])[1]?.toLowerCase() || ''
         const ext = (f.name.match(/\.[^.]+$/) || [''])[0].toLowerCase()
-        // nome bonito no download: "Guia de compra do imóvel - planê apzinho.pdf" / "Planilha do enxoval (rosa) - planê apzinho.xlsx"
+        // nome bonito no download: "Guia de compra do imóvel - planê.apê.pdf" / "Planilha do enxoval (rosa) - planê.apê.xlsx"
         const baixa = `${produto.replace(/[\\/:*?"<>|]/g, '')}${cor ? ` (${cor})` : ''} - ${marca.nome}${ext}`
         out.push({ produto, nome: f.name, path: `${id}/${f.name}`, tipo: ext === '.pdf' ? 'pdf' : /\.xlsx?$/.test(ext) ? 'planilha' : 'arquivo', cor, baixa })
       }
@@ -351,7 +354,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     // só caracteres que a fonte padrão aceita
     const limpa = (s: string) => s.normalize('NFC').replace(/[^\x20-\x7E\xA0-\xFF]/g, '') // Latin-1: acentos e "·" ficam
     const m = marcaDe((ped.itens ?? []) as { id: string; frente?: string }[])
-    const linha = limpa(`${m.nome} · useplane.com.br/${m.path === 'ape' ? 'apzinho' : m.path} · WhatsApp (11) 96928-8192 · licenciado para ${quem} · uso pessoal e intransferível`)
+    const linha = limpa(`${m.nome} · useplane.com.br/${m.path} · WhatsApp (11) 96928-8192 · licenciado para ${quem} · uso pessoal e intransferível`)
     for (const page of pdf.getPages()) {
       const { width, height } = page.getSize()
       const size = 6.2
@@ -649,7 +652,8 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
         continue
       }
       const arq = nome.split('/').pop()!
-      const tipo = /\.pdf$/i.test(arq) ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      const ext = (arq.match(/\.([^.]+)$/) || [])[1]?.toLowerCase() || ''
+      const tipo = ({ pdf: 'application/pdf', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' } as Record<string, string>)[ext] || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       const { error } = await st.upload(`${id}/${arq}`, dados, { contentType: tipo, upsert: true })
       if (error) fora.push(`${nome} (${error.message})`)
       else feitos.push(`${id}/${arq}`)

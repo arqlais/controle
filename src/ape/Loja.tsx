@@ -6,7 +6,7 @@ import { ApeIcon } from './ApeIcon'
 import { APE, BONUS, JUROS_PCT, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
 import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
-/* Loja do planê apzinho: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
+/* Loja do planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
 
 type ById = (id: string) => Produto | undefined
 const COR: Record<string, string> = { azul: '#4e6472', rosa: '#a86b78', roxa: '#6e5f86', verde: '#5f7566' }
@@ -305,7 +305,7 @@ function Depoimentos() {
 
 /* ===== serviços: separado dos produtos digitais, sempre com proposta antes ===== */
 function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | null; foto?: string; foto2?: string }) {
-  const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê apzinho e queria uma proposta de projeto/reforma para a minha casa/apê.`
+  const msg = `Oi! ${me ? `Sou ${me.nome}. ` : ''}Vi a página do planê.apê e queria uma proposta de projeto/reforma para a minha casa/apê.`
   const servicos: [string, string][] = [
     ['projeto de interiores', 'sofa'],
     ['marcenaria planejada', 'tool'],

@@ -25,7 +25,7 @@ export function Vitrine({ id, sub }: { id: Exclude<FrenteId, 'apzinho'>; sub?: s
     void loadPublico(null, false).then((d) => setAj(d.ajustes), () => setAj({ produtos: [] }))
   }, [])
   useEffect(() => {
-    document.title = `Planê ${f.marca} · ${f.frase}`
+    document.title = `${f.nome} · ${f.frase}`
     window.scrollTo(0, 0)
   }, [id, sub])
   const whats = aj?.whatsapp || APE.whatsapp
@@ -108,7 +108,7 @@ function Prateleira({ id, aj, whats, abrir }: { id: Exclude<FrenteId, 'apzinho'>
           </span>
           <div>
             <b>
-              gestão planê <em>arq</em>
+              gestão planê<em>.arq</em>
             </b>
             <p>Clientes, orçamentos, propostas, contratos com assinatura, cobranças e agenda num lugar só. Teste grátis, sem cartão.</p>
           </div>
@@ -179,7 +179,7 @@ function Prateleira({ id, aj, whats, abrir }: { id: Exclude<FrenteId, 'apzinho'>
                   <b>{p.nome}</b>
                   <small>{p.formato}</small>
                 </span>
-                <a className="fr-btn ghost sm" href={wa(whats, `Oi! Quero saber quando sair: ${p.nome} (planê ${f.marca}).`)} target="_blank" rel="noopener noreferrer">
+                <a className="fr-btn ghost sm" href={wa(whats, `Oi! Quero saber quando sair: ${p.nome} (${f.nome}).`)} target="_blank" rel="noopener noreferrer">
                   <Icon name="bell" />
                   me avise
                 </a>
@@ -242,13 +242,19 @@ function Mockup({ p }: { p: Produto }) {
   return (
     <span className="fr-mockup" aria-hidden="true">
       <span className="fr-sheet back" />
-      <span className="fr-sheet">
-        <ApeArt name={p.arte || 'casa'} size={46} />
-        <i />
-        <i />
-        <i className="short" />
-        <span className="fr-sheet-t">{p.nome}</span>
-      </span>
+      {p.amostras?.[0] ? (
+        <span className="fr-sheet capa">
+          <img src={p.amostras[0]} alt="" loading="lazy" />
+        </span>
+      ) : (
+        <span className="fr-sheet">
+          <ApeArt name={p.arte || 'casa'} size={46} />
+          <i />
+          <i />
+          <i className="short" />
+          <span className="fr-sheet-t">{p.nome}</span>
+        </span>
+      )}
       <span className="fr-phone">
         <i />
         <i />

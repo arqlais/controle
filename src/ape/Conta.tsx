@@ -215,7 +215,7 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
           )
         })}
       </div>
-      <p className="ape-note" style={{ margin: 0 }}>Dúvidas? <a className="ape-link" href={wa(whats, 'Oi! Tenho uma dúvida sobre a minha compra no planê apzinho.')} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
+      <p className="ape-note" style={{ margin: 0 }}>Dúvidas? <a className="ape-link" href={wa(whats, 'Oi! Tenho uma dúvida sobre a minha compra no planê.apê.')} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
     </section>
   )
 }

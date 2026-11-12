@@ -1,4 +1,4 @@
-/* Desenhos do planê apzinho: traço fino + um preenchimento suave, nas cores do apê (variáveis --a-*).
+/* Desenhos do planê.apê: traço fino + um preenchimento suave, nas cores do apê (variáveis --a-*).
    Um por produto/assunto, para a pessoa entender de relance. Conteúdo fixo, sem nada vindo de fora. */
 
 const S = 'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"'
