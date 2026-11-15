@@ -2890,6 +2890,8 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
 .ape-canva-i input.ape-inv { border-color: #c98b84; }
 
 /* ===== página de vendas mais limpa: menos caixa dentro de caixa, mais respiro ===== */
+.ape-publico .ape-main { display: grid; gap: 44px; }
+@media (max-width: 760px) { .ape-publico .ape-main { gap: 34px; } }
 .ape-ja-comprou { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--a-muted); text-decoration: underline; text-underline-offset: 3px; }
 .ape-ja-comprou .ape-i { width: 14px; height: 14px; transform: rotate(-90deg); }
 /* etapas: sem a caixa de fora, só os atalhos */
