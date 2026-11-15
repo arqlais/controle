@@ -3,7 +3,7 @@ import { href } from '../router'
 import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, JUROS_PCT, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
+import { APE, BONUS, JUROS_PCT, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
 import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja da planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
@@ -16,14 +16,18 @@ const amostraDe = (nome: string) => PRODUTOS_LOJA.find((p) => p.nome === nome ||
 const TIPO_ARQ: Record<string, string> = { pdf: 'PDF', planilha: 'Excel', apresentacao: 'PowerPoint', word: 'Word', arquivo: 'arquivo' }
 const rotuloArq = (a: { tipo: string; parte?: string; nome: string }) => `${TIPO_ARQ[a.tipo] || (/\.pptx$/.test(a.nome) ? 'PowerPoint' : /\.docx$/.test(a.nome) ? 'Word' : 'arquivo')}${a.parte ? ` · ${a.parte}` : ''}`
 let PRODUTOS_LOJA: Produto[] = []
-let PIX = 5 // desconto do Pix da loja salva (definido ao abrir a loja)
+let PIX = 0 // antigo desconto do Pix (o preço da tabela já é o do Pix)
+let CARTAO = CARTAO_PCT // acréscimo do crédito sem juros (definido ao abrir a loja)
+let SEMJ = SEM_JUROS_MAX
 // cada selo ("mais vendido", "queridinho"...) aparece num produto só, para não repetir
 let SELO_OK = new Set<string>()
 
 export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Morador | null; whats: string; abrir?: string }) {
   const produtos = ajustes.produtos
-  const pixPct = ajustes.pixPct ?? 5
+  const pixPct = ajustes.pixPct ?? 0
   PIX = pixPct
+  CARTAO = ajustes.cartaoPct ?? CARTAO_PCT
+  SEMJ = ajustes.semJurosMax ?? SEM_JUROS_MAX
   PRODUTOS_LOJA = produtos
   { const com = produtos.filter((p) => p.ativo && p.selo); const um = com.find((p) => /mais vendido/i.test(p.selo || '')) || com[0]; SELO_OK = new Set(um ? [um.id] : []) }
   const ativos = produtos.filter((p) => p.ativo && frenteDe(p) === 'apzinho')
@@ -93,7 +97,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
             <a className="ape-btn primary" href={href(lojaRota(), 'loja:arquivos')}><ApeIcon name="bag" />ver os arquivos</a>
           </div>
           <div className="ape-trust">
-            <span><ApeIcon name="tag" /><span className="ape-keep">{pixPct}% off no Pix</span></span>
+            <span><ApeIcon name="tag" /><span className="ape-keep">até {SEMJ}x sem juros</span></span>
             <span><ApeIcon name="download" />baixa na hora</span>
             <span><ApeIcon name="check" />7 dias para desistir</span>
           </div>
@@ -179,7 +183,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
           ['Qual a diferença entre os arquivos e a plataforma?', 'Os arquivos são materiais prontos para uma tarefa (um checklist, um guia, uma planilha): você baixa e usa quando quiser. A plataforma é um site onde você registra o seu caso (gastos, parcelas, etapas, vistoria com fotos) e acompanha tudo por 12 meses. Dá para comprar um sem o outro.'],
           ['Serve para casa? E para outros tamanhos?', `Serve para casa ou apê de qualquer tamanho, na planta ou pronto. Quando aparece um exemplo com medidas, é de um apê de ${APE.meuApe}; você troca pelos seus números.`],
           ['Como eu recebo?', 'Pagou, a página do pedido mostra os botões de baixar (no Pix, em segundos). Para baixar de novo em outro aparelho, use "minhas compras" com o CPF e o e-mail da compra.'],
-          ['Quais formas de pagamento?', `Pix, com ${pixPct}% de desconto, ou cartão de crédito: à vista sem juros ou em até 12x com juros (parcela mínima de R$ 5).`],
+          ['Quais formas de pagamento?', `Pix, pelo preço da página, ou cartão de crédito em até ${SEMJ}x sem juros (parcela mínima de R$ 5).`],
           ['Tem desconto levando mais?', 'Os kits já têm o desconto no preço e saem bem mais em conta que os arquivos separados. Além disso, o Pix tem desconto em qualquer compra.'],
           ['Posso compartilhar?', 'Pode usar com quem mora com você, na sua casa. Os arquivos são de uso pessoal: não podem ser repassados, revendidos, postados ou enviados em grupos. Cada PDF sai com o nome de quem comprou.'],
           ['Funciona no celular?', 'Sim. Os PDFs abrem em qualquer celular, tablet ou computador, e as planilhas funcionam no Excel, no Google Planilhas e no Numbers. A plataforma do apê é feita para usar no celular.'],
@@ -309,7 +313,7 @@ function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | 
 /* ===== plataforma do apê ===== */
 function PlataformaSec({ p, cart, onAdd, me, whats, juros }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string; juros: number; pix?: number }) {
   const v = reais(p.preco)
-  const ops = parcelas(v, juros)
+  const ops = parcelas(precoCartao(v, CARTAO), SEMJ + 0 * juros)
   const ult = ops[ops.length - 1]
   const recursos: [string, string, string][] = [
     ['calculo', 'compra e financiamento', 'Entrada, juros de obra, financiamento e ITBI, para quem acabou de comprar.'],
@@ -344,7 +348,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros }: { p: Produto; cart:
         <div className="ape-plat-preco">
           <span className="ape-note">12 meses · paga uma vez, sem mensalidade</span>
           <div className="ape-price ape-keep">{p.preco} <small>à vista</small></div>
-          {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão</div>}
+          {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} sem juros no crédito</div>}
         </div>
         <div className="ape-acts" style={{ flexDirection: 'column' }}>
           <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
@@ -535,10 +539,12 @@ function Preco({ p, byId, pixPct }: { p: Produto; byId: ById; pixPct?: number })
   const v = reais(p.preco)
   const eco = p.combo?.length ? Math.max(0, soma - v) : 0
   const pix = pixPct ? Math.round((v - Math.round(v * pixPct / 100 * 100) / 100) * 100) / 100 : v // mesma conta do carrinho e do servidor
+  const cart = precoCartao(pix, CARTAO)
+  const n = maxSemJuros(cart, SEMJ)
   return (
     <div className="ape-precos">
       <div className="ape-precos-pix ape-keep">{brl(pix)} <small>no Pix</small></div>
-      <div className="ape-precos-cartao ape-keep">{brl(v)} no cartão{p.unidade ? ` · ${p.unidade}` : ''}</div>
+      <div className="ape-precos-cartao ape-keep">ou {brl(cart)}{n > 1 ? ` em até ${n}x sem juros` : ' no crédito'}{p.unidade ? ` · ${p.unidade}` : ''}</div>
       {eco > 0 ? <div className="ape-precos-eco ape-keep"><s>{brl(soma)}</s> separados · economia de {Math.round((eco / soma) * 100)}%</div> : <div className="ape-precos-eco" aria-hidden="true">&nbsp;</div>}
     </div>
   )
@@ -695,10 +701,10 @@ function kitSugerido(ids: string[], produtos: Produto[]) {
   return melhor
 }
 
-export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen, cupons }: { produtos: Produto[]; pixPct: number; cart: Carrinho; onClose: () => void; onOpen: (p: Produto) => void; cupons?: Cupom[] }) {
+export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen, cupons, cartaoPct = CARTAO, semJ = SEMJ }: { produtos: Produto[]; pixPct: number; cart: Carrinho; onClose: () => void; onOpen: (p: Produto) => void; cupons?: Cupom[]; cartaoPct?: number; semJ?: number }) {
   // o mesmo cupom que o checkout usa (guardado neste aparelho): o preço não "sobe" entre o cartão e o carrinho
   const cupom = (() => { try { const c = localStorage.getItem('plane-cupom') || ''; return c ? acharCupom(cupons, c) : null } catch { return null } })()
-  const t = conta(cart.ids, produtos, 'pix', pixPct, cupom)
+  const t = conta(cart.ids, produtos, 'pix', pixPct, cupom, cartaoPct)
   useEffect(() => {
     t.repetidos.forEach((id) => cart.remove(id)) // arquivo que já está num kit do carrinho sai sozinho
   }, [t.repetidos.join()])
@@ -743,13 +749,14 @@ export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen, cupons 
               <dl className="ape-facts ape-totais">
                 <dt>total</dt><dd className="num ape-keep">{brl(t.subtotal)}</dd>
                 {cupom && t.cupomDesc > 0 && <><dt>cupom {cupom.codigo} (−{cupom.pct}%)</dt><dd className="num ape-keep">−{brl(t.cupomDesc)}</dd></>}
-                <dt>no Pix (−{pixPct}%)</dt><dd className="num ape-keep"><b>{brl(t.totalPix)}</b></dd>
+                <dt>no Pix</dt><dd className="num ape-keep"><b>{brl(t.totalPix)}</b></dd>
+                <dt>no crédito</dt><dd className="num ape-keep">{brl(t.totalCartao)}{maxSemJuros(t.totalCartao, semJ) > 1 ? ` · até ${maxSemJuros(t.totalCartao, semJ)}x sem juros` : ''}</dd>
               </dl>
               <a className="ape-btn primary" href={href(lojaRota(), 'checkout')} onClick={onClose}>
                 <ApeIcon name="shield" />
                 finalizar compra
               </a>
-              <p className="ape-note" style={{ margin: 0, textAlign: 'center' }}>Pix ou cartão à vista · baixa na hora · 7 dias para desistir</p>
+              <p className="ape-note" style={{ margin: 0, textAlign: 'center' }}>Pix ou crédito sem juros · baixa na hora · 7 dias para desistir</p>
             </>
           )}
         </div>
@@ -761,23 +768,26 @@ export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen, cupons 
 /* ===== checkout ===== */
 export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador | null; whats: string }) {
   const produtos = ajustes.produtos
-  const pixPct = ajustes.pixPct ?? 5
+  const pixPct = ajustes.pixPct ?? 0
+  const cartaoPct = ajustes.cartaoPct ?? CARTAO_PCT
+  const semJ = ajustes.semJurosMax ?? SEM_JUROS_MAX
   const cart = useCarrinho()
   const [forma, setForma] = useState<'pix' | 'cartao'>('pix')
   // cupom: vem digitado ou do aviso da vitrine (guardado neste aparelho)
   const [cupomTxt, setCupomTxt] = useState(() => { try { return localStorage.getItem('plane-cupom') || '' } catch { return '' } })
   const [cupomMsg, setCupomMsg] = useState('')
   const cupom = cupomTxt ? acharCupom(ajustes.cupons, cupomTxt) : null
-  const t = conta(cart.ids, produtos, forma, pixPct, cupom)
+  const t = conta(cart.ids, produtos, forma, pixPct, cupom, cartaoPct)
   const aplicarCupom = () => {
     const c = acharCupom(ajustes.cupons, cupomTxt)
     if (!cupomTxt.trim()) return setCupomMsg('')
     if (!c) return setCupomMsg('Cupom inválido ou vencido.')
-    const tt = conta(cart.ids, produtos, forma, pixPct, c)
+    const tt = conta(cart.ids, produtos, forma, pixPct, c, cartaoPct)
     setCupomMsg(tt.cupomDesc > 0 ? `Cupom aplicado: ${c.pct}% de desconto.` : 'Este cupom não vale para os itens do carrinho.')
     try { localStorage.setItem('plane-cupom', c.codigo) } catch { /* ok */ }
   }
-  const opcoes = parcelas(t.base, ajustes.jurosPct ?? JUROS_PCT)
+  // crédito: o valor do crédito em até semJ vezes sem juros
+  const opcoes = parcelas(t.totalCartao, semJ)
   const [nParc, setNParc] = useState(1)
   const parc = forma === 'cartao' ? opcoes.find((o) => o.n === nParc) || opcoes[0] : null
   const totalFinal = parc ? parc.total : t.total
@@ -870,12 +880,12 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           <CoStep n={3} title="forma de pagamento">
             <div className="ape-co-pay">
               {([
-                ['pix', 'Pix', `${pixPct}% de desconto · libera em segundos`, 'tag'],
-                ['cartao', 'Cartão de crédito', opcoes.length > 1 ? `à vista ou em até ${opcoes[opcoes.length - 1].n}x, na página segura do Asaas` : 'à vista, na página segura do Asaas', 'shield'],
+                ['pix', 'Pix', `${brl(t.totalPix)} · libera em segundos`, 'tag'],
+                ['cartao', 'Cartão de crédito', opcoes.length > 1 ? `${brl(t.totalCartao)} em até ${opcoes[opcoes.length - 1].n}x sem juros` : `${brl(t.totalCartao)} à vista`, 'shield'],
               ] as const).map(([id, l, h, i]) => (
                 <button type="button" key={id} className={forma === id ? 'on' : ''} aria-pressed={forma === id} onClick={() => setForma(id)}>
                   <ApeIcon name={i} />
-                  <b>{l}{id === 'pix' && <em className="ape-keep">−{pixPct}%</em>}</b>
+                  <b>{l}</b>
                   <small>{h}</small>
                 </button>
               ))}
@@ -884,9 +894,9 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
               <div className="ape-f" style={{ marginTop: 10 }}>
                 <label htmlFor="co-parc">Parcelas</label>
                 <select id="co-parc" value={parc?.n || 1} onChange={(e) => setNParc(Number(e.target.value))}>
-                  {opcoes.map((o) => <option key={o.n} value={o.n}>{o.n === 1 ? `1x de ${brl(o.parcela)} (sem juros)` : `${o.n}x de ${brl(o.parcela)} (total ${brl(o.total)}, com juros)`}</option>)}
+                  {opcoes.map((o) => <option key={o.n} value={o.n}>{o.n === 1 ? `1x de ${brl(o.parcela)}` : `${o.n}x de ${brl(o.parcela)} sem juros`}</option>)}
                 </select>
-                <span className="ape-hint">À vista não tem juros. Parcelado tem juros de {String(ajustes.jurosPct ?? JUROS_PCT).replace('.', ',')}% ao mês.</span>
+                <span className="ape-hint">Sem juros em qualquer opção. Você digita o cartão na página segura do Asaas.</span>
               </div>
             )}
           </CoStep>
@@ -906,7 +916,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
             </label>
             {err && <p className="ape-err" role="alert">{err}</p>}
             <button className="ape-btn primary ape-co-submit" type="submit" disabled={busy}>
-              {busy ? 'abrindo o pagamento…' : forma === 'pix' ? <>pagar <span className="ape-keep">{brl(t.total)}</span> no Pix</> : parc && parc.n > 1 ? <>pagar <span className="ape-keep">{parc.n}x de {brl(parc.parcela)}</span> no cartão</> : <>pagar <span className="ape-keep">{brl(t.total)}</span> no cartão</>}
+              {busy ? 'abrindo o pagamento…' : forma === 'pix' ? <>pagar <span className="ape-keep">{brl(t.total)}</span> no Pix</> : parc && parc.n > 1 ? <>pagar <span className="ape-keep">{parc.n}x de {brl(parc.parcela)}</span> sem juros</> : <>pagar <span className="ape-keep">{brl(t.total)}</span> no cartão</>}
             </button>
             {err && !busy && err.startsWith('Não deu') && (
               <div className="ape-co-falhou" role="status">
@@ -926,30 +936,30 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           {t.itens.map((p) => (
             <div key={p.id} className="ape-co-line">
               <span>{p.nome}{p.cat === 'combos' ? <small> · kit</small> : null}</span>
-              <span className="num ape-keep">{p.preco}</span>
+              <span className="num ape-keep">{forma === 'cartao' ? brl(precoCartao(reais(p.preco), cartaoPct)) : p.preco}</span>
             </div>
           ))}
           {t.economiaKits > 0 && <div className="ape-co-line ape-co-off"><span>já economizando nos kits</span><span className="num ape-keep">{brl(t.economiaKits)}</span></div>}
-          {cupom && t.cupomDesc > 0 && (
-            <div className="ape-co-line ape-co-off">
-              <span>cupom {cupom.codigo} ({cupom.pct}%)</span>
-              <span className="num ape-keep">−{brl(t.cupomDesc)}</span>
-            </div>
-          )}
+          {(() => {
+            // no crédito, o desconto mostrado é a diferença exata entre os itens e o total: a conta sempre fecha
+            const somaItens = t.itens.reduce((a, p) => a + (forma === 'cartao' ? precoCartao(reais(p.preco), cartaoPct) : reais(p.preco)), 0)
+            const desc = Math.round((somaItens - (forma === 'cartao' ? t.totalCartao : t.subtotal - t.cupomDesc)) * 100) / 100
+            if (desc <= 0) return null
+            return (
+              <div className="ape-co-line ape-co-off">
+                <span>{cupom && t.cupomDesc > 0 ? `cupom ${cupom.codigo} (${cupom.pct}%)` : 'desconto por levar junto'}</span>
+                <span className="num ape-keep">−{brl(desc)}</span>
+              </div>
+            )
+          })()}
           {t.desconto > 0 && (
             <div className="ape-co-line ape-co-off">
               <span>desconto do Pix ({pixPct}%)</span>
               <span className="num ape-keep">−{brl(t.desconto)}</span>
             </div>
           )}
-          {parc && parc.n > 1 && (
-            <div className="ape-co-line">
-              <span>juros do parcelamento ({parc.n}x)</span>
-              <span className="num ape-keep">+{brl(parc.total - t.base)}</span>
-            </div>
-          )}
           <div className="ape-co-line ape-co-total">
-            <span>total{parc && parc.n > 1 ? ` · ${parc.n}x de ${brl(parc.parcela)}` : ''}</span>
+            <span>total{parc && parc.n > 1 ? ` · ${parc.n}x de ${brl(parc.parcela)} sem juros` : forma === 'cartao' ? ' no crédito' : ' no Pix'}</span>
             <b className="num ape-keep">{brl(totalFinal)}</b>
           </div>
           <div className="ape-cupom">
@@ -1002,7 +1012,7 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>O que não pode.</b> Copiar, compartilhar, enviar em grupos, publicar, distribuir, revender, alugar ou usar com clientes, no todo ou em parte, sem autorização por escrito. Os materiais são protegidos pela Lei de Direitos Autorais (Lei 9.610/98).</li>
             <li><b>Identificação da licença.</b> Cada PDF sai com o nome de quem comprou, parte do CPF e o número do pedido no rodapé, para identificar cópias não autorizadas.</li>
             <li><b>Conteúdo informativo.</b> Os materiais são guias práticos e não substituem a orientação de profissionais habilitados, do seu banco, da construtora ou do contrato. Regras de financiamento e seguro variam conforme o banco, o programa e o contrato.</li>
-            <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: Pix com {pixPct}% de desconto ou cartão de crédito à vista (sem juros) ou parcelado em até 12x com juros informados antes de pagar. O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
+            <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: no Pix, o preço da página; no cartão de crédito, o valor do crédito mostrado na página, à vista ou parcelado sem juros.{pixPct ? '' : ''} O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
             <li><b>Entrega e conta.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma; você também recebe o link por e-mail. Com o e-mail da compra você cria uma senha em minha conta e acessa tudo de qualquer aparelho. Guarde a senha e não a compartilhe.</li>
             {lojaRota() === 'ape' && <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus surpresa gratuito (um arquivo extra, revelado quando é liberado). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>}
             <li><b>Direito de arrependimento e cancelamento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor). Peça em minha conta → minhas compras (ou pelo WhatsApp ou e-mail). Dentro dos 7 dias o pedido é sempre aprovado e devolvemos o valor integral, pelo mesmo meio de pagamento. Depois desse prazo, o pedido é analisado caso a caso. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>
@@ -1192,7 +1202,7 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
       <section className="ape-panel ape-done ape-pix">
         <h2 className="ape-h2">falta só <em>pagar</em></h2>
         <span className="ape-pill">{p.itens.map((i) => i.nome).join(' + ')}</span>
-        <div className="ape-price ape-keep">{brl(Number(p.total))}{p.desconto ? <small className="ape-keep"> com {brl(Number(p.desconto))} de desconto do Pix</small> : null}</div>
+        <div className="ape-price ape-keep">{brl(Number(p.total))}{p.desconto ? <small className="ape-keep"> com {brl(Number(p.desconto))} de desconto</small> : null}</div>
         {p.pix ? (
           <>
             <ol className="ape-psteps ape-psteps-num">

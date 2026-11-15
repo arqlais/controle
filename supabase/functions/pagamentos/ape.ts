@@ -75,7 +75,7 @@ for (const [id, [nome, preco]] of Object.entries(BELEZA_ARQUIVOS)) if (!EXTRAS[i
 const KITS_EXTRAS = [KIT_ARQ, KIT_BELEZA, ...BELEZA_KITS]
 /* cupons (painel → produtos e preços); sem nenhum salvo, vale o de lançamento das vitrines novas. Mesma regra de src/ape/model.ts */
 type Cupom = { codigo: string; pct: number; ate?: string; frentes?: string[]; ativo?: boolean }
-const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 15, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
+const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 10, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
 function acharCupom(cupons: Cupom[], codigo: string): Cupom | null {
   const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
   const c = cupons.find((x) => x.ativo !== false && String(x.codigo).trim().toUpperCase() === codigo.trim().toUpperCase())
@@ -85,12 +85,15 @@ function acharCupom(cupons: Cupom[], codigo: string): Cupom | null {
 const ESCOLHAS = ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca']
 const PLATAFORMA_PRECO = 89.9
 const JUROS_PCT = 2.99
-/** Parcelas do cartão: 1x sem juros; 2x a 12x com juros compostos (tabela Price), parcela mínima de R$ 5. Mesma conta do site. */
-function parcelar(total: number, n: number, jurosPct: number) {
+/** Crédito: o preço já leva o acréscimo (cobre as taxas do cartão) e parcela sem juros até semJurosMax,
+ *  parcela mínima de R$ 5. Mesma conta do site. */
+const CARTAO_PCT = 10
+const SEM_JUROS_MAX = 6
+function parcelar(total: number, n: number, semJurosMax: number) {
   if (n <= 1) return { n: 1, parcela: c2(total), total: c2(total) }
-  const i = jurosPct / 100
-  const parcela = i > 0 ? c2((total * i) / (1 - Math.pow(1 + i, -n))) : c2(total / n)
-  return parcela < 5 ? null : { n, parcela, total: c2(parcela * n) }
+  if (n > semJurosMax) return null
+  const parcela = c2(total / n)
+  return parcela < 5 ? null : { n, parcela, total: c2(total) }
 }
 const KITS: Record<string, [string, number, string[]]> = {
   'kit-compra': ['Kit vou comprar', 35, ['compra', 'financiamento', 'planilha-compra', 'decorado']],
@@ -144,13 +147,15 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       for (const e of ESTILOS) map[`${it.id}--${e}`] = { ...it, id: `${it.id}--${e}`, nome: `${it.nome} · ${e}`, combo: it.combo.map((c) => `${c}--${e}`) }
     }
     const canva: Record<string, string> = a.canva && typeof a.canva === 'object' ? a.canva : {}
-    const pixPct = Number.isFinite(Number(a.pixPct)) ? Math.min(10, Math.max(0, Number(a.pixPct))) : PIX_PCT
-    const jurosPct = a.jurosPct != null && Number.isFinite(Number(a.jurosPct)) ? Math.min(10, Math.max(0, Number(a.jurosPct))) : JUROS_PCT
-    const cupons: Cupom[] = Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO
-    return { map, pixPct, jurosPct, cupons, canva }
+    // o preço da tabela é o do Pix (sem desconto em cima); o crédito leva o acréscimo e parcela sem juros
+    const pixPct = 0
+    const cartaoPct = a.cartaoPct != null && Number.isFinite(Number(a.cartaoPct)) ? Math.min(30, Math.max(0, Number(a.cartaoPct))) : CARTAO_PCT
+    const semJurosMax = a.semJurosMax != null && Number.isFinite(Number(a.semJurosMax)) ? Math.min(12, Math.max(1, Math.floor(Number(a.semJurosMax)))) : SEM_JUROS_MAX
+    const cupons: Cupom[] = (Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO).map((c: Cupom) => (c.codigo === 'LANCAMENTO' && c.pct === 15 ? { ...c, pct: 10 } : c))
+    return { map, pixPct, cartaoPct, semJurosMax, cupons, canva }
   }
 
-  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number, cupom: Cupom | null = null) {
+  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number, cupom: Cupom | null = null, cartaoPct = CARTAO_PCT) {
     let uniq = [...new Set(ids)].filter((id) => map[id])
     const noKit = new Set(uniq.flatMap((id) => (map[id].cat === 'combos' ? map[id].combo : [])))
     uniq = uniq.filter((id) => !(map[id].cat === 'arquivos' && noKit.has(id)))
@@ -160,7 +165,9 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const cupomDesc = cupom ? c2(itens.filter((i) => !cupom.frentes?.length || cupom.frentes.includes(i.frente || 'apzinho')).reduce((t, i) => t + i.preco, 0) * cupom.pct / 100) : 0
     const base = c2(subtotal - cupomDesc)
     const pix = forma === 'pix' ? c2(base * pixPct / 100) : 0
-    return { itens, subtotal, cupomDesc, desconto: c2(cupomDesc + pix), total: c2(base - pix) }
+    // crédito: o mesmo valor com o acréscimo que cobre as taxas do cartão (igual ao site)
+    const total = forma === 'cartao' ? (base <= 0 ? 0 : c2(Math.ceil(c2(base * (1 + cartaoPct / 100)) + 0.1) - 0.1)) : c2(base - pix)
+    return { itens, subtotal, cupomDesc, desconto: c2(cupomDesc + pix), total }
   }
 
   const cpfOk = (v: string) => {
@@ -194,16 +201,15 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const falta = [nome.split(' ').length < 2 && 'nome completo', !cpfOk(cpf) && 'CPF válido', !emailOk(email) && 'e-mail válido', tel.length < 10 && 'telefone com DDD'].filter(Boolean)
     if (falta.length) return json({ erro: `Confira: ${falta.join(', ')}.` }, 400)
     if (body.aceite !== true) return json({ erro: 'Aceite os termos de uso antes de pagar.' }, 400)
-    const { map, pixPct, jurosPct, cupons } = await loja()
+    const { map, pixPct, cartaoPct, semJurosMax, cupons } = await loja()
     const cupom = body.cupom ? acharCupom(cupons, String(body.cupom).slice(0, 40)) : null
-    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct, cupom)
+    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct, cupom, cartaoPct)
     if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
     if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
-    // cartão parcelado: o servidor refaz a conta dos juros (não confia no valor que veio do site)
+    // cartão parcelado: o servidor refaz a conta (não confia no valor que veio do site); sem juros até semJurosMax
     const nParc = forma === 'cartao' ? Math.min(12, Math.max(1, Math.floor(Number(body.parcelas) || 1))) : 1
-    const parc = parcelar(c.total, nParc, jurosPct)
-    if (!parc) return json({ erro: 'Parcela abaixo de R$ 5,00: escolha menos parcelas.' }, 400)
-    if (parc.n > 1) c.total = parc.total
+    const parc = parcelar(c.total, nParc, semJurosMax)
+    if (!parc) return json({ erro: `Escolha até ${semJurosMax} parcelas, de pelo menos R$ 5,00.` }, 400)
     const morador = /^[0-9a-f-]{36}$/i.test(String(body.morador ?? '')) ? String(body.morador) : null
     const aceite = { versao: TERMOS_VERSAO, em: new Date().toISOString() }
     const { data: ped, error } = await db.from('ape_pedidos').insert({ morador, nome, tel, email, cpf, aceite, itens: c.itens, subtotal: c.subtotal, desconto: c.desconto, total: c.total, forma, parcelas: parc.n, ...(cupom ? { cupom: cupom.codigo } : {}) }).select('id, token').single()
@@ -213,9 +219,10 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const pay: J = {
       customer,
       billingType: forma === 'cartao' ? 'CREDIT_CARD' : 'PIX',
-      ...(parc.n > 1 ? { installmentCount: parc.n, installmentValue: parc.parcela } : { value: c.total }),
+      // parcelado sem juros: manda o total e o Asaas divide (não sobra nem falta centavo)
+      ...(parc.n > 1 ? { installmentCount: parc.n, totalValue: c.total } : { value: c.total }),
       dueDate: hojeBR(),
-      description: (marcaDe(c.itens).nome + ' · ' + c.itens.map((i) => i.nome).join(' + ') + (cupom ? ` · cupom ${cupom.codigo}` : '') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} com juros` : '')).slice(0, 480),
+      description: (marcaDe(c.itens).nome + ' · ' + c.itens.map((i) => i.nome).join(' + ') + (cupom ? ` · cupom ${cupom.codigo}` : '') + (parc.n > 1 ? ` · ${parc.n}x de R$ ${parc.parcela.toFixed(2).replace('.', ',')} sem juros` : '')).slice(0, 480),
       externalReference: `ape|${ped.id}`,
       callback: { successUrl: `${site.replace(/\/$/, '')}/${marcaDe(c.itens).path}/#pedido:${ped.token}`, autoRedirect: true },
     }

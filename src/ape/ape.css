@@ -2917,3 +2917,7 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
 /* aviso rápido nunca tapa botão: não captura o toque e, com janela aberta (carrinho), vai para o topo */
 .ape-toast { pointer-events: none; }
 body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)); bottom: auto; z-index: 120; }
+
+/* manchas coloridas do topo: nunca cortadas, sempre atrás de tudo (a página corta só na horizontal) */
+.ape.ape-publico { position: relative; isolation: isolate; overflow-x: clip; }
+.ape-publico .ape-blobs { overflow: visible; z-index: -1; }

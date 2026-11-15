@@ -1,5 +1,5 @@
 import { CLOUD, supabase } from '../cloud'
-import { APE, CUPONS_PADRAO, EXEMPLOS, JUROS_PCT, LOJA_VERSAO, MIGRA_LOJA, PIX_PCT, PRODUTOS, TAXAS, acharCupom, comPrecos, conta, type Cupom, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
+import { APE, CARTAO_PCT, SEM_JUROS_MAX, CUPONS_PADRAO, EXEMPLOS, JUROS_PCT, LOJA_VERSAO, MIGRA_LOJA, PIX_PCT, PRODUTOS, TAXAS, acharCupom, comPrecos, conta, type Cupom, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
 
 /* Onde os dados da planê.apê ficam: no Supabase da planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
@@ -8,8 +8,10 @@ export interface Ajustes {
   produtos: Produto[]
   whatsapp?: string
   lojaV?: number
-  pixPct?: number // desconto no Pix (padrão 5%)
-  jurosPct?: number // juros ao mês do cartão parcelado (padrão 2,99%)
+  pixPct?: number // antigo desconto no Pix: agora o preço da tabela já é o do Pix (fica 0)
+  jurosPct?: number // antigo juros do parcelado (não usado: o crédito é sem juros)
+  cartaoPct?: number // acréscimo no crédito que cobre as taxas do cartão (padrão 10%)
+  semJurosMax?: number // até quantas vezes sem juros no crédito (padrão 6)
   taxas?: Taxas // taxas do Asaas, só para conferir a margem no painel
   fotoPainel?: string // foto do painel da dona (o símbolo do San Levi se vazio)
   fotoProjeto?: string // foto da seção de projetos (o painel troca; pasta pública ape-publico)
@@ -61,7 +63,10 @@ const ajustesOf = (d: unknown): Ajustes => {
   const a = (d || {}) as Partial<Ajustes>
   // loja antiga (antes das categorias, v7): usa a nova, mantendo só o WhatsApp
   const atual = (a.lojaV || 0) >= 7 && Array.isArray(a.produtos) && a.produtos.length
-  const pixPct = typeof a.pixPct === 'number' && a.pixPct >= 0 && a.pixPct <= 10 ? a.pixPct : PIX_PCT
+  // preço da tabela = preço no Pix (sem desconto em cima); o crédito leva o acréscimo que cobre as taxas
+  const pixPct = PIX_PCT
+  const cartaoPct = typeof a.cartaoPct === 'number' && a.cartaoPct >= 0 && a.cartaoPct <= 30 ? a.cartaoPct : CARTAO_PCT
+  const semJurosMax = typeof a.semJurosMax === 'number' && a.semJurosMax >= 1 && a.semJurosMax <= 12 ? Math.floor(a.semJurosMax) : SEM_JUROS_MAX
   const jurosPct = typeof a.jurosPct === 'number' && a.jurosPct >= 0 && a.jurosPct <= 10 ? a.jurosPct : JUROS_PCT
   let base: Produto[] = PRODUTOS
   if (atual) {
@@ -77,7 +82,7 @@ const ajustesOf = (d: unknown): Ajustes => {
       for (const id of m.novos) if (!base.some((p) => p.id === id)) { const d = PRODUTOS.find((x) => x.id === id); if (d) base.push(d) }
     }
   }
-  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, taxas: { ...TAXAS, ...(a.taxas || {}) }, cupons: Array.isArray(a.cupons) ? a.cupons : CUPONS_PADRAO, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '', canva: a.canva && typeof a.canva === 'object' ? a.canva : {} }
+  return { produtos: comPrecos(base), whatsapp: a.whatsapp || '', lojaV: LOJA_VERSAO, pixPct, jurosPct, cartaoPct, semJurosMax, taxas: { ...TAXAS, ...(a.taxas || {}) }, cupons: Array.isArray(a.cupons) ? a.cupons.map((c) => (c.codigo === 'LANCAMENTO' && c.pct === 15 ? { ...c, pct: 10 } : c)) : CUPONS_PADRAO, vendedor: { nome: 'Laís', doc: '', cidade: '', email: 'equipe.plane@gmail.com', ...(a.vendedor || {}) }, fotoProjeto: a.fotoProjeto || '', fotoProjeto2: a.fotoProjeto2 || '', fotoPainel: a.fotoPainel || '', canva: a.canva && typeof a.canva === 'object' ? a.canva : {} }
 }
 const moradorOf = (r: Record<string, unknown> | null | undefined): Morador | null =>
   r ? { id: String(r.id), nome: String(r.nome ?? ''), condominio: String(r.condominio ?? APE.condominio), moraJunto: r.mora_junto === true, aprovado: r.aprovado === true, pessoas: r.pessoas == null ? null : Number(r.pessoas), familia: Array.isArray(r.familia) ? (r.familia as string[]) : undefined, torre: String(r.torre ?? ''), ap: String(r.ap ?? ''), tel: String(r.tel ?? ''), criado: String(r.criado ?? '') } : null

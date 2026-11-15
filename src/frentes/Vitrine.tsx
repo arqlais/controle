@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } 
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '../ape/api'
-import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
+import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
 import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
@@ -69,7 +69,7 @@ const TEXTO: Record<Id, {
 
 const PASSOS = [
   { icone: 'search', t: 'escolha o estilo', s: 'Veja cada arquivo por dentro, nos 4 estilos.' },
-  { icone: 'lock', t: 'pague no Pix ou no cartão', s: 'Pix com 5% de desconto. Compra segura pelo Asaas.' },
+  { icone: 'lock', t: 'pague no Pix ou no cartão', s: 'Pix pelo preço da página ou crédito sem juros. Compra segura pelo Asaas.' },
   { icone: 'edit', t: 'edite do seu jeito', s: 'Os arquivos aparecem na hora, ficam em minha conta e abrem no Canva, no Word e no Excel.' },
 ]
 
@@ -153,7 +153,9 @@ const rotaProduto = (id: Id, pid: string) => href(id, `p:${pid}`)
 function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id; aj: Ajustes | null; ajV: Ajustes | null; whats: string; estilo: boolean; acoes: ReactNode; pagina: Pagina; carrinho: boolean }) {
   const f = frente(id)
   const root = useRef<HTMLDivElement>(null)
-  const pixPct = aj?.pixPct ?? 5
+  const pixPct = aj?.pixPct ?? 0
+  const cartaoPct = aj?.cartaoPct ?? CARTAO_PCT
+  const semJ = aj?.semJurosMax ?? SEM_JUROS_MAX
   const daqui = useMemo(() => (aj?.produtos || []).filter((p) => frenteDe(p) === id), [aj, id])
   const cart = useCarrinho()
   const [toast, show] = useToast()
@@ -164,6 +166,11 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
   const [usou, setUsou] = useState(() => {
     try { return !!cupom && localStorage.getItem('plane-cupom') === cupom.codigo } catch { return false }
   })
+  // o preço da vitrine já mostra o cupom vigente: ele fica aplicado sozinho, para o carrinho e o checkout mostrarem o mesmo valor
+  useEffect(() => {
+    if (!cupom || usou) return
+    try { if (!localStorage.getItem('plane-cupom')) { localStorage.setItem('plane-cupom', cupom.codigo); setUsou(true) } } catch { /* ok */ }
+  }, [cupom?.codigo])
   const usarCupom = () => {
     if (!cupom) return
     try { localStorage.setItem('plane-cupom', cupom.codigo) } catch { /* ok */ }
@@ -180,10 +187,10 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
     if (cupom && !usou) usarCupom()
     location.hash = href(id, 'checkout')
   }
-  const tot = conta(cart.ids, ajV?.produtos || [], 'pix', pixPct)
+  const tot = conta(cart.ids, ajV?.produtos || [], 'pix', pixPct, null, cartaoPct)
   const pagProduto = typeof pagina === 'object' ? daqui.find((p) => p.id === pagina.produto) || null : null
   useReveal(root, `${typeof pagina === 'object' ? pagina.produto : pagina}-${daqui.length}`)
-  const ctx: Ctx = { id, daqui, pixPct, cupomPct: cupom?.pct || 0, cartIds: cart.ids, add }
+  const ctx: Ctx = { id, daqui, pixPct, cartaoPct, semJ, cupomPct: cupom?.pct || 0, cartIds: cart.ids, add }
 
   return (
     <div className={`lp fr ${cupom ? 'tem-oferta' : ''}`} ref={root}>
@@ -224,6 +231,8 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
               cupons={ajV.cupons}
               produtos={ajV.produtos}
               pixPct={pixPct}
+              cartaoPct={cartaoPct}
+              semJ={semJ}
               cart={cart}
               onClose={() => {
                 setVerCarrinho(false)
@@ -243,7 +252,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
   )
 }
 
-interface Ctx { id: Id; daqui: Produto[]; pixPct: number; cupomPct: number; cartIds: string[]; add: (p: Produto, e?: Estilo) => void }
+interface Ctx { id: Id; daqui: Produto[]; pixPct: number; cartaoPct: number; semJ: number; cupomPct: number; cartIds: string[]; add: (p: Produto, e?: Estilo) => void }
 
 /** Faixa do topo com a oferta: gira devagar, o presente balança e conta os dias que faltam. */
 function Oferta({ codigo, pct, ate, usou, onUsar }: { codigo: string; pct: number; ate?: string; usou: boolean; onUsar: () => void }) {
@@ -300,7 +309,7 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
                 </button>
               )}
             </div>
-            <p className="muted small">{T.chip} · Pix com {ctx.pixPct}% de desconto · baixa na hora · 7 dias para desistir</p>
+            <p className="muted small">{T.chip} · até {ctx.semJ}x sem juros · baixa na hora · 7 dias para desistir</p>
           </div>
           <div className="lp-hero-art" aria-hidden>
             <span className="fr-hero-corte"><img className="fr-hero-solta" src={T.arte} alt="" /></span>
@@ -653,6 +662,7 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
           ) : (
             <span className="num">{p.preco}</span>
           )}
+          <small className="fr-preco-pix">no Pix · ou até {maxSemJuros(precoCartao(reais(p.preco) * (100 - ctx.cupomPct) / 100, ctx.cartaoPct), ctx.semJ)}x sem juros</small>
         </div>
         <div className="row gap-s fr-card-acoes">
           <button className={`btn small ${ja ? 'ghost' : 'primary'}`} onClick={() => ctx.add(p, escolhido)} disabled={ja} aria-label={ja ? 'no carrinho' : `adicionar ${p.nome}${estilos ? ` no estilo ${escolhido}` : ''}`}>
@@ -683,7 +693,7 @@ function Estilos({ est, onEst }: { est: Estilo | null; onEst: (e: Estilo) => voi
 
 /** Página do produto: galeria, escolha do estilo, preço com cupom, comprar agora e relacionados. */
 function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar: (p: Produto, e: Estilo) => void }) {
-  const { id, pixPct, cupomPct } = ctx
+  const { id, pixPct, cupomPct, cartaoPct, semJ } = ctx
   const f = frente(id)
   const estilos = temEstilos(p)
   const previa = temPrevia(p.id)
@@ -699,7 +709,9 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
   const ja = estilos ? noCarrinho.includes(est) : ctx.cartIds.includes(p.id)
   const base = reais(p.preco)
   const comCup = Math.round(base * (100 - cupomPct)) / 100
-  const pix = fmtPreco(Math.round(comCup * (100 - pixPct)) / 100)
+  const pixV = Math.round(comCup * (100 - pixPct)) / 100
+  const cartV = precoCartao(pixV, cartaoPct)
+  const nSJ = maxSemJuros(cartV, semJ)
   const rel = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && (x.sub === p.sub || x.tipo === p.tipo))).slice(0, 4)
   const u = p.uso ? USO[p.uso] : null
   return (
@@ -717,7 +729,6 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
             <div className={`fr-pp-foto ${foto === 0 && previa ? 'is-pagina' : ''}`}>
               {fotos[foto] && <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" />}
               {p.selo && <span className="fr-selo">{p.selo}</span>}
-              {cupomPct > 0 && <span className="fr-off num">−{cupomPct}%</span>}
             </div>
             {fotos.length > 1 && (
               <div className="fr-pp-mini">
@@ -748,17 +759,12 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
               </div>
             )}
             <div className="fr-pp-preco">
-              {cupomPct > 0 ? (
-                <>
-                  <span className="num fr-pp-valor">{fmtPreco(comCup)}</span>
-                  <s className="num">{p.preco}</s>
-                  <span className="fr-pp-tag">cupom aplicado no checkout</span>
-                </>
-              ) : (
-                <span className="num fr-pp-valor">{p.preco}</span>
-              )}
-              <small className="muted">
-                ou <b className="num">{pix}</b> no Pix
+              <span className="num fr-pp-valor">{fmtPreco(pixV)}</span>
+              <span className="fr-pp-pix">no Pix</span>
+              {cupomPct > 0 && <s className="num">{p.preco}</s>}
+              {cupomPct > 0 && <span className="fr-pp-tag">com o cupom de {cupomPct}%</span>}
+              <small className="muted fr-pp-cartao">
+                ou <b className="num">{fmtPreco(cartV)}</b> {nSJ > 1 ? <>em até <b className="num">{nSJ}x</b> sem juros no crédito</> : 'no crédito'}
               </small>
             </div>
             {p.ativo ? (

@@ -14,7 +14,7 @@ import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
 import {
-  APE, BONUS, SELOS, GRUPO_META, ehOrcamento, PIX_PCT, JUROS_PCT, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, opcoesNicho, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
+  APE, BONUS, SELOS, GRUPO_META, ehOrcamento, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, opcoesNicho, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
   CATEGORIAS, CUPONS_PADRAO, type Cupom, digits, ehSanLevi, ondeMora, type Categoria, type Envio, type Interesse, type Morador, type Orcamento, type Produto,
 } from './model'
 import './ape.css'
@@ -1023,8 +1023,8 @@ const ESTILOS_ARQ = ['delicado', 'criativo', 'minimalista', 'elegante']
 function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) => void }) {
   const [ps, setPs] = useState<Produto[]>(ajustes.produtos)
   const [whats, setWhats] = useState(ajustes.whatsapp || '')
-  const [pixPct, setPixPct] = useState(String(ajustes.pixPct ?? PIX_PCT))
-  const [jurosTxt, setJurosTxt] = useState(String(ajustes.jurosPct ?? JUROS_PCT).replace('.', ','))
+  const [cartaoTxt, setCartaoTxt] = useState(String(ajustes.cartaoPct ?? CARTAO_PCT).replace('.', ','))
+  const [semJTxt, setSemJTxt] = useState(String(ajustes.semJurosMax ?? SEM_JUROS_MAX))
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
   const [cupons, setCupons] = useState<Cupom[]>(ajustes.cupons || CUPONS_PADRAO)
@@ -1056,21 +1056,23 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
     } catch (e) { toast(String((e as Error).message)) }
     setSubindoImg('')
   }
-  const pix = Math.min(10, Math.max(0, num(pixPct) ?? PIX_PCT))
-  const juros = Math.min(10, Math.max(0, num(jurosTxt) ?? JUROS_PCT))
-  const exPlat = parcelas(reais(ps.find((p) => p.id === 'plataforma')?.preco) || 89.9, juros)
+  // o preço da tabela é o do Pix; o crédito leva o acréscimo e parcela sem juros
+  const cartaoPct = Math.min(30, Math.max(0, num(cartaoTxt) ?? CARTAO_PCT))
+  const semJ = Math.min(12, Math.max(1, Math.floor(num(semJTxt) ?? SEM_JUROS_MAX)))
+  const exPlatV = precoCartao(reais(ps.find((p) => p.id === 'plataforma')?.preco) || 89.9, cartaoPct)
+  const exPlat = parcelas(exPlatV, semJ)
   const set = (i: number, patch: Partial<Produto>) => setPs((l) => l.map((p, j) => (j === i ? { ...p, ...patch } : p)))
   const margem = (p: Produto) => {
     const v = reais(p.preco)
-    const lp = liquido(Math.round(v * (100 - pix)) / 100, 'pix', taxas)
-    const lc = liquido(v, 'cartao', taxas)
+    const lp = liquido(v, 'pix', taxas)
+    const lc = liquido(precoCartao(v, cartaoPct), 'cartao', taxas)
     return { v, lp, lc, ruim: Math.min(lp, lc) < 3 }
   }
   const save = async () => {
     const ruins = calcd.filter((p) => p.ativo && noCarrinho(p) && margem(p).ruim)
     if (ruins.length && !(await ask(`Atenção: ${ruins.map((p) => p.nome).join(', ')} ${ruins.length > 1 ? 'deixam' : 'deixa'} menos de R$ 3 por venda depois da taxa. Salvar assim mesmo?`, { confirmLabel: 'salvar' }))) return
     setBusy(true)
-    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: pix, jurosPct: juros, taxas, vendedor: vend, cupons: cupons.filter((c) => c.codigo.trim()).map((c) => ({ ...c, codigo: c.codigo.trim().toUpperCase().replace(/\s+/g, '') })), fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '', canva: Object.fromEntries(Object.entries(canva).map(([k, v]) => [k, v.trim()]).filter(([, v]) => /^https:\/\/(www\.)?canva\.com\//.test(v))) }
+    const a: Ajustes = { produtos: ps, whatsapp: whats.replace(/\D/g, ''), lojaV: LOJA_VERSAO, pixPct: 0, cartaoPct, semJurosMax: semJ, taxas, vendedor: vend, cupons: cupons.filter((c) => c.codigo.trim()).map((c) => ({ ...c, codigo: c.codigo.trim().toUpperCase().replace(/\s+/g, '') })), fotoProjeto, fotoProjeto2, fotoPainel: ajustes.fotoPainel || '', canva: Object.fromEntries(Object.entries(canva).map(([k, v]) => [k, v.trim()]).filter(([, v]) => /^https:\/\/(www\.)?canva\.com\//.test(v))) }
     try {
       await admin.salvarAjustes(a)
       onSaved({ ...a, produtos: comPrecos(ps) })
@@ -1082,12 +1084,12 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   }
   return (
     <div className="ape-form">
-      <div className="ape-banner">Os preços daqui valem também no pagamento (a cobrança é calculada no servidor com a loja salva). Pix com desconto; cartão à vista sem juros ou parcelado com os juros que você define abaixo. Kits: escolha o desconto do kit e o preço sai sozinho, sempre terminando em ,90.</div>
+      <div className="ape-banner">Os preços daqui valem também no pagamento (a cobrança é calculada no servidor com a loja salva). O preço da tabela é o do Pix; no crédito vale o preço com o acréscimo abaixo, em até X vezes sem juros (o acréscimo cobre as taxas do cartão). Kits: escolha o desconto do kit e o preço sai sozinho, sempre terminando em ,90.</div>
       <div className="ape-panel ape-adm-box">
         <p className="ape-eyebrow">pagamento e margem</p>
         <div className="ape-frow ape-adm-taxas">
-          <div className="ape-f"><label htmlFor="l-pix">Desconto no Pix (%)</label><input id="l-pix" inputMode="decimal" value={pixPct} onChange={(e) => setPixPct(e.target.value)} /><span className="ape-hint">De 0 a 10. Sugerido: 5.</span></div>
-          <div className="ape-f"><label htmlFor="l-juros">Juros do cartão parcelado (% ao mês)</label><input id="l-juros" inputMode="decimal" value={jurosTxt} onChange={(e) => setJurosTxt(e.target.value)} /><span className="ape-hint ape-keep">1x sem juros. Plataforma em {exPlat[exPlat.length - 1].n}x: {brl(exPlat[exPlat.length - 1].parcela)} (total {brl(exPlat[exPlat.length - 1].total)}). Cobre a taxa do Asaas no parcelado.</span></div>
+          <div className="ape-f"><label htmlFor="l-cartao">Acréscimo no crédito (%)</label><input id="l-cartao" inputMode="decimal" value={cartaoTxt} onChange={(e) => setCartaoTxt(e.target.value)} /><span className="ape-hint">Cobre as taxas do cartão e do parcelado. Sugerido: 10. Ex.: R$ 19,90 no Pix vira {brl(precoCartao(19.9, cartaoPct))} no crédito.</span></div>
+          <div className="ape-f"><label htmlFor="l-semj">Parcelas sem juros (até)</label><input id="l-semj" inputMode="numeric" value={semJTxt} onChange={(e) => setSemJTxt(e.target.value)} /><span className="ape-hint ape-keep">De 1 a 12, parcela mínima de R$ 5. Plataforma: {exPlat[exPlat.length - 1].n}x de {brl(exPlat[exPlat.length - 1].parcela)} sem juros.</span></div>
           <div className="ape-f"><label htmlFor="l-tp">Taxa do Pix (<span className="ape-keep">R$</span> por venda)</label><input id="l-tp" inputMode="decimal" value={String(taxas.pix).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, pix: num(e.target.value) ?? 0 })} /></div>
           <div className="ape-f"><label htmlFor="l-tc">Taxa do cartão (% + <span className="ape-keep">R$</span>)</label>
             <div className="ape-par">

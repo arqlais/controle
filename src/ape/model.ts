@@ -393,23 +393,30 @@ export const MIGRA_LOJA: Record<number, { novos: string[]; troca: Record<string,
 /** Juros ao mês do cartão parcelado (o painel muda). Parcela mínima: R$ 5. */
 export const JUROS_PCT = 2.99
 export const PARCELAS_MAX = 12
-/** Parcelas do cartão: 1x sem juros; de 2x a 12x com juros compostos (tabela Price). Mesma conta no servidor. */
-export function parcelas(total: number, jurosPct = JUROS_PCT): { n: number; parcela: number; total: number; juros: boolean }[] {
+/** Crédito: o preço já leva um acréscimo que cobre as taxas do cartão, e parcela em até SEM_JUROS_MAX "sem juros"
+ *  (parcela mínima de R$ 5). Mesma conta no servidor. */
+export const CARTAO_PCT = 10
+export const SEM_JUROS_MAX = 6
+/** Preço no crédito: o do Pix com o acréscimo, terminando em ,90 (como os preços da loja). Mesma conta no servidor. */
+export const precoCartao = (pix: number, pct = CARTAO_PCT) => (pix <= 0 ? 0 : c2(Math.ceil(c2(pix * (1 + pct / 100)) + 0.1) - 0.1))
+export function parcelas(total: number, maxN = SEM_JUROS_MAX): { n: number; parcela: number; total: number; juros: boolean }[] {
   const out = [{ n: 1, parcela: c2(total), total: c2(total), juros: false }]
-  const i = jurosPct / 100
-  for (let n = 2; n <= PARCELAS_MAX; n++) {
-    const parcela = i > 0 ? c2((total * i) / (1 - Math.pow(1 + i, -n))) : c2(total / n)
+  for (let n = 2; n <= Math.min(PARCELAS_MAX, Math.max(1, maxN)); n++) {
+    const parcela = c2(total / n)
     if (parcela < 5) break
-    out.push({ n, parcela, total: c2(parcela * n), juros: i > 0 })
+    out.push({ n, parcela, total: c2(total), juros: false })
   }
   return out
 }
+/** Até quantas vezes "sem juros" cabe neste valor (parcela mínima de R$ 5). */
+export const maxSemJuros = (total: number, maxN = SEM_JUROS_MAX) => parcelas(total, maxN).slice(-1)[0].n
 /** Selos de destaque que dá para escolher no painel. */
 export const SELOS = ['mais vendido', 'queridinho', 'mais procurado', 'melhor custo-benefício', 'novidade', 'essencial', 'últimas vagas']
 /** Único desconto da loja além dos kits: Pix (a taxa do Pix é menor que a do cartão). Sem parcelamento. */
 /** Quantos apês interessados para a dona levar a lista ao fornecedor e negociar (quando o fornecedor não disse o mínimo). */
 export const GRUPO_META = 5
-export const PIX_PCT = 5
+/** O preço da tabela já é o do Pix (sem desconto em cima). */
+export const PIX_PCT = 0
 /** Taxas do Asaas usadas para conferir a margem (confira no seu plano e ajuste no painel). */
 export interface Taxas { pix: number; cartaoPct: number; cartaoFixo: number }
 export const TAXAS: Taxas = { pix: 1.99, cartaoPct: 2.99, cartaoFixo: 0.49 }
@@ -599,7 +606,7 @@ export function liquido(total: number, forma: 'pix' | 'cartao', t: Taxas = TAXAS
 /** Cupom de desconto (painel → produtos e preços). Vale para as frentes listadas (vazio = todas) até a data. */
 export interface Cupom { codigo: string; pct: number; ate?: string; frentes?: Frente[]; ativo?: boolean }
 /** Cupom de lançamento das vitrines novas (o painel troca ou desliga). */
-export const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 15, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
+export const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 10, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
 export const hojeISO = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
 /** Acha um cupom válido (ativo, dentro da data). A mesma regra roda no servidor. */
 export function acharCupom(cupons: Cupom[] | undefined, codigo: string, hoje = hojeISO()): Cupom | null {
@@ -610,7 +617,7 @@ export function acharCupom(cupons: Cupom[] | undefined, codigo: string, hoje = h
 /** Cupom válido hoje para uma frente (para mostrar o aviso na vitrine). */
 export const cupomDaFrente = (cupons: Cupom[] | undefined, f: Frente) => (cupons || []).find((c) => acharCupom(cupons, c.codigo) && (!c.frentes?.length || c.frentes.includes(f))) || null
 
-export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao' = 'pix', pixPct = PIX_PCT, cupom: Cupom | null = null) {
+export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao' = 'pix', pixPct = PIX_PCT, cupom: Cupom | null = null, cartaoPct = CARTAO_PCT) {
   const map = new Map(produtos.filter((p) => p.ativo && noCarrinho(p)).map((p) => [p.id, p]))
   let uniq = [...new Set(ids)].filter((id) => map.has(id))
   const dentro = new Set(uniq.flatMap((id) => (map.get(id)!.cat === 'combos' ? map.get(id)!.combo || [] : [])))
@@ -628,7 +635,9 @@ export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao
   // quanto os kits do carrinho economizam em relação aos arquivos separados (só para mostrar)
   const preco = new Map(produtos.map((p) => [p.id, reais(p.preco)]))
   const economiaKits = c2(itens.filter((p) => p.cat === 'combos').reduce((t, p) => t + (p.combo || []).reduce((s, id) => s + (preco.get(id) || 0), 0) - reais(p.preco), 0))
-  return { itens, subtotal, cupomDesc, base, desconto, pixDesconto, totalPix, total: c2(base - desconto), repetidos, economiaKits, pixPct }
+  // crédito: o mesmo valor com o acréscimo que cobre as taxas do cartão (parcela sem juros)
+  const totalCartao = precoCartao(base, cartaoPct)
+  return { itens, subtotal, cupomDesc, base, desconto, pixDesconto, totalPix, totalCartao, total: forma === 'pix' ? c2(base - desconto) : totalCartao, repetidos, economiaKits, pixPct, cartaoPct }
 }
 
 export const CTA_COPY: Record<string, [string, string, string]> = {
