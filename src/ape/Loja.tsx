@@ -51,7 +51,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         <span>Os produtos aparecem aqui assim que forem lançados.</span>
       </div>
     )
-  const ir = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   const kitTop = ativos.find((p) => p.cat === 'combos' && p.destaque)
   const plat = ativos.find((p) => p.cat === 'plataforma')
   const arquivos = ativos.filter((p) => (p.cat || 'arquivos') === 'arquivos')
@@ -98,22 +97,13 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
             <span><ApeIcon name="download" />baixa na hora</span>
             <span><ApeIcon name="check" />7 dias para desistir</span>
           </div>
+          <a className="ape-ja-comprou" href={href('ape', 'conta')}>já comprou? entre para baixar de novo<ApeIcon name="chev" /></a>
         </div>
         <HeroArt pix={pixPct} />
       </section>
 
 
       <MinhasCompras nome={me?.nome} />
-
-      <div className="ape-marquee" aria-hidden="true">
-        <div className="ape-marquee-track">
-          {[0, 1].map((k) => (
-            <span key={k}>
-              {arquivos.map((p) => <b key={p.id}><ApeIcon name="check" />{p.nome.toLowerCase()}</b>)}
-            </span>
-          ))}
-        </div>
-      </div>
 
 
       {/* o que tem na loja, num bloco só: arquivos por etapa, kits e plataforma */}
@@ -147,15 +137,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
             </div>
             <a className="ape-esc-todos" href={href(lojaRota(), 'loja:arquivos')}>ver todos os {arquivos.length} arquivos e kits<ApeIcon name="chev" /></a>
           </div>
-          {plat && (
-            <button type="button" className="ape-esc plat" onClick={() => ir('loja-plataforma')}>
-              <ApeArt name="celular" size={44} />
-              <b>plataforma do apê</b>
-              <small>Um site para <u>acompanhar a jornada inteira</u> com os seus dados: gastos, parcelas, obra, vistoria.</small>
-              <em>12 meses · <span className="ape-keep">{plat.preco}</span></em>
-              <span className="ape-esc-todos">conhecer<ApeIcon name="chev" /></span>
-            </button>
-          )}
         </div>
       </section>
 
@@ -192,13 +173,6 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
       </div>
 
       <Depoimentos />
-      <section className="ape-story ape-panel">
-        <span className="ape-me-av">L</span>
-        <div>
-          <p className="ape-eyebrow">quem fez</p>
-          <p>Oi! Sou a {APE.dona}, estou me formando em arquitetura e montando o meu apê de {APE.meuApe}. Juntei aqui o que eu precisei e não achei pronto: o que perguntar antes de assinar, o que conferir na vistoria, quanto custa de verdade e como organizar a obra.</p>
-        </div>
-      </section>
       <section className="ape-faq" id="loja-duvidas">
         <h3 className="ape-sec-t">dúvidas <em>frequentes</em></h3>
         {[
@@ -237,7 +211,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
 }
 
 /* capa da loja: as capas dos arquivos soltas, um celular com a plataforma e avisos flutuando (mexe com o mouse) */
-function HeroArt({ pix }: { pix: number }) {
+function HeroArt(_: { pix?: number }) {
   const [feitos, setFeitos] = useState(2)
   useEffect(() => {
     const i = window.setInterval(() => setFeitos((n) => (n >= 5 ? 2 : n + 1)), 1800)
@@ -267,9 +241,6 @@ function HeroArt({ pix }: { pix: number }) {
           ))}
         </div>
       </div>
-      <div className="ape-hf f1"><span className="ic"><ApeIcon name="check" /></span><span><b>vistoria feita</b><small>2 problemas anotados</small></span></div>
-      <div className="ape-hf f2"><span className="ic sec"><ApeIcon name="tag" /></span><span><b className="ape-keep">{pix}% off no Pix</b><small>baixa na hora</small></span></div>
-      <div className="ape-hf f3"><span className="ic"><ApeIcon name="lock" /></span><span><b>bônus surpresa</b><small>abre no 8º dia</small></span></div>
     </div>
   )
 }
@@ -323,7 +294,7 @@ function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | 
         <span className="ape-proj-tag">serviço à parte · sob orçamento</span>
         <h3>precisa de um <em>projeto?</em></h3>
         <p className="ape-proj-eu">Sou a {APE.dona}, estou no {APE.semestre} semestre de Arquitetura e Urbanismo e trabalho com o meu pai, engenheiro civil, em projetos e reformas.</p>
-        <ul className="ape-proj-serv">{servicos.map(([t, i]) => <li key={t}><span className="ic"><ApeIcon name={i} /></span>{t}</li>)}</ul>
+        <p className="ape-proj-lista">{servicos.map(([t]) => t).join(' · ')}</p>
         <p className="ape-proj-local"><ApeIcon name="home" />vistoria de entrega das chaves em Santo André, ABC e região (SP)</p>
         <a className="ape-btn ape-proj-btn" href={wa(whats, msg)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />orçamento no WhatsApp</a>
       </div>
@@ -336,11 +307,10 @@ function ServicosSec({ whats, me, foto, foto2 }: { whats: string; me: Morador | 
 }
 
 /* ===== plataforma do apê ===== */
-function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string; juros: number; pix: number }) {
+function PlataformaSec({ p, cart, onAdd, me, whats, juros }: { p: Produto; cart: Carrinho; onAdd: (p: Produto) => void; me: Morador | null; whats: string; juros: number; pix?: number }) {
   const v = reais(p.preco)
   const ops = parcelas(v, juros)
   const ult = ops[ops.length - 1]
-  const mes = v / 12
   const recursos: [string, string, string][] = [
     ['calculo', 'compra e financiamento', 'Entrada, juros de obra, financiamento e ITBI, para quem acabou de comprar.'],
     ['planilha', 'gastos, parcelas e contas', 'O dinheiro da casa mês a mês, com gráficos.'],
@@ -355,7 +325,7 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
   return (
     <section className="ape-plat" id="loja-plataforma">
       <div className="ape-plat-head">
-        <p className="ape-eyebrow">plataforma do apê{p.selo ? <span className="ape-pill rosa" style={{ marginLeft: 8 }}><ApeIcon name="star" />{p.selo}</span> : null}</p>
+        <p className="ape-eyebrow">plataforma do apê</p>
         <h3 className="ape-sec-t">acompanhe a sua jornada <em>num lugar só</em></h3>
         <p className="ape-lead">Para quem acabou de comprar ou vai receber as chaves: registre o <b>seu</b> caso e acompanhe do começo ao fim.</p>
       </div>
@@ -363,26 +333,19 @@ function PlataformaSec({ p, cart, onAdd, me, whats, juros, pix }: { p: Produto; 
         <PlatCelulares />
         <div className="ape-plat-feats">
           {(mais ? recursos : recursos.slice(0, 4)).map(([a, t, d]) => (
-            <div key={t} className="ape-plat-f">
-              <ApeArt name={a} size={32} />
-              <span><b>{t}</b>{d}</span>
+            <div key={t} className="ape-plat-f" title={d}>
+              <ApeArt name={a} size={26} />
+              <b>{t}</b>
             </div>
           ))}
         </div>
       </div>
       <div className="ape-plat-buy">
         <div className="ape-plat-preco">
-          <span className="ape-note">12 meses de acesso · pagamento único</span>
+          <span className="ape-note">12 meses · paga uma vez, sem mensalidade</span>
           <div className="ape-price ape-keep">{p.preco} <small>à vista</small></div>
           {ult.n > 1 && <div className="ape-plat-parc ape-keep">ou {ult.n}x de {brl(ult.parcela)} no cartão</div>}
-          <div className="ape-plat-mes"><ApeIcon name="sparkle" /><span>preço de cafezinho: <b className="ape-keep">menos de R$ {Math.ceil(ult.n > 1 ? ult.parcela : mes)} por mês</b>{ult.n > 1 ? ` em ${ult.n}x` : ''} para a casa nova toda organizada</span></div>
-          <span className="ape-pill azul">sem mensalidade · <span className="ape-keep">{pix}% off no Pix</span></span>
         </div>
-        <ol className="ape-plat-steps curto">
-          <li><b>1</b>Paga uma vez: Pix, cartão à vista ou parcelado</li>
-          <li><b>2</b>Cria o seu acesso com e-mail e senha, na hora</li>
-          <li><b>3</b>Usa por 12 meses no celular ou no computador, em minha conta</li>
-        </ol>
         <div className="ape-acts" style={{ flexDirection: 'column' }}>
           <BotaoCompra p={p} cart={cart} onAdd={onAdd} me={me} whats={whats} />
         </div>
@@ -1091,6 +1054,8 @@ function MinhasCompras({ nome }: { nome?: string }) {
     }
   }
   const ultimo = l[0]
+  // quem ainda não comprou não precisa deste bloco (o hero tem o link "já comprou?")
+  if (!logado && !l.length && !plat) return null
   return (
     <section className="ape-minhas2" id="loja-compras">
       <div className="ape-minhas2-l">
