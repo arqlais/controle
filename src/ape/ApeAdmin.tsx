@@ -19,7 +19,7 @@ import {
 } from './model'
 import './ape.css'
 
-/* Painel do planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
+/* Painel da planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
 type Tab = 'visitas' | 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
@@ -73,7 +73,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
 
   const nCancel = pedidos.filter((p) => p.cancelamento?.status === 'pedido' && p.status === 'pago').length
   const abandonados = carrinhosAbandonados(pedidos)
-  // mesmos ícones do planê arquitetura
+  // mesmos ícones da planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
     inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
     pedidos: ['vendas', 'wallet', nCancel], visitas: ['visitas do site', 'eye'], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
@@ -158,7 +158,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           </span>
         </a>
         <div className="sidebar-foot">
-          <a className="icon-btn ape-adm-voltaico" href={href('inicio')} title="Voltar para o planê arquitetura" aria-label="Voltar para o planê arquitetura"><Icon name="chevronL" /><span>planê arq.</span></a>
+          <a className="icon-btn ape-adm-voltaico" href={href('inicio')} title="Voltar para a planê arquitetura" aria-label="Voltar para a planê arquitetura"><Icon name="chevronL" /><span>planê arq.</span></a>
           {setDark && <button className="icon-btn" onClick={() => setDark(!dark)} title="Tema claro/escuro (só neste aparelho)"><Icon name={dark ? 'sun' : 'moon'} /></button>}
           <button className="icon-btn" onClick={() => void copiar('https://useplane.com.br/ape/sanlevi/', 'link dos moradores')} title="Copiar o link dos moradores" aria-label="Copiar o link dos moradores"><Icon name="link" /></button>
           <button className="icon-btn" onClick={() => void copiar('https://useplane.com.br/ape/', 'link da loja')} title="Copiar o link da loja" aria-label="Copiar o link da loja"><Icon name="copy" /></button>
@@ -168,7 +168,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
       <div className="main">
         <header className="topbar">
           <button className="icon-btn only-mobile" onClick={() => setMenu(true)} aria-label="Menu"><Icon name="menu" /></button>
-          <button className="back-btn" onClick={() => (tab !== 'inicio' ? ir('inicio') : (window.location.hash = '#/inicio'))} aria-label="Voltar" title={tab !== 'inicio' ? 'Voltar para o início do painel' : 'Voltar para o planê'}>
+          <button className="back-btn" onClick={() => (tab !== 'inicio' ? ir('inicio') : (window.location.hash = '#/inicio'))} aria-label="Voltar" title={tab !== 'inicio' ? 'Voltar para o início do painel' : 'Voltar para a planê'}>
             <Icon name="chevronL" size={18} />
             <span className="hide-mobile">voltar</span>
           </button>
@@ -1002,7 +1002,7 @@ function GrupoItem({ o, ppl, onSaved }: { o: Orcamento; ppl: Interesse[]; onSave
             {pessoas.map((m) => (
               <div key={m.id} className="ape-row" style={{ padding: '6px 0' }}>
                 <div className="t"><b style={{ fontSize: 13 }}>{m.nome}</b><span>{ondeMora(m) || 'sem endereço'} · {fmtTel(m.tel)}</span></div>
-                {waNum(m.tel) && <div className="r"><a className="ape-btn ghost sm" href={wa(waNum(m.tel)!, `Oi, ${firstName(m.nome)}! Aqui é a ${APE.dona}, do planê.apê. Sobre o grupo de ${nicho(o.nicho).l.toLowerCase()} com ${o.fornecedor}: `)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" /></a></div>}
+                {waNum(m.tel) && <div className="r"><a className="ape-btn ghost sm" href={wa(waNum(m.tel)!, `Oi, ${firstName(m.nome)}! Aqui é a ${APE.dona}, da planê.apê. Sobre o grupo de ${nicho(o.nicho).l.toLowerCase()} com ${o.fornecedor}: `)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" /></a></div>}
               </div>
             ))}
           </div>
@@ -1372,7 +1372,7 @@ function Leads({ lista }: { lista: PedidoAdmin[] }) {
       {!lista.length && <div className="ape-empty"><b>nenhum carrinho abandonado</b><span>Quem começar uma compra e não terminar aparece aqui depois de 30 minutos.</span></div>}
       <div className="ape-rows">
         {lista.map((p) => {
-          const msg = `Oi, ${firstName(p.nome)}! Aqui é a ${APE.dona}, do planê.apê. Vi que você começou a compra (${resumoItens(p.itens)}) e não finalizou. Ficou alguma dúvida? Se quiser, te ajudo por aqui. Link da loja: https://useplane.com.br/ape/`
+          const msg = `Oi, ${firstName(p.nome)}! Aqui é a ${APE.dona}, da planê.apê. Vi que você começou a compra (${resumoItens(p.itens)}) e não finalizou. Ficou alguma dúvida? Se quiser, te ajudo por aqui. Link da loja: https://useplane.com.br/ape/`
           return (
             <div key={p.id} className="ape-row">
               <div className="t">
@@ -1382,7 +1382,7 @@ function Leads({ lista }: { lista: PedidoAdmin[] }) {
               </div>
               <div className="r">
                 {waNum(p.tel) && <a className="ape-btn primary sm" href={wa(waNum(p.tel)!, msg)} target="_blank" rel="noreferrer"><ApeIcon name="chat" />WhatsApp</a>}
-                <a className="ape-btn sm" href={`mailto:${p.email}?subject=${encodeURIComponent('Sua compra no planê.apê')}&body=${encodeURIComponent(msg)}`}><ApeIcon name="send" />e-mail</a>
+                <a className="ape-btn sm" href={`mailto:${p.email}?subject=${encodeURIComponent('Sua compra na planê.apê')}&body=${encodeURIComponent(msg)}`}><ApeIcon name="send" />e-mail</a>
               </div>
             </div>
           )

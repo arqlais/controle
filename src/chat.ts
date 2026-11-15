@@ -61,7 +61,7 @@ export function useInbox(enabled: boolean, notify = false) {
         if (fresh.length) {
           const last = fresh[fresh.length - 1]
           const who = nameOf(last.clientId)
-          toast(`💬 mensagem nova${who ? ` de ${who}` : ''} no chat`)
+          toast(`mensagem nova${who ? ` de ${who}` : ''} no chat`)
           systemNotify(`💬 ${who || 'mensagem nova'}`, richPlain(last.body).slice(0, 140), `chat-${last.clientId}`)
         }
         const freshSug = sg.filter((x) => !seen.current!.has(x.id))

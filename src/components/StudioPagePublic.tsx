@@ -5,7 +5,7 @@ import { money, uid } from '../utils'
 import { Icon } from './Icon'
 
 /* Página pública do profissional: o link da bio. Quem chega vê os serviços e pede um orçamento.
-   O pedido vira aviso no planê (com rascunho de orçamento pronto) e e-mail para o profissional. */
+   O pedido vira aviso na planê (com rascunho de orçamento pronto) e e-mail para o profissional. */
 
 const SENT = 'pedidos-enviados'
 

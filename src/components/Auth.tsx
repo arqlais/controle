@@ -356,7 +356,7 @@ function Login({ onEnter }: { onEnter?: () => void }) {
         </button>{' '}
         ·{' '}
         <button type="button" className="link" onClick={() => go('vendas')}>
-          conhecer o {PLATFORM.name}
+          conhecer a {PLATFORM.name}
         </button>
       </p>
     </AuthLayout>

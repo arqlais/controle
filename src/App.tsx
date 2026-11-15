@@ -548,7 +548,7 @@ export default function App() {
     }
   }
 
-  // painel do planê.apê: tela inteira, com o menu próprio (sem o menu do planê ao lado)
+  // painel da planê.apê: tela inteira, com o menu próprio (sem o menu da planê ao lado)
   if (route.page === 'ape-admin' && access.has('painelDona') && !access.legacy)
     return (
       <Suspense fallback={<div className="loading-screen" />}>
@@ -699,7 +699,7 @@ export default function App() {
                 </button>
               )}
               {g.key === 'ajustes' && (
-                <button type="button" className="is-tool nav-tour" onClick={() => setInstallGuide(true)} title="Pôr o planê na tela de início do celular" aria-label="App no celular">
+                <button type="button" className="is-tool nav-tour" onClick={() => setInstallGuide(true)} title="Pôr a planê na tela de início do celular" aria-label="App no celular">
                   <Icon name="smartphone" />
                   <span>app no celular</span>
                 </button>
@@ -1066,7 +1066,7 @@ function Upgrade({ onChat }: { onChat: () => void }) {
         <h1>
           disponível no plano <em>Completo</em>
         </h1>
-        <p className="muted">Este recurso faz parte do plano Completo do {PLATFORM.name}. Durante o teste grátis dá para trocar de plano quando quiser.</p>
+        <p className="muted">Este recurso faz parte do plano Completo da {PLATFORM.name}. Durante o teste grátis dá para trocar de plano quando quiser.</p>
         <div className="row gap-s wrap center">
           <a className="btn primary" href={href('assinatura')}>
             ver planos

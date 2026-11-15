@@ -2,7 +2,7 @@ import { askGemini, type Msg } from './components/AIChat'
 import { PLANS, PLATFORM, STATUS_LABEL } from './plans'
 import { trialDaysLeft, type ChatMessage, type Subscription } from './platform'
 
-/* Rascunho de resposta com IA para o chat da dona com quem usa o planê.
+/* Rascunho de resposta com IA para o chat da dona com quem usa a planê.
    Usa a chave do Gemini da própria dona (configurações → assistente); a resposta
    vem para a caixa de texto, ela lê, corrige e só então manda. */
 
@@ -12,7 +12,7 @@ export async function draftReply(o: { key: string; sub?: Subscription; msgs: Cha
   const who = s
     ? `${s.name || 'cliente'}${s.studio ? ` (${s.studio})` : ''}, plano ${PLANS[s.plan].name}, ${STATUS_LABEL[s.status]}${s.status === 'trial' ? `, faltam ${Math.max(0, trialDaysLeft(s))} dia(s) de teste` : ''}`
     : 'uma pessoa que usa o sistema'
-  const system = `Você escreve rascunhos de resposta para ${PLATFORM.owner}, criadora do ${PLATFORM.name} (${PLATFORM.tagline}), no chat de suporte com quem usa o sistema. ${PLATFORM.owner} vai ler, corrigir e mandar.
+  const system = `Você escreve rascunhos de resposta para ${PLATFORM.owner}, criadora da ${PLATFORM.name} (${PLATFORM.tagline}), no chat de suporte com quem usa o sistema. ${PLATFORM.owner} vai ler, corrigir e mandar.
 
 Quem está falando: ${who}.
 Planos: ${Object.values(PLANS)

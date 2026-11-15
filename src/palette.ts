@@ -1,4 +1,4 @@
-/* Paleta do planê: azul (grafite) e rosa, com os tons de cada um. Toda cor da interface sai daqui
+/* Paleta da planê: azul (grafite) e rosa, com os tons de cada um. Toda cor da interface sai daqui
    (status, etiquetas, gráficos). As cores dos documentos de cada profissional ficam nas configurações dela. */
 export const PAL = {
   // azuis

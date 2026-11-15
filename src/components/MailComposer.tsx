@@ -9,7 +9,7 @@ import { PLATFORM, TRIAL_DAYS } from '../plans'
 import { platform, type Subscription } from '../platform'
 import { uid } from '../utils'
 
-/* E-mails da dona para quem usa o planê: temas prontos (sem custo), texto livre e,
+/* E-mails da dona para quem usa a planê: temas prontos (sem custo), texto livre e,
    se ela tiver a chave do Gemini, a IA melhora o texto. O envio passa pela função "avisos". */
 
 type Para = 'todos' | 'teste' | 'assinantes' | 'saiu'
@@ -26,7 +26,7 @@ interface Draft {
 /** Para onde o botão do e-mail leva (a IA escolhe pelo texto; dá para trocar). */
 type LinkId = 'inicio' | 'avaliar' | 'sugestoes' | 'assinatura' | 'indique' | 'orcamento' | 'manual'
 const LINKS: { id: LinkId; label: string; hash: string; hint: string }[] = [
-  { id: 'inicio', label: 'início do planê', hash: '', hint: 'abrir o sistema, novidades, voltar a usar' },
+  { id: 'inicio', label: 'início da planê', hash: '', hint: 'abrir o sistema, novidades, voltar a usar' },
   { id: 'avaliar', label: 'dar feedback / avaliar', hash: '#/avaliar', hint: 'opinião, avaliação, depoimento' },
   { id: 'sugestoes', label: 'sugestões', hash: '#/sugestoes', hint: 'pedir ideias, sugerir funções' },
   { id: 'assinatura', label: 'planos e assinatura', hash: '#/assinatura', hint: 'assinar, fim do teste, preço de fundador' },
@@ -50,11 +50,11 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
     id: 'novidade',
     label: 'novidade',
     draft: {
-      subject: `Novidade no planê: ${news?.title ?? ''}`,
+      subject: `Novidade na planê: ${news?.title ?? ''}`,
       eyebrow: 'novidade',
-      title: news?.title ?? 'Tem novidade no planê',
-      text: `Oi, {nome}!\n\n${news?.text ?? ''}\n\nQualquer dúvida, é só chamar no chat dentro do planê.`,
-      button: 'ver no planê', link: 'inicio',
+      title: news?.title ?? 'Tem novidade na planê',
+      text: `Oi, {nome}!\n\n${news?.text ?? ''}\n\nQualquer dúvida, é só chamar no chat dentro da planê.`,
+      button: 'ver na planê', link: 'inicio',
       para: 'todos',
     },
   },
@@ -65,7 +65,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       subject: 'Dica rápida: seu orçamento em 2 minutos',
       eyebrow: 'dica',
       title: 'Orçamento pronto em 2 minutos',
-      text: 'Oi, {nome}!\n\nSabia que o orçamento do planê já calcula o valor pelo seu jeito de cobrar (por hora, m², unidade ou pacote)? Você escolhe o cliente e os serviços, e a proposta em PDF sai com a sua marca, pronta para enviar.\n\nDepois de aprovado, o contrato já vem preenchido com os dados do orçamento.',
+      text: 'Oi, {nome}!\n\nSabia que o orçamento da planê já calcula o valor pelo seu jeito de cobrar (por hora, m², unidade ou pacote)? Você escolhe o cliente e os serviços, e a proposta em PDF sai com a sua marca, pronta para enviar.\n\nDepois de aprovado, o contrato já vem preenchido com os dados do orçamento.',
       button: 'fazer um orçamento', link: 'orcamento',
       para: 'todos',
     },
@@ -74,7 +74,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
     id: 'teste',
     label: 'teste acabando',
     draft: {
-      subject: 'Seu teste do planê está acabando',
+      subject: 'Seu teste da planê está acabando',
       eyebrow: 'teste grátis',
       title: 'Seu teste está chegando ao fim',
       text: `Oi, {nome}!\n\nSeu teste grátis de ${TRIAL_DAYS} dias está acabando. Tudo o que você criou continua guardado: clientes, orçamentos, contratos e financeiro.\n\nAssinando agora, você garante o **preço de fundador** por 12 meses, no Pix ou no cartão, sem fidelidade.`,
@@ -89,7 +89,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       subject: 'Preço de fundador: aproveite antes do reajuste',
       eyebrow: 'preço de fundador',
       title: 'Garanta o valor de lançamento',
-      text: 'Oi, {nome}!\n\nQuem assina agora mantém o **preço de fundador por 12 meses**, mesmo quando a tabela mudar. É a forma de agradecer quem acreditou no planê desde o começo.\n\nSem fidelidade: dá para cancelar quando quiser.',
+      text: 'Oi, {nome}!\n\nQuem assina agora mantém o **preço de fundador por 12 meses**, mesmo quando a tabela mudar. É a forma de agradecer quem acreditou na planê desde o começo.\n\nSem fidelidade: dá para cancelar quando quiser.',
       button: 'assinar agora', link: 'assinatura',
       para: 'teste',
     },
@@ -98,10 +98,10 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
     id: 'opiniao',
     label: 'pedir opinião',
     draft: {
-      subject: 'Me conta: o que você achou do planê?',
+      subject: 'Me conta: o que você achou da planê?',
       eyebrow: 'sua opinião',
       title: 'Posso te pedir 1 minutinho?',
-      text: 'Oi, {nome}!\n\nO planê está crescendo junto com quem usa, e a sua opinião faz muita diferença. O que está funcionando bem? O que poderia ser mais fácil?\n\nÉ só responder pelo chat dentro do sistema ou deixar uma sugestão no menu **sugestões**.',
+      text: 'Oi, {nome}!\n\nA planê está crescendo junto com quem usa, e a sua opinião faz muita diferença. O que está funcionando bem? O que poderia ser mais fácil?\n\nÉ só responder pelo chat dentro do sistema ou deixar uma sugestão no menu **sugestões**.',
       button: 'mandar minha opinião', link: 'avaliar',
       para: 'todos',
     },
@@ -112,8 +112,8 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
     draft: {
       subject: 'Seu depoimento pode ajudar outras profissionais',
       eyebrow: 'depoimento',
-      title: 'O planê te ajudou?',
-      text: 'Oi, {nome}!\n\nSe o planê tem deixado a sua rotina mais leve, um depoimento seu ajuda muito outras arquitetas, designers e freelancers a conhecerem o sistema.\n\nLeva menos de 1 minuto, no menu **deixar depoimento**.',
+      title: 'A planê te ajudou?',
+      text: 'Oi, {nome}!\n\nSe a planê tem deixado a sua rotina mais leve, um depoimento seu ajuda muito outras arquitetas, designers e freelancers a conhecerem o sistema.\n\nLeva menos de 1 minuto, no menu **deixar depoimento**.',
       button: 'deixar meu depoimento', link: 'avaliar',
       para: 'assinantes',
     },
@@ -122,11 +122,11 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
     id: 'volta',
     label: 'convidar de volta',
     draft: {
-      subject: 'Sentimos sua falta no planê',
+      subject: 'Sentimos sua falta na planê',
       eyebrow: 'volta?',
       title: 'Seus dados continuam guardados',
-      text: 'Oi, {nome}!\n\nDesde que você saiu, o planê ganhou várias novidades: nome e marca novos, endereço próprio (useplane.com.br) e muitos ajustes que vocês pediram.\n\nSeus clientes, orçamentos e documentos continuam guardados. Se quiser voltar, é só entrar com o mesmo e-mail.',
-      button: 'voltar para o planê', link: 'inicio',
+      text: 'Oi, {nome}!\n\nDesde que você saiu, a planê ganhou várias novidades: nome e marca novos, endereço próprio (useplane.com.br) e muitos ajustes que vocês pediram.\n\nSeus clientes, orçamentos e documentos continuam guardados. Se quiser voltar, é só entrar com o mesmo e-mail.',
+      button: 'voltar para a planê', link: 'inicio',
       para: 'saiu',
     },
   },
@@ -134,7 +134,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
     id: 'aviso',
     label: 'aviso',
     draft: {
-      subject: 'Aviso rápido do planê',
+      subject: 'Aviso rápido da planê',
       eyebrow: 'aviso',
       title: 'Um aviso rapidinho',
       text: 'Oi, {nome}!\n\nEscreva aqui o aviso (ex.: manutenção programada, mudança de horário do atendimento).',
@@ -142,7 +142,7 @@ const THEMES: { id: string; label: string; draft: Draft }[] = [
       para: 'todos',
     },
   },
-  { id: 'livre', label: 'escrever do zero', draft: { subject: '', eyebrow: 'planê', title: '', text: 'Oi, {nome}!\n\n', button: 'abrir o planê', para: 'todos' } },
+  { id: 'livre', label: 'escrever do zero', draft: { subject: '', eyebrow: 'planê', title: '', text: 'Oi, {nome}!\n\n', button: 'abrir a planê', para: 'todos' } },
 ]
 
 const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -173,7 +173,7 @@ function previewHtml(d: Draft, nome: string) {
 
 /** A IA escreve ou melhora o e-mail (chave do Gemini da própria dona). */
 async function improve(key: string, d: Draft, theme: string, idea: string): Promise<Partial<Draft>> {
-  const system = `Você escreve e-mails de ${PLATFORM.owner}, criadora do ${PLATFORM.name} (${PLATFORM.tagline}), para quem usa o sistema: arquitetas, designers de interiores, escritórios e freelancers de projeto.
+  const system = `Você escreve e-mails de ${PLATFORM.owner}, criadora da ${PLATFORM.name} (${PLATFORM.tagline}), para quem usa o sistema: arquitetas, designers de interiores, escritórios e freelancers de projeto.
 Regras:
 - Português do Brasil, sempre muito amigável, gentil e carinhoso, como uma conversa com alguém querido: frases curtas, leves e diretas. Agradeça e valorize a pessoa quando couber. Nada de exageros nem promessas que o texto original não faz.
 - Comece com "Oi, {nome}!" (mantenha {nome} exatamente assim, ele vira o nome da pessoa).

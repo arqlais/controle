@@ -808,7 +808,7 @@ function VersionHistory() {
   return (
     <Section title="histórico de versões">
       <p className="muted small">
-        O {PLATFORM.name} guarda sozinho como a sua conta estava, várias vezes por semana e sempre que muita coisa some de uma vez. Apagou algo sem querer? Volte para uma versão anterior: a de agora também fica guardada.
+        A {PLATFORM.name} guarda sozinho como a sua conta estava, várias vezes por semana e sempre que muita coisa some de uma vez. Apagou algo sem querer? Volte para uma versão anterior: a de agora também fica guardada.
       </p>
       {error ? (
         <p className="small text-warn">O histórico ainda não foi ativado no banco de dados. Fale com o suporte pelo chat.</p>
@@ -839,7 +839,7 @@ function VersionHistory() {
   )
 }
 
-/** Lembrete de pagamento por e-mail para a cliente final (enviado pelo planê, com o nome do escritório). */
+/** Lembrete de pagamento por e-mail para a cliente final (enviado pela planê, com o nome do escritório). */
 function ClientReminders() {
   const { data, setSettings } = useStore()
   const r = data.settings.clientReminders ?? { on: false, before: 2, late: true }

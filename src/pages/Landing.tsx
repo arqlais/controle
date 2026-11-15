@@ -200,7 +200,7 @@ const faq = (): [string, ReactNode][] => [
   ['qual plano é o meu?', `Freelancer começando: ${PLANS.essencial.name}. Freelancer profissional, que manda proposta e contrato com a própria marca: ${PLANS.completo.name}. Escritório ou profissional que atende o cliente final (dono do imóvel) e acompanha obra: ${PLANS.estudio.name}. Na dúvida, teste o ${PLANS.estudio.name} grátis: no fim do teste você escolhe, sem perder nada do que cadastrou.`],
   ['o que é o preço de fundador?', 'Quem assina agora, antes do reajuste da tabela, garante o valor de lançamento por 12 meses, enquanto a assinatura continuar ativa no mesmo plano. Depois disso, entra o preço da tabela daquela época, com aviso antes.'],
   ['qual a diferença entre os planos?', `No ${PLANS.essencial.name} você organiza clientes, orçamentos (em texto pronto para copiar e mandar no WhatsApp ou e-mail), prazos e financeiro. O ${PLANS.completo.name} gera proposta, recibos e contratos em PDF com a sua identidade, e tem agenda no celular. O ${PLANS.estudio.name} tem tudo do ${PLANS.completo.name} e as ferramentas de escritório: painel do cliente, cronograma das etapas, acompanhamento e documentos de obra (memorial, compras, custos, diário, visita, ata e ordem de serviço), lucro de cada projeto e briefing online.`],
-  [`o que mudou com o ${PLANS.estudio.name}?`, `Novidade: o ${PLATFORM.name} nasceu para freelancers e agora também é para quem trabalha direto com o cliente final (casas, apartamentos, lojas, obras). Foi um pedido de várias arquitetas. O ${PLANS.estudio.name} está aberto para todos e é o plano do teste grátis.`],
+  [`o que mudou com o ${PLANS.estudio.name}?`, `Novidade: a ${PLATFORM.name} nasceu para freelancers e agora também é para quem trabalha direto com o cliente final (casas, apartamentos, lojas, obras). Foi um pedido de várias arquitetas. O ${PLANS.estudio.name} está aberto para todos e é o plano do teste grátis.`],
   ['posso cancelar quando quiser?', 'Pode, sem fidelidade. No mensal, o acesso vai até o fim do mês pago. No semestral e no anual, você usa até o fim do período; se pedir devolução antes, os meses usados são cobrados pelo preço do mensal. E nos primeiros 7 dias depois do pagamento, o dinheiro volta inteiro.'],
   ['o teste grátis é de qual plano?', `Do ${PLANS.estudio.name}, o mais completo, com tudo liberado por ${TRIAL_DAYS} dias. Depois você escolhe o plano que faz mais sentido.`],
 ]
@@ -329,7 +329,7 @@ export default function Landing() {
   // lançamento fechado: sem o link do convite, o botão vira "pedir convite" (WhatsApp, Instagram ou e-mail)
   const closed = ACCESS_CFG.invite && !inviteFromUrl()
   const askInvite = () => {
-    const msg = `oi! quero um convite para testar o ${PLATFORM.name}`
+    const msg = `oi! quero um convite para testar a ${PLATFORM.name}`
     const wa = (site.whatsapp || PLATFORM.whatsapp || '').replace(/\D/g, '')
     const ig = (site.instagram || PLATFORM.instagram || '').replace(/^@/, '')
     const url = wa ? `https://wa.me/${wa.length <= 11 ? `55${wa}` : wa}?text=${encodeURIComponent(msg)}` : ig ? `https://ig.me/m/${ig}` : `mailto:${PLATFORM.email}?subject=${encodeURIComponent('quero um convite')}&body=${encodeURIComponent(msg)}`
@@ -529,7 +529,7 @@ export default function Landing() {
       )}
       <section className="lp-section lp-diffs">
         <div className="lp-wrap">
-          <SectionHead eyebrow="só aqui" title={<>o que faz o {PLATFORM.name} <em>diferente</em></>} />
+          <SectionHead eyebrow="só aqui" title={<>o que faz a {PLATFORM.name} <em>diferente</em></>} />
           <div className="lp-diffs-grid">
             {DIFFS.map((d, i) => (
               <article key={d.title} className="lp-diff" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
@@ -859,6 +859,15 @@ export default function Landing() {
               <button className="lp-foot-link" onClick={() => go('entrar')}>
                 entrar na minha conta
               </button>
+              <a className="lp-foot-link" href="#/plane">
+                conhecer a planê
+              </a>
+              <a className="lp-foot-link" href="#/arquivos">
+                planê.arquivos
+              </a>
+              <a className="lp-foot-link" href="#/ape/loja">
+                planê.apê
+              </a>
             </nav>
             {(site.email || site.instagram || site.whatsapp) && (
               <div className="lp-foot-col">
@@ -1007,7 +1016,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
         <div className="lp-all-grid">
           <div className="lp-all-before" data-reveal ref={before}>
             <p className="lp-all-label">
-              <Icon name="x" size={14} /> sem o {PLATFORM.name}
+              <Icon name="x" size={14} /> sem a {PLATFORM.name}
             </p>
             <ul>
               {OUTSIDE.map((t, i) => (
@@ -1020,7 +1029,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
           </div>
           <div className="lp-all-after" data-reveal ref={after}>
             <p className="lp-all-label is-good">
-              <Icon name="check" size={14} /> no {PLATFORM.name}, do começo ao fim
+              <Icon name="check" size={14} /> na {PLATFORM.name}, do começo ao fim
             </p>
             <div className="lp-all-steps" role="tablist" aria-label="O caminho dentro do sistema">
               {INSIDE.map((x, i) => (
@@ -1064,7 +1073,7 @@ function AllInOne({ onTry }: { onTry: () => void }) {
         </div>
         <div className="lp-auto" data-reveal ref={auto}>
           <p className="lp-all-label is-good">
-            <Icon name="sparkle" size={14} /> o que o {PLATFORM.name} faz sozinho
+            <Icon name="sparkle" size={14} /> o que a {PLATFORM.name} faz sozinho
           </p>
           <ul>
             {AUTO.map(([icon, text, f], i) => (

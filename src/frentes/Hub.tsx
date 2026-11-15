@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react'
 import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { frente, type FrenteInfo } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { TRIAL_DAYS } from '../plans'
+import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal } from './ui'
 import './frentes.css'
 
 /* Página principal da planê (useplane.com.br para quem não está logado), no desenho da página de vendas
@@ -10,20 +11,21 @@ import './frentes.css'
 
 const AM = (f: string) => `ape/amostras/${f}`
 
-const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, string, string]; precos: string }[] = [
+const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, string, string]; precos: string; extra?: [string, string] }[] = [
   {
     f: frente('arquivos'),
     titulo: 'para quem atende cliente',
-    itens: ['mais de 40 arquivos para a área da beleza', 'para imprimir e para mandar no WhatsApp e nos stories', 'com espaço para as suas fotos, no Canva, no Word e no Excel'],
+    itens: ['mais de 40 arquivos para beleza e freelancers', 'para imprimir e para mandar no WhatsApp e nos stories', 'com espaço para as suas fotos, no Canva, no Word e no Excel'],
     imgs: [AM('t-beleza-stories-mes.webp'), AM('t-sob-cuidados.webp'), AM('t-beleza-cartao-agendamento.webp')],
-    precos: 'a partir de R$ 12,90',
+    precos: 'a partir de R$ 9,90',
   },
   {
     f: frente('arq'),
     titulo: 'para quem projeta',
-    itens: ['proposta, contrato e briefing do jeito que o escritório usa', 'calculadora de honorários e manual do cliente', 'gestão completa com 14 dias grátis'],
+    itens: ['proposta, contrato e briefing do jeito que o escritório usa', 'calculadora de honorários e manual do cliente', `gestão completa com ${TRIAL_DAYS} dias grátis`],
     imgs: [AM('t-kit-arq-primeiro.webp'), AM('t-arq-honorarios.webp'), AM('t-arq-contrato.webp')],
     precos: 'modelos a partir de R$ 12,90',
+    extra: ['testar a gestão grátis', '#/vendas'],
   },
   {
     f: frente('apzinho'),
@@ -72,7 +74,6 @@ export function Hub() {
       />
 
       <section className="lp-hero">
-        <Manchas />
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
             <p className="lp-kicker">
@@ -83,7 +84,7 @@ export function Hub() {
             </h1>
             <p className="lp-lead">Arquivos prontos para mandar hoje, gestão para quem projeta e guias para quem compra apê. Simples, bonito e do seu jeito.</p>
             <p className="lp-auto-chip">
-              <Icon name="sparkle" size={14} /> baixa na hora ou testa grátis por 14 dias
+              <Icon name="sparkle" size={14} /> baixa na hora ou testa grátis por {TRIAL_DAYS} dias
             </p>
             <div className="row gap-s wrap">
               <a className="btn primary lp-cta lp-shine" href="#/arquivos">
@@ -114,7 +115,7 @@ export function Hub() {
             </Janela>
             <Flutua n={1} icone="download" titulo="baixa na hora" sub="depois do Pix ou do cartão" tom="good" />
             <Flutua n={2} icone="edit" titulo="editável" sub="Canva, Word e Excel" />
-            <Flutua n={3} icone="sparkle" titulo="14 dias grátis" sub="gestão planê.arq" tom="warn" />
+            <Flutua n={3} icone="sparkle" titulo={`${TRIAL_DAYS} dias grátis`} sub="gestão planê.arq" tom="warn" />
           </div>
         </div>
       </section>
@@ -144,6 +145,11 @@ export function Hub() {
                   <a className="btn primary lp-cta" href={l.f.rota}>
                     {l.f.botao} <Icon name="arrowRight" size={16} />
                   </a>
+                  {l.extra && (
+                    <a className="btn ghost lp-cta" href={l.extra[1]}>
+                      {l.extra[0]}
+                    </a>
+                  )}
                   <span className="muted small">{l.precos}</span>
                 </div>
               </div>
@@ -158,7 +164,6 @@ export function Hub() {
       </div>
 
       <section className="lp-section lp-diffs fr-com-manchas">
-        <Manchas v="b" />
         <div className="lp-wrap">
           <Cabeca eyebrow="por que a planê" title={<>simples por fora, <em>caprichado</em> por dentro</>} />
           <div className="lp-diffs-grid">
@@ -188,12 +193,12 @@ export function Hub() {
           </h2>
           <p className="lp-story-text">
             A planê nasceu para organizar o trabalho de uma designer e estudante de arquitetura. Virou gestão para outros profissionais, loja de arquivos e um guia para quem está
-            comprando o primeiro apê. Cada arquivo é usado na prática antes de ir para a loja.
+            comprando o primeiro apê.
           </p>
         </div>
       </section>
 
-      <Final titulo={<>comece pelo que você <em>precisa hoje</em></>} texto="Arquivos que baixam na hora e gestão com 14 dias grátis." botao="ver os arquivos" href="#/arquivos" />
+      <Final titulo={<>comece pelo que você <em>precisa hoje</em></>} texto={`Arquivos que baixam na hora e gestão com ${TRIAL_DAYS} dias grátis.`} botao="ver os arquivos" href="#/arquivos" />
       <Rodape />
     </div>
   )

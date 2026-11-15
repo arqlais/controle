@@ -4,9 +4,9 @@ import { currentRoute } from '../router'
 import { APE } from './model'
 import { ApeIcon } from './ApeIcon'
 
-/* Peças usadas em várias telas do planê.apê (página dos moradores, loja, plataforma). */
+/* Peças usadas em várias telas da planê.apê (página dos moradores, loja, plataforma). */
 
-// símbolo do planê nas cores do apê (conteúdo fixo)
+// símbolo da planê nas cores do apê (conteúdo fixo)
 export const MARK_SVG = markSvg('quadrado', '#4e6472', '#ffffff')
 export const SITE_APE = 'useplane.com.br/ape'
 
@@ -76,6 +76,8 @@ export function Assinatura() {
   return (
     <p className="ape-sign">
       <b>planê<span>.apê</span></b> · <a className="ape-sign-site" href="#/ape/loja">{SITE_APE}</a> · <a href={`https://instagram.com/${APE.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer">{APE.instagram}</a> · © {new Date().getFullYear()} todos os direitos reservados
+      <br />
+      também da planê: <a href="#/arquivos">planê.arquivos</a> · <a href="#/arq">planê.arq</a>
     </p>
   )
 }
@@ -149,7 +151,7 @@ export function mascaraTel(v: string) {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
 }
 
-/* Esc fecha a janela aberta (a de cima), em qualquer tela do planê.apê */
+/* Esc fecha a janela aberta (a de cima), em qualquer tela da planê.apê */
 if (typeof window !== 'undefined' && !(window as unknown as { __apeEsc?: boolean }).__apeEsc) {
   ;(window as unknown as { __apeEsc?: boolean }).__apeEsc = true
   window.addEventListener('keydown', (e) => {

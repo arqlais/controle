@@ -30,6 +30,13 @@ export const NEWS_KIND: Record<NewsKind, { label: string; color: string }> = {
 
 export const NEWS: News[] = [
   {
+    id: '2026-11-14-coerencia',
+    date: '2026-11-14',
+    kind: 'melhoria',
+    title: 'textos e páginas mais alinhados',
+    text: 'A página principal agora leva direto para o teste da gestão, as três frentes se ligam pelo rodapé e os textos da loja dizem o formato certo de cada arquivo. O fundo das páginas públicas voltou ao bege liso.',
+  },
+  {
     id: '2026-11-12-estilos',
     date: '2026-11-12',
     kind: 'novo',
@@ -133,7 +140,7 @@ export const NEWS: News[] = [
     date: '2026-10-21',
     kind: 'novo',
     title: 'contrato assinado pelas duas partes',
-    text: 'Ao gerar o link de assinatura, o contrato já vai assinado por você, com registro próprio no certificado. Quando o cliente assina, os dois recebem por e-mail a cópia do contrato assinado. A página de assinar ganhou o visual do planê.',
+    text: 'Ao gerar o link de assinatura, o contrato já vai assinado por você, com registro próprio no certificado. Quando o cliente assina, os dois recebem por e-mail a cópia do contrato assinado. A página de assinar ganhou o visual da planê.',
     steps: [{ text: 'Escolha a letra da sua assinatura em contratos → modelos → sua assinatura.', page: 'contratos', id: 'modelos', target: '.sg-auto' }],
   },
   {
@@ -178,15 +185,15 @@ export const NEWS: News[] = [
     date: '2026-10-19',
     kind: 'novo',
     title: 'retrospectiva com artes novas',
-    text: 'A arte da retrospectiva ganhou quatro modelos no visual do planê (escuro com vidro, celular, listrado e widgets), cada um para feed e para story, nas cores da sua marca. E os números grandes agora aparecem inteiros nos cartões.',
+    text: 'A arte da retrospectiva ganhou quatro modelos no visual da planê (escuro com vidro, celular, listrado e widgets), cada um para feed e para story, nas cores da sua marca. E os números grandes agora aparecem inteiros nos cartões.',
     steps: [{ page: 'retrospectiva', text: 'As artes ficam no fim da retrospectiva.' }],
   },
   {
     id: '2026-10-20-previa-link',
     date: '2026-10-20',
     kind: 'melhoria',
-    title: 'link do planê com prévia nova',
-    text: 'Ao mandar o endereço do planê no WhatsApp ou no Instagram, aparece uma prévia nova, com a imagem e a descrição da plataforma.',
+    title: 'link da planê com prévia nova',
+    text: 'Ao mandar o endereço da planê no WhatsApp ou no Instagram, aparece uma prévia nova, com a imagem e a descrição da plataforma.',
   },
   {
     id: '2026-10-19-celular-simbolos',
@@ -280,7 +287,7 @@ export const NEWS: News[] = [
     date: '2026-10-08',
     kind: 'melhoria',
     title: 'abertura mais suave',
-    text: 'Ao abrir o sistema, o símbolo do planê aparece em rosa e se desenha uma vez só, rapidinho, sem ficar piscando.',
+    text: 'Ao abrir o sistema, o símbolo da planê aparece em rosa e se desenha uma vez só, rapidinho, sem ficar piscando.',
   },
   {
     id: '2026-10-08-modo-foto-emails',
@@ -325,15 +332,15 @@ export const NEWS: News[] = [
     id: '2026-10-06-simbolo',
     date: '2026-10-06',
     kind: 'novo',
-    title: 'o planê ganhou símbolo',
-    text: 'O P em laço agora aparece no menu, no ícone do app e na aba do navegador. Se você instalou o planê na tela de início, o ícone novo aparece quando o celular atualizar.',
+    title: 'a planê ganhou símbolo',
+    text: 'O P em laço agora aparece no menu, no ícone do app e na aba do navegador. Se você instalou a planê na tela de início, o ícone novo aparece quando o celular atualizar.',
   },
   {
     id: '2026-10-04-assinar-direto',
     date: '2026-10-04',
     kind: 'melhoria',
     title: 'assinar quando quiser',
-    text: 'Dá para assinar a qualquer momento, mesmo no meio do teste grátis, em minha assinatura. E quem já conhece o planê pode assinar direto pela página de vendas, sem passar pelo teste.',
+    text: 'Dá para assinar a qualquer momento, mesmo no meio do teste grátis, em minha assinatura. E quem já conhece a planê pode assinar direto pela página de vendas, sem passar pelo teste.',
     steps: [{ text: 'Os planos ficam em minha assinatura.', page: 'assinatura' }],
   },
   {
@@ -341,7 +348,7 @@ export const NEWS: News[] = [
     date: '2026-10-04',
     kind: 'melhoria',
     title: 'planos mais claros e contrato explicado',
-    text: 'Os planos ficaram mais enxutos e alinhados, com a comparação completa logo abaixo. Em contratos, ficou claro como usar o texto do seu contrato: as cláusulas entram no modelo do planê, e para a sua identidade use o papel timbrado ou o PDF pronto.',
+    text: 'Os planos ficaram mais enxutos e alinhados, com a comparação completa logo abaixo. Em contratos, ficou claro como usar o texto do seu contrato: as cláusulas entram no modelo da planê, e para a sua identidade use o papel timbrado ou o PDF pronto.',
   },
   {
     id: '2026-10-04-pagar-indicar',
@@ -364,7 +371,7 @@ export const NEWS: News[] = [
     date: '2026-10-04',
     kind: 'correcao',
     title: 'PDF no app do celular',
-    text: 'Com o planê instalado na tela inicial, os PDFs e arquivos agora são salvos ou compartilhados direto do app, sem precisar abrir o site. O menu lateral ganhou um fundo levemente destacado.',
+    text: 'Com a planê instalada na tela inicial, os PDFs e arquivos agora são salvos ou compartilhados direto do app, sem precisar abrir o site. O menu lateral ganhou um fundo levemente destacado.',
   },
   {
     id: '2026-10-04-indique',
@@ -379,7 +386,7 @@ export const NEWS: News[] = [
     date: '2026-10-04',
     kind: 'novo',
     title: 'contrato na sua folha e modelos iguais em tudo',
-    text: 'No contrato, escolha o desenho da folha: o modelo do planê, o seu papel timbrado (anexe a imagem ou o PDF da sua folha e o texto entra por cima, preenchido sozinho) ou um PDF pronto, que o cliente assina exatamente como é. Os 4 modelos (coluna, faixa, planilha e editorial) agora valem em todos os documentos, inclusive os de obra. E no plano sem PDF, o recibo também sai em texto pronto para copiar.',
+    text: 'No contrato, escolha o desenho da folha: o modelo da planê, o seu papel timbrado (anexe a imagem ou o PDF da sua folha e o texto entra por cima, preenchido sozinho) ou um PDF pronto, que o cliente assina exatamente como é. Os 4 modelos (coluna, faixa, planilha e editorial) agora valem em todos os documentos, inclusive os de obra. E no plano sem PDF, o recibo também sai em texto pronto para copiar.',
     steps: [{ text: 'Abra um contrato e veja “desenho da folha”.', page: 'contratos' }],
   },
   {
@@ -387,8 +394,8 @@ export const NEWS: News[] = [
     date: '2026-10-04',
     kind: 'melhoria',
     title: 'mais fácil no dia a dia',
-    text: 'Orçamento sem PDF ganhou o botão “copiar orçamento”, completo e organizado para WhatsApp ou e-mail. Rascunhos e enviados também arrastam no quadro de demandas. Os documentos de obra têm 4 layouts bem diferentes (tabela, índice, painel de referências e ficha técnica). Foto “encaixada inteira” preenche o espaço sem faixas brancas. E ao fechar algo sem salvar, o planê pergunta antes.',
-    steps: [{ text: 'Para pôr o planê na tela do celular: menu → app no celular.', page: 'inicio' }],
+    text: 'Orçamento sem PDF ganhou o botão “copiar orçamento”, completo e organizado para WhatsApp ou e-mail. Rascunhos e enviados também arrastam no quadro de demandas. Os documentos de obra têm 4 layouts bem diferentes (tabela, índice, painel de referências e ficha técnica). Foto “encaixada inteira” preenche o espaço sem faixas brancas. E ao fechar algo sem salvar, a planê pergunta antes.',
+    steps: [{ text: 'Para pôr a planê na tela do celular: menu → app no celular.', page: 'inicio' }],
   },
   {
     id: '2026-10-03-documentos-de-obra',
@@ -436,7 +443,7 @@ export const NEWS: News[] = [
     date: '2026-10-03',
     kind: 'novo',
     title: 'histórico de versões e chave Pix com tipo',
-    text: 'O planê agora guarda sozinho como a sua conta estava, várias vezes por semana e sempre que muita coisa some de uma vez. Apagou algo sem querer? Em configurações → dados, volte para uma versão anterior. E a chave Pix ganhou o tipo (celular, CPF, CNPJ, e-mail ou aleatória), com a pontuação certinha.',
+    text: 'A planê agora guarda sozinho como a sua conta estava, várias vezes por semana e sempre que muita coisa some de uma vez. Apagou algo sem querer? Em configurações → dados, volte para uma versão anterior. E a chave Pix ganhou o tipo (celular, CPF, CNPJ, e-mail ou aleatória), com a pontuação certinha.',
     steps: [
       { text: 'Histórico de versões em configurações → dados.', page: 'config', configTab: 'dados' },
       { text: 'Chave Pix no seu perfil.', page: 'perfil' },
@@ -690,7 +697,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'planê na tela de início do celular',
-    text: 'Dá para adicionar o planê como um ícone no celular, que abre em tela cheia como um aplicativo.',
+    text: 'Dá para adicionar a planê como um ícone no celular, que abre em tela cheia como um aplicativo.',
     steps: [{ page: 'perfil', text: 'No perfil, veja “no celular”.' }],
   },
   {
@@ -737,7 +744,7 @@ export const NEWS: News[] = [
     date: '2026-09-30',
     kind: 'novo',
     title: 'agora também para quem atende cliente final',
-    text: 'O planê nasceu para freelancers e, a pedido de várias arquitetas, agora também é para quem projeta direto para o cliente final: briefing online com imagens, cronograma das etapas, obra, página do projeto para o cliente, proposta em slides e documentos com a sua marca.',
+    text: 'A planê nasceu para freelancers e, a pedido de várias arquitetas, agora também é para quem projeta direto para o cliente final: briefing online com imagens, cronograma das etapas, obra, página do projeto para o cliente, proposta em slides e documentos com a sua marca.',
     steps: [{ page: 'briefings', text: 'Comece mandando um briefing para um cliente.' }, { page: 'documentos', text: 'Veja os documentos: guia de medição, placa de obra e apresentação.' }],
   },
   {

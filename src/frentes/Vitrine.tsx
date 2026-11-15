@@ -1,3 +1,4 @@
+import { TRIAL_DAYS } from '../plans'
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { href } from '../router'
 import { Icon } from '../components/Icon'
@@ -5,7 +6,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal } from './ui'
 import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
@@ -28,7 +29,7 @@ const TEXTO: Record<Id, {
   flutua: [string, string, string, string?][]; catalogo: ReactNode; faq: [string, string][]; final: ReactNode
 }> = {
   arquivos: {
-    kicker: 'para profissionais da beleza: sobrancelha, cílios, unhas, cabelo, estética e noivas',
+    kicker: 'para profissionais da beleza e freelancers: sobrancelha, cílios, unhas, cabelo, estética e noivas',
     titulo: <>arquivos prontos para <em>mandar hoje</em></>,
     lead: 'Mais de 40 arquivos para imprimir e para mandar: fichas, termos, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
     chip: 'editável no Canva, no Word e no Excel',
@@ -38,9 +39,9 @@ const TEXTO: Record<Id, {
     catalogo: <>os <em>arquivos</em></>,
     faq: [
       ['como recebo os arquivos?', 'Pagou no Pix ou no cartão, a página do pedido mostra os botões de baixar na hora. O link também chega por e-mail e fica guardado em minha conta.'],
-      ['como edito no Canva?', 'Na página do pedido aparece o botão "editar no Canva" de cada arquivo: abre uma cópia só sua, pronta para trocar textos, cores e fotos. Os arquivos também vão em PowerPoint, Word, PDF e Excel.'],
+      ['como edito no Canva?', 'As artes vão em PowerPoint: no Canva, toque em Criar design → Importar arquivo e troque textos, cores e fotos. Quando o arquivo tem link direto, o botão "editar no Canva" aparece na página do pedido. Fichas e contratos vão em Word e PDF; planilhas, em Excel.'],
       ['preciso do Canva pago?', 'Não. Tudo abre no Canva gratuito, e as fontes usadas são gratuitas.'],
-      ['o que são os estilos?', 'Cada arquivo tem 4 estilos: delicado, criativo, minimalista e elegante. Escolha o que combina com o seu espaço; cada estilo é comprado à parte.'],
+      ['o que são os estilos?', 'São 4 estilos: delicado, criativo, minimalista e elegante. Escolha o que combina com o seu espaço; cada estilo é comprado à parte.'],
       ['posso usar com todas as minhas clientes?', 'Sim, no seu próprio negócio, quantas vezes quiser. Só não pode revender nem repassar os arquivos.'],
       ['e se eu não gostar?', 'Você tem 7 dias para desistir, com o dinheiro de volta, direto em minha conta.'],
     ],
@@ -53,7 +54,7 @@ const TEXTO: Record<Id, {
     chip: 'Word, PDF, Canva e Excel',
     arte: AM('t-kit-arq-primeiro.webp'),
     arteLabel: 'useplane.com.br/arq',
-    flutua: [['file', 'kit primeiro cliente', '4 modelos com 30% off', 'good'], ['edit', 'com a sua marca', 'logo, cores e textos'], ['sparkle', 'gestão grátis', '14 dias para testar', 'warn']],
+    flutua: [['file', 'kit primeiro cliente', '4 modelos com 30% off', 'good'], ['edit', 'com a sua marca', 'logo, cores e textos'], ['sparkle', 'gestão grátis', `${TRIAL_DAYS} dias para testar`, 'warn']],
     catalogo: <>os <em>modelos</em></>,
     faq: [
       ['como recebo os modelos?', 'Pagou no Pix ou no cartão, a página do pedido mostra os botões de baixar na hora. O link também chega por e-mail e fica em minha conta.'],
@@ -69,7 +70,7 @@ const TEXTO: Record<Id, {
 const PASSOS = [
   { icone: 'search', t: 'escolha o estilo', s: 'Veja cada arquivo por dentro, nos 4 estilos.' },
   { icone: 'lock', t: 'pague no Pix ou no cartão', s: 'Pix com 5% de desconto. Compra segura pelo Asaas.' },
-  { icone: 'edit', t: 'edite no Canva', s: 'O link e os arquivos aparecem na hora e ficam em minha conta.' },
+  { icone: 'edit', t: 'edite do seu jeito', s: 'Os arquivos aparecem na hora, ficam em minha conta e abrem no Canva, no Word e no Excel.' },
 ]
 
 const GESTAO = [
@@ -101,7 +102,7 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
   const pagina: Pagina = sub === 'produtos' ? 'produtos' : sub?.startsWith('p:') ? { produto: sub.slice(2) } : sub?.startsWith('loja:') && sub !== 'loja:carrinho' ? { produto: sub.slice(5) } : 'inicio'
   useEffect(() => {
     const t = typeof pagina === 'object' ? aj?.produtos.find((p) => p.id === pagina.produto)?.nome : pagina === 'produtos' ? 'todos os produtos' : f.frase
-    document.title = `${f.nome} · ${t || f.frase}`
+    document.title = `${f.nome.charAt(0).toUpperCase()}${f.nome.slice(1)} · ${t || f.frase}`
     window.scrollTo(0, 0)
   }, [id, sub, aj])
   const whats = aj?.whatsapp || APE.whatsapp
@@ -277,7 +278,6 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
   return (
     <>
       <section className="lp-hero">
-        <Manchas />
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
             <p className="lp-kicker">
@@ -352,9 +352,8 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
 
       {vitrine && temPrevia(vitrine.id) && (
         <section className="lp-section fr-com-manchas" id="estilos">
-          <Manchas v="b" />
           <div className="lp-wrap">
-            <Cabeca eyebrow="4 estilos" title={<>o arquivo com <em>a sua cara</em></>} text="Cada arquivo existe em quatro estilos. Escolha o que combina com o seu espaço." centro />
+            <Cabeca eyebrow="4 estilos" title={<>o arquivo com <em>a sua cara</em></>} text="Quatro estilos para escolher o que combina com o seu espaço." centro />
             <div className="fr-estilos-vitrine">
               {ESTILOS.map((e, i) => (
                 <a key={e.id} className="fr-estilo-card" href={href(id, 'produtos')} data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
@@ -394,7 +393,7 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
       {id === 'arq' && (
         <section className="lp-section">
           <div className="lp-wrap">
-            <Cabeca eyebrow="quando o escritório crescer" title={<>a gestão planê<em>.arq</em></>} text="Os mesmos modelos, preenchidos sozinhos com os dados de cada cliente. 14 dias grátis, sem cartão." />
+            <Cabeca eyebrow="quando o escritório crescer" title={<>a gestão planê<em>.arq</em></>} text={`Os mesmos modelos, preenchidos sozinhos com os dados de cada cliente. ${TRIAL_DAYS} dias grátis, sem cartão.`} />
             <div className="lp-diffs-grid">
               {GESTAO.map((d, i) => (
                 <article key={d.t} className="lp-diff" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
@@ -481,7 +480,7 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
         </div>
       </section>
 
-      <Final titulo={T.final} texto="Baixa na hora, edita no Canva e usa no mesmo dia." botao={id === 'arq' ? 'ver todos os modelos' : 'ver todos os arquivos'} href={href(id, 'produtos')} />
+      <Final titulo={T.final} texto="Baixa na hora, edita do seu jeito e usa no mesmo dia." botao={id === 'arq' ? 'ver todos os modelos' : 'ver todos os arquivos'} href={href(id, 'produtos')} />
     </>
   )
 }
@@ -790,7 +789,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
             )}
             <ul className="fr-pp-confia">
               <li><Icon name="download" size={16} /> baixa na hora</li>
-              <li><Icon name="edit" size={16} /> editável no Canva</li>
+              <li><Icon name="edit" size={16} /> {/Canva/.test(p.formato || '') ? 'editável no Canva' : /Excel/.test(p.formato || '') ? 'editável no Excel' : /Word/.test(p.formato || '') ? 'editável no Word' : 'editável'}</li>
               <li><Icon name="lock" size={16} /> 7 dias para desistir</li>
             </ul>
           </div>
@@ -821,7 +820,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
             <h2>como usar</h2>
             <ol className="fr-pp-passos">
               <li><b>compre</b><span>Pix ou cartão. A página do pedido abre na hora.</span></li>
-              <li><b>abra no Canva</b><span>Toque em "editar no Canva" ou baixe o arquivo (PowerPoint, Word, PDF ou Excel).</span></li>
+              <li><b>abra o arquivo</b><span>Baixe e abra no Canva (PowerPoint), no Word ou no Excel, conforme o formato.</span></li>
               <li><b>troque o que está entre [colchetes]</b><span>Seu nome, logo, fotos e valores. Pronto para imprimir ou mandar.</span></li>
             </ol>
             <dl className="fr-ficha">

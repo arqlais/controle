@@ -172,7 +172,7 @@ export const FOUNDER_PRICE = true
 export const OWNER_FEATURES: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'propostaPdf', 'contratos', 'instagram', 'agendaCelular', 'identidade', 'briefing', 'cronograma', 'obra', 'lucro', 'portal', 'documentos', 'dadosContrato']
 
 /** Só da dona, nunca entram num plano (mesmo que estejam salvos no painel → planos).
- *  O planejamento do instagram é ferramenta da dona: foge do que o planê promete aos assinantes. */
+ *  O planejamento do instagram é ferramenta da dona: foge do que a planê promete aos assinantes. */
 export const OWNER_ONLY: Feature[] = ['assistenteIA', 'painelDona', 'modeloExclusivo', 'fonteExclusiva', 'instagram', 'dadosContrato']
 
 /** O que a dona pode ligar/desligar em cada plano (painel → planos). */

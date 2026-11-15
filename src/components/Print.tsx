@@ -60,7 +60,7 @@ export async function renderSheet<T>(el: HTMLElement, fn: (el: HTMLElement, o: R
 
 export const errText = (e: unknown) => (e instanceof Event ? 'uma imagem não carregou' : e instanceof Error ? e.message : String(e)).slice(0, 80)
 
-/** Crédito discreto do planê no pé de cada folha (PDF, imagem e impressão). */
+/** Crédito discreto da planê no pé de cada folha (PDF, imagem e impressão). */
 function madeWith(el: HTMLElement) {
   const pages = [...el.querySelectorAll<HTMLElement>('.slide, .pdf-page')]
   const targets = pages.length ? pages : [el]

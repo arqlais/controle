@@ -105,7 +105,7 @@ export default function Admin() {
       // teste aumentado ou liberado: a pessoa recebe uma mensagem no chat (aparece no sistema e vai por e-mail)
       if (patch.trialEnds && patch.trialEnds !== s.trialEnds && (patch.status ?? s.status) === 'trial' && new Date(patch.trialEnds).getTime() > Date.now()) {
         const until = new Date(patch.trialEnds).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-        const text = `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! boa notícia: seu teste grátis do ${PLATFORM.name} foi estendido até ${until} 🎉 aproveite para explorar com calma. qualquer dúvida, é só me chamar por aqui.`
+        const text = `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! boa notícia: seu teste grátis da ${PLATFORM.name} foi estendido até ${until} 🎉 aproveite para explorar com calma. qualquer dúvida, é só me chamar por aqui.`
         void platform
           .send(s.userId, text, true)
           .then(() => platform.notice({ tipo: 'resposta', userId: s.userId, text }))
@@ -198,13 +198,13 @@ const OnlineDot = ({ s }: { s: Subscription }) => (isOnline5(s) ? <span classNam
 
 /* Mensagens prontas para quem está testando ou assinando (dá para ajustar antes de mandar). */
 const MSG_TEMPLATES: { id: string; label: string; when: (s: Subscription) => boolean; text: (s: Subscription) => string }[] = [
-  { id: 'oi', label: 'boas-vindas', when: (s) => s.status === 'trial' && trialDaysLeft(s) >= TRIAL_DAYS - 1, text: (s) => `oi, ${first(s)}! aqui é a ${PLATFORM.owner}, criadora do ${PLATFORM.name} 💛 que bom ter você aqui! uma dica para começar: coloque sua tabela de preços em configurações e faça um orçamento de teste. se travar em qualquer coisa, me chama por aqui.` },
-  { id: 'como', label: 'como está sendo?', when: (s) => s.status === 'trial' && trialDaysLeft(s) < TRIAL_DAYS - 1 && trialDaysLeft(s) > 3, text: (s) => `oi, ${first(s)}! passando para saber como estão sendo os primeiros dias no ${PLATFORM.name}. conseguiu cadastrar um cliente e fazer um orçamento? o que está achando até agora?` },
-  { id: 'sugestao', label: 'pedir sugestão', when: () => true, text: (s) => `oi, ${first(s)}! tem alguma coisa que deixaria o ${PLATFORM.name} mais útil para o seu dia a dia? pode ser algo que faltou ou que ficou confuso. eu leio tudo e muita coisa entra nas próximas atualizações 🙏` },
-  { id: 'feedback', label: 'pedir depoimento', when: (s) => s.status === 'ativa' || (s.status === 'trial' && trialDaysLeft(s) <= 4), text: (s) => `oi, ${first(s)}! se você estiver gostando do ${PLATFORM.name}, deixaria um depoimento rapidinho? fica no menu “deixar depoimento”. ajuda muito outros freelancers a conhecerem ✨` },
+  { id: 'oi', label: 'boas-vindas', when: (s) => s.status === 'trial' && trialDaysLeft(s) >= TRIAL_DAYS - 1, text: (s) => `oi, ${first(s)}! aqui é a ${PLATFORM.owner}, criadora da ${PLATFORM.name} 💛 que bom ter você aqui! uma dica para começar: coloque sua tabela de preços em configurações e faça um orçamento de teste. se travar em qualquer coisa, me chama por aqui.` },
+  { id: 'como', label: 'como está sendo?', when: (s) => s.status === 'trial' && trialDaysLeft(s) < TRIAL_DAYS - 1 && trialDaysLeft(s) > 3, text: (s) => `oi, ${first(s)}! passando para saber como estão sendo os primeiros dias na ${PLATFORM.name}. conseguiu cadastrar um cliente e fazer um orçamento? o que está achando até agora?` },
+  { id: 'sugestao', label: 'pedir sugestão', when: () => true, text: (s) => `oi, ${first(s)}! tem alguma coisa que deixaria a ${PLATFORM.name} mais útil para o seu dia a dia? pode ser algo que faltou ou que ficou confuso. eu leio tudo e muita coisa entra nas próximas atualizações 🙏` },
+  { id: 'feedback', label: 'pedir depoimento', when: (s) => s.status === 'ativa' || (s.status === 'trial' && trialDaysLeft(s) <= 4), text: (s) => `oi, ${first(s)}! se você estiver gostando da ${PLATFORM.name}, deixaria um depoimento rapidinho? fica no menu “deixar depoimento”. ajuda muito outros freelancers a conhecerem ✨` },
   { id: 'acabando', label: 'teste acabando', when: (s) => s.status === 'trial' && trialDaysLeft(s) > 0 && trialDaysLeft(s) <= 3, text: (s) => `oi, ${first(s)}! seu teste grátis acaba em ${trialDaysLeft(s)} dia(s). quer continuar? é só escolher o plano em “minha assinatura” ou eu te mando o link por aqui. Pix ou cartão, sem fidelidade ☺️` },
   { id: 'acabou', label: 'teste acabou', when: (s) => s.status === 'trial' && trialDaysLeft(s) <= 0, text: (s) => `oi, ${first(s)}! seu teste terminou, mas fica tranquila(o): tudo o que você cadastrou está guardado. se quiser continuar, te mando o link para assinar. e se algo não funcionou para você, me conta? quero melhorar 💛` },
-  { id: 'pix', label: 'mandar o Pix', when: (s) => !!s.requestedPlan || s.status === 'ativa' || s.status === 'atrasada', text: (s) => `oi, ${first(s)}! segue o Pix da sua assinatura do ${PLATFORM.name} (${PLANS[s.requestedPlan ?? s.plan].name}): [cole aqui a sua chave Pix ou o link]. assim que cair, eu ativo e te aviso ☺️` },
+  { id: 'pix', label: 'mandar o Pix', when: (s) => !!s.requestedPlan || s.status === 'ativa' || s.status === 'atrasada', text: (s) => `oi, ${first(s)}! segue o Pix da sua assinatura da ${PLATFORM.name} (${PLANS[s.requestedPlan ?? s.plan].name}): [cole aqui a sua chave Pix ou o link]. assim que cair, eu ativo e te aviso ☺️` },
   { id: 'obrigada', label: 'agradecer', when: (s) => s.status === 'ativa', text: (s) => `obrigada, ${first(s)}! pagamento confirmado e sua assinatura está ativa. qualquer coisa, estou por aqui 💛` },
 ]
 const first = (s: Subscription) => (s.name || '').split(' ')[0] || 'tudo bem'
@@ -224,7 +224,7 @@ function withPayment(s: Subscription, c: SubAdmin | undefined, b: Billing | unde
   return { ...c, cycle, method: p.method, paidUntil: addMonths(base, CYCLE_MONTHS[cycle]), payments: [{ ...p, id: uid() }, ...(c?.payments ?? [])] }
 }
 const remindText = (s: Subscription, c?: SubAdmin) =>
-  `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! passando para lembrar que a sua assinatura do ${PLATFORM.name} (${PLANS[s.plan].name}) ${c?.paidUntil ? `vence em ${c.paidUntil.split('-').reverse().join('/')}` : 'está para renovar'}. ${c?.method === 'cartao' ? 'no cartão a cobrança é automática, é só conferir se o cartão está em dia ☺️' : 'posso te mandar o Pix por aqui? ☺️'}`
+  `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! passando para lembrar que a sua assinatura da ${PLATFORM.name} (${PLANS[s.plan].name}) ${c?.paidUntil ? `vence em ${c.paidUntil.split('-').reverse().join('/')}` : 'está para renovar'}. ${c?.method === 'cartao' ? 'no cartão a cobrança é automática, é só conferir se o cartão está em dia ☺️' : 'posso te mandar o Pix por aqui? ☺️'}`
 
 const activate = (s: Subscription): Partial<Subscription> => ({ status: 'ativa', plan: s.requestedPlan ?? s.plan, requestedPlan: null, requestedAt: null, canceledAt: null, blocked: false })
 
@@ -266,7 +266,7 @@ function Summary({ subs, update, openChat, billing, ctrl, saveCtrl, usage }: { u
   const endingTrials = subs.filter((x) => x.status === 'trial' && trialDaysLeft(x) > 0 && trialDaysLeft(x) <= 3)
   const daysIn = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
   const stuck = subs.filter((s) => !s.deletedAt && s.status === 'trial' && trialDaysLeft(s) > 0 && s.createdAt && daysIn(s.createdAt) >= 3 && !(usage[s.userId]?.quotes > 0) && !endingTrials.includes(s))
-  const nudge = (s: Subscription) => `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! vi que você começou o teste do ${PLATFORM.name} e ainda não montou um orçamento. quer que eu te mostre em 5 minutinhos? me conta o serviço que você mais faz que eu te ajudo a deixar a primeira proposta pronta.`
+  const nudge = (s: Subscription) => `oi, ${(s.name || '').split(' ')[0] || 'tudo bem'}! vi que você começou o teste da ${PLATFORM.name} e ainda não montou um orçamento. quer que eu te mostre em 5 minutinhos? me conta o serviço que você mais faz que eu te ajudo a deixar a primeira proposta pronta.`
   const online = subs.filter(isOnline5)
   const todo = requests.length + upcoming.length + endingTrials.length + stuck.length
   const chatBtn = (s: Subscription) => (
@@ -2197,7 +2197,7 @@ function AffiliatesAdmin({ subs, ctrl }: { subs: Subscription[]; ctrl: Record<st
       <p className="pf-note">
         <Icon name="link" size={16} />
         <span>
-          Afiliado é quem divulga o {PLATFORM.name} sem precisar assinar (perfil de arquitetura, professora, influencer). Cada um tem um <b>link próprio</b>: quem chega por ele ganha um desconto no 1º mês, e o afiliado ganha uma <b>% de cada pagamento</b> da pessoa durante os meses combinados. A comissão só conta pagamentos com mais de 30 dias (depois do prazo de estorno), então você nunca paga por quem cancelou. Sugestão segura: 15% por 6 meses e 10% de desconto no 1º mês. O repasse é feito por Pix e anotado aqui.
+          Afiliado é quem divulga a {PLATFORM.name} sem precisar assinar (perfil de arquitetura, professora, influencer). Cada um tem um <b>link próprio</b>: quem chega por ele ganha um desconto no 1º mês, e o afiliado ganha uma <b>% de cada pagamento</b> da pessoa durante os meses combinados. A comissão só conta pagamentos com mais de 30 dias (depois do prazo de estorno), então você nunca paga por quem cancelou. Sugestão segura: 15% por 6 meses e 10% de desconto no 1º mês. O repasse é feito por Pix e anotado aqui.
         </span>
       </p>
       {err && <p className="pf-note is-warn"><Icon name="alert" size={16} /><span>{err}</span></p>}
@@ -2307,7 +2307,7 @@ function AffiliateLinks({ aff, st, onClose }: { aff: Affiliate; st: AffiliateSta
     ['link de divulgação', refLink(aff.code), `quem entra por ele ganha ${aff.discount}% no 1º mês`],
     ['painel do parceiro', panelLink(aff.token), 'link secreto: o parceiro vê os cadastros e a comissão, sem login'],
   ]
-  const wa = `oi, ${aff.name.split(' ')[0]}! seguem seus links do ${PLATFORM.name}:\n\nlink para divulgar (quem entra por ele ganha ${aff.discount}% no 1º mês): ${rows[0][1]}\n\nseu painel (cadastros e comissão): ${rows[1][1]}`
+  const wa = `oi, ${aff.name.split(' ')[0]}! seguem seus links da ${PLATFORM.name}:\n\nlink para divulgar (quem entra por ele ganha ${aff.discount}% no 1º mês): ${rows[0][1]}\n\nseu painel (cadastros e comissão): ${rows[1][1]}`
   return (
     <Modal wide title={`links · ${aff.name}`} onClose={onClose}>
       {sample && (
@@ -2483,7 +2483,7 @@ function SubReferrals({ subs, update }: { subs: Subscription[]; update: (s: Subs
         : await update(who, { bonusMonths: (who.bonusMonths ?? 0) + REFERRAL.months }, '')
     if (!ok) return
     await update(r, { refRewardedAt: new Date().toISOString() }, 'Mês grátis liberado.')
-    const text = `oi, ${(who.name || '').split(' ')[0] || 'tudo bem'}! obrigada por indicar o ${PLATFORM.name} 💛 a ${(r.name || 'pessoa').split(' ')[0]} veio pela sua indicação e você ganhou ${REFERRAL.months} ${REFERRAL.months === 1 ? 'mês grátis' : 'meses grátis'}${who.status === 'trial' ? ' (seu teste foi estendido)' : ', que entra na sua próxima cobrança'}.`
+    const text = `oi, ${(who.name || '').split(' ')[0] || 'tudo bem'}! obrigada por indicar a ${PLATFORM.name} 💛 a ${(r.name || 'pessoa').split(' ')[0]} veio pela sua indicação e você ganhou ${REFERRAL.months} ${REFERRAL.months === 1 ? 'mês grátis' : 'meses grátis'}${who.status === 'trial' ? ' (seu teste foi estendido)' : ', que entra na sua próxima cobrança'}.`
     void platform
       .send(who.userId, text, true)
       .then(() => platform.notice({ tipo: 'resposta', userId: who.userId, text }))

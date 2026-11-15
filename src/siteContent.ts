@@ -31,8 +31,8 @@ export const DEFAULT_SITE: SiteContent = {
   text: `Sou estudante de arquitetura e trabalho como freelancer com renderização, modelagem e detalhamento. Com os clientes chegando, tudo foi ficando espalhado: orçamento numa planilha, prazo no bloco de notas, pagamento na memória, contrato em outro arquivo e a agenda da faculdade no meio disso tudo.
 
 Procurei um sistema pensado para o freelancer e não encontrei. Então criei o meu, do jeito que a rotina pede. Deu tão certo que resolvi abrir para outros freelancers, com uma assinatura que cabe no bolso de quem está começando.`,
-  facts: ['estudante de arquitetura', 'freelancer em visualização 3D', `criadora do ${PLATFORM.name}`],
-  signature: `${PLATFORM.owner} · criadora do ${PLATFORM.name}`,
+  facts: ['estudante de arquitetura', 'freelancer em visualização 3D', `criadora da ${PLATFORM.name}`],
+  signature: `${PLATFORM.owner} · criadora da ${PLATFORM.name}`,
   instagram: '@sou.plane',
   whatsapp: '',
   email: 'equipe.plane@gmail.com',
@@ -72,7 +72,7 @@ USUÁRIO: {assinante_nome}, {assinante_doc}, e-mail {assinante_email}.
 Plano: {plano}. Data: {data}.
 
 1. QUEM SOMOS
-O ${PLATFORM.name} é uma plataforma on-line de gestão para profissionais de projeto (arquitetura, design de interiores e visualização 3D), oferecida por {empresa_nome}, {empresa_doc}, contato: {empresa_email} (PLATAFORMA).
+A ${PLATFORM.name} é uma plataforma on-line de gestão para profissionais de projeto (arquitetura, design de interiores e visualização 3D), oferecida por {empresa_nome}, {empresa_doc}, contato: {empresa_email} (PLATAFORMA).
 
 2. O QUE A PLATAFORMA OFERECE
 2.1 Ferramentas para organizar clientes, demandas, prazos, orçamentos, propostas, contratos, recibos, agenda e financeiro, conforme o plano escolhido.

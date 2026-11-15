@@ -70,7 +70,7 @@ export function PayNow({ plan, cycle, pixAmount, cardAmount, method }: { plan: P
             <span className="paynow-head">
               <Icon name="lock" size={16} /> cartão de crédito · <b>{money(cardAmount)}</b>
             </span>
-            <p className="muted small">Pagamento em ambiente seguro. Os dados do cartão nunca passam pelo {PLATFORM.name}.</p>
+            <p className="muted small">Pagamento em ambiente seguro. Os dados do cartão nunca passam pela {PLATFORM.name}.</p>
             <a className="btn primary block" href={link} target="_blank" rel="noreferrer">
               pagar no cartão <Icon name="chevronR" size={14} />
             </a>

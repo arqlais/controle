@@ -493,7 +493,7 @@ export async function pdfToHtml(file: File): Promise<string> {
   return `<div class="ch-doc" style="font-size:${base}pt${serif ? ";font-family:Georgia,'Times New Roman',serif" : ''}">${out.join('')}</div>`
 }
 
-/** Texto com a estrutura do arquivo, para sair no modelo de contrato do planê:
+/** Texto com a estrutura do arquivo, para sair no modelo de contrato da planê:
     títulos (estilo de título ou parágrafo curto todo em negrito) viram MAIÚSCULAS, listas ganham número ou marcador. */
 export function structuredText(html: string): string {
   const d = new DOMParser().parseFromString(html, 'text/html')

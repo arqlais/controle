@@ -97,7 +97,7 @@ async function fotoLeve(f: File): Promise<string> {
 }
 
 type Aba = 'resumo' | 'compra' | 'gastos' | 'parcelas' | 'orcamentos' | 'contas' | 'etapas' | 'vistoria' | 'contatos' | 'medidas' | 'compras' | 'mudanca' | 'garantias' | 'documentos' | 'calculadoras'
-/** Menu em grupos, como no planê arquitetura, com símbolos que dizem o que é cada coisa. */
+/** Menu em grupos, como na planê arquitetura, com símbolos que dizem o que é cada coisa. */
 type Jornada = 'compra' | 'chaves'
 type Item = [Aba, string, string]
 const I: Record<Aba, Item> = {
@@ -105,7 +105,7 @@ const I: Record<Aba, Item> = {
   etapas: ['etapas', 'etapas da obra', 'layers'], vistoria: ['vistoria', 'vistoria', 'check'], contatos: ['contatos', 'fornecedores', 'phone'], medidas: ['medidas', 'medidas do apê', 'ruler'],
   compras: ['compras', 'compras e enxoval', 'sofa'], mudanca: ['mudanca', 'mudança', 'box'], garantias: ['garantias', 'garantias e manutenção', 'lock'], documentos: ['documentos', 'documentos', 'folder'], calculadoras: ['calculadoras', 'calculadoras', 'grid'],
 }
-/** Menu em grupos, como no planê arquitetura. Muda conforme a fase: quem acabou de comprar vê a compra primeiro; quem vai receber as chaves vê a obra. */
+/** Menu em grupos, como na planê arquitetura. Muda conforme a fase: quem acabou de comprar vê a compra primeiro; quem vai receber as chaves vê a obra. */
 const gruposDe = (j: Jornada): [string, Item[]][] => j === 'compra'
   ? [['', [I.resumo]], ['minha compra', [I.compra, I.parcelas, I.gastos]], ['planejar a casa', [I.orcamentos, I.compras, I.medidas, I.contas]], ['quando chegar a hora', [I.etapas, I.vistoria, I.contatos, I.mudanca]], ['guardar', [I.documentos, I.garantias]], ['ferramentas', [I.calculadoras]]]
   : [['', [I.resumo]], ['obra e chaves', [I.etapas, I.vistoria, I.contatos, I.medidas]], ['dinheiro', [I.gastos, I.parcelas, I.orcamentos, I.compra, I.contas]], ['casa nova', [I.compras, I.mudanca, I.garantias, I.documentos]], ['ferramentas', [I.calculadoras]]]
@@ -404,7 +404,7 @@ type Mudar<T> = (fn: (l: T[]) => T[]) => void
 
 const FASE: Record<string, string> = { comprando: 'comprando', planta: 'comprei na planta', pronto: 'comprei pronto', obra: 'em obra', morando: 'morando' }
 
-/* ---------- gráficos simples (SVG, nas cores do planê.apê) ---------- */
+/* ---------- gráficos simples (SVG, nas cores da planê.apê) ---------- */
 function Rosca({ partes, centro, sub }: { partes: { v: number; c: string; l: string }[]; centro: string; sub: string }) {
   const tot = partes.reduce((t, p) => t + p.v, 0) || 1
   const R = 42, C = 2 * Math.PI * R

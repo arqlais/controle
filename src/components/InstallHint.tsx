@@ -3,7 +3,7 @@ import { Icon } from './Icon'
 import { Modal } from './ui'
 import { PLATFORM } from '../plans'
 
-/* "Adicionar à tela de início": o planê vira um ícone no celular, com o nome da plataforma, e abre em tela cheia.
+/* "Adicionar à tela de início": a planê vira um ícone no celular, com o nome da plataforma, e abre em tela cheia.
    No Android/Chrome aparece o botão instalar; no iPhone, o passo a passo do Safari. */
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> }
@@ -93,7 +93,7 @@ export function InstallHint({ always }: { always?: boolean }) {
   )
 }
 
-/** Passo a passo para pôr o planê na tela de início (iPhone e Android). Abre como app, em tela cheia, sem barra do navegador. */
+/** Passo a passo para pôr a planê na tela de início (iPhone e Android). Abre como app, em tela cheia, sem barra do navegador. */
 export function InstallGuide({ onClose }: { onClose: () => void }) {
   const [os, setOs] = useState<'iphone' | 'android'>(() => (typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent) ? 'android' : 'iphone'))
   const [canPrompt, setCanPrompt] = useState(!!deferred)
@@ -108,18 +108,18 @@ export function InstallGuide({ onClose }: { onClose: () => void }) {
           { icon: 'smartphone', title: 'abra no Safari', text: 'No iPhone, o atalho só funciona pelo Safari (no Chrome do iPhone também dá, pelo mesmo botão de compartilhar).' },
           { icon: 'upload', title: 'toque em Compartilhar', text: 'É o quadrado com a seta para cima, na barra de baixo (ou no topo, no iPad).' },
           { icon: 'plus', title: '“Adicionar à Tela de Início”', text: 'Role a lista para baixo até achar. Confirme o nome “planê” e toque em Adicionar.' },
-          { icon: 'check', title: 'pronto', text: 'O ícone do planê aparece junto dos seus apps. Ele abre em tela cheia, sem a barra do navegador.' },
+          { icon: 'check', title: 'pronto', text: 'O ícone da planê aparece junto dos seus apps. Ele abre em tela cheia, sem a barra do navegador.' },
         ]
       : [
-          { icon: 'smartphone', title: 'abra no Chrome', text: 'Entre no planê pelo Chrome (ou pelo navegador da Samsung).' },
+          { icon: 'smartphone', title: 'abra no Chrome', text: 'Entre na planê pelo Chrome (ou pelo navegador da Samsung).' },
           { icon: 'menu', title: 'toque nos ⋮ três pontinhos', text: 'Fica no canto de cima, à direita.' },
           { icon: 'plus', title: '“Instalar app” ou “Adicionar à tela inicial”', text: 'Confirme em Instalar. Em alguns celulares aparece um aviso embaixo da tela: é só tocar nele.' },
-          { icon: 'check', title: 'pronto', text: 'O ícone do planê aparece na tela inicial e na lista de apps, e abre em tela cheia.' },
+          { icon: 'check', title: 'pronto', text: 'O ícone da planê aparece na tela inicial e na lista de apps, e abre em tela cheia.' },
         ]
   return (
     <Modal title={`${PLATFORM.name} como aplicativo`} onClose={onClose}>
       <div className="ig">
-        <p className="muted small">Sem baixar nada da loja: o planê vira um ícone no celular e abre em tela cheia, como um app. Seus dados continuam os mesmos.</p>
+        <p className="muted small">Sem baixar nada da loja: a planê vira um ícone no celular e abre em tela cheia, como um app. Seus dados continuam os mesmos.</p>
         <div className="segmented ig-os">
           <button type="button" className={os === 'iphone' ? 'active' : ''} onClick={() => setOs('iphone')}>
             iPhone
@@ -155,7 +155,7 @@ export function InstallGuide({ onClose }: { onClose: () => void }) {
             <Icon name="download" size={15} /> instalar agora
           </button>
         )}
-        {standalone() && <p className="pf-note small">Você já está usando o planê como aplicativo.</p>}
+        {standalone() && <p className="pf-note small">Você já está usando a planê como aplicativo.</p>}
       </div>
     </Modal>
   )

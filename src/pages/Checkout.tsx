@@ -62,7 +62,7 @@ export default function Checkout({ planId }: { planId: string }) {
             assinaturas <em>em breve</em>
           </h1>
           <p className="muted">
-            O {PLATFORM.name} ainda está em fase de testes. As assinaturas abrem no lançamento, e quem está testando fica sabendo primeiro, com o preço de lançamento. Enquanto isso, é só continuar usando: tudo o que você cadastrar fica guardado.
+            A {PLATFORM.name} ainda está em fase de testes. As assinaturas abrem no lançamento, e quem está testando fica sabendo primeiro, com o preço de lançamento. Enquanto isso, é só continuar usando: tudo o que você cadastrar fica guardado.
           </p>
           <a className="btn primary" href={href('inicio')}>
             continuar testando
@@ -277,7 +277,7 @@ function CheckoutForm({ planId }: { planId: string }) {
                 <button type="button" className="link" onClick={(e) => (e.preventDefault(), setShowTerms(true))}>
                   termos de uso e o contrato de assinatura
                 </button>{' '}
-                do {PLATFORM.name}.
+                da {PLATFORM.name}.
               </span>
             </label>
             <p className="muted small co-rights">

@@ -20,7 +20,7 @@ import { Protege } from './Protege'
 import { CaixaDona, FaleComigo } from './FaleComigo'
 import './ape.css'
 
-/* Página pública do planê.apê: os moradores do San Levi se cadastram, comparam os orçamentos,
+/* Página pública da planê.apê: os moradores do San Levi se cadastram, comparam os orçamentos,
    mandam os seus e escolhem com quem fechar. A loja e a plataforma ficam em Loja.tsx e Plataforma.tsx. */
 
 const CAD = 'ape-cadastro'
@@ -39,7 +39,7 @@ export function ApePublic({ sub }: { sub?: string }) {
 
   useEffect(() => {
     document.title = `Planê.apê · ${location.pathname.includes("sanlevi") ? `orçamentos do ${APE.condominio}` : "do contrato às chaves"}`
-    // "adicionar à tela de início" abre direto o planê.apê, com o ícone dele
+    // "adicionar à tela de início" abre direto a planê.apê, com o ícone dela
     const swap = (sel: string, attr: string, val: string) => {
       const el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(sel)
       if (!el) return () => undefined

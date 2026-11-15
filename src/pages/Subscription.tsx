@@ -233,7 +233,7 @@ export function BlockedScreen({ onChat }: { onChat: () => void }) {
         </h1>
         <p className="muted">
           {expired && !LAUNCHED
-            ? `Obrigada por testar! As assinaturas abrem no lançamento do ${PLATFORM.name}. Quer continuar testando até lá? É só pedir pelo chat. Seus dados estão guardados e nada foi apagado.`
+            ? `Obrigada por testar! As assinaturas abrem no lançamento da ${PLATFORM.name}. Quer continuar testando até lá? É só pedir pelo chat. Seus dados estão guardados e nada foi apagado.`
             : expired
             ? 'Para continuar usando, peça a assinatura de um plano. Seus dados estão guardados e nada foi apagado.'
             : `Seu acesso está pausado no momento. Seus dados estão guardados e nada foi apagado. Fale com ${PLATFORM.supportWith} pelo chat para resolver.`}
@@ -344,7 +344,7 @@ function CloseAccount() {
     <Section title="encerrar conta">
       {!open ? (
         <>
-          <p className="muted small">Quer dar uma pausa ou sair do {PLATFORM.name}? Você pode desativar (tudo fica guardado) ou apagar a conta.</p>
+          <p className="muted small">Quer dar uma pausa ou sair da {PLATFORM.name}? Você pode desativar (tudo fica guardado) ou apagar a conta.</p>
           <button className="btn ghost small" onClick={() => setOpen(true)}>
             ver opções
           </button>
@@ -388,7 +388,7 @@ export function ReferralCard({ code, plain }: { code: string; plain?: boolean })
     platform.myReferrals().then(setList).catch(() => setList([]))
   }, [])
   const link = code ? refLink(code) : ''
-  const text = `Uso o ${PLATFORM.name} para organizar clientes, orçamentos, contratos e obra. Testa grátis por ${TRIAL_DAYS} dias pelo meu link e ganha ${REFERRAL.discount}% de desconto no primeiro mês: ${link}`
+  const text = `Uso a ${PLATFORM.name} para organizar clientes, orçamentos, contratos e obra. Testa grátis por ${TRIAL_DAYS} dias pelo meu link e ganha ${REFERRAL.discount}% de desconto no primeiro mês: ${link}`
   const gained = (list ?? []).filter((x) => x.rewarded).length
   const body = (
       <div className="ref-card">

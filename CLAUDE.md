@@ -1,6 +1,6 @@
 # planê — combinados do projeto
 
-- Marca: **planê** · site useplane.com.br · e-mail equipe.plane@gmail.com · Instagram @sou.plane (ficam em `PLATFORM`, `src/plans.ts`).
+- Marca: **planê**, sempre no feminino ("a planê", "da planê", "na planê"; vale para planê.arquivos, planê.arq e planê.apê) · site useplane.com.br · e-mail equipe.plane@gmail.com · Instagram @sou.plane (ficam em `PLATFORM`, `src/plans.ts`).
 
 - A cada atualização publicada, registre o que mudou em `src/news.ts` (novidades que os assinantes veem ao abrir o sistema): texto curto e geral, sem excesso de detalhe, agrupando mudanças parecidas. Nada de `beta: true` no que já está liberado.
 - Emojis só em conversas (mensagens de WhatsApp, chat). Na interface, use ícones/símbolos.

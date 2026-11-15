@@ -112,7 +112,7 @@ export function OwnerChat({ openSignal = 0 }: { openSignal?: number }) {
             ) : msgs.length === 0 ? (
               <div className="ai-empty">
                 <p className="muted small">
-                  oi! aqui você fala direto com {PLATFORM.supportWith} do {PLATFORM.name}: dúvidas sobre o sistema, sugestões ou qualquer problema. {online ? 'estamos online agora ☺️' : 'respondemos assim que possível ☺️'}
+                  oi! aqui você fala direto com {PLATFORM.supportWith} da {PLATFORM.name}: dúvidas sobre o sistema, sugestões ou qualquer problema. {online ? 'estamos online agora ☺️' : 'respondemos assim que possível ☺️'}
                 </p>
                 {['como faço meu primeiro orçamento?', 'como coloco meu logo na proposta?', 'como faço para assinar?'].map((st) => (
                   <button key={st} className="ai-starter" onClick={() => setText(st)}>

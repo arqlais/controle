@@ -26,7 +26,7 @@ export const inviteFromUrl = () => {
   }
 }
 
-/** Entrar ou criar conta com o Google (volta para o planê já logada). */
+/** Entrar ou criar conta com o Google (volta para a planê já logada). */
 export async function googleLogin() {
   const { error } = await supabase!.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + window.location.pathname } })
   if (error) throw error
@@ -74,7 +74,7 @@ export function Signup({ onDone }: { plan?: string; onDone?: (plan: PlanId) => v
   const inviteOk = !ACCESS_CFG.invite || (!!ACCESS_CFG.inviteCode && code.trim().toLowerCase() === ACCESS_CFG.inviteCode.toLowerCase())
   // o que vale para os dois jeitos de criar conta (e-mail ou Google)
   const check = () => {
-    if (!inviteOk) return 'O planê está em lançamento fechado: coloque o código do seu convite.'
+    if (!inviteOk) return 'A planê está em lançamento fechado: coloque o código do seu convite.'
     if (!name.trim()) return 'Coloque seu nome.'
     if (!profile) return 'Conte como você trabalha: assim o sistema já vem pronto para você.'
     if (!agree) return 'Para continuar, leia e aceite os termos de uso e o contrato de assinatura.'

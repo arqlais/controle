@@ -50,7 +50,7 @@ const longDate = (iso: string) => {
 }
 // frase de abertura: muda a cada atualização (pela data), sempre curta
 const IMPACT = [
-  `o ${PLATFORM.name} ficou mais leve de novo`,
+  `a ${PLATFORM.name} ficou mais leve de novo`,
   'menos planilha, mais projeto',
   'novidades fresquinhas para a sua rotina',
   'pequenos ajustes, grandes horas economizadas',
@@ -89,7 +89,7 @@ export function NewsModal({ unseen, onClose, onLater, onHistory }: { unseen: New
               <span className="nw-pulse" /> atualização · {longDate(date)}
             </p>
             <h2 className="nw-title">{impact}</h2>
-            <p className="nw-lead">Estamos sempre melhorando o {PLATFORM.name} para a sua gestão ficar mais simples. Veja o que mudou:</p>
+            <p className="nw-lead">Estamos sempre melhorando a {PLATFORM.name} para a sua gestão ficar mais simples. Veja o que mudou:</p>
             <ol className="nw-summary">
               {list.map((x, k) => (
                 <li key={x.id}>
@@ -234,7 +234,7 @@ export function WelcomeCard({ name, onTour, onSkip }: { name: string; onTour: ()
             fazer minha proposta <Icon name="arrowRight" size={15} />
           </button>
         </div>
-        <p className="nw-sign">— {PLATFORM.owner}, criadora do {PLATFORM.name}</p>
+        <p className="nw-sign">— {PLATFORM.owner}, criadora da {PLATFORM.name}</p>
       </div>
     </div>
   )

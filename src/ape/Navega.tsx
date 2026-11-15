@@ -53,7 +53,7 @@ export function MenuConta({ nome, owner = false, morador = false, extra = [], so
     ['sanlevi', `área do ${APE.condominio}`, 'users', href('ape')],
     ['plataforma', 'minha plataforma', 'phone', plat ? href('ape', `minha:${plat}`) : href('ape', 'conta')],
     ['conta', logado ? 'minha conta e compras' : 'entrar na minha conta', 'user', href('ape', 'conta')],
-    // só aparece para a dona (conta do planê com acesso de dona neste aparelho)
+    // só aparece para a dona (conta da planê com acesso de dona neste aparelho)
     ['painel', 'painel da loja', 'gear', href('ape-admin')],
   ]
   const links = todos.filter(([k]) => (k === 'painel' ? owner : (k !== 'sanlevi' || morador || owner) && (!so || so.includes(k)))).map(([, l, i, h]) => [l, i, h] as const)

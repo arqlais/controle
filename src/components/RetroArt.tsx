@@ -3,7 +3,7 @@ import type { Settings } from '../types'
 import { MONTHS, money } from '../utils'
 import type { RetroStats } from '../pages/Retro'
 
-/* Arte da retrospectiva para postar, no visual dos posts do planê: fundo com brilho suave,
+/* Arte da retrospectiva para postar, no visual dos posts da planê: fundo com brilho suave,
    vidro sem exagero, símbolos em quadradinhos, números em Poppins e palavras na serifada.
    Quatro modelos bem diferentes (lançamento, celular, listrado e widgets), em feed (1080 × 1350)
    e story (1080 × 1920). Nas cores da marca de quem baixa; a Laís usa as dela. */

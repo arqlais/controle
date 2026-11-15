@@ -1,7 +1,7 @@
 import { CLOUD, supabase } from '../cloud'
 import { APE, CUPONS_PADRAO, EXEMPLOS, JUROS_PCT, LOJA_VERSAO, MIGRA_LOJA, PIX_PCT, PRODUTOS, TAXAS, acharCupom, comPrecos, conta, type Cupom, ehSanLevi, cleanOrcamento, type Arquivo, type Envio, type Interesse, type Morador, type Orcamento, type Produto, type Taxas } from './model'
 
-/* Onde os dados do planê.apê ficam: no Supabase do planê (tabelas ape_*, ver supabase/ape.sql).
+/* Onde os dados da planê.apê ficam: no Supabase da planê (tabelas ape_*, ver supabase/ape.sql).
    Sem nuvem (prévia), tudo fica neste navegador, com os orçamentos de exemplo. */
 
 export interface Ajustes {
@@ -316,7 +316,7 @@ export async function numerosLoja(): Promise<{ moradores: number; compras: numbe
   }
 }
 
-/** É a dona olhando a página (logada no planê)? */
+/** É a dona olhando a página (logada na planê)? */
 export async function souDona(): Promise<boolean> {
   if (!CLOUD) return false
   const { data } = await sb().auth.getSession()

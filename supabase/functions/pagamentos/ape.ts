@@ -500,7 +500,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000))
     return btoa(s)
   }
-  /** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que uma admin colocou no planê (configurações → assistente). */
+  /** Chave do Gemini: o segredo GEMINI_API_KEY ou a chave que uma admin colocou na planê (configurações → assistente). */
   const MODELOS = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.5-flash']
   async function geminiKey() {
     const k = env('GEMINI_API_KEY').trim()

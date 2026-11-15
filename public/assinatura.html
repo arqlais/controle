@@ -34,9 +34,9 @@
   <div class="box">
     <p class="label">seus dados</p>
     <div class="fields">
-      <label>Linha de baixo <input id="cargo" value="criadora do Planê"></label>
+      <label>Linha de baixo <input id="cargo" value="criadora da Planê"></label>
       <label>WhatsApp (com DDD) <input id="wpp" inputmode="tel" value="(11) 96928-8192"></label>
-      <label>Botão <input id="cta" value="conheça o Planê"></label>
+      <label>Botão <input id="cta" value="conheça a Planê"></label>
     </div>
   </div>
 
@@ -81,7 +81,7 @@
     const digits = $('wpp').value.replace(/\D/g, '')
     const wpp = digits ? `https://wa.me/${digits.length <= 11 ? '55' + digits : digits}` : ''
     try { localStorage.setItem('plane-assinatura', JSON.stringify({ cargo, wpp: $('wpp').value, cta })) } catch {}
-    // cartão rosado: símbolo · nome na letra do Planê · ícones · botão (só tabelas e estilos na linha)
+    // cartão rosado: símbolo · nome na letra da Planê · ícones · botão (só tabelas e estilos na linha)
     $('sig').innerHTML = `<table cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px;max-width:100%;border-collapse:separate;font-family:Helvetica,Arial,sans-serif;color:#3e4b57;">
   <tr><td style="background:#f4e8e5;border-radius:20px;padding:18px 24px 18px 18px;">
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;"><tr>

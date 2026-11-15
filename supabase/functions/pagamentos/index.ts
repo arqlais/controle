@@ -1,5 +1,5 @@
 // publicado automaticamente pelo GitHub (workflow supabase.yml)
-// Pagamentos do planê pelo Asaas (roda no Supabase, nunca no site).
+// Pagamentos da planê pelo Asaas (roda no Supabase, nunca no site).
 // Cole em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "pagamentos".
 // IMPORTANTE: nas configurações da função, DESLIGUE "Verify JWT" (o Asaas avisa os pagamentos sem login;
 // quem cria a cobrança é conferido aqui dentro pelo login da pessoa).
@@ -15,9 +15,9 @@
 //             · mensal no cartão = assinatura recorrente (cobra todo mês sozinho)
 //             · cartão no semestral/anual = parcelado em até 6x/12x sem juros (taxa já embutida no preço)
 //             · Pix = QR Code na hora
-//   ape-* → loja do planê.apê (ver ape.ts): pedido com CPF (Pix na página ou cartão no Asaas), entrega com a licença
+//   ape-* → loja da planê.apê (ver ape.ts): pedido com CPF (Pix na página ou cartão no Asaas), entrega com a licença
 //             de quem comprou nos PDFs, bônus depois de 7 dias, plataforma do apê, recuperar compras, reembolso e
-//             leitura automática dos orçamentos (Gemini: segredo GEMINI_API_KEY ou a chave que a dona colocou no planê).
+//             leitura automática dos orçamentos (Gemini: segredo GEMINI_API_KEY ou a chave que a dona colocou na planê).
 //   webhook → o Asaas avisa cada pagamento; tudo é conferido de novo direto no Asaas. Confirmado, a conta é liberada sozinha,
 //             o pagamento entra no controle da dona (assinantes → cobrança) e a pessoa recebe uma mensagem no chat.
 
@@ -177,7 +177,7 @@ async function webhook(req: Request) {
   if (!id || !/^PAYMENT_(CONFIRMED|RECEIVED)$/.test(String(body.event ?? ''))) return json({ ok: true })
   const p = await asaas(`/payments/${id}`)
   if (!['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'].includes(String(p.status))) return json({ ok: true })
-  // compra da loja do planê.apê
+  // compra da loja da planê.apê
   const ext = String(p.externalReference ?? '')
   if (ext.startsWith('ape|')) {
     await ape.marcarPago(ext.slice(4), p)

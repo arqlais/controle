@@ -25,7 +25,7 @@ Falsos alarmes conferidos na imagem: perguntas frequentes fechadas, cartões que
 ## Sugestões (por ordem de impacto)
 
 1. **Compra teste real** no Pix em `/arquivos` (e reembolso no painel) antes de divulgar.
-2. **Renomear os Instagrams** (@plane.arquivos, @plane.ape, @plane.arq): os links do site já apontam para eles.
+2. **Renomear os Instagrams** (@plane.arquivos; @apzinho_1204 e @sou.plane ficam como estão): os links do site já apontam para eles.
 3. **Página de vendas da gestão leve**: ela ainda carrega o sistema inteiro (~1,2 MB). Dá para levar para a entrada leve, como a principal.
 4. **Fundo do sistema dos assinantes**: ainda tem manchas suaves (pedido de 19/10), o que contraria a regra nova "fundo bege uniforme". Posso tirar.
 5. **Zoom no celular**: hoje o site bloqueia o zoom com dois dedos. Liberar ajuda quem enxerga pouco, e as caixas de texto já têm 16 px (o iPhone não dá zoom sozinho).

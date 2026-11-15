@@ -52,7 +52,7 @@ export default function Feedback() {
       </div>
       <p className="pf-note">
         <Icon name="heart" size={16} />
-        <span>Conte como o {PLATFORM.name} ajuda no seu dia a dia. Se você autorizar, seu depoimento pode aparecer na página do {PLATFORM.name}, só com o seu nome e a sua profissão.</span>
+        <span>Conte como a {PLATFORM.name} ajuda no seu dia a dia. Se você autorizar, seu depoimento pode aparecer na página da {PLATFORM.name}, só com o seu nome e a sua profissão.</span>
       </p>
       <Section title="como está sendo usar?">
         <form className="stack" onSubmit={submit}>
@@ -75,7 +75,7 @@ export default function Feedback() {
             </Field>
           </div>
           <label className="check">
-            <input id="fb-allow" type="checkbox" checked={allow} onChange={(e) => setAllow(e.target.checked)} /> autorizo que este depoimento apareça na página do {PLATFORM.name} (só nome e profissão)
+            <input id="fb-allow" type="checkbox" checked={allow} onChange={(e) => setAllow(e.target.checked)} /> autorizo que este depoimento apareça na página da {PLATFORM.name} (só nome e profissão)
           </label>
           <button className="btn primary" disabled={busy}>
             {busy ? 'enviando…' : 'enviar depoimento'}

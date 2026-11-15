@@ -57,7 +57,7 @@ export default function Suggestions({ unseen = [], onSeen }: { unseen?: string[]
       <p className="pf-note">
         <Icon name="flag" size={16} />
         <span>
-          O {PLATFORM.name} é feito por quem também vive de projeto e melhora com as ideias de quem usa. Conte o que faria diferença no seu dia a dia: toda sugestão é lida pelo {PLATFORM.support}.
+          A {PLATFORM.name} é feita por quem também vive de projeto e melhora com as ideias de quem usa. Conte o que faria diferença no seu dia a dia: toda sugestão é lida pelo {PLATFORM.support}.
         </span>
       </p>
       <Section title="nova sugestão">

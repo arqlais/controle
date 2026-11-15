@@ -19,7 +19,7 @@ export function AffiliatePanel({ token }: { token: string }) {
     return (
       <div className="aff-panel">
         <h1>link não encontrado</h1>
-        <p className="muted">Confira o link com a equipe do {PLATFORM.name}.</p>
+        <p className="muted">Confira o link com a equipe da {PLATFORM.name}.</p>
       </div>
     )
   return <AffiliatePanelView st={st} />

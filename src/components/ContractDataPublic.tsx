@@ -5,7 +5,7 @@ import { emptyAddress, loadDataLink, type DataLinkSource, missingFor, ruleOf, se
 import type { ContractData, ContractPerson, DataFieldKey, DataFormConfig, DataQuestion } from '../types'
 
 /* Link que o cliente abre para mandar os dados do contrato: passo a passo, sem login, em qualquer aparelho.
-   No visual do planê (bege, vidro leve, símbolos). Já vem com o que você tinha no cadastro;
+   No visual da planê (bege, vidro leve, símbolos). Já vem com o que você tinha no cadastro;
    o rascunho fica guardado no aparelho do cliente até ele enviar. */
 
 type Step = 'capa' | 'tipo' | 'empresa' | 'voce' | 'socios' | 'final' | 'revisao'
@@ -18,7 +18,7 @@ const META: Record<Exclude<Step, 'capa'>, { icon: string; title: string; short: 
   revisao: { icon: 'check', title: 'confira e envie', short: 'enviar' },
 }
 
-/** Símbolo do planê. */
+/** Símbolo da planê. */
 export function PlaneMark({ size = 22, color = '#f3ece5' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden>
