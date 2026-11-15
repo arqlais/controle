@@ -2888,3 +2888,30 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
 .ape-canva-i { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 12px; }
 .ape-canva-i input { min-width: 0; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid #e3d8d3; font: inherit; font-size: 12.5px; }
 .ape-canva-i input.ape-inv { border-color: #c98b84; }
+
+/* ===== página de vendas mais limpa: menos caixa dentro de caixa, mais respiro ===== */
+.ape-publico .ape-main { display: grid; gap: 44px; }
+@media (max-width: 760px) { .ape-publico .ape-main { gap: 34px; } }
+.ape-ja-comprou { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--a-muted); text-decoration: underline; text-underline-offset: 3px; }
+.ape-ja-comprou .ape-i { width: 14px; height: 14px; transform: rotate(-90deg); }
+/* etapas: sem a caixa de fora, só os atalhos */
+.ape-oque-grid { grid-template-columns: minmax(0, 1fr); }
+.ape-esc.arq { background: none; border: 0; padding: 0; border-radius: 0; overflow: visible; }
+.ape-esc.arq .ape-esc-h { display: none; }
+@media (min-width: 761px) { .ape-esc.arq .ape-esc-l { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; } }
+/* plataforma: um bloco só, sem borda forte; recursos viram uma lista leve */
+.ape-plat { border: 0; box-shadow: none; background: var(--a-card); }
+.ape-plat-feats { gap: 4px 16px; align-content: center; }
+.ape-plat-f { background: none; padding: 8px 0; border-radius: 0; align-items: center; border-bottom: 1px solid var(--a-line); }
+.ape-plat-f b { font-size: 14px; font-weight: 600; }
+.ape-plat-buy { grid-template-columns: minmax(0, 1fr) auto; }
+@media (max-width: 760px) { .ape-plat-buy { grid-template-columns: minmax(0, 1fr); } .ape-plat-feats { grid-template-columns: minmax(0, 1fr); } }
+/* projeto: serviços numa linha */
+.ape-proj-lista { margin: 4px 0 0; font-size: 14px; line-height: 1.6; opacity: .9; }
+@media (max-width: 760px) {
+  .ape .ape-plat-feats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+  .ape .ape-plat-f { flex-direction: row; align-items: center; text-align: left; gap: 8px; padding: 9px 0; }
+  .ape .ape-plat-f b { font-size: 13px; line-height: 1.3; }
+  .ape .ape-plat-f .ape-art, .ape .ape-plat-f svg { flex: none; width: 22px; height: 22px; }
+}
+.ape-esc.arq { box-shadow: none; }
