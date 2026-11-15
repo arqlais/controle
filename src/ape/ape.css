@@ -2913,3 +2913,7 @@ button.ape-caixa-it { text-align: left; font: inherit; cursor: pointer; width: 1
   .ape .ape-plat-f .ape-art, .ape .ape-plat-f svg { flex: none; width: 22px; height: 22px; }
 }
 .ape-esc.arq { box-shadow: none; }
+
+/* aviso rápido nunca tapa botão: não captura o toque e, com janela aberta (carrinho), vai para o topo */
+.ape-toast { pointer-events: none; }
+body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)); bottom: auto; z-index: 120; }

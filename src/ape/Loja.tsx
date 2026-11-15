@@ -3,7 +3,7 @@ import { href } from '../router'
 import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, JUROS_PCT, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Morador, type Produto } from './model'
+import { APE, BONUS, JUROS_PCT, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
 import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja da planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
@@ -695,8 +695,10 @@ function kitSugerido(ids: string[], produtos: Produto[]) {
   return melhor
 }
 
-export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen }: { produtos: Produto[]; pixPct: number; cart: Carrinho; onClose: () => void; onOpen: (p: Produto) => void }) {
-  const t = conta(cart.ids, produtos, 'pix', pixPct)
+export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen, cupons }: { produtos: Produto[]; pixPct: number; cart: Carrinho; onClose: () => void; onOpen: (p: Produto) => void; cupons?: Cupom[] }) {
+  // o mesmo cupom que o checkout usa (guardado neste aparelho): o preço não "sobe" entre o cartão e o carrinho
+  const cupom = (() => { try { const c = localStorage.getItem('plane-cupom') || ''; return c ? acharCupom(cupons, c) : null } catch { return null } })()
+  const t = conta(cart.ids, produtos, 'pix', pixPct, cupom)
   useEffect(() => {
     t.repetidos.forEach((id) => cart.remove(id)) // arquivo que já está num kit do carrinho sai sozinho
   }, [t.repetidos.join()])
@@ -740,6 +742,7 @@ export function CarrinhoSheet({ produtos, pixPct, cart, onClose, onOpen }: { pro
               )}
               <dl className="ape-facts ape-totais">
                 <dt>total</dt><dd className="num ape-keep">{brl(t.subtotal)}</dd>
+                {cupom && t.cupomDesc > 0 && <><dt>cupom {cupom.codigo} (−{cupom.pct}%)</dt><dd className="num ape-keep">−{brl(t.cupomDesc)}</dd></>}
                 <dt>no Pix (−{pixPct}%)</dt><dd className="num ape-keep"><b>{brl(t.totalPix)}</b></dd>
               </dl>
               <a className="ape-btn primary" href={href(lojaRota(), 'checkout')} onClick={onClose}>

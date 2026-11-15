@@ -6,7 +6,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
@@ -221,6 +221,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
         {verCarrinho && estilo && ajV && (
           <Suspense fallback={null}>
             <CarrinhoSheet
+              cupons={ajV.cupons}
               produtos={ajV.produtos}
               pixPct={pixPct}
               cart={cart}
@@ -270,7 +271,6 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
   const ativos = daqui.filter((p) => p.ativo)
   const arqs = ordenar(ativos.filter((p) => p.cat !== 'combos'))
   const kits = ativos.filter((p) => p.cat === 'combos')
-  const nomes = arqs.map((p) => p.nome.toLowerCase())
   const breve = daqui.filter((p) => !p.ativo)
   const [depos, setDepos] = useState<Awaited<ReturnType<typeof carregarDepoimentos>>>([])
   useEffect(() => void carregarDepoimentos(id).then(setDepos), [id])
@@ -286,9 +286,6 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
             </p>
             <h1>{T.titulo}</h1>
             <p className="lp-lead">{T.lead}</p>
-            <p className="lp-auto-chip">
-              <Icon name="sparkle" size={14} /> {T.chip}
-            </p>
             <div className="row gap-s wrap">
               <a className="btn primary lp-cta lp-shine fr-pulsa" href={href(id, 'produtos')}>
                 ver todos os {id === 'arq' ? 'modelos' : 'arquivos'} <Icon name="arrowRight" size={16} />
@@ -303,18 +300,14 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
                 </button>
               )}
             </div>
-            <p className="muted small">Pix com {ctx.pixPct}% de desconto · baixa na hora · 7 dias para desistir</p>
+            <p className="muted small">{T.chip} · Pix com {ctx.pixPct}% de desconto · baixa na hora · 7 dias para desistir</p>
           </div>
           <div className="lp-hero-art" aria-hidden>
-            <img className="fr-hero-solta" src={T.arte} alt="" />
-            {T.flutua.map(([ic, t, s, tom], i) => (
-              <Flutua key={t} n={(i + 1) as 1 | 2 | 3} icone={ic} titulo={t} sub={s} tom={tom as 'good' | 'warn' | undefined} />
-            ))}
+            <span className="fr-hero-corte"><img className="fr-hero-solta" src={T.arte} alt="" /></span>
           </div>
         </div>
       </section>
 
-      {nomes.length > 0 && <Faixa itens={nomes} />}
 
       <section className="lp-section" id="destaques">
         <div className="lp-wrap">
@@ -638,14 +631,10 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
       <a className="fr-card-img" href={link} aria-label={`Ver ${p.nome}`}>
         {capa && <img key={capa} className={est && previa ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
         {p.selo && <span className="fr-selo">{p.selo}</span>}
-        {ctx.cupomPct > 0 && <span className="fr-off num">−{ctx.cupomPct}%</span>}
-        <span className="fr-ver">
-          <Icon name="eye" size={14} /> ver por dentro
-        </span>
       </a>
       <div className="fr-card-b">
         <small className="fr-tag">
-          {p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · ${p.kitPct || 0}% off` : p.sub && p.sub !== 'todos' ? p.sub : NICHOS[p.nicho || ''] || p.tag}
+          {p.cat === 'combos' ? `kit · ${(p.combo || []).length} arquivos · ${p.kitPct || 0}% off` : p.sub && p.sub !== 'todos' ? p.sub : NICHOS[p.nicho || ''] || p.tag}{u && p.cat !== 'combos' ? ` · ${u[1]}` : ''}
         </small>
         <a className="fr-card-nome" href={link}>{p.nome}</a>
         <p>{p.desc}</p>
@@ -653,11 +642,6 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
         {estilos && (
           <span className="fr-estilos-mini" aria-label={`${ESTILOS.length} estilos`}>
             {ESTILOS.map((e) => <i key={e.id} style={{ background: e.cor }} />)} <span className="num">{ESTILOS.length}</span> estilos
-          </span>
-        )}
-        {u && (
-          <span className="fr-uso-tag">
-            <Icon name={u[0]} size={13} /> {u[1]}
           </span>
         )}
         <div className="fr-preco">

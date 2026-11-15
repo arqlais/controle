@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { frente, type FrenteInfo } from './frentes'
 import { TRIAL_DAYS } from '../plans'
-import { Cabeca, Faixa, Final, Flutua, Janela, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import './frentes.css'
 
 /* Página principal da planê (useplane.com.br para quem não está logado), no desenho da página de vendas
@@ -35,8 +35,6 @@ const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, s
     precos: 'arquivos a partir de R$ 12,90',
   },
 ]
-
-const FAIXA = ['stories do mês', 'fichas de anamnese', 'cuidados pós', 'visagismo', 'cartão de agendamento', 'contrato de noivas', 'precificação', 'propostas', 'honorários', 'vistoria do apê']
 
 const PORQUE = [
   { icone: 'sparkle', t: 'pronto para usar', s: 'Troque o que está entre [colchetes] e mande no mesmo dia.' },
@@ -73,96 +71,63 @@ export function Hub() {
         }
       />
 
-      <section className="lp-hero">
+      <section className="lp-hero fr-hub-hero">
         <Manchas />
-        <div className="lp-wrap lp-hero-in">
-          <div className="lp-hero-text">
-            <p className="lp-kicker">
-              <span className="lp-dot" /> arquivos, gestão e apê, num lugar só
-            </p>
-            <h1>
-              o seu trabalho e a sua casa, <em>organizados</em>
-            </h1>
-            <p className="lp-lead">Arquivos prontos para mandar hoje, gestão para quem projeta e guias para quem compra apê. Simples, bonito e do seu jeito.</p>
-            <p className="lp-auto-chip">
-              <Icon name="sparkle" size={14} /> baixa na hora ou testa grátis por {TRIAL_DAYS} dias
-            </p>
-            <div className="row gap-s wrap">
-              <a className="btn primary lp-cta lp-shine" href="#/arquivos">
-                ver os arquivos <Icon name="arrowRight" size={16} />
-              </a>
-              <button className="btn ghost lp-cta" onClick={() => rolar('frentes')}>
-                conhecer a planê
-              </button>
-            </div>
-            <p className="muted small">Pix ou cartão · 7 dias para desistir</p>
-          </div>
-          <div className="lp-hero-art" aria-hidden>
-            <Janela label="useplane.com.br/arquivos">
-              <div className="fr-mini">
-                {[
-                  ['m2-beleza-stories-mes.webp', 'Kit stories do mês', 'R$ 24,90'],
-                  ['m2-sob-cuidados.webp', 'Cuidados pós', 'R$ 14,90'],
-                  ['m2-beleza-cartao-agendamento.webp', 'Cartão de agendamento', 'R$ 12,90'],
-                  ['m2-beleza-precificacao.webp', 'Precificação', 'R$ 17,90'],
-                ].map(([img, n, p]) => (
-                  <span key={img} className="fr-mini-i">
-                    <img src={AM(img)} alt="" width={240} height={180} />
-                    <b>{n}</b>
-                    <small className="num">{p}</small>
-                  </span>
-                ))}
-              </div>
-            </Janela>
-            <Flutua n={1} icone="download" titulo="baixa na hora" sub="depois do Pix ou do cartão" tom="good" />
-            <Flutua n={2} icone="edit" titulo="editável" sub="Canva, Word e Excel" />
-            <Flutua n={3} icone="sparkle" titulo={`${TRIAL_DAYS} dias grátis`} sub="gestão planê.arq" tom="warn" />
+        <div className="lp-wrap fr-hub-hero-in">
+          <p className="lp-kicker">
+            <span className="lp-dot" /> arquivos, gestão e apê, num lugar só
+          </p>
+          <h1>
+            o seu trabalho e a sua casa, <em>organizados</em>
+          </h1>
+          <p className="lp-lead">Um site para cada momento: atender cliente, projetar ou comprar o seu apê.</p>
+          <div className="row gap-s wrap fr-hub-ctas">
+            <button className="btn primary lp-cta" onClick={() => rolar('frentes')}>
+              conhecer os sites <Icon name="arrowRight" size={16} />
+            </button>
+            <a className="btn ghost lp-cta" href="#/arquivos">
+              ver os arquivos
+            </a>
           </div>
         </div>
       </section>
 
-      <Faixa itens={FAIXA} />
-
-      <div id="frentes">
-        {LINHAS.map((l, i) => (
-          <section key={l.f.id} className={`lp-section ${i % 2 === 0 ? 'lp-alt' : ''}`}>
-            <div className={`lp-wrap fr-row ${i % 2 ? 'is-inv' : ''}`}>
-              <div className="fr-row-t" data-reveal>
-                <p className="eyebrow">
-                  {String(i + 1).padStart(2, '0')} · {l.titulo}
-                </p>
+      <section id="frentes" className="lp-section fr-hub-sites">
+        <div className="lp-wrap fr-sites">
+          {LINHAS.map((l, i) => (
+            <article key={l.f.id} className="fr-site" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
+              <a className="fr-site-img" href={l.f.rota} aria-label={l.f.botao}>
+                <img src={l.imgs[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
+              </a>
+              <div className="fr-site-t">
+                <p className="eyebrow">{l.titulo}</p>
                 <h2>
                   planê<em>.{l.f.marca}</em>
                 </h2>
-                <p className="fr-row-frase">{l.f.frase}</p>
+                <p className="fr-site-frase">{l.f.frase}</p>
                 <ul className="fr-checks">
                   {l.itens.map((t) => (
                     <li key={t}>
-                      <Icon name="check" size={16} /> {t}
+                      <Icon name="check" size={15} /> {t}
                     </li>
                   ))}
                 </ul>
-                <div className="row gap-s wrap">
+                <span className="muted small">{l.precos}</span>
+                <div className="fr-site-acts">
                   <a className="btn primary lp-cta" href={l.f.rota}>
                     {l.f.botao} <Icon name="arrowRight" size={16} />
                   </a>
                   {l.extra && (
-                    <a className="btn ghost lp-cta" href={l.extra[1]}>
+                    <a className="fr-site-extra" href={l.extra[1]}>
                       {l.extra[0]}
                     </a>
                   )}
-                  <span className="muted small">{l.precos}</span>
                 </div>
               </div>
-              <a className="fr-colagem" href={l.f.rota} aria-label={l.f.botao} data-reveal>
-                <img className="a" src={l.imgs[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
-                <img className="b" src={l.imgs[1]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
-                <img className="c" src={l.imgs[2]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
-              </a>
-            </div>
-          </section>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="lp-section lp-diffs fr-com-manchas">
         <Manchas v="b" />
