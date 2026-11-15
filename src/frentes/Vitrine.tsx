@@ -6,7 +6,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal } from './ui'
+import { Cabeca, Faixa, Final, Flutua, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
@@ -278,6 +278,7 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
   return (
     <>
       <section className="lp-hero">
+        <Manchas />
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-text">
             <p className="lp-kicker">
@@ -352,6 +353,7 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
 
       {vitrine && temPrevia(vitrine.id) && (
         <section className="lp-section fr-com-manchas" id="estilos">
+          <Manchas v="b" />
           <div className="lp-wrap">
             <Cabeca eyebrow="4 estilos" title={<>o arquivo com <em>a sua cara</em></>} text="Quatro estilos para escolher o que combina com o seu espaço." centro />
             <div className="fr-estilos-vitrine">

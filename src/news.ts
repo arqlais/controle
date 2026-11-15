@@ -34,7 +34,7 @@ export const NEWS: News[] = [
     date: '2026-11-14',
     kind: 'melhoria',
     title: 'textos e páginas mais alinhados',
-    text: 'A página principal agora leva direto para o teste da gestão, as três frentes se ligam pelo rodapé e os textos da loja dizem o formato certo de cada arquivo. O fundo das páginas públicas voltou ao bege liso.',
+    text: 'A página principal agora leva direto para o teste da gestão, as três frentes se ligam pelo rodapé e os textos da loja dizem o formato certo de cada arquivo.',
   },
   {
     id: '2026-11-12-estilos',
