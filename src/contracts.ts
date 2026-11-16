@@ -55,6 +55,8 @@ export const defaultTemplates = (owner: boolean) => (owner ? LAIS_CONTRACTS : rd
 export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
   const cs = s.contracts
   if (!cs?.templates?.length) return { ...(cs ?? {}), templates: defaultTemplates(owner) }
+  // RDL: o primeiro modelo de vistoria foi trocado pelo contrato completo (rdl-vistoria)
+  if (rdlMode() && cs.templates.some((t) => t.id === 'vistoria-entrega')) return contractSettings({ ...s, contracts: { ...cs, templates: cs.templates.filter((t) => t.id !== 'vistoria-entrega') } }, owner)
   // modelos novos entram também para quem já editou os seus (menos os que a pessoa apagou)
   const missing = defaultTemplates(owner).filter((d) => !cs.templates.some((t) => t.id === d.id) && !(cs.hidden ?? []).includes(d.id))
   return missing.length ? { ...cs, templates: [...cs.templates, ...missing] } : cs
@@ -62,6 +64,9 @@ export const contractSettings = (s: Settings, owner: boolean): ContractSettings 
 
 /** Modelo sugerido pelo serviço do orçamento (renderização, modelagem, executivo, por hora). */
 export function suggestTemplate(templates: ContractTemplate[], q?: Quote) {
+  // RDL: orçamento de vistoria usa o contrato de vistoria
+  const vist = templates.find((x) => x.id === 'rdl-vistoria')
+  if (vist && q && /vistoria/i.test([q.title, ...q.items.map((i) => `${i.service} ${i.title}`)].join(' '))) return vist
   // cliente final: o modelo do tipo de projeto do orçamento (interiores, arquitetônico, consultoria, obra…)
   if (q?.audience === 'final') {
     const txt = [q.processId, q.title, ...q.items.map((i) => `${i.service} ${i.title}`), ...(q.steps ?? []).map((x) => x.name)].join(' ').toLowerCase()

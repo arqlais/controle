@@ -824,6 +824,31 @@ export interface ArtRecord {
   createdAt: string
 }
 
+/** Vistoria de entrega de chaves de um morador (sistema da RDL): da reserva até o laudo e a revistoria. */
+export interface Vistoria {
+  id: string
+  clientId: string
+  name: string
+  cpf: string
+  email: string
+  phone: string
+  tower: string // torre
+  unit: string // apto
+  revistoria: boolean // já quer a revistoria (paga só quando for feita)
+  mrvDate?: string // data da vistoria marcada pela MRV (AAAA-MM-DD)
+  time?: string // horário combinado (HH:MM)
+  sinal: boolean // sinal de 50% pago
+  quitado: boolean // restante pago
+  done?: boolean // vistoria feita
+  laudoAt?: string // laudo enviado em
+  revistoriaAt?: string // revistoria feita em
+  quoteId?: string
+  docId?: string // checklist de vistoria
+  source: 'link' | 'manual'
+  notes: string
+  createdAt: string // ordem de reserva
+}
+
 export interface Data {
   version: number
   demo?: boolean // true enquanto só houver dados de exemplo
@@ -838,6 +863,7 @@ export interface Data {
   docs?: SavedDoc[] // documentos salvos nas fichas dos clientes (guia, placa, apresentação…)
   notices?: Notice[] // central de avisos (o que os clientes preencheram)
   arts?: ArtRecord[] // ARTs e RRTs emitidas (controle de responsabilidade técnica)
+  vistorias?: Vistoria[] // vistorias de entrega de chaves (sistema da RDL)
   deleted?: string[] // ids apagados (outro aparelho aberto com a versão antiga não traz de volta)
   settings: Settings
 }
