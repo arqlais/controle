@@ -783,7 +783,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
     if (!cupomTxt.trim()) return setCupomMsg('')
     if (!c) return setCupomMsg('Cupom inválido ou vencido.')
     const tt = conta(cart.ids, produtos, forma, pixPct, c, cartaoPct)
-    setCupomMsg(tt.cupomDesc > 0 ? `Cupom aplicado: ${c.pct}% de desconto.` : 'Este cupom não vale para os itens do carrinho.')
+    setCupomMsg(tt.cupomDesc > 0 ? `Cupom aplicado: ${c.pct}% de desconto. Vale uma compra por CPF.` : 'Este cupom não vale para os itens do carrinho.')
     try { localStorage.setItem('plane-cupom', c.codigo) } catch { /* ok */ }
   }
   // crédito: o valor do crédito em até semJ vezes sem juros

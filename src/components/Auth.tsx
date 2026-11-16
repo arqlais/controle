@@ -23,7 +23,7 @@ const ContractSignPublic = lazy(() => import('./ContractSignPublic').then((m) =>
 const ContractDataPublic = lazy(() => import('./ContractDataPublic').then((m) => ({ default: m.ContractDataPublic })))
 const ApePublic = lazy(() => import('../ape/ApePublic').then((m) => ({ default: m.ApePublic })))
 const Hub = lazy(() => import('../frentes/Hub').then((m) => ({ default: m.Hub })))
-const Vitrine = lazy(() => import('../frentes/Vitrine').then((m) => ({ default: m.Vitrine })))
+const IrOuVitrine = lazy(() => import('../frentes/Vitrine').then((m) => ({ default: m.IrOuVitrine })))
 const StudioPagePublic = lazy(() => import('./StudioPagePublic').then((m) => ({ default: m.StudioPagePublic })))
 import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
@@ -55,7 +55,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (route.page === 'ape') return <Suspense fallback={wait}><ApePublic sub={route.id} /></Suspense>
   // as três frentes da planê: página principal e vitrines de arquivos (src/frentes, plano em docs/FRENTES.md)
   if (route.page === 'plane') return <Suspense fallback={wait}><Hub /></Suspense>
-  if (route.page === 'arquivos' || route.page === 'arq') return <Suspense fallback={wait}><Vitrine id={route.page} sub={route.id} /></Suspense>
+  if (route.page === 'arquivos' || route.page === 'arq') return <Suspense fallback={wait}><IrOuVitrine id={route.page} sub={route.id} /></Suspense>
   // painel do afiliado (link secreto)
   if (route.page === 'parceiro' && route.id) return <Suspense fallback={wait}><AffiliatePanel token={route.id} /></Suspense>
   return <Gate>{children}</Gate>

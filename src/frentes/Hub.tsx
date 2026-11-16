@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { frente, type FrenteInfo } from './frentes'
 import { TRIAL_DAYS } from '../plans'
-import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { BarraPlataformas, Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import './frentes.css'
+
+const FaleComigo = lazy(() => import('../ape/FaleComigo').then((m) => ({ default: m.FaleComigo })))
 
 /* Página principal da planê (useplane.com.br para quem não está logado), no desenho da página de vendas
    da planê.arq: o que é a planê e as três frentes, cada uma com os seus arquivos de verdade. */
@@ -45,9 +47,12 @@ const PORQUE = [
 
 export function Hub() {
   const root = useRef<HTMLDivElement>(null)
+  const [chat, setChat] = useState(false)
   useReveal(root)
   useEffect(() => {
     document.title = 'Planê · arquivos, gestão e apê'
+    // o balão de ajuda carrega depois da página (com o estilo dele)
+    const t = window.setTimeout(() => void import('../ape/ape.css').then(() => setChat(true)), 1800)
     window.scrollTo(0, 0)
     // a vitrine já vai baixando enquanto a pessoa lê (o toque no card abre na hora)
     const pre = () => void import('./Vitrine')
@@ -55,9 +60,11 @@ export function Hub() {
     if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return
     if (w.requestIdleCallback) w.requestIdleCallback(pre)
     else setTimeout(pre, 1500)
+    return () => window.clearTimeout(t)
   }, [])
   return (
     <div className="lp fr" ref={root}>
+      <BarraPlataformas atual="plane" />
       <Topo
         acoes={
           <>
@@ -154,19 +161,20 @@ export function Hub() {
               <BrandMark place="rodape" size={46} />
             </span>
           </span>
-          <p className="eyebrow">quem faz</p>
+          <p className="eyebrow">a planê</p>
           <h2>
-            feita por quem <em>usa</em>
+            pensada para o <em>dia a dia</em>
           </h2>
           <p className="lp-story-text">
-            A planê nasceu para organizar o trabalho de uma designer e estudante de arquitetura. Virou gestão para outros profissionais, loja de arquivos e um guia para quem está
-            comprando o primeiro apê.
+            A planê cria arquivos e ferramentas para quem atende cliente: modelos prontos para a beleza e para a arquitetura, a gestão para quem projeta e um guia para quem está
+            comprando o primeiro apê. Tudo é testado no uso real antes de chegar até você.
           </p>
         </div>
       </section>
 
       <Final titulo={<>comece pelo que você <em>precisa hoje</em></>} texto={`Arquivos que baixam na hora e gestão com ${TRIAL_DAYS} dias grátis.`} botao="ver os arquivos" href="#/arquivos" />
       <Rodape />
+      {chat && <div className="ape fr-ape"><Suspense fallback={null}><FaleComigo me={null} whats="" origem="visitante" /></Suspense></div>}
     </div>
   )
 }

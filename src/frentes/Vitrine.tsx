@@ -6,7 +6,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
+import { BarraPlataformas, Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
 import { AREAS, areasDe, FORA_DA_LOJA } from './areas'
 import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, paginasDe, noCelular, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
@@ -14,6 +14,7 @@ import './frentes.css'
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
 const Checkout = lazy(() => import('../ape/Loja').then((m) => ({ default: m.Checkout })))
 const PedidoPage = lazy(() => import('../ape/Loja').then((m) => ({ default: m.PedidoPage })))
+const FaleComigo = lazy(() => import('../ape/FaleComigo').then((m) => ({ default: m.FaleComigo })))
 const CarrinhoSheet = lazy(() => import('../ape/Loja').then((m) => ({ default: m.CarrinhoSheet })))
 const Conta = lazy(() => import('../ape/Conta').then((m) => ({ default: m.Conta })))
 
@@ -30,7 +31,7 @@ const TEXTO: Record<Id, {
   flutua: [string, string, string, string?][]; catalogo: ReactNode; faq: [string, string][]; final: ReactNode
 }> = {
   arquivos: {
-    kicker: 'para nail, lash e sobrancelha, biomedicina, estética, cabelo e make',
+    kicker: 'para nail, lash e sobrancelha, biomedicina, estética, cabelo, make e arquitetura',
     titulo: <>arquivos prontos para <em>mandar hoje</em></>,
     lead: 'Mais de 40 arquivos para imprimir e para mandar: fichas, termos, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
     chip: 'editável no Canva, no Word e no Excel',
@@ -126,6 +127,7 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
   if (view !== 'loja')
     return (
       <div className="lp fr">
+        <BarraPlataformas atual={id} />
         <Topo atual={f} acoes={acoes} />
         <main className="lp-wrap fr-sub">
           <div className="ape fr-ape">
@@ -142,7 +144,7 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
             </Suspense>
           </div>
         </main>
-        <Rodape />
+        <Rodape frente={id} />
       </div>
     )
   return <Loja id={id} aj={aj} ajV={ajV} whats={whats} estilo={estilo} acoes={acoes} pagina={pagina} area={sub?.startsWith('produtos:') ? sub.slice(9) : ''} carrinho={sub === 'loja:carrinho'} />
@@ -157,7 +159,8 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, area, carrinho }: { i
   const pixPct = aj?.pixPct ?? 0
   const cartaoPct = aj?.cartaoPct ?? CARTAO_PCT
   const semJ = aj?.semJurosMax ?? SEM_JUROS_MAX
-  const daqui = useMemo(() => (aj?.produtos || []).filter((p) => frenteDe(p) === id && !FORA_DA_LOJA.has(p.nicho || '')), [aj, id])
+  // a planê.arquivos mostra também os modelos de arquitetura (a planê.arq é a plataforma de gestão)
+  const daqui = useMemo(() => (aj?.produtos || []).filter((p) => (frenteDe(p) === id || (id === 'arquivos' && frenteDe(p) === 'arq')) && !FORA_DA_LOJA.has(p.nicho || '')), [aj, id])
   const cart = useCarrinho()
   const [toast, show] = useToast()
   const [verCarrinho, setVerCarrinho] = useState(carrinho)
@@ -191,6 +194,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, area, carrinho }: { i
 
   return (
     <div className={`lp fr ${cupom ? 'tem-oferta' : ''}`} ref={root}>
+      <BarraPlataformas atual={id} />
       {cupom && <Oferta codigo={cupom.codigo} pct={cupom.pct} ate={cupom.ate} usou={usou} onUsar={usarCupom} />}
       <Topo atual={f} acoes={acoes} />
 
@@ -208,7 +212,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, area, carrinho }: { i
           </main>
         ))}
 
-      <Rodape />
+      <Rodape frente={id} />
 
       {cart.ids.length > 0 && !verCarrinho && typeof pagina !== 'object' && (
         <a className="fr-cartbar" href={href(id, 'loja:carrinho')}>
@@ -244,6 +248,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, area, carrinho }: { i
         )}
         {toast}
         {estilo && <AvisoCookies />}
+        {estilo && <Suspense fallback={null}><FaleComigo me={null} whats={whats} origem="visitante" /></Suspense>}
       </div>
     </div>
   )
@@ -339,10 +344,10 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
             <Cabeca eyebrow="qual é a sua área?" title={<>arquivos para <em>o seu dia a dia</em></>} />
             <div className="fr-areas-grid">
               {AREAS.filter((a) => ativos.some((p) => areasDe(p, daqui).includes(a.id))).map((a, i) => (
-                <a key={a.id} className="fr-area" href={href(id, `produtos:${a.id}`)} data-reveal style={{ transitionDelay: `${i * 0.05}s` }}>
-                  <b>{a.nome}</b>
-                  <small>{a.frase}</small>
-                  <Icon name="arrowRight" size={16} />
+                <a key={a.id} className="fr-area" href={href(id, `produtos:${a.id}`)} data-reveal style={{ transitionDelay: `${i * 0.04}s` }}>
+                  <span className="fr-area-ic"><Icon name={a.icone} size={22} /></span>
+                  <span className="fr-area-t"><b>{a.nome}</b><small>{a.frase}</small></span>
+                  <Icon name="chevronR" size={16} />
                 </a>
               ))}
             </div>
@@ -707,7 +712,7 @@ function Capa({ p, est, fallback, todos }: { p: Produto; est: Estilo; fallback?:
       )
   }
   if (!temPrevia(p.id)) return fallback ? <img src={fallback} alt="" loading="lazy" decoding="async" width={1200} height={900} /> : null
-  const dentro = paginasDe(p.id)[0]
+  const dentro = paginasDe(p.id, est)[0]
   if (noCelular(p.id))
     return (
       <span className={`fr-capa fr-capa-cel ${dentro ? 'duas' : ''}`}>
@@ -736,8 +741,9 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
   const link = rotaProduto(ctx.id, p.id)
   return (
     <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
-      <a className="fr-card-img" href={link} aria-label={`Ver ${p.nome}`}>
+      <a className="fr-card-img fr-prot" href={link} aria-label={`Ver ${p.nome}`} draggable={false} onContextMenu={(e) => e.preventDefault()}>
         <Capa p={p} est={est || ESTILO_PADRAO} fallback={capa} todos={ctx.daqui} />
+        <span className="fr-marca" aria-hidden />
         {p.selo && <span className="fr-selo">{p.selo}</span>}
       </a>
       <div className="fr-card-b">
@@ -799,8 +805,8 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
   const [est, setEst] = useState<Estilo>(ESTILO_PADRAO)
   const fotos = useMemo(() => {
     const a = p.amostras || []
-    // com estilos: a página no estilo escolhido e a cena do produto (as páginas de dentro são do criativo)
-    return previa ? [imgEstilo(p.id, est), ...paginasDe(p.id)] : a
+    // tudo no estilo escolhido: a capa e as páginas de dentro daquele estilo (trocou o estilo, trocam todas as fotos)
+    return previa ? [imgEstilo(p.id, est), ...paginasDe(p.id, est)] : a
   }, [p, est, previa])
   const [foto, setFoto] = useState(0)
   useEffect(() => setFoto(0), [est])
@@ -811,11 +817,11 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
   const pixV = Math.round(comCup * (100 - pixPct)) / 100
   const cartV = precoCartao(pixV, cartaoPct)
   const nSJ = maxSemJuros(cartV, semJ)
-  // "você também vai gostar": sempre 4 (ou 2) cartões, completando com outros da loja; nunca número ímpar
+  // "você também vai gostar": até 4 cartões numa linha só (no celular e no iPad desliza para o lado), nunca um sozinho embaixo
   const parecidos = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && (x.sub === p.sub || x.tipo === p.tipo)))
   const outros = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && !parecidos.includes(x)))
   const relTodos = [...parecidos, ...outros].slice(0, 4)
-  const rel = relTodos.slice(0, relTodos.length - (relTodos.length % 2))
+  const rel = relTodos
   const u = p.uso ? USO[p.uso] : null
   return (
     <main className="fr-pp">
@@ -829,15 +835,23 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
         </nav>
         <div className="fr-pp-grid">
           <div className="fr-pp-gal">
-            <div className={`fr-pp-foto ${previa && noCelular(p.id) ? 'is-cel' : foto === 0 && previa ? 'is-pagina' : ''}`}>
-              {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" />)}
+            <div className={`fr-pp-foto fr-prot ${previa && noCelular(p.id) ? 'is-cel' : previa ? 'is-pagina' : ''} ${foto > 0 && previa ? 'is-dentro' : ''}`} onContextMenu={(e) => e.preventDefault()}>
+              {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} />)}
+              {previa && <span className="fr-marca" aria-hidden />}
+              {foto > 0 && previa && <span className="fr-dentro-aviso">prévia · o arquivo completo chega depois da compra</span>}
+              {fotos.length > 1 && (
+                <>
+                  <button type="button" className="fr-pp-seta e" aria-label="Foto anterior" onClick={() => setFoto((foto - 1 + fotos.length) % fotos.length)}><Icon name="chevronL" size={18} /></button>
+                  <button type="button" className="fr-pp-seta d" aria-label="Próxima foto" onClick={() => setFoto((foto + 1) % fotos.length)}><Icon name="chevronR" size={18} /></button>
+                </>
+              )}
               {p.selo && <span className="fr-selo">{p.selo}</span>}
             </div>
             {fotos.length > 1 && (
               <div className="fr-pp-mini">
                 {fotos.map((src, k) => (
-                  <button key={src} className={k === foto ? 'is-on' : ''} onClick={() => setFoto(k)} aria-label={`Imagem ${k + 1}`}>
-                    <img src={src} alt="" loading="lazy" decoding="async" />
+                  <button key={src} className={k === foto ? 'is-on' : ''} onClick={() => setFoto(k)} aria-label={`Imagem ${k + 1}`} onContextMenu={(e) => e.preventDefault()}>
+                    <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />
                   </button>
                 ))}
               </div>
@@ -912,26 +926,24 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
               )}
             </section>
           )}
-          <section>
+          <section className="fr-como">
             <h2>como usar</h2>
-            <ol className="fr-pp-passos">
-              <li><b>compre</b><span>Pix ou cartão. A página do pedido abre na hora.</span></li>
-              <li><b>abra o arquivo</b><span>Baixe e abra no Canva (PowerPoint), no Word ou no Excel, conforme o formato.</span></li>
-              <li><b>troque o que está entre [colchetes]</b><span>Seu nome, logo, fotos e valores. Pronto para imprimir ou mandar.</span></li>
+            <ol className="fr-como-passos">
+              <li><span className="fr-como-ic"><Icon name="bag" size={18} /></span><b>compre</b><small>Pix ou cartão. Os arquivos aparecem na hora, na página do pedido.</small></li>
+              <li><span className="fr-como-ic"><Icon name="download" size={18} /></span><b>abra</b><small>{/PowerPoint/i.test(p.formato || '') ? 'No Canva: Criar design → Importar arquivo.' : /Excel/i.test(p.formato || '') ? 'No Excel ou no Google Planilhas.' : /Word/i.test(p.formato || '') ? 'No Word ou no Google Docs.' : 'Imprima o PDF ou abra no Canva para pôr os seus dados.'}</small></li>
+              <li><span className="fr-como-ic"><Icon name="edit" size={18} /></span><b>personalize</b><small>Troque o que está entre [colchetes]: nome, logo, fotos e valores.</small></li>
             </ol>
-            <dl className="fr-ficha">
-              <dt>formato</dt>
-              <dd>{p.formato}</dd>
-              <dt>entrega</dt>
-              <dd>{p.entrega}</dd>
-            </dl>
+            <div className="fr-como-info">
+              <span><Icon name="file" size={16} /><b>formato</b>{p.formato}</span>
+              <span><Icon name="clock" size={16} /><b>entrega</b>na hora, e o link fica guardado em minha conta</span>
+            </div>
           </section>
         </div>
 
         {rel.length > 0 && (
           <section className="fr-pp-rel">
             <h2>você também vai <em>gostar</em></h2>
-            <div className="fr-grid">
+            <div className="fr-grid fr-rel">
               {rel.map((x, i) => (
                 <Cartao key={x.id} p={x} i={i} ctx={ctx} />
               ))}
@@ -953,4 +965,19 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
       )}
     </main>
   )
+}
+
+/** planê.arq agora é a plataforma de gestão: a vitrine antiga manda para a página da gestão
+ *  (os modelos de arquitetura ficam na planê.arquivos). Pedido, checkout e conta continuam abrindo aqui. */
+export function destinoArq(sub?: string): string | null {
+  if (sub && /^(pedido:|checkout|conta|loja:carrinho)/.test(sub)) return null
+  if (sub?.startsWith('p:')) return `#/arquivos/${sub}`
+  if (sub === 'produtos') return '#/arquivos/produtos:arq'
+  return '#/vendas'
+}
+
+export function IrOuVitrine({ id, sub }: { id: Id; sub?: string }) {
+  const ir = id === 'arq' ? destinoArq(sub) : null
+  useEffect(() => { if (ir) location.replace(ir) }, [ir])
+  return ir ? <div className="fr fr-loading-full" /> : <Vitrine id={id} sub={sub} />
 }

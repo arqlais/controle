@@ -1,3 +1,4 @@
+import { BarraPlataformas } from '../frentes/ui'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { href, useRoute } from '../router'
 import { sessaoLocal, cadastrar, conferirCadastro, marcarDona, registrarVisita, nomeLocal, codigoSL, euMorador, mesmoAp, loadPublico, moradorConta, souDona, apeCloud, type Publico } from './api'
@@ -110,6 +111,7 @@ export function ApePublic({ sub }: { sub?: string }) {
   const pedeCadastro = !publico && view !== 'entrar' && (editing || (!me && !(owner && view === 'orcamentos')))
   return (
     <div className={`ape ${publico ? 'ape-publico' : ''}`}>
+      <BarraPlataformas atual="apzinho" />
       {publico ? (
         <ShopNav morador={morador || owner} owner={owner} nome={me?.nome || nomeLocal()} voltar={view !== 'loja'} />
       ) : (

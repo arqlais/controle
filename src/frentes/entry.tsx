@@ -14,7 +14,7 @@ import './frentes.css'
    Se a pessoa vai para outra tela (entrar, vendas da gestão, planê.apê), a página recarrega pela entrada completa. */
 
 const Hub = lazy(() => import('./Hub').then((m) => ({ default: m.Hub })))
-const Vitrine = lazy(() => import('./Vitrine').then((m) => ({ default: m.Vitrine })))
+const IrOuVitrine = lazy(() => import('./Vitrine').then((m) => ({ default: m.IrOuVitrine })))
 
 // indicação de afiliada no link (?indica=codigo): guarda como o sistema faria (src/platform.ts, captureRef)
 try {
@@ -35,7 +35,7 @@ function Frentes() {
   if (fora) return <div className="fr fr-loading-full" />
   return (
     <Suspense fallback={<div className="fr fr-loading-full" />}>
-      {route.page === 'arquivos' || route.page === 'arq' ? <Vitrine id={route.page} sub={route.id} /> : <Hub />}
+      {route.page === 'arquivos' || route.page === 'arq' ? <IrOuVitrine id={route.page} sub={route.id} /> : <Hub />}
     </Suspense>
   )
 }

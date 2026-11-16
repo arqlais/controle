@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode, type RefObject } from 'react'
 import { BrandMark } from '../components/PlaneMark'
 import { Icon } from '../components/Icon'
 import { PLATFORM } from '../plans'
-import { FRENTES, instaUrl, type FrenteInfo } from './frentes'
+import { FRENTES, instaUrl, type FrenteId, type FrenteInfo } from './frentes'
+import './barra.css'
 
 /* Peças das páginas públicas da planê, com o mesmo desenho da página de vendas da planê.arq
    (classes lp-* de src/platform.css): topo de vidro, título com itálico, janela de navegador,
@@ -24,9 +25,18 @@ export function useReveal(root: RefObject<HTMLDivElement | null>, key: unknown =
         }),
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
     )
-    el.querySelectorAll('[data-reveal]:not(.is-in), [data-stagger]:not(.is-in)').forEach((x) => io.observe(x))
-    el.querySelectorAll<HTMLElement>('[data-stagger]').forEach((g) => Array.from(g.children).forEach((c, i) => (c as HTMLElement).style.setProperty('--i', String(i))))
-    return () => io.disconnect()
+    const ver = () => {
+      el.querySelectorAll('[data-reveal]:not(.is-in), [data-stagger]:not(.is-in)').forEach((x) => io.observe(x))
+      el.querySelectorAll<HTMLElement>('[data-stagger]').forEach((g) => Array.from(g.children).forEach((c, i) => (c as HTMLElement).style.setProperty('--i', String(i))))
+    }
+    ver()
+    // o que entra depois (filtro, área, "ver mais") também aparece: nada fica invisível
+    let t = 0
+    const mo = new MutationObserver(() => { window.clearTimeout(t); t = window.setTimeout(ver, 30) })
+    mo.observe(el, { childList: true, subtree: true })
+    // garantia: o que já está na tela e não animou em 1,2 s aparece de qualquer jeito
+    const seguro = window.setTimeout(() => el.querySelectorAll('[data-reveal]:not(.is-in)').forEach((x) => { const r = x.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) x.classList.add('is-in') }), 1200)
+    return () => { io.disconnect(); mo.disconnect(); window.clearTimeout(t); window.clearTimeout(seguro) }
   }, [root, key])
 }
 
@@ -44,6 +54,22 @@ export function useScrolled() {
 export const rolar = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
 /** Topo de vidro: marca, as três frentes e as ações. */
+/** Barra das plataformas (a mesma em todas): planê, arquivos, arq e apê. Fica no alto da página e rola junto. */
+export function BarraPlataformas({ atual }: { atual: FrenteId | 'plane' }) {
+  return (
+    <nav className="plat-barra" aria-label="plataformas da planê">
+      <div className="plat-barra-in">
+        <a href="#/plane" aria-current={atual === 'plane' ? 'page' : undefined}>planê</a>
+        {FRENTES.map((f) => (
+          <a key={f.id} href={f.rota} aria-current={atual === f.id ? 'page' : undefined}>planê.<em>{f.marca}</em></a>
+        ))}
+        <span className="plat-sep" />
+        <a className="plat-conta" href="#/entrar">entrar na gestão</a>
+      </div>
+    </nav>
+  )
+}
+
 export function Topo({ atual, acoes }: { atual?: FrenteInfo; acoes?: ReactNode }) {
   const scrolled = useScrolled()
   return (
@@ -56,14 +82,14 @@ export function Topo({ atual, acoes }: { atual?: FrenteInfo; acoes?: ReactNode }
             {atual && <em>.{atual.marca}</em>}
           </span>
         </a>
-        <nav className="lp-nav" aria-label="frentes da planê">
+        <nav className="lp-nav" aria-label="plataformas da planê">
           {FRENTES.map((f) => (
             <a key={f.id} className={`link ${atual?.id === f.id ? 'fr-on' : ''}`} href={f.rota}>
               {f.marca}
             </a>
           ))}
         </nav>
-        <div className="row gap-s">{acoes}</div>
+        <div className="row gap-s fr-top-acoes">{acoes}</div>
       </div>
     </header>
   )
@@ -148,7 +174,8 @@ export function Final({ titulo, texto, botao, href }: { titulo: ReactNode; texto
   )
 }
 
-export function Rodape() {
+export function Rodape({ frente }: { frente?: FrenteId } = {}) {
+  const insta = FRENTES.find((f) => f.id === frente)?.instagram || PLATFORM.instagram
   return (
     <footer className="lp-foot">
       <div className="lp-wrap">
@@ -160,7 +187,7 @@ export function Rodape() {
             </span>
             <p className="muted">Arquivos prontos para quem atende cliente, gestão para quem projeta e guias para quem compra apê.</p>
             <div className="lp-foot-icons">
-              <a href={instaUrl(PLATFORM.instagram)} target="_blank" rel="noreferrer" aria-label="Instagram">
+              <a href={instaUrl(insta)} target="_blank" rel="noreferrer" aria-label={`Instagram ${insta}`}>
                 <Icon name="instagram" size={18} />
               </a>
               <a href={`mailto:${PLATFORM.email}`} aria-label="E-mail">
@@ -184,11 +211,9 @@ export function Rodape() {
             <a className="lp-foot-link" href={`mailto:${PLATFORM.email}`}>
               <Icon name="mail" size={16} /> {PLATFORM.email}
             </a>
-            {FRENTES.map((f) => (
-              <a key={f.id} className="lp-foot-link" href={instaUrl(f.instagram)} target="_blank" rel="noreferrer">
-                <Icon name="instagram" size={16} /> {f.instagram}
-              </a>
-            ))}
+            <a className="lp-foot-link" href={instaUrl(insta)} target="_blank" rel="noreferrer">
+              <Icon name="instagram" size={16} /> {insta}
+            </a>
           </div>
         </div>
         <div className="lp-foot-bottom">

@@ -12,7 +12,6 @@ import { ApeIcon } from './ApeIcon'
 import { CaixaDona } from './FaleComigo'
 import { AcessoDona, Biblioteca, Financeiro, lojaDoItem as lojaDoItemDona } from './AdminDona'
 import { emailOk, Recolhe } from './shared'
-import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
 import {
   APE, BONUS, SELOS, GRUPO_META, ehOrcamento, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, parcelas, plantaDoAp, acabamentoDe, type Planta, TAXAS, comPrecos, liquido, noCarrinho, reais, type Taxas, FIELDS, LOJA_VERSAO, NICHOS, opcoesNicho, PRODUTOS, aiPrompt, blankOrcamento, brl, calc, cleanOrcamento, dmy, firstName, fmtTel, nicho, num, parseJsonReply, wa, waNum,
@@ -125,7 +124,7 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
         </a>
         <div className="brand ape-adm-brand" title="planê.apê: painel">
           <label className="brand-photo ape-adm-foto" title="Trocar a foto do painel">
-            {ajustes?.fotoPainel ? <img src={ajustes.fotoPainel} alt="" /> : <SanLeviArte size={46} />}
+            {ajustes?.fotoPainel ? <img src={ajustes.fotoPainel} alt="" /> : <BrandMark place="menu" size={46} />}
             <input type="file" accept="image/*" hidden onChange={(e) => void trocarFoto(e.target.files?.[0])} />
           </label>
           <span className="brand-text">

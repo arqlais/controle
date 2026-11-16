@@ -26,7 +26,21 @@ export const temPrevia = (id: string) => PREVIA.has(id)
 export const imgEstilo = (id: string, e: Estilo) => `ape/amostras/e-${id}--${e}.webp`
 /** Páginas de dentro de cada arquivo (public/ape/amostras/p-<id>-<n>.webp): o que mostra o arquivo de verdade. */
 const PAGINAS: Record<string, number[]> = {"bio-toxina":[2],"bio-preenchimento":[2],"bio-bioestimulador":[2],"bio-facial":[2],"bio-corporal":[2],"arq-briefing":[2,3],"arq-contrato":[2,3],"arq-levantamento":[1,2],"arq-manual":[2,3],"arq-proposta":[2,3],"beleza-anamnese":[2,3],"beleza-antes-depois":[1,2,3],"beleza-biosseguranca":[2],"beleza-carrossel":[1,2,3],"beleza-cartao-agendamento":[2],"beleza-certificado":[1],"beleza-depoimentos":[1,2,3],"beleza-destaques":[1,2,3],"beleza-fim-de-ano":[2,3],"beleza-mensagens":[2],"beleza-politica":[2],"beleza-precos":[1],"beleza-recibo":[2],"beleza-stories-mes":[1,2,3],"beleza-termo":[2,3],"beleza-vale":[1,4],"cab-anamnese":[2,3],"cab-cuidados":[2,3],"cab-tecnica":[2],"cil-mapeamento":[2,3],"dep-ficha":[2,3],"est-avaliacao":[2,3],"est-cuidados":[2,3],"est-protocolo":[2],"free-briefing":[2,3],"free-contrato":[2,3],"free-proposta":[2,3],"mas-ficha":[2,3],"noiva-contrato":[2],"noiva-ficha":[2,3],"noiva-orcamento":[2],"sob-cuidados":[2,3],"sob-visagismo":[2,3],"unha-catalogo":[1,2,3],"unha-cuidados":[2,3]}
-export const paginasDe = (id: string) => (PAGINAS[id] || []).map((n) => `ape/amostras/p-${id}-${n}.webp`)
+/** Páginas de dentro em cada estilo (public/ape/amostras/p-<id>-<n>--<estilo>.webp): quantas há em cada um. */
+const D3 = { delicado: 3, minimalista: 3, elegante: 3, criativo: 3 }
+const PAGINAS_EST: Record<string, Partial<Record<Estilo, number>>> = {
+  'beleza-stories-mes': D3, 'beleza-antes-depois': D3, 'beleza-depoimentos': D3, 'beleza-carrossel': D3, 'beleza-destaques': D3, 'unha-catalogo': D3,
+  'beleza-cartao-agendamento': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'beleza-certificado': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
+  'beleza-fim-de-ano': { delicado: 2, minimalista: 2, elegante: 2 }, 'beleza-precos': { delicado: 1, minimalista: 1, elegante: 1 }, 'beleza-vale': { delicado: 2, minimalista: 2, elegante: 2 },
+  'bio-toxina': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-preenchimento': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-bioestimulador': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
+  'bio-facial': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-corporal': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
+}
+/** Páginas de dentro no estilo pedido. Sem a versão daquele estilo, não mostra as de outro (a foto tem que bater com o estilo escolhido). */
+export const paginasDe = (id: string, est: Estilo = 'delicado') => {
+  const por = PAGINAS_EST[id]
+  if (por) return Array.from({ length: por[est] || 0 }, (_, i) => `ape/amostras/p-${id}-${i + 1}--${est}.webp`)
+  return est === 'delicado' ? (PAGINAS[id] || []).map((n) => `ape/amostras/p-${id}-${n}.webp`) : []
+}
 /** Arquivos para o celular (stories 9:16 e posts 4:5): aparecem dentro de um iPhone; os de imprimir, como páginas. */
 const NO_CELULAR = new Set<string>(["beleza-antes-depois", "beleza-carrossel", "beleza-depoimentos", "beleza-destaques", "beleza-fim-de-ano", "beleza-precos", "beleza-stories-mes", "unha-catalogo"])
 export const noCelular = (id: string) => NO_CELULAR.has(id)

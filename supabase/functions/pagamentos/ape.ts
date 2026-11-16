@@ -205,6 +205,11 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (body.aceite !== true) return json({ erro: 'Aceite os termos de uso antes de pagar.' }, 400)
     const { map, pixPct, cartaoPct, semJurosMax, cupons } = await loja()
     const cupom = body.cupom ? acharCupom(cupons, String(body.cupom).slice(0, 40)) : null
+    // cada cupom vale uma vez por CPF (compras pagas; pedido que não foi pago não conta)
+    if (cupom) {
+      const { data: usados } = await db.from('ape_pedidos').select('id').eq('cpf', cpf).eq('cupom', cupom.codigo).eq('status', 'pago').limit(1)
+      if (usados?.length) return json({ erro: `O cupom ${cupom.codigo} já foi usado neste CPF (vale uma vez por pessoa). Tire o cupom para continuar.`, cupomUsado: true }, 400)
+    }
     const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct, cupom, cartaoPct)
     if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
     if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
