@@ -412,16 +412,14 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const quem = `${ped.nome}${cpfM ? ` · CPF ${cpfM}` : ''} · pedido ${String(ped.token).slice(0, 8)}`
     // só caracteres que a fonte padrão aceita
     const limpa = (s: string) => s.normalize('NFC').replace(/[^\x20-\x7E\xA0-\xFF]/g, '') // Latin-1: acentos e "·" ficam
+    // sem link nem contato da planê na arte (quem recebe a ficha é a cliente da profissional):
+    // só uma marca discreta na lateral, para identificar cópias
     const m = marcaDe((ped.itens ?? []) as { id: string; frente?: string }[])
-    const linha = limpa(`${m.nome} · useplane.com.br/${m.path} · WhatsApp (11) 96928-8192 · licenciado para ${quem} · uso pessoal e intransferível`)
+    const linha = limpa(`licenciado para ${quem} · uso pessoal e intransferível`)
     for (const page of pdf.getPages()) {
       const { width, height } = page.getSize()
-      const size = 6.2
-      const w = font.widthOfTextAtSize(linha, size)
-      const s = w > width - 40 ? size * (width - 40) / w : size
-      page.drawText(linha, { x: (width - font.widthOfTextAtSize(linha, s)) / 2, y: 7, size: s, font, color: rgb(0.45, 0.43, 0.41), opacity: 0.85 })
-      // marca bem leve na lateral, para identificar cópias
-      page.drawText(limpa(`licenciado para ${ped.nome}`), { x: width - 6, y: height * 0.3, size: 6, font, color: rgb(0.6, 0.58, 0.56), opacity: 0.35, rotate: degrees(90) })
+      const s = Math.min(5.2, (height * 0.6) / Math.max(1, font.widthOfTextAtSize(linha, 1)))
+      page.drawText(linha, { x: width - 5, y: height * 0.2, size: s, font, color: rgb(0.62, 0.6, 0.58), opacity: 0.45, rotate: degrees(90) })
     }
     pdf.setTitle(pdf.getTitle() ?? m.nome)
     pdf.setAuthor(`${m.nome} · useplane.com.br`)

@@ -60,7 +60,7 @@ const ajuda = (assunto: string) =>
 /* As três frentes da planê usam a mesma loja. O pedido diz qual: cada item guarda a frente
    (ou ela sai do começo do id: beleza-/free- = arquivos, arq-/kit-arq- = arq; o resto é do apê). */
 export type Marca = { id: 'apzinho' | 'arquivos' | 'arq'; nome: string; sufixo: string; path: string; slogan: string }
-export const frenteDoId = (id: string) => (/^(kit-)?arq-/.test(id) || id.startsWith('presente-arq-') ? 'arq' : /^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas|bio|odonto|med)-/.test(id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza|bio)(--|$)/.test(id) || id.startsWith('presente-arquivos') ? 'arquivos' : 'apzinho')
+export const frenteDoId = (id: string) => (/^(kit-)?arq-/.test(id) || id.startsWith('presente-arq-') ? 'arq' : /^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas|bio|odonto|med|nutri|fisio|psico|personal|podo|vet)-/.test(id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza|bio|consultorio|medico|dezembro)(--|$)/.test(id) || id.startsWith('presente-arquivos') ? 'arquivos' : 'apzinho')
 export function marcaDe(itens: { id?: unknown; frente?: string }[] = []): Marca {
   const fs = new Set(itens.map((i) => i.frente || frenteDoId(String(i.id))))
   // arquitetura e beleza juntas são compras da planê.arquivos (os modelos de arquitetura estão na mesma loja)

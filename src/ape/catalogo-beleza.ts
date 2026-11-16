@@ -1392,5 +1392,404 @@ export const CATALOGO_BELEZA: Produto[] = [
   "ape/amostras/e-med-receituario--delicado.webp"
  ],
  "selo": "novidade"
+},
+{
+ "id": "beleza-agenda-dezembro",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "todos",
+ "uso": "digital",
+ "tipo": "divulgação",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Agenda de dezembro",
+ "tag": "divulgação",
+ "preco": "R$ 14,90",
+ "formato": "PDF de stories (abre no Canva para trocar textos e colocar as suas fotos)",
+ "numeros": [
+  "6 stories",
+  "com fotos",
+  "mande hoje"
+ ],
+ "desc": "O PDF para mandar às clientes antes das festas: protocolo de agendamento, calendário de dezembro, horários, formas de pagamento, endereço e boas festas, com espaço para as suas fotos.",
+ "itens": [
+  "6 stories prontos",
+  "Calendário de dezembro e horários",
+  "Formas de pagamento e endereço",
+  "Espaço para as suas fotos"
+ ],
+ "amostras": [
+  "ape/amostras/e-beleza-agenda-dezembro--delicado.webp"
+ ],
+ "selo": "mais vendido"
+},
+{
+ "id": "beleza-confirmacao",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "todos",
+ "uso": "digital",
+ "tipo": "atendimento",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Confirmação de agendamento",
+ "tag": "atendimento",
+ "preco": "R$ 9,90",
+ "formato": "PDF de stories (abre no Canva para trocar textos e colocar as suas fotos)",
+ "numeros": [
+  "2 stories",
+  "com foto"
+ ],
+ "desc": "Mande quando a cliente agendar: regras de atraso e falta, pedido de \"ok\" e o seu endereço, mais um story de \"até logo\" com a sua foto.",
+ "itens": [
+  "2 stories",
+  "Regras de atraso, falta e confirmação",
+  "Espaço para foto e endereço"
+ ],
+ "amostras": [
+  "ape/amostras/e-beleza-confirmacao--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "sob-micro-cuidados",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "sobrancelha e cílios",
+ "uso": "digital",
+ "tipo": "cuidados",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Cuidados pós · micropigmentação",
+ "tag": "cuidados",
+ "preco": "R$ 12,90",
+ "formato": "PDF de stories (abre no Canva para trocar textos e colocar as suas fotos)",
+ "numeros": [
+  "2 stories",
+  "fases da cicatrização"
+ ],
+ "desc": "Cuidados de casa e as fases da cicatrização dia a dia (do dia 1 ao 30), para a cliente não se assustar e não pedir retoque antes da hora.",
+ "itens": [
+  "Cuidados pós em lista",
+  "Fases da cicatrização do dia 1 ao 30",
+  "Hidratação indicada",
+  "Espaço para a foto do resultado"
+ ],
+ "amostras": [
+  "ape/amostras/e-sob-micro-cuidados--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "sob-brow-cuidados",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "sobrancelha e cílios",
+ "uso": "digital",
+ "tipo": "cuidados",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Cuidados pós · brow lamination",
+ "tag": "cuidados",
+ "preco": "R$ 12,90",
+ "formato": "PDF de stories (abre no Canva para trocar textos e colocar as suas fotos)",
+ "numeros": [
+  "2 stories",
+  "com foto"
+ ],
+ "desc": "Os cuidados de brow lamination e o que esperar em cada fase, com espaço para a foto do resultado.",
+ "itens": [
+  "Cuidados pós em lista",
+  "O que esperar em cada fase",
+  "Espaço para a foto do resultado"
+ ],
+ "amostras": [
+  "ape/amostras/e-sob-brow-cuidados--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "sob-caderno",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "sobrancelha e cílios",
+ "uso": "imprimir",
+ "tipo": "cursos",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Caderno de treino de sobrancelha",
+ "tag": "cursos",
+ "preco": "R$ 24,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "10 páginas",
+  "para alunas"
+ ],
+ "desc": "Para o seu curso: atividades, coordenação motora, desenho à mão livre, mapeamento no rosto, visagismo e anotações.",
+ "itens": [
+  "10 páginas para imprimir",
+  "Treinos de coordenação e de desenho",
+  "Mapeamento e visagismo em rostos desenhados",
+  "Espaço para o nome do curso"
+ ],
+ "amostras": [
+  "ape/amostras/e-sob-caderno--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "nutri-anamnese",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "nutrição",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de anamnese nutricional",
+ "tag": "fichas",
+ "preco": "R$ 16,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "recordatório"
+ ],
+ "desc": "Objetivo, saúde, preferências, recordatório alimentar, medidas e evolução da paciente.",
+ "itens": [
+  "Anamnese e objetivos",
+  "Recordatório das refeições",
+  "Medidas e tabela de evolução"
+ ],
+ "amostras": [
+  "ape/amostras/e-nutri-anamnese--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "fisio-avaliacao",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "fisioterapia",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de avaliação fisioterapêutica",
+ "tag": "fichas",
+ "preco": "R$ 16,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "mapa do corpo"
+ ],
+ "desc": "Queixa, escala de dor, mapa do corpo (frente e costas) para marcar onde dói, exame físico e plano de tratamento.",
+ "itens": [
+  "Escala de dor de 0 a 10",
+  "Mapa do corpo para marcar",
+  "Exame físico e plano de sessões"
+ ],
+ "amostras": [
+  "ape/amostras/e-fisio-avaliacao--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "psico-anamnese",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "psicologia",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de acolhimento e contrato terapêutico",
+ "tag": "fichas",
+ "preco": "R$ 16,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "contrato incluso"
+ ],
+ "desc": "Primeira sessão: o que traz a pessoa, história, rotina, contato de emergência e o contrato terapêutico com sigilo, valores e faltas.",
+ "itens": [
+  "Ficha de acolhimento",
+  "Contrato terapêutico",
+  "Anotações do profissional"
+ ],
+ "amostras": [
+  "ape/amostras/e-psico-anamnese--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "personal-avaliacao",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "personal",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Avaliação física para personal",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "PAR-Q"
+ ],
+ "desc": "Objetivo, questionário PAR-Q de prontidão, rotina, medidas com o mapa do corpo e evolução do aluno.",
+ "itens": [
+  "Questionário PAR-Q",
+  "Medidas com mapa do corpo",
+  "Tabela de evolução"
+ ],
+ "amostras": [
+  "ape/amostras/e-personal-avaliacao--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "podo-ficha",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "podologia",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de podologia",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "mapa dos pés"
+ ],
+ "desc": "Anamnese, queixas mais comuns, mapa dos pés (sola) para marcar e registro dos atendimentos.",
+ "itens": [
+  "Anamnese e queixas",
+  "Mapa dos dois pés",
+  "Registro dos atendimentos"
+ ],
+ "amostras": [
+  "ape/amostras/e-podo-ficha--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "vet-ficha",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "veterinária",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha do pet",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "vacinas"
+ ],
+ "desc": "Dados do tutor e do pet com espaço para foto, saúde, carteira de vacinas e vermífugos e histórico de consultas.",
+ "itens": [
+  "Espaço para a foto do pet",
+  "Carteira de vacinas",
+  "Histórico de consultas"
+ ],
+ "amostras": [
+  "ape/amostras/e-vet-ficha--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "kit-consultorio",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "odontologia",
+ "uso": "ambos",
+ "tipo": "kits",
+ "cat": "combos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Kit consultório odontológico",
+ "tag": "kit",
+ "preco": "",
+ "kitPct": 25,
+ "combo": [
+  "odonto-anamnese",
+  "odonto-termo"
+ ],
+ "itens": [],
+ "desc": "Anamnese com odontograma e termo de consentimento.",
+ "amostras": [
+  "ape/amostras/e-odonto-anamnese--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "kit-medico",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "medicina",
+ "uso": "ambos",
+ "tipo": "kits",
+ "cat": "combos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Kit consultório médico",
+ "tag": "kit",
+ "preco": "",
+ "kitPct": 25,
+ "combo": [
+  "med-anamnese",
+  "med-receituario"
+ ],
+ "itens": [],
+ "desc": "Anamnese clínica, receituário, atestado e pedido de exames.",
+ "amostras": [
+  "ape/amostras/e-med-anamnese--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "kit-dezembro",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "todos",
+ "uso": "ambos",
+ "tipo": "kits",
+ "cat": "combos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Kit dezembro",
+ "tag": "kit",
+ "preco": "",
+ "kitPct": 30,
+ "combo": [
+  "beleza-agenda-dezembro",
+  "beleza-confirmacao",
+  "beleza-fim-de-ano"
+ ],
+ "itens": [],
+ "desc": "Agenda de dezembro, confirmação de agendamento e os avisos de fim de ano.",
+ "amostras": [
+  "ape/amostras/e-beleza-agenda-dezembro--delicado.webp"
+ ],
+ "selo": "novidade"
 }
 ]

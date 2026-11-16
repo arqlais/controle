@@ -8,10 +8,10 @@ export const ESTILOS: { id: Estilo; nome: string; cor: string; aro: string; fras
   { id: 'delicado', nome: 'delicado', cor: '#e9dcd6', aro: '#a88a80', frase: 'bege e rosé, cantos redondos' },
   { id: 'criativo', nome: 'criativo', cor: '#e8a48f', aro: '#c9785d', frase: 'colagem colorida, com fita e adesivos' },
   { id: 'minimalista', nome: 'minimalista', cor: '#ffffff', aro: '#1f1f1f', frase: 'preto e branco, limpo e elegante' },
-  { id: 'elegante', nome: 'elegante', cor: '#15120f', aro: '#c9a86a', frase: 'preto e dourado, ar de luxo' },
+  { id: 'elegante', nome: 'elegante', cor: '#f6efe0', aro: '#9c7b3f', frase: 'creme, preto e dourado, ar de luxo' },
 ]
 export const ESTILO_PADRAO: Estilo = 'delicado'
-const PREVIA = new Set<string>(["beleza-fim-de-ano", "beleza-precos", "beleza-anamnese", "beleza-termo", "beleza-vale", "free-proposta", "free-contrato", "free-briefing", "arq-proposta", "arq-contrato", "arq-briefing", "arq-levantamento", "beleza-stories-mes", "beleza-antes-depois", "beleza-depoimentos", "beleza-carrossel", "beleza-destaques", "beleza-politica", "beleza-cartao-agendamento", "beleza-recibo", "beleza-mensagens", "beleza-certificado", "beleza-biosseguranca", "sob-cuidados", "sob-visagismo", "cil-mapeamento", "unha-cuidados", "unha-catalogo", "cab-anamnese", "cab-cuidados", "cab-tecnica", "est-avaliacao", "est-protocolo", "est-cuidados", "noiva-orcamento", "noiva-contrato", "noiva-ficha", "dep-ficha", "mas-ficha", "beleza-lembranca", "bio-toxina", "bio-preenchimento", "bio-bioestimulador", "bio-facial", "bio-corporal", "odonto-anamnese", "odonto-termo", "med-anamnese", "med-receituario"])
+const PREVIA = new Set<string>(["beleza-fim-de-ano", "beleza-precos", "beleza-anamnese", "beleza-termo", "beleza-vale", "free-proposta", "free-contrato", "free-briefing", "arq-proposta", "arq-contrato", "arq-briefing", "arq-levantamento", "beleza-stories-mes", "beleza-antes-depois", "beleza-depoimentos", "beleza-carrossel", "beleza-destaques", "beleza-politica", "beleza-cartao-agendamento", "beleza-recibo", "beleza-mensagens", "beleza-certificado", "beleza-biosseguranca", "sob-cuidados", "sob-visagismo", "cil-mapeamento", "unha-cuidados", "unha-catalogo", "cab-anamnese", "cab-cuidados", "cab-tecnica", "est-avaliacao", "est-protocolo", "est-cuidados", "noiva-orcamento", "noiva-contrato", "noiva-ficha", "dep-ficha", "mas-ficha", "beleza-lembranca", "bio-toxina", "bio-preenchimento", "bio-bioestimulador", "bio-facial", "bio-corporal", "odonto-anamnese", "odonto-termo", "med-anamnese", "med-receituario", "beleza-agenda-dezembro", "beleza-confirmacao", "sob-micro-cuidados", "sob-brow-cuidados", "sob-caderno", "nutri-anamnese", "fisio-avaliacao", "psico-anamnese", "personal-avaliacao", "podo-ficha", "vet-ficha"])
 /** produtos sem versões de estilo (vão como estão) */
 const SEM_ESTILO = new Set(['arq-manual'])
 
@@ -35,6 +35,7 @@ const PAGINAS_EST: Record<string, Partial<Record<Estilo, number>>> = {
   'bio-toxina': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-preenchimento': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-bioestimulador': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
   'odonto-anamnese': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'odonto-termo': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
   'med-anamnese': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'med-receituario': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
+  'beleza-agenda-dezembro': { delicado: 5, minimalista: 5, elegante: 5, criativo: 5 }, 'beleza-confirmacao': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'sob-micro-cuidados': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'sob-brow-cuidados': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'sob-caderno': { delicado: 4, minimalista: 4, elegante: 4, criativo: 4 }, 'nutri-anamnese': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'fisio-avaliacao': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'psico-anamnese': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'personal-avaliacao': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'podo-ficha': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'vet-ficha': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
   'bio-facial': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-corporal': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
 }
 /** Páginas de dentro no estilo pedido. Sem a versão daquele estilo, não mostra as de outro (a foto tem que bater com o estilo escolhido). */
@@ -44,7 +45,7 @@ export const paginasDe = (id: string, est: Estilo = 'delicado') => {
   return est === 'delicado' ? (PAGINAS[id] || []).map((n) => `ape/amostras/p-${id}-${n}.webp`) : []
 }
 /** Arquivos para o celular (stories 9:16 e posts 4:5): aparecem dentro de um iPhone; os de imprimir, como páginas. */
-const NO_CELULAR = new Set<string>(["beleza-antes-depois", "beleza-carrossel", "beleza-depoimentos", "beleza-destaques", "beleza-fim-de-ano", "beleza-precos", "beleza-stories-mes", "unha-catalogo"])
+const NO_CELULAR = new Set<string>(["beleza-agenda-dezembro", "beleza-confirmacao", "sob-micro-cuidados", "sob-brow-cuidados", "beleza-antes-depois", "beleza-carrossel", "beleza-depoimentos", "beleza-destaques", "beleza-fim-de-ano", "beleza-precos", "beleza-stories-mes", "unha-catalogo"])
 export const noCelular = (id: string) => NO_CELULAR.has(id)
 export const nomeEstilo = (e: string | null) => ESTILOS.find((x) => x.id === e)?.nome || ''
 /** id que vai para o carrinho: com o estilo, quando o produto tem estilos */

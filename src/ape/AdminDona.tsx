@@ -22,7 +22,7 @@ export const lojaDoItem = (i: { id: string; frente?: string }): LojaK => {
   if (i.frente === 'arquivos' || i.frente === 'arq' || i.frente === 'apzinho') return i.frente
   const id = estiloDoId(i.id).base
   if (/^(kit-)?arq-/.test(id) || id === 'presente-arq') return 'arq'
-  if (/^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas|bio|odonto|med)-/.test(id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza|bio)$/.test(id) || id === 'presente-arquivos') return 'arquivos'
+  if (/^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas|bio|odonto|med|nutri|fisio|psico|personal|podo|vet)-/.test(id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza|bio|consultorio|medico|dezembro)$/.test(id) || id === 'presente-arquivos') return 'arquivos'
   return 'apzinho'
 }
 
