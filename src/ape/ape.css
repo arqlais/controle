@@ -3084,3 +3084,4 @@ body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)
 .ape-adm-lojas .nm-l { font-style: normal; }
 .ape-adm-vend-h .ape-eyebrow { white-space: nowrap; }
 @media (max-width: 760px) { .ape-adm-lojas .nm-l { display: none; } .ape-adm-lojas .ape-adm-cards span { white-space: nowrap; } }
+.ape-precos-de { color: var(--a-muted); font-size: .62em; font-weight: 500; margin-right: 6px; }

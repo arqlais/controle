@@ -543,7 +543,7 @@ function Preco({ p, byId, pixPct }: { p: Produto; byId: ById; pixPct?: number })
   const n = maxSemJuros(cart, SEMJ)
   return (
     <div className="ape-precos">
-      <div className="ape-precos-pix ape-keep">{brl(pix)} <small>no Pix</small></div>
+      <div className="ape-precos-pix ape-keep">{cart > pix && <s className="ape-precos-de">{brl(cart)}</s>}{brl(pix)} <small>no Pix{cart > pix ? ` · −${Math.round((1 - pix / cart) * 100)}%` : ''}</small></div>
       <div className="ape-precos-cartao ape-keep">ou {brl(cart)}{n > 1 ? ` em até ${n}x sem juros` : ' no crédito'}{p.unidade ? ` · ${p.unidade}` : ''}</div>
       {eco > 0 ? <div className="ape-precos-eco ape-keep"><s>{brl(soma)}</s> separados · economia de {Math.round((eco / soma) * 100)}%</div> : <div className="ape-precos-eco" aria-hidden="true">&nbsp;</div>}
     </div>

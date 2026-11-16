@@ -768,9 +768,18 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
               <s className="num">{p.preco}</s>
             </>
           ) : (
-            <span className="num">{p.preco}</span>
+            (() => {
+              // preço do cartão riscado como referência e o Pix como o valor com desconto
+              const pix = reais(p.preco), cart = precoCartao(pix, ctx.cartaoPct), off = Math.round((1 - pix / cart) * 100)
+              return (
+                <>
+                  {off > 0 && <s className="num fr-de">{fmtPreco(cart)}</s>}
+                  <span className="num">{p.preco}</span>
+                </>
+              )
+            })()
           )}
-          <small className="fr-preco-pix">no Pix · ou até {maxSemJuros(precoCartao(reais(p.preco) * (100 - ctx.cupomPct) / 100, ctx.cartaoPct), ctx.semJ)}x sem juros</small>
+          <small className="fr-preco-pix">no Pix{reais(p.preco) < precoCartao(reais(p.preco), ctx.cartaoPct) && ctx.cupomPct === 0 ? <b className="fr-pixoff"> −{Math.round((1 - reais(p.preco) / precoCartao(reais(p.preco), ctx.cartaoPct)) * 100)}%</b> : null} · ou {fmtPreco(precoCartao(reais(p.preco) * (100 - ctx.cupomPct) / 100, ctx.cartaoPct))} em até {maxSemJuros(precoCartao(reais(p.preco) * (100 - ctx.cupomPct) / 100, ctx.cartaoPct), ctx.semJ)}x sem juros</small>
         </div>
         <div className="row gap-s fr-card-acoes">
           <button className={`btn small ${ja ? 'ghost' : 'primary'}`} onClick={() => ctx.add(p, escolhido)} disabled={ja} aria-label={ja ? 'no carrinho' : `adicionar ${p.nome}${estilos ? ` no estilo ${escolhido}` : ''}`}>
@@ -884,8 +893,10 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
               </div>
             )}
             <div className="fr-pp-preco">
+              {cupomPct === 0 && cartV > pixV && <s className="num fr-pp-de">{fmtPreco(cartV)}</s>}
               <span className="num fr-pp-valor">{fmtPreco(pixV)}</span>
               <span className="fr-pp-pix">no Pix</span>
+              {cupomPct === 0 && cartV > pixV && <span className="fr-pp-tag">{Math.round((1 - pixV / cartV) * 100)}% de desconto no Pix</span>}
               {cupomPct > 0 && <s className="num">{p.preco}</s>}
               {cupomPct > 0 && <span className="fr-pp-tag">com o cupom de {cupomPct}%</span>}
               <small className="muted fr-pp-cartao">
