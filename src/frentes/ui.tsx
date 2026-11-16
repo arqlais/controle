@@ -265,7 +265,7 @@ export function Iphone({ src, className = '' }: { src: string; className?: strin
             /* story: a arte ocupa a tela inteira (o fundo dela continua por trás, sem faixa preta) */
             <span className="iph-cheia">
               <img className="fundo" src={src} alt="" loading="lazy" decoding="async" />
-              <img className="arte" src={src} alt="" loading="lazy" decoding="async" onLoad={ver} />
+              <span className="arte-box"><img className="arte" src={src} alt="" loading="lazy" decoding="async" onLoad={ver} /></span>
               <span className="iph-barra"><i /><i /><i /></span>
             </span>
           )}
@@ -274,4 +274,29 @@ export function Iphone({ src, className = '' }: { src: string; className?: strin
       </span>
     </span>
   )
+}
+
+/** Onde o conteúdo de uma arte começa e termina (fração da altura), para o desfoque da prévia cair
+ *  sempre na metade de baixo do que está escrito, e não no espaço vazio da página. */
+export function medirConteudo(src: string): Promise<number> {
+  return new Promise((ok) => {
+    const im = new Image()
+    im.onload = () => {
+      try {
+        const w = 80, h = Math.max(1, Math.round((im.naturalHeight / im.naturalWidth) * w))
+        const c = document.createElement('canvas'); c.width = w; c.height = h
+        const g = c.getContext('2d', { willReadFrequently: true })!
+        g.drawImage(im, 0, 0, w, h)
+        const d = g.getImageData(0, 0, w, h).data
+        const bg = [d[(2 * w + 2) * 4], d[(2 * w + 2) * 4 + 1], d[(2 * w + 2) * 4 + 2]]
+        const tem = (y: number) => { for (let x = 3; x < w - 3; x++) { const i = (y * w + x) * 4; if (Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > 40) return true } return false }
+        let ini = Math.round(h * 0.03), fim = Math.round(h * 0.97)
+        while (ini < fim && !tem(ini)) ini++
+        while (fim > ini && !tem(fim)) fim--
+        ok(Math.min(0.85, Math.max(0.3, (ini + (fim - ini) * 0.55) / h)))
+      } catch { ok(0.62) }
+    }
+    im.onerror = () => ok(0.62)
+    im.src = src
+  })
 }

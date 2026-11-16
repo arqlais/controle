@@ -6,7 +6,7 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { BarraPlataformas, Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
+import { medirConteudo, BarraPlataformas, Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
 import { AREAS, areasDe, FORA_DA_LOJA } from './areas'
 import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, paginasDe, noCelular, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
@@ -814,6 +814,9 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
     return [imgEstilo(p.id, est), ...(proprias.length ? proprias : paginasDe(p.id, 'delicado'))]
   }, [p, est, previa])
   const [foto, setFoto] = useState(0)
+  // o desfoque começa na metade de baixo do conteúdo de cada arte (artes curtas ou com espaço vazio embaixo também)
+  const [corte, setCorte] = useState(0.62)
+  useEffect(() => { let vivo = true; if (fotos[foto]) void medirConteudo(fotos[foto]).then((c) => vivo && setCorte(c)); return () => { vivo = false } }, [fotos, foto])
   const dentroDelicado = previa && est !== 'delicado' && !paginasDe(p.id, est).length && paginasDe(p.id, 'delicado').length > 0
   useEffect(() => setFoto(0), [est])
   const noCarrinho = estilosNoCarrinho(ctx.cartIds, p.id)
@@ -841,8 +844,8 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
         </nav>
         <div className="fr-pp-grid">
           <div className="fr-pp-gal">
-            <div className={`fr-pp-foto fr-prot ${previa && noCelular(p.id) ? 'is-cel' : previa ? 'is-pagina' : ''} ${foto > 0 && previa ? 'is-dentro' : ''}`} onContextMenu={(e) => e.preventDefault()}>
-              {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} />)}
+            <div style={{ ['--corte' as string]: corte }} className={`fr-pp-foto fr-prot ${previa && noCelular(p.id) ? 'is-cel' : previa ? 'is-pagina' : ''} ${foto > 0 && previa ? 'is-dentro' : ''}`} onContextMenu={(e) => e.preventDefault()}>
+              {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : previa ? <span className="fr-prev-img"><img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} /></span> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} />)}
               {foto > 0 && previa && <span className="fr-dentro-aviso">{dentroDelicado ? 'página de dentro no estilo delicado · o seu vem no estilo escolhido' : 'prévia · o arquivo completo chega depois da compra'}</span>}
               {fotos.length > 1 && (
                 <>

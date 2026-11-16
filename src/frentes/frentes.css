@@ -822,3 +822,13 @@ html, body { overflow-x: clip; }
 .fr-site-arte .iph { position: absolute; right: 7%; top: 6%; height: 92%; width: auto; transform: rotate(5deg); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
 @media (hover: hover) { .fr-site:hover .fr-site-arte .pg1 { transform: rotate(-10deg) translateX(-4px); } .fr-site:hover .fr-site-arte .iph { transform: rotate(7deg) translateY(-4px); } }
 .fr-site:hover .fr-site-arte img { scale: 1; }
+
+/* desfoque da prévia medido pelo conteúdo de cada arte (--corte = onde começa, em fração da altura da arte) */
+.fr-pp-foto.is-dentro::after, .fr-pp-foto.is-cel.is-dentro .iph-cheia::after { display: none; }
+.fr-pp-foto.is-dentro img, .fr-pp-foto.is-dentro .iph-cheia .arte { -webkit-mask-image: none; mask-image: none; }
+.fr-pp-foto.is-pagina { container-type: size; display: grid; place-items: center; }
+.fr-prev-img { position: relative; display: inline-block; line-height: 0; }
+.fr-pp-foto.is-pagina .fr-prev-img img { width: auto; height: auto; max-width: 80cqw; max-height: 88cqh; padding: 0; display: block; object-fit: contain; }
+.iph-cheia .arte-box { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); line-height: 0; }
+.iph-cheia .arte-box .arte { position: static; transform: none; width: 100%; height: auto; display: block; }
+.fr-pp-foto.is-dentro .fr-prev-img::after, .fr-pp-foto.is-dentro .arte-box::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--corte, .62) * 100%); -webkit-backdrop-filter: blur(1.8px); backdrop-filter: blur(1.8px); background: color-mix(in srgb, #fff 18%, transparent); -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%); mask-image: linear-gradient(180deg, transparent, #000 22%); pointer-events: none; }
