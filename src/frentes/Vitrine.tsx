@@ -6,8 +6,8 @@ import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '.
 import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
-import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
-import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, paginasDe, temEstilos, temPrevia, type Estilo } from './estilos'
+import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
+import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, paginasDe, noCelular, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
@@ -309,7 +309,16 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
           </div>
           <div className="lp-hero-art" aria-hidden>
             {(() => {
-              // topo: três páginas de verdade no estilo delicado, em leque (sem celular, sem mockup)
+              // topo da beleza: dois iPhones com stories de verdade e uma página impressa atrás
+              if (id !== 'arq')
+                return (
+                  <span className="fr-hero-cel">
+                    <img className="pag" src={paginasDe('beleza-anamnese')[0] || imgEstilo('beleza-anamnese', 'delicado')} alt="" decoding="async" />
+                    <Iphone className="a" src={imgEstilo('beleza-stories-mes', 'delicado')} />
+                    <Iphone className="b" src={imgEstilo('beleza-fim-de-ano', 'delicado')} />
+                  </span>
+                )
+              // topo do arq: três páginas de verdade no estilo delicado, em leque
               const ids = id === 'arq' ? ['arq-proposta', 'arq-contrato', 'arq-briefing'] : ['beleza-precos', 'beleza-anamnese', 'beleza-stories-mes']
               const imgs = [imgEstilo(ids[0], 'delicado'), paginasDe(ids[1])[0] || imgEstilo(ids[1], 'delicado'), imgEstilo(ids[2], 'delicado')]
               return (
@@ -644,6 +653,13 @@ function Capa({ p, est, fallback, todos }: { p: Produto; est: Estilo; fallback?:
   }
   if (!temPrevia(p.id)) return fallback ? <img src={fallback} alt="" loading="lazy" decoding="async" width={1200} height={900} /> : null
   const dentro = paginasDe(p.id)[0]
+  if (noCelular(p.id))
+    return (
+      <span className={`fr-capa fr-capa-cel ${dentro ? 'duas' : ''}`}>
+        <Iphone key={est} className="a" src={imgEstilo(p.id, est)} />
+        {dentro && <Iphone className="b" src={dentro} />}
+      </span>
+    )
   return (
     <span className={`fr-capa ${dentro ? 'tem-dentro' : ''}`}>
       <img key={est} className="frente" src={imgEstilo(p.id, est)} alt="" loading="lazy" decoding="async" />
@@ -758,8 +774,8 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
         </nav>
         <div className="fr-pp-grid">
           <div className="fr-pp-gal">
-            <div className={`fr-pp-foto ${foto === 0 && previa ? 'is-pagina' : ''}`}>
-              {fotos[foto] && <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" />}
+            <div className={`fr-pp-foto ${previa && noCelular(p.id) ? 'is-cel' : foto === 0 && previa ? 'is-pagina' : ''}`}>
+              {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" />)}
               {p.selo && <span className="fr-selo">{p.selo}</span>}
             </div>
             {fotos.length > 1 && (

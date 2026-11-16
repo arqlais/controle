@@ -201,3 +201,17 @@ export function Rodape() {
     </footer>
   )
 }
+
+/** iPhone de verdade (proporção 71,6 × 147,6 mm, tela 19,5:9, Dynamic Island e botões), com a arte na tela.
+ *  A arte (story 9:16 ou post 4:5) aparece inteira, como no Instagram. */
+export function Iphone({ src, className = '', story = true }: { src: string; className?: string; story?: boolean }) {
+  return (
+    <span className={`iph ${className}`} aria-hidden>
+      <span className="iph-tela">
+        {story && <span className="iph-barra"><i /><i /><i /></span>}
+        <img src={src} alt="" loading="lazy" decoding="async" />
+      </span>
+    </span>
+  )
+}
+
