@@ -14,6 +14,7 @@ export const RDL_INFO = {
   company: 'RDL Engenharia e Representações',
   cnpj: '48.624.017/0001-46',
   engineer: 'Eng. Rogério Francisco Vieira',
+  crea: '5070438360',
   phone: '(11) 9 7520-8296',
   whatsapp: '11975208296',
   email: 'roger.rdl76@yahoo.com.br',
@@ -264,7 +265,7 @@ p{margin:0 0 1.2mm;text-align:justify}p b{color:#012C60}p.b{padding-left:4mm}a{c
 <div class="hd"><img src="${RDL_LOGO}" alt="RDL"><i></i></div>
 <table class="pg"><thead><tr><td><div class="sp-t"></div></td></tr></thead><tfoot><tr><td><div class="sp-b"></div></td></tr></tfoot><tbody><tr><td>
 ${corpo}
-<div class="sig"><div>${rdlOk ? `<div class="typed">RDL Engenharia</div>` : ''}<b>RDL ENGENHARIA E REPRESENTAÇÕES</b><small>${esc(RDL_INFO.engineer)} · CONTRATADA${rdlOk ? `<br>aceite registrado em ${rdlOk}` : '<br>aceite registrado na confirmação do sinal'}</small></div>
+<div class="sig"><div>${rdlOk ? `<div class="typed">RDL Engenharia</div>` : ''}<b>RDL ENGENHARIA E REPRESENTAÇÕES</b><small>${esc(RDL_INFO.engineer)} · CREA-SP ${RDL_INFO.crea} · CONTRATADA${rdlOk ? `<br>aceite registrado em ${rdlOk}` : '<br>aceite registrado na confirmação do sinal'}</small></div>
 <div>${desenhoSrc ? `<img src="${desenhoSrc}" alt="">` : `<div class="typed">${esc(r.contrato.assinatura)}</div>`}<b>CONTRATANTE</b><small>${esc(r.contrato.assinatura)} · CPF ${esc(r.contrato.cpf)}<br>assinado eletronicamente em ${quando}</small></div></div>
 <div class="cert"><b>Registro da assinatura eletrônica</b> (art. 10, § 2º, da MP 2.200-2/2001): assinado por ${esc(r.contrato.assinatura)}, CPF ${esc(r.contrato.cpf)}, em ${quando} (${esc(r.contrato.fuso)}), pelo aparelho ${esc(r.contrato.aparelho)}${r.contrato.ip ? `, IP ${esc(r.contrato.ip)}` : ''}, no link de reserva da RDL Engenharia. Código do documento (SHA-256 do texto assinado): <b>${esc(r.contrato.codigo)}</b>. Reserva nº ${esc(r.id.slice(0, 8).toUpperCase())}.</div>
 </td></tr></tbody></table>

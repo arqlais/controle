@@ -341,7 +341,7 @@ export const VISTORIA_CONTRACT: ContractTemplate = {
   body: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE VISTORIA TÉCNICA DE ENTREGA DE CHAVES
 
 CONTRATADA
-{contratada}, {doc_contratada}, e-mail {email_contratada}, telefone {telefone_contratada}, neste ato pelo engenheiro civil Rogério Francisco Vieira, registrado no CREA-SP, responsável técnico pelo serviço.
+{contratada}, {doc_contratada}, e-mail {email_contratada}, telefone {telefone_contratada}, neste ato pelo engenheiro civil Rogério Francisco Vieira, registrado no CREA-SP sob o nº 5070438360, responsável técnico pelo serviço.
 
 CONTRATANTE
 {contratante}, {doc_contratante}, com endereço em {endereco_contratante}, e-mail {email_contratante}, telefone {telefone_contratante}.

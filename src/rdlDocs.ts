@@ -11,7 +11,7 @@ export const RDL = {
   cnpj: '48.624.017/0001-46',
   phone: '(11) 9 7520-8296',
   email: 'roger.rdl76@yahoo.com.br',
-  crea: '',
+  crea: '5070438360',
 }
 
 const esc = (s: unknown) =>
