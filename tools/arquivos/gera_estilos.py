@@ -21,9 +21,9 @@ def kit(base, w, h, pecas, tema):
 
 def verso(p, tema, titulo, texto, rodape):
     v = EPeca(p, tema); T = v.T
-    escuro = {'minimalista': '1F1F1F', 'elegante': '15120F'}.get(tema, T['eti'])
+    escuro = {'minimalista': '1F1F1F', 'elegante': '1D1A16'}.get(tema, T['eti'])
     v.ret(0, 0, v.W, v.H, escuro)
-    claro = T['ac'] if tema == 'elegante' else 'FFFFFF'
+    claro = 'E9D7AE' if tema == 'elegante' else 'FFFFFF'
     if T['sans']: v.tx(0, v.H * 0.26, v.W, 120, titulo, BODY, 76, 'FFFFFF', 'c', b=True)
     else: v.tx(0, v.H * 0.26, v.W, 120, titulo.upper(), SERIF, 80, claro, 'c', spc=10)
     v.tx(60, v.H * 0.46, v.W - 120, 90, texto, BODY, 22, 'EDE6E2', 'c', esp=1.3)

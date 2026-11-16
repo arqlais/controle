@@ -14,8 +14,9 @@ from peca import Peca, PX, TMP, FONTE_DIR, rgb
 TEMAS = {
     'minimalista': dict(bg='FFFFFF', ink='1F1F1F', ac='1F1F1F', mut='8A8A8A', fio='1F1F1F', fio_l='D6D6D6', card='F3F3F3', eti='1F1F1F', eti_txt='FFFFFF',
                         foto='ECECEC', foto_txt='9A9A9A', mono='F2F2F2', forma='rect', aro=False, sans=False),
-    'elegante': dict(bg='15120F', ink='EFE6D8', ac='C9A86A', mut='A79B8B', fio='B8955C', fio_l='B8955C', card='211D19', eti='C9A86A', eti_txt='15120F',
-                     foto='2A2520', foto_txt='9C8662', mono='1C1814', forma='arco', aro=True, sans=False),
+    # elegante: preto e dourado sobre creme claro (o mesmo fundo do impresso; fundo escuro não serve para imprimir nem combina com as fichas)
+    'elegante': dict(bg='FFFDF8', ink='1D1A16', ac='9C7B3F', mut='857A6B', fio='C9AD72', fio_l='E6DBC4', card='F6F0E3', eti='1D1A16', eti_txt='E9D7AE',
+                     foto='F1E9DA', foto_txt='9C7B3F', mono='F6F0E3', forma='arco', aro=True, sans=False),
     # delicado: a mesma pegada do site da planê (bege, azul acinzentado, rosé, cantos redondos)
     'delicado': dict(bg='F5F1EE', ink='3E4B57', ac='A88A80', mut='8B939A', fio='D6B3AB', fio_l='E6D7D1', card='FFFFFF', eti='3E4B57', eti_txt='FFFFFF',
                      foto='EADFDA', foto_txt='A88A80', mono='EFE7E3', forma='rr', aro=False, sans=True),
