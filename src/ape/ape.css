@@ -3037,3 +3037,28 @@ body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)
 .ape-adm-ic svg { width: 22px !important; height: 22px !important; }
 .ape-adm-troca { width: 18px; height: 18px; right: -2px; bottom: -2px; }
 .ape-adm-troca svg { width: 10px !important; height: 10px !important; }
+/* cartões do painel: colunas pelo número de cartões, nunca um sozinho na linha de baixo */
+.ape-adm-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ape-adm-cards:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ape-adm-cards:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ape-adm-cards:has(> :only-child) { grid-template-columns: 1fr; }
+@media (max-width: 900px) {
+  .ape-adm-cards, .ape-adm-cards:has(> :nth-child(3):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ape-adm-cards > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) { .ape-adm-lojas .ape-adm-cards { grid-template-columns: 1fr; } .ape-adm-lojas .ape-adm-cards > :last-child { grid-column: auto; } }
+/* nada sozinho na última linha: */
+/* campos de formulário: dividem a linha entre eles (a última linha se estica) */
+.ape-frow:not(.ape-frow3) { display: flex; flex-wrap: wrap; }
+.ape-frow:not(.ape-frow3) > * { flex: 1 1 170px; min-width: 0; }
+/* biblioteca de arquivos: cartões que se esticam na última linha */
+.bib-grade { display: flex; flex-wrap: wrap; }
+.bib-grade > .bib-card { flex: 1 1 170px; max-width: 100%; }
+.bib-grade > .bib-card .bib-capa { max-height: 170px; width: 100%; }
+@media (max-width: 760px) { .bib-grade > .bib-card { flex-basis: 140px; } }
+/* ver como cliente: 4 cartões em 4 colunas ou 2 x 2 */
+.dona-lojas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1240px) { .dona-lojas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .dona-lojas { grid-template-columns: 1fr; } }
+/* cada loja no mês (3 cartões): uma coluna no celular */
+@media (max-width: 760px) { .ape-adm-lojas .ape-adm-cards, .ape-adm-lojas .ape-adm-cards:has(> :nth-child(3):last-child) { grid-template-columns: 1fr !important; } }
