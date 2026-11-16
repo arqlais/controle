@@ -345,7 +345,7 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
             <div className="fr-areas-grid">
               {AREAS.filter((a) => ativos.some((p) => areasDe(p, daqui).includes(a.id))).map((a, i) => (
                 <a key={a.id} className="fr-area" href={href(id, `produtos:${a.id}`)} data-reveal style={{ transitionDelay: `${i * 0.04}s` }}>
-                  <span className="fr-area-ic"><Icon name={a.icone} size={22} /></span>
+                  <span className="fr-area-ic"><Icon name={a.icone} size={27} /></span>
                   <span className="fr-area-t"><b>{a.nome}</b><small>{a.frase}</small></span>
                   <Icon name="chevronR" size={16} />
                 </a>
@@ -743,7 +743,6 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
     <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
       <a className="fr-card-img fr-prot" href={link} aria-label={`Ver ${p.nome}`} draggable={false} onContextMenu={(e) => e.preventDefault()}>
         <Capa p={p} est={est || ESTILO_PADRAO} fallback={capa} todos={ctx.daqui} />
-        <span className="fr-marca" aria-hidden />
         {p.selo && <span className="fr-selo">{p.selo}</span>}
       </a>
       <div className="fr-card-b">
@@ -837,7 +836,6 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
           <div className="fr-pp-gal">
             <div className={`fr-pp-foto fr-prot ${previa && noCelular(p.id) ? 'is-cel' : previa ? 'is-pagina' : ''} ${foto > 0 && previa ? 'is-dentro' : ''}`} onContextMenu={(e) => e.preventDefault()}>
               {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} />)}
-              {previa && <span className="fr-marca" aria-hidden />}
               {foto > 0 && previa && <span className="fr-dentro-aviso">prévia · o arquivo completo chega depois da compra</span>}
               {fotos.length > 1 && (
                 <>
