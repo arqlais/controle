@@ -29,7 +29,7 @@ const TEXTO: Record<Id, {
   flutua: [string, string, string, string?][]; catalogo: ReactNode; faq: [string, string][]; final: ReactNode
 }> = {
   arquivos: {
-    kicker: 'para profissionais da beleza e freelancers: sobrancelha, cílios, unhas, cabelo, estética e noivas',
+    kicker: 'para profissionais da beleza e freelancers: unhas, cílios, sobrancelha, biomedicina, estética, cabelo e noivas',
     titulo: <>arquivos prontos para <em>mandar hoje</em></>,
     lead: 'Mais de 40 arquivos para imprimir e para mandar: fichas, termos, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
     chip: 'editável no Canva, no Word e no Excel',
@@ -521,11 +521,16 @@ function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) 
   const [filtrosAbertos, setFiltrosAbertos] = useState(false)
   const norm = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   const doNicho = daqui.filter((p) => p.ativo && (!nicho || p.nicho === nicho))
-  const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))]
+  // nichos mais procurados primeiro: unhas, cílios e sobrancelha, biomedicina...
+  const ORDEM_SUB = ['unhas', 'sobrancelha e cílios', 'biomedicina', 'estética', 'cabelo', 'maquiagem e noivas', 'depilação', 'massagem']
+  const pos = (x: string) => (ORDEM_SUB.indexOf(x) + 1 || 99)
+  const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))].sort((a, b) => pos(a) - pos(b))
   const tipos = [...new Set(doNicho.map((p) => p.tipo).filter((x): x is string => !!x && x !== 'kits'))]
   const filtrados = doNicho.filter((p) => (!sub || p.sub === sub || p.sub === 'todos') && (!uso || p.uso === uso || p.uso === 'ambos') && (!tipo || p.tipo === tipo) && (!busca.trim() || norm(`${p.nome} ${p.desc} ${p.sub || ''} ${p.tipo || ''} ${p.tag}`).includes(norm(busca.trim()))))
-  const kitsF = filtrados.filter((p) => p.cat === 'combos')
-  const arqsF = ordenar(filtrados.filter((p) => p.cat !== 'combos'))
+  // com um nicho escolhido, os dele vêm antes dos que servem para todos
+  const doSub = <T extends Produto>(l: T[]) => (sub ? [...l].sort((a, b) => Number(b.sub === sub) - Number(a.sub === sub)) : l)
+  const kitsF = doSub(filtrados.filter((p) => p.cat === 'combos'))
+  const arqsF = doSub(ordenar(filtrados.filter((p) => p.cat !== 'combos')))
   const LIM = 12
   const algumFiltro = !!(sub || uso || tipo || busca.trim())
   const nFiltros = [sub, uso, tipo].filter(Boolean).length

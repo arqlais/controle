@@ -381,7 +381,7 @@ export const msgAnexo = (m: Morador | null, fornecedor: string) =>
 /* ===== produtos e exemplos ===== */
 const AM = (f: string) => `ape/amostras/${f}`
 const NA_HORA = 'Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.'
-export const LOJA_VERSAO = 12
+export const LOJA_VERSAO = 13
 /** O que cada versão da loja muda nos produtos que a dona já salvou (o resto do que ela editou continua). */
 export const MIGRA_LOJA: Record<number, { novos: string[]; troca: Record<string, (keyof Produto)[]> }> = {
   8: { novos: ['pedras', 'pisos', 'marcenaria', 'banheiro', 'cozinha', 'iluminacao', 'eletrica', 'tintas', 'gesso', 'ar', 'cortinas', 'seguranca', 'kit-escolhas'], troca: { plataforma: ['preco', 'unidade'], 'kit-completo': ['combo', 'kitPct', 'desc', 'amostras'] } },
@@ -389,6 +389,7 @@ export const MIGRA_LOJA: Record<number, { novos: string[]; troca: Record<string,
   10: { novos: ['kit-beleza'], troca: {} },
   11: { novos: CATALOGO_BELEZA.map((p) => p.id), troca: {} },
   12: { novos: ['beleza-cuidados-qr', 'beleza-lembranca'], troca: {} },
+  13: { novos: ['bio-toxina', 'bio-preenchimento', 'bio-bioestimulador', 'bio-facial', 'bio-corporal', 'kit-bio'], troca: {} },
 }
 /** Juros ao mês do cartão parcelado (o painel muda). Parcela mínima: R$ 5. */
 export const JUROS_PCT = 2.99

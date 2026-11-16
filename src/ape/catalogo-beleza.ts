@@ -1086,5 +1086,189 @@ export const CATALOGO_BELEZA: Produto[] = [
   "amostras": [
    "ape/amostras/m2-kit-gestao-beleza.webp"
   ]
- }
+ },
+{
+ "id": "bio-toxina",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "biomedicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de toxina botulínica",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "mapa dos músculos",
+  "termo incluso"
+ ],
+ "desc": "Anamnese, termo de consentimento e o mapa dos músculos do rosto com as unidades de cada ponto, para repetir a aplicação certinha no retorno.",
+ "itens": [
+  "Anamnese e avaliação de saúde",
+  "Termo de consentimento com assinatura",
+  "Mapa dos músculos com unidades (UI) por região",
+  "Marca, lote, validade e diluição"
+ ],
+ "amostras": [
+  "ape/amostras/e-bio-toxina--delicado.webp",
+  "ape/amostras/p-bio-toxina-2.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "bio-preenchimento",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "biomedicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de preenchimento facial",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "11 regiões",
+  "termo incluso"
+ ],
+ "desc": "Anamnese, termo e o planejamento por região: lábios, malar, mento, mandíbula, olheiras e mais, com volume e lote de cada uma.",
+ "itens": [
+  "Anamnese e avaliação de saúde",
+  "Termo de consentimento",
+  "Rostos de frente e de perfil para planejar",
+  "Tabela por região com volume e lote"
+ ],
+ "amostras": [
+  "ape/amostras/e-bio-preenchimento--delicado.webp",
+  "ape/amostras/p-bio-preenchimento-2.webp"
+ ]
+},
+{
+ "id": "bio-bioestimulador",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "biomedicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de bioestimulador de colágeno",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "evolução",
+  "termo incluso"
+ ],
+ "desc": "Anamnese, termo e o registro da aplicação: produto, lote, diluição, áreas tratadas, retorno e evolução.",
+ "itens": [
+  "Anamnese e avaliação de saúde",
+  "Termo de consentimento",
+  "Produto, lote, validade e diluição",
+  "Rosto de perfil para marcar as áreas"
+ ],
+ "amostras": [
+  "ape/amostras/e-bio-bioestimulador--delicado.webp",
+  "ape/amostras/p-bio-bioestimulador-2.webp"
+ ]
+},
+{
+ "id": "bio-facial",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "biomedicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de estética facial",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "exame da pele",
+  "termo incluso"
+ ],
+ "desc": "Queixa, contraindicações, hábitos e o exame da pele com fototipo, biotipo, fotos e plano de tratamento.",
+ "itens": [
+  "Contraindicações para marcar",
+  "Hábitos e cuidados com a pele",
+  "Exame físico da pele e fototipo",
+  "Plano de tratamento e termo"
+ ],
+ "amostras": [
+  "ape/amostras/e-bio-facial--delicado.webp",
+  "ape/amostras/p-bio-facial-2.webp"
+ ]
+},
+{
+ "id": "bio-corporal",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "biomedicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de estética corporal",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "medidas",
+  "termo incluso"
+ ],
+ "desc": "Queixa, contraindicações, hábitos, exame do corpo, medidas e o mapa do corpo para acompanhar a evolução.",
+ "itens": [
+  "Contraindicações para marcar",
+  "Hábitos e alimentação",
+  "Exame do corpo, peso e medidas",
+  "Mapa do corpo e termo"
+ ],
+ "amostras": [
+  "ape/amostras/e-bio-corporal--delicado.webp",
+  "ape/amostras/p-bio-corporal-2.webp"
+ ]
+},
+{
+ "id": "kit-bio",
+ "frente": "arquivos",
+ "nicho": "beleza",
+ "sub": "biomedicina",
+ "uso": "imprimir",
+ "tipo": "kits",
+ "cat": "combos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Kit biomedicina e harmonização",
+ "tag": "kit",
+ "preco": "",
+ "kitPct": 30,
+ "combo": [
+  "bio-toxina",
+  "bio-preenchimento",
+  "bio-bioestimulador",
+  "bio-facial",
+  "bio-corporal"
+ ],
+ "itens": [],
+ "desc": "As 5 fichas: toxina botulínica, preenchimento, bioestimulador, estética facial e corporal, todas com termo de consentimento.",
+ "amostras": [
+  "ape/amostras/e-bio-toxina--delicado.webp"
+ ],
+ "selo": "novidade"
+}
 ]
