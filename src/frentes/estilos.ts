@@ -13,7 +13,7 @@ export const ESTILOS: { id: Estilo; nome: string; cor: string; aro: string; fras
 export const ESTILO_PADRAO: Estilo = 'delicado'
 const PREVIA = new Set<string>(["beleza-fim-de-ano", "beleza-precos", "beleza-anamnese", "beleza-termo", "beleza-vale", "free-proposta", "free-contrato", "free-briefing", "arq-proposta", "arq-contrato", "arq-briefing", "arq-levantamento", "beleza-stories-mes", "beleza-antes-depois", "beleza-depoimentos", "beleza-carrossel", "beleza-destaques", "beleza-politica", "beleza-cartao-agendamento", "beleza-recibo", "beleza-mensagens", "beleza-certificado", "beleza-biosseguranca", "sob-cuidados", "sob-visagismo", "cil-mapeamento", "unha-cuidados", "unha-catalogo", "cab-anamnese", "cab-cuidados", "cab-tecnica", "est-avaliacao", "est-protocolo", "est-cuidados", "noiva-orcamento", "noiva-contrato", "noiva-ficha", "dep-ficha", "mas-ficha", "beleza-lembranca", "bio-toxina", "bio-preenchimento", "bio-bioestimulador", "bio-facial", "bio-corporal"])
 /** produtos sem versões de estilo (vão como estão) */
-const SEM_ESTILO = new Set(['arq-manual', 'bio-toxina', 'bio-preenchimento', 'bio-bioestimulador', 'bio-facial', 'bio-corporal', 'kit-bio'])
+const SEM_ESTILO = new Set(['arq-manual'])
 
 export const estiloDoId = (id: string) => {
   const m = id.match(/^(.*)--(delicado|criativo|minimalista|elegante)$/)

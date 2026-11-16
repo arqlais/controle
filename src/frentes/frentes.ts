@@ -25,7 +25,7 @@ export const FRENTES: FrenteInfo[] = [
     marca: 'arquivos',
     para: 'para quem atende cliente',
     frase: 'arquivos prontos para mandar hoje',
-    desc: 'Avisos, fichas, tabelas e planilhas editáveis para profissionais da beleza, freelancers e pequenos negócios.',
+    desc: 'Avisos, fichas, tabelas e planilhas editáveis para nail designers, lash designers, designers de sobrancelha, biomedicina, estética, cabelo e make.',
     rota: '#/arquivos',
     caminho: 'useplane.com.br/arquivos',
     instagram: '@plane.arquivos',

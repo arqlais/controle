@@ -237,17 +237,12 @@ export function Iphone({ src, className = '' }: { src: string; className?: strin
               <span className="iph-leg"><i /><i /></span>
             </>
           ) : (
-            <>
-              <span className="iph-arte">
-                <img src={src} alt="" loading="lazy" decoding="async" onLoad={ver} />
-                <span className="iph-barra"><i /><i /><i /></span>
-                <span className="iph-perfil"><i className="av" /><span className="nm" /></span>
-              </span>
-              <span className="iph-msg"><span className="campo">Enviar mensagem</span>
-                <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>
-                <svg viewBox="0 0 24 24"><path d="M21 4 10 14M21 4l-7 17-4-7-7-4Z" /></svg>
-              </span>
-            </>
+            /* story: a arte ocupa a tela inteira (o fundo dela continua por trás, sem faixa preta) */
+            <span className="iph-cheia">
+              <img className="fundo" src={src} alt="" loading="lazy" decoding="async" />
+              <img className="arte" src={src} alt="" loading="lazy" decoding="async" onLoad={ver} />
+              <span className="iph-barra"><i /><i /><i /></span>
+            </span>
           )}
           <span className="iph-home" />
         </span>

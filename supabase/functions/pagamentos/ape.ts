@@ -112,6 +112,8 @@ type Item = { id: string; nome: string; preco: number; cat: string; combo: strin
 /** Estilos dos arquivos (o criativo é o arquivo sem sufixo; os outros terminam em "--<estilo>"). */
 export const ESTILOS = ['delicado', 'criativo', 'minimalista', 'elegante'] as const
 const estiloDe = (id: string) => { const m = id.match(/^(.*)--(delicado|criativo|minimalista|elegante)$/); return m ? { base: m[1], estilo: m[2] } : { base: id, estilo: '' } }
+/** Presente do 8º dia das lojas de arquivos (arte exclusiva, não está à venda). */
+export const PRESENTE_NOME = 'Presente · Planner 2027 do seu negócio'
 const PARTES: Record<string, string> = { stories: 'stories', feed: 'feed', 'cartoes-a6': 'cartões A6' }
 
 export function makeApe({ db, asaas, json, site, env }: Deps) {
@@ -342,21 +344,17 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     }
     for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? EXTRAS[id]?.[0] ?? id)
     const libera = ped.pago_em ? new Date(new Date(ped.pago_em).getTime() + BONUS_DIAS * 864e5) : null
-    // presente das lojas de arquivos: depois de 7 dias (sem cancelamento), o mesmo arquivo nos outros estilos
+    // presente das lojas de arquivos: depois de 7 dias (sem cancelamento), uma arte exclusiva (planner do ano),
+    // no estilo que a pessoa comprou (pasta "presente-<loja>", arquivos "presente-<loja>--<estilo>")
     const presente = !!libera && libera.getTime() <= Date.now() && marca.id !== 'apzinho' && !ped.cancelamento?.status
     if (presente) {
-      const extra = new Set<string>()
-      for (const id of ids) {
-        const { base, estilo } = estiloDe(id)
-        if (!estilo) continue
-        for (const e of ESTILOS) if (e !== estilo && !ids.includes(`${base}--${e}`) && map[`${base}--${e}`]) extra.add(`${base}--${e}`)
-      }
-      for (const id of extra) await pasta(id, `${map[id]?.nome ?? id} (presente)`)
+      const estilo = ids.map((id) => estiloDe(id).estilo).find(Boolean) || 'delicado'
+      await pasta(`presente-${marca.id === 'arq' ? 'arq' : 'arquivos'}--${estilo}`, PRESENTE_NOME)
     }
     // o bônus (manutenção do 1º ano) é do apê: compra só de outras frentes não tem
     const bonusLiberado = !!libera && libera.getTime() <= Date.now() && marca.id === 'apzinho'
     if (bonusLiberado) await pasta('bonus', 'Bônus - manutenção e garantias do 1º ano')
-    return { arquivos: out, canva: links, bonus: { liberado: bonusLiberado || presente, em: libera?.toISOString() ?? null, tipo: marca.id === 'apzinho' ? 'apzinho' : 'estilos' } }
+    return { arquivos: out, canva: links, bonus: { liberado: bonusLiberado || presente, em: libera?.toISOString() ?? null, tipo: marca.id === 'apzinho' ? 'apzinho' : 'presente' } }
   }
 
   async function pedido(body: J) {
@@ -696,7 +694,7 @@ Regras: números em reais sem R$ (1234.5). O preço pode estar escrito de muitos
       return json({ ok: true, guardados: feitos2 })
     }
     const { map } = await loja()
-    const ids = [...Object.keys(map).filter((id) => map[id].cat === 'arquivos' && !estiloDe(id).estilo), 'bonus'].sort((a, b) => b.length - a.length)
+    const ids = [...Object.keys(map).filter((id) => map[id].cat === 'arquivos' && !estiloDe(id).estilo), 'bonus', 'presente-arquivos', 'presente-arq'].sort((a, b) => b.length - a.length)
     const st = db.storage.from('ape-arquivos')
     const feitos: string[] = []
     const fora: string[] = []

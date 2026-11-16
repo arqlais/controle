@@ -99,13 +99,13 @@ ${temArq && m.id === 'apzinho' ? caixa('<b>Tem um brinde surpresa a caminho.</b>
   async function emailBonus(ped: J) {
     const m = marcaDe(ped.itens ?? [])
     if (m.id !== 'apzinho') {
-      // lojas de arquivos: o presente é o mesmo arquivo nos outros estilos
+      // lojas de arquivos: o presente é uma arte exclusiva (planner do ano), no estilo que a pessoa comprou
       const html = moldura({
         site,
-        previa: 'Chegou o seu presente: os seus arquivos nos outros estilos.',
+        previa: 'O seu presente surpresa foi liberado. Vem ver o que é!',
         kicker: 'presente liberado',
         titulo: `${primeiro(ped.nome)}, o seu presente chegou!`,
-        corpo: `<p style="margin:0">Passou uma semana desde a sua compra e, como prometido, liberamos <b>os mesmos arquivos nos outros estilos</b> (delicado, criativo, minimalista e elegante), sem custo.</p>${caixa('Use o estilo que combinar com cada ocasião: um para o feed, outro para imprimir, outro para datas especiais. Todos editáveis, com o seu nome no rodapé.')}<p style="margin:0">Eles já estão no seu pedido e em <b>minha conta</b>, marcados como presente.</p>`,
+        corpo: `<p style="margin:0">Passou uma semana desde a sua compra e, como prometido, o seu presente surpresa foi liberado: o <b>Planner 2027 do seu negócio</b>, uma arte exclusiva que não está à venda.</p>${caixa('Metas do ano, um calendário por mês com as datas que valem post e o caixa de cada mês. Imprima ou use no tablet, no estilo que você escolheu.')}<p style="margin:0">Ele já está no seu pedido e em <b>minha conta</b>, marcado como presente.</p>`,
         botao: ['abrir o meu presente', `${site.replace(/\/$/, '')}/${m.path}/#pedido:${ped.token}`],
         ajuda: `Oi! Tenho uma dúvida sobre o presente da ${m.nome}`,
         marca: m,

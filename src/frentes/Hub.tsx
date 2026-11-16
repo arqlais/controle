@@ -15,7 +15,7 @@ const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, s
   {
     f: frente('arquivos'),
     titulo: 'para quem atende cliente',
-    itens: ['mais de 40 arquivos para beleza e freelancers', 'para imprimir e para mandar no WhatsApp e nos stories', 'com espaço para as suas fotos, no Canva, no Word e no Excel'],
+    itens: ['arquivos para nail, lash, sobrancelha, biomedicina e mais', 'para imprimir e para mandar no WhatsApp e nos stories', 'com espaço para as suas fotos, no Canva, no Word e no Excel'],
     imgs: [AM('t-beleza-stories-mes.webp'), AM('t-sob-cuidados.webp'), AM('t-beleza-cartao-agendamento.webp')],
     precos: 'a partir de R$ 9,90',
   },

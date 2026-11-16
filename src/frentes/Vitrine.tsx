@@ -7,6 +7,7 @@ import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomD
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
 import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
+import { AREAS, areasDe, FORA_DA_LOJA } from './areas'
 import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, paginasDe, noCelular, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
@@ -29,7 +30,7 @@ const TEXTO: Record<Id, {
   flutua: [string, string, string, string?][]; catalogo: ReactNode; faq: [string, string][]; final: ReactNode
 }> = {
   arquivos: {
-    kicker: 'para profissionais da beleza e freelancers: unhas, cílios, sobrancelha, biomedicina, estética, cabelo e noivas',
+    kicker: 'para nail, lash e sobrancelha, biomedicina, estética, cabelo e make',
     titulo: <>arquivos prontos para <em>mandar hoje</em></>,
     lead: 'Mais de 40 arquivos para imprimir e para mandar: fichas, termos, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
     chip: 'editável no Canva, no Word e no Excel',
@@ -99,7 +100,7 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
   }, [])
   // carrinho, checkout e pedido enxergam cada estilo como um produto ("<id>--<estilo>")
   const ajV = useMemo(() => (aj ? { ...aj, produtos: comEstilos(aj.produtos) } : null), [aj])
-  const pagina: Pagina = sub === 'produtos' ? 'produtos' : sub?.startsWith('p:') ? { produto: sub.slice(2) } : sub?.startsWith('loja:') && sub !== 'loja:carrinho' ? { produto: sub.slice(5) } : 'inicio'
+  const pagina: Pagina = sub === 'produtos' || sub?.startsWith('produtos:') ? 'produtos' : sub?.startsWith('p:') ? { produto: sub.slice(2) } : sub?.startsWith('loja:') && sub !== 'loja:carrinho' ? { produto: sub.slice(5) } : 'inicio'
   useEffect(() => {
     const t = typeof pagina === 'object' ? aj?.produtos.find((p) => p.id === pagina.produto)?.nome : pagina === 'produtos' ? 'todos os produtos' : f.frase
     document.title = `${f.nome.charAt(0).toUpperCase()}${f.nome.slice(1)} · ${t || f.frase}`
@@ -144,19 +145,19 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
         <Rodape />
       </div>
     )
-  return <Loja id={id} aj={aj} ajV={ajV} whats={whats} estilo={estilo} acoes={acoes} pagina={pagina} carrinho={sub === 'loja:carrinho'} />
+  return <Loja id={id} aj={aj} ajV={ajV} whats={whats} estilo={estilo} acoes={acoes} pagina={pagina} area={sub?.startsWith('produtos:') ? sub.slice(9) : ''} carrinho={sub === 'loja:carrinho'} />
 }
 
 type Pagina = 'inicio' | 'produtos' | { produto: string }
 const rotaProduto = (id: Id, pid: string) => href(id, `p:${pid}`)
 
-function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id; aj: Ajustes | null; ajV: Ajustes | null; whats: string; estilo: boolean; acoes: ReactNode; pagina: Pagina; carrinho: boolean }) {
+function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, area, carrinho }: { id: Id; aj: Ajustes | null; ajV: Ajustes | null; whats: string; estilo: boolean; acoes: ReactNode; pagina: Pagina; area: string; carrinho: boolean }) {
   const f = frente(id)
   const root = useRef<HTMLDivElement>(null)
   const pixPct = aj?.pixPct ?? 0
   const cartaoPct = aj?.cartaoPct ?? CARTAO_PCT
   const semJ = aj?.semJurosMax ?? SEM_JUROS_MAX
-  const daqui = useMemo(() => (aj?.produtos || []).filter((p) => frenteDe(p) === id), [aj, id])
+  const daqui = useMemo(() => (aj?.produtos || []).filter((p) => frenteDe(p) === id && !FORA_DA_LOJA.has(p.nicho || '')), [aj, id])
   const cart = useCarrinho()
   const [toast, show] = useToast()
   const [verCarrinho, setVerCarrinho] = useState(carrinho)
@@ -194,7 +195,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
       <Topo atual={f} acoes={acoes} />
 
       {pagina === 'inicio' && <Inicio ctx={ctx} aj={aj} whats={whats} />}
-      {pagina === 'produtos' && <Produtos ctx={ctx} aj={aj} whats={whats} />}
+      {pagina === 'produtos' && <Produtos key={area} ctx={ctx} aj={aj} whats={whats} area0={area} />}
       {typeof pagina === 'object' &&
         (pagProduto ? (
           <PaginaProduto key={pagProduto.id} ctx={ctx} p={pagProduto} onComprar={comprar} />
@@ -331,6 +332,23 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
         </div>
       </section>
 
+
+      {id === 'arquivos' && aj && (
+        <section className="lp-section fr-areas-sec" id="areas">
+          <div className="lp-wrap">
+            <Cabeca eyebrow="qual é a sua área?" title={<>arquivos para <em>o seu dia a dia</em></>} />
+            <div className="fr-areas-grid">
+              {AREAS.filter((a) => ativos.some((p) => areasDe(p, daqui).includes(a.id))).map((a, i) => (
+                <a key={a.id} className="fr-area" href={href(id, `produtos:${a.id}`)} data-reveal style={{ transitionDelay: `${i * 0.05}s` }}>
+                  <b>{a.nome}</b>
+                  <small>{a.frase}</small>
+                  <Icon name="arrowRight" size={16} />
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="lp-section" id="destaques">
         <div className="lp-wrap">
@@ -508,12 +526,15 @@ function Esqueleto() {
 }
 
 /** Página com todos os produtos, organizados por área, uso e tipo, com busca. */
-function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) {
+function Produtos({ ctx, aj, area0 = '' }: { ctx: Ctx; aj: Ajustes | null; whats: string; area0?: string }) {
   const { id, daqui } = ctx
   const f = frente(id)
   const nichos = [...new Set(daqui.filter((p) => p.ativo).map((p) => p.nicho || 'outros'))]
   const [nicho, setNicho] = useState('')
   const [sub, setSub] = useState('')
+  const [area, setArea] = useState(area0)
+  const comAreas = id === 'arquivos'
+  const areasAtivas = comAreas ? AREAS.filter((a) => daqui.some((p) => p.ativo && areasDe(p, daqui).includes(a.id))) : []
   const [uso, setUso] = useState<'' | 'imprimir' | 'digital'>('')
   const [tipo, setTipo] = useState('')
   const [busca, setBusca] = useState('')
@@ -526,16 +547,20 @@ function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) 
   const pos = (x: string) => (ORDEM_SUB.indexOf(x) + 1 || 99)
   const subs = [...new Set(doNicho.map((p) => p.sub).filter((x): x is string => !!x && x !== 'todos' && x !== nicho))].sort((a, b) => pos(a) - pos(b))
   const tipos = [...new Set(doNicho.map((p) => p.tipo).filter((x): x is string => !!x && x !== 'kits'))]
-  const filtrados = doNicho.filter((p) => (!sub || p.sub === sub || p.sub === 'todos') && (!uso || p.uso === uso || p.uso === 'ambos') && (!tipo || p.tipo === tipo) && (!busca.trim() || norm(`${p.nome} ${p.desc} ${p.sub || ''} ${p.tipo || ''} ${p.tag}`).includes(norm(busca.trim()))))
+  const filtrados = doNicho.filter((p) => (!area || !areasDe(p, daqui).length || areasDe(p, daqui).includes(area)) && (!sub || p.sub === sub || p.sub === 'todos') && (!uso || p.uso === uso || p.uso === 'ambos') && (!tipo || p.tipo === tipo) && (!busca.trim() || norm(`${p.nome} ${p.desc} ${p.sub || ''} ${p.tipo || ''} ${p.tag}`).includes(norm(busca.trim()))))
   // com um nicho escolhido, os dele vêm antes dos que servem para todos
-  const doSub = <T extends Produto>(l: T[]) => (sub ? [...l].sort((a, b) => Number(b.sub === sub) - Number(a.sub === sub)) : l)
+  const doSub = <T extends Produto>(l: T[]) => (sub ? [...l].sort((a, b) => Number(b.sub === sub) - Number(a.sub === sub)) : area ? [...l].sort((a, b) => Number(areasDe(b, daqui).includes(area)) - Number(areasDe(a, daqui).includes(area))) : l)
   const kitsF = doSub(filtrados.filter((p) => p.cat === 'combos'))
   const arqsF = doSub(ordenar(filtrados.filter((p) => p.cat !== 'combos')))
   const LIM = 12
-  const algumFiltro = !!(sub || uso || tipo || busca.trim())
+  const algumFiltro = !!(sub || uso || tipo || busca.trim() || area)
   const nFiltros = [sub, uso, tipo].filter(Boolean).length
-  const limpar = () => { setSub(''); setUso(''); setTipo(''); setBusca('') }
-  useEffect(() => setTodos(false), [nicho, sub, uso, tipo, busca])
+  const limpar = () => { setSub(''); setUso(''); setTipo(''); setBusca(''); setArea('') }
+  useEffect(() => setTodos(false), [nicho, sub, uso, tipo, busca, area])
+  // com uma área escolhida: primeiro os dela, depois os que servem para todas
+  const AreaN = AREAS.find((a) => a.id === area)
+  const daAreaL = area ? arqsF.filter((p) => areasDe(p, daqui).includes(area)) : []
+  const geraisL = area ? arqsF.filter((p) => !areasDe(p, daqui).includes(area)) : []
   const visiveis = todos ? arqsF : arqsF.slice(0, LIM)
   return (
     <main className="fr-produtos">
@@ -549,7 +574,15 @@ function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) 
           <h1 className="fr-produtos-h1">
             todos os <em>{id === 'arq' ? 'modelos' : 'arquivos'}</em> <span className="num fr-qtd">{daqui.filter((p) => p.ativo).length}</span>
           </h1>
-          {nichos.length > 1 && (
+          {comAreas && areasAtivas.length > 1 && (
+            <div className="fr-areas" role="tablist" aria-label="sua área">
+              <button role="tab" aria-selected={!area} className={!area ? 'is-on' : ''} onClick={() => setArea('')}>todas</button>
+              {areasAtivas.map((a) => (
+                <button key={a.id} role="tab" aria-selected={area === a.id} className={area === a.id ? 'is-on' : ''} onClick={() => setArea(area === a.id ? '' : a.id)}>{a.curto}</button>
+              ))}
+            </div>
+          )}
+          {!comAreas && nichos.length > 1 && (
             <div className="lp-aud fr-tabs" role="tablist" aria-label="áreas">
               <button role="tab" aria-selected={!nicho} className={!nicho ? 'is-on' : ''} onClick={() => setNicho('')}>
                 todos
@@ -577,7 +610,7 @@ function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) 
                   </button>
                 ))}
               </div>
-              {subs.length > 1 && (
+              {!comAreas && subs.length > 1 && (
                 <div className="fr-chips" role="group" aria-label="área">
                   <button className={!sub ? 'is-on' : ''} onClick={() => setSub('')}>todas as áreas</button>
                   {subs.map((x) => (
@@ -620,12 +653,29 @@ function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) 
                   </div>
                 </div>
               )}
-              <div className="fr-grid">
-                {visiveis.map((p, i) => (
-                  <Cartao key={p.id} p={p} i={i} ctx={ctx} />
-                ))}
-              </div>
-              {arqsF.length > LIM && !todos && (
+              {area && AreaN ? (
+                <>
+                  {daAreaL.length > 0 && (
+                    <div className="fr-parte">
+                      <p className="eyebrow">para {AreaN.nome}</p>
+                      <div className="fr-grid">{daAreaL.map((p, i) => <Cartao key={p.id} p={p} i={i} ctx={ctx} />)}</div>
+                    </div>
+                  )}
+                  {geraisL.length > 0 && (
+                    <div className="fr-parte">
+                      <p className="eyebrow">servem para todas as áreas</p>
+                      <div className="fr-grid">{(todos ? geraisL : geraisL.slice(0, LIM)).map((p, i) => <Cartao key={p.id} p={p} i={i} ctx={ctx} />)}</div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="fr-grid">
+                  {visiveis.map((p, i) => (
+                    <Cartao key={p.id} p={p} i={i} ctx={ctx} />
+                  ))}
+                </div>
+              )}
+              {(area ? geraisL.length : arqsF.length) > LIM && !todos && (
                 <div className="fr-mais">
                   <button className="btn primary lp-cta" onClick={() => setTodos(true)}>
                     ver todos <span className="fr-mais-n num">+{arqsF.length - LIM}</span>
@@ -836,7 +886,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
               <li><Icon name="download" size={16} /> baixa na hora</li>
               <li><Icon name="edit" size={16} /> {/Canva/.test(p.formato || '') ? 'editável no Canva' : /Excel/.test(p.formato || '') ? 'editável no Excel' : /Word/.test(p.formato || '') ? 'editável no Word' : 'editável'}</li>
               <li><Icon name="lock" size={16} /> 7 dias para desistir</li>
-              {estilos && <li><Icon name="gift" size={16} /> presente no 8º dia: os outros 3 estilos</li>}
+              <li className="fr-surpresa"><Icon name="gift" size={16} /> <b>presente surpresa</b> no 8º dia</li>
             </ul>
           </div>
         </div>

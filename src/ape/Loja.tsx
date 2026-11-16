@@ -972,7 +972,7 @@ export function Checkout({ ajustes, me, whats }: { ajustes: Ajustes; me: Morador
           </div>
           <ul className="ape-inc">
             <li><ApeIcon name="download" />baixa assim que o pagamento confirma</li>
-            {lojaRota() === 'ape' ? <li><ApeIcon name="lock" />bônus surpresa no 8º dia</li> : <li><ApeIcon name="gift" />presente no 8º dia: os mesmos arquivos nos outros estilos</li>}
+            {lojaRota() === 'ape' ? <li><ApeIcon name="lock" />bônus surpresa no 8º dia</li> : <li><ApeIcon name="gift" />presente surpresa no 8º dia</li>}
             <li><ApeIcon name="shield" />pagamento processado pelo Asaas</li>
           </ul>
         </aside>
@@ -1014,7 +1014,7 @@ export function TermosLoja({ v, pixPct, onClose, onAccept }: { v?: Vendedor; pix
             <li><b>Conteúdo informativo.</b> Os materiais são guias práticos e não substituem a orientação de profissionais habilitados, do seu banco, da construtora ou do contrato. Regras de financiamento e seguro variam conforme o banco, o programa e o contrato.</li>
             <li><b>Preço e pagamento.</b> O preço aparece antes de pagar, com os descontos já aplicados: no Pix, o preço da página; no cartão de crédito, o valor do crédito mostrado na página, à vista ou parcelado sem juros.{pixPct ? '' : ''} O pagamento é processado pelo Asaas; os dados do cartão não passam pela loja.</li>
             <li><b>Entrega e conta.</b> Depois da confirmação, a página do pedido mostra os arquivos para baixar e, se for o caso, o link da plataforma; você também recebe o link por e-mail. Com o e-mail da compra você cria uma senha em minha conta e acessa tudo de qualquer aparelho. Guarde a senha e não a compartilhe.</li>
-            {lojaRota() !== 'ape' && <li><b>Presente.</b> Toda compra paga ganha, 7 dias depois, os mesmos arquivos nos outros estilos, sem custo. É um presente: não muda o preço e não reduz nem condiciona o direito de desistir (quem desiste antes recebe o dinheiro de volta e não recebe o presente).</li>}
+            {lojaRota() !== 'ape' && <li><b>Presente.</b> Toda compra paga ganha, 7 dias depois, um presente surpresa gratuito (uma arte exclusiva, que não está à venda, revelada quando é liberada). É um presente: não muda o preço e não reduz nem condiciona o direito de desistir (quem desiste antes recebe o dinheiro de volta e não recebe o presente).</li>}
             {lojaRota() === 'ape' && <li><b>Bônus.</b> Toda compra paga ganha, 7 dias depois, um bônus surpresa gratuito (um arquivo extra, revelado quando é liberado). Ele é um presente: não tem custo, não muda o preço e não reduz nem condiciona o direito de desistir.</li>}
             <li><b>Direito de arrependimento e cancelamento.</b> Você pode desistir em até 7 dias depois da compra, sem precisar explicar o motivo (art. 49 do Código de Defesa do Consumidor). Peça em minha conta → minhas compras (ou pelo WhatsApp ou e-mail). Dentro dos 7 dias o pedido é sempre aprovado e devolvemos o valor integral, pelo mesmo meio de pagamento. Depois desse prazo, o pedido é analisado caso a caso. Com o reembolso, a licença é cancelada: os links deixam de funcionar e pedimos que você apague os arquivos baixados.</li>
             <li><b>Problemas.</b> Arquivo com defeito ou que não abre: corrigimos, trocamos ou devolvemos o valor, como prevê o Código de Defesa do Consumidor.</li>
@@ -1136,7 +1136,7 @@ function CriarAcesso({ p, token, onPronto }: { p: Pedido; token: string; onPront
       <ul className="ape-acesso-l">
         <li><ApeIcon name="download" />seus arquivos, com o seu nome no rodapé</li>
         {p.plataforma && <li><ApeIcon name="phone" />a plataforma do apê, por 12 meses</li>}
-        {lojaRota() === 'ape' ? <li><ApeIcon name="lock" />o bônus surpresa, que abre no 8º dia</li> : <li><ApeIcon name="gift" />o presente do 8º dia: os mesmos arquivos nos outros estilos</li>}
+        {lojaRota() === 'ape' ? <li><ApeIcon name="lock" />o bônus surpresa, que abre no 8º dia</li> : <li><ApeIcon name="gift" />o presente surpresa, que abre no 8º dia</li>}
         <li><ApeIcon name="user" />tudo em um lugar, de qualquer aparelho</li>
       </ul>
     </section>
@@ -1324,12 +1324,12 @@ export function PedidoPage({ token, whats, produtos }: { token: string; whats: s
       {p.bonus && lojaRota() !== 'ape' && (p.bonus.liberado ? (
         <div className="ape-bonus2 on">
           <span className="ic"><ApeIcon name="gift" /></span>
-          <span className="t"><small>presente liberado</small><b>os seus arquivos nos outros estilos</b><span>Estão na lista acima, marcados como presente. Aproveite!</span></span>
+          <span className="t"><small>presente liberado</small><b>Planner 2027 do seu negócio</b><span>Está na lista acima, no estilo que você escolheu. Metas, datas para postar e o caixa de cada mês. Aproveite!</span></span>
         </div>
       ) : (
         <div className="ape-bonus2">
-          <span className="ic"><ApeIcon name="gift" /></span>
-          <span className="t"><small>presente · libera no 8º dia</small><b>abre em {p.bonus.em ? Math.max(1, Math.ceil((new Date(p.bonus.em).getTime() - Date.now()) / 864e5)) : 7} dia(s)</b><span>Os mesmos arquivos nos outros 3 estilos, sem custo. Volte aqui {p.bonus.em ? `em ${dmy(p.bonus.em)}` : 'no 8º dia'} ou espere o e-mail.</span></span>
+          <span className="ic"><ApeIcon name="gift" /><i>?</i></span>
+          <span className="t"><small>presente surpresa · trancado</small><b>abre em {p.bonus.em ? Math.max(1, Math.ceil((new Date(p.bonus.em).getTime() - Date.now()) / 864e5)) : 7} dia(s)</b><span>Uma arte exclusiva, que não está à venda, para usar o ano inteiro. Volte aqui {p.bonus.em ? `em ${dmy(p.bonus.em)}` : 'no 8º dia'} ou espere o e-mail.</span></span>
         </div>
       ))}
       <p className="ape-note" style={{ margin: 0 }}>Tudo também fica em <a className="ape-link" href={href(lojaRota(), 'conta')}>minha conta</a>, de qualquer aparelho. Precisa de ajuda? <a className="ape-link" href={wa(whats, `Oi! Sobre o pedido ${token.slice(0, 8)}:`)} target="_blank" rel="noopener noreferrer">fale no WhatsApp</a>.</p>
