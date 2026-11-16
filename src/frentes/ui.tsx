@@ -202,16 +202,56 @@ export function Rodape() {
   )
 }
 
-/** iPhone de verdade (proporção 71,6 × 147,6 mm, tela 19,5:9, Dynamic Island e botões), com a arte na tela.
- *  A arte (story 9:16 ou post 4:5) aparece inteira, como no Instagram. */
-export function Iphone({ src, className = '', story = true }: { src: string; className?: string; story?: boolean }) {
+/** iPhone 15 Pro (70,6 × 146,6 mm): moldura de titânio, borda preta fina, Dynamic Island, botões.
+ *  A tela imita o Instagram: story (9:16, fundo preto, hora, bateria e campo de mensagem) ou post do feed (4:5).
+ *  O tipo sai da proporção da própria arte. */
+export function Iphone({ src, className = '' }: { src: string; className?: string }) {
+  const [post, setPost] = useState(false)
+  const ver = (e: React.SyntheticEvent<HTMLImageElement>) => { const im = e.currentTarget; if (im.naturalWidth) setPost(im.naturalHeight / im.naturalWidth < 1.5) }
+  const status = (
+    <span className="iph-status">
+      <b>9:41</b>
+      <span className="iph-ico">
+        <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx=".8" /><rect x="5" y="5.5" width="3" height="6.5" rx=".8" /><rect x="10" y="3" width="3" height="9" rx=".8" /><rect x="15" y="0" width="3" height="12" rx=".8" /></svg>
+        <svg viewBox="0 0 16 12"><path d="M8 2.6c2.3 0 4.4.9 6 2.4l1.3-1.4A10.4 10.4 0 0 0 8 .6 10.4 10.4 0 0 0 .7 3.6L2 5c1.6-1.5 3.7-2.4 6-2.4Zm0 3.8c1.3 0 2.5.5 3.4 1.3l1.3-1.4A6.8 6.8 0 0 0 8 4.4c-1.8 0-3.5.7-4.7 1.9l1.3 1.4c.9-.8 2.1-1.3 3.4-1.3Zm0 3.7c.5 0 .9.2 1.2.5L8 12 6.8 10.6c.3-.3.7-.5 1.2-.5Z" /></svg>
+        <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".4" /><rect x="2" y="2" width="20" height="8" rx="2" /><path d="M25 4v4c.8-.3 1.3-1.1 1.3-2S25.8 4.3 25 4Z" opacity=".45" /></svg>
+      </span>
+    </span>
+  )
   return (
-    <span className={`iph ${className}`} aria-hidden>
-      <span className="iph-tela">
-        {story && <span className="iph-barra"><i /><i /><i /></span>}
-        <img src={src} alt="" loading="lazy" decoding="async" />
+    <span className={`iph ${post ? 'is-post' : 'is-story'} ${className}`} aria-hidden>
+      <span className="iph-borda">
+        <span className="iph-tela">
+          <span className="iph-ilha" />
+          {status}
+          {post ? (
+            <>
+              <span className="iph-topo"><i className="av" /><span className="nm" /><span className="pts">•••</span></span>
+              <span className="iph-arte"><img src={src} alt="" loading="lazy" decoding="async" onLoad={ver} /></span>
+              <span className="iph-acoes">
+                <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>
+                <svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.4-4A8 8 0 1 1 20 11.5Z" /></svg>
+                <svg viewBox="0 0 24 24"><path d="M21 4 10 14M21 4l-7 17-4-7-7-4Z" /></svg>
+                <svg className="sv" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4.5L6 21Z" /></svg>
+              </span>
+              <span className="iph-leg"><i /><i /></span>
+            </>
+          ) : (
+            <>
+              <span className="iph-arte">
+                <img src={src} alt="" loading="lazy" decoding="async" onLoad={ver} />
+                <span className="iph-barra"><i /><i /><i /></span>
+                <span className="iph-perfil"><i className="av" /><span className="nm" /></span>
+              </span>
+              <span className="iph-msg"><span className="campo">Enviar mensagem</span>
+                <svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>
+                <svg viewBox="0 0 24 24"><path d="M21 4 10 14M21 4l-7 17-4-7-7-4Z" /></svg>
+              </span>
+            </>
+          )}
+          <span className="iph-home" />
+        </span>
       </span>
     </span>
   )
 }
-

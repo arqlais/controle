@@ -586,33 +586,65 @@ html, body { overflow-x: clip; }
 .fr-hero-leque { width: min(100%, 560px); }
 @media (max-width: 720px) { .fr-hero-leque { width: min(100%, 340px); } }
 
-/* ===== iPhone de verdade (desenhado no site, sempre nítido) ===== */
-.iph { position: relative; display: block; aspect-ratio: 71.6 / 147.6; background: #1d1d1f; border-radius: 14.5% / 7.04%; padding: 3.4%; box-shadow: inset 0 0 0 1.5px #48484a, inset 0 0 0 3px #1d1d1f, 0 34px 60px -30px rgba(40, 46, 54, .55), 0 2px 4px rgba(40, 46, 54, .12); }
-.iph::before { content: ''; position: absolute; left: -1.6%; top: 20%; width: 1.6%; height: 13%; border-radius: 2px 0 0 2px; background: #2c2c2e; box-shadow: 0 -260% 0 0 transparent; }
-.iph::after { content: ''; position: absolute; right: -1.6%; top: 25%; width: 1.6%; height: 17%; border-radius: 0 2px 2px 0; background: #2c2c2e; }
-.iph-tela { position: relative; display: block; width: 100%; height: 100%; border-radius: 11.5% / 5.4%; overflow: hidden; background: linear-gradient(180deg, #efe6e1, #f6f0ec 50%, #efe6e1); }
-.iph-tela::before { content: ''; position: absolute; top: 1.6%; left: 50%; transform: translateX(-50%); width: 31%; height: 3.6%; background: #050505; border-radius: 99px; z-index: 3; }
-.iph-tela img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
-.iph-barra { position: absolute; top: 7%; left: 6%; right: 6%; display: flex; gap: 2%; z-index: 2; }
-.iph-barra i { flex: 1; height: 2px; border-radius: 2px; background: rgba(62, 75, 87, .22); }
-.iph-barra i:first-child { background: rgba(62, 75, 87, .6); }
+/* ===== iPhone 15 Pro desenhado no site (sempre nítido) ===== */
+.iph { --r: 15.8%; position: relative; display: block; aspect-ratio: 70.6 / 146.6; container-type: inline-size; padding: 1.1%; border-radius: 16.4% / 7.9%;
+  background: linear-gradient(135deg, #9a958f 0%, #e4e0db 14%, #85807a 32%, #5f5b57 50%, #8d8882 68%, #dcd8d3 86%, #8a857f 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 40px 70px -34px rgba(38, 44, 52, .55), 0 14px 24px -14px rgba(38, 44, 52, .35); }
+.iph::before, .iph::after { content: ''; position: absolute; width: 1.3%; background: linear-gradient(90deg, #6d6964, #b9b5b0); }
+.iph::before { left: -1%; top: 17.5%; height: 4%; border-radius: 2px 0 0 2px; box-shadow: 0 7cqw 0 0 #8d8882, 0 7cqw 0 0 #8d8882; }
+.iph::after { right: -1%; top: 26%; height: 11%; border-radius: 0 2px 2px 0; background: linear-gradient(90deg, #b9b5b0, #6d6964); }
+.iph-borda { display: block; width: 100%; height: 100%; padding: 2.6%; border-radius: 15.4% / 7.4%; background: #050506; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .6) inset; }
+.iph-tela { position: relative; display: flex; flex-direction: column; width: 100%; height: 100%; border-radius: 12.6% / 5.85%; overflow: hidden; background: #000; color: #fff; }
+.iph.is-post .iph-tela { background: #fff; color: #111; }
+.iph-ilha { position: absolute; top: 1.35%; left: 50%; transform: translateX(-50%); width: 31.8%; height: 4.3%; border-radius: 99px; background: #000; z-index: 5; }
+.iph-status { flex: none; display: flex; align-items: center; justify-content: space-between; height: 6.4%; padding: 1.2% 8.5% 0 11%; font: 600 4.3cqw/1 -apple-system, 'SF Pro Text', 'Poppins', sans-serif; letter-spacing: -.01em; }
+.iph-ico { display: flex; align-items: center; gap: 1.4cqw; }
+.iph-ico svg { height: 3cqw; width: auto; fill: currentColor; }
+.iph-ico svg:last-child { height: 3.1cqw; }
+/* story */
+.iph-arte { position: relative; display: block; flex: none; width: 100%; aspect-ratio: 9 / 16; border-radius: 2.4cqw; overflow: hidden; background: #1c1c1e; }
+.iph-arte img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.iph-barra { position: absolute; top: 2.2cqw; left: 2.4cqw; right: 2.4cqw; display: flex; gap: 1cqw; }
+.iph-barra i { flex: 1; height: .65cqw; border-radius: 1cqw; background: rgba(255, 255, 255, .45); }
+.iph-barra i:first-child { background: rgba(255, 255, 255, .95); }
+.iph-perfil { position: absolute; top: 5.2cqw; left: 3.4cqw; display: flex; align-items: center; gap: 2cqw; }
+.iph-perfil .av, .iph-topo .av { width: 7.4cqw; height: 7.4cqw; border-radius: 50%; background: linear-gradient(135deg, #d9b8ad, #9fb0bf); box-shadow: 0 0 0 .5cqw rgba(255, 255, 255, .8); }
+.iph-perfil .nm { width: 18cqw; height: 2cqw; border-radius: 2cqw; background: rgba(255, 255, 255, .85); }
+.iph-msg { flex: 1; display: flex; align-items: center; gap: 3.4cqw; padding: 0 4.5cqw 3cqw; }
+.iph-msg .campo { flex: 1; border: 1px solid rgba(255, 255, 255, .45); border-radius: 99px; padding: 2.6cqw 4cqw; font: 400 3.5cqw/1 -apple-system, 'Poppins', sans-serif; color: rgba(255, 255, 255, .85); white-space: nowrap; }
+.iph-msg svg, .iph-acoes svg { width: 6.4cqw; height: 6.4cqw; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; flex: none; }
+.iph-home { position: absolute; bottom: 1.3%; left: 50%; transform: translateX(-50%); width: 36%; height: 1.5cqw; border-radius: 99px; background: rgba(255, 255, 255, .9); z-index: 4; }
+.iph.is-post .iph-home { background: #111; }
+/* post do feed */
+.iph-topo { flex: none; display: flex; align-items: center; gap: 2.4cqw; padding: 3cqw 3.6cqw; }
+.iph-topo .av { box-shadow: 0 0 0 .5cqw #fff, 0 0 0 1cqw #d9b8ad; }
+.iph-topo .nm { width: 22cqw; height: 2.2cqw; border-radius: 2cqw; background: #2a2a2c; }
+.iph-topo .pts { margin-left: auto; font-size: 3.6cqw; letter-spacing: .1em; color: #333; }
+.iph.is-post .iph-arte { aspect-ratio: 4 / 5; border-radius: 0; background: #f2f2f2; }
+.iph-acoes { flex: none; display: flex; gap: 3.6cqw; padding: 3.2cqw 3.6cqw 1.6cqw; }
+.iph-acoes .sv { margin-left: auto; }
+.iph-leg { display: grid; gap: 1.6cqw; padding: 1.2cqw 3.6cqw; }
+.iph-leg i { height: 2cqw; border-radius: 2cqw; background: #e4e4e6; width: 82%; }
+.iph-leg i:last-child { width: 55%; }
 
 /* capa de produto do celular: dois iPhones */
 .fr-capa-cel .iph { position: absolute; top: 7%; height: 86%; width: auto; }
 .fr-capa-cel .iph.a { left: 50%; transform: translateX(-50%); z-index: 2; }
-.fr-capa-cel.duas .iph.a { left: 18%; transform: rotate(-4deg); }
-.fr-capa-cel .iph.b { right: 16%; top: 10%; height: 80%; transform: rotate(5deg); z-index: 1; }
-@media (hover: hover) { .fr-card:hover .fr-capa-cel.duas .iph.a { transform: rotate(-6deg) translateY(-4px); } .fr-card:hover .fr-capa-cel .iph.b { transform: rotate(7deg) translateX(4px); } }
+.fr-capa-cel.duas .iph.a { left: 17%; transform: rotate(-2deg); }
+.fr-capa-cel .iph.b { right: 15%; top: 11%; height: 79%; transform: rotate(3deg); z-index: 1; }
+@media (hover: hover) { .fr-card:hover .fr-capa-cel.duas .iph.a { transform: rotate(-3deg) translateY(-4px); } .fr-card:hover .fr-capa-cel .iph.b { transform: rotate(4deg) translateX(4px); } }
 .fr-capa-cel .iph { transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
 
 /* topo da vitrine: dois iPhones com stories e uma página atrás */
 .fr-hero-cel { position: relative; display: block; width: min(100%, 560px); aspect-ratio: 1 / 0.9; margin: 0 auto; }
 .fr-hero-cel .pag { position: absolute; left: 0; top: 14%; height: 66%; width: auto; border-radius: 8px; background: #fff; box-shadow: 0 26px 50px -30px rgba(62, 75, 87, .45); transform: rotate(-7deg); }
 .fr-hero-cel .iph { position: absolute; height: 92%; width: auto; top: 4%; }
-.fr-hero-cel .iph.a { left: 30%; z-index: 3; transform: rotate(-3deg); }
-.fr-hero-cel .iph.b { right: 2%; top: 9%; height: 84%; z-index: 2; transform: rotate(5deg); }
+.fr-hero-cel .iph.a { left: 31%; z-index: 3; transform: rotate(-1.5deg); }
+.fr-hero-cel .iph.b { right: 3%; top: 10%; height: 82%; z-index: 2; transform: rotate(3deg); }
 @media (prefers-reduced-motion: no-preference) { .fr-hero-cel > * { animation: fr-abre .9s cubic-bezier(.2, .7, .2, 1) backwards; } .fr-hero-cel .iph.b { animation-delay: .15s; } .fr-hero-cel .pag { animation-delay: .25s; } }
 .fr .lp-hero-art:has(.fr-hero-cel) { width: 100%; justify-self: stretch; }
 @media (max-width: 720px) { .fr-hero-cel { width: min(100%, 340px); } }
 .fr-pp-foto.is-cel { display: grid; place-items: center; padding: 6% 0; }
 .fr-pp-foto.is-cel .fr-pp-iph { position: relative; inset: auto; height: 100%; max-height: 560px; width: auto; animation: fr-abre .6s cubic-bezier(.2, .7, .2, 1) backwards; }
+.iph-barra i, .iph-perfil .nm { box-shadow: 0 0 .8cqw rgba(0, 0, 0, .28); }
+.iph-barra i { background: rgba(255, 255, 255, .7); }
