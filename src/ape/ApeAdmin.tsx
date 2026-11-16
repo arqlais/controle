@@ -279,19 +279,28 @@ function Inicio({ moradores, orcs, pedidos, envios, interesses, ir }: { moradore
           <div key={t} className="ape-adm-pend-i"><ApeIcon name="alert" /><span>{t}</span><button className="ape-btn primary sm" onClick={() => ir(k)}>{b}</button></div>
         )) : <p className="ape-note" style={{ margin: 0 }}><ApeIcon name="check" /> Nada pendente agora.</p>}
       </div>
-      <div className="ape-adm-cards">
-        <button onClick={() => ir('moradores')}><span><ApeIcon name="users" />moradores</span><b className="num">{sl.length}</b><small>{novos} novo(s) nesta semana · {new Set(sl.filter((m) => m.torre && m.ap).map((m) => `${m.torre}|${m.ap}`)).size} apês</small></button>
-        <button onClick={() => ir('lista')}><span><ApeIcon name="list" />orçamentos na área</span><b className="num">{orcs.filter((o) => !o.oculto && !o.exemplo).length}</b><small>{novosOrc} enviado(s) nesta semana</small></button>
-        <button onClick={() => ir('pedidos')}><span><ApeIcon name="bag" />vendas no mês</span><b className="num ape-keep">{brl(vendasMes.reduce((t, p) => t + p.total, 0))}</b><small>{vendasMes.length} venda(s)</small></button>
-        <button onClick={() => ir('clientes')}><span><ApeIcon name="user" />clientes da loja</span><b className="num">{new Set(pedidos.filter((p) => p.status === 'pago').map((p) => p.cpf || p.email)).size}</b><small>quem já comprou</small></button>
-      </div>
-      <PorLoja pedidos={pedidos} ir={ir} />
-      <MaisVendidos pedidos={pedidos} />
+      {/* lojas (vendas de todas): números juntos; o que é só do San Levi fica separado, embaixo */}
+      <section className="ape-adm-bloco">
+        <p className="ape-eyebrow">vendas · todas as lojas</p>
+        <div className="ape-adm-cards">
+          <button onClick={() => ir('pedidos')}><span><ApeIcon name="bag" />vendas no mês</span><b className="num ape-keep">{brl(vendasMes.reduce((t, p) => t + p.total, 0))}</b><small>{vendasMes.length} venda(s)</small></button>
+          <button onClick={() => ir('clientes')}><span><ApeIcon name="user" />clientes</span><b className="num">{new Set(pedidos.filter((p) => p.status === 'pago' && !p.cortesia).map((p) => p.cpf || p.email)).size}</b><small>quem já comprou</small></button>
+        </div>
+        <PorLoja pedidos={pedidos} ir={ir} />
+        <MaisVendidos pedidos={pedidos} />
+      </section>
+      <section className="ape-adm-bloco">
+        <p className="ape-eyebrow">{APE.condominio} · só da planê.apê</p>
+        <div className="ape-adm-cards">
+          <button onClick={() => ir('moradores')}><span><ApeIcon name="users" />moradores</span><b className="num">{sl.length}</b><small>{novos} novo(s) nesta semana · {new Set(sl.filter((m) => m.torre && m.ap).map((m) => `${m.torre}|${m.ap}`)).size} apês</small></button>
+          <button onClick={() => ir('lista')}><span><ApeIcon name="list" />orçamentos</span><b className="num">{orcs.filter((o) => !o.oculto && !o.exemplo).length}</b><small>{novosOrc} enviado(s) nesta semana</small></button>
+        </div>
+      </section>
       <div className="ape-adm-atalhos">
         <p className="ape-eyebrow">atalhos</p>
-        <button className="ape-btn sm" onClick={() => ir('novo')}><ApeIcon name="plus" />adicionar orçamento</button>
-        <button className="ape-btn sm" onClick={() => ir('loja')}><ApeIcon name="tag" />produtos, preços, imagens e cupons</button>
-        <button className="ape-btn sm" onClick={() => ir('entregas')}><ApeIcon name="file" />arquivos da loja</button>
+        <button className="ape-btn sm" onClick={() => ir('entregas')}><ApeIcon name="file" />todos os arquivos</button>
+        <button className="ape-btn sm" onClick={() => ir('loja')}><ApeIcon name="tag" />produtos e preços</button>
+        <button className="ape-btn sm" onClick={() => ir('novo')}><ApeIcon name="plus" />orçamento do {APE.condominio}</button>
         <button className="ape-btn sm" onClick={() => ir('testar')}><ApeIcon name="eye" />ver como cliente</button>
       </div>
     </div>
@@ -325,7 +334,7 @@ function PorLoja({ pedidos, ir }: { pedidos: PedidoAdmin[]; ir: (t: Tab) => void
       <div className="ape-adm-cards">
         {dados.map((d) => (
           <button key={d.k} onClick={() => ir('pedidos')}>
-            <span><ApeIcon name={d.k === 'apzinho' ? 'home' : d.k === 'arq' ? 'ruler' : 'file'} />{d.nome}</span>
+            <span><ApeIcon name={d.k === 'apzinho' ? 'home' : d.k === 'arq' ? 'ruler' : 'file'} /><i className="nm-l">planê.</i>{d.nome.replace('planê.', '')}</span>
             <b className="num ape-keep">{brl(d.mesT)}</b>
             <small>{d.mesN} venda(s){d.mesN ? ` · ticket ${brl(d.mesT / d.mesN)}` : ''}{d.hojeT ? ` · hoje ${brl(d.hojeT)}` : ''}</small>
             {d.top && <small className="ape-adm-top">mais vendido: {d.top[0]}</small>}

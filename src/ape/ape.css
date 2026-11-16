@@ -3062,3 +3062,25 @@ body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)
 @media (max-width: 560px) { .dona-lojas { grid-template-columns: 1fr; } }
 /* cada loja no mês (3 cartões): uma coluna no celular */
 @media (max-width: 760px) { .ape-adm-lojas .ape-adm-cards, .ape-adm-lojas .ape-adm-cards:has(> :nth-child(3):last-child) { grid-template-columns: 1fr !important; } }
+.ape-adm-bloco { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--a-line); border-radius: 18px; background: color-mix(in srgb, var(--a-card) 60%, transparent); }
+.ape-adm-bloco > .ape-eyebrow { margin: 0; }
+.ape-adm-bloco .ape-adm-vend, .ape-adm-bloco .ape-adm-lojas { margin: 0; }
+.bib-prev { place-items: stretch; }
+.bib-pags { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; display: grid; align-content: start; justify-items: center; gap: 14px; padding: 14px; }
+.bib-pags img { width: 100%; max-width: 620px; height: auto; display: block; box-shadow: var(--a-shadow); border-radius: 4px; background: #fff; }
+.bib-pags-n { font-size: 12px; color: var(--a-muted); }
+.ape-vista button { white-space: nowrap; }
+.ape-adm-vend-h { flex-wrap: nowrap; gap: 10px; }
+/* cada loja no mês, no celular: 3 colunas compactas */
+@media (max-width: 760px) {
+  .ape-adm-lojas .ape-adm-cards, .ape-adm-lojas .ape-adm-cards:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 6px; }
+  .ape-adm-lojas .ape-adm-cards > button { padding: 10px; }
+  .ape-adm-lojas .ape-adm-cards b { font-size: 15px; }
+  .ape-adm-lojas .ape-adm-cards span { font-size: 10.5px; }
+  .ape-adm-lojas .ape-adm-cards span .ape-i { display: none; }
+  .ape-adm-lojas .ape-adm-cards small { font-size: 10.5px; }
+  .ape-adm-lojas .ape-adm-top { display: none; }
+}
+.ape-adm-lojas .nm-l { font-style: normal; }
+.ape-adm-vend-h .ape-eyebrow { white-space: nowrap; }
+@media (max-width: 760px) { .ape-adm-lojas .nm-l { display: none; } .ape-adm-lojas .ape-adm-cards span { white-space: nowrap; } }

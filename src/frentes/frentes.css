@@ -832,3 +832,18 @@ html, body { overflow-x: clip; }
 .iph-cheia .arte-box { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); line-height: 0; }
 .iph-cheia .arte-box .arte { position: static; transform: none; width: 100%; height: auto; display: block; }
 .fr-pp-foto.is-dentro .fr-prev-img::after, .fr-pp-foto.is-dentro .arte-box::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--corte, .62) * 100%); -webkit-backdrop-filter: blur(1.8px); backdrop-filter: blur(1.8px); background: color-mix(in srgb, #fff 18%, transparent); -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%); mask-image: linear-gradient(180deg, transparent, #000 22%); pointer-events: none; }
+/* áreas compactas: ícone ao lado do nome, frase de uma linha (no celular só ícone e nome) */
+.fr-areas-grid { gap: 10px; grid-auto-rows: auto; }
+.fr-area { grid-template-columns: auto minmax(0, 1fr) !important; align-items: center !important; justify-items: stretch !important; gap: 12px; padding: 12px 14px; border-radius: 16px; }
+.fr-area-ic { width: 40px; height: 40px; border-radius: 12px; }
+.fr-area-ic svg { width: 21px !important; height: 21px !important; }
+.fr-area-t b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fr-area-t small { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block !important; }
+@media (max-width: 560px) {
+  .fr-areas-grid { gap: 8px; }
+  .fr-area { gap: 10px; padding: 10px 12px; }
+  .fr-area-ic { width: 34px; height: 34px; border-radius: 10px; }
+  .fr-area-ic svg { width: 18px !important; height: 18px !important; }
+  .fr-area-t b { font-size: 13px; white-space: normal; line-height: 1.2; }
+  .fr-area-t small { display: none !important; }
+}

@@ -32,3 +32,11 @@ export async function letterheadImages(file: File): Promise<{ first: string; res
   const { pickImage } = await import('./components/DocKit')
   return { first: await pickImage(file, 1600) }
 }
+
+/** Todas as folhas de um PDF de um endereço (para ver o arquivo inteiro no iPad e no celular, onde o PDF embutido mostra só a 1ª folha). */
+export async function pdfUrlPages(url: string, max = 40, width = 900): Promise<string[]> {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`não abriu (${r.status})`)
+  const f = new File([await r.blob()], 'arquivo.pdf', { type: 'application/pdf' })
+  return pdfPageImages(f, max, width)
+}

@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 
+// páginas de produto que o Google indexa (useplane.com.br/arquivos/p/<id>/): abrem direto o produto na loja
+if (typeof location !== 'undefined' && !location.hash) {
+  const m = location.pathname.match(/\/arquivos\/p\/([a-z0-9-]+)\/?$/)
+  if (m) history.replaceState(null, '', `${location.pathname}#/arquivos/p:${m[1]}`)
+}
+
 export interface Route {
   page: string
   id?: string

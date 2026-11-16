@@ -1,6 +1,7 @@
 /* Painel da dona: ver tudo como cliente (sem e-mail, sem conta) e o financeiro de todas as lojas num lugar só. */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { pdfUrlPages } from '../pdfPages'
 import { toast } from '../components/dialog'
 import { Icon } from '../components/Icon'
 import { href } from '../router'
@@ -418,7 +419,7 @@ function ProdutoArquivos({ item, arqs, ajustes, onSaved, onMudou, onClose }: { i
         </header>
         <div className="bib-corpo">
           <div className="bib-prev">
-            {ver ? <iframe key={ver.url} src={`${ver.url}#view=FitH`} title={`Prévia de ${ver.nome}`} />
+            {ver ? <PaginasPdf key={ver.url} url={ver.url} nome={ver.nome} />
               : item.estilos && temPrevia(item.id) ? <img src={imgEstilo(item.id, est)} alt="" />
               : <div className="ape-prev-vazio"><Icon name="file" size={30} /><span>{lista.length ? 'Escolha um PDF para ver aqui.' : 'Sem arquivo neste estilo.'}</span></div>}
           </div>
@@ -461,5 +462,20 @@ function ProdutoArquivos({ item, arqs, ajustes, onSaved, onMudou, onClose }: { i
     </div>
     </div>,
     document.body,
+  )
+}
+
+/** Mostra todas as páginas do PDF, uma embaixo da outra (rola), em qualquer aparelho. */
+function PaginasPdf({ url, nome }: { url: string; nome: string }) {
+  const [pags, setPags] = useState<string[] | null>(null)
+  const [erro, setErro] = useState('')
+  useEffect(() => { let vivo = true; pdfUrlPages(url).then((p) => vivo && setPags(p), (e) => vivo && setErro(String((e as Error).message))); return () => { vivo = false } }, [url])
+  if (erro) return <div className="ape-prev-vazio"><Icon name="file" size={30} /><span>Não consegui abrir a prévia ({erro}).</span><a className="ape-btn sm" href={url} target="_blank" rel="noreferrer">abrir o PDF</a></div>
+  if (!pags) return <div className="ape-prev-vazio"><span>abrindo as páginas…</span></div>
+  return (
+    <div className="bib-pags">
+      <small className="bib-pags-n">{pags.length} {pags.length === 1 ? 'página' : 'páginas'} · {nome}</small>
+      {pags.map((src, i) => <img key={i} src={src} alt={`Página ${i + 1}`} />)}
+    </div>
   )
 }

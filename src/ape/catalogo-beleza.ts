@@ -1403,7 +1403,7 @@ export const CATALOGO_BELEZA: Produto[] = [
  "cat": "arquivos",
  "ativo": true,
  "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
- "nome": "Agenda de dezembro",
+ "nome": "Agenda de fim de ano · natal e ano novo",
  "tag": "divulgação",
  "preco": "R$ 14,90",
  "formato": "PDF de stories (abre no Canva para trocar textos e colocar as suas fotos)",
@@ -1412,7 +1412,7 @@ export const CATALOGO_BELEZA: Produto[] = [
   "com fotos",
   "mande hoje"
  ],
- "desc": "O PDF para mandar às clientes antes das festas: protocolo de agendamento, calendário de dezembro, horários, formas de pagamento, endereço e boas festas, com espaço para as suas fotos.",
+ "desc": "Tudo o que a cliente precisa saber nas festas, em 10 stories: recado, como agendar, abertura da agenda com o calendário de dezembro, horários especiais e recesso, pacotes de fim de ano, vale-presente, pagamento, endereço e feliz ano novo, com espaço para as suas fotos.",
  "itens": [
   "6 stories prontos",
   "Calendário de dezembro e horários",

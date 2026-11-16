@@ -16,6 +16,8 @@ body { margin: 0; font-family: 'Poppins', sans-serif; color: var(--ink); -webkit
 .pg { width: 1080px; height: 1920px; position: relative; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 150px 96px 120px; page-break-after: always; }
 .pg:last-child { page-break-after: auto; }
 .pg > * { flex-shrink: 0; }
+.pg { justify-content: center; padding-top: 120px; padding-bottom: 150px; }
+.pg:has(> .enfeites) { justify-content: flex-start; }
 .moldura { position: absolute; inset: 44px; border: 2px solid var(--fio); border-radius: calc(var(--raio) * 4); pointer-events: none; }
 .ey { font-size: 26px; letter-spacing: .42em; text-transform: uppercase; color: var(--mut); }
 .etq { display: inline-block; background: var(--ink); color: var(--bg); font-size: 28px; letter-spacing: .5em; padding: 12px 22px 12px 34px; text-transform: uppercase; border-radius: calc(var(--raio) * 2); }
@@ -57,6 +59,23 @@ h1 { font-size: 150px; } h2 { font-size: 96px; }
 .fase .dia small { font-size: 18px; letter-spacing: .2em; text-transform: uppercase; color: var(--mut); }
 .fase p { margin: 0; font-size: 28px; line-height: 1.45; }
 .fase p em { display: block; font-style: normal; font-size: 22px; color: var(--mut); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+.leg2 { display: flex; gap: 34px; justify-content: center; flex-wrap: wrap; font-size: 26px; color: var(--mut); }
+.leg2 span { display: inline-flex; align-items: center; gap: 10px; } .leg2 i { width: 22px; height: 22px; border-radius: 50%; background: var(--ac); } .leg2 b { color: var(--ink); }
+.duo { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.duo div { border: 2.5px solid var(--ac2); border-radius: calc(var(--raio) * 3); padding: 30px; text-align: center; }
+.duo b { display: block; font-family: var(--tit); font-size: 66px; font-weight: var(--tit-w); color: var(--ink); line-height: 1; }
+.duo small { display: block; margin-top: 10px; font-size: 24px; letter-spacing: .2em; text-transform: uppercase; color: var(--mut); }
+.tab { width: 100%; display: grid; gap: 0; border-top: 2px solid var(--fio); }
+.tab div { display: flex; justify-content: space-between; align-items: center; padding: 30px 8px; border-bottom: 2px solid var(--fio); font-size: 32px; }
+.tab b { font-family: var(--tit); font-size: 48px; font-weight: var(--tit-w); text-transform: var(--caixa); letter-spacing: var(--esp); }
+.pacotes { width: 100%; display: grid; gap: 34px; }
+.pacotes > div { display: grid; grid-template-columns: 250px 1fr; gap: 34px; align-items: center; }
+.pacotes b { display: block; font-family: var(--tit); font-size: 50px; font-weight: var(--tit-w); text-transform: var(--caixa); letter-spacing: var(--esp); }
+.pacotes small { display: block; font-size: 26px; color: var(--mut); margin: 6px 0 10px; }
+.pacotes em { font-style: normal; font-size: 34px; font-weight: 600; color: var(--ac); }
+.vale { width: 100%; display: grid; gap: 40px; border: 2.5px solid var(--ac2); border-radius: calc(var(--raio) * 4); padding: 56px 56px 60px; }
+.campo2 { display: flex; align-items: flex-end; gap: 18px; font-size: 28px; letter-spacing: .14em; text-transform: uppercase; color: var(--mut); }
+.campo2 i { flex: 1; border-bottom: 2.5px solid var(--fio); height: 40px; }
 .opcoes { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .opcoes span { background: var(--ink); color: var(--bg); text-align: center; padding: 18px; font-size: 27px; letter-spacing: .08em; border-radius: calc(var(--raio) * 2); }
 """
@@ -108,44 +127,70 @@ ICO = {
 }
 def ic(k): return f'<svg viewBox="0 0 24 24">{ICO[k]}</svg>'
 
-# ===== 1) agenda de dezembro (6 stories) =====
-cal = calendar.Calendar(firstweekday=6).monthdayscalendar(ANO, 12)
-linhas = ''.join('<tr>' + ''.join(f'<td class="{"d" if d in (24, 25, 31) else "f" if d == 0 else ""}">{"<span>" + str(d) + "</span>" if d in (24, 25, 31) else (d or "")}</td>' for d in sem) + '</tr>' for sem in cal)
+# ===== 1) agenda de fim de ano: natal e ano novo (10 stories), enfeites mínimos =====
+def galho():
+    # fio fino com três pingentes (estrela, bolinha, estrela) e pontinhos: discreto, sem excesso de natal
+    c = 'var(--ac)'
+    fios = ''.join(f'<line x1="{x}" y1="0" x2="{x}" y2="{y}" stroke="{c}" stroke-width="1.6"/>' for x, y in [(300, 150), (540, 230), (780, 150)])
+    estrela = lambda x, y: f'<path transform="translate({x} {y})" d="M0 -22 5.5 -6.5 22 -6 9 4 13.5 20 0 10.5 -13.5 20 -9 4 -22 -6 -5.5 -6.5z" fill="none" stroke="{c}" stroke-width="2.2" stroke-linejoin="round"/>'
+    bola = f'<circle cx="540" cy="262" r="30" fill="none" stroke="{c}" stroke-width="2.2"/><rect x="530" y="226" width="20" height="9" rx="2" fill="none" stroke="{c}" stroke-width="2"/>'
+    pts = ''.join(f'<circle cx="{x}" cy="{y}" r="3.2" fill="{c}" opacity=".55"/>' for x, y in [(190, 120), (420, 90), (660, 100), (890, 130), (240, 260), (840, 270)])
+    return f'<div class="enfeites"><svg viewBox="0 0 1080 430">{fios}{estrela(300, 172)}{bola}{estrela(780, 172)}{pts}</svg></div>'
+def brilho(x, y, t=1):
+    return f'<path transform="translate({x} {y}) scale({t})" d="M0 -26 C3 -8 8 -3 26 0 C8 3 3 8 0 26 C-3 8 -8 3 -26 0 C-8 -3 -3 -8 0 -26z" fill="var(--ac)"/>'
+def brilhos():
+    return f'<div class="enfeites"><svg viewBox="0 0 1080 430">{brilho(250, 170, 1.4)}{brilho(330, 110, .6)}{brilho(820, 150, 1.1)}{brilho(760, 230, .5)}{brilho(540, 90, .8)}</svg></div>'
+def cal_mes(ano, mes, marcas):
+    linhas = calendar.Calendar(firstweekday=6).monthdayscalendar(ano, mes)
+    corpo = ''.join('<tr>' + ''.join(f'<td class="{"d" if d in marcas else "f" if d == 0 else ""}">{"<span>" + str(d) + "</span>" if d in marcas else (d or "")}</td>' for d in sem) + '</tr>' for sem in linhas)
+    return f'<div class="cal"><table><tr>{"".join(f"<th>{d}</th>" for d in "DSTQQSS")}</tr>{corpo}</table></div>'
+LEG = lambda pares: '<div class="leg2">' + ''.join(f'<span><i></i><b>{d}</b> {t}</span>' for d, t in pares) + '</div>'
+HOR = [('seg a sex', '[das 8h às 20h]'), ('sábados', '[das 8h às 16h]'), ('24/12', '[das 8h às 14h]'), ('25/12', 'fechado'), ('31/12', '[das 8h às 13h]'), ('01/01', 'fechado')]
 doc('beleza-agenda-dezembro', [
-    pagina(enfeites() + '<div style="height:300px"></div><span class="etq">agenda de</span><h1 style="margin-top:22px">dezembro</h1><div style="height:50px"></div>'
-           + foto(480, 480, 'circ') + '<div style="height:50px"></div>'
-           + '<p class="txt">Oi, tudo bem? O mês mais esperado do ano está chegando! Aqui estão todas as informações para garantir o seu horário. Leia com atenção e qualquer dúvida, me chame.</p>'
-           + '<p class="txt" style="margin-top:20px">Com carinho, <span class="cur" style="font-size:64px">[seu nome]</span></p>'),
-    pagina('<span class="cur">protocolo de</span><h2>agendamento</h2><div style="height:90px"></div>'
-           + '<p class="txt mut" style="font-size:26px;letter-spacing:.1em;text-transform:uppercase">para facilitar, mande a mensagem assim:</p><div style="height:20px"></div>'
-           + '<div class="faixa">nome completo · procedimento · data e horário</div><div style="height:90px"></div>'
-           + '<ul class="lista"><li><span>Os horários são confirmados com o <b>sinal de [50%]</b> do valor do procedimento.</span></li>'
-           + '<li><span>Sem o pagamento em até <b>[24 horas]</b>, o horário volta para a agenda.</span></li>'
+    pagina(galho() + '<div style="height:330px"></div><span class="etq">agenda de</span><h1 style="margin-top:22px;font-size:132px">fim de ano</h1>'
+           + '<span class="cur" style="margin-top:6px">natal &amp; ano novo</span><div style="height:56px"></div>' + foto(460, 460, 'arco') + '<div style="height:56px"></div>'
+           + '<p class="txt mut" style="font-size:26px;letter-spacing:.24em;text-transform:uppercase">horários · valores · como agendar</p>'),
+    pagina('<span class="cur">um recado</span><h2>para você</h2><div style="height:80px"></div>'
+           + '<p class="txt" style="text-align:left">Oi, tudo bem?</p><div style="height:24px"></div>'
+           + '<p class="txt" style="text-align:left">O fim de ano chegou e a agenda enche rápido! Separei aqui tudo o que você precisa para garantir o seu horário: datas, horários especiais, formas de pagamento e como agendar.</p><div style="height:24px"></div>'
+           + '<p class="txt" style="text-align:left">Leia até o final e, qualquer dúvida, é só me chamar.</p><div style="height:60px"></div>'
+           + '<p class="txt" style="text-align:left;width:100%">Com carinho,</p><p class="cur" style="font-size:84px;align-self:flex-start">[seu nome]</p><div style="height:60px"></div>'
+           + foto(888, 330, 'rr', 'a sua foto ou do seu espaço')),
+    pagina('<span class="cur">como</span><h2>agendar</h2><div style="height:70px"></div>'
+           + '<p class="txt mut" style="font-size:25px;letter-spacing:.14em;text-transform:uppercase">mande a mensagem assim:</p><div style="height:18px"></div>'
+           + '<div class="faixa">nome · procedimento · dia e horário</div><div style="height:80px"></div>'
+           + '<ul class="lista"><li><span>Os horários são confirmados com o <b>sinal de [50%]</b>.</span></li>'
+           + '<li><span>Sem o sinal em até <b>[24 horas]</b>, o horário volta para a agenda.</span></li>'
            + '<li><span>Tolerância de atraso de <b>[10 minutos]</b>.</span></li>'
-           + '<li><span>Imprevisto? Me avise com pelo menos <b>[2 horas]</b> de antecedência.</span></li></ul>'
-           + '<div style="height:90px"></div><div class="caixa">o sinal não é devolvido em caso de falta</div>'),
-    pagina('<h2>importante</h2><div style="height:60px"></div>'
-           + '<div class="caixa" style="width:100%;font-weight:400">agenda para <b>clientes fixas</b> abre dia [01/11]</div><div style="height:18px"></div>'
-           + '<div class="caixa" style="width:100%;font-weight:400">agenda para <b>clientes novas</b> abre dia [10/11]</div><div style="height:80px"></div>'
-           + f'<span class="cur">dezembro</span><div style="height:24px"></div><div class="cal"><table><tr>{"".join(f"<th>{d}</th>" for d in "DSTQQSS")}</tr>{linhas}</table></div><div style="height:60px"></div>'
-           + f'<div class="linha">{ic("relogio").replace("<svg", "<svg style=\"width:52px;height:52px;stroke:var(--ac);fill:none;stroke-width:1.7\"")}<span class="tag">seg a sáb</span> [das 8h às 20h]</div><div style="height:16px"></div>'
-           + '<div class="linha"><span class="tag">domingos</span> [das 10h às 14h]</div><div style="height:50px"></div>'
-           + f'<p class="txt" style="font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:28px">recesso: [26/12] a [05/01/{ANO + 1}]</p>'),
-    pagina('<span class="cur">formas de</span><h2>pagamento</h2><div style="height:140px"></div><div class="pag">'
+           + '<li><span>Imprevisto? Avise com pelo menos <b>[24 horas]</b>.</span></li></ul>'
+           + '<div style="height:80px"></div><div class="caixa">o sinal não é devolvido em caso de falta</div>'),
+    pagina('<span class="cur">abertura da</span><h2>agenda</h2><div style="height:60px"></div>'
+           + '<div class="duo"><div><b>[01/11]</b><small>clientes fixas</small></div><div><b>[10/11]</b><small>clientes novas</small></div></div><div style="height:70px"></div>'
+           + f'<span class="cur" style="font-size:80px">dezembro</span><div style="height:20px"></div>{cal_mes(ANO, 12, (24, 25, 31))}<div style="height:30px"></div>'
+           + LEG([('24', 'véspera de natal'), ('25', 'natal'), ('31', 'réveillon')])),
+    pagina('<span class="cur">horários</span><h2>especiais</h2><div style="height:80px"></div>'
+           + '<div class="tab">' + ''.join(f'<div><b>{d}</b><span>{h}</span></div>' for d, h in HOR) + '</div>'
+           + f'<div style="height:80px"></div><div class="caixa">recesso: [02/01] a [10/01/{ANO + 1}]</div>'),
+    pagina('<span class="cur">especial de</span><h2>fim de ano</h2><div style="height:70px"></div>'
+           + '<div class="pacotes">' + ''.join(f'<div>{foto(250, 250, "circ", "foto")}<span><b>{n}</b><small>{t}</small><em>R$ [000,00]</em></span></div>' for n, t in [('[pacote 1]', '[o que inclui]'), ('[pacote 2]', '[o que inclui]'), ('[pacote 3]', '[o que inclui]')]) + '</div>'
+           + '<div style="height:50px"></div><p class="txt mut" style="font-size:26px">Válido de [01/12] a [31/12]. Vagas limitadas.</p>'),
+    pagina(galho() + '<div style="height:360px"></div><span class="cur">vale</span><h1 style="font-size:150px">presente</h1><div style="height:50px"></div>'
+           + '<div class="vale"><div class="campo2"><span>para</span><i></i></div><div class="campo2"><span>de</span><i></i></div><div class="campo2"><span>serviço ou valor</span><i></i></div><div class="campo2"><span>válido até</span><i></i></div></div>'
+           + '<div style="height:60px"></div><p class="txt">O presente mais bonito do natal: um momento de cuidado. <b>Peça o seu!</b></p>'),
+    pagina('<span class="cur">formas de</span><h2>pagamento</h2><div style="height:120px"></div><div class="pag">'
            + f'<div class="it"><span class="ic">{ic("pix")}</span><span><b>pix</b><small>chave: [sua chave pix]<br>banco: [seu banco]</small></span></div>'
            + f'<div class="it"><span class="ic">{ic("cartao")}</span><span><b>cartão</b><small>peça o link de pagamento</small></span></div>'
            + f'<div class="it"><span class="ic">{ic("dinheiro")}</span><span><b>dinheiro</b><small>no dia do atendimento</small></span></div></div>'
-           + '<div style="height:140px"></div><div class="caixa" style="font-size:25px">pague o sinal só depois da confirmação.<br>as mensagens são respondidas por ordem de chegada.</div>'),
+           + '<div style="height:120px"></div><div class="caixa" style="font-size:25px">pague o sinal só depois da confirmação.<br>respondo por ordem de chegada.</div>'),
     pagina('<h2>endereço</h2><div style="height:50px"></div>'
-           + f'<div class="linha" style="font-size:30px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">{ic("pin").replace("<svg", "<svg style=\"width:56px;height:56px;stroke:var(--ac);fill:none;stroke-width:1.7\"")}<span>[rua, número · bairro]<br>[cidade · estado]</span></div><div style="height:70px"></div>'
-           + foto(640, 640, 'circ', 'foto da fachada<br>ou do seu espaço') + '<div style="height:70px"></div>'
+           + f'<div class="linha" style="font-size:30px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">{ic("pin").replace("<svg", "<svg style=\"width:56px;height:56px;stroke:var(--ac);fill:none;stroke-width:1.7\"")}<span>[rua, número · bairro]<br>[cidade · estado]</span></div><div style="height:60px"></div>'
+           + foto(620, 620, 'circ', 'foto da fachada<br>ou do seu espaço') + '<div style="height:60px"></div>'
            + '<div class="caixa" style="font-size:24px;letter-spacing:.3em">ponto de referência</div><div style="height:22px"></div>'
            + '<p class="txt" style="text-transform:uppercase;letter-spacing:.14em;font-size:27px;font-weight:600">[em frente a tal lugar]<br>[portão, sala ou andar]</p>'),
-    pagina(enfeites() + '<div style="height:380px"></div><p class="txt" style="font-weight:600;letter-spacing:.24em;text-transform:uppercase;font-size:28px">obrigada pela confiança!</p>'
-           + f'<div style="display:flex;align-items:baseline;gap:22px;margin:18px 0"><span class="cur" style="font-size:100px">que em</span><h1 style="font-size:190px">{ANO + 1}</h1></div>'
-           + '<p class="txt" style="font-weight:600;letter-spacing:.2em;text-transform:uppercase;font-size:27px">você continue comigo</p><div style="height:20px"></div>'
-           + '<div class="caixa" style="letter-spacing:.3em;font-size:25px">para eu te deixar cada vez mais linda</div><div style="height:50px"></div>'
-           + '<span class="cur" style="font-size:110px">boas festas!</span><div style="height:60px"></div>' + foto(420, 420, 'arco', 'a sua foto<br>ou da equipe')),
+    pagina(brilhos() + '<div style="height:360px"></div><p class="txt" style="font-weight:600;letter-spacing:.24em;text-transform:uppercase;font-size:26px">obrigada por este ano!</p>'
+           + f'<div style="display:flex;align-items:baseline;gap:22px;margin:14px 0"><span class="cur" style="font-size:96px">feliz</span><h1 style="font-size:190px">{ANO + 1}</h1></div>'
+           + '<p class="txt">Que o novo ano venha leve, cheio de cuidado e de encontros bonitos. Conto com você!</p><div style="height:50px"></div>'
+           + '<span class="cur" style="font-size:96px">boas festas!</span><div style="height:50px"></div>' + foto(400, 400, 'arco', 'a sua foto<br>ou da equipe')),
 ])
 
 # ===== 2) confirmação de agendamento (2 stories) =====
