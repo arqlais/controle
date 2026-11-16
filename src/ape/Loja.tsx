@@ -3,7 +3,7 @@ import { href } from '../router'
 import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, JUROS_PCT, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
+import { APE, BONUS, JUROS_PCT, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, configurarParcelas, maxSemJuros, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
 import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja da planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
@@ -28,6 +28,7 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
   PIX = pixPct
   CARTAO = ajustes.cartaoPct ?? CARTAO_PCT
   SEMJ = ajustes.semJurosMax ?? SEM_JUROS_MAX
+  configurarParcelas(SEMJ)
   PRODUTOS_LOJA = produtos
   { const com = produtos.filter((p) => p.ativo && p.selo); const um = com.find((p) => /mais vendido/i.test(p.selo || '')) || com[0]; SELO_OK = new Set(um ? [um.id] : []) }
   const ativos = produtos.filter((p) => p.ativo && frenteDe(p) === 'apzinho')

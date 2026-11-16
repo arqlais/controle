@@ -401,7 +401,21 @@ export const PARCELAS_MAX = 12
 export const CARTAO_PCT = 10
 export const SEM_JUROS_MAX = 6
 /** Preço no crédito: o do Pix com o acréscimo, terminando em ,90 (como os preços da loja). Mesma conta no servidor. */
-export const precoCartao = (pix: number, pct = CARTAO_PCT) => (pix <= 0 ? 0 : c2(Math.ceil(c2(pix * (1 + pct / 100)) + 0.1) - 0.1))
+/** Taxas do Asaas usadas para nunca ter prejuízo: crédito por faixa de parcelas, tarifa fixa, antecipação
+ *  (receber tudo de uma vez, por mês de cada parcela) e a tarifa do Pix. Mesmos números no servidor. */
+export const TAXA_CARTAO = { avista: 2.99, ate6: 3.49, ate12: 3.99, fixo: 0.49, antecipacao: 1.99, pix: 1.99 }
+let PARC_MAX = SEM_JUROS_MAX
+/** Até quantas vezes a loja parcela (vem do painel): o preço do crédito cobre o pior caso. */
+export const configurarParcelas = (n: number) => { PARC_MAX = Math.max(1, Math.min(12, Math.floor(Number(n)) || SEM_JUROS_MAX)) }
+/** Custo total do cartão em % no parcelamento em n vezes, já com a antecipação de todas as parcelas. */
+export const custoCartaoPct = (n = PARC_MAX) => (n <= 1 ? TAXA_CARTAO.avista : n <= 6 ? TAXA_CARTAO.ate6 : TAXA_CARTAO.ate12) + TAXA_CARTAO.antecipacao * (n <= 1 ? 1 : (n + 1) / 2)
+/** Preço no crédito, terminando em ,90: o maior entre o acréscimo do painel e o mínimo que, mesmo no maior
+ *  parcelamento e com antecipação, deixa para a dona pelo menos o mesmo que o Pix. Mesma conta no servidor. */
+export const precoCartao = (pix: number, pct = CARTAO_PCT, n = PARC_MAX) => {
+  if (pix <= 0) return 0
+  const minimo = (pix - TAXA_CARTAO.pix + TAXA_CARTAO.fixo) / (1 - custoCartaoPct(n) / 100)
+  return c2(Math.ceil(c2(Math.max(pix * (1 + pct / 100), minimo)) + 0.1) - 0.1)
+}
 export function parcelas(total: number, maxN = SEM_JUROS_MAX): { n: number; parcela: number; total: number; juros: boolean }[] {
   const out = [{ n: 1, parcela: c2(total), total: c2(total), juros: false }]
   for (let n = 2; n <= Math.min(PARCELAS_MAX, Math.max(1, maxN)); n++) {

@@ -3,7 +3,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState, type ReactNode } 
 import { href } from '../router'
 import { Icon } from '../components/Icon'
 import { depoimentos as carregarDepoimentos, loadPublico, type Ajustes } from '../ape/api'
-import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
+import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, configurarParcelas, maxSemJuros, conta, cupomDaFrente, frenteDe, reais, fmtPreco, wa, type Produto } from '../ape/model'
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
 import { medirConteudo, BarraPlataformas, Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas, Iphone } from './ui'
@@ -159,6 +159,7 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, area, carrinho }: { i
   const pixPct = aj?.pixPct ?? 0
   const cartaoPct = aj?.cartaoPct ?? CARTAO_PCT
   const semJ = aj?.semJurosMax ?? SEM_JUROS_MAX
+  configurarParcelas(semJ)
   // a planê.arquivos mostra também os modelos de arquitetura (a planê.arq é a plataforma de gestão)
   const daqui = useMemo(() => (aj?.produtos || []).filter((p) => (frenteDe(p) === id || (id === 'arquivos' && frenteDe(p) === 'arq')) && !FORA_DA_LOJA.has(p.nicho || '')), [aj, id])
   const cart = useCarrinho()

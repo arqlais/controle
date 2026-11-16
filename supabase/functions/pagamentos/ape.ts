@@ -89,6 +89,15 @@ const JUROS_PCT = 2.99
  *  parcela mínima de R$ 5. Mesma conta do site. */
 const CARTAO_PCT = 10
 const SEM_JUROS_MAX = 6
+/** Mesmas taxas e a mesma conta do site (src/ape/model.ts): o crédito nunca deixa menos que o Pix. */
+const TAXA_CARTAO = { avista: 2.99, ate6: 3.49, ate12: 3.99, fixo: 0.49, antecipacao: 1.99, pix: 1.99 }
+const custoCartaoPct = (n: number) => (n <= 1 ? TAXA_CARTAO.avista : n <= 6 ? TAXA_CARTAO.ate6 : TAXA_CARTAO.ate12) + TAXA_CARTAO.antecipacao * (n <= 1 ? 1 : (n + 1) / 2)
+function precoCartao(pix: number, pct: number, n: number) {
+  if (pix <= 0) return 0
+  const minimo = (pix - TAXA_CARTAO.pix + TAXA_CARTAO.fixo) / (1 - custoCartaoPct(n) / 100)
+  const c = (v: number) => Math.round(v * 100) / 100
+  return c(Math.ceil(c(Math.max(pix * (1 + pct / 100), minimo)) + 0.1) - 0.1)
+}
 function parcelar(total: number, n: number, semJurosMax: number) {
   if (n <= 1) return { n: 1, parcela: c2(total), total: c2(total) }
   if (n > semJurosMax) return null
@@ -157,7 +166,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     return { map, pixPct, cartaoPct, semJurosMax, cupons, canva }
   }
 
-  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number, cupom: Cupom | null = null, cartaoPct = CARTAO_PCT) {
+  function conta(ids: string[], map: Record<string, Item>, forma: 'pix' | 'cartao', pixPct: number, cupom: Cupom | null = null, cartaoPct = CARTAO_PCT, semJ = SEM_JUROS_MAX) {
     let uniq = [...new Set(ids)].filter((id) => map[id])
     const noKit = new Set(uniq.flatMap((id) => (map[id].cat === 'combos' ? map[id].combo : [])))
     uniq = uniq.filter((id) => !(map[id].cat === 'arquivos' && noKit.has(id)))
@@ -168,7 +177,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     const base = c2(subtotal - cupomDesc)
     const pix = forma === 'pix' ? c2(base * pixPct / 100) : 0
     // crédito: o mesmo valor com o acréscimo que cobre as taxas do cartão (igual ao site)
-    const total = forma === 'cartao' ? (base <= 0 ? 0 : c2(Math.ceil(c2(base * (1 + cartaoPct / 100)) + 0.1) - 0.1)) : c2(base - pix)
+    const total = forma === 'cartao' ? precoCartao(base, cartaoPct, semJ) : c2(base - pix)
     return { itens, subtotal, cupomDesc, desconto: c2(cupomDesc + pix), total }
   }
 
@@ -210,7 +219,7 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       const { data: usados } = await db.from('ape_pedidos').select('id').eq('cpf', cpf).eq('cupom', cupom.codigo).eq('status', 'pago').limit(1)
       if (usados?.length) return json({ erro: `O cupom ${cupom.codigo} já foi usado neste CPF (vale uma vez por pessoa). Tire o cupom para continuar.`, cupomUsado: true }, 400)
     }
-    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct, cupom, cartaoPct)
+    const c = conta(Array.isArray(body.itens) ? body.itens.map(String).slice(0, 30) : [], map, forma, pixPct, cupom, cartaoPct, semJurosMax)
     if (!c.itens.length) return json({ erro: 'O carrinho está vazio.' }, 400)
     if (c.total < 5) return json({ erro: 'Valor mínimo de R$ 5,00.' }, 400)
     // cartão parcelado: o servidor refaz a conta (não confia no valor que veio do site); sem juros até semJurosMax

@@ -1076,13 +1076,13 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   // o preço da tabela é o do Pix; o crédito leva o acréscimo e parcela sem juros
   const cartaoPct = Math.min(30, Math.max(0, num(cartaoTxt) ?? CARTAO_PCT))
   const semJ = Math.min(12, Math.max(1, Math.floor(num(semJTxt) ?? SEM_JUROS_MAX)))
-  const exPlatV = precoCartao(reais(ps.find((p) => p.id === 'plataforma')?.preco) || 89.9, cartaoPct)
+  const exPlatV = precoCartao(reais(ps.find((p) => p.id === 'plataforma')?.preco) || 89.9, cartaoPct, semJ)
   const exPlat = parcelas(exPlatV, semJ)
   const set = (i: number, patch: Partial<Produto>) => setPs((l) => l.map((p, j) => (j === i ? { ...p, ...patch } : p)))
   const margem = (p: Produto) => {
     const v = reais(p.preco)
     const lp = liquido(v, 'pix', taxas)
-    const lc = liquido(precoCartao(v, cartaoPct), 'cartao', taxas)
+    const lc = liquido(precoCartao(v, cartaoPct, semJ), 'cartao', taxas)
     return { v, lp, lc, ruim: Math.min(lp, lc) < 3 }
   }
   const save = async () => {
@@ -1105,7 +1105,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
       <div className="ape-panel ape-adm-box">
         <p className="ape-eyebrow">pagamento e margem</p>
         <div className="ape-frow ape-adm-taxas">
-          <div className="ape-f"><label htmlFor="l-cartao">Acréscimo no crédito (%)</label><input id="l-cartao" inputMode="decimal" value={cartaoTxt} onChange={(e) => setCartaoTxt(e.target.value)} /><span className="ape-hint">Cobre as taxas do cartão e do parcelado. Sugerido: 10. Ex.: R$ 19,90 no Pix vira {brl(precoCartao(19.9, cartaoPct))} no crédito.</span></div>
+          <div className="ape-f"><label htmlFor="l-cartao">Acréscimo no crédito (%)</label><input id="l-cartao" inputMode="decimal" value={cartaoTxt} onChange={(e) => setCartaoTxt(e.target.value)} /><span className="ape-hint">O crédito nunca fica abaixo do mínimo que cobre todas as taxas do cartão, do parcelamento em até {semJ}x e da antecipação, então você recebe pelo menos o mesmo que no Pix. Ex.: R$ 19,90 no Pix vira {brl(precoCartao(19.9, cartaoPct, semJ))} no crédito.</span></div>
           <div className="ape-f"><label htmlFor="l-semj">Parcelas sem juros (até)</label><input id="l-semj" inputMode="numeric" value={semJTxt} onChange={(e) => setSemJTxt(e.target.value)} /><span className="ape-hint ape-keep">De 1 a 12, parcela mínima de R$ 5. Plataforma: {exPlat[exPlat.length - 1].n}x de {brl(exPlat[exPlat.length - 1].parcela)} sem juros.</span></div>
           <div className="ape-f"><label htmlFor="l-tp">Taxa do Pix (<span className="ape-keep">R$</span> por venda)</label><input id="l-tp" inputMode="decimal" value={String(taxas.pix).replace('.', ',')} onChange={(e) => setTaxas({ ...taxas, pix: num(e.target.value) ?? 0 })} /></div>
           <div className="ape-f"><label htmlFor="l-tc">Taxa do cartão (% + <span className="ape-keep">R$</span>)</label>
