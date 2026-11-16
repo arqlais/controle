@@ -51,6 +51,13 @@ export interface ReservaDados {
   email: string
   tel: string
   endereco: string // endereço atual do morador
+  cep?: string
+  rua?: string
+  numero?: string
+  complemento?: string
+  bairro?: string
+  cidade?: string
+  uf?: string
   torre: string
   apto: string
   revistoria: boolean
@@ -66,6 +73,7 @@ export interface ReservaContrato {
   aparelho: string
   fuso: string
   recebido?: string
+  ip?: string // gravado pelo banco
 }
 export interface ReservaStatus {
   sinal?: string // data em que a RDL confirmou o sinal
@@ -123,6 +131,9 @@ export function extenso(v: number) {
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 export const dataLonga = (d = new Date()) => `${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`
 export const dataCurta = (iso?: string) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '')
+/** Endereço completo em uma linha (para o contrato e o cadastro). */
+export const enderecoCompleto = (d: Partial<ReservaDados>) =>
+  d.rua ? `${d.rua}, ${d.numero}${d.complemento ? `, ${d.complemento}` : ''} - ${d.bairro}, ${d.cidade} - ${d.uf}, CEP ${d.cep}` : (d.endereco ?? '')
 export const unidade = (d: Pick<ReservaDados, 'torre' | 'apto'>) => `${d.torre ? `torre ${d.torre}, ` : ''}apto ${d.apto}`
 
 export function contratoTexto(d: ReservaDados, c: ReservaConfig, quando = new Date()) {
@@ -255,7 +266,7 @@ p{margin:0 0 1.2mm;text-align:justify}p b{color:#012C60}p.b{padding-left:4mm}a{c
 ${corpo}
 <div class="sig"><div>${rdlOk ? `<div class="typed">RDL Engenharia</div>` : ''}<b>RDL ENGENHARIA E REPRESENTAÇÕES</b><small>${esc(RDL_INFO.engineer)} · CONTRATADA${rdlOk ? `<br>aceite registrado em ${rdlOk}` : '<br>aceite registrado na confirmação do sinal'}</small></div>
 <div>${desenhoSrc ? `<img src="${desenhoSrc}" alt="">` : `<div class="typed">${esc(r.contrato.assinatura)}</div>`}<b>CONTRATANTE</b><small>${esc(r.contrato.assinatura)} · CPF ${esc(r.contrato.cpf)}<br>assinado eletronicamente em ${quando}</small></div></div>
-<div class="cert"><b>Registro da assinatura eletrônica</b> (art. 10, § 2º, da MP 2.200-2/2001): assinado por ${esc(r.contrato.assinatura)}, CPF ${esc(r.contrato.cpf)}, em ${quando} (${esc(r.contrato.fuso)}), pelo aparelho ${esc(r.contrato.aparelho)}, no link de reserva da RDL Engenharia. Código do documento (SHA-256 do texto assinado): <b>${esc(r.contrato.codigo)}</b>. Reserva nº ${esc(r.id.slice(0, 8).toUpperCase())}.</div>
+<div class="cert"><b>Registro da assinatura eletrônica</b> (art. 10, § 2º, da MP 2.200-2/2001): assinado por ${esc(r.contrato.assinatura)}, CPF ${esc(r.contrato.cpf)}, em ${quando} (${esc(r.contrato.fuso)}), pelo aparelho ${esc(r.contrato.aparelho)}${r.contrato.ip ? `, IP ${esc(r.contrato.ip)}` : ''}, no link de reserva da RDL Engenharia. Código do documento (SHA-256 do texto assinado): <b>${esc(r.contrato.codigo)}</b>. Reserva nº ${esc(r.id.slice(0, 8).toUpperCase())}.</div>
 </td></tr></tbody></table>
 <div class="ft"><div><b>${esc(RDL_INFO.engineer)}</b><span>${esc(RDL_INFO.company)} · CNPJ ${RDL_INFO.cnpj}</span></div><div class="r">${RDL_INFO.phone}<br><span>${RDL_INFO.email}</span></div></div>
 </div></body></html>`

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './rdlReserva.css'
 import { RDL_LOGO } from '../rdlLogo'
 import { VISTORIA_PROPOSTA_URL } from '../contractTemplates'
-import { formatDoc, formatPhone, whatsappLink } from '../utils'
+import { formatCep, formatDoc, formatPhone, lookupCep, whatsappLink } from '../utils'
 import { deviceLabel } from '../contractSign'
 import { SignaturePad, drawingToDataUrl } from './SignaturePad'
 import {
@@ -18,6 +18,7 @@ import {
   reservar,
   sha256,
   unidade,
+  enderecoCompleto,
   validCpf,
   type Reserva,
   type ReservaConfig,
@@ -88,7 +89,7 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
 
 /* ================= reserva ================= */
 
-const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '', torre: '', apto: '', revistoria: false }
+const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '', cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', torre: '', apto: '', revistoria: false }
 
 function Reservar() {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
@@ -132,12 +133,28 @@ function Reservar() {
     cpf: !validCpf(d.cpf),
     email: !/^\S+@\S+\.\S+$/.test(d.email.trim()),
     tel: d.tel.replace(/\D/g, '').length < 10,
-    endereco: d.endereco.trim().length < 8,
+    cep: (d.cep ?? '').replace(/\D/g, '').length !== 8,
+    rua: !(d.rua ?? '').trim(),
+    numero: !(d.numero ?? '').trim(),
+    bairro: !(d.bairro ?? '').trim(),
+    cidade: !(d.cidade ?? '').trim() || !(d.uf ?? '').trim(),
     torre: !d.torre.trim(),
     apto: !d.apto.trim(),
   }
   const okDados = !Object.values(faltando).some(Boolean)
-  const texto = useMemo(() => contratoTexto(d, cfg), [d, cfg])
+  const dc = useMemo(() => ({ ...d, endereco: enderecoCompleto(d) }), [d])
+  const texto = useMemo(() => contratoTexto(dc, cfg), [dc, cfg])
+  const [cepMsg, setCepMsg] = useState('')
+  const buscarCep = async (v: string) => {
+    set('cep', formatCep(v))
+    if (v.replace(/\D/g, '').length !== 8) return setCepMsg('')
+    setCepMsg('buscando…')
+    const a = await lookupCep(v)
+    if (!a) return setCepMsg('CEP não encontrado. Preencha o endereço abaixo.')
+    setCepMsg('')
+    setD((x) => ({ ...x, rua: a.street || x.rua, bairro: a.district || x.bairro, cidade: a.city, uf: a.uf }))
+    setTimeout(() => document.getElementById('rv-numero')?.focus(), 50)
+  }
   const metade = cfg.preco / 2
   const assinou = ok && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === d.nome.trim().toLowerCase() : desenho.length > 30)
 
@@ -150,7 +167,7 @@ function Reservar() {
       const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
       const aparelho = deviceLabel()
       const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, aparelho].join('|'))
-      const r = await reservar({ ...d, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: modo === 'desenho' ? desenho : undefined, cpf: d.cpf, em, codigo, aparelho, fuso })
+      const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: modo === 'desenho' ? desenho : undefined, cpf: d.cpf, em, codigo, aparelho, fuso })
       const link = `#/vistoria/${r.id}.${r.token}`
       try {
         localStorage.setItem(SALVO, link)
@@ -296,10 +313,37 @@ function Reservar() {
                     <span>E-mail (o laudo também vai por aqui)</span>
                     <input value={d.email} onChange={(e) => set('email', e.target.value)} inputMode="email" autoComplete="email" placeholder="voce@email.com" />
                   </label>
-                  <label className={`span2 ${tried && faltando.endereco ? 'bad' : ''}`}>
-                    <span>Endereço onde você mora hoje</span>
-                    <input value={d.endereco} onChange={(e) => set('endereco', e.target.value)} autoComplete="street-address" placeholder="Rua, número, bairro, cidade" />
+                  <div className="span2 rv-sub">Endereço onde você mora hoje</div>
+                  <label className={tried && faltando.cep ? 'bad' : ''}>
+                    <span>CEP</span>
+                    <input value={d.cep} onChange={(e) => void buscarCep(e.target.value)} inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" />
+                    {cepMsg && <em>{cepMsg}</em>}
                   </label>
+                  <label className={tried && faltando.numero ? 'bad' : ''}>
+                    <span>Número</span>
+                    <input id="rv-numero" value={d.numero} onChange={(e) => set('numero', e.target.value)} inputMode="numeric" placeholder="Ex.: 120" />
+                  </label>
+                  <label className={`span2 ${tried && faltando.rua ? 'bad' : ''}`}>
+                    <span>Rua</span>
+                    <input value={d.rua} onChange={(e) => set('rua', e.target.value)} autoComplete="address-line1" placeholder="Preenche sozinho pelo CEP" />
+                  </label>
+                  <label>
+                    <span>Complemento (opcional)</span>
+                    <input value={d.complemento} onChange={(e) => set('complemento', e.target.value)} placeholder="Apto, bloco, casa" />
+                  </label>
+                  <label className={tried && faltando.bairro ? 'bad' : ''}>
+                    <span>Bairro</span>
+                    <input value={d.bairro} onChange={(e) => set('bairro', e.target.value)} />
+                  </label>
+                  <label className={tried && faltando.cidade ? 'bad' : ''}>
+                    <span>Cidade</span>
+                    <input value={d.cidade} onChange={(e) => set('cidade', e.target.value)} />
+                  </label>
+                  <label className={tried && faltando.cidade ? 'bad' : ''}>
+                    <span>Estado (UF)</span>
+                    <input value={d.uf} onChange={(e) => set('uf', e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" />
+                  </label>
+                  <div className="span2 rv-sub">Seu apartamento no San Levi</div>
                   <label className={tried && faltando.torre ? 'bad' : ''}>
                     <span>Torre</span>
                     <input value={d.torre} onChange={(e) => set('torre', e.target.value)} placeholder="Ex.: 2" />
@@ -352,7 +396,7 @@ function Reservar() {
                 </div>
                 <p className="rv-hint">Leia o contrato com calma. Ele já está com os seus dados.</p>
                 <div className="rv-contract" tabIndex={0}>
-                  {texto.split('\n').map((l, i) =>
+                  {texto.split('\n').map((l: string, i: number) =>
                     i === 0 ? (
                       <h4 key={i}>{l}</h4>
                     ) : /^(\d+\. |CONTRATADA$|CONTRATANTE$|IMÓVEL VISTORIADO$|ANEXO I)/.test(l) ? (
@@ -366,7 +410,7 @@ function Reservar() {
                   <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
                   <span>
                     <b>Li e concordo com o contrato</b>
-                    <small>Inclusive com o sinal de {brl(metade)}, que garante a vaga e não é devolvido depois de 7 dias da assinatura ou da data confirmada.</small>
+                    <small>Inclusive com o sinal de {brl(metade)}, pago em até 3 dias, que garante a vaga e não é devolvido depois de 7 dias da assinatura.</small>
                   </span>
                 </label>
                 <div className="rv-signbox">

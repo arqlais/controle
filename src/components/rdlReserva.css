@@ -617,3 +617,19 @@ html.rv-root body {
 .rv-price .kc .rv-i {
   stroke: #fff;
 }
+.rv-sub {
+  grid-column: span 2;
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--mut);
+  font-weight: 600;
+  margin-top: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+@media (max-width: 560px) {
+  .rv-sub {
+    grid-column: auto;
+  }
+}

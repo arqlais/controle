@@ -379,12 +379,12 @@ Qualquer serviço fora desta lista depende de novo orçamento.
 3.4 O laudo aponta os itens a reparar; não garante que a construtora vá aceitá-los ou corrigi-los, nem substitui a garantia legal da construtora.
 
 4. VALOR
-4.1 Valor do serviço: {valor} ({valor_extenso}) por apartamento, com ART inclusa.
+4.1 Valor do serviço: {valor} ({valor_extenso}) por apartamento de até 40 m², com ART inclusa.
 4.2 Tabela da proposta: individual, R$ 297,00; grupo de 10 (dez) ou mais apartamentos do mesmo empreendimento, R$ 280,00 por apartamento; revistoria opcional, R$ 150,00.
 4.3 Valor de grupo: se este contrato foi fechado pelo valor de grupo e o grupo não chegar a 10 (dez) apartamentos contratados até a construtora liberar as datas de vistoria, vale o valor individual. Nesse caso, o(a) CONTRATANTE é avisado(a) e pode escolher entre pagar a diferença no saldo ou desistir com devolução integral do sinal, em até 3 (três) dias do aviso.
 
 5. PAGAMENTO
-5.1 Sinal de 50% ({entrada}) na assinatura deste contrato, que reserva a vaga na agenda da CONTRATADA.
+5.1 Sinal de 50% ({entrada}), pago em até 3 (três) dias da assinatura deste contrato. A vaga na agenda só fica garantida depois que o sinal é pago; sem o pagamento nesse prazo, a CONTRATADA pode cancelar a reserva, sem custo para nenhuma das partes.
 5.2 Saldo de 50% ({saldo}) no dia da vistoria.
 5.3 Forma de pagamento: {pagamento}
 5.4 O laudo e a ART são entregues depois da quitação. Saldo não pago em até 5 (cinco) dias da vistoria tem multa de 2% (dois por cento) e juros de 1% (um por cento) ao mês, corrigido pelo IPCA.
@@ -396,6 +396,7 @@ Qualquer serviço fora desta lista depende de novo orçamento.
 6.4 Se a CONTRATADA não tiver nenhum horário compatível com as datas oferecidas pela construtora, o sinal é devolvido integralmente em até 5 (cinco) dias úteis.
 6.5 A CONTRATADA aguarda até 30 (trinta) minutos depois do horário marcado. O atraso de qualquer pessoa que não seja a CONTRATADA reduz o tempo da visita, sem ampliar o horário combinado.
 6.6 Visita perdida: se a CONTRATADA comparecer e a vistoria não puder ser feita por ausência do(a) CONTRATANTE ou de quem o(a) represente, ou por falta de acesso ao imóvel, sem aviso com 24 (vinte e quatro) horas de antecedência, uma nova visita custa o valor da revistoria (R$ 150,00).
+6.7 Se a vistoria de entrega não for marcada pela construtora em até 12 (doze) meses da assinatura deste contrato, qualquer uma das partes pode encerrá-lo, com devolução integral do sinal, sem multa.
 
 7. OBRIGAÇÕES DO(A) CONTRATANTE
 7.1 Enviar, quando tiver, a planta, o memorial descritivo e o manual do proprietário do imóvel.
@@ -421,7 +422,7 @@ Qualquer serviço fora desta lista depende de novo orçamento.
 
 11. DESISTÊNCIA E CANCELAMENTO
 11.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral do sinal, desde que a vistoria ainda não tenha sido feita (art. 49 do Código de Defesa do Consumidor).
-11.2 Depois desse prazo, ou a partir da confirmação da data da vistoria, o sinal tem natureza de arras (arts. 417 a 420 do Código Civil) e não é devolvido em caso de desistência, pois garantiu a vaga na agenda, que deixou de ser oferecida a outro morador.
+11.2 Passado esse prazo de 7 (sete) dias, o sinal tem natureza de arras (arts. 417 a 420 do Código Civil) e não é devolvido em caso de desistência, pois garantiu a vaga na agenda, que deixou de ser oferecida a outro morador.
 11.3 Se a desistência partir da CONTRATADA, ela devolve em dobro o sinal recebido (art. 418 do Código Civil), salvo nos casos da cláusula 6.4 e da cláusula 12.
 11.4 Se o imóvel deixar de ser do(a) CONTRATANTE antes da vistoria (distrato com a construtora, por exemplo), o sinal pode ser usado para outro imóvel indicado por ele(a) ou para a vistoria do novo comprador, se este assumir o contrato.
 

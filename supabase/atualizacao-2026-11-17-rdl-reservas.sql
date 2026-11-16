@@ -36,7 +36,11 @@ begin
   if exists (select 1 from public.rdl_reservas where not cancelada and dados ->> 'cpf' = p_dados ->> 'cpf' and dados ->> 'apto' = p_dados ->> 'apto' and dados ->> 'torre' = p_dados ->> 'torre' and criado > now() - interval '1 minute') then
     raise exception 'reserva repetida';
   end if;
-  insert into public.rdl_reservas (dados, contrato) values (p_dados, p_contrato || jsonb_build_object('recebido', now())) returning * into r;
+  insert into public.rdl_reservas (dados, contrato) values (p_dados, p_contrato || jsonb_build_object(
+    'recebido', now(),
+    -- IP de quem assinou (prova da assinatura eletrônica)
+    'ip', split_part(coalesce(nullif(current_setting('request.headers', true), '')::json ->> 'x-forwarded-for', ''), ',', 1)
+  )) returning * into r;
   return jsonb_build_object('id', r.id, 'token', r.token);
 end;
 $$;
