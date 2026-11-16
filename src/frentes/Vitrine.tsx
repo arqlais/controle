@@ -712,7 +712,9 @@ function Capa({ p, est, fallback, todos }: { p: Produto; est: Estilo; fallback?:
       )
   }
   if (!temPrevia(p.id)) return fallback ? <img src={fallback} alt="" loading="lazy" decoding="async" width={1200} height={900} /> : null
-  const dentro = paginasDe(p.id, est)[0]
+  const pags = paginasDe(p.id, est).length ? paginasDe(p.id, est) : paginasDe(p.id, 'delicado')
+  const dentro = pags[0]
+  const dentro2 = pags[1]
   if (noCelular(p.id))
     return (
       <span className={`fr-capa fr-capa-cel ${dentro ? 'duas' : ''}`}>
@@ -721,9 +723,11 @@ function Capa({ p, est, fallback, todos }: { p: Produto; est: Estilo; fallback?:
       </span>
     )
   return (
-    <span className={`fr-capa ${dentro ? 'tem-dentro' : ''}`}>
-      <img key={est} className="frente" src={imgEstilo(p.id, est)} alt="" loading="lazy" decoding="async" />
-      {dentro && <img className="dentro" src={dentro} alt="" loading="lazy" decoding="async" />}
+    <span className={`fr-capa ${dentro ? 'tem-dentro' : ''} ${dentro2 ? 'tres' : ''}`}>
+      {/* com uma página de dentro só, ela vai na frente (é onde estão os desenhos e as fotos) */}
+      <img key={est} className="frente" src={dentro && !dentro2 ? dentro : imgEstilo(p.id, est)} alt="" loading="lazy" decoding="async" />
+      {dentro && <img className="dentro" src={dentro && !dentro2 ? imgEstilo(p.id, est) : dentro} alt="" loading="lazy" decoding="async" />}
+      {dentro2 && <img className="dentro d2" src={dentro2} alt="" loading="lazy" decoding="async" />}
     </span>
   )
 }
@@ -805,9 +809,12 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
   const fotos = useMemo(() => {
     const a = p.amostras || []
     // tudo no estilo escolhido: a capa e as páginas de dentro daquele estilo (trocou o estilo, trocam todas as fotos)
-    return previa ? [imgEstilo(p.id, est), ...paginasDe(p.id, est)] : a
+    if (!previa) return a
+    const proprias = paginasDe(p.id, est)
+    return [imgEstilo(p.id, est), ...(proprias.length ? proprias : paginasDe(p.id, 'delicado'))]
   }, [p, est, previa])
   const [foto, setFoto] = useState(0)
+  const dentroDelicado = previa && est !== 'delicado' && !paginasDe(p.id, est).length && paginasDe(p.id, 'delicado').length > 0
   useEffect(() => setFoto(0), [est])
   const noCarrinho = estilosNoCarrinho(ctx.cartIds, p.id)
   const ja = estilos ? noCarrinho.includes(est) : ctx.cartIds.includes(p.id)
@@ -836,7 +843,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
           <div className="fr-pp-gal">
             <div className={`fr-pp-foto fr-prot ${previa && noCelular(p.id) ? 'is-cel' : previa ? 'is-pagina' : ''} ${foto > 0 && previa ? 'is-dentro' : ''}`} onContextMenu={(e) => e.preventDefault()}>
               {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} />)}
-              {foto > 0 && previa && <span className="fr-dentro-aviso">prévia · o arquivo completo chega depois da compra</span>}
+              {foto > 0 && previa && <span className="fr-dentro-aviso">{dentroDelicado ? 'página de dentro no estilo delicado · o seu vem no estilo escolhido' : 'prévia · o arquivo completo chega depois da compra'}</span>}
               {fotos.length > 1 && (
                 <>
                   <button type="button" className="fr-pp-seta e" aria-label="Foto anterior" onClick={() => setFoto((foto - 1 + fotos.length) % fotos.length)}><Icon name="chevronL" size={18} /></button>

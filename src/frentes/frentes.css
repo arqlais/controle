@@ -802,3 +802,23 @@ html, body { overflow-x: clip; }
 /* 16 áreas: 4 por linha no computador (4 linhas certinhas), 2 no iPad e no celular */
 .fr-areas-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 1100px) { .fr-areas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* capa com 3 páginas em leque: a capa e duas páginas de dentro (com os desenhos e fotos à mostra) */
+.fr-capa.tres .frente { left: 7%; top: 14%; height: 74%; transform: rotate(-6deg); z-index: 1; }
+.fr-capa.tres .dentro { left: 50%; right: auto; top: 8%; height: 84%; transform: translateX(-50%); z-index: 3; }
+.fr-capa.tres .dentro.d2 { left: auto; right: 7%; top: 14%; height: 74%; transform: rotate(6deg); z-index: 2; }
+@media (hover: hover) {
+  .fr-card:hover .fr-capa.tres .frente { transform: rotate(-9deg) translateX(-4px); }
+  .fr-card:hover .fr-capa.tres .dentro { transform: translateX(-50%) translateY(-4px); }
+  .fr-card:hover .fr-capa.tres .dentro.d2 { transform: rotate(9deg) translateX(4px); }
+}
+/* topo transparente em cima (o brilho do fundo passa por trás, sem corte); com fundo só depois de rolar */
+.fr .lp-top:not(.is-scrolled) { background: transparent; box-shadow: none; border-bottom-color: transparent; }
+.fr .lp-top { transition: background .25s, box-shadow .3s; }
+/* cartão da planê.arquivos na página principal: duas fichas com desenho e o iPhone com a agenda de dezembro */
+.fr-site-arte { position: relative; display: block; width: 100%; height: 100%; background: linear-gradient(160deg, #f7f0ec, #ecdfd9); overflow: hidden; }
+.fr-site-arte img { position: absolute; height: 80%; width: auto; border-radius: 6px; background: #fff; box-shadow: 0 16px 30px -16px rgba(62, 75, 87, .4); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+.fr-site-arte .pg1 { left: 6%; top: 12%; transform: rotate(-7deg); }
+.fr-site-arte .pg2 { left: 30%; top: 8%; transform: rotate(-1deg); }
+.fr-site-arte .iph { position: absolute; right: 7%; top: 6%; height: 92%; width: auto; transform: rotate(5deg); transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+@media (hover: hover) { .fr-site:hover .fr-site-arte .pg1 { transform: rotate(-10deg) translateX(-4px); } .fr-site:hover .fr-site-arte .iph { transform: rotate(7deg) translateY(-4px); } }
+.fr-site:hover .fr-site-arte img { scale: 1; }

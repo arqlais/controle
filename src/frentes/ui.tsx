@@ -75,7 +75,7 @@ export function Topo({ atual, acoes }: { atual?: FrenteInfo; acoes?: ReactNode }
   return (
     <header className={`lp-top ${scrolled ? 'is-scrolled' : ''}`}>
       <div className="lp-wrap lp-top-in">
-        <a className="brand-name lp-logo fr-logo" href="#/plane" aria-label="planê: página principal">
+        <a className="brand-name lp-logo fr-logo" href={atual ? atual.rota : '#/plane'} aria-label={atual ? `${atual.nome}: início` : 'planê: página principal'}>
           <BrandMark place="topo" size={36} />
           <span>
             {PLATFORM.name}

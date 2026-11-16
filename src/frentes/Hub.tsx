@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { frente, type FrenteInfo } from './frentes'
 import { TRIAL_DAYS } from '../plans'
-import { BarraPlataformas, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { BarraPlataformas, Iphone, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import './frentes.css'
 
 const FaleComigo = lazy(() => import('../ape/FaleComigo').then((m) => ({ default: m.FaleComigo })))
@@ -98,7 +98,15 @@ export function Hub() {
           {LINHAS.map((l, i) => (
             <article key={l.f.id} className="fr-site" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
               <a className="fr-site-img" href={l.f.rota} aria-label={l.f.botao}>
-                <img src={l.imgs[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
+                {l.f.id === 'arquivos' ? (
+                  <span className="fr-site-arte">
+                    <img className="pg1" src={AM('p-bio-toxina-1--delicado.webp')} alt="" loading="lazy" decoding="async" />
+                    <img className="pg2" src={AM('p-odonto-anamnese-1--delicado.webp')} alt="" loading="lazy" decoding="async" />
+                    <Iphone className="cel" src={AM('e-beleza-agenda-dezembro--delicado.webp')} />
+                  </span>
+                ) : (
+                  <img src={l.imgs[0]} alt="" loading="lazy" decoding="async" width={1200} height={900} />
+                )}
               </a>
               <div className="fr-site-t">
                 <p className="eyebrow">{l.titulo}</p>
