@@ -13,9 +13,9 @@ TEMAS = {
     # preto e branco, limpo
     'minimalista': dict(bg='#ffffff', ink='#1f1f1f', mut='#8a8a8a', ac='#1f1f1f', ac2='#bdbdbd', soft='#f3f3f3', fio='#dedede', card='#ffffff',
                         tit="'Poppins', sans-serif", tit_it='normal', tit_w='500', caixa='uppercase', esp='.22em', raio='0', script="'Poppins', sans-serif"),
-    # preto e dourado
-    'elegante': dict(bg='#16130f', ink='#efe7da', mut='#a99c88', ac='#c9a86a', ac2='#8c7447', soft='#211c17', fio='#3d342a', card='#1c1813',
-                     tit="'Cormorant Garamond', serif", tit_it='normal', tit_w='500', caixa='uppercase', esp='.16em', raio='1mm', script="'Pinyon Script', cursive"),
+    # preto e dourado em fundo claro: é para imprimir (fundo escuro gasta tinta e não dá para escrever por cima)
+    'elegante': dict(bg='#fffdf8', ink='#1d1a16', mut='#857a6b', ac='#9c7b3f', ac2='#c9ad72', soft='#f6f0e3', fio='#e6dbc4', card='#ffffff',
+                     tit="'Cormorant Garamond', serif", tit_it='normal', tit_w='600', caixa='uppercase', esp='.16em', raio='1mm', script="'Pinyon Script', cursive"),
 }
 
 def vars_css(t):

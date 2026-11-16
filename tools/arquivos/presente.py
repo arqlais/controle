@@ -95,7 +95,7 @@ EST_CSS = {
                 ".topo h2{position:relative;z-index:1}.topo h2::after{content:'';position:absolute;left:-2mm;right:-2mm;bottom:1mm;height:5mm;background:var(--ac2);opacity:.45;z-index:-1;border-radius:3mm}",
     'delicado': ".forma.a{width:64mm;height:64mm;background:var(--soft);top:-20mm;right:-18mm}.forma.b{width:40mm;height:40mm;background:var(--soft);bottom:-12mm;left:-10mm}",
     'minimalista': ".forma{display:none}.topo{border-bottom:.5mm solid var(--ink)}.cal td{border-radius:0}",
-    'elegante': ".forma{display:none}.pg{border:.4mm solid var(--ac2);outline:.25mm solid var(--fio);outline-offset:-4mm}.capa .num{font-size:88pt}",
+    'elegante': ".forma{display:none}.pg{border:.4mm solid var(--ac2);outline:.25mm solid var(--fio);outline-offset:-4mm}.capa .num{font-size:88pt}.topo{border-bottom:.5mm solid var(--ink)}.cal td.dt{background:var(--soft)}",
 }
 
 def pe(n, total):
