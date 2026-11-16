@@ -203,6 +203,17 @@ export async function apagarReserva(id: string) {
   if (error) throw error
 }
 
+/** E-mail da etapa para o morador (e, na reserva, para a RDL), pelo remetente da planê com a identidade da RDL. Nunca trava a tela. */
+export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada', id: string, token?: string): Promise<boolean> {
+  if (!supabase) return false
+  try {
+    const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl', evento, id, token } })
+    return !error && !!(data as { ok?: boolean })?.ok
+  } catch {
+    return false
+  }
+}
+
 /* ---------- links ---------- */
 const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistoria)\/?$/, '/')}`
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`

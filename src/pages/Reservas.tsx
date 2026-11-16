@@ -12,6 +12,7 @@ import {
   CONFIG_PADRAO,
   abrirContrato,
   atualizarReserva,
+  avisarEmail,
   dataCurta,
   lerConfig,
   linkPainel,
@@ -112,14 +113,16 @@ export default function Reservas() {
     return novo
   }
   const confirmarSinal = async (r: Reserva) => {
-    const novo = await salvarStatus(r, { sinal: today(), contratada: new Date().toISOString() }, 'Sinal confirmado. A vaga está garantida e o contrato fica assinado pelas duas partes.')
+    const novo = await salvarStatus(r, { sinal: today(), contratada: new Date().toISOString() }, 'Sinal confirmado: vaga garantida, contrato assinado pelas duas partes e e-mail enviado ao morador.')
+    void avisarEmail('sinal', r.id)
     // ART da vistoria entra como "a emitir" no controle de ARTs
     if (!(data.arts ?? []).some((a) => a.notes.includes(r.id.slice(0, 8))))
       upsert('arts', newArt({ clientId: novo.status.cliente, clientName: r.dados.nome, service: 'vistoria de entrega de chaves', place: `${cfg.empreendimento} · ${unidade(r.dados)}`, contractValue: cfg.preco, notes: `reserva ${r.id.slice(0, 8).toUpperCase()}` }))
   }
   const marcarData = async (r: Reserva, d: string, h: string) => {
-    const novo = await salvarStatus(r, { data: d, hora: h }, d ? 'Data salva no painel do morador e na agenda.' : undefined)
+    const novo = await salvarStatus(r, { data: d, hora: h }, d ? 'Data salva no painel do morador e na agenda, e e-mail enviado.' : undefined)
     if (!d) return
+    void avisarEmail('data', r.id)
     const evId = `vistoria-${r.id}`
     upsert('events', { id: evId, title: `Vistoria · ${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}`, date: d, time: h, endTime: '', type: 'outro', customType: 'vistoria', projectId: '', clientId: novo.status.cliente, place: cfg.empreendimento, notes: `${r.dados.tel}${r.dados.revistoria ? ' · revistoria combinada' : ''}`, done: false })
   }
@@ -127,6 +130,7 @@ export default function Reservas() {
     if (!(await ask(`Cancelar a reserva de ${r.dados.nome} (${unidade(r.dados)})? O painel dele vai mostrar que a reserva foi cancelada.`, { confirmLabel: 'Cancelar reserva' }))) return
     try {
       await atualizarReserva(r.id, { cancelada: !r.cancelada })
+      if (!r.cancelada) void avisarEmail('cancelada', r.id)
       void carregar()
       setAberta(null)
     } catch {
@@ -186,7 +190,7 @@ export default function Reservas() {
               <Icon name="eye" size={14} /> ver como o morador vê
             </a>
           </div>
-          <p className="muted small">O morador preenche nome, CPF, contato, torre e apto, lê o contrato com os dados dele e assina. A reserva aparece aqui na hora, com o painel dele pronto. {cfg.aberta ? '' : 'As reservas estão fechadas (valores e Pix).'}</p>
+          <p className="muted small">O morador preenche os dados (endereço pelo CEP), torre e apto, lê o contrato com os dados dele e assina. A reserva aparece aqui na hora, com o painel dele pronto, e cada etapa vai também por e-mail para ele. {cfg.aberta ? '' : 'As reservas estão fechadas (valores e Pix).'}</p>
         </div>
       </Section>
 
@@ -398,7 +402,7 @@ function Detalhe({
             <p className="muted small">Cole o link do PDF do laudo (Google Drive, por exemplo). Ele aparece no painel do morador.</p>
             <div className="row gap-s wrap">
               <input className="grow" value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="https://…" />
-              <button className="btn small" disabled={laudo === (s.laudo ?? '')} onClick={() => void onStatus(r, { laudo: laudo.trim(), laudoEm: laudo.trim() ? today() : '' }, 'Laudo no painel do morador.')}>
+              <button className="btn small" disabled={laudo === (s.laudo ?? '')} onClick={() => void onStatus(r, { laudo: laudo.trim(), laudoEm: laudo.trim() ? today() : '' }, 'Laudo no painel do morador e e-mail enviado.').then(() => laudo.trim() && void avisarEmail('laudo', r.id))}>
                 salvar
               </button>
               {s.laudo && (
@@ -413,7 +417,7 @@ function Detalhe({
               <b>5 · revistoria</b>
               <div className="row gap-s wrap">
                 <input type="date" value={rev} onChange={(e) => setRev(e.target.value)} />
-                <button className="btn small" disabled={rev === (s.revistoriaData ?? '')} onClick={() => void onStatus(r, { revistoriaData: rev }, 'Revistoria salva.')}>
+                <button className="btn small" disabled={rev === (s.revistoriaData ?? '')} onClick={() => void onStatus(r, { revistoriaData: rev }, 'Revistoria salva e e-mail enviado.').then(() => rev && void avisarEmail('revistoria', r.id))}>
                   salvar
                 </button>
               </div>

@@ -63,3 +63,6 @@ language sql stable security definer set search_path = public as $$
   select count(*)::int from public.rdl_reservas where not cancelada;
 $$;
 grant execute on function public.rdl_contagem() to anon, authenticated;
+
+-- e-mails já enviados de cada reserva (a função "avisos" grava aqui e não repete)
+alter table public.rdl_reservas add column if not exists avisos jsonb not null default '{}'::jsonb;

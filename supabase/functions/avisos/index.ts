@@ -13,6 +13,8 @@
 //   resposta     → a dona respondeu no chat: avisa a pessoa (se ela não estiver usando o sistema agora)
 //   sugestao-atualizada → a dona mudou a situação ou respondeu uma sugestão: avisa quem sugeriu
 //   briefing     → o cliente final respondeu o briefing (página sem login): avisa quem mandou
+//   rdl          → RDL Engenharia (reserva da vistoria): avisa o morador e a RDL em cada etapa
+//                  (reserva, sinal, data, laudo, revistoria, cancelada), com a identidade da RDL
 //   cliente      → o cliente final assinou um contrato ou mandou um recado pelo painel (sem login):
 //                  guarda na tabela client_events (o sistema lê e mostra na central de avisos),
 //                  avisa o profissional por e-mail e, se o cliente deixou e-mail, manda uma cópia para ele
@@ -336,6 +338,122 @@ const clientCopyMail = (kind: string, studio: string, title: string, link = ''):
   }),
 })
 
+
+/* ---------- RDL Engenharia: e-mails da reserva da vistoria (identidade da RDL, remetente da planê) ---------- */
+const RDL_EMAIL = 'roger.rdl76@yahoo.com.br'
+const RDL_FROM = 'RDL Engenharia'
+const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const dBR = (iso?: string) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '')
+type RdlRow = { id: string; token: string; criado: string; dados: Record<string, unknown>; status: Record<string, string>; cancelada: boolean; avisos?: Record<string, string> }
+function rdlLayout(o: { eyebrow: string; title: string; text: string; button?: string; url?: string; rows?: [string, string][] }) {
+  const btn = o.button
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:6px;"><tr><td style="border-radius:12px;background:#FF8216;"><a href="${o.url}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:12px;">${esc(o.button)}</a></td></tr></table>`
+    : ''
+  const rows = o.rows?.length
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;background:#F1F2F6;border-radius:12px;">${o.rows
+        .map(([k, v]) => `<tr><td style="padding:9px 14px;font-size:11px;letter-spacing:1.4px;color:#7A7F92;font-weight:600;white-space:nowrap;vertical-align:top;">${esc(k.toUpperCase())}</td><td style="padding:9px 14px;font-size:14px;color:#012C60;font-weight:600;">${esc(v)}</td></tr>`)
+        .join('')}</table>`
+    : ''
+  return `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:0;background:#FAF8F4;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF8F4;padding:28px 12px;font-family:Poppins,Helvetica,Arial,sans-serif;color:#012C60;"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
+<tr><td align="center" style="padding:0 0 18px;"><img src="${SITE}rdl/logo-email.png" width="190" alt="RDL Engenharia e Representações" style="display:block;width:190px;height:auto;"></td></tr>
+<tr><td style="background:#ffffff;border:1px solid #E6E4DE;border-radius:18px;padding:32px 28px;">
+<p style="margin:0 0 8px;font-size:11px;letter-spacing:2.6px;color:#FF8216;font-weight:600;">${esc(o.eyebrow.toUpperCase())}</p>
+<h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;font-weight:700;color:#012C60;">${esc(o.title)}</h1>
+<div style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#46506A;">${o.text}</div>
+${rows}${btn}
+</td></tr>
+<tr><td style="padding:0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#012C60;border-top:4px solid #FF8216;border-radius:0 0 14px 14px;"><tr>
+<td style="padding:14px 18px;font-size:12px;line-height:1.55;color:#ffffff;"><b style="font-size:13px;">Eng. Rogério Francisco Vieira</b><br><span style="color:#B8C4D6;">RDL Engenharia e Representações · CNPJ 48.624.017/0001-46</span></td>
+<td style="padding:14px 18px;font-size:12px;line-height:1.55;color:#ffffff;text-align:right;white-space:nowrap;">(11) 9 7520-8296<br><span style="color:#B8C4D6;">${RDL_EMAIL}</span></td></tr></table></td></tr>
+<tr><td style="padding:14px 8px 0;font-size:11.5px;line-height:1.6;color:#7A7F92;text-align:center;">Para falar com a RDL, é só responder este e-mail ou chamar no WhatsApp.</td></tr>
+</table></td></tr></table></body></html>`
+}
+function rdlMails(r: RdlRow, cfg: { preco: number; revistoria: number; periodo: string; pix: string; empreendimento: string }) {
+  const d = r.dados as Record<string, string | boolean>
+  const nome = String(d.nome ?? '')
+  const pn = nome.split(' ')[0]
+  const un = `${d.torre ? `torre ${d.torre}, ` : ''}apto ${d.apto}`
+  const painel = `${SITE}#/vistoria/${r.id}.${r.token}`
+  const metade = cfg.preco / 2
+  const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
+  const s = r.status ?? {}
+  const base: [string, string][] = [['morador', nome], ['unidade', `${emp} · ${un}`], ['reserva', `nº ${r.id.slice(0, 8).toUpperCase()}`]]
+  return {
+    reserva: {
+      subject: `Reserva recebida: vistoria do ${un}`,
+      html: rdlLayout({
+        eyebrow: 'reserva da vistoria',
+        title: `Recebemos a sua reserva, ${pn}!`,
+        text: `<p style="margin:0 0 12px;">O contrato da vistoria de entrega de chaves foi assinado e está guardado no seu painel, junto com tudo da vistoria.</p><p style="margin:0;"><b>Para garantir a vaga</b>, falta o sinal de <b>${brl(metade)}</b>, em até 3 dias${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois é só mandar o comprovante pelo WhatsApp ou respondendo este e-mail.</p>`,
+        rows: [...base, ['valor', `${brl(cfg.preco)} (sinal ${brl(metade)})`], ['previsão da MRV', cfg.periodo], ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
+        button: 'Abrir o meu painel',
+        url: painel,
+      }),
+    },
+    sinal: {
+      subject: `Vaga garantida: vistoria do ${un}`,
+      html: rdlLayout({
+        eyebrow: 'sinal recebido',
+        title: 'Sua vaga está garantida',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Recebemos o sinal e a sua vaga na agenda está garantida. O contrato agora está assinado pelas duas partes.</p><p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.periodo)}), avise o Rogério <b>antes</b> de confirmar o horário com ela, para combinarem juntos.</p>`,
+        rows: [...base, ['sinal', `${brl(metade)} recebido em ${dBR(s.sinal)}`], ['restante', `${brl(cfg.preco - metade)} no dia da vistoria`]],
+        button: 'Ver o painel e o contrato',
+        url: painel,
+      }),
+    },
+    data: {
+      subject: `Vistoria marcada: ${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`,
+      html: rdlLayout({
+        eyebrow: 'vistoria marcada',
+        title: `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(cfg.preco - metade)}</b> no dia, por Pix ou cartão</p>`,
+        rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
+        button: 'Abrir o meu painel',
+        url: painel,
+      }),
+    },
+    laudo: {
+      subject: `Laudo pronto: vistoria do ${un}`,
+      html: rdlLayout({
+        eyebrow: 'laudo e ART',
+        title: 'O seu laudo está pronto',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O laudo da vistoria, com fotos e a ART, está pronto.</p><p style="margin:0;">Encaminhe para a MRV pelo atendimento deles e guarde o protocolo. Se quiser a revistoria depois dos reparos (${brl(cfg.revistoria)}), é só responder este e-mail.</p>`,
+        rows: base,
+        button: 'Abrir o laudo',
+        url: /^https?:\/\//.test(s.laudo ?? '') ? s.laudo : painel,
+      }),
+    },
+    revistoria: {
+      subject: `Revistoria marcada: ${dBR(s.revistoriaData)}`,
+      html: rdlLayout({
+        eyebrow: 'revistoria',
+        title: `Revistoria em ${dBR(s.revistoriaData)}`,
+        text: `<p style="margin:0;">Oi, ${esc(pn)}! A revistoria para conferir os reparos da MRV está marcada. O valor de ${brl(cfg.revistoria)} é pago no dia.</p>`,
+        rows: base,
+        button: 'Abrir o meu painel',
+        url: painel,
+      }),
+    },
+    cancelada: {
+      subject: `Reserva cancelada: vistoria do ${un}`,
+      html: rdlLayout({ eyebrow: 'reserva', title: 'Reserva cancelada', text: `<p style="margin:0;">Oi, ${esc(pn)}. A reserva da vistoria do ${esc(un)} foi cancelada. Se tiver qualquer dúvida, é só responder este e-mail.</p>`, rows: base }),
+    },
+    rdl: {
+      subject: `Nova reserva: ${nome} · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'nova reserva pelo link',
+        title: `${nome} reservou a vistoria`,
+        text: `<p style="margin:0;">O contrato foi assinado no link. Falta o sinal de <b>${brl(metade)}</b>. Os dados completos, o contrato e as mensagens prontas estão em <b>vistorias</b>, no sistema da RDL.</p>`,
+        rows: [...base, ['WhatsApp', String(d.tel ?? '')], ['e-mail', String(d.email ?? '')], ['revistoria', d.revistoria ? 'combinada' : 'não']],
+        button: 'Abrir o sistema da RDL',
+        url: `${SITE}rdl/`,
+      }),
+    },
+  } as Record<string, Mail>
+}
+
 async function send(to: Sub, mail: Mail, replyTo?: string, fromName?: string) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
@@ -515,6 +633,56 @@ Deno.serve(async (req) => {
     const { error } = await db.auth.admin.deleteUser(target)
     if (error) return json({ ok: false, erro: error.message }, 500)
     return json({ ok: true })
+  }
+
+
+  if (tipo === 'rdl') {
+    // reserva da vistoria (RDL Engenharia). "reserva": a página pública manda com o código do painel;
+    // as outras etapas só a RDL (Laís ou Rogério, logados). Cada e-mail vai uma vez por etapa (coluna avisos).
+    const evento = String(body.evento ?? '')
+    const id = String(body.id ?? '')
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada'].includes(evento)) return json({ ok: false }, 400)
+    const { data: row } = await db.from('rdl_reservas').select('*').eq('id', id).maybeSingle()
+    const r = row as RdlRow | null
+    if (!r) return json({ ok: false }, 404)
+    if (evento === 'reserva') {
+      if (String(body.token ?? '') !== r.token) return json({ ok: false }, 403)
+    } else {
+      const mail = String(who?.user?.email ?? '').toLowerCase()
+      if (!isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
+    }
+    const st = r.status ?? {}
+    const ref = evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento
+    const avisos = r.avisos ?? {}
+    if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
+    // valores da campanha (arquivo público da RDL)
+    let cfg = { preco: 280, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: '', empreendimento: 'Condomínio San Levi (MRV)' }
+    try {
+      const f = await db.storage.from('agenda').download('7d1e0000-0000-4000-8000-00000000d1d1/reserva-vistoria.json')
+      if (f.data) cfg = { ...cfg, ...JSON.parse(await f.data.text()) }
+    } catch {
+      /* usa o padrão */
+    }
+    const mails = rdlMails(r, cfg)
+    const to = String((r.dados as Record<string, string>).email ?? '').trim()
+    const nome = String((r.dados as Record<string, string>).nome ?? '')
+    const ok: string[] = []
+    try {
+      if (isMail(to)) {
+        await send({ user_id: id, email: to, name: nome, plan: '', status: '', trial_ends: '', blocked: false }, mails[evento], RDL_EMAIL, RDL_FROM)
+        ok.push('morador')
+      }
+      if (evento === 'reserva') {
+        await send({ user_id: id, email: RDL_EMAIL, name: 'Rogério', plan: '', status: '', trial_ends: '', blocked: false }, mails.rdl, to || RDL_EMAIL, RDL_FROM)
+        if (OWNER_EMAIL !== RDL_EMAIL) await send({ user_id: id, email: OWNER_EMAIL, name: '', plan: '', status: '', trial_ends: '', blocked: false }, mails.rdl, to || RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
+        ok.push('rdl')
+      }
+    } catch (e) {
+      console.error(e)
+      return json({ ok: false, erro: String(e instanceof Error ? e.message : e).slice(0, 240) })
+    }
+    await db.from('rdl_reservas').update({ avisos: { ...avisos, [ref]: new Date().toISOString() } }).eq('id', id)
+    return json({ ok: true, enviados: ok })
   }
 
   if (tipo === 'cliente') {

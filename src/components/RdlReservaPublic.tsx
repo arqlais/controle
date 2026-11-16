@@ -16,6 +16,7 @@ import {
   minhaReserva,
   pixCopiaECola,
   reservar,
+  avisarEmail,
   sha256,
   unidade,
   enderecoCompleto,
@@ -168,6 +169,7 @@ function Reservar() {
       const aparelho = deviceLabel()
       const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, aparelho].join('|'))
       const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: modo === 'desenho' ? desenho : undefined, cpf: d.cpf, em, codigo, aparelho, fuso })
+      void avisarEmail('reserva', r.id, r.token)
       const link = `#/vistoria/${r.id}.${r.token}`
       try {
         localStorage.setItem(SALVO, link)
