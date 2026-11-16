@@ -124,7 +124,8 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
         </a>
         <div className="brand ape-adm-brand" title="planê.apê: painel">
           <label className="brand-photo ape-adm-foto" title="Trocar a foto do painel">
-            {ajustes?.fotoPainel ? <img src={ajustes.fotoPainel} alt="" /> : <BrandMark place="menu" size={46} />}
+            {ajustes?.fotoPainel ? <img src={ajustes.fotoPainel} alt="" /> : <span className="ape-adm-ic"><Icon name="bag" size={22} /></span>}
+            <span className="ape-adm-troca" aria-hidden><Icon name="camera" size={11} /></span>
             <input type="file" accept="image/*" hidden onChange={(e) => void trocarFoto(e.target.files?.[0])} />
           </label>
           <span className="brand-text">

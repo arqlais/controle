@@ -3029,3 +3029,11 @@ body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)
   color-scheme: dark;
 }
 .bib-prev img { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: contain; padding: 16px; box-shadow: none; filter: drop-shadow(0 10px 24px rgba(43, 40, 38, .14)); }
+/* foto do painel da dona: ícone geral centralizado (ou a foto dela) e selo de câmera para trocar */
+.ape-shell .brand .brand-photo.ape-adm-foto { overflow: visible !important; position: relative; display: grid !important; place-items: center; }
+.ape-shell .brand .brand-photo.ape-adm-foto img { border-radius: 50% !important; object-fit: cover; }
+.ape-adm-ic { width: 100%; height: 100%; border-radius: 50%; display: grid; place-items: center; background: var(--a-pri-soft); color: var(--a-pri); }
+.ape-adm-troca { position: absolute; right: -3px; bottom: -3px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--a-card); color: var(--a-ink); box-shadow: 0 1px 4px rgba(43, 40, 38, .25); }
+.ape-adm-ic svg { width: 22px !important; height: 22px !important; }
+.ape-adm-troca { width: 18px; height: 18px; right: -2px; bottom: -2px; }
+.ape-adm-troca svg { width: 10px !important; height: 10px !important; }
