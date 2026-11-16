@@ -1,5 +1,6 @@
 import type { Client, Contract, FullAddress, ContractSettings, ContractTemplate, Quote, Settings } from './types'
-import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS } from './contractTemplates'
+import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS, VISTORIA_CONTRACT } from './contractTemplates'
+import { rdlMode } from './rdl'
 import { dayLabel } from './processes'
 import { porExtenso } from './components/Docs'
 import { PAYMENT_TERMS } from './store'
@@ -48,7 +49,8 @@ export const CONTRACT_VARS: [string, string][] = [
   ['data', 'data de hoje, por extenso'],
 ]
 
-export const defaultTemplates = (owner: boolean) => (owner ? LAIS_CONTRACTS : CLIENT_CONTRACTS)
+// sistema da RDL: o contrato de vistoria vem primeiro (só lá, não aparece na planê)
+export const defaultTemplates = (owner: boolean) => (owner ? LAIS_CONTRACTS : rdlMode() ? [VISTORIA_CONTRACT, ...CLIENT_CONTRACTS] : CLIENT_CONTRACTS)
 /** Modelos em uso nesta conta (os editados por ela ou os padrões do perfil). */
 export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
   const cs = s.contracts

@@ -7,6 +7,7 @@ import { Icon } from './Icon'
 import { Field, Section } from './ui'
 import { toast } from './dialog'
 import { AvatarGlyph } from './Avatar'
+import { rdlMode } from '../rdl'
 import { BODY_FONTS, CLIENT_DISPLAY, DISPLAY_FONTS, EXCLUSIVE_FONT, FONT_PAIRS, OWN_BODY_FONT, OWN_FONT, PALETTES, effectiveSettings, paletteToProposal, type Palette } from '../brand'
 import { resolveTemplate, followsBrand } from '../proposalTemplates'
 import type { Settings } from '../types'
@@ -87,7 +88,7 @@ export function BrandKit() {
   }
   const bodies = even([...(raw.customBodyFont ? [{ name: OWN_BODY_FONT, mood: 'arquivo enviado por você' }] : []), ...BODY_FONTS])
 
-  const palettes = even(PALETTES.filter((p) => (exclusive ? p.owner : !p.owner)))
+  const palettes = even(PALETTES.filter((p) => (exclusive ? p.owner : !p.owner) && (!p.rdl || rdlMode())))
   const displays = even([...(exclusive ? [{ name: EXCLUSIVE_FONT, mood: 'sua fonte exclusiva' }] : []), ...(raw.customFont && !exclusive ? [{ name: OWN_FONT, mood: 'arquivo enviado por você' }] : []), ...DISPLAY_FONTS])
   // dona: o padrão é a identidade dela (paleta "laís", The Seasons e Poppins)
   const own = PALETTES[0]

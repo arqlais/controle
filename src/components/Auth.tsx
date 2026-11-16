@@ -29,6 +29,8 @@ import { applyTheme } from '../theme'
 import { EmailInput, Field } from './ui'
 import { toast } from './dialog'
 import { Icon } from './Icon'
+import { RDL_ACCESS, RDL_ID, RDL_SETTINGS, rdlMode, setRdlRole } from '../rdl'
+import { RDL_LOGO } from '../rdlLogo'
 
 /** Sem nuvem configurada: prévia local. Com nuvem: exige login (e-mail + senha).
  *  Sem login, mostra a página de vendas, o cadastro ou o login. */
@@ -90,6 +92,8 @@ function Gate({ children }: { children: ReactNode }) {
   if (!CLOUD) return <PreviewGate>{children}</PreviewGate>
   if (session === undefined) return <div className="loading-screen" />
   if (recovery && session) return <NewPassword onDone={() => setRecovery(false)} />
+  // sistema da RDL: área restrita, com login e dados próprios
+  if (rdlMode()) return session ? <RdlSession session={session}>{children}</RdlSession> : <RdlLogin />
   if (!session) return <PublicScreens />
   if (asClient)
     return (
@@ -131,6 +135,17 @@ function PreviewGate({ children }: { children: ReactNode }) {
   const route = useRoute()
   // abrir a página de vendas pelo menu da prévia
   const visitor = role === 'visitante' || (route.page === 'vendas' && role !== 'dona')
+  // prévia do sistema da RDL (sem nuvem): mesma tela, dados só neste navegador
+  if (rdlMode()) {
+    setRdlRole('dona')
+    return (
+      <AccessProvider key="rdl" userId="previa-rdl" override={RDL_ACCESS}>
+        <StoreProvider key="rdl" userId={RDL_ID} userEmail="roger.rdl76@yahoo.com.br">
+          {children}
+        </StoreProvider>
+      </AccessProvider>
+    )
+  }
   return (
     <>
       {visitor ? (
@@ -389,3 +404,153 @@ function NewPassword({ onDone }: { onDone: () => void }) {
     </AuthLayout>
   )
 }
+
+/* ---------------- sistema da RDL Engenharia (useplane.com.br/rdl) ---------------- */
+
+/** Confere no Supabase se a conta pode entrar na RDL (a dona da planê ou o Rogério) e abre o sistema com os dados da RDL. */
+function RdlSession({ session, children }: { session: Session; children: ReactNode }) {
+  const [role, setRole] = useState<'dona' | 'membro' | null | undefined>(undefined)
+  useEffect(() => {
+    applyTheme({ ...DEFAULT_SETTINGS, ...RDL_SETTINGS })
+    document.title = 'RDL Engenharia'
+    let alive = true
+    supabase!
+      .rpc('rdl_acesso')
+      .then(({ data, error }) => {
+        if (!alive) return
+        const r = error ? null : ((data as string | null) === 'dona' ? 'dona' : (data as string | null) === 'membro' ? 'membro' : null)
+        setRdlRole(r)
+        setRole(r)
+      })
+    return () => {
+      alive = false
+    }
+  }, [session.user.id])
+  if (role === undefined) return <div className="loading-screen" />
+  if (!role)
+    return (
+      <RdlLayout>
+        <p className="eyebrow">área restrita</p>
+        <h1>
+          sem <em>acesso</em>
+        </h1>
+        <p className="muted">Esta conta ({session.user.email}) não está liberada no sistema da RDL Engenharia.</p>
+        <button className="btn primary auth-submit" onClick={() => void supabase!.auth.signOut()}>
+          entrar com outra conta
+        </button>
+      </RdlLayout>
+    )
+  return (
+    <AccessProvider key="rdl" userId={session.user.id} override={RDL_ACCESS}>
+      <StoreProvider key="rdl" userId={RDL_ID} userEmail={session.user.email ?? ''}>
+        {children}
+      </StoreProvider>
+    </AccessProvider>
+  )
+}
+
+function RdlLayout({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    applyTheme({ ...DEFAULT_SETTINGS, ...RDL_SETTINGS })
+    document.title = 'RDL Engenharia'
+  }, [])
+  return (
+    <div className="auth rdl-auth">
+      <aside className="auth-art">
+        <div className="auth-art-inner">
+          <img className="rdl-auth-logo" src={RDL_LOGO} alt="RDL Engenharia e Representações" />
+          <h2>
+            gestão de
+            <br />
+            <em>vistorias e obras</em>
+          </h2>
+          <p>Clientes, orçamentos, contratos, laudos e ARTs da RDL Engenharia, num lugar só.</p>
+        </div>
+      </aside>
+      <main className="auth-form">
+        <div className="auth-box">{children}</div>
+      </main>
+    </div>
+  )
+}
+
+/** Login da RDL: e-mail e senha. No primeiro acesso, a pessoa cria a senha com o e-mail liberado. */
+function RdlLogin() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [mode, setMode] = useState<'entrar' | 'primeiro' | 'esqueci'>('entrar')
+  const [show, setShow] = useState(false)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setBusy(true)
+    const mail = email.trim()
+    if (mode === 'esqueci') {
+      const { error } = await supabase!.auth.resetPasswordForEmail(mail, { redirectTo: window.location.origin + window.location.pathname })
+      setBusy(false)
+      if (error) return setError('Não foi possível enviar agora. Espere 1 minuto e tente de novo.')
+      toast('Enviamos um link para criar uma nova senha. Confira seu e-mail.')
+      return setMode('entrar')
+    }
+    if (mode === 'primeiro') {
+      if (password.length < 8) return setBusy(false), setError('Use pelo menos 8 caracteres na senha.')
+      const { data, error } = await supabase!.auth.signUp({ email: mail, password, options: { emailRedirectTo: window.location.origin + window.location.pathname, data: { sistema: 'rdl' } } })
+      setBusy(false)
+      if (error) return setError(/registered|already/i.test(error.message) ? 'Este e-mail já tem senha. Use “entrar” ou “esqueci minha senha”.' : 'Não foi possível criar a senha agora. Tente de novo em instantes.')
+      if (!data.session) toast('Enviamos um e-mail de confirmação. Toque no link dele e depois entre aqui.')
+      return
+    }
+    const { error } = await supabase!.auth.signInWithPassword({ email: mail, password })
+    setBusy(false)
+    if (error) setError(/confirm/i.test(error.message) ? 'Confirme o e-mail pelo link que enviamos e tente de novo.' : error.message.includes('Invalid') ? 'E-mail ou senha incorretos.' : 'Não foi possível entrar. Verifique sua conexão.')
+  }
+  return (
+    <RdlLayout>
+      <div>
+        <p className="eyebrow">área restrita · RDL Engenharia</p>
+        <h1>{mode === 'primeiro' ? <>primeiro <em>acesso</em></> : mode === 'esqueci' ? <>nova <em>senha</em></> : <>bem-vindo <em>de volta</em></>}</h1>
+      </div>
+      <form onSubmit={submit}>
+        <Field label="E-mail">
+          <EmailInput id="rdl-email" value={email} onChange={setEmail} />
+        </Field>
+        {mode !== 'esqueci' && (
+          <Field label={mode === 'primeiro' ? 'Crie uma senha' : 'Senha'} hint={mode === 'primeiro' ? 'Mínimo de 8 caracteres.' : undefined}>
+            <div className="pw-field">
+              <input id="rdl-password" type={show ? 'text' : 'password'} autoComplete={mode === 'primeiro' ? 'new-password' : 'current-password'} required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <button type="button" className="icon-btn subtle" onClick={() => setShow(!show)} aria-label={show ? 'Esconder senha' : 'Mostrar senha'}>
+                <Icon name="eye" size={17} />
+              </button>
+            </div>
+          </Field>
+        )}
+        {error && <p className="auth-error">{error}</p>}
+        <button className="btn primary auth-submit" disabled={busy}>
+          {busy ? 'aguarde…' : mode === 'primeiro' ? 'criar senha e entrar' : mode === 'esqueci' ? 'enviar link por e-mail' : 'entrar'}
+          {!busy && <Icon name="chevronR" size={16} />}
+        </button>
+        <div className="row gap-s wrap">
+          {mode !== 'entrar' && (
+            <button type="button" className="link" onClick={() => (setMode('entrar'), setError(''))}>
+              ← voltar para o login
+            </button>
+          )}
+          {mode === 'entrar' && (
+            <>
+              <button type="button" className="link" onClick={() => (setMode('primeiro'), setError(''))}>
+                primeiro acesso
+              </button>
+              <button type="button" className="link" onClick={() => (setMode('esqueci'), setError(''))}>
+                esqueci minha senha
+              </button>
+            </>
+          )}
+        </div>
+      </form>
+      <p className="muted small">Acesso só para contas liberadas pela RDL Engenharia.</p>
+    </RdlLayout>
+  )
+}
+

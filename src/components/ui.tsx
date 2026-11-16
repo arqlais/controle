@@ -55,7 +55,7 @@ export function Modal({
 /** Títulos ficam em minúsculas, mas "R$" e "IA" continuam sempre maiúsculos. */
 export function KeepRS({ text }: { text: string }) {
   // siglas ficam em maiúsculas mesmo nos títulos em minúsculas (R$, IA, CPF, CNPJ, RG, CEP…)
-  const KEEP = /(R\$|\b(?:IA|CPF|CNPJ|RG|CEP|UF|PDF|MEI)\b)/
+  const KEEP = /(R\$|\b(?:IA|CPF|CNPJ|RG|CEP|UF|PDF|MEI|ARTs?|RRTs?|CREA|CAU)\b)/
   if (!KEEP.test(text)) return <>{text}</>
   return (
     <>

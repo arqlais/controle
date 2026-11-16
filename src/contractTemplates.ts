@@ -329,6 +329,80 @@ E, por estarem de acordo, as partes assinam este contrato (inclusive por assinat
 {cidade}, {data}.`
 
 
+/* ---------------- engenharia: vistoria de recebimento de imóvel novo (entrega de chaves) ---------------- */
+
+export const VISTORIA_CONTRACT: ContractTemplate = {
+  id: 'vistoria-entrega',
+  name: 'vistoria de entrega de chaves (engenharia)',
+  body: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE VISTORIA TÉCNICA DE RECEBIMENTO DE IMÓVEL
+
+CONTRATADA
+{contratada}, {doc_contratada}, com endereço em {endereco_contratada}, e-mail {email_contratada}, telefone {telefone_contratada}.
+
+CONTRATANTE
+{contratante}, {doc_contratante}, com endereço em {endereco_contratante}, e-mail {email_contratante}, telefone {telefone_contratante}.
+
+As partes combinam o seguinte:
+
+1. OBJETO
+1.1 Vistoria técnica de recebimento do imóvel localizado em {endereco_obra}, feita por engenheiro(a) civil no dia e horário da vistoria de entrega marcada pela construtora, com emissão de laudo técnico e de ART (Anotação de Responsabilidade Técnica) da vistoria.
+1.2 Estão incluídos:
+• análise prévia da planta e do memorial descritivo fornecidos pela construtora;
+• vistoria presencial de até 2 (duas) horas, visual e com instrumentos portáteis (trena, nível, prumo, testador de tomadas);
+• laudo técnico em PDF, com fotos e lista das pendências encontradas;
+• ART da vistoria, registrada no CREA;
+• orientação para registrar as pendências junto à construtora.
+
+2. O QUE NÃO ESTÁ INCLUÍDO
+2.1 Execução de reparos, que são de responsabilidade da construtora.
+2.2 Vistoria das áreas comuns do condomínio.
+2.3 Abertura de paredes, pisos ou forros, ensaios destrutivos ou laboratoriais.
+2.4 ART de obra, reforma ou de qualquer serviço que não seja a vistoria descrita neste contrato.
+2.5 Perícia judicial, assistência técnica em processo ou assessoria jurídica.
+2.6 Medições para móveis, marcenaria ou projetos.
+
+3. LIMITES DA VISTORIA
+3.1 A vistoria é visual e com instrumentos portáteis, nas condições em que o imóvel estiver no dia. Vícios ocultos (embutidos em paredes, lajes e tubulações, ou que só aparecem com o uso) não podem ser identificados e não fazem parte do laudo.
+3.2 Água e energia devem estar ligadas pela construtora. O que não puder ser testado por esse motivo será registrado no laudo como "não verificado".
+
+4. VALOR E PAGAMENTO
+4.1 Valor: {valor} ({valor_extenso}).
+4.2 Sinal de 50% ({entrada}) na assinatura deste contrato, para reservar a vaga na agenda, e o restante ({saldo}) no dia da vistoria.
+4.3 Forma de pagamento: {pagamento}
+4.4 O laudo é enviado depois da quitação.
+
+5. AGENDA
+5.1 O sinal garante a vaga na agenda da CONTRATADA, não um horário. O horário é combinado quando a construtora liberar as datas, e o(a) CONTRATANTE deve consultar a CONTRATADA antes de confirmá-lo com a construtora. As reservas têm prioridade pela ordem de pagamento do sinal.
+5.2 Se a construtora remarcar a vistoria, a nova data é combinada conforme a disponibilidade da CONTRATADA, sem custo adicional.
+5.3 Se não houver horário disponível compatível com a data definida pela construtora, o sinal é devolvido integralmente.
+5.4 O(A) CONTRATANTE, ou pessoa de sua confiança autorizada por ele(a), deve acompanhar a vistoria.
+
+6. DESISTÊNCIA
+6.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral do sinal, desde que a vistoria ainda não tenha sido feita (art. 49 do Código de Defesa do Consumidor).
+6.2 Passado esse prazo e confirmada a data, o sinal tem natureza de arras (arts. 417 a 420 do Código Civil) e não é devolvido em caso de desistência ou de ausência sem aviso de 24 (vinte e quatro) horas.
+
+7. LAUDO
+7.1 O laudo é entregue em até 4 (quatro) dias úteis depois da vistoria e da quitação, em PDF, por WhatsApp e e-mail.
+7.2 O laudo aponta as pendências. O prazo e a execução dos reparos são responsabilidade da construtora.
+
+8. REVISTORIA (OPCIONAL)
+8.1 A pedido do(a) CONTRATANTE, em até 90 (noventa) dias da vistoria, a CONTRATADA volta ao imóvel para conferir os itens apontados no laudo e atualiza o laudo, pelo valor indicado na proposta, pago no dia.
+8.2 Se a construtora exigir nova ART para a revistoria, a taxa do CREA é cobrada à parte.
+
+9. ART
+9.1 A ART deste contrato é registrada no CREA em nome do(a) engenheiro(a) responsável e se refere exclusivamente à vistoria. Ela não vale para obra, reforma ou outros serviços.
+
+10. DADOS PESSOAIS
+10.1 Os dados e as fotos do imóvel são usados só para prestar este serviço e emitir o laudo, conforme a Lei Geral de Proteção de Dados (Lei 13.709/18), e não são divulgados sem autorização do(a) CONTRATANTE.
+
+11. FORO
+11.1 Fica eleito o foro da comarca de {foro} para resolver qualquer questão sobre este contrato.
+
+E, por estarem de acordo, as partes assinam este contrato (inclusive por assinatura eletrônica).
+
+{cidade}, {data}.`,
+}
+
 export const CLIENT_CONTRACTS: ContractTemplate[] = [
   ...FINAL_CONTRACTS,
   {

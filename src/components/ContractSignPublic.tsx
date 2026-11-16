@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isRdlBrand } from '../rdl'
 import { DEFAULT_SETTINGS } from '../store'
 import { formatDoc, whatsappLink } from '../utils'
 import { hashExtra, readShortCode, unpack } from '../linkPack'
@@ -54,12 +55,14 @@ export function ContractSignPublic({ id, data, preview }: { id: string; data?: S
         </header>
       )}
       <main className="cdp-card cs2-card">{children}</main>
-      <a className="cdp-made" href="https://useplane.com.br" target="_blank" rel="noreferrer">
-        <span className="cdp-made-mark">
-          <PlaneMark size={14} />
-        </span>
-        feito com <b>planê</b>
-      </a>
+      {!isRdlBrand(p?.studio) && (
+        <a className="cdp-made" href="https://useplane.com.br" target="_blank" rel="noreferrer">
+          <span className="cdp-made-mark">
+            <PlaneMark size={14} />
+          </span>
+          feito com <b>planê</b>
+        </a>
+      )}
     </div>
   )
   if (p === undefined) return wrap(<div className="cdp-loading"><span /></div>)

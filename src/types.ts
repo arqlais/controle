@@ -804,6 +804,26 @@ export interface Settings {
   instagramOff?: boolean // não usa o planejamento do instagram (some do menu)
 }
 
+/** ART (CREA) ou RRT (CAU): o registro de responsabilidade técnica de cada serviço. */
+export type ArtStatus = 'a emitir' | 'emitida' | 'paga' | 'baixada'
+export interface ArtRecord {
+  id: string
+  kind: 'ART' | 'RRT'
+  number: string // número do registro no CREA/CAU
+  service: string // vistoria de entrega, reforma, projeto…
+  clientId?: string
+  clientName?: string // quando o cliente não está cadastrado
+  place: string // endereço, torre e apto
+  contractValue: number // valor do contrato declarado no registro
+  fee: number // taxa do CREA/CAU
+  status: ArtStatus
+  issuedAt: string // data de emissão
+  dueAt?: string // vencimento do boleto
+  quoteId?: string
+  notes: string
+  createdAt: string
+}
+
 export interface Data {
   version: number
   demo?: boolean // true enquanto só houver dados de exemplo
@@ -817,6 +837,7 @@ export interface Data {
   briefings?: Briefing[] // briefings enviados para clientes finais
   docs?: SavedDoc[] // documentos salvos nas fichas dos clientes (guia, placa, apresentação…)
   notices?: Notice[] // central de avisos (o que os clientes preencheram)
+  arts?: ArtRecord[] // ARTs e RRTs emitidas (controle de responsabilidade técnica)
   deleted?: string[] // ids apagados (outro aparelho aberto com a versão antiga não traz de volta)
   settings: Settings
 }

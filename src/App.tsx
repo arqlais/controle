@@ -15,7 +15,7 @@ import { AIChat } from './components/AIChat'
 import { StatusDialogHost } from './components/quick'
 import { back, go, href, useRoute } from './router'
 import { Icon } from './components/Icon'
-import { Segmented, useDismiss } from './components/ui'
+import { KeepRS, Segmented, useDismiss } from './components/ui'
 import { InstallGuide } from './components/InstallHint'
 import { ClientForm, EventForm, ExpenseForm, ProjectForm } from './components/forms'
 import { allPayments, isLate, matches, paymentDue, quoteNumber, setCustomColumns, setEventLabels, today } from './utils'
@@ -38,6 +38,7 @@ const Processes = lazy(() => import('./pages/Processes'))
 const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
+const Arts = lazy(() => import('./pages/Arts'))
 const ContractDataPage = lazy(() => import('./pages/ContractDataPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const ApeAdmin = lazy(() => import('./ape/ApeAdmin'))
@@ -74,6 +75,8 @@ import { trialOver } from './platform'
 import { misdatedOldQuotes } from './quoteActions'
 import { DIRECT_KEY, OWNER_ONLY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
+import { enterRdl, exitRdl, rdlMode, rdlRole } from './rdl'
+import { RDL_LOGO } from './rdlLogo'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
 const NAV_GROUPS = [
@@ -98,6 +101,8 @@ const SUBPAGES: Record<string, { page: string; label: string }[]> = {
   documentos: [
     { page: 'documentos', label: 'documentos' },
     { page: 'contratos', label: 'contratos' },
+    // controle de ARTs: só no sistema da RDL
+    ...(rdlMode() ? [{ page: 'arts', label: 'ARTs' }] : []),
   ],
   clientes: [
     { page: 'clientes', label: 'clientes' },
@@ -124,6 +129,9 @@ const TOOLS = [
 ]
 
 type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
+
+// sistema da RDL nesta aba (área restrita da RDL Engenharia, com dados e identidade próprios)
+const RDL = rdlMode()
 
 export default function App() {
   const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample, upsert } = useStore()
@@ -264,6 +272,11 @@ export default function App() {
   setEventLabels(settings.eventLabels)
   setCustomColumns(settings.customColumns) // colunas próprias do quadro ficam disponíveis para todas as telas
   const route = useRoute()
+  // botão da dona: abre o sistema da RDL nesta aba · dentro da RDL: volta para a planê
+  useEffect(() => {
+    if (route.page === 'rdl' && !RDL) enterRdl()
+    if (route.page === 'sair-rdl' && RDL) exitRdl()
+  }, [route.page])
   // topo das páginas de item fixo: mede a barra de busca e marca quando o topo "grudou" (fica mais compacto).
   // Leve para o celular: no máximo uma leitura por quadro, só escreve quando o valor muda,
   // e o "grudou" tem folga (não fica liga-desliga quando a altura do topo muda).
@@ -321,7 +334,7 @@ export default function App() {
     const g = (k: string) => NAV_GROUPS.findIndex((x) => x.key === k)
     // a ordem escolhida vale dentro de cada grupo; itens novos entram no fim do grupo
     // o que o plano não tem continua no menu (com cadeado): abre como vitrine, para dar vontade
-    return NAV.filter((n) => (!NEEDS[n.page] || !OWNER_ONLY.includes(NEEDS[n.page]) || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && settings.instagramOff) && (organizing || !navHidden.includes(n.page)) && (!simple || SIMPLE_NAV.includes(n.page))).sort((a, b) => {
+    return NAV.filter((n) => (!NEEDS[n.page] || !OWNER_ONLY.includes(NEEDS[n.page]) || access.has(NEEDS[n.page])) && !(n.page === 'contratos' && settings.contracts?.off) && !(n.page === 'instagram' && (settings.instagramOff || RDL)) && (organizing || !navHidden.includes(n.page)) && (!simple || SIMPLE_NAV.includes(n.page))).sort((a, b) => {
       const ia = order.indexOf(a.page)
       const ib = order.indexOf(b.page)
       return g(a.group) - g(b.group) || (ia < 0 ? 99 + NAV.indexOf(a) : ia) - (ib < 0 ? 99 + NAV.indexOf(b) : ib)
@@ -331,8 +344,10 @@ export default function App() {
   const groups = useMemo(
     () =>
       [
-        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'ape-admin', label: 'lojas da planê', icon: 'home' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }] : [] },
-        { key: 'conta', label: 'sua conta', items: !access.isOwner ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, ...(settings.simpleMenu && data.quotes.length < 3 ? [] : [{ page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }])] : [] },
+        { key: 'plataforma', label: 'plataforma', items: access.has('painelDona') && !access.legacy ? [{ page: 'plataforma', label: 'painel', icon: 'crown' }, { page: 'afiliados', label: 'afiliados', icon: 'link' }, { page: 'ape-admin', label: 'lojas da planê', icon: 'home' }, { page: 'vendas', label: 'página de vendas', icon: 'eye' }, { page: 'rdl', label: 'RDL Engenharia', icon: 'hardhat' }] : [] },
+        // dentro da RDL, só a dona tem o caminho de volta para a planê
+        { key: 'rdl', label: 'RDL', items: RDL && rdlRole() === 'dona' ? [{ page: 'sair-rdl', label: 'voltar para a planê', icon: 'chevronL' }] : [] },
+        { key: 'conta', label: 'sua conta', items: !access.isOwner && !RDL ? [{ page: 'assinatura', label: 'minha assinatura', icon: 'star' }, ...(settings.simpleMenu && data.quotes.length < 3 ? [] : [{ page: 'sugestoes', label: 'sugestões', icon: 'flag' }, { page: 'avaliar', label: 'deixar depoimento', icon: 'heart' }])] : [] },
         { key: 'ajustes', label: 'ajustes e dicas', items: TOOLS },
       ].filter((g) => g.items.length),
     [access, settings.simpleMenu, data.quotes.length],
@@ -488,7 +503,7 @@ export default function App() {
     return (
       <>
         <div className="tabs page-tabs">
-          <Segmented<string> value={route.page} onChange={(v) => go(v)} options={tabs.map((t) => ({ value: t.page, label: t.label }))} />
+          <Segmented<string> value={route.page} onChange={(v) => go(v)} options={tabs.map((t) => ({ value: t.page, label: <KeepRS text={t.label} /> }))} />
         </div>
         {el}
       </>
@@ -499,6 +514,8 @@ export default function App() {
     switch (route.page) {
       case 'contratos':
         return <Contracts id={route.id} />
+      case 'arts':
+        return <Arts />
       case 'dados-contrato':
         return <ContractDataPage id={route.id} />
       case 'plataforma':
@@ -591,10 +608,16 @@ export default function App() {
     <div className={`app ${menuOpen ? 'menu-open' : ''}`}>
       <aside className="sidebar">
         {/* a marca da plataforma fica sempre presente, discreta, acima do estúdio de quem usa */}
-        <a className="platform-mark" href={href('inicio')} aria-label={PLATFORM.name}>
-          <BrandMark place="menu" size={34} />
-          {PLATFORM.name}
-        </a>
+        {RDL ? (
+          <a className="platform-mark rdl-mark" href={href('inicio')} aria-label="RDL Engenharia">
+            <img src={RDL_LOGO} alt="RDL Engenharia e Representações" />
+          </a>
+        ) : (
+          <a className="platform-mark" href={href('inicio')} aria-label={PLATFORM.name}>
+            <BrandMark place="menu" size={34} />
+            {PLATFORM.name}
+          </a>
+        )}
         <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('perfil')} title={`Perfil do estúdio e conta${userEmail ? ` (${userEmail})` : ''}`}>
           <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}>
             <AvatarGlyph s={settings} size={24} />
@@ -668,7 +691,7 @@ export default function App() {
               <span>todas as funções</span>
             </button>
           )}
-          {!access.isOwner && !organizing && !simple && (
+          {!access.isOwner && !RDL && !organizing && !simple && (
             <a href={href('indique')} className={`nav-promo ${route.page === 'indique' ? 'active' : ''}`}>
               <span className="nav-promo-icon">
                 <Icon name="gift" size={18} />
@@ -950,7 +973,7 @@ export default function App() {
         <StatusDialogHost />
         {access.has('assistenteIA') ? (
           <AIChat quoteId={route.page === 'orcamentos' && route.id && route.id !== 'novo' ? route.id : undefined} />
-        ) : access.has('chatDona') ? (
+        ) : access.has('chatDona') && !RDL ? (
           <OwnerChat openSignal={chatSignal} />
         ) : null}
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isRdlBrand } from '../rdl'
 import { DEFAULT_SETTINGS } from '../store'
 import { money, whatsappLink } from '../utils'
 import { avisar } from '../avisar'
@@ -47,11 +48,13 @@ export function ProposalPublic({ id, data, preview }: { id: string; data?: Propo
   const wrap = (children: React.ReactNode) => (
     <div className={`bf-public pn-public pp-public ${preview ? 'is-preview' : ''}`} style={{ ['--bf-accent' as string]: d?.accent || '#a88a80' }}>
       <div className="bf-card">{children}</div>
-      <p className="bf-foot">
-        <a href="https://useplane.com.br" target="_blank" rel="noreferrer">
-          feito com planê · useplane.com.br
-        </a>
-      </p>
+      {!isRdlBrand(d?.studio, owner) && (
+        <p className="bf-foot">
+          <a href="https://useplane.com.br" target="_blank" rel="noreferrer">
+            feito com planê · useplane.com.br
+          </a>
+        </p>
+      )}
     </div>
   )
   if (d === undefined) return wrap(<p className="muted">carregando…</p>)

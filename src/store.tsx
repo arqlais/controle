@@ -1,3 +1,4 @@
+import { RDL_ID, RDL_SERVICES, RDL_SETTINGS } from './rdl'
 import { PLATFORM } from './plans'
 import { BrandMark } from './components/PlaneMark'
 import { NEWS } from './news'
@@ -404,6 +405,12 @@ export function clientSettings(settings: Settings): Settings {
   }
 }
 
+/** Primeira vez do sistema da RDL: identidade, dados da empresa e serviços de vistoria já prontos. */
+function rdlFirstRun(settings: Settings): Data {
+  const st: Settings = { ...clientSettings(settings), ...RDL_SETTINGS, services: [...RDL_SERVICES, ...servicesFor('final')], simpleMenu: false } as Settings
+  return { ...emptyData(), settings: st }
+}
+
 function firstRunData(settings: Settings): Data {
   let info: { name?: string; studio?: string; demo?: boolean; profile?: WorkProfile } = {}
   try {
@@ -455,7 +462,7 @@ function dropDeleted(d: Data): Data {
   if (!d.deleted?.length) return d
   const gone = new Set(d.deleted)
   const keep = <T extends { id: string }>(l: T[] | undefined) => (l ?? []).filter((x) => !gone.has(x.id))
-  return { ...d, clients: keep(d.clients), projects: keep(d.projects), quotes: keep(d.quotes), expenses: keep(d.expenses), events: keep(d.events), posts: keep(d.posts), contracts: keep(d.contracts), briefings: keep(d.briefings), docs: keep(d.docs) }
+  return { ...d, clients: keep(d.clients), projects: keep(d.projects), quotes: keep(d.quotes), expenses: keep(d.expenses), events: keep(d.events), posts: keep(d.posts), contracts: keep(d.contracts), briefings: keep(d.briefings), docs: keep(d.docs), arts: keep(d.arts) }
 }
 /** Junta o que foi apagado aqui com o que veio da nuvem (vale o apagado dos dois lados). */
 export function withDeleted(remote: Partial<Data>, local?: Partial<Data>): Partial<Data> {
@@ -487,6 +494,7 @@ function normalizeBase(d: Partial<Data>): Data {
     contracts: d.contracts ?? [],
     briefings: d.briefings ?? [],
     docs: d.docs ?? [],
+    arts: d.arts ?? [],
     notices: (d.notices ?? []).slice(-200),
     quotes: (d.quotes ?? []).map((q) => ({
       ...q,
@@ -601,7 +609,7 @@ function migrateSettings(s: Settings, saved?: Partial<Settings>): Settings {
   }
 }
 
-type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings' | 'docs' | 'notices'
+type Collection = 'clients' | 'projects' | 'expenses' | 'events' | 'quotes' | 'posts' | 'contracts' | 'briefings' | 'docs' | 'notices' | 'arts'
 type Item<C extends Collection> = NonNullable<Data[C]>[number]
 
 export type SyncStatus = 'local' | 'loading' | 'saving' | 'saved' | 'offline'
@@ -644,7 +652,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
   const cloud = CLOUD && !!userId && !preview
   // "ver como cliente": como uma assinante que já usa o sistema e ainda não viu a última atualização
   // (as novidades da atualização mais recente abrem sozinhas, igual abrem para quem assina)
-  const [data, setData] = useState<Data>(() => (preview ? { ...emptyData(), settings: { ...clientSettings(DEFAULT_SETTINGS), brandName: 'estúdio exemplo', ownerName: 'Ana', welcomed: true, tour: 'feito', newsSeen: previewSeenNews() } } : load(userId)))
+  const [data, setData] = useState<Data>(() => (preview ? { ...emptyData(), settings: { ...clientSettings(DEFAULT_SETTINGS), brandName: 'estúdio exemplo', ownerName: 'Ana', welcomed: true, tour: 'feito', newsSeen: previewSeenNews() } } : userId === RDL_ID && !CLOUD && !hasLocalAccount(RDL_ID) ? rdlFirstRun(DEFAULT_SETTINGS) : load(userId)))
   const [agenda, setAgenda] = useState<AgendaStatus>({ state: 'idle' })
   const agendaSent = useRef('')
   const publishAgendaFor = useCallback(
@@ -748,7 +756,7 @@ export function StoreProvider({ children, userId, userEmail = '', preview = fals
           // primeira vez: sobe o que já existia neste navegador (se for real)
           const local = load(userId)
           const legacy = load()
-          const fresh = firstRunData(local.settings)
+          const fresh = userId === RDL_ID ? rdlFirstRun(local.settings) : firstRunData(local.settings)
           const start = hasContent(local) ? local : hasContent(legacy) ? legacy : fresh
           remoteAt.current = await pushRemote(userId!, start)
           baseRef.current = start

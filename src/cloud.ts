@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { HAS_CLOUD, SUPA_KEY, SUPA_URL } from './supaConfig'
 import type { Data } from './types'
+import { RDL_ID } from './rdl'
 
 /* Nuvem (Supabase): login com e-mail e senha + os dados guardados numa
    única linha por usuária, protegida por RLS (só a dona lê e escreve).
@@ -14,16 +15,20 @@ export const CLOUD = HAS_CLOUD
 export const supabase = CLOUD ? createClient(url!, key!, { auth: { persistSession: true, autoRefreshToken: true } }) : null
 
 const TABLE = 'workspace'
+// sistema da RDL: uma linha só (id fixo), na tabela dela, separada das contas da planê
+const where = (id: string): [string, string] => (id === RDL_ID ? ['rdl_workspace', 'id'] : [TABLE, 'user_id'])
 
 export async function fetchRemote(userId: string): Promise<{ data: Data; updatedAt: string } | null> {
-  const { data, error } = await supabase!.from(TABLE).select('data, updated_at').eq('user_id', userId).maybeSingle()
+  const [t, k] = where(userId)
+  const { data, error } = await supabase!.from(t).select('data, updated_at').eq(k, userId).maybeSingle()
   if (error) throw error
   return data ? { data: data.data as Data, updatedAt: data.updated_at as string } : null
 }
 
 export async function pushRemote(userId: string, payload: Data): Promise<string> {
   const updatedAt = new Date().toISOString()
-  const { error } = await supabase!.from(TABLE).upsert({ user_id: userId, data: payload, updated_at: updatedAt })
+  const [t, k] = where(userId)
+  const { error } = await supabase!.from(t).upsert({ [k]: userId, data: payload, updated_at: updatedAt })
   if (error) throw error
   return updatedAt
 }
@@ -36,7 +41,8 @@ export class SaveConflict extends Error {}
 export async function pushRemoteIf(userId: string, payload: Data, expectedAt: string): Promise<string> {
   if (!expectedAt) return pushRemote(userId, payload)
   const updatedAt = new Date(Math.max(Date.now(), Date.parse(expectedAt) + 1)).toISOString()
-  const { data, error } = await supabase!.from(TABLE).update({ data: payload, updated_at: updatedAt }).eq('user_id', userId).eq('updated_at', expectedAt).select('updated_at')
+  const [t, k] = where(userId)
+  const { data, error } = await supabase!.from(t).update({ data: payload, updated_at: updatedAt }).eq(k, userId).eq('updated_at', expectedAt).select('updated_at')
   if (error) throw error
   if (!data?.length) throw new SaveConflict('outro aparelho salvou antes')
   return data[0].updated_at as string

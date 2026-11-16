@@ -1,10 +1,12 @@
 import type { PhotoPos } from './docTypes'
+import { VISTORIA_CHECKLIST, checklistItens } from './vistoriaChecklist'
+import { rdlMode } from './rdl'
 
 /* Documentos de obra: memorial descritivo, lista de compras, custos, diário, relatório de visita, ata e ordem de serviço.
    Todos usam a mesma base: uma lista de itens (com grupo, quantidade, valor, link, foto…) e um dos 4 layouts.
    Cada tipo só mostra os campos que fazem sentido para ele. */
 
-export type WorkKind = 'memorial' | 'compras' | 'custos' | 'diario' | 'visita' | 'ata' | 'os'
+export type WorkKind = 'memorial' | 'compras' | 'custos' | 'diario' | 'visita' | 'ata' | 'os' | 'vistoria' | 'laudo'
 export type WorkLayout = 'tabela' | 'lista' | 'cartoes' | 'fichas'
 
 export interface WorkItem {
@@ -53,6 +55,8 @@ export interface WorkKindInfo {
   doneLabel?: string
   priceLabel?: string
   total?: boolean // soma os valores
+  intro?: string // texto de abertura que já vem escrito
+  notes?: string // observações que já vêm escritas
   people?: string // rótulo do campo "participantes / equipe"
   starter: Omit<WorkItem, 'id'>[]
 }
@@ -179,9 +183,44 @@ export const WORK_KINDS: Record<WorkKind, WorkKindInfo> = {
     people: 'fornecedor / prestador',
     starter: [{ title: 'instalação das luminárias', desc: 'conforme projeto luminotécnico', qty: 12, unit: 'un', price: 45 }],
   },
+  vistoria: {
+    label: 'checklist de vistoria',
+    text: 'vistoria de entrega de chaves, ambiente por ambiente, com fotos e o que precisa de reparo',
+    icon: 'check',
+    layout: 'lista',
+    fields: ['group', 'desc', 'photo', 'done'],
+    groupLabel: 'ambiente · parte',
+    groups: VISTORIA_CHECKLIST.flatMap((a) => a.quadros.map((q) => `${a.ambiente} · ${q.nome}`)),
+    titleLabel: 'item conferido',
+    descLabel: 'o que foi encontrado',
+    doneLabel: 'sim (conforme)',
+    people: 'presentes na vistoria',
+    intro: 'Vistoria de recebimento do imóvel, visual e com instrumentos portáteis (trena, nível, prumo e testador de tomadas). Ambiente por ambiente, cada item recebe sim (conforme) ou fica em aberto para reparo, com observação e foto do que precisa ser corrigido pela construtora.',
+    starter: checklistItens(),
+  },
+  laudo: {
+    label: 'laudo de vistoria',
+    text: 'laudo técnico com as pendências encontradas, fotos e conclusão, para enviar à construtora',
+    icon: 'hardhat',
+    layout: 'fichas',
+    fields: ['group', 'desc', 'photo', 'done'],
+    groupLabel: 'ambiente',
+    groups: ['sala', 'cozinha', 'área de serviço', 'banheiro', 'quarto', 'varanda'],
+    titleLabel: 'pendência',
+    descLabel: 'descrição e o que deve ser corrigido',
+    doneLabel: 'corrigido',
+    people: 'responsável técnico e acompanhantes',
+    intro: 'Objetivo: verificar o estado de conservação, o funcionamento e os acabamentos do apartamento na entrega das chaves e apontar os vícios aparentes, para que a construtora faça os reparos. Como foi feita: ambiente por ambiente, com o checklist de vistoria, testes simples de funcionamento e registro em fotos e vídeos; os locais com problema foram marcados com adesivos. Condições: água e energia ligadas, acompanhada pela construtora. Documentos consultados: memorial descritivo, manual do proprietário e plantas. Ferramentas: trena, régua com nível, multímetro, bolinhas de gude, recipiente com água, lâmpada, espelho e haste. Vícios ocultos (embutidos em paredes, lajes e tubulações) não fazem parte desta análise. Este laudo acompanha a ART da vistoria registrada no CREA.',
+    notes: 'Conclusão: o imóvel apresenta as pendências listadas acima, que devem ser corrigidas pela construtora antes ou após a entrega, conforme os prazos de garantia. Recomenda-se registrar este laudo no atendimento da construtora e guardar o protocolo.',
+    starter: [
+      { group: 'banheiro', title: 'rejunte falhando no piso do box', desc: 'refazer o rejunte junto ao ralo' },
+      { group: 'sala', title: 'fissura na parede', desc: 'fissura de cerca de 40 cm acima da porta; tratar e repintar' },
+    ],
+  },
 }
 
-export const WORK_ORDER: WorkKind[] = ['memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os']
+// checklist e laudo de vistoria: só no sistema da RDL
+export const WORK_ORDER: WorkKind[] = rdlMode() ? ['vistoria', 'laudo', 'memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os'] : ['memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os']
 
 
 export const has = (k: WorkKind, f: WorkField) => WORK_KINDS[k].fields.includes(f)
@@ -205,7 +244,7 @@ export function groupItems(items: WorkItem[]) {
 
 export function newWorkDoc(kind: WorkKind, today: string, uid: () => string): WorkDoc {
   const k = WORK_KINDS[kind]
-  return { kind, title: k.label, date: today, layout: k.layout, items: k.starter.map((x) => ({ ...x, id: uid(), ...(kind === 'diario' ? { date: today } : {}) })) }
+  return { kind, title: k.label, date: today, layout: k.layout, ...(k.intro ? { intro: k.intro } : {}), ...(k.notes ? { notes: k.notes } : {}), items: k.starter.map((x) => ({ ...x, id: uid(), ...(kind === 'diario' ? { date: today } : {}) })) }
 }
 
 /** Os mesmos 4 modelos de todos os documentos (coluna, faixa, planilha, editorial) também arrumam a lista de itens:

@@ -112,6 +112,7 @@ export interface Palette {
   surface: string
   text: string
   owner?: boolean // exclusiva da dona
+  rdl?: boolean // só no sistema da RDL
 }
 
 const RAW_PALETTES: Palette[] = [
@@ -141,6 +142,9 @@ const RAW_PALETTES: Palette[] = [
   { name: 'linho', accent: '#6d6152', accentSoft: '#e4d8c6', accentInk: '#a08d72', background: '#faf7f1', surface: '#ffffff', text: '#3a3229' },
   { name: 'menta', accent: '#2f6b5a', accentSoft: '#bfe0d3', accentInk: '#4f9580', background: '#f0f7f4', surface: '#ffffff', text: '#18332b' },
   { name: 'noite', accent: '#23283a', accentSoft: '#c9a96e', accentInk: '#a8884f', background: '#f3f1ec', surface: '#ffffff', text: '#1b1f2c' },
+  // só no sistema da RDL: azul-marinho com laranja (identidade da RDL Engenharia) e a versão só em azul
+  { name: 'marinho & laranja', accent: '#012c60', accentSoft: '#ffd2a8', accentInk: '#e8710a', background: '#f4f6fa', surface: '#ffffff', text: '#0f1b2d', rdl: true },
+  { name: 'marinho', accent: '#012c60', accentSoft: '#c3cfe0', accentInk: '#3d5f8f', background: '#f3f5f8', surface: '#ffffff', text: '#0f1b2d', rdl: true },
 ]
 
 const hex = (h: string) => {

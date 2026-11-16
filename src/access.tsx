@@ -71,6 +71,8 @@ export function AccessProvider({ userId, plan, children, override }: { userId: s
 
   useEffect(() => {
     void load()
+    // sistema da RDL (acesso fixo): não conta como acesso de assinante da planê
+    if (override) return
     platform.touch().catch(() => undefined)
     // "online agora" no painel da dona: avisa a cada 2 minutos enquanto a tela está aberta
     const beat = window.setInterval(() => document.visibilityState === 'visible' && platform.touch().catch(() => undefined), 120_000)

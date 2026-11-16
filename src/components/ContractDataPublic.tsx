@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { isRdlBrand } from '../rdl'
 import { Icon } from './Icon'
 import { AddressFields, Block, CompanyFields, DataSummary, ExtraFields, PartnersFields, PersonFields, PropertyFields, SignFields } from './ContractDataForm'
 import { emptyAddress, loadDataLink, type DataLinkSource, missingFor, ruleOf, sendData, type DataPayload } from '../contractData'
@@ -42,12 +43,14 @@ function Shell({ p, children }: { p?: DataPayload; children: ReactNode }) {
         </header>
       )}
       <main className="cdp-card">{children}</main>
-      <a className="cdp-made" href="https://useplane.com.br" target="_blank" rel="noreferrer">
-        <span className="cdp-made-mark">
-          <PlaneMark size={14} />
-        </span>
-        feito com <b>planê</b> · gestão para quem projeta
-      </a>
+      {!isRdlBrand(p?.studio) && (
+        <a className="cdp-made" href="https://useplane.com.br" target="_blank" rel="noreferrer">
+          <span className="cdp-made-mark">
+            <PlaneMark size={14} />
+          </span>
+          feito com <b>planê</b> · gestão para quem projeta
+        </a>
+      )}
     </div>
   )
 }

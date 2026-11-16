@@ -2405,3 +2405,19 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
   .list-item > .right > .row { min-width: 0; max-width: 100%; flex-wrap: wrap; }
   .list-item .status-select { width: auto; max-width: 190px; min-width: 0; font-size: 12.5px; }
 }
+
+/* ARTs e RRTs */
+.art-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.art-stat { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.art-stat b { font-size: 1.35rem; font-weight: 600; }
+.art-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.art-legend li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 640px) { .art-stats { grid-template-columns: 1fr; } }
+
+/* sistema da RDL Engenharia */
+.platform-mark.rdl-mark { padding: 4px 6px; }
+.platform-mark.rdl-mark img { height: 34px; width: auto; display: block; }
+.rdl-auth .auth-art { background: #012c60; color: #fff; }
+.rdl-auth .auth-art h2, .rdl-auth .auth-art p { color: #fff; }
+.rdl-auth .auth-art h2 em { color: #ff8216; }
+.rdl-auth-logo { width: 220px; max-width: 70%; background: #fff; border-radius: 18px; padding: 14px 18px; margin-bottom: 28px; }
