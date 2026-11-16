@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
+import { rdlMode } from './rdl'
 import { CLOUD, publishPublicFile, readPublicFile, removePublicFile, supabase } from './cloud'
 import { avisar } from './avisar'
 import { b64ToUuid, isUuid, uuidToB64 } from './linkPack'
@@ -90,11 +91,13 @@ export function quoteFor(d: Pick<Data, 'quotes'>, clientId: string): Quote | und
 }
 /** Para quem é o serviço: pelo orçamento (proposta de cliente final ou de parceiro); sem orçamento, pelo tipo do cliente. */
 export const audienceOfQuote = (q?: Quote, c?: Client): Audience => {
+  if (rdlMode()) return 'final' // RDL: o cliente é um só (pessoa física, dados completos)
   if (q?.audience) return q.audience === 'final' ? 'final' : 'b2b'
   // orçamento antigo, sem o campo: cliente final ou proposta com etapas de projeto
   return c?.type === 'final' || (q?.steps?.length ?? 0) > 0 ? 'final' : 'b2b'
 }
-export const audienceOf = (c?: Client, d?: Pick<Data, 'quotes'>): Audience => c?.dataLink?.audience ?? (c && d ? audienceOfQuote(quoteFor(d, c.id), c) : c?.type === 'final' ? 'final' : 'b2b')
+export const audienceOf = (c?: Client, d?: Pick<Data, 'quotes'>): Audience =>
+  rdlMode() ? 'final' : c?.dataLink?.audience ?? (c && d ? audienceOfQuote(quoteFor(d, c.id), c) : c?.type === 'final' ? 'final' : 'b2b')
 type Def = { b2b: DataFieldRule; final: DataFieldRule }
 const o = 'obrigatorio' as const
 const p = 'opcional' as const

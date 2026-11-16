@@ -97,6 +97,7 @@ export const RDL_SETTINGS: Partial<Settings> = {
   displayFont: 'Poppins',
   bodyFont: 'Poppins',
   workProfile: 'final',
+  quoteStart: 100,
 }
 
 /** Quem entrou na RDL: a dona (Laís, que pode voltar para a planê) ou o Rogério. */

@@ -1,4 +1,5 @@
 import { withPanelShare } from '../clientPanel'
+import { rdlMode } from '../rdl'
 import { FmtArea } from '../components/TextFormat'
 import { QuoteTableSection } from '../components/PartnerTable'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -184,7 +185,7 @@ export default function QuoteEditor({ id }: { id: string }) {
   }, [])
   const [view, setView] = useState<'editar' | 'ver'>('editar')
   // orçamento novo: pergunta para quem é (quem só atende escritórios não precisa escolher)
-  const [asking, setAsking] = useState(() => !existing && id === 'novo' && data.settings.workProfile !== 'freelancer' && !aiFill?.audience)
+  const [asking, setAsking] = useState(() => !rdlMode() && !existing && id === 'novo' && data.settings.workProfile !== 'freelancer' && !aiFill?.audience)
   // "criar orçamento com isso" com este orçamento novo já aberto: preenche aqui mesmo
   useEffect(() => {
     if (id !== 'novo') return
@@ -782,7 +783,7 @@ export default function QuoteEditor({ id }: { id: string }) {
         <div className="stack quote-form">
           <Section title="dados">
             <div className="form-grid">
-              <AudienceSwitch value={audience} onChange={pickAudience} />
+              {!rdlMode() && <AudienceSwitch value={audience} onChange={pickAudience} />}
               <Field label="Cliente" span={2} hint={partnerOn ? `Valores de parceria de ${partnerClient?.name} aplicados (ficha do cliente → valores de parceria).` : "O nome do cliente vai no campo “nome” da proposta."}>
                 <div className="row gap-s">
                   <ClientPicker
@@ -793,7 +794,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                       const c = data.clients.find((x) => x.id === cid)
                       set({ clientId: cid })
                       // escolheu um cliente final e o orçamento ainda está no formato de parceiro: troca sozinho
-                      if (isFinalClient(c) && !isFinal && q.status === 'rascunho') pickAudience('final')
+                      if (!rdlMode() && isFinalClient(c) && !isFinal && q.status === 'rascunho') pickAudience('final')
                     }}
                     onCreate={(name) => setNewClient(name)}
                   />

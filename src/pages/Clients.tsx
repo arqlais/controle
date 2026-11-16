@@ -1,4 +1,5 @@
 import { ImportSheet } from '../components/ImportSheet'
+import { rdlMode } from '../rdl'
 import { useMemo, useState } from 'react'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
@@ -109,6 +110,7 @@ export default function Clients() {
             { value: 'estudantes', label: 'Estudantes' },
           ]}
         />
+        {!rdlMode() && (
         <select value={type} onChange={(e) => setType(e.target.value as ClientType | '')}>
           <option value="">Todos os tipos</option>
           {Object.entries(CLIENT_TYPES).map(([k, v]) => (
@@ -117,6 +119,7 @@ export default function Clients() {
             </option>
           ))}
         </select>
+        )}
         <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
           <option value="faturamento">Maior faturamento</option>
           <option value="aberto">Mais valor em aberto</option>

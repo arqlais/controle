@@ -21,6 +21,7 @@ const AffiliatePanel = lazy(() => import('./AffiliatePanel').then((m) => ({ defa
 const ProposalPublic = lazy(() => import('./ProposalPublic').then((m) => ({ default: m.ProposalPublic })))
 const ContractSignPublic = lazy(() => import('./ContractSignPublic').then((m) => ({ default: m.ContractSignPublic })))
 const ContractDataPublic = lazy(() => import('./ContractDataPublic').then((m) => ({ default: m.ContractDataPublic })))
+const RdlReservaPublic = lazy(() => import('./RdlReservaPublic').then((m) => ({ default: m.RdlReservaPublic })))
 const ApePublic = lazy(() => import('../ape/ApePublic').then((m) => ({ default: m.ApePublic })))
 const Hub = lazy(() => import('../frentes/Hub').then((m) => ({ default: m.Hub })))
 const IrOuVitrine = lazy(() => import('../frentes/Vitrine').then((m) => ({ default: m.IrOuVitrine })))
@@ -53,6 +54,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (route.page === 'pagina' && route.id) return <Suspense fallback={wait}><StudioPagePublic code={route.id} /></Suspense>
   // dados para o contrato: o cliente preenche empresa, dados pessoais, sócios e quem assina
   if (route.page === 'dados' && route.id) return <Suspense fallback={wait}><ContractDataPublic id={route.id} /></Suspense>
+  // RDL Engenharia: reserva da vistoria pelo link e painel da reserva do morador (sem login)
+  if (route.page === 'vistoria') return <Suspense fallback={wait}><RdlReservaPublic sub={route.id} /></Suspense>
   // planê.apê: orçamentos dos futuros moradores (página pública, sem login)
   if (route.page === 'ape') return <Suspense fallback={wait}><ApePublic sub={route.id} /></Suspense>
   // as três frentes da planê: página principal e vitrines de arquivos (src/frentes, plano em docs/FRENTES.md)

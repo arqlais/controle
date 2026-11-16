@@ -2421,3 +2421,29 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rdl-auth .auth-art h2, .rdl-auth .auth-art p { color: #fff; }
 .rdl-auth .auth-art h2 em { color: #ff8216; }
 .rdl-auth-logo { width: 220px; max-width: 70%; background: #fff; border-radius: 18px; padding: 14px 18px; margin-bottom: 28px; }
+
+/* RDL: vistorias (reservas pelo link) */
+.rsv .art-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rsv .art-stat small { color: var(--muted); }
+.rsv .art-stat span { color: var(--muted); font-size: 0.8rem; }
+.rsv-link { display: flex; flex-direction: column; gap: 10px; }
+.rsv-link code { background: var(--accent-tint); border-radius: 10px; padding: 10px 12px; font-size: 0.9rem; overflow-wrap: anywhere; }
+.rsv-filters { margin: 4px 0 12px; align-items: center; }
+.rsv-search { min-width: 200px; flex: 1; max-width: 300px; }
+.rsv-list { display: flex; flex-direction: column; gap: 8px; }
+.rsv-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; width: 100%; cursor: pointer; font: inherit; color: inherit; border: 1px solid var(--border); }
+.rsv-n { width: 28px; height: 28px; border-radius: 8px; background: var(--accent-tint); display: grid; place-items: center; font-weight: 600; font-size: 0.8rem; flex: none; }
+.rsv-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rsv-who small { color: var(--muted); }
+.rsv-detail { display: flex; flex-direction: column; gap: 14px; }
+.rsv-data { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rsv-data div { background: var(--accent-tint); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.rsv-data small { display: block; color: var(--muted); font-size: 0.72rem; }
+.rsv-data b { font-weight: 500; font-size: 0.88rem; overflow-wrap: anywhere; }
+.rsv-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.rsv-steps li { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.rsv-steps li.now { border-color: var(--accent-ink); }
+.rsv-steps li.done { background: var(--accent-tint); }
+.rsv-steps li p { margin: 0; }
+.rsv-steps .grow { flex: 1; min-width: 180px; }
+@media (max-width: 640px) { .rsv .art-stats, .rsv-data { grid-template-columns: 1fr 1fr; } .rsv-row .badge { display: none; } }

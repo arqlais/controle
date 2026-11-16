@@ -1,4 +1,5 @@
 import { ask, askDelete, toast } from './dialog'
+import { rdlMode } from '../rdl'
 import { DateInput } from './DateInput'
 import { useState } from 'react'
 import { useStore } from '../store'
@@ -131,6 +132,7 @@ export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?
         <Field label="Nome *" span={2}>
           <input autoFocus value={c.name} onChange={(e) => set('name', e.target.value)} placeholder="Nome do contato" />
         </Field>
+        {!rdlMode() && (
         <Field label="Tipo">
           <select value={c.type} onChange={(e) => set('type', e.target.value as ClientType)}>
             {clientTypeOptions(profile, c.type).map(([k, v]) => (
@@ -140,6 +142,7 @@ export function ClientForm({ initial, name, type, onClose, onSaved }: { initial?
             ))}
           </select>
         </Field>
+        )}
         <Field label={final ? 'Empresa (se for projeto comercial)' : 'Empresa / escritório / faculdade'} span={2}>
           <input value={c.company} onChange={(e) => set('company', e.target.value)} />
         </Field>

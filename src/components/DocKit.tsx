@@ -1,4 +1,5 @@
 import { fitImage } from '../utils'
+import { rdlMode } from '../rdl'
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import qrcode from 'qrcode-generator'
 import { useAccess } from '../access'
@@ -21,6 +22,7 @@ import '../docs.css'
 export type LookKind = 'guia' | 'placa' | 'briefing' | 'apresentacao' | 'recibo' | `obra-${string}`
 /** Configurações com o modelo de layout escolhido só para este documento (cores, fontes e logo continuam os da conta). */
 export function kindSettings(s: Settings, has: Parameters<typeof resolveTemplate>[1], kind?: LookKind): Settings {
+  if (rdlMode()) return s
   const id = kind ? s.docLooks?.[kind] : undefined
   const o = id ? TEMPLATES.find((t) => t.id === id) : undefined
   if (!o || !templateAllowed(o, has) || o.id === resolveTemplate(s.proposal, has).id) return s
@@ -339,6 +341,10 @@ export function PhotoCrop({ src, pos, aspect, onChange, defaultFit = false }: { 
  *  Vale para todos os PDFs da conta (proposta, recibo, contrato, briefing e documentos do estúdio).
  *  `fold`: começa recolhida (nos editores com muitos campos). */
 export function DocLookPanel({ fold, kind }: { fold?: boolean; kind?: LookKind } = {}) {
+  if (rdlMode()) return null // RDL: um modelo de documento só, na identidade da RDL
+  return <DocLookPanelInner fold={fold} kind={kind} />
+}
+function DocLookPanelInner({ fold, kind }: { fold?: boolean; kind?: LookKind }) {
   const { data, setSettings } = useStore()
   const { has } = useAccess()
   const raw = data.settings

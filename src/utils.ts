@@ -1,4 +1,5 @@
 import { EXTRA, harmonize } from './palette'
+import { rdlMode } from './rdl'
 import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
 import type {
@@ -114,6 +115,9 @@ export const CLIENT_TYPES: Record<ClientType, string> = {
   estudante: 'Estudante',
   outro: 'Outro',
 }
+
+// na RDL o cliente é um só (sem parceiro, freelancer ou cliente final)
+if (rdlMode()) CLIENT_TYPES.final = 'Cliente'
 
 export const isStudent = (c?: Client) => c?.type === 'estudante'
 export const isFinalClient = (c?: Client) => c?.type === 'final'
@@ -554,7 +558,7 @@ export const itemDiscount = (i: { auto: boolean; unitDiscount?: number; quantity
 
 export const quoteSubtotal = (q: Quote) => (q.mode === 'opcoes' ? 0 : q.items.reduce((s, i) => s + (i.price || 0), 0))
 /** Próximo nº de orçamento: contagem contínua (maior já usado + 1), nunca abaixo do início escolhido. */
-export const nextQuoteNumber = (d: Data) => Math.max((d.settings.quoteStart ?? 1) - 1, 0, ...d.quotes.map((x) => x.number || 0)) + 1
+export const nextQuoteNumber = (d: Data) => Math.max((d.settings.quoteStart ?? (rdlMode() ? 100 : 1)) - 1, 0, ...d.quotes.map((x) => x.number || 0)) + 1
 export const quoteNumber = (q: Quote) => (q.noNumber ? 'sem nº' : `#${String(q.number).padStart(3, '0')}`)
 /** Nome curto de uma demanda para listas: título + nº do orçamento (quando tem), para não confundir nomes iguais. */
 export function projectTag(d: { quotes: Quote[] }, p: { id: string; title: string }) {

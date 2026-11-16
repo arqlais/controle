@@ -39,6 +39,7 @@ const Documents = lazy(() => import('./pages/Documents'))
 import Profile, { profileImportant } from './pages/Profile'
 const Contracts = lazy(() => import('./pages/Contracts'))
 const Arts = lazy(() => import('./pages/Arts'))
+const Reservas = lazy(() => import('./pages/Reservas'))
 const ContractDataPage = lazy(() => import('./pages/ContractDataPage'))
 const Admin = lazy(() => import('./pages/Admin'))
 const ApeAdmin = lazy(() => import('./ape/ApeAdmin'))
@@ -89,9 +90,11 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'projetos', label: 'demandas', icon: 'folder', group: 'dia' },
   { page: 'agenda', label: 'agenda', icon: 'calendar', group: 'dia' },
   { page: 'financeiro', label: 'financeiro', icon: 'wallet', group: 'dia' },
+  // RDL: reservas da vistoria que chegam pelo link (campanha San Levi)
+  ...(rdlMode() ? [{ page: 'reservas', label: 'vistorias', icon: 'hardhat', group: 'vendas' as const }] : []),
   { page: 'orcamentos', label: 'orçamentos', icon: 'file', group: 'vendas' },
   { page: 'clientes', label: 'clientes', icon: 'users', group: 'vendas' },
-  { page: 'paineis', label: 'cliente final', icon: 'link', group: 'vendas' },
+  { page: 'paineis', label: rdlMode() ? 'painel do cliente' : 'cliente final', icon: 'link', group: 'vendas' },
   { page: 'documentos', label: 'documentos', icon: 'briefcase', group: 'vendas' },
   { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' },
   { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
@@ -516,6 +519,8 @@ export default function App() {
         return <Contracts id={route.id} />
       case 'arts':
         return <Arts />
+      case 'reservas':
+        return RDL ? <Reservas /> : null
       case 'dados-contrato':
         return <ContractDataPage id={route.id} />
       case 'plataforma':

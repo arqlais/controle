@@ -1,4 +1,5 @@
 import type { Feature } from './plans'
+import { rdlMode } from './rdl'
 import { effectiveSettings, paletteToProposal, proposalSerif } from './brand'
 import type { ProposalStyle, Settings } from './types'
 
@@ -54,6 +55,7 @@ export const templateAllowed = (t: ProposalTemplate, has: Has) => !t.needs || ha
 
 /** Modelo que vale para esta conta: o escolhido (se o plano permite) ou o padrão do plano. */
 export function resolveTemplate(p: ProposalStyle, has: Has): ProposalTemplate {
+  if (rdlMode()) return TEMPLATES.find((t) => t.id === 'faixa')! // RDL: um modelo só
   const chosen = TEMPLATES.find((t) => t.id === p.template)
   if (chosen && templateAllowed(chosen, has)) return chosen
   return TEMPLATES.find((t) => t.id === (has('modeloExclusivo') ? 'lais' : 'coluna'))!
@@ -74,6 +76,7 @@ export function sheetColors(p: ProposalStyle, has: Has, s?: Settings) {
 
 /** Os modelos seguem as cores do sistema? (padrão sim; o modelo exclusivo da dona tem as cores dele) */
 export function followsBrand(p: ProposalStyle, has: Has, s?: Settings) {
+  if (rdlMode()) return true // RDL: documentos sempre na identidade da RDL
   if (!has('identidade') || resolveTemplate(p, has).id === 'lais') return false
   if (p.followBrand !== undefined) return p.followBrand
   // nunca escolheu: segue. Quem já tinha personalizado as cores da proposta continua com as dela
