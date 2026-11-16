@@ -3,7 +3,7 @@ import { Icon } from '../components/Icon'
 import { BrandMark } from '../components/PlaneMark'
 import { frente, type FrenteInfo } from './frentes'
 import { TRIAL_DAYS } from '../plans'
-import { BarraPlataformas, Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
+import { BarraPlataformas, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
 import './frentes.css'
 
 const FaleComigo = lazy(() => import('../ape/FaleComigo').then((m) => ({ default: m.FaleComigo })))
@@ -17,17 +17,17 @@ const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, s
   {
     f: frente('arquivos'),
     titulo: 'para quem atende cliente',
-    itens: ['arquivos para nail, lash, sobrancelha, biomedicina e mais', 'para imprimir e para mandar no WhatsApp e nos stories', 'com espaço para as suas fotos, no Canva, no Word e no Excel'],
+    itens: ['para beleza, saúde e arquitetura: nail, lash, biomedicina, dentista, médico e mais', 'para imprimir e para mandar no WhatsApp e nos stories', 'nos 4 estilos, editáveis no Canva, no Word e no Excel'],
     imgs: [AM('t-beleza-stories-mes.webp'), AM('t-sob-cuidados.webp'), AM('t-beleza-cartao-agendamento.webp')],
     precos: 'a partir de R$ 9,90',
   },
   {
     f: frente('arq'),
     titulo: 'para quem projeta',
-    itens: ['proposta, contrato e briefing do jeito que o escritório usa', 'calculadora de honorários e manual do cliente', `gestão completa com ${TRIAL_DAYS} dias grátis`],
-    imgs: [AM('t-kit-arq-primeiro.webp'), AM('t-arq-honorarios.webp'), AM('t-arq-contrato.webp')],
-    precos: 'modelos a partir de R$ 12,90',
-    extra: ['testar a gestão grátis', '#/vendas'],
+    itens: ['clientes, orçamentos, propostas e contratos num lugar só', 'prazos, agenda e cobranças do escritório', 'proposta aprovada pelo link, direto pelo cliente'],
+    imgs: [AM('t-gestao.webp'), AM('t-gestao.webp'), AM('t-gestao.webp')],
+    precos: `${TRIAL_DAYS} dias grátis, sem cartão`,
+    extra: ['já sou assinante', '#/entrar'],
   },
   {
     f: frente('apzinho'),
@@ -38,12 +38,6 @@ const LINHAS: { f: FrenteInfo; titulo: string; itens: string[]; imgs: [string, s
   },
 ]
 
-const PORQUE = [
-  { icone: 'sparkle', t: 'pronto para usar', s: 'Troque o que está entre [colchetes] e mande no mesmo dia.' },
-  { icone: 'edit', t: 'do seu jeito', s: 'Canva, Word, Google Docs e Excel: cores, textos e marca são seus.' },
-  { icone: 'download', t: 'baixa na hora', s: 'Pagou no Pix ou no cartão, o botão de baixar aparece.' },
-  { icone: 'heart', t: 'feito por quem usa', s: 'Cada arquivo nasce de uma necessidade real do dia a dia.' },
-]
 
 export function Hub() {
   const root = useRef<HTMLDivElement>(null)
@@ -136,23 +130,6 @@ export function Hub() {
         </div>
       </section>
 
-      <section className="lp-section lp-diffs fr-com-manchas">
-        <Manchas v="b" />
-        <div className="lp-wrap">
-          <Cabeca eyebrow="por que a planê" title={<>simples por fora, <em>caprichado</em> por dentro</>} />
-          <div className="lp-diffs-grid">
-            {PORQUE.map((d, i) => (
-              <article key={d.t} className="lp-diff" data-reveal style={{ transitionDelay: `${i * 0.08}s` }}>
-                <span className="lp-diff-ico">
-                  <Icon name={d.icone} size={20} />
-                </span>
-                <b>{d.t}</b>
-                <small>{d.s}</small>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="lp-section lp-story-sec lp-alt">
         <div className="lp-wrap lp-story lp-me-story" data-reveal>

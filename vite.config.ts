@@ -11,8 +11,8 @@ const SITE = 'https://useplane.com.br'
    Gera a partir do catálogo (src/ape/model.ts) a cada publicação; também cria o sitemap.xml. */
 function frentesSeo(): Plugin {
   const PAGINAS = [
-    { id: 'arquivos' as const, titulo: 'Planê.arquivos · arquivos prontos para mandar hoje', desc: 'Fichas de anamnese, termo de consentimento, tabela de preços, vale-presente, avisos de fim de ano, contratos e planilhas editáveis no Canva, no Word e no Excel. Baixa na hora.' },
-    { id: 'arq' as const, titulo: 'Planê.arq · modelos para quem projeta', desc: 'Proposta e contrato de projeto de interiores, briefing residencial, checklist de levantamento, calculadora de honorários e manual do cliente. Word, PDF, Canva e Excel.' },
+    { id: 'arquivos' as const, titulo: 'Planê.arquivos · arquivos prontos para beleza, saúde e arquitetura', desc: 'Fichas de anamnese, termos de consentimento, receituário, odontograma, stories, tabela de preços, contratos e planilhas para nail, lash, sobrancelha, biomedicina, estética, dentista, médico e arquitetura. Nos 4 estilos, baixa na hora.' },
+    { id: 'arq' as const, titulo: 'Planê.arq · gestão para quem projeta', desc: 'Clientes, orçamentos, propostas, contratos, prazos e financeiro do escritório num lugar só. 14 dias grátis, sem cartão.' },
   ]
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
   let outDir = 'dist'

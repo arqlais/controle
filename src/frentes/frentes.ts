@@ -43,7 +43,7 @@ export const FRENTES: FrenteInfo[] = [
     caminho: 'useplane.com.br/arq',
     instagram: '@sou.plane',
     icone: 'ruler',
-    botao: 'conhecer',
+    botao: 'conhecer a gestão',
   },
   {
     id: 'apzinho',

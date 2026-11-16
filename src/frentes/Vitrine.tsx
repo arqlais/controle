@@ -31,9 +31,9 @@ const TEXTO: Record<Id, {
   flutua: [string, string, string, string?][]; catalogo: ReactNode; faq: [string, string][]; final: ReactNode
 }> = {
   arquivos: {
-    kicker: 'para nail, lash e sobrancelha, biomedicina, estética, cabelo, make e arquitetura',
+    kicker: 'para beleza, saúde e arquitetura: do nail designer ao consultório',
     titulo: <>arquivos prontos para <em>mandar hoje</em></>,
-    lead: 'Mais de 40 arquivos para imprimir e para mandar: fichas, termos, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
+    lead: 'Mais de 50 arquivos para imprimir e para mandar: fichas, termos, receituário, cuidados pós, stories com espaço para as suas fotos, cartões e planilhas. Troque o que está entre colchetes e use no mesmo dia.',
     chip: 'editável no Canva, no Word e no Excel',
     arte: AM('t-beleza-stories-mes.webp'),
     arteLabel: 'useplane.com.br/arquivos',
@@ -41,7 +41,7 @@ const TEXTO: Record<Id, {
     catalogo: <>os <em>arquivos</em></>,
     faq: [
       ['como recebo os arquivos?', 'Pagou no Pix ou no cartão, a página do pedido mostra os botões de baixar na hora. O link também chega por e-mail e fica guardado em minha conta.'],
-      ['como edito no Canva?', 'As artes vão em PowerPoint: no Canva, toque em Criar design → Importar arquivo e troque textos, cores e fotos. Quando o arquivo tem link direto, o botão "editar no Canva" aparece na página do pedido. Fichas e contratos vão em Word e PDF; planilhas, em Excel.'],
+      ['como edito no Canva?', 'As artes vão em PowerPoint: no Canva, toque em Criar design → Importar arquivo e troque textos, cores e fotos. Quando o arquivo tem link direto, o botão "editar no Canva" aparece na página do pedido. Fichas e contratos vão em Word e PDF (algumas fichas vêm só em PDF, que também abre no Canva para pôr os seus dados); planilhas, em Excel.'],
       ['preciso do Canva pago?', 'Não. Tudo abre no Canva gratuito, e as fontes usadas são gratuitas.'],
       ['o que são os estilos?', 'São 4 estilos: delicado, criativo, minimalista e elegante. Escolha o que combina com o seu espaço; cada estilo é comprado à parte.'],
       ['posso usar com todas as minhas clientes?', 'Sim, no seu próprio negócio, quantas vezes quiser. Só não pode revender nem repassar os arquivos.'],
