@@ -855,7 +855,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
           <div className="fr-pp-gal">
             <div style={{ ['--corte' as string]: corte }} className={`fr-pp-foto fr-prot ${previa && noCelular(p.id) ? 'is-cel' : previa ? 'is-pagina' : ''} ${foto > 0 && previa ? 'is-dentro' : ''}`} onContextMenu={(e) => e.preventDefault()}>
               {fotos[foto] && (previa && noCelular(p.id) ? <Iphone key={fotos[foto]} className="fr-pp-iph" src={fotos[foto]} /> : previa ? <span className="fr-prev-img"><img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} /></span> : <img key={fotos[foto]} src={fotos[foto]} alt={p.nome} decoding="async" draggable={false} />)}
-              {foto > 0 && previa && <span className="fr-dentro-aviso">{dentroDelicado ? 'página de dentro no estilo delicado · o seu vem no estilo escolhido' : 'prévia · o arquivo completo chega depois da compra'}</span>}
+              {foto > 0 && previa && <span className="fr-dentro-aviso">{dentroDelicado ? 'prévia no estilo delicado' : 'prévia do arquivo'}</span>}
               {fotos.length > 1 && (
                 <>
                   <button type="button" className="fr-pp-seta e" aria-label="Foto anterior" onClick={() => setFoto((foto - 1 + fotos.length) % fotos.length)}><Icon name="chevronL" size={18} /></button>
