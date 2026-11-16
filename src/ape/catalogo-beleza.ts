@@ -1270,5 +1270,127 @@ export const CATALOGO_BELEZA: Produto[] = [
   "ape/amostras/e-bio-toxina--delicado.webp"
  ],
  "selo": "novidade"
+},
+{
+ "id": "odonto-anamnese",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "odontologia",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de anamnese odontológica com odontograma",
+ "tag": "fichas",
+ "preco": "R$ 16,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "odontograma",
+  "plano de tratamento"
+ ],
+ "desc": "Anamnese de saúde, queixa principal, odontograma completo (dentes permanentes e de leite) e plano de tratamento com valores.",
+ "itens": [
+  "Anamnese de saúde do paciente",
+  "Odontograma com legenda",
+  "Plano de tratamento com valores",
+  "Declaração com assinatura"
+ ],
+ "amostras": [
+  "ape/amostras/e-odonto-anamnese--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "odonto-termo",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "odontologia",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Termo de consentimento odontológico",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "termo",
+  "cuidados pós"
+ ],
+ "desc": "Termo para limpeza, restauração, canal, extração, clareamento, implante, prótese e ortodontia, com cuidados pós e autorização de imagem.",
+ "itens": [
+  "Termo para 10 procedimentos",
+  "Cuidados depois da extração e do clareamento",
+  "Autorização de uso de imagem"
+ ],
+ "amostras": [
+  "ape/amostras/e-odonto-termo--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "med-anamnese",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "medicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Ficha de anamnese clínica",
+ "tag": "fichas",
+ "preco": "R$ 16,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "2 páginas",
+  "sinais vitais",
+  "várias especialidades"
+ ],
+ "desc": "Para clínica geral, dermatologia, ginecologia, pediatria e outras especialidades: história, antecedentes, hábitos, exame físico e conduta.",
+ "itens": [
+  "Queixa e história clínica",
+  "Antecedentes pessoais e familiares",
+  "Saúde da mulher e da criança",
+  "Sinais vitais, conduta e retorno"
+ ],
+ "amostras": [
+  "ape/amostras/e-med-anamnese--delicado.webp"
+ ],
+ "selo": "novidade"
+},
+{
+ "id": "med-receituario",
+ "frente": "arquivos",
+ "nicho": "saude",
+ "sub": "medicina",
+ "uso": "imprimir",
+ "tipo": "fichas",
+ "cat": "arquivos",
+ "ativo": true,
+ "entrega": "Pagou no Pix ou no cartão, o botão de baixar aparece na hora. O link também fica guardado para baixar de novo.",
+ "nome": "Receituário, atestado e pedido de exames",
+ "tag": "fichas",
+ "preco": "R$ 14,90",
+ "formato": "PDF A4 para imprimir (abre no Canva para pôr o seu nome, a logo e os contatos)",
+ "numeros": [
+  "3 páginas",
+  "receita",
+  "atestado"
+ ],
+ "desc": "Modelos do consultório com espaço para a logo e o CRM: receituário, atestado, declaração de comparecimento e pedido de exames.",
+ "itens": [
+  "Receituário",
+  "Atestado e declaração de comparecimento",
+  "Pedido de exames com os mais pedidos"
+ ],
+ "amostras": [
+  "ape/amostras/e-med-receituario--delicado.webp"
+ ],
+ "selo": "novidade"
 }
 ]

@@ -11,7 +11,7 @@ export const ESTILOS: { id: Estilo; nome: string; cor: string; aro: string; fras
   { id: 'elegante', nome: 'elegante', cor: '#15120f', aro: '#c9a86a', frase: 'preto e dourado, ar de luxo' },
 ]
 export const ESTILO_PADRAO: Estilo = 'delicado'
-const PREVIA = new Set<string>(["beleza-fim-de-ano", "beleza-precos", "beleza-anamnese", "beleza-termo", "beleza-vale", "free-proposta", "free-contrato", "free-briefing", "arq-proposta", "arq-contrato", "arq-briefing", "arq-levantamento", "beleza-stories-mes", "beleza-antes-depois", "beleza-depoimentos", "beleza-carrossel", "beleza-destaques", "beleza-politica", "beleza-cartao-agendamento", "beleza-recibo", "beleza-mensagens", "beleza-certificado", "beleza-biosseguranca", "sob-cuidados", "sob-visagismo", "cil-mapeamento", "unha-cuidados", "unha-catalogo", "cab-anamnese", "cab-cuidados", "cab-tecnica", "est-avaliacao", "est-protocolo", "est-cuidados", "noiva-orcamento", "noiva-contrato", "noiva-ficha", "dep-ficha", "mas-ficha", "beleza-lembranca", "bio-toxina", "bio-preenchimento", "bio-bioestimulador", "bio-facial", "bio-corporal"])
+const PREVIA = new Set<string>(["beleza-fim-de-ano", "beleza-precos", "beleza-anamnese", "beleza-termo", "beleza-vale", "free-proposta", "free-contrato", "free-briefing", "arq-proposta", "arq-contrato", "arq-briefing", "arq-levantamento", "beleza-stories-mes", "beleza-antes-depois", "beleza-depoimentos", "beleza-carrossel", "beleza-destaques", "beleza-politica", "beleza-cartao-agendamento", "beleza-recibo", "beleza-mensagens", "beleza-certificado", "beleza-biosseguranca", "sob-cuidados", "sob-visagismo", "cil-mapeamento", "unha-cuidados", "unha-catalogo", "cab-anamnese", "cab-cuidados", "cab-tecnica", "est-avaliacao", "est-protocolo", "est-cuidados", "noiva-orcamento", "noiva-contrato", "noiva-ficha", "dep-ficha", "mas-ficha", "beleza-lembranca", "bio-toxina", "bio-preenchimento", "bio-bioestimulador", "bio-facial", "bio-corporal", "odonto-anamnese", "odonto-termo", "med-anamnese", "med-receituario"])
 /** produtos sem versões de estilo (vão como estão) */
 const SEM_ESTILO = new Set(['arq-manual'])
 
@@ -33,6 +33,8 @@ const PAGINAS_EST: Record<string, Partial<Record<Estilo, number>>> = {
   'beleza-cartao-agendamento': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'beleza-certificado': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
   'beleza-fim-de-ano': { delicado: 2, minimalista: 2, elegante: 2 }, 'beleza-precos': { delicado: 1, minimalista: 1, elegante: 1 }, 'beleza-vale': { delicado: 2, minimalista: 2, elegante: 2 },
   'bio-toxina': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-preenchimento': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-bioestimulador': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
+  'odonto-anamnese': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'odonto-termo': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
+  'med-anamnese': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'med-receituario': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
   'bio-facial': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 }, 'bio-corporal': { delicado: 1, minimalista: 1, elegante: 1, criativo: 1 },
 }
 /** Páginas de dentro no estilo pedido. Sem a versão daquele estilo, não mostra as de outro (a foto tem que bater com o estilo escolhido). */

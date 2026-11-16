@@ -13,7 +13,9 @@ export const AREAS: Area[] = [
   { id: 'estetica', icone: 'rosto', nome: 'esteticista', curto: 'estética', frase: 'facial, corporal, depilação e massagem', subs: ['estética', 'depilação', 'massagem'] },
   { id: 'cabelo', icone: 'tesoura', nome: 'cabeleireira', curto: 'cabelo', frase: 'química, coloração e cuidados', subs: ['cabelo'] },
   { id: 'make', icone: 'batom', nome: 'maquiadora e noivas', curto: 'make e noivas', frase: 'proposta, contrato e o dia da noiva', subs: ['maquiagem e noivas'] },
-  { id: 'arq', icone: 'compass', nome: 'arquitetura e interiores', curto: 'arquitetura', frase: 'proposta, contrato, briefing e honorários', subs: ['arquitetura'] },
+  { id: 'odonto', icone: 'dente', nome: 'dentista', curto: 'dentista', frase: 'anamnese com odontograma e termos de consentimento', subs: ['odontologia'] },
+  { id: 'medico', icone: 'estetoscopio', nome: 'médico', curto: 'médico', frase: 'dermatologia, ginecologia, pediatria, clínica geral e mais', subs: ['medicina'] },
+  { id: 'arq', icone: 'compasso', nome: 'arquitetura e interiores', curto: 'arquitetura', frase: 'proposta, contrato, briefing e honorários', subs: ['arquitetura'] },
 ]
 
 const daArea = (a: Area, p: Produto) => !!(a.ids?.includes(p.id) || (p.sub && a.subs?.includes(p.sub)))

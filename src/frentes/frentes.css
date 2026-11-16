@@ -793,3 +793,9 @@ html, body { overflow-x: clip; }
 /* desfoque das páginas de dentro mais leve: dá para ver o arquivo, só não dá para copiar inteiro */
 .fr-pp-foto.is-dentro img, .fr-pp-foto.is-dentro .iph-cheia .arte { -webkit-mask-image: linear-gradient(180deg, #000 62%, rgba(0, 0, 0, .55) 82%, rgba(0, 0, 0, .4)); mask-image: linear-gradient(180deg, #000 62%, rgba(0, 0, 0, .55) 82%, rgba(0, 0, 0, .4)); }
 .fr-pp-foto.is-dentro::after, .fr-pp-foto.is-cel.is-dentro .iph-cheia::after { height: 36%; -webkit-backdrop-filter: blur(1.6px); backdrop-filter: blur(1.6px); }
+/* 10 áreas: 5 por linha no computador (2 linhas certinhas), 2 no iPad e no celular; ícone em cima, nome e frase embaixo */
+.fr-areas-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fr-area { grid-template-columns: 1fr; justify-items: start; align-content: start; gap: 10px; padding: 18px; }
+.fr-area > svg:last-child { display: none; }
+@media (max-width: 1100px) { .fr-areas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fr-area { grid-template-columns: auto minmax(0, 1fr); align-items: center; } }
+@media (max-width: 560px) { .fr-area { grid-template-columns: 1fr; } }

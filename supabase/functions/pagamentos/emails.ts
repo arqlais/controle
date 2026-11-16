@@ -60,10 +60,11 @@ const ajuda = (assunto: string) =>
 /* As três frentes da planê usam a mesma loja. O pedido diz qual: cada item guarda a frente
    (ou ela sai do começo do id: beleza-/free- = arquivos, arq-/kit-arq- = arq; o resto é do apê). */
 export type Marca = { id: 'apzinho' | 'arquivos' | 'arq'; nome: string; sufixo: string; path: string; slogan: string }
-export const frenteDoId = (id: string) => (/^(kit-)?arq-/.test(id) ? 'arq' : /^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas)-/.test(id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza)$/.test(id) ? 'arquivos' : 'apzinho')
+export const frenteDoId = (id: string) => (/^(kit-)?arq-/.test(id) || id.startsWith('presente-arq-') ? 'arq' : /^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas|bio|odonto|med)-/.test(id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza|bio)(--|$)/.test(id) || id.startsWith('presente-arquivos') ? 'arquivos' : 'apzinho')
 export function marcaDe(itens: { id?: unknown; frente?: string }[] = []): Marca {
   const fs = new Set(itens.map((i) => i.frente || frenteDoId(String(i.id))))
-  const f = fs.size === 1 ? [...fs][0] : 'apzinho'
+  // arquitetura e beleza juntas são compras da planê.arquivos (os modelos de arquitetura estão na mesma loja)
+  const f = fs.size === 1 ? [...fs][0] : [...fs].every((x) => x === 'arquivos' || x === 'arq') ? 'arquivos' : 'apzinho'
   if (f === 'arquivos') return { id: 'arquivos', nome: 'planê.arquivos', sufixo: '.arquivos', path: 'arquivos', slogan: 'arquivos prontos para mandar' }
   if (f === 'arq') return { id: 'arq', nome: 'planê.arq', sufixo: '.arq', path: 'arq', slogan: 'para quem projeta' }
   return { id: 'apzinho', nome: 'planê.apê', sufixo: '.apê', path: 'ape', slogan: 'organize o seu apê' }
