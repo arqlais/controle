@@ -208,7 +208,7 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
                   <p className="ape-note" style={{ margin: 0 }}>A maioria dos problemas se resolve rápido:</p>
                   <div className="ape-acts" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                     <a className="ape-btn sm" href={wa(whats, `Oi! Comprei o pedido ${p.token?.slice(0, 8) || ''} e não consegui editar. Pode me ajudar?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />não consegui editar: me ajuda no WhatsApp</a>
-                    <a className="ape-btn sm" href={wa(whats, `Oi! Comprei o pedido ${p.token?.slice(0, 8) || ''} e queria trocar o estilo. Pode trocar?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="gift" />queria outro estilo: trocar sem custo</a>
+                    <a className="ape-btn sm" href={wa(whats, `Oi! Comprei o pedido ${p.token?.slice(0, 8) || ''} e fiquei com uma dúvida sobre o que veio. Pode me ajudar?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="file" />não era bem o que eu esperava: me explica</a>
                     <button type="button" className="ape-btn ghost sm" onClick={() => setDecidiu(true)}>é outro motivo: quero cancelar</button>
                   </div>
                   {p.status === 'pago' && <p className="ape-note" style={{ margin: 0, fontSize: 12 }}>Lembrete: cancelando, o presente do 8º dia deixa de ser liberado.</p>}
