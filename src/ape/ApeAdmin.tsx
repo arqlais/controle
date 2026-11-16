@@ -10,7 +10,7 @@ import { PLATFORM } from '../plans'
 import { admin, apeCloud, loja, marcarDona, painelConta, type Visita, type Online, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import { CaixaDona } from './FaleComigo'
-import { AcessoDona, Financeiro, lojaDoItem as lojaDoItemDona } from './AdminDona'
+import { AcessoDona, Biblioteca, Financeiro, lojaDoItem as lojaDoItemDona } from './AdminDona'
 import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
@@ -77,13 +77,13 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   // mesmos ícones da planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
     inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
-    pedidos: ['vendas', 'wallet', nCancel], financeiro: ['financeiro', 'trend'], visitas: ['visitas do site', 'eye'], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
+    pedidos: ['vendas', 'wallet', nCancel], financeiro: ['financeiro', 'trend'], visitas: ['visitas do site', 'eye'], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['todos os arquivos', 'folder'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
   // menu enxuto: cada item abre uma tela; telas parecidas ficam juntas, em abas dentro dela
   const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], pedidos: ['pedidos', 'leads'] }
   const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
   // do mais usado para o menos usado: vendas no dia a dia, depois o San Levi, depois a vitrine (muda pouco)
-  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'financeiro', 'clientes', 'visitas']], ['lojas', ['loja', 'entregas', 'opiniao']], [APE.condominio, ['lista', 'moradores', 'grupos']]]
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'financeiro', 'clientes', 'visitas']], ['lojas', ['entregas', 'loja', 'opiniao']], [APE.condominio, ['lista', 'moradores', 'grupos']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
   // a plataforma da própria dona (acesso de teste sem vencimento), buscada no banco: o link guardado no aparelho pode estar velho
@@ -231,7 +231,8 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           {tab === 'pedidos' && <Vendas pedidos={pedidos} onChange={load} />}
           {tab === 'leads' && <Leads lista={abandonados} />}
           {tab === 'clientes' && ajustes && <Clientes pedidos={pedidos} produtos={ajustes.produtos} onChange={load} />}
-          {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
+          {tab === 'entregas' && ajustes && <Biblioteca ajustes={ajustes} onSaved={setAjustes} />}
+          {tab === 'entregas' && ajustes && <Recolhe titulo="lista antiga (enviar vários de uma vez)"><Entregas produtos={ajustes.produtos} /></Recolhe>}
           {tab === 'opiniao' && <Opinioes />}
           {tab === 'visitas' && <Visitas pedidos={pedidos} />}
           {tab === 'financeiro' && <Financeiro pedidos={pedidos} taxas={ajustes?.taxas} />}

@@ -905,7 +905,7 @@ export const loja = {
   },
   async arquivos(produto: string): Promise<{ nome: string; tamanho: number; em?: string }[]> {
     if (!CLOUD) return []
-    const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 20 })
+    const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 200 })
     fail(error)
     return (data ?? []).filter((f) => f.name && !f.name.startsWith('.') && f.id).map((f) => ({ nome: f.name, tamanho: Number(f.metadata?.size ?? 0), em: f.updated_at || f.created_at || '' }))
   },

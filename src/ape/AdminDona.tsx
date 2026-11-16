@@ -1,10 +1,12 @@
 /* Painel da dona: ver tudo como cliente (sem e-mail, sem conta) e o financeiro de todas as lojas num lugar só. */
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { toast } from '../components/dialog'
 import { Icon } from '../components/Icon'
 import { href } from '../router'
-import { comEstilos, estiloDoId, temEstilos } from '../frentes/estilos'
-import { loja, type PedidoAdmin } from './api'
+import { ESTILOS, comEstilos, estiloDoId, imgEstilo, temEstilos, temPrevia, type Estilo } from '../frentes/estilos'
+import { AREAS, areasDe } from '../frentes/areas'
+import { admin, loja, type Ajustes, type PedidoAdmin } from './api'
 import { TAXAS, brl, frenteDe, noCarrinho, type Produto, type Taxas } from './model'
 
 /* ===== lojas ===== */
@@ -272,5 +274,192 @@ export function Financeiro({ pedidos, taxas = TAXAS }: { pedidos: PedidoAdmin[];
         <Icon name="arrowRight" size={16} />
       </a>
     </div>
+  )
+}
+
+/* ===== biblioteca: todos os arquivos de todas as lojas, com prévia, download e Canva ===== */
+type ArqB = { nome: string; tamanho: number; em?: string }
+type AbaB = 'arquivos' | 'arq' | 'apzinho' | 'extras'
+const estiloDoArquivo = (n: string): Estilo => (n.match(/--(delicado|minimalista|elegante)\./)?.[1] as Estilo) || 'criativo'
+const PARTE_B: [RegExp, string][] = [[/-stories(--|\.)/, 'stories'], [/-feed(--|\.)/, 'feed'], [/-cartoes-a6(--|\.)/, 'cartões A6'], [/-(azul|rosa|roxa|verde)\./, '']]
+const parteDe = (n: string) => { for (const [r, l] of PARTE_B) { const m = n.match(r); if (m) return l || m[1] } return '' }
+const tipoDe = (n: string) => (/\.pdf$/i.test(n) ? 'PDF' : /\.pptx$/i.test(n) ? 'PowerPoint' : /\.docx$/i.test(n) ? 'Word' : /\.xlsx?$/i.test(n) ? 'Excel' : 'arquivo')
+const tam = (t: number) => (t >= 1048576 ? `${(t / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(t / 1024))} KB`)
+const EXTRAS_B = [
+  { id: 'presente-arquivos', nome: 'Presente · Planner 2027 (planê.arquivos)', estilos: true },
+  { id: 'presente-arq', nome: 'Presente · Planner 2027 (planê.arq)', estilos: true },
+  { id: 'bonus', nome: 'Bônus do apê · calendário de manutenção', estilos: false },
+]
+type ItemB = { id: string; nome: string; estilos: boolean; capa?: string; grupo: string; ativo: boolean }
+
+export function Biblioteca({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) => void }) {
+  const [aba, setAba] = useState<AbaB>('arquivos')
+  const [busca, setBusca] = useState('')
+  const [soFalta, setSoFalta] = useState(false)
+  const [arqs, setArqs] = useState<Record<string, ArqB[]>>({})
+  const [aberto, setAberto] = useState<ItemB | null>(null)
+  const ps = ajustes.produtos
+  const itensDe = useCallback((a: AbaB): ItemB[] => {
+    if (a === 'extras') return EXTRAS_B.map((x) => ({ ...x, grupo: 'presentes e bônus', ativo: true }))
+    const daqui = ps.filter((p) => frenteDe(p) === a && (p.cat || 'arquivos') === 'arquivos')
+    const grupo = (p: Produto) => {
+      if (a === 'arquivos') { const ar = areasDe(p, ps); return ar.length ? AREAS.find((x) => x.id === ar[0])!.nome : 'servem para todas as áreas' }
+      if (a === 'arq') return 'modelos do escritório'
+      return ({ comprando: 'para quem vai comprar', comprei: 'para quem já comprou', escolhas: 'escolhas da casa' } as Record<string, string>)[p.fase || 'comprei'] || 'outros'
+    }
+    return daqui.map((p) => ({ id: p.id, nome: p.nome, estilos: temEstilos(p), capa: temPrevia(p.id) ? imgEstilo(p.id, 'delicado') : p.amostras?.[0], grupo: grupo(p), ativo: p.ativo }))
+  }, [ps])
+  const itens = useMemo(() => itensDe(aba), [aba, itensDe])
+  useEffect(() => {
+    let vivo = true
+    const faltam = itens.filter((p) => !arqs[p.id])
+    if (!faltam.length) return
+    void Promise.all(faltam.map(async (p) => [p.id, await loja.arquivos(p.id).catch(() => [] as ArqB[])] as const)).then((l) => { if (vivo) setArqs((a) => ({ ...a, ...Object.fromEntries(l) })) })
+    return () => { vivo = false }
+  }, [itens]) // eslint-disable-line react-hooks/exhaustive-deps
+  const recarregar = async (id: string) => { const l = await loja.arquivos(id).catch(() => [] as ArqB[]); setArqs((a) => ({ ...a, [id]: l })) }
+  const q = busca.trim().toLowerCase()
+  const vis = itens.filter((p) => (!q || p.nome.toLowerCase().includes(q) || p.id.includes(q)) && (!soFalta || !(arqs[p.id] || []).length))
+  const grupos = [...new Set(vis.map((p) => p.grupo))]
+  if (aba === 'arquivos') grupos.sort((a, b) => (AREAS.findIndex((x) => x.nome === a) + 1 || 99) - (AREAS.findIndex((x) => x.nome === b) + 1 || 99))
+  const total = (a: AbaB) => itensDe(a).length
+  const comArq = itens.filter((p) => (arqs[p.id] || []).length).length
+  return (
+    <div className="bib">
+      <div className="bib-abas" role="tablist">
+        {([['arquivos', 'planê.arquivos', 'file'], ['arq', 'planê.arq', 'ruler'], ['apzinho', 'planê.apê', 'home'], ['extras', 'presentes e bônus', 'gift']] as const).map(([k, l, i]) => (
+          <button key={k} role="tab" aria-selected={aba === k} className={aba === k ? 'is-on' : ''} onClick={() => setAba(k)}><Icon name={i} size={15} />{l}<em className="num">{total(k)}</em></button>
+        ))}
+      </div>
+      <div className="bib-ferr">
+        <input type="search" placeholder="procurar arquivo" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Procurar arquivo" />
+        <label className="ape-tog"><input type="checkbox" checked={soFalta} onChange={(e) => setSoFalta(e.target.checked)} /> só os sem arquivo</label>
+        <span className="ape-note">{comArq} de {itens.length} com arquivo</span>
+      </div>
+      {grupos.map((g) => (
+        <section key={g} className="bib-grupo">
+          <p className="ape-eyebrow">{g} <small>{vis.filter((p) => p.grupo === g).length}</small></p>
+          <div className="bib-grade">
+            {vis.filter((p) => p.grupo === g).map((p) => {
+              const l = arqs[p.id]
+              const est = new Set((l || []).map((a) => estiloDoArquivo(a.nome)))
+              return (
+                <button key={p.id} className={`bib-card ${l && !l.length ? 'falta' : ''}`} onClick={() => setAberto(p)}>
+                  <span className="bib-capa">{p.capa ? <img src={p.capa} alt="" loading="lazy" /> : <Icon name={p.id === 'bonus' ? 'gift' : 'file'} size={26} />}</span>
+                  <b>{p.nome}</b>
+                  <small>{!l ? 'carregando…' : !l.length ? 'sem arquivo' : `${l.length} arquivo(s)`}{!p.ativo ? ' · fora da loja' : ''}</small>
+                  {p.estilos && l && l.length > 0 && <span className="bib-dots">{ESTILOS.map((e) => <i key={e.id} title={e.nome} style={{ background: est.has(e.id) ? e.cor : 'transparent', borderColor: e.aro }} />)}</span>}
+                </button>
+              )
+            })}
+          </div>
+        </section>
+      ))}
+      {!vis.length && <div className="ape-panel ape-empty"><b>nada por aqui</b><span>Mude a busca.</span></div>}
+      {aberto && <ProdutoArquivos item={aberto} arqs={arqs[aberto.id] || []} ajustes={ajustes} onSaved={onSaved} onMudou={() => void recarregar(aberto.id)} onClose={() => setAberto(null)} />}
+    </div>
+  )
+}
+
+function ProdutoArquivos({ item, arqs, ajustes, onSaved, onMudou, onClose }: { item: ItemB; arqs: ArqB[]; ajustes: Ajustes; onSaved: (a: Ajustes) => void; onMudou: () => void; onClose: () => void }) {
+  const [est, setEst] = useState<Estilo>('delicado')
+  const lista = item.estilos ? arqs.filter((a) => estiloDoArquivo(a.nome) === est) : arqs
+  const [ver, setVer] = useState<{ nome: string; url: string } | null>(null)
+  const [busy, setBusy] = useState('')
+  const chave = item.estilos ? `${item.id}--${est}` : item.id
+  const [link, setLink] = useState(ajustes.canva?.[chave] || '')
+  useEffect(() => { setLink(ajustes.canva?.[chave] || ''); setVer(null) }, [chave]) // eslint-disable-line react-hooks/exhaustive-deps
+  // abre a prévia do primeiro PDF do estilo
+  useEffect(() => {
+    const pdf = lista.find((a) => /\.pdf$/i.test(a.nome))
+    if (pdf && !ver) void loja.urlArquivo(item.id, pdf.nome).then((url) => setVer({ nome: pdf.nome, url }), () => null)
+  }, [lista.map((a) => a.nome).join()]) // eslint-disable-line react-hooks/exhaustive-deps
+  const url = async (n: string) => loja.urlArquivo(item.id, n)
+  const baixar = async (n: string) => {
+    try { const u = await url(n); const a = document.createElement('a'); a.href = `${u}${u.includes('?') ? '&' : '?'}download=${encodeURIComponent(n)}`; a.download = n; a.click() } catch (e) { toast((e as Error).message) }
+  }
+  const proCanva = async () => {
+    if (link) return void window.open(link, '_blank')
+    const f = lista.find((a) => /\.pptx$/i.test(a.nome)) || lista.find((a) => /\.pdf$/i.test(a.nome)) || lista[0]
+    if (!f) return toast('Este estilo ainda não tem arquivo.')
+    const w = window.open('https://www.canva.com/', '_blank')
+    await baixar(f.nome)
+    toast(`${f.nome} baixado. No Canva: Criar design → Importar arquivo e escolha ele.`)
+    w?.focus()
+  }
+  const salvarLink = async () => {
+    const v = link.trim()
+    if (v && !/^https:\/\/(www\.)?canva\.com\//.test(v)) return toast('O link precisa começar com https://www.canva.com')
+    const canva = { ...(ajustes.canva || {}) }
+    if (v) canva[chave] = v
+    else delete canva[chave]
+    const a = { ...ajustes, canva }
+    try { await admin.salvarAjustes(a); onSaved(a); toast(v ? 'Link do Canva salvo: quem comprar este estilo ganha o botão "editar no Canva".' : 'Link tirado.') } catch (e) { toast(`Não salvou (${(e as Error).message}).`) }
+  }
+  const enviar = async (f?: File) => {
+    if (!f) return
+    setBusy('enviar')
+    try { await loja.enviarArquivo(item.id, f); toast('Arquivo guardado.'); onMudou() } catch (e) { toast(`Não consegui (${(e as Error).message}).`) }
+    setBusy('')
+  }
+  const tirar = async (n: string) => {
+    if (!confirm(`Tirar ${n}? Quem comprar não recebe mais este arquivo.`)) return
+    await loja.apagarArquivo(item.id, n).then(onMudou, () => toast('Não consegui tirar.'))
+  }
+  // fora do painel (portal), para ficar por cima do menu lateral
+  const tema = (document.querySelector('.ape-adm-app') as HTMLElement | null)?.dataset.tema || 'claro'
+  return createPortal(
+    <div className="ape ape-portal" data-tema={tema}>
+    <div className="ape-sheet ape-prev" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="ape-sheet-in ape-prev-in bib-sheet" role="dialog" aria-label={item.nome}>
+        <header className="ape-prev-top">
+          <div><b>{item.nome}</b><small>{arqs.length} arquivo(s) guardados · o nome de quem compra entra no rodapé na hora do download</small></div>
+          <button type="button" className="ape-icobtn" onClick={onClose} aria-label="Fechar"><Icon name="x" size={18} /></button>
+        </header>
+        <div className="bib-corpo">
+          <div className="bib-prev">
+            {ver ? <iframe key={ver.url} src={`${ver.url}#view=FitH`} title={`Prévia de ${ver.nome}`} />
+              : item.estilos && temPrevia(item.id) ? <img src={imgEstilo(item.id, est)} alt="" />
+              : <div className="ape-prev-vazio"><Icon name="file" size={30} /><span>{lista.length ? 'Escolha um PDF para ver aqui.' : 'Sem arquivo neste estilo.'}</span></div>}
+          </div>
+          <div className="bib-lado">
+            {item.estilos && (
+              <div className="bib-estilos" role="tablist" aria-label="estilo">
+                {ESTILOS.map((e) => {
+                  const n = arqs.filter((a) => estiloDoArquivo(a.nome) === e.id).length
+                  return <button key={e.id} role="tab" aria-selected={est === e.id} className={est === e.id ? 'is-on' : ''} onClick={() => setEst(e.id)}><i style={{ background: e.cor, borderColor: e.aro }} />{e.nome}<small className="num">{n}</small></button>
+                })}
+              </div>
+            )}
+            <div className="bib-files">
+              {lista.length ? lista.map((a) => (
+                <div key={a.nome} className={`bib-file ${ver?.nome === a.nome ? 'is-on' : ''}`}>
+                  <span className="t"><b>{tipoDe(a.nome)}{parteDe(a.nome) ? ` · ${parteDe(a.nome)}` : ''}</b><small>{a.nome} · {tam(a.tamanho)}</small></span>
+                  {/\.pdf$/i.test(a.nome) && <button className="ape-icobtn" title="ver aqui" aria-label="ver" onClick={() => void url(a.nome).then((u) => setVer({ nome: a.nome, url: u }), (e) => toast((e as Error).message))}><Icon name="eye" size={16} /></button>}
+                  <button className="ape-icobtn" title="baixar" aria-label="baixar" onClick={() => void baixar(a.nome)}><Icon name="download" size={16} /></button>
+                  <button className="ape-icobtn" title="tirar" aria-label="tirar" onClick={() => void tirar(a.nome)}><Icon name="trash" size={16} /></button>
+                </div>
+              )) : <p className="ape-note" style={{ margin: 0 }}>Nenhum arquivo {item.estilos ? `no estilo ${est}` : 'guardado'}.</p>}
+            </div>
+            <div className="bib-canva">
+              <p className="ape-eyebrow">Canva{item.estilos ? ` · ${est}` : ''}</p>
+              <button className="ape-btn primary" onClick={() => void proCanva()} disabled={!link && !lista.length}><Icon name="sparkle" size={16} />{link ? 'abrir o modelo no Canva' : 'levar para o Canva'}</button>
+              <div className="bib-link">
+                <input type="url" inputMode="url" placeholder="cole o link de modelo do Canva" value={link} onChange={(e) => setLink(e.target.value)} aria-label="Link de modelo do Canva" />
+                <button className="ape-btn sm" onClick={() => void salvarLink()} disabled={(ajustes.canva?.[chave] || '') === link.trim()}>salvar</button>
+              </div>
+              <small className="ape-note">Sem link: baixa o PowerPoint (ou o PDF) e abre o Canva para importar. Com o link de modelo salvo, quem compra este estilo ganha o botão "editar no Canva".</small>
+            </div>
+            <label className="ape-btn sm bib-enviar" style={{ cursor: 'pointer' }}>
+              <Icon name="upload" size={15} />{busy === 'enviar' ? 'enviando…' : 'enviar ou trocar arquivo'}
+              <input type="file" hidden accept=".pdf,.xlsx,.xls,.docx,.pptx,.zip" onChange={(e) => void enviar(e.target.files?.[0])} />
+            </label>
+            <small className="ape-note">Para trocar, envie com o mesmo nome do arquivo guardado{item.estilos ? ` (ex.: ${item.id}--${est}.pdf; o criativo vai sem o final)` : ''}.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>,
+    document.body,
   )
 }
