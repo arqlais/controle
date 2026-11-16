@@ -896,6 +896,13 @@ export const loja = {
     const q2 = await sb().from('ape_plataforma').select('token').gte('validade', '2099-01-01').limit(1)
     return String((q2.data?.[0] as { token?: string } | undefined)?.token || '')
   },
+  /** A plataforma do apê da dona: abre direto, sem liberar por e-mail (cria uma cortesia sem vencer, se ainda não tiver). */
+  async garantirMinhaPlataforma(): Promise<string> {
+    const t = await this.minhaPlataforma().catch(() => '')
+    if (t) return t
+    const dias = Math.ceil((new Date('2099-12-31').getTime() - Date.now()) / 864e5)
+    return this.novaPlataforma({ nome: 'Laís (dona)', dias, cortesia: true })
+  },
   async arquivos(produto: string): Promise<{ nome: string; tamanho: number; em?: string }[]> {
     if (!CLOUD) return []
     const { data, error } = await sb().storage.from('ape-arquivos').list(produto, { limit: 20 })

@@ -2921,3 +2921,51 @@ body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)
 /* manchas coloridas do topo: nunca cortadas, sempre atrás de tudo (a página corta só na horizontal) */
 .ape.ape-publico { position: relative; isolation: isolate; overflow-x: clip; }
 .ape-publico .ape-blobs { overflow: visible; z-index: -1; }
+
+/* ===== painel da dona: ver como cliente e financeiro ===== */
+.dona { display: grid; gap: 14px; }
+.dona-lojas { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.dona-loja { display: grid; gap: 10px; padding: 16px; align-content: start; }
+.dona-loja header { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; align-items: center; }
+.dona-loja header b { font-size: 15px; }
+.dona-loja header small { grid-column: 2; color: var(--a-muted); font-size: 12px; }
+.dona-ic { grid-row: span 2; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--a-pri-soft); color: var(--a-pri); }
+.dona-loja > .ape-btn { justify-content: center; width: 100%; }
+.dona-mais { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.dona-mais .ape-btn { justify-content: center; text-decoration: none; }
+.fin-filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.fin-filtros .ape-vista { overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+.fin-filtros .ape-vista button[aria-pressed='true'] { background: var(--a-card); color: var(--a-ink); box-shadow: var(--a-shadow); }
+.fin-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.fin-kpi { display: grid; gap: 3px; padding: 14px 16px; }
+.fin-kpi small { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--a-muted); }
+.fin-kpi b { font-size: 22px; font-weight: 600; color: var(--a-ink); }
+.fin-kpi span { font-size: 12px; color: var(--a-muted); }
+.fin-kpi.destaque { background: var(--a-pri); }
+.fin-kpi.destaque small, .fin-kpi.destaque span { color: color-mix(in srgb, #fff 78%, transparent); }
+.fin-kpi.destaque b { color: #fff; }
+.fin-duas { display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; }
+.fin-barras { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 160px; align-items: end; }
+.fin-bar { display: grid; grid-template-rows: 1fr auto; height: 100%; gap: 4px; text-align: center; }
+.fin-bar i { align-self: end; display: block; background: var(--a-pri-soft); border-radius: 6px 6px 3px 3px; transition: height .6s cubic-bezier(.2, .7, .2, 1); }
+.fin-bar.is-hoje i { background: var(--a-pri); }
+.fin-bar small { font-size: 10.5px; color: var(--a-muted); }
+.fin-lojas { display: grid; gap: 8px; }
+.fin-lojas button { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; text-align: left; border: 1px solid var(--a-line); background: var(--a-card); border-radius: 14px; padding: 10px 12px; cursor: pointer; font: inherit; color: var(--a-ink); }
+.fin-lojas button.is-on { border-color: var(--a-pri); box-shadow: 0 0 0 1px var(--a-pri); }
+.fin-lojas button span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.fin-lojas button small { grid-column: 1 / -1; font-size: 11.5px; color: var(--a-muted); }
+.fin-lojas button i { grid-column: 1 / -1; display: block; height: 4px; border-radius: 4px; background: var(--a-sand); overflow: hidden; }
+.fin-lojas button i em { display: block; height: 100%; background: var(--a-pri); border-radius: 4px; }
+.fin-forma { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fin-forma span { display: grid; background: var(--a-sand); border-radius: 12px; padding: 10px 12px; }
+.fin-forma small { font-size: 11.5px; color: var(--a-muted); }
+.fin-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.fin-top { margin: 0; padding: 0; list-style: none; display: grid; }
+.fin-top li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--a-line); font-size: 13.5px; }
+.fin-top li small { color: var(--a-muted); }
+.fin-link { display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-decoration: none; color: var(--a-ink); }
+.fin-link span { display: grid; flex: 1; }
+.fin-link small { color: var(--a-muted); font-size: 12px; }
+@media (max-width: 860px) { .fin-kpis { grid-template-columns: 1fr 1fr; } .fin-duas { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .fin-kpi b { font-size: 18px; } .fin-barras { gap: 3px; height: 130px; } }

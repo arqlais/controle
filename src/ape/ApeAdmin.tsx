@@ -10,6 +10,7 @@ import { PLATFORM } from '../plans'
 import { admin, apeCloud, loja, marcarDona, painelConta, type Visita, type Online, type Ajustes, type PedidoAdmin, type PlatAdmin, type Vendedor } from './api'
 import { ApeIcon } from './ApeIcon'
 import { CaixaDona } from './FaleComigo'
+import { AcessoDona, Financeiro, lojaDoItem as lojaDoItemDona } from './AdminDona'
 import { emailOk, Recolhe } from './shared'
 import { SanLeviArte } from './SanLevi'
 import { MembroIcone, type TipoMembro } from './Familia'
@@ -22,7 +23,7 @@ import './ape.css'
 /* Painel da planê.apê (só a dona): orçamentos que chegaram dos moradores, leitura com IA,
    publicar/editar/ocultar, moradores cadastrados, quem quer cada compra em grupo e a loja. */
 
-type Tab = 'visitas' | 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
+type Tab = 'visitas' | 'financeiro' | 'inicio' | 'recebidos' | 'novo' | 'lista' | 'moradores' | 'grupos' | 'loja' | 'pedidos' | 'leads' | 'clientes' | 'entregas' | 'testar' | 'opiniao'
 interface Draft {
   o: Orcamento
   novo: boolean
@@ -76,13 +77,13 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
   // mesmos ícones da planê arquitetura
   const ITENS: Record<Tab, [string, string, number?]> = {
     inicio: ['início', 'home'], moradores: ['moradores', 'users', moradores.filter((m) => ehSanLevi(m) && !m.aprovado).length], lista: ['orçamentos', 'file', novos], recebidos: ['enviados', 'inbox', novos], novo: [draft && !draft.novo ? 'editar' : 'adicionar', 'plus'], grupos: ['fechar em grupo', 'target'],
-    pedidos: ['vendas', 'wallet', nCancel], visitas: ['visitas do site', 'eye'], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
+    pedidos: ['vendas', 'wallet', nCancel], financeiro: ['financeiro', 'trend'], visitas: ['visitas do site', 'eye'], leads: ['carrinhos abandonados', 'bell', abandonados.length], clientes: ['clientes', 'user'], loja: ['produtos e preços', 'box'], entregas: ['arquivos', 'download'], opiniao: ['depoimentos', 'star'], testar: ['ver como cliente', 'eye'],
   }
   // menu enxuto: cada item abre uma tela; telas parecidas ficam juntas, em abas dentro dela
   const JUNTOS: Partial<Record<Tab, Tab[]>> = { lista: ['lista', 'recebidos', 'novo'], pedidos: ['pedidos', 'leads'] }
   const grupoDe = (k: Tab) => (Object.entries(JUNTOS).find(([, l]) => l!.includes(k))?.[0] as Tab | undefined) || k
   // do mais usado para o menos usado: vendas no dia a dia, depois o San Levi, depois a vitrine (muda pouco)
-  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'clientes', 'visitas']], ['lojas', ['loja', 'entregas', 'opiniao']], [APE.condominio, ['lista', 'moradores', 'grupos']]]
+  const GRUPOS_MENU: [string, Tab[]][] = [['', ['inicio']], ['vendas', ['pedidos', 'financeiro', 'clientes', 'visitas']], ['lojas', ['loja', 'entregas', 'opiniao']], [APE.condominio, ['lista', 'moradores', 'grupos']]]
   const atual = ITENS[tab]
   const ir = (k: Tab) => { setTab(k); setMenu(false); window.scrollTo(0, 0) }
   // a plataforma da própria dona (acesso de teste sem vencimento), buscada no banco: o link guardado no aparelho pode estar velho
@@ -142,7 +143,12 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           <div className="nav-group is-plataforma">
             <span className="nav-group-label">ver e testar</span>
             <a href={href('ape-admin')} className={`is-tool ${tab === 'testar' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); ir('testar') }} title="Ver tudo como cliente, com tudo liberado"><Icon name="eye" /><span>ver como cliente</span></a>
-            <a className="is-tool" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer" title="Abrir a plataforma do apê que você vende"><Icon name="smartphone" /><span>plataforma do apê</span></a>
+            <a className="is-tool" href={href('ape', `minha:${minhaPlat || 'demo'}`)} target="_blank" rel="noreferrer" title="Abrir a sua plataforma do apê (sem e-mail)" onClick={(e) => {
+              if (minhaPlat) return
+              e.preventDefault()
+              const w = window.open('', '_blank')
+              void loja.garantirMinhaPlataforma().then((t) => { setMinhaPlat(t); const u = href('ape', `minha:${t}`); if (w) w.location.href = u; else location.hash = u }, (er) => { w?.close(); toast(`Não consegui abrir (${(er as Error).message}).`) })
+            }}><Icon name="smartphone" /><span>plataforma do apê</span></a>
             <a className="is-tool" href="#/plane" target="_blank" rel="noreferrer" title="Página principal da planê"><Icon name="home" /><span>página principal</span></a>
             <a className="is-tool" href="#/arquivos" target="_blank" rel="noreferrer" title="Vitrine planê.arquivos"><Icon name="file" /><span>planê.arquivos</span></a>
             <a className="is-tool" href="#/arq" target="_blank" rel="noreferrer" title="Vitrine planê.arq"><Icon name="ruler" /><span>planê.arq</span></a>
@@ -228,7 +234,8 @@ export default function ApeAdmin({ dark = false, setDark }: { dark?: boolean; se
           {tab === 'entregas' && ajustes && <Entregas produtos={ajustes.produtos} />}
           {tab === 'opiniao' && <Opinioes />}
           {tab === 'visitas' && <Visitas pedidos={pedidos} />}
-          {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} onChange={load} />}
+          {tab === 'financeiro' && <Financeiro pedidos={pedidos} taxas={ajustes?.taxas} />}
+          {tab === 'testar' && ajustes && <Testar produtos={ajustes.produtos} pedidos={pedidos} minhaPlat={minhaPlat} onChange={load} />}
           </div>
             </div>
           </div>
@@ -292,7 +299,7 @@ function Inicio({ moradores, orcs, pedidos, envios, interesses, ir }: { moradore
 
 /** Vendas de cada loja no mês e hoje (sem cortesias), com o ticket médio e o produto que mais saiu. */
 const LOJAS: [string, string][] = [['arquivos', 'planê.arquivos'], ['arq', 'planê.arq'], ['apzinho', 'planê.apê']]
-const lojaDoItem = (i: { id: string; frente?: string }) => i.frente || (/^(kit-)?arq-/.test(i.id) ? 'arq' : /^(beleza|free|sob|cil|unha|cab|est|noiva|dep|mas)-/.test(i.id) || /^kit-(beleza|sobrancelha|unhas|cabelo|estetica|noiva|divulgacao|gestao-beleza)$/.test(i.id) ? 'arquivos' : 'apzinho')
+const lojaDoItem = lojaDoItemDona
 function PorLoja({ pedidos, ir }: { pedidos: PedidoAdmin[]; ir: (t: Tab) => void }) {
   const mes = new Date().toISOString().slice(0, 7)
   const hoje = new Date().toISOString().slice(0, 10)
@@ -1784,21 +1791,14 @@ function TestarEmail() {
   )
 }
 
-function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos: PedidoAdmin[]; onChange: () => void }) {
+function Testar({ produtos, pedidos, minhaPlat, onChange }: { produtos: Produto[]; pedidos: PedidoAdmin[]; minhaPlat: string | null; onChange: () => void }) {
   const meus = pedidos.filter((p) => p.cortesia && p.obs === 'teste da dona')
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      <div className="ape-vercli">
-        {([
-          ['bag', 'loja', 'como um visitante vê', href('ape', 'loja')],
-          ['building', `área do ${APE.condominio}`, 'orçamentos dos moradores', href('ape')],
-          ['user', 'minha conta', 'compras, plataforma e bônus', href('ape', 'conta')],
-          ['smartphone', 'minha plataforma', 'a plataforma que você vende', href('ape', `minha:${(() => { try { return JSON.parse(localStorage.getItem('ape-plat') || 'null') || 'demo' } catch { return 'demo' } })()}`)],
-        ] as const).map(([i, t, d, h]) => (
-          <a key={t} className="ape-vercli-i" href={h} target="_blank" rel="noreferrer"><Icon name={i} size={22} /><b>{t}</b><small>{d}</small></a>
-        ))}
-      </div>
-      <TudoLiberado produtos={produtos} onDone={onChange} />
+      <AcessoDona produtos={produtos} pedidos={pedidos} minhaPlat={minhaPlat} onChange={onChange} />
+      <Recolhe titulo="minha conta com e-mail">
+        <TudoLiberado produtos={produtos} onDone={onChange} />
+      </Recolhe>
       <TestarEmail />
       <p className="ape-note" style={{ margin: 0 }}>O acesso de teste é uma compra de cortesia (sem pagar): página do pedido, downloads com o seu nome no rodapé, bônus já aberto e a plataforma, sem vencer até você tirar o acesso. Para testar o pagamento de verdade, faça uma compra pequena na loja e depois reembolse em "vendas".</p>
       {meus.length > 0 && (
@@ -1811,7 +1811,9 @@ function Testar({ produtos, pedidos, onChange }: { produtos: Produto[]; pedidos:
           ))}
         </div>
       )}
-      <Cortesia produtos={produtos} eu={{ nome: 'Laís (teste)', email: '' }} onDone={(token) => { onChange(); window.open(href('ape', `pedido:${token}`), '_blank') }} />
+      <Recolhe titulo="teste escolhendo os itens">
+        <Cortesia produtos={produtos} eu={{ nome: 'Laís (teste)', email: '' }} onDone={(token) => { onChange(); window.open(href('ape', `pedido:${token}`), '_blank') }} />
+      </Recolhe>
     </div>
   )
 }
