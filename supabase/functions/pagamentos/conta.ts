@@ -97,6 +97,21 @@ ${temArq && m.id === 'apzinho' ? caixa('<b>Tem um brinde surpresa a caminho.</b>
 
   /** Aviso do bônus liberado (8º dia depois da compra). */
   async function emailBonus(ped: J) {
+    const m = marcaDe(ped.itens ?? [])
+    if (m.id !== 'apzinho') {
+      // lojas de arquivos: o presente é o mesmo arquivo nos outros estilos
+      const html = moldura({
+        site,
+        previa: 'Chegou o seu presente: os seus arquivos nos outros estilos.',
+        kicker: 'presente liberado',
+        titulo: `${primeiro(ped.nome)}, o seu presente chegou!`,
+        corpo: `<p style="margin:0">Passou uma semana desde a sua compra e, como prometido, liberamos <b>os mesmos arquivos nos outros estilos</b> (delicado, criativo, minimalista e elegante), sem custo.</p>${caixa('Use o estilo que combinar com cada ocasião: um para o feed, outro para imprimir, outro para datas especiais. Todos editáveis, com o seu nome no rodapé.')}<p style="margin:0">Eles já estão no seu pedido e em <b>minha conta</b>, marcados como presente.</p>`,
+        botao: ['abrir o meu presente', `${site.replace(/\/$/, '')}/${m.path}/#pedido:${ped.token}`],
+        ajuda: `Oi! Tenho uma dúvida sobre o presente da ${m.nome}`,
+        marca: m,
+      })
+      return await mandar(ped.email, ped.nome, `O seu presente da ${m.nome} chegou`, html, m.nome)
+    }
     const html = moldura({
       site,
       previa: 'Chegou o seu brinde exclusivo: já está em minha conta.',

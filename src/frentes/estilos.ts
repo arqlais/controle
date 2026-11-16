@@ -24,6 +24,9 @@ export const temEstilos = (p: Produto) => ['arquivos', 'arq'].includes(frenteDe(
 /** Tem imagem de prévia de cada estilo? (planilhas não têm: vão só com a cor) */
 export const temPrevia = (id: string) => PREVIA.has(id)
 export const imgEstilo = (id: string, e: Estilo) => `ape/amostras/e-${id}--${e}.webp`
+/** Páginas de dentro de cada arquivo (public/ape/amostras/p-<id>-<n>.webp): o que mostra o arquivo de verdade. */
+const PAGINAS: Record<string, number[]> = {"arq-briefing":[2,3],"arq-contrato":[2,3],"arq-levantamento":[1,2],"arq-manual":[2,3],"arq-proposta":[2,3],"beleza-anamnese":[2,3],"beleza-antes-depois":[1,2,3],"beleza-biosseguranca":[2],"beleza-carrossel":[1,2,3],"beleza-cartao-agendamento":[2],"beleza-certificado":[1],"beleza-depoimentos":[1,2,3],"beleza-destaques":[1,2,3],"beleza-fim-de-ano":[2,3],"beleza-mensagens":[2],"beleza-politica":[2],"beleza-precos":[1],"beleza-recibo":[2],"beleza-stories-mes":[1,2,3],"beleza-termo":[2,3],"beleza-vale":[1,4],"cab-anamnese":[2,3],"cab-cuidados":[2,3],"cab-tecnica":[2],"cil-mapeamento":[2,3],"dep-ficha":[2,3],"est-avaliacao":[2,3],"est-cuidados":[2,3],"est-protocolo":[2],"free-briefing":[2,3],"free-contrato":[2,3],"free-proposta":[2,3],"mas-ficha":[2,3],"noiva-contrato":[2],"noiva-ficha":[2,3],"noiva-orcamento":[2],"sob-cuidados":[2,3],"sob-visagismo":[2,3],"unha-catalogo":[1,2,3],"unha-cuidados":[2,3]}
+export const paginasDe = (id: string) => (PAGINAS[id] || []).map((n) => `ape/amostras/p-${id}-${n}.webp`)
 export const nomeEstilo = (e: string | null) => ESTILOS.find((x) => x.id === e)?.nome || ''
 /** id que vai para o carrinho: com o estilo, quando o produto tem estilos */
 export const idNoCarrinho = (p: Produto, e: Estilo) => (temEstilos(p) ? `${p.id}--${e}` : p.id)

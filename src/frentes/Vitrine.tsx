@@ -7,7 +7,7 @@ import { APE, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, maxSemJuros, conta, cupomD
 import { AvisoCookies, useCarrinho, useToast, useTravaRolagem } from '../ape/shared'
 import { frente, type FrenteId } from './frentes'
 import { Cabeca, Final, Rodape, Topo, rolar, useReveal, Manchas } from './ui'
-import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, temEstilos, temPrevia, type Estilo } from './estilos'
+import { ESTILOS, ESTILO_PADRAO, comEstilos, estiloDoId, estilosNoCarrinho, idNoCarrinho, imgEstilo, nomeEstilo, paginasDe, temEstilos, temPrevia, type Estilo } from './estilos'
 import './frentes.css'
 
 // checkout, pedido, carrinho e conta só baixam quando a pessoa abre (a vitrine abre mais rápido)
@@ -115,7 +115,7 @@ export function Vitrine({ id, sub }: { id: Id; sub?: string }) {
         minha conta
       </a>
       <a className={`btn small fr-cart ${n ? 'primary is-cheio' : 'ghost'}`} href={href(id, 'loja:carrinho')} aria-label={`Carrinho com ${n} itens`}>
-        <Icon name="box" size={16} />
+        <Icon name="bag" size={16} />
         <span className="num" key={n}>
           {n}
         </span>
@@ -166,11 +166,6 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
   const [usou, setUsou] = useState(() => {
     try { return !!cupom && localStorage.getItem('plane-cupom') === cupom.codigo } catch { return false }
   })
-  // o preço da vitrine já mostra o cupom vigente: ele fica aplicado sozinho, para o carrinho e o checkout mostrarem o mesmo valor
-  useEffect(() => {
-    if (!cupom || usou) return
-    try { if (!localStorage.getItem('plane-cupom')) { localStorage.setItem('plane-cupom', cupom.codigo); setUsou(true) } } catch { /* ok */ }
-  }, [cupom?.codigo])
   const usarCupom = () => {
     if (!cupom) return
     try { localStorage.setItem('plane-cupom', cupom.codigo) } catch { /* ok */ }
@@ -190,7 +185,8 @@ function Loja({ id, aj, ajV, whats, estilo, acoes, pagina, carrinho }: { id: Id;
   const tot = conta(cart.ids, ajV?.produtos || [], 'pix', pixPct, null, cartaoPct)
   const pagProduto = typeof pagina === 'object' ? daqui.find((p) => p.id === pagina.produto) || null : null
   useReveal(root, `${typeof pagina === 'object' ? pagina.produto : pagina}-${daqui.length}`)
-  const ctx: Ctx = { id, daqui, pixPct, cartaoPct, semJ, cupomPct: cupom?.pct || 0, cartIds: cart.ids, add }
+  // a vitrine mostra sempre o preço redondo da tabela (ex.: R$ 19,90 no Pix); o cupom só entra no checkout
+  const ctx: Ctx = { id, daqui, pixPct, cartaoPct, semJ, cupomPct: 0, cartIds: cart.ids, add }
 
   return (
     <div className={`lp fr ${cupom ? 'tem-oferta' : ''}`} ref={root}>
@@ -312,7 +308,16 @@ function Inicio({ ctx, aj, whats }: { ctx: Ctx; aj: Ajustes | null; whats: strin
             <p className="muted small">{T.chip} · até {ctx.semJ}x sem juros · baixa na hora · 7 dias para desistir</p>
           </div>
           <div className="lp-hero-art" aria-hidden>
-            <span className="fr-hero-corte"><img className="fr-hero-solta" src={T.arte} alt="" /></span>
+            {(() => {
+              // topo: três páginas de verdade no estilo delicado, em leque (sem celular, sem mockup)
+              const ids = id === 'arq' ? ['arq-proposta', 'arq-contrato', 'arq-briefing'] : ['beleza-precos', 'beleza-anamnese', 'beleza-stories-mes']
+              const imgs = [imgEstilo(ids[0], 'delicado'), paginasDe(ids[1])[0] || imgEstilo(ids[1], 'delicado'), imgEstilo(ids[2], 'delicado')]
+              return (
+                <span className="fr-hero-leque">
+                  {imgs.map((src, i) => <img key={src} className={`h${i}`} src={src} alt="" decoding="async" />)}
+                </span>
+              )
+            })()}
           </div>
         </div>
       </section>
@@ -624,6 +629,29 @@ function Produtos({ ctx, aj }: { ctx: Ctx; aj: Ajustes | null; whats: string }) 
 const USO: Record<string, [string, string]> = { imprimir: ['printer', 'imprimir'], digital: ['smartphone', 'digital'], ambos: ['layers', 'imprimir e digital'] }
 const comCupom = (p: Produto, pct: number) => fmtPreco(Math.round(reais(p.preco) * (100 - pct)) / 100)
 
+/** Capa do produto: as páginas de verdade (a capa no estilo e uma página de dentro), nunca vários mockups.
+ *  Kit: as capas dos arquivos do kit em leque, com o selo do kit. */
+function Capa({ p, est, fallback, todos }: { p: Produto; est: Estilo; fallback?: string; todos: Produto[] }) {
+  if (p.cat === 'combos') {
+    const itens = (p.combo || []).map((id) => todos.find((x) => x.id === id)).filter((x): x is Produto => !!x && temPrevia(x.id)).slice(0, 3)
+    if (itens.length >= 2)
+      return (
+        <span className="fr-capa fr-capa-kit">
+          {itens.map((x, i) => <img key={x.id} className={`k${i}`} src={imgEstilo(x.id, est)} alt="" loading="lazy" decoding="async" />)}
+          <span className="fr-capa-selo"><b className="num">{(p.combo || []).length}</b> arquivos<em className="num">−{p.kitPct || 0}%</em></span>
+        </span>
+      )
+  }
+  if (!temPrevia(p.id)) return fallback ? <img src={fallback} alt="" loading="lazy" decoding="async" width={1200} height={900} /> : null
+  const dentro = paginasDe(p.id)[0]
+  return (
+    <span className={`fr-capa ${dentro ? 'tem-dentro' : ''}`}>
+      <img key={est} className="frente" src={imgEstilo(p.id, est)} alt="" loading="lazy" decoding="async" />
+      {dentro && <img className="dentro" src={dentro} alt="" loading="lazy" decoding="async" />}
+    </span>
+  )
+}
+
 /** Cartão de produto: abre a página do produto; as bolinhas mostram cada estilo; o "+" põe o estilo escolhido no carrinho. */
 function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean; ctx: Ctx }) {
   const u = p.uso ? USO[p.uso] : null
@@ -638,7 +666,7 @@ function Cartao({ p, i = 0, kit, ctx }: { p: Produto; i?: number; kit?: boolean;
   return (
     <article className={`fr-card ${p.cat === 'combos' ? 'is-kit' : ''} ${kit ? 'is-trilho' : ''}`} data-reveal style={{ transitionDelay: `${Math.min(i, 5) * 0.06}s` }}>
       <a className="fr-card-img" href={link} aria-label={`Ver ${p.nome}`}>
-        {capa && <img key={capa} className={est && previa ? 'is-estilo' : ''} src={capa} alt="" loading="lazy" decoding="async" width={1200} height={900} />}
+        <Capa p={p} est={est || ESTILO_PADRAO} fallback={capa} todos={ctx.daqui} />
         {p.selo && <span className="fr-selo">{p.selo}</span>}
       </a>
       <div className="fr-card-b">
@@ -701,7 +729,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
   const fotos = useMemo(() => {
     const a = p.amostras || []
     // com estilos: a página no estilo escolhido e a cena do produto (as páginas de dentro são do criativo)
-    return previa ? ([imgEstilo(p.id, est), a[0]].filter(Boolean) as string[]) : a
+    return previa ? [imgEstilo(p.id, est), ...paginasDe(p.id)] : a
   }, [p, est, previa])
   const [foto, setFoto] = useState(0)
   useEffect(() => setFoto(0), [est])
@@ -712,7 +740,11 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
   const pixV = Math.round(comCup * (100 - pixPct)) / 100
   const cartV = precoCartao(pixV, cartaoPct)
   const nSJ = maxSemJuros(cartV, semJ)
-  const rel = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && (x.sub === p.sub || x.tipo === p.tipo))).slice(0, 4)
+  // "você também vai gostar": sempre 4 (ou 2) cartões, completando com outros da loja; nunca número ímpar
+  const parecidos = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && (x.sub === p.sub || x.tipo === p.tipo)))
+  const outros = ordenar(ctx.daqui.filter((x) => x.ativo && x.id !== p.id && x.cat !== 'combos' && !parecidos.includes(x)))
+  const relTodos = [...parecidos, ...outros].slice(0, 4)
+  const rel = relTodos.slice(0, relTodos.length - (relTodos.length % 2))
   const u = p.uso ? USO[p.uso] : null
   return (
     <main className="fr-pp">
@@ -783,6 +815,7 @@ function PaginaProduto({ ctx, p, onComprar }: { ctx: Ctx; p: Produto; onComprar:
               <li><Icon name="download" size={16} /> baixa na hora</li>
               <li><Icon name="edit" size={16} /> {/Canva/.test(p.formato || '') ? 'editável no Canva' : /Excel/.test(p.formato || '') ? 'editável no Excel' : /Word/.test(p.formato || '') ? 'editável no Word' : 'editável'}</li>
               <li><Icon name="lock" size={16} /> 7 dias para desistir</li>
+              {estilos && <li><Icon name="gift" size={16} /> presente no 8º dia: os outros 3 estilos</li>}
             </ul>
           </div>
         </div>

@@ -155,6 +155,7 @@ function Area({ conta, whats, onSair, onMudou }: { conta: MinhaConta; whats: str
 
 function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; onMudou: () => void }) {
   const [cancelar, setCancelar] = useState<string | null>(null)
+  const [decidiu, setDecidiu] = useState(false) // passou pela etapa de ajuda (o cancelamento continua a um toque)
   const [motivo, setMotivo] = useState('')
   const [msg, setMsg] = useState('')
   const pedir = async (id: string) => {
@@ -201,13 +202,25 @@ function Compras({ conta, whats, onMudou }: { conta: MinhaConta; whats: string; 
                 {p.status === 'pago' && <a className="ape-btn primary sm" href={href(lojaRota(), `pedido:${p.token}`)}><ApeIcon name="download" />abrir arquivos</a>}
                 {p.status === 'pago' && !p.cortesia && c?.status !== 'pedido' && cancelar !== p.id && <details className="ape-compra-mais"><summary>precisa de ajuda com esta compra?</summary><p className="ape-note">Fale com a gente no WhatsApp ou, se quiser desistir (até 7 dias depois da compra), <button type="button" className="ape-linkish ape-link" onClick={() => setCancelar(p.id)}>peça o cancelamento</button>.</p></details>}
               </div>
-              {cancelar === p.id && (
+              {cancelar === p.id && !decidiu && (
+                <div className="ape-cancelar">
+                  <b>antes de cancelar, posso ajudar?</b>
+                  <p className="ape-note" style={{ margin: 0 }}>A maioria dos problemas se resolve rápido:</p>
+                  <div className="ape-acts" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                    <a className="ape-btn sm" href={wa(whats, `Oi! Comprei o pedido ${p.token?.slice(0, 8) || ''} e não consegui editar. Pode me ajudar?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="chat" />não consegui editar: me ajuda no WhatsApp</a>
+                    <a className="ape-btn sm" href={wa(whats, `Oi! Comprei o pedido ${p.token?.slice(0, 8) || ''} e queria trocar o estilo. Pode trocar?`)} target="_blank" rel="noopener noreferrer"><ApeIcon name="gift" />queria outro estilo: trocar sem custo</a>
+                    <button type="button" className="ape-btn ghost sm" onClick={() => setDecidiu(true)}>é outro motivo: quero cancelar</button>
+                  </div>
+                  {p.status === 'pago' && <p className="ape-note" style={{ margin: 0, fontSize: 12 }}>Lembrete: cancelando, o presente do 8º dia deixa de ser liberado.</p>}
+                </div>
+              )}
+              {cancelar === p.id && decidiu && (
                 <div className="ape-cancelar">
                   <p className="ape-note" style={{ margin: 0 }}>{dias <= 7 ? `Você está dentro dos 7 dias do direito de arrependimento (compra de ${dias} dia${dias === 1 ? '' : 's'} atrás): o reembolso é garantido.` : `A compra foi há ${dias} dias, depois do prazo de 7 dias. O pedido será analisado.`} Com o reembolso, os downloads e o acesso deste pedido são desativados.</p>
                   <div className="ape-f"><label htmlFor={`m-${p.id}`}>Conte o motivo (ajuda a melhorar)</label><textarea id={`m-${p.id}`} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
                   <div className="ape-acts">
                     <button className="ape-btn primary sm" onClick={() => void pedir(p.id)}>enviar pedido</button>
-                    <button className="ape-btn ghost sm" onClick={() => setCancelar(null)}>voltar</button>
+                    <button className="ape-btn ghost sm" onClick={() => { setCancelar(null); setDecidiu(false) }}>voltar</button>
                   </div>
                 </div>
               )}

@@ -342,10 +342,21 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     }
     for (const id of ids) await pasta(id, map[id]?.nome ?? ARQ[id]?.[0] ?? EXTRAS[id]?.[0] ?? id)
     const libera = ped.pago_em ? new Date(new Date(ped.pago_em).getTime() + BONUS_DIAS * 864e5) : null
+    // presente das lojas de arquivos: depois de 7 dias (sem cancelamento), o mesmo arquivo nos outros estilos
+    const presente = !!libera && libera.getTime() <= Date.now() && marca.id !== 'apzinho' && !ped.cancelamento?.status
+    if (presente) {
+      const extra = new Set<string>()
+      for (const id of ids) {
+        const { base, estilo } = estiloDe(id)
+        if (!estilo) continue
+        for (const e of ESTILOS) if (e !== estilo && !ids.includes(`${base}--${e}`) && map[`${base}--${e}`]) extra.add(`${base}--${e}`)
+      }
+      for (const id of extra) await pasta(id, `${map[id]?.nome ?? id} (presente)`)
+    }
     // o bônus (manutenção do 1º ano) é do apê: compra só de outras frentes não tem
     const bonusLiberado = !!libera && libera.getTime() <= Date.now() && marca.id === 'apzinho'
     if (bonusLiberado) await pasta('bonus', 'Bônus - manutenção e garantias do 1º ano')
-    return { arquivos: out, canva: links, bonus: { liberado: bonusLiberado, em: libera?.toISOString() ?? null } }
+    return { arquivos: out, canva: links, bonus: { liberado: bonusLiberado || presente, em: libera?.toISOString() ?? null, tipo: marca.id === 'apzinho' ? 'apzinho' : 'estilos' } }
   }
 
   async function pedido(body: J) {
@@ -460,7 +471,8 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
       .lte('pago_em', new Date(agora - BONUS_DIAS * 864e5).toISOString()).limit(40)
     for (const ped of pagos ?? []) {
       await db.from('ape_pedidos').update({ bonus_email: true }).eq('id', ped.id)
-      const temArq = ((ped.itens ?? []) as J[]).some((i) => i.id !== 'plataforma') && marcaDe(ped.itens ?? []).id === 'apzinho'
+      // apê: calendário de manutenção; arquivos e arq: o mesmo arquivo nos outros estilos
+      const temArq = ((ped.itens ?? []) as J[]).some((i) => i.id !== 'plataforma')
       if (temArq && !ped.cancelamento?.status && (await contaApi.emailBonus(ped).catch(() => false))) bonus++
     }
     const lidos = await lerPendentes().catch(() => 0)

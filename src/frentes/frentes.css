@@ -536,3 +536,52 @@ html, body { overflow-x: clip; }
   .fr-grid .fr-preco small.fr-preco-pix, .fr-kits-trilho .fr-preco small.fr-preco-pix { flex-basis: auto; display: block; font-size: 10.5px; line-height: 1.3; margin: 1px 0 0; }
   .fr-kits-trilho .fr-preco { flex-direction: column; align-items: flex-start; gap: 0; justify-content: center; }
 }
+
+/* ícones dos passos e dos diferenciais: todos no mesmo tom (sem um de cada cor) */
+.fr .lp-diff .lp-diff-ico, .fr .lp-diff:nth-child(even) .lp-diff-ico { background: var(--accent-tint); color: var(--accent-ink); }
+
+/* ===== capa do produto: páginas de verdade, delicado ===== */
+.fr-card-img { aspect-ratio: 4 / 3.1; }
+.fr-capa { position: absolute; inset: 0; display: block; background: linear-gradient(160deg, #f7f0ec, #efe5e0); overflow: hidden; }
+.fr-capa img { position: absolute; top: 9%; height: 82%; width: auto; max-width: none; object-fit: contain; border-radius: 6px; background: #fff; box-shadow: 0 14px 30px -16px rgba(62, 75, 87, .38), 0 1px 2px rgba(62, 75, 87, .08); -webkit-mask-image: none !important; mask-image: none !important; transition: transform .5s cubic-bezier(.2, .7, .2, 1); }
+.fr-capa .frente { left: 50%; transform: translateX(-50%); z-index: 2; }
+.fr-capa.tem-dentro .frente { left: 13%; transform: none; }
+.fr-capa .dentro { right: 11%; top: 13%; height: 76%; z-index: 1; transform: rotate(3deg); }
+@media (hover: hover) {
+  .fr-card:hover .fr-capa.tem-dentro .frente { transform: translateY(-4px) rotate(-1.5deg); }
+  .fr-card:hover .fr-capa .dentro { transform: rotate(5deg) translateX(4px); }
+  .fr-card:hover .fr-card-img .fr-capa img { scale: 1; }
+}
+.fr-card:hover .fr-card-img img.frente, .fr-card:hover .fr-card-img img.dentro { scale: 1; }
+/* kit: três capas em leque e o selo do kit (chama atenção sem poluir) */
+.fr-capa-kit { background: linear-gradient(150deg, #f3e3dd, #e9d6cf 60%, #e3cdc5); }
+.fr-capa-kit img { height: 74%; top: 10%; }
+.fr-capa-kit .k0 { left: 8%; transform: rotate(-7deg); z-index: 1; }
+.fr-capa-kit .k1 { left: 50%; transform: translateX(-50%); z-index: 3; top: 7%; height: 78%; }
+.fr-capa-kit .k2 { right: 8%; transform: rotate(7deg); z-index: 2; }
+.fr-capa-selo { position: absolute; left: 12px; bottom: 12px; z-index: 4; display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px 6px 12px; border-radius: var(--pill); background: var(--slate); color: #fff; font-size: 12px; font-weight: 500; box-shadow: 0 10px 22px -12px rgba(62, 75, 87, .7); }
+.fr-capa-selo b { font-weight: 700; }
+.fr-capa-selo em { font-style: normal; font-weight: 700; background: var(--accent-soft); color: var(--slate); border-radius: var(--pill); padding: 2px 8px; }
+@media (hover: hover) { .fr-card:hover .fr-capa-kit .k0 { transform: rotate(-10deg) translateX(-4px); } .fr-card:hover .fr-capa-kit .k2 { transform: rotate(10deg) translateX(4px); } }
+/* o selo de destaque fica sobre a capa, sem brigar com o selo do kit */
+.fr-card-img .fr-selo { z-index: 5; }
+
+/* topo da vitrine: leque de páginas delicadas */
+.fr-hero-leque { position: relative; display: block; aspect-ratio: 1 / 0.86; max-width: 560px; margin: 0 auto; }
+.fr-hero-leque img { position: absolute; top: 8%; height: 80%; width: auto; border-radius: 10px; background: #fff; box-shadow: 0 30px 60px -30px rgba(62, 75, 87, .45), 0 2px 4px rgba(62, 75, 87, .06); }
+.fr-hero-leque .h0 { left: 2%; transform: rotate(-8deg); z-index: 1; }
+.fr-hero-leque .h1 { left: 50%; top: 4%; height: 86%; transform: translateX(-50%); z-index: 3; }
+.fr-hero-leque .h2 { right: 2%; transform: rotate(8deg); z-index: 2; }
+@media (prefers-reduced-motion: no-preference) {
+  .fr-hero-leque img { animation: fr-abre .9s cubic-bezier(.2, .7, .2, 1) backwards; }
+  .fr-hero-leque .h0 { animation-delay: .15s; } .fr-hero-leque .h2 { animation-delay: .25s; }
+}
+@keyframes fr-abre { from { opacity: 0; translate: 0 24px; } }
+@media (max-width: 720px) { .fr-hero-leque { max-width: 340px; } }
+/* tablet: kits em grade de 2 colunas, dentro das margens (sem fileira cortada na borda) */
+@media (min-width: 521px) and (max-width: 1100px) {
+  .fr-kits-trilho { display: grid; grid-auto-flow: row; grid-template-columns: 1fr 1fr; grid-auto-columns: auto; gap: 16px; overflow: visible; padding: 0; scroll-snap-type: none; -webkit-mask-image: none; mask-image: none; }
+}
+.fr .lp-hero-art:has(.fr-hero-leque) { width: 100%; justify-self: stretch; }
+.fr-hero-leque { width: min(100%, 560px); }
+@media (max-width: 720px) { .fr-hero-leque { width: min(100%, 340px); } }
