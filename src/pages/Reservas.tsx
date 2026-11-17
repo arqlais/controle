@@ -23,6 +23,9 @@ import {
   reformaItensTexto,
   listarConversas,
   listarEventos,
+  listarLeads,
+  apagarLead,
+  type Lead,
   valores,
   servicosDe,
   type Evento,
@@ -241,6 +244,8 @@ export default function Reservas() {
       </Section>
 
       <Conversas reservas={list ?? []} />
+
+      <Incompletos reservas={list ?? []} />
 
       <Acessos reservas={list ?? []} />
 
@@ -924,6 +929,51 @@ function Acessos({ reservas }: { reservas: Reserva[] }) {
             ))}
           </div>
         </div>
+      </div>
+    </Section>
+  )
+}
+
+/** Quem preencheu os dados e não assinou: recebe um lembrete por e-mail (aviso diário) e a RDL pode chamar no WhatsApp. */
+function Incompletos({ reservas }: { reservas: Reserva[] }) {
+  const [leads, setLeads] = useState<Lead[] | null>(null)
+  useEffect(() => {
+    void listarLeads().then(setLeads).catch(() => setLeads([]))
+  }, [])
+  if (!leads) return null
+  const emails = new Set(reservas.map((r) => r.dados.email.toLowerCase()))
+  const abertos = leads.filter((l) => l.dados.email && !emails.has(String(l.dados.email).toLowerCase()))
+  if (!abertos.length) return null
+  return (
+    <Section title={`começaram e não assinaram · ${abertos.length}`} hint="Preencheram os dados e pararam antes de assinar. Cada um recebe um lembrete por e-mail; aqui você pode chamar no WhatsApp.">
+      <div className="rsv-list">
+        {abertos.map((l) => (
+          <div key={l.sessao} className="rsv-row card">
+            <span className="rsv-n">
+              <Icon name="user" size={14} />
+            </span>
+            <span className="rsv-who">
+              <b>{l.dados.nome || 'sem nome'}</b>
+              <small>
+                {l.dados.torre ? `torre ${l.dados.torre}, ` : ''}apto {l.dados.apto} · {l.dados.tel} · {new Date(l.atualizado).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {l.avisado ? ' · lembrete enviado' : ''}
+              </small>
+            </span>
+            {l.dados.tel && (
+              <a
+                className="btn small ghost"
+                href={whatsappLink(String(l.dados.tel), `Oi, ${String(l.dados.nome ?? '').split(' ')[0]}! Tudo bem? Vi que você começou a reserva da vistoria do San Levi e não chegou a assinar. Ficou com alguma dúvida? Posso te ajudar 😊\n${linkReserva()}`)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Icon name="whatsapp" size={14} /> chamar
+              </a>
+            )}
+            <button className="link small" onClick={() => void apagarLead(l.sessao).then(() => setLeads((x) => x?.filter((y) => y.sessao !== l.sessao) ?? null))}>
+              tirar
+            </button>
+          </div>
+        ))}
       </div>
     </Section>
   )

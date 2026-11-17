@@ -34,6 +34,7 @@ import {
   servicosDe,
   valores,
   rastrear,
+  guardarLead,
   origem,
   reassinar,
   REFORMA_ITENS,
@@ -1258,6 +1259,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                   </label>
                 )}
                 {tried && !okDados && <p className="rv-warn">Falta preencher ou conferir os campos marcados em laranja.</p>}
+                <p className="rv-fine">Se precisar parar no meio, mandamos um lembrete para o seu e-mail para você terminar depois.</p>
                 <div className="rv-row">
                   <button className="rv-btn ghost" onClick={() => ir(1)}>
                     <I n="back" /> Voltar
@@ -1268,6 +1270,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                       setTried(true)
                       if (!okDados) return
                       setTried(false)
+                      guardarLead(dc)
                       ir(3)
                     }}
                   >

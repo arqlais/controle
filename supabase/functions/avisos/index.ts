@@ -345,7 +345,7 @@ const RDL_EMAIL = 'roger.rdl76@yahoo.com.br'
 const RDL_FROM = 'RDL Engenharia'
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const dBR = (iso?: string) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '')
-type RdlRow = { id: string; token: string; criado: string; dados: Record<string, unknown>; status: Record<string, string>; cancelada: boolean; avisos?: Record<string, string> }
+type RdlRow = { id: string; token: string; criado: string; dados: Record<string, unknown>; status: Record<string, string>; cancelada: boolean; avisos?: Record<string, string>; contrato?: Record<string, unknown> }
 const rdlSub = (id: string, email: string, name: string): Sub => ({ user_id: id, email, name, plan: '', status: '', trial_ends: '', blocked: false })
 // deno-lint-ignore no-explicit-any
 async function rdlCfg(db: any): Promise<RdlCfg> {
@@ -357,6 +357,19 @@ async function rdlCfg(db: any): Promise<RdlCfg> {
     /* usa o padrão */
   }
   return cfg
+}
+function rdlAbandono(nome: string, servicos: string) {
+  const pn = esc(nome.split(' ')[0] || '')
+  return {
+    subject: 'Faltou só assinar · vistoria do San Levi',
+    html: rdlLayout({
+      eyebrow: 'faltou pouco',
+      title: `${pn ? `${pn}, ` : ''}você parou bem no final`,
+      text: `<p style="margin:0 0 12px;">Vimos que você começou a reserva${servicos ? ` (${esc(servicos)})` : ''} e não chegou a assinar. Seus dados ficaram salvos no aparelho que você usou.</p><p style="margin:0;">Ficou com alguma dúvida? É só responder este e-mail ou chamar no WhatsApp. ${'Quem reserva antes escolhe o horário antes.'}</p>`,
+      button: 'Terminar a minha reserva',
+      url: `${SITE}vistoria/#reservar`,
+    }),
+  } as Mail
 }
 /** Aviso diário da RDL: lembrete do sinal no 5º dia e e-mail de quem foi cancelado por falta de sinal. */
 // deno-lint-ignore no-explicit-any
@@ -371,13 +384,43 @@ async function rdlDiario(db: any) {
     const st = (r.status ?? {}) as Record<string, string>
     const av = r.avisos ?? {}
     const idade = (Date.now() - new Date(r.criado).getTime()) / 864e5
-    const k = r.cancelada && st.expirada ? 'expirada' : !r.cancelada && !st.sinal && idade >= 5 ? 'lembrete-auto' : ''
+    const amanha = new Date(Date.now() + 864e5 - 3 * 36e5).toISOString().slice(0, 10)
+    const cv = ((r.contrato ?? {}) as { versao?: number }).versao ?? 1
+    // um aviso por vez, do mais importante para o menos
+    const k = r.cancelada
+      ? st.expirada ? 'expirada' : ''
+      : !st.sinal && idade >= 6 ? 'ultimo'
+      : !st.sinal && idade >= 5 ? 'lembrete-auto'
+      : !st.sinal && idade >= 2 ? 'lembrete2'
+      : st.data === amanha ? `vespera:${st.data}`
+      : cv < 2 ? 'contratoNovo'
+      : ''
     if (!k || av[k]) continue
     const to = String((r.dados as Record<string, string>).email ?? '').trim()
     if (!isMail(to)) continue
+    const qual = k.startsWith('vespera') ? 'vespera' : k === 'lembrete-auto' ? 'lembrete' : k
     try {
-      await send(rdlSub(r.id, to, String((r.dados as Record<string, string>).nome ?? '')), rdlMails(r, cfg, grupo)[k === 'expirada' ? 'expirada' : 'lembrete'], RDL_EMAIL, RDL_FROM)
+      await send(rdlSub(r.id, to, String((r.dados as Record<string, string>).nome ?? '')), rdlMails(r, cfg, grupo)[qual], RDL_EMAIL, RDL_FROM)
       await db.from('rdl_reservas').update({ avisos: { ...av, [k]: new Date().toISOString() } }).eq('id', r.id)
+      n++
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  // quem preencheu os dados e não assinou (há mais de 2 horas): um lembrete só
+  const { data: leads } = await db.from('rdl_leads').select('*').is('avisado', null).lt('atualizado', new Date(Date.now() - 2 * 36e5).toISOString())
+  for (const l of (leads ?? []) as { sessao: string; dados: Record<string, unknown> }[]) {
+    const ld = l.dados as { nome?: string; email?: string; servicos?: { vistoria?: boolean; reforma?: boolean } }
+    const to = String(ld.email ?? '').trim().toLowerCase()
+    const assinou = rows.some((r) => String((r.dados as Record<string, string>).email ?? '').toLowerCase() === to)
+    if (assinou || !isMail(to)) {
+      await db.from('rdl_leads').update({ avisado: new Date().toISOString() }).eq('sessao', l.sessao)
+      continue
+    }
+    try {
+      const sv = ld.servicos ?? {}
+      await send(rdlSub(l.sessao, to, String(ld.nome ?? '')), rdlAbandono(String(ld.nome ?? ''), [sv.vistoria !== false ? 'vistoria' : '', sv.reforma ? 'ART de reforma' : ''].filter(Boolean).join(' + ')), RDL_EMAIL, RDL_FROM)
+      await db.from('rdl_leads').update({ avisado: new Date().toISOString() }).eq('sessao', l.sessao)
       n++
     } catch (e) {
       console.error(e)
@@ -544,6 +587,50 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
         rows: [...base, ['valor', brl(Number(rf.valor ?? 0))], ['WhatsApp', String(d.tel ?? '')]],
         button: 'Abrir o sistema da RDL',
         url: `${SITE}rdl/`,
+      }),
+    },
+    lembrete2: {
+      subject: `Sua reserva está quase garantida · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'falta pouco',
+        title: `${esc(pn)}, falta só o Pix`,
+        text: `<p style="margin:0 0 12px;">O seu contrato já está assinado. Para garantir ${temVist ? 'a sua vaga na agenda' : 'a sua ART de reforma'}, falta o pagamento de <b>${brl(metade)}</b>${cfg.pix ? ` no Pix <b>${esc(cfg.pix)}</b>` : ''}.</p><p style="margin:0;">Você tem até 7 dias depois da assinatura. ${temVist ? 'Lembrando: os horários seguem a ordem de pagamento.' : ''}</p>`,
+        rows: base,
+        button: 'Ver o Pix no meu painel',
+        url: painel,
+      }),
+    },
+    ultimo: {
+      subject: `Último dia para garantir: ${un}`,
+      html: rdlLayout({
+        eyebrow: 'último dia',
+        title: 'Hoje é o último dia do prazo',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O prazo para o pagamento de <b>${brl(metade)}</b> termina hoje. Depois disso, a reserva é cancelada sozinha, sem custo.</p><p style="margin:0;">Se já pagou, é só responder este e-mail com o comprovante.</p>`,
+        rows: base,
+        button: 'Pagar pelo meu painel',
+        url: painel,
+      }),
+    },
+    vespera: {
+      subject: `Amanhã é a sua vistoria${s.hora ? ` às ${s.hora}` : ''}`,
+      html: rdlLayout({
+        eyebrow: 'lembrete da vistoria',
+        title: `Amanhã${s.hora ? `, às ${s.hora}` : ''}`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Amanhã é a vistoria de entrega do seu apê. Para dar tudo certo:</p><p style="margin:0;">• confirme com a MRV que água e luz estarão ligadas<br>• você ou alguém de confiança acompanha a vistoria<br>• leve o restante de <b>${brl(cfg.preco / 2)}</b> (Pix ou cartão)<br>• se tiver a planta e o manual do proprietário, leve também</p>`,
+        rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
+        button: 'Abrir o meu painel',
+        url: painel,
+      }),
+    },
+    contratoNovo: {
+      subject: 'Atualizamos o seu contrato da vistoria',
+      html: rdlLayout({
+        eyebrow: 'contrato atualizado',
+        title: `${esc(pn)}, temos uma versão nova do contrato`,
+        text: `<p style="margin:0 0 12px;">Deixamos as condições mais claras (prazo do pagamento, grupo de 10, revistoria) e agora dá para incluir a <b>ART de reforma</b> no mesmo contrato, se você for fazer obra no apê.</p><p style="margin:0;">É só abrir o painel, ler e assinar a nova versão. Leva um minuto.</p>`,
+        rows: base,
+        button: 'Ver e assinar o contrato novo',
+        url: painel,
       }),
     },
     rdl: {

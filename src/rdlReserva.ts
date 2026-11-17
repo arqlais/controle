@@ -505,6 +505,38 @@ export function origem() {
   }
 }
 const aparelho = () => (/iPad|Tablet/i.test(navigator.userAgent) ? 'tablet' : /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'celular' : 'computador')
+/** Guarda o contato de quem preencheu os dados (para o lembrete de "faltou assinar" e para a RDL chamar). */
+export function guardarLead(d: Partial<ReservaDados>) {
+  if (!supabase) return
+  try {
+    if (sessionStorage.getItem('rdl-teste') === '1') return
+  } catch {
+    /* ok */
+  }
+  void supabase
+    .rpc('rdl_lead', { p_sessao: sessao(), p_dados: { nome: d.nome, email: d.email, tel: d.tel, torre: d.torre, apto: d.apto, servicos: d.servicos, cpf: (d.cpf ?? '').replace(/\D/g, '').slice(-4) } })
+    .then(
+      () => undefined,
+      () => undefined,
+    )
+}
+export interface Lead {
+  sessao: string
+  dados: { nome?: string; email?: string; tel?: string; torre?: string; apto?: string; servicos?: { vistoria: boolean; reforma: boolean } }
+  criado: string
+  atualizado: string
+  avisado: string | null
+}
+export async function listarLeads(): Promise<Lead[]> {
+  if (!supabase) return []
+  const { data } = await supabase.from('rdl_leads').select('*').order('atualizado', { ascending: false })
+  return (data ?? []) as Lead[]
+}
+export async function apagarLead(sessaoId: string) {
+  if (!supabase) return
+  await supabase.from('rdl_leads').delete().eq('sessao', sessaoId)
+}
+
 export function rastrear(evento: string, dados: Record<string, string | number | boolean> = {}) {
   if (!supabase) return
   try {
