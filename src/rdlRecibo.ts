@@ -1,6 +1,6 @@
 import { RDL_LOGO } from './rdlLogo'
 import { ASSINATURA_RDL } from './rdlAssinatura'
-import { RDL_INFO, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
+import { RDL_INFO, linkPainel, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
 
 /* Recibo do sinal da vistoria, no mesmo visual da proposta enviada aos moradores (azul-marinho, laranja, Poppins).
    Vira imagem (PNG, para mandar no WhatsApp) e PDF (A4). */
@@ -33,10 +33,15 @@ export function porExtenso(v: number) {
   return t || 'zero reais'
 }
 
+/** Valores com o preço da ART de reforma que a RDL já mandou (quando houver). */
+const valoresR = (r: Reserva, cfg: ReservaConfig) => valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, cfg)
+/** O que entra na ART de reforma (os serviços que o morador informou). */
+const itensReforma = (r: Reserva) => (r.status.reforma?.itens ?? r.dados.reformaItens ?? []).join(', ').toLowerCase()
+
 export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
   const d = r.dados
   const sv = servicosDe(d)
-  const v = valores(d, cfg)
+  const v = valoresR(r, cfg)
   const pago = v.agora
   const resta = v.total - pago
   const quando = dBR(r.status.sinal) || dBR(new Date().toISOString())
@@ -44,7 +49,7 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
   const num = r.id.slice(0, 8).toUpperCase()
   const linhas = [
     sv.vistoria && ['Vistoria de entrega das chaves', 'engenheiro civil, laudo com fotos e ART', brl(v.vistoria)],
-    sv.reforma && ['ART de reforma + plano de reforma', 'para o condomínio liberar a obra', brl(v.reforma)],
+    sv.reforma && ['ART de reforma + plano de reforma', itensReforma(r) ? `cobre só: ${itensReforma(r)}` : 'cobre só os serviços informados', brl(v.reforma)],
     sv.vistoria && d.revistoria && ['Revistoria (combinada)', `paga no dia da revistoria`, `${brl(cfg.revistoria)} à parte`],
   ].filter(Boolean) as string[][]
   const passos: [string, string, boolean][] = [
@@ -166,12 +171,30 @@ export async function reciboPdf(png: Blob): Promise<Blob> {
   return doc.output('blob')
 }
 
-/** Mensagem padrão de agradecimento e confirmação (WhatsApp). */
+/** Mensagem única de agradecimento + vaga garantida, enviada junto com o recibo (WhatsApp). */
 export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
   const d = r.dados
   const sv = servicosDe(d)
-  const v = valores(d, cfg)
+  const v = valoresR(r, cfg)
   const nome = d.nome.split(' ')[0]
-  const serv = [sv.vistoria && 'vistoria de entrega das chaves', sv.reforma && 'ART de reforma'].filter(Boolean).join(' e ')
-  return `Oi, ${nome}! Tudo bem? Aqui é o Rogério, da RDL Engenharia. 😊\n\nRecebi o seu pagamento de *${brl(v.agora)}*, muito obrigado! Está confirmado:\n\n✅ ${serv}\n🏢 ${cfg.empreendimento.replace(/\s*\(.*\)/, '')} · ${unidade(d)}\n📝 Contrato nº ${r.id.slice(0, 8).toUpperCase()}, assinado por nós dois\n💳 Restante: ${brl(v.total - v.agora)}${sv.vistoria ? ' no dia da vistoria' : ''}\n\n📅 Quando a MRV liberar as datas, me avise *antes* de confirmar o horário com ela, para combinarmos juntos.\n\nSegue o recibo. Qualquer dúvida, é só chamar por aqui!`
+  const itens = itensReforma(r)
+  const serv = [sv.vistoria && `vistoria de entrega das chaves${d.revistoria ? ` (revistoria ${brl(cfg.revistoria)} no dia, se precisar)` : ''}`, sv.reforma && `ART de reforma${itens ? ` (${itens})` : ''}`].filter(Boolean).join(' + ')
+  const restV = v.vistoria - v.sinalVistoria
+  const restR = v.reforma - v.sinalReforma
+  const resto = [restV && `${brl(restV)} no dia da vistoria`, restR && `${brl(restR)} na entrega da ART`].filter(Boolean).join(' e ')
+  const linhas = [
+    `Oi, ${nome}! Aqui é o Rogério, da RDL Engenharia. Recebi seu Pix de *${brl(v.agora)}*, obrigado! Sua reserva está confirmada 😊`,
+    '',
+    `✅ ${serv}`,
+    `🏢 ${cfg.empreendimento.replace(/\s*\(.*\)/, '')} · ${unidade(d)}`,
+    `📝 Contrato nº ${r.id.slice(0, 8).toUpperCase()}, assinado por nós dois`,
+    resto && `💳 Restante: ${resto}`,
+    '',
+    sv.vistoria && '📅 Quando a MRV liberar as datas, me avise *antes* de confirmar o horário com eles.',
+    sv.reforma && '📐 A ART cobre só os serviços informados. Se mudar algo na obra, me avise antes.',
+    `Seu painel: ${linkPainel(r)}`,
+    '',
+    'Segue o recibo 👇',
+  ]
+  return linhas.filter((l) => typeof l === 'string').join('\n').replace(/\n{3,}/g, '\n\n')
 }

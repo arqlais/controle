@@ -454,16 +454,6 @@ function Detalhe({
                 <span className="muted small">A reserva cancela sozinha se o sinal não entrar em 7 dias (no 5º dia sai um lembrete automático).</span>
               </div>
             )}
-            {s.sinal && (
-              <div className="row gap-s wrap">
-              <button className="btn small ghost" onClick={() => zap(msg.confirmado)}>
-                <Icon name="whatsapp" size={14} /> avisar que a vaga está garantida
-              </button>
-              <button className="btn small ghost" onClick={() => copiarMsg(msg.confirmado)} title="Copiar a mensagem">
-                <Icon name="copy" size={14} /> copiar mensagem
-              </button>
-              </div>
-            )}
           </li>
           <li className={s.data ? 'done' : s.sinal ? 'now' : ''}>
             <b>2 · data da vistoria</b>
