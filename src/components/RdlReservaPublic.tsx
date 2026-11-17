@@ -734,9 +734,20 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             <a className="rv-btn" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (topo)' })}>
               <I n="key" /> Reservar minha vistoria
             </a>
-            <a className="rv-btn ghost" href="#por-que" onClick={(e) => (e.preventDefault(), document.getElementById('por-que')?.scrollIntoView({ behavior: 'smooth' }))}>
-              Entender primeiro
+            <a className="rv-link rv-hero-link" href="#valores" onClick={(e) => (e.preventDefault(), document.getElementById('valores')?.scrollIntoView({ behavior: 'smooth' }))}>
+              Ver valores e serviços <I n="arrow" s={14} />
             </a>
+          </div>
+          <div className="rv-trust">
+            <span>
+              <I n="shield" s={15} /> <span>Engenheiro civil · CREA-SP</span>
+            </span>
+            <span>
+              <I n="doc" s={15} /> <span>Laudo com fotos em 4 dias úteis</span>
+            </span>
+            <span>
+              <I n="users" s={15} /> <span>{n} de {cfg.minimo} vagas do grupo</span>
+            </span>
           </div>
         </section>
 
@@ -746,9 +757,65 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </a>
         )}
 
+        <section className="rv-offers" id="valores" data-sec="valores">
+          <div className="rv-sec-head">
+            <small>VALORES EXCLUSIVOS DO SAN LEVI</small>
+            <h2>Escolha o que você precisa</h2>
+            <p>São serviços separados: dá para contratar só um, só o outro ou os dois.</p>
+          </div>
+          <div className="rv-offer hi">
+            <span className="tag">MAIS PROCURADO</span>
+            <div className="rv-offer-head">
+              <span className="ib">
+                <I n="key" s={20} />
+              </span>
+              <div>
+                <em className="quando">ANTES DE RECEBER AS CHAVES</em>
+                <b>Vistoria de entrega das chaves</b>
+                <small>O engenheiro confere o apê com você e o laudo com fotos e ART mostra o que a MRV precisa consertar.</small>
+              </div>
+            </div>
+            <div className="rv-offer-price">
+              <strong>{brl(cfg.preco)}</strong>
+              <span>
+                valor de grupo · sinal de {brl(metade)}
+                <br />
+                individual: {brl(cfg.individual)}
+              </span>
+            </div>
+            <a className="rv-btn light" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (valores)' })}>
+              Reservar minha vistoria <I n="arrow" />
+            </a>
+          </div>
+          <div className="rv-offer navy">
+            <div className="rv-offer-head">
+              <span className="ib">
+                <I n="hammer" s={20} />
+              </span>
+              <div>
+                <em className="quando">ANTES DE FAZER OBRA NO APÊ</em>
+                <b>ART de reforma</b>
+                <small>O condomínio exige para liberar a obra: ART no CREA + plano de reforma. A obra é com o pedreiro que você escolher.</small>
+              </div>
+            </div>
+            <div className="rv-offer-price">
+              <strong>
+                <em>a partir de</em> {brl(REFORMA_MIN)}
+              </strong>
+              <span>piso, armários, gesso, iluminação… o valor depende do que você vai fazer</span>
+            </div>
+            <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/so-reforma'} onClick={() => rastrear('clicou', { alvo: 'ART de reforma' })}>
+              Simular e contratar <I n="arrow" />
+            </a>
+          </div>
+        </section>
+
+        <Grupo n={n} cfg={cfg} />
+
+
         <section className="rv-card" id="por-que" data-sec="por que fazer">
           <h2 className="rv-h2">
-            <I n="shield" s={18} /> Por que fazer a vistoria?
+            <I n="shield" s={18} /> Por que fazer a vistoria
           </h2>
           <div className="rv-reasons">
             {[
@@ -778,115 +845,10 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </div>
         </section>
 
-        <section className="rv-card" data-sec="diferença">
-          <h2 className="rv-h2">
-            <I n="info" s={18} /> Vistoria ou ART de reforma? Qual a diferença
-          </h2>
-          <div className="rv-diff">
-            <div>
-              <span className="ib">
-                <I n="key" s={18} />
-              </span>
-              <b>Vistoria de entrega</b>
-              <small>ANTES DE RECEBER AS CHAVES</small>
-              <ul>
-                <li>O engenheiro confere o apê com você</li>
-                <li>Aponta o que a MRV precisa consertar, dentro da garantia</li>
-                <li>Laudo com fotos + ART da vistoria</li>
-              </ul>
-            </div>
-            <div>
-              <span className="ib navy">
-                <I n="hammer" s={18} />
-              </span>
-              <b>ART de reforma</b>
-              <small>ANTES DE FAZER OBRA NO APÊ</small>
-              <ul>
-                <li>O condomínio exige para liberar a obra</li>
-                <li>ART registrada no CREA + plano de reforma</li>
-                <li>A obra é feita pelo pedreiro que você escolher</li>
-              </ul>
-            </div>
-          </div>
-          <p className="rv-diff-note">
-            <I n="check" s={14} /> São independentes: dá para contratar só um, só o outro ou os dois juntos.
-          </p>
-        </section>
-
         <div data-sec="o que recebe">
           <Mockups />
         </div>
 
-        <Grupo n={n} cfg={cfg} />
-
-        <section className="rv-offers" data-sec="valores">
-          <h2 className="rv-h2">
-            <I n="star" s={18} /> Valores exclusivos do San Levi
-          </h2>
-          <div className="rv-offer hi">
-            <span className="tag">MAIS PROCURADO</span>
-            <div className="rv-offer-head">
-              <span className="ib">
-                <I n="key" s={20} />
-              </span>
-              <div>
-                <b>Vistoria de entrega das chaves</b>
-                <small>Engenheiro civil + laudo com fotos + ART</small>
-              </div>
-            </div>
-            <div className="rv-offer-price">
-              <strong>{brl(cfg.preco)}</strong>
-              <span>
-                valor de grupo · sinal de {brl(metade)}
-                <br />
-                individual: {brl(cfg.individual)}
-              </span>
-            </div>
-            <a className="rv-btn light" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (valores)' })}>
-              Reservar minha vistoria <I n="arrow" />
-            </a>
-          </div>
-          <div className="rv-offer navy">
-            <div className="rv-offer-head">
-              <span className="ib">
-                <I n="hammer" s={20} />
-              </span>
-              <div>
-                <b>ART de reforma</b>
-                <small>Para o condomínio liberar a sua obra: ART + plano de reforma. A obra é com o seu pedreiro.</small>
-              </div>
-            </div>
-            <div className="rv-offer-price">
-              <strong>
-                <em>a partir de</em> {brl(REFORMA_MIN)}
-              </strong>
-              <span>piso, armários, gesso, iluminação… o valor depende do que você vai fazer</span>
-            </div>
-            <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/so-reforma'} onClick={() => rastrear('clicou', { alvo: 'ART de reforma' })}>
-              Simular e contratar <I n="arrow" />
-            </a>
-          </div>
-          <a className="rv-offer plain" href="ape/" target="_blank" rel="noreferrer" onClick={() => rastrear('clicou', { alvo: 'loja' })}>
-            <div className="rv-offer-head">
-              <span className="ib">
-                <I n="bag" s={20} />
-              </span>
-              <div>
-                <b>Guias e planilhas para o apê</b>
-                <small>Da planê.apê: planilha de obra, medidas dos móveis, marcenaria, pisos e mais</small>
-              </div>
-            </div>
-            <div className="rv-offer-price">
-              <strong>
-                <em>a partir de</em> R$ 12,90
-              </strong>
-              <span>baixa na hora</span>
-            </div>
-            <em className="go">
-              Conhecer a loja <I n="arrow" s={13} />
-            </em>
-          </a>
-        </section>
 
         <section className="rv-card" data-sec="como funciona">
           <h2 className="rv-h2">
@@ -995,6 +957,32 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             <I n="help" /> Não achou? Pergunte aqui
           </button>
 
+        </section>
+
+        <section className="rv-after" data-sec="loja">
+          <p className="rv-after-t">
+            <I n="bag" s={15} /> <span>Depois das chaves</span>
+          </p>
+          <a className="rv-offer plain mini" href="ape/" target="_blank" rel="noreferrer" onClick={() => rastrear('clicou', { alvo: 'loja' })}>
+            <div className="rv-offer-head">
+              <span className="ib">
+                <I n="bag" s={20} />
+              </span>
+              <div>
+                <b>Guias e planilhas para o apê</b>
+                <small>Da planê.apê: planilha de obra, medidas dos móveis, marcenaria, pisos e mais</small>
+              </div>
+            </div>
+            <div className="rv-offer-price">
+              <strong>
+                <em>a partir de</em> R$ 12,90
+              </strong>
+              <span>baixa na hora</span>
+            </div>
+            <em className="go">
+              Conhecer a loja <I n="arrow" s={13} />
+            </em>
+          </a>
         </section>
 
         <a className="rv-btn wide3 big" href={reservar} data-sec="fim da página" onClick={() => rastrear('clicou', { alvo: 'reservar (fim)' })}>

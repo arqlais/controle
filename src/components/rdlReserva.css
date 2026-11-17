@@ -3304,3 +3304,46 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 @media (min-width: 720px) { .rv-chips { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .rv-chips > span { border-radius: 10px; padding: 7px 9px; min-width: 0; }
 .rv-chips > span > span { background: none; padding: 0; border-radius: 0; display: inline; color: inherit; font-size: inherit; line-height: 1.25; }
+/* ícones padronizados: sempre o mesmo quadrinho (fundo azul bem claro, traço azul-marinho).
+   O laranja fica só para botões, etiquetas e destaques. */
+.rv .ib,
+.rv .rv-reasons > div:nth-child(even) .ib,
+.rv .rv-how li:nth-child(even) .ib,
+.rv .ib.navy,
+.rv .rv-now-head .ib,
+.rv .rv-now.ok .rv-now-head .ib,
+.rv .rv-doc .ib,
+.rv .rv-doc.ok .ib,
+.rv .rv-group-head .ib,
+.rv .rv-group.ok .rv-group-head .ib,
+.rv .rv-pick .ib,
+.rv .rv-offer.plain .rv-offer-head .ib {
+  background: #eaf0f8;
+  color: var(--navy);
+  box-shadow: none;
+  border: 0;
+}
+.rv .rv-now.off .rv-now-head .ib,
+.rv .rv-doc:not(.ok) .ib { background: #f1f2f5; color: #9aa3b6; }
+.rv .rv-offer.hi .rv-offer-head .ib,
+.rv .rv-offer.navy .rv-offer-head .ib { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.rv .rv-io .no .ib { background: #f1f2f5; color: #7a7f92; }
+.rv .rv-how .n { background: var(--navy); color: #fff; }
+
+/* hierarquia: o bloco principal (valores) com título grande; os outros mais leves */
+.rv-sec-head { text-align: center; margin: 4px 0 14px; display: grid; gap: 4px; }
+.rv-sec-head small { font-size: 11px; letter-spacing: 0.16em; color: var(--or); font-weight: 700; }
+.rv-sec-head h2 { margin: 0; font-size: clamp(22px, 6vw, 28px); line-height: 1.15; color: var(--navy); letter-spacing: -0.02em; }
+.rv-sec-head p { margin: 0; color: var(--txt); font-size: 14px; }
+.rv-offer-head .quando { display: block; font-style: normal; font-size: 10.5px; letter-spacing: 0.12em; font-weight: 700; opacity: 0.85; margin-bottom: 2px; }
+.rv-trust { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 16px; }
+.rv-trust > span { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: 11.5px; line-height: 1.25; color: var(--navy); font-weight: 600; background: rgba(255, 255, 255, 0.7); border-radius: 12px; padding: 8px 6px; }
+.rv-trust .rv-i { color: var(--or); }
+.rv-after { display: grid; gap: 8px; }
+.rv-after-t { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; color: var(--mut); }
+.rv-offer.mini { padding: 14px; }
+.rv-offer.mini .rv-offer-price strong { font-size: 20px; }
+.rv-hero-link { width: 100%; justify-content: center; margin-top: 4px; }
+.rv-pix .rv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.rv-pix .rv-row .rv-btn { background: #fff; border: 1px solid #dfe4ec; color: var(--navy); justify-content: center; min-height: 40px; }
+@media (max-width: 440px) { .rv-pick .rv-pick-head > .ib { display: none; } }
