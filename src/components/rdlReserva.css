@@ -3225,11 +3225,8 @@ html.rv-root body {
 @media (max-width: 819px) {
   .rv-mock-stage {
     min-height: 0;
-    height: 440px;
+    height: 400px;
     justify-content: center;
-  }
-  .rv-paper-item:nth-child(6) {
-    display: none;
   }
   .rv-phone {
     width: 186px;

@@ -484,7 +484,6 @@ function Mockups() {
     ['Banheiro', 'Ralo sem caimento: água empoça perto do box', 'banheiro-piso'],
     ['Sala', 'Piso com desnível de 6 mm perto da janela', 'sala-piso'],
     ['Cozinha', 'Tomada da bancada sem energia', 'cozinha-bancada'],
-    ['Quarto 1', 'Porta raspando no batente', 'quarto-portas'],
   ]
   return (
     <section className="rv-card rv-mock">
@@ -512,7 +511,7 @@ function Mockups() {
               <span>LAUDO DE VISTORIA</span>
             </div>
             <div className="rv-paper-res">
-              <span className="tag">REPROVADA</span> 4 itens para a MRV consertar
+              <span className="tag">COM RESSALVAS</span> 3 itens para a MRV consertar
             </div>
             {itens.map(([amb, txt, ic], k) => (
               <div key={k} className="rv-paper-item">
