@@ -370,6 +370,17 @@ export function reservaTeste(etapa: 'reserva' | 'sinal' | 'data' | 'laudo', c: R
 }
 
 /** E-mail da etapa para o morador (e, na reserva, para a RDL), pelo remetente da planê com a identidade da RDL. Nunca trava a tela. */
+/** Manda a chave Pix por e-mail para quem assinou e ainda não pagou (uma vez por reserva), com cópia para a dona. */
+export async function enviarChavePix(): Promise<string[] | null> {
+  if (!supabase) return null
+  try {
+    const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl-pix' } })
+    return error ? null : ((data as { enviados?: string[] })?.enviados ?? [])
+  } catch {
+    return null
+  }
+}
+
 export async function avisarEmail(evento: 'pago' | 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
   if (!supabase) return false
   try {

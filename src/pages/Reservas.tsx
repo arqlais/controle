@@ -15,6 +15,7 @@ import {
   CONFIG_PADRAO,
   atualizarReserva,
   avisarEmail,
+  enviarChavePix,
   dataCurta,
   lerConfig,
   linkPainel,
@@ -239,6 +240,9 @@ export default function Reservas() {
             <a className="btn small ghost" href={`${linkPainelBase()}#/vistoria/teste`} target="_blank" rel="noreferrer">
               <Icon name="eye" size={14} /> testar como morador
             </a>
+            <button className="btn small ghost" onClick={() => void enviarChavePix().then((l) => toast(l === null ? 'Não foi. Tente de novo.' : l.length ? `Chave Pix enviada para: ${l.join(', ')}.` : 'Todo mundo que falta pagar já recebeu a chave.'))}>
+              <Icon name="send" size={14} /> mandar a chave Pix a quem falta pagar
+            </button>
             <button className="btn small ghost" onClick={() => openRdlDoc(checklistHtml())}>
               <Icon name="printer" size={14} /> checklist em branco
             </button>

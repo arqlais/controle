@@ -460,6 +460,8 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const pn = nome.split(' ')[0]
   const un = `${d.torre ? `torre ${d.torre}, ` : ''}apto ${d.apto}`
   const painel = `${SITE}#/vistoria/${r.id}.${r.token}`
+  const fimPix = new Date(new Date(r.criado).getTime() + 7 * 864e5)
+  const prazoPix = fimPix.getTime() > Date.now() ? fimPix.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : ''
   const svc = (d.servicos as unknown as { vistoria?: boolean; reforma?: boolean } | undefined) ?? {}
   const temVist = svc.vistoria !== false
   const temRef = !!svc.reforma
@@ -558,6 +560,20 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
         rows: base,
         button: 'Reservar de novo',
         url: `${SITE}vistoria/`,
+      }),
+    },
+    pix: {
+      subject: `Chave Pix para garantir a sua vistoria · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'chave pix',
+        title: 'Aqui está a chave Pix da RDL',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Como combinado, segue a chave Pix para o pagamento de <b>${brl(metade)}</b> que garante a sua ${temVist ? 'vistoria' : 'ART de reforma'}${prazoPix ? `, até <b>${prazoPix}</b>` : ''}.</p>
+<div style="margin:0 0 14px;padding:14px 16px;border-radius:12px;background:#F1F4F9;border:1px solid #DCE3EE;"><div style="font-size:11px;letter-spacing:1.5px;color:#7A7F92;font-weight:600;">CHAVE PIX ALEATÓRIA · RDL ENGENHARIA</div><div style="font-size:16px;font-weight:700;color:#012C60;word-break:break-all;margin-top:4px;">${esc(cfg.pix)}</div></div>
+<p style="margin:0 0 8px;">No app do banco: <b>Pix → Pagar → Chave</b>, cole a chave e digite ${brl(metade)}. Se preferir, o seu painel tem o <b>Pix copia e cola</b>, que já vem com o valor.</p>
+<p style="margin:0;">Depois de pagar, toque em <b>Já paguei</b> no painel. O Rogério confere e confirma, e você recebe o e-mail com tudo para acompanhar.</p>`,
+        rows: [...base, ['valor', brl(metade)]],
+        button: 'Abrir o meu painel',
+        url: painel,
       }),
     },
     pago: {
@@ -904,6 +920,38 @@ Deno.serve(async (req) => {
       console.error(e)
       return json({ ok: false })
     }
+  }
+
+  if (tipo === 'rdl-pix') {
+    // manda a chave Pix para quem assinou e ainda não pagou (uma vez por reserva), com cópia para a dona.
+    // Quem pede: a RDL logada, a dona ou a rotina do GitHub (chave de serviço).
+    const servico = token === env('SUPABASE_SERVICE_ROLE_KEY')
+    const mail = String(who?.user?.email ?? '').toLowerCase()
+    if (!servico && !isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
+    const cfg = await rdlCfg(db)
+    if (!cfg.pix) return json({ ok: false, motivo: 'sem chave Pix' })
+    const { data: rows } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
+    const { count: grupo } = await db.from('rdl_reservas').select('id', { count: 'exact', head: true }).eq('cancelada', false)
+    const enviados: string[] = []
+    for (const r of (rows ?? []) as RdlRow[]) {
+      const st = r.status ?? {}
+      const avisos = r.avisos ?? {}
+      if (st.sinal || avisos['pix-chave']) continue
+      const to = String((r.dados as Record<string, string>).email ?? '').trim()
+      const nome = String((r.dados as Record<string, string>).nome ?? '')
+      if (!isMail(to)) continue
+      const m = rdlMails(r, cfg, grupo ?? 0).pix
+      try {
+        await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
+        await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
+        await db.from('rdl_reservas').update({ avisos: { ...avisos, 'pix-chave': new Date().toISOString() } }).eq('id', r.id)
+        enviados.push(nome)
+      } catch (e) {
+        console.error(e)
+        lastError = String(e instanceof Error ? e.message : e).slice(0, 240)
+      }
+    }
+    return json({ ok: true, enviados, erro: lastError || undefined })
   }
 
   if (tipo === 'rdl') {
