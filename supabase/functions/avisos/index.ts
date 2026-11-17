@@ -927,7 +927,7 @@ Deno.serve(async (req) => {
     // Quem pede: a RDL logada, a dona ou a rotina do GitHub (chave de serviço).
     const servico = token === env('SUPABASE_SERVICE_ROLE_KEY')
     const mail = String(who?.user?.email ?? '').toLowerCase()
-    if (!servico && !isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
+    if (!servico && !cron && !isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
     const cfg = await rdlCfg(db)
     if (!cfg.pix) return json({ ok: false, motivo: 'sem chave Pix' })
     const { data: rows } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
