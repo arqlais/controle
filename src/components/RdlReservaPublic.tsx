@@ -985,7 +985,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
             ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
             ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
-            ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix ou cartão.`],
+            ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix.`],
             ['E se eu desistir?', 'Até 7 dias depois de assinar, o sinal volta inteiro. Depois disso, o sinal fica com a RDL, porque a vaga deixou de ser oferecida a outro morador.'],
             ['Preciso estar lá no dia?', 'Sim, você ou alguém de confiança. A MRV precisa deixar água e luz ligadas.'],
             ['E se a MRV mudar a data?', 'Sem problema e sem custo: combinamos a nova data conforme a agenda.'],
@@ -1488,7 +1488,7 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
         <b>{brl(v.agora)}</b>
       </div>
       <p>
-        {[sv.vistoria ? `o restante da vistoria (${brl(v.vistoria - v.sinalVistoria)}) no dia, por Pix ou cartão` : '', sv.reforma ? `o restante da ART (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano` : ''].filter(Boolean).join('; ').replace(/^./, (c) => c.toUpperCase())}.
+        {[sv.vistoria ? `o restante da vistoria (${brl(v.vistoria - v.sinalVistoria)}) no dia, por Pix` : '', sv.reforma ? `o restante da ART (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano` : ''].filter(Boolean).join('; ').replace(/^./, (c) => c.toUpperCase())}.
         {sv.vistoria && ` Com ${cfg.minimo} reservas, vale o valor de grupo; se não fechar, a diferença de ${brl(cfg.individual - cfg.preco)} entra no restante.`}
       </p>
     </div>
@@ -2095,7 +2095,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                     <I n="user" s={15} /> <span>Você ou alguém de confiança <b>acompanha</b> a vistoria</span>
                   </li>
                   <li>
-                    <I n="card" s={15} /> <span>Restante de <b>{brl(restante)}</b> no dia{grupo < cfg.minimo ? ` (ou ${brl(restante + cfg.individual - cfg.preco)}, se o grupo não fechar)` : ''}, por Pix ou cartão</span>
+                    <I n="card" s={15} /> <span>Restante de <b>{brl(restante)}</b> no dia{grupo < cfg.minimo ? ` (ou ${brl(restante + cfg.individual - cfg.preco)}, se o grupo não fechar)` : ''}, por Pix</span>
                   </li>
                   <li>
                     <I n="clock" s={15} /> <span>Leva até 2 horas</span>

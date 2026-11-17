@@ -168,7 +168,7 @@ const MAILS = {
     html: layout({
       eyebrow: 'teste grátis',
       title: 'Faltam 3 dias do seu teste',
-      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Seu teste grátis vai até <b>${br(s.trial_ends)}</b>.</p><p style="margin:0;">Para continuar com tudo o que você já cadastrou, escolha seu plano em <b>minha assinatura</b>. Pix ou cartão, sem fidelidade.</p>`,
+      text: `<p style="margin:0 0 12px;">Oi${first(s.name) ? `, ${esc(first(s.name))}` : ''}! Seu teste grátis vai até <b>${br(s.trial_ends)}</b>.</p><p style="margin:0;">Para continuar com tudo o que você já cadastrou, escolha seu plano em <b>minha assinatura</b>. Pix, sem fidelidade.</p>`,
       button: 'escolher meu plano',
       url: `${SITE}#/assinatura`,
     }),
@@ -538,7 +538,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'vistoria marcada',
         title: `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`,
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(cfg.preco + valRef - metade)}</b> no dia, por Pix ou cartão</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(cfg.preco + valRef - metade)}</b> no dia, por Pix</p>`,
         rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
         button: 'Abrir o meu painel',
         url: painel,
@@ -688,7 +688,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'lembrete da vistoria',
         title: `Amanhã${s.hora ? `, às ${s.hora}` : ''}`,
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Amanhã é a vistoria de entrega do seu apê. Para dar tudo certo:</p><p style="margin:0;">• confirme com a MRV que água e luz estarão ligadas<br>• você ou alguém de confiança acompanha a vistoria<br>• leve o restante de <b>${brl(cfg.preco / 2)}</b> (Pix ou cartão)<br>• se tiver a planta e o manual do proprietário, leve também</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Amanhã é a vistoria de entrega do seu apê. Para dar tudo certo:</p><p style="margin:0;">• confirme com a MRV que água e luz estarão ligadas<br>• você ou alguém de confiança acompanha a vistoria<br>• leve o restante de <b>${brl(cfg.preco / 2)}</b> (Pix)<br>• se tiver a planta e o manual do proprietário, leve também</p>`,
         rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
         button: 'Abrir o meu painel',
         url: painel,

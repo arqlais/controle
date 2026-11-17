@@ -246,7 +246,7 @@ ${TERMO_REFORMA.map((t, i) => `${n(3)}.${i + 1} ${t.replace(/^O Rogério \(RDL E
 
 ${n(4)}. VALOR E PAGAMENTO
 ${n(4)}.1 Valor: ${brl(v.reforma)} (${extenso(v.reforma)}), com a taxa do CREA inclusa.
-${n(4)}.2 Metade (${brl(v.sinalReforma)}) por Pix em até 7 (sete) dias da assinatura, e o restante (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano de reforma, por Pix ou cartão.
+${n(4)}.2 Metade (${brl(v.sinalReforma)}) por Pix em até 7 (sete) dias da assinatura, e o restante (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano de reforma, por Pix.
 ${n(4)}.3 Sem o pagamento da primeira parte nesse prazo, esta contratação é cancelada automaticamente, sem custo para nenhuma das partes.
 
 ${n(5)}. PRAZO
@@ -307,7 +307,7 @@ ${assina}`
     valor_extenso: extenso(c.preco),
     entrada: brl(metade),
     saldo: brl(c.preco - metade),
-    pagamento: 'sinal por Pix na reserva; saldo por Pix ou cartão no dia da vistoria.',
+    pagamento: 'sinal por Pix na reserva; saldo por Pix no dia da vistoria.',
     foro: 'Santo André/SP',
     cidade: 'Santo André',
     data: dataLonga(quando),
@@ -635,7 +635,7 @@ export function mensagens(r: Reserva, c: ReservaConfig) {
   return {
     sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix (chave aleatória):\n*${c.pix}*\n${c.pixNome} · ${c.pixBanco ?? ''}` : '.'}\nDepois de pagar, toque em *Já paguei* no seu painel (ou mande o comprovante por aqui).\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
     confirmado: `Oi, ${nome}! ✅ Sinal recebido, a sua vaga na agenda está garantida.\n\nAssim que a MRV liberar as datas (${c.periodo}), me avisa para a gente combinar o horário antes de você confirmar com eles.\n\nPainel da sua vistoria:\n${painel}`,
-    data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(vv.vistoria - vv.sinalVistoria)}* no dia (Pix ou cartão)\n\nQualquer coisa, me chama por aqui.`,
+    data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(vv.vistoria - vv.sinalVistoria)}* no dia (Pix)\n\nQualquer coisa, me chama por aqui.`,
     laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\nEstá no seu painel:\n${painel}\n\nÉ só encaminhar para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,
     lembrete: `Oi, ${nome}! Tudo bem? Passando para lembrar do sinal da reserva da vistoria (${brl(metade)}), que garante a sua vaga na agenda. Se precisar de alguma coisa, é só falar 😊\n${painel}`,
   }
