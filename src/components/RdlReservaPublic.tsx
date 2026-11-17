@@ -29,6 +29,10 @@ import {
   sha256,
   unidade,
   validCpf,
+  REFORMA_ITENS,
+  REFORMA_MIN,
+  calcReforma,
+  reformaItensTexto,
   type ChatMsg,
   type Reserva,
   type ReservaConfig,
@@ -312,6 +316,52 @@ function Duvidas({ teste, nome = '', contato = '', reserva, abrirCom }: { teste?
   )
 }
 
+
+/** Calculadora da ART de reforma: marca o que vai fazer e o valor muda na hora (mínimo de R$ 250). */
+function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: string[]; onItens: (v: string[]) => void; detalhe: string; onDetalhe: (v: string) => void; bad?: boolean }) {
+  const total = calcReforma(itens)
+  const toggle = (id: string) => onItens(itens.includes(id) ? itens.filter((x) => x !== id) : [...itens, id])
+  return (
+    <div className={`rv-calc ${bad ? 'bad' : ''}`}>
+      <p className="rv-label">
+        O que você vai fazer? <small>Marque tudo o que pretende. O valor muda na hora.</small>
+      </p>
+      <div className="rv-calc-list">
+        {REFORMA_ITENS.map((i) => {
+          const on = itens.includes(i.id)
+          return (
+            <button key={i.id} type="button" className={`rv-calc-item ${on ? 'on' : ''}`} onClick={() => toggle(i.id)}>
+              <span className="box">{on && <I n="check" s={13} />}</span>
+              <span className="txt">
+                <b>{i.nome}</b>
+                <small>{i.desc}</small>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <label className="rv-area">
+        <span>Quer contar mais? (opcional)</span>
+        <textarea rows={2} value={detalhe} onChange={(e) => onDetalhe(e.target.value)} placeholder="Ex.: piso vinílico na sala e nos dois quartos" />
+      </label>
+      <div className="rv-calc-total">
+        <div>
+          <small>VALOR ESTIMADO</small>
+          <b>{brl(total)}</b>
+        </div>
+        <span>ART + plano de reforma + visita técnica, com a taxa do CREA. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
+      </div>
+      <details className="rv-what">
+        <summary>
+          <I n="info" s={14} /> O que é o plano de reforma?
+        </summary>
+        <p>É o documento que o condomínio pede antes de qualquer obra no apê (norma NBR 16280). Diz o que vai ser feito, quem faz, quanto tempo leva e confirma que nada mexe na estrutura. O síndico só libera a obra com ele e com a ART.</p>
+      </details>
+      <p className="rv-fine">O Rogério confere o seu pedido e confirma o valor no seu painel. Você só paga se aprovar.</p>
+    </div>
+  )
+}
+
 /** Convite discreto para a loja da planê.apê (guias e planilhas para depois das chaves). */
 function Loja() {
   return (
@@ -412,10 +462,14 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
     torre: !d.torre.trim(),
     apto: !d.apto.trim(),
     planta: !d.planta,
-    reforma: querReforma && (d.reforma ?? '').trim().length < 3,
+    reforma: querReforma && !(d.reformaItens ?? []).length && (d.reforma ?? '').trim().length < 3,
   }
   const okDados = !Object.values(faltando).some(Boolean)
-  const dc = useMemo(() => ({ ...d, endereco: enderecoCompleto(d), reforma: querReforma ? (d.reforma ?? '').trim() : '' }), [d, querReforma])
+  const dc = useMemo(() => {
+    const itens = querReforma ? d.reformaItens ?? [] : []
+    const txt = querReforma ? [reformaItensTexto(itens).join(', '), (d.reforma ?? '').trim()].filter(Boolean).join('. ') : ''
+    return { ...d, endereco: enderecoCompleto(d), reforma: txt, reformaItens: itens, reformaEstimativa: querReforma ? calcReforma(itens) : undefined }
+  }, [d, querReforma])
   const texto = useMemo(() => contratoTexto(dc, cfg), [dc, cfg])
   const metade = cfg.preco / 2
   const assinou = ok && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === d.nome.trim().toLowerCase() : desenho.length > 30)
@@ -437,7 +491,7 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
       const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, aparelho].join('|'))
       const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: modo === 'desenho' ? desenho : undefined, cpf: d.cpf, em, codigo, aparelho, fuso })
       void avisarEmail('reserva', r.id, r.token)
-      if (dc.reforma) void moradorAcao(r.id, r.token, 'reforma-pedido', dc.reforma).then((x) => x && void avisarEmail('reforma-pedido', r.id, r.token))
+      if (dc.reforma) void moradorAcao(r.id, r.token, 'reforma-pedido', { pedido: dc.reforma, itens: dc.reformaItens ?? [], estimativa: dc.reformaEstimativa ?? REFORMA_MIN }).then((x) => x && void avisarEmail('reforma-pedido', r.id, r.token))
       const link = `#/vistoria/${r.id}.${r.token}`
       ls.set(SALVO, link)
       try {
@@ -727,15 +781,10 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
                     <b>
                       <I n="hammer" s={14} /> Vou reformar: quero orçamento de ART de reforma
                     </b>
-                    <small>O condomínio pede um responsável técnico para obras no apê. O Rogério analisa e manda o valor no seu painel. Você só paga se aprovar.</small>
+                    <small>O condomínio pede ART e plano de reforma para obras no apê. A partir de {brl(REFORMA_MIN)}: marque o que vai fazer e veja o valor.</small>
                   </span>
                 </label>
-                {querReforma && (
-                  <label className={`rv-area ${campo('reforma')}`}>
-                    <span>O que você pretende fazer?</span>
-                    <textarea rows={3} value={d.reforma} onChange={(e) => set('reforma', e.target.value)} placeholder="Ex.: trocar o piso da sala, fazer armários na cozinha, mudar uma tomada de lugar" />
-                  </label>
-                )}
+                {querReforma && <ReformaCalc itens={d.reformaItens ?? []} onItens={(v) => set('reformaItens', v)} detalhe={d.reforma ?? ''} onDetalhe={(v) => set('reforma', v)} bad={tried && faltando.reforma} />}
                 {tried && !okDados && <p className="rv-warn">Falta preencher ou conferir os campos marcados em laranja.</p>}
                 <button
                   className="rv-btn"
@@ -883,6 +932,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
   const [etapa, setEtapa] = useState<Etapa>('reserva')
   const [trocaPlanta, setTrocaPlanta] = useState(false)
   const [pedido, setPedido] = useState('')
+  const [rfItens, setRfItens] = useState<string[]>([])
   const [enviando, setEnviando] = useState(false)
   const [msg, setMsg] = useState('')
   const [nova] = useState(() => {
@@ -974,14 +1024,15 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
     if (await moradorAcao(id, token, 'planta', p)) void recarregar()
   }
   const pedirReforma = async () => {
-    if (pedido.trim().length < 3 || enviando) return
+    if ((!rfItens.length && pedido.trim().length < 3) || enviando) return
     setEnviando(true)
     if (teste) {
-      setR({ ...r, status: { ...s, reforma: { pedido: pedido.trim(), pedidoEm: new Date().toISOString() } } })
+      setR({ ...r, status: { ...s, reforma: { pedido: [reformaItensTexto(rfItens).join(', '), pedido.trim()].filter(Boolean).join('. '), itens: rfItens, estimativa: calcReforma(rfItens), pedidoEm: new Date().toISOString() } } })
       setEnviando(false)
       return
     }
-    const ok = await moradorAcao(id, token, 'reforma-pedido', pedido.trim())
+    const txt = [reformaItensTexto(rfItens).join(', '), pedido.trim()].filter(Boolean).join('. ')
+    const ok = await moradorAcao(id, token, 'reforma-pedido', { pedido: txt, itens: rfItens, estimativa: calcReforma(rfItens) })
     setEnviando(false)
     if (!ok) return setMsg('Não consegui enviar agora. Tente de novo ou chame o Rogério no WhatsApp.')
     void avisarEmail('reforma-pedido', id, token)
@@ -1288,21 +1339,18 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               <div className="rv-state">
                 <I n="clock" s={16} />
                 <span>
-                  <b>Pedido enviado</b>“{rf.pedido}”. O Rogério vai analisar e o valor aparece aqui (e no seu e-mail).
+                  <b>Pedido enviado{rf.estimativa ? `: ${brl(Number(rf.estimativa))} estimado` : ''}</b>“{rf.pedido}”. O Rogério confere e o valor confirmado aparece aqui (e no seu e-mail).
                 </span>
               </div>
             ) : (
               <>
-                <p className="rv-hint">Vai fazer obra no apê (piso, armários, forro, iluminação)? O condomínio pede um responsável técnico com ART. Conte o que vai fazer e o Rogério manda o valor aqui. Você só paga se aprovar.</p>
+                <p className="rv-hint">Vai fazer obra no apê? O condomínio pede ART e plano de reforma antes de liberar. Marque o que vai fazer e veja o valor na hora.</p>
                 <p className="rv-alert">
                   <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio. O Rogério confere o que pode ser feito.</span>
                 </p>
-                <label className="rv-area">
-                  <span>O que você pretende fazer?</span>
-                  <textarea rows={3} value={pedido} onChange={(e) => setPedido(e.target.value)} placeholder="Ex.: trocar o piso da sala e fazer armários na cozinha" />
-                </label>
-                <button className="rv-btn" disabled={pedido.trim().length < 3 || enviando} onClick={() => void pedirReforma()}>
-                  <I n="arrow" /> Pedir orçamento
+                <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} />
+                <button className="rv-btn wide3" disabled={(!rfItens.length && pedido.trim().length < 3) || enviando} onClick={() => void pedirReforma()}>
+                  <I n="arrow" /> Pedir por {brl(calcReforma(rfItens))}
                 </button>
               </>
             )}

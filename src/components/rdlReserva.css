@@ -1598,3 +1598,111 @@ html.rv-root body {
   padding: 0;
   flex: none;
 }
+/* calculadora da ART de reforma */
+.rv-calc {
+  margin-top: 6px;
+}
+.rv-calc-list {
+  display: grid;
+  gap: 8px;
+}
+.rv-calc-item {
+  font: inherit;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  cursor: pointer;
+  color: var(--navy);
+  width: 100%;
+}
+.rv-calc-item .box {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid #c9cdd8;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+}
+.rv-calc-item.on {
+  border-color: var(--navy);
+  background: #f5f8fc;
+}
+.rv-calc-item.on .box {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.rv-calc-item .txt {
+  flex: 1;
+  min-width: 0;
+}
+.rv-calc-item b {
+  display: block;
+  font-size: 14px;
+}
+.rv-calc-item small {
+  display: block;
+  font-size: 12px;
+  color: var(--txt);
+}
+.rv-calc.bad .rv-label {
+  color: #c25f0a;
+}
+.rv-calc-total {
+  margin-top: 12px;
+  background: var(--navy);
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.rv-calc-total small {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  opacity: 0.75;
+}
+.rv-calc-total b {
+  font-size: 26px;
+  white-space: nowrap;
+}
+.rv-calc-total span {
+  font-size: 12px;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+.rv-what {
+  margin-top: 10px;
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.rv-what summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.rv-what summary::-webkit-details-marker {
+  display: none;
+}
+.rv-what summary .rv-i {
+  color: var(--or);
+}
+.rv-what p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--txt);
+}

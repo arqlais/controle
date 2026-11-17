@@ -83,11 +83,15 @@ export interface ReservaDados {
   revistoria: boolean
   planta?: string
   reforma?: string // já pediu orçamento de ART de reforma na reserva (o que vai fazer)
+  reformaItens?: string[]
+  reformaEstimativa?: number
   obs?: string
 }
 /** ART de reforma: o morador pede pelo painel, a RDL manda o valor e ele aprova ali mesmo. */
 export interface ReformaPedido {
   pedido?: string // o que vai fazer na reforma
+  itens?: string[] // serviços marcados na calculadora
+  estimativa?: number // valor que a calculadora mostrou
   pedidoEm?: string
   escopo?: string // o que a RDL vai cobrir
   valor?: number
@@ -242,9 +246,9 @@ export async function apagarReserva(id: string) {
 }
 
 /** O que o morador pode mudar pelo painel (planta, pedido e aprovação da ART de reforma). */
-export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar', valor = ''): Promise<boolean> {
+export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar', valor: string | { pedido: string; itens: string[]; estimativa: number } = ''): Promise<boolean> {
   if (!supabase) return false
-  const { data, error } = await supabase.rpc('rdl_morador', { p_id: id, p_token: token, p_acao: acao, p_valor: valor })
+  const { data, error } = await supabase.rpc('rdl_morador', { p_id: id, p_token: token, p_acao: acao, p_valor: typeof valor === 'string' ? valor : JSON.stringify(valor) })
   return !error && !!data
 }
 
@@ -270,6 +274,29 @@ export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo'
     return false
   }
 }
+
+/* ---------- ART de reforma: o morador marca o que vai fazer e vê o valor na hora ---------- */
+/** Mínimo de R$ 250 (ART de execução + plano de reforma para o condomínio + visita técnica, com 1 serviço).
+ *  Cada serviço a mais soma o valor dele. Nada que mexa nas paredes (concreto estrutural). */
+export const REFORMA_MIN = 250
+export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: number }[] = [
+  { id: 'piso', nome: 'Piso na sala e nos quartos', desc: 'Vêm no contrapiso: vinílico, laminado ou porcelanato', mais: 30 },
+  { id: 'revest', nome: 'Trocar piso ou azulejo da cozinha ou banheiro', desc: 'Retirar a cerâmica da MRV e colocar outra', mais: 40 },
+  { id: 'armarios', nome: 'Armários e marcenaria', desc: 'Cozinha, quartos e banheiro, com fixação segura', mais: 30 },
+  { id: 'bancada', nome: 'Bancada de pedra', desc: 'Cozinha, banheiro ou área de serviço', mais: 30 },
+  { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 40 },
+  { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Pelo forro ou por canaleta, sem rasgar parede', mais: 40 },
+  { id: 'ar', nome: 'Ar-condicionado', desc: 'Instalação conforme as regras do condomínio', mais: 40 },
+  { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 20 },
+  { id: 'pintura', nome: 'Pintura', desc: 'Cor nova nas paredes e no teto', mais: 0 },
+]
+/** Valor estimado: o primeiro serviço está no mínimo; os outros somam o valor de cada um. */
+export function calcReforma(ids: string[]): number {
+  const itens = REFORMA_ITENS.filter((i) => ids.includes(i.id)).sort((a, b) => b.mais - a.mais)
+  if (!itens.length) return REFORMA_MIN
+  return REFORMA_MIN + itens.slice(1).reduce((t, i) => t + i.mais, 0)
+}
+export const reformaItensTexto = (ids: string[]) => REFORMA_ITENS.filter((i) => ids.includes(i.id)).map((i) => i.nome.toLowerCase())
 
 /* ---------- chat de dúvidas ---------- */
 export interface ChatMsg {

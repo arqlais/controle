@@ -18,6 +18,8 @@ import {
   linkPainel,
   linkReserva,
   linkPainelBase,
+  REFORMA_MIN,
+  reformaItensTexto,
   listarConversas,
   marcarLida,
   mensagensDe,
@@ -37,12 +39,9 @@ import {
    com os dados do morador e o contrato assinado. Daqui a RDL confirma o sinal, marca a data, manda o laudo
    e as mensagens de cada etapa. Cada reserva vira também cliente (e ART a emitir, quando o sinal entra). */
 
-/** ART de reforma: pontos de partida (apês de 38 a 40 m², paredes estruturais: nada de demolir ou abrir parede).
- *  valor = quem não fez a vistoria com a RDL · combo = quem fez (é o caso de todos daqui). Taxa do CREA já inclusa. */
-const REFORMA_PRESETS = [
-  { nome: 'ART + plano de reforma', valor: 300, combo: 270, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280), para serviços que não mexem na estrutura (no San Levi as paredes são de concreto e estruturais: sem derrubar, rasgar ou embutir cano e fio): colocação de piso na sala e nos quartos (entregues no contrapiso), revestimentos, armários e marcenaria com fixação conforme o manual da MRV, pintura, louças e metais, forro de gesso e iluminação.' },
-  { nome: 'só a ART', valor: 250, combo: 230, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica e ART de execução da reforma registrada no CREA, para serviços que não mexem na estrutura (paredes de concreto estruturais): piso na sala e nos quartos, armários, pintura, louças e metais. O plano de reforma do condomínio fica com o morador ou com quem executa a obra.' },
-]
+/** Texto do que a ART de reforma cobre, a partir dos serviços marcados. */
+const escopoReforma = (itens: string[]) =>
+  `Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural).`
 
 type Filtro = 'todas' | 'sinal' | 'agendar' | 'agendadas' | 'laudo' | 'canceladas'
 const FILTROS: [Filtro, string][] = [
@@ -489,14 +488,21 @@ function Detalhe({
             </>
           ) : (
             <>
-              <div className="row gap-s wrap">
-                <span className="muted small">sugestões (dá para editar):</span>
-                {REFORMA_PRESETS.map((x) => (
-                  <button key={x.nome} className="chip" onClick={() => (setRfEscopo(x.escopo), setRfValor(String(x.combo)), setRfPrazo(x.prazo))}>
-                    {x.nome} · {money(x.combo)}
+              {rf.estimativa ? (
+                <div className="row gap-s wrap">
+                  <span className="small">
+                    Estimativa da calculadora: <b>{money(Number(rf.estimativa))}</b>
+                    {rf.itens?.length ? ` · ${reformaItensTexto(rf.itens).join(', ')}` : ''}
+                  </span>
+                  <button className="chip" onClick={() => (setRfEscopo(escopoReforma(rf.itens ?? [])), setRfValor(String(rf.estimativa)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
+                    usar a estimativa
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <button className="chip" onClick={() => (setRfEscopo(escopoReforma([])), setRfValor(String(REFORMA_MIN)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
+                  preencher o padrão ({money(REFORMA_MIN)})
+                </button>
+              )}
               <div className="form-grid">
                 <Field label="o que a ART cobre" span={2}>
                   <input value={rfEscopo} onChange={(e) => setRfEscopo(e.target.value)} placeholder="Ex.: ART de execução da reforma (piso e marcenaria) e plano de reforma para o condomínio" />
