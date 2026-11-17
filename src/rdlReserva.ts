@@ -89,6 +89,8 @@ export interface ReservaDados {
   reforma?: string // já pediu orçamento de ART de reforma na reserva (o que vai fazer)
   reformaItens?: string[]
   reformaEstimativa?: number
+  servicos?: { vistoria: boolean; reforma: boolean } // o que foi contratado (versão 2 do contrato)
+  prestador?: string
   obs?: string
 }
 /** ART de reforma: o morador pede pelo painel, a RDL manda o valor e ele aprova ali mesmo. */
@@ -117,6 +119,7 @@ export interface ReservaContrato {
   fuso: string
   recebido?: string
   ip?: string // gravado pelo banco
+  versao?: number // versão do contrato (ver CONTRATO_VERSAO)
 }
 export interface ReservaStatus {
   sinal?: string // data em que a RDL confirmou o sinal
@@ -182,11 +185,98 @@ export const enderecoCompleto = (d: Partial<ReservaDados>) =>
   d.rua ? `${d.rua}, ${d.numero}${d.complemento ? `, ${d.complemento}` : ''} - ${d.bairro}, ${d.cidade} - ${d.uf}, CEP ${d.cep}` : (d.endereco ?? '')
 export const unidade = (d: Pick<ReservaDados, 'torre' | 'apto'>) => `${d.torre ? `torre ${d.torre}, ` : ''}apto ${d.apto}`
 
+/** Versão do contrato da reserva: quem assinou uma versão anterior vê o contrato novo no painel para assinar de novo. */
+export const CONTRATO_VERSAO = 2
+
+/** O que o morador contratou (antes da versão 2, era sempre a vistoria). */
+export const servicosDe = (d: Partial<ReservaDados>) => ({ vistoria: d.servicos?.vistoria ?? true, reforma: d.servicos?.reforma ?? false })
+
+/** Valores: total, o que paga agora (sinal da vistoria + metade da ART de reforma) e o que fica para depois. */
+export function valores(d: Partial<ReservaDados>, c: ReservaConfig) {
+  const sv = servicosDe(d)
+  const vistoria = sv.vistoria ? c.preco : 0
+  const reforma = sv.reforma ? Math.max(REFORMA_MIN, d.reformaEstimativa ?? REFORMA_MIN) : 0
+  const meia = (n: number) => Math.round((n / 2) * 100) / 100
+  const agora = meia(vistoria) + meia(reforma)
+  return { vistoria, reforma, total: vistoria + reforma, agora, depois: vistoria + reforma - agora, sinalVistoria: meia(vistoria), sinalReforma: meia(reforma) }
+}
+
+function partes(d: ReservaDados, c: ReservaConfig) {
+  return `CONTRATADA
+${RDL_INFO.company}, CNPJ ${RDL_INFO.cnpj}, e-mail ${RDL_INFO.email}, telefone ${RDL_INFO.phone}, neste ato pelo engenheiro civil Rogério Francisco Vieira, registrado no CREA-SP sob o nº ${RDL_INFO.crea}, responsável técnico pelo serviço.
+
+CONTRATANTE
+${d.nome.trim()}, CPF ${d.cpf}, com endereço em ${d.endereco.trim()}, e-mail ${d.email.trim()}, telefone ${d.tel.trim()}.
+
+IMÓVEL
+${c.empreendimento}, ${unidade(d)}, Santo André - SP${d.planta ? `\nPlanta: ${d.planta}.` : ''}`
+}
+
+/** Cláusulas da ART de reforma (contrato só da reforma, ou anexo do contrato da vistoria). */
+function clausulasReforma(d: ReservaDados, c: ReservaConfig, n: (k: number) => string) {
+  const v = valores(d, c)
+  const itens = (d.reforma ?? '').trim() || 'serviços descritos pelo(a) CONTRATANTE no painel'
+  return `${n(1)}. OBJETO
+${n(1)}.1 Responsabilidade técnica pela reforma do imóvel acima, com registro da ART (Anotação de Responsabilidade Técnica) no CREA-SP e elaboração do plano de reforma para o condomínio (NBR 16280), para: ${itens}.
+${n(1)}.2 Estão incluídos: a ART registrada no CREA-SP, com a taxa inclusa; o plano de reforma pronto para entregar ao condomínio; orientação técnica, por escrito, sobre o que pode e o que não pode ser feito no empreendimento.
+
+${n(2)}. O QUE NÃO ESTÁ INCLUÍDO
+${n(2)}.1 A execução da obra: mão de obra, materiais e contratação de prestadores são do(a) CONTRATANTE.
+${n(2)}.2 Visitas técnicas e acompanhamento da obra, que podem ser contratados à parte.
+${n(2)}.3 Projetos de arquitetura, interiores ou complementares; alterações estruturais, que não são permitidas no empreendimento; taxas do condomínio.
+
+${n(3)}. RESPONSABILIDADES
+${TERMO_REFORMA.map((t, i) => `${n(3)}.${i + 1} ${t.replace(/^O Rogério \(RDL Engenharia\)/, 'A CONTRATADA').replace(/\bvou\b/g, 'o(a) CONTRATANTE vai').replace(/\bmeu\b/g, 'seu').replace(/\bminha\b/g, 'sua').replace(/\beu contratar\b/g, 'o(a) CONTRATANTE contratar').replace(/\bSei que\b/, 'O(A) CONTRATANTE sabe que')}`).join('\n')}
+
+${n(4)}. VALOR E PAGAMENTO
+${n(4)}.1 Valor: ${brl(v.reforma)} (${extenso(v.reforma)}), com a taxa do CREA inclusa.
+${n(4)}.2 Metade (${brl(v.sinalReforma)}) por Pix em até 7 (sete) dias da assinatura, e o restante (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano de reforma, por Pix ou cartão.
+${n(4)}.3 Sem o pagamento da primeira parte nesse prazo, esta contratação é cancelada automaticamente, sem custo para nenhuma das partes.
+
+${n(5)}. PRAZO
+${n(5)}.1 A ART e o plano de reforma são entregues em até 5 (cinco) dias úteis depois do pagamento da primeira parte e do envio, pelo(a) CONTRATANTE, das informações da obra: o que vai ser feito, quem vai executar, as datas previstas e as regras do condomínio.
+
+${n(6)}. MUDANÇA DO QUE VAI SER FEITO
+${n(6)}.1 Serviço que não estiver neste contrato precisa ser combinado antes e pode exigir nova ART, cobrada à parte.
+
+${n(7)}. DESISTÊNCIA
+${n(7)}.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral do que pagou, se a ART ainda não tiver sido registrada (art. 49 do Código de Defesa do Consumidor).
+${n(7)}.2 Depois de registrada a ART, não há devolução, porque a taxa do CREA já foi paga e o serviço foi prestado.`
+}
+
+function fechamento(n: (k: number) => string) {
+  return `${n(1)}. DADOS PESSOAIS, COMUNICAÇÃO E ASSINATURA
+${n(1)}.1 Os dados do(a) CONTRATANTE são usados só para prestar este serviço, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
+${n(1)}.2 Mensagens de WhatsApp e e-mails trocados pelos contatos deste contrato valem como comunicação oficial entre as partes.
+${n(1)}.3 Este contrato pode ser assinado eletronicamente, com a mesma validade da assinatura em papel (art. 10, § 2º, da MP 2.200-2/2001).
+
+${n(2)}. FORO
+${n(2)}.1 Fica eleito o foro da comarca de Santo André/SP, ressalvado o direito do(a) CONTRATANTE de usar o foro do seu domicílio (art. 101, I, do Código de Defesa do Consumidor).`
+}
+
+/** Contrato montado conforme o que foi escolhido: só vistoria, só ART de reforma ou os dois. */
 export function contratoTexto(d: ReservaDados, c: ReservaConfig, quando = new Date()) {
+  const sv = servicosDe(d)
+  const assina = `E, por estarem de acordo, as partes assinam este contrato.\n\nSanto André, ${dataLonga(quando)}.`
+  if (!sv.vistoria) {
+    const n = (k: number) => String(k)
+    return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE RESPONSABILIDADE TÉCNICA PARA REFORMA (ART E PLANO DE REFORMA)
+
+${partes(d, c)}
+
+As partes combinam o seguinte:
+
+${clausulasReforma(d, c, n)}
+
+${fechamento((k) => String(7 + k))}
+
+${assina}`
+  }
   const metade = Math.round((c.preco / 2) * 100) / 100
   const corpo = VISTORIA_CONTRACT.body
-    .replace('IMÓVEL VISTORIADO\n{endereco_obra}', `IMÓVEL VISTORIADO\n{endereco_obra}${d.planta ? `\nPlanta: ${d.planta}.` : ''}\nPrevisão das vistorias informada pela construtora: ${c.periodo}. A data e o horário são combinados quando a construtora liberar a agenda (cláusula 6).\nRevistoria (cláusula 9): ${d.revistoria ? `o(a) CONTRATANTE já deixa a revistoria combinada, pelo valor de ${brl(c.revistoria)}, pago no dia da revistoria.` : 'não contratada agora; pode ser pedida depois, conforme a cláusula 9.'}${d.reforma ? `\nART de reforma (cláusula 10.2): o(a) CONTRATANTE pediu orçamento à parte para: ${d.reforma.trim().slice(0, 300)}. Só passa a valer se o(a) CONTRATANTE aprovar o orçamento no painel.` : ''}`)
-  return fillContract(corpo, {
+    .replace('IMÓVEL VISTORIADO\n{endereco_obra}', `IMÓVEL VISTORIADO\n{endereco_obra}${d.planta ? `\nPlanta: ${d.planta}.` : ''}\nPrevisão das vistorias informada pela construtora: ${c.periodo}. A data e o horário são combinados quando a construtora liberar a agenda (cláusula 6).\nRevistoria (cláusula 9): ${d.revistoria ? `o(a) CONTRATANTE já deixa a revistoria combinada, pelo valor de ${brl(c.revistoria)}, pago no dia da revistoria.` : 'não contratada agora; pode ser pedida depois, conforme a cláusula 9.'}${sv.reforma ? '\nART de reforma: contratada junto, conforme o Anexo II.' : ''}`)
+    .replace(/\n\nE, por estarem de acordo[\s\S]*$/, '')
+  const vist = fillContract(corpo, {
     contratada: RDL_INFO.company,
     doc_contratada: `CNPJ ${RDL_INFO.cnpj}`,
     email_contratada: RDL_INFO.email,
@@ -198,9 +288,6 @@ export function contratoTexto(d: ReservaDados, c: ReservaConfig, quando = new Da
     telefone_contratante: d.tel.trim(),
     endereco_obra: `${c.empreendimento}, ${unidade(d)}, Santo André - SP`,
     valor: brl(c.preco),
-    valor_individual: brl(c.individual),
-    minimo: String(c.minimo),
-    prazo_sinal: String(c.prazoSinal),
     valor_extenso: extenso(c.preco),
     entrada: brl(metade),
     saldo: brl(c.preco - metade),
@@ -209,6 +296,8 @@ export function contratoTexto(d: ReservaDados, c: ReservaConfig, quando = new Da
     cidade: 'Santo André',
     data: dataLonga(quando),
   })
+  const titulo = sv.reforma ? vist.replace(/^CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE VISTORIA TÉCNICA DE ENTREGA DE CHAVES/, 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE VISTORIA TÉCNICA DE ENTREGA DE CHAVES E DE RESPONSABILIDADE TÉCNICA PARA REFORMA') : vist
+  return sv.reforma ? `${titulo}\n\nANEXO II — ART DE REFORMA (CONTRATADA JUNTO)\n\n${clausulasReforma(d, c, (k) => `A${k}`)}\n\n${assina}` : `${titulo}\n\n${assina}`
 }
 
 export async function sha256(t: string) {
@@ -282,7 +371,7 @@ export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo'
 }
 
 /* ---------- ART de reforma: o morador marca o que vai fazer e vê o valor na hora ---------- */
-/** Mínimo de R$ 250 (ART da reforma como responsável técnico + plano de reforma para o condomínio + visita técnica, com 1 serviço).
+/** Mínimo de R$ 250 (ART da reforma como responsável técnico + plano de reforma para o condomínio, com 1 serviço).
  *  Cada serviço a mais soma o valor dele. Nada que mexa nas paredes (concreto estrutural). */
 export const REFORMA_MIN = 250
 export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: number }[] = [
@@ -304,12 +393,12 @@ export function calcReforma(ids: string[]): number {
 }
 /** Termo da ART de reforma: o morador aceita no painel antes de aprovar o orçamento (protege o responsável técnico). */
 export const TERMO_REFORMA = [
-  'O Rogério (RDL Engenharia) é o responsável técnico da reforma: faz a visita técnica, o plano de reforma e registra a ART. Ele não executa a obra e não acompanha o dia a dia dela.',
+  'O Rogério (RDL Engenharia) é o responsável técnico da reforma: faz o plano de reforma e registra a ART. Ele não executa a obra, não faz visitas e não acompanha o dia a dia dela.',
   'A obra é feita pelo prestador que eu contratar (pedreiro, marceneiro, empresa), que responde pela qualidade do serviço, pelos materiais, pela segurança dos trabalhadores e por danos ao meu apê, aos vizinhos e às áreas comuns.',
   'Vou passar o plano de reforma ao meu prestador e garantir que ele siga o plano, o manual do proprietário da MRV e as regras do condomínio (horários, entrada de material, retirada de entulho).',
   'Sei que as paredes do San Levi são de concreto e estruturais: não vou derrubar, cortar, rasgar ou fazer furos fora do que o plano e o manual permitem, nem mexer em colunas de água, esgoto, gás ou na fachada.',
   'Qualquer serviço que não esteja no plano precisa ser combinado antes com a RDL. Mudou o que vai ser feito, pode ser preciso uma ART nova.',
-  'Vou avisar a RDL quando a obra começar e terminar, e deixar o engenheiro entrar para conferir quando ele pedir.',
+  'Vou avisar a RDL quando a obra começar e terminar e mandar fotos quando ela pedir.',
   'Se a obra for feita diferente do plano, sem aviso, a RDL pode dar baixa na ART e avisar o condomínio, e não responde pelo que foi feito fora do plano.',
   'A garantia da MRV pode ser perdida nos itens reformados. Isso é responsabilidade minha e do meu prestador.',
 ]
@@ -379,6 +468,68 @@ export async function marcarLida(conversa: string) {
   await supabase.from('rdl_conversas').update({ lida_rdl: new Date().toISOString() }).eq('id', conversa)
 }
 
+/** Assinar de novo pelo painel (contrato atualizado ou serviço incluído). */
+export async function reassinar(id: string, token: string, dados: Partial<ReservaDados>, contrato: ReservaContrato): Promise<boolean> {
+  if (!supabase) return false
+  const { data, error } = await supabase.rpc('rdl_reassinar', { p_id: id, p_token: token, p_dados: dados, p_contrato: contrato })
+  return !error && !!data
+}
+
+/* ---------- acessos (para o painel de estatísticas da RDL; sem dado pessoal) ---------- */
+const SESSAO_KEY = 'rdl-sessao'
+function sessao() {
+  try {
+    let v = localStorage.getItem(SESSAO_KEY)
+    if (!v) {
+      v = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      localStorage.setItem(SESSAO_KEY, v)
+    }
+    return v
+  } catch {
+    return `anon-${Date.now()}`
+  }
+}
+/** De onde veio: ?o= no link (ex.: ?o=grupo), utm_source ou o site anterior. */
+export function origem() {
+  const q = new URLSearchParams(location.search)
+  const h = new URLSearchParams(location.hash.split('?')[1] ?? '')
+  const o = q.get('o') || h.get('o') || q.get('utm_source') || ''
+  if (o) return o.slice(0, 40)
+  const r = document.referrer
+  if (!r) return 'direto (link no WhatsApp ou digitado)'
+  try {
+    const host = new URL(r).hostname.replace(/^www\./, '')
+    return host === location.hostname ? '' : host
+  } catch {
+    return ''
+  }
+}
+const aparelho = () => (/iPad|Tablet/i.test(navigator.userAgent) ? 'tablet' : /Mobi|Android|iPhone/i.test(navigator.userAgent) ? 'celular' : 'computador')
+export function rastrear(evento: string, dados: Record<string, string | number | boolean> = {}) {
+  if (!supabase) return
+  try {
+    if (sessionStorage.getItem('rdl-teste') === '1') return
+  } catch {
+    /* ok */
+  }
+  void supabase.rpc('rdl_evento', { p_sessao: sessao(), p_evento: evento, p_dados: { ...dados, aparelho: aparelho() } }).then(
+    () => undefined,
+    () => undefined,
+  )
+}
+export interface Evento {
+  id: number
+  sessao: string
+  evento: string
+  dados: Record<string, string | number | boolean>
+  criado: string
+}
+export async function listarEventos(dias = 30): Promise<Evento[]> {
+  if (!supabase) return []
+  const { data } = await supabase.from('rdl_eventos').select('*').gte('criado', new Date(Date.now() - dias * 864e5).toISOString()).order('criado', { ascending: true }).limit(20000)
+  return (data ?? []) as Evento[]
+}
+
 /* ---------- links ---------- */
 const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistoria)\/?$/, '/')}`
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`
@@ -391,12 +542,13 @@ export const pixCopiaECola = (c: ReservaConfig, valor: number, r: Pick<Reserva, 
 /* ---------- mensagens de WhatsApp por etapa (emojis só nas mensagens) ---------- */
 export function mensagens(r: Reserva, c: ReservaConfig) {
   const nome = r.dados.nome.split(' ')[0]
-  const metade = c.preco / 2
+  const vv = valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, c)
+  const metade = vv.agora
   const painel = linkPainel(r)
   return {
     sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix:\n*${c.pix}*` : '.'}\nDepois é só mandar o comprovante por aqui.\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
     confirmado: `Oi, ${nome}! ✅ Sinal recebido, a sua vaga na agenda está garantida.\n\nAssim que a MRV liberar as datas (${c.periodo}), me avisa para a gente combinar o horário antes de você confirmar com eles.\n\nPainel da sua vistoria:\n${painel}`,
-    data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(c.preco - metade)}* no dia (Pix ou cartão)\n\nQualquer coisa, me chama por aqui.`,
+    data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(vv.vistoria - vv.sinalVistoria)}* no dia (Pix ou cartão)\n\nQualquer coisa, me chama por aqui.`,
     laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\nEstá no seu painel:\n${painel}\n\nÉ só encaminhar para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,
     lembrete: `Oi, ${nome}! Tudo bem? Passando para lembrar do sinal da reserva da vistoria (${brl(metade)}), que garante a sua vaga na agenda. Se precisar de alguma coisa, é só falar 😊\n${painel}`,
   }

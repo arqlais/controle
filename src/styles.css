@@ -2475,3 +2475,15 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rsv-steps select { min-width: 130px; }
 .rsv-filters .segmented { flex-wrap: wrap; }
 .rsv-search { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--surface); font: inherit; color: var(--text); }
+.acs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+.acs-box { padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--border); }
+.acs-box > b { font-size: 0.9rem; }
+.acs-box > b.mt { margin-top: 8px; }
+.acs-bar { display: grid; grid-template-columns: 1fr 34px; gap: 2px 8px; align-items: center; font-size: 0.82rem; }
+.acs-bar span { grid-column: 1 / -1; color: var(--muted); }
+.acs-bar i { height: 10px; border-radius: 6px; background: var(--accent); display: block; }
+.acs-bar em { font-style: normal; font-weight: 600; text-align: right; grid-column: 2; grid-row: 2; }
+.acs-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.acs-row em { font-style: normal; font-weight: 600; }
+.acs-days { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
+.acs-days i { flex: 1; background: var(--accent-soft); border-radius: 4px 4px 0 0; min-height: 3px; display: block; }

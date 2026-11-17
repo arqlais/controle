@@ -30,6 +30,12 @@ import {
   sha256,
   unidade,
   validCpf,
+  CONTRATO_VERSAO,
+  servicosDe,
+  valores,
+  rastrear,
+  origem,
+  reassinar,
   REFORMA_ITENS,
   REFORMA_MIN,
   calcReforma,
@@ -323,8 +329,8 @@ function Duvidas({ teste, nome = '', contato = '', reserva, abrirCom }: { teste?
 
 
 /** Explicação da ART de reforma (opcional): quando precisa, o que recebe, como funciona e o que não inclui. */
-function ReformaInfo() {
-  return (
+function ReformaInfo({ recolhido }: { recolhido?: boolean } = {}) {
+  const corpo = (
     <div className="rv-rinfo">
       <p className="rv-rinfo-lead">
         É opcional: só para quem vai fazer obra no apê. A vistoria não depende dela.
@@ -341,7 +347,6 @@ function ReformaInfo() {
             <I n="check" s={14} /> O que você recebe
           </b>
           <ul>
-            <li>Visita técnica do engenheiro no apê</li>
             <li>O Rogério como responsável técnico, com a ART registrada no CREA (taxa inclusa)</li>
             <li>Plano de reforma pronto para entregar ao síndico</li>
             <li>Orientação do que pode e do que não pode no San Levi</li>
@@ -354,7 +359,7 @@ function ReformaInfo() {
           <ol>
             <li>Você marca o que vai fazer e vê o valor</li>
             <li>O Rogério confere e confirma no seu painel</li>
-            <li>Você aprova e combina a visita</li>
+            <li>Você aprova e manda as informações da obra</li>
             <li>ART e plano entregues antes da obra começar</li>
           </ol>
         </div>
@@ -366,12 +371,22 @@ function ReformaInfo() {
             <li>A obra em si: quem executa é o pedreiro ou a empresa que você escolher</li>
             <li>Mão de obra e materiais</li>
             <li>Projeto de arquitetura ou de interiores</li>
-            <li>Acompanhamento diário da obra</li>
+            <li>Visitas técnicas e acompanhamento da obra</li>
             <li>Taxas do condomínio</li>
           </ul>
         </div>
       </div>
     </div>
+  )
+  return recolhido ? (
+    <details className="rv-what rv-rwrap">
+      <summary>
+        <I n="info" s={14} /> Entender a ART de reforma: o que inclui e o que não inclui
+      </summary>
+      {corpo}
+    </details>
+  ) : (
+    corpo
   )
 }
 
@@ -407,7 +422,7 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
           <small>VALOR ESTIMADO</small>
           <b>{brl(total)}</b>
         </div>
-        <span>ART + plano de reforma + visita técnica, com a taxa do CREA. A obra é feita por quem você contratar. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
+        <span>ART + plano de reforma, com a taxa do CREA. A obra é feita por quem você contratar. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
       </div>
       <details className="rv-what">
         <summary>
@@ -570,7 +585,7 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   }, [])
   if (sub === 'teste') return <div className="rv"><Boas teste /></div>
   if (sub === 'teste-reservar') return <div className="rv"><Reservar teste /></div>
-  if (sub === 'reservar' || sub === 'reservar-reforma') return <div className="rv"><Reservar comReforma={sub === 'reservar-reforma'} /></div>
+  if (sub === 'reservar' || sub === 'reservar-reforma' || sub === 'so-reforma') return <div className="rv"><Reservar comReforma={sub === 'reservar-reforma'} soReforma={sub === 'so-reforma'} /></div>
   if (sub === 'teste-painel') return <div className="rv"><Painel id="" token="" teste /></div>
   if (sub?.startsWith('duvida-')) {
     const [cid, ctk] = sub.slice(7).split('.')
@@ -589,7 +604,29 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
   useEffect(() => {
     void lerConfig().then(setCfg)
     void contagem().then(setN)
-  }, [])
+    try {
+      if (teste) sessionStorage.setItem('rdl-teste', '1')
+      else sessionStorage.removeItem('rdl-teste')
+    } catch {
+      /* ok */
+    }
+    rastrear('abriu', { pagina: 'boas-vindas', origem: origem() })
+    // até onde a pessoa lê: registra cada parte da página que aparece na tela (uma vez)
+    const vistas = new Set<string>()
+    const obs = new IntersectionObserver(
+      (es) =>
+        es.forEach((e) => {
+          const k = (e.target as HTMLElement).dataset.sec
+          if (e.isIntersecting && k && !vistas.has(k)) {
+            vistas.add(k)
+            rastrear('viu', { secao: k })
+          }
+        }),
+      { threshold: 0.35 },
+    )
+    setTimeout(() => document.querySelectorAll('[data-sec]').forEach((el) => obs.observe(el)), 300)
+    return () => obs.disconnect()
+  }, [teste])
   const salvo = teste ? '' : ls.get(SALVO)
   const metade = cfg.preco / 2
   const reservar = teste ? '#/vistoria/teste-reservar' : '#/vistoria/reservar'
@@ -607,7 +644,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </h1>
           <p>Antes de assinar o recebimento com a MRV, um engenheiro civil confere tudo com você. O que estiver errado fica registrado, com fotos e ART, para a MRV consertar.</p>
           <div className="rv-row center-row">
-            <a className="rv-btn" href={reservar}>
+            <a className="rv-btn" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (topo)' })}>
               <I n="key" /> Reservar minha vistoria
             </a>
             <a className="rv-btn ghost" href="#por-que" onClick={(e) => (e.preventDefault(), document.getElementById('por-que')?.scrollIntoView({ behavior: 'smooth' }))}>
@@ -622,7 +659,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </a>
         )}
 
-        <section className="rv-card" id="por-que">
+        <section className="rv-card" id="por-que" data-sec="por que fazer">
           <h2 className="rv-h2">
             <I n="shield" s={18} /> Por que fazer a vistoria?
           </h2>
@@ -654,11 +691,48 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </div>
         </section>
 
-        <Mockups />
+        <section className="rv-card" data-sec="diferença">
+          <h2 className="rv-h2">
+            <I n="info" s={18} /> Vistoria ou ART de reforma? Qual a diferença
+          </h2>
+          <div className="rv-diff">
+            <div>
+              <span className="ib">
+                <I n="key" s={18} />
+              </span>
+              <b>Vistoria de entrega</b>
+              <small>ANTES DE RECEBER AS CHAVES</small>
+              <ul>
+                <li>O engenheiro confere o apê com você</li>
+                <li>Aponta o que a MRV precisa consertar, dentro da garantia</li>
+                <li>Laudo com fotos + ART da vistoria</li>
+              </ul>
+            </div>
+            <div>
+              <span className="ib navy">
+                <I n="hammer" s={18} />
+              </span>
+              <b>ART de reforma</b>
+              <small>ANTES DE FAZER OBRA NO APÊ</small>
+              <ul>
+                <li>O condomínio exige para liberar a obra</li>
+                <li>ART registrada no CREA + plano de reforma</li>
+                <li>A obra é feita pelo pedreiro que você escolher</li>
+              </ul>
+            </div>
+          </div>
+          <p className="rv-diff-note">
+            <I n="check" s={14} /> São independentes: dá para contratar só um, só o outro ou os dois juntos.
+          </p>
+        </section>
+
+        <div data-sec="o que recebe">
+          <Mockups />
+        </div>
 
         <Grupo n={n} cfg={cfg} />
 
-        <section className="rv-offers">
+        <section className="rv-offers" data-sec="valores">
           <h2 className="rv-h2">
             <I n="star" s={18} /> Valores exclusivos do San Levi
           </h2>
@@ -681,7 +755,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
                 individual: {brl(cfg.individual)}
               </span>
             </div>
-            <a className="rv-btn light" href={reservar}>
+            <a className="rv-btn light" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (valores)' })}>
               Reservar minha vistoria <I n="arrow" />
             </a>
           </div>
@@ -701,11 +775,11 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               </strong>
               <span>piso, armários, gesso, iluminação… o valor depende do que você vai fazer</span>
             </div>
-            <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/reservar-reforma'}>
-              Simular o valor <I n="arrow" />
+            <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/so-reforma'} onClick={() => rastrear('clicou', { alvo: 'ART de reforma' })}>
+              Simular e contratar <I n="arrow" />
             </a>
           </div>
-          <a className="rv-offer plain" href="ape/" target="_blank" rel="noreferrer">
+          <a className="rv-offer plain" href="ape/" target="_blank" rel="noreferrer" onClick={() => rastrear('clicou', { alvo: 'loja' })}>
             <div className="rv-offer-head">
               <span className="ib">
                 <I n="bag" s={20} />
@@ -727,7 +801,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </a>
         </section>
 
-        <section className="rv-card">
+        <section className="rv-card" data-sec="como funciona">
           <h2 className="rv-h2">
             <I n="list" s={18} /> Como funciona a vistoria
           </h2>
@@ -802,7 +876,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </div>
         </section>
 
-        <section className="rv-card rv-faq">
+        <section className="rv-card rv-faq" data-sec="dúvidas comuns">
           <h2 className="rv-h2">
             <I n="info" s={18} /> Dúvidas comuns
           </h2>
@@ -830,7 +904,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </button>
         </section>
 
-        <a className="rv-btn wide3 big" href={reservar}>
+        <a className="rv-btn wide3 big" href={reservar} data-sec="fim da página" onClick={() => rastrear('clicou', { alvo: 'reservar (fim)' })}>
           <I n="key" /> Reservar minha vistoria
         </a>
         <a className="rv-link" href={VISTORIA_PROPOSTA_URL} target="_blank" rel="noreferrer">
@@ -847,23 +921,22 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
 
 const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '', cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', torre: '', apto: '', planta: '', revistoria: false, reforma: '' }
 
-function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean }) {
+function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReforma?: boolean; soReforma?: boolean }) {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
   const [n, setN] = useState(0)
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [d, setD] = useState<ReservaDados>(() => {
+    let base = vazio
     try {
-      return { ...vazio, ...JSON.parse(sessionStorage.getItem('rdl-reserva-rascunho') || '{}') }
+      base = { ...vazio, ...JSON.parse(sessionStorage.getItem('rdl-reserva-rascunho') || '{}') }
     } catch {
-      return vazio
+      /* ok */
     }
+    if (soReforma) return { ...base, servicos: { vistoria: false, reforma: true } }
+    if (comReforma) return { ...base, servicos: { vistoria: base.servicos?.vistoria ?? true, reforma: true } }
+    return { ...base, servicos: base.servicos ?? { vistoria: true, reforma: false } }
   })
-  const [querReforma, setQuerReforma] = useState(!!d.reforma || !!comReforma)
   const [tried, setTried] = useState(false)
-  const [ok, setOk] = useState(false)
-  const [nomeAss, setNomeAss] = useState('')
-  const [desenho, setDesenho] = useState('')
-  const [modo, setModo] = useState<'digitado' | 'desenho'>('digitado')
   const [busy, setBusy] = useState(false)
   const [erro, setErro] = useState('')
   const [cepMsg, setCepMsg] = useState('')
@@ -871,7 +944,17 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
   useEffect(() => {
     void lerConfig().then(setCfg)
     void contagem().then(setN)
-  }, [])
+    if (teste)
+      try {
+        sessionStorage.setItem('rdl-teste', '1')
+      } catch {
+        /* ok */
+      }
+    rastrear('abriu', { pagina: 'reservar', origem: origem() })
+  }, [teste])
+  useEffect(() => {
+    rastrear('etapa', { nome: step === 1 ? 'servicos' : step === 2 ? 'dados' : 'contrato' })
+  }, [step])
   useEffect(() => {
     try {
       sessionStorage.setItem('rdl-reserva-rascunho', JSON.stringify(d))
@@ -880,8 +963,9 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
     }
   }, [d])
   const set = <K extends keyof ReservaDados>(k: K, v: ReservaDados[K]) => setD((x) => ({ ...x, [k]: v }))
+  const sv = servicosDe(d)
+  const setSv = (k: 'vistoria' | 'reforma', v: boolean) => setD((x) => ({ ...x, servicos: { ...servicosDe(x), [k]: v } }))
   const sugerida = plantaDoApto(d.apto)
-  // planta: vem marcada pelo número do apto (dá para trocar)
   useEffect(() => {
     if (sugerida && !d.planta) set('planta', sugerida)
   }, [sugerida]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -895,6 +979,8 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
     setD((x) => ({ ...x, rua: a.street || x.rua, bairro: a.district || x.bairro, cidade: a.city, uf: a.uf }))
     setTimeout(() => document.getElementById('rv-numero')?.focus(), 50)
   }
+  const faltaServico = !sv.vistoria && !sv.reforma
+  const faltaReforma = sv.reforma && !(d.reformaItens ?? []).length && (d.reforma ?? '').trim().length < 3
   const faltando = {
     nome: d.nome.trim().split(/\s+/).length < 2,
     cpf: !validCpf(d.cpf),
@@ -908,20 +994,21 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
     torre: !d.torre.trim(),
     apto: !d.apto.trim(),
     planta: !d.planta,
-    reforma: querReforma && !(d.reformaItens ?? []).length && (d.reforma ?? '').trim().length < 3,
   }
   const okDados = !Object.values(faltando).some(Boolean)
   const dc = useMemo(() => {
-    const itens = querReforma ? d.reformaItens ?? [] : []
-    const txt = querReforma ? [reformaItensTexto(itens).join(', '), (d.reforma ?? '').trim()].filter(Boolean).join('. ') : ''
-    return { ...d, endereco: enderecoCompleto(d), reforma: txt, reformaItens: itens, reformaEstimativa: querReforma ? calcReforma(itens) : undefined }
-  }, [d, querReforma])
+    const s2 = servicosDe(d)
+    const itens = s2.reforma ? d.reformaItens ?? [] : []
+    const txt = s2.reforma ? [reformaItensTexto(itens).join(', '), (d.reforma ?? '').trim()].filter(Boolean).join('. ') : ''
+    return { ...d, endereco: enderecoCompleto(d), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens) : undefined }
+  }, [d])
   const texto = useMemo(() => contratoTexto(dc, cfg), [dc, cfg])
-  const metade = cfg.preco / 2
-  const assinou = ok && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === d.nome.trim().toLowerCase() : desenho.length > 30)
+  const v = valores(dc, cfg)
+  const irPara = () => document.getElementById('reservar')?.scrollIntoView({ behavior: 'smooth' })
+  const campo = (k: keyof typeof faltando) => (tried && faltando[k] ? 'bad' : '')
 
-  const enviar = async () => {
-    if (!assinou || busy) return
+  const enviar = async (a: { modo: 'digitado' | 'desenho'; desenho: string }) => {
+    if (busy) return
     setBusy(true)
     setErro('')
     try {
@@ -933,11 +1020,12 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
       }
       const em = new Date().toISOString()
       const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
-      const aparelho = deviceLabel()
-      const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, aparelho].join('|'))
-      const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: modo === 'desenho' ? desenho : undefined, cpf: d.cpf, em, codigo, aparelho, fuso })
+      const ap = deviceLabel()
+      const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, ap].join('|'))
+      const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: d.cpf, em, codigo, aparelho: ap, fuso, versao: CONTRATO_VERSAO })
+      rastrear('assinou', { vistoria: sv.vistoria, reforma: sv.reforma })
       void avisarEmail('reserva', r.id, r.token)
-      if (dc.reforma) void moradorAcao(r.id, r.token, 'reforma-pedido', { pedido: dc.reforma, itens: dc.reformaItens ?? [], estimativa: dc.reformaEstimativa ?? REFORMA_MIN }).then((x) => x && void avisarEmail('reforma-pedido', r.id, r.token))
+      if (sv.reforma) void avisarEmail('reforma-aprovada', r.id, r.token)
       const link = `#/vistoria/${r.id}.${r.token}`
       ls.set(SALVO, link)
       try {
@@ -954,8 +1042,10 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
       setBusy(false)
     }
   }
-  const irPara = () => document.getElementById('reservar')?.scrollIntoView({ behavior: 'smooth' })
-  const campo = (k: keyof typeof faltando) => (tried && faltando[k] ? 'bad' : '')
+  const ir = (k: 1 | 2 | 3) => {
+    setStep(k)
+    setTimeout(irPara, 30)
+  }
 
   return (
     <>
@@ -967,11 +1057,11 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
             <i /> MORADORES · {cfg.empreendimento.replace(/\s*\(.*\)/, '').toUpperCase()}
           </span>
           <h1>
-            Reserve a <span>vistoria</span> do seu apê
+            Contrate <span>pelo celular</span>
           </h1>
-          <p>Preencha os dados, leia o contrato e assine pelo celular. Leva uns 3 minutos.</p>
+          <p>Escolha o que você quer, preencha os dados e assine. Leva uns 3 minutos.</p>
           <a className="rv-back" href={teste ? '#/vistoria/teste' : '#/vistoria'}>
-            <I n="back" s={14} /> Entender a vistoria antes
+            <I n="back" s={14} /> Entender a vistoria e a ART de reforma
           </a>
         </section>
 
@@ -981,59 +1071,103 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
           </a>
         )}
 
-        <div className="rv-res">
-        <aside className="rv-aside">
-        <Grupo n={n} cfg={cfg} />
-
-        <section className="rv-price">
-          <div>
-            <small>
-              <span className="kc">
-                <I n="key" s={15} />
-              </span>
-              VISTORIA + LAUDO + ART
-            </small>
-            <strong>
-              <em>R$</em>
-              {brl(cfg.preco).replace('R$', '').trim()}
-            </strong>
-            <span>valor de grupo, por apartamento</span>
-          </div>
-          <ul>
-            <li>
-              <I n="card" /> Sinal de {brl(metade)} em até 7 dias
-            </li>
-            <li>
-              <I n="cal" /> Previsão da MRV: dez/2026 a mar/2027
-            </li>
-            <li>
-              <I n="redo" /> Revistoria opcional: {brl(cfg.revistoria)}
-            </li>
-          </ul>
-        </section>
-        </aside>
-
-
         {!cfg.aberta && !teste ? (
           <section className="rv-card rv-closed">
             <h2>Reservas encerradas</h2>
             <p>As vagas desta campanha foram preenchidas. Fale com o Rogério para saber se ainda há horário.</p>
-            <a className="rv-btn" href={whatsappLink(RDL_INFO.whatsapp, 'Oi, Rogério! Vi que as reservas da vistoria encerraram. Ainda tem horário?')}>
+            <a className="rv-btn" href={whatsappLink(RDL_INFO.whatsapp, 'Oi, Rogério! Vi que as reservas encerraram. Ainda tem horário?')}>
               <I n="chat" /> Falar no WhatsApp
             </a>
           </section>
         ) : (
           <section className="rv-card rv-form" id="reservar">
-            <ol className="rv-steps">
-              <li className={step === 1 ? 'on' : 'done'}>
-                <b>{step > 1 ? <I n="check" s={12} /> : 1}</b> Seus dados
-              </li>
-              <li className={step === 2 ? 'on' : ''}>
-                <b>2</b> Contrato
-              </li>
+            <ol className="rv-steps three">
+              {['O que você quer', 'Seus dados', 'Contrato e total'].map((t, k) => (
+                <li key={t} className={step === k + 1 ? 'on' : step > k + 1 ? 'done' : ''}>
+                  <b>{step > k + 1 ? <I n="check" s={12} /> : k + 1}</b> {t}
+                </li>
+              ))}
             </ol>
 
-            {step === 1 ? (
+            {step === 1 && (
+              <>
+                <p className="rv-label">
+                  O que você quer contratar? <small>Pode ser um, o outro ou os dois.</small>
+                </p>
+                <div className={`rv-pick ${sv.vistoria ? 'on' : ''}`}>
+                  <button type="button" className="rv-pick-head" onClick={() => setSv('vistoria', !sv.vistoria)}>
+                    <span className="box">{sv.vistoria && <I n="check" s={14} />}</span>
+                    <span className="ib">
+                      <I n="key" s={18} />
+                    </span>
+                    <span className="txt">
+                      <b>Vistoria de entrega das chaves</b>
+                      <small>Antes de assinar o recebimento: o engenheiro aponta o que a MRV precisa consertar. Laudo com fotos + ART.</small>
+                    </span>
+                    <strong>{brl(cfg.preco)}</strong>
+                  </button>
+                  {sv.vistoria && (
+                    <label className={`rv-check sub ${d.revistoria ? 'on' : ''}`}>
+                      <input type="checkbox" checked={d.revistoria} onChange={(e) => set('revistoria', e.target.checked)} />
+                      <span>
+                        <b>
+                          <I n="redo" s={14} /> Deixar a revistoria combinada: {brl(cfg.revistoria)}
+                        </b>
+                        <small>Depois que a MRV consertar, o engenheiro volta para conferir. Paga só no dia. Dá para decidir depois.</small>
+                      </span>
+                    </label>
+                  )}
+                </div>
+                <div className={`rv-pick ${sv.reforma ? 'on' : ''}`}>
+                  <button type="button" className="rv-pick-head" onClick={() => setSv('reforma', !sv.reforma)}>
+                    <span className="box">{sv.reforma && <I n="check" s={14} />}</span>
+                    <span className="ib navy">
+                      <I n="hammer" s={18} />
+                    </span>
+                    <span className="txt">
+                      <b>ART de reforma</b>
+                      <small>Antes de fazer obra no apê: o condomínio exige ART e plano de reforma. A obra é feita pelo seu pedreiro.</small>
+                    </span>
+                    <strong>
+                      <em>a partir de</em>
+                      {brl(REFORMA_MIN)}
+                    </strong>
+                  </button>
+                  {sv.reforma && (
+                    <div className="rv-pick-body">
+                      <ReformaInfo recolhido />
+                      <ReformaCalc itens={d.reformaItens ?? []} onItens={(x) => set('reformaItens', x)} detalhe={d.reforma ?? ''} onDetalhe={(x) => set('reforma', x)} bad={tried && faltaReforma} />
+                    </div>
+                  )}
+                </div>
+                <a className="rv-pick files" href="ape/" target="_blank" rel="noreferrer" onClick={() => rastrear('clicou', { alvo: 'loja' })}>
+                  <span className="ib soft">
+                    <I n="bag" s={18} />
+                  </span>
+                  <span className="txt">
+                    <b>Quer também guias e planilhas para o apê?</b>
+                    <small>Planilha de obra, medidas dos móveis, marcenaria e mais, a partir de R$ 12,90 na loja da planê.apê (abre em outra aba).</small>
+                  </span>
+                  <I n="arrow" s={16} />
+                </a>
+                <Total v={v} sv={sv} cfg={cfg} />
+                {tried && faltaServico && <p className="rv-warn">Escolha pelo menos um serviço.</p>}
+                {tried && faltaReforma && <p className="rv-warn">Marque o que você vai fazer na reforma.</p>}
+                <button
+                  className="rv-btn wide3"
+                  onClick={() => {
+                    setTried(true)
+                    if (faltaServico || faltaReforma) return
+                    setTried(false)
+                    ir(2)
+                  }}
+                >
+                  Continuar <I n="arrow" />
+                </button>
+              </>
+            )}
+
+            {step === 2 && (
               <>
                 <div className="rv-sub">
                   <I n="user" s={14} /> Quem está comprando o apê
@@ -1057,7 +1191,6 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
                     <input value={d.email} onChange={(e) => set('email', e.target.value)} inputMode="email" autoComplete="email" placeholder="voce@email.com" />
                   </label>
                 </div>
-
                 <div className="rv-sub">
                   <I n="home" s={14} /> Onde você mora hoje
                 </div>
@@ -1092,7 +1225,6 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
                     <input value={d.uf} onChange={(e) => set('uf', e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" />
                   </label>
                 </div>
-
                 <div className="rv-sub">
                   <I n="building" s={14} /> Seu apê no San Levi
                 </div>
@@ -1106,9 +1238,9 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
                     <input
                       value={d.apto}
                       onChange={(e) => {
-                        const v = e.target.value
-                        const p = plantaDoApto(v)
-                        setD((x) => ({ ...x, apto: v, planta: p || x.planta }))
+                        const x = e.target.value
+                        const pl = plantaDoApto(x)
+                        setD((y) => ({ ...y, apto: x, planta: pl || y.planta }))
                       }}
                       inputMode="numeric"
                       placeholder="Ex.: 1204"
@@ -1118,134 +1250,42 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
                 <p className={`rv-label ${campo('planta')}`}>
                   Qual é a sua planta? <small>{sugerida ? 'Já marcamos pelo número do apto. Se não for, toque na outra.' : 'Toque na sua.'}</small>
                 </p>
-                <Plantas value={d.planta} onChange={(p) => set('planta', p)} sugerida={sugerida} />
-
-                <div className="rv-sub">
-                  <I n="star" s={14} /> Extras (se quiser)
-                </div>
-                <label className={`rv-check ${d.revistoria ? 'on' : ''}`}>
-                  <input type="checkbox" checked={d.revistoria} onChange={(e) => set('revistoria', e.target.checked)} />
-                  <span>
-                    <b>
-                      <I n="redo" s={14} /> Revistoria: {brl(cfg.revistoria)}
-                    </b>
-                    <small>Depois que a MRV consertar, o engenheiro volta para conferir. Paga só no dia. Dá para decidir depois.</small>
-                  </span>
-                </label>
-                <label className={`rv-check ${querReforma ? 'on' : ''}`}>
-                  <input type="checkbox" checked={querReforma} onChange={(e) => setQuerReforma(e.target.checked)} />
-                  <span>
-                    <b>
-                      <I n="hammer" s={14} /> Vou reformar: quero a ART de reforma (opcional)
-                    </b>
-                    <small>O condomínio pede ART e plano de reforma para obras no apê. A partir de {brl(REFORMA_MIN)}: marque o que vai fazer e veja o valor.</small>
-                  </span>
-                </label>
-                {querReforma && <ReformaInfo />}
-                {querReforma && <ReformaCalc itens={d.reformaItens ?? []} onItens={(v) => set('reformaItens', v)} detalhe={d.reforma ?? ''} onDetalhe={(v) => set('reforma', v)} bad={tried && faltando.reforma} />}
+                <Plantas value={d.planta} onChange={(x) => set('planta', x)} sugerida={sugerida} />
+                {sv.reforma && (
+                  <label className="rv-area">
+                    <span>Quem vai fazer a obra? (pode informar depois)</span>
+                    <input value={d.prestador ?? ''} onChange={(e) => set('prestador', e.target.value)} placeholder="Nome do pedreiro ou da empresa e telefone" />
+                  </label>
+                )}
                 {tried && !okDados && <p className="rv-warn">Falta preencher ou conferir os campos marcados em laranja.</p>}
-                <button
-                  className="rv-btn"
-                  onClick={() => {
-                    setTried(true)
-                    if (!okDados) return
-                    setNomeAss('')
-                    setStep(2)
-                    setTimeout(irPara, 30)
-                  }}
-                >
-                  Continuar para o contrato <I n="arrow" />
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="rv-sum">
-                  <div>
-                    <small>QUEM CONTRATA</small>
-                    <b>{d.nome}</b>
-                  </div>
-                  <div>
-                    <small>APÊ</small>
-                    <b>
-                      {unidade(d)} · {plantaCurta(d.planta)}
-                    </b>
-                  </div>
-                  <div>
-                    <small>VALOR</small>
-                    <b>{brl(cfg.preco)}</b>
-                  </div>
-                  <div>
-                    <small>SINAL (ATÉ 7 DIAS)</small>
-                    <b>{brl(metade)}</b>
-                  </div>
-                </div>
-                <div className="rv-keys">
-                  <p>
-                    <I n="card" /> <span>O sinal de <b>{brl(metade)}</b> garante a vaga. Sem o sinal em 7 dias, a reserva é cancelada sozinha, sem custo.</span>
-                  </p>
-                  <p>
-                    <I n="users" /> <span>Com {cfg.minimo} reservas, vale <b>{brl(cfg.preco)}</b>. Se não fechar, a diferença de {brl(cfg.individual - cfg.preco)} entra no restante.</span>
-                  </p>
-                  <p>
-                    <I n="shield" /> <span>Mudou de ideia? Até 7 dias depois de assinar, o sinal volta inteiro.</span>
-                  </p>
-                </div>
-                <p className="rv-hint">Este é o contrato, já com os seus dados. Role para ler tudo.</p>
-                <div className="rv-contract" tabIndex={0}>
-                  {texto.split('\n').map((l: string, i: number) =>
-                    i === 0 ? (
-                      <h4 key={i}>{l}</h4>
-                    ) : /^(\d+\. |CONTRATADA$|CONTRATANTE$|IMÓVEL VISTORIADO$|ANEXO I)/.test(l) ? (
-                      <h5 key={i}>{l}</h5>
-                    ) : l.trim() ? (
-                      <p key={i}>{l}</p>
-                    ) : null,
-                  )}
-                </div>
-                <label className={`rv-check ${ok ? 'on' : ''}`}>
-                  <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
-                  <span>
-                    <b>Li e concordo com o contrato</b>
-                    <small>Inclusive com o sinal de {brl(metade)}, pago em até 7 dias, que não é devolvido depois de 7 dias da assinatura.</small>
-                  </span>
-                </label>
-                <div className="rv-signbox">
-                  <p className="rv-label">Sua assinatura</p>
-                  <div className="rv-tabs">
-                    <button className={modo === 'digitado' ? 'on' : ''} onClick={() => setModo('digitado')}>
-                      <I n="sign" s={14} /> Digitar o nome
-                    </button>
-                    <button className={modo === 'desenho' ? 'on' : ''} onClick={() => setModo('desenho')}>
-                      <I n="sign" s={14} /> Com o dedo
-                    </button>
-                  </div>
-                  {modo === 'digitado' ? (
-                    <label>
-                      <span>Digite o seu nome completo, igual ao de cima</span>
-                      <input value={nomeAss} onChange={(e) => setNomeAss(e.target.value)} placeholder={d.nome} />
-                      {nomeAss && nomeAss.trim().toLowerCase() !== d.nome.trim().toLowerCase() && <em>Precisa ser igual: {d.nome}</em>}
-                    </label>
-                  ) : (
-                    <SignaturePad value={desenho} onChange={setDesenho} />
-                  )}
-                </div>
-                {erro && <p className="rv-warn">{erro}</p>}
                 <div className="rv-row">
-                  <button className="rv-btn ghost" onClick={() => setStep(1)}>
+                  <button className="rv-btn ghost" onClick={() => ir(1)}>
                     <I n="back" /> Voltar
                   </button>
-                  <button className="rv-btn" disabled={!assinou || busy} onClick={() => void enviar()}>
-                    <I n="sign" /> {busy ? 'Enviando…' : 'Assinar e reservar'}
+                  <button
+                    className="rv-btn"
+                    onClick={() => {
+                      setTried(true)
+                      if (!okDados) return
+                      setTried(false)
+                      ir(3)
+                    }}
+                  >
+                    Continuar para o contrato <I n="arrow" />
                   </button>
                 </div>
-                {!assinou && <p className="rv-fine center">{!ok ? 'Marque “Li e concordo” e assine para continuar.' : 'Falta a sua assinatura.'}</p>}
-                <p className="rv-fine">Assinatura eletrônica com registro de data, hora, aparelho e código do documento (MP 2.200-2/2001, art. 10, § 2º). Você recebe uma cópia no painel e no e-mail.</p>
+              </>
+            )}
+
+            {step === 3 && (
+              <>
+                <Total v={v} sv={sv} cfg={cfg} titulo />
+                <Assinar texto={texto} nome={d.nome} reforma={sv.reforma} agora={v.agora} busy={busy} erro={erro} onVoltar={() => ir(2)} onAssinar={(a) => void enviar(a)} />
               </>
             )}
           </section>
         )}
-
-        </div>
+        {n > 0 && sv.vistoria && <Grupo n={n} cfg={cfg} compact />}
       </main>
       <Rodape />
       <Duvidas teste={teste} />
@@ -1253,9 +1293,219 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
   )
 }
 
+/** Resumo dos valores: o que foi escolhido, o total e o que paga agora no Pix. */
+function Total({ v, sv, cfg, titulo }: { v: ReturnType<typeof valores>; sv: { vistoria: boolean; reforma: boolean }; cfg: ReservaConfig; titulo?: boolean }) {
+  if (!sv.vistoria && !sv.reforma) return null
+  return (
+    <div className="rv-total">
+      {titulo && <small className="k">RESUMO</small>}
+      {sv.vistoria && (
+        <div className="row">
+          <span>
+            <I n="key" s={14} /> Vistoria de entrega
+          </span>
+          <b>{brl(v.vistoria)}</b>
+        </div>
+      )}
+      {sv.reforma && (
+        <div className="row">
+          <span>
+            <I n="hammer" s={14} /> ART de reforma
+          </span>
+          <b>{brl(v.reforma)}</b>
+        </div>
+      )}
+      <div className="row sum">
+        <span>Total</span>
+        <b>{brl(v.total)}</b>
+      </div>
+      <div className="row now">
+        <span>
+          <I n="card" s={14} /> Agora, por Pix (em até 7 dias)
+        </span>
+        <b>{brl(v.agora)}</b>
+      </div>
+      <p>
+        {[sv.vistoria ? `o restante da vistoria (${brl(v.vistoria - v.sinalVistoria)}) no dia, por Pix ou cartão` : '', sv.reforma ? `o restante da ART (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano` : ''].filter(Boolean).join('; ').replace(/^./, (c) => c.toUpperCase())}.
+        {sv.vistoria && ` Com ${cfg.minimo} reservas, vale o valor de grupo; se não fechar, a diferença de ${brl(cfg.individual - cfg.preco)} entra no restante.`}
+      </p>
+    </div>
+  )
+}
+
+/** Leitura do contrato, aceite e assinatura (na reserva e quando o painel pede para assinar de novo). */
+function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar, botao = 'Assinar e reservar' }: { texto: string; nome: string; reforma: boolean; agora: number; busy: boolean; erro: string; onVoltar?: () => void; onAssinar: (a: { modo: 'digitado' | 'desenho'; desenho: string }) => void; botao?: string }) {
+  const [ok, setOk] = useState(false)
+  const [okTermo, setOkTermo] = useState(false)
+  const [nomeAss, setNomeAss] = useState('')
+  const [desenho, setDesenho] = useState('')
+  const [modo, setModo] = useState<'digitado' | 'desenho'>('digitado')
+  const assinou = ok && (!reforma || okTermo) && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === nome.trim().toLowerCase() : desenho.length > 30)
+  return (
+    <>
+      <div className="rv-keys">
+        <p>
+          <I n="card" /> <span>Pague <b>{brl(agora)}</b> por Pix em até 7 dias. Sem o pagamento, a reserva é cancelada sozinha, sem custo.</span>
+        </p>
+        <p>
+          <I n="shield" /> <span>Mudou de ideia? Até 7 dias depois de assinar, o valor volta inteiro{reforma ? ' (na ART de reforma, desde que ela ainda não tenha sido registrada)' : ''}.</span>
+        </p>
+      </div>
+      <p className="rv-hint">Este é o seu contrato, já com os seus dados e com o que você escolheu. Role para ler tudo.</p>
+      <div className="rv-contract" tabIndex={0}>
+        {texto.split('\n').map((l: string, i: number) =>
+          i === 0 ? (
+            <h4 key={i}>{l}</h4>
+          ) : /^(\d+\. |A\d+\. |CONTRATADA$|CONTRATANTE$|IMÓVEL( VISTORIADO)?$|ANEXO)/.test(l) ? (
+            <h5 key={i}>{l}</h5>
+          ) : l.trim() ? (
+            <p key={i}>{l}</p>
+          ) : null,
+        )}
+      </div>
+      {reforma && (
+        <label className={`rv-check ${okTermo ? 'on' : ''}`}>
+          <input type="checkbox" checked={okTermo} onChange={(e) => setOkTermo(e.target.checked)} />
+          <span>
+            <b>Entendi as regras da ART de reforma e vou alinhar com o meu prestador</b>
+            <small>O Rogério é o responsável técnico (ART e plano). A obra, os materiais e a segurança são do meu prestador e meus.</small>
+          </span>
+        </label>
+      )}
+      <label className={`rv-check ${ok ? 'on' : ''}`}>
+        <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
+        <span>
+          <b>Li e concordo com o contrato</b>
+          <small>Inclusive com o pagamento de {brl(agora)} em até 7 dias, que não é devolvido depois de 7 dias da assinatura.</small>
+        </span>
+      </label>
+      <div className="rv-signbox">
+        <p className="rv-label">Sua assinatura</p>
+        <div className="rv-tabs">
+          <button className={modo === 'digitado' ? 'on' : ''} onClick={() => setModo('digitado')}>
+            <I n="sign" s={14} /> Digitar o nome
+          </button>
+          <button className={modo === 'desenho' ? 'on' : ''} onClick={() => setModo('desenho')}>
+            <I n="sign" s={14} /> Com o dedo
+          </button>
+        </div>
+        {modo === 'digitado' ? (
+          <label>
+            <span>Digite o seu nome completo, igual ao de cima</span>
+            <input value={nomeAss} onChange={(e) => setNomeAss(e.target.value)} placeholder={nome} />
+            {nomeAss && nomeAss.trim().toLowerCase() !== nome.trim().toLowerCase() && <em>Precisa ser igual: {nome}</em>}
+          </label>
+        ) : (
+          <SignaturePad value={desenho} onChange={setDesenho} />
+        )}
+      </div>
+      {erro && <p className="rv-warn">{erro}</p>}
+      <div className="rv-row">
+        {onVoltar && (
+          <button className="rv-btn ghost" onClick={onVoltar}>
+            <I n="back" /> Voltar
+          </button>
+        )}
+        <button className="rv-btn" disabled={!assinou || busy} onClick={() => onAssinar({ modo, desenho })}>
+          <I n="sign" /> {busy ? 'Enviando…' : botao}
+        </button>
+      </div>
+      {!assinou && <p className="rv-fine center">{!ok || (reforma && !okTermo) ? 'Marque as caixas acima e assine para continuar.' : 'Falta a sua assinatura.'}</p>}
+      <p className="rv-fine">Assinatura eletrônica com registro de data, hora, aparelho, IP e código do documento (MP 2.200-2/2001, art. 10, § 2º). Você recebe uma cópia no painel e no e-mail.</p>
+    </>
+  )
+}
+
 /* ================= painel da reserva ================= */
 
 type Etapa = 'reserva' | 'sinal' | 'data' | 'laudo'
+
+
+/** Contrato assinado numa versão anterior: mostra o contrato atualizado (com a opção de incluir a ART de reforma) para assinar de novo. */
+function Reassinar({ r, cfg, id, token, onFeito }: { r: Reserva; cfg: ReservaConfig; id: string; token: string; onFeito: () => void }) {
+  const [abrir, setAbrir] = useState(false)
+  const [reforma, setReforma] = useState(!!r.status?.reforma?.aprovadoEm)
+  const [itens, setItens] = useState<string[]>(r.dados.reformaItens ?? r.status?.reforma?.itens ?? [])
+  const [detalhe, setDetalhe] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [erro, setErro] = useState('')
+  const d: ReservaDados = useMemo(() => {
+    const txt = reforma ? [reformaItensTexto(itens).join(', '), detalhe.trim()].filter(Boolean).join('. ') : ''
+    return { ...r.dados, servicos: { vistoria: servicosDe(r.dados).vistoria, reforma }, reforma: txt, reformaItens: reforma ? itens : [], reformaEstimativa: reforma ? calcReforma(itens) : undefined }
+  }, [r.dados, reforma, itens, detalhe])
+  const texto = useMemo(() => contratoTexto(d, cfg), [d, cfg])
+  const v = valores(d, cfg)
+  const assinar = async (a: { modo: 'digitado' | 'desenho'; desenho: string }) => {
+    if (reforma && !itens.length && detalhe.trim().length < 3) return setErro('Marque o que você vai fazer na reforma.')
+    setBusy(true)
+    setErro('')
+    const em = new Date().toISOString()
+    const ap = deviceLabel()
+    const codigo = await sha256([texto, r.dados.nome.trim(), r.dados.cpf.replace(/\D/g, ''), em, ap].join('|'))
+    const ok = await reassinar(id, token, { servicos: d.servicos, reforma: d.reforma, reformaItens: d.reformaItens, reformaEstimativa: d.reformaEstimativa }, { texto, assinatura: r.dados.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: r.dados.cpf, em, codigo, aparelho: ap, fuso: Intl.DateTimeFormat().resolvedOptions().timeZone, versao: CONTRATO_VERSAO })
+    setBusy(false)
+    if (!ok) return setErro('Não consegui salvar agora. Tente de novo ou chame o Rogério no WhatsApp.')
+    rastrear('reassinou', { reforma })
+    if (reforma && !r.status?.reforma?.aprovadoEm) void avisarEmail('reforma-aprovada', id, token)
+    onFeito()
+  }
+  return (
+    <section className="rv-card rv-update">
+      <div className="rv-now-head">
+        <span className="ib">
+          <I n="doc" s={20} />
+        </span>
+        <div>
+          <small>CONTRATO ATUALIZADO</small>
+          <h2>Atualizamos o seu contrato</h2>
+        </div>
+      </div>
+      <p className="rv-hint">Melhoramos as condições e deixamos tudo mais claro (prazo do sinal, grupo de 10, revistoria e ART de reforma). Leia e assine a nova versão. Se quiser, já inclua a ART de reforma.</p>
+      {!abrir ? (
+        <button className="rv-btn wide3" onClick={() => setAbrir(true)}>
+          <I n="sign" /> Ver e assinar o contrato atualizado
+        </button>
+      ) : (
+        <>
+          <div className={`rv-pick ${reforma ? 'on' : ''}`}>
+            <button type="button" className="rv-pick-head" onClick={() => setReforma(!reforma)}>
+              <span className="box">{reforma && <I n="check" s={14} />}</span>
+              <span className="ib navy">
+                <I n="hammer" s={18} />
+              </span>
+              <span className="txt">
+                <b>Incluir a ART de reforma (opcional)</b>
+                <small>Para o condomínio liberar a sua obra. A obra é feita pelo seu pedreiro.</small>
+              </span>
+              <strong>
+                <em>a partir de</em>
+                {brl(REFORMA_MIN)}
+              </strong>
+            </button>
+            {reforma && (
+              <div className="rv-pick-body">
+                <ReformaInfo recolhido />
+                <ReformaCalc itens={itens} onItens={setItens} detalhe={detalhe} onDetalhe={setDetalhe} />
+              </div>
+            )}
+          </div>
+          <a className="rv-pick files" href="ape/" target="_blank" rel="noreferrer">
+            <span className="ib soft">
+              <I n="bag" s={18} />
+            </span>
+            <span className="txt">
+              <b>Quer também guias e planilhas para o apê?</b>
+              <small>A partir de R$ 12,90 na loja da planê.apê (abre em outra aba).</small>
+            </span>
+            <I n="arrow" s={16} />
+          </a>
+          <Total v={v} sv={d.servicos!} cfg={cfg} titulo />
+          <Assinar texto={texto} nome={r.dados.nome} reforma={reforma} agora={v.agora} busy={busy} erro={erro} onAssinar={(a) => void assinar(a)} botao="Assinar o contrato atualizado" />
+        </>
+      )}
+    </section>
+  )
+}
 
 function Painel({ id, token, teste }: { id: string; token: string; teste?: boolean }) {
   const [r, setR] = useState<Reserva | null | undefined>(undefined)
@@ -1301,6 +1551,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
     void minhaReserva(id, token).then((x) => {
       setR(x)
       if (x) {
+        rastrear('abriu', { pagina: 'painel', origem: origem() })
         setGrupo((x as Reserva & { grupo?: number }).grupo ?? 0)
         ls.set(SALVO, `#/vistoria/${id}.${token}`)
       }
@@ -1335,9 +1586,12 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
 
   const s = r.status ?? {}
   const rf = s.reforma ?? {}
-  const metade = cfg.preco / 2
-  const restante = cfg.preco - metade
+  const vv = valores({ ...r.dados, reformaEstimativa: r.dados.servicos?.reforma ? Number(rf.valor ?? r.dados.reformaEstimativa ?? REFORMA_MIN) : undefined }, cfg)
+  const svr = servicosDe(r.dados)
+  const metade = vv.agora
+  const restante = vv.vistoria - vv.sinalVistoria
   const pix = pixCopiaECola(cfg, metade, r)
+  const desatualizado = !teste && !r.cancelada && (r.contrato.versao ?? 1) < CONTRATO_VERSAO
   const prazo = prazoSinal(r, cfg.prazoSinal || 7)
   const zap = (t: string) => whatsappLink(RDL_INFO.whatsapp, t)
   const copiar = (t: string, k: string) =>
@@ -1408,7 +1662,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
       ? {
           icon: 'card',
           tom: 'now',
-          t: `Pague o sinal de ${brl(metade)} para garantir a vaga`,
+          t: `Pague ${brl(metade)} por Pix para garantir ${svr.vistoria ? 'a vaga' : 'a sua ART'}`,
           body: (
             <>
               <p className="rv-deadline">
@@ -1439,6 +1693,48 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
             </>
           ),
         }
+      : !svr.vistoria
+        ? rf.art
+          ? {
+              icon: 'doc',
+              tom: 'ok',
+              t: 'Sua ART de reforma está pronta',
+              body: (
+                <>
+                  <p>Entregue a ART e o plano de reforma ao síndico e passe o plano para o seu prestador antes de começar a obra.</p>
+                  <a className="rv-btn small" href={rf.art} target="_blank" rel="noreferrer">
+                    <I n="doc" /> Abrir a ART
+                  </a>
+                </>
+              ),
+            }
+          : {
+              icon: 'check',
+              tom: 'ok',
+              t: 'Pagamento recebido! Agora mande as informações da obra',
+              body: (
+                <>
+                  <ul className="rv-list">
+                    <li>
+                      <I n="list" s={15} /> O que vai ser feito, cômodo por cômodo
+                    </li>
+                    <li>
+                      <I n="user" s={15} /> Quem vai executar (nome e telefone do prestador)
+                    </li>
+                    <li>
+                      <I n="cal" s={15} /> Quando a obra deve começar e terminar
+                    </li>
+                    <li>
+                      <I n="doc" s={15} /> As regras de obra do condomínio, se tiver
+                    </li>
+                  </ul>
+                  <a className="rv-btn small" href={zap(`Oi, Rogério! Seguem as informações da reforma do ${unidade(r.dados)}:`)}>
+                    <I n="chat" /> Mandar no WhatsApp
+                  </a>
+                  <p className="rv-fine">A ART e o plano ficam prontos em até 5 dias úteis depois disso.</p>
+                </>
+              ),
+            }
       : !s.data
         ? {
             icon: 'check',
@@ -1494,18 +1790,30 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               ),
             }
 
-  const passos: [string, boolean][] = [
-    ['Reserva', true],
-    ['Sinal', !!s.sinal],
-    ['Data', !!s.data],
-    ['Vistoria', !!s.quitado || !!s.laudo],
-    ['Laudo', !!s.laudo],
-  ]
+  const passos: [string, boolean][] = svr.vistoria
+    ? [
+        ['Reserva', true],
+        ['Sinal', !!s.sinal],
+        ['Data', !!s.data],
+        ['Vistoria', !!s.quitado || !!s.laudo],
+        ['Laudo', !!s.laudo],
+      ]
+    : [
+        ['Contrato', true],
+        ['Pagamento', !!s.sinal],
+        ['Informações', !!rf.art],
+        ['ART pronta', !!rf.art],
+      ]
   const docs: { icon: string; t: string; ok: boolean; sub: string; act?: () => void; href?: string }[] = [
     { icon: 'sign', t: 'Contrato', ok: true, sub: s.contratada ? 'Assinado pelas duas partes' : 'Assinado por você', act: () => void abrirContrato(r, r.contrato.desenho ? drawingToDataUrl(r.contrato.desenho) : undefined, false) },
-    { icon: 'shield', t: 'ART da vistoria', ok: !!s.art, sub: s.art ? 'Registrada no CREA' : 'Aparece aqui depois da vistoria', href: s.art },
-    { icon: 'doc', t: 'Laudo técnico', ok: !!s.laudo, sub: s.laudo ? 'Com fotos e itens para a MRV' : 'Até 4 dias úteis após a vistoria', href: s.laudo },
-    ...(rf.aprovadoEm ? [{ icon: 'hammer', t: 'ART de reforma', ok: !!rf.art, sub: rf.art ? 'Registrada no CREA' : 'Aparece aqui depois da visita técnica', href: rf.art }] : []),
+    ...(svr.vistoria
+      ? [
+          { icon: 'shield', t: 'ART da vistoria', ok: !!s.art, sub: s.art ? 'Registrada no CREA' : 'Aparece aqui depois da vistoria', href: s.art },
+          { icon: 'doc', t: 'Laudo técnico', ok: !!s.laudo, sub: s.laudo ? 'Com fotos e itens para a MRV' : 'Até 4 dias úteis após a vistoria', href: s.laudo },
+        ]
+      : []),
+    ...(rf.aprovadoEm ? [{ icon: 'hammer', t: 'ART de reforma', ok: !!rf.art, sub: rf.art ? 'Registrada no CREA' : 'Pronta em até 5 dias úteis depois das informações da obra', href: rf.art }] : []),
+    ...(rf.aprovadoEm ? [{ icon: 'plan', t: 'Plano de reforma', ok: !!rf.art, sub: rf.art ? 'Para entregar ao síndico' : 'Vem junto com a ART', href: rf.art }] : []),
   ]
 
   return (
@@ -1550,6 +1858,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           ))}
         </ol>
 
+        {desatualizado && <Reassinar r={r} cfg={cfg} id={id} token={token} onFeito={() => void recarregar()} />}
         <div className="rv-dash">
           <div className="rv-col">
         <section className={`rv-now ${agora.tom}`}>
@@ -1618,7 +1927,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               <div className="rv-state ok">
                 <I n="check" s={16} />
                 <span>
-                  <b>Orçamento aprovado ({brl(Number(rf.valor ?? 0))})</b>O Rogério vai falar com você para combinar a visita técnica e o pagamento. Lembre de passar o plano de reforma e as regras para {rf.prestador ? rf.prestador : 'o seu prestador'} antes de começar.
+                  <b>Orçamento aprovado ({brl(Number(rf.valor ?? 0))})</b>O Rogério vai falar com você para receber as informações da obra e combinar o pagamento. Lembre de passar o plano de reforma e as regras para {rf.prestador ? rf.prestador : 'o seu prestador'} antes de começar.
                 </span>
               </div>
             ) : rf.valor ? (
@@ -1692,7 +2001,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
 
           </div>
           <div className="rv-col">
-        {!r.cancelada && <Grupo n={grupo} cfg={cfg} compact />}
+        {!r.cancelada && svr.vistoria && <Grupo n={grupo} cfg={cfg} compact />}
 
         <section className="rv-card">
           <h2 className="rv-h2">
@@ -1721,7 +2030,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           )}
         </section>
 
-        {r.dados.revistoria && !r.cancelada && (
+        {r.dados.revistoria && svr.vistoria && !r.cancelada && (
           <section className="rv-card">
             <h2 className="rv-h2">
               <I n="redo" s={18} /> Revistoria combinada

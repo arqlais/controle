@@ -22,6 +22,10 @@ import {
   REFORMA_MIN,
   reformaItensTexto,
   listarConversas,
+  listarEventos,
+  valores,
+  servicosDe,
+  type Evento,
   marcarLida,
   mensagensDe,
   responderChat,
@@ -42,7 +46,7 @@ import {
 
 /** Texto do que a ART de reforma cobre, a partir dos serviços marcados. */
 const escopoReforma = (itens: string[]) =>
-  `Responsabilidade técnica pela reforma: visita técnica, ART registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural). A execução da obra (mão de obra, materiais e prestadores) é do morador.`
+  `Responsabilidade técnica pela reforma: ART registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural). A execução da obra (mão de obra, materiais e prestadores) é do morador.`
 
 /* ---------- agenda: duração + respiro, conflitos e próximo horário livre ---------- */
 const HORAS = Array.from({ length: 23 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
@@ -238,6 +242,8 @@ export default function Reservas() {
 
       <Conversas reservas={list ?? []} />
 
+      <Acessos reservas={list ?? []} />
+
       <div className="art-stats">
         <div className="art-stat card">
           <small>reservas</small>
@@ -285,6 +291,7 @@ export default function Reservas() {
                   <b>{r.dados.nome}</b>
                   <small>
                     {unidade(r.dados)} · {r.dados.tel}
+                    {servicosDe(r.dados).vistoria ? '' : ' · só ART de reforma'}
                     {r.dados.revistoria ? ' · revistoria' : ''}
                     {r.status.reforma?.pedido && !r.status.reforma.valor ? ' · pediu ART de reforma' : r.status.reforma?.aprovadoEm ? ' · ART de reforma aprovada' : ''}
                   </small>
@@ -346,6 +353,7 @@ function Detalhe({
   const [laudo, setLaudo] = useState(s.laudo ?? '')
   const [rev, setRev] = useState(s.revistoriaData ?? '')
   const [obs, setObs] = useState(s.obs ?? '')
+  const vv = valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, cfg)
   const occ = d ? ocupados(d, todas, eventos, cfg, r.id) : []
   const choque = d && toMin(h) !== null ? conflitos(toMin(h)!, occ, cfg) : []
   const sugestao = d && choque.length ? livre(occ, cfg, Math.max(8 * 60, (toMin(h) ?? 8 * 60) - 60)) || livre(occ, cfg) : ''
@@ -408,7 +416,7 @@ function Detalhe({
 
         <ol className="rsv-steps">
           <li className={s.sinal ? 'done' : 'now'}>
-            <b>1 · sinal de {money(cfg.preco / 2)}</b>
+            <b>1 · pagamento de {money(vv.agora)} (Pix)</b>
             {s.sinal ? (
               <p>
                 Recebido em {dataCurta(s.sinal)}.{' '}
@@ -482,7 +490,7 @@ function Detalhe({
             </div>
           </li>
           <li className={s.quitado ? 'done' : s.data ? 'now' : ''}>
-            <b>3 · vistoria e saldo de {money(cfg.preco - cfg.preco / 2)}</b>
+            <b>3 · vistoria e saldo de {money(vv.vistoria - vv.sinalVistoria)}</b>
             <label className="row gap-s">
               <input type="checkbox" checked={!!s.quitado} onChange={(e) => void onStatus(r, { quitado: e.target.checked ? today() : '' }, e.target.checked ? 'Quitado.' : undefined)} /> vistoria feita e saldo pago
             </label>
@@ -556,12 +564,12 @@ function Detalhe({
                     Estimativa da calculadora: <b>{money(Number(rf.estimativa))}</b>
                     {rf.itens?.length ? ` · ${reformaItensTexto(rf.itens).join(', ')}` : ''}
                   </span>
-                  <button className="btn small ghost" onClick={() => (setRfEscopo(escopoReforma(rf.itens ?? [])), setRfValor(String(rf.estimativa)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
+                  <button className="btn small ghost" onClick={() => (setRfEscopo(escopoReforma(rf.itens ?? [])), setRfValor(String(rf.estimativa)), setRfPrazo('até 5 dias úteis depois das informações da obra'))}>
                     usar a estimativa
                   </button>
                 </div>
               ) : (
-                <button className="btn small ghost rsv-fill" onClick={() => (setRfEscopo(escopoReforma([])), setRfValor(String(REFORMA_MIN)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
+                <button className="btn small ghost rsv-fill" onClick={() => (setRfEscopo(escopoReforma([])), setRfValor(String(REFORMA_MIN)), setRfPrazo('até 5 dias úteis depois das informações da obra'))}>
                   preencher o padrão ({money(REFORMA_MIN)})
                 </button>
               )}
@@ -798,6 +806,124 @@ function AgendaVistorias({ reservas, cfg, onOpen }: { reservas: Reserva[]; cfg: 
             </div>
           )
         })}
+      </div>
+    </Section>
+  )
+}
+
+/** Acessos da página de reserva e do painel: quantas pessoas, de onde vêm, até onde leem e onde param. */
+function Acessos({ reservas }: { reservas: Reserva[] }) {
+  const [ev, setEv] = useState<Evento[] | null>(null)
+  const [dias, setDias] = useState<'7' | '30'>('30')
+  useEffect(() => {
+    void listarEventos(Number(dias)).then(setEv).catch(() => setEv([]))
+  }, [dias])
+  if (!ev) return null
+  const porSessao = new Map<string, Evento[]>()
+  ev.forEach((e) => porSessao.set(e.sessao, [...(porSessao.get(e.sessao) ?? []), e]))
+  const sessoes = [...porSessao.values()]
+  const tem = (es: Evento[], f: (e: Evento) => boolean) => es.some(f)
+  const visitantes = sessoes.filter((es) => tem(es, (e) => e.evento === 'abriu')).length
+  const funil: [string, number][] = [
+    ['abriram a página', visitantes],
+    ['viram os valores', sessoes.filter((es) => tem(es, (e) => e.evento === 'viu' && e.dados.secao === 'valores')).length],
+    ['tocaram em reservar', sessoes.filter((es) => tem(es, (e) => e.evento === 'clicou' && String(e.dados.alvo).startsWith('reservar')) || tem(es, (e) => e.evento === 'etapa')).length],
+    ['escolheram o serviço', sessoes.filter((es) => tem(es, (e) => e.evento === 'etapa' && e.dados.nome === 'dados')).length],
+    ['chegaram ao contrato', sessoes.filter((es) => tem(es, (e) => e.evento === 'etapa' && e.dados.nome === 'contrato')).length],
+    ['assinaram', sessoes.filter((es) => tem(es, (e) => e.evento === 'assinou')).length],
+  ]
+  const conta = (lista: string[]) => [...lista.reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
+  const origens = conta(sessoes.map((es) => String(es.find((e) => e.evento === 'abriu' && e.dados.origem)?.dados.origem ?? 'sem informação')))
+  const aparelhos = conta(sessoes.map((es) => String(es[0]?.dados.aparelho ?? '—')))
+  // onde param: a última parte vista ou o último passo de quem não assinou
+  const ondeParam = conta(
+    sessoes
+      .filter((es) => !tem(es, (e) => e.evento === 'assinou'))
+      .map((es) => {
+        const ult = [...es].reverse().find((e) => e.evento === 'etapa' || e.evento === 'viu')
+        return ult ? (ult.evento === 'etapa' ? `formulário: ${ult.dados.nome}` : `leu até: ${ult.dados.secao}`) : 'só abriu'
+      }),
+  )
+  const hoje = new Date()
+  const porDia = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(hoje.getTime() - (13 - i) * 864e5).toISOString().slice(0, 10)
+    return [d, new Set(ev.filter((e) => e.evento === 'abriu' && e.criado.slice(0, 10) === d).map((e) => e.sessao)).size] as [string, number]
+  })
+  const max = Math.max(1, ...porDia.map((x) => x[1]))
+  const painel = new Set(ev.filter((e) => e.evento === 'abriu' && e.dados.pagina === 'painel').map((e) => e.sessao)).size
+  return (
+    <Section title="acessos" hint="Quem abre a página de reserva e o painel (sem dado pessoal: cada aparelho conta uma vez)." action={<Segmented<'7' | '30'> value={dias} onChange={setDias} options={[{ value: '7', label: '7 dias' }, { value: '30', label: '30 dias' }]} />}>
+      <div className="art-stats">
+        <div className="art-stat card">
+          <small>pessoas que abriram</small>
+          <b>{visitantes}</b>
+          <span>em {dias} dias</span>
+        </div>
+        <div className="art-stat card">
+          <small>assinaram</small>
+          <b>{funil[5][1]}</b>
+          <span>{visitantes ? Math.round((funil[5][1] / visitantes) * 100) : 0}% de quem abriu</span>
+        </div>
+        <div className="art-stat card">
+          <small>abriram o painel</small>
+          <b>{painel}</b>
+          <span>moradores com reserva</span>
+        </div>
+        <div className="art-stat card">
+          <small>reservas ativas</small>
+          <b>{reservas.filter((r) => !r.cancelada).length}</b>
+          <span>no total</span>
+        </div>
+      </div>
+      <div className="acs-grid">
+        <div className="card acs-box">
+          <b>Caminho até assinar</b>
+          {funil.map(([t, n]) => (
+            <div key={t} className="acs-bar">
+              <span>{t}</span>
+              <i style={{ width: `${visitantes ? Math.max(4, (n / visitantes) * 100) : 0}%` }} />
+              <em>{n}</em>
+            </div>
+          ))}
+        </div>
+        <div className="card acs-box">
+          <b>Onde as pessoas param</b>
+          {ondeParam.length ? (
+            ondeParam.slice(0, 8).map(([t, n]) => (
+              <div key={t} className="acs-row">
+                <span>{t}</span>
+                <em>{n}</em>
+              </div>
+            ))
+          ) : (
+            <p className="muted small">Ainda sem dados.</p>
+          )}
+        </div>
+        <div className="card acs-box">
+          <b>De onde vêm</b>
+          {origens.slice(0, 8).map(([t, n]) => (
+            <div key={t} className="acs-row">
+              <span>{t}</span>
+              <em>{n}</em>
+            </div>
+          ))}
+          <p className="muted small">Dica: mande o link com ?o= no fim para saber de onde veio, por exemplo useplane.com.br/vistoria/?o=grupo-sanlevi</p>
+        </div>
+        <div className="card acs-box">
+          <b>Aparelho</b>
+          {aparelhos.map(([t, n]) => (
+            <div key={t} className="acs-row">
+              <span>{t}</span>
+              <em>{n}</em>
+            </div>
+          ))}
+          <b className="mt">Por dia (últimos 14)</b>
+          <div className="acs-days">
+            {porDia.map(([d, n]) => (
+              <i key={d} title={`${d.split('-').reverse().join('/')}: ${n}`} style={{ height: `${(n / max) * 100}%` }} />
+            ))}
+          </div>
+        </div>
       </div>
     </Section>
   )

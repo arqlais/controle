@@ -417,7 +417,12 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const pn = nome.split(' ')[0]
   const un = `${d.torre ? `torre ${d.torre}, ` : ''}apto ${d.apto}`
   const painel = `${SITE}#/vistoria/${r.id}.${r.token}`
-  const metade = cfg.preco / 2
+  const svc = (d.servicos as unknown as { vistoria?: boolean; reforma?: boolean } | undefined) ?? {}
+  const temVist = svc.vistoria !== false
+  const temRef = !!svc.reforma
+  const valRef = temRef ? Math.max(250, Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 250)) : 0
+  const metade = (temVist ? cfg.preco / 2 : 0) + valRef / 2
+  const servTxt = [temVist ? 'vistoria de entrega' : '', temRef ? 'ART de reforma' : ''].filter(Boolean).join(' + ')
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
   const s = (r.status ?? {}) as Record<string, string> & { reforma?: Record<string, string | number> }
   const rf = s.reforma ?? {}
@@ -428,12 +433,12 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const grupoTxt = grupo >= min ? `O grupo já tem ${grupo} reservas: vale o valor de grupo (${brl(cfg.preco)}).` : `O grupo está com ${grupo} de ${min} reservas. Com ${min}, todos pagam ${brl(cfg.preco)}; se não chegar, a diferença para ${brl(ind)} entra no restante, no dia da vistoria.`
   return {
     reserva: {
-      subject: `Reserva recebida: vistoria do ${un}`,
+      subject: `Contrato assinado: ${servTxt} · ${un}`,
       html: rdlLayout({
         eyebrow: 'reserva da vistoria',
         title: `Recebemos a sua reserva, ${pn}!`,
-        text: `<p style="margin:0 0 12px;">O contrato da vistoria de entrega de chaves foi assinado e está guardado no seu painel, junto com tudo da vistoria.</p><p style="margin:0;"><b>Para garantir a vaga</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois é só mandar o comprovante pelo WhatsApp ou respondendo este e-mail.</p><p style="margin:12px 0 0;">${grupoTxt}</p>`,
-        rows: [...base, ['valor', `${brl(cfg.preco)} (sinal ${brl(metade)})`], ['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`], ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
+        text: `<p style="margin:0 0 12px;">O seu contrato (${esc(servTxt)}) foi assinado e está guardado no seu painel.</p><p style="margin:0;"><b>Para garantir</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois é só mandar o comprovante pelo WhatsApp ou respondendo este e-mail.</p>${temVist ? `<p style="margin:12px 0 0;">${grupoTxt}</p>` : ''}`,
+        rows: [...base, ['serviços', servTxt], ['total', brl((temVist ? cfg.preco : 0) + valRef)], ['agora no Pix', brl(metade)], ...(temVist ? ([['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`]] as [string, string][]) : []), ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
         button: 'Abrir o meu painel',
         url: painel,
       }),
@@ -535,7 +540,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
       html: rdlLayout({
         eyebrow: 'ART de reforma',
         title: 'Orçamento aprovado',
-        text: `<p style="margin:0;">${esc(nome)} aprovou o orçamento da ART de reforma pelo painel (${brl(Number(rf.valor ?? 0))}). O próximo passo é combinar a visita técnica e o pagamento.</p>`,
+        text: `<p style="margin:0;">${esc(nome)} aprovou o orçamento da ART de reforma pelo painel (${brl(Number(rf.valor ?? 0))}). O próximo passo é receber as informações da obra e combinar o pagamento.</p>`,
         rows: [...base, ['valor', brl(Number(rf.valor ?? 0))], ['WhatsApp', String(d.tel ?? '')]],
         button: 'Abrir o sistema da RDL',
         url: `${SITE}rdl/`,
@@ -545,8 +550,8 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
       subject: `Nova reserva: ${nome} · ${un}`,
       html: rdlLayout({
         eyebrow: 'nova reserva pelo link',
-        title: `${nome} reservou a vistoria`,
-        text: `<p style="margin:0;">O contrato foi assinado no link. Falta o sinal de <b>${brl(metade)}</b>. Os dados completos, o contrato e as mensagens prontas estão em <b>vistorias</b>, no sistema da RDL.</p>`,
+        title: `${nome} assinou: ${servTxt}`,
+        text: `<p style="margin:0;">O contrato foi assinado no link. Falta o pagamento de <b>${brl(metade)}</b> no Pix. Os dados completos, o contrato e as mensagens prontas estão em <b>vistorias</b>, no sistema da RDL.</p>`,
         rows: [...base, ['WhatsApp', String(d.tel ?? '')], ['e-mail', String(d.email ?? '')], ['revistoria', d.revistoria ? 'combinada' : 'não']],
         button: 'Abrir o sistema da RDL',
         url: `${SITE}rdl/`,
