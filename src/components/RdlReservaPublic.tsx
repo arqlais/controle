@@ -806,6 +806,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <h2 className="rv-h2">
             <I n="info" s={18} /> Dúvidas comuns
           </h2>
+          <div className="rv-faq-list">
           {[
             ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
             ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
@@ -823,6 +824,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               <p>{a}</p>
             </details>
           ))}
+          </div>
           <button className="rv-btn ghost wide3" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
             <I n="help" /> Não achou a resposta? Pergunte aqui
           </button>

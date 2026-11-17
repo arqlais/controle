@@ -2714,3 +2714,56 @@ html.rv-root body {
 .rv-phone {
   height: 430px;
 }
+/* dúvidas comuns: grade de 2 colunas (sem colunas CSS, que o Safari embaralha) */
+.rv-wide .rv-faq {
+  columns: auto;
+}
+.rv-faq-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: 28px;
+}
+@media (min-width: 820px) {
+  .rv-wide .rv-faq-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.rv-faq .rv-btn {
+  margin-top: 16px;
+}
+/* botão de dúvidas: aparece em qualquer fundo e pulsa de leve */
+.rv-fab {
+  background: var(--or);
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 8px 22px -6px rgba(1, 44, 96, 0.45);
+  animation: rvpulse 2.8s ease-in-out infinite;
+}
+.rv-fab .rv-i {
+  color: #fff;
+}
+@keyframes rvpulse {
+  0%,
+  70%,
+  100% {
+    box-shadow: 0 8px 22px -6px rgba(1, 44, 96, 0.45), 0 0 0 0 rgba(255, 130, 22, 0.45);
+  }
+  35% {
+    box-shadow: 0 8px 22px -6px rgba(1, 44, 96, 0.45), 0 0 0 10px rgba(255, 130, 22, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-fab {
+    animation: none;
+  }
+}
+/* o botão de dúvidas não cobre o contato do rodapé */
+.rv-foot {
+  padding-bottom: 76px;
+}
+@media (min-width: 700px) {
+  .rv-foot {
+    padding-bottom: 16px;
+    padding-right: 170px;
+  }
+}
