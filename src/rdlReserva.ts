@@ -44,7 +44,7 @@ export const CONFIG_PADRAO: ReservaConfig = {
   preco: 280,
   revistoria: 150,
   periodo: 'entre dezembro de 2026 e março de 2027',
-  pix: '',
+  pix: 'c01ef22d-c13e-4ffd-a9a2-e6e9af3e461a', // chave aleatória da RDL
   pixNome: 'RDL Engenharia',
   aberta: true,
   individual: 297,
@@ -65,7 +65,9 @@ export function plantaDoApto(apto: string): string {
 }
 export async function lerConfig(): Promise<ReservaConfig> {
   const c = CLOUD ? await readPublicFile<Partial<ReservaConfig>>(RDL_ID, CONFIG_FILE) : null
-  return { ...CONFIG_PADRAO, ...(c ?? {}) }
+  const cfg = { ...CONFIG_PADRAO, ...(c ?? {}) }
+  if (!cfg.pix) cfg.pix = CONFIG_PADRAO.pix // configuração antiga salva sem chave
+  return cfg
 }
 export const salvarConfig = (c: ReservaConfig) => publishPublicFile(RDL_ID, CONFIG_FILE, c)
 
@@ -586,7 +588,7 @@ export function mensagens(r: Reserva, c: ReservaConfig) {
   const metade = vv.agora
   const painel = linkPainel(r)
   return {
-    sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix:\n*${c.pix}*` : '.'}\nDepois é só mandar o comprovante por aqui.\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
+    sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix:\n*${c.pix}*` : '.'}\nDepois de pagar, toque em *Já paguei* no seu painel (ou mande o comprovante por aqui).\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
     confirmado: `Oi, ${nome}! ✅ Sinal recebido, a sua vaga na agenda está garantida.\n\nAssim que a MRV liberar as datas (${c.periodo}), me avisa para a gente combinar o horário antes de você confirmar com eles.\n\nPainel da sua vistoria:\n${painel}`,
     data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(vv.vistoria - vv.sinalVistoria)}* no dia (Pix ou cartão)\n\nQualquer coisa, me chama por aqui.`,
     laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\nEstá no seu painel:\n${painel}\n\nÉ só encaminhar para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,

@@ -349,10 +349,10 @@ type RdlRow = { id: string; token: string; criado: string; dados: Record<string,
 const rdlSub = (id: string, email: string, name: string): Sub => ({ user_id: id, email, name, plan: '', status: '', trial_ends: '', blocked: false })
 // deno-lint-ignore no-explicit-any
 async function rdlCfg(db: any): Promise<RdlCfg> {
-  let cfg: RdlCfg = { preco: 280, individual: 297, minimo: 10, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: '', empreendimento: 'Condomínio San Levi (MRV)' }
+  let cfg: RdlCfg = { preco: 280, individual: 297, minimo: 10, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: 'c01ef22d-c13e-4ffd-a9a2-e6e9af3e461a', empreendimento: 'Condomínio San Levi (MRV)' }
   try {
     const f = await db.storage.from('agenda').download('7d1e0000-0000-4000-8000-00000000d1d1/reserva-vistoria.json')
-    if (f.data) cfg = { ...cfg, ...JSON.parse(await f.data.text()) }
+    if (f.data) cfg = { ...cfg, ...JSON.parse(await f.data.text()), pix: JSON.parse(await f.data.text()).pix || cfg.pix }
   } catch {
     /* usa o padrão */
   }
