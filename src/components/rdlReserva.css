@@ -1814,7 +1814,7 @@ html.rv-root body {
   gap: 12px;
   text-decoration: none;
 }
-.rv-offer.main {
+.rv-offer.hi {
   background: var(--or);
   color: #fff;
 }
@@ -2478,4 +2478,172 @@ html.rv-root body {
   padding-left: 18px;
   display: grid;
   gap: 2px;
+}
+.rv-termo {
+  margin-top: 14px;
+  border: 1.5px solid var(--line);
+  border-left: 4px solid var(--navy);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+}
+.rv-termo b {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+}
+.rv-termo b .rv-i {
+  color: var(--or);
+}
+.rv-termo ol {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+.rv-termo li {
+  font-size: 12.5px;
+  color: var(--txt);
+  line-height: 1.45;
+}
+.rv-termo .rv-btn {
+  width: 100%;
+}
+.rv-area input {
+  font: inherit;
+  font-size: 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  width: 100%;
+  color: var(--navy);
+}
+/* telas largas (iPad e computador): ocupa a tela, em colunas */
+.rv-res {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rv-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+@media (min-width: 820px) {
+  .rv-main.rv-wide {
+    max-width: 1100px;
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+  .rv-wide .rv-welcome {
+    padding: 40px 48px 36px;
+  }
+  .rv-wide .rv-welcome h1 {
+    font-size: 40px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .rv-wide .rv-welcome p {
+    font-size: 16px;
+    max-width: 640px;
+  }
+  .rv-wide .rv-reasons {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 22px;
+  }
+  .rv-wide .rv-offers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+  .rv-wide .rv-offers .rv-h2 {
+    grid-column: 1 / -1;
+  }
+  .rv-wide .rv-offer {
+    justify-content: space-between;
+  }
+  .rv-wide .rv-offer-price {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .rv-wide .rv-mock-stage {
+    flex-direction: row;
+    justify-content: center;
+    gap: 36px;
+  }
+  .rv-wide .rv-mock-cap {
+    text-align: left;
+    max-width: 300px;
+    font-size: 15px;
+  }
+  .rv-wide .rv-mock-tabs {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .rv-wide .rv-who {
+    padding: 18px 22px;
+  }
+  .rv-wide .rv-faq {
+    columns: 2;
+    column-gap: 28px;
+  }
+  .rv-wide .rv-faq .rv-h2,
+  .rv-wide .rv-faq .rv-btn {
+    column-span: all;
+  }
+  .rv-wide .rv-faq details {
+    break-inside: avoid;
+  }
+  .rv-wide > .rv-btn.big {
+    max-width: 420px;
+    align-self: center;
+  }
+  .rv-wide .rv-io {
+    gap: 16px;
+  }
+}
+@media (min-width: 1000px) {
+  .rv-wide .rv-reasons {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .rv-wide .rv-reasons > div {
+    flex-direction: column;
+  }
+  .rv-wide .rv-how {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .rv-wide .rv-how li {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rv-wide .rv-res {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .rv-wide .rv-aside {
+    position: sticky;
+    top: 16px;
+  }
+  .rv-wide .rv-aside .rv-price {
+    grid-template-columns: 1fr;
+  }
+}
+@media (min-width: 820px) and (max-width: 999px) {
+  .rv-wide .rv-res .rv-aside {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+@media (min-width: 820px) {
+  .rv-dots {
+    max-width: 460px;
+  }
 }

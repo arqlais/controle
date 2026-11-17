@@ -538,6 +538,8 @@ function Detalhe({
             <>
               <p className="small">
                 Aprovado em {dataCurta(rf.aprovadoEm)} · {money(Number(rf.valor ?? 0))}
+                {rf.termoAceito ? ` · termo de responsabilidade aceito em ${new Date(rf.termoAceito).toLocaleString('pt-BR')}` : ''}
+                {rf.prestador ? ` · prestador: ${rf.prestador}` : ' · prestador ainda não informado'}
               </p>
               <div className="row gap-s wrap">
                 <input className="grow" value={rfArt} onChange={(e) => setRfArt(e.target.value)} placeholder="link da ART de reforma" />

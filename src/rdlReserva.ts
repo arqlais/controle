@@ -103,6 +103,8 @@ export interface ReformaPedido {
   enviadoEm?: string
   aprovadoEm?: string
   art?: string // link da ART de reforma
+  prestador?: string // quem vai executar a obra (informado pelo morador)
+  termoAceito?: string // quando aceitou o termo da ART de reforma
 }
 export interface ReservaContrato {
   texto: string
@@ -250,7 +252,7 @@ export async function apagarReserva(id: string) {
 }
 
 /** O que o morador pode mudar pelo painel (planta, pedido e aprovação da ART de reforma). */
-export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar', valor: string | { pedido: string; itens: string[]; estimativa: number } = ''): Promise<boolean> {
+export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar', valor: string | { pedido: string; itens: string[]; estimativa: number } | { prestador: string; termo: string } = ''): Promise<boolean> {
   if (!supabase) return false
   const { data, error } = await supabase.rpc('rdl_morador', { p_id: id, p_token: token, p_acao: acao, p_valor: typeof valor === 'string' ? valor : JSON.stringify(valor) })
   return !error && !!data
@@ -300,6 +302,19 @@ export function calcReforma(ids: string[]): number {
   if (!itens.length) return REFORMA_MIN
   return REFORMA_MIN + itens.slice(1).reduce((t, i) => t + i.mais, 0)
 }
+/** Termo da ART de reforma: o morador aceita no painel antes de aprovar o orçamento (protege o responsável técnico). */
+export const TERMO_REFORMA = [
+  'O Rogério (RDL Engenharia) é o responsável técnico da reforma: faz a visita técnica, o plano de reforma e registra a ART. Ele não executa a obra e não acompanha o dia a dia dela.',
+  'A obra é feita pelo prestador que eu contratar (pedreiro, marceneiro, empresa), que responde pela qualidade do serviço, pelos materiais, pela segurança dos trabalhadores e por danos ao meu apê, aos vizinhos e às áreas comuns.',
+  'Vou passar o plano de reforma ao meu prestador e garantir que ele siga o plano, o manual do proprietário da MRV e as regras do condomínio (horários, entrada de material, retirada de entulho).',
+  'Sei que as paredes do San Levi são de concreto e estruturais: não vou derrubar, cortar, rasgar ou fazer furos fora do que o plano e o manual permitem, nem mexer em colunas de água, esgoto, gás ou na fachada.',
+  'Qualquer serviço que não esteja no plano precisa ser combinado antes com a RDL. Mudou o que vai ser feito, pode ser preciso uma ART nova.',
+  'Vou avisar a RDL quando a obra começar e terminar, e deixar o engenheiro entrar para conferir quando ele pedir.',
+  'Se a obra for feita diferente do plano, sem aviso, a RDL pode dar baixa na ART e avisar o condomínio, e não responde pelo que foi feito fora do plano.',
+  'A garantia da MRV pode ser perdida nos itens reformados. Isso é responsabilidade minha e do meu prestador.',
+]
+export const termoReformaTexto = () => TERMO_REFORMA.map((t, i) => `${i + 1}. ${t}`).join('\n')
+
 export const reformaItensTexto = (ids: string[]) => REFORMA_ITENS.filter((i) => ids.includes(i.id)).map((i) => i.nome.toLowerCase())
 
 /* ---------- chat de dúvidas ---------- */

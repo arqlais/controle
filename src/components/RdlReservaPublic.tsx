@@ -34,6 +34,8 @@ import {
   REFORMA_MIN,
   calcReforma,
   reformaItensTexto,
+  TERMO_REFORMA,
+  termoReformaTexto,
   type ChatMsg,
   type Reserva,
   type ReservaConfig,
@@ -595,7 +597,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
     <>
       <Topo />
       {teste && <Teste />}
-      <main className="rv-main">
+      <main className="rv-main rv-wide">
         <section className="rv-welcome">
           <span className="rv-pill or">
             <i /> EXCLUSIVO · MORADORES SAN LEVI
@@ -660,7 +662,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <h2 className="rv-h2">
             <I n="star" s={18} /> Valores exclusivos do San Levi
           </h2>
-          <div className="rv-offer main">
+          <div className="rv-offer hi">
             <span className="tag">MAIS PROCURADO</span>
             <div className="rv-offer-head">
               <span className="ib">
@@ -957,7 +959,7 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
     <>
       <Topo />
       {teste && <Teste />}
-      <main className="rv-main">
+      <main className="rv-main rv-wide">
         <section className="rv-hero">
           <span className="rv-pill">
             <i /> MORADORES · {cfg.empreendimento.replace(/\s*\(.*\)/, '').toUpperCase()}
@@ -977,6 +979,8 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
           </a>
         )}
 
+        <div className="rv-res">
+        <aside className="rv-aside">
         <Grupo n={n} cfg={cfg} />
 
         <section className="rv-price">
@@ -1005,6 +1009,7 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
             </li>
           </ul>
         </section>
+        </aside>
 
 
         {!cfg.aberta && !teste ? (
@@ -1238,6 +1243,7 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
           </section>
         )}
 
+        </div>
       </main>
       <Rodape />
       <Duvidas teste={teste} />
@@ -1258,6 +1264,8 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
   const [trocaPlanta, setTrocaPlanta] = useState(false)
   const [pedido, setPedido] = useState('')
   const [rfItens, setRfItens] = useState<string[]>([])
+  const [termoOk, setTermoOk] = useState(false)
+  const [prestador, setPrestador] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [msg, setMsg] = useState('')
   const [nova] = useState(() => {
@@ -1365,14 +1373,14 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
     void recarregar()
   }
   const aprovarReforma = async () => {
-    if (enviando) return
+    if (enviando || !termoOk) return
     setEnviando(true)
     if (teste) {
-      setR({ ...r, status: { ...s, reforma: { ...rf, aprovadoEm: new Date().toISOString() } } })
+      setR({ ...r, status: { ...s, reforma: { ...rf, aprovadoEm: new Date().toISOString(), termoAceito: new Date().toISOString(), prestador: prestador.trim() } } })
       setEnviando(false)
       return
     }
-    const ok = await moradorAcao(id, token, 'reforma-aprovar')
+    const ok = await moradorAcao(id, token, 'reforma-aprovar', { prestador: prestador.trim(), termo: termoReformaTexto() })
     setEnviando(false)
     if (!ok) return setMsg('Não consegui aprovar agora. Tente de novo ou chame o Rogério no WhatsApp.')
     void avisarEmail('reforma-aprovada', id, token)
@@ -1608,7 +1616,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               <div className="rv-state ok">
                 <I n="check" s={16} />
                 <span>
-                  <b>Orçamento aprovado ({brl(Number(rf.valor ?? 0))})</b>O Rogério vai falar com você para combinar a visita técnica e o pagamento.
+                  <b>Orçamento aprovado ({brl(Number(rf.valor ?? 0))})</b>O Rogério vai falar com você para combinar a visita técnica e o pagamento. Lembre de passar o plano de reforma e as regras para {rf.prestador ? rf.prestador : 'o seu prestador'} antes de começar.
                 </span>
               </div>
             ) : rf.valor ? (
@@ -1628,10 +1636,34 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                     </>
                   )}
                 </dl>
-                <button className="rv-btn" disabled={enviando} onClick={() => void aprovarReforma()}>
+                <div className="rv-termo">
+                  <b>
+                    <I n="shield" s={15} /> Antes de aprovar: o que fica com você e com o seu prestador
+                  </b>
+                  <ol>
+                    {TERMO_REFORMA.map((t) => (
+                      <li key={t}>{t}</li>
+                    ))}
+                  </ol>
+                  <a className="rv-btn small ghost" href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Regras da reforma do meu apê no San Levi (para a gente alinhar antes de começar):\n\n${termoReformaTexto()}\n\nO plano de reforma vai seguir junto.`)}`} target="_blank" rel="noreferrer">
+                    <I n="chat" /> Mandar estas regras para o meu prestador
+                  </a>
+                </div>
+                <label className="rv-area">
+                  <span>Quem vai fazer a obra? (pode informar depois)</span>
+                  <input value={prestador} onChange={(e) => setPrestador(e.target.value)} placeholder="Nome do pedreiro ou da empresa e telefone" />
+                </label>
+                <label className={`rv-check ${termoOk ? 'on' : ''}`}>
+                  <input type="checkbox" checked={termoOk} onChange={(e) => setTermoOk(e.target.checked)} />
+                  <span>
+                    <b>Li, concordo e vou alinhar tudo com o meu prestador</b>
+                    <small>O Rogério é o responsável técnico (ART e plano). A obra, os materiais e a segurança são do meu prestador e meus.</small>
+                  </span>
+                </label>
+                <button className="rv-btn" disabled={enviando || !termoOk} onClick={() => void aprovarReforma()}>
                   <I n="check" /> Aprovar orçamento
                 </button>
-                <p className="rv-fine">Ao aprovar, você contrata a ART de reforma nessas condições (cláusula 10.2 do contrato). Dúvidas? Chame o Rogério antes.</p>
+                <p className="rv-fine">Ao aprovar, você contrata a ART de reforma nessas condições (cláusulas 10.2 e 10.3 do contrato). O termo fica guardado com data e hora. Dúvidas? Chame o Rogério antes.</p>
               </div>
             ) : rf.pedido ? (
               <div className="rv-state">
