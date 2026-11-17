@@ -101,6 +101,7 @@ export default function Clients() {
           <Icon name="search" size={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrar por nome, empresa, cidade…" />
         </div>
+        {!rdlMode() && (
         <Segmented<Profile>
           value={profile}
           onChange={setProfile}
@@ -110,6 +111,7 @@ export default function Clients() {
             { value: 'estudantes', label: 'Estudantes' },
           ]}
         />
+        )}
         {!rdlMode() && (
         <select value={type} onChange={(e) => setType(e.target.value as ClientType | '')}>
           <option value="">Todos os tipos</option>

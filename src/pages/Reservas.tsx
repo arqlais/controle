@@ -43,6 +43,33 @@ import {
 const escopoReforma = (itens: string[]) =>
   `Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural).`
 
+/* ---------- agenda: duração + respiro, conflitos e próximo horário livre ---------- */
+const toMin = (h?: string) => (h && /^\d{1,2}:\d{2}/.test(h) ? Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5)) : null)
+const toHora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+type Ocupado = { ini: number; fim: number; nome: string }
+/** O que já ocupa o dia: outras vistorias marcadas e outros compromissos da agenda. */
+function ocupados(dia: string, todas: Reserva[], eventos: { id: string; date: string; time: string; endTime?: string; title: string }[], cfg: ReservaConfig, menos?: string): Ocupado[] {
+  const dur = cfg.duracao ?? 120
+  const res = todas
+    .filter((r) => !r.cancelada && r.id !== menos && r.status.data === dia && toMin(r.status.hora) !== null)
+    .map((r) => ({ ini: toMin(r.status.hora)!, fim: toMin(r.status.hora)! + dur, nome: `${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}` }))
+  const evs = eventos
+    .filter((e) => e.date === dia && !e.id.startsWith('vistoria-') && toMin(e.time) !== null)
+    .map((e) => ({ ini: toMin(e.time)!, fim: toMin(e.endTime) ?? toMin(e.time)! + 60, nome: e.title }))
+  return [...res, ...evs].sort((a, b) => a.ini - b.ini)
+}
+/** Conflitos de um horário (já contando o respiro antes e depois). */
+function conflitos(ini: number, occ: Ocupado[], cfg: ReservaConfig) {
+  const fim = ini + (cfg.duracao ?? 120)
+  const folga = cfg.respiro ?? 30
+  return occ.filter((o) => ini < o.fim + folga && o.ini < fim + folga)
+}
+/** Próximo horário livre do dia, de 8h às 18h, de 30 em 30 minutos. */
+function livre(occ: Ocupado[], cfg: ReservaConfig, desde = 8 * 60) {
+  for (let m = desde; m + (cfg.duracao ?? 120) <= 18 * 60; m += 30) if (!conflitos(m, occ, cfg).length) return toHora(m)
+  return ''
+}
+
 type Filtro = 'todas' | 'sinal' | 'agendar' | 'agendadas' | 'laudo' | 'canceladas'
 const FILTROS: [Filtro, string][] = [
   ['todas', 'todas'],
@@ -137,7 +164,7 @@ export default function Reservas() {
     if (!d) return
     void avisarEmail('data', r.id)
     const evId = `vistoria-${r.id}`
-    upsert('events', { id: evId, title: `Vistoria · ${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}`, date: d, time: h, endTime: '', type: 'outro', customType: 'vistoria', projectId: '', clientId: novo.status.cliente, place: cfg.empreendimento, notes: `${r.dados.tel}${r.dados.revistoria ? ' · revistoria combinada' : ''}`, done: false })
+    upsert('events', { id: evId, title: `Vistoria · ${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}`, date: d, time: h, endTime: h && toMin(h) !== null ? toHora(toMin(h)! + (cfg.duracao ?? 120)) : '', type: 'outro', customType: 'vistoria', projectId: '', clientId: novo.status.cliente, place: cfg.empreendimento, notes: `${r.dados.tel}${r.dados.revistoria ? ' · revistoria combinada' : ''}`, done: false })
   }
   const cancelar = async (r: Reserva) => {
     if (!(await ask(`Cancelar a reserva de ${r.dados.nome} (${unidade(r.dados)})? O painel dele vai mostrar que a reserva foi cancelada.`, { confirmLabel: 'Cancelar reserva' }))) return
@@ -232,6 +259,8 @@ export default function Reservas() {
         </div>
       </div>
 
+      <AgendaVistorias reservas={ativas} cfg={cfg} onOpen={setAberta} />
+
       <div className="row gap-s wrap rsv-filters">
         <input className="rsv-search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar nome, torre, apto" />
         {FILTROS.map(([k, l]) => (
@@ -271,7 +300,7 @@ export default function Reservas() {
         </div>
       )}
 
-      {aberta && <Detalhe r={aberta} cfg={cfg} onClose={() => setAberta(null)} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} />}
+      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => setAberta(null)} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} />}
       {config && (
         <Config
           cfg={cfg}
@@ -295,6 +324,8 @@ export default function Reservas() {
 function Detalhe({
   r,
   cfg,
+  todas,
+  eventos,
   onClose,
   onSinal,
   onStatus,
@@ -303,6 +334,8 @@ function Detalhe({
 }: {
   r: Reserva
   cfg: ReservaConfig
+  todas: Reserva[]
+  eventos: { id: string; date: string; time: string; endTime?: string; title: string }[]
   onClose: () => void
   onSinal: (r: Reserva) => Promise<void>
   onStatus: (r: Reserva, p: Partial<ReservaStatus>, aviso?: string) => Promise<Reserva>
@@ -315,6 +348,9 @@ function Detalhe({
   const [laudo, setLaudo] = useState(s.laudo ?? '')
   const [rev, setRev] = useState(s.revistoriaData ?? '')
   const [obs, setObs] = useState(s.obs ?? '')
+  const occ = d ? ocupados(d, todas, eventos, cfg, r.id) : []
+  const choque = d && toMin(h) !== null ? conflitos(toMin(h)!, occ, cfg) : []
+  const sugestao = d && choque.length ? livre(occ, cfg, Math.max(8 * 60, (toMin(h) ?? 8 * 60) - 60)) || livre(occ, cfg) : ''
   const [art, setArt] = useState(s.art ?? '')
   const rf = s.reforma ?? {}
   const [rfEscopo, setRfEscopo] = useState(rf.escopo ?? '')
@@ -408,11 +444,26 @@ function Detalhe({
           <li className={s.data ? 'done' : s.sinal ? 'now' : ''}>
             <b>2 · data da vistoria</b>
             <p className="muted small">Previsão da MRV: {cfg.periodo}. Ao salvar, a data aparece no painel do morador e na agenda.</p>
+            {d && occ.length > 0 && (
+              <p className="muted small">
+                Neste dia: {occ.map((o) => `${toHora(o.ini)}–${toHora(o.fim)} ${o.nome}`).join(' · ')}
+              </p>
+            )}
+            {choque.length > 0 && (
+              <p className="rsv-warn">
+                <Icon name="alert" size={14} /> Bate com {choque.map((o) => `${o.nome} (${toHora(o.ini)}–${toHora(o.fim)})`).join(', ')}, contando {cfg.duracao ?? 120} min de vistoria e {cfg.respiro ?? 30} min de respiro.
+                {sugestao && (
+                  <button className="link small" onClick={() => setH(sugestao)}>
+                    usar {sugestao}
+                  </button>
+                )}
+              </p>
+            )}
             <div className="row gap-s wrap">
               <input type="date" value={d} onChange={(e) => setD(e.target.value)} />
               <input type="time" value={h} onChange={(e) => setH(e.target.value)} />
-              <button className="btn small" disabled={d === (s.data ?? '') && h === (s.hora ?? '')} onClick={() => void onData(r, d, h)}>
-                salvar data
+              <button className="btn small" disabled={(d === (s.data ?? '') && h === (s.hora ?? '')) || !d} onClick={() => void onData(r, d, h)}>
+                {choque.length ? 'salvar mesmo assim' : 'salvar data'}
               </button>
               {s.data && (
                 <button className="btn small ghost" onClick={() => zap(msg.data)}>
@@ -573,6 +624,12 @@ function Config({ cfg, onClose, onSave }: { cfg: ReservaConfig; onClose: () => v
         <Field label="revistoria (R$)">
           <input type="number" min={0} value={c.revistoria} onChange={(e) => set('revistoria', Number(e.target.value) || 0)} />
         </Field>
+        <Field label="duração da vistoria (min)" hint="Para a agenda e os avisos de horário.">
+          <input type="number" min={30} step={15} value={c.duracao ?? 120} onChange={(e) => set('duracao', Number(e.target.value) || 120)} />
+        </Field>
+        <Field label="respiro entre vistorias (min)" hint="Folga para deslocamento e imprevistos.">
+          <input type="number" min={0} step={5} value={c.respiro ?? 30} onChange={(e) => set('respiro', Number(e.target.value) || 0)} />
+        </Field>
         <Field label="previsão das vistorias" span={2}>
           <input value={c.periodo} onChange={(e) => set('periodo', e.target.value)} />
         </Field>
@@ -694,5 +751,43 @@ function ChatModal({ c, titulo, onClose }: { c: Conv; titulo: string; onClose: (
         </div>
       </div>
     </Modal>
+  )
+}
+
+/** Agenda das vistorias marcadas: por dia, com o horário de término, o respiro e os horários que se encavalam. */
+function AgendaVistorias({ reservas, cfg, onOpen }: { reservas: Reserva[]; cfg: ReservaConfig; onOpen: (r: Reserva) => void }) {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const marcadas = reservas.filter((r) => r.status.data && r.status.data >= hoje).sort((a, b) => `${a.status.data}${a.status.hora ?? ''}`.localeCompare(`${b.status.data}${b.status.hora ?? ''}`))
+  if (!marcadas.length) return null
+  const dias = [...new Set(marcadas.map((r) => r.status.data!))]
+  const dur = cfg.duracao ?? 120
+  const folga = cfg.respiro ?? 30
+  return (
+    <Section title="agenda das vistorias" hint={`${dur} min de vistoria + ${folga} min de respiro. Também estão na agenda do sistema.`}>
+      <div className="rsv-days">
+        {dias.map((dia) => {
+          const doDia = marcadas.filter((r) => r.status.data === dia)
+          return (
+            <div key={dia} className="rsv-day">
+              <b>{new Date(`${dia}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</b>
+              {doDia.map((r, i) => {
+                const ini = toMin(r.status.hora)
+                const ant = i > 0 ? toMin(doDia[i - 1].status.hora) : null
+                const bate = ini !== null && ant !== null && ini < ant + dur + folga
+                return (
+                  <button key={r.id} className={`rsv-slot ${bate ? 'bad' : ''}`} onClick={() => onOpen(r)}>
+                    <span>{ini !== null ? `${toHora(ini)}–${toHora(ini + dur)}` : 'sem horário'}</span>
+                    <em>
+                      {r.dados.nome.split(' ')[0]} · {unidade(r.dados)}
+                    </em>
+                    {bate && <Badge color={PAL.bad}>sem respiro</Badge>}
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+    </Section>
   )
 }

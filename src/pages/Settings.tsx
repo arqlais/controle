@@ -19,6 +19,7 @@ import { CLOUD, listVersions, restoreVersion, type Version } from '../cloud'
 import { BrandKit } from '../components/BrandKit'
 import { BODY_FONTS, DISPLAY_FONTS, EXCLUSIVE_FONT, OWN_BODY_FONT, OWN_FONT } from '../brand'
 import { useAccess } from '../access'
+import { rdlMode } from '../rdl'
 import { TEMPLATES, followsBrand, resolveTemplate, sheetColors, templateAllowed } from '../proposalTemplates'
 import { contractSettings } from '../contracts'
 import { WORK_PROFILES } from '../clientDefaults'
@@ -120,7 +121,7 @@ export default function SettingsPage() {
           <DesktopNote>Regras de preço, modelo da proposta, mensagens, metas e cores ficam no computador ou tablet.</DesktopNote>
           {tab === 'aparencia' && (
             <>
-              {!has('identidade') && (
+              {!has('identidade') && !rdlMode() && (
                 <p className="pf-note">
                   <Icon name="star" size={16} />
                   <span>
@@ -128,9 +129,15 @@ export default function SettingsPage() {
                   </span>
                 </p>
               )}
-              <MenuLook />
-              <BrandKit />
-              <OwnerColors />
+              {rdlMode() ? (
+                <RdlLook />
+              ) : (
+                <>
+                  <MenuLook />
+                  <BrandKit />
+                  <OwnerColors />
+                </>
+              )}
               <Section title="tema deste aparelho">
                 <div className="form-grid">
                   <Field group label="Claro ou escuro" hint="Cada aparelho guarda o seu: o celular pode ficar claro e o computador escuro.">
@@ -150,7 +157,7 @@ export default function SettingsPage() {
 
           {tab === 'precos' && (
             <>
-            <WorkProfileSection />
+            {!rdlMode() && <WorkProfileSection />}
             <Section title="tabela de preços" action={<RaiseTable />}>
               <PriceTable services={s.services} profile={s.workProfile} onChange={(services) => setSettings({ services, pricesTouched: true })} onRestart={() => setSettings({ servicesSetup: false })} />
             </Section>
@@ -159,6 +166,7 @@ export default function SettingsPage() {
                 <MoneyInput value={s.hourlyCost ?? 0} onChange={(n) => setSettings({ hourlyCost: n })} />
               </Field>
             </Section>
+{!rdlMode() && (
               <Section title="regras de preço" className="desktop-only">
                 <div className="form-grid">
                   <Field label="Taxa de urgência (%)">
@@ -185,6 +193,7 @@ export default function SettingsPage() {
                   </Field>
                 </div>
               </Section>
+              )}
             </>
           )}
 
@@ -973,6 +982,36 @@ function MenuLook() {
             <small>{o.text}</small>
           </button>
         ))}
+      </div>
+    </Section>
+  )
+}
+
+/** RDL: identidade fixa (logo, azul-marinho e laranja). Só a fonte pode ser trocada. */
+function RdlLook() {
+  const { data, setSettings } = useStore()
+  const s = data.settings
+  const fonts = [...new Set(['Poppins', ...BODY_FONTS.map((f) => f.name)])]
+  return (
+    <Section title="identidade da RDL" hint="Logo e cores da RDL já valem para o sistema e para todos os documentos.">
+      <div className="rdl-look">
+        {s.logo && <img src={s.logo} alt="RDL Engenharia" />}
+        <div className="rdl-look-colors">
+          <span style={{ background: '#012c60' }} /> azul-marinho
+          <span style={{ background: '#ff8216' }} /> laranja
+        </div>
+      </div>
+      <div className="form-grid">
+        <Field label="Fonte" hint="Padrão: Poppins (a do logo). Vale para o sistema e os documentos.">
+          <select value={s.bodyFont || 'Poppins'} onChange={(e) => setSettings({ bodyFont: e.target.value, displayFont: e.target.value })}>
+            {fonts.map((f) => (
+              <option key={f} value={f}>
+                {f}
+                {f === 'Poppins' ? ' (padrão)' : ''}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
     </Section>
   )

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { rdlMode } from '../rdl'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { SaveBar, useDraft } from '../components/SaveBar'
@@ -43,8 +44,9 @@ export default function Processes() {
       </div>
       <p className="pf-note">
         <Icon name="layers" size={16} />
-        <span>Cada tipo de cliente tem um jeito de trabalhar. Ajuste aqui uma vez e vale para os próximos orçamentos e demandas (os que já existem não mudam).</span>
+        <span>{rdlMode() ? 'As etapas de cada serviço (vistoria, revistoria, ART). Ajuste aqui uma vez e vale para os próximos orçamentos e demandas.' : 'Cada tipo de cliente tem um jeito de trabalhar. Ajuste aqui uma vez e vale para os próximos orçamentos e demandas (os que já existem não mudam).'}</span>
       </p>
+      {!rdlMode() && (
       <div className="bf-home-tabs">
         <Segmented<Tab>
           value={tab}
@@ -56,6 +58,7 @@ export default function Processes() {
           ]}
         />
       </div>
+      )}
       <div className="proc-intro card">
         <b>{INTRO[tab].title}</b>
         <p className="muted small">{INTRO[tab].text}</p>

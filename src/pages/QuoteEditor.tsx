@@ -939,7 +939,7 @@ export default function QuoteEditor({ id }: { id: string }) {
                 <span className="muted small">{q.closedAt && q.closedAt > q.createdAt ? `${daysBetween(q.createdAt, q.closedAt)} dia(s) depois do orçamento` : 'pode ser diferente da data do orçamento'}</span>
               </div>
             )}
-            {isStudentClient && settings.studentDiscount > 0 && (
+            {!rdlMode() && isStudentClient && settings.studentDiscount > 0 && (
               <label className="check">
                 <input
                   type="checkbox"

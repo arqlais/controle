@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { rdlMode } from '../rdl'
 
 import { useAccess } from '../access'
 import { useKeep } from '../keep'
@@ -383,7 +384,7 @@ function Reports({ month }: { month: string }) {
   return (
     <div className="stack">
       <p className="muted">
-        Últimos 12 meses até {monthLabel(month).toLowerCase()} · {money(total)} recebidos · {Math.round(studentShare * 100)}% vindo de estudantes
+        Últimos 12 meses até {monthLabel(month).toLowerCase()} · {money(total)} recebidos{rdlMode() ? '' : ` · ${Math.round(studentShare * 100)}% vindo de estudantes`}
       </p>
       <div className="grid-2 is-even">
         <Section title="Por tipo de serviço">

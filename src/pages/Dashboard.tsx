@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react'
 import { FirstSteps } from '../components/FirstSteps'
+import { listarReservas, type Reserva } from '../rdlReserva'
+import { rdlMode } from '../rdl'
 import { InstallHint } from '../components/InstallHint'
 import { useMemo } from 'react'
 import { useAccess } from '../access'
@@ -308,6 +311,9 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
             ]}
           />
         </Section>
+        {rdlMode() ? (
+          <RdlResumo />
+        ) : (
         <Section title="Receita por perfil · 12 meses">
           <Donut
             center={money(byProfile.prof + byProfile.stud).replace(',00', '')}
@@ -318,6 +324,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
           />
           <p className="muted small">Seu foco são profissionais — acompanhe aqui se os estudantes estão ocupando espaço demais na agenda.</p>
         </Section>
+        )}
       </div>
     </div>
   )
@@ -481,6 +488,50 @@ function TodoList() {
         ))}
       </ul>
       {more}
+    </Section>
+  )
+}
+
+/** RDL: resumo das vistorias no início (reservas, sinais, próximas vistorias e laudos pendentes). */
+function RdlResumo() {
+  const [list, setList] = useState<Reserva[] | null>(null)
+  useEffect(() => {
+    void listarReservas().then(setList).catch(() => setList([]))
+  }, [])
+  const ativas = (list ?? []).filter((r) => !r.cancelada)
+  const hoje = new Date().toISOString().slice(0, 10)
+  const em7 = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10)
+  const prox = ativas.filter((r) => r.status.data && r.status.data >= hoje).sort((a, b) => `${a.status.data}${a.status.hora}`.localeCompare(`${b.status.data}${b.status.hora}`))
+  const linhas: [string, string | number][] = [
+    ['reservas ativas', ativas.length],
+    ['aguardando sinal', ativas.filter((r) => !r.status.sinal).length],
+    ['vagas garantidas sem data', ativas.filter((r) => r.status.sinal && !r.status.data).length],
+    ['vistorias nos próximos 7 dias', prox.filter((r) => (r.status.data ?? '') <= em7).length],
+    ['laudos para entregar', ativas.filter((r) => r.status.data && r.status.data < hoje && !r.status.laudo).length],
+    ['pedidos de ART de reforma', ativas.filter((r) => r.status.reforma?.pedido && !r.status.reforma.valor).length],
+  ]
+  return (
+    <Section title="Vistorias" action={<a href={href('reservas')} className="link">Abrir →</a>}>
+      {list === null ? (
+        <p className="muted small">carregando…</p>
+      ) : (
+        <>
+          <ul className="rdl-resumo">
+            {linhas.map(([t, v]) => (
+              <li key={t}>
+                <b>{v}</b>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+          {prox[0] && (
+            <p className="muted small">
+              Próxima: {prox[0].dados.nome.split(' ')[0]} · {prox[0].status.data?.split('-').reverse().join('/')}
+              {prox[0].status.hora ? ` às ${prox[0].status.hora}` : ''}
+            </p>
+          )}
+        </>
+      )}
     </Section>
   )
 }

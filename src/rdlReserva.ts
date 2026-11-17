@@ -36,6 +36,8 @@ export interface ReservaConfig {
   minimo: number // apartamentos para valer o valor de grupo
   prazoSinal: number // dias para pagar o sinal (depois cancela sozinho)
   plantas: string[] // opções de planta que o morador escolhe
+  duracao?: number // minutos de vistoria (agenda)
+  respiro?: number // minutos de folga entre uma vistoria e outra (deslocamento, imprevistos)
 }
 export const CONFIG_PADRAO: ReservaConfig = {
   empreendimento: 'Condomínio San Levi (MRV)',
@@ -49,6 +51,8 @@ export const CONFIG_PADRAO: ReservaConfig = {
   minimo: 10,
   prazoSinal: 7,
   plantas: [PLANTA_CANTO, PLANTA_CORREDOR],
+  duracao: 120,
+  respiro: 30,
 }
 const CONFIG_FILE = 'reserva-vistoria.json'
 /** San Levi: 12 apês por andar; finais 01, 02, 11 e 12 são a planta de canto, 03 a 10 a de corredor. */
