@@ -2673,3 +2673,18 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
   .rdp .rdp-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .rdp .rdp-kanban { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
+/* etapas sempre lado a lado (6 colunas) a partir de tablet; mais compacto quando o espaço é menor */
+@container (min-width: 640px) {
+  .rdp .rdp-kanban { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+}
+@container (min-width: 640px) and (max-width: 999px) {
+  .rdp .rdp-col { padding: 6px; }
+  .rdp .rdp-col header b { font-size: 11px; }
+  .rdp .rdp-sub { display: none; }
+  .rdp .rdp-card { padding: 7px 8px; }
+  .rdp .rdp-card b { font-size: 11.5px; }
+  .rdp .rdp-card small { font-size: 10.5px; }
+  .rdp .rdp-tags em { font-size: 9.5px; padding: 1px 5px; }
+  .rdp .rdp-vazio { font-size: 11px; }
+}
+.rdp-tags em { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }

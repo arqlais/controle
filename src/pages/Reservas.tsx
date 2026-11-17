@@ -1056,7 +1056,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
           {r.dados.revistoria && <em>revistoria</em>}
           {(sv.reforma || r.status.reforma?.pedido) && <em className="o">ART reforma</em>}
           {r.status.cortesia && <em>cortesia</em>}
-          {f === 'sinal' && <em className={diasSinal(r) <= 2 ? 'o' : ''}>{diasSinal(r)} dia(s) p/ o sinal</em>}
+          {f === 'sinal' && <em className={diasSinal(r) <= 2 ? 'o' : ''}>sinal em {diasSinal(r)}d</em>}
           {f === 'agendada' && <em className="n">{dataCurta(r.status.data!)} {r.status.hora}</em>}
         </span>
       </button>
