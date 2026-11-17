@@ -34,7 +34,11 @@ export function porExtenso(v: number) {
 }
 
 /** Valores com o preço da ART de reforma que a RDL já mandou (quando houver). */
-const valoresR = (r: Reserva, cfg: ReservaConfig) => valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, cfg)
+const valoresR = (r: Reserva, cfg: ReservaConfig) => {
+  const v = valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, cfg)
+  const pago = Number(String(r.status.valorPago ?? '').replace(',', '.'))
+  return pago > 0 ? { ...v, agora: pago } : v
+}
 /** O que entra na ART de reforma (os serviços que o morador informou). */
 const itensReforma = (r: Reserva) => (r.status.reforma?.itens ?? r.dados.reformaItens ?? []).join(', ').toLowerCase()
 
@@ -181,7 +185,8 @@ export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
   const serv = [sv.vistoria && `vistoria de entrega das chaves${d.revistoria ? ` (revistoria ${brl(cfg.revistoria)} no dia, se precisar)` : ''}`, sv.reforma && `ART de reforma${itens ? ` (${itens})` : ''}`].filter(Boolean).join(' + ')
   const restV = v.vistoria - v.sinalVistoria
   const restR = v.reforma - v.sinalReforma
-  const resto = [restV && `${brl(restV)} no dia da vistoria`, restR && `${brl(restR)} na entrega da ART`].filter(Boolean).join(' e ')
+  const padrao = Math.abs(v.sinalVistoria + v.sinalReforma - v.agora) < 0.01
+  const resto = !padrao ? (v.total - v.agora > 0 ? brl(v.total - v.agora) : '') : [restV && `${brl(restV)} no dia da vistoria`, restR && `${brl(restR)} na entrega da ART`].filter(Boolean).join(' e ')
   const linhas = [
     `Oi, ${nome}! Aqui é o Rogério, da RDL Engenharia. Recebi seu Pix de *${brl(v.agora)}*, obrigado! Sua reserva está confirmada 😊`,
     '',

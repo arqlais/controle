@@ -2688,3 +2688,6 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
   .rdp .rdp-vazio { font-size: 11px; }
 }
 .rdp-tags em { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.rsv-valor { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.rsv-valor span { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--text); }
+.rsv-valor input { width: 96px; padding: 6px 8px; border: 1px solid #e2e8f1; border-radius: 8px; font: inherit; text-align: right; }

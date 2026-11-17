@@ -136,6 +136,7 @@ export interface ReservaContrato {
 }
 export interface ReservaStatus {
   sinal?: string // data em que a RDL confirmou o sinal
+  valorPago?: string // quanto caiu de fato no sinal (a RDL confere no extrato)
   quitado?: string
   data?: string // data da vistoria (AAAA-MM-DD)
   hora?: string

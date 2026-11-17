@@ -430,7 +430,24 @@ function Detalhe({
                   desfazer
                 </button>
               </p>
-            ) : (
+            ) : null}
+            {s.sinal && !s.cortesia ? (
+              <label className="rsv-valor">
+                valor que caiu na conta
+                <span>
+                  R${' '}
+                  <input
+                    inputMode="decimal"
+                    defaultValue={s.valorPago || String(vv.agora)}
+                    onBlur={(e) => {
+                      const n = Number(e.target.value.replace(/\./g, '').replace(',', '.'))
+                      if (n >= 0 && String(n) !== (s.valorPago || String(vv.agora))) void onStatus(r, { valorPago: String(n) }, 'Valor recebido salvo.')
+                    }}
+                  />
+                </span>
+              </label>
+            ) : null}
+            {s.sinal ? null : (
               <div className="row gap-s wrap">
                 {s.pagoInformado && <p className="rsv-pago">O morador marcou “já paguei” em {dataCurta(s.pagoInformado.slice(0, 10))}. Confira no extrato e confirme.</p>}
                 <button className="btn small" onClick={() => void onSinal(r)}>
@@ -1006,6 +1023,13 @@ const faseDe = (r: Reserva): Fase => {
   if (s.pagoInformado) return 'conferir'
   return 'sinal'
 }
+/** O que entrou de fato: o valor conferido no extrato (ou o Pix pedido), mais o saldo da vistoria quando quitada. Cortesia não conta. */
+const pagoDe = (r: Reserva, cfg: ReservaConfig) => {
+  if (r.status.cortesia || r.cancelada) return 0
+  const v = valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, cfg)
+  const sinal = r.status.sinal ? (Number(String(r.status.valorPago ?? '').replace(',', '.')) || v.agora) : 0
+  return sinal + (r.status.quitado ? v.vistoria - v.sinalVistoria : 0)
+}
 const ORDEM: Fase[] = ['sinal', 'conferir', 'semdata', 'agendada', 'laudo', 'pronto']
 const diasSinal = (r: Reserva) => Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))
 
@@ -1030,8 +1054,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
   const t = busca.trim().toLowerCase()
   const filtra = (l: Reserva[]) => (t ? l.filter((r) => `${r.dados.nome} ${unidade(r.dados)} ${r.dados.tel}`.toLowerCase().includes(t)) : l)
   const doGrupo = ativas.filter((r) => !r.status.cortesia && servicosDe(r.dados).vistoria)
-  const pagos = ativas.filter((r) => r.status.sinal)
-  const recebido = pagos.reduce((n, r) => n + valores(r.dados, cfg).agora, 0)
+  const recebido = ativas.reduce((n, r) => n + pagoDe(r, cfg), 0)
   const aReceber = ativas.filter((r) => !r.status.cortesia).reduce((n, r) => n + valores(r.dados, cfg).total, 0) - recebido
   const por = (f: Fase) => ativas.filter((r) => faseDe(r) === f)
   const kpis: [string, string, string, Fase | null][] = [
@@ -1118,7 +1141,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
               {filtra(canceladas ? lista : ativas).map((r, i) => {
                 const v = valores(r.dados, cfg)
                 const sv = servicosDe(r.dados)
-                const pago = r.status.sinal ? v.agora : 0
+                const pago = pagoDe(r, cfg)
                 return (
                   <tr key={r.id} onClick={() => onOpen(r)} className={r.cancelada ? 'x' : ''}>
                     <td>{i + 1}</td>
