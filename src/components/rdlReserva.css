@@ -1987,3 +1987,327 @@ html.rv-root body {
 .rv-who img {
   height: 28px;
 }
+/* mockups */
+.rv-mock-tabs {
+  display: flex;
+  gap: 6px;
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+.rv-mock-tabs button {
+  flex: 1;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--navy);
+  border-radius: 9px;
+  padding: 9px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rv-mock-tabs button.on {
+  background: var(--or);
+  color: #fff;
+}
+.rv-mock-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: rvfade 0.25s ease;
+}
+@keyframes rvfade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rv-mock-cap {
+  margin: 0;
+  font-size: 13px;
+  color: var(--txt);
+  text-align: center;
+  max-width: 420px;
+}
+.rv-paper {
+  width: 100%;
+  max-width: 340px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 14px 30px -14px rgba(1, 44, 96, 0.35), 0 0 0 1px var(--line);
+  padding: 14px;
+  transform: rotate(-1deg);
+}
+.rv-paper-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 2px solid var(--or);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.rv-paper-top img {
+  height: 18px;
+}
+.rv-paper-top span {
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.rv-paper-res {
+  font-size: 11.5px;
+  color: var(--txt);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rv-paper-res .tag {
+  background: var(--orl);
+  color: #c25f0a;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 1px;
+  border-radius: 5px;
+  padding: 3px 6px;
+}
+.rv-paper-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid #efede8;
+}
+.rv-paper-item .ph {
+  width: 54px;
+  height: 40px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #d9dde6, #eef1f6);
+  color: var(--navy2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  position: relative;
+}
+.rv-paper-item .ph em {
+  font-style: normal;
+  font-size: 8px;
+  color: var(--mut);
+}
+.rv-paper-item b {
+  display: block;
+  font-size: 11.5px;
+}
+.rv-paper-item small {
+  display: block;
+  font-size: 11px;
+  color: var(--txt);
+  line-height: 1.3;
+}
+.rv-paper-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 10px;
+  font-size: 9.5px;
+  color: var(--mut);
+}
+.rv-paper-foot .sig {
+  font-family: 'Brush Script MT', cursive;
+  font-size: 15px;
+  color: var(--navy);
+  border-bottom: 1px solid #c9cdd8;
+  padding: 0 8px;
+}
+.rv-paper.art {
+  transform: rotate(1deg);
+  position: relative;
+}
+.rv-paper .crea {
+  background: var(--navy);
+  color: #fff !important;
+  border-radius: 5px;
+  padding: 3px 7px;
+}
+.rv-paper-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid #efede8;
+}
+.rv-paper-row small {
+  font-size: 10.5px;
+  color: var(--mut);
+}
+.rv-paper-row b {
+  font-size: 11.5px;
+  text-align: right;
+}
+.rv-stamp {
+  position: absolute;
+  right: 16px;
+  bottom: 44px;
+  transform: rotate(-12deg);
+  border: 2px solid var(--or);
+  color: var(--or);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.8);
+}
+.rv-phone {
+  width: 230px;
+  background: var(--navy);
+  border-radius: 30px;
+  padding: 10px;
+  position: relative;
+  box-shadow: 0 18px 34px -16px rgba(1, 44, 96, 0.55);
+}
+.rv-phone-notch {
+  width: 70px;
+  height: 16px;
+  background: var(--navy);
+  border-radius: 0 0 12px 12px;
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.rv-phone-screen {
+  background: #faf8f4;
+  border-radius: 22px;
+  padding: 26px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  text-align: center;
+}
+.rv-phone-screen .k {
+  font-size: 7.5px;
+  letter-spacing: 1.2px;
+  color: #fff;
+  background: var(--navy);
+  border-radius: 5px;
+  padding: 3px 6px;
+  align-self: center;
+}
+.rv-phone-screen .h {
+  font-size: 16px;
+}
+.rv-phone-track {
+  display: flex;
+  justify-content: space-between;
+}
+.rv-phone-track span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 7.5px;
+  color: var(--mut);
+}
+.rv-phone-track i {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--soft);
+  font-style: normal;
+  font-size: 8px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+.rv-phone-track .done i {
+  background: var(--navy);
+  color: #fff;
+}
+.rv-phone-track .now i {
+  background: var(--or);
+  color: #fff;
+}
+.rv-phone-card {
+  display: flex;
+  gap: 6px;
+  text-align: left;
+  font-size: 9.5px;
+  background: #fff;
+  border: 1.5px solid var(--navy);
+  border-radius: 10px;
+  padding: 8px;
+  color: var(--txt);
+}
+.rv-phone-card .rv-i {
+  color: var(--navy);
+  flex: none;
+}
+.rv-phone-card b {
+  color: var(--navy);
+}
+.rv-phone-docs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+.rv-phone-docs span {
+  font-size: 8.5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: var(--soft);
+  border: 1px dashed #c9cdd8;
+  border-radius: 8px;
+  padding: 7px 2px;
+  color: var(--mut);
+}
+.rv-phone-docs span.ok {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--navy);
+  font-weight: 600;
+}
+.rv-phone-docs span.ok .rv-i {
+  color: var(--or);
+}
+.rv-mock {
+  overflow: hidden;
+}
+.rv-paper {
+  max-width: min(340px, calc(100% - 14px));
+  transform: rotate(-0.6deg);
+}
+.rv-paper.art {
+  transform: rotate(0.6deg);
+  padding-bottom: 46px;
+}
+.rv-stamp {
+  bottom: 10px;
+  right: 14px;
+  transform: rotate(-6deg);
+}
+.rv-paper-row b {
+  overflow-wrap: anywhere;
+}
+.rv-paper .crea {
+  white-space: nowrap;
+}

@@ -363,6 +363,129 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
   )
 }
 
+
+/** "Veja o que você recebe": mockups em abas (laudo com fotos, painel no celular e ART). */
+function Mockups() {
+  const [tab, setTab] = useState<'laudo' | 'painel' | 'art'>('laudo')
+  const itens: [string, string, string][] = [
+    ['Banheiro', 'Ralo sem caimento: água empoça perto do box', 'drop'],
+    ['Sala', 'Contrapiso com desnível de 6 mm', 'plan'],
+    ['Cozinha', 'Tomada da bancada sem energia', 'bolt'],
+    ['Quarto 1', 'Porta raspando no batente', 'home'],
+  ]
+  return (
+    <section className="rv-card rv-mock">
+      <h2 className="rv-h2">
+        <I n="eye" s={18} /> Veja o que você recebe
+      </h2>
+      <div className="rv-mock-tabs" role="tablist">
+        {(
+          [
+            ['laudo', 'doc', 'Laudo'],
+            ['painel', 'home', 'Painel'],
+            ['art', 'shield', 'ART'],
+          ] as const
+        ).map(([k, i, t]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+            <I n={i} s={14} /> {t}
+          </button>
+        ))}
+      </div>
+      {tab === 'laudo' && (
+        <div className="rv-mock-stage">
+          <div className="rv-paper">
+            <div className="rv-paper-top">
+              <img src={RDL_LOGO} alt="" />
+              <span>LAUDO DE VISTORIA</span>
+            </div>
+            <div className="rv-paper-res">
+              <span className="tag">REPROVADA</span> 4 itens para a MRV consertar
+            </div>
+            {itens.map(([amb, txt, ic], k) => (
+              <div key={k} className="rv-paper-item">
+                <span className="ph">
+                  <I n={ic} s={16} />
+                  <em>foto {k + 1}</em>
+                </span>
+                <span>
+                  <b>
+                    {String(k + 1).padStart(2, '0')} · {amb}
+                  </b>
+                  <small>{txt}</small>
+                </span>
+              </div>
+            ))}
+            <div className="rv-paper-foot">
+              <span>Eng. Rogério F. Vieira · CREA-SP</span>
+              <span className="sig">assinatura</span>
+            </div>
+          </div>
+          <p className="rv-mock-cap">Cada problema com foto, número e lugar. É só mandar para a MRV pelo atendimento dela.</p>
+        </div>
+      )}
+      {tab === 'painel' && (
+        <div className="rv-mock-stage">
+          <div className="rv-phone">
+            <div className="rv-phone-notch" />
+            <div className="rv-phone-screen">
+              <small className="k">PAINEL DA SUA VISTORIA</small>
+              <b className="h">Olá, Ana</b>
+              <div className="rv-phone-track">
+                {['Reserva', 'Sinal', 'Data', 'Vistoria', 'Laudo'].map((t, i) => (
+                  <span key={t} className={i < 2 ? 'done' : i === 2 ? 'now' : ''}>
+                    <i>{i < 2 ? <I n="check" s={9} /> : i + 1}</i>
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <div className="rv-phone-card ok">
+                <I n="check" s={13} /> <span><b>Vaga garantida!</b> Agora é esperar a MRV liberar as datas.</span>
+              </div>
+              <div className="rv-phone-docs">
+                <span className="ok">
+                  <I n="sign" s={12} /> Contrato
+                </span>
+                <span>
+                  <I n="lock" s={12} /> ART
+                </span>
+                <span>
+                  <I n="lock" s={12} /> Laudo
+                </span>
+              </div>
+            </div>
+          </div>
+          <p className="rv-mock-cap">Tudo num link só: contrato, pagamento, data, laudo e ART. Você acompanha cada etapa pelo celular.</p>
+        </div>
+      )}
+      {tab === 'art' && (
+        <div className="rv-mock-stage">
+          <div className="rv-paper art">
+            <div className="rv-paper-top">
+              <span className="crea">CREA-SP</span>
+              <span>ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA</span>
+            </div>
+            {[
+              ['Profissional', 'Eng. Rogério Francisco Vieira'],
+              ['Serviço', 'Vistoria de entrega de imóvel'],
+              ['Local', 'Condomínio San Levi · seu apê'],
+              ['Situação', 'Registrada'],
+            ].map(([k, v]) => (
+              <div key={k} className="rv-paper-row">
+                <small>{k}</small>
+                <b>{v}</b>
+              </div>
+            ))}
+            <div className="rv-stamp">
+              <I n="shield" s={16} /> REGISTRADA
+            </div>
+          </div>
+          <p className="rv-mock-cap">A ART é o registro no CREA de que um engenheiro responde pela vistoria. Dá peso ao laudo junto à MRV.</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 /** Convite discreto para a loja da planê.apê (guias e planilhas para depois das chaves). */
 function Loja() {
   return (
@@ -473,6 +596,8 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             ))}
           </div>
         </section>
+
+        <Mockups />
 
         <Grupo n={n} cfg={cfg} />
 
