@@ -2473,3 +2473,5 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rsv-slot.bad { border-color: var(--bad); }
 .rsv-fill { align-self: flex-start; }
 .rsv-steps select { min-width: 130px; }
+.rsv-filters .segmented { flex-wrap: wrap; }
+.rsv-search { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; background: var(--surface); font: inherit; color: var(--text); }

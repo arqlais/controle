@@ -319,6 +319,59 @@ function Duvidas({ teste, nome = '', contato = '', reserva, abrirCom }: { teste?
 }
 
 
+
+/** Explicação da ART de reforma (opcional): quando precisa, o que recebe, como funciona e o que não inclui. */
+function ReformaInfo() {
+  return (
+    <div className="rv-rinfo">
+      <p className="rv-rinfo-lead">
+        É opcional: só para quem vai fazer obra no apê. A vistoria não depende dela.
+      </p>
+      <div className="rv-rinfo-grid">
+        <div>
+          <b>
+            <I n="info" s={14} /> Quando precisa
+          </b>
+          <p>Antes de qualquer obra, o condomínio pede a ART e o plano de reforma (norma NBR 16280). Sem eles, o síndico pode não liberar a entrada de material e de pedreiro.</p>
+        </div>
+        <div>
+          <b>
+            <I n="check" s={14} /> O que você recebe
+          </b>
+          <ul>
+            <li>Visita técnica do engenheiro no apê</li>
+            <li>ART de execução registrada no CREA (taxa inclusa)</li>
+            <li>Plano de reforma pronto para entregar ao síndico</li>
+            <li>Orientação do que pode e do que não pode no San Levi</li>
+          </ul>
+        </div>
+        <div>
+          <b>
+            <I n="list" s={14} /> Como funciona
+          </b>
+          <ol>
+            <li>Você marca o que vai fazer e vê o valor</li>
+            <li>O Rogério confere e confirma no seu painel</li>
+            <li>Você aprova e combina a visita</li>
+            <li>ART e plano entregues antes da obra começar</li>
+          </ol>
+        </div>
+        <div>
+          <b>
+            <I n="x" s={14} /> Não inclui
+          </b>
+          <ul>
+            <li>Mão de obra e materiais da reforma</li>
+            <li>Projeto de arquitetura ou de interiores</li>
+            <li>Acompanhamento diário da obra</li>
+            <li>Taxas do condomínio</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Calculadora da ART de reforma: marca o que vai fazer e o valor muda na hora (mínimo de R$ 250). */
 function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: string[]; onItens: (v: string[]) => void; detalhe: string; onDetalhe: (v: string) => void; bad?: boolean }) {
   const total = calcReforma(itens)
@@ -1075,11 +1128,12 @@ function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean
                   <input type="checkbox" checked={querReforma} onChange={(e) => setQuerReforma(e.target.checked)} />
                   <span>
                     <b>
-                      <I n="hammer" s={14} /> Vou reformar: quero orçamento de ART de reforma
+                      <I n="hammer" s={14} /> Vou reformar: quero a ART de reforma (opcional)
                     </b>
                     <small>O condomínio pede ART e plano de reforma para obras no apê. A partir de {brl(REFORMA_MIN)}: marque o que vai fazer e veja o valor.</small>
                   </span>
                 </label>
+                {querReforma && <ReformaInfo />}
                 {querReforma && <ReformaCalc itens={d.reformaItens ?? []} onItens={(v) => set('reformaItens', v)} detalhe={d.reforma ?? ''} onDetalhe={(v) => set('reforma', v)} bad={tried && faltando.reforma} />}
                 {tried && !okDados && <p className="rv-warn">Falta preencher ou conferir os campos marcados em laranja.</p>}
                 <button
@@ -1547,7 +1601,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
         {!r.cancelada && (
           <section className="rv-card">
             <h2 className="rv-h2">
-              <I n="hammer" s={18} /> ART de reforma
+              <I n="hammer" s={18} /> ART de reforma <span className="rv-opt">OPCIONAL</span>
             </h2>
             {rf.aprovadoEm ? (
               <div className="rv-state ok">
@@ -1587,7 +1641,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               </div>
             ) : (
               <>
-                <p className="rv-hint">Vai fazer obra no apê? O condomínio pede ART e plano de reforma antes de liberar. Marque o que vai fazer e veja o valor na hora.</p>
+                <ReformaInfo />
                 <p className="rv-alert">
                   <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio. O Rogério confere o que pode ser feito.</span>
                 </p>

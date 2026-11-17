@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { DateInput } from '../components/DateInput'
-import { Badge, Empty, Field, Modal, Section } from '../components/ui'
+import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { newClient } from '../components/forms'
 import { drawingToDataUrl } from '../components/SignaturePad'
@@ -265,11 +265,7 @@ export default function Reservas() {
 
       <div className="row gap-s wrap rsv-filters">
         <input className="rsv-search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar nome, torre, apto" />
-        {FILTROS.map(([k, l]) => (
-          <button key={k} className={`chip ${filtro === k ? 'active' : ''}`} onClick={() => setFiltro(k)}>
-            {l}
-          </button>
-        ))}
+        <Segmented<Filtro> value={filtro} onChange={setFiltro} options={FILTROS.map(([k, l]) => ({ value: k, label: l }))} />
       </div>
 
       {erro && <p className="muted">{erro}</p>}
