@@ -22,6 +22,7 @@
 // Cada aviso vai no máximo uma vez para cada pessoa (tabela email_log).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { contratoPdf } from './contrato-pdf.ts'
 
 const env = (k: string, d = '') => Deno.env.get(k) ?? d
 const SITE = env('SITE_URL', 'https://useplane.com.br/')
@@ -116,7 +117,7 @@ const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-
 const brDate = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/')
 
 type Sub = { user_id: string; email: string; name: string; plan: string; status: string; trial_ends: string; blocked: boolean; created_at?: string }
-type Mail = { subject: string; html: string }
+type Mail = { subject: string; html: string; attachment?: { name: string; content: string }[] }
 
 const MAILS = {
   'boas-vindas': (s: Sub): Mail => ({
@@ -346,6 +347,32 @@ const RDL_FROM = 'RDL Engenharia'
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const dBR = (iso?: string) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '')
 type RdlRow = { id: string; token: string; criado: string; dados: Record<string, unknown>; status: Record<string, string>; cancelada: boolean; avisos?: Record<string, string>; contrato?: Record<string, unknown> }
+// contrato assinado em PDF, para ir anexado (gerado aqui no servidor)
+let logoRdl: string | null | undefined
+async function anexoContrato(r: RdlRow): Promise<{ name: string; content: string }[]> {
+  try {
+    const k = (r.contrato ?? {}) as Record<string, unknown>
+    if (!k.texto) return []
+    if (logoRdl === undefined) {
+      try {
+        const res = await fetch(`${SITE}rdl/logo-email.png`)
+        const u = new Uint8Array(await res.arrayBuffer())
+        let bin = ''
+        for (let i = 0; i < u.length; i += 0x8000) bin += String.fromCharCode(...u.subarray(i, i + 0x8000))
+        logoRdl = res.ok ? `data:image/png;base64,${btoa(bin)}` : null
+      } catch {
+        logoRdl = null
+      }
+    }
+    const d = r.dados as Record<string, string>
+    const content = await contratoPdf({ ...(k as Record<string, string>), id: r.id, texto: String(k.texto), versao: Number(k.versao ?? 1), pago: (r.status ?? {}).contratada } as never, logoRdl)
+    const un = `${d.torre ? `T${d.torre} ` : ''}AP${d.apto}`
+    return [{ name: `Contrato RDL ${un}.pdf`, content }]
+  } catch (e) {
+    console.error('pdf do contrato', e)
+    return []
+  }
+}
 const rdlSub = (id: string, email: string, name: string): Sub => ({ user_id: id, email, name, plan: '', status: '', trial_ends: '', blocked: false })
 // deno-lint-ignore no-explicit-any
 async function rdlCfg(db: any): Promise<RdlCfg> {
@@ -570,7 +597,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'contrato assinado',
         title: 'Sua cópia do contrato',
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Segue a sua cópia do contrato da ${temVist ? 'vistoria' : 'ART de reforma'}, <b>assinado por você e pela RDL Engenharia</b>.</p><p style="margin:0 0 12px;">O PDF traz o registro completo da assinatura eletrônica: data e hora, IP, aparelho e o código do documento, que garante que o texto é o mesmo que você assinou.</p><p style="margin:0;">Guarde este e-mail. O contrato também fica sempre no seu painel.</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Segue a sua cópia do contrato da ${temVist ? 'vistoria' : 'ART de reforma'}, <b>assinado por você e pela RDL Engenharia</b>.</p><p style="margin:0 0 12px;">O PDF traz o registro completo da assinatura eletrônica: data e hora, IP, aparelho e o código do documento, que garante que o texto é o mesmo que você assinou.</p><p style="margin:0;"><b>O PDF está anexado neste e-mail.</b> Guarde-o: o contrato também fica sempre no seu painel.</p>`,
         rows: base,
         button: 'Abrir o contrato (PDF)',
         url: `${SITE}#/vistoria/contrato-${r.id}.${r.token}`,
@@ -696,7 +723,7 @@ async function send(to: Sub, mail: Mail, replyTo?: string, fromName?: string) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: { 'api-key': env('BREVO_API_KEY'), 'Content-Type': 'application/json', accept: 'application/json' },
-    body: JSON.stringify({ sender: { ...SENDER, ...(fromName ? { name: fromName.slice(0, 60) } : {}) }, replyTo: { email: replyTo && isMail(replyTo.trim()) ? replyTo.trim() : REPLY_TO, name: fromName || SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html }),
+    body: JSON.stringify({ sender: { ...SENDER, ...(fromName ? { name: fromName.slice(0, 60) } : {}) }, replyTo: { email: replyTo && isMail(replyTo.trim()) ? replyTo.trim() : REPLY_TO, name: fromName || SENDER.name }, to: [{ email: to.email, name: to.name || undefined }], subject: mail.subject, htmlContent: mail.html, ...(mail.attachment?.length ? { attachment: mail.attachment } : {}) }),
   })
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${await r.text()}`)
 }
@@ -946,15 +973,15 @@ Deno.serve(async (req) => {
     const enviados: string[] = []
     for (const r of (rows ?? []) as RdlRow[]) {
       const avisos = r.avisos ?? {}
-      if (avisos['contrato-copia']) continue
+      if (avisos['contrato-pdf']) continue
       const to = String((r.dados as Record<string, string>).email ?? '').trim()
       const nome = String((r.dados as Record<string, string>).nome ?? '')
       if (!isMail(to)) continue
-      const m = rdlMails(r, cfg, 0).contrato
+      const m = { ...rdlMails(r, cfg, 0).contrato, attachment: await anexoContrato(r) }
       try {
         await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
-        await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
-        await db.from('rdl_reservas').update({ avisos: { ...avisos, 'contrato-copia': new Date().toISOString() } }).eq('id', r.id)
+        await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html, attachment: m.attachment }, to, RDL_FROM).catch((e) => console.error(e))
+        await db.from('rdl_reservas').update({ avisos: { ...avisos, 'contrato-pdf': new Date().toISOString() } }).eq('id', r.id)
         enviados.push(nome)
       } catch (e) {
         console.error(e)
@@ -1026,7 +1053,8 @@ Deno.serve(async (req) => {
     try {
       const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'pago'
       if (isMail(to) && evento !== 'reforma-pedido' && evento !== 'pago') {
-        await send(rdlSub(id, to, nome), evento === 'reforma-aprovada' ? { subject: `Você aprovou a ART de reforma`, html: mails['reforma-aprovada'].html } : mails[evento], RDL_EMAIL, RDL_FROM)
+        const base = evento === 'reforma-aprovada' ? { subject: `Você aprovou a ART de reforma`, html: mails['reforma-aprovada'].html } : mails[evento]
+        await send(rdlSub(id, to, nome), evento === 'reserva' || evento === 'sinal' ? { ...base, attachment: await anexoContrato(r) } : base, RDL_EMAIL, RDL_FROM)
         ok.push('morador')
       }
       if (evento === 'reserva' || paraRdl) {

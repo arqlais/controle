@@ -1,6 +1,7 @@
 import { RDL_LOGO } from './rdlLogo'
 import { SIGN_FONTS, drawingToDataUrl } from './components/SignaturePad'
 import { RDL_INFO, type Reserva } from './rdlReserva'
+import { ASSINATURA_RDL } from './rdlAssinatura'
 
 /* Contrato da vistoria em PDF de verdade (A4, texto em vetor, alinhado e justificado), com o timbre da RDL em
    todas as folhas, as assinaturas e o registro completo da assinatura eletrônica. Abre bem no celular. */
@@ -28,7 +29,7 @@ const FIM = 270
 
 /** Nome escrito na letra escolhida, como imagem (o PDF não tem as letras manuscritas embutidas). */
 async function nomeManuscrito(nome: string, fonteId?: string): Promise<string> {
-  const f = SIGN_FONTS.find((x) => x.id === fonteId) ?? SIGN_FONTS[0]
+  const f = fonteId === 'rdl' ? { family: ASSINATURA_RDL.family, size: ASSINATURA_RDL.escala } : SIGN_FONTS.find((x) => x.id === fonteId) ?? SIGN_FONTS[0]
   const px = Math.round(96 * (f.size ?? 1))
   try {
     await document.fonts.load(`${px}px ${f.family}`, nome)
@@ -157,7 +158,7 @@ export async function contratoPdf(r: Pick<Reserva, 'contrato' | 'status' | 'id'>
   const rdlEm = r.status.contratada ? new Date(r.status.contratada).toLocaleString('pt-BR') : ''
   const quando = new Date(k.em).toLocaleString('pt-BR')
   // a RDL assina junto, sempre com a mesma letra (exclusiva dela: o morador não tem essa opção)
-  await caixa(X, await nomeManuscrito('Rogério F. Vieira', 'allura'), 'RDL ENGENHARIA E REPRESENTAÇÕES', [`${RDL_INFO.engineer} · CREA-SP ${RDL_INFO.crea}`, `CONTRATADA · assinado eletronicamente em ${quando}`])
+  await caixa(X, await nomeManuscrito(ASSINATURA_RDL.nome, 'rdl'), 'RDL ENGENHARIA E REPRESENTAÇÕES', [`${RDL_INFO.engineer} · CREA-SP ${RDL_INFO.crea}`, `CONTRATADA · assinado eletronicamente em ${quando}`])
   await caixa(X + bw + 8, k.desenho ? await desenhoPng(k.desenho) : await nomeManuscrito(k.assinatura, k.fonte), 'CONTRATANTE', [`${k.assinatura} · CPF ${k.cpf}`, `assinado eletronicamente em ${quando}`])
   y += 48
 

@@ -1,5 +1,5 @@
 import { RDL_LOGO } from './rdlLogo'
-import { SIGN_FONTS } from './components/SignaturePad'
+import { ASSINATURA_RDL } from './rdlAssinatura'
 import { RDL_INFO, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
 
 /* Recibo do sinal da vistoria, no mesmo visual da proposta enviada aos moradores (azul-marinho, laranja, Poppins).
@@ -40,88 +40,96 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
   const pago = v.agora
   const resta = v.total - pago
   const quando = dBR(r.status.sinal) || dBR(new Date().toISOString())
-  const servicos = [
-    sv.vistoria && ['Vistoria de entrega das chaves', 'engenheiro civil + laudo com fotos + ART', brl(v.vistoria)],
-    sv.vistoria && d.revistoria && ['Revistoria (combinada)', `${brl(cfg.revistoria)}, paga à parte no dia da revistoria`, 'à parte'],
+  const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
+  const num = r.id.slice(0, 8).toUpperCase()
+  const linhas = [
+    sv.vistoria && ['Vistoria de entrega das chaves', 'engenheiro civil, laudo com fotos e ART', brl(v.vistoria)],
     sv.reforma && ['ART de reforma + plano de reforma', 'para o condomínio liberar a obra', brl(v.reforma)],
+    sv.vistoria && d.revistoria && ['Revistoria (combinada)', `paga no dia da revistoria`, `${brl(cfg.revistoria)} à parte`],
   ].filter(Boolean) as string[][]
   const passos: [string, string, boolean][] = [
     ['Reserva', 'contrato assinado', true],
-    ['Sinal', `pago em ${quando}`, true],
-    ['Data', 'quando a MRV liberar', !!r.status.data],
-    ['Vistoria', r.status.data ? `${dBR(r.status.data)}${r.status.hora ? ` · ${r.status.hora}` : ''}` : 'engenheiro com você', false],
-    ['Laudo + ART', 'em até 4 dias úteis', false],
+    ['Pagamento', quando, true],
+    ['Data', r.status.data ? dBR(r.status.data) : 'quando a MRV liberar', !!r.status.data],
+    ['Vistoria', 'com o engenheiro', false],
+    ['Laudo + ART', 'até 4 dias úteis', false],
   ]
-  const sig = SIGN_FONTS.find((f) => f.id === 'allura')!.family
+  const campo = (k: string, val: string) => `<div class="f"><small>${k}</small><b>${esc(val)}</b></div>`
   return `<div class="rc">
 <style>
-.rc{width:1080px;height:1527px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:#012C60;display:flex;flex-direction:column;box-sizing:border-box;position:relative;overflow:hidden}
+.rc{width:1080px;height:1527px;background:#fff;font-family:Poppins,system-ui,sans-serif;color:#012C60;display:flex;flex-direction:column;box-sizing:border-box;overflow:hidden}
 .rc *{box-sizing:border-box;margin:0}
-.rc .in{padding:50px 84px 0;flex:1;display:flex;flex-direction:column}
-.rc .logo{display:block;margin:0 auto;height:92px}
-.rc .pill{align-self:center;margin-top:20px;background:#012C60;color:#fff;border-radius:999px;padding:9px 22px;font-size:17px;letter-spacing:3px;font-weight:600}
-.rc .pill i{display:inline-block;width:9px;height:9px;border-radius:50%;background:#FF8216;margin-right:12px;vertical-align:2px}
-.rc h1{text-align:center;font-size:56px;font-weight:700;letter-spacing:-1.5px;margin-top:14px;line-height:1.05}
-.rc h1 span{color:#FF8216}
-.rc .hero{margin-top:26px;background:#012C60;border-radius:30px;padding:30px 40px;color:#fff;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
-.rc .hero small{display:block;font-size:17px;letter-spacing:2.5px;opacity:.75;font-weight:600}
-.rc .hero strong{display:block;font-size:84px;font-weight:700;letter-spacing:-2px;line-height:1;margin-top:10px}
-.rc .hero em{font-style:normal;display:block;margin-top:12px;color:#FF9A45;font-weight:600;font-size:18px;letter-spacing:1.5px}
-.rc .hero .side{border-left:1px solid rgba(255,255,255,.18);padding-left:36px;display:grid;gap:14px}
-.rc .hero .row{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.08);border-radius:14px;padding:14px 18px;font-size:19px}
-.rc .hero .row b{font-size:22px}
-.rc .hero .row.or{background:#FF8216}
-.rc .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px}
-.rc .card{border:1.5px solid #E6E9EF;border-radius:24px;padding:20px 26px}
-.rc .card h3{font-size:15px;letter-spacing:2.5px;color:#FF8216;font-weight:700;margin-bottom:12px}
-.rc .card p{font-size:20px;line-height:1.45;color:#46506A}
-.rc .card p b{color:#012C60;font-weight:600}
-.rc .serv{margin-top:18px;border:1.5px solid #E6E9EF;border-radius:24px;padding:18px 26px}
-.rc .serv h3{font-size:15px;letter-spacing:2.5px;color:#FF8216;font-weight:700;margin-bottom:8px}
-.rc .serv .it{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid #EEF0F4;font-size:21px}
-.rc .serv .it:first-of-type{border-top:0}
-.rc .serv .it small{display:block;font-size:16px;color:#7A7F92}
-.rc .serv .it b{font-size:22px}
-.rc .steps{margin-top:22px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;position:relative}
-.rc .steps:before{content:"";position:absolute;left:10%;right:10%;top:27px;border-top:2px dashed #C9D3E3}
+.rc .top{display:flex;justify-content:space-between;align-items:center;padding:50px 80px 28px;border-bottom:4px solid #FF8216}
+.rc .top img{height:84px}
+.rc .top .r{text-align:right}
+.rc .top .r small{display:block;font-size:16px;letter-spacing:4px;color:#FF8216;font-weight:700}
+.rc .top .r b{display:block;font-size:44px;letter-spacing:-1px;line-height:1.1}
+.rc .top .r span{font-size:17px;color:#7A7F92}
+.rc .body{padding:32px 80px 0;flex:1;display:flex;flex-direction:column;gap:22px;min-height:0}
+.rc .val{background:#F3F6FA;border-radius:28px;padding:28px 38px;display:flex;justify-content:space-between;align-items:center;gap:30px}
+.rc .val small{display:block;font-size:16px;letter-spacing:3px;color:#7A7F92;font-weight:600}
+.rc .val strong{display:block;font-size:92px;font-weight:700;letter-spacing:-3px;line-height:1.02;margin-top:6px}
+.rc .val p{font-size:18px;color:#46506A;margin-top:6px}
+.rc .val .ok{background:#012C60;color:#fff;border-radius:22px;padding:22px 26px;text-align:center;min-width:250px}
+.rc .val .ok span{display:block;width:46px;height:46px;border-radius:50%;background:#FF8216;margin:0 auto 10px;font-size:26px;line-height:46px;font-weight:700}
+.rc .val .ok b{display:block;font-size:22px}
+.rc .val .ok em{font-style:normal;font-size:15px;opacity:.75}
+.rc .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px 30px}
+.rc .f small{display:block;font-size:14px;letter-spacing:2.5px;color:#FF8216;font-weight:700;text-transform:uppercase}
+.rc .f b{display:block;font-size:22px;font-weight:600;margin-top:4px;line-height:1.3}
+.rc .tb{border:1.5px solid #E4E8EF;border-radius:24px;overflow:hidden}
+.rc .tb .h{display:flex;justify-content:space-between;background:#F7F9FC;padding:14px 28px;font-size:14px;letter-spacing:2.5px;color:#7A7F92;font-weight:700}
+.rc .tb .it{display:flex;justify-content:space-between;align-items:center;padding:13px 28px;border-top:1px solid #EEF1F5;font-size:21px}
+.rc .tb .it small{display:block;font-size:15px;color:#7A7F92}
+.rc .tb .it b{font-size:21px;white-space:nowrap}
+.rc .tb .tot{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1.5px solid #E4E8EF}
+.rc .tb .tot div{padding:16px 28px;font-size:15px;color:#7A7F92;letter-spacing:1px}
+.rc .tb .tot div b{display:block;font-size:26px;color:#012C60;letter-spacing:-.5px}
+.rc .tb .tot div.o{background:#FFF3E8}
+.rc .tb .tot div.o b{color:#E06D06}
+.rc .steps{display:grid;grid-template-columns:repeat(5,1fr);position:relative}
+.rc .steps:before{content:"";position:absolute;left:10%;right:10%;top:22px;border-top:2px solid #E4E8EF}
 .rc .st{text-align:center;position:relative}
-.rc .st span{width:54px;height:54px;border-radius:16px;background:#EAF0F8;color:#012C60;display:grid;place-items:center;margin:0 auto;font-weight:700;font-size:22px}
-.rc .st.ok span{background:#012C60;color:#fff}
-.rc .st b{display:block;margin-top:10px;font-size:19px}
-.rc .st small{display:block;font-size:15px;color:#7A7F92;line-height:1.3}
-.rc .decl{margin-top:20px;font-size:18px;line-height:1.55;color:#46506A;text-align:center;padding:0 20px}
-.rc .decl b{color:#012C60}
-.rc .sign{margin:auto auto 26px;text-align:center;width:460px}
-.rc .sign .s{font-family:${sig};font-size:64px;color:#012C60;line-height:1;height:66px}
-.rc .sign hr{border:0;border-top:1.5px solid #9AA3B6;margin:6px 0 10px}
-.rc .sign b{display:block;font-size:19px}
-.rc .sign small{font-size:15px;color:#7A7F92}
-.rc .foot{background:#012C60;color:#fff;padding:30px 84px;display:flex;justify-content:space-between;align-items:center;border-top:6px solid #FF8216}
-.rc .foot b{font-size:21px}
-.rc .foot small{display:block;font-size:15px;opacity:.75;margin-top:4px}
-.rc .foot .r{text-align:right;font-size:17px;line-height:1.5}
+.rc .st span{width:44px;height:44px;border-radius:50%;background:#fff;border:2px solid #C9D3E3;color:#9AA3B6;display:grid;place-items:center;margin:0 auto;font-weight:700;font-size:18px}
+.rc .st.ok span{background:#012C60;border-color:#012C60;color:#fff}
+.rc .st b{display:block;margin-top:10px;font-size:18px}
+.rc .st small{display:block;font-size:14px;color:#7A7F92}
+.rc .note{display:flex;gap:16px;align-items:flex-start;background:#FFF7EF;border-radius:20px;padding:20px 26px;font-size:18px;line-height:1.5;color:#46506A}
+.rc .note i{font-style:normal;width:34px;height:34px;flex:none;border-radius:50%;background:#FF8216;color:#fff;display:grid;place-items:center;font-weight:700}
+.rc .note b{color:#012C60}
+.rc .end{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:28px}
+.rc .end .loc{font-size:18px;color:#46506A;line-height:1.5}
+.rc .sign{text-align:center;width:420px}
+.rc .sign .s{font-family:${ASSINATURA_RDL.family};font-size:84px;color:#012C60;line-height:1;height:76px;white-space:nowrap}
+.rc .sign hr{border:0;border-top:1.5px solid #9AA3B6;margin:4px 0 10px}
+.rc .sign b{display:block;font-size:18px}
+.rc .sign small{font-size:14px;color:#7A7F92}
+.rc .foot{background:#012C60;color:#fff;padding:22px 80px;display:flex;justify-content:space-between;font-size:15px}
+.rc .foot span{opacity:.85}
 </style>
-<div class="in">
-<img class="logo" src="${RDL_LOGO}" alt="">
-<div class="pill"><i></i>RECIBO · ${esc(cfg.empreendimento.replace(/\s*\(.*\)/, '').toUpperCase())}</div>
-<h1>Pagamento <span>recebido</span></h1>
-<div class="hero">
-  <div><small>SINAL · PIX · ${esc(quando)}</small><strong>${brl(pago)}</strong><em>VAGA GARANTIDA NA AGENDA</em></div>
-  <div class="side">
-    <div class="row"><span>Total contratado</span><b>${brl(v.total)}</b></div>
-    <div class="row or"><span>${sv.vistoria ? 'Restante no dia' : 'Restante na entrega'}</span><b>${brl(resta)}</b></div>
+<div class="top"><img src="${RDL_LOGO}" alt=""><div class="r"><small>RECIBO</small><b>Nº ${num}</b><span>emitido em ${esc(quando)}</span></div></div>
+<div class="body">
+  <div class="val">
+    <div><small>VALOR RECEBIDO · PIX</small><strong>${brl(pago)}</strong><p>${esc(porExtenso(pago))}</p></div>
+    <div class="ok"><span>✓</span><b>Vaga garantida</b><em>sinal de 50% · ${esc(quando)}</em></div>
+  </div>
+  <div class="grid">
+    ${campo('Recebido de', d.nome)}${campo('CPF', d.cpf)}${campo('Telefone', d.tel)}
+    ${campo('Empreendimento', emp)}${campo('Unidade', unidade(d))}${campo('Planta', (d.planta ?? '—').replace(/\s*\(.*\)/, ''))}
+  </div>
+  <div class="tb">
+    <div class="h"><span>SERVIÇOS DO CONTRATO</span><span>VALOR</span></div>
+    ${linhas.map(([t, s, val]) => `<div class="it"><span>${esc(t)}<small>${esc(s)}</small></span><b>${val}</b></div>`).join('')}
+    <div class="tot"><div>TOTAL<b>${brl(v.total)}</b></div><div>PAGO AGORA<b>${brl(pago)}</b></div><div class="o">${sv.vistoria ? 'RESTANTE NO DIA' : 'RESTANTE NA ENTREGA'}<b>${brl(resta)}</b></div></div>
+  </div>
+  <div class="steps">${passos.map(([t, s, ok], i) => `<div class="st ${ok ? 'ok' : ''}"><span>${ok ? '✓' : i + 1}</span><b>${t}</b><small>${esc(s)}</small></div>`).join('')}</div>
+  <div class="note"><i>!</i><span>Quando a MRV liberar as datas, <b>avise o Rogério antes de confirmar o horário com ela</b>, para combinarem juntos. Contrato nº ${num}, assinado pelas duas partes.</span></div>
+  <div class="end">
+    <div class="loc">Santo André, ${esc(quando)}<br>${esc(RDL_INFO.company)}<br>CNPJ ${RDL_INFO.cnpj}</div>
+    <div class="sign"><div class="s">${ASSINATURA_RDL.nome}</div><hr><b>${esc(RDL_INFO.engineer)}</b><small>Engenheiro civil · CREA-SP ${RDL_INFO.crea}</small></div>
   </div>
 </div>
-<div class="cards">
-  <div class="card"><h3>CONTRATANTE</h3><p><b>${esc(d.nome)}</b><br>CPF ${esc(d.cpf)}<br>${esc(d.tel)}</p></div>
-  <div class="card"><h3>IMÓVEL</h3><p><b>${esc(cfg.empreendimento.replace(/\s*\(.*\)/, ''))}</b><br>${esc(unidade(d))}${d.planta ? `<br>${esc(d.planta.replace(/\s*\(.*\)/, ''))}` : ''}</p></div>
-</div>
-<div class="serv"><h3>SERVIÇOS CONTRATADOS</h3>${servicos.map(([t, s, val]) => `<div class="it"><span>${esc(t)}<small>${esc(s)}</small></span><b>${val}</b></div>`).join('')}</div>
-<div class="steps">${passos.map(([t, s, ok], i) => `<div class="st ${ok ? 'ok' : ''}"><span>${ok ? '✓' : i + 1}</span><b>${t}</b><small>${esc(s)}</small></div>`).join('')}</div>
-<p class="decl">Recebemos de <b>${esc(d.nome)}</b> a importância de <b>${brl(pago)}</b> (${porExtenso(pago)}), referente ao sinal do contrato nº <b>${r.id.slice(0, 8).toUpperCase()}</b>. Quando a MRV liberar as datas, combine o horário com o Rogério antes de confirmar com ela.</p>
-<div class="sign"><div class="s">Rogério F. Vieira</div><hr><b>${esc(RDL_INFO.engineer)}</b><small>CREA-SP ${RDL_INFO.crea} · Santo André, ${esc(quando)}</small></div>
-</div>
-<div class="foot"><div><b>${esc(RDL_INFO.engineer)}</b><small>${esc(RDL_INFO.company)} · CNPJ ${RDL_INFO.cnpj}</small></div><div class="r">${RDL_INFO.phone}<br>${RDL_INFO.email}</div></div>
+<div class="foot"><span>${RDL_INFO.phone}</span><span>${RDL_INFO.email}</span><span>useplane.com.br/vistoria</span></div>
 </div>`
 }
 
@@ -134,7 +142,7 @@ export async function reciboPng(r: Reserva, cfg: ReservaConfig): Promise<Blob> {
   document.body.appendChild(box)
   try {
     await document.fonts.ready
-    const sig = SIGN_FONTS.find((f) => f.id === 'allura')!.family
+    const sig = ASSINATURA_RDL.family
     await Promise.all([document.fonts.load(`72px ${sig}`), document.fonts.load('700 62px Poppins'), document.fonts.load('600 20px Poppins')]).catch(() => undefined)
     const el = box.firstElementChild as HTMLElement
     const blob = await toBlob(el, { width: 1080, height: 1527, pixelRatio: 1.5, cacheBust: true })
