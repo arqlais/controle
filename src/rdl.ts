@@ -115,3 +115,17 @@ export const RDL_SERVICES: ServiceDef[] = [
   { id: 'eng-vistoria', group: 'vistoria e laudos', name: 'vistoria de entrega de chaves (laudo + ART)', unit: 'apartamento', pricing: 'unidade', price: 297, min: 0, hours: 3, tiers: [], askText: 'O que entra na vistoria?', checklistTitle: 'o que inclui', checklist: ['análise da planta e do memorial', 'vistoria presencial de até 2 horas', 'laudo técnico com fotos', 'ART da vistoria'] },
   { id: 'eng-revistoria', group: 'vistoria e laudos', name: 'revistoria (conferir os reparos)', unit: 'visita', pricing: 'unidade', price: 150, min: 0, hours: 1.5, tiers: [] },
 ]
+
+/** Páginas da RDL (sistema e reserva da vistoria): ícone e nome da aba da RDL, não os da planê. */
+export const rdlTab = () => typeof window !== 'undefined' && (rdlMode() || /^#\/?vistoria/.test(location.hash))
+export function setRdlFavicon(title?: string) {
+  const href = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}rdl/icon.png`
+  document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"], link[rel="shortcut icon"]').forEach((l) => ((l.href = href), l.removeAttribute('type')))
+  if (!document.querySelector('link[rel="icon"]')) {
+    const l = document.createElement('link')
+    l.rel = 'icon'
+    l.href = href
+    document.head.appendChild(l)
+  }
+  if (title) document.title = title
+}

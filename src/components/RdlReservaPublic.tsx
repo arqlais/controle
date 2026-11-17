@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import './rdlReserva.css'
 import { RDL_LOGO } from '../rdlLogo'
+import { setRdlFavicon } from '../rdl'
 import { VISTORIA_PROPOSTA_URL } from '../contractTemplates'
 import { formatCep, formatDoc, formatPhone, lookupCep, whatsappLink } from '../utils'
 import { deviceLabel } from '../contractSign'
@@ -507,7 +508,7 @@ function Loja() {
 
 export function RdlReservaPublic({ sub }: { sub?: string }) {
   useEffect(() => {
-    document.title = 'Vistoria de entrega de chaves · RDL Engenharia'
+    setRdlFavicon('Vistoria de entrega de chaves · RDL Engenharia')
     document.documentElement.classList.add('rv-root')
     return () => document.documentElement.classList.remove('rv-root')
   }, [])
@@ -1484,6 +1485,8 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           ))}
         </ol>
 
+        <div className="rv-dash">
+          <div className="rv-col">
         <section className={`rv-now ${agora.tom}`}>
           <div className="rv-now-head">
             <span className="ib">
@@ -1496,8 +1499,6 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           </div>
           {agora.body}
         </section>
-
-        {!r.cancelada && <Grupo n={grupo} cfg={cfg} compact />}
 
         <section className="rv-card">
           <h2 className="rv-h2">
@@ -1541,33 +1542,6 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               ),
             )}
           </div>
-        </section>
-
-        <section className="rv-card">
-          <h2 className="rv-h2">
-            <I n="plan" s={18} /> Sua planta
-          </h2>
-          {r.dados.planta && !trocaPlanta ? (
-            <div className="rv-myplan">
-              {plantaImg(r.dados.planta) && <img src={plantaImg(r.dados.planta)} alt={r.dados.planta} loading="lazy" />}
-              <div className="rv-row between">
-                <span>
-                  <b>{plantaCurta(r.dados.planta)}</b>
-                  <small>{r.dados.planta === PLANTA_CANTO ? 'Finais 01, 02, 11 e 12' : 'Finais 03 a 10'}</small>
-                </span>
-                {!r.cancelada && (
-                  <button className="rv-btn small ghost" onClick={() => setTrocaPlanta(true)}>
-                    Não é essa
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="rv-hint">Toque na planta do seu apartamento. Ajuda o engenheiro a se preparar.</p>
-              <Plantas value={r.dados.planta} onChange={(p) => void mudarPlanta(p)} sugerida={plantaDoApto(r.dados.apto)} />
-            </>
-          )}
         </section>
 
         {!r.cancelada && (
@@ -1627,6 +1601,37 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           </section>
         )}
 
+          </div>
+          <div className="rv-col">
+        {!r.cancelada && <Grupo n={grupo} cfg={cfg} compact />}
+
+        <section className="rv-card">
+          <h2 className="rv-h2">
+            <I n="plan" s={18} /> Sua planta
+          </h2>
+          {r.dados.planta && !trocaPlanta ? (
+            <div className="rv-myplan">
+              {plantaImg(r.dados.planta) && <img src={plantaImg(r.dados.planta)} alt={r.dados.planta} loading="lazy" />}
+              <div className="rv-row between">
+                <span>
+                  <b>{plantaCurta(r.dados.planta)}</b>
+                  <small>{r.dados.planta === PLANTA_CANTO ? 'Finais 01, 02, 11 e 12' : 'Finais 03 a 10'}</small>
+                </span>
+                {!r.cancelada && (
+                  <button className="rv-btn small ghost" onClick={() => setTrocaPlanta(true)}>
+                    Não é essa
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="rv-hint">Toque na planta do seu apartamento. Ajuda o engenheiro a se preparar.</p>
+              <Plantas value={r.dados.planta} onChange={(p) => void mudarPlanta(p)} sugerida={plantaDoApto(r.dados.apto)} />
+            </>
+          )}
+        </section>
+
         {r.dados.revistoria && !r.cancelada && (
           <section className="rv-card">
             <h2 className="rv-h2">
@@ -1635,8 +1640,6 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
             <p className="rv-hint">{s.revistoriaData ? `Marcada para ${dataCurta(s.revistoriaData)}.` : 'Depois que a MRV consertar o que estiver no laudo (em até 90 dias), o engenheiro volta para conferir.'} Valor: {brl(cfg.revistoria)}, pago no dia.</p>
           </section>
         )}
-
-        <Loja />
 
         <section className="rv-card rv-help">
           <h2 className="rv-h2">
@@ -1652,6 +1655,10 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           </div>
           <p className="rv-fine">Guarde este link (ou adicione à tela inicial): é o seu acesso ao contrato, à data e ao laudo. Reserva nº {r.id.slice(0, 8).toUpperCase()}.</p>
         </section>
+        <Loja />
+
+          </div>
+        </div>
       </main>
       <Rodape />
       <Duvidas teste={teste} nome={r.dados.nome} contato={r.dados.email || r.dados.tel} reserva={teste ? undefined : { id, token }} />

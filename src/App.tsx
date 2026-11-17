@@ -76,7 +76,7 @@ import { trialOver } from './platform'
 import { misdatedOldQuotes } from './quoteActions'
 import { DIRECT_KEY, OWNER_ONLY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
-import { enterRdl, exitRdl, rdlMode, rdlRole } from './rdl'
+import { enterRdl, exitRdl, rdlMode, rdlRole, setRdlFavicon } from './rdl'
 import { RDL_LOGO } from './rdlLogo'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
@@ -135,6 +135,7 @@ type Quick = 'projeto' | 'cliente' | 'evento' | 'despesa' | null
 
 // sistema da RDL nesta aba (área restrita da RDL Engenharia, com dados e identidade próprios)
 const RDL = rdlMode()
+if (RDL) setRdlFavicon('RDL Engenharia')
 
 export default function App() {
   const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample, upsert } = useStore()

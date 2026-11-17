@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
+import { DateInput } from '../components/DateInput'
 import { Badge, Empty, Field, Modal, Section } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { newClient } from '../components/forms'
@@ -44,6 +45,7 @@ const escopoReforma = (itens: string[]) =>
   `Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural).`
 
 /* ---------- agenda: duração + respiro, conflitos e próximo horário livre ---------- */
+const HORAS = Array.from({ length: 23 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
 const toMin = (h?: string) => (h && /^\d{1,2}:\d{2}/.test(h) ? Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5)) : null)
 const toHora = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 type Ocupado = { ini: number; fim: number; nome: string }
@@ -460,8 +462,19 @@ function Detalhe({
               </p>
             )}
             <div className="row gap-s wrap">
-              <input type="date" value={d} onChange={(e) => setD(e.target.value)} />
-              <input type="time" value={h} onChange={(e) => setH(e.target.value)} />
+              <DateInput value={d} onChange={(e) => setD(e.target.value)} />
+              <select value={h} onChange={(e) => setH(e.target.value)} aria-label="Horário">
+                <option value="">horário</option>
+                {HORAS.map((x) => {
+                  const bate = d ? conflitos(toMin(x)!, occ, cfg).length > 0 : false
+                  return (
+                    <option key={x} value={x}>
+                      {x}
+                      {bate ? ' · ocupado' : ''}
+                    </option>
+                  )
+                })}
+              </select>
               <button className="btn small" disabled={(d === (s.data ?? '') && h === (s.hora ?? '')) || !d} onClick={() => void onData(r, d, h)}>
                 {choque.length ? 'salvar mesmo assim' : 'salvar data'}
               </button>
@@ -503,7 +516,7 @@ function Detalhe({
             <li className={s.revistoriaData ? 'done' : ''}>
               <b>5 · revistoria</b>
               <div className="row gap-s wrap">
-                <input type="date" value={rev} onChange={(e) => setRev(e.target.value)} />
+                <DateInput value={rev} onChange={(e) => setRev(e.target.value)} />
                 <button className="btn small" disabled={rev === (s.revistoriaData ?? '')} onClick={() => void onStatus(r, { revistoriaData: rev }, 'Revistoria salva e e-mail enviado.').then(() => rev && void avisarEmail('revistoria', r.id))}>
                   salvar
                 </button>
@@ -545,20 +558,20 @@ function Detalhe({
                     Estimativa da calculadora: <b>{money(Number(rf.estimativa))}</b>
                     {rf.itens?.length ? ` · ${reformaItensTexto(rf.itens).join(', ')}` : ''}
                   </span>
-                  <button className="chip" onClick={() => (setRfEscopo(escopoReforma(rf.itens ?? [])), setRfValor(String(rf.estimativa)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
+                  <button className="btn small ghost" onClick={() => (setRfEscopo(escopoReforma(rf.itens ?? [])), setRfValor(String(rf.estimativa)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
                     usar a estimativa
                   </button>
                 </div>
               ) : (
-                <button className="chip" onClick={() => (setRfEscopo(escopoReforma([])), setRfValor(String(REFORMA_MIN)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
+                <button className="btn small ghost rsv-fill" onClick={() => (setRfEscopo(escopoReforma([])), setRfValor(String(REFORMA_MIN)), setRfPrazo('até 5 dias úteis depois da visita técnica'))}>
                   preencher o padrão ({money(REFORMA_MIN)})
                 </button>
               )}
               <div className="form-grid">
-                <Field label="o que a ART cobre" span={2}>
+                <Field label="o que cobre" span={2}>
                   <input value={rfEscopo} onChange={(e) => setRfEscopo(e.target.value)} placeholder="Ex.: ART de execução da reforma (piso e marcenaria) e plano de reforma para o condomínio" />
                 </Field>
-                <Field label="valor (R$)">
+                <Field label="valor">
                   <input type="number" min={0} value={rfValor} onChange={(e) => setRfValor(e.target.value)} />
                 </Field>
                 <Field label="prazo">

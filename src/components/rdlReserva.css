@@ -2311,3 +2311,102 @@ html.rv-root body {
 .rv-paper .crea {
   white-space: nowrap;
 }
+/* painel como dashboard (largo no computador, uma coluna no celular) */
+.rv-dash {
+  display: grid;
+  gap: 16px;
+}
+.rv-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+@media (min-width: 960px) {
+  .rv-main:has(.rv-dash) {
+    max-width: 1120px;
+  }
+  .rv-dash {
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .rv-main:has(.rv-dash) .rv-hero.small,
+  .rv-main:has(.rv-dash) .rv-track {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+}
+/* documentos: 3 lado a lado, sem nenhum sozinho; no celular, lista */
+.rv-docs {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+@media (max-width: 560px) {
+  .rv-docs {
+    grid-template-columns: 1fr;
+  }
+  .rv-doc {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 10px;
+  }
+  .rv-doc .ib {
+    margin: 0;
+  }
+  .rv-doc b {
+    flex: 1;
+  }
+  .rv-doc small {
+    width: 100%;
+    padding-left: 42px;
+    margin-top: -4px;
+  }
+  .rv-doc em {
+    margin: 0;
+  }
+}
+/* equilíbrio: azul-marinho como base, laranja só nos destaques */
+.rv-now {
+  border: 1.5px solid var(--line);
+  border-top: 4px solid var(--or);
+}
+.rv-now.ok {
+  border-top-color: var(--navy);
+}
+.rv-now-head .ib {
+  background: var(--navy);
+}
+.rv-group.compact .rv-dots i.on,
+.rv-dots i.on {
+  background: var(--navy);
+}
+.rv-group-head .ib {
+  background: #e7eef8;
+  color: var(--navy);
+}
+.rv-doc.ok .ib {
+  background: var(--navy);
+}
+.rv-h2 .rv-i {
+  color: var(--navy);
+}
+.rv-h2 .rv-i {
+  color: var(--or);
+}
+.rv-fab {
+  background: var(--navy);
+  box-shadow: 0 10px 24px -8px rgba(1, 44, 96, 0.55);
+}
+.rv-fab .rv-i {
+  color: var(--or);
+}
+.rv-track li.done:not(:last-child):after {
+  border-top-color: var(--navy);
+}
+@media (min-width: 960px) {
+  .rv-dash .rv-calc-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}

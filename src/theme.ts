@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { rdlTab } from './rdl'
 import type { Settings } from './types'
 import { OLD_SLOGANS, PLATFORM } from './plans'
 import type { TabBrand } from './platform'
@@ -58,12 +59,13 @@ export function useDeviceDark(): [boolean, (dark: boolean) => void] {
 let lastBrand = ''
 const capWords = (t: string) => t.replace(/(^|\s)(\p{L})/gu, (_m, sp: string, l: string) => sp + l.toUpperCase())
 export function refreshTitle() {
+  if (rdlTab()) return // páginas da RDL têm nome próprio na aba
   const brand = lastBrand.replace(/\.$/, '').trim()
   document.title = brand && brand !== 'meu estúdio' ? `${PLATFORM.title} · ${capWords(brand)}` : `${PLATFORM.title} · ${PLATFORM.slogan}`
 }
 /** Nome, frase e ícone da aba definidos pela dona no painel. */
 export function setTabBrand(t: TabBrand | null) {
-  if (!t) return
+  if (!t || rdlTab()) return // páginas da RDL: ícone e nome da RDL
   if (t.title.trim()) PLATFORM.title = t.title.trim()
   // frase antiga salva no painel passa para a nova (escritório)
   if (t.slogan.trim() && !OLD_SLOGANS.includes(t.slogan.trim())) PLATFORM.slogan = t.slogan.trim()
