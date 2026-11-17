@@ -8,6 +8,45 @@ import { newClient } from '../components/forms'
 import { newArt } from './Arts'
 import { LaudoEditor } from './RdlLaudo'
 import { abrirContratoPdf } from '../rdlContratoPdf'
+import { msgConfirmacao, reciboPdf, reciboPng } from '../rdlRecibo'
+
+const baixar = (b: Blob, nome: string) => {
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(b)
+  a.download = nome
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000)
+}
+async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png') {
+  try {
+    const png = await reciboPng(r, cfg)
+    const nome = `Recibo RDL ${unidade(r.dados)}`
+    if (tipo === 'png') baixar(png, `${nome}.png`)
+    else baixar(await reciboPdf(png), `${nome}.pdf`)
+  } catch {
+    toast('Não consegui gerar o recibo. Tente de novo.')
+  }
+}
+/** Agradece e confirma pelo WhatsApp, com o recibo em imagem (no celular abre o compartilhar direto). */
+async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => void) {
+  set('gerando')
+  const texto = msgConfirmacao(r, cfg)
+  try {
+    const png = await reciboPng(r, cfg)
+    const file = new File([png], `Recibo RDL ${unidade(r.dados)}.png`, { type: 'image/png' })
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.clipboard?.writeText(texto).catch(() => undefined)
+      await navigator.share({ files: [file], text: texto }).catch(() => undefined)
+    } else {
+      baixar(png, file.name)
+      window.open(whatsappLink(r.dados.tel, texto), '_blank')
+      toast('Recibo baixado: é só anexar na conversa do WhatsApp.')
+    }
+  } catch {
+    window.open(whatsappLink(r.dados.tel, texto), '_blank')
+  }
+  set('')
+}
 import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
 import { PAL } from '../palette'
 import { money, today, uid, whatsappLink } from '../utils'
@@ -386,6 +425,7 @@ function Detalhe({
   const sugestao = d && choque.length ? livre(occ, cfg, Math.max(8 * 60, (toMin(h) ?? 8 * 60) - 60)) || livre(occ, cfg) : ''
   const [art, setArt] = useState(s.art ?? '')
   const [editor, setEditor] = useState(false)
+  const [recibo, setRecibo] = useState('')
   const rf = s.reforma ?? {}
   const [rfEscopo, setRfEscopo] = useState(rf.escopo ?? '')
   const [rfValor, setRfValor] = useState(rf.valor ? String(rf.valor) : '')
@@ -449,6 +489,19 @@ function Detalhe({
               <input type="checkbox" checked={!!s.cortesia} onChange={(e) => void onStatus(r, { cortesia: e.target.checked ? 'sim' : '' }, e.target.checked ? 'Cortesia: não paga e não conta no grupo.' : 'Voltou a contar no grupo.')} />
               cortesia (família): não paga, não conta no grupo e não recebe cobrança
             </label>
+            {s.sinal && (
+              <div className="row gap-s wrap">
+                <button className="btn small" disabled={recibo === 'gerando'} onClick={() => void mandarRecibo(r, cfg, setRecibo)}>
+                  <Icon name="whatsapp" size={14} /> {recibo === 'gerando' ? 'gerando o recibo…' : 'agradecer e mandar o recibo'}
+                </button>
+                <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'pdf')}>
+                  <Icon name="file" size={14} /> recibo em PDF
+                </button>
+                <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'png')}>
+                  <Icon name="image" size={14} /> recibo em imagem
+                </button>
+              </div>
+            )}
             {s.sinal ? (
               <p>
                 Recebido em {dataCurta(s.sinal)}.{' '}
