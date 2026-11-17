@@ -42,7 +42,7 @@ import {
 
 /** Texto do que a ART de reforma cobre, a partir dos serviços marcados. */
 const escopoReforma = (itens: string[]) =>
-  `Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural).`
+  `Responsabilidade técnica pela reforma: visita técnica, ART registrada no CREA e plano de reforma para o condomínio (NBR 16280)${itens.length ? `, para: ${reformaItensTexto(itens).join(', ')}` : ''}. Nada que mexa nas paredes (concreto estrutural). A execução da obra (mão de obra, materiais e prestadores) é do morador.`
 
 /* ---------- agenda: duração + respiro, conflitos e próximo horário livre ---------- */
 const HORAS = Array.from({ length: 23 }, (_, i) => `${String(7 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`)
@@ -565,7 +565,7 @@ function Detalhe({
               )}
               <div className="form-grid">
                 <Field label="o que cobre" span={2}>
-                  <input value={rfEscopo} onChange={(e) => setRfEscopo(e.target.value)} placeholder="Ex.: ART de execução da reforma (piso e marcenaria) e plano de reforma para o condomínio" />
+                  <input value={rfEscopo} onChange={(e) => setRfEscopo(e.target.value)} placeholder="Ex.: ART da reforma (piso e marcenaria) e plano de reforma para o condomínio" />
                 </Field>
                 <Field label="valor">
                   <input type="number" min={0} value={rfValor} onChange={(e) => setRfValor(e.target.value)} />

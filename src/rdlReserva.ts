@@ -280,7 +280,7 @@ export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo'
 }
 
 /* ---------- ART de reforma: o morador marca o que vai fazer e vê o valor na hora ---------- */
-/** Mínimo de R$ 250 (ART de execução + plano de reforma para o condomínio + visita técnica, com 1 serviço).
+/** Mínimo de R$ 250 (ART da reforma como responsável técnico + plano de reforma para o condomínio + visita técnica, com 1 serviço).
  *  Cada serviço a mais soma o valor dele. Nada que mexa nas paredes (concreto estrutural). */
 export const REFORMA_MIN = 250
 export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: number }[] = [

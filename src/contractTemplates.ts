@@ -419,7 +419,7 @@ Qualquer serviço fora desta lista depende de novo orçamento.
 
 10. ART
 10.1 A ART deste contrato é registrada em nome do engenheiro responsável e se refere exclusivamente à vistoria aqui descrita. Ela não vale para obra, reforma ou outros serviços, que dependem de nova contratação.
-10.2 ART de reforma: o(a) CONTRATANTE pode pedir, pelo painel, um orçamento de ART de obra ou reforma para o mesmo imóvel. A CONTRATADA analisa o pedido e envia pelo painel o escopo, o valor e o prazo. A ART de reforma só é contratada se o(a) CONTRATANTE aprovar esse orçamento no painel; o aceite no painel vale como contratação desse serviço adicional, nas condições do orçamento e, no que couber, deste contrato. Taxas do condomínio, projetos e a execução da obra não estão incluídos.
+10.2 ART de reforma: o(a) CONTRATANTE pode pedir, pelo painel, um orçamento de ART de obra ou reforma para o mesmo imóvel. A CONTRATADA analisa o pedido e envia pelo painel o escopo, o valor e o prazo. A ART de reforma só é contratada se o(a) CONTRATANTE aprovar esse orçamento no painel; o aceite no painel vale como contratação desse serviço adicional, nas condições do orçamento e, no que couber, deste contrato. Na ART de reforma, a CONTRATADA atua como responsável técnica (ART, plano de reforma e visita técnica); a execução da obra, a mão de obra, os materiais e a contratação de prestadores são do(a) CONTRATANTE, que deve seguir o plano de reforma e o manual do proprietário. Taxas do condomínio e projetos não estão incluídos.
 
 11. DESISTÊNCIA E CANCELAMENTO
 11.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral do sinal, desde que a vistoria ainda não tenha sido feita (art. 49 do Código de Defesa do Consumidor).

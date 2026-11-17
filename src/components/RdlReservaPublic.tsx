@@ -332,7 +332,7 @@ function ReformaInfo() {
           <b>
             <I n="info" s={14} /> Quando precisa
           </b>
-          <p>Antes de qualquer obra, o condomínio pede a ART e o plano de reforma (norma NBR 16280). Sem eles, o síndico pode não liberar a entrada de material e de pedreiro.</p>
+          <p>Antes de qualquer obra, o condomínio pede a ART e o plano de reforma (norma NBR 16280), com um engenheiro como responsável técnico. Sem eles, o síndico pode não liberar a entrada de material e de pedreiro. A obra continua sendo feita por quem você contratar.</p>
         </div>
         <div>
           <b>
@@ -340,7 +340,7 @@ function ReformaInfo() {
           </b>
           <ul>
             <li>Visita técnica do engenheiro no apê</li>
-            <li>ART de execução registrada no CREA (taxa inclusa)</li>
+            <li>O Rogério como responsável técnico, com a ART registrada no CREA (taxa inclusa)</li>
             <li>Plano de reforma pronto para entregar ao síndico</li>
             <li>Orientação do que pode e do que não pode no San Levi</li>
           </ul>
@@ -361,7 +361,8 @@ function ReformaInfo() {
             <I n="x" s={14} /> Não inclui
           </b>
           <ul>
-            <li>Mão de obra e materiais da reforma</li>
+            <li>A obra em si: quem executa é o pedreiro ou a empresa que você escolher</li>
+            <li>Mão de obra e materiais</li>
             <li>Projeto de arquitetura ou de interiores</li>
             <li>Acompanhamento diário da obra</li>
             <li>Taxas do condomínio</li>
@@ -404,7 +405,7 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
           <small>VALOR ESTIMADO</small>
           <b>{brl(total)}</b>
         </div>
-        <span>ART + plano de reforma + visita técnica, com a taxa do CREA. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
+        <span>ART + plano de reforma + visita técnica, com a taxa do CREA. A obra é feita por quem você contratar. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
       </div>
       <details className="rv-what">
         <summary>
@@ -689,7 +690,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               </span>
               <div>
                 <b>ART de reforma</b>
-                <small>Para o condomínio liberar a sua obra: ART + plano de reforma</small>
+                <small>Para o condomínio liberar a sua obra: ART + plano de reforma. A obra é com o seu pedreiro.</small>
               </div>
             </div>
             <div className="rv-offer-price">
