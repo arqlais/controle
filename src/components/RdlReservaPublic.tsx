@@ -921,6 +921,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
 
 /* ================= reserva ================= */
 
+const TESTE_EXEMPLO: Partial<ReservaDados> = { nome: 'Morador Teste', cpf: '529.982.247-25', email: 'teste@exemplo.com', tel: '(11) 9 0000-0000', cep: '09170-000', rua: 'Rua Exemplo', numero: '100', bairro: 'Vila João Ramalho', cidade: 'Santo André', uf: 'SP', torre: '2', apto: '1204', planta: PLANTA_CORREDOR }
 const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '', cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', torre: '', apto: '', planta: '', revistoria: false, reforma: '' }
 
 function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReforma?: boolean; soReforma?: boolean }) {
@@ -1162,6 +1163,11 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                 <button
                   className="rv-btn wide3"
                   onClick={() => {
+                    if (teste) {
+                      if (faltaServico) setSv('vistoria', true)
+                      setTried(false)
+                      return ir(2)
+                    }
                     setTried(true)
                     if (faltaServico || faltaReforma) return
                     setTried(false)
@@ -1272,6 +1278,12 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                   <button
                     className="rv-btn"
                     onClick={() => {
+                      if (teste) {
+                        // modo teste: o que ficou vazio vira dado de exemplo
+                        setD((x) => ({ ...TESTE_EXEMPLO, ...Object.fromEntries(Object.entries(x).filter(([, val]) => val !== '' && val !== undefined)) }) as ReservaDados)
+                        setTried(false)
+                        return ir(3)
+                      }
                       setTried(true)
                       if (!okDados) return
                       setTried(false)
@@ -1288,7 +1300,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
             {step === 3 && (
               <>
                 <Total v={v} sv={sv} cfg={cfg} titulo revistoria={d.revistoria} />
-                <Assinar texto={texto} nome={d.nome} reforma={sv.reforma} agora={v.agora} busy={busy} erro={erro} onVoltar={() => ir(2)} onAssinar={(a) => void enviar(a)} />
+                <Assinar texto={texto} nome={d.nome} reforma={sv.reforma} agora={v.agora} busy={busy} erro={erro} onVoltar={() => ir(2)} onAssinar={(a) => void enviar(a)} livre={teste} />
               </>
             )}
           </section>
@@ -1350,13 +1362,13 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
 }
 
 /** Leitura do contrato, aceite e assinatura (na reserva e quando o painel pede para assinar de novo). */
-function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar, botao = 'Assinar e reservar' }: { texto: string; nome: string; reforma: boolean; agora: number; busy: boolean; erro: string; onVoltar?: () => void; onAssinar: (a: { modo: 'digitado' | 'desenho'; desenho: string }) => void; botao?: string }) {
+function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar, botao = 'Assinar e reservar', livre }: { texto: string; nome: string; reforma: boolean; agora: number; busy: boolean; erro: string; onVoltar?: () => void; onAssinar: (a: { modo: 'digitado' | 'desenho'; desenho: string }) => void; botao?: string; livre?: boolean }) {
   const [ok, setOk] = useState(false)
   const [okTermo, setOkTermo] = useState(false)
   const [nomeAss, setNomeAss] = useState('')
   const [desenho, setDesenho] = useState('')
   const [modo, setModo] = useState<'digitado' | 'desenho'>('digitado')
-  const assinou = ok && (!reforma || okTermo) && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === nome.trim().toLowerCase() : desenho.length > 30)
+  const assinou = !!livre || (ok && (!reforma || okTermo) && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === nome.trim().toLowerCase() : desenho.length > 30))
   return (
     <>
       <div className="rv-keys">

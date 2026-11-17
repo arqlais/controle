@@ -2815,7 +2815,7 @@ html.rv-root body {
   flex: none;
   color: #fff;
 }
-.rv-pick.on .box {
+.rv-pick.on > .rv-pick-head .box {
   background: var(--navy);
   border-color: var(--navy);
 }
@@ -3119,4 +3119,17 @@ html.rv-root body {
 .rv-pick.on .rv-pick-sub:not(.on) .box {
   background: #fff;
   border-color: #c9cdd8;
+}
+/* caixinhas: brancas até serem marcadas; azul com visto só quando selecionadas */
+.rv-pick .box,
+.rv-pick-sub .box,
+.rv-calc-item .box {
+  background: #fff;
+  border-color: #c9cdd8;
+}
+.rv-pick.on > .rv-pick-head .box,
+.rv-pick-sub.on .box,
+.rv-calc-item.on .box {
+  background: var(--navy);
+  border-color: var(--navy);
 }
