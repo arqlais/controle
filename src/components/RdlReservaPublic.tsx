@@ -41,9 +41,10 @@ import {
 
 /* Página pública da reserva da vistoria (useplane.com.br/vistoria), na identidade da RDL.
    Feita para quem não entende de vistoria e usa no celular: tudo explicado, com símbolos, um passo de cada vez.
-   #/vistoria                → reservar (dados, contrato e assinatura)
+   #/vistoria                → boas-vindas: por que fazer a vistoria, valores do San Levi (vistoria, ART de reforma, guias)
+   #/vistoria/reservar       → reservar (dados, contrato e assinatura); reservar-reforma já abre a calculadora da reforma
    #/vistoria/<id>.<código>  → painel da reserva do morador
-   #/vistoria/teste          → reservar em modo teste (nada é salvo nem enviado)
+   #/vistoria/teste          → boas-vindas em modo teste (nada é salvo nem enviado); teste-reservar = reserva de teste
    #/vistoria/teste-painel   → painel de teste, com as etapas para simular */
 
 const P: Record<string, string> = {
@@ -387,21 +388,282 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
     document.documentElement.classList.add('rv-root')
     return () => document.documentElement.classList.remove('rv-root')
   }, [])
-  if (sub === 'teste') return <div className="rv"><Reservar teste /></div>
+  if (sub === 'teste') return <div className="rv"><Boas teste /></div>
+  if (sub === 'teste-reservar') return <div className="rv"><Reservar teste /></div>
+  if (sub === 'reservar' || sub === 'reservar-reforma') return <div className="rv"><Reservar comReforma={sub === 'reservar-reforma'} /></div>
   if (sub === 'teste-painel') return <div className="rv"><Painel id="" token="" teste /></div>
   if (sub?.startsWith('duvida-')) {
     const [cid, ctk] = sub.slice(7).split('.')
-    return <div className="rv"><Reservar abrirChat={cid && ctk ? { id: cid, token: ctk } : undefined} /></div>
+    return <div className="rv"><Boas abrirChat={cid && ctk ? { id: cid, token: ctk } : undefined} /></div>
   }
   const [id, token] = (sub ?? '').split('.')
-  return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Reservar />}</div>
+  return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Boas />}</div>
+}
+
+
+/* ================= boas-vindas (acolhimento) ================= */
+
+function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string; token: string } }) {
+  const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
+  const [n, setN] = useState(0)
+  useEffect(() => {
+    void lerConfig().then(setCfg)
+    void contagem().then(setN)
+  }, [])
+  const salvo = teste ? '' : ls.get(SALVO)
+  const metade = cfg.preco / 2
+  const reservar = teste ? '#/vistoria/teste-reservar' : '#/vistoria/reservar'
+  return (
+    <>
+      <Topo />
+      {teste && <Teste />}
+      <main className="rv-main">
+        <section className="rv-welcome">
+          <span className="rv-pill or">
+            <i /> EXCLUSIVO · MORADORES SAN LEVI
+          </span>
+          <h1>
+            Seu apê novo merece ser <span>recebido do jeito certo</span>
+          </h1>
+          <p>Antes de assinar o recebimento com a MRV, um engenheiro civil confere tudo com você. O que estiver errado fica registrado, com fotos e ART, para a MRV consertar.</p>
+          <div className="rv-row center-row">
+            <a className="rv-btn" href={reservar}>
+              <I n="key" /> Reservar minha vistoria
+            </a>
+            <a className="rv-btn ghost" href="#por-que" onClick={(e) => (e.preventDefault(), document.getElementById('por-que')?.scrollIntoView({ behavior: 'smooth' }))}>
+              Entender primeiro
+            </a>
+          </div>
+        </section>
+
+        {salvo && (
+          <a className="rv-saved" href={salvo}>
+            <I n="check" /> Você já tem uma reserva neste celular. <b>Abrir o meu painel</b> <I n="arrow" />
+          </a>
+        )}
+
+        <section className="rv-card" id="por-que">
+          <h2 className="rv-h2">
+            <I n="shield" s={18} /> Por que fazer a vistoria?
+          </h2>
+          <div className="rv-reasons">
+            {[
+              ['doc', 'Depois de assinar, fica mais difícil cobrar', 'O que não é anotado na entrega vira discussão depois. Com o laudo, fica tudo registrado.'],
+              ['search', 'Olho de engenheiro', 'Prumo, nível, caimento de água, tomadas, portas e janelas: coisas que passam despercebidas.'],
+              ['shield', 'Laudo com ART tem peso', 'O pedido de conserto vai assinado por um engenheiro registrado no CREA.'],
+              ['key', 'Chave na mão, sem susto', 'Você recebe o apê sabendo o que está certo e o que a MRV precisa arrumar.'],
+            ].map(([i, t, p]) => (
+              <div key={t}>
+                <span className="ib">
+                  <I n={i} s={17} />
+                </span>
+                <p>
+                  <b>{t}</b>
+                  {p}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="rv-label">O que costuma aparecer em apê novo</p>
+          <div className="rv-chips">
+            {['Piso desnivelado', 'Azulejo oco ou trincado', 'Ralo sem caimento', 'Tomada sem energia', 'Porta que não fecha', 'Janela com folga', 'Mancha de infiltração', 'Parede fora de prumo'].map((t) => (
+              <span key={t}>
+                <I n="x" s={11} /> {t}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <Grupo n={n} cfg={cfg} />
+
+        <section className="rv-offers">
+          <h2 className="rv-h2">
+            <I n="star" s={18} /> Valores exclusivos do San Levi
+          </h2>
+          <div className="rv-offer main">
+            <span className="tag">MAIS PROCURADO</span>
+            <div className="rv-offer-head">
+              <span className="ib">
+                <I n="key" s={20} />
+              </span>
+              <div>
+                <b>Vistoria de entrega das chaves</b>
+                <small>Engenheiro civil + laudo com fotos + ART</small>
+              </div>
+            </div>
+            <div className="rv-offer-price">
+              <strong>{brl(cfg.preco)}</strong>
+              <span>
+                valor de grupo · sinal de {brl(metade)}
+                <br />
+                individual: {brl(cfg.individual)}
+              </span>
+            </div>
+            <a className="rv-btn light" href={reservar}>
+              Reservar minha vistoria <I n="arrow" />
+            </a>
+          </div>
+          <div className="rv-offer navy">
+            <div className="rv-offer-head">
+              <span className="ib">
+                <I n="hammer" s={20} />
+              </span>
+              <div>
+                <b>ART de reforma</b>
+                <small>Para o condomínio liberar a sua obra: ART + plano de reforma</small>
+              </div>
+            </div>
+            <div className="rv-offer-price">
+              <strong>
+                <em>a partir de</em> {brl(REFORMA_MIN)}
+              </strong>
+              <span>piso, armários, gesso, iluminação… o valor depende do que você vai fazer</span>
+            </div>
+            <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/reservar-reforma'}>
+              Simular o valor <I n="arrow" />
+            </a>
+          </div>
+          <a className="rv-offer plain" href="ape/" target="_blank" rel="noreferrer">
+            <div className="rv-offer-head">
+              <span className="ib">
+                <I n="bag" s={20} />
+              </span>
+              <div>
+                <b>Guias e planilhas para o apê</b>
+                <small>Da planê.apê: planilha de obra, medidas dos móveis, marcenaria, pisos e mais</small>
+              </div>
+            </div>
+            <div className="rv-offer-price">
+              <strong>
+                <em>a partir de</em> R$ 12,90
+              </strong>
+              <span>baixa na hora</span>
+            </div>
+            <em className="go">
+              Conhecer a loja <I n="arrow" s={13} />
+            </em>
+          </a>
+        </section>
+
+        <section className="rv-card">
+          <h2 className="rv-h2">
+            <I n="list" s={18} /> Como funciona a vistoria
+          </h2>
+          <ol className="rv-how">
+            {[
+              ['sign', 'Reserve pelo celular', 'Dados e contrato em 3 minutos.'],
+              ['card', 'Pague o sinal', `${brl(metade)} por Pix, em até 7 dias.`],
+              ['cal', 'Combine o horário', 'Quando a MRV liberar, fale com o Rogério.'],
+              ['search', 'Dia da vistoria', 'O engenheiro confere tudo com você.'],
+              ['doc', 'Laudo + ART', 'Em até 4 dias úteis, pronto para a MRV.'],
+            ].map(([i, t, p], k) => (
+              <li key={t}>
+                <span className="n">{k + 1}</span>
+                <span className="ib">
+                  <I n={i} s={16} />
+                </span>
+                <p>
+                  <b>{t}</b>
+                  {p}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="rv-io">
+          <div className="rv-card yes">
+            <h3>
+              <span className="ic">
+                <I n="check" s={13} />
+              </span>
+              Está incluso
+            </h3>
+            {[
+              ['search', 'Vistoria com engenheiro civil, de até 2 horas'],
+              ['shield', 'ART da vistoria registrada no CREA'],
+              ['doc', 'Laudo técnico com fotos'],
+              ['plan', 'Conferência com a planta e o memorial'],
+            ].map(([i, t]) => (
+              <p key={t}>
+                <span className="ib">
+                  <I n={i} s={13} />
+                </span>
+                {t}
+              </p>
+            ))}
+          </div>
+          <div className="rv-card no">
+            <h3>
+              <span className="ic">
+                <I n="x" s={13} />
+              </span>
+              Não está incluso
+            </h3>
+            {['Os consertos (são por conta da MRV)', 'Áreas comuns do condomínio', 'Quebrar parede, piso ou forro', 'ART de reforma (dá para pedir à parte)'].map((t) => (
+              <p key={t}>
+                <span className="ib">
+                  <I n="x" s={12} />
+                </span>
+                {t}
+              </p>
+            ))}
+          </div>
+        </section>
+        <section className="rv-who">
+          <img src={RDL_LOGO} alt="RDL Engenharia" />
+          <div>
+            <small>QUEM FAZ</small>
+            <b>{RDL_INFO.engineer}</b>
+            <span>Engenheiro civil · CREA-SP {RDL_INFO.crea}</span>
+            <span>RDL Engenharia e Representações · Santo André</span>
+          </div>
+        </section>
+
+        <section className="rv-card rv-faq">
+          <h2 className="rv-h2">
+            <I n="info" s={18} /> Dúvidas comuns
+          </h2>
+          {[
+            ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
+            ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
+            ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
+            ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix ou cartão.`],
+            ['E se eu desistir?', 'Até 7 dias depois de assinar, o sinal volta inteiro. Depois disso, o sinal fica com a RDL, porque a vaga deixou de ser oferecida a outro morador.'],
+            ['Preciso estar lá no dia?', 'Sim, você ou alguém de confiança. A MRV precisa deixar água e luz ligadas.'],
+            ['E se a MRV mudar a data?', 'Sem problema e sem custo: combinamos a nova data conforme a agenda.'],
+            ['O que é a ART?', 'É o registro no CREA de que um engenheiro é responsável pela vistoria. Dá mais força ao laudo com a MRV.'],
+          ].map(([q, a]) => (
+            <details key={q}>
+              <summary>
+                {q} <I n="arrow" s={14} />
+              </summary>
+              <p>{a}</p>
+            </details>
+          ))}
+          <button className="rv-btn ghost wide3" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
+            <I n="help" /> Não achou a resposta? Pergunte aqui
+          </button>
+        </section>
+
+        <a className="rv-btn wide3 big" href={reservar}>
+          <I n="key" /> Reservar minha vistoria
+        </a>
+        <a className="rv-link" href={VISTORIA_PROPOSTA_URL} target="_blank" rel="noreferrer">
+          <I n="doc" /> Ver a proposta completa (PDF)
+        </a>
+      </main>
+      <Rodape />
+      <Duvidas teste={teste} abrirCom={abrirChat} />
+    </>
+  )
 }
 
 /* ================= reserva ================= */
 
 const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '', cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', torre: '', apto: '', planta: '', revistoria: false, reforma: '' }
 
-function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string; token: string } }) {
+function Reservar({ teste, comReforma }: { teste?: boolean; comReforma?: boolean }) {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
   const [n, setN] = useState(0)
   const [step, setStep] = useState<1 | 2>(1)
@@ -412,7 +674,7 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
       return vazio
     }
   })
-  const [querReforma, setQuerReforma] = useState(!!d.reforma)
+  const [querReforma, setQuerReforma] = useState(!!d.reforma || !!comReforma)
   const [tried, setTried] = useState(false)
   const [ok, setOk] = useState(false)
   const [nomeAss, setNomeAss] = useState('')
@@ -523,10 +785,10 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
           <h1>
             Reserve a <span>vistoria</span> do seu apê
           </h1>
-          <p>Um engenheiro civil confere o seu apê com você na entrega das chaves. Laudo com fotos e ART, para a MRV consertar o que estiver errado.</p>
-          <button className="rv-btn" onClick={irPara}>
-            <I n="key" /> Quero reservar
-          </button>
+          <p>Preencha os dados, leia o contrato e assine pelo celular. Leva uns 3 minutos.</p>
+          <a className="rv-back" href={teste ? '#/vistoria/teste' : '#/vistoria'}>
+            <I n="back" s={14} /> Entender a vistoria antes
+          </a>
         </section>
 
         {salvo && (
@@ -564,98 +826,6 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
           </ul>
         </section>
 
-        <section className="rv-card">
-          <h2 className="rv-h2">
-            <I n="clock" s={18} /> Por que reservar agora?
-          </h2>
-          <div className="rv-why">
-            {[
-              ['cal', 'Vagas limitadas', 'A MRV entrega todos na mesma época.'],
-              ['star', 'Escolha o horário antes', 'A agenda segue a ordem do sinal.'],
-              ['users', 'Ajuda o grupo', `Com ${cfg.minimo}, todos pagam ${brl(cfg.preco)}.`],
-              ['shield', 'Sem risco', '7 dias para desistir, com o sinal de volta.'],
-            ].map(([i, t, p]) => (
-              <div key={t}>
-                <span className="ib">
-                  <I n={i} s={17} />
-                </span>
-                <p>
-                  <b>{t}</b>
-                  {p}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rv-card">
-          <h2 className="rv-h2">
-            <I n="list" s={18} /> Como funciona
-          </h2>
-          <ol className="rv-how">
-            {[
-              ['sign', 'Reserve aqui', 'Dados e contrato pelo celular, em 3 minutos.'],
-              ['card', 'Pague o sinal', `${brl(metade)} por Pix, em até 7 dias.`],
-              ['cal', 'Combine o horário', 'Quando a MRV liberar, fale com o Rogério.'],
-              ['search', 'Dia da vistoria', 'O engenheiro confere tudo com você.'],
-              ['doc', 'Laudo + ART', 'Em até 4 dias úteis, no painel e no e-mail.'],
-            ].map(([i, t, p], k) => (
-              <li key={t}>
-                <span className="n">{k + 1}</span>
-                <span className="ib">
-                  <I n={i} s={16} />
-                </span>
-                <p>
-                  <b>{t}</b>
-                  {p}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        <section className="rv-io">
-          <div className="rv-card yes">
-            <h3>
-              <span className="ic">
-                <I n="check" s={13} />
-              </span>
-              Está incluso
-            </h3>
-            {[
-              ['search', 'Vistoria com engenheiro civil, de até 2 horas'],
-              ['shield', 'ART da vistoria registrada no CREA'],
-              ['doc', 'Laudo técnico com fotos'],
-              ['plan', 'Conferência com a planta e o memorial'],
-            ].map(([i, t]) => (
-              <p key={t}>
-                <span className="ib">
-                  <I n={i} s={13} />
-                </span>
-                {t}
-              </p>
-            ))}
-          </div>
-          <div className="rv-card no">
-            <h3>
-              <span className="ic">
-                <I n="x" s={13} />
-              </span>
-              Não está incluso
-            </h3>
-            {['Os consertos (são por conta da MRV)', 'Áreas comuns do condomínio', 'Quebrar parede, piso ou forro', 'ART de reforma (dá para pedir à parte)'].map((t) => (
-              <p key={t}>
-                <span className="ib">
-                  <I n="x" s={12} />
-                </span>
-                {t}
-              </p>
-            ))}
-          </div>
-        </section>
-        <a className="rv-link" href={VISTORIA_PROPOSTA_URL} target="_blank" rel="noreferrer">
-          <I n="doc" /> Ver a proposta completa (PDF)
-        </a>
 
         {!cfg.aberta && !teste ? (
           <section className="rv-card rv-closed">
@@ -887,35 +1057,9 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
           </section>
         )}
 
-        <section className="rv-card rv-faq">
-          <h2 className="rv-h2">
-            <I n="info" s={18} /> Dúvidas comuns
-          </h2>
-          {[
-            ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
-            ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
-            ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
-            ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix ou cartão.`],
-            ['E se eu desistir?', 'Até 7 dias depois de assinar, o sinal volta inteiro. Depois disso, o sinal fica com a RDL, porque a vaga deixou de ser oferecida a outro morador.'],
-            ['Preciso estar lá no dia?', 'Sim, você ou alguém de confiança. A MRV precisa deixar água e luz ligadas.'],
-            ['E se a MRV mudar a data?', 'Sem problema e sem custo: combinamos a nova data conforme a agenda.'],
-            ['O que é a ART?', 'É o registro no CREA de que um engenheiro é responsável pela vistoria. Dá mais força ao laudo com a MRV.'],
-          ].map(([q, a]) => (
-            <details key={q}>
-              <summary>
-                {q} <I n="arrow" s={14} />
-              </summary>
-              <p>{a}</p>
-            </details>
-          ))}
-          <button className="rv-btn ghost wide3" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
-            <I n="help" /> Não achou a resposta? Pergunte aqui
-          </button>
-        </section>
-        <Loja />
       </main>
       <Rodape />
-      <Duvidas teste={teste} abrirCom={abrirChat} />
+      <Duvidas teste={teste} />
     </>
   )
 }
@@ -1063,7 +1207,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
         body: (
           <>
             <p>{s.expirada ? 'O sinal não foi pago em 7 dias, então a reserva foi cancelada sozinha, sem custo.' : 'Se tiver alguma dúvida, fale com o Rogério.'}</p>
-            <a className="rv-btn small" href="#/vistoria">
+            <a className="rv-btn small" href="#/vistoria/reservar">
               <I n="key" /> Reservar de novo
             </a>
           </>
