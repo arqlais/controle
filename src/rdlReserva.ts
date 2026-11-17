@@ -252,8 +252,10 @@ ${n(4)}.3 Sem o pagamento da primeira parte nesse prazo, esta contratação é c
 ${n(5)}. PRAZO
 ${n(5)}.1 A ART e o plano de reforma são entregues em até 5 (cinco) dias úteis depois do pagamento da primeira parte e do envio, pelo(a) CONTRATANTE, das informações da obra: o que vai ser feito, quem vai executar, as datas previstas e as regras do condomínio.
 
-${n(6)}. MUDANÇA DO QUE VAI SER FEITO
-${n(6)}.1 Serviço que não estiver neste contrato precisa ser combinado antes e pode exigir nova ART, cobrada à parte.
+${n(6)}. INFORMAÇÕES VERDADEIRAS E MUDANÇA DO QUE VAI SER FEITO
+${n(6)}.1 O(A) CONTRATANTE declara que informou, de forma completa e verdadeira, todos os serviços que pretende executar. A ART é registrada em nome do responsável técnico da CONTRATADA e cobre somente os serviços listados neste contrato e no plano de reforma.
+${n(6)}.2 Serviço omitido ou executado fora do plano não tem responsabilidade técnica da CONTRATADA, que pode dar baixa na ART e informar o condomínio; as consequências (multas, embargo da obra, danos e reparos) ficam por conta do(a) CONTRATANTE e de quem executou.
+${n(6)}.3 Serviço que não estiver neste contrato precisa ser combinado antes e pode exigir nova ART, cobrada à parte.
 
 ${n(7)}. DESISTÊNCIA
 ${n(7)}.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral do que pagou, se a ART ainda não tiver sido registrada (art. 49 do Código de Defesa do Consumidor).
@@ -423,6 +425,7 @@ export const TERMO_REFORMA = [
   'A obra é feita pelo prestador que eu contratar (pedreiro, marceneiro, empresa), que responde pela qualidade do serviço, pelos materiais, pela segurança dos trabalhadores e por danos ao meu apê, aos vizinhos e às áreas comuns.',
   'Vou passar o plano de reforma ao meu prestador e garantir que ele siga o plano, o manual do proprietário da MRV e as regras do condomínio (horários, entrada de material, retirada de entulho).',
   'Sei que as paredes do San Levi são de concreto e estruturais: não vou derrubar, cortar, rasgar ou fazer furos fora do que o plano e o manual permitem, nem mexer em colunas de água, esgoto, gás ou na fachada.',
+  'Informei com sinceridade tudo o que vou fazer no apê. A ART fica no nome do Rogério e cobre só os serviços que pedi e que estão no plano: o que eu não informei não tem responsável técnico e fica por minha conta.',
   'Qualquer serviço que não esteja no plano precisa ser combinado antes com a RDL. Mudou o que vai ser feito, pode ser preciso uma ART nova.',
   'Vou avisar a RDL quando a obra começar e terminar e mandar fotos quando ela pedir.',
   'Se a obra for feita diferente do plano, sem aviso, a RDL pode dar baixa na ART e avisar o condomínio, e não responde pelo que foi feito fora do plano.',

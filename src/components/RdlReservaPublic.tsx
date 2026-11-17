@@ -442,6 +442,12 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
       <p className="rv-label">
         O que você vai fazer? <small>Marque tudo o que pretende. O valor muda na hora.</small>
       </p>
+      <p className="rv-alert rv-honesto">
+        <I n="shield" s={15} />
+        <span>
+          <b>Seja transparente.</b> A ART fica no nome do engenheiro e cobre só o que você marcar aqui. Serviço que ficar de fora não tem responsável técnico: o condomínio pode multar ou embargar a obra.
+        </span>
+      </p>
       <div className="rv-calc-list">
         {REFORMA_ITENS.map((i) => {
           const on = itens.includes(i.id)

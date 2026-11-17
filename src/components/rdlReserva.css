@@ -3368,3 +3368,6 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 .rv-offers .rv-offer:not(.plain) .rv-offer-price strong em { font-size: 13px; font-style: normal; font-weight: 500; opacity: 0.85; }
 .rv-offers .rv-offer:not(.plain) .rv-offer-price span { font-size: 13px; opacity: 0.85; }
 .rv-trust > span { padding: 7px 4px; font-size: 11px; }
+.rv-alert.rv-honesto { background: #fff4ea; color: #7a3d06; margin: 6px 0 10px; font-size: 13px; line-height: 1.45; }
+.rv-alert.rv-honesto .rv-i { color: var(--or); }
+.rv-alert.rv-honesto b { color: #7a3d06; }
