@@ -13,7 +13,9 @@ jobs:
         run: |
           URL="${SUPABASE_URL:-https://lbggvjebkhdcybpkxzxs.supabase.co}"
           REF=$(echo "$URL" | sed -E 's#^https?://([^.]+)\..*#\1#')
-          KEY=$(curl -sS "https://api.supabase.com/v1/projects/$REF/api-keys" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" | jq -r '.[] | select(.name=="service_role") | .api_key')
+          curl -sS "https://api.supabase.com/v1/projects/$REF/api-keys?reveal=true" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" > keys.json
+          jq -c 'if type=="array" then map({name, type}) else . end' keys.json
+          KEY=$(jq -r 'if type=="array" then (map(select(.name=="service_role" or .type=="secret")) | .[0].api_key // "") else "" end' keys.json)
           [ -n "$KEY" ] || { echo "::error::sem a chave de serviço"; exit 1; }
           echo "::add-mask::$KEY"
           curl -sS -X POST "$URL/functions/v1/avisos" -H "Authorization: Bearer $KEY" -H "apikey: $KEY" -H 'Content-Type: application/json' -d '{"tipo":"rdl-pix"}' | tee out.json
