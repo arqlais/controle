@@ -443,10 +443,10 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
 function Mockups() {
   const [tab, setTab] = useState<'laudo' | 'painel' | 'art'>('laudo')
   const itens: [string, string, string][] = [
-    ['Banheiro', 'Ralo sem caimento: água empoça perto do box', 'drop'],
-    ['Sala', 'Contrapiso com desnível de 6 mm', 'plan'],
-    ['Cozinha', 'Tomada da bancada sem energia', 'bolt'],
-    ['Quarto 1', 'Porta raspando no batente', 'home'],
+    ['Banheiro', 'Ralo sem caimento: água empoça perto do box', 'banheiro-piso'],
+    ['Sala', 'Piso com desnível de 6 mm perto da janela', 'sala-piso'],
+    ['Cozinha', 'Tomada da bancada sem energia', 'cozinha-bancada'],
+    ['Quarto 1', 'Porta raspando no batente', 'quarto-portas'],
   ]
   return (
     <section className="rv-card rv-mock">
@@ -479,8 +479,8 @@ function Mockups() {
             {itens.map(([amb, txt, ic], k) => (
               <div key={k} className="rv-paper-item">
                 <span className="ph">
-                  <I n={ic} s={16} />
-                  <em>foto {k + 1}</em>
+                  <img src={`rdl/fotos/${ic}.jpg`} alt="" loading="lazy" />
+                  <em>{k + 1}</em>
                 </span>
                 <span>
                   <b>

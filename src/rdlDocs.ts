@@ -69,13 +69,30 @@ const QUADRO_ICON = (q: string) => (/elétric/i.test(q) ? 'bolt' : /porta|janela
 
 /* ---------- ilustrações das capas: as dos modelos da Laís, nas cores da RDL (public/rdl) ---------- */
 const asset = (name: string) => (typeof location === 'undefined' ? `rdl/${name}` : `${location.origin}${location.pathname.replace(/[^/]*$/, '')}rdl/${name}`)
-const ART_CHECKLIST = () => `<img class="art" src="${asset('capa-checklist.png')}" alt="">`
-const ART_LAUDO = () => `<img class="art" src="${asset('capa-laudo.png')}" alt="">`
+const ART_CHECKLIST = () => `<img class="photo" src="${asset('fotos/capa-cozinha.jpg')}" alt="">`
+const ART_LAUDO = () => `<img class="photo" src="${asset('fotos/capa-sala.jpg')}" alt="">`
+/** Foto de referência de cada quadro do checklist (fotos reais de apartamento novo, dos modelos da Laís). */
+const AMB_SLUG: Record<string, string> = { Cozinha: 'cozinha', Lavanderia: 'lavanderia', Sala: 'sala', 'Sacada / Varanda': 'sacada', Quarto: 'quarto', Corredor: 'corredor', Banheiro: 'banheiro', Garagem: 'garagem' }
+const fotoQuadro = (amb: string, q: string) => {
+  const a = AMB_SLUG[amb]
+  const k = /bancada/i.test(q) ? 'bancada' : /piso/i.test(q) ? 'piso' : /elétric/i.test(q) ? 'eletrica' : /porta/i.test(q) ? 'portas' : /tanque/i.test(q) ? 'tanque' : /gás/i.test(q) ? 'gas' : /churras/i.test(q) ? 'churrasqueira' : /guarda/i.test(q) ? 'guarda' : /vaso/i.test(q) ? 'vaso' : /vaga/i.test(q) ? 'vaga' : ''
+  return a && k ? asset(`fotos/${a}-${k}.jpg`) : ''
+}
+/** Itens gerais do apartamento (entrega, medidores, medidas): entram antes dos ambientes, para não passar nada. */
+const GERAL = {
+  ambiente: 'Geral do apartamento',
+  quadros: [
+    { nome: 'Documentos e chaves', itens: ['Recebeu o manual do proprietário (uso, operação e manutenção)?', 'Recebeu as plantas e o memorial descritivo?', 'A quantidade de chaves confere com a informada?', 'As chaves abrem e trancam todas as fechaduras?', 'Recebeu controles, tags ou cartões de acesso?', 'O termo da construtora está com os dados certos (nome, torre, apto)?'] },
+    { nome: 'Medidores e instalações gerais', itens: ['O hidrômetro está instalado? Anote a leitura.', 'O medidor de energia está instalado? Anote a leitura.', 'O medidor de gás está instalado? Anote a leitura.', 'O quadro de luz tem disjuntor geral e DR?', 'Os circuitos do quadro estão identificados?', 'Ao desligar o disjuntor geral, tudo desliga?', 'O registro geral de água abre e fecha?', 'Com o registro geral fechado, a água para em todos os pontos?', 'A pressão da água é boa com duas torneiras abertas?', 'O ponto de aquecimento de água está conforme o memorial?', 'O interfone fala com a portaria?', 'A campainha funciona?'] },
+    { nome: 'Medidas e conformidade com a planta', itens: ['As medidas dos ambientes conferem com a planta?', 'O pé-direito confere com o memorial?', 'As portas têm a largura prevista?', 'As paredes estão no prumo, sem barriga aparente?', 'Os cantos estão no esquadro?', 'Não há degrau entre ambientes que não estava previsto?', 'Os acabamentos conferem com o memorial descritivo?', 'Tomadas, pontos de luz e de água estão onde a planta mostra?'] },
+    { nome: 'Entrada e hall do andar', itens: ['A porta de entrada está sem amassados, riscos ou empeno?', 'O olho mágico e a fechadura estão em perfeito estado?', 'O número do apartamento está identificado?', 'O hall do andar está sem danos perto da porta?', 'A caixa de correio está identificada?'] },
+  ],
+}
 
 /* ---------- estilo comum ---------- */
 export const RDL_CSS = `
 @page{size:A4;margin:0}
-:root{--bg:#FAF8F4;--card:#fff;--soft:#F1F2F6;--line:#E6E4DE;--navy:#012C60;--navy2:#1F4A85;--or:#FF8216;--orl:#FFF1E4;--mut:#7A7F92;--txt:#46506A}
+:root{--bg:#fff;--card:#fff;--soft:#F4F6F9;--line:#E3E6EC;--navy:#012C60;--navy2:#1F4A85;--or:#FF8216;--orl:#FFF1E4;--mut:#7A7F92;--txt:#46506A}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#d9dce3}
 body{font-family:Poppins,'Segoe UI',Arial,sans-serif;color:var(--navy);font-size:8pt;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -126,14 +143,18 @@ const f = (label: string, value = '') => `<div class="fld"><b>${esc(label)}</b><
 
 const EXTRA_CSS = `
 /* checklist */
-.ck-cover{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1}
-.ck-cover .logo{height:20mm;margin-top:4mm}
-.ck-cover .art{max-width:150mm;margin-top:7mm}
-.ck-cover .kick{margin-top:8mm;font-size:7pt;letter-spacing:3px;color:var(--or);font-weight:600}
+.ck-cover{display:flex;flex-direction:column;flex:1}
+.photo{width:100%;height:118mm;object-fit:cover;border-radius:18px;display:block;margin-top:7mm}
+.ck-cover .logo{height:15mm;width:auto;align-self:flex-start}
+
+.ck-cover .kick{margin-top:7mm;font-size:7pt;letter-spacing:3px;color:var(--or);font-weight:600}
 .ck-cover h1{font-size:30pt;font-weight:700;letter-spacing:-1px;line-height:1.05;margin-top:2mm}
 .ck-cover h1 span{color:var(--or)}
-.ck-cover .sub{margin-top:3mm;color:var(--txt);font-size:8.6pt;max-width:130mm}
+.ck-cover .sub{margin-top:3mm;color:var(--txt);font-size:8.6pt;max-width:150mm}
 .ck-cover .who{margin-top:auto;margin-bottom:6mm;width:100%;text-align:left}
+.q.wp{display:grid;grid-template-columns:30mm 1fr;gap:0 4mm}
+.q.wp .qimg{grid-row:span 3;width:30mm;height:30mm;object-fit:cover;border-radius:9px;display:block}
+.q.wp .qcol{min-width:0}
 .kit{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}
 .kit .box{padding:7px 9px}
 .kit .qh{font-size:8pt}
@@ -247,7 +268,7 @@ const ROW_MM = 5.15
 const QUADRO_MM = 22
 const PAGE_MM = 236
 
-function quadroHtml(room: string, q: { nome: string; itens: string[] }, d: ChecklistData) {
+function quadroHtml(room: string, amb: string, q: { nome: string; itens: string[] }, d: ChecklistData) {
   let sim = 0
   let nao = 0
   const rows = q.itens
@@ -260,27 +281,31 @@ function quadroHtml(room: string, q: { nome: string; itens: string[] }, d: Check
     .join('')
   const answered = sim + nao === q.itens.length && q.itens.length > 0
   const ok = answered ? nao === 0 : undefined
-  return `<div class="box q"><div class="qh"><span class="ib">${ico(QUADRO_ICON(q.nome))}</span>${esc(q.nome)}</div>
+  const ft = fotoQuadro(amb, q.nome)
+  const body = `<div class="qh"><span class="ib">${ico(QUADRO_ICON(q.nome))}</span>${esc(q.nome)}<span style="margin-left:auto;font-size:6pt;color:var(--mut);font-weight:500">${q.itens.length} itens</span></div>
 <table><thead><tr><th style="text-align:left;width:auto"></th><th>SIM</th><th>NÃO</th></tr></thead><tbody>${rows}</tbody></table>
-<div class="qf">${f('Observações')}<span class="ap">Aprovado? <span class="yn"><i class="s ${ok === true ? 'on' : ''}">SIM</i><i class="n ${ok === false ? 'on' : ''}">NÃO</i></span></span></div></div>`
+<div class="qf">${f('Observações')}<span class="ap">Aprovado? <span class="yn"><i class="s ${ok === true ? 'on' : ''}">SIM</i><i class="n ${ok === false ? 'on' : ''}">NÃO</i></span></span></div>`
+  return ft ? `<div class="box q wp"><img class="qimg" src="${ft}" alt=""><div class="qcol">${body}</div></div>` : `<div class="box q">${body}</div>`
 }
 
 export function checklistHtml(d: ChecklistData = {}): string {
-  const all = VISTORIA_CHECKLIST
-  const rooms = d.rooms?.length ? d.rooms : all.map((a) => a.ambiente)
+  const all = [GERAL, ...VISTORIA_CHECKLIST]
+  const rooms = [GERAL.ambiente, ...(d.rooms?.length ? d.rooms : VISTORIA_CHECKLIST.map((a) => a.ambiente))]
   const pages: string[] = []
   const blank = !d.answer
   let n = 1
   // capa
+  const total = rooms.reduce((n2, r) => n2 + (all.find((x) => x.ambiente === r.replace(/\s+\d+$/, '') || r.startsWith(x.ambiente))?.quadros.reduce((m, q) => m + q.itens.length, 0) ?? 0), 0)
   pages.push(`<div class="page"><div class="ck-cover"><img class="logo" src="${RDL_LOGO}" alt="RDL">${ART_CHECKLIST()}
 <div class="kick">CHECKLIST DE VISTORIA</div><h1>Vistoria de <span>entrega de chaves</span></h1>
-<p class="sub">Conferência do apartamento novo, ambiente por ambiente, antes de assinar o recebimento com a construtora.</p>
+<p class="sub">Conferência completa do apartamento novo, item por item e ambiente por ambiente, antes de assinar o recebimento com a construtora.</p>
+<div class="chips" style="margin-top:4mm">${[['list', `${total} itens verificados`], ['building', `${rooms.length} ambientes e itens gerais`], ['camera', 'foto de referência em cada quadro'], ['shield', 'engenheiro com ART no CREA-SP']].map(([i, t]) => `<span class="chip">${ico(i)}${t}</span>`).join('')}</div>
 <div class="who box"><div class="grid2">${f('Feito por', d.by || RDL.name)}${f('Data', dateBR(d.date))}${f('Proprietário(a)', d.owner)}${f('Unidade (torre e apto)', d.unit)}</div></div></div>${foot('Checklist de vistoria')}</div>`)
   // como usar
   if (blank)
     pages.push(`<div class="page">${head('CHECKLIST DE VISTORIA', 'Como usar', 'list')}
-<div class="box" style="margin-top:5mm"><h3><i></i>Monte o seu kit</h3><p style="font-size:7pt;color:var(--txt);margin-bottom:3mm">Conte quantos ambientes de cada tipo o apartamento tem e anote em “Quantos?”. Imprima as folhas de cada tipo uma vez por ambiente. A capa e o resumo vão sempre, uma vez só.</p>
-<div class="kit">${all.map((a) => `<div class="box"><div class="qh"><span class="ib">${ico(AMB_ICON[a.ambiente] ?? 'building')}</span>${esc(a.ambiente)}</div><small>${a.quadros.reduce((s, q) => s + q.itens.length, 0)} itens</small>${f('Quantos?')}</div>`).join('')}</div>
+<div class="box" style="margin-top:5mm"><h3><i></i>Monte o seu kit</h3><p style="font-size:7pt;color:var(--txt);margin-bottom:3mm">Conte quantos ambientes de cada tipo o apartamento tem e anote em “Quantos?”. Imprima as folhas de cada tipo uma vez por ambiente. A capa, os itens gerais e o resumo vão sempre, uma vez só.</p>
+<div class="kit">${VISTORIA_CHECKLIST.map((a) => `<div class="box"><div class="qh"><span class="ib">${ico(AMB_ICON[a.ambiente] ?? 'building')}</span>${esc(a.ambiente)}</div><small>${a.quadros.reduce((s, q) => s + q.itens.length, 0)} itens</small>${f('Quantos?')}</div>`).join('')}</div>
 <p style="font-size:6.6pt;color:var(--mut);margin-top:3mm">Tem lavabo, closet ou escritório? Use a folha mais parecida (lavabo: banheiro; closet e escritório: quarto) e escreva o nome em “Nome do ambiente”. Item que o ambiente não tem: risque a linha.</p></div>
 <div class="box" style="margin-top:4mm"><h3><i></i>Como fazer a vistoria</h3><div class="chips" style="margin-bottom:3mm"><span class="chip">${ico('drop')}Água ligada</span><span class="chip">${ico('bolt')}Energia ligada</span><span class="chip">${ico('clock')}De 45 min a 2 h</span><span class="chip">${ico('user')}Com o responsável da construtora</span></div>
 <div class="how">${[
@@ -305,7 +330,7 @@ ${foot('Checklist de vistoria · como usar', ++n)}</div>`)
         chunks.push([])
         used = 0
       }
-      chunks[chunks.length - 1].push(quadroHtml(room, q, d))
+      chunks[chunks.length - 1].push(quadroHtml(room, a.ambiente, q, d))
       used += h
     }
     // anotações no espaço que sobra da última folha
@@ -417,8 +442,7 @@ const LAUDO_CSS = `
 .lc-top{display:flex;justify-content:space-between;align-items:center}
 .lc-top img{height:15mm}
 .lc-top .tag{font-size:6.4pt;letter-spacing:2px;font-weight:600;color:var(--navy);background:var(--soft);border-radius:7px;padding:4px 10px}
-.lc-art{margin-top:6mm;border-radius:22px;overflow:hidden}
-.lc-art img{width:100%;display:block}
+.lc-art .photo{height:112mm}
 .lc-k{margin-top:8mm;font-size:7pt;letter-spacing:3px;color:var(--or);font-weight:600}
 .lc h1{font-size:31pt;font-weight:700;letter-spacing:-1.2px;line-height:1.02;margin-top:2mm}
 .lc h1 span{color:var(--or)}
