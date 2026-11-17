@@ -3298,3 +3298,12 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 @media (max-width: 420px) { .rv-signgo .rv-btn.ghost span.rv-voltar-t { display: none; } }
 .rv-aa { font-family: 'Dancing Script', cursive; font-size: 16px; line-height: 1; }
 .rv-link.rv-center { align-self: center; margin: 2px auto 0; }
+/* voltar do próprio site */
+.rv-top.has-back { position: relative; }
+.rv-topback { position: absolute; left: max(12px, env(safe-area-inset-left)); top: 22px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e1e4ea; background: #fff; color: var(--navy); border-radius: 999px; padding: 8px 14px 8px 10px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 4px rgba(1, 44, 96, 0.08); }
+@media (max-width: 420px) { .rv-topback { top: 50%; transform: translateY(-30%); padding: 7px 11px 7px 8px; font-size: 13px; } .rv-top.has-back img { height: 44px; } }
+/* problemas comuns: dois por linha, sem fileira comprida */
+.rv-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+@media (min-width: 720px) { .rv-chips { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.rv-chips > span { border-radius: 10px; padding: 7px 9px; min-width: 0; }
+.rv-chips > span > span { background: none; padding: 0; border-radius: 0; display: inline; color: inherit; font-size: inherit; line-height: 1.25; }

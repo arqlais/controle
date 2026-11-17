@@ -402,7 +402,6 @@ export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: numb
   { id: 'bancada', nome: 'Bancada de pedra', desc: 'Cozinha, banheiro ou área de serviço', mais: 30 },
   { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 40 },
   { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Pelo forro ou por canaleta, sem rasgar parede', mais: 40 },
-  { id: 'ar', nome: 'Ar-condicionado', desc: 'Instalação conforme as regras do condomínio', mais: 40 },
   { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 20 },
   { id: 'pintura', nome: 'Pintura', desc: 'Cor nova nas paredes e no teto', mais: 0 },
 ]

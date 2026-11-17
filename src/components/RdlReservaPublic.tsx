@@ -122,12 +122,21 @@ const prazoSinal = (r: Reserva, dias: number) => {
   return { fim: fim.toLocaleDateString('pt-BR'), faltam }
 }
 
-function Topo() {
+function Topo({ voltar }: { voltar?: { label: string; acao: () => void } }) {
   return (
-    <header className="rv-top">
+    <header className={`rv-top ${voltar ? 'has-back' : ''}`}>
+      {voltar && (
+        <button type="button" className="rv-topback" onClick={voltar.acao}>
+          <I n="back" s={16} /> <span>{voltar.label}</span>
+        </button>
+      )}
       <img src={RDL_LOGO} alt="RDL Engenharia" />
     </header>
   )
+}
+const irInicio = (teste?: boolean) => {
+  location.hash = teste ? '#/vistoria/teste' : '#/vistoria'
+  window.scrollTo(0, 0)
 }
 function Rodape() {
   return (
@@ -1129,14 +1138,25 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       setBusy(false)
     }
   }
+  // cada etapa entra no histórico: o voltar do site e o do celular voltam uma etapa
   const ir = (k: 1 | 2 | 3) => {
+    if (k < step && (history.state as { rvStep?: number } | null)?.rvStep === step) return history.go(k - step)
+    if (k > step) history.pushState({ ...(history.state ?? {}), rvStep: k }, '')
     setStep(k)
     setTimeout(irPara, 30)
   }
+  useEffect(() => {
+    const pop = (e: PopStateEvent) => {
+      setStep(((e.state as { rvStep?: number } | null)?.rvStep ?? 1) as 1 | 2 | 3)
+      setTimeout(irPara, 30)
+    }
+    addEventListener('popstate', pop)
+    return () => removeEventListener('popstate', pop)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
-      <Topo />
+      <Topo voltar={step > 1 ? { label: 'Voltar', acao: () => ir((step - 1) as 1 | 2) } : { label: 'Início', acao: () => irInicio(teste) }} />
       {teste && <Teste />}
       <main className="rv-main rv-wide">
         <section className="rv-hero">
@@ -1147,9 +1167,6 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
             Contrate <span>pelo celular</span>
           </h1>
           <p>Escolha o que você quer, preencha os dados e assine. Leva uns 3 minutos.</p>
-          <a className="rv-back" href={teste ? '#/vistoria/teste' : '#/vistoria'}>
-            <I n="back" s={14} /> Entender a vistoria e a ART de reforma
-          </a>
         </section>
 
         {salvo && (
@@ -2067,7 +2084,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
 
   return (
     <>
-      <Topo />
+      <Topo voltar={{ label: 'Início', acao: () => irInicio(teste) }} />
       {teste && (
         <Teste>
           <div className="rv-test-tabs">
