@@ -1301,3 +1301,300 @@ html.rv-root body {
   width: 100%;
   margin-top: 2px;
 }
+.rv-fab {
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  border-radius: 999px;
+  background: var(--navy);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 24px -8px rgba(1, 44, 96, 0.55);
+  cursor: pointer;
+}
+.rv-fab .rv-i {
+  color: var(--or);
+}
+.rv-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(1, 20, 45, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.rv-sheet {
+  background: #fff;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 20px 20px 0 0;
+  padding: 22px 18px calc(20px + env(safe-area-inset-bottom));
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+@media (min-width: 600px) {
+  .rv-modal {
+    align-items: center;
+  }
+  .rv-sheet {
+    border-radius: 20px;
+  }
+}
+.rv-sheet h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+}
+.rv-sheet h3 .rv-i {
+  color: var(--or);
+}
+.rv-sheet .rv-hint {
+  margin: 0;
+}
+.rv-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  border: none;
+  background: var(--soft);
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  color: var(--navy);
+  cursor: pointer;
+}
+.rv-okicon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--navy);
+  color: #fff;
+  display: inline-grid;
+  place-items: center;
+  margin: 6px 0 4px;
+}
+.rv-sheet .center h3 {
+  justify-content: center;
+}
+.rv-sheet .rv-link {
+  margin-top: 4px;
+}
+.rv-btn.wide3 {
+  width: 100%;
+}
+.rv-shop {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  text-decoration: none;
+  color: var(--txt);
+}
+.rv-shop .ib {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--soft);
+  color: var(--navy);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.rv-shop small {
+  display: block;
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  color: var(--mut);
+  font-weight: 600;
+}
+.rv-shop b {
+  display: block;
+  color: var(--navy);
+  font-size: 15px;
+  margin: 2px 0 4px;
+}
+.rv-shop span span {
+  display: block;
+  font-size: 13px;
+}
+.rv-shop em {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-style: normal;
+  color: var(--or);
+  font-weight: 600;
+  font-size: 13px;
+  margin-top: 8px;
+}
+.rv-main {
+  padding-bottom: 80px;
+}
+/* mais leve no celular: "por que reservar" em quadros 2 × 2 */
+.rv-why {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rv-why > div {
+  flex-direction: column;
+  gap: 8px;
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 12px;
+}
+.rv-why b {
+  font-size: 14px;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+.rv-why p {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.rv-why .ib {
+  background: #fff;
+}
+.rv-how p {
+  font-size: 13px;
+}
+.rv-price li {
+  align-items: center;
+}
+.rv-price li .rv-i {
+  margin-top: 0;
+}
+.rv h1,
+.rv h2,
+.rv h3,
+.rv b {
+  text-wrap: balance;
+}
+.rv p {
+  text-wrap: pretty;
+}
+/* chat de dúvidas */
+.rv-chat {
+  padding: 0;
+  gap: 0;
+  height: min(640px, 88vh);
+}
+.rv-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.rv-chat-head img {
+  height: 26px;
+}
+.rv-chat-head div {
+  flex: 1;
+  min-width: 0;
+}
+.rv-chat-head b {
+  display: block;
+  font-size: 15px;
+}
+.rv-chat-head small {
+  display: block;
+  color: var(--mut);
+  font-size: 12px;
+}
+.rv-chat-head .rv-close {
+  position: static;
+}
+.rv-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #faf8f4;
+}
+.rv-bub {
+  max-width: 82%;
+  padding: 10px 13px;
+  border-radius: 16px 16px 16px 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.rv-bub.me {
+  align-self: flex-end;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 16px 16px 4px 16px;
+}
+.rv-bub small {
+  display: block;
+  font-size: 10.5px;
+  opacity: 0.6;
+  margin-top: 3px;
+  text-align: right;
+}
+.rv-chat-note {
+  font-size: 12px;
+  color: var(--mut);
+  text-align: center;
+  margin: 4px 0 0;
+}
+.rv-chat-who {
+  display: grid;
+  gap: 8px;
+  padding: 10px 16px 0;
+}
+.rv-chat-who input,
+.rv-chat-send textarea {
+  font: inherit;
+  font-size: 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--navy);
+  width: 100%;
+}
+.rv-chat .rv-warn {
+  margin: 8px 16px 0;
+}
+.rv-chat-send {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
+}
+.rv-chat-send textarea {
+  resize: none;
+  max-height: 120px;
+}
+.rv-chat-send .rv-btn {
+  margin: 0;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  flex: none;
+}

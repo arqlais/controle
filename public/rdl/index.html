@@ -6,9 +6,10 @@
 <meta name="robots" content="noindex">
 <title>RDL Engenharia</title>
 <script>
-  // abre o sistema da RDL (área restrita): marca o modo nesta aba e vai para o sistema
+  // abre o sistema da RDL (área restrita): marca o modo nesta aba e vai para o sistema (useplane.com.br/rdl/#reservas abre direto as vistorias)
   try { sessionStorage.setItem('modo-rdl', '1'); localStorage.setItem('modo-rdl', '1') } catch (e) {}
-  location.replace('../#/inicio')
+  var h = location.hash.replace(/^#\/?/, '')
+  location.replace('../#/' + (h || 'inicio'))
 </script>
 </head>
 <body></body>

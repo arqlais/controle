@@ -271,6 +271,68 @@ export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo'
   }
 }
 
+/* ---------- chat de dúvidas ---------- */
+export interface ChatMsg {
+  id: number
+  autor: 'morador' | 'rdl'
+  texto: string
+  criado: string
+}
+export interface Conversa {
+  id: string
+  token: string
+  nome: string
+  contato: string
+  reserva: string | null
+  criado: string
+  atualizado: string
+  lida_rdl: string | null
+}
+export async function chatAbrir(nome: string, contato: string, reserva?: { id: string; token: string }): Promise<{ id: string; token: string } | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('rdl_chat_abrir', { p_nome: nome, p_contato: contato, p_reserva: reserva?.id ?? null, p_token_reserva: reserva?.token ?? null })
+  return error ? null : (data as { id: string; token: string })
+}
+export async function chatEnviar(c: { id: string; token: string }, texto: string): Promise<boolean> {
+  if (!supabase) return false
+  const { data, error } = await supabase.rpc('rdl_chat_enviar', { p_conversa: c.id, p_token: c.token, p_texto: texto })
+  if (error || !data) return false
+  void supabase.functions.invoke('avisos', { body: { tipo: 'rdl-chat', evento: 'morador', conversa: c.id, token: c.token } }).catch(() => undefined)
+  return true
+}
+export async function chatLer(c: { id: string; token: string }): Promise<ChatMsg[] | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('rdl_chat_ler', { p_conversa: c.id, p_token: c.token })
+  return error || !data ? null : (data as ChatMsg[])
+}
+/* lado da RDL (logada) */
+export async function listarConversas(): Promise<(Conversa & { ultima?: ChatMsg; naoLidas: number })[]> {
+  if (!supabase) return []
+  const [{ data: cs }, { data: ms }] = await Promise.all([supabase.from('rdl_conversas').select('*').order('atualizado', { ascending: false }), supabase.from('rdl_mensagens').select('*').order('criado', { ascending: true })])
+  const msgs = (ms ?? []) as (ChatMsg & { conversa: string })[]
+  return ((cs ?? []) as Conversa[]).map((c) => {
+    const mine = msgs.filter((m) => m.conversa === c.id)
+    return { ...c, ultima: mine[mine.length - 1], naoLidas: mine.filter((m) => m.autor === 'morador' && (!c.lida_rdl || m.criado > c.lida_rdl)).length }
+  })
+}
+export async function mensagensDe(conversa: string): Promise<ChatMsg[]> {
+  if (!supabase) return []
+  const { data } = await supabase.from('rdl_mensagens').select('*').eq('conversa', conversa).order('criado', { ascending: true })
+  return (data ?? []) as ChatMsg[]
+}
+export async function responderChat(conversa: string, texto: string): Promise<boolean> {
+  if (!supabase) return false
+  const { error } = await supabase.from('rdl_mensagens').insert({ conversa, autor: 'rdl', texto })
+  if (error) return false
+  await supabase.from('rdl_conversas').update({ atualizado: new Date().toISOString(), lida_rdl: new Date().toISOString() }).eq('id', conversa)
+  void supabase.functions.invoke('avisos', { body: { tipo: 'rdl-chat', evento: 'rdl', conversa } }).catch(() => undefined)
+  return true
+}
+export async function marcarLida(conversa: string) {
+  if (!supabase) return
+  await supabase.from('rdl_conversas').update({ lida_rdl: new Date().toISOString() }).eq('id', conversa)
+}
+
 /* ---------- links ---------- */
 const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistoria)\/?$/, '/')}`
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`

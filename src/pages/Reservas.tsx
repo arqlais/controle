@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, Section } from '../components/ui'
@@ -18,6 +18,12 @@ import {
   linkPainel,
   linkReserva,
   linkPainelBase,
+  listarConversas,
+  marcarLida,
+  mensagensDe,
+  responderChat,
+  type ChatMsg,
+  type Conversa,
   listarReservas,
   mensagens,
   salvarConfig,
@@ -30,6 +36,13 @@ import {
 /* Vistorias da RDL: as reservas que chegam pelo link (useplane.com.br/vistoria) aparecem aqui sozinhas,
    com os dados do morador e o contrato assinado. Daqui a RDL confirma o sinal, marca a data, manda o laudo
    e as mensagens de cada etapa. Cada reserva vira também cliente (e ART a emitir, quando o sinal entra). */
+
+/** ART de reforma: pontos de partida (apês de 38 a 40 m², paredes estruturais: nada de demolir ou abrir parede).
+ *  valor = quem não fez a vistoria com a RDL · combo = quem fez (é o caso de todos daqui). Taxa do CREA já inclusa. */
+const REFORMA_PRESETS = [
+  { nome: 'ART + plano de reforma', valor: 300, combo: 270, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280), para serviços sem mexer na estrutura (as paredes são estruturais): colocação de piso na sala e nos quartos (entregues no contrapiso), revestimentos, armários e marcenaria, pintura, louças e metais, gesso e iluminação.' },
+  { nome: 'só a ART', valor: 250, combo: 230, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica e ART de execução da reforma registrada no CREA, para serviços sem mexer na estrutura (as paredes são estruturais): piso na sala e nos quartos, armários, pintura, louças e metais. O plano de reforma do condomínio fica com o morador ou com quem executa a obra.' },
+]
 
 type Filtro = 'todas' | 'sinal' | 'agendar' | 'agendadas' | 'laudo' | 'canceladas'
 const FILTROS: [Filtro, string][] = [
@@ -194,6 +207,8 @@ export default function Reservas() {
           <p className="muted small">O morador preenche os dados (endereço pelo CEP), torre e apto, lê o contrato com os dados dele e assina. A reserva aparece aqui na hora, com o painel dele pronto, e cada etapa vai também por e-mail para ele. {cfg.aberta ? '' : 'As reservas estão fechadas (valores e Pix).'}</p>
         </div>
       </Section>
+
+      <Conversas reservas={list ?? []} />
 
       <div className="art-stats">
         <div className="art-stat card">
@@ -474,6 +489,14 @@ function Detalhe({
             </>
           ) : (
             <>
+              <div className="row gap-s wrap">
+                <span className="muted small">sugestões (dá para editar):</span>
+                {REFORMA_PRESETS.map((x) => (
+                  <button key={x.nome} className="chip" onClick={() => (setRfEscopo(x.escopo), setRfValor(String(x.combo)), setRfPrazo(x.prazo))}>
+                    {x.nome} · {money(x.combo)}
+                  </button>
+                ))}
+              </div>
               <div className="form-grid">
                 <Field label="o que a ART cobre" span={2}>
                   <input value={rfEscopo} onChange={(e) => setRfEscopo(e.target.value)} placeholder="Ex.: ART de execução da reforma (piso e marcenaria) e plano de reforma para o condomínio" />
@@ -556,6 +579,113 @@ function Config({ cfg, onClose, onSave }: { cfg: ReservaConfig; onClose: () => v
         <label className="row gap-s span2">
           <input type="checkbox" checked={c.aberta} onChange={(e) => set('aberta', e.target.checked)} /> reservas abertas no link
         </label>
+      </div>
+    </Modal>
+  )
+}
+
+type Conv = Conversa & { ultima?: ChatMsg; naoLidas: number }
+/** Chat de dúvidas: as conversas que chegam pela página de reserva e pelo painel. A Laís recebe e-mail a cada mensagem. */
+function Conversas({ reservas }: { reservas: Reserva[] }) {
+  const [list, setList] = useState<Conv[] | null>(null)
+  const [aberta, setAberta] = useState<Conv | null>(null)
+  const carregar = useCallback(() => void listarConversas().then(setList).catch(() => setList((l) => l ?? [])), [])
+  useEffect(() => {
+    carregar()
+    const t = setInterval(carregar, 30_000)
+    return () => clearInterval(t)
+  }, [carregar])
+  if (!list) return null
+  const nao = list.reduce((n, c) => n + c.naoLidas, 0)
+  const nome = (c: Conv) => c.nome || reservas.find((r) => r.id === c.reserva)?.dados.nome || c.contato
+  const un = (c: Conv) => {
+    const r = reservas.find((x) => x.id === c.reserva)
+    return r ? unidade(r.dados) : ''
+  }
+  return (
+    <Section title={`dúvidas (chat)${nao ? ` · ${nao} nova${nao > 1 ? 's' : ''}` : ''}`}>
+      {!list.length ? (
+        <p className="muted small">Nenhuma dúvida ainda. Quando alguém escrever pelo botão “Dúvidas?” da página ou do painel, a conversa aparece aqui e você recebe um e-mail.</p>
+      ) : (
+        <div className="rsv-list">
+          {list.map((c) => (
+            <button key={c.id} className="rsv-row card" onClick={() => setAberta(c)}>
+              <span className="rsv-n">
+                <Icon name="chat" size={14} />
+              </span>
+              <span className="rsv-who">
+                <b>
+                  {nome(c)}
+                  {un(c) ? ` · ${un(c)}` : ''}
+                </b>
+                <small>{c.ultima ? `${c.ultima.autor === 'rdl' ? 'você: ' : ''}${c.ultima.texto.slice(0, 80)}` : 'sem mensagens'}</small>
+              </span>
+              {c.naoLidas > 0 && <Badge color={PAL.bad}>{c.naoLidas} nova{c.naoLidas > 1 ? 's' : ''}</Badge>}
+              <Icon name="chevronR" size={16} />
+            </button>
+          ))}
+        </div>
+      )}
+      {aberta && (
+        <ChatModal
+          c={aberta}
+          titulo={`${nome(aberta)}${un(aberta) ? ` · ${un(aberta)}` : ''}`}
+          onClose={() => {
+            setAberta(null)
+            carregar()
+          }}
+        />
+      )}
+    </Section>
+  )
+}
+
+function ChatModal({ c, titulo, onClose }: { c: Conv; titulo: string; onClose: () => void }) {
+  const [msgs, setMsgs] = useState<ChatMsg[]>([])
+  const [texto, setTexto] = useState('')
+  const [busy, setBusy] = useState(false)
+  const fim = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    let vivo = true
+    const ler = () => void mensagensDe(c.id).then((m) => vivo && setMsgs(m))
+    ler()
+    void marcarLida(c.id)
+    const t = setInterval(ler, 10_000)
+    return () => {
+      vivo = false
+      clearInterval(t)
+    }
+  }, [c.id])
+  useEffect(() => fim.current?.scrollIntoView({ block: 'end' }), [msgs])
+  const enviar = async () => {
+    if (!texto.trim() || busy) return
+    setBusy(true)
+    const ok = await responderChat(c.id, texto.trim())
+    setBusy(false)
+    if (!ok) return toast('Não enviou. Confira a internet e tente de novo.')
+    setTexto('')
+    setMsgs(await mensagensDe(c.id))
+    toast('Resposta enviada. A pessoa vê na página e recebe por e-mail.')
+  }
+  return (
+    <Modal title={titulo} onClose={onClose}>
+      <div className="rsv-chat">
+        <p className="muted small">Contato: {c.contato || '—'}</p>
+        <div className="rsv-chat-body">
+          {msgs.map((m) => (
+            <div key={m.id} className={`rsv-bub ${m.autor === 'rdl' ? 'me' : ''}`}>
+              {m.texto}
+              <small>{new Date(m.criado).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</small>
+            </div>
+          ))}
+          <div ref={fim} />
+        </div>
+        <div className="row gap-s">
+          <textarea className="grow" rows={2} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva a resposta" onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), void enviar())} />
+          <button className="btn" disabled={!texto.trim() || busy} onClick={() => void enviar()}>
+            enviar
+          </button>
+        </div>
       </div>
     </Modal>
   )

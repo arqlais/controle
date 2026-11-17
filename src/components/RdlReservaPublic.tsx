@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import './rdlReserva.css'
 import { RDL_LOGO } from '../rdlLogo'
 import { VISTORIA_PROPOSTA_URL } from '../contractTemplates'
@@ -17,6 +17,9 @@ import {
   dataCurta,
   enderecoCompleto,
   lerConfig,
+  chatAbrir,
+  chatEnviar,
+  chatLer,
   minhaReserva,
   moradorAcao,
   pixCopiaECola,
@@ -26,6 +29,7 @@ import {
   sha256,
   unidade,
   validCpf,
+  type ChatMsg,
   type Reserva,
   type ReservaConfig,
   type ReservaDados,
@@ -68,6 +72,9 @@ const P: Record<string, string> = {
   eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
   mail: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/>',
   play: '<path d="M8 5l11 7-11 7z"/>',
+  bag: '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>',
+  send: '<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>',
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
 }
 const I = ({ n, s = 16 }: { n: string; s?: number }) => <svg className="rv-i" width={s} height={s} viewBox="0 0 24 24" dangerouslySetInnerHTML={{ __html: P[n] ?? P.doc }} />
@@ -158,7 +165,7 @@ function Grupo({ n, cfg, compact }: { n: number; cfg: ReservaConfig; compact?: b
           </i>
         ))}
       </div>
-      {!compact && <p>{ok ? `O grupo já tem ${n} apartamentos. O valor de grupo está garantido.` : `Com ${min} reservas, o valor é ${brl(cfg.preco)} para todos. Se não chegar a ${min}, vale o valor individual (${brl(cfg.individual)}) e a diferença de ${brl(cfg.individual - cfg.preco)} entra no restante, no dia da vistoria. O sinal não muda.`}</p>}
+      {!compact && !ok && <p>Se não fechar o grupo, a diferença de {brl(cfg.individual - cfg.preco)} entra no restante, no dia da vistoria.</p>}
     </section>
   )
 }
@@ -183,6 +190,147 @@ function Plantas({ value, onChange, sugerida }: { value?: string; onChange: (p: 
   )
 }
 
+
+/** Chat de dúvidas (botão no canto da tela). A Laís recebe um e-mail avisando e responde pelo sistema. */
+const CHAT_KEY = 'rdl-chat'
+function Duvidas({ teste, nome = '', contato = '', reserva, abrirCom }: { teste?: boolean; nome?: string; contato?: string; reserva?: { id: string; token: string }; abrirCom?: { id: string; token: string } }) {
+  const [open, setOpen] = useState(!!abrirCom)
+  const [conv, setConv] = useState<{ id: string; token: string } | null>(() => {
+    if (abrirCom) {
+      ls.set(CHAT_KEY, JSON.stringify(abrirCom))
+      return abrirCom
+    }
+    try {
+      return reserva ? null : (JSON.parse(ls.get(CHAT_KEY) || 'null') as { id: string; token: string } | null)
+    } catch {
+      return null
+    }
+  })
+  const [msgs, setMsgs] = useState<ChatMsg[]>([])
+  const [f, setF] = useState({ nome, contato })
+  const [texto, setTexto] = useState('')
+  const [st, setSt] = useState<'' | 'enviando' | 'erro'>('')
+  const fim = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const abrir = () => setOpen(true)
+    window.addEventListener('rv-duvida', abrir)
+    return () => window.removeEventListener('rv-duvida', abrir)
+  }, [])
+  // painel: a conversa é a da reserva (abre sozinha na primeira mensagem)
+  useEffect(() => {
+    if (!open || conv || !reserva || teste) return
+    void chatAbrir(nome, contato, reserva).then((c) => c && setConv(c))
+  }, [open, conv, reserva, teste, nome, contato])
+  // lê as mensagens enquanto o chat está aberto
+  useEffect(() => {
+    if (!open || !conv || teste) return
+    let vivo = true
+    const ler = () => void chatLer(conv).then((m) => vivo && m && setMsgs(m))
+    ler()
+    const t = setInterval(ler, 12_000)
+    return () => {
+      vivo = false
+      clearInterval(t)
+    }
+  }, [open, conv, teste])
+  useEffect(() => {
+    fim.current?.scrollIntoView({ block: 'end' })
+  }, [msgs, open])
+  const enviar = async () => {
+    const t = texto.trim()
+    if (!t || st === 'enviando') return
+    setSt('enviando')
+    if (teste) {
+      setMsgs((m) => [...m, { id: Date.now(), autor: 'morador', texto: t, criado: new Date().toISOString() }])
+      setTexto('')
+      setSt('')
+      setTimeout(() => setMsgs((m) => [...m, { id: Date.now() + 1, autor: 'rdl', texto: 'Oi! Aqui é a RDL. No modo teste, esta resposta é só um exemplo.', criado: new Date().toISOString() }]), 900)
+      return
+    }
+    let c = conv
+    if (!c) {
+      c = await chatAbrir(f.nome, f.contato, reserva)
+      if (!c) return setSt('erro')
+      setConv(c)
+      if (!reserva) ls.set(CHAT_KEY, JSON.stringify(c))
+    }
+    const ok = await chatEnviar(c, t)
+    if (!ok) return setSt('erro')
+    setTexto('')
+    setSt('')
+    const m = await chatLer(c)
+    if (m) setMsgs(m)
+  }
+  const precisaContato = !conv && !reserva && !teste
+  const podeEnviar = !!texto.trim() && (!precisaContato || (f.nome.trim().length > 1 && f.contato.trim().length >= 5))
+  return (
+    <>
+      <button className="rv-fab" onClick={() => setOpen(true)} aria-label="Tirar uma dúvida">
+        <I n="chat" s={18} /> Dúvidas?
+      </button>
+      {open && (
+        <div className="rv-modal" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && setOpen(false)}>
+          <div className="rv-sheet rv-chat">
+            <div className="rv-chat-head">
+              <img src={RDL_LOGO} alt="" />
+              <div>
+                <b>Dúvidas sobre a vistoria</b>
+                <small>Respondemos o quanto antes, aqui e no seu {reserva ? 'e-mail' : 'contato'}</small>
+              </div>
+              <button className="rv-close" onClick={() => setOpen(false)} aria-label="Fechar">
+                <I n="x" s={18} />
+              </button>
+            </div>
+            <div className="rv-chat-body">
+              <div className="rv-bub rdl">Oi! Pode perguntar o que quiser sobre a vistoria, sem compromisso.</div>
+              {msgs.map((m) => (
+                <div key={m.id} className={`rv-bub ${m.autor === 'rdl' ? 'rdl' : 'me'}`}>
+                  {m.texto}
+                  <small>{new Date(m.criado).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</small>
+                </div>
+              ))}
+              {msgs.length > 0 && msgs[msgs.length - 1].autor === 'morador' && <p className="rv-chat-note">Mensagem enviada. Você pode fechar: a resposta aparece aqui e chega no seu contato.</p>}
+              <div ref={fim} />
+            </div>
+            {precisaContato && (
+              <div className="rv-chat-who">
+                <input value={f.nome} onChange={(e) => setF({ ...f, nome: e.target.value })} placeholder="Seu nome" autoComplete="name" />
+                <input value={f.contato} onChange={(e) => setF({ ...f, contato: e.target.value })} placeholder="WhatsApp ou e-mail (para a resposta)" />
+              </div>
+            )}
+            {st === 'erro' && <p className="rv-warn">Não consegui enviar. Tente de novo ou chame no WhatsApp.</p>}
+            <div className="rv-chat-send">
+              <textarea rows={1} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escreva a sua dúvida" onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), void enviar())} />
+              <button className="rv-btn" disabled={!podeEnviar || st === 'enviando'} onClick={() => void enviar()} aria-label="Enviar">
+                <I n="send" s={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+/** Convite discreto para a loja da planê.apê (guias e planilhas para depois das chaves). */
+function Loja() {
+  return (
+    <a className="rv-shop" href="ape/" target="_blank" rel="noreferrer">
+      <span className="ib">
+        <I n="bag" s={18} />
+      </span>
+      <span>
+        <small>DEPOIS DAS CHAVES VEM A OBRA</small>
+        <b>Guias e planilhas para o seu apê</b>
+        <span>Planilha de obra, guia de medidas, marcenaria, pisos e mais. A partir de R$ 12,90.</span>
+        <em>
+          Conhecer a loja da planê.apê <I n="arrow" s={13} />
+        </em>
+      </span>
+    </a>
+  )
+}
+
 export function RdlReservaPublic({ sub }: { sub?: string }) {
   useEffect(() => {
     document.title = 'Vistoria de entrega de chaves · RDL Engenharia'
@@ -191,6 +339,10 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   }, [])
   if (sub === 'teste') return <div className="rv"><Reservar teste /></div>
   if (sub === 'teste-painel') return <div className="rv"><Painel id="" token="" teste /></div>
+  if (sub?.startsWith('duvida-')) {
+    const [cid, ctk] = sub.slice(7).split('.')
+    return <div className="rv"><Reservar abrirChat={cid && ctk ? { id: cid, token: ctk } : undefined} /></div>
+  }
   const [id, token] = (sub ?? '').split('.')
   return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Reservar />}</div>
 }
@@ -199,7 +351,7 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
 
 const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '', cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '', torre: '', apto: '', planta: '', revistoria: false, reforma: '' }
 
-function Reservar({ teste }: { teste?: boolean }) {
+function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string; token: string } }) {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
   const [n, setN] = useState(0)
   const [step, setStep] = useState<1 | 2>(1)
@@ -317,7 +469,7 @@ function Reservar({ teste }: { teste?: boolean }) {
           <h1>
             Reserve a <span>vistoria</span> do seu apê
           </h1>
-          <p>Um engenheiro civil confere o seu apartamento com você no dia da entrega das chaves e entrega um laudo com fotos e a ART, para a MRV consertar o que estiver errado.</p>
+          <p>Um engenheiro civil confere o seu apê com você na entrega das chaves. Laudo com fotos e ART, para a MRV consertar o que estiver errado.</p>
           <button className="rv-btn" onClick={irPara}>
             <I n="key" /> Quero reservar
           </button>
@@ -347,10 +499,10 @@ function Reservar({ teste }: { teste?: boolean }) {
           </div>
           <ul>
             <li>
-              <I n="card" /> Sinal de {brl(metade)} para reservar, em até 7 dias. O resto no dia da vistoria.
+              <I n="card" /> Sinal de {brl(metade)} em até 7 dias
             </li>
             <li>
-              <I n="cal" /> Previsão da MRV: {cfg.periodo}
+              <I n="cal" /> Previsão da MRV: dez/2026 a mar/2027
             </li>
             <li>
               <I n="redo" /> Revistoria opcional: {brl(cfg.revistoria)}
@@ -364,10 +516,10 @@ function Reservar({ teste }: { teste?: boolean }) {
           </h2>
           <div className="rv-why">
             {[
-              ['cal', 'Todo mundo recebe as chaves na mesma época', 'Quando a MRV liberar as datas, os vizinhos vão marcar na mesma semana. O engenheiro faz poucas vistorias por dia.'],
-              ['star', 'Quem reserva antes escolhe o horário antes', 'Os horários seguem a ordem das reservas com sinal pago.'],
-              ['users', 'Sua reserva ajuda o grupo', `Com ${cfg.minimo} reservas, todo mundo paga ${brl(cfg.preco)} em vez de ${brl(cfg.individual)}.`],
-              ['shield', 'Sem risco', 'Você tem 7 dias para desistir com o sinal de volta. E se a MRV não marcar a vistoria em 12 meses, o sinal também volta.'],
+              ['cal', 'Vagas limitadas', 'A MRV entrega todos na mesma época.'],
+              ['star', 'Escolha o horário antes', 'A agenda segue a ordem do sinal.'],
+              ['users', 'Ajuda o grupo', `Com ${cfg.minimo}, todos pagam ${brl(cfg.preco)}.`],
+              ['shield', 'Sem risco', '7 dias para desistir, com o sinal de volta.'],
             ].map(([i, t, p]) => (
               <div key={t}>
                 <span className="ib">
@@ -388,11 +540,11 @@ function Reservar({ teste }: { teste?: boolean }) {
           </h2>
           <ol className="rv-how">
             {[
-              ['sign', 'Reserve aqui', 'Preencha os dados e assine o contrato pelo celular. Leva uns 3 minutos.'],
-              ['card', 'Pague o sinal', `${brl(metade)} por Pix, em até 7 dias. Pronto: a vaga é sua.`],
-              ['cal', 'Combine o horário', 'Quando a MRV liberar a sua data, fale com o Rogério antes de confirmar com ela.'],
-              ['search', 'Dia da vistoria', 'O engenheiro confere tudo com você, item por item.'],
-              ['doc', 'Laudo + ART', 'Em até 4 dias úteis, no seu painel e no seu e-mail, pronto para mandar à MRV.'],
+              ['sign', 'Reserve aqui', 'Dados e contrato pelo celular, em 3 minutos.'],
+              ['card', 'Pague o sinal', `${brl(metade)} por Pix, em até 7 dias.`],
+              ['cal', 'Combine o horário', 'Quando a MRV liberar, fale com o Rogério.'],
+              ['search', 'Dia da vistoria', 'O engenheiro confere tudo com você.'],
+              ['doc', 'Laudo + ART', 'Em até 4 dias úteis, no painel e no e-mail.'],
             ].map(([i, t, p], k) => (
               <li key={t}>
                 <span className="n">{k + 1}</span>
@@ -705,9 +857,14 @@ function Reservar({ teste }: { teste?: boolean }) {
               <p>{a}</p>
             </details>
           ))}
+          <button className="rv-btn ghost wide3" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
+            <I n="help" /> Não achou a resposta? Pergunte aqui
+          </button>
         </section>
+        <Loja />
       </main>
       <Rodape />
+      <Duvidas teste={teste} abrirCom={abrirChat} />
     </>
   )
 }
@@ -1157,6 +1314,8 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           </section>
         )}
 
+        <Loja />
+
         <section className="rv-card rv-help">
           <h2 className="rv-h2">
             <I n="chat" s={18} /> Precisa de ajuda?
@@ -1165,14 +1324,15 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
             <a className="rv-btn small" href={zap(`Oi, Rogério! Sou ${r.dados.nome}, da vistoria do ${unidade(r.dados)}.`)}>
               <I n="chat" /> WhatsApp
             </a>
-            <a className="rv-btn small ghost" href={`mailto:${RDL_INFO.email}?subject=${encodeURIComponent(`Vistoria ${unidade(r.dados)}`)}`}>
-              <I n="mail" /> E-mail
-            </a>
+            <button className="rv-btn small ghost" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
+              <I n="help" /> Mandar dúvida
+            </button>
           </div>
           <p className="rv-fine">Guarde este link (ou adicione à tela inicial): é o seu acesso ao contrato, à data e ao laudo. Reserva nº {r.id.slice(0, 8).toUpperCase()}.</p>
         </section>
       </main>
       <Rodape />
+      <Duvidas teste={teste} nome={r.dados.nome} contato={r.dados.email || r.dados.tel} reserva={teste ? undefined : { id, token }} />
     </>
   )
 }

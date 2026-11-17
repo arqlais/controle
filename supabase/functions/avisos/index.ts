@@ -13,6 +13,7 @@
 //   resposta     → a dona respondeu no chat: avisa a pessoa (se ela não estiver usando o sistema agora)
 //   sugestao-atualizada → a dona mudou a situação ou respondeu uma sugestão: avisa quem sugeriu
 //   briefing     → o cliente final respondeu o briefing (página sem login): avisa quem mandou
+//   rdl-chat     → chat de dúvidas da vistoria: avisa a Laís da mensagem do morador e o morador da resposta
 //   rdl          → RDL Engenharia (reserva da vistoria): avisa o morador e a RDL em cada etapa
 //                  (reserva, sinal, data, laudo, revistoria, cancelada), com a identidade da RDL
 //   cliente      → o cliente final assinou um contrato ou mandou um recado pelo painel (sem login):
@@ -735,6 +736,68 @@ Deno.serve(async (req) => {
     return json({ ok: true })
   }
 
+
+
+  if (tipo === 'rdl-chat') {
+    // chat de dúvidas da vistoria. evento "morador": mensagem nova pelo link (avisa a Laís por e-mail, no máximo
+    // 1 a cada 10 min por conversa). evento "rdl": a RDL respondeu no sistema (avisa o morador por e-mail).
+    const evento = String(body.evento ?? '')
+    const cid = String(body.conversa ?? '')
+    if (!/^[0-9a-f-]{36}$/i.test(cid) || !['morador', 'rdl'].includes(evento)) return json({ ok: false }, 400)
+    const { data: conv } = await db.from('rdl_conversas').select('*').eq('id', cid).maybeSingle()
+    const c = conv as { id: string; token: string; nome: string; contato: string; reserva: string | null; avisado: string | null } | null
+    if (!c) return json({ ok: false }, 404)
+    if (evento === 'morador' && String(body.token ?? '') !== c.token) return json({ ok: false }, 403)
+    if (evento === 'rdl' && !isOwner && String(who?.user?.email ?? '').toLowerCase() !== RDL_EMAIL) return json({ ok: false }, 403)
+    const { data: msgs } = await db.from('rdl_mensagens').select('autor, texto, criado').eq('conversa', cid).order('criado', { ascending: false }).limit(6)
+    const ult = ((msgs ?? []) as { autor: string; texto: string; criado: string }[]).reverse()
+    let res: RdlRow | null = null
+    if (c.reserva) res = ((await db.from('rdl_reservas').select('*').eq('id', c.reserva).maybeSingle()).data as RdlRow | null) ?? null
+    const rd = (res?.dados ?? {}) as Record<string, string>
+    const quem = c.nome || rd.nome || 'Morador'
+    const un = res ? `${rd.torre ? `torre ${rd.torre}, ` : ''}apto ${rd.apto}` : ''
+    const bolhas = (meu: 'morador' | 'rdl') =>
+      ult
+        .map((m) => {
+          const mine = m.autor === meu
+          const hora = new Date(m.criado).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+          return `<tr><td align="${mine ? 'right' : 'left'}" style="padding:4px 0;"><table role="presentation" cellpadding="0" cellspacing="0" style="max-width:82%;"><tr><td style="background:${mine ? '#012C60' : '#F1F2F6'};color:${mine ? '#ffffff' : '#012C60'};border-radius:${mine ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};padding:10px 13px;font-size:14px;line-height:1.5;">${rich(m.texto.slice(0, 1200))}<div style="font-size:10.5px;opacity:.65;margin-top:4px;text-align:right;">${m.autor === 'rdl' ? 'RDL' : esc(quem.split(' ')[0])} · ${hora}</div></td></tr></table></td></tr>`
+        })
+        .join('')
+    const chat = (meu: 'morador' | 'rdl') => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">${bolhas(meu)}</table>`
+    try {
+      if (evento === 'morador') {
+        // no máximo 1 aviso a cada 10 minutos por conversa (as outras mensagens aparecem juntas no próximo)
+        if (c.avisado && Date.now() - new Date(c.avisado).getTime() < 10 * 60_000) return json({ ok: true, motivo: 'avisado há pouco' })
+        const html = rdlLayout({
+          eyebrow: 'chat de dúvidas · vistoria',
+          title: `${quem}${un ? ` · ${un}` : ''}`,
+          text: `${chat('rdl')}<p style="margin:0;font-size:13px;color:#7A7F92;">Contato: ${esc(c.contato || rd.tel || rd.email || '')}. Responda pelo chat (a resposta aparece para a pessoa na página) ${isMail(c.contato || rd.email || '') ? 'ou respondendo este e-mail (vai direto para o e-mail dela)' : 'ou pelo WhatsApp'}.</p>`,
+          button: 'Responder no chat',
+          url: `${SITE}rdl/#reservas`,
+        })
+        const replyTo = isMail(c.contato) ? c.contato : isMail(rd.email ?? '') ? rd.email : undefined
+        await send(rdlSub(cid, OWNER_EMAIL, ''), { subject: `Nova mensagem no chat: ${quem}`, html }, replyTo, `Chat ${RDL_FROM}`)
+        await db.from('rdl_conversas').update({ avisado: new Date().toISOString() }).eq('id', cid)
+        return json({ ok: true })
+      }
+      const to = isMail(c.contato) ? c.contato : String(rd.email ?? '')
+      if (!isMail(to)) return json({ ok: true, email: false })
+      const link = res ? `${SITE}#/vistoria/${res.id}.${res.token}` : `${SITE}#/vistoria/duvida-${c.id}.${c.token}`
+      const html = rdlLayout({
+        eyebrow: 'resposta da RDL',
+        title: `Oi, ${esc(quem.split(' ')[0])}! Respondemos a sua dúvida`,
+        text: `${chat('morador')}<p style="margin:0;font-size:13px;color:#7A7F92;">Para continuar a conversa, abra o chat pelo botão abaixo ou responda este e-mail.</p>`,
+        button: 'Abrir a conversa',
+        url: link,
+      })
+      await send(rdlSub(cid, to, quem), { subject: 'Resposta da RDL Engenharia sobre a vistoria', html }, RDL_EMAIL, RDL_FROM)
+      return json({ ok: true })
+    } catch (e) {
+      console.error(e)
+      return json({ ok: false })
+    }
+  }
 
   if (tipo === 'rdl') {
     // reserva da vistoria (RDL Engenharia). "reserva": a página pública manda com o código do painel;
