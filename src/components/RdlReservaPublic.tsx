@@ -903,6 +903,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <button className="rv-btn ghost wide3" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
             <I n="help" /> Não achou a resposta? Pergunte aqui
           </button>
+
         </section>
 
         <a className="rv-btn wide3 big" href={reservar} data-sec="fim da página" onClick={() => rastrear('clicou', { alvo: 'reservar (fim)' })}>
@@ -934,8 +935,9 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       /* ok */
     }
     if (soReforma) return { ...base, servicos: { vistoria: false, reforma: true } }
-    if (comReforma) return { ...base, servicos: { vistoria: base.servicos?.vistoria ?? true, reforma: true } }
-    return { ...base, servicos: base.servicos ?? { vistoria: true, reforma: false } }
+    if (comReforma) return { ...base, servicos: { vistoria: base.servicos?.vistoria ?? false, reforma: true } }
+    // nada vem marcado: a pessoa escolhe o que quer
+    return { ...base, servicos: base.servicos ?? { vistoria: false, reforma: false } }
   })
   const [tried, setTried] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -1108,17 +1110,20 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     <strong>{brl(cfg.preco)}</strong>
                   </button>
                   {sv.vistoria && (
-                    <label className={`rv-check sub ${d.revistoria ? 'on' : ''}`}>
-                      <input type="checkbox" checked={d.revistoria} onChange={(e) => set('revistoria', e.target.checked)} />
-                      <span>
+                    <button type="button" className={`rv-pick-sub ${d.revistoria ? 'on' : ''}`} onClick={() => set('revistoria', !d.revistoria)}>
+                      <span className="box">{d.revistoria && <I n="check" s={13} />}</span>
+                      <span className="txt">
                         <b>
-                          <I n="redo" s={14} /> Deixar a revistoria combinada: {brl(cfg.revistoria)}
+                          <I n="redo" s={14} /> Revistoria <span className="rv-opt">OPCIONAL</span>
                         </b>
-                        <small>Depois que a MRV consertar, o engenheiro volta para conferir. Paga só no dia. Dá para decidir depois.</small>
+                        <small>Depois que a MRV consertar, o engenheiro volta para conferir. Paga só no dia, se quiser.</small>
                       </span>
-                    </label>
+                      <strong>+ {brl(cfg.revistoria)}</strong>
+                    </button>
                   )}
+
                 </div>
+
                 <div className={`rv-pick ${sv.reforma ? 'on' : ''}`}>
                   <button type="button" className="rv-pick-head" onClick={() => setSv('reforma', !sv.reforma)}>
                     <span className="box">{sv.reforma && <I n="check" s={14} />}</span>
@@ -1151,7 +1156,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                   </span>
                   <I n="arrow" s={16} />
                 </a>
-                <Total v={v} sv={sv} cfg={cfg} />
+                <Total v={v} sv={sv} cfg={cfg} revistoria={d.revistoria} />
                 {tried && faltaServico && <p className="rv-warn">Escolha pelo menos um serviço.</p>}
                 {tried && faltaReforma && <p className="rv-warn">Marque o que você vai fazer na reforma.</p>}
                 <button
@@ -1282,7 +1287,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
 
             {step === 3 && (
               <>
-                <Total v={v} sv={sv} cfg={cfg} titulo />
+                <Total v={v} sv={sv} cfg={cfg} titulo revistoria={d.revistoria} />
                 <Assinar texto={texto} nome={d.nome} reforma={sv.reforma} agora={v.agora} busy={busy} erro={erro} onVoltar={() => ir(2)} onAssinar={(a) => void enviar(a)} />
               </>
             )}
@@ -1297,7 +1302,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
 }
 
 /** Resumo dos valores: o que foi escolhido, o total e o que paga agora no Pix. */
-function Total({ v, sv, cfg, titulo }: { v: ReturnType<typeof valores>; sv: { vistoria: boolean; reforma: boolean }; cfg: ReservaConfig; titulo?: boolean }) {
+function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valores>; sv: { vistoria: boolean; reforma: boolean }; cfg: ReservaConfig; titulo?: boolean; revistoria?: boolean }) {
   if (!sv.vistoria && !sv.reforma) return null
   return (
     <div className="rv-total">
@@ -1310,6 +1315,14 @@ function Total({ v, sv, cfg, titulo }: { v: ReturnType<typeof valores>; sv: { vi
           <b>{brl(v.vistoria)}</b>
         </div>
       )}
+      {sv.vistoria && revistoria && (
+        <div className="row">
+          <span>
+            <I n="redo" s={14} /> Revistoria (paga no dia)
+          </span>
+          <b>{brl(cfg.revistoria)}</b>
+        </div>
+      )}
       {sv.reforma && (
         <div className="row">
           <span>
@@ -1320,7 +1333,7 @@ function Total({ v, sv, cfg, titulo }: { v: ReturnType<typeof valores>; sv: { vi
       )}
       <div className="row sum">
         <span>Total</span>
-        <b>{brl(v.total)}</b>
+        <b>{brl(v.total + (sv.vistoria && revistoria ? cfg.revistoria : 0))}</b>
       </div>
       <div className="row now">
         <span>

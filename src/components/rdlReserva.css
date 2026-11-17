@@ -2656,9 +2656,7 @@ html.rv-root body {
   gap: 0;
   background: #fff;
 }
-.rv .rv-card.rv-form > * + * {
-  margin-top: 0;
-}
+
 /* mockups: altura fixa (trocar de aba não mexe na página) e celular com proporção real */
 .rv-mock-stage {
   min-height: 560px;
@@ -3010,4 +3008,115 @@ html.rv-root body {
 }
 .rv-rwrap .rv-rinfo {
   margin-top: 10px;
+}
+/* passo 1 com mais respiro */
+.rv-form .rv-label {
+  margin-bottom: 4px;
+}
+.rv-pick {
+  margin-top: 16px;
+}
+.rv-pick-head {
+  padding: 18px 20px;
+  gap: 16px;
+}
+.rv-pick.opt {
+  margin-top: 10px;
+  margin-left: 28px;
+  border-style: dashed;
+}
+.rv-pick.opt.on {
+  border-style: solid;
+}
+.rv-pick.files {
+  margin-top: 16px;
+  padding: 16px 20px;
+}
+.rv-total {
+  margin-top: 24px;
+  padding: 18px 22px;
+}
+.rv-total + .rv-btn,
+.rv-total ~ .rv-btn.wide3 {
+  margin-top: 22px;
+}
+.rv-pick-body {
+  padding: 0 20px 20px;
+}
+@media (max-width: 480px) {
+  .rv-pick.opt {
+    margin-left: 14px;
+  }
+  .rv-pick-head {
+    padding: 16px;
+    gap: 12px;
+  }
+}
+.rv-pick-sub {
+  font: inherit;
+  color: var(--navy);
+  width: calc(100% - 40px);
+  margin: 0 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  background: var(--soft);
+  border: 1.5px dashed #c9cdd8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.rv-pick-sub.on {
+  border-style: solid;
+  border-color: var(--navy);
+  background: #f5f8fc;
+}
+.rv-pick-sub .box {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.5px solid #c9cdd8;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+  background: #fff;
+}
+.rv-pick-sub.on .box {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.rv-pick-sub .txt {
+  flex: 1;
+  min-width: 0;
+}
+.rv-pick-sub b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+.rv-pick-sub small {
+  display: block;
+  font-size: 12px;
+  color: var(--txt);
+}
+.rv-pick-sub strong {
+  font-size: 14px;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .rv-pick-sub {
+    width: calc(100% - 28px);
+    margin: 0 14px 14px;
+    flex-wrap: wrap;
+  }
+  .rv-pick-sub strong {
+    padding-left: 34px;
+  }
+}
+.rv-pick.on .rv-pick-sub:not(.on) .box {
+  background: #fff;
+  border-color: #c9cdd8;
 }
