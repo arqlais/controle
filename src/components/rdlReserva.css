@@ -2647,3 +2647,70 @@ html.rv-root body {
     max-width: 460px;
   }
 }
+/* blindagem contra regras do sistema com o mesmo nome (.rv-card do sistema é grade) */
+.rv .rv-card {
+  display: block;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  gap: 0;
+  background: #fff;
+}
+.rv .rv-card.rv-form > * + * {
+  margin-top: 0;
+}
+/* mockups: altura fixa (trocar de aba não mexe na página) e celular com proporção real */
+.rv-mock-stage {
+  min-height: 560px;
+  justify-content: center;
+}
+@media (min-width: 820px) {
+  .rv-wide .rv-mock-stage {
+    min-height: 500px;
+  }
+}
+.rv-phone {
+  width: 226px;
+  height: 462px;
+  border-radius: 36px;
+  padding: 9px;
+  display: flex;
+  flex-direction: column;
+}
+.rv-phone-notch {
+  width: 78px;
+  height: 18px;
+  top: 9px;
+  border-radius: 0 0 14px 14px;
+}
+.rv-phone-screen {
+  flex: 1;
+  border-radius: 28px;
+  padding: 34px 12px 14px;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.rv-phone-screen::after {
+  content: '';
+  margin-top: auto;
+  align-self: center;
+  width: 80px;
+  height: 4px;
+  border-radius: 3px;
+  background: #c9cdd8;
+}
+.rv-form .rv-plantas {
+  margin-bottom: 8px;
+}
+.rv-form .rv-sub {
+  margin-top: 22px;
+}
+.rv-form .rv-rinfo {
+  margin-top: 16px;
+}
+.rv-form .rv-check + .rv-check {
+  margin-top: 10px;
+}
+.rv-phone {
+  height: 430px;
+}
