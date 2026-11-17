@@ -91,7 +91,7 @@ const FILTROS: [Filtro, string][] = [
   ['canceladas', 'canceladas'],
 ]
 const etapa = (r: Reserva): [string, string] =>
-  r.cancelada ? [r.status.expirada ? 'cancelada · sem sinal' : 'cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : r.status.pagoInformado ? ['diz que pagou · conferir', PAL.warn] : [`aguardando sinal · ${Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))} dia(s)`, PAL.bad]
+  r.cancelada ? [r.status.expirada ? 'cancelada · sem sinal' : 'cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.cortesia && !r.status.data ? ['cortesia · sem data', PAL.blue] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : r.status.pagoInformado ? ['diz que pagou · conferir', PAL.warn] : [`aguardando sinal · ${Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))} dia(s)`, PAL.bad]
 
 export default function Reservas() {
   const { data, upsert } = useStore()
@@ -191,7 +191,8 @@ export default function Reservas() {
 
   const ativas = (list ?? []).filter((r) => !r.cancelada)
   const sinais = ativas.filter((r) => r.status.sinal)
-  const faltam = Math.max(0, (cfg.minimo || 10) - ativas.length)
+  const doGrupo = ativas.filter((r) => !r.status.cortesia && r.dados.servicos?.vistoria !== false)
+  const faltam = Math.max(0, (cfg.minimo || 10) - doGrupo.length)
   const repetidas = useMemo(() => {
     const m = new Map<string, number>()
     ativas.forEach((r) => m.set(`${r.dados.torre}|${r.dados.apto}`.toLowerCase(), (m.get(`${r.dados.torre}|${r.dados.apto}`.toLowerCase()) ?? 0) + 1))
@@ -208,7 +209,7 @@ export default function Reservas() {
     return true
   })
   const link = linkReserva()
-  const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\n👥 Já são *${ativas.length} de ${cfg.minimo || 10}* apartamentos. Com ${cfg.minimo || 10}, todo mundo paga *${money(cfg.preco)}* (em vez de ${money(cfg.individual)}).\n\n✍️ É só abrir o link, preencher os dados, escolher a planta e assinar o contrato pelo celular (uns 3 minutos).\n💳 Sinal de ${money(cfg.preco / 2)} em até 7 dias garante a vaga.\n📅 Previsão da MRV: ${cfg.periodo}. Quem reserva antes escolhe o horário antes.\n\n${link}`
+  const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\n👥 Já são *${doGrupo.length} de ${cfg.minimo || 10}* apartamentos. Com ${cfg.minimo || 10}, todo mundo paga *${money(cfg.preco)}* (em vez de ${money(cfg.individual)}).\n\n✍️ É só abrir o link, preencher os dados, escolher a planta e assinar o contrato pelo celular (uns 3 minutos).\n💳 Sinal de ${money(cfg.preco / 2)} em até 7 dias garante a vaga.\n📅 Previsão da MRV: ${cfg.periodo}. Quem reserva antes escolhe o horário antes.\n\n${link}`
 
   return (
     <div className="page rsv">
@@ -262,19 +263,19 @@ export default function Reservas() {
 
       <div className="art-stats">
         <div className="art-stat card">
-          <small>reservas</small>
-          <b>{ativas.length}</b>
+          <small>reservas no grupo</small>
+          <b>{doGrupo.length}</b>
           <span>{faltam ? `faltam ${faltam} para o grupo de ${cfg.minimo || 10} (${money(cfg.preco)})` : `grupo de ${cfg.minimo || 10} fechado`}</span>
         </div>
         <div className="art-stat card">
           <small>vagas garantidas</small>
           <b>{sinais.length}</b>
-          <span>{ativas.length - sinais.length} aguardando o sinal</span>
+          <span>{doGrupo.filter((r) => !r.status.sinal).length} aguardando o sinal{ativas.length > doGrupo.length ? ` · ${ativas.length - doGrupo.length} fora do grupo (cortesia ou só ART)` : ''}</span>
         </div>
         <div className="art-stat card">
           <small>sinais recebidos</small>
           <b>{money(sinais.length * (cfg.preco / 2))}</b>
-          <span>a receber no dia: {money(ativas.length * cfg.preco - sinais.length * (cfg.preco / 2))}</span>
+          <span>a receber no dia: {money(doGrupo.length * cfg.preco - doGrupo.filter((r) => r.status.sinal).length * (cfg.preco / 2))}</span>
         </div>
         <div className="art-stat card">
           <small>revistorias combinadas</small>
@@ -434,6 +435,10 @@ function Detalhe({
         <ol className="rsv-steps">
           <li className={s.sinal ? 'done' : 'now'}>
             <b>1 · pagamento de {money(vv.agora)} (Pix)</b>
+            <label className="row gap-s small">
+              <input type="checkbox" checked={!!s.cortesia} onChange={(e) => void onStatus(r, { cortesia: e.target.checked ? 'sim' : '' }, e.target.checked ? 'Cortesia: não paga e não conta no grupo.' : 'Voltou a contar no grupo.')} />
+              cortesia (família): não paga, não conta no grupo e não recebe cobrança
+            </label>
             {s.sinal ? (
               <p>
                 Recebido em {dataCurta(s.sinal)}.{' '}

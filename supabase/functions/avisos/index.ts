@@ -378,7 +378,7 @@ async function rdlDiario(db: any) {
   const cfg = await rdlCfg(db)
   const { data } = await db.from('rdl_reservas').select('*').gte('criado', new Date(Date.now() - 30 * 864e5).toISOString())
   const rows = (data ?? []) as RdlRow[]
-  const grupo = rows.filter((x) => !x.cancelada).length
+  const grupo = rows.filter((x) => !x.cancelada && !(x.status ?? {}).cortesia && (x.dados as { servicos?: { vistoria?: boolean } }).servicos?.vistoria !== false).length
   let n = 0
   for (const r of rows) {
     const st = (r.status ?? {}) as Record<string, string>
@@ -389,9 +389,9 @@ async function rdlDiario(db: any) {
     // um aviso por vez, do mais importante para o menos
     const k = r.cancelada
       ? st.expirada ? 'expirada' : ''
-      : !st.sinal && idade >= 6 ? 'ultimo'
-      : !st.sinal && idade >= 5 ? 'lembrete-auto'
-      : !st.sinal && idade >= 2 ? 'lembrete2'
+      : !st.sinal && !st.cortesia && idade >= 6 ? 'ultimo'
+      : !st.sinal && !st.cortesia && idade >= 5 ? 'lembrete-auto'
+      : !st.sinal && !st.cortesia && idade >= 2 ? 'lembrete2'
       : st.data === amanha ? `vespera:${st.data}`
       : cv < 2 ? 'contratoNovo'
       : ''
@@ -931,12 +931,12 @@ Deno.serve(async (req) => {
     const cfg = await rdlCfg(db)
     if (!cfg.pix) return json({ ok: false, motivo: 'sem chave Pix' })
     const { data: rows } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
-    const { count: grupo } = await db.from('rdl_reservas').select('id', { count: 'exact', head: true }).eq('cancelada', false)
+    const grupo = ((await db.from('rdl_reservas').select('status,dados').eq('cancelada', false)).data ?? []).filter((x: { status?: Record<string, string>; dados?: { servicos?: { vistoria?: boolean } } }) => !x.status?.cortesia && x.dados?.servicos?.vistoria !== false).length
     const enviados: string[] = []
     for (const r of (rows ?? []) as RdlRow[]) {
       const st = r.status ?? {}
       const avisos = r.avisos ?? {}
-      if (st.sinal || avisos['pix-chave']) continue
+      if (st.sinal || st.cortesia || avisos['pix-chave']) continue
       const to = String((r.dados as Record<string, string>).email ?? '').trim()
       const nome = String((r.dados as Record<string, string>).nome ?? '')
       if (!isMail(to)) continue
@@ -976,7 +976,7 @@ Deno.serve(async (req) => {
     if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
     // valores da campanha (arquivo público da RDL)
     const cfg = await rdlCfg(db)
-    const { count: grupo } = await db.from('rdl_reservas').select('id', { count: 'exact', head: true }).eq('cancelada', false)
+    const grupo = ((await db.from('rdl_reservas').select('status,dados').eq('cancelada', false)).data ?? []).filter((x: { status?: Record<string, string>; dados?: { servicos?: { vistoria?: boolean } } }) => !x.status?.cortesia && x.dados?.servicos?.vistoria !== false).length
     const mails = rdlMails(r, cfg, grupo ?? 0)
     const to = String((r.dados as Record<string, string>).email ?? '').trim()
     const nome = String((r.dados as Record<string, string>).nome ?? '')

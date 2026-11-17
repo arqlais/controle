@@ -143,6 +143,7 @@ export interface ReservaStatus {
   art?: string // link da ART da vistoria
   reforma?: ReformaPedido
   expirada?: string // cancelada sozinha por falta de sinal
+  cortesia?: string // 'sim': família/cortesia, não paga e não conta no grupo
   pagoInformado?: string // o morador marcou "já paguei" (a RDL confere e confirma)
   laudoDados?: import('./rdlLaudo').LaudoRascunho // laudo montado no sistema (itens, fotos, testes)
 }
