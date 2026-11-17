@@ -40,8 +40,8 @@ import {
 /** ART de reforma: pontos de partida (apês de 38 a 40 m², paredes estruturais: nada de demolir ou abrir parede).
  *  valor = quem não fez a vistoria com a RDL · combo = quem fez (é o caso de todos daqui). Taxa do CREA já inclusa. */
 const REFORMA_PRESETS = [
-  { nome: 'ART + plano de reforma', valor: 300, combo: 270, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280), para serviços sem mexer na estrutura (as paredes são estruturais): colocação de piso na sala e nos quartos (entregues no contrapiso), revestimentos, armários e marcenaria, pintura, louças e metais, gesso e iluminação.' },
-  { nome: 'só a ART', valor: 250, combo: 230, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica e ART de execução da reforma registrada no CREA, para serviços sem mexer na estrutura (as paredes são estruturais): piso na sala e nos quartos, armários, pintura, louças e metais. O plano de reforma do condomínio fica com o morador ou com quem executa a obra.' },
+  { nome: 'ART + plano de reforma', valor: 300, combo: 270, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica, ART de execução da reforma registrada no CREA e plano de reforma para o condomínio (NBR 16280), para serviços que não mexem na estrutura (no San Levi as paredes são de concreto e estruturais: sem derrubar, rasgar ou embutir cano e fio): colocação de piso na sala e nos quartos (entregues no contrapiso), revestimentos, armários e marcenaria com fixação conforme o manual da MRV, pintura, louças e metais, forro de gesso e iluminação.' },
+  { nome: 'só a ART', valor: 250, combo: 230, prazo: 'até 5 dias úteis depois da visita técnica', escopo: 'Visita técnica e ART de execução da reforma registrada no CREA, para serviços que não mexem na estrutura (paredes de concreto estruturais): piso na sala e nos quartos, armários, pintura, louças e metais. O plano de reforma do condomínio fica com o morador ou com quem executa a obra.' },
 ]
 
 type Filtro = 'todas' | 'sinal' | 'agendar' | 'agendadas' | 'laudo' | 'canceladas'

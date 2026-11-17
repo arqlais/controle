@@ -843,6 +843,8 @@ function Reservar({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: str
             <I n="info" s={18} /> Dúvidas comuns
           </h2>
           {[
+            ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
+            ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
             ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
             ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix ou cartão.`],
             ['E se eu desistir?', 'Até 7 dias depois de assinar, o sinal volta inteiro. Depois disso, o sinal fica com a RDL, porque a vaga deixou de ser oferecida a outro morador.'],
@@ -1291,7 +1293,10 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               </div>
             ) : (
               <>
-                <p className="rv-hint">Vai fazer obra no apê (piso, armários, elétrica, paredes)? O condomínio pede um responsável técnico com ART. Conte o que vai fazer e o Rogério manda o valor aqui. Você só paga se aprovar.</p>
+                <p className="rv-hint">Vai fazer obra no apê (piso, armários, forro, iluminação)? O condomínio pede um responsável técnico com ART. Conte o que vai fazer e o Rogério manda o valor aqui. Você só paga se aprovar.</p>
+                <p className="rv-alert">
+                  <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio. O Rogério confere o que pode ser feito.</span>
+                </p>
                 <label className="rv-area">
                   <span>O que você pretende fazer?</span>
                   <textarea rows={3} value={pedido} onChange={(e) => setPedido(e.target.value)} placeholder="Ex.: trocar o piso da sala e fazer armários na cozinha" />
