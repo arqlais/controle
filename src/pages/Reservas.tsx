@@ -1069,6 +1069,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
       hint="Cada morador numa etapa. Toque para abrir, confirmar o pagamento, marcar a data ou fazer o laudo."
       action={<Segmented<'etapas' | 'tabela' | 'agenda'> value={vista} onChange={setVista} options={[{ value: 'etapas', label: 'etapas' }, { value: 'tabela', label: 'tabela' }, { value: 'agenda', label: 'agenda' }]} />}
     >
+      <div className="rdp">
       <div className="rdp-kpis">
         {kpis.map(([k, v, s, f]) => (
           <div key={k} className={`rdp-kpi ${f && por(f).length && (f === 'laudo' || (f === 'sinal' && por('conferir').length)) ? 'alerta' : ''}`}>
@@ -1147,6 +1148,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
       )}
 
       {vista === 'agenda' && <AgendaDia ativas={ativas} cfg={cfg} eventos={eventos} onOpen={onOpen} onData={onData} />}
+      </div>
     </Section>
   )
 }

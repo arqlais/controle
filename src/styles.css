@@ -2661,3 +2661,15 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rdp-kpi, .rdp-busca, .rdp-table-wrap, .rdp-table th, .rdp-table td, .rdp-dias button, .rdp-slot.free { border-color: #e2e8f1; }
 .rdp-prog i { background: #e2e8f1; }
 @media (min-width: 1000px) { .rdp-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+/* painel: o layout segue a largura real do painel (no iPad a barra lateral ocupa espaço), não a da tela */
+.rdp { container-type: inline-size; }
+.rdp .rdp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rdp .rdp-kanban { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; }
+@container (min-width: 560px) {
+  .rdp .rdp-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rdp .rdp-kanban { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-columns: auto; overflow: visible; }
+}
+@container (min-width: 1000px) {
+  .rdp .rdp-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .rdp .rdp-kanban { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}

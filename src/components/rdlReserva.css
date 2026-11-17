@@ -3382,3 +3382,18 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 .rv-termo details summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
 .rv-pix .rv-btn.wide2 { white-space: nowrap; font-size: 14px; }
 .rv-pix .rv-btn.wide2 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* tablet/computador: rodapé alinhado com o conteúdo da página */
+.rv-foot { padding-left: max(20px, calc((100% - 648px) / 2)); padding-right: max(20px, calc((100% - 648px) / 2)); }
+@media (min-width: 820px) {
+  body:has(.rv-main.rv-wide) .rv-foot { padding-left: max(28px, calc((100% - 1044px) / 2)); padding-right: max(28px, calc((100% - 1044px) / 2)); }
+  /* escolha o que você precisa: título em cima, os 2 serviços lado a lado */
+  .rv-wide .rv-offers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rv-wide .rv-offers > :not(.rv-pick):not(.rv-offer) { grid-column: 1 / -1; }
+  .rv-dots { max-width: none; }
+}
+@media (min-width: 960px) {
+  body:has(.rv-dash) .rv-foot { padding-left: max(16px, calc((100% - 1088px) / 2)); padding-right: max(16px, calc((100% - 1088px) / 2)); }
+}
+.rv-offer.mini .rv-offer-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+@media (min-width: 820px) { .rv-wide .rv-dots { max-width: 520px; } }
