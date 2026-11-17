@@ -153,6 +153,15 @@ export const STATUS: Record<string, { label: string; color: string }> = {
   pausado: { label: 'Pausado', color: '#b8aca6' },
   cancelado: { label: 'Cancelado', color: '#9a5b53' },
 }
+// RDL (engenharia): as mesmas colunas com os nomes das etapas da vistoria e da ART
+if (rdlMode())
+  Object.assign(STATUS, {
+    briefing: { label: 'Aguardando sinal', color: '#9aa3ab' },
+    producao: { label: 'Sinal pago · sem data', color: '#566779' },
+    revisao: { label: 'Agendada', color: '#3e4b57' },
+    aguardando: { label: 'Fazer laudo / ART', color: '#b08a7e' },
+    entregue: { label: 'Entregue', color: '#012c60' },
+  })
 
 /** Etapas padrão de uma demanda freelancer (sem questionário de briefing). */
 export const DEFAULT_TASKS = [

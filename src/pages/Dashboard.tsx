@@ -504,7 +504,7 @@ function RdlResumo() {
   const prox = ativas.filter((r) => r.status.data && r.status.data >= hoje).sort((a, b) => `${a.status.data}${a.status.hora}`.localeCompare(`${b.status.data}${b.status.hora}`))
   const linhas: [string, string | number][] = [
     ['reservas ativas', ativas.length],
-    ['aguardando sinal', ativas.filter((r) => !r.status.sinal).length],
+    ['aguardando sinal', ativas.filter((r) => !r.status.sinal && !r.status.cortesia).length],
     ['vagas garantidas sem data', ativas.filter((r) => r.status.sinal && !r.status.data).length],
     ['vistorias nos próximos 7 dias', prox.filter((r) => (r.status.data ?? '') <= em7).length],
     ['laudos para entregar', ativas.filter((r) => r.status.data && r.status.data < hoje && !r.status.laudo).length],

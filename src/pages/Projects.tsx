@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
+import { rdlMode } from '../rdl'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
 import { waitingDays } from './Quotes'
@@ -43,6 +44,15 @@ const COLUMN_HINT: Record<string, string> = {
   pausado: 'demanda · parada por enquanto',
   cancelado: 'demanda · não segue',
 }
+// RDL: legenda de cada etapa da vistoria / ART
+if (rdlMode())
+  Object.assign(COLUMN_HINT, {
+    briefing: 'reservou · falta o Pix do sinal',
+    producao: 'vaga garantida · esperando a MRV',
+    revisao: 'data e horário marcados',
+    aguardando: 'vistoria feita ou ART a emitir',
+    entregue: 'laudo / ART entregues',
+  })
 
 export default function Projects() {
   const { data, upsert, setSettings, replaceAll } = useStore()

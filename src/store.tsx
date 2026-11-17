@@ -407,7 +407,7 @@ export function clientSettings(settings: Settings): Settings {
 
 /** Primeira vez do sistema da RDL: identidade, dados da empresa e serviços de vistoria já prontos. */
 function rdlFirstRun(settings: Settings): Data {
-  const st: Settings = { ...clientSettings(settings), ...RDL_SETTINGS, services: [...RDL_SERVICES, ...servicesFor('final')], simpleMenu: false } as Settings
+  const st: Settings = { ...clientSettings(settings), ...RDL_SETTINGS, services: RDL_SERVICES, rdlServicosV2: true, simpleMenu: false } as Settings
   return { ...emptyData(), settings: st }
 }
 

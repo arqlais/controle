@@ -4,8 +4,7 @@ import { Icon } from '../components/Icon'
 import { DateInput } from '../components/DateInput'
 import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { newClient } from '../components/forms'
-import { newArt } from './Arts'
+import { sincronizarRdl } from '../rdlSync'
 import { LaudoEditor } from './RdlLaudo'
 import { abrirContratoPdf } from '../rdlContratoPdf'
 import { msgConfirmacao, reciboPdf, reciboPng } from '../rdlRecibo'
@@ -49,12 +48,11 @@ async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => 
 }
 import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
 import { PAL } from '../palette'
-import { money, today, uid, whatsappLink } from '../utils'
+import { money, today, whatsappLink } from '../utils'
 import {
   CONFIG_PADRAO,
   atualizarReserva,
   avisarEmail,
-  dadosPadrao,
   enviarChavePix,
   dataCurta,
   lerConfig,
@@ -145,40 +143,10 @@ export default function Reservas() {
     return () => clearInterval(t)
   }, [carregar])
 
-  // cada reserva nova vira cliente no sistema (com os dados que o morador preencheu)
+  // cada reserva vira cliente, serviço com parcelas (financeiro), ART a emitir e compromisso na agenda
   useEffect(() => {
-    if (!list) return
-    for (const r of list) {
-      // cliente que veio da reserva: mantém nome, e-mail, telefone e CPF no padrão
-      const ligado = r.status.cliente ? data.clients.find((c) => c.id === r.status.cliente) : undefined
-      if (ligado && ligado.origin === 'reserva pelo link') {
-        const p = dadosPadrao(r.dados)
-        if (ligado.name !== p.nome || ligado.email !== p.email || ligado.phone !== p.tel || ligado.document !== p.cpf) upsert('clients', { ...ligado, name: p.nome, email: p.email, phone: p.tel, document: p.cpf })
-      }
-      if (r.cancelada || ligado) continue
-      const cpf = r.dados.cpf.replace(/\D/g, '')
-      const existente = data.clients.find((c) => c.document.replace(/\D/g, '') === cpf && cpf)
-      const id = existente?.id ?? uid()
-      if (!existente)
-        upsert('clients', {
-          ...newClient('final'),
-          id,
-          name: dadosPadrao(r.dados).nome,
-          email: dadosPadrao(r.dados).email,
-          phone: dadosPadrao(r.dados).tel,
-          document: dadosPadrao(r.dados).cpf,
-          cep: r.dados.cep ?? '',
-          address: r.dados.rua ? `${r.dados.rua}, ${r.dados.bairro}` : r.dados.endereco,
-          addressNumber: [r.dados.numero, r.dados.complemento].filter(Boolean).join(' '),
-          city: r.dados.cidade ? `${r.dados.cidade} - ${r.dados.uf}` : '',
-          origin: 'reserva pelo link',
-          notes: `${cfg.empreendimento} · ${unidade(r.dados)}${r.dados.revistoria ? ' · revistoria combinada' : ''}`,
-          createdAt: r.criado,
-        })
-      r.status = { ...r.status, cliente: id }
-      void atualizarReserva(r.id, { status: r.status }).catch(() => undefined)
-    }
-  }, [list]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (list) sincronizarRdl(list, data, upsert, cfg)
+  }, [list, cfg]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const salvarStatus = async (r: Reserva, patch: Partial<ReservaStatus>, aviso?: string) => {
     const status = { ...r.status, ...patch }
@@ -196,11 +164,8 @@ export default function Reservas() {
     return novo
   }
   const confirmarSinal = async (r: Reserva) => {
-    const novo = await salvarStatus(r, { sinal: today(), contratada: new Date().toISOString() }, 'Sinal confirmado: vaga garantida, contrato assinado pelas duas partes e e-mail enviado ao morador.')
+    await salvarStatus(r, { sinal: today(), contratada: new Date().toISOString() }, 'Sinal confirmado: vaga garantida, contrato assinado pelas duas partes e e-mail enviado ao morador.')
     void avisarEmail('sinal', r.id)
-    // ART da vistoria entra como "a emitir" no controle de ARTs
-    if (!(data.arts ?? []).some((a) => a.notes.includes(r.id.slice(0, 8))))
-      upsert('arts', newArt({ clientId: novo.status.cliente, clientName: r.dados.nome, service: 'vistoria de entrega de chaves', place: `${cfg.empreendimento} · ${unidade(r.dados)}`, contractValue: cfg.preco, notes: `reserva ${r.id.slice(0, 8).toUpperCase()}` }))
   }
   const marcarData = async (r: Reserva, d: string, h: string) => {
     const novo = await salvarStatus(r, { data: d, hora: h }, d ? 'Data salva no painel do morador e na agenda, e e-mail enviado.' : undefined)

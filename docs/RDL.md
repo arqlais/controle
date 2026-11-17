@@ -46,3 +46,11 @@ O modo RDL é decidido por `rdlMode()` (aba → aparelho). Tudo o que é da RDL 
 - ART de reforma: o morador pede (na reserva ou no painel), a RDL manda escopo, valor e prazo em vistorias, ele aprova no painel (cláusula 10.2). Função `rdl_morador`.
 - Painel: "o que fazer agora", etapas, documentos (contrato, ART da vistoria, laudo, ART de reforma), planta, reforma e ajuda.
 - Modo teste: `#/vistoria/teste` e `#/vistoria/teste-painel` (nada é salvo nem enviado); botão "testar como morador" em vistorias.
+
+## Tudo ligado (src/rdlSync.ts)
+O sistema da RDL é uma gestão própria de engenharia (foco: vistoria de entrega de chaves e ART de reforma). `useRdlSync()` roda no App inteiro da RDL (a cada 5 min e ao abrir vistorias) e, para cada reserva, só grava o que mudou:
+- **cliente** com os dados no padrão;
+- **serviço** em "serviços" (`rdl-<reserva>`), com etapa (aguardando sinal → sinal pago · sem data → agendada → fazer laudo/ART → entregue) e **parcelas**: sinal (valor conferido no extrato ou o Pix pedido), saldo da vistoria (no dia; paga ao marcar "vistoria feita e saldo pago") e ART de reforma. Isso alimenta financeiro, início e ficha do cliente. Parcela marcada como paga à mão no financeiro continua paga. Cortesia: valor zero, sem parcelas;
+- **ART a emitir** (`art-<reserva>-vistoria` quando o sinal entra; `art-<reserva>-reforma` quando o morador aprova a ART de reforma);
+- **agenda**: compromisso `vistoria-<reserva>` com data, horário e duração.
+Menu da RDL: "serviços" no lugar de "demandas", sem etapas de trabalho, instagram e briefings. Tabela de preços só com engenharia (vistoria, revistoria, ART de reforma + plano), migrada uma vez (`rdlServicosV2`).

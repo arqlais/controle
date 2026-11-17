@@ -77,6 +77,7 @@ import { misdatedOldQuotes } from './quoteActions'
 import { DIRECT_KEY, OWNER_ONLY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 import { enterRdl, exitRdl, rdlMode, rdlRole, setRdlFavicon } from './rdl'
+import { useRdlSync } from './rdlSync'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
 const NAV_GROUPS = [
@@ -86,7 +87,7 @@ const NAV_GROUPS = [
 ] as const
 const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUPS)[number]['key'] }[] = [
   { page: 'inicio', label: 'início', icon: 'home', group: 'dia' },
-  { page: 'projetos', label: 'demandas', icon: 'folder', group: 'dia' },
+  { page: 'projetos', label: rdlMode() ? 'serviços' : 'demandas', icon: 'folder', group: 'dia' },
   { page: 'agenda', label: 'agenda', icon: 'calendar', group: 'dia' },
   { page: 'financeiro', label: 'financeiro', icon: 'wallet', group: 'dia' },
   // RDL: reservas da vistoria que chegam pelo link (campanha San Levi)
@@ -95,8 +96,11 @@ const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUP
   { page: 'clientes', label: 'clientes', icon: 'users', group: 'vendas' },
   { page: 'paineis', label: rdlMode() ? 'painel do cliente' : 'cliente final', icon: 'link', group: 'vendas' },
   { page: 'documentos', label: 'documentos', icon: 'briefcase', group: 'vendas' },
-  { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' },
-  { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' },
+  // RDL: empresa de engenharia, sem as ferramentas de estúdio de design
+  ...(rdlMode() ? [] : [
+    { page: 'processos', label: 'etapas de trabalho', icon: 'layers', group: 'estudio' as const },
+    { page: 'instagram', label: 'instagram', icon: 'instagram', group: 'estudio' as const },
+  ]),
 ]
 // telas que dividem um item do menu: abas no topo da tela (menu mais curto)
 const SUBPAGES: Record<string, { page: string; label: string }[]> = {
@@ -112,7 +116,7 @@ const SUBPAGES: Record<string, { page: string; label: string }[]> = {
   ],
   paineis: [
     { page: 'paineis', label: 'painel do cliente' },
-    { page: 'briefings', label: 'briefings' },
+    ...(rdlMode() ? [] : [{ page: 'briefings', label: 'briefings' }]),
   ],
 }
 const menuItemOf = (page: string) => Object.keys(SUBPAGES).find((k) => SUBPAGES[k].some((s) => s.page === page)) ?? page
@@ -138,6 +142,8 @@ if (RDL) setRdlFavicon('RDL Engenharia')
 
 export default function App() {
   const { data, setSettings, lastSaved, replaceAll, sync, userEmail, isSample, showSample, upsert } = useStore()
+  // RDL: reservas, clientes, serviços, financeiro, ARTs e agenda ligados entre si (qualquer tela)
+  useRdlSync()
   // rascunhos de orçamento sempre depois do último número enviado/aprovado, em ordem de data
   // caixas de texto crescem com o conteúdo: nada fica escondido (o texto do contrato tem rolagem própria)
   useEffect(() => {

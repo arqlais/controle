@@ -706,6 +706,7 @@ export interface Settings {
   workProfile?: WorkProfile // vazio = como sempre foi (freelancer)
   hourlyCost?: number // quanto vale uma hora sua (para o lucro por projeto)
   lastRaise?: { at: string; pct: number } // último reajuste da tabela de preços
+  rdlServicosV2?: boolean // RDL: tabela de serviços só com os da engenharia (vistoria, revistoria, ART de reforma)
   simpleMenu?: boolean // menu enxuto (conta nova): só o essencial, com "todas as funções" no fim
   pricesTouched?: boolean // a pessoa já mexeu na tabela de preços (primeiros passos)
   page?: import('./studioPage').StudioPageCfg // página do profissional (link da bio)
