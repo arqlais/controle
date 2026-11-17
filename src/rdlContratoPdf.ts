@@ -156,7 +156,8 @@ export async function contratoPdf(r: Pick<Reserva, 'contrato' | 'status' | 'id'>
   }
   const rdlEm = r.status.contratada ? new Date(r.status.contratada).toLocaleString('pt-BR') : ''
   const quando = new Date(k.em).toLocaleString('pt-BR')
-  await caixa(X, rdlEm ? await nomeManuscrito('RDL Engenharia', 'dancing') : null, 'RDL ENGENHARIA E REPRESENTAÇÕES', [`${RDL_INFO.engineer} · CREA-SP ${RDL_INFO.crea}`, rdlEm ? `CONTRATADA · aceite em ${rdlEm}` : 'CONTRATADA · aceite na confirmação do pagamento'])
+  // a RDL assina junto, sempre com a mesma letra (exclusiva dela: o morador não tem essa opção)
+  await caixa(X, await nomeManuscrito('Rogério F. Vieira', 'allura'), 'RDL ENGENHARIA E REPRESENTAÇÕES', [`${RDL_INFO.engineer} · CREA-SP ${RDL_INFO.crea}`, `CONTRATADA · assinado eletronicamente em ${quando}`])
   await caixa(X + bw + 8, k.desenho ? await desenhoPng(k.desenho) : await nomeManuscrito(k.assinatura, k.fonte), 'CONTRATANTE', [`${k.assinatura} · CPF ${k.cpf}`, `assinado eletronicamente em ${quando}`])
   y += 48
 
@@ -173,10 +174,11 @@ export async function contratoPdf(r: Pick<Reserva, 'contrato' | 'status' | 'id'>
     ...(k.ua ? ([['Navegador', k.ua]] as [string, string][]) : []),
     ...(k.tela ? ([['Tela e idioma', `${k.tela}${k.idioma ? ` · ${k.idioma}` : ''}`]] as [string, string][]) : []),
     ['Forma de assinatura', k.desenho ? 'desenhada na tela' : 'nome digitado, em letra manuscrita'],
+    ['Contratada', `${RDL_INFO.engineer} (RDL Engenharia e Representações), assinatura eletrônica na mesma data`],
     ['Código do documento', `SHA-256 ${k.codigo}`],
     ['Versão do contrato', String(k.versao ?? 1)],
     ['Reserva', `nº ${r.id.slice(0, 8).toUpperCase()}`],
-    ...(rdlEm ? ([['Aceite da RDL', rdlEm]] as [string, string][]) : []),
+    ...(rdlEm ? ([['Pagamento confirmado', rdlEm]] as [string, string][]) : []),
   ]
   doc.setFontSize(7)
   const altLinhas = reg.map(([, v]) => (doc.splitTextToSize(v, LARG - 44) as string[]).length)

@@ -32,6 +32,7 @@ export interface ReservaConfig {
   periodo: string // previsão das vistorias pela construtora
   pix: string // chave Pix para o sinal (vazio = combinado no WhatsApp)
   pixNome: string
+  pixBanco?: string // banco da conta (aparece para o morador conferir antes de pagar)
   aberta: boolean
   individual: number // valor se o grupo não fechar
   minimo: number // apartamentos para valer o valor de grupo
@@ -45,8 +46,9 @@ export const CONFIG_PADRAO: ReservaConfig = {
   preco: 280,
   revistoria: 150,
   periodo: 'entre dezembro de 2026 e março de 2027',
-  pix: 'c01ef22d-c13e-4ffd-a9a2-e6e9af3e461a', // chave aleatória da RDL
-  pixNome: 'RDL Engenharia',
+  pix: 'c01ef22d-c13e-4ffd-a9a2-e6e9af3e461a', // chave aleatória
+  pixNome: 'Rogério Francisco Vieira',
+  pixBanco: 'Banco do Brasil',
   aberta: true,
   individual: 297,
   minimo: 10,
@@ -68,6 +70,8 @@ export async function lerConfig(): Promise<ReservaConfig> {
   const c = CLOUD ? await readPublicFile<Partial<ReservaConfig>>(RDL_ID, CONFIG_FILE) : null
   const cfg = { ...CONFIG_PADRAO, ...(c ?? {}) }
   if (!cfg.pix) cfg.pix = CONFIG_PADRAO.pix // configuração antiga salva sem chave
+  if (!cfg.pixNome || cfg.pixNome === 'RDL Engenharia') cfg.pixNome = CONFIG_PADRAO.pixNome // a conta do Pix é a do Rogério
+  if (!cfg.pixBanco) cfg.pixBanco = CONFIG_PADRAO.pixBanco
   return cfg
 }
 export const salvarConfig = (c: ReservaConfig) => publishPublicFile(RDL_ID, CONFIG_FILE, c)
@@ -620,7 +624,7 @@ export function dadosPadrao<T extends Partial<ReservaDados>>(d: T): T {
 }
 
 export const pixCopiaECola = (c: ReservaConfig, valor: number, r: Pick<Reserva, 'dados'>) =>
-  c.pix ? pixPayload({ key: c.pix, name: c.pixNome || 'RDL Engenharia', city: 'Santo Andre', amount: valor, message: `Vistoria ${unidade(r.dados)}`.slice(0, 40) }) : ''
+  c.pix ? pixPayload({ key: c.pix, name: (c.pixNome || 'Rogerio Francisco Vieira').normalize('NFD').replace(/[\u0300-\u036f]/g, ''), city: 'Santo Andre', amount: valor, message: `Vistoria ${unidade(r.dados)}`.slice(0, 40) }) : ''
 
 /* ---------- mensagens de WhatsApp por etapa (emojis só nas mensagens) ---------- */
 export function mensagens(r: Reserva, c: ReservaConfig) {
@@ -629,7 +633,7 @@ export function mensagens(r: Reserva, c: ReservaConfig) {
   const metade = vv.agora
   const painel = linkPainel(r)
   return {
-    sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix:\n*${c.pix}*` : '.'}\nDepois de pagar, toque em *Já paguei* no seu painel (ou mande o comprovante por aqui).\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
+    sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix (chave aleatória):\n*${c.pix}*\n${c.pixNome} · ${c.pixBanco ?? ''}` : '.'}\nDepois de pagar, toque em *Já paguei* no seu painel (ou mande o comprovante por aqui).\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
     confirmado: `Oi, ${nome}! ✅ Sinal recebido, a sua vaga na agenda está garantida.\n\nAssim que a MRV liberar as datas (${c.periodo}), me avisa para a gente combinar o horário antes de você confirmar com eles.\n\nPainel da sua vistoria:\n${painel}`,
     data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(vv.vistoria - vv.sinalVistoria)}* no dia (Pix ou cartão)\n\nQualquer coisa, me chama por aqui.`,
     laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\nEstá no seu painel:\n${painel}\n\nÉ só encaminhar para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,

@@ -718,6 +718,9 @@ function Config({ cfg, onClose, onSave }: { cfg: ReservaConfig; onClose: () => v
         <Field label="nome no Pix">
           <input value={c.pixNome} onChange={(e) => set('pixNome', e.target.value)} />
         </Field>
+        <Field label="banco">
+          <input value={c.pixBanco ?? ''} onChange={(e) => set('pixBanco', e.target.value)} />
+        </Field>
         <label className="row gap-s span2">
           <input type="checkbox" checked={c.aberta} onChange={(e) => set('aberta', e.target.checked)} /> reservas abertas no link
         </label>

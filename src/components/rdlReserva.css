@@ -3350,3 +3350,13 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 /* preço do serviço alinhado com o texto do cartão */
 .rv .rv-pick-head strong { padding-left: 82px; }
 @media (max-width: 440px) { .rv .rv-pick-head strong { padding-left: 36px; } }
+.rv-pix-conta { margin: 0 0 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.rv-pix-conta > div:first-child { grid-column: 1 / -1; }
+.rv-pix-conta dt { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mut); font-weight: 700; }
+.rv-pix-conta dd { margin: 2px 0 0; font-weight: 600; color: var(--navy); font-size: 14px; }
+.rv-pix-conta dd.k { font-size: 15px; word-break: break-all; font-weight: 700; }
+.rv-pix .rv-tip b { color: var(--navy); }
+.rv-contrato-pub { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 28px 20px; }
+.rv-contrato-pub h1 { margin: 0; font-size: 22px; color: var(--navy); }
+.rv-contrato-pub p { margin: 0; color: var(--txt); }
+.rv-contrato-pub .rv-btn { width: 100%; justify-content: center; }

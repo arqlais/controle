@@ -349,10 +349,13 @@ type RdlRow = { id: string; token: string; criado: string; dados: Record<string,
 const rdlSub = (id: string, email: string, name: string): Sub => ({ user_id: id, email, name, plan: '', status: '', trial_ends: '', blocked: false })
 // deno-lint-ignore no-explicit-any
 async function rdlCfg(db: any): Promise<RdlCfg> {
-  let cfg: RdlCfg = { preco: 280, individual: 297, minimo: 10, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: 'c01ef22d-c13e-4ffd-a9a2-e6e9af3e461a', empreendimento: 'Condomínio San Levi (MRV)' }
+  let cfg: RdlCfg = { preco: 280, individual: 297, minimo: 10, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: 'c01ef22d-c13e-4ffd-a9a2-e6e9af3e461a', pixNome: 'Rogério Francisco Vieira', pixBanco: 'Banco do Brasil', empreendimento: 'Condomínio San Levi (MRV)' }
   try {
     const f = await db.storage.from('agenda').download('7d1e0000-0000-4000-8000-00000000d1d1/reserva-vistoria.json')
-    if (f.data) cfg = { ...cfg, ...JSON.parse(await f.data.text()), pix: JSON.parse(await f.data.text()).pix || cfg.pix }
+    if (f.data) {
+      const j = JSON.parse(await f.data.text())
+      cfg = { ...cfg, ...j, pix: j.pix || cfg.pix, pixNome: !j.pixNome || j.pixNome === 'RDL Engenharia' ? 'Rogério Francisco Vieira' : j.pixNome, pixBanco: j.pixBanco || 'Banco do Brasil' }
+    }
   } catch {
     /* usa o padrão */
   }
@@ -453,7 +456,7 @@ ${rows}${btn}
 <tr><td style="padding:14px 8px 0;font-size:11.5px;line-height:1.6;color:#7A7F92;text-align:center;">Para falar com a RDL, é só responder este e-mail ou chamar no WhatsApp.</td></tr>
 </table></td></tr></table></body></html>`
 }
-type RdlCfg = { preco: number; individual?: number; minimo?: number; revistoria: number; periodo: string; pix: string; empreendimento: string }
+type RdlCfg = { preco: number; individual?: number; minimo?: number; revistoria: number; periodo: string; pix: string; pixNome?: string; pixBanco?: string; empreendimento: string }
 function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const d = r.dados as Record<string, string | boolean>
   const nome = String(d.nome ?? '')
@@ -562,13 +565,24 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
         url: `${SITE}vistoria/`,
       }),
     },
+    contrato: {
+      subject: `Sua cópia do contrato assinado · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'contrato assinado',
+        title: 'Sua cópia do contrato',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Segue a sua cópia do contrato da ${temVist ? 'vistoria' : 'ART de reforma'}, <b>assinado por você e pela RDL Engenharia</b>.</p><p style="margin:0 0 12px;">O PDF traz o registro completo da assinatura eletrônica: data e hora, IP, aparelho e o código do documento, que garante que o texto é o mesmo que você assinou.</p><p style="margin:0;">Guarde este e-mail. O contrato também fica sempre no seu painel.</p>`,
+        rows: base,
+        button: 'Abrir o contrato (PDF)',
+        url: `${SITE}#/vistoria/contrato-${r.id}.${r.token}`,
+      }),
+    },
     pix: {
       subject: `Chave Pix para garantir a sua vistoria · ${un}`,
       html: rdlLayout({
         eyebrow: 'chave pix',
         title: 'Aqui está a chave Pix da RDL',
         text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Como combinado, segue a chave Pix para o pagamento de <b>${brl(metade)}</b> que garante a sua ${temVist ? 'vistoria' : 'ART de reforma'}${prazoPix ? `, até <b>${prazoPix}</b>` : ''}.</p>
-<div style="margin:0 0 14px;padding:14px 16px;border-radius:12px;background:#F1F4F9;border:1px solid #DCE3EE;"><div style="font-size:11px;letter-spacing:1.5px;color:#7A7F92;font-weight:600;">CHAVE PIX ALEATÓRIA · RDL ENGENHARIA</div><div style="font-size:16px;font-weight:700;color:#012C60;word-break:break-all;margin-top:4px;">${esc(cfg.pix)}</div></div>
+<div style="margin:0 0 14px;padding:14px 16px;border-radius:12px;background:#F1F4F9;border:1px solid #DCE3EE;"><div style="font-size:11px;letter-spacing:1.5px;color:#7A7F92;font-weight:600;">CHAVE PIX ALEATÓRIA</div><div style="font-size:16px;font-weight:700;color:#012C60;word-break:break-all;margin-top:4px;">${esc(cfg.pix)}</div><div style="font-size:13px;color:#46506A;margin-top:8px;">${esc(cfg.pixNome ?? '')} · ${esc(cfg.pixBanco ?? '')}</div></div>
 <p style="margin:0 0 8px;">No app do banco: <b>Pix → Pagar → Chave</b>, cole a chave e digite ${brl(metade)}. Se preferir, o seu painel tem o <b>Pix copia e cola</b>, que já vem com o valor.</p>
 <p style="margin:0;">Depois de pagar, toque em <b>Já paguei</b> no painel. O Rogério confere e confirma, e você recebe o e-mail com tudo para acompanhar.</p>`,
         rows: [...base, ['valor', brl(metade)]],
@@ -920,6 +934,34 @@ Deno.serve(async (req) => {
       console.error(e)
       return json({ ok: false })
     }
+  }
+
+  if (tipo === 'rdl-contrato') {
+    // manda a cópia do contrato assinado para cada reserva ativa (uma vez), com cópia para a dona
+    const servico = token === env('SUPABASE_SERVICE_ROLE_KEY')
+    const mail = String(who?.user?.email ?? '').toLowerCase()
+    if (!servico && !cron && !isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
+    const cfg = await rdlCfg(db)
+    const { data: rows } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
+    const enviados: string[] = []
+    for (const r of (rows ?? []) as RdlRow[]) {
+      const avisos = r.avisos ?? {}
+      if (avisos['contrato-copia']) continue
+      const to = String((r.dados as Record<string, string>).email ?? '').trim()
+      const nome = String((r.dados as Record<string, string>).nome ?? '')
+      if (!isMail(to)) continue
+      const m = rdlMails(r, cfg, 0).contrato
+      try {
+        await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
+        await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
+        await db.from('rdl_reservas').update({ avisos: { ...avisos, 'contrato-copia': new Date().toISOString() } }).eq('id', r.id)
+        enviados.push(nome)
+      } catch (e) {
+        console.error(e)
+        lastError = String(e instanceof Error ? e.message : e).slice(0, 240)
+      }
+    }
+    return json({ ok: true, enviados, erro: lastError || undefined })
   }
 
   if (tipo === 'rdl-pix') {

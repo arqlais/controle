@@ -7,7 +7,7 @@ import { formatCep, formatDoc, formatPhone, lookupCep, whatsappLink } from '../u
 import { deviceLabel } from '../contractSign'
 import { SIGN_FONTS } from './SignaturePad'
 import { htmlDoLaudo } from '../rdlLaudo'
-import { abrirContratoPdf } from '../rdlContratoPdf'
+import { abrirContratoPdf, contratoPdf } from '../rdlContratoPdf'
 import { openRdlDoc } from '../rdlDocs'
 import {
   CONFIG_PADRAO,
@@ -72,6 +72,7 @@ const P: Record<string, string> = {
   cal: '<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   card: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M3 10h18"/>',
   redo: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/>',
+  whatsapp: '<path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8L4 20z"/><path d="M9.2 8.6c.2-.4.5-.5.8-.5h.4c.2 0 .4.1.5.4l.6 1.4c.1.2 0 .5-.1.6l-.4.5c.5 1 1.3 1.8 2.3 2.3l.5-.4c.2-.1.4-.2.6-.1l1.4.6c.3.1.4.3.4.5v.4c0 .3-.1.6-.5.8-.6.3-1.4.4-2.2.1a7.6 7.6 0 0 1-4.3-4.3c-.3-.8-.2-1.6.1-2.2z"/>',
   chat: '<path d="M4 19l1.3-3.9A8 8 0 1 1 8.9 18.7z"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
   user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/>',
@@ -628,6 +629,10 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   if (sub === 'teste-reservar') return <div className="rv"><Reservar teste /></div>
   if (sub === 'reservar' || sub === 'reservar-reforma' || sub === 'so-reforma') return <div className="rv"><Reservar comReforma={sub === 'reservar-reforma'} soReforma={sub === 'so-reforma'} /></div>
   if (sub === 'teste-painel') return <div className="rv"><Painel id="" token="" teste /></div>
+  if (sub?.startsWith('contrato-')) {
+    const [cid2, ctk2] = sub.slice(9).split('.')
+    return <ContratoPublico id={cid2} token={ctk2} />
+  }
   if (sub?.startsWith('laudo-')) {
     const [lid, ltk] = sub.slice(6).split('.')
     return <LaudoPublico id={lid} token={ltk} />
@@ -640,6 +645,51 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Boas />}</div>
 }
 
+
+/* ================= cópia do contrato assinado (link do e-mail) ================= */
+
+function ContratoPublico({ id, token }: { id: string; token: string }) {
+  const [url, setUrl] = useState<string | null | undefined>(undefined)
+  const [nome, setNome] = useState('')
+  useEffect(() => {
+    void minhaReserva(id, token)
+      .then(async (r) => {
+        if (!r) return setUrl(null)
+        setNome(`Contrato RDL ${unidade(r.dados)}.pdf`)
+        setUrl(URL.createObjectURL(await contratoPdf(r)))
+      })
+      .catch(() => setUrl(null))
+  }, [id, token])
+  return (
+    <div className="rv">
+      <Topo voltar={{ label: 'Meu painel', acao: () => (location.hash = `#/vistoria/${id}.${token}`) }} />
+      <main className="rv-main">
+        <section className="rv-card rv-contrato-pub">
+          <span className="ib">
+            <I n="sign" s={20} />
+          </span>
+          <h1>Seu contrato assinado</h1>
+          {url === undefined ? (
+            <p>Gerando o PDF…</p>
+          ) : url === null ? (
+            <p>Não encontrei este contrato. Confira o link do e-mail ou fale com o Rogério.</p>
+          ) : (
+            <>
+              <p>Assinado por você e pela RDL Engenharia, com o registro da assinatura eletrônica (data, hora, IP, aparelho e código do documento).</p>
+              <a className="rv-btn wide2" href={url} target="_blank" rel="noreferrer">
+                <I n="doc" /> <span>Abrir o contrato (PDF)</span>
+              </a>
+              <a className="rv-btn ghost wide2" href={url} download={nome}>
+                <I n="copy" /> <span>Baixar uma cópia</span>
+              </a>
+            </>
+          )}
+        </section>
+      </main>
+      <Rodape />
+    </div>
+  )
+}
 
 /* ================= laudo publicado (link do painel e do e-mail) ================= */
 
@@ -1918,19 +1968,35 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               </p>
               {cfg.pix ? (
                 <div className="rv-pix">
-                  <small>CHAVE PIX · {cfg.pixNome}</small>
-                  <b>{cfg.pix}</b>
-                  <div className="rv-row">
-                    <button className="rv-btn small ghost" onClick={() => void copiar(cfg.pix, 'chave')}>
-                      <I n="copy" /> <span>{copiado === 'chave' ? 'Copiado!' : 'Copiar a chave'}</span>
+                  <dl className="rv-pix-conta">
+                    <div>
+                      <dt>Chave Pix (aleatória)</dt>
+                      <dd className="k">{cfg.pix}</dd>
+                    </div>
+                    <div>
+                      <dt>Nome</dt>
+                      <dd>{cfg.pixNome}</dd>
+                    </div>
+                    <div>
+                      <dt>Banco</dt>
+                      <dd>{cfg.pixBanco}</dd>
+                    </div>
+                    <div>
+                      <dt>Valor</dt>
+                      <dd>{brl(metade)}</dd>
+                    </div>
+                  </dl>
+                  {pix && (
+                    <button className="rv-btn small wide2" onClick={() => void copiar(pix, 'pix')}>
+                      <I n="copy" /> <span>{copiado === 'pix' ? 'Copiado! Agora cole no app do banco' : 'Copiar Pix copia e cola (já com o valor)'}</span>
                     </button>
-                    {pix && (
-                      <button className="rv-btn small ghost" onClick={() => void copiar(pix, 'pix')}>
-                        <I n="copy" /> <span>{copiado === 'pix' ? 'Copiado!' : 'Pix copia e cola'}</span>
-                      </button>
-                    )}
-                  </div>
-                  <small className="rv-tip">No app do banco: Pix → Pagar → cole a chave e digite {brl(metade)}. O “copia e cola” já vem com o valor.</small>
+                  )}
+                  <button className="rv-link small rv-center" onClick={() => void copiar(cfg.pix, 'chave')}>
+                    {copiado === 'chave' ? 'Chave copiada!' : 'ou copiar só a chave'}
+                  </button>
+                  <small className="rv-tip">
+                    <b>Copia e cola:</b> no app do banco, Pix → Pix copia e cola → cole. Já vem com o valor e o nome. <b>Só a chave:</b> Pix → Pagar com chave → cole e digite {brl(metade)}. Confira se aparece {cfg.pixNome}, {cfg.pixBanco}.
+                  </small>
                 </div>
               ) : (
                 <p className="rv-alert">
@@ -1941,6 +2007,11 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                 <p className="rv-alert ok">
                   <I n="check" s={15} /> <span>Você marcou como pago em {dataCurta(s.pagoInformado.slice(0, 10))}. O Rogério confere no banco e confirma aqui (em até 1 dia útil).</span>
                 </p>
+              ) : null}
+              {s.pagoInformado ? (
+                <a className="rv-btn small wide2 ghost" href={zap(`Oi, Rogério! Fiz o Pix de ${brl(metade)} do sinal da vistoria do ${unidade(r.dados)} (${r.dados.nome}). Segue o comprovante:`)} target="_blank" rel="noreferrer">
+                  <I n="whatsapp" /> <span>Enviar o comprovante pelo WhatsApp</span>
+                </a>
               ) : (
                 <button className="rv-btn small wide2" disabled={enviando} onClick={() => void jaPaguei()}>
                   <I n="check" /> <span>{enviando ? 'Enviando…' : 'Já paguei'}</span>
@@ -2066,7 +2137,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
         ['ART pronta', !!rf.art],
       ]
   const docs: { icon: string; t: string; ok: boolean; sub: string; act?: () => void; href?: string }[] = [
-    { icon: 'sign', t: 'Contrato', ok: true, sub: s.contratada ? 'Assinado pelas duas partes' : 'Assinado por você', act: () => void abrirContratoPdf(r) },
+    { icon: 'sign', t: 'Contrato', ok: true, sub: 'Assinado por você e pela RDL', act: () => void abrirContratoPdf(r) },
     ...(svr.vistoria
       ? [
           { icon: 'shield', t: 'ART da vistoria', ok: !!s.art, sub: s.art ? 'Registrada no CREA' : 'Aparece aqui depois da vistoria', href: s.art },
