@@ -2546,3 +2546,4 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
   .ld-foot .btn { flex: 1; justify-content: center; }
   .ld-salvo { width: 100%; text-align: center; }
 }
+.rsv-pago { width: 100%; margin: 0 0 4px; padding: 8px 10px; border-radius: 10px; background: #fff1e4; color: #b4570a; font-size: 13px; font-weight: 600; }

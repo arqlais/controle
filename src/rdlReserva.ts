@@ -120,6 +120,12 @@ export interface ReservaContrato {
   recebido?: string
   ip?: string // gravado pelo banco
   versao?: number // versão do contrato (ver CONTRATO_VERSAO)
+  fonte?: string // letra escolhida para a assinatura digitada
+  ua?: string // navegador
+  tela?: string
+  idioma?: string
+  email?: string
+  tel?: string
 }
 export interface ReservaStatus {
   sinal?: string // data em que a RDL confirmou o sinal
@@ -135,6 +141,7 @@ export interface ReservaStatus {
   art?: string // link da ART da vistoria
   reforma?: ReformaPedido
   expirada?: string // cancelada sozinha por falta de sinal
+  pagoInformado?: string // o morador marcou "já paguei" (a RDL confere e confirma)
   laudoDados?: import('./rdlLaudo').LaudoRascunho // laudo montado no sistema (itens, fotos, testes)
 }
 export interface Reserva {
@@ -342,7 +349,7 @@ export async function apagarReserva(id: string) {
 }
 
 /** O que o morador pode mudar pelo painel (planta, pedido e aprovação da ART de reforma). */
-export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar', valor: string | { pedido: string; itens: string[]; estimativa: number } | { prestador: string; termo: string } = ''): Promise<boolean> {
+export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar' | 'pago', valor: string | { pedido: string; itens: string[]; estimativa: number } | { prestador: string; termo: string } = ''): Promise<boolean> {
   if (!supabase) return false
   const { data, error } = await supabase.rpc('rdl_morador', { p_id: id, p_token: token, p_acao: acao, p_valor: typeof valor === 'string' ? valor : JSON.stringify(valor) })
   return !error && !!data
@@ -361,7 +368,7 @@ export function reservaTeste(etapa: 'reserva' | 'sinal' | 'data' | 'laudo', c: R
 }
 
 /** E-mail da etapa para o morador (e, na reserva, para a RDL), pelo remetente da planê com a identidade da RDL. Nunca trava a tela. */
-export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
+export async function avisarEmail(evento: 'pago' | 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
   if (!supabase) return false
   try {
     const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl', evento, id, token } })

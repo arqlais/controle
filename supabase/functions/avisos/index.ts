@@ -480,7 +480,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
       html: rdlLayout({
         eyebrow: 'reserva da vistoria',
         title: `Recebemos a sua reserva, ${pn}!`,
-        text: `<p style="margin:0 0 12px;">O seu contrato (${esc(servTxt)}) foi assinado e está guardado no seu painel.</p><p style="margin:0;"><b>Para garantir</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois é só mandar o comprovante pelo WhatsApp ou respondendo este e-mail.</p>${temVist ? `<p style="margin:12px 0 0;">${grupoTxt}</p>` : ''}`,
+        text: `<p style="margin:0 0 12px;">O seu contrato (${esc(servTxt)}) foi assinado e está guardado no seu painel.</p><p style="margin:0;"><b>Para garantir</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois de pagar, toque em <b>Já paguei</b> no seu painel: o Rogério confere e confirma.</p>${temVist ? `<p style="margin:12px 0 0;">${grupoTxt}</p>` : ''}`,
         rows: [...base, ['serviços', servTxt], ['total', brl((temVist ? cfg.preco : 0) + valRef)], ['agora no Pix', brl(metade)], ...(temVist ? ([['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`]] as [string, string][]) : []), ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
         button: 'Abrir o meu painel',
         url: painel,
@@ -543,7 +543,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'lembrete',
         title: 'Falta o sinal para garantir a vaga',
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua reserva está feita, mas a vaga só fica garantida com o sinal de <b>${brl(metade)}</b>${cfg.pix ? ` (Pix <b>${esc(cfg.pix)}</b>)` : ''}.</p><p style="margin:0;">O prazo é de 7 dias depois da assinatura. Sem o sinal, a reserva é cancelada sozinha, sem custo. Se já pagou, é só mandar o comprovante respondendo este e-mail.</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua reserva está feita, mas a vaga só fica garantida com o sinal de <b>${brl(metade)}</b>${cfg.pix ? ` (Pix <b>${esc(cfg.pix)}</b>)` : ''}.</p><p style="margin:0;">O prazo é de 7 dias depois da assinatura. Sem o sinal, a reserva é cancelada sozinha, sem custo. Se já pagou, toque em <b>Já paguei</b> no seu painel.</p>`,
         rows: base,
         button: 'Abrir o meu painel',
         url: painel,
@@ -558,6 +558,17 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
         rows: base,
         button: 'Reservar de novo',
         url: `${SITE}vistoria/`,
+      }),
+    },
+    pago: {
+      subject: `Conferir pagamento: ${nome} · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'pagamento informado',
+        title: `${nome} marcou que pagou`,
+        text: `<p style="margin:0 0 12px;">O morador tocou em <b>Já paguei</b> no painel. Confira no extrato se o Pix de <b>${brl(metade)}</b> entrou${cfg.pix ? ` na chave ${esc(cfg.pix)}` : ''}.</p><p style="margin:0;">Se entrou, abra <b>vistorias</b> no sistema da RDL e toque em <b>sinal recebido</b>: o contrato fica assinado pelas duas partes e ele recebe o e-mail com o painel.</p>`,
+        rows: [...base, ['valor', brl(metade)], ['WhatsApp', String(d.tel ?? '')]],
+        button: 'Abrir o sistema da RDL',
+        url: `${SITE}rdl/#reservas`,
       }),
     },
     'reforma-pedido': {
@@ -609,7 +620,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'último dia',
         title: 'Hoje é o último dia do prazo',
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O prazo para o pagamento de <b>${brl(metade)}</b> termina hoje. Depois disso, a reserva é cancelada sozinha, sem custo.</p><p style="margin:0;">Se já pagou, é só responder este e-mail com o comprovante.</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O prazo para o pagamento de <b>${brl(metade)}</b> termina hoje. Depois disso, a reserva é cancelada sozinha, sem custo.</p><p style="margin:0;">Se já pagou, toque em <b>Já paguei</b> no seu painel.</p>`,
         rows: base,
         button: 'Pagar pelo meu painel',
         url: painel,
@@ -900,11 +911,11 @@ Deno.serve(async (req) => {
     // as outras etapas só a RDL (Laís ou Rogério, logados). Cada e-mail vai uma vez por etapa (coluna avisos).
     const evento = String(body.evento ?? '')
     const id = String(body.id ?? '')
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada'].includes(evento)) return json({ ok: false }, 400)
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'pago', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada'].includes(evento)) return json({ ok: false }, 400)
     const { data: row } = await db.from('rdl_reservas').select('*').eq('id', id).maybeSingle()
     const r = row as RdlRow | null
     if (!r) return json({ ok: false }, 404)
-    if (evento === 'reserva' || evento === 'reforma-pedido' || evento === 'reforma-aprovada') {
+    if (evento === 'reserva' || evento === 'pago' || evento === 'reforma-pedido' || evento === 'reforma-aprovada') {
       if (String(body.token ?? '') !== r.token) return json({ ok: false }, 403)
     } else {
       const mail = String(who?.user?.email ?? '').toLowerCase()
@@ -912,7 +923,7 @@ Deno.serve(async (req) => {
     }
     const st = r.status ?? {}
     const rfx = ((r.status ?? {}) as { reforma?: Record<string, string> }).reforma ?? {}
-    const ref = evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento
+    const ref = evento === 'pago' ? `pago:${st.pagoInformado ?? ''}` : evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento
     const avisos = r.avisos ?? {}
     if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
     // valores da campanha (arquivo público da RDL)
@@ -923,8 +934,8 @@ Deno.serve(async (req) => {
     const nome = String((r.dados as Record<string, string>).nome ?? '')
     const ok: string[] = []
     try {
-      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada'
-      if (isMail(to) && evento !== 'reforma-pedido') {
+      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'pago'
+      if (isMail(to) && evento !== 'reforma-pedido' && evento !== 'pago') {
         await send(rdlSub(id, to, nome), evento === 'reforma-aprovada' ? { subject: `Você aprovou a ART de reforma`, html: mails['reforma-aprovada'].html } : mails[evento], RDL_EMAIL, RDL_FROM)
         ok.push('morador')
       }

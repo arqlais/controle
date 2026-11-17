@@ -3267,3 +3267,34 @@ html.rv-root body {
 .rv-paper-item .ph { overflow: hidden; background: #e9edf3; }
 .rv-paper-item .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rv-paper-item .ph em { position: absolute; left: 3px; bottom: 3px; background: #012c60; color: #fff; border-radius: 4px; padding: 0 4px; font-size: 8px; font-weight: 700; line-height: 13px; }
+.rv-alert.ok { background: #e7eef8; color: var(--navy); }
+.rv-alert.ok .rv-i { color: var(--navy); }
+.rv-fab { transition: opacity 0.2s, transform 0.2s; }
+.rv-fab.is-hidden { opacity: 0; transform: translateY(12px); pointer-events: none; }
+/* assinatura: letras manuscritas, área grande para o dedo */
+.rv-signname { display: grid; gap: 6px; }
+.rv-signname span { font-size: 13px; color: var(--txt); }
+.rv-fontes { display: grid; gap: 8px; margin-top: 10px; }
+.rv-fontes button { border: 1.5px solid #e1e4ea; background: #fff; border-radius: 12px; padding: 10px 14px; min-height: 64px; display: flex; align-items: center; color: var(--navy); cursor: pointer; overflow: hidden; text-align: left; }
+.rv-fontes button span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.rv-fontes button.on { border-color: var(--navy); background: #f2f6fc; box-shadow: inset 0 0 0 1px var(--navy); }
+.rv-signprev { display: grid; gap: 6px; justify-items: center; background: #fff; border: 1.5px solid #e1e4ea; border-radius: 12px; padding: 8px; }
+.rv-signprev svg { width: 100%; max-width: 360px; height: auto; }
+.rv-signfull { position: fixed; inset: 0; z-index: 80; background: rgba(1, 20, 45, 0.55); display: flex; align-items: center; justify-content: center; padding: 12px; }
+.rv-signfull-in { background: #fff; border-radius: 18px; padding: 16px; width: min(100%, 860px); display: grid; gap: 12px; }
+.rv-signfull-in p { margin: 0; display: grid; gap: 2px; color: var(--navy); }
+.rv-signfull-in p small { color: var(--mut); font-size: 12px; }
+.rv-signfull .sp-area { width: 100%; height: min(52vh, 360px); display: block; background: #f7f9fc; border-radius: 12px; border: 1.5px dashed #b8c4d6; touch-action: none; }
+@media (orientation: landscape) and (max-height: 500px) { .rv-signfull .sp-area { height: 58vh; } .rv-signfull-in { padding: 10px; gap: 8px; } }
+.rv-signgo .rv-btn:last-child { flex: 1; }
+.rv-pad { display: grid; gap: 6px; justify-items: end; }
+.rv-pad .rv-pad-area { justify-self: stretch; margin: 0 auto; }
+.rv-pad-area { width: min(100%, calc(62vh * 600 / 360)); justify-self: center; height: auto; display: block; background: #f7f9fc; border-radius: 12px; border: 1.5px dashed #b8c4d6; touch-action: none; }
+button.rv-link { background: none; border: 0; padding: 4px 2px; font: inherit; font-weight: 600; font-size: 14px; color: var(--navy); cursor: pointer; }
+button.rv-link:disabled { opacity: 0.4; cursor: default; }
+.rv-signgo { flex-wrap: nowrap; }
+.rv-signgo .rv-btn.ghost { flex: none; padding-left: 16px; padding-right: 16px; }
+.rv-signgo .rv-btn:last-child { white-space: nowrap; }
+@media (max-width: 420px) { .rv-signgo .rv-btn.ghost span.rv-voltar-t { display: none; } }
+.rv-aa { font-family: 'Dancing Script', cursive; font-size: 16px; line-height: 1; }
+.rv-link.rv-center { align-self: center; margin: 2px auto 0; }

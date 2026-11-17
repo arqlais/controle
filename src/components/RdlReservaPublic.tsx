@@ -5,15 +5,15 @@ import { setRdlFavicon } from '../rdl'
 import { VISTORIA_PROPOSTA_URL } from '../contractTemplates'
 import { formatCep, formatDoc, formatPhone, lookupCep, whatsappLink } from '../utils'
 import { deviceLabel } from '../contractSign'
-import { SignaturePad, drawingToDataUrl } from './SignaturePad'
+import { SIGN_FONTS } from './SignaturePad'
 import { htmlDoLaudo } from '../rdlLaudo'
+import { abrirContratoPdf } from '../rdlContratoPdf'
 import { openRdlDoc } from '../rdlDocs'
 import {
   CONFIG_PADRAO,
   PLANTA_CANTO,
   PLANTA_CORREDOR,
   RDL_INFO,
-  abrirContrato,
   avisarEmail,
   contagem,
   contratoTexto,
@@ -278,11 +278,40 @@ function Duvidas({ teste, nome = '', contato = '', reserva, abrirCom }: { teste?
     const m = await chatLer(c)
     if (m) setMsgs(m)
   }
+  // o botão some enquanto estiver por cima de outro botão (Assinar, Voltar, Pagar…)
+  const fab = useRef<HTMLButtonElement>(null)
+  const [escondido, setEscondido] = useState(false)
+  useEffect(() => {
+    let raf = 0
+    const ver = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const f = fab.current?.getBoundingClientRect()
+        if (!f) return
+        const em = [...document.querySelectorAll<HTMLElement>('.rv .rv-btn, .rv .rv-check, .rv input, .rv textarea')].some((el) => {
+          if (el === fab.current) return false
+          const b = el.getBoundingClientRect()
+          return b.width > 0 && b.left < f.right + 6 && b.right > f.left - 6 && b.top < f.bottom + 6 && b.bottom > f.top - 6
+        })
+        setEscondido(em)
+      })
+    }
+    ver()
+    addEventListener('scroll', ver, { passive: true })
+    addEventListener('resize', ver)
+    const t = setInterval(ver, 800)
+    return () => {
+      removeEventListener('scroll', ver)
+      removeEventListener('resize', ver)
+      clearInterval(t)
+      cancelAnimationFrame(raf)
+    }
+  }, [])
   const precisaContato = !conv && !reserva && !teste
   const podeEnviar = !!texto.trim() && (!precisaContato || (f.nome.trim().length > 1 && f.contato.trim().length >= 5))
   return (
     <>
-      <button className="rv-fab" onClick={() => setOpen(true)} aria-label="Tirar uma dúvida">
+      <button ref={fab} className={`rv-fab ${escondido ? 'is-hidden' : ''}`} onClick={() => setOpen(true)} aria-label="Tirar uma dúvida">
         <I n="chat" s={18} /> Dúvidas?
       </button>
       {open && (
@@ -705,7 +734,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
 
         {salvo && (
           <a className="rv-saved" href={salvo}>
-            <I n="check" /> Você já tem uma reserva neste celular. <b>Abrir o meu painel</b> <I n="arrow" />
+            <I n="check" /> <span>Você já tem uma reserva neste celular. <b>Abrir o meu painel</b> <I n="arrow" /></span>
           </a>
         )}
 
@@ -735,7 +764,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <div className="rv-chips">
             {['Piso desnivelado', 'Azulejo oco ou trincado', 'Ralo sem caimento', 'Tomada sem energia', 'Porta que não fecha', 'Janela com folga', 'Mancha de infiltração', 'Parede fora de prumo'].map((t) => (
               <span key={t}>
-                <I n="x" s={11} /> {t}
+                <I n="x" s={11} /> <span>{t}</span>
               </span>
             ))}
           </div>
@@ -1065,7 +1094,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
   const irPara = () => document.getElementById('reservar')?.scrollIntoView({ behavior: 'smooth' })
   const campo = (k: keyof typeof faltando) => (tried && faltando[k] ? 'bad' : '')
 
-  const enviar = async (a: { modo: 'digitado' | 'desenho'; desenho: string }) => {
+  const enviar = async (a: Assinatura) => {
     if (busy) return
     setBusy(true)
     setErro('')
@@ -1080,7 +1109,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
       const ap = deviceLabel()
       const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, ap].join('|'))
-      const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: d.cpf, em, codigo, aparelho: ap, fuso, versao: CONTRATO_VERSAO })
+      const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: d.cpf, em, codigo, aparelho: ap, fuso, versao: CONTRATO_VERSAO, email: d.email.trim().toLowerCase(), tel: d.tel, fonte: a.modo === 'digitado' ? a.fonte : undefined, ua: navigator.userAgent.slice(0, 300), tela: `${screen.width}×${screen.height}`, idioma: navigator.language })
       rastrear('assinou', { vistoria: sv.vistoria, reforma: sv.reforma })
       void avisarEmail('reserva', r.id, r.token)
       if (sv.reforma) void avisarEmail('reforma-aprovada', r.id, r.token)
@@ -1125,7 +1154,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
 
         {salvo && (
           <a className="rv-saved" href={salvo}>
-            <I n="check" /> Você já tem uma reserva neste celular. <b>Abrir o meu painel</b> <I n="arrow" />
+            <I n="check" /> <span>Você já tem uma reserva neste celular. <b>Abrir o meu painel</b> <I n="arrow" /></span>
           </a>
         )}
 
@@ -1416,13 +1445,83 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
 }
 
 /** Leitura do contrato, aceite e assinatura (na reserva e quando o painel pede para assinar de novo). */
-function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar, botao = 'Assinar e reservar', livre }: { texto: string; nome: string; reforma: boolean; agora: number; busy: boolean; erro: string; onVoltar?: () => void; onAssinar: (a: { modo: 'digitado' | 'desenho'; desenho: string }) => void; botao?: string; livre?: boolean }) {
+/** Área grande para assinar com o dedo (600 × 360). Ao terminar, o traço é encaixado na proporção da assinatura do contrato (600 × 200). */
+function RvPad({ onChange }: { onChange: (path: string) => void }) {
+  const W = 600
+  const H = 360
+  const box = useRef<SVGSVGElement>(null)
+  const drawing = useRef(false)
+  const last = useRef<[number, number] | null>(null)
+  const [live, setLive] = useState('')
+  const pt = (e: React.PointerEvent): [number, number] => {
+    const r = box.current!.getBoundingClientRect()
+    return [Math.round(((e.clientX - r.left) / r.width) * W), Math.round(((e.clientY - r.top) / r.height) * H)]
+  }
+  const encaixar = (d: string) => {
+    const k = 200 / H
+    const dx = (600 - W * k) / 2
+    let i = 0
+    return d.replace(/-?\d+(\.\d+)?/g, (n) => {
+      const v = Number(n)
+      const out = i % 2 === 0 ? v * k + dx : v * k
+      i++
+      return String(Math.round(out * 10) / 10)
+    })
+  }
+  const fim = () => {
+    if (!drawing.current) return
+    drawing.current = false
+    last.current = null
+    onChange(live ? encaixar(live) : '')
+  }
+  return (
+    <div className="rv-pad">
+      <svg
+        ref={box}
+        viewBox={`0 0 ${W} ${H}`}
+        className="rv-pad-area"
+        onPointerDown={(e) => {
+          e.preventDefault()
+          ;(e.target as Element).setPointerCapture?.(e.pointerId)
+          drawing.current = true
+          const [x, y] = pt(e)
+          last.current = [x, y]
+          setLive((v) => `${v}M${x} ${y}L${x + 1} ${y}`)
+        }}
+        onPointerMove={(e) => {
+          if (!drawing.current || !last.current) return
+          const [x, y] = pt(e)
+          if (Math.abs(x - last.current[0]) + Math.abs(y - last.current[1]) < 3) return
+          last.current = [x, y]
+          setLive((v) => `${v}L${x} ${y}`)
+        }}
+        onPointerUp={fim}
+        onPointerCancel={fim}
+        onPointerLeave={fim}
+      >
+        <line x1="50" x2={W - 50} y1={H - 80} y2={H - 80} stroke="#b8c4d6" strokeWidth={2} strokeDasharray="6 6" />
+        {live ? <path d={live} fill="none" stroke="#012C60" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" /> : <text x={W / 2} y={H / 2} textAnchor="middle" fill="#9aa3b6" fontSize="26">assine aqui com o dedo</text>}
+      </svg>
+      <button type="button" className="rv-link small" disabled={!live} onClick={() => (setLive(''), onChange(''))}>
+        Limpar
+      </button>
+    </div>
+  )
+}
+
+type Assinatura = { modo: 'digitado' | 'desenho'; desenho: string; fonte: string }
+const FONTES_ASS = SIGN_FONTS.filter((f) => ['dancing', 'greatvibes', 'homemade'].includes(f.id))
+
+function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar, botao = 'Assinar e reservar', livre }: { texto: string; nome: string; reforma: boolean; agora: number; busy: boolean; erro: string; onVoltar?: () => void; onAssinar: (a: Assinatura) => void; botao?: string; livre?: boolean }) {
   const [ok, setOk] = useState(false)
   const [okTermo, setOkTermo] = useState(false)
   const [nomeAss, setNomeAss] = useState('')
+  const [fonte, setFonte] = useState(FONTES_ASS[0].id)
   const [desenho, setDesenho] = useState('')
+  const [tela, setTela] = useState(false)
   const [modo, setModo] = useState<'digitado' | 'desenho'>('digitado')
-  const assinou = !!livre || (ok && (!reforma || okTermo) && (modo === 'digitado' ? nomeAss.trim().toLowerCase() === nome.trim().toLowerCase() : desenho.length > 30))
+  const nomeOk = nomeAss.trim().toLowerCase() === nome.trim().toLowerCase()
+  const assinou = !!livre || (ok && (!reforma || okTermo) && (modo === 'digitado' ? nomeOk : desenho.length > 30))
   return (
     <>
       <div className="rv-keys">
@@ -1449,8 +1548,8 @@ function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar,
         <label className={`rv-check ${okTermo ? 'on' : ''}`}>
           <input type="checkbox" checked={okTermo} onChange={(e) => setOkTermo(e.target.checked)} />
           <span>
-            <b>Entendi as regras da ART de reforma e vou alinhar com o meu prestador</b>
-            <small>O Rogério é o responsável técnico (ART e plano). A obra, os materiais e a segurança são do meu prestador e meus.</small>
+            <b>Entendi como funciona a ART de reforma</b>
+            <small>O Rogério faz o plano de reforma e assina a ART, mas não executa a obra. Quem faz a obra (o seu pedreiro ou empresa) responde por ela, pelos materiais e pela segurança. Vou passar o plano para ele seguir.</small>
           </span>
         </label>
       )}
@@ -1458,42 +1557,83 @@ function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar,
         <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
         <span>
           <b>Li e concordo com o contrato</b>
-          <small>Inclusive com o pagamento de {brl(agora)} em até 7 dias, que não é devolvido depois de 7 dias da assinatura.</small>
+          <small>Pago {brl(agora)} em até 7 dias. Se desistir até 7 dias depois de assinar, recebo tudo de volta.</small>
         </span>
       </label>
       <div className="rv-signbox">
         <p className="rv-label">Sua assinatura</p>
         <div className="rv-tabs">
           <button className={modo === 'digitado' ? 'on' : ''} onClick={() => setModo('digitado')}>
-            <I n="sign" s={14} /> Digitar o nome
+            <span className="rv-aa">Aa</span> Escolher a letra
           </button>
           <button className={modo === 'desenho' ? 'on' : ''} onClick={() => setModo('desenho')}>
-            <I n="sign" s={14} /> Com o dedo
+            <I n="sign" s={14} /> Desenhar
           </button>
         </div>
         {modo === 'digitado' ? (
-          <label>
-            <span>Digite o seu nome completo, igual ao de cima</span>
-            <input value={nomeAss} onChange={(e) => setNomeAss(e.target.value)} placeholder={nome} />
-            {nomeAss && nomeAss.trim().toLowerCase() !== nome.trim().toLowerCase() && <em>Precisa ser igual: {nome}</em>}
-          </label>
+          <>
+            <label className="rv-signname">
+              <span>Digite o seu nome completo</span>
+              <input value={nomeAss} onChange={(e) => setNomeAss(e.target.value)} placeholder={nome} autoComplete="name" />
+              {nomeAss && !nomeOk && <em>Precisa ser igual ao do contrato: {nome}</em>}
+            </label>
+            <div className="rv-fontes" role="radiogroup" aria-label="Letra da assinatura">
+              {FONTES_ASS.map((f) => (
+                <button key={f.id} type="button" role="radio" aria-checked={fonte === f.id} className={fonte === f.id ? 'on' : ''} onClick={() => setFonte(f.id)}>
+                  <span style={{ fontFamily: f.family, fontSize: `${(f.size ?? 1) * 26}px` }}>{nomeAss.trim() || nome}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : desenho ? (
+          <div className="rv-signprev">
+            <svg viewBox="0 0 600 200" aria-label="Sua assinatura">
+              <path d={desenho} fill="none" stroke="#012C60" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <button type="button" className="rv-link small" onClick={() => setTela(true)}>
+              Assinar de novo
+            </button>
+          </div>
         ) : (
-          <SignaturePad value={desenho} onChange={setDesenho} />
-        )}
-      </div>
-      {erro && <p className="rv-warn">{erro}</p>}
-      <div className="rv-row">
-        {onVoltar && (
-          <button className="rv-btn ghost" onClick={onVoltar}>
-            <I n="back" /> Voltar
+          <button type="button" className="rv-btn ghost wide2" onClick={() => setTela(true)}>
+            <I n="edit" /> Abrir a área para assinar
           </button>
         )}
-        <button className="rv-btn" disabled={!assinou || busy} onClick={() => onAssinar({ modo, desenho })}>
-          <I n="sign" /> {busy ? 'Enviando…' : botao}
+      </div>
+      {tela && (
+        <div className="rv-signfull" role="dialog" aria-label="Assine com o dedo">
+          <div className="rv-signfull-in">
+            <p>
+              <b>Assine com o dedo</b>
+              <small>Dica: deite o celular para ter mais espaço.</small>
+            </p>
+            <RvPad onChange={setDesenho} />
+            <div className="rv-row">
+              <button className="rv-btn ghost" onClick={() => setTela(false)}>
+                Cancelar
+              </button>
+              <button className="rv-btn" disabled={desenho.length < 30} onClick={() => setTela(false)}>
+                <I n="check" /> Pronto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {erro && <p className="rv-warn">{erro}</p>}
+      <div className="rv-row rv-signgo">
+        {onVoltar && (
+          <button className="rv-btn ghost" onClick={onVoltar} aria-label="Voltar">
+            <I n="back" /> <span className="rv-voltar-t">Voltar</span>
+          </button>
+        )}
+        <button className="rv-btn" disabled={!assinou || busy} onClick={() => onAssinar({ modo, desenho, fonte })}>
+          <I n="sign" /> <span>{busy ? 'Enviando…' : botao}</span>
         </button>
       </div>
       {!assinou && <p className="rv-fine center">{!ok || (reforma && !okTermo) ? 'Marque as caixas acima e assine para continuar.' : 'Falta a sua assinatura.'}</p>}
-      <p className="rv-fine">Assinatura eletrônica com registro de data, hora, aparelho, IP e código do documento (MP 2.200-2/2001, art. 10, § 2º). Você recebe uma cópia no painel e no e-mail.</p>
+      <p className="rv-fine">
+        <I n="shield" s={13} /> Assinatura eletrônica com validade jurídica (MP 2.200-2/2001, art. 10, § 2º). Ficam registrados data e hora, IP, aparelho, navegador e o código do documento. Você recebe o contrato em PDF no painel e no e-mail.
+      </p>
     </>
   )
 }
@@ -1517,14 +1657,14 @@ function Reassinar({ r, cfg, id, token, onFeito }: { r: Reserva; cfg: ReservaCon
   }, [r.dados, reforma, itens, detalhe])
   const texto = useMemo(() => contratoTexto(d, cfg), [d, cfg])
   const v = valores(d, cfg)
-  const assinar = async (a: { modo: 'digitado' | 'desenho'; desenho: string }) => {
+  const assinar = async (a: Assinatura) => {
     if (reforma && !itens.length && detalhe.trim().length < 3) return setErro('Marque o que você vai fazer na reforma.')
     setBusy(true)
     setErro('')
     const em = new Date().toISOString()
     const ap = deviceLabel()
     const codigo = await sha256([texto, r.dados.nome.trim(), r.dados.cpf.replace(/\D/g, ''), em, ap].join('|'))
-    const ok = await reassinar(id, token, { servicos: d.servicos, reforma: d.reforma, reformaItens: d.reformaItens, reformaEstimativa: d.reformaEstimativa }, { texto, assinatura: r.dados.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: r.dados.cpf, em, codigo, aparelho: ap, fuso: Intl.DateTimeFormat().resolvedOptions().timeZone, versao: CONTRATO_VERSAO })
+    const ok = await reassinar(id, token, { servicos: d.servicos, reforma: d.reforma, reformaItens: d.reformaItens, reformaEstimativa: d.reformaEstimativa }, { texto, assinatura: r.dados.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: r.dados.cpf, em, codigo, aparelho: ap, fuso: Intl.DateTimeFormat().resolvedOptions().timeZone, versao: CONTRATO_VERSAO, email: r.dados.email, tel: r.dados.tel, fonte: a.modo === 'digitado' ? a.fonte : undefined, ua: navigator.userAgent.slice(0, 300), tela: `${screen.width}×${screen.height}`, idioma: navigator.language })
     setBusy(false)
     if (!ok) return setErro('Não consegui salvar agora. Tente de novo ou chame o Rogério no WhatsApp.')
     rastrear('reassinou', { reforma })
@@ -1695,6 +1835,19 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
     if (teste) return setR({ ...r, dados: { ...r.dados, planta: p } })
     if (await moradorAcao(id, token, 'planta', p)) void recarregar()
   }
+  const jaPaguei = async () => {
+    if (teste) {
+      setR((x) => (x ? { ...x, status: { ...x.status, pagoInformado: new Date().toISOString() } } : x))
+      return
+    }
+    setEnviando(true)
+    const ok = await moradorAcao(id, token, 'pago')
+    if (ok) void avisarEmail('pago', id, token)
+    await recarregar()
+    setEnviando(false)
+    if (!ok) setMsg('Não foi. Confira a internet e tente de novo.')
+  }
+
   const pedirReforma = async () => {
     if ((!rfItens.length && pedido.trim().length < 3) || enviando) return
     setEnviando(true)
@@ -1749,30 +1902,43 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           body: (
             <>
               <p className="rv-deadline">
-                <I n="clock" s={15} /> Até <b>{prazo.fim}</b> {prazo.faltam > 0 ? `(faltam ${prazo.faltam} ${prazo.faltam === 1 ? 'dia' : 'dias'})` : '(último dia)'}. Sem o sinal, a reserva é cancelada sozinha.
+                <I n="clock" s={15} /> <span>Até <b>{prazo.fim}</b> {prazo.faltam > 0 ? `(faltam ${prazo.faltam} ${prazo.faltam === 1 ? 'dia' : 'dias'})` : '(último dia)'}. Sem o sinal, a reserva é cancelada sozinha.</span>
               </p>
               {cfg.pix ? (
                 <div className="rv-pix">
                   <small>CHAVE PIX · {cfg.pixNome}</small>
                   <b>{cfg.pix}</b>
                   <div className="rv-row">
-                    <button className="rv-btn small" onClick={() => void copiar(cfg.pix, 'chave')}>
-                      <I n="copy" /> {copiado === 'chave' ? 'Copiado!' : 'Copiar a chave'}
+                    <button className="rv-btn small ghost" onClick={() => void copiar(cfg.pix, 'chave')}>
+                      <I n="copy" /> <span>{copiado === 'chave' ? 'Copiado!' : 'Copiar a chave'}</span>
                     </button>
                     {pix && (
                       <button className="rv-btn small ghost" onClick={() => void copiar(pix, 'pix')}>
-                        <I n="copy" /> {copiado === 'pix' ? 'Copiado!' : 'Pix copia e cola'}
+                        <I n="copy" /> <span>{copiado === 'pix' ? 'Copiado!' : 'Pix copia e cola'}</span>
                       </button>
                     )}
                   </div>
-                  <small className="rv-tip">No app do banco: Pix → Pagar → cole a chave e digite {brl(metade)}. Ou use o “copia e cola”, que já vem com o valor.</small>
+                  <small className="rv-tip">No app do banco: Pix → Pagar → cole a chave e digite {brl(metade)}. O “copia e cola” já vem com o valor.</small>
                 </div>
               ) : (
-                <p>A chave Pix vai pelo WhatsApp do Rogério.</p>
+                <p className="rv-alert">
+                  <I n="info" s={15} /> <span>A chave Pix aparece aqui em instantes. Se preferir, peça pelo WhatsApp.</span>
+                </p>
               )}
-              <a className="rv-btn small wide2" href={zap(`Oi, Rogério! Segue o comprovante do sinal da vistoria do ${unidade(r.dados)} (${r.dados.nome}).`)}>
-                <I n="chat" /> {cfg.pix ? 'Já paguei: enviar o comprovante' : 'Pedir a chave Pix'}
-              </a>
+              {s.pagoInformado ? (
+                <p className="rv-alert ok">
+                  <I n="check" s={15} /> <span>Você marcou como pago em {dataCurta(s.pagoInformado.slice(0, 10))}. O Rogério confere no banco e confirma aqui (em até 1 dia útil).</span>
+                </p>
+              ) : (
+                <button className="rv-btn small wide2" disabled={enviando} onClick={() => void jaPaguei()}>
+                  <I n="check" /> <span>{enviando ? 'Enviando…' : 'Já paguei'}</span>
+                </button>
+              )}
+              {!cfg.pix && (
+                <a className="rv-link small rv-center" href={zap(`Oi, Rogério! Pode me mandar a chave Pix do sinal da vistoria do ${unidade(r.dados)} (${r.dados.nome})?`)}>
+                  Pedir a chave pelo WhatsApp
+                </a>
+              )}
             </>
           ),
         }
@@ -1799,16 +1965,16 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                 <>
                   <ul className="rv-list">
                     <li>
-                      <I n="list" s={15} /> O que vai ser feito, cômodo por cômodo
+                      <I n="list" s={15} /> <span>O que vai ser feito, cômodo por cômodo</span>
                     </li>
                     <li>
-                      <I n="user" s={15} /> Quem vai executar (nome e telefone do prestador)
+                      <I n="user" s={15} /> <span>Quem vai executar (nome e telefone do prestador)</span>
                     </li>
                     <li>
-                      <I n="cal" s={15} /> Quando a obra deve começar e terminar
+                      <I n="cal" s={15} /> <span>Quando a obra deve começar e terminar</span>
                     </li>
                     <li>
-                      <I n="doc" s={15} /> As regras de obra do condomínio, se tiver
+                      <I n="doc" s={15} /> <span>As regras de obra do condomínio, se tiver</span>
                     </li>
                   </ul>
                   <a className="rv-btn small" href={zap(`Oi, Rogério! Seguem as informações da reforma do ${unidade(r.dados)}:`)}>
@@ -1845,16 +2011,16 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               body: (
                 <ul className="rv-list">
                   <li>
-                    <I n="drop" s={15} /> A MRV precisa deixar <b>água e luz ligadas</b>
+                    <I n="drop" s={15} /> <span>A MRV precisa deixar <b>água e luz ligadas</b></span>
                   </li>
                   <li>
-                    <I n="user" s={15} /> Você ou alguém de confiança <b>acompanha</b> a vistoria
+                    <I n="user" s={15} /> <span>Você ou alguém de confiança <b>acompanha</b> a vistoria</span>
                   </li>
                   <li>
-                    <I n="card" s={15} /> Restante de <b>{brl(restante)}</b> no dia{grupo < cfg.minimo ? ` (ou ${brl(restante + cfg.individual - cfg.preco)}, se o grupo não fechar)` : ''}, por Pix ou cartão
+                    <I n="card" s={15} /> <span>Restante de <b>{brl(restante)}</b> no dia{grupo < cfg.minimo ? ` (ou ${brl(restante + cfg.individual - cfg.preco)}, se o grupo não fechar)` : ''}, por Pix ou cartão</span>
                   </li>
                   <li>
-                    <I n="clock" s={15} /> Leva até 2 horas
+                    <I n="clock" s={15} /> <span>Leva até 2 horas</span>
                   </li>
                 </ul>
               ),
@@ -1888,7 +2054,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
         ['ART pronta', !!rf.art],
       ]
   const docs: { icon: string; t: string; ok: boolean; sub: string; act?: () => void; href?: string }[] = [
-    { icon: 'sign', t: 'Contrato', ok: true, sub: s.contratada ? 'Assinado pelas duas partes' : 'Assinado por você', act: () => void abrirContrato(r, r.contrato.desenho ? drawingToDataUrl(r.contrato.desenho) : undefined, false) },
+    { icon: 'sign', t: 'Contrato', ok: true, sub: s.contratada ? 'Assinado pelas duas partes' : 'Assinado por você', act: () => void abrirContratoPdf(r) },
     ...(svr.vistoria
       ? [
           { icon: 'shield', t: 'ART da vistoria', ok: !!s.art, sub: s.art ? 'Registrada no CREA' : 'Aparece aqui depois da vistoria', href: s.art },
@@ -2083,7 +2249,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                     </p>
                     <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} />
                     <button className="rv-btn wide3" disabled={(!rfItens.length && pedido.trim().length < 3) || enviando} onClick={() => void pedirReforma()}>
-                      <I n="arrow" /> Pedir por {brl(calcReforma(rfItens))}
+                      <I n="arrow" /> <span>Pedir por {brl(calcReforma(rfItens))}</span>
                     </button>
                   </>
                 )}

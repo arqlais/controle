@@ -5,15 +5,14 @@ import { DateInput } from '../components/DateInput'
 import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
 import { ask, toast } from '../components/dialog'
 import { newClient } from '../components/forms'
-import { drawingToDataUrl } from '../components/SignaturePad'
 import { newArt } from './Arts'
 import { LaudoEditor } from './RdlLaudo'
+import { abrirContratoPdf } from '../rdlContratoPdf'
 import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
 import { PAL } from '../palette'
 import { money, today, uid, whatsappLink } from '../utils'
 import {
   CONFIG_PADRAO,
-  abrirContrato,
   atualizarReserva,
   avisarEmail,
   dataCurta,
@@ -91,7 +90,7 @@ const FILTROS: [Filtro, string][] = [
   ['canceladas', 'canceladas'],
 ]
 const etapa = (r: Reserva): [string, string] =>
-  r.cancelada ? [r.status.expirada ? 'cancelada · sem sinal' : 'cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : [`aguardando sinal · ${Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))} dia(s)`, PAL.bad]
+  r.cancelada ? [r.status.expirada ? 'cancelada · sem sinal' : 'cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : r.status.pagoInformado ? ['diz que pagou · conferir', PAL.warn] : [`aguardando sinal · ${Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))} dia(s)`, PAL.bad]
 
 export default function Reservas() {
   const { data, upsert } = useStore()
@@ -417,7 +416,7 @@ function Detalhe({
         </div>
 
         <div className="row gap-s wrap">
-          <button className="btn small ghost" onClick={() => abrirContrato(r, r.contrato.desenho ? drawingToDataUrl(r.contrato.desenho) : undefined) || toast('Libere as janelas do navegador para abrir o contrato.')}>
+          <button className="btn small ghost" onClick={() => void abrirContratoPdf(r).then((ok) => ok || toast('Não foi possível gerar o PDF. Tente de novo.'))}>
             <Icon name="printer" size={14} /> contrato assinado (PDF)
           </button>
           <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(painel).then(() => toast('Link do painel copiado.'))}>
@@ -440,8 +439,9 @@ function Detalhe({
               </p>
             ) : (
               <div className="row gap-s wrap">
+                {s.pagoInformado && <p className="rsv-pago">O morador marcou “já paguei” em {dataCurta(s.pagoInformado.slice(0, 10))}. Confira no extrato e confirme.</p>}
                 <button className="btn small" onClick={() => void onSinal(r)}>
-                  <Icon name="check" size={14} /> sinal recebido
+                  <Icon name="check" size={14} /> {s.pagoInformado ? 'conferi: pagamento recebido' : 'sinal recebido'}
                 </button>
                 <button className="btn small ghost" onClick={() => zap(msg.sinal)}>
                   <Icon name="whatsapp" size={14} /> pedir o sinal
