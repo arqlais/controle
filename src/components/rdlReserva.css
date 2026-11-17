@@ -3347,3 +3347,6 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 .rv-pix .rv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .rv-pix .rv-row .rv-btn { background: #fff; border: 1px solid #dfe4ec; color: var(--navy); justify-content: center; min-height: 40px; }
 @media (max-width: 440px) { .rv-pick .rv-pick-head > .ib { display: none; } }
+/* preço do serviço alinhado com o texto do cartão */
+.rv .rv-pick-head strong { padding-left: 82px; }
+@media (max-width: 440px) { .rv .rv-pick-head strong { padding-left: 36px; } }

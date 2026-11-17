@@ -5,6 +5,7 @@ const fillContract = (body: string, vars: Record<string, string>) => body.replac
 import { RDL_ID } from './rdl'
 import { RDL_LOGO } from './rdlLogo'
 import { pixPayload } from './pix'
+import { formatPhone, titleCase } from './utils'
 
 /* Reserva da vistoria pelo link (useplane.com.br/vistoria): o morador preenche os dados, lê o contrato
    já com os dados dele, assina e cai no painel da reserva. Tudo entra sozinho no sistema da RDL
@@ -338,7 +339,7 @@ export async function listarReservas(): Promise<Reserva[]> {
   if (!supabase) return []
   const { data, error } = await supabase.from('rdl_reservas').select('*').order('criado', { ascending: true })
   if (error) throw error
-  return (data ?? []) as Reserva[]
+  return ((data ?? []) as Reserva[]).map((r) => ({ ...r, dados: dadosPadrao(r.dados) }))
 }
 export async function atualizarReserva(id: string, patch: Partial<Pick<Reserva, 'status' | 'cancelada' | 'dados'>>) {
   if (!supabase) return
@@ -588,6 +589,35 @@ const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistor
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`
 export const linkPainelBase = () => base()
 export const linkPainel = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/${r.id}.${r.token}`
+
+/* ---------- dados sempre no mesmo padrão (nome, e-mail, telefone, CPF, torre e apto) ---------- */
+export const nomeProprio = (t: string) => titleCase((t || '').toLocaleLowerCase('pt-BR')).replace(/([-'’])(\p{L})/gu, (_m, a: string, b: string) => a + b.toLocaleUpperCase('pt-BR'))
+export const telPadrao = (t: string) => {
+  let d = (t || '').replace(/\D/g, '')
+  if (d.length >= 12 && d.startsWith('55')) d = d.slice(2)
+  if (d.length > 11 && d.startsWith('0')) d = d.replace(/^0+/, '')
+  return d.length >= 10 ? formatPhone(d) : (t || '').trim()
+}
+export const cpfPadrao = (t: string) => {
+  const d = (t || '').replace(/\D/g, '')
+  return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : (t || '').trim()
+}
+export const numeroPadrao = (t: string) => (t || '').trim().replace(/^0+(?=\d)/, '')
+export function dadosPadrao<T extends Partial<ReservaDados>>(d: T): T {
+  const o = { ...d }
+  if (o.nome != null) o.nome = nomeProprio(o.nome)
+  if (o.email != null) o.email = o.email.replace(/\s+/g, '').toLowerCase()
+  if (o.tel != null) o.tel = telPadrao(o.tel)
+  if (o.cpf != null) o.cpf = cpfPadrao(o.cpf)
+  if (o.torre != null) o.torre = numeroPadrao(String(o.torre))
+  if (o.apto != null) o.apto = numeroPadrao(String(o.apto))
+  if (o.rua) o.rua = nomeProprio(o.rua)
+  if (o.bairro) o.bairro = nomeProprio(o.bairro)
+  if (o.cidade) o.cidade = nomeProprio(o.cidade)
+  if (o.uf) o.uf = o.uf.trim().toUpperCase()
+  if (o.prestador) o.prestador = o.prestador.trim()
+  return o
+}
 
 export const pixCopiaECola = (c: ReservaConfig, valor: number, r: Pick<Reserva, 'dados'>) =>
   c.pix ? pixPayload({ key: c.pix, name: c.pixNome || 'RDL Engenharia', city: 'Santo Andre', amount: valor, message: `Vistoria ${unidade(r.dados)}`.slice(0, 40) }) : ''

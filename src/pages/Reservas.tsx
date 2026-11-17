@@ -15,6 +15,7 @@ import {
   CONFIG_PADRAO,
   atualizarReserva,
   avisarEmail,
+  dadosPadrao,
   enviarChavePix,
   dataCurta,
   lerConfig,
@@ -123,7 +124,13 @@ export default function Reservas() {
   useEffect(() => {
     if (!list) return
     for (const r of list) {
-      if (r.cancelada || (r.status.cliente && data.clients.some((c) => c.id === r.status.cliente))) continue
+      // cliente que veio da reserva: mantém nome, e-mail, telefone e CPF no padrão
+      const ligado = r.status.cliente ? data.clients.find((c) => c.id === r.status.cliente) : undefined
+      if (ligado && ligado.origin === 'reserva pelo link') {
+        const p = dadosPadrao(r.dados)
+        if (ligado.name !== p.nome || ligado.email !== p.email || ligado.phone !== p.tel || ligado.document !== p.cpf) upsert('clients', { ...ligado, name: p.nome, email: p.email, phone: p.tel, document: p.cpf })
+      }
+      if (r.cancelada || ligado) continue
       const cpf = r.dados.cpf.replace(/\D/g, '')
       const existente = data.clients.find((c) => c.document.replace(/\D/g, '') === cpf && cpf)
       const id = existente?.id ?? uid()
@@ -131,10 +138,10 @@ export default function Reservas() {
         upsert('clients', {
           ...newClient('final'),
           id,
-          name: r.dados.nome,
-          email: r.dados.email,
-          phone: r.dados.tel,
-          document: r.dados.cpf,
+          name: dadosPadrao(r.dados).nome,
+          email: dadosPadrao(r.dados).email,
+          phone: dadosPadrao(r.dados).tel,
+          document: dadosPadrao(r.dados).cpf,
           cep: r.dados.cep ?? '',
           address: r.dados.rua ? `${r.dados.rua}, ${r.dados.bairro}` : r.dados.endereco,
           addressNumber: [r.dados.numero, r.dados.complemento].filter(Boolean).join(' '),
@@ -231,27 +238,30 @@ export default function Reservas() {
       <Section title="link de reserva">
         <div className="rsv-link">
           <code>{link}</code>
-          <div className="row gap-s wrap">
+          <div className="rsv-acts">
             <button className="btn small" onClick={() => void navigator.clipboard?.writeText(link).then(() => toast('Link copiado.'))}>
               <Icon name="copy" size={14} /> copiar link
             </button>
             <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(textoGrupo).then(() => toast('Mensagem copiada. É só colar no grupo.'))}>
-              <Icon name="whatsapp" size={14} /> mensagem para o grupo
+              <Icon name="whatsapp" size={14} /> texto para o grupo
             </button>
             <a className="btn small ghost" href={`${linkPainelBase()}#/vistoria/teste`} target="_blank" rel="noreferrer">
-              <Icon name="eye" size={14} /> testar como morador
+              <Icon name="eye" size={14} /> ver como morador
             </a>
             <button className="btn small ghost" onClick={() => void enviarChavePix().then((l) => toast(l === null ? 'Não foi. Tente de novo.' : l.length ? `Chave Pix enviada para: ${l.join(', ')}.` : 'Todo mundo que falta pagar já recebeu a chave.'))}>
-              <Icon name="send" size={14} /> mandar a chave Pix a quem falta pagar
+              <Icon name="mail" size={14} /> chave Pix por e-mail
             </button>
+          </div>
+          <p className="rsv-acts-t">modelos para imprimir</p>
+          <div className="rsv-acts">
             <button className="btn small ghost" onClick={() => openRdlDoc(checklistHtml())}>
               <Icon name="printer" size={14} /> checklist em branco
             </button>
             <button className="btn small ghost" onClick={() => openRdlDoc(laudoHtml())}>
-              <Icon name="file" size={14} /> modelo do laudo
+              <Icon name="file" size={14} /> laudo em branco
             </button>
           </div>
-          <p className="muted small">O morador preenche os dados (endereço pelo CEP), torre e apto, lê o contrato com os dados dele e assina. A reserva aparece aqui na hora, com o painel dele pronto, e cada etapa vai também por e-mail para ele. {cfg.aberta ? '' : 'As reservas estão fechadas (valores e Pix).'}</p>
+          {!cfg.aberta && <p className="muted small">As reservas estão fechadas (valores e Pix).</p>}
         </div>
       </Section>
 

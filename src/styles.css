@@ -2553,3 +2553,8 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .brand.rdl-brand2 .brand-name { font-size: 20px; white-space: nowrap; color: #012c60; }
 .brand.rdl-brand2 .brand-name i { color: #ff8216; }
 .platform-mark.rdl-plane { color: #012c60; }
+/* RDL vistorias: ações do link em grade de 2, todas do mesmo tamanho */
+.rsv-acts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rsv-acts .btn { justify-content: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (min-width: 900px) { .rsv-acts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.rsv-acts-t { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--muted); }

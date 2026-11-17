@@ -15,6 +15,7 @@ import {
   PLANTA_CORREDOR,
   RDL_INFO,
   avisarEmail,
+  dadosPadrao,
   contagem,
   contratoTexto,
   dataCurta,
@@ -1083,7 +1084,8 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
     const s2 = servicosDe(d)
     const itens = s2.reforma ? d.reformaItens ?? [] : []
     const txt = s2.reforma ? [reformaItensTexto(itens).join(', '), (d.reforma ?? '').trim()].filter(Boolean).join('. ') : ''
-    return { ...d, endereco: enderecoCompleto(d), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens) : undefined }
+    const dp = dadosPadrao(d)
+    return { ...dp, endereco: enderecoCompleto(dp), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens) : undefined }
   }, [d])
   const texto = useMemo(() => contratoTexto(dc, cfg), [dc, cfg])
   const v = valores(dc, cfg)
@@ -1105,7 +1107,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
       const ap = deviceLabel()
       const codigo = await sha256([texto, d.nome.trim(), d.cpf.replace(/\D/g, ''), em, ap].join('|'))
-      const r = await reservar({ ...dc, nome: d.nome.trim(), email: d.email.trim().toLowerCase() }, { texto, assinatura: d.nome.trim(), desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: d.cpf, em, codigo, aparelho: ap, fuso, versao: CONTRATO_VERSAO, email: d.email.trim().toLowerCase(), tel: d.tel, fonte: a.modo === 'digitado' ? a.fonte : undefined, ua: navigator.userAgent.slice(0, 300), tela: `${screen.width}×${screen.height}`, idioma: navigator.language })
+      const r = await reservar({ ...dc }, { texto, assinatura: dc.nome, desenho: a.modo === 'desenho' ? a.desenho : undefined, cpf: dc.cpf, em, codigo, aparelho: ap, fuso, versao: CONTRATO_VERSAO, email: dc.email, tel: dc.tel, fonte: a.modo === 'digitado' ? a.fonte : undefined, ua: navigator.userAgent.slice(0, 300), tela: `${screen.width}×${screen.height}`, idioma: navigator.language })
       rastrear('assinou', { vistoria: sv.vistoria, reforma: sv.reforma })
       void avisarEmail('reserva', r.id, r.token)
       if (sv.reforma) void avisarEmail('reforma-aprovada', r.id, r.token)
@@ -1387,7 +1389,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
             {step === 3 && (
               <>
                 <Total v={v} sv={sv} cfg={cfg} titulo revistoria={d.revistoria} />
-                <Assinar texto={texto} nome={d.nome} reforma={sv.reforma} agora={v.agora} busy={busy} erro={erro} onVoltar={() => ir(2)} onAssinar={(a) => void enviar(a)} livre={teste} />
+                <Assinar texto={texto} nome={dc.nome} reforma={sv.reforma} agora={v.agora} busy={busy} erro={erro} onVoltar={() => ir(2)} onAssinar={(a) => void enviar(a)} livre={teste} />
               </>
             )}
           </section>
