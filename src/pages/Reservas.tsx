@@ -433,6 +433,7 @@ function Detalhe({
   const [rfArt, setRfArt] = useState(rf.art ?? '')
   const msg = mensagens({ ...r, status: { ...s, data: d || s.data, hora: h || s.hora } }, cfg)
   const zap = (t: string) => window.open(whatsappLink(r.dados.tel, t), '_blank')
+  const copiarMsg = (t: string) => void navigator.clipboard?.writeText(t).then(() => toast('Mensagem copiada. É só colar no WhatsApp.'), () => toast('Não consegui copiar.'))
   const painel = linkPainel(r)
   return (
     <Modal title={`${r.dados.nome} · ${unidade(r.dados)}`} onClose={onClose} wide>
@@ -494,6 +495,9 @@ function Detalhe({
                 <button className="btn small" disabled={recibo === 'gerando'} onClick={() => void mandarRecibo(r, cfg, setRecibo)}>
                   <Icon name="whatsapp" size={14} /> {recibo === 'gerando' ? 'gerando o recibo…' : 'agradecer e mandar o recibo'}
                 </button>
+                <button className="btn small ghost" onClick={() => copiarMsg(msgConfirmacao(r, cfg))}>
+                  <Icon name="copy" size={14} /> copiar mensagem
+                </button>
                 <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'pdf')}>
                   <Icon name="file" size={14} /> recibo em PDF
                 </button>
@@ -518,8 +522,14 @@ function Detalhe({
                 <button className="btn small ghost" onClick={() => zap(msg.sinal)}>
                   <Icon name="whatsapp" size={14} /> pedir o sinal
                 </button>
+                <button className="btn small ghost" onClick={() => copiarMsg(msg.sinal)} title="Copiar a mensagem">
+                  <Icon name="copy" size={14} /> copiar mensagem
+                </button>
                 <button className="btn small ghost" onClick={() => zap(msg.lembrete)}>
                   <Icon name="bell" size={14} /> lembrete
+                </button>
+                <button className="btn small ghost" onClick={() => copiarMsg(msg.lembrete)} title="Copiar a mensagem">
+                  <Icon name="copy" size={14} /> copiar mensagem
                 </button>
                 <button className="btn small ghost" onClick={() => void avisarEmail('lembrete', r.id).then((ok) => toast(ok ? 'Lembrete enviado por e-mail.' : 'Lembrete por e-mail já foi hoje (ou não saiu).'))}>
                   <Icon name="mail" size={14} /> lembrete por e-mail
@@ -528,9 +538,14 @@ function Detalhe({
               </div>
             )}
             {s.sinal && (
+              <div className="row gap-s wrap">
               <button className="btn small ghost" onClick={() => zap(msg.confirmado)}>
                 <Icon name="whatsapp" size={14} /> avisar que a vaga está garantida
               </button>
+              <button className="btn small ghost" onClick={() => copiarMsg(msg.confirmado)} title="Copiar a mensagem">
+                <Icon name="copy" size={14} /> copiar mensagem
+              </button>
+              </div>
             )}
           </li>
           <li className={s.data ? 'done' : s.sinal ? 'now' : ''}>
@@ -569,9 +584,14 @@ function Detalhe({
                 {choque.length ? 'salvar mesmo assim' : 'salvar data'}
               </button>
               {s.data && (
+                <div className="row gap-s wrap">
                 <button className="btn small ghost" onClick={() => zap(msg.data)}>
                   <Icon name="whatsapp" size={14} /> mandar a data
                 </button>
+                <button className="btn small ghost" onClick={() => copiarMsg(msg.data)} title="Copiar a mensagem">
+                  <Icon name="copy" size={14} /> copiar mensagem
+                </button>
+                </div>
               )}
             </div>
           </li>
@@ -594,9 +614,14 @@ function Detalhe({
                 </a>
               )}
               {s.laudo && (
+                <div className="row gap-s wrap">
                 <button className="btn small ghost" onClick={() => zap(msg.laudo)}>
                   <Icon name="whatsapp" size={14} /> avisar que está pronto
                 </button>
+                <button className="btn small ghost" onClick={() => copiarMsg(msg.laudo)} title="Copiar a mensagem">
+                  <Icon name="copy" size={14} /> copiar mensagem
+                </button>
+                </div>
               )}
             </div>
             <div className="row gap-s wrap">

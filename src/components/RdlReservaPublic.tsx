@@ -990,6 +990,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
             ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
             ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
+            ['Até quando posso reservar?', 'Não tem data limite: dá para reservar enquanto houver horário na agenda. Mas a agenda é por ordem de reserva, e a MRV deve liberar as chaves por andar. Quem reserva antes garante o horário primeiro.'],
             ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix.`],
             ['E se eu desistir?', 'Até 7 dias depois de assinar, o sinal volta inteiro. Depois disso, o sinal fica com a RDL, porque a vaga deixou de ser oferecida a outro morador.'],
             ['Preciso estar lá no dia?', 'Sim, você ou alguém de confiança. A MRV precisa deixar água e luz ligadas.'],
