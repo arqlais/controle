@@ -1049,9 +1049,8 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
     return (
       <button className="rdp-card" onClick={() => onOpen(r)}>
         <b>{r.dados.nome}</b>
-        <small>
-          {unidade(r.dados)} · {r.dados.tel}
-        </small>
+        <small>{unidade(r.dados)}</small>
+        <small className="rdp-tel">{r.dados.tel}</small>
         <span className="rdp-tags">
           {sv.vistoria && <em>vistoria</em>}
           {r.dados.revistoria && <em>revistoria</em>}
@@ -1087,7 +1086,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
           {FASES.map(([f, nome, sub]) => {
             const l = filtra(por(f))
             return (
-              <div key={f} className={`rdp-col f-${f}`}>
+              <div key={f} className={`rdp-col f-${f} ${l.length ? '' : 'vazia'}`}>
                 <header>
                   <b>{nome}</b>
                   <span>{l.length}</span>

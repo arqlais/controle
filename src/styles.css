@@ -2622,3 +2622,17 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rdp-slot.free { align-items: center; padding: 9px 6px; }
 .rdp-slot.free span { font-size: 13px; }
 @media (max-width: 640px) { .rdp-slots { grid-template-columns: repeat(4, 1fr); } }
+/* etapas: no computador as colunas quebram em linhas (nada cortado); no celular, rolam de lado */
+.rdp-kpis { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.rdp-kanban { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); overflow: visible; }
+.rdp-col { min-height: 0; }
+.rdp-col.vazia header span { background: var(--surface); color: var(--muted); }
+.rdp-col.vazia .rdp-vazio { padding: 4px 0; }
+.rdp-tel { white-space: nowrap; }
+@media (max-width: 640px) {
+  .rdp-kanban { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 82%; overflow-x: auto; }
+  .rdp-kpis { grid-template-columns: repeat(2, 1fr); }
+}
+.rdp-kpis { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 1400px) { .rdp-kpis { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 640px) { .rdp-kpis { grid-template-columns: repeat(2, 1fr); } }

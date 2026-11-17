@@ -942,6 +942,7 @@ Deno.serve(async (req) => {
         })
         const replyTo = isMail(c.contato) ? c.contato : isMail(rd.email ?? '') ? rd.email : undefined
         await send(rdlSub(cid, OWNER_EMAIL, ''), { subject: `Nova mensagem no chat: ${quem}`, html }, replyTo, `Chat ${RDL_FROM}`)
+        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(cid, RDL_EMAIL, 'Rogério'), { subject: `Nova mensagem no chat: ${quem}`, html }, replyTo, `Chat ${RDL_FROM}`).catch((e) => console.error(e))
         await db.from('rdl_conversas').update({ avisado: new Date().toISOString() }).eq('id', cid)
         return json({ ok: true })
       }
@@ -981,6 +982,7 @@ Deno.serve(async (req) => {
       try {
         await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
         await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html, attachment: m.attachment }, to, RDL_FROM).catch((e) => console.error(e))
+        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(r.id, RDL_EMAIL, 'Rogério'), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html, attachment: m.attachment }, to, RDL_FROM).catch((e) => console.error(e))
         await db.from('rdl_reservas').update({ avisos: { ...avisos, 'contrato-pdf': new Date().toISOString() } }).eq('id', r.id)
         enviados.push(nome)
       } catch (e) {
@@ -1013,6 +1015,7 @@ Deno.serve(async (req) => {
       try {
         await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
         await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
+        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(r.id, RDL_EMAIL, 'Rogério'), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
         await db.from('rdl_reservas').update({ avisos: { ...avisos, 'pix-chave': new Date().toISOString() } }).eq('id', r.id)
         enviados.push(nome)
       } catch (e) {
