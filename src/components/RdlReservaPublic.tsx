@@ -1488,7 +1488,8 @@ function RvPad({ onChange }: { onChange: (path: string) => void }) {
         className="rv-pad-area"
         onPointerDown={(e) => {
           e.preventDefault()
-          ;(e.target as Element).setPointerCapture?.(e.pointerId)
+          // captura no próprio quadro (o texto de dica some no primeiro traço e não pode levar o toque junto)
+          e.currentTarget.setPointerCapture?.(e.pointerId)
           drawing.current = true
           const [x, y] = pt(e)
           last.current = [x, y]
@@ -1503,10 +1504,15 @@ function RvPad({ onChange }: { onChange: (path: string) => void }) {
         }}
         onPointerUp={fim}
         onPointerCancel={fim}
-        onPointerLeave={fim}
+        onTouchMove={(e) => e.preventDefault()}
       >
-        <line x1="50" x2={W - 50} y1={H - 80} y2={H - 80} stroke="#b8c4d6" strokeWidth={2} strokeDasharray="6 6" />
-        {live ? <path d={live} fill="none" stroke="#012C60" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" /> : <text x={W / 2} y={H / 2} textAnchor="middle" fill="#9aa3b6" fontSize="26">assine aqui com o dedo</text>}
+        <line x1="50" x2={W - 50} y1={H - 80} y2={H - 80} stroke="#b8c4d6" strokeWidth={2} strokeDasharray="6 6" pointerEvents="none" />
+        <path d={live || 'M0 0'} fill="none" stroke={live ? '#012C60' : 'none'} strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
+        {!live && (
+          <text x={W / 2} y={H / 2} textAnchor="middle" fill="#9aa3b6" fontSize="26" pointerEvents="none">
+            assine aqui com o dedo
+          </text>
+        )}
       </svg>
       <button type="button" className="rv-link small" disabled={!live} onClick={() => (setLive(''), onChange(''))}>
         Limpar
@@ -1525,7 +1531,7 @@ function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar,
   const [fonte, setFonte] = useState(FONTES_ASS[0].id)
   const [desenho, setDesenho] = useState('')
   const [tela, setTela] = useState(false)
-  const [modo, setModo] = useState<'digitado' | 'desenho'>('digitado')
+  const [modo, setModo] = useState<'digitado' | 'desenho'>('desenho')
   const nomeOk = nomeAss.trim().toLowerCase() === nome.trim().toLowerCase()
   const assinou = !!livre || (ok && (!reforma || okTermo) && (modo === 'digitado' ? nomeOk : desenho.length > 30))
   return (
@@ -1569,11 +1575,11 @@ function Assinar({ texto, nome, reforma, agora, busy, erro, onVoltar, onAssinar,
       <div className="rv-signbox">
         <p className="rv-label">Sua assinatura</p>
         <div className="rv-tabs">
-          <button className={modo === 'digitado' ? 'on' : ''} onClick={() => setModo('digitado')}>
-            <span className="rv-aa">Aa</span> Escolher a letra
-          </button>
           <button className={modo === 'desenho' ? 'on' : ''} onClick={() => setModo('desenho')}>
             <I n="sign" s={14} /> Desenhar
+          </button>
+          <button className={modo === 'digitado' ? 'on' : ''} onClick={() => setModo('digitado')}>
+            <span className="rv-aa">Aa</span> Digitar o nome
           </button>
         </div>
         {modo === 'digitado' ? (
