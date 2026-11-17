@@ -17,6 +17,7 @@ import {
   lerConfig,
   linkPainel,
   linkReserva,
+  linkPainelBase,
   listarReservas,
   mensagens,
   salvarConfig,
@@ -40,7 +41,7 @@ const FILTROS: [Filtro, string][] = [
   ['canceladas', 'canceladas'],
 ]
 const etapa = (r: Reserva): [string, string] =>
-  r.cancelada ? ['cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : ['aguardando sinal', PAL.bad]
+  r.cancelada ? [r.status.expirada ? 'cancelada · sem sinal' : 'cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : [`aguardando sinal · ${Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))} dia(s)`, PAL.bad]
 
 export default function Reservas() {
   const { data, upsert } = useStore()
@@ -140,7 +141,7 @@ export default function Reservas() {
 
   const ativas = (list ?? []).filter((r) => !r.cancelada)
   const sinais = ativas.filter((r) => r.status.sinal)
-  const faltam = Math.max(0, 10 - ativas.length)
+  const faltam = Math.max(0, (cfg.minimo || 10) - ativas.length)
   const repetidas = useMemo(() => {
     const m = new Map<string, number>()
     ativas.forEach((r) => m.set(`${r.dados.torre}|${r.dados.apto}`.toLowerCase(), (m.get(`${r.dados.torre}|${r.dados.apto}`.toLowerCase()) ?? 0) + 1))
@@ -157,7 +158,7 @@ export default function Reservas() {
     return true
   })
   const link = linkReserva()
-  const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\nÉ só abrir o link, preencher os dados (torre e apto), ler e assinar o contrato pelo celular. Na hora já aparece o painel da sua reserva.\n\n• *${money(cfg.preco)}* por apartamento, com laudo e ART\n• sinal de ${money(cfg.preco / 2)} garante a vaga\n• previsão da MRV: ${cfg.periodo}\n\n${link}`
+  const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\n👥 Já são *${ativas.length} de ${cfg.minimo || 10}* apartamentos. Com ${cfg.minimo || 10}, todo mundo paga *${money(cfg.preco)}* (em vez de ${money(cfg.individual)}).\n\n✍️ É só abrir o link, preencher os dados, escolher a planta e assinar o contrato pelo celular (uns 3 minutos).\n💳 Sinal de ${money(cfg.preco / 2)} em até 7 dias garante a vaga.\n📅 Previsão da MRV: ${cfg.periodo}. Quem reserva antes escolhe o horário antes.\n\n${link}`
 
   return (
     <div className="page rsv">
@@ -186,8 +187,8 @@ export default function Reservas() {
             <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(textoGrupo).then(() => toast('Mensagem copiada. É só colar no grupo.'))}>
               <Icon name="whatsapp" size={14} /> mensagem para o grupo
             </button>
-            <a className="btn small ghost" href={link} target="_blank" rel="noreferrer">
-              <Icon name="eye" size={14} /> ver como o morador vê
+            <a className="btn small ghost" href={`${linkPainelBase()}#/vistoria/teste`} target="_blank" rel="noreferrer">
+              <Icon name="eye" size={14} /> testar como morador
             </a>
           </div>
           <p className="muted small">O morador preenche os dados (endereço pelo CEP), torre e apto, lê o contrato com os dados dele e assina. A reserva aparece aqui na hora, com o painel dele pronto, e cada etapa vai também por e-mail para ele. {cfg.aberta ? '' : 'As reservas estão fechadas (valores e Pix).'}</p>
@@ -198,7 +199,7 @@ export default function Reservas() {
         <div className="art-stat card">
           <small>reservas</small>
           <b>{ativas.length}</b>
-          <span>{faltam ? `faltam ${faltam} para o grupo de 10` : 'grupo de 10 fechado'}</span>
+          <span>{faltam ? `faltam ${faltam} para o grupo de ${cfg.minimo || 10} (${money(cfg.preco)})` : `grupo de ${cfg.minimo || 10} fechado`}</span>
         </div>
         <div className="art-stat card">
           <small>vagas garantidas</small>
@@ -244,6 +245,7 @@ export default function Reservas() {
                   <small>
                     {unidade(r.dados)} · {r.dados.tel}
                     {r.dados.revistoria ? ' · revistoria' : ''}
+                    {r.status.reforma?.pedido && !r.status.reforma.valor ? ' · pediu ART de reforma' : r.status.reforma?.aprovadoEm ? ' · ART de reforma aprovada' : ''}
                   </small>
                 </span>
                 {dup && <Badge color={PAL.warn}>apto repetido</Badge>}
@@ -299,6 +301,12 @@ function Detalhe({
   const [laudo, setLaudo] = useState(s.laudo ?? '')
   const [rev, setRev] = useState(s.revistoriaData ?? '')
   const [obs, setObs] = useState(s.obs ?? '')
+  const [art, setArt] = useState(s.art ?? '')
+  const rf = s.reforma ?? {}
+  const [rfEscopo, setRfEscopo] = useState(rf.escopo ?? '')
+  const [rfValor, setRfValor] = useState(rf.valor ? String(rf.valor) : '')
+  const [rfPrazo, setRfPrazo] = useState(rf.prazo ?? '')
+  const [rfArt, setRfArt] = useState(rf.art ?? '')
   const msg = mensagens({ ...r, status: { ...s, data: d || s.data, hora: h || s.hora } }, cfg)
   const zap = (t: string) => window.open(whatsappLink(r.dados.tel, t), '_blank')
   const painel = linkPainel(r)
@@ -331,6 +339,10 @@ function Detalhe({
           <div>
             <small>revistoria</small>
             <b>{r.dados.revistoria ? `combinada (${money(cfg.revistoria)})` : 'não, por enquanto'}</b>
+          </div>
+          <div>
+            <small>planta</small>
+            <b>{r.dados.planta || 'não escolheu'}</b>
           </div>
         </div>
 
@@ -367,6 +379,10 @@ function Detalhe({
                 <button className="btn small ghost" onClick={() => zap(msg.lembrete)}>
                   <Icon name="bell" size={14} /> lembrete
                 </button>
+                <button className="btn small ghost" onClick={() => void avisarEmail('lembrete', r.id).then((ok) => toast(ok ? 'Lembrete enviado por e-mail.' : 'Lembrete por e-mail já foi hoje (ou não saiu).'))}>
+                  <Icon name="mail" size={14} /> lembrete por e-mail
+                </button>
+                <span className="muted small">A reserva cancela sozinha se o sinal não entrar em 7 dias (no 5º dia sai um lembrete automático).</span>
               </div>
             )}
             {s.sinal && (
@@ -399,9 +415,15 @@ function Detalhe({
           </li>
           <li className={s.laudo ? 'done' : s.quitado ? 'now' : ''}>
             <b>4 · laudo e ART</b>
-            <p className="muted small">Cole o link do PDF do laudo (Google Drive, por exemplo). Ele aparece no painel do morador.</p>
+            <p className="muted small">Cole os links dos PDFs (Google Drive, por exemplo). Eles aparecem em “seus documentos”, no painel do morador.</p>
             <div className="row gap-s wrap">
-              <input className="grow" value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="https://…" />
+              <input className="grow" value={art} onChange={(e) => setArt(e.target.value)} placeholder="link da ART da vistoria" />
+              <button className="btn small" disabled={art === (s.art ?? '')} onClick={() => void onStatus(r, { art: art.trim() }, 'ART no painel do morador.')}>
+                salvar ART
+              </button>
+            </div>
+            <div className="row gap-s wrap">
+              <input className="grow" value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="link do laudo" />
               <button className="btn small" disabled={laudo === (s.laudo ?? '')} onClick={() => void onStatus(r, { laudo: laudo.trim(), laudoEm: laudo.trim() ? today() : '' }, 'Laudo no painel do morador e e-mail enviado.').then(() => laudo.trim() && void avisarEmail('laudo', r.id))}>
                 salvar
               </button>
@@ -424,6 +446,60 @@ function Detalhe({
             </li>
           )}
         </ol>
+
+        <div className="rsv-reforma card">
+          <b>
+            <Icon name="hardhat" size={15} /> ART de reforma
+          </b>
+          {!rf.pedido && !rf.valor ? (
+            <p className="muted small">O morador pode pedir pelo painel. Se ele pedir, aparece aqui. Você também pode mandar um orçamento direto, preenchendo abaixo.</p>
+          ) : (
+            rf.pedido && (
+              <p className="small">
+                <b>Pedido:</b> {rf.pedido}
+              </p>
+            )
+          )}
+          {rf.aprovadoEm ? (
+            <>
+              <p className="small">
+                Aprovado em {dataCurta(rf.aprovadoEm)} · {money(Number(rf.valor ?? 0))}
+              </p>
+              <div className="row gap-s wrap">
+                <input className="grow" value={rfArt} onChange={(e) => setRfArt(e.target.value)} placeholder="link da ART de reforma" />
+                <button className="btn small" disabled={rfArt === (rf.art ?? '')} onClick={() => void onStatus(r, { reforma: { ...rf, art: rfArt.trim() } }, 'ART de reforma no painel do morador.')}>
+                  salvar ART
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="form-grid">
+                <Field label="o que a ART cobre" span={2}>
+                  <input value={rfEscopo} onChange={(e) => setRfEscopo(e.target.value)} placeholder="Ex.: ART de execução da reforma (piso e marcenaria) e plano de reforma para o condomínio" />
+                </Field>
+                <Field label="valor (R$)">
+                  <input type="number" min={0} value={rfValor} onChange={(e) => setRfValor(e.target.value)} />
+                </Field>
+                <Field label="prazo">
+                  <input value={rfPrazo} onChange={(e) => setRfPrazo(e.target.value)} placeholder="Ex.: até 5 dias úteis" />
+                </Field>
+              </div>
+              <div className="row gap-s wrap">
+                <button
+                  className="btn small"
+                  disabled={!rfEscopo.trim() || !(Number(rfValor) > 0)}
+                  onClick={() =>
+                    void onStatus(r, { reforma: { ...rf, escopo: rfEscopo.trim(), valor: Number(rfValor), prazo: rfPrazo.trim(), enviadoEm: new Date().toISOString() } }, 'Orçamento no painel do morador e e-mail enviado.').then(() => void avisarEmail('reforma-orcamento', r.id))
+                  }
+                >
+                  <Icon name="check" size={14} /> {rf.valor ? 'atualizar orçamento' : 'enviar orçamento'}
+                </button>
+                {rf.valor && <span className="muted small">aguardando o morador aprovar no painel</span>}
+              </div>
+            </>
+          )}
+        </div>
 
         <Field label="anotações internas (o morador não vê)">
           <textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} onBlur={() => obs !== (s.obs ?? '') && void onStatus(r, { obs })} />
@@ -458,6 +534,12 @@ function Config({ cfg, onClose, onSave }: { cfg: ReservaConfig; onClose: () => v
         </Field>
         <Field label="valor por apartamento (R$)" hint="Vale para as reservas novas. Quem já assinou fica com o valor do contrato dele.">
           <input type="number" min={0} value={c.preco} onChange={(e) => set('preco', Number(e.target.value) || 0)} />
+        </Field>
+        <Field label="valor individual (R$)" hint="Vale se o grupo não fechar: a diferença entra no restante.">
+          <input type="number" min={0} value={c.individual} onChange={(e) => set('individual', Number(e.target.value) || 0)} />
+        </Field>
+        <Field label="mínimo para o valor de grupo">
+          <input type="number" min={1} value={c.minimo} onChange={(e) => set('minimo', Math.max(1, Number(e.target.value) || 1))} />
         </Field>
         <Field label="revistoria (R$)">
           <input type="number" min={0} value={c.revistoria} onChange={(e) => set('revistoria', Number(e.target.value) || 0)} />

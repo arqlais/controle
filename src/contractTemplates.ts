@@ -381,10 +381,10 @@ Qualquer serviço fora desta lista depende de novo orçamento.
 4. VALOR
 4.1 Valor do serviço: {valor} ({valor_extenso}) por apartamento de até 40 m², com ART inclusa.
 4.2 Tabela da proposta: individual, R$ 297,00; grupo de 10 (dez) ou mais apartamentos do mesmo empreendimento, R$ 280,00 por apartamento; revistoria opcional, R$ 150,00.
-4.3 Valor de grupo: se este contrato foi fechado pelo valor de grupo e o grupo não chegar a 10 (dez) apartamentos contratados até a construtora liberar as datas de vistoria, vale o valor individual. Nesse caso, o(a) CONTRATANTE é avisado(a) e pode escolher entre pagar a diferença no saldo ou desistir com devolução integral do sinal, em até 3 (três) dias do aviso.
+4.3 Valor de grupo: o valor de grupo vale se o empreendimento tiver pelo menos 10 (dez) apartamentos com reserva ativa e sinal pago até a construtora liberar as datas de vistoria. O andamento do grupo aparece no painel do(a) CONTRATANTE. Se o grupo não chegar a esse mínimo, vale o valor individual, e a diferença entre os dois valores (R$ 17,00, no caso da tabela acima) é cobrada junto com o saldo, no dia da vistoria. O sinal não muda.
 
 5. PAGAMENTO
-5.1 Sinal de 50% ({entrada}), pago em até 3 (três) dias da assinatura deste contrato. A vaga na agenda só fica garantida depois que o sinal é pago; sem o pagamento nesse prazo, a CONTRATADA pode cancelar a reserva, sem custo para nenhuma das partes.
+5.1 Sinal de 50% ({entrada}), pago em até 7 (sete) dias da assinatura deste contrato. A vaga na agenda só fica garantida depois que o sinal é pago. Sem o pagamento nesse prazo, a reserva é cancelada automaticamente e este contrato deixa de valer, sem custo e sem multa para nenhuma das partes.
 5.2 Saldo de 50% ({saldo}) no dia da vistoria.
 5.3 Forma de pagamento: {pagamento}
 5.4 O laudo e a ART são entregues depois da quitação. Saldo não pago em até 5 (cinco) dias da vistoria tem multa de 2% (dois por cento) e juros de 1% (um por cento) ao mês, corrigido pelo IPCA.
@@ -419,6 +419,7 @@ Qualquer serviço fora desta lista depende de novo orçamento.
 
 10. ART
 10.1 A ART deste contrato é registrada em nome do engenheiro responsável e se refere exclusivamente à vistoria aqui descrita. Ela não vale para obra, reforma ou outros serviços, que dependem de nova contratação.
+10.2 ART de reforma: o(a) CONTRATANTE pode pedir, pelo painel, um orçamento de ART de obra ou reforma para o mesmo imóvel. A CONTRATADA analisa o pedido e envia pelo painel o escopo, o valor e o prazo. A ART de reforma só é contratada se o(a) CONTRATANTE aprovar esse orçamento no painel; o aceite no painel vale como contratação desse serviço adicional, nas condições do orçamento e, no que couber, deste contrato. Taxas do condomínio, projetos e a execução da obra não estão incluídos.
 
 11. DESISTÊNCIA E CANCELAMENTO
 11.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral do sinal, desde que a vistoria ainda não tenha sido feita (art. 49 do Código de Defesa do Consumidor).

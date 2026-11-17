@@ -2447,3 +2447,6 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rsv-steps li p { margin: 0; }
 .rsv-steps .grow { flex: 1; min-width: 180px; }
 @media (max-width: 640px) { .rsv .art-stats, .rsv-data { grid-template-columns: 1fr 1fr; } .rsv-row .badge { display: none; } }
+.rsv-reforma { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); }
+.rsv-reforma > b { display: flex; align-items: center; gap: 6px; }
+.rsv-reforma p { margin: 0; }

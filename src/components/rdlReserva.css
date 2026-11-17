@@ -633,3 +633,671 @@ html.rv-root body {
     grid-column: auto;
   }
 }
+
+/* ---- v2: grupo, por que reservar, como funciona, plantas, painel ---- */
+.rv-sub {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 18px 0 10px;
+}
+.rv-sub .rv-i {
+  color: var(--or);
+}
+.rv label small {
+  color: var(--mut);
+  font-size: 12px;
+}
+.rv-h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+.rv-h2 .rv-i {
+  color: var(--or);
+}
+.rv-hero .rv-btn {
+  margin-top: 16px;
+  padding: 14px 28px;
+}
+.rv-hero.small h1 {
+  font-size: 28px;
+  margin: 10px 0 4px;
+}
+.rv-test {
+  background: #fff1e4;
+  border-bottom: 1px solid #ffd2a8;
+  padding: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  text-align: center;
+}
+.rv-test b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #c25f0a;
+}
+.rv-test a {
+  color: var(--navy);
+  font-weight: 600;
+}
+.rv-test-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+.rv-test-tabs button {
+  font: inherit;
+  font-size: 12.5px;
+  border: 1px solid #ffd2a8;
+  background: #fff;
+  color: var(--navy);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.rv-test-tabs button.on {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+.rv-group {
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.rv-group.ok {
+  border-color: var(--navy);
+}
+.rv-group-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.rv-group-head .ib {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--orl);
+  color: var(--or);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.rv-group.ok .rv-group-head .ib {
+  background: var(--navy);
+  color: #fff;
+}
+.rv-group-head b {
+  display: block;
+  font-size: 18px;
+}
+.rv-group-head small {
+  color: var(--txt);
+  font-size: 13px;
+}
+.rv-dots {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 5px;
+  margin: 12px 0 0;
+}
+.rv-dots i {
+  aspect-ratio: 1;
+  border-radius: 7px;
+  background: var(--soft);
+  border: 1.5px dashed #c9cdd8;
+  display: grid;
+  place-items: center;
+  color: #fff;
+}
+.rv-dots i.on {
+  background: var(--or);
+  border: none;
+}
+.rv-group.ok .rv-dots i.on {
+  background: var(--navy);
+}
+.rv-group p {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--txt);
+}
+.rv-group.compact {
+  padding: 12px 14px;
+}
+.rv-why {
+  display: grid;
+  gap: 12px;
+}
+.rv-why > div,
+.rv-how li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.rv-why .ib,
+.rv-how .ib {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--orl);
+  color: var(--or);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.rv-why p,
+.rv-how p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--txt);
+}
+.rv-why b,
+.rv-how b {
+  display: block;
+  color: var(--navy);
+  font-size: 14.5px;
+}
+.rv-how {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.rv-how li {
+  position: relative;
+}
+.rv-how .n {
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.rv-label {
+  margin: 14px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.rv-label small {
+  display: block;
+  font-weight: 400;
+  color: var(--txt);
+  font-size: 12.5px;
+}
+.rv-label.bad {
+  color: #c25f0a;
+}
+.rv-plantas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rv-planta {
+  font: inherit;
+  text-align: left;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--navy);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rv-planta img {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  background: #f6f6f3;
+  border-radius: 9px;
+}
+.rv-planta b {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+}
+.rv-planta small {
+  display: block;
+  font-size: 12px;
+  color: var(--txt);
+}
+.rv-planta em {
+  display: inline-block;
+  margin-top: 4px;
+  font-style: normal;
+  font-size: 11px;
+  background: var(--orl);
+  color: #c25f0a;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-weight: 600;
+}
+.rv-planta.on {
+  border-color: var(--navy);
+  background: #f5f8fc;
+}
+.rv-area {
+  margin-top: 10px;
+}
+.rv textarea {
+  font: inherit;
+  font-size: 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 12px;
+  width: 100%;
+  resize: vertical;
+  color: var(--navy);
+}
+.rv label.bad textarea {
+  border-color: var(--or);
+}
+.rv-keys {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.rv-keys p {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  font-size: 13px;
+  color: var(--txt);
+  background: var(--soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.rv-keys .rv-i {
+  color: var(--or);
+  margin-top: 2px;
+}
+.rv-keys b {
+  color: var(--navy);
+}
+.rv-faq details {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+}
+.rv-faq summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.rv-faq summary::-webkit-details-marker {
+  display: none;
+}
+.rv-faq summary .rv-i {
+  transition: transform 0.2s;
+  color: var(--or);
+  margin-top: 3px;
+}
+.rv-faq details[open] summary .rv-i {
+  transform: rotate(90deg);
+}
+.rv-faq details p {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  color: var(--txt);
+}
+.rv-done {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--navy);
+  color: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+.rv-done .rv-i {
+  color: var(--or);
+}
+.rv-track {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  position: relative;
+}
+.rv-track li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--mut);
+  position: relative;
+}
+.rv-track li:not(:last-child):after {
+  content: '';
+  position: absolute;
+  top: 13px;
+  left: calc(50% + 15px);
+  right: calc(-50% + 15px);
+  border-top: 2px dashed #d6dae3;
+}
+.rv-track li.done:not(:last-child):after {
+  border-top: 2px solid var(--navy);
+}
+.rv-track i {
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  background: var(--soft);
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 12px;
+}
+.rv-track li.done {
+  color: var(--navy);
+}
+.rv-track li.done i {
+  background: var(--navy);
+  color: #fff;
+}
+.rv-track li.now {
+  color: var(--navy);
+  font-weight: 600;
+}
+.rv-track li.now i {
+  background: var(--or);
+  color: #fff;
+}
+.rv-now {
+  border-radius: 18px;
+  padding: 18px;
+  background: #fff;
+  border: 2px solid var(--or);
+}
+.rv-now.ok {
+  border-color: var(--navy);
+}
+.rv-now.off {
+  border-color: var(--line);
+}
+.rv-now-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.rv-now-head .ib {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--or);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.rv-now.ok .rv-now-head .ib {
+  background: var(--navy);
+}
+.rv-now.off .rv-now-head .ib {
+  background: #b9bcc7;
+}
+.rv-now-head small {
+  font-size: 10.5px;
+  letter-spacing: 1.6px;
+  color: var(--or);
+  font-weight: 600;
+}
+.rv-now-head h2 {
+  margin: 2px 0 0;
+  font-size: 19px;
+  line-height: 1.25;
+}
+.rv-now p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--txt);
+}
+.rv-deadline {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--orl);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #8a4507 !important;
+}
+.rv-deadline .rv-i {
+  margin-top: 2px;
+  flex: none;
+}
+.rv-alert {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: #eef3fa;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.rv-alert .rv-i {
+  color: var(--navy);
+  margin-top: 2px;
+  flex: none;
+}
+.rv-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.rv-list li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+  color: var(--txt);
+}
+.rv-list .rv-i {
+  color: var(--or);
+  margin-top: 2px;
+  flex: none;
+}
+.rv-tip {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  font-weight: 400 !important;
+  color: var(--txt) !important;
+}
+.rv-btn.wide2 {
+  width: 100%;
+}
+.rv-docs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rv-doc {
+  font: inherit;
+  text-align: left;
+  border: 1.5px dashed #c9cdd8;
+  background: var(--soft);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--mut);
+  text-decoration: none;
+  cursor: default;
+}
+.rv-doc .ib {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+}
+.rv-doc b {
+  font-size: 14px;
+  color: var(--navy);
+}
+.rv-doc small {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.rv-doc em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rv-doc.ok {
+  border: 1.5px solid var(--line);
+  background: #fff;
+  cursor: pointer;
+  color: var(--txt);
+}
+.rv-doc.ok .ib {
+  background: var(--navy);
+  color: #fff;
+}
+.rv-doc.ok em {
+  color: var(--or);
+}
+.rv-myplan img {
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+  background: #f6f6f3;
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.rv-myplan b {
+  display: block;
+}
+.rv-myplan small {
+  color: var(--txt);
+  font-size: 12.5px;
+}
+.rv-row.between {
+  justify-content: space-between;
+  align-items: center;
+}
+.rv-row.between .rv-btn {
+  margin-top: 0;
+}
+.rv-state {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13.5px;
+  color: var(--txt);
+}
+.rv-state b {
+  display: block;
+  color: var(--navy);
+}
+.rv-state .rv-i {
+  margin-top: 2px;
+  flex: none;
+  color: var(--or);
+}
+.rv-state.ok .rv-i {
+  color: var(--navy);
+}
+.rv-quote p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--txt);
+}
+.rv-quote dl {
+  margin: 0;
+  background: var(--soft);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 14px;
+  font-size: 14px;
+}
+.rv-quote dt {
+  color: var(--mut);
+  font-size: 12px;
+  font-weight: 600;
+  padding-top: 2px;
+}
+.rv-quote dd {
+  margin: 0;
+}
+.rv-quote .rv-btn {
+  width: 100%;
+}
+.rv-help .rv-btn.small {
+  flex: 1;
+}
+@media (max-width: 560px) {
+  .rv-plantas {
+    grid-template-columns: 1fr 1fr;
+  }
+  .rv-planta img {
+    height: 90px;
+  }
+  .rv-dots {
+    gap: 4px;
+  }
+  .rv-track span {
+    font-size: 10.5px;
+  }
+}
+@media (max-width: 360px) {
+  .rv-docs,
+  .rv-plantas {
+    grid-template-columns: 1fr;
+  }
+}
+.rv p.rv-label {
+  display: block;
+}
+.rv p.rv-label small {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+}

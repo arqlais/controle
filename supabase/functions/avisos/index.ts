@@ -345,6 +345,45 @@ const RDL_FROM = 'RDL Engenharia'
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const dBR = (iso?: string) => (iso && /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(0, 10).split('-').reverse().join('/') : '')
 type RdlRow = { id: string; token: string; criado: string; dados: Record<string, unknown>; status: Record<string, string>; cancelada: boolean; avisos?: Record<string, string> }
+const rdlSub = (id: string, email: string, name: string): Sub => ({ user_id: id, email, name, plan: '', status: '', trial_ends: '', blocked: false })
+// deno-lint-ignore no-explicit-any
+async function rdlCfg(db: any): Promise<RdlCfg> {
+  let cfg: RdlCfg = { preco: 280, individual: 297, minimo: 10, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: '', empreendimento: 'Condomínio San Levi (MRV)' }
+  try {
+    const f = await db.storage.from('agenda').download('7d1e0000-0000-4000-8000-00000000d1d1/reserva-vistoria.json')
+    if (f.data) cfg = { ...cfg, ...JSON.parse(await f.data.text()) }
+  } catch {
+    /* usa o padrão */
+  }
+  return cfg
+}
+/** Aviso diário da RDL: lembrete do sinal no 5º dia e e-mail de quem foi cancelado por falta de sinal. */
+// deno-lint-ignore no-explicit-any
+async function rdlDiario(db: any) {
+  await db.rpc('rdl_expirar')
+  const cfg = await rdlCfg(db)
+  const { data } = await db.from('rdl_reservas').select('*').gte('criado', new Date(Date.now() - 30 * 864e5).toISOString())
+  const rows = (data ?? []) as RdlRow[]
+  const grupo = rows.filter((x) => !x.cancelada).length
+  let n = 0
+  for (const r of rows) {
+    const st = (r.status ?? {}) as Record<string, string>
+    const av = r.avisos ?? {}
+    const idade = (Date.now() - new Date(r.criado).getTime()) / 864e5
+    const k = r.cancelada && st.expirada ? 'expirada' : !r.cancelada && !st.sinal && idade >= 5 ? 'lembrete-auto' : ''
+    if (!k || av[k]) continue
+    const to = String((r.dados as Record<string, string>).email ?? '').trim()
+    if (!isMail(to)) continue
+    try {
+      await send(rdlSub(r.id, to, String((r.dados as Record<string, string>).nome ?? '')), rdlMails(r, cfg, grupo)[k === 'expirada' ? 'expirada' : 'lembrete'], RDL_EMAIL, RDL_FROM)
+      await db.from('rdl_reservas').update({ avisos: { ...av, [k]: new Date().toISOString() } }).eq('id', r.id)
+      n++
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  return n
+}
 function rdlLayout(o: { eyebrow: string; title: string; text: string; button?: string; url?: string; rows?: [string, string][] }) {
   const btn = o.button
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:6px;"><tr><td style="border-radius:12px;background:#FF8216;"><a href="${o.url}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:12px;">${esc(o.button)}</a></td></tr></table>`
@@ -370,7 +409,8 @@ ${rows}${btn}
 <tr><td style="padding:14px 8px 0;font-size:11.5px;line-height:1.6;color:#7A7F92;text-align:center;">Para falar com a RDL, é só responder este e-mail ou chamar no WhatsApp.</td></tr>
 </table></td></tr></table></body></html>`
 }
-function rdlMails(r: RdlRow, cfg: { preco: number; revistoria: number; periodo: string; pix: string; empreendimento: string }) {
+type RdlCfg = { preco: number; individual?: number; minimo?: number; revistoria: number; periodo: string; pix: string; empreendimento: string }
+function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const d = r.dados as Record<string, string | boolean>
   const nome = String(d.nome ?? '')
   const pn = nome.split(' ')[0]
@@ -378,16 +418,21 @@ function rdlMails(r: RdlRow, cfg: { preco: number; revistoria: number; periodo: 
   const painel = `${SITE}#/vistoria/${r.id}.${r.token}`
   const metade = cfg.preco / 2
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
-  const s = r.status ?? {}
-  const base: [string, string][] = [['morador', nome], ['unidade', `${emp} · ${un}`], ['reserva', `nº ${r.id.slice(0, 8).toUpperCase()}`]]
+  const s = (r.status ?? {}) as Record<string, string> & { reforma?: Record<string, string | number> }
+  const rf = s.reforma ?? {}
+  const min = cfg.minimo ?? 10
+  const ind = cfg.individual ?? 297
+  const planta = String(d.planta ?? '')
+  const base: [string, string][] = [['morador', nome], ['unidade', `${emp} · ${un}`], ...(planta ? [['planta', planta] as [string, string]] : []), ['reserva', `nº ${r.id.slice(0, 8).toUpperCase()}`]]
+  const grupoTxt = grupo >= min ? `O grupo já tem ${grupo} reservas: vale o valor de grupo (${brl(cfg.preco)}).` : `O grupo está com ${grupo} de ${min} reservas. Com ${min}, todos pagam ${brl(cfg.preco)}; se não chegar, a diferença para ${brl(ind)} entra no restante, no dia da vistoria.`
   return {
     reserva: {
       subject: `Reserva recebida: vistoria do ${un}`,
       html: rdlLayout({
         eyebrow: 'reserva da vistoria',
         title: `Recebemos a sua reserva, ${pn}!`,
-        text: `<p style="margin:0 0 12px;">O contrato da vistoria de entrega de chaves foi assinado e está guardado no seu painel, junto com tudo da vistoria.</p><p style="margin:0;"><b>Para garantir a vaga</b>, falta o sinal de <b>${brl(metade)}</b>, em até 3 dias${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois é só mandar o comprovante pelo WhatsApp ou respondendo este e-mail.</p>`,
-        rows: [...base, ['valor', `${brl(cfg.preco)} (sinal ${brl(metade)})`], ['previsão da MRV', cfg.periodo], ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
+        text: `<p style="margin:0 0 12px;">O contrato da vistoria de entrega de chaves foi assinado e está guardado no seu painel, junto com tudo da vistoria.</p><p style="margin:0;"><b>Para garantir a vaga</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois é só mandar o comprovante pelo WhatsApp ou respondendo este e-mail.</p><p style="margin:12px 0 0;">${grupoTxt}</p>`,
+        rows: [...base, ['valor', `${brl(cfg.preco)} (sinal ${brl(metade)})`], ['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`], ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
         button: 'Abrir o meu painel',
         url: painel,
       }),
@@ -439,6 +484,61 @@ function rdlMails(r: RdlRow, cfg: { preco: number; revistoria: number; periodo: 
     cancelada: {
       subject: `Reserva cancelada: vistoria do ${un}`,
       html: rdlLayout({ eyebrow: 'reserva', title: 'Reserva cancelada', text: `<p style="margin:0;">Oi, ${esc(pn)}. A reserva da vistoria do ${esc(un)} foi cancelada. Se tiver qualquer dúvida, é só responder este e-mail.</p>`, rows: base }),
+    },
+    lembrete: {
+      subject: `Lembrete: sinal da vistoria do ${un}`,
+      html: rdlLayout({
+        eyebrow: 'lembrete',
+        title: 'Falta o sinal para garantir a vaga',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua reserva está feita, mas a vaga só fica garantida com o sinal de <b>${brl(metade)}</b>${cfg.pix ? ` (Pix <b>${esc(cfg.pix)}</b>)` : ''}.</p><p style="margin:0;">O prazo é de 7 dias depois da assinatura. Sem o sinal, a reserva é cancelada sozinha, sem custo. Se já pagou, é só mandar o comprovante respondendo este e-mail.</p>`,
+        rows: base,
+        button: 'Abrir o meu painel',
+        url: painel,
+      }),
+    },
+    expirada: {
+      subject: `Reserva cancelada por falta de sinal: ${un}`,
+      html: rdlLayout({
+        eyebrow: 'reserva',
+        title: 'Sua reserva foi cancelada',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}. Como o sinal não foi pago em 7 dias, a reserva da vistoria do ${esc(un)} foi cancelada automaticamente, sem nenhum custo.</p><p style="margin:0;">Se ainda quiser a vistoria, é só reservar de novo pelo link (enquanto houver vagas) ou responder este e-mail.</p>`,
+        rows: base,
+        button: 'Reservar de novo',
+        url: `${SITE}vistoria/`,
+      }),
+    },
+    'reforma-pedido': {
+      subject: `Pedido de ART de reforma: ${nome} · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'ART de reforma',
+        title: `${nome} pediu orçamento de ART de reforma`,
+        text: `<p style="margin:0 0 12px;">O que vai fazer na reforma:</p><p style="margin:0;padding:12px 14px;background:#FFF1E4;border-radius:10px;color:#012C60;">${esc(String(rf.pedido ?? ''))}</p><p style="margin:12px 0 0;">Para responder, abra <b>vistorias</b> no sistema da RDL, coloque o escopo, o valor e o prazo e envie. O morador aprova pelo painel.</p>`,
+        rows: [...base, ['WhatsApp', String(d.tel ?? '')]],
+        button: 'Abrir o sistema da RDL',
+        url: `${SITE}rdl/`,
+      }),
+    },
+    'reforma-orcamento': {
+      subject: `Orçamento da ART de reforma: ${un}`,
+      html: rdlLayout({
+        eyebrow: 'ART de reforma',
+        title: 'Seu orçamento chegou',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O Rogério analisou o seu pedido de ART de reforma.</p><p style="margin:0;">Para contratar, é só abrir o painel e tocar em <b>Aprovar orçamento</b>.</p>`,
+        rows: [...base, ['o que cobre', String(rf.escopo ?? '')], ['valor', brl(Number(rf.valor ?? 0))], ...(rf.prazo ? [['prazo', String(rf.prazo)] as [string, string]] : [])],
+        button: 'Ver e aprovar no painel',
+        url: painel,
+      }),
+    },
+    'reforma-aprovada': {
+      subject: `ART de reforma aprovada: ${nome} · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'ART de reforma',
+        title: 'Orçamento aprovado',
+        text: `<p style="margin:0;">${esc(nome)} aprovou o orçamento da ART de reforma pelo painel (${brl(Number(rf.valor ?? 0))}). O próximo passo é combinar a visita técnica e o pagamento.</p>`,
+        rows: [...base, ['valor', brl(Number(rf.valor ?? 0))], ['WhatsApp', String(d.tel ?? '')]],
+        button: 'Abrir o sistema da RDL',
+        url: `${SITE}rdl/`,
+      }),
     },
     rdl: {
       subject: `Nova reserva: ${nome} · ${un}`,
@@ -641,40 +741,38 @@ Deno.serve(async (req) => {
     // as outras etapas só a RDL (Laís ou Rogério, logados). Cada e-mail vai uma vez por etapa (coluna avisos).
     const evento = String(body.evento ?? '')
     const id = String(body.id ?? '')
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada'].includes(evento)) return json({ ok: false }, 400)
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada'].includes(evento)) return json({ ok: false }, 400)
     const { data: row } = await db.from('rdl_reservas').select('*').eq('id', id).maybeSingle()
     const r = row as RdlRow | null
     if (!r) return json({ ok: false }, 404)
-    if (evento === 'reserva') {
+    if (evento === 'reserva' || evento === 'reforma-pedido' || evento === 'reforma-aprovada') {
       if (String(body.token ?? '') !== r.token) return json({ ok: false }, 403)
     } else {
       const mail = String(who?.user?.email ?? '').toLowerCase()
       if (!isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
     }
     const st = r.status ?? {}
-    const ref = evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento
+    const rfx = ((r.status ?? {}) as { reforma?: Record<string, string> }).reforma ?? {}
+    const ref = evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento
     const avisos = r.avisos ?? {}
     if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
     // valores da campanha (arquivo público da RDL)
-    let cfg = { preco: 280, revistoria: 150, periodo: 'entre dezembro de 2026 e março de 2027', pix: '', empreendimento: 'Condomínio San Levi (MRV)' }
-    try {
-      const f = await db.storage.from('agenda').download('7d1e0000-0000-4000-8000-00000000d1d1/reserva-vistoria.json')
-      if (f.data) cfg = { ...cfg, ...JSON.parse(await f.data.text()) }
-    } catch {
-      /* usa o padrão */
-    }
-    const mails = rdlMails(r, cfg)
+    const cfg = await rdlCfg(db)
+    const { count: grupo } = await db.from('rdl_reservas').select('id', { count: 'exact', head: true }).eq('cancelada', false)
+    const mails = rdlMails(r, cfg, grupo ?? 0)
     const to = String((r.dados as Record<string, string>).email ?? '').trim()
     const nome = String((r.dados as Record<string, string>).nome ?? '')
     const ok: string[] = []
     try {
-      if (isMail(to)) {
-        await send({ user_id: id, email: to, name: nome, plan: '', status: '', trial_ends: '', blocked: false }, mails[evento], RDL_EMAIL, RDL_FROM)
+      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada'
+      if (isMail(to) && evento !== 'reforma-pedido') {
+        await send(rdlSub(id, to, nome), evento === 'reforma-aprovada' ? { subject: `Você aprovou a ART de reforma`, html: mails['reforma-aprovada'].html } : mails[evento], RDL_EMAIL, RDL_FROM)
         ok.push('morador')
       }
-      if (evento === 'reserva') {
-        await send({ user_id: id, email: RDL_EMAIL, name: 'Rogério', plan: '', status: '', trial_ends: '', blocked: false }, mails.rdl, to || RDL_EMAIL, RDL_FROM)
-        if (OWNER_EMAIL !== RDL_EMAIL) await send({ user_id: id, email: OWNER_EMAIL, name: '', plan: '', status: '', trial_ends: '', blocked: false }, mails.rdl, to || RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
+      if (evento === 'reserva' || paraRdl) {
+        const m = evento === 'reserva' ? mails.rdl : mails[evento]
+        await send(rdlSub(id, RDL_EMAIL, 'Rogério'), m, to || RDL_EMAIL, RDL_FROM)
+        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(id, OWNER_EMAIL, ''), m, to || RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
         ok.push('rdl')
       }
     } catch (e) {
@@ -738,6 +836,8 @@ Deno.serve(async (req) => {
 
   if (tipo === 'diario') {
     if (!cron) return json({ erro: 'sem permissão' }, 403)
+    // RDL: lembrete do sinal e reservas canceladas por falta de sinal (não trava o resto)
+    await rdlDiario(db).catch((e) => console.error(e))
     const day = (iso: string) => Math.round((Date.parse(iso.slice(0, 10)) - Date.parse(new Date().toISOString().slice(0, 10))) / 86_400_000)
     const { data } = await db.from('subscriptions').select('*').eq('blocked', false)
     const { data: ctrl } = await db.from('subscriber_admin').select('user_id, data')

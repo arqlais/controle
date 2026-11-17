@@ -20,6 +20,9 @@ export const RDL_INFO = {
   email: 'roger.rdl76@yahoo.com.br',
 }
 
+export const PLANTA_CANTO = 'Planta de canto (finais 01, 02, 11 e 12)'
+export const PLANTA_CORREDOR = 'Planta de corredor (finais 03 a 10)'
+
 /** O que a RDL ajusta no sistema (vai num arquivo público que a página de reserva lê). */
 export interface ReservaConfig {
   empreendimento: string
@@ -29,6 +32,10 @@ export interface ReservaConfig {
   pix: string // chave Pix para o sinal (vazio = combinado no WhatsApp)
   pixNome: string
   aberta: boolean
+  individual: number // valor se o grupo não fechar
+  minimo: number // apartamentos para valer o valor de grupo
+  prazoSinal: number // dias para pagar o sinal (depois cancela sozinho)
+  plantas: string[] // opções de planta que o morador escolhe
 }
 export const CONFIG_PADRAO: ReservaConfig = {
   empreendimento: 'Condomínio San Levi (MRV)',
@@ -38,8 +45,20 @@ export const CONFIG_PADRAO: ReservaConfig = {
   pix: '',
   pixNome: 'RDL Engenharia',
   aberta: true,
+  individual: 297,
+  minimo: 10,
+  prazoSinal: 7,
+  plantas: [PLANTA_CANTO, PLANTA_CORREDOR],
 }
 const CONFIG_FILE = 'reserva-vistoria.json'
+/** San Levi: 12 apês por andar; finais 01, 02, 11 e 12 são a planta de canto, 03 a 10 a de corredor. */
+export function plantaDoApto(apto: string): string {
+  const d = String(apto ?? '').replace(/\D/g, '')
+  if (d.length < 3) return ''
+  const f = Number(d.slice(-2))
+  if (!f || f > 12) return ''
+  return [1, 2, 11, 12].includes(f) ? PLANTA_CANTO : PLANTA_CORREDOR
+}
 export async function lerConfig(): Promise<ReservaConfig> {
   const c = CLOUD ? await readPublicFile<Partial<ReservaConfig>>(RDL_ID, CONFIG_FILE) : null
   return { ...CONFIG_PADRAO, ...(c ?? {}) }
@@ -62,7 +81,20 @@ export interface ReservaDados {
   torre: string
   apto: string
   revistoria: boolean
+  planta?: string
+  reforma?: string // já pediu orçamento de ART de reforma na reserva (o que vai fazer)
   obs?: string
+}
+/** ART de reforma: o morador pede pelo painel, a RDL manda o valor e ele aprova ali mesmo. */
+export interface ReformaPedido {
+  pedido?: string // o que vai fazer na reforma
+  pedidoEm?: string
+  escopo?: string // o que a RDL vai cobrir
+  valor?: number
+  prazo?: string
+  enviadoEm?: string
+  aprovadoEm?: string
+  art?: string // link da ART de reforma
 }
 export interface ReservaContrato {
   texto: string
@@ -87,6 +119,9 @@ export interface ReservaStatus {
   contratada?: string // quando a RDL assinou (ao confirmar o sinal)
   obs?: string
   cliente?: string // id do cliente no sistema
+  art?: string // link da ART da vistoria
+  reforma?: ReformaPedido
+  expirada?: string // cancelada sozinha por falta de sinal
 }
 export interface Reserva {
   id: string
@@ -140,7 +175,7 @@ export const unidade = (d: Pick<ReservaDados, 'torre' | 'apto'>) => `${d.torre ?
 export function contratoTexto(d: ReservaDados, c: ReservaConfig, quando = new Date()) {
   const metade = Math.round((c.preco / 2) * 100) / 100
   const corpo = VISTORIA_CONTRACT.body
-    .replace('IMÓVEL VISTORIADO\n{endereco_obra}', `IMÓVEL VISTORIADO\n{endereco_obra}\nPrevisão das vistorias informada pela construtora: ${c.periodo}. A data e o horário são combinados quando a construtora liberar a agenda (cláusula 6).\nRevistoria (cláusula 9): ${d.revistoria ? `o(a) CONTRATANTE já deixa a revistoria combinada, pelo valor de ${brl(c.revistoria)}, pago no dia da revistoria.` : 'não contratada agora; pode ser pedida depois, conforme a cláusula 9.'}`)
+    .replace('IMÓVEL VISTORIADO\n{endereco_obra}', `IMÓVEL VISTORIADO\n{endereco_obra}${d.planta ? `\nPlanta: ${d.planta}.` : ''}\nPrevisão das vistorias informada pela construtora: ${c.periodo}. A data e o horário são combinados quando a construtora liberar a agenda (cláusula 6).\nRevistoria (cláusula 9): ${d.revistoria ? `o(a) CONTRATANTE já deixa a revistoria combinada, pelo valor de ${brl(c.revistoria)}, pago no dia da revistoria.` : 'não contratada agora; pode ser pedida depois, conforme a cláusula 9.'}${d.reforma ? `\nART de reforma (cláusula 10.2): o(a) CONTRATANTE pediu orçamento à parte para: ${d.reforma.trim().slice(0, 300)}. Só passa a valer se o(a) CONTRATANTE aprovar o orçamento no painel.` : ''}`)
   return fillContract(corpo, {
     contratada: RDL_INFO.company,
     doc_contratada: `CNPJ ${RDL_INFO.cnpj}`,
@@ -153,6 +188,9 @@ export function contratoTexto(d: ReservaDados, c: ReservaConfig, quando = new Da
     telefone_contratante: d.tel.trim(),
     endereco_obra: `${c.empreendimento}, ${unidade(d)}, Santo André - SP`,
     valor: brl(c.preco),
+    valor_individual: brl(c.individual),
+    minimo: String(c.minimo),
+    prazo_sinal: String(c.prazoSinal),
     valor_extenso: extenso(c.preco),
     entrada: brl(metade),
     saldo: brl(c.preco - metade),
@@ -203,8 +241,27 @@ export async function apagarReserva(id: string) {
   if (error) throw error
 }
 
+/** O que o morador pode mudar pelo painel (planta, pedido e aprovação da ART de reforma). */
+export async function moradorAcao(id: string, token: string, acao: 'planta' | 'reforma-pedido' | 'reforma-aprovar', valor = ''): Promise<boolean> {
+  if (!supabase) return false
+  const { data, error } = await supabase.rpc('rdl_morador', { p_id: id, p_token: token, p_acao: acao, p_valor: valor })
+  return !error && !!data
+}
+
+/** Morador de teste (só nesta tela, nada é salvo nem enviado). */
+export function reservaTeste(etapa: 'reserva' | 'sinal' | 'data' | 'laudo', c: ReservaConfig): Reserva {
+  const hoje = new Date().toISOString()
+  const dados: ReservaDados = { nome: 'Morador Teste', cpf: '529.982.247-25', email: 'teste@exemplo.com', tel: '(11) 9 0000-0000', endereco: 'Rua Exemplo, 100 - Centro, Santo André - SP, CEP 09000-000', torre: '2', apto: '1204', planta: PLANTA_CORREDOR, revistoria: true }
+  const status: ReservaStatus = {}
+  if (etapa !== 'reserva') Object.assign(status, { sinal: hoje.slice(0, 10), contratada: hoje })
+  if (etapa === 'data' || etapa === 'laudo') Object.assign(status, { data: '2027-01-20', hora: '10:30' })
+  if (etapa === 'laudo') Object.assign(status, { quitado: hoje.slice(0, 10), laudo: 'https://useplane.com.br/rdl/proposta-vistoria-san-levi.pdf', art: 'https://useplane.com.br/rdl/proposta-vistoria-san-levi.pdf', reforma: { pedido: 'Trocar o piso da sala e fazer um armário na cozinha', pedidoEm: hoje, escopo: 'ART de execução da reforma (piso e marcenaria) e plano de reforma para o condomínio', valor: 350, prazo: 'até 5 dias úteis', enviadoEm: hoje } })
+  const texto = contratoTexto(dados, c)
+  return { id: 'teste000-0000-4000-8000-000000000000', token: 'teste', criado: hoje, dados, contrato: { texto, assinatura: dados.nome, cpf: dados.cpf, em: hoje, codigo: 'teste', aparelho: 'teste', fuso: 'America/Sao_Paulo' }, status, cancelada: false, ordem: 3 }
+}
+
 /** E-mail da etapa para o morador (e, na reserva, para a RDL), pelo remetente da planê com a identidade da RDL. Nunca trava a tela. */
-export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada', id: string, token?: string): Promise<boolean> {
+export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
   if (!supabase) return false
   try {
     const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl', evento, id, token } })
@@ -217,6 +274,7 @@ export async function avisarEmail(evento: 'reserva' | 'sinal' | 'data' | 'laudo'
 /* ---------- links ---------- */
 const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistoria)\/?$/, '/')}`
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`
+export const linkPainelBase = () => base()
 export const linkPainel = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/${r.id}.${r.token}`
 
 export const pixCopiaECola = (c: ReservaConfig, valor: number, r: Pick<Reserva, 'dados'>) =>
@@ -228,7 +286,7 @@ export function mensagens(r: Reserva, c: ReservaConfig) {
   const metade = c.preco / 2
   const painel = linkPainel(r)
   return {
-    sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*${c.pix ? ` no Pix:\n*${c.pix}*` : '.'}\nDepois é só mandar o comprovante por aqui.\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
+    sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix:\n*${c.pix}*` : '.'}\nDepois é só mandar o comprovante por aqui.\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
     confirmado: `Oi, ${nome}! ✅ Sinal recebido, a sua vaga na agenda está garantida.\n\nAssim que a MRV liberar as datas (${c.periodo}), me avisa para a gente combinar o horário antes de você confirmar com eles.\n\nPainel da sua vistoria:\n${painel}`,
     data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(c.preco - metade)}* no dia (Pix ou cartão)\n\nQualquer coisa, me chama por aqui.`,
     laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\nEstá no seu painel:\n${painel}\n\nÉ só encaminhar para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,

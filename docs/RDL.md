@@ -37,3 +37,11 @@ O modo RDL é decidido por `rdlMode()` (aba → aparelho). Tudo o que é da RDL 
 - Valores, previsão, chave Pix e "reservas abertas": arquivo público `reserva-vistoria.json` na pasta da RDL, editado em vistorias → valores e Pix.
 - No sistema: menu "vistorias" (`src/pages/Reservas.tsx`). Cada reserva vira cliente; sinal confirmado registra o aceite da RDL e cria a ART "a emitir"; a data entra na agenda.
 - Na RDL o cliente é um só (sem parceiro/cliente final), há um modelo de documento só (`faixa`, nas cores da RDL) e os orçamentos começam no 100.
+
+### Reserva, parte 2
+- Grupo: "X de 10 reservados" na página e no painel. Com 10 reservas ativas com sinal, vale R$ 280; senão vale R$ 297 e a diferença entra no saldo (cláusula 4.3). Valores e mínimo em vistorias → valores e Pix.
+- Sinal em até 7 dias (cláusula 5.1). Sem sinal, `rdl_expirar()` cancela sozinha (roda ao abrir a página, o painel e no aviso diário); lembrete automático por e-mail no 5º dia.
+- Planta: canto (finais 01, 02, 11, 12) ou corredor (03 a 10), marcada pelo número do apto; imagens em `public/rdl/planta-*.jpg` (book do San Levi).
+- ART de reforma: o morador pede (na reserva ou no painel), a RDL manda escopo, valor e prazo em vistorias, ele aprova no painel (cláusula 10.2). Função `rdl_morador`.
+- Painel: "o que fazer agora", etapas, documentos (contrato, ART da vistoria, laudo, ART de reforma), planta, reforma e ajuda.
+- Modo teste: `#/vistoria/teste` e `#/vistoria/teste-painel` (nada é salvo nem enviado); botão "testar como morador" em vistorias.
