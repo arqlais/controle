@@ -2547,3 +2547,9 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
   .ld-salvo { width: 100%; text-align: center; }
 }
 .rsv-pago { width: 100%; margin: 0 0 4px; padding: 8px 10px; border-radius: 10px; background: #fff1e4; color: #b4570a; font-size: 13px; font-weight: 600; }
+/* RDL: o mesmo padrão do perfil (símbolo + nome), sem cortar o símbolo e sem quebrar o nome */
+.brand.rdl-brand2 .brand-photo.rdl-photo { border-radius: 14px; background: #fff; padding: 5px; }
+.brand.rdl-brand2 .brand-photo.rdl-photo img { object-fit: contain; }
+.brand.rdl-brand2 .brand-name { font-size: 20px; white-space: nowrap; color: #012c60; }
+.brand.rdl-brand2 .brand-name i { color: #ff8216; }
+.platform-mark.rdl-plane { color: #012c60; }

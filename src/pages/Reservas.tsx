@@ -880,7 +880,8 @@ function Acessos({ reservas }: { reservas: Reserva[] }) {
     ['tocaram em reservar', sessoes.filter((es) => tem(es, (e) => e.evento === 'clicou' && String(e.dados.alvo).startsWith('reservar')) || tem(es, (e) => e.evento === 'etapa')).length],
     ['escolheram o serviço', sessoes.filter((es) => tem(es, (e) => e.evento === 'etapa' && e.dados.nome === 'dados')).length],
     ['chegaram ao contrato', sessoes.filter((es) => tem(es, (e) => e.evento === 'etapa' && e.dados.nome === 'contrato')).length],
-    ['assinaram', sessoes.filter((es) => tem(es, (e) => e.evento === 'assinou')).length],
+    // assinaturas: conta as reservas de verdade do período (a medição de acessos começou depois das primeiras reservas)
+    ['assinaram', Math.max(sessoes.filter((es) => tem(es, (e) => e.evento === 'assinou')).length, reservas.filter((r) => Date.now() - new Date(r.criado).getTime() <= Number(dias) * 864e5).length)],
   ]
   const conta = (lista: string[]) => [...lista.reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
   const origens = conta(sessoes.map((es) => String(es.find((e) => e.evento === 'abriu' && e.dados.origem)?.dados.origem ?? 'sem informação')))
@@ -928,6 +929,7 @@ function Acessos({ reservas }: { reservas: Reserva[] }) {
       <div className="acs-grid">
         <div className="card acs-box">
           <b>Caminho até assinar</b>
+          <p className="muted small">Ninguém reserva sem assinar: “assinaram” conta todas as reservas do período. Os passos antes disso só aparecem para quem entrou depois que a medição de acessos começou (17/11).</p>
           {funil.map(([t, n]) => (
             <div key={t} className="acs-bar">
               <span>{t}</span>

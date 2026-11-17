@@ -77,7 +77,6 @@ import { misdatedOldQuotes } from './quoteActions'
 import { DIRECT_KEY, OWNER_ONLY, PLANS, PLAN_LIST, PLATFORM, plansWith, type Feature, type PlanId } from './plans'
 import { effectiveSettings } from './brand'
 import { enterRdl, exitRdl, rdlMode, rdlRole, setRdlFavicon } from './rdl'
-import { RDL_LOGO } from './rdlLogo'
 
 // menu em grupos: o dia a dia, clientes e vendas, e as ferramentas do estúdio
 const NAV_GROUPS = [
@@ -616,7 +615,7 @@ export default function App() {
         {/* a marca da plataforma fica sempre presente, discreta, acima do estúdio de quem usa */}
         {RDL ? (
           <a className="platform-mark rdl-plane" href={href('inicio')} aria-label={PLATFORM.name}>
-            <BrandMark place="menu" size={30} />
+            <BrandMark place="menu" size={30} spec={{ variant: 'quadrado', bg: '#012C60', line: '#FF8216' }} />
             {PLATFORM.name}
           </a>
         ) : (
@@ -626,8 +625,16 @@ export default function App() {
           </a>
         )}
         {RDL ? (
-          <a className="brand rdl-brand" href={href('inicio')} aria-label="RDL Engenharia e Representações">
-            <img src={RDL_LOGO} alt="RDL Engenharia e Representações" />
+          <a className="brand rdl-brand2" href={href('perfil')} title="RDL Engenharia e Representações">
+            <span className="brand-photo rdl-photo">
+              <img src={`${import.meta.env.BASE_URL}rdl/simbolo.png`} alt="" />
+            </span>
+            <span className="brand-text">
+              <span className="brand-kicker">minha gestão</span>
+              <span className="brand-name">
+                RDL Engenharia<i>.</i>
+              </span>
+            </span>
           </a>
         ) : (
         <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('perfil')} title={`Perfil do estúdio e conta${userEmail ? ` (${userEmail})` : ''}`}>

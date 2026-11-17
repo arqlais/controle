@@ -144,7 +144,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         <div className="welcome-text">
           <p className="welcome-date">{d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           <h1>
-            <em>{hello.toLowerCase()},</em> {(settings.ownerName || settings.brandName).toLowerCase()}
+            <em>{hello.toLowerCase()},</em> {rdlMode() ? 'rogério' : (settings.ownerName || settings.brandName).toLowerCase()}
           </h1>
           <p className="welcome-sub">
             {/* uma frase só: o mais importante da semana (os valores ficam nos cards logo abaixo) */}
