@@ -2558,3 +2558,67 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rsv-acts .btn { justify-content: center; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (min-width: 900px) { .rsv-acts { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .rsv-acts-t { margin: 10px 0 0; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: var(--muted); }
+
+/* ===== painel das vistorias (RDL) ===== */
+.rdp-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.rdp-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rdp-kpi small { font-size: 11.5px; color: var(--muted); text-transform: lowercase; }
+.rdp-kpi b { font-size: 22px; line-height: 1.15; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rdp-kpi span { font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.rdp-kpi.alerta { border-color: var(--warn); box-shadow: inset 3px 0 0 var(--warn); }
+.rdp-busca { width: 100%; margin-bottom: 12px; }
+.rdp-kanban { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+.rdp-col { background: var(--surface-2); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; scroll-snap-align: start; min-height: 120px; }
+.rdp-col header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rdp-col header b { font-size: 13px; }
+.rdp-col header span { font-size: 12px; font-weight: 600; min-width: 24px; height: 22px; border-radius: 99px; display: grid; place-items: center; background: var(--surface); color: var(--text); }
+.rdp-col.f-conferir header span, .rdp-col.f-laudo header span { background: var(--warn); color: #fff; }
+.rdp-sub { font-size: 11px; color: var(--muted); margin-top: -6px; }
+.rdp-vazio { font-size: 12px; color: var(--muted); text-align: center; padding: 14px 0; margin: 0; }
+.rdp-card { all: unset; box-sizing: border-box; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+.rdp-card:hover { border-color: var(--accent); }
+.rdp-card b { font-size: 13.5px; }
+.rdp-card small { font-size: 11.5px; color: var(--muted); }
+.rdp-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.rdp-tags em { font-style: normal; font-size: 10.5px; padding: 2px 7px; border-radius: 99px; background: var(--surface-2); color: var(--text); white-space: nowrap; }
+.rdp-tags em.o { background: color-mix(in srgb, var(--warn) 22%, transparent); }
+.rdp-tags em.n { background: color-mix(in srgb, var(--good) 20%, transparent); font-weight: 600; }
+.rdp-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.rdp-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+.rdp-table th { text-align: left; font-weight: 500; font-size: 11.5px; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.rdp-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.rdp-table td small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.rdp-table tr { cursor: pointer; }
+.rdp-table tbody tr:hover { background: var(--surface-2); }
+.rdp-table tr.x { opacity: 0.5; }
+.rdp-table .r { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rdp-canc { padding: 10px 12px; }
+.rdp-prog { display: inline-flex; gap: 3px; }
+.rdp-prog i { width: 14px; height: 5px; border-radius: 3px; background: var(--border); }
+.rdp-prog i.on { background: var(--accent); }
+.rdp-agenda { display: flex; flex-direction: column; gap: 12px; }
+.rdp-ag-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.rdp-dias { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.rdp-dias button { all: unset; cursor: pointer; flex: none; font-size: 12.5px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); display: inline-flex; gap: 6px; align-items: center; }
+.rdp-dias button em { font-style: normal; font-weight: 600; font-size: 11px; }
+.rdp-dias button.on { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+.rdp-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.rdp-slot { all: unset; box-sizing: border-box; cursor: pointer; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.rdp-slot span { font-size: 12px; font-variant-numeric: tabular-nums; }
+.rdp-slot b { font-size: 13px; }
+.rdp-slot.busy { background: var(--accent); color: var(--accent-contrast); }
+.rdp-slot.free { border: 1px dashed var(--border); background: var(--surface); color: var(--muted); }
+.rdp-slot.free:hover { border-color: var(--accent); color: var(--text); }
+.rdp-slot.free b { font-weight: 500; }
+@media (max-width: 640px) {
+  .rdp-kpis { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .rdp-kpi b { font-size: 19px; }
+  .rdp-kanban { grid-auto-columns: 82%; }
+  .rdp-slots { grid-template-columns: repeat(2, 1fr); }
+}
+.rdp-leg { margin: 0; font-size: 12px; color: var(--muted); }
+.rdp-slots { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+.rdp-slot.busy { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 12px; }
+.rdp-slot.free { align-items: center; padding: 9px 6px; }
+.rdp-slot.free span { font-size: 13px; }
+@media (max-width: 640px) { .rdp-slots { grid-template-columns: repeat(4, 1fr); } }

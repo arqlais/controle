@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { DateInput } from '../components/DateInput'
@@ -121,24 +121,10 @@ function livre(occ: Ocupado[], cfg: ReservaConfig, desde = 8 * 60) {
   return ''
 }
 
-type Filtro = 'todas' | 'sinal' | 'agendar' | 'agendadas' | 'laudo' | 'canceladas'
-const FILTROS: [Filtro, string][] = [
-  ['todas', 'todas'],
-  ['sinal', 'aguardando sinal'],
-  ['agendar', 'sem data'],
-  ['agendadas', 'agendadas'],
-  ['laudo', 'laudo entregue'],
-  ['canceladas', 'canceladas'],
-]
-const etapa = (r: Reserva): [string, string] =>
-  r.cancelada ? [r.status.expirada ? 'cancelada · sem sinal' : 'cancelada', PAL.mist] : r.status.laudo ? ['laudo entregue', PAL.good] : r.status.data ? [`vistoria ${dataCurta(r.status.data)}${r.status.hora ? ` ${r.status.hora}` : ''}`, PAL.good] : r.status.cortesia && !r.status.data ? ['cortesia · sem data', PAL.blue] : r.status.sinal ? ['vaga garantida · sem data', PAL.warn] : r.status.pagoInformado ? ['diz que pagou · conferir', PAL.warn] : [`aguardando sinal · ${Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))} dia(s)`, PAL.bad]
-
 export default function Reservas() {
   const { data, upsert } = useStore()
   const [list, setList] = useState<Reserva[] | null>(null)
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
-  const [filtro, setFiltro] = useState<Filtro>('todas')
-  const [busca, setBusca] = useState('')
   const [aberta, setAberta] = useState<Reserva | null>(null)
   const [config, setConfig] = useState(false)
   const [erro, setErro] = useState('')
@@ -236,24 +222,7 @@ export default function Reservas() {
   }
 
   const ativas = (list ?? []).filter((r) => !r.cancelada)
-  const sinais = ativas.filter((r) => r.status.sinal)
   const doGrupo = ativas.filter((r) => !r.status.cortesia && r.dados.servicos?.vistoria !== false)
-  const faltam = Math.max(0, (cfg.minimo || 10) - doGrupo.length)
-  const repetidas = useMemo(() => {
-    const m = new Map<string, number>()
-    ativas.forEach((r) => m.set(`${r.dados.torre}|${r.dados.apto}`.toLowerCase(), (m.get(`${r.dados.torre}|${r.dados.apto}`.toLowerCase()) ?? 0) + 1))
-    return m
-  }, [ativas])
-  const rows = (list ?? []).filter((r) => {
-    if (busca && !`${r.dados.nome} ${r.dados.torre} ${r.dados.apto} ${r.dados.tel}`.toLowerCase().includes(busca.toLowerCase())) return false
-    if (filtro === 'canceladas') return r.cancelada
-    if (r.cancelada) return false
-    if (filtro === 'sinal') return !r.status.sinal
-    if (filtro === 'agendar') return !!r.status.sinal && !r.status.data
-    if (filtro === 'agendadas') return !!r.status.data && !r.status.laudo
-    if (filtro === 'laudo') return !!r.status.laudo
-    return true
-  })
   const link = linkReserva()
   const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\n👥 Já são *${doGrupo.length} de ${cfg.minimo || 10}* apartamentos. Com ${cfg.minimo || 10}, todo mundo paga *${money(cfg.preco)}* (em vez de ${money(cfg.individual)}).\n\n✍️ É só abrir o link, preencher os dados, escolher a planta e assinar o contrato pelo celular (uns 3 minutos).\n💳 Sinal de ${money(cfg.preco / 2)} em até 7 dias garante a vaga.\n📅 Previsão da MRV: ${cfg.periodo}. Quem reserva antes escolhe o horário antes.\n\n${link}`
 
@@ -273,6 +242,15 @@ export default function Reservas() {
           </button>
         </div>
       </header>
+
+      {erro && <p className="muted">{erro}</p>}
+      {list === null ? (
+        <p className="muted">carregando…</p>
+      ) : !list.length ? (
+        <Empty icon="hardhat" title="nenhuma reserva ainda" text="Mande o link de reserva no grupo do San Levi: cada morador que assinar aparece aqui." />
+      ) : (
+        <PainelVistorias lista={list} cfg={cfg} eventos={data.events} onOpen={setAberta} onData={marcarData} />
+      )}
 
       <Section title="link de reserva">
         <div className="rsv-link">
@@ -309,67 +287,6 @@ export default function Reservas() {
       <Incompletos reservas={list ?? []} />
 
       <Acessos reservas={list ?? []} />
-
-      <div className="art-stats">
-        <div className="art-stat card">
-          <small>reservas no grupo</small>
-          <b>{doGrupo.length}</b>
-          <span>{faltam ? `faltam ${faltam} para o grupo de ${cfg.minimo || 10} (${money(cfg.preco)})` : `grupo de ${cfg.minimo || 10} fechado`}</span>
-        </div>
-        <div className="art-stat card">
-          <small>vagas garantidas</small>
-          <b>{sinais.length}</b>
-          <span>{doGrupo.filter((r) => !r.status.sinal).length} aguardando o sinal{ativas.length > doGrupo.length ? ` · ${ativas.length - doGrupo.length} fora do grupo (cortesia ou só ART)` : ''}</span>
-        </div>
-        <div className="art-stat card">
-          <small>sinais recebidos</small>
-          <b>{money(sinais.length * (cfg.preco / 2))}</b>
-          <span>a receber no dia: {money(doGrupo.length * cfg.preco - doGrupo.filter((r) => r.status.sinal).length * (cfg.preco / 2))}</span>
-        </div>
-        <div className="art-stat card">
-          <small>revistorias combinadas</small>
-          <b>{ativas.filter((r) => r.dados.revistoria).length}</b>
-          <span>{money(cfg.revistoria)} cada, pagas no dia</span>
-        </div>
-      </div>
-
-      <AgendaVistorias reservas={ativas} cfg={cfg} onOpen={setAberta} />
-
-      <div className="row gap-s wrap rsv-filters">
-        <input className="rsv-search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar nome, torre, apto" />
-        <Segmented<Filtro> value={filtro} onChange={setFiltro} options={FILTROS.map(([k, l]) => ({ value: k, label: l }))} />
-      </div>
-
-      {erro && <p className="muted">{erro}</p>}
-      {list === null ? (
-        <p className="muted">carregando…</p>
-      ) : !rows.length ? (
-        <Empty icon="hardhat" title={list.length ? 'nada neste filtro' : 'nenhuma reserva ainda'} text={list.length ? 'Troque o filtro para ver as outras.' : 'Mande o link de reserva no grupo do San Levi: cada morador que assinar aparece aqui.'} />
-      ) : (
-        <div className="rsv-list">
-          {rows.map((r, i) => {
-            const [t, c] = etapa(r)
-            const dup = (repetidas.get(`${r.dados.torre}|${r.dados.apto}`.toLowerCase()) ?? 0) > 1
-            return (
-              <button key={r.id} className="rsv-row card" onClick={() => setAberta(r)}>
-                <span className="rsv-n">{i + 1}</span>
-                <span className="rsv-who">
-                  <b>{r.dados.nome}</b>
-                  <small>
-                    {unidade(r.dados)} · {r.dados.tel}
-                    {servicosDe(r.dados).vistoria ? '' : ' · só ART de reforma'}
-                    {r.dados.revistoria ? ' · revistoria' : ''}
-                    {r.status.reforma?.pedido && !r.status.reforma.valor ? ' · pediu ART de reforma' : r.status.reforma?.aprovadoEm ? ' · ART de reforma aprovada' : ''}
-                  </small>
-                </span>
-                {dup && <Badge color={PAL.warn}>apto repetido</Badge>}
-                <Badge color={c}>{t}</Badge>
-                <Icon name="chevronR" size={16} />
-              </button>
-            )
-          })}
-        </div>
-      )}
 
       {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => setAberta(null)} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} />}
       {config && (
@@ -914,45 +831,6 @@ function ChatModal({ c, titulo, onClose }: { c: Conv; titulo: string; onClose: (
   )
 }
 
-/** Agenda das vistorias marcadas: por dia, com o horário de término, o respiro e os horários que se encavalam. */
-function AgendaVistorias({ reservas, cfg, onOpen }: { reservas: Reserva[]; cfg: ReservaConfig; onOpen: (r: Reserva) => void }) {
-  const hoje = new Date().toISOString().slice(0, 10)
-  const marcadas = reservas.filter((r) => r.status.data && r.status.data >= hoje).sort((a, b) => `${a.status.data}${a.status.hora ?? ''}`.localeCompare(`${b.status.data}${b.status.hora ?? ''}`))
-  if (!marcadas.length) return null
-  const dias = [...new Set(marcadas.map((r) => r.status.data!))]
-  const dur = cfg.duracao ?? 120
-  const folga = cfg.respiro ?? 30
-  return (
-    <Section title="agenda das vistorias" hint={`${dur} min de vistoria + ${folga} min de respiro. Também estão na agenda do sistema.`}>
-      <div className="rsv-days">
-        {dias.map((dia) => {
-          const doDia = marcadas.filter((r) => r.status.data === dia)
-          return (
-            <div key={dia} className="rsv-day">
-              <b>{new Date(`${dia}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}</b>
-              {doDia.map((r, i) => {
-                const ini = toMin(r.status.hora)
-                const ant = i > 0 ? toMin(doDia[i - 1].status.hora) : null
-                const bate = ini !== null && ant !== null && ini < ant + dur + folga
-                return (
-                  <button key={r.id} className={`rsv-slot ${bate ? 'bad' : ''}`} onClick={() => onOpen(r)}>
-                    <span>{ini !== null ? `${toHora(ini)}–${toHora(ini + dur)}` : 'sem horário'}</span>
-                    <em>
-                      {r.dados.nome.split(' ')[0]} · {unidade(r.dados)}
-                    </em>
-                    {bate && <Badge color={PAL.bad}>sem respiro</Badge>}
-                  </button>
-                )
-              })}
-            </div>
-          )
-        })}
-      </div>
-    </Section>
-  )
-}
-
-/** Acessos da página de reserva e do painel: quantas pessoas, de onde vêm, até onde leem e onde param. */
 function Acessos({ reservas }: { reservas: Reserva[] }) {
   const [ev, setEv] = useState<Evento[] | null>(null)
   const [dias, setDias] = useState<'7' | '30'>('30')
@@ -1114,5 +992,269 @@ function Incompletos({ reservas }: { reservas: Reserva[] }) {
         ))}
       </div>
     </Section>
+  )
+}
+
+/* ================= painel das vistorias (dashboard: etapas, tabela e agenda do dia) ================= */
+
+type Fase = 'sinal' | 'conferir' | 'semdata' | 'agendada' | 'laudo' | 'pronto'
+const FASES: [Fase, string, string][] = [
+  ['sinal', 'aguardando o sinal', 'reservou e ainda não pagou'],
+  ['conferir', 'conferir pagamento', 'marcou “já paguei”'],
+  ['semdata', 'vaga garantida', 'esperando a data da MRV'],
+  ['agendada', 'agendada', 'data e horário marcados'],
+  ['laudo', 'fazer o laudo', 'vistoria feita, falta o laudo'],
+  ['pronto', 'laudo entregue', 'tudo pronto'],
+]
+const faseDe = (r: Reserva): Fase => {
+  const s = r.status
+  const hoje = new Date().toISOString().slice(0, 10)
+  if (s.laudo) return 'pronto'
+  if (s.data && s.data < hoje) return 'laudo'
+  if (s.data) return 'agendada'
+  if (s.sinal || s.cortesia) return 'semdata'
+  if (s.pagoInformado) return 'conferir'
+  return 'sinal'
+}
+const ORDEM: Fase[] = ['sinal', 'conferir', 'semdata', 'agendada', 'laudo', 'pronto']
+const diasSinal = (r: Reserva) => Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))
+
+function Progresso({ r }: { r: Reserva }) {
+  const i = ORDEM.indexOf(faseDe(r))
+  const passos = ['reserva', 'sinal', 'data', 'vistoria', 'laudo']
+  const feitos = [true, i >= 2, i >= 3, i >= 4, i >= 5]
+  return (
+    <span className="rdp-prog" title={FASES[i][1]}>
+      {passos.map((p, k) => (
+        <i key={p} className={feitos[k] ? 'on' : ''} title={p} />
+      ))}
+    </span>
+  )
+}
+
+export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista: Reserva[]; cfg: ReservaConfig; eventos: { id: string; date: string; time: string; endTime?: string; title: string }[]; onOpen: (r: Reserva) => void; onData: (r: Reserva, d: string, h: string) => Promise<void> }) {
+  const [vista, setVista] = useState<'etapas' | 'tabela' | 'agenda'>('etapas')
+  const [busca, setBusca] = useState('')
+  const [canceladas, setCanceladas] = useState(false)
+  const ativas = lista.filter((r) => !r.cancelada)
+  const t = busca.trim().toLowerCase()
+  const filtra = (l: Reserva[]) => (t ? l.filter((r) => `${r.dados.nome} ${unidade(r.dados)} ${r.dados.tel}`.toLowerCase().includes(t)) : l)
+  const doGrupo = ativas.filter((r) => !r.status.cortesia && servicosDe(r.dados).vistoria)
+  const pagos = ativas.filter((r) => r.status.sinal)
+  const recebido = pagos.reduce((n, r) => n + valores(r.dados, cfg).agora, 0)
+  const aReceber = ativas.filter((r) => !r.status.cortesia).reduce((n, r) => n + valores(r.dados, cfg).total, 0) - recebido
+  const por = (f: Fase) => ativas.filter((r) => faseDe(r) === f)
+  const kpis: [string, string, string, Fase | null][] = [
+    ['no grupo', `${doGrupo.length}/${cfg.minimo || 10}`, doGrupo.length >= (cfg.minimo || 10) ? `grupo fechado · ${money(cfg.preco)}` : `faltam ${(cfg.minimo || 10) - doGrupo.length} para fechar`, null],
+    ['aguardando sinal', String(por('sinal').length + por('conferir').length), por('conferir').length ? `${por('conferir').length} para conferir` : 'prazo de 7 dias', 'sinal'],
+    ['sem data', String(por('semdata').length), 'esperando a MRV', 'semdata'],
+    ['agendadas', String(por('agendada').length), por('agendada').length ? `próxima ${dataCurta([...por('agendada')].sort((a, b) => (a.status.data! > b.status.data! ? 1 : -1))[0].status.data!)}` : 'nenhuma ainda', 'agendada'],
+    ['laudos a fazer', String(por('laudo').length), 'prazo de 4 dias úteis', 'laudo'],
+    ['recebido', money(recebido), `a receber ${money(aReceber)}`, null],
+  ]
+
+  const Card = ({ r }: { r: Reserva }) => {
+    const sv = servicosDe(r.dados)
+    const f = faseDe(r)
+    return (
+      <button className="rdp-card" onClick={() => onOpen(r)}>
+        <b>{r.dados.nome}</b>
+        <small>
+          {unidade(r.dados)} · {r.dados.tel}
+        </small>
+        <span className="rdp-tags">
+          {sv.vistoria && <em>vistoria</em>}
+          {r.dados.revistoria && <em>revistoria</em>}
+          {(sv.reforma || r.status.reforma?.pedido) && <em className="o">ART reforma</em>}
+          {r.status.cortesia && <em>cortesia</em>}
+          {f === 'sinal' && <em className={diasSinal(r) <= 2 ? 'o' : ''}>{diasSinal(r)} dia(s) p/ o sinal</em>}
+          {f === 'agendada' && <em className="n">{dataCurta(r.status.data!)} {r.status.hora}</em>}
+        </span>
+      </button>
+    )
+  }
+
+  return (
+    <Section
+      title="painel das vistorias"
+      hint="Cada morador numa etapa. Toque para abrir, confirmar o pagamento, marcar a data ou fazer o laudo."
+      action={<Segmented<'etapas' | 'tabela' | 'agenda'> value={vista} onChange={setVista} options={[{ value: 'etapas', label: 'etapas' }, { value: 'tabela', label: 'tabela' }, { value: 'agenda', label: 'agenda' }]} />}
+    >
+      <div className="rdp-kpis">
+        {kpis.map(([k, v, s, f]) => (
+          <div key={k} className={`rdp-kpi ${f && por(f).length && (f === 'laudo' || (f === 'sinal' && por('conferir').length)) ? 'alerta' : ''}`}>
+            <small>{k}</small>
+            <b>{v}</b>
+            <span>{s}</span>
+          </div>
+        ))}
+      </div>
+
+      {vista !== 'agenda' && <input className="rsv-search rdp-busca" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="buscar nome, torre, apto, telefone" />}
+
+      {vista === 'etapas' && (
+        <div className="rdp-kanban">
+          {FASES.map(([f, nome, sub]) => {
+            const l = filtra(por(f))
+            return (
+              <div key={f} className={`rdp-col f-${f}`}>
+                <header>
+                  <b>{nome}</b>
+                  <span>{l.length}</span>
+                </header>
+                <small className="rdp-sub">{sub}</small>
+                {l.length ? l.map((r) => <Card key={r.id} r={r} />) : <p className="rdp-vazio">ninguém aqui</p>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {vista === 'tabela' && (
+        <div className="rdp-table-wrap">
+          <table className="rdp-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>morador</th>
+                <th>serviços</th>
+                <th>etapa</th>
+                <th>data</th>
+                <th className="r">pago</th>
+                <th className="r">falta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtra(canceladas ? lista : ativas).map((r, i) => {
+                const v = valores(r.dados, cfg)
+                const sv = servicosDe(r.dados)
+                const pago = r.status.sinal ? v.agora : 0
+                return (
+                  <tr key={r.id} onClick={() => onOpen(r)} className={r.cancelada ? 'x' : ''}>
+                    <td>{i + 1}</td>
+                    <td>
+                      <b>{r.dados.nome}</b>
+                      <small>
+                        {unidade(r.dados)} · {r.dados.tel}
+                      </small>
+                    </td>
+                    <td>{[sv.vistoria && 'vistoria', r.dados.revistoria && 'revistoria', sv.reforma && 'ART reforma'].filter(Boolean).join(' + ')}</td>
+                    <td>
+                      <Progresso r={r} />
+                      <small>{r.cancelada ? 'cancelada' : FASES[ORDEM.indexOf(faseDe(r))][1]}</small>
+                    </td>
+                    <td>{r.status.data ? `${dataCurta(r.status.data)} ${r.status.hora ?? ''}` : '—'}</td>
+                    <td className="r">{r.status.cortesia ? 'cortesia' : money(pago)}</td>
+                    <td className="r">{r.status.cortesia ? '—' : money(v.total - pago)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <label className="row gap-s small muted rdp-canc">
+            <input type="checkbox" checked={canceladas} onChange={(e) => setCanceladas(e.target.checked)} /> mostrar canceladas
+          </label>
+        </div>
+      )}
+
+      {vista === 'agenda' && <AgendaDia ativas={ativas} cfg={cfg} eventos={eventos} onOpen={onOpen} onData={onData} />}
+    </Section>
+  )
+}
+
+/** Agenda do dia: horários ocupados e livres (vistoria + respiro); toque num livre para marcar quem está sem data. */
+function AgendaDia({ ativas, cfg, eventos, onOpen, onData }: { ativas: Reserva[]; cfg: ReservaConfig; eventos: { id: string; date: string; time: string; endTime?: string; title: string }[]; onOpen: (r: Reserva) => void; onData: (r: Reserva, d: string, h: string) => Promise<void> }) {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const marcadas = ativas.filter((r) => r.status.data).sort((a, b) => `${a.status.data}${a.status.hora}`.localeCompare(`${b.status.data}${b.status.hora}`))
+  const proxima = marcadas.find((r) => r.status.data! >= hoje)?.status.data ?? hoje
+  const [dia, setDia] = useState(proxima)
+  const [escolher, setEscolher] = useState<string | null>(null)
+  const dur = cfg.duracao ?? 120
+  const folga = cfg.respiro ?? 30
+  const occ = ocupados(dia, ativas, eventos, cfg)
+  const semData = ativas.filter((r) => !r.status.data && (r.status.sinal || r.status.cortesia) && servicosDe(r.dados).vistoria)
+  const slots: { m: number; quem?: Ocupado }[] = []
+  for (let m = 8 * 60; m + dur <= 18 * 60; m += 30) {
+    const em = occ.find((o) => m >= o.ini && m < o.fim)
+    if (em) {
+      if (em.ini === m || !slots.some((x) => x.quem === em)) slots.push({ m: em.ini, quem: em })
+    } else if (!conflitos(m, occ, cfg).length) slots.push({ m })
+  }
+  const dias = [...new Set(marcadas.filter((r) => r.status.data! >= hoje).map((r) => r.status.data!))]
+  return (
+    <div className="rdp-agenda">
+      <div className="rdp-ag-top">
+        <DateInput value={dia} onChange={(e) => e.target.value && setDia(e.target.value)} />
+        <span className="muted small">
+          {dur} min de vistoria + {folga} min de respiro · de 8h às 18h
+        </span>
+      </div>
+      {dias.length > 0 && (
+        <div className="rdp-dias">
+          {dias.map((d) => (
+            <button key={d} className={d === dia ? 'on' : ''} onClick={() => setDia(d)}>
+              {new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+              <em>{marcadas.filter((r) => r.status.data === d).length}</em>
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="rdp-leg">toque num horário livre para marcar quem já tem vaga garantida</p>
+      <div className="rdp-slots">
+        {slots.map((s) =>
+          s.quem ? (
+            <button
+              key={`o${s.m}`}
+              className="rdp-slot busy"
+              onClick={() => {
+                const r = ativas.find((x) => x.status.data === dia && toMin(x.status.hora) === s.quem!.ini)
+                if (r) onOpen(r)
+              }}
+            >
+              <span>
+                {toHora(s.quem.ini)}–{toHora(s.quem.fim)}
+              </span>
+              <b>{s.quem.nome}</b>
+            </button>
+          ) : (
+            <button key={`l${s.m}`} className="rdp-slot free" onClick={() => setEscolher(toHora(s.m))}>
+              <span>{toHora(s.m)}</span>
+            </button>
+          ),
+        )}
+        {!slots.length && <p className="muted small">Dia cheio.</p>}
+      </div>
+      <p className="muted small">
+        {semData.length ? `${semData.length} com vaga garantida esperando data.` : 'Ninguém esperando data agora.'} A data marcada vai para o painel do morador, para a agenda do sistema e por e-mail.
+      </p>
+      {escolher && (
+        <Modal title={`marcar ${new Date(`${dia}T12:00:00`).toLocaleDateString('pt-BR')} às ${escolher}`} onClose={() => setEscolher(null)}>
+          {semData.length ? (
+            <div className="rsv-list">
+              {semData.map((r) => (
+                <button
+                  key={r.id}
+                  className="rsv-row card"
+                  onClick={async () => {
+                    await onData(r, dia, escolher)
+                    setEscolher(null)
+                  }}
+                >
+                  <span className="rsv-who">
+                    <b>{r.dados.nome}</b>
+                    <small>
+                      {unidade(r.dados)} · {r.dados.tel}
+                    </small>
+                  </span>
+                  <Icon name="chevronR" size={16} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">Ninguém com vaga garantida esperando data. Quem ainda não pagou o sinal não aparece aqui.</p>
+          )}
+        </Modal>
+      )}
+    </div>
   )
 }
