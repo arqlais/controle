@@ -112,7 +112,7 @@ const ls = {
     }
   },
 }
-const plantaImg = (p?: string) => (p === PLANTA_CANTO ? 'rdl/planta-canto.jpg' : p === PLANTA_CORREDOR ? 'rdl/planta-corredor.jpg' : '')
+const plantaImg = (p?: string) => (p === PLANTA_CANTO ? 'rdl/planta-canto.png' : p === PLANTA_CORREDOR ? 'rdl/planta-corredor.png' : '')
 const plantaCurta = (p?: string) => (p === PLANTA_CANTO ? 'Planta de canto' : p === PLANTA_CORREDOR ? 'Planta de corredor' : p || '')
 const prazoSinal = (r: Reserva, dias: number) => {
   const fim = new Date(new Date(r.criado).getTime() + dias * 864e5)
@@ -629,6 +629,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
     return () => obs.disconnect()
   }, [teste])
   const salvo = teste ? '' : ls.get(SALVO)
+  const largo = typeof window !== 'undefined' && window.matchMedia('(min-width: 820px)').matches
   const metade = cfg.preco / 2
   const reservar = teste ? '#/vistoria/teste-reservar' : '#/vistoria/reservar'
   return (
@@ -666,10 +667,10 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </h2>
           <div className="rv-reasons">
             {[
-              ['doc', 'Depois de assinar, fica mais difícil cobrar', 'O que não é anotado na entrega vira discussão depois. Com o laudo, fica tudo registrado.'],
-              ['search', 'Olho de engenheiro', 'Prumo, nível, caimento de água, tomadas, portas e janelas: coisas que passam despercebidas.'],
-              ['shield', 'Laudo com ART tem peso', 'O pedido de conserto vai assinado por um engenheiro registrado no CREA.'],
-              ['key', 'Chave na mão, sem susto', 'Você recebe o apê sabendo o que está certo e o que a MRV precisa arrumar.'],
+              ['doc', 'Fica registrado', 'O que não é anotado na entrega fica mais difícil de cobrar.'],
+              ['search', 'Olho de engenheiro', 'Nível, prumo, água, tomadas, portas e janelas.'],
+              ['shield', 'Laudo com ART', 'Assinado por engenheiro registrado no CREA.'],
+              ['key', 'Chave sem susto', 'Você sabe o que a MRV precisa arrumar.'],
             ].map(([i, t, p]) => (
               <div key={t}>
                 <span className="ib">
@@ -828,6 +829,10 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </ol>
         </section>
 
+        <details className="rv-iodet" open={largo}>
+          <summary>
+            <I n="list" s={16} /> O que está incluso e o que não está
+          </summary>
         <section className="rv-io">
           <div className="rv-card yes">
             <h3>
@@ -867,6 +872,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             ))}
           </div>
         </section>
+        </details>
         <section className="rv-who">
           <img src={RDL_LOGO} alt="RDL Engenharia" />
           <div>
@@ -901,7 +907,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           ))}
           </div>
           <button className="rv-btn ghost wide3" onClick={() => window.dispatchEvent(new Event('rv-duvida'))}>
-            <I n="help" /> Não achou a resposta? Pergunte aqui
+            <I n="help" /> Não achou? Pergunte aqui
           </button>
 
         </section>
@@ -1544,6 +1550,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
   const [trocaPlanta, setTrocaPlanta] = useState(false)
   const [pedido, setPedido] = useState('')
   const [rfItens, setRfItens] = useState<string[]>([])
+  const [abreRef, setAbreRef] = useState(false)
   const [termoOk, setTermoOk] = useState(false)
   const [prestador, setPrestador] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -2013,14 +2020,25 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               </div>
             ) : (
               <>
-                <ReformaInfo />
-                <p className="rv-alert">
-                  <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio. O Rogério confere o que pode ser feito.</span>
-                </p>
-                <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} />
-                <button className="rv-btn wide3" disabled={(!rfItens.length && pedido.trim().length < 3) || enviando} onClick={() => void pedirReforma()}>
-                  <I n="arrow" /> Pedir por {brl(calcReforma(rfItens))}
-                </button>
+                {!abreRef ? (
+                  <>
+                    <p className="rv-hint">Vai fazer obra no apê? O condomínio exige ART e plano de reforma. A obra é feita pelo seu pedreiro. A partir de {brl(REFORMA_MIN)}.</p>
+                    <button className="rv-btn ghost wide3" onClick={() => setAbreRef(true)}>
+                      <I n="hammer" /> Quero a ART de reforma
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <ReformaInfo recolhido />
+                    <p className="rv-alert">
+                      <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio.</span>
+                    </p>
+                    <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} />
+                    <button className="rv-btn wide3" disabled={(!rfItens.length && pedido.trim().length < 3) || enviando} onClick={() => void pedirReforma()}>
+                      <I n="arrow" /> Pedir por {brl(calcReforma(rfItens))}
+                    </button>
+                  </>
+                )}
               </>
             )}
             {msg && <p className="rv-warn">{msg}</p>}
