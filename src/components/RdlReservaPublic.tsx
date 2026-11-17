@@ -812,10 +812,9 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <div className="rv-sec-head">
             <small>VALORES EXCLUSIVOS DO SAN LEVI</small>
             <h2>Escolha o que você precisa</h2>
-            <p>São serviços separados: dá para contratar só um, só o outro ou os dois.</p>
+            <p>Contrate um, o outro ou os dois.</p>
           </div>
           <div className="rv-offer hi">
-            <span className="tag">MAIS PROCURADO</span>
             <div className="rv-offer-head">
               <span className="ib">
                 <I n="key" s={20} />
@@ -823,16 +822,12 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               <div>
                 <em className="quando">ANTES DE RECEBER AS CHAVES</em>
                 <b>Vistoria de entrega das chaves</b>
-                <small>O engenheiro confere o apê com você e o laudo com fotos e ART mostra o que a MRV precisa consertar.</small>
+                <small>Engenheiro confere tudo com você. Laudo com fotos e ART.</small>
               </div>
             </div>
             <div className="rv-offer-price">
               <strong>{brl(cfg.preco)}</strong>
-              <span>
-                valor de grupo · sinal de {brl(metade)}
-                <br />
-                individual: {brl(cfg.individual)}
-              </span>
+              <span>no grupo de {cfg.minimo} · individual {brl(cfg.individual)}</span>
             </div>
             <a className="rv-btn light" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (valores)' })}>
               Reservar minha vistoria <I n="arrow" />
@@ -846,14 +841,14 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               <div>
                 <em className="quando">ANTES DE FAZER OBRA NO APÊ</em>
                 <b>ART de reforma</b>
-                <small>O condomínio exige para liberar a obra: ART no CREA + plano de reforma. A obra é com o pedreiro que você escolher.</small>
+                <small>Exigida pelo condomínio para liberar a obra. O pedreiro é você quem escolhe.</small>
               </div>
             </div>
             <div className="rv-offer-price">
               <strong>
                 <em>a partir de</em> {brl(REFORMA_MIN)}
               </strong>
-              <span>piso, armários, gesso, iluminação… o valor depende do que você vai fazer</span>
+              <span>depende do que você vai fazer</span>
             </div>
             <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/so-reforma'} onClick={() => rastrear('clicou', { alvo: 'ART de reforma' })}>
               Simular e contratar <I n="arrow" />
