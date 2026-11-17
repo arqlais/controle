@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import './rdlReserva.css'
 import { RDL_LOGO } from '../rdlLogo'
 import { setRdlFavicon } from '../rdl'
-import { VISTORIA_PROPOSTA_URL } from '../contractTemplates'
 import { formatCep, formatDoc, formatPhone, lookupCep, whatsappLink } from '../utils'
 import { deviceLabel } from '../contractSign'
 import { SIGN_FONTS } from './SignaturePad'
@@ -786,7 +785,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <h1>
             Seu apê novo merece ser <span>recebido do jeito certo</span>
           </h1>
-          <p>Antes de assinar o recebimento com a MRV, um engenheiro civil confere tudo com você. O que estiver errado fica registrado, com fotos e ART, para a MRV consertar.</p>
+          <p>Antes de assinar com a MRV, um engenheiro confere tudo com você. O que estiver errado fica no laudo, com fotos e ART.</p>
           <div className="rv-row center-row">
             <a className="rv-btn" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (topo)' })}>
               <I n="key" /> Reservar minha vistoria
@@ -871,10 +870,10 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </h2>
           <div className="rv-reasons">
             {[
-              ['doc', 'Fica registrado', 'O que não é anotado na entrega fica mais difícil de cobrar.'],
-              ['search', 'Olho de engenheiro', 'Nível, prumo, água, tomadas, portas e janelas.'],
-              ['shield', 'Laudo com ART', 'Assinado por engenheiro registrado no CREA.'],
-              ['key', 'Chave sem susto', 'Você sabe o que a MRV precisa arrumar.'],
+              ['doc', 'Fica registrado', 'O que não é anotado é mais difícil cobrar.'],
+              ['search', 'Olho técnico', 'Prumo, nível, água, luz, portas.'],
+              ['shield', 'Laudo com ART', 'Assinado por engenheiro do CREA.'],
+              ['key', 'Sem susto', 'Você sabe o que a MRV deve arrumar.'],
             ].map(([i, t, p]) => (
               <div key={t}>
                 <span className="ib">
@@ -1040,9 +1039,6 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
         <a className="rv-btn wide3 big" href={reservar} data-sec="fim da página" onClick={() => rastrear('clicou', { alvo: 'reservar (fim)' })}>
           <I n="key" /> Reservar minha vistoria
         </a>
-        <a className="rv-link" href={VISTORIA_PROPOSTA_URL} target="_blank" rel="noreferrer">
-          <I n="doc" /> Ver a proposta completa (PDF)
-        </a>
       </main>
       <Rodape />
       <Duvidas teste={teste} abrirCom={abrirChat} />
@@ -1057,7 +1053,7 @@ const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '
 
 function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReforma?: boolean; soReforma?: boolean }) {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
-  const [n, setN] = useState(0)
+  const [, setN] = useState(0)
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [d, setD] = useState<ReservaDados>(() => {
     let base = vazio
@@ -1199,15 +1195,17 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       <Topo voltar={step > 1 ? { label: 'Voltar', acao: () => ir((step - 1) as 1 | 2) } : { label: 'Início', acao: () => irInicio(teste) }} />
       {teste && <Teste />}
       <main className="rv-main rv-wide">
-        <section className="rv-hero">
-          <span className="rv-pill">
-            <i /> MORADORES · {cfg.empreendimento.replace(/\s*\(.*\)/, '').toUpperCase()}
-          </span>
-          <h1>
-            Contrate <span>pelo celular</span>
-          </h1>
-          <p>Escolha o que você quer, preencha os dados e assine. Leva uns 3 minutos.</p>
-        </section>
+        {step === 1 && (
+          <section className="rv-hero">
+            <span className="rv-pill">
+              <i /> MORADORES · {cfg.empreendimento.replace(/\s*\(.*\)/, '').toUpperCase()}
+            </span>
+            <h1>
+              Contrate <span>pelo celular</span>
+            </h1>
+            <p>Escolha, preencha e assine. Leva uns 3 minutos.</p>
+          </section>
+        )}
 
         {salvo && (
           <a className="rv-saved" href={salvo}>
@@ -1236,7 +1234,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
             {step === 1 && (
               <>
                 <p className="rv-label">
-                  O que você quer contratar? <small>Pode ser um, o outro ou os dois.</small>
+                  O que você quer contratar? <small>Um, o outro ou os dois.</small>
                 </p>
                 <div className={`rv-pick ${sv.vistoria ? 'on' : ''}`}>
                   <button type="button" className="rv-pick-head" onClick={() => setSv('vistoria', !sv.vistoria)}>
@@ -1246,7 +1244,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     </span>
                     <span className="txt">
                       <b>Vistoria de entrega das chaves</b>
-                      <small>Antes de assinar o recebimento: o engenheiro aponta o que a MRV precisa consertar. Laudo com fotos + ART.</small>
+                      <small>Antes de receber as chaves. Laudo com fotos e ART.</small>
                     </span>
                     <strong>{brl(cfg.preco)}</strong>
                   </button>
@@ -1257,7 +1255,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                         <b>
                           <I n="redo" s={14} /> Revistoria <span className="rv-opt">OPCIONAL</span>
                         </b>
-                        <small>Depois que a MRV consertar, o engenheiro volta para conferir. Paga só no dia, se quiser.</small>
+                        <small>O engenheiro volta para conferir os consertos. Paga no dia.</small>
                       </span>
                       <strong>+ {brl(cfg.revistoria)}</strong>
                     </button>
@@ -1273,7 +1271,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     </span>
                     <span className="txt">
                       <b>ART de reforma</b>
-                      <small>Antes de fazer obra no apê: o condomínio exige ART e plano de reforma. A obra é feita pelo seu pedreiro.</small>
+                      <small>Para o condomínio liberar a sua obra. ART e plano de reforma.</small>
                     </span>
                     <strong>
                       <em>a partir de</em>
@@ -1292,8 +1290,8 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     <I n="bag" s={18} />
                   </span>
                   <span className="txt">
-                    <b>Quer também guias e planilhas para o apê?</b>
-                    <small>Planilha de obra, medidas dos móveis, marcenaria e mais, a partir de R$ 12,90 na loja da planê.apê (abre em outra aba).</small>
+                    <b>Guias e planilhas para o apê</b>
+                    <small>A partir de R$ 12,90 na loja planê.apê</small>
                   </span>
                   <I n="arrow" s={16} />
                 </a>
@@ -1356,12 +1354,14 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     <span>Número</span>
                     <input id="rv-numero" value={d.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Ex.: 120" />
                   </label>
+                  {(d.rua || d.cidade || (d.cep ?? '').replace(/\D/g, '').length === 8 || cepMsg) && (
+                  <>
                   <label className={`span2 ${campo('rua')}`}>
                     <span>Rua</span>
                     <input value={d.rua} onChange={(e) => set('rua', e.target.value)} autoComplete="address-line1" />
                   </label>
                   <label>
-                    <span>Complemento (se tiver)</span>
+                    <span>Complemento</span>
                     <input value={d.complemento} onChange={(e) => set('complemento', e.target.value)} placeholder="Apto, bloco, casa" />
                   </label>
                   <label className={campo('bairro')}>
@@ -1376,6 +1376,8 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     <span>Estado</span>
                     <input value={d.uf} onChange={(e) => set('uf', e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" />
                   </label>
+                  </>
+                  )}
                 </div>
                 <div className="rv-sub">
                   <I n="building" s={14} /> Seu apê no San Levi
@@ -1431,7 +1433,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                       ir(3)
                     }}
                   >
-                    Continuar para o contrato <I n="arrow" />
+                    Continuar <I n="arrow" />
                   </button>
                 </div>
               </>
@@ -1445,7 +1447,6 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
             )}
           </section>
         )}
-        {n > 0 && sv.vistoria && <Grupo n={n} cfg={cfg} compact />}
       </main>
       <Rodape />
       <Duvidas teste={teste} />
@@ -1494,8 +1495,8 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
         <b>{brl(v.agora)}</b>
       </div>
       <p>
-        {[sv.vistoria ? `o restante da vistoria (${brl(v.vistoria - v.sinalVistoria)}) no dia, por Pix` : '', sv.reforma ? `o restante da ART (${brl(v.reforma - v.sinalReforma)}) na entrega da ART e do plano` : ''].filter(Boolean).join('; ').replace(/^./, (c) => c.toUpperCase())}.
-        {sv.vistoria && ` Com ${cfg.minimo} reservas, vale o valor de grupo; se não fechar, a diferença de ${brl(cfg.individual - cfg.preco)} entra no restante.`}
+        Restante: {[sv.vistoria ? `${brl(v.vistoria - v.sinalVistoria)} no dia da vistoria` : '', sv.reforma ? `${brl(v.reforma - v.sinalReforma)} na entrega da ART` : ''].filter(Boolean).join(' e ')}.
+        {sv.vistoria && ` Se o grupo de ${cfg.minimo} não fechar, + ${brl(cfg.individual - cfg.preco)}.`}
       </p>
     </div>
   )
@@ -1838,7 +1839,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
       setR(x)
       if (x) {
         rastrear('abriu', { pagina: 'painel', origem: origem() })
-        setGrupo((x as Reserva & { grupo?: number }).grupo ?? 0)
+        void contagem().then(setGrupo)
         ls.set(SALVO, `#/vistoria/${id}.${token}`)
       }
     })
@@ -1989,14 +1990,14 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                   </dl>
                   {pix && (
                     <button className="rv-btn small wide2" onClick={() => void copiar(pix, 'pix')}>
-                      <I n="copy" /> <span>{copiado === 'pix' ? 'Copiado! Agora cole no app do banco' : 'Copiar Pix copia e cola (já com o valor)'}</span>
+                      <I n="copy" /> <span>{copiado === 'pix' ? 'Copiado! Cole no app do banco' : 'Copiar Pix copia e cola'}</span>
                     </button>
                   )}
                   <button className="rv-link small rv-center" onClick={() => void copiar(cfg.pix, 'chave')}>
                     {copiado === 'chave' ? 'Chave copiada!' : 'ou copiar só a chave'}
                   </button>
                   <small className="rv-tip">
-                    <b>Copia e cola:</b> no app do banco, Pix → Pix copia e cola → cole. Já vem com o valor e o nome. <b>Só a chave:</b> Pix → Pagar com chave → cole e digite {brl(metade)}. Confira se aparece {cfg.pixNome}, {cfg.pixBanco}.
+                    No app do banco: Pix → Pix copia e cola → cole. Já vem com o valor e o nome.
                   </small>
                 </div>
               ) : (
@@ -2282,13 +2283,17 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                 </dl>
                 <div className="rv-termo">
                   <b>
-                    <I n="shield" s={15} /> Antes de aprovar: o que fica com você e com o seu prestador
+                    <I n="shield" s={15} /> Antes de aprovar
                   </b>
-                  <ol>
-                    {TERMO_REFORMA.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ol>
+                  <p className="rv-termo-res">O Rogério faz o plano e assina a ART, mas não executa a obra. A ART cobre só o que você informou. A obra, os materiais e a segurança ficam com você e com o seu prestador.</p>
+                  <details>
+                    <summary>Ler as regras completas ({TERMO_REFORMA.length})</summary>
+                    <ol>
+                      {TERMO_REFORMA.map((t) => (
+                        <li key={t}>{t}</li>
+                      ))}
+                    </ol>
+                  </details>
                   <a className="rv-btn small ghost" href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Regras da reforma do meu apê no San Levi (para a gente alinhar antes de começar):\n\n${termoReformaTexto()}\n\nO plano de reforma vai seguir junto.`)}`} target="_blank" rel="noreferrer">
                     <I n="chat" /> Mandar estas regras para o meu prestador
                   </a>
@@ -2320,7 +2325,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               <>
                 {!abreRef ? (
                   <>
-                    <p className="rv-hint">Vai fazer obra no apê? O condomínio exige ART e plano de reforma. A obra é feita pelo seu pedreiro. A partir de {brl(REFORMA_MIN)}.</p>
+                    <p className="rv-hint">Vai fazer obra? O condomínio exige ART e plano de reforma. A partir de {brl(REFORMA_MIN)}.</p>
                     <button className="rv-btn ghost wide3" onClick={() => setAbreRef(true)}>
                       <I n="hammer" /> Quero a ART de reforma
                     </button>
@@ -2345,7 +2350,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
 
           </div>
           <div className="rv-col">
-        {!r.cancelada && svr.vistoria && <Grupo n={grupo} cfg={cfg} compact />}
+        {!r.cancelada && svr.vistoria && !s.data && <Grupo n={grupo} cfg={cfg} compact />}
 
         <section className="rv-card">
           <h2 className="rv-h2">
@@ -2395,7 +2400,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               <I n="help" /> Mandar dúvida
             </button>
           </div>
-          <p className="rv-fine">Guarde este link (ou adicione à tela inicial): é o seu acesso ao contrato, à data e ao laudo. Reserva nº {r.id.slice(0, 8).toUpperCase()}.</p>
+          <p className="rv-fine">Guarde este link: é o seu acesso a tudo. Reserva nº {r.id.slice(0, 8).toUpperCase()}.</p>
         </section>
         <Loja />
 

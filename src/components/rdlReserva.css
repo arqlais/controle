@@ -3371,3 +3371,14 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 .rv-alert.rv-honesto { background: #fff4ea; color: #7a3d06; margin: 6px 0 10px; font-size: 13px; line-height: 1.45; }
 .rv-alert.rv-honesto .rv-i { color: var(--or); }
 .rv-alert.rv-honesto b { color: #7a3d06; }
+
+/* formulário no celular: campos curtos lado a lado (CPF e WhatsApp, CEP e número, torre e apto) */
+@media (max-width: 560px) {
+  .rv .rv-form .rv-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rv .rv-form .rv-grid label.span2 { grid-column: 1 / -1; }
+  .rv .rv-form .rv-grid label input { min-width: 0; }
+}
+.rv-termo-res { margin: 6px 0 8px; font-size: 13px; line-height: 1.5; color: var(--txt); }
+.rv-termo details summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.rv-pix .rv-btn.wide2 { white-space: nowrap; font-size: 14px; }
+.rv-pix .rv-btn.wide2 span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
