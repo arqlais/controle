@@ -487,13 +487,17 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
       }),
     },
     sinal: {
-      subject: `Vaga garantida: vistoria do ${un}`,
+      subject: `Pagamento recebido: o seu painel de acompanhamento · ${un}`,
       html: rdlLayout({
-        eyebrow: 'sinal recebido',
-        title: 'Sua vaga está garantida',
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Recebemos o sinal e a sua vaga na agenda está garantida. O contrato agora está assinado pelas duas partes.</p><p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.periodo)}), avise o Rogério <b>antes</b> de confirmar o horário com ela, para combinarem juntos.</p>`,
-        rows: [...base, ['sinal', `${brl(metade)} recebido em ${dBR(s.sinal)}`], ['restante', `${brl(cfg.preco - metade)} no dia da vistoria`]],
-        button: 'Ver o painel e o contrato',
+        eyebrow: 'pagamento recebido',
+        title: temVist ? 'Vaga garantida! Acompanhe tudo pelo seu painel' : 'Tudo certo! Acompanhe pelo seu painel',
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Recebemos o seu pagamento${temVist ? ' e a sua vaga na agenda está garantida' : ''}. O contrato agora está assinado pelas duas partes.</p>
+<p style="margin:0 0 8px;"><b style="color:#012C60;">O seu painel já está no ar.</b> É um link só seu, sem senha, que se atualiza sozinho. Nele você acompanha:</p>
+<p style="margin:0 0 12px;">${[temVist ? '• a data e o horário da vistoria' : '', '• o contrato assinado e os pagamentos', temVist ? '• o laudo com fotos e a ART da vistoria, assim que ficarem prontos' : '', temRef ? '• a ART de reforma e o plano de reforma para o condomínio' : '', '• o chat de dúvidas direto com a RDL'].filter(Boolean).join('<br>')}</p>
+${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.periodo)}), avise o Rogério <b>antes</b> de confirmar o horário com ela, para combinarem juntos.</p>` : ''}
+<p style="margin:12px 0 0;font-size:13px;color:#7A7F92;">Dica: salve este e-mail ou adicione o painel à tela inicial do celular para achar fácil depois.</p>`,
+        rows: [...base, ['pago', `${brl(metade)} em ${dBR(s.sinal)}`], ['restante', `${brl((temVist ? cfg.preco : 0) + valRef - metade)}${temVist ? ' no dia da vistoria' : ' na entrega da ART'}`]],
+        button: 'Abrir o meu painel',
         url: painel,
       }),
     },
@@ -502,7 +506,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
       html: rdlLayout({
         eyebrow: 'vistoria marcada',
         title: `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`,
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(cfg.preco - metade)}</b> no dia, por Pix ou cartão</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(cfg.preco + valRef - metade)}</b> no dia, por Pix ou cartão</p>`,
         rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
         button: 'Abrir o meu painel',
         url: painel,

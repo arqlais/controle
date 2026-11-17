@@ -119,8 +119,13 @@ export const RDL_SERVICES: ServiceDef[] = [
 /** Páginas da RDL (sistema e reserva da vistoria): ícone e nome da aba da RDL, não os da planê. */
 export const rdlTab = () => typeof window !== 'undefined' && (rdlMode() || /^#\/?vistoria/.test(location.hash))
 export function setRdlFavicon(title?: string) {
-  const href = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}rdl/icon.png`
-  document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"], link[rel="shortcut icon"]').forEach((l) => ((l.href = href), l.removeAttribute('type')))
+  const href = `${location.origin}${location.pathname.replace(/[^/]*$/, '')}rdl/icon.png?v=2`
+  // troca todos os ícones da aba (inclui o .ico e o .svg da planê) pelo da RDL
+  document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"], link[rel="shortcut icon"]').forEach((l) => {
+    l.href = href
+    l.type = 'image/png'
+    l.removeAttribute('sizes')
+  })
   if (!document.querySelector('link[rel="icon"]')) {
     const l = document.createElement('link')
     l.rel = 'icon'

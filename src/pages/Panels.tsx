@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { useAccess } from '../access'
 import { Icon } from '../components/Icon'
@@ -11,6 +11,8 @@ import { panelLink, panelPayload } from '../clientPanel'
 import { go } from '../router'
 import { fmtDate, money, projectPaid, projectTotal, statusInfo, whatsappLink } from '../utils'
 import type { Client, Project, ProjectPhase } from '../types'
+import { rdlMode } from '../rdl'
+import { linkPainel, listarReservas, servicosDe, unidade, type Reserva } from '../rdlReserva'
 
 /* Painel do cliente: todos os clientes num lugar só. Ver quem já tem painel no ar, copiar ou mandar o link,
    ver como o cliente vê e criar o painel de quem ainda não tem, sem precisar abrir a ficha. */
@@ -27,10 +29,17 @@ function PanelList() {
   const [others, setOthers] = useState(false)
   const [peek, setPeek] = useState<Client | null>(null)
   const [busy, setBusy] = useState('')
+  // RDL: o painel da vistoria nasce sozinho quando o morador assina (e o link vai por e-mail)
+  const RDL = rdlMode()
+  const [reservas, setReservas] = useState<Reserva[]>([])
+  useEffect(() => {
+    if (RDL) void listarReservas().then((l) => setReservas(l.filter((r) => !r.cancelada)), () => undefined)
+  }, [RDL])
+  const comReserva = new Set(reservas.map((r) => r.status.cliente).filter(Boolean) as string[])
   const rows = useMemo(() => {
     const t = q.trim().toLowerCase()
     return data.clients
-      .filter((c) => !c.archived && (!t || c.name.toLowerCase().includes(t)))
+      .filter((c) => !c.archived && !comReserva.has(c.id) && (!t || c.name.toLowerCase().includes(t)))
       .map((c) => {
         const projects = data.projects.filter((p) => p.clientId === c.id)
         const main = projects.find((p) => !p.deliveredDate) ?? projects[0]
@@ -39,7 +48,7 @@ function PanelList() {
         return { c, on: !!c.panel?.enabled, approved, main, phase }
       })
       .sort((a, b) => a.c.name.localeCompare(b.c.name))
-  }, [data, q])
+  }, [data, q, reservas]) // eslint-disable-line react-hooks/exhaustive-deps
   const live = rows.filter((r) => r.on)
   const liveIds = new Set(live.map((r) => r.c.id))
   const signs = (data.contracts ?? []).filter((k) => liveIds.has(k.clientId) && k.status === 'enviado').length
@@ -203,7 +212,9 @@ function PanelList() {
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="buscar cliente…" aria-label="Buscar cliente" />
       </div>
 
-      {!live.length && !ready.length ? (
+      {RDL && <PaineisVistoria reservas={reservas} q={q} />}
+
+      {RDL && reservas.length > 0 && !live.length && !ready.length ? null : !live.length && !ready.length ? (
         <Empty icon="link" title="nenhum cliente com orçamento aprovado" text="Quando um cliente aprovar um orçamento (ou tiver uma demanda), ele aparece aqui para você criar o painel." />
       ) : (
         <>
@@ -259,6 +270,74 @@ function PanelList() {
         </Modal>
       )}
     </div>
+  )
+}
+
+/* ---------------- RDL: painéis da vistoria (automáticos) ---------------- */
+
+function PaineisVistoria({ reservas, q }: { reservas: Reserva[]; q: string }) {
+  const t = q.trim().toLowerCase()
+  const lista = reservas.filter((r) => !t || r.dados.nome.toLowerCase().includes(t))
+  const situacao = (r: Reserva) => {
+    const s = r.status
+    if (s.laudo) return 'laudo entregue'
+    if (s.data) return `vistoria em ${fmtDate(s.data)}${s.hora ? ` às ${s.hora}` : ''}`
+    if (s.sinal) return 'pago · aguardando a data da MRV'
+    return 'assinou · falta o sinal'
+  }
+  const msg = (r: Reserva) =>
+    `Oi, ${r.dados.nome.split(' ')[0]}! Este é o seu painel da RDL Engenharia: contrato, pagamento, data da vistoria, laudo e ART, tudo num lugar só. Guarde este link:\n${linkPainel(r)}`
+  return (
+    <section className="pnl-group">
+      <p className="pnl-group-title">
+        <i className="is-on" /> painéis da vistoria · automáticos <small>{lista.length}</small>
+      </p>
+      <p className="muted small pnl-auto-note">
+        <Icon name="check" size={13} /> O painel nasce sozinho quando o morador assina e o link vai por e-mail. Quando você confirma o pagamento, ele recebe outro e-mail apresentando o painel para acompanhar tudo.
+      </p>
+      {!lista.length ? (
+        <p className="muted small">Nenhuma reserva ainda.</p>
+      ) : (
+        <div className="pnl-list">
+          {lista.map((r) => {
+            const sv = servicosDe(r.dados)
+            const pago = !!r.status.sinal
+            return (
+              <article key={r.id} className="card pnl-card is-on">
+                <header className="pnl-head">
+                  <span className="pnl-avatar">{(r.dados.nome || '?')[0].toUpperCase()}</span>
+                  <span className="grow">
+                    <b>{r.dados.nome}</b>
+                    <small className="muted">
+                      {unidade(r.dados)} · {[sv.vistoria && 'vistoria', sv.reforma && 'ART de reforma'].filter(Boolean).join(' + ')}
+                    </small>
+                  </span>
+                  <span className={`pnl-state ${pago ? 'is-on' : ''}`}>
+                    <i /> {pago ? 'pago' : 'no ar'}
+                  </span>
+                </header>
+                <p className="pnl-next">
+                  <Icon name="calendar" size={14} /> <b>{situacao(r)}</b>
+                </p>
+                <div className="pnl-actions">
+                  <a className="pnl-btn is-main" href={linkPainel(r)} target="_blank" rel="noreferrer">
+                    <Icon name="eye" size={14} /> abrir o painel
+                  </a>
+                  {r.dados.tel && (
+                    <a className="pnl-btn" href={whatsappLink(r.dados.tel, msg(r))} target="_blank" rel="noreferrer">
+                      <Icon name="whatsapp" size={14} /> mandar
+                    </a>
+                  )}
+                  <button className="pnl-btn" onClick={() => navigator.clipboard?.writeText(linkPainel(r)).then(() => toast('Link copiado.'), () => toast(linkPainel(r)))}>
+                    <Icon name="copy" size={14} /> copiar link
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 

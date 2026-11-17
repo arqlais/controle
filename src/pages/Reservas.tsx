@@ -7,6 +7,8 @@ import { ask, toast } from '../components/dialog'
 import { newClient } from '../components/forms'
 import { drawingToDataUrl } from '../components/SignaturePad'
 import { newArt } from './Arts'
+import { LaudoEditor } from './RdlLaudo'
+import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
 import { PAL } from '../palette'
 import { money, today, uid, whatsappLink } from '../utils'
 import {
@@ -238,6 +240,12 @@ export default function Reservas() {
             <a className="btn small ghost" href={`${linkPainelBase()}#/vistoria/teste`} target="_blank" rel="noreferrer">
               <Icon name="eye" size={14} /> testar como morador
             </a>
+            <button className="btn small ghost" onClick={() => openRdlDoc(checklistHtml())}>
+              <Icon name="printer" size={14} /> checklist em branco
+            </button>
+            <button className="btn small ghost" onClick={() => openRdlDoc(laudoHtml())}>
+              <Icon name="file" size={14} /> modelo do laudo
+            </button>
           </div>
           <p className="muted small">O morador preenche os dados (endereço pelo CEP), torre e apto, lê o contrato com os dados dele e assina. A reserva aparece aqui na hora, com o painel dele pronto, e cada etapa vai também por e-mail para ele. {cfg.aberta ? '' : 'As reservas estão fechadas (valores e Pix).'}</p>
         </div>
@@ -363,6 +371,7 @@ function Detalhe({
   const choque = d && toMin(h) !== null ? conflitos(toMin(h)!, occ, cfg) : []
   const sugestao = d && choque.length ? livre(occ, cfg, Math.max(8 * 60, (toMin(h) ?? 8 * 60) - 60)) || livre(occ, cfg) : ''
   const [art, setArt] = useState(s.art ?? '')
+  const [editor, setEditor] = useState(false)
   const rf = s.reforma ?? {}
   const [rfEscopo, setRfEscopo] = useState(rf.escopo ?? '')
   const [rfValor, setRfValor] = useState(rf.valor ? String(rf.valor) : '')
@@ -502,24 +511,51 @@ function Detalhe({
           </li>
           <li className={s.laudo ? 'done' : s.quitado ? 'now' : ''}>
             <b>4 · laudo e ART</b>
-            <p className="muted small">Cole os links dos PDFs (Google Drive, por exemplo). Eles aparecem em “seus documentos”, no painel do morador.</p>
+            <p className="muted small">Monte o laudo aqui mesmo, pelo celular, durante a vistoria: itens, fotos e testes. Ao publicar, ele aparece no painel do morador e vai o e-mail.</p>
             <div className="row gap-s wrap">
-              <input className="grow" value={art} onChange={(e) => setArt(e.target.value)} placeholder="link da ART da vistoria" />
-              <button className="btn small" disabled={art === (s.art ?? '')} onClick={() => void onStatus(r, { art: art.trim() }, 'ART no painel do morador.')}>
-                salvar ART
+              <button className="btn small" onClick={() => setEditor(true)}>
+                <Icon name="camera" size={14} /> {s.laudoDados ? 'continuar o laudo' : 'montar o laudo com fotos'}
               </button>
-            </div>
-            <div className="row gap-s wrap">
-              <input className="grow" value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="link do laudo" />
-              <button className="btn small" disabled={laudo === (s.laudo ?? '')} onClick={() => void onStatus(r, { laudo: laudo.trim(), laudoEm: laudo.trim() ? today() : '' }, 'Laudo no painel do morador e e-mail enviado.').then(() => laudo.trim() && void avisarEmail('laudo', r.id))}>
-                salvar
-              </button>
+              {s.laudo && (
+                <a className="btn small ghost" href={s.laudo} target="_blank" rel="noreferrer">
+                  <Icon name="eye" size={14} /> ver o publicado
+                </a>
+              )}
               {s.laudo && (
                 <button className="btn small ghost" onClick={() => zap(msg.laudo)}>
                   <Icon name="whatsapp" size={14} /> avisar que está pronto
                 </button>
               )}
             </div>
+            <div className="row gap-s wrap">
+              <input className="grow" value={art} onChange={(e) => setArt(e.target.value)} placeholder="link da ART da vistoria (PDF)" />
+              <button className="btn small" disabled={art === (s.art ?? '')} onClick={() => void onStatus(r, { art: art.trim() }, 'ART no painel do morador.')}>
+                salvar ART
+              </button>
+            </div>
+            <details className="rsv-more">
+              <summary>prefere mandar o laudo em PDF? cole o link</summary>
+              <div className="row gap-s wrap">
+                <input className="grow" value={laudo} onChange={(e) => setLaudo(e.target.value)} placeholder="link do laudo" />
+                <button className="btn small" disabled={laudo === (s.laudo ?? '')} onClick={() => void onStatus(r, { laudo: laudo.trim(), laudoEm: laudo.trim() ? today() : '' }, 'Laudo no painel do morador e e-mail enviado.').then(() => laudo.trim() && void avisarEmail('laudo', r.id))}>
+                  salvar
+                </button>
+              </div>
+            </details>
+            {editor && (
+              <LaudoEditor
+                r={r}
+                cfg={cfg}
+                onClose={() => setEditor(false)}
+                onStatus={onStatus}
+                onPublicar={(link) => {
+                  const primeira = !s.laudo
+                  setLaudo(link)
+                  void onStatus(r, { laudo: link, laudoEm: s.laudoEm || today() }, primeira ? 'Laudo publicado no painel do morador e e-mail enviado.' : 'Laudo atualizado no painel do morador.').then(() => primeira && void avisarEmail('laudo', r.id))
+                  setEditor(false)
+                }}
+              />
+            )}
           </li>
           {r.dados.revistoria && (
             <li className={s.revistoriaData ? 'done' : ''}>

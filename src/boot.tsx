@@ -8,7 +8,10 @@ const App = lazy(() => import('./App'))
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { captureRef, platform } from './platform'
 import { setTabBrand } from './theme'
+import { rdlMode, rdlTab, setRdlFavicon } from './rdl'
 captureRef()
+// páginas da RDL (sistema e reserva da vistoria): ícone e nome da RDL na aba desde o primeiro instante
+if (rdlTab()) setRdlFavicon(rdlMode() ? 'RDL Engenharia' : 'Vistoria de entrega de chaves · RDL Engenharia')
 // nome e ícone da aba escolhidos pela dona
 void platform.tabBrand().then(setTabBrand).catch(() => undefined)
 // fontes embutidas (mesma origem): garantem a tipografia certa no app e no PDF

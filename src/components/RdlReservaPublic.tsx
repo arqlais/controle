@@ -6,6 +6,8 @@ import { VISTORIA_PROPOSTA_URL } from '../contractTemplates'
 import { formatCep, formatDoc, formatPhone, lookupCep, whatsappLink } from '../utils'
 import { deviceLabel } from '../contractSign'
 import { SignaturePad, drawingToDataUrl } from './SignaturePad'
+import { htmlDoLaudo } from '../rdlLaudo'
+import { openRdlDoc } from '../rdlDocs'
 import {
   CONFIG_PADRAO,
   PLANTA_CANTO,
@@ -588,6 +590,10 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   if (sub === 'teste-reservar') return <div className="rv"><Reservar teste /></div>
   if (sub === 'reservar' || sub === 'reservar-reforma' || sub === 'so-reforma') return <div className="rv"><Reservar comReforma={sub === 'reservar-reforma'} soReforma={sub === 'so-reforma'} /></div>
   if (sub === 'teste-painel') return <div className="rv"><Painel id="" token="" teste /></div>
+  if (sub?.startsWith('laudo-')) {
+    const [lid, ltk] = sub.slice(6).split('.')
+    return <LaudoPublico id={lid} token={ltk} />
+  }
   if (sub?.startsWith('duvida-')) {
     const [cid, ctk] = sub.slice(7).split('.')
     return <div className="rv"><Boas abrirChat={cid && ctk ? { id: cid, token: ctk } : undefined} /></div>
@@ -596,6 +602,48 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Boas />}</div>
 }
 
+
+/* ================= laudo publicado (link do painel e do e-mail) ================= */
+
+function LaudoPublico({ id, token }: { id: string; token: string }) {
+  const [html, setHtml] = useState<string | null | undefined>(undefined)
+  useEffect(() => {
+    void Promise.all([minhaReserva(id, token), lerConfig()]).then(([r, cfg]) => setHtml(r?.status.laudoDados ? htmlDoLaudo(r, cfg) : null))
+  }, [id, token])
+  // no celular, a folha A4 encolhe para caber na largura da tela (o iframe herda a política da página: sem script dentro dele)
+  const ajustar = (fr: HTMLIFrameElement | null) => {
+    const doc = fr?.contentDocument
+    if (!fr || !doc?.body) return
+    doc.body.style.setProperty('zoom', String(Math.min(1, (fr.clientWidth - 8) / 810)))
+  }
+  useEffect(() => {
+    const on = () => ajustar(document.querySelector<HTMLIFrameElement>('.rv-laudo-doc'))
+    addEventListener('resize', on)
+    return () => removeEventListener('resize', on)
+  }, [])
+  return (
+    <div className="rv rv-laudo">
+      <div className="rv-laudo-bar">
+        <a href={`#/vistoria/${id}.${token}`} className="rv-laudo-back">
+          <I n="back" /> meu painel
+        </a>
+        <b>Laudo de vistoria</b>
+        {html && (
+          <button className="rv-btn small" onClick={() => openRdlDoc(html)}>
+            <I n="doc" /> salvar em PDF
+          </button>
+        )}
+      </div>
+      {html === undefined ? (
+        <p className="rv-laudo-msg">Abrindo o laudo…</p>
+      ) : html === null ? (
+        <p className="rv-laudo-msg">O laudo ainda não está pronto. Assim que o engenheiro publicar, ele aparece aqui e no seu painel.</p>
+      ) : (
+        <iframe className="rv-laudo-doc" title="Laudo de vistoria" srcDoc={html} onLoad={(e) => ajustar(e.currentTarget)} />
+      )}
+    </div>
+  )
+}
 
 /* ================= boas-vindas (acolhimento) ================= */
 

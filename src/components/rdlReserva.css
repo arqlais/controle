@@ -3256,3 +3256,11 @@ html.rv-root body {
     padding: 14px;
   }
 }
+/* laudo publicado */
+.rv-laudo { min-height: 100vh; display: flex; flex-direction: column; background: #d9dce3; }
+.rv-laudo-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; justify-content: space-between; background: #012c60; color: #fff; padding: 10px 16px; border-bottom: 3px solid #ff8216; }
+.rv-laudo-bar b { font-size: 15px; }
+.rv-laudo-back { color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; opacity: 0.9; }
+.rv-laudo-doc { flex: 1; width: 100%; border: 0; min-height: calc(100vh - 56px); background: #d9dce3; }
+.rv-laudo-msg { margin: 40px 16px; text-align: center; color: #46506a; }
+@media (max-width: 520px) { .rv-laudo-bar b { display: none; } }

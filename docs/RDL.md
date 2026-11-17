@@ -32,7 +32,8 @@ O modo RDL é decidido por `rdlMode()` (aba → aparelho). Tudo o que é da RDL 
 ## Reserva da vistoria pelo link
 
 - Link público: `useplane.com.br/vistoria/` (abre `#/vistoria`). O morador preenche nome, CPF, contato, endereço, torre e apto, lê o contrato `rdl-vistoria` já preenchido e assina (nome digitado ou desenho). Componente `src/components/RdlReservaPublic.tsx`, lógica em `src/rdlReserva.ts`.
-- Painel do morador: `#/vistoria/<id>.<código>` (contrato, sinal com Pix, data, laudo, revistoria).
+- Painel do morador: `#/vistoria/<id>.<código>` (contrato, sinal com Pix, data, laudo, revistoria). Nasce sozinho na assinatura; aparece em "painel do cliente" como "painéis da vistoria · automáticos". O e-mail do pagamento apresenta o painel.
+- Laudo: montado em vistorias → reserva → "montar o laudo com fotos" (`src/pages/RdlLaudo.tsx`, dados em `status.laudoDados`, fotos na pasta da RDL em `laudo/<reserva>/`). Publicado em `#/vistoria/laudo-<id>.<código>` (`src/rdlLaudo.ts`, documento em `src/rdlDocs.ts`). Fotos horizontais 2 por linha e verticais 3 por linha, inteiras. Capas: `public/rdl/capa-laudo.png` e `capa-checklist.png` (ilustrações dos modelos, nas cores da RDL).
 - Banco: tabela `rdl_reservas` + funções `rdl_reservar`, `rdl_minha_reserva`, `rdl_contagem` (`supabase/atualizacao-2026-11-17-rdl-reservas.sql`). Só a RDL lê e altera; o morador vê só a própria reserva pelo código.
 - Valores, previsão, chave Pix e "reservas abertas": arquivo público `reserva-vistoria.json` na pasta da RDL, editado em vistorias → valores e Pix.
 - No sistema: menu "vistorias" (`src/pages/Reservas.tsx`). Cada reserva vira cliente; sinal confirmado registra o aceite da RDL e cria a ART "a emitir"; a data entra na agenda.

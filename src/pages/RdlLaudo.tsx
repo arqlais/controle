@@ -1,0 +1,273 @@
+import { useEffect, useRef, useState } from 'react'
+import { Icon } from '../components/Icon'
+import { Field, Modal } from '../components/ui'
+import { toast } from '../components/dialog'
+import { GRAVIDADE, TESTES, checklistHtml, laudoHtml, openRdlDoc, type Gravidade, type LaudoFoto, type Teste } from '../rdlDocs'
+import { AMBIENTES_APE, AMBIENTES_EXTRA, enviarFoto, laudoDe, linkLaudo, quadrosDe, rascunhoVazio, type LaudoItemRascunho, type LaudoRascunho } from '../rdlLaudo'
+import { unidade, type Reserva, type ReservaConfig, type ReservaStatus } from '../rdlReserva'
+import { uid } from '../utils'
+
+/* Montar o laudo da vistoria no sistema da RDL, pelo celular, durante a vistoria:
+   ambientes, itens para reparo (com fotos na horizontal ou na vertical), testes, não verificados e observações.
+   Salva sozinho na reserva; "publicar" coloca o laudo no painel do morador e manda o e-mail. */
+
+type Aba = 'itens' | 'fotos' | 'testes' | 'final'
+
+export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Reserva; cfg: ReservaConfig; onClose: () => void; onStatus: (r: Reserva, p: Partial<ReservaStatus>, aviso?: string) => Promise<Reserva>; onPublicar: (link: string) => void }) {
+  const [l, setL] = useState<LaudoRascunho>(() => ({ ...rascunhoVazio(), ...(r.status.laudoDados ?? {}) }))
+  const [aba, setAba] = useState<Aba>('itens')
+  const [salvo, setSalvo] = useState<'ok' | 'salvando' | 'erro'>('ok')
+  const [enviando, setEnviando] = useState('')
+  const sujo = useRef(false)
+  const atual = useRef(r)
+  atual.current = r
+
+  // salva sozinho 1,5 s depois da última mudança
+  useEffect(() => {
+    if (!sujo.current) return
+    setSalvo('salvando')
+    const t = setTimeout(() => {
+      onStatus(atual.current, { laudoDados: { ...l, atualizado: new Date().toISOString() } })
+        .then(() => setSalvo('ok'))
+        .catch(() => setSalvo('erro'))
+    }, 1500)
+    return () => clearTimeout(t)
+  }, [l]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const mudar = (p: Partial<LaudoRascunho>) => {
+    sujo.current = true
+    setL((x) => ({ ...x, ...p }))
+  }
+  const mudarItem = (id: string, p: Partial<LaudoItemRascunho>) => mudar({ itens: l.itens.map((it) => (it.id === id ? { ...it, ...p } : it)) })
+  const novoItem = () => {
+    const amb = l.itens[l.itens.length - 1]?.ambiente ?? l.ambientes[0] ?? 'Sala'
+    mudar({ itens: [...l.itens, { id: uid(), ambiente: amb, item: '', encontrado: '', gravidade: 'media', fotos: [] }] })
+  }
+  const fotos = async (files: FileList | null, alvo: string) => {
+    if (!files?.length) return
+    setEnviando(alvo)
+    try {
+      const novas: LaudoFoto[] = []
+      for (const f of Array.from(files)) novas.push(await enviarFoto(f, r.id))
+      if (alvo === 'gerais') mudar({ gerais: [...l.gerais, ...novas.map((x) => ({ ...x, ambiente: l.ambientes[0] }))] })
+      else setL((x) => ((sujo.current = true), { ...x, itens: x.itens.map((it) => (it.id === alvo ? { ...it, fotos: [...it.fotos, ...novas] } : it)) }))
+    } catch {
+      toast('A foto não foi. Confira a internet e tente de novo.')
+    }
+    setEnviando('')
+  }
+  const dados = () => laudoDe({ ...r, status: { ...r.status, laudoDados: l } }, cfg)
+  const grav = { leve: 0, media: 0, grave: 0 }
+  l.itens.forEach((it) => grav[it.gravidade]++)
+  const nFotos = l.itens.reduce((n, it) => n + it.fotos.length, 0) + l.gerais.length
+
+  const Fotos = ({ list, onChange, alvo }: { list: LaudoFoto[]; onChange: (f: LaudoFoto[]) => void; alvo: string }) => (
+    <div className="ld-fotos">
+      {list.map((f, i) => (
+        <figure key={f.url} className={`ld-foto ${f.w && f.h && f.h > f.w ? 'is-v' : 'is-h'}`}>
+          <img src={f.url} alt="" />
+          <button type="button" className="ld-foto-x" aria-label="Tirar a foto" onClick={() => onChange(list.filter((_, j) => j !== i))}>
+            <Icon name="x" size={12} />
+          </button>
+        </figure>
+      ))}
+      <label className={`ld-add ${enviando === alvo ? 'is-busy' : ''}`}>
+        <input type="file" accept="image/*" multiple hidden onChange={(e) => void fotos(e.target.files, alvo).then(() => (e.target.value = ''))} />
+        <Icon name="camera" size={18} />
+        <span>{enviando === alvo ? 'enviando…' : 'foto'}</span>
+      </label>
+    </div>
+  )
+
+  return (
+    <Modal
+      wide
+      title={`laudo · ${unidade(r.dados)}`}
+      onClose={onClose}
+      footer={
+        <div className="ld-foot">
+          <span className={`ld-salvo is-${salvo}`}>{salvo === 'ok' ? 'salvo' : salvo === 'salvando' ? 'salvando…' : 'não salvou: confira a internet'}</span>
+          <button className="btn ghost" onClick={() => openRdlDoc(laudoHtml(dados()))}>
+            <Icon name="eye" size={15} /> ver o laudo
+          </button>
+          <button
+            className="btn"
+            onClick={async () => {
+              await onStatus(r, { laudoDados: { ...l, atualizado: new Date().toISOString() } })
+              onPublicar(linkLaudo(r))
+            }}
+          >
+            <Icon name="check" size={15} /> {r.status.laudo ? 'atualizar no painel' : 'publicar no painel'}
+          </button>
+        </div>
+      }
+    >
+      <div className="ld">
+        <div className="ld-resumo">
+          <span>
+            <b>{l.itens.length}</b> itens
+          </span>
+          <span>
+            <b>{grav.grave}</b> graves
+          </span>
+          <span>
+            <b>{nFotos}</b> fotos
+          </span>
+          <span>
+            <b>{Object.keys(l.testes).length}</b>/{TESTES.length} testes
+          </span>
+        </div>
+
+        <div className="ld-abas" role="tablist">
+          {(
+            [
+              ['itens', 'list', 'itens'],
+              ['fotos', 'camera', 'fotos gerais'],
+              ['testes', 'check', 'testes'],
+              ['final', 'edit', 'dados e final'],
+            ] as [Aba, string, string][]
+          ).map(([k, ic, t]) => (
+            <button key={k} role="tab" aria-selected={aba === k} className={aba === k ? 'is-on' : ''} onClick={() => setAba(k)}>
+              <Icon name={ic as 'list'} size={14} /> {t}
+            </button>
+          ))}
+        </div>
+
+        {aba === 'itens' && (
+          <>
+            <p className="muted small">Um item para cada problema encontrado, com a foto. Foto na horizontal ou na vertical: as duas entram inteiras no laudo.</p>
+            {l.itens.map((it, i) => (
+              <section key={it.id} className="card ld-item">
+                <header>
+                  <b>item {i + 1}</b>
+                  <button className="icon-btn" aria-label="Apagar o item" onClick={() => mudar({ itens: l.itens.filter((x) => x.id !== it.id) })}>
+                    <Icon name="trash" size={14} />
+                  </button>
+                </header>
+                <div className="ld-row">
+                  <Field label="ambiente">
+                    <select value={it.ambiente} onChange={(e) => mudarItem(it.id, { ambiente: e.target.value })}>
+                      {[...new Set([...l.ambientes, it.ambiente])].map((a) => (
+                        <option key={a}>{a}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="item verificado">
+                    <input list={`q-${it.id}`} value={it.item} onChange={(e) => mudarItem(it.id, { item: e.target.value })} placeholder="ex.: porta, tomada, piso" />
+                    <datalist id={`q-${it.id}`}>
+                      {quadrosDe(it.ambiente).map((q) => (
+                        <option key={q} value={q} />
+                      ))}
+                    </datalist>
+                  </Field>
+                </div>
+                <Field label="o que foi encontrado">
+                  <textarea rows={2} value={it.encontrado} onChange={(e) => mudarItem(it.id, { encontrado: e.target.value })} placeholder="ex.: azulejo trincado atrás da pia" />
+                </Field>
+                <div className="ld-grav" role="radiogroup" aria-label="Gravidade">
+                  {(Object.keys(GRAVIDADE) as Gravidade[]).map((g) => (
+                    <button key={g} type="button" role="radio" aria-checked={it.gravidade === g} className={`ld-g is-${g} ${it.gravidade === g ? 'is-on' : ''}`} onClick={() => mudarItem(it.id, { gravidade: g })} title={GRAVIDADE[g].text}>
+                      {GRAVIDADE[g].label}
+                    </button>
+                  ))}
+                </div>
+                <Fotos list={it.fotos} alvo={it.id} onChange={(f) => mudarItem(it.id, { fotos: f })} />
+              </section>
+            ))}
+            <button className="btn ld-novo" onClick={novoItem}>
+              <Icon name="plus" size={15} /> item para reparo
+            </button>
+            {!l.itens.length && <p className="muted small ld-center">Nenhum problema encontrado? Então o laudo sai como “aprovada”.</p>}
+          </>
+        )}
+
+        {aba === 'fotos' && (
+          <>
+            <p className="muted small">Fotos gerais de cada ambiente (como o apê estava no dia). Opcional.</p>
+            <Fotos list={l.gerais} alvo="gerais" onChange={(g) => mudar({ gerais: g })} />
+            {l.gerais.length > 0 && (
+              <div className="ld-gerais">
+                {l.gerais.map((g, i) => (
+                  <div key={g.url} className="ld-geral">
+                    <img src={g.url} alt="" />
+                    <select value={g.ambiente ?? ''} onChange={(e) => mudar({ gerais: l.gerais.map((x, j) => (j === i ? { ...x, ambiente: e.target.value } : x)) })} aria-label="Ambiente da foto">
+                      {l.ambientes.map((a) => (
+                        <option key={a}>{a}</option>
+                      ))}
+                    </select>
+                    <input value={g.legenda ?? ''} onChange={(e) => mudar({ gerais: l.gerais.map((x, j) => (j === i ? { ...x, legenda: e.target.value } : x)) })} placeholder="legenda (opcional)" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {aba === 'testes' && (
+          <div className="ld-testes">
+            {TESTES.map((t) => (
+              <div key={t} className="ld-teste">
+                <span>{t}</span>
+                <div className="ld-tri">
+                  {(
+                    [
+                      ['ok', 'ok'],
+                      ['falha', 'falha'],
+                      ['na', 'n/a'],
+                    ] as [Teste, string][]
+                  ).map(([v, lb]) => (
+                    <button key={v} type="button" className={`is-${v} ${l.testes[t] === v ? 'is-on' : ''}`} onClick={() => mudar({ testes: { ...l.testes, [t]: v } })}>
+                      {lb}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {aba === 'final' && (
+          <>
+            <div className="ld-row">
+              <Field label="início">
+                <input type="time" value={l.inicio ?? r.status.hora ?? ''} onChange={(e) => mudar({ inicio: e.target.value })} />
+              </Field>
+              <Field label="fim">
+                <input type="time" value={l.fim ?? ''} onChange={(e) => mudar({ fim: e.target.value })} />
+              </Field>
+            </div>
+            <div className="ld-row">
+              <Field label="quem acompanhou pela construtora">
+                <input value={l.acompanhante ?? ''} onChange={(e) => mudar({ acompanhante: e.target.value })} placeholder="nome" />
+              </Field>
+              <Field label="número da ART">
+                <input value={l.artNum ?? ''} onChange={(e) => mudar({ artNum: e.target.value })} inputMode="numeric" />
+              </Field>
+            </div>
+            <Field label="ambientes do apê" group>
+              <div className="ld-chips">
+                {[...AMBIENTES_APE, ...AMBIENTES_EXTRA].map((a) => {
+                  const on = l.ambientes.includes(a)
+                  return (
+                    <button key={a} type="button" className={on ? 'is-on' : ''} onClick={() => mudar({ ambientes: on ? l.ambientes.filter((x) => x !== a) : [...l.ambientes, a] })}>
+                      {on && <Icon name="check" size={12} />} {a}
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+            <Field label="itens não verificados" hint="um por linha, com o motivo">
+              <textarea rows={3} value={l.naoVerificados} onChange={(e) => mudar({ naoVerificados: e.target.value })} placeholder="ex.: ponto de gás (gás ainda não ligado)" />
+            </Field>
+            <Field label="observações do engenheiro">
+              <textarea rows={4} value={l.obs} onChange={(e) => mudar({ obs: e.target.value })} />
+            </Field>
+            <button className="btn ghost small" onClick={() => openRdlDoc(checklistHtml({ owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: l.ambientes }))}>
+              <Icon name="printer" size={14} /> checklist deste apê para imprimir
+            </button>
+          </>
+        )}
+      </div>
+    </Modal>
+  )
+}

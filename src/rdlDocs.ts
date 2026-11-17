@@ -67,26 +67,10 @@ export const ico = (name: string, cls = 'i') => `<svg class="${cls}" viewBox="0 
 const AMB_ICON: Record<string, string> = { Cozinha: 'sink', Lavanderia: 'wash', Sala: 'sofa', 'Sacada / Varanda': 'sun', Quarto: 'bed', Corredor: 'hall', Banheiro: 'bath', Garagem: 'car' }
 const QUADRO_ICON = (q: string) => (/elétric/i.test(q) ? 'bolt' : /porta|janela/i.test(q) ? 'door' : /piso|parede/i.test(q) ? 'wall' : /bancada|tanque|vaso|churras/i.test(q) ? 'drop' : /gás/i.test(q) ? 'shield' : /guarda/i.test(q) ? 'building' : 'list')
 
-/* ---------- ilustrações das capas (azul-marinho e laranja) ---------- */
-const ART_CHECKLIST = `<svg viewBox="0 0 300 220" class="art"><rect x="0" y="0" width="300" height="220" rx="26" fill="#EEF1F7"/>
-<circle cx="236" cy="56" r="26" fill="#FFE3C7"/>
-<rect x="120" y="54" width="92" height="166" rx="6" fill="#012C60"/><rect x="120" y="54" width="92" height="12" rx="6" fill="#1F4A85"/>
-${[0, 1, 2, 3, 4, 5, 6].map((r) => [0, 1, 2].map((c) => `<rect x="${134 + c * 24}" y="${76 + r * 18}" width="14" height="10" rx="2" fill="${r === 2 && c === 1 ? '#FF8216' : '#F4F6FA'}"/>`).join('')).join('')}
-<rect x="156" y="196" width="20" height="24" rx="3" fill="#FF8216"/>
-<rect x="212" y="110" width="52" height="110" rx="5" fill="#1F4A85"/>
-${[0, 1, 2, 3].map((r) => [0, 1].map((c) => `<rect x="${222 + c * 18}" y="${124 + r * 20}" width="11" height="10" rx="2" fill="#F4F6FA"/>`).join('')).join('')}
-<g transform="translate(34 70) rotate(-28)"><circle cx="26" cy="26" r="22" fill="none" stroke="#FF8216" stroke-width="10"/><rect x="44" y="20" width="62" height="12" rx="4" fill="#FF8216"/><rect x="84" y="30" width="9" height="15" rx="2" fill="#FF8216"/><rect x="96" y="30" width="9" height="11" rx="2" fill="#FF8216"/></g>
-<path d="M60 40l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#FF8216"/><path d="M262 150l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#012C60"/>
-<rect x="24" y="214" width="252" height="6" rx="3" fill="#012C60"/></svg>`
-const ART_LAUDO = `<svg viewBox="0 0 300 220" class="art"><rect x="0" y="0" width="300" height="220" rx="26" fill="#EEF1F7"/>
-<circle cx="58" cy="60" r="24" fill="#FFE3C7"/>
-<path d="M96 220V88a46 46 0 0 1 92 0v132z" fill="#012C60"/><path d="M110 220V92a32 32 0 0 1 64 0v128z" fill="#1F4A85"/>
-<rect x="124" y="104" width="36" height="22" rx="4" fill="none" stroke="#F4F6FA" stroke-width="3"/><circle cx="164" cy="160" r="4" fill="#FF8216"/>
-<g transform="translate(196 58)"><rect x="0" y="0" width="70" height="92" rx="10" fill="#fff" stroke="#012C60" stroke-width="3"/><rect x="22" y="-8" width="26" height="14" rx="5" fill="#FF8216"/>
-${[0, 1, 2, 3].map((r) => `<path d="M12 ${24 + r * 17}l4 4 7-8" fill="none" stroke="#FF8216" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="30" y="${22 + r * 17}" width="28" height="5" rx="2.5" fill="#C9D3E3"/>`).join('')}</g>
-<g transform="translate(226 140)"><circle cx="20" cy="20" r="16" fill="#fff" stroke="#012C60" stroke-width="5"/><path d="M32 32l14 14" stroke="#012C60" stroke-width="7" stroke-linecap="round"/></g>
-<path d="M64 168c0-14 12-22 12-36 0 14 12 22 12 36a12 12 0 0 1-24 0z" fill="#FF8216" opacity=".85"/>
-<path d="M248 30l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#FF8216"/><rect x="24" y="214" width="252" height="6" rx="3" fill="#012C60"/></svg>`
+/* ---------- ilustrações das capas: as dos modelos da Laís, nas cores da RDL (public/rdl) ---------- */
+const asset = (name: string) => (typeof location === 'undefined' ? `rdl/${name}` : `${location.origin}${location.pathname.replace(/[^/]*$/, '')}rdl/${name}`)
+const ART_CHECKLIST = () => `<img class="art" src="${asset('capa-checklist.png')}" alt="">`
+const ART_LAUDO = () => `<img class="art" src="${asset('capa-laudo.png')}" alt="">`
 
 /* ---------- estilo comum ---------- */
 export const RDL_CSS = `
@@ -142,7 +126,7 @@ const f = (label: string, value = '') => `<div class="fld"><b>${esc(label)}</b><
 
 const EXTRA_CSS = `
 /* checklist */
-.ck-cover{display:flex;flex-direction:column;align-items:center;text-align:center}
+.ck-cover{display:flex;flex-direction:column;align-items:center;text-align:center;flex:1}
 .ck-cover .logo{height:20mm;margin-top:4mm}
 .ck-cover .art{max-width:150mm;margin-top:7mm}
 .ck-cover .kick{margin-top:8mm;font-size:7pt;letter-spacing:3px;color:var(--or);font-weight:600}
@@ -288,7 +272,7 @@ export function checklistHtml(d: ChecklistData = {}): string {
   const blank = !d.answer
   let n = 1
   // capa
-  pages.push(`<div class="page"><div class="ck-cover"><img class="logo" src="${RDL_LOGO}" alt="RDL">${ART_CHECKLIST}
+  pages.push(`<div class="page"><div class="ck-cover"><img class="logo" src="${RDL_LOGO}" alt="RDL">${ART_CHECKLIST()}
 <div class="kick">CHECKLIST DE VISTORIA</div><h1>Vistoria de <span>entrega de chaves</span></h1>
 <p class="sub">Conferência do apartamento novo, ambiente por ambiente, antes de assinar o recebimento com a construtora.</p>
 <div class="who box"><div class="grid2">${f('Feito por', d.by || RDL.name)}${f('Data', dateBR(d.date))}${f('Proprietário(a)', d.owner)}${f('Unidade (torre e apto)', d.unit)}</div></div></div>${foot('Checklist de vistoria')}</div>`)
@@ -311,7 +295,7 @@ export function checklistHtml(d: ChecklistData = {}): string {
 ${foot('Checklist de vistoria · como usar', ++n)}</div>`)
   // folhas por ambiente (quebra automática de página)
   for (const room of rooms) {
-    const a = all.find((x) => x.ambiente === room.replace(/\s+\d+$/, '')) ?? all.find((x) => room.startsWith(x.ambiente))
+    const a = all.find((x) => x.ambiente === room.replace(/\s+\d+$/, '')) ?? all.find((x) => room.startsWith(x.ambiente)) ?? all.find((x) => x.ambiente === (/lavabo/i.test(room) ? 'Banheiro' : /escrit|closet/i.test(room) ? 'Quarto' : ''))
     if (!a) continue
     const chunks: string[][] = [[]]
     let used = 0
@@ -337,7 +321,7 @@ ${foot('Checklist de vistoria · como usar', ++n)}</div>`)
   const sumRows = d.answer
     ? rooms
         .map((room) => {
-          const a = all.find((x) => room.startsWith(x.ambiente))
+          const a = all.find((x) => room.startsWith(x.ambiente)) ?? all.find((x) => x.ambiente === (/lavabo/i.test(room) ? 'Banheiro' : /escrit|closet/i.test(room) ? 'Quarto' : ''))
           if (!a) return ''
           let nao = 0
           let total = 0
@@ -358,99 +342,337 @@ ${foot('Checklist de vistoria · resumo', ++n)}</div>`)
 
 /* ================= RELATÓRIO (LAUDO) DE VISTORIA ================= */
 
+export type Gravidade = 'leve' | 'media' | 'grave'
+export const GRAVIDADE: Record<Gravidade, { label: string; text: string }> = {
+  leve: { label: 'Leve', text: 'Acabamento ou estética. Não atrapalha o uso (ex.: risco, mancha, falha de rejunte).' },
+  media: { label: 'Média', text: 'Atrapalha o uso ou o funcionamento, ou pode piorar com o tempo (ex.: porta raspando, ralo empoçando).' },
+  grave: { label: 'Grave', text: 'Risco à segurança, à saúde ou às instalações (ex.: tomada invertida, vazamento, trinca).' },
+}
+export interface LaudoFoto {
+  url: string
+  w?: number
+  h?: number
+  legenda?: string
+  ambiente?: string
+}
 export interface LaudoItem {
   room: string
   item: string
   found: string
-  photo?: string
+  gravidade?: Gravidade
+  photos?: LaudoFoto[]
+  photo?: string // compatível com a versão anterior (uma foto só)
   fixed?: boolean
 }
+export type Teste = 'ok' | 'falha' | 'na'
+export const TESTES = [
+  'Tomadas (tensão e polaridade)',
+  'Interruptores e pontos de luz',
+  'Quadro de luz (disjuntores e DR)',
+  'Ponto do chuveiro',
+  'Interfone e campainha',
+  'Torneiras e registros (vazão e vazamento)',
+  'Ralos e caimento do piso',
+  'Vaso sanitário (descarga e vedação)',
+  'Sifões e flexíveis (vazamento)',
+  'Portas (abertura, fechadura, batente)',
+  'Janelas e esquadrias (abertura, vedação, trinco)',
+  'Pisos (som cavo e desnível)',
+  'Paredes e tetos (fissuras, prumo, acabamento)',
+  'Revestimentos cerâmicos (som cavo, rejunte)',
+  'Ponto de gás (registro e vedação)',
+  'Área do box (escoamento e vedação)',
+]
+export const NORMAS: [string, string][] = [
+  ['ABNT NBR 13752', 'Perícias de engenharia na construção civil'],
+  ['ABNT NBR 15575', 'Edificações habitacionais: desempenho'],
+  ['ABNT NBR 14037', 'Manual de uso, operação e manutenção das edificações'],
+  ['ABNT NBR 17170', 'Edificações: garantias, prazos recomendados e diretrizes'],
+  ['ABNT NBR 5674', 'Manutenção de edificações'],
+  ['ABNT NBR 16747', 'Inspeção predial (referência de método)'],
+  ['Lei 8.078/1990', 'Código de Defesa do Consumidor, arts. 12, 18, 26 e 27'],
+  ['Lei 10.406/2002', 'Código Civil, art. 618 (solidez e segurança da obra)'],
+]
 export interface LaudoData {
   owner?: string
   development?: string // empreendimento
   builder?: string // construtora
   address?: string
   unit?: string
+  plan?: string // planta
   date?: string
   time?: string // início e fim
   companion?: string // acompanhante da construtora
   art?: string // nº da ART
   items?: LaudoItem[]
   rooms?: { room: string; checked: number; problems: number }[]
+  tests?: Record<string, Teste>
+  notChecked?: string[] // itens não verificados (sem água, sem luz, sem acesso…)
+  general?: LaudoFoto[] // fotos gerais dos ambientes
   revisitDate?: string
   notes?: string
 }
 
+const LAUDO_CSS = `
+.lc-top{display:flex;justify-content:space-between;align-items:center}
+.lc-top img{height:15mm}
+.lc-top .tag{font-size:6.4pt;letter-spacing:2px;font-weight:600;color:var(--navy);background:var(--soft);border-radius:7px;padding:4px 10px}
+.lc-art{margin-top:6mm;border-radius:22px;overflow:hidden}
+.lc-art img{width:100%;display:block}
+.lc-k{margin-top:8mm;font-size:7pt;letter-spacing:3px;color:var(--or);font-weight:600}
+.lc h1{font-size:31pt;font-weight:700;letter-spacing:-1.2px;line-height:1.02;margin-top:2mm}
+.lc h1 span{color:var(--or)}
+.lc .sub{margin-top:3mm;color:var(--txt);font-size:8.8pt;max-width:150mm}
+.lc-feat{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin-top:6mm}
+.lc-feat p{font-size:6.8pt;color:var(--txt);margin-top:4px;line-height:1.35}
+.lc footer{margin-top:0}
+.lc-strip{margin-top:auto;margin-bottom:6mm;display:grid;grid-template-columns:repeat(4,1fr);gap:3mm}
+.lc-strip .box{padding:8px 10px}
+.lc-strip small{display:block;font-size:5.8pt;letter-spacing:1.4px;color:var(--mut);font-weight:600}
+.lc-strip b{font-size:8.6pt;display:block;min-height:12px;border-bottom:1px solid transparent}
+.lc-strip .blank b{border-bottom-color:#C9CDD8}
+.res3{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.res3 .opt{border-radius:10px;padding:8px 10px;display:flex;gap:8px;align-items:center;background:var(--soft)}
+.res3 .opt b{display:block;font-size:8.2pt}.res3 .opt small{font-size:6.2pt;color:var(--mut);line-height:1.3;display:block}
+.res3 .opt.on{background:#E7EEF8;outline:2px solid var(--navy)}
+.res3 .opt.rs.on{background:var(--orl);outline-color:var(--or)}
+.res3 .opt.rp.on{background:var(--orl);outline-color:#C25F0A}
+.cnt{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:3mm}
+.cnt div{background:var(--soft);border-radius:10px;padding:7px 10px}
+.cnt b{font-size:15pt;display:block;line-height:1.1}
+.cnt small{font-size:6.2pt;color:var(--mut)}
+.cnt .g b{color:#C25F0A}
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:1.6mm 8mm}
+.toc div{display:flex;gap:8px;align-items:center;font-size:7.4pt;border-bottom:1px dashed #E1E3EA;padding-bottom:1.4mm}
+.toc em{font-style:normal;color:var(--or);font-weight:700;width:6mm}
+.grav{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:1px 6px;font-size:6pt;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.grav.leve{background:#E7EEF8;color:var(--navy)}
+.grav.media{background:var(--orl);color:#C25F0A}
+.grav.grave{background:var(--or);color:#fff}
+.legend{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm}
+.legend .box{padding:8px 10px}
+.legend p{font-size:6.6pt;color:var(--txt);margin-top:4px;line-height:1.35}
+.nrm{display:grid;grid-template-columns:1fr 1fr;gap:1.8mm 6mm}
+.nrm div{font-size:6.8pt;color:var(--txt);display:flex;gap:6px;line-height:1.3}
+.nrm b{color:var(--navy);white-space:nowrap;min-width:25mm}
+.tst table{width:100%;border-collapse:collapse}
+.tst th{font-size:5.8pt;letter-spacing:1px;color:var(--mut);font-weight:600;text-align:center;padding-bottom:1.5mm;width:12mm}
+.tst th:first-child{text-align:left;width:auto}
+.tst td{font-size:7pt;padding:1.25mm 0;border-bottom:1px solid #EFEDE8}
+.tst td.c{text-align:center}
+.lim{display:flex;gap:8px;align-items:flex-start;font-size:6.8pt;color:var(--txt);line-height:1.4}
+.lim svg{margin-top:1px;color:var(--or)}
+/* fotos: horizontais (2 por linha) e verticais (3 por linha), cada uma no seu formato */
+.prow{display:grid;gap:4mm;margin-top:3.5mm}
+.prow.h{grid-template-columns:1fr 1fr}
+.prow.v{grid-template-columns:1fr 1fr 1fr}
+.pf{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px;break-inside:avoid}
+.pf .fr{position:relative;border-radius:9px;overflow:hidden;background:var(--soft);display:grid;place-items:center;color:var(--mut);font-size:6.6pt}
+.prow.h .fr{height:57mm}
+.prow.v .fr{height:71mm}
+.pf .fr .bg{position:absolute;inset:-12px;background-size:cover;background-position:center;filter:blur(14px) brightness(.92);opacity:.55}
+.pf .fr img{position:relative;width:100%;height:100%;object-fit:contain;display:block}
+.pf .fr .ph0{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.pf .fr .ph0 svg{width:20px;height:20px;color:#AEB6C6}
+.pf .cap{height:9mm;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:1.2mm 2px 0;font-size:6.6pt;line-height:1.25;overflow:hidden}
+.pf .cap .l1{display:flex;gap:5px;align-items:center;white-space:nowrap;overflow:hidden}
+.pf .cap em{font-style:normal;background:var(--navy);color:#fff;border-radius:5px;padding:1px 6px;font-weight:700;font-size:6pt;flex:none}
+.pf .cap .l2{color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf .cap .fld{font-size:6.4pt}
+.pf.empty{border-style:dashed}
+.fmt{display:flex;gap:10px;align-items:center;font-size:6.6pt;color:var(--mut);margin-top:2.5mm}
+.fmt i{display:inline-block;border:1.4px solid #AEB6C6;border-radius:2px;vertical-align:middle;margin-right:4px}
+.fmt .ih{width:13px;height:9px}.fmt .iv{width:9px;height:13px}
+.decl{font-size:7pt;color:var(--txt);line-height:1.5}
+.decl b{color:var(--navy)}
+`
+
+const fotoOrient = (f: LaudoFoto) => (f.w && f.h && f.h > f.w * 1.05 ? 'v' : 'h')
+const gravChip = (g?: Gravidade) => (g ? `<span class="grav ${g}">${GRAVIDADE[g].label.toUpperCase()}</span>` : '')
+
+/** Monta as linhas de fotos: horizontais de 2 em 2, verticais de 3 em 3, na ordem em que aparecem. */
+function linhasDeFotos<T extends { f: LaudoFoto }>(fotos: T[]) {
+  const rows: { o: 'h' | 'v'; fs: T[] }[] = []
+  const open: Record<'h' | 'v', T[] | null> = { h: null, v: null }
+  for (const x of fotos) {
+    const o = fotoOrient(x.f)
+    if (!open[o]) {
+      open[o] = []
+      rows.push({ o, fs: open[o]! })
+    }
+    open[o]!.push(x)
+    if (open[o]!.length === (o === 'h' ? 2 : 3)) open[o] = null
+  }
+  return rows
+}
+const ROW_H = { h: 71, v: 85 } // mm de cada linha (foto + legenda + espaço)
+const FOTO_AREA = 240
+
 export function laudoHtml(d: LaudoData = {}): string {
   const items = d.items ?? []
   const blank = !d.items
-  const result = blank ? undefined : items.length === 0 ? 'ok' : 'rp'
+  const grav = { leve: 0, media: 0, grave: 0 }
+  items.forEach((it) => (grav[it.gravidade ?? 'media'] += 1))
+  const result = blank ? undefined : items.length === 0 ? 'ok' : grav.grave ? 'rp' : 'rs'
   const pages: string[] = []
   let n = 1
-  pages.push(`<div class="page rl-cover">${head('ENTREGA DE CHAVES · APARTAMENTO NOVO', 'Laudo de vistoria', 'doc')}${ART_LAUDO}
-<h1>Relatório de <span>vistoria</span></h1><p style="color:var(--txt);margin-top:1.5mm">Estado de conservação, funcionamento e acabamentos do imóvel na entrega das chaves.</p>
-<div class="box" style="margin-top:4mm"><h3><i></i>Imóvel e proprietário</h3><div class="grid2">${f('Proprietário(a)', d.owner)}${f('Empreendimento', d.development)}${f('Construtora', d.builder)}${f('Endereço', d.address)}${f('Unidade (torre e apto)', d.unit)}${f('Data da vistoria', dateBR(d.date))}${f('Início e fim', d.time)}${f('Acompanhante da construtora', d.companion)}</div></div>
-<div class="box" style="margin-top:3mm"><h3><i></i>Responsável técnico</h3><div class="grid2">${f('Nome', RDL.name)}${f('CREA nº', RDL.crea)}${f('Empresa', RDL.company)}${f('ART nº', d.art)}</div></div>
-<div class="box" style="margin-top:3mm"><h3><i></i>Resultado da vistoria</h3><div class="res"><div class="opt ok ${result === 'ok' ? 'on' : ''}"><span class="dot ${result === 'ok' ? 'on' : ''}"></span><span><b>Aprovada</b><small>Nenhum item para reparo</small></span></div><div class="opt rp ${result === 'rp' ? 'on' : ''}"><span class="dot no ${result === 'rp' ? 'on' : ''}"></span><span><b>Reprovada</b><small>Há itens para a construtora reparar</small></span></div></div>
-<div class="grid2" style="margin-top:3mm">${f('Itens com problema', blank ? '' : String(items.length))}${f('Nova vistoria em', dateBR(d.revisitDate))}</div></div>
-${foot('Laudo de vistoria', n)}</div>`)
+
+  // numeração das fotos: primeiro as dos itens (na ordem da lista), depois as gerais
+  type F = { f: LaudoFoto; k: number; titulo: string; sub: string; g?: Gravidade; item?: number }
+  const fotos: F[] = []
+  items.forEach((it, i) => {
+    const list = it.photos?.length ? it.photos : it.photo ? [{ url: it.photo }] : []
+    list.forEach((f) => fotos.push({ f, k: 0, titulo: `${it.room}`, sub: f.legenda || `${it.item}: ${it.found}`, g: it.gravidade, item: i + 1 }))
+  })
+  ;(d.general ?? []).forEach((f) => fotos.push({ f, k: 0, titulo: f.ambiente || 'vista geral', sub: f.legenda || 'vista geral do ambiente' }))
+  // as fotos são numeradas na ordem em que aparecem nas folhas (horizontais e verticais se agrupam)
+  const linhas = linhasDeFotos(fotos)
+  let kk = 0
+  linhas.forEach((r) => r.fs.forEach((x) => (x.k = ++kk)))
+  const fotosDoItem: number[][] = items.map((_, i) => fotos.filter((x) => x.item === i + 1).map((x) => x.k).sort((a, b) => a - b))
+
+  /* 1. capa */
+  pages.push(`<div class="page lc"><div class="lc-top"><img src="${RDL_LOGO}" alt="RDL"><span class="tag">ENTREGA DE CHAVES · APARTAMENTO NOVO</span></div>
+<div class="lc-art">${ART_LAUDO()}</div>
+<div class="lc-k">LAUDO TÉCNICO</div><h1>Relatório de <span>vistoria</span></h1>
+<p class="sub">Estado de conservação, funcionamento e acabamentos do apartamento na entrega das chaves, com os vícios aparentes encontrados e o registro fotográfico.</p>
+<div class="lc-feat">${[
+    ['search', 'Vistoria completa', 'Ambiente por ambiente, com testes de funcionamento'],
+    ['camera', 'Registro fotográfico', 'Cada item para reparo com foto numerada'],
+    ['shield', 'ART no CREA-SP', 'Laudo assinado por engenheiro habilitado'],
+  ]
+    .map(([ic, t, p]) => `<div class="box"><div class="qh"><span class="ib">${ico(ic)}</span>${t}</div><p>${p}</p></div>`)
+    .join('')}</div>
+<div class="lc-strip">${[
+    ['PROPRIETÁRIO(A)', d.owner],
+    ['UNIDADE', d.unit],
+    ['DATA DA VISTORIA', dateBR(d.date)],
+    ['RESULTADO', result ? { ok: 'Aprovada', rs: 'Com ressalvas', rp: 'Reprovada' }[result] : ''],
+  ]
+    .map(([k, v]) => `<div class="box ${v ? '' : 'blank'}"><small>${k}</small><b>${esc(v)}</b></div>`)
+    .join('')}</div>${foot('Laudo de vistoria', n)}</div>`)
+
+  /* 2. identificação e resultado */
+  const toc = ['Identificação e resultado', 'A vistoria: objetivo e método', 'Normas e referências', 'Resumo por ambiente', 'Testes de funcionamento', 'Itens para reparo', 'Registro fotográfico', 'Itens não verificados', 'Conclusão e assinaturas']
+  pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Identificação e resultado', 'doc')}
+<div class="box" style="margin-top:4mm"><h3><i></i>Imóvel e proprietário</h3><div class="grid2">${f('Proprietário(a)', d.owner)}${f('Empreendimento', d.development)}${f('Construtora', d.builder)}${f('Endereço', d.address)}${f('Unidade (torre e apto)', d.unit)}${f('Planta', d.plan)}${f('Data da vistoria', dateBR(d.date))}${f('Início e fim', d.time)}${f('Acompanhante da construtora', d.companion)}${f('Nova vistoria em', dateBR(d.revisitDate))}</div></div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Responsável técnico</h3><div class="grid2">${f('Nome', RDL.name)}${f('Título', 'Engenheiro')}${f('CREA-SP nº', RDL.crea)}${f('ART nº', d.art)}${f('Empresa', RDL.company)}${f('CNPJ', RDL.cnpj)}</div></div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Resultado da vistoria</h3><div class="res3">
+<div class="opt ok ${result === 'ok' ? 'on' : ''}"><span class="dot ${result === 'ok' ? 'on' : ''}"></span><span><b>Aprovada</b><small>Nenhum item para reparo</small></span></div>
+<div class="opt rs ${result === 'rs' ? 'on' : ''}"><span class="dot no ${result === 'rs' ? 'on' : ''}"></span><span><b>Com ressalvas</b><small>Itens leves ou médios para a construtora reparar</small></span></div>
+<div class="opt rp ${result === 'rp' ? 'on' : ''}"><span class="dot no ${result === 'rp' ? 'on' : ''}"></span><span><b>Reprovada</b><small>Há item grave: reparar antes de receber</small></span></div></div>
+<div class="cnt"><div><b>${blank ? '&nbsp;' : items.length}</b><small>itens para reparo</small></div><div><b>${blank ? '&nbsp;' : grav.leve}</b><small>leves</small></div><div><b>${blank ? '&nbsp;' : grav.media}</b><small>médios</small></div><div class="g"><b>${blank ? '&nbsp;' : grav.grave}</b><small>graves</small></div></div></div>
+<div class="box" style="margin-top:3mm;flex:1"><h3><i></i>O que tem neste laudo</h3><div class="toc">${toc.map((t, i) => `<div><em>${String(i + 1).padStart(2, '0')}</em>${t}</div>`).join('')}</div></div>
+<div style="height:3mm"></div>${foot('Laudo de vistoria · identificação', ++n)}</div>`)
+
+  /* 3. a vistoria + normas */
+  pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'A vistoria', 'search')}
+<div class="box" style="margin-top:4mm"><h3><i></i>Objetivo</h3><p style="font-size:7.2pt;color:var(--txt)">Verificar o estado de conservação, o funcionamento e os acabamentos do apartamento na entrega das chaves e apontar os <b>vícios aparentes</b>, para que a construtora faça os reparos sem custo para o proprietário, conforme o Código de Defesa do Consumidor.</p></div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Como foi feita</h3><p style="font-size:7.2pt;color:var(--txt)">Ambiente por ambiente, com o checklist de vistoria da RDL, testes simples de funcionamento e registro em fotos e vídeos. Os locais com problema foram marcados com adesivos. Inspeção visual e com instrumentos portáteis, sem ensaios destrutivos.</p>
+<div class="grid2" style="margin-top:3mm"><div><h3 style="margin-top:1mm"><i></i>Condições</h3><div class="chips"><span class="chip">${ico('drop')}Água ligada</span><span class="chip">${ico('bolt')}Energia ligada</span><span class="chip">${ico('user')}Acompanhada pela construtora</span><span class="chip">${ico('sun')}Luz natural e artificial</span></div></div><div><h3 style="margin-top:1mm"><i></i>Documentos consultados</h3><div class="chips"><span class="chip">${ico('doc')}Memorial descritivo</span><span class="chip">${ico('doc')}Manual do proprietário</span><span class="chip">${ico('plan')}Plantas do imóvel</span><span class="chip">${ico('sign')}Contrato de compra</span></div></div></div>
+<h3 style="margin-top:3mm"><i></i>Ferramentas usadas</h3><div class="chips">${['Trena', 'Régua com nível', 'Multímetro', 'Testador de tomadas', 'Bolinhas de gude', 'Recipiente com água', 'Lâmpada', 'Espelho portátil', 'Haste para som cavo', 'Adesivos', 'Celular (fotos e vídeos)'].map((t) => `<span class="chip">${ico('tool')}${esc(t)}</span>`).join('')}</div></div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Gravidade dos itens</h3><div class="legend">${(Object.keys(GRAVIDADE) as Gravidade[]).map((g) => `<div class="box soft">${gravChip(g)}<p>${GRAVIDADE[g].text}</p></div>`).join('')}</div></div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Normas e referências</h3><div class="nrm">${NORMAS.map(([a, b]) => `<div><b>${a}</b>${b}</div>`).join('')}</div></div>
+<div class="box soft" style="margin-top:3mm"><div class="lim">${ico('eye')}<span><b style="color:var(--navy)">Limites desta vistoria.</b> Vistoria visual e de funcionamento, feita na data indicada, sem quebrar ou abrir pisos, paredes e forros. Vícios ocultos podem não aparecer nela e seguem as garantias da construtora. Áreas comuns do condomínio não fazem parte deste laudo.</span></div></div>
+<div style="flex:1"></div>${foot('Laudo de vistoria · método e normas', ++n)}</div>`)
+
+  /* 4. resumo por ambiente + testes */
   const roomRows = d.rooms?.length
     ? d.rooms.map((r, i) => `<tr><td class="n">${i + 1}</td><td>${esc(r.room)}</td><td>${r.checked}</td><td>${r.problems}</td><td><span class="yn"><i class="s ${r.problems === 0 ? 'on' : ''}">OK</i><i class="n ${r.problems > 0 ? 'on' : ''}">REPARAR</i></span></td></tr>`).join('')
-    : Array.from({ length: 10 }, (_, i) => `<tr class="blank"><td class="n">${i + 1}</td><td></td><td></td><td></td><td><span class="yn"><i class="s">OK</i><i class="n">REPARAR</i></span></td></tr>`).join('')
-  pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'A vistoria', 'search')}
-<div class="box" style="margin-top:4mm"><h3><i></i>Objetivo</h3><p style="font-size:7.2pt;color:var(--txt)">Verificar o estado de conservação, o funcionamento e os acabamentos do apartamento na entrega das chaves e apontar os <b>vícios aparentes</b>, para que a construtora faça os reparos antes ou depois de o proprietário receber o imóvel.</p></div>
-<div class="box" style="margin-top:3mm"><h3><i></i>Como foi feita</h3><p style="font-size:7.2pt;color:var(--txt)">Ambiente por ambiente, com o checklist de vistoria da RDL, testes simples de funcionamento e registro em fotos e vídeos. Os locais com problema foram marcados com adesivos. Inspeção visual e com instrumentos portáteis, sem ensaios destrutivos.</p>
-<div class="grid2" style="margin-top:3mm"><div><h3 style="margin-top:2mm"><i></i>Condições</h3><div class="chips"><span class="chip">${ico('drop')}Água ligada</span><span class="chip">${ico('bolt')}Energia ligada</span><span class="chip">${ico('user')}Acompanhada pela construtora</span></div></div><div><h3 style="margin-top:2mm"><i></i>Documentos consultados</h3><div class="chips"><span class="chip">${ico('doc')}Memorial descritivo</span><span class="chip">${ico('doc')}Manual do proprietário</span><span class="chip">${ico('plan')}Plantas do imóvel</span></div></div></div>
-<h3 style="margin-top:3mm"><i></i>Ferramentas usadas</h3><div class="chips">${['Trena', 'Régua com nível', 'Multímetro', 'Testador de tomadas', 'Bolinhas de gude', 'Recipiente com água', 'Lâmpada', 'Espelho portátil', 'Haste', 'Adesivos', 'Celular (fotos e vídeos)'].map((t) => `<span class="chip">${ico('tool')}${esc(t)}</span>`).join('')}</div></div>
-<div class="box rep" style="margin-top:3mm;flex:1"><h3><i></i>Resumo por ambiente</h3><table><thead><tr><th>Nº</th><th>AMBIENTE</th><th>ITENS VERIFICADOS</th><th>COM PROBLEMA</th><th>RESULTADO</th></tr></thead><tbody>${roomRows}</tbody></table></div>
-${foot('Laudo de vistoria · a vistoria', ++n)}</div>`)
-  // itens para reparo (22 por folha)
-  const per = 22
+    : Array.from({ length: 8 }, (_, i) => `<tr class="blank"><td class="n">${i + 1}</td><td></td><td></td><td></td><td><span class="yn"><i class="s">OK</i><i class="n">REPARAR</i></span></td></tr>`).join('')
+  const tst = d.tests ?? {}
+  const tstRows = TESTES.map((t) => {
+    const v = tst[t]
+    return `<tr><td>${esc(t)}</td><td class="c"><span class="dot ${v === 'ok' ? 'on' : ''}"></span></td><td class="c"><span class="dot no ${v === 'falha' ? 'on' : ''}"></span></td><td class="c"><span class="dot ${v === 'na' ? 'on' : ''}" style="${v === 'na' ? 'background:#9AA3B6;border-color:#9AA3B6' : ''}"></span></td></tr>`
+  }).join('')
+  pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Ambientes e testes', 'list')}
+<div class="box rep" style="margin-top:4mm"><h3><i></i>Resumo por ambiente</h3><table><thead><tr><th>Nº</th><th>AMBIENTE</th><th>ITENS VERIFICADOS</th><th>COM PROBLEMA</th><th>RESULTADO</th></tr></thead><tbody>${roomRows}</tbody></table></div>
+<div class="box tst" style="margin-top:3mm;flex:1"><h3><i></i>Testes de funcionamento</h3><table><thead><tr><th>TESTE</th><th>OK</th><th>FALHA</th><th>N/A</th></tr></thead><tbody>${tstRows}</tbody></table>
+<p style="font-size:6.4pt;color:var(--mut);margin-top:2mm">N/A: não se aplica a este apartamento ou não foi possível testar (ver “itens não verificados”).</p></div>
+<div style="height:3mm"></div>${foot('Laudo de vistoria · ambientes e testes', ++n)}</div>`)
+
+  /* 5. itens para reparo (20 por folha) */
+  const per = 20
   const repPages = blank ? 1 : Math.max(1, Math.ceil(items.length / per))
   for (let p = 0; p < repPages; p++) {
     const slice = blank ? [] : items.slice(p * per, (p + 1) * per)
     const rows = blank
-      ? Array.from({ length: per }, (_, i) => `<tr class="blank"><td class="n">${i + 1}</td><td></td><td></td><td></td><td></td><td><span class="yn"><i class="s">SIM</i><i class="n">NÃO</i></span></td></tr>`).join('')
-      : slice.map((it, i) => `<tr><td class="n">${p * per + i + 1}</td><td>${esc(it.room)}</td><td>${esc(it.item)}</td><td>${esc(it.found)}</td><td>${it.photo ? `foto ${p * per + i + 1}` : '—'}</td><td><span class="yn"><i class="s ${it.fixed ? 'on' : ''}">SIM</i><i class="n">NÃO</i></span></td></tr>`).join('')
+      ? Array.from({ length: per }, (_, i) => `<tr class="blank"><td class="n">${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td><span class="yn"><i class="s">SIM</i><i class="n">NÃO</i></span></td></tr>`).join('')
+      : slice.length
+        ? slice
+            .map((it, i) => {
+              const idx = p * per + i
+              const fs = fotosDoItem[idx] ?? []
+              return `<tr><td class="n">${idx + 1}</td><td>${esc(it.room)}</td><td>${esc(it.item)}</td><td>${esc(it.found)}</td><td>${gravChip(it.gravidade ?? 'media')}</td><td>${fs.length ? fs.join(', ') : '—'}</td><td><span class="yn"><i class="s ${it.fixed ? 'on' : ''}">SIM</i><i class="n">NÃO</i></span></td></tr>`
+            })
+            .join('')
+        : `<tr><td colspan="7" style="padding:6mm 0;text-align:center;color:var(--txt)">Nenhum vício aparente encontrado nesta vistoria.</td></tr>`
     pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Itens para reparo', 'tool')}
-<p style="font-size:6.8pt;color:var(--txt);margin-top:3mm">Cada vício aparente encontrado, com o número da foto. Na nova vistoria, marque se a construtora corrigiu.</p>
-<div class="box rep" style="margin-top:3mm;flex:1"><table><thead><tr><th>Nº</th><th style="width:26mm">AMBIENTE</th><th>ITEM VERIFICADO</th><th>O QUE FOI ENCONTRADO</th><th style="width:13mm">FOTO</th><th style="width:22mm">CORRIGIDO?</th></tr></thead><tbody>${rows}</tbody></table></div>
-${foot('Laudo de vistoria · itens para reparo', ++n)}</div>`)
+<p style="font-size:6.8pt;color:var(--txt);margin-top:3mm">Cada vício aparente encontrado, com a gravidade e o número das fotos. Na nova vistoria (revistoria), marque se a construtora corrigiu.</p>
+<div class="box rep" style="margin-top:3mm;flex:1"><table><thead><tr><th>Nº</th><th style="width:24mm">AMBIENTE</th><th style="width:34mm">ITEM VERIFICADO</th><th>O QUE FOI ENCONTRADO</th><th style="width:16mm">GRAVIDADE</th><th style="width:12mm">FOTOS</th><th style="width:21mm">CORRIGIDO?</th></tr></thead><tbody>${rows}</tbody></table></div>
+<div style="height:3mm"></div>${foot('Laudo de vistoria · itens para reparo', ++n)}</div>`)
   }
-  // registro fotográfico (6 por folha)
-  const shots = blank ? Array.from({ length: 6 }, () => null) : items.map((it, i) => ({ ...it, k: i + 1 })).filter((x) => x.photo)
-  for (let p = 0; p < Math.max(1, Math.ceil(shots.length / 6)); p++) {
-    const s = shots.slice(p * 6, p * 6 + 6)
-    if (!blank && !s.length) break
+
+  /* 6. registro fotográfico: horizontais 2 por linha, verticais 3 por linha */
+  const vazio = (o: 'h' | 'v') => `<div class="pf empty"><div class="fr"><span class="ph0">${ico('camera')}foto na ${o === 'h' ? 'horizontal' : 'vertical'}</span></div><div class="cap"><span class="l1"><em>FOTO</em>${f('Ambiente')}</span>${f('O que mostra')}</div></div>`
+  const cheia = (x: F) =>
+    `<div class="pf"><div class="fr"><span class="bg" style="background-image:url('${esc(x.f.url)}')"></span><img src="${esc(x.f.url)}" alt=""></div><div class="cap"><span class="l1"><em>FOTO ${x.k}</em><b>${esc(x.titulo)}</b>${x.item ? `<span style="color:var(--mut)">· item ${x.item}</span>` : ''}${gravChip(x.g)}</span><span class="l2">${esc(x.sub)}</span></div></div>`
+  const fmt = `<div class="fmt">${ico('camera')}<span><i class="ih"></i>horizontais: 2 por linha</span><span><i class="iv"></i>verticais: 3 por linha</span><span>· cada foto aparece inteira, sem cortes</span></div>`
+  const fotoPage = (rowsHtml: string, intro: string) =>
     pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Registro fotográfico', 'camera')}
-<p style="font-size:6.8pt;color:var(--txt);margin-top:3mm">Uma foto para cada item da lista de reparos, com o mesmo número. Vídeos podem ser enviados junto, por link.</p>
-<div class="photos" style="margin-top:3mm">${s
-      .map((x) =>
-        x
-          ? `<div class="ph"><div class="img"><img src="${esc(x.photo)}" alt=""></div><div class="cap"><em>FOTO ${x.k}</em><b>${esc(x.room)}</b> · ${esc(x.item)}</div></div>`
-          : `<div class="ph"><div class="img">${ico('camera')}&nbsp;cole a foto aqui</div><div class="cap"><em>FOTO</em>${f('Ambiente')}</div><div class="cap">${f('O que mostra')}</div></div>`,
-      )
-      .join('')}</div>
-${foot('Laudo de vistoria · registro fotográfico', ++n)}</div>`)
+<p style="font-size:6.8pt;color:var(--txt);margin-top:3mm">${intro}</p>${fmt}${rowsHtml}<div style="flex:1"></div>${foot('Laudo de vistoria · registro fotográfico', ++n)}</div>`)
+  const intro = 'As fotos dos itens para reparo têm o mesmo número da lista. Vídeos podem ser enviados junto, por link.'
+  if (blank) {
+    // modelo: as duas linhas de cada formato, para colar fotos na horizontal ou na vertical
+    fotoPage(`<div class="prow h">${vazio('h')}${vazio('h')}</div><div class="prow h">${vazio('h')}${vazio('h')}</div><div class="prow v">${vazio('v')}${vazio('v')}${vazio('v')}</div>`, intro)
+    fotoPage(`<div class="prow v">${vazio('v')}${vazio('v')}${vazio('v')}</div><div class="prow v">${vazio('v')}${vazio('v')}${vazio('v')}</div>`, intro)
+  } else if (fotos.length) {
+    let acc = 0
+    let html = ''
+    for (const r of linhas) {
+      if (acc + ROW_H[r.o] > FOTO_AREA && html) {
+        fotoPage(html, intro)
+        html = ''
+        acc = 0
+      }
+      html += `<div class="prow ${r.o}">${r.fs.map(cheia).join('')}</div>`
+      acc += ROW_H[r.o]
+    }
+    if (html) fotoPage(html, intro)
   }
-  if (!blank && !shots.length) n += 0
-  // conclusão
+
+  /* 7. itens não verificados + observações */
+  const nv = d.notChecked ?? []
+  pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Não verificados e observações', 'eye')}
+<div class="box" style="margin-top:4mm"><h3><i></i>Itens não verificados</h3><p style="font-size:6.8pt;color:var(--txt);margin-bottom:2mm">O que não deu para conferir no dia (sem água, sem energia, sem acesso, item ainda não instalado) e por quê. Vale conferir na revistoria.</p>
+${nv.length ? `<div class="chips">${nv.map((t) => `<span class="chip">${ico('x')}${esc(t)}</span>`).join('')}</div>` : blank ? Array.from({ length: 6 }, () => '<div style="border-bottom:1px solid #D8DCE4;height:7mm"></div>').join('') : '<p style="font-size:7pt;color:var(--txt)">Todos os itens do checklist foram verificados.</p>'}</div>
+<div class="box" style="margin-top:3mm;flex:1"><h3><i></i>Observações do responsável técnico</h3>${d.notes ? `<p style="font-size:7.2pt;color:var(--txt);white-space:pre-line">${esc(d.notes)}</p>` : Array.from({ length: 14 }, () => '<div style="border-bottom:1px solid #D8DCE4;height:7mm"></div>').join('')}</div>
+<div style="height:3mm"></div>${foot('Laudo de vistoria · observações', ++n)}</div>`)
+
+  /* 8. conclusão */
+  const concl = blank
+    ? ''
+    : result === 'ok'
+      ? 'Na data da vistoria, o apartamento não apresentou vícios aparentes nos itens verificados e pode ser recebido, guardando-se este laudo e o manual do proprietário.'
+      : result === 'rs'
+        ? `Na data da vistoria, o apartamento apresentou ${items.length} ${items.length === 1 ? 'item' : 'itens'} para reparo, sem gravidade que impeça o uso. Recomenda-se receber com ressalvas, registrando este laudo junto à construtora e acompanhando os reparos.`
+        : `Na data da vistoria, o apartamento apresentou ${items.length} ${items.length === 1 ? 'item' : 'itens'} para reparo, ${grav.grave} ${grav.grave === 1 ? 'deles grave' : 'deles graves'}. Recomenda-se que os itens graves sejam reparados antes do recebimento, com nova vistoria para conferir.`
   pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Conclusão', 'shield')}
-<div class="box" style="margin-top:4mm"><h3><i></i>Próximos passos</h3><div class="next">${[
-    ['send', 'Enviar à construtora', 'Este relatório, as fotos e os vídeos, pelo atendimento da construtora. Guarde o protocolo.', 'Enviado em'],
+<div class="box" style="margin-top:4mm"><h3><i></i>Parecer técnico</h3>${concl ? `<p class="decl">${concl}</p>` : Array.from({ length: 3 }, () => '<div style="border-bottom:1px solid #D8DCE4;height:7mm"></div>').join('')}</div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Próximos passos</h3><div class="next">${[
+    ['send', 'Enviar à construtora', 'Este laudo, as fotos e os vídeos, pelo atendimento da construtora. Guarde o número do protocolo.', 'Enviado em'],
     ['tool', 'Reparos', 'A construtora corrige os vícios apontados, sem custo para o proprietário.', 'Prazo informado'],
     ['redo', 'Nova vistoria', 'Conferir se os itens corrigidos estão em ordem antes de receber as chaves (revistoria).', 'Marcada para'],
   ]
     .map(([ic, t, p, l]) => `<div class="box"><div class="qh"><span class="ib">${ico(ic)}</span>${t}</div><p>${p}</p><div style="margin-top:3mm">${f(l, l === 'Marcada para' ? dateBR(d.revisitDate) : '')}</div></div>`)
     .join('')}</div></div>
-<div class="box" style="margin-top:3mm"><h3><i></i>Vícios e garantias</h3><div class="warr"><div class="box soft"><b>Vícios aparentes</b><p>Defeitos fáceis de ver, como os desta vistoria. Devem ser comunicados à construtora em até 90 dias (Código de Defesa do Consumidor, art. 26).</p></div><div class="box soft"><b>Vícios ocultos</b><p>Defeitos que só aparecem com o uso. Seguem as garantias do manual do proprietário (NBR 17170) e do Código de Defesa do Consumidor, contadas a partir de quando o defeito aparece.</p></div></div>
-<p style="font-size:6.6pt;color:var(--txt);margin-top:3mm"><b>Manual do proprietário:</b> a construtora deve entregar o manual de uso, operação e manutenção (NBR 14037); o mau uso pode cancelar a garantia. <b>Vai reformar?</b> A garantia não vale para o que for reformado: antes da obra, veja se os itens desta lista já foram corrigidos.</p></div>
-<div class="box soft" style="margin-top:3mm;display:flex;gap:8px;align-items:center;font-size:6.8pt;color:var(--txt)">${ico('eye')}Vistoria visual e de funcionamento, feita na data indicada, sem quebrar ou abrir pisos, paredes e forros. Por isso, vícios ocultos podem não aparecer nela. Este laudo acompanha a ART da vistoria registrada no CREA.</div>
-<div class="box" style="margin-top:3mm;flex:1"><h3><i></i>Observações finais</h3>${d.notes ? `<p style="font-size:7.2pt;color:var(--txt)">${esc(d.notes)}</p>` : Array.from({ length: 4 }, () => '<div style="border-bottom:1px solid #D8DCE4;height:7mm"></div>').join('')}</div>
+<div class="box" style="margin-top:3mm"><h3><i></i>Vícios e garantias</h3><div class="warr"><div class="box soft"><b>Vícios aparentes</b><p>Defeitos fáceis de ver, como os desta vistoria. Devem ser comunicados à construtora em até 90 dias do recebimento (Código de Defesa do Consumidor, art. 26).</p></div><div class="box soft"><b>Vícios ocultos</b><p>Defeitos que só aparecem com o uso. Seguem os prazos do manual do proprietário (NBR 17170) e do Código de Defesa do Consumidor, contados de quando o defeito aparece.</p></div></div>
+<p style="font-size:6.6pt;color:var(--txt);margin-top:3mm"><b>Manual do proprietário:</b> a construtora deve entregar o manual de uso, operação e manutenção (NBR 14037); o mau uso ou a falta de manutenção podem cancelar a garantia. <b>Vai reformar?</b> A garantia não cobre o que for alterado: antes da obra, confira se os itens deste laudo já foram corrigidos e faça a ART da reforma.</p></div>
+<div class="box soft" style="margin-top:3mm"><p class="decl">Declaro que a vistoria foi feita por mim, na data e no horário indicados, e que este laudo retrata as condições aparentes do imóvel naquele momento. Este laudo acompanha a <b>ART${d.art ? ` nº ${esc(d.art)}` : ''}</b> registrada no CREA-SP.</p></div>
 <div class="grid2" style="margin-top:3mm">${f('Local', 'Santo André - SP')}${f('Data', dateBR(d.date))}</div>
-<div class="sigs" style="margin:4mm 0 3mm"><div class="box"><span>${esc(RDL.name)}</span><b>RESPONSÁVEL TÉCNICO · CREA ${esc(RDL.crea)}</b></div><div class="box"><span>${esc(d.owner)}</span><b>PROPRIETÁRIO(A)</b></div><div class="box"><span>${esc(d.builder)}</span><b>CONSTRUTORA · CIENTE EM ___/___/___</b></div></div>
+<div class="sigs" style="margin:auto 0 3mm"><div class="box"><span>${esc(RDL.name)}</span><b>RESPONSÁVEL TÉCNICO · CREA ${esc(RDL.crea)}</b></div><div class="box"><span>${esc(d.owner)}</span><b>PROPRIETÁRIO(A)</b></div><div class="box"><span>${esc(d.builder)}</span><b>CONSTRUTORA · CIENTE EM ___/___/___</b></div></div>
 ${foot('Laudo de vistoria · conclusão', ++n)}</div>`)
-  return shell(`Laudo de vistoria${d.unit ? ` · ${d.unit}` : ''}`, pages)
+  return shell(`Laudo de vistoria${d.unit ? ` · ${d.unit}` : ''}`, pages).replace('</style>', `${LAUDO_CSS}</style>`)
 }
 
 /* ================= ORÇAMENTO ================= */

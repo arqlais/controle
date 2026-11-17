@@ -135,6 +135,7 @@ export interface ReservaStatus {
   art?: string // link da ART da vistoria
   reforma?: ReformaPedido
   expirada?: string // cancelada sozinha por falta de sinal
+  laudoDados?: import('./rdlLaudo').LaudoRascunho // laudo montado no sistema (itens, fotos, testes)
 }
 export interface Reserva {
   id: string

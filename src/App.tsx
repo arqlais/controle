@@ -615,8 +615,9 @@ export default function App() {
       <aside className="sidebar">
         {/* a marca da plataforma fica sempre presente, discreta, acima do estúdio de quem usa */}
         {RDL ? (
-          <a className="platform-mark rdl-mark" href={href('inicio')} aria-label="RDL Engenharia">
-            <img src={RDL_LOGO} alt="RDL Engenharia e Representações" />
+          <a className="platform-mark rdl-plane" href={href('inicio')} aria-label={PLATFORM.name}>
+            <BrandMark place="menu" size={30} />
+            {PLATFORM.name}
           </a>
         ) : (
           <a className="platform-mark" href={href('inicio')} aria-label={PLATFORM.name}>
@@ -624,6 +625,11 @@ export default function App() {
             {PLATFORM.name}
           </a>
         )}
+        {RDL ? (
+          <a className="brand rdl-brand" href={href('inicio')} aria-label="RDL Engenharia e Representações">
+            <img src={RDL_LOGO} alt="RDL Engenharia e Representações" />
+          </a>
+        ) : (
         <a className={`brand ${(settings.brandName || '').replace(/\.$/, '').length > 9 ? 'is-long' : ''}`} href={href('perfil')} title={`Perfil do estúdio e conta${userEmail ? ` (${userEmail})` : ''}`}>
           <span className={`brand-photo ${settings.logo ? '' : 'is-empty'}`}>
             <AvatarGlyph s={settings} size={24} />
@@ -637,6 +643,7 @@ export default function App() {
             </span>
           </span>
         </a>
+        )}
         {asClient && (
           <button type="button" className="btn small primary view-as-back" onClick={backToOwner}>
             <Icon name="chevronL" size={14} /> voltar para a minha conta
