@@ -3450,3 +3450,30 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 @keyframes rv-pop { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
 .rv-float-bg { background: rgba(255, 255, 255, 0.35); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .rv-float-bg { background: rgba(15, 27, 45, 0.3); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+/* complexidade de cada serviço da ART (no lugar do valor de cada um) */
+.nivel { display: inline-flex; gap: 3px; align-items: flex-end; font-style: normal; flex: none; }
+.nivel i { width: 5px; border-radius: 2px; background: #d7dfea; }
+.nivel i:nth-child(1) { height: 7px; } .nivel i:nth-child(2) { height: 11px; } .nivel i:nth-child(3) { height: 15px; }
+.nivel.n1 i:nth-child(1), .nivel.n2 i:nth-child(-n + 2), .nivel.n3 i { background: #ff8216; }
+.rv-calc-item .nivel { margin-left: auto; align-self: center; }
+.rv-nivel-leg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted, #6b7a90); margin: 2px 0 0; }
+.rv-nivel-leg span { display: inline-flex; align-items: center; gap: 6px; }
+.rv-nivel-txt { margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--muted, #6b7a90); }
+/* descontos no resumo: preço cheio riscado + total economizado */
+.rv-total .row b s { font-weight: 500; opacity: 0.55; margin-right: 4px; font-size: 0.85em; }
+.rv-total .row.desc span, .rv-total .row.desc b { color: #ff8216; }
+.rv-desc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: -2px 0 4px; }
+.rv-desc-chips em { font-style: normal; font-size: 11.5px; font-weight: 600; background: rgba(255, 130, 22, 0.16); color: #ffb26b; border-radius: 99px; padding: 3px 9px; }
+.rv-loja-preco { margin: 4px 0 0; font-size: 13px; color: var(--txt); }
+.rv-loja-preco b { color: var(--navy); font-size: 15px; }
+.rv-mock-stage { min-height: 500px; }
+/* documentos do painel: uma linha por documento (menos rolagem no celular) */
+.rv .rv-docs { display: flex; flex-direction: column; gap: 8px; }
+.rv .rv-docs .rv-doc { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; grid-template-areas: 'ib t e' 'ib s e'; align-items: center; column-gap: 10px; row-gap: 0; padding: 10px 12px; text-align: left; min-height: 0; }
+.rv .rv-docs .rv-doc .ib { grid-area: ib; width: 34px; height: 34px; margin: 0; }
+.rv .rv-docs .rv-doc b { grid-area: t; font-size: 14px; }
+.rv .rv-docs .rv-doc small { grid-area: s; font-size: 12px; }
+.rv .rv-docs .rv-doc em { grid-area: e; margin: 0; white-space: nowrap; font-size: 12px; }
+/* chave Pix numa linha só */
+.rv-pix-conta dd.k { font-size: clamp(11px, 3.3vw, 15px); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.rv .rv-docs .rv-doc b, .rv .rv-docs .rv-doc small { margin: 0; padding: 0; text-align: left; justify-self: start; } .rv .rv-docs .rv-doc .ib { display: grid; place-items: center; border-radius: 10px; background: #eaf0f8; color: var(--navy); }

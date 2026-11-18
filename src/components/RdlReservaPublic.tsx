@@ -43,7 +43,6 @@ import {
   REFORMA_MIN,
   calcReforma,
   cupomRdl,
-  REFORMA_BASE,
   REFORMA_DESC_VISTORIA,
   reformaItensTexto,
   TERMO_REFORMA,
@@ -446,11 +445,22 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad, comVistoria = fa
       <p className="rv-label">
         O que você vai fazer? <small>Marque tudo o que pretende. O valor muda na hora.</small>
       </p>
+      <div className="rv-nivel-leg">
+        <span>
+          <em className="nivel n1"><i /><i /><i /></em> simples
+        </span>
+        <span>
+          <em className="nivel n2"><i /><i /><i /></em> média
+        </span>
+        <span>
+          <em className="nivel n3"><i /><i /><i /></em> complexa
+        </span>
+      </div>
+      <p className="rv-nivel-txt">A base cobre a taxa da ART no CREA e o plano de reforma. Quanto mais complexo o serviço, mais análise e responsabilidade técnica: por isso o valor varia.</p>
       <p className="rv-alert rv-honesto">
         <I n="shield" s={15} />
         <span>
-          <b>Seja transparente.</b> A ART fica no nome do engenheiro e cobre só o que você marcar aqui. Serviço que ficar de fora não tem responsável técnico: o condomínio pode multar ou embargar a obra.
-        </span>
+          <b>Marque tudo o que vai fazer.</b> A ART cobre só o que estiver marcado: o que ficar de fora não tem responsável técnico.</span>
       </p>
       <div className="rv-calc-list">
         {REFORMA_ITENS.map((i) => {
@@ -462,7 +472,11 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad, comVistoria = fa
                 <b>{i.nome}</b>
                 <small>{i.desc}</small>
               </span>
-              <em className="mais">+{brl(i.mais)}</em>
+              <em className={`nivel n${i.mais >= 40 ? 3 : i.mais >= 25 ? 2 : 1}`} title={i.mais >= 40 ? 'complexa' : i.mais >= 25 ? 'média' : 'simples'}>
+                <i />
+                <i />
+                <i />
+              </em>
             </button>
           )
         })}
@@ -476,21 +490,15 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad, comVistoria = fa
           <small>VALOR ESTIMADO</small>
           <b>{brl(total)}</b>
         </div>
-        <span>
-          ART + plano {brl(REFORMA_BASE)} + {itens.length === 1 ? '1 serviço' : `${itens.length || 'os'} serviços`}
-          {comVistoria ? ` − ${brl(REFORMA_DESC_VISTORIA)} da vistoria` : ''}. Taxa do CREA inclusa. Valor do San Levi: pode mudar com o tempo.
-        </span>
+        <span>{comVistoria ? `Já com ${brl(REFORMA_DESC_VISTORIA)} off por fechar com a vistoria.` : 'Taxa do CREA e plano de reforma inclusos.'}</span>
       </div>
-      <p className="rv-calc-nota">
-        <I n="shield" s={14} /> O Rogério confere o que você marcou. Se algum serviço não puder entrar na ART, ele avisa: a ART de reforma pode ser ajustada ou cancelada, e o valor sai do total.
-      </p>
       <details className="rv-what">
         <summary>
           <I n="info" s={14} /> O que é o plano de reforma?
         </summary>
         <p>É o documento que o condomínio pede antes de qualquer obra no apê (norma NBR 16280). Diz o que vai ser feito, quem faz, quanto tempo leva e confirma que nada mexe na estrutura. O síndico só libera a obra com ele e com a ART.</p>
       </details>
-      <p className="rv-fine">O Rogério confere o seu pedido e confirma o valor no seu painel. Você só paga se aprovar.</p>
+      <p className="rv-fine">O Rogério confere o que você marcou. Se algum serviço não couber na ART, ela pode ser ajustada ou cancelada, e o valor sai do total.</p>
     </div>
   )
 }
@@ -712,7 +720,7 @@ function CupomLoja({ id }: { id: string }) {
       <a className="rv-btn wide" href={`ape/?cupom=${codigo}`} target="_blank" rel="noreferrer">
         Usar na loja <I n="arrow" s={14} />
       </a>
-      <small>Só seu e já ativado: tocando em "Usar na loja", o desconto entra sozinho no pagamento. Vale uma compra, em todos os arquivos.</small>
+      <small>Já ativado neste celular. Vale uma compra, em todos os arquivos.</small>
     </section>
   )
 }
@@ -882,7 +890,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <div className="rv-importa">
             <I n="alert" s={16} />
             <span>
-              <b>Não é obrigatória, mas faz toda a diferença.</b> Depois que você assina o termo de recebimento da MRV, fica bem mais difícil provar que o defeito já estava lá. A vistoria é a sua chance de registrar tudo antes.
+              <b>Não é obrigatória, mas faz toda a diferença:</b> depois de assinar o recebimento da MRV, fica difícil provar que o defeito já estava lá.
             </span>
           </div>
           <div className="rv-row center-row">
@@ -921,7 +929,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <p className="rv-condicao">
             <I n="clock" s={15} />
             <span>
-              <b>Não precisa fechar agora.</b> Mas estes valores são uma condição do San Levi e podem mudar com o tempo. Quem contrata antes garante o valor de hoje e o horário na agenda.
+              <b>Não precisa fechar agora.</b> Mas são valores do San Levi e podem mudar com o tempo: quem fecha antes garante o preço e o horário.
             </span>
           </p>
           <div className="rv-offer hi">
@@ -1093,12 +1101,10 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           <div className="rv-faq-list">
           {[
             ['A vistoria é obrigatória?', 'Não é obrigatória. Mas é muito recomendada: depois que você assina o termo de recebimento da MRV, fica bem mais difícil provar que um defeito (piso oco, ralo sem caimento, tomada sem energia, infiltração) já estava lá. Com o laudo e a ART, fica tudo registrado para a MRV consertar na garantia.'],
-            ['Preciso fechar agora?', 'Não. Você pode contratar quando quiser. Só que estes valores são uma condição do San Levi e podem mudar com o tempo, e a agenda segue a ordem das reservas. Fechar antes garante o valor de hoje e o seu horário.'],
+            ['Preciso fechar agora?', 'Não tem data limite: dá para reservar enquanto houver horário. Mas estes valores são do San Levi e podem mudar com o tempo, e a agenda segue a ordem das reservas (a MRV deve liberar as chaves por andar). Fechar antes garante o valor de hoje e o seu horário.'],
             ['Preciso fechar a ART de reforma agora?', `Não. Pode contratar só quando for fazer a obra. Fechar agora garante o valor de hoje (e ${brl(REFORMA_DESC_VISTORIA)} de desconto com a vistoria). A ART mesmo só é gerada perto da reforma, com as datas e os serviços certos.`],
-            ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
             ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
             ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
-            ['Até quando posso reservar?', 'Não tem data limite: dá para reservar enquanto houver horário na agenda. Mas a agenda é por ordem de reserva, e a MRV deve liberar as chaves por andar. Quem reserva antes garante o horário primeiro.'],
             ['Quando eu pago?', `O sinal de ${brl(metade)} em até 7 dias depois de reservar, por Pix. O restante no dia da vistoria, por Pix.`],
             ['E se eu desistir?', 'Até 7 dias depois de assinar, o sinal volta inteiro. Depois disso, o sinal fica com a RDL, porque a vaga deixou de ser oferecida a outro morador.'],
             ['Preciso estar lá no dia?', 'Sim, você ou alguém de confiança. A MRV precisa deixar água e luz ligadas.'],
@@ -1133,12 +1139,9 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
                 <small>Da planê.apê: planilha de obra, medidas dos móveis, marcenaria, pisos e mais</small>
               </div>
             </div>
-            <div className="rv-offer-price">
-              <strong>
-                <em>a partir de</em> R$ 12,90
-              </strong>
-              <span>baixa na hora</span>
-            </div>
+            <p className="rv-loja-preco">
+              A partir de <b>R$ 12,90</b> · baixa na hora
+            </p>
             <em className="go">
               Conhecer a loja <I n="arrow" s={13} />
             </em>
@@ -1227,7 +1230,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
     setTimeout(() => document.getElementById('rv-numero')?.focus(), 50)
   }
   const faltaServico = !sv.vistoria && !sv.reforma
-  const faltaReforma = sv.reforma && !(d.reformaItens ?? []).length && (d.reforma ?? '').trim().length < 3
+  const faltaReforma = sv.reforma && !(d.reformaItens ?? []).length
   const faltando = {
     nome: d.nome.trim().split(/\s+/).length < 2,
     cpf: !validCpf(d.cpf),
@@ -1445,7 +1448,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                 </a>
                 <Total v={v} sv={sv} cfg={cfg} revistoria={d.revistoria} />
                 {tried && faltaServico && <p className="rv-warn">Escolha pelo menos um serviço.</p>}
-                {tried && faltaReforma && <p className="rv-warn">Marque o que você vai fazer na reforma.</p>}
+                {tried && faltaReforma && <p className="rv-warn">Marque pelo menos um serviço da reforma para continuar.</p>}
                 <button
                   className="rv-btn wide3"
                   onClick={() => {
@@ -1605,6 +1608,10 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
 /** Resumo dos valores: o que foi escolhido, o total e o que paga agora no Pix. */
 function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valores>; sv: { vistoria: boolean; reforma: boolean }; cfg: ReservaConfig; titulo?: boolean; revistoria?: boolean }) {
   if (!sv.vistoria && !sv.reforma) return null
+  // descontos que já estão no preço: valor de grupo na vistoria e combo na ART de reforma
+  const descGrupo = sv.vistoria ? Math.max(0, cfg.individual - v.vistoria) : 0
+  const descCombo = sv.vistoria && sv.reforma ? REFORMA_DESC_VISTORIA : 0
+  const economia = descGrupo + descCombo
   return (
     <div className="rv-total">
       {titulo && <small className="k">RESUMO</small>}
@@ -1613,7 +1620,9 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
           <span>
             <I n="key" s={14} /> Vistoria de entrega
           </span>
-          <b>{brl(v.vistoria)}</b>
+          <b>
+            {descGrupo > 0 && <s>{brl(cfg.individual)}</s>} {brl(v.vistoria)}
+          </b>
         </div>
       )}
       {sv.vistoria && revistoria && (
@@ -1629,7 +1638,23 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
           <span>
             <I n="hammer" s={14} /> ART de reforma
           </span>
-          <b>{brl(v.reforma)}</b>
+          <b>
+            {descCombo > 0 && <s>{brl(v.reforma + descCombo)}</s>} {brl(v.reforma)}
+          </b>
+        </div>
+      )}
+      {economia > 0 && (
+        <div className="row desc">
+          <span>
+            <I n="gift" s={14} /> Descontos aplicados
+          </span>
+          <b>−{brl(economia)}</b>
+        </div>
+      )}
+      {economia > 0 && (
+        <div className="rv-desc-chips">
+          {descGrupo > 0 && <em>grupo San Levi −{brl(descGrupo)}</em>}
+          {descCombo > 0 && <em>vistoria + ART −{brl(descCombo)}</em>}
         </div>
       )}
       <div className="row sum">
@@ -1638,13 +1663,13 @@ function Total({ v, sv, cfg, titulo, revistoria }: { v: ReturnType<typeof valore
       </div>
       <div className="row now">
         <span>
-          <I n="card" s={14} /> Agora, por Pix (em até 7 dias)
+          <I n="card" s={14} /> Agora, no Pix
         </span>
         <b>{brl(v.agora)}</b>
       </div>
       <p>
-        Restante: {[sv.vistoria ? `${brl(v.vistoria - v.sinalVistoria)} no dia da vistoria` : '', sv.reforma ? `${brl(v.reforma - v.sinalReforma)} na entrega da ART` : ''].filter(Boolean).join(' e ')}.
-        {sv.vistoria && ` Se o grupo de ${cfg.minimo} não fechar, + ${brl(cfg.individual - cfg.preco)}.`}
+        Restante: {[sv.vistoria ? `${brl(v.vistoria - v.sinalVistoria)} no dia da vistoria` : '', sv.reforma ? `${brl(v.reforma - v.sinalReforma)} na entrega da ART` : ''].filter(Boolean).join(' e ')}. Sinal em até 7 dias.
+        {descGrupo > 0 && ` O desconto de grupo vale com ${cfg.minimo} reservas; se não fechar, os ${brl(descGrupo)} entram no restante.`}
       </p>
     </div>
   )
@@ -1870,7 +1895,7 @@ function Reassinar({ r, cfg, id, token, onFeito }: { r: Reserva; cfg: ReservaCon
   const texto = useMemo(() => contratoTexto(d, cfg), [d, cfg])
   const v = valores(d, cfg)
   const assinar = async (a: Assinatura) => {
-    if (reforma && !itens.length && detalhe.trim().length < 3) return setErro('Marque o que você vai fazer na reforma.')
+    if (reforma && !itens.length) return setErro('Marque pelo menos um serviço da reforma.')
     setBusy(true)
     setErro('')
     const em = new Date().toISOString()
@@ -2061,7 +2086,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
   }
 
   const pedirReforma = async () => {
-    if ((!rfItens.length && pedido.trim().length < 3) || enviando) return
+    if (!rfItens.length || enviando) return
     setEnviando(true)
     if (teste) {
       setR({ ...r, status: { ...s, reforma: { pedido: [reformaItensTexto(rfItens).join(', '), pedido.trim()].filter(Boolean).join('. '), itens: rfItens, estimativa: calcReforma(rfItens, servicosDe(r.dados).vistoria), pedidoEm: new Date().toISOString() } } })
@@ -2481,7 +2506,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
               <>
                 {!abreRef ? (
                   <>
-                    <p className="rv-hint">Vai fazer obra? O condomínio exige ART e plano de reforma. A partir de {brl(REFORMA_MIN)}.</p>
+                    <p className="rv-hint">Vai fazer obra? O condomínio exige ART e plano de reforma. A partir de {brl(servicosDe(r.dados).vistoria ? REFORMA_MIN - REFORMA_DESC_VISTORIA : REFORMA_MIN)}{servicosDe(r.dados).vistoria ? ', já com o desconto de quem fechou a vistoria' : ''}.</p>
                     <button className="rv-btn ghost wide3" onClick={() => setAbreRef(true)}>
                       <I n="hammer" /> Quero a ART de reforma
                     </button>
@@ -2493,7 +2518,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                       <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio.</span>
                     </p>
                     <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} comVistoria={servicosDe(r.dados).vistoria} />
-                    <button className="rv-btn wide3" disabled={(!rfItens.length && pedido.trim().length < 3) || enviando} onClick={() => void pedirReforma()}>
+                    <button className="rv-btn wide3" disabled={!rfItens.length || enviando} onClick={() => void pedirReforma()}>
                       <I n="arrow" /> <span>Pedir por {brl(calcReforma(rfItens, servicosDe(r.dados).vistoria))}</span>
                     </button>
                   </>
