@@ -1,3 +1,4 @@
+// (republicado com a versão atual: cupom já ativado no link e ART base R$ 290)
 // publicado automaticamente pelo GitHub (workflow supabase.yml)
 // Avisos por e-mail da planê (roda no Supabase, nunca no site).
 // Cole este arquivo em: Supabase → Edge Functions → Deploy a new function → Via Editor → nome "avisos".
