@@ -1204,7 +1204,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
     const itens = s2.reforma ? d.reformaItens ?? [] : []
     const txt = s2.reforma ? [reformaItensTexto(itens).join(', '), (d.reforma ?? '').trim()].filter(Boolean).join('. ') : ''
     const dp = dadosPadrao(d)
-    return { ...dp, endereco: enderecoCompleto(dp), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens, s2.vistoria) : undefined }
+    return { ...dp, endereco: enderecoCompleto(dp), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens, s2.vistoria) : undefined, precoVistoria: s2.vistoria ? cfg.preco : undefined }
   }, [d])
   const texto = useMemo(() => contratoTexto(dc, cfg), [dc, cfg])
   const v = valores(dc, cfg)

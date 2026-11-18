@@ -499,8 +499,10 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const svc = (d.servicos as unknown as { vistoria?: boolean; reforma?: boolean } | undefined) ?? {}
   const temVist = svc.vistoria !== false
   const temRef = !!svc.reforma
-  const valRef = temRef ? Math.max(290, Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 290)) : 0
-  const metade = (temVist ? cfg.preco / 2 : 0) + valRef / 2
+  // valores de quando a pessoa fechou (guardados na reserva); a tabela nova vale só para quem fechar depois
+  const valRef = temRef ? Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 290) : 0
+  const precoV = Number(d.precoVistoria ?? cfg.preco)
+  const metade = (temVist ? precoV / 2 : 0) + valRef / 2
   const servTxt = [temVist ? 'vistoria de entrega' : '', temRef ? 'ART de reforma' : ''].filter(Boolean).join(' + ')
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
   const s = (r.status ?? {}) as Record<string, string> & { reforma?: Record<string, string | number> }
@@ -517,7 +519,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
         eyebrow: 'reserva da vistoria',
         title: `Recebemos a sua reserva, ${pn}!`,
         text: `<p style="margin:0 0 12px;">O seu contrato (${esc(servTxt)}) foi assinado e está guardado no seu painel.</p><p style="margin:0;"><b>Para garantir</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois de pagar, toque em <b>Já paguei</b> no seu painel: o Rogério confere e confirma.</p>${temVist ? `<p style="margin:12px 0 0;">${grupoTxt}</p>` : ''}`,
-        rows: [...base, ['serviços', servTxt], ['total', brl((temVist ? cfg.preco : 0) + valRef)], ['agora no Pix', brl(metade)], ...(temVist ? ([['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`]] as [string, string][]) : []), ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
+        rows: [...base, ['serviços', servTxt], ['total', brl((temVist ? precoV : 0) + valRef)], ['agora no Pix', brl(metade)], ...(temVist ? ([['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`]] as [string, string][]) : []), ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
         button: 'Abrir o meu painel',
         url: painel,
       }),
@@ -540,7 +542,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
 <p style="margin:10px 0 0;font-size:11.5px;color:#B9C7DA;">Só seu e já ativado: tocando em "Usar na loja", o desconto entra sozinho no pagamento. Vale uma compra, em todos os arquivos.</p>
 </td></tr></table>
 <p style="margin:12px 0 0;font-size:13px;color:#7A7F92;">Dica: salve este e-mail ou adicione o painel à tela inicial do celular para achar fácil depois.</p>`,
-        rows: [...base, ['pago', `${brl(metade)} em ${dBR(s.sinal)}`], ['restante', `${brl((temVist ? cfg.preco : 0) + valRef - metade)}${temVist ? ' no dia da vistoria' : ' na entrega da ART'}`]],
+        rows: [...base, ['pago', `${brl(metade)} em ${dBR(s.sinal)}`], ['restante', `${brl((temVist ? precoV : 0) + valRef - metade)}${temVist ? ' no dia da vistoria' : ' na entrega da ART'}`]],
         button: 'Abrir o meu painel',
         url: painel,
       }),
@@ -550,7 +552,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'vistoria marcada',
         title: `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`,
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(cfg.preco + valRef - metade)}</b> no dia, por Pix</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! A sua vistoria de entrega de chaves está marcada.</p><p style="margin:0;">• água e luz ligadas pela MRV<br>• você ou alguém de confiança acompanhando<br>• restante de <b>${brl(precoV + valRef - metade)}</b> no dia, por Pix</p>`,
         rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
         button: 'Abrir o meu painel',
         url: painel,
@@ -700,7 +702,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'lembrete da vistoria',
         title: `Amanhã${s.hora ? `, às ${s.hora}` : ''}`,
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Amanhã é a vistoria de entrega do seu apê. Para dar tudo certo:</p><p style="margin:0;">• confirme com a MRV que água e luz estarão ligadas<br>• você ou alguém de confiança acompanha a vistoria<br>• leve o restante de <b>${brl(cfg.preco / 2)}</b> (Pix)<br>• se tiver a planta e o manual do proprietário, leve também</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! Amanhã é a vistoria de entrega do seu apê. Para dar tudo certo:</p><p style="margin:0;">• confirme com a MRV que água e luz estarão ligadas<br>• você ou alguém de confiança acompanha a vistoria<br>• leve o restante de <b>${brl(precoV / 2)}</b> (Pix)<br>• se tiver a planta e o manual do proprietário, leve também</p>`,
         rows: [...base, ['data', `${dBR(s.data)}${s.hora ? ` às ${s.hora}` : ''}`]],
         button: 'Abrir o meu painel',
         url: painel,

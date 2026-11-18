@@ -99,6 +99,7 @@ export interface ReservaDados {
   servicos?: { vistoria: boolean; reforma: boolean } // o que foi contratado (versão 2 do contrato)
   prestador?: string
   obs?: string
+  precoVistoria?: number // valor da vistoria no dia em que fechou (não muda se a tabela mudar)
 }
 /** ART de reforma: o morador pede pelo painel, a RDL manda o valor e ele aprova ali mesmo. */
 export interface ReformaPedido {
@@ -212,8 +213,9 @@ export const servicosDe = (d: Partial<ReservaDados>) => ({ vistoria: d.servicos?
 /** Valores: total, o que paga agora (sinal da vistoria + metade da ART de reforma) e o que fica para depois. */
 export function valores(d: Partial<ReservaDados>, c: ReservaConfig) {
   const sv = servicosDe(d)
-  const vistoria = sv.vistoria ? c.preco : 0
-  const reforma = sv.reforma ? Math.max(REFORMA_MIN, d.reformaEstimativa ?? REFORMA_MIN) : 0
+  // quem já fechou fica com o valor da época (preço guardado na reserva); a tabela nova vale só para quem fechar agora
+  const vistoria = sv.vistoria ? Number(d.precoVistoria ?? c.preco) : 0
+  const reforma = sv.reforma ? Number(d.reformaEstimativa ?? REFORMA_MIN) : 0
   const meia = (n: number) => Math.round((n / 2) * 100) / 100
   const agora = meia(vistoria) + meia(reforma)
   return { vistoria, reforma, total: vistoria + reforma, agora, depois: vistoria + reforma - agora, sinalVistoria: meia(vistoria), sinalReforma: meia(reforma) }
