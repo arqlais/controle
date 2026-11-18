@@ -731,6 +731,19 @@ export default function App() {
               </span>
             </a>
           )}
+          {RDL && (
+            <div className="nav-group is-rdl-site">
+              <span className="nav-group-label">site dos moradores</span>
+              <a className="is-tool" href={`${import.meta.env.BASE_URL}#/vistoria`} target="_blank" rel="noreferrer" title="Abrir a página de reserva, como o morador vê">
+                <Icon name="eye" />
+                <span>página de vendas</span>
+              </a>
+              <a className="is-tool" href={`${import.meta.env.BASE_URL}#/vistoria/teste`} target="_blank" rel="noreferrer" title="Testar a reserva e o painel como um morador (nada é salvo nem enviado)">
+                <Icon name="user" />
+                <span>testar como morador</span>
+              </a>
+            </div>
+          )}
           {groups.map((g) => (
             <div key={g.key} className={`nav-group is-${g.key}`}>
               <span className="nav-group-label">{g.label}</span>
