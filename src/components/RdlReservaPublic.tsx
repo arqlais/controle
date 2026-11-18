@@ -657,7 +657,8 @@ function CupomFlutuante({ id }: { id: string }) {
   }
   if (!ver) return null
   return (
-    <div className="rv-combo-float rv-cupom-float" role="dialog" aria-label="Presente: cupom de desconto">
+    <div className="rv-float-bg" onClick={(e) => e.target === e.currentTarget && fechar()}>
+    <div className="rv-combo-float rv-cupom-float" role="dialog" aria-modal="true" aria-label="Presente: cupom de desconto">
       <button className="rv-combo-x" onClick={fechar} aria-label="Fechar">
         <I n="x" s={16} />
       </button>
@@ -674,6 +675,7 @@ function CupomFlutuante({ id }: { id: string }) {
       <a className="rv-btn wide" href={`ape/?cupom=${codigo}`} target="_blank" rel="noreferrer" onClick={fechar}>
         Usar agora <I n="arrow" />
       </a>
+    </div>
     </div>
   )
 }
@@ -1310,7 +1312,8 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       {teste && <Teste />}
       <main className="rv-main rv-wide">
         {combo === 'aberto' && (
-          <div className="rv-combo-float" role="dialog" aria-label="Desconto fechando os dois">
+          <div className="rv-float-bg" onClick={(e) => e.target === e.currentTarget && setCombo('visto')}>
+          <div className="rv-combo-float" role="dialog" aria-modal="true" aria-label="Desconto fechando os dois">
             <button className="rv-combo-x" onClick={() => setCombo('visto')} aria-label="Fechar">
               <I n="x" s={16} />
             </button>
@@ -1337,6 +1340,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
             >
               Quero os dois <I n="arrow" />
             </button>
+          </div>
           </div>
         )}
         {step === 1 && (
