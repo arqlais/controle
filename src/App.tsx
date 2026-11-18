@@ -87,14 +87,15 @@ const NAV_GROUPS = [
 ] as const
 const NAV: { page: string; label: string; icon: string; group: (typeof NAV_GROUPS)[number]['key'] }[] = [
   { page: 'inicio', label: 'início', icon: 'home', group: 'dia' },
-  { page: 'projetos', label: rdlMode() ? 'serviços' : 'demandas', icon: 'folder', group: 'dia' },
+  // RDL: as etapas de cada serviço ficam em vistorias (o quadro de demandas continua por trás, para o financeiro)
+  ...(rdlMode() ? [] : [{ page: 'projetos', label: 'demandas', icon: 'folder', group: 'dia' as const }]),
   { page: 'agenda', label: 'agenda', icon: 'calendar', group: 'dia' },
   { page: 'financeiro', label: 'financeiro', icon: 'wallet', group: 'dia' },
   // RDL: reservas da vistoria que chegam pelo link (campanha San Levi)
-  ...(rdlMode() ? [{ page: 'reservas', label: 'vistorias', icon: 'hardhat', group: 'vendas' as const }] : []),
+  ...(rdlMode() ? [{ page: 'reservas', label: 'vistorias', icon: 'hardhat', group: 'vendas' as const }, { page: 'arts', label: 'ARTs', icon: 'pen', group: 'vendas' as const }] : []),
   { page: 'orcamentos', label: 'orçamentos', icon: 'file', group: 'vendas' },
   { page: 'clientes', label: 'clientes', icon: 'users', group: 'vendas' },
-  { page: 'paineis', label: rdlMode() ? 'painel do cliente' : 'cliente final', icon: 'link', group: 'vendas' },
+  ...(rdlMode() ? [] : [{ page: 'paineis', label: 'cliente final', icon: 'link', group: 'vendas' as const }]),
   { page: 'documentos', label: 'documentos', icon: 'briefcase', group: 'vendas' },
   // RDL: empresa de engenharia, sem as ferramentas de estúdio de design
   ...(rdlMode() ? [] : [
@@ -107,13 +108,15 @@ const SUBPAGES: Record<string, { page: string; label: string }[]> = {
   documentos: [
     { page: 'documentos', label: 'documentos' },
     { page: 'contratos', label: 'contratos' },
-    // controle de ARTs: só no sistema da RDL
-    ...(rdlMode() ? [{ page: 'arts', label: 'ARTs' }] : []),
   ],
-  clientes: [
-    { page: 'clientes', label: 'clientes' },
-    { page: 'dados-contrato', label: 'dados para contrato' },
-  ],
+  ...(rdlMode()
+    ? {}
+    : {
+        clientes: [
+          { page: 'clientes', label: 'clientes' },
+          { page: 'dados-contrato', label: 'dados para contrato' },
+        ],
+      }),
   paineis: [
     { page: 'paineis', label: 'painel do cliente' },
     ...(rdlMode() ? [] : [{ page: 'briefings', label: 'briefings' }]),
@@ -130,7 +133,7 @@ const SITE_EDITOR = 'https://lais3d.com.br/admin'
 const NEEDS: Record<string, Feature> = { 'dados-contrato': 'dadosContrato', contratos: 'contratos', instagram: 'instagram', plataforma: 'painelDona', afiliados: 'painelDona', 'ape-admin': 'painelDona', briefings: 'briefing', documentos: 'propostaPdf', paineis: 'portal' }
 // ajustes e dicas: grupo à parte, sempre no fim do menu e em outro tom
 const TOOLS = [
-  { page: 'manual', label: 'manual', icon: 'book' },
+  ...(rdlMode() ? [] : [{ page: 'manual', label: 'manual', icon: 'book' }]),
   { page: 'config', label: 'configurações', icon: 'settings' },
 ]
 
