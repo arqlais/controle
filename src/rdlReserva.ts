@@ -345,8 +345,28 @@ export async function contagem(): Promise<number> {
   const { data } = await supabase.rpc('rdl_contagem')
   return Number(data) || 0
 }
+/** Prévia sem nuvem (só no computador de quem desenvolve): reservas fictícias para ver e testar o painel da RDL. */
+function reservasDemo(): Reserva[] {
+  const d = (n: number) => new Date(Date.now() - n * 864e5).toISOString()
+  const dia = (n: number) => d(-n).slice(0, 10)
+  const mk = (i: number, nome: string, torre: string, apto: string, status: ReservaStatus, extra: Partial<ReservaDados> = {}, criado = 2): Reserva => {
+    const dados = { nome, cpf: `000.000.000-0${i}`, email: `morador${i}@exemplo.com`, tel: `(11) 9 0000-00${String(i).padStart(2, '0')}`, endereco: 'Rua Exemplo, 100 - Centro, Santo André - SP', torre, apto, planta: PLANTA_CORREDOR, revistoria: false, servicos: { vistoria: true, reforma: false }, precoVistoria: 280, ...extra } as ReservaDados
+    return { id: `demo000${i}-0000-4000-8000-00000000000${i}`, token: 'demo', criado: d(criado), dados, contrato: { texto: '', assinatura: nome, cpf: dados.cpf, em: d(criado), codigo: 'demo', aparelho: 'demo', fuso: 'America/Sao_Paulo' }, status, cancelada: false }
+  }
+  return [
+    mk(1, 'Ana Exemplo Souza', '1', '302', {}, {}, 1),
+    mk(2, 'Bruno Exemplo Lima', '3', '201', { pagoInformado: d(0) }, {}, 3),
+    mk(3, 'Carla Exemplo Dias', '2', '1505', { sinal: dia(-1), contratada: d(1) }, { revistoria: true }),
+    mk(4, 'Diego Exemplo Rocha', '2', '408', { sinal: dia(-1), contratada: d(1), reforma: { itens: ['piso', 'armarios'], pedidoEm: d(2), aprovadoEm: d(2), valor: 310, termoAceito: d(2) } }, { servicos: { vistoria: true, reforma: true }, reformaItens: ['piso', 'armarios'], reformaEstimativa: 310 }),
+    mk(5, 'Elisa Exemplo Prado', '1', '1407', { sinal: dia(-3), contratada: d(3), data: dia(12), hora: '09:00' }),
+    mk(6, 'Fábio Exemplo Nunes', '4', '108', { sinal: dia(-9), contratada: d(9), data: dia(-1), hora: '14:00', quitado: dia(-1) }),
+    mk(7, 'Gabi Exemplo Costa', '3', '110', { sinal: dia(-20), contratada: d(20), data: dia(-6), hora: '10:30', quitado: dia(-6), laudo: 'https://useplane.com.br/', laudoEm: dia(-3) }),
+    mk(8, 'Laís Exemplo (cortesia)', '2', '1204', { cortesia: 'sim', data: dia(12), hora: '11:30' }, { revistoria: true }),
+  ]
+}
+
 export async function listarReservas(): Promise<Reserva[]> {
-  if (!supabase) return []
+  if (!supabase) return import.meta.env.DEV || location.hostname === 'localhost' ? reservasDemo() : []
   const { data, error } = await supabase.from('rdl_reservas').select('*').order('criado', { ascending: true })
   if (error) throw error
   return ((data ?? []) as Reserva[]).map((r) => ({ ...r, dados: dadosPadrao(r.dados) }))

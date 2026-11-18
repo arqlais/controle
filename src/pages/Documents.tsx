@@ -32,6 +32,7 @@ import { ContractDoc } from '../components/ContractDoc'
 import { contractSettings } from '../contracts'
 import type { Quote } from '../types'
 import { WorkDocEditor } from './WorkDocEditor'
+import { rdlMode } from '../rdl'
 import { WORK_KINDS, WORK_ORDER, type WorkKind } from '../workDocs'
 
 /* Documentos do estúdio (plano Estúdio): peças prontas com a sua marca, no design escolhido
@@ -281,7 +282,7 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
         <div>
           <p className="eyebrow">proposta, recibo, contrato e mais</p>
           <h1>
-            documentos <em>com a sua marca</em>
+            documentos <em>{rdlMode() ? 'da RDL' : 'com a sua marca'}</em>
           </h1>
         </div>
       </div>
@@ -341,7 +342,7 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
           </h2>
           <p className="muted small docs-group-hint">Abra, escolha um dos modelos (coluna, faixa, planilha ou editorial), as cores e as fotos, e salve: fica como o seu padrão. Para um cliente, use “usar para um cliente” dentro do documento.</p>
           <div className="docs-home">
-            {LIST.map((d) => (
+            {LIST.filter((d) => !rdlMode() || d.id === 'placa').map((d) => (
               <button key={d.id} type="button" className="docs-card" onClick={() => onOpen(d.id)}>
                 <span className="docs-thumb" aria-hidden>
                   <DocScale width={thumbs[d.id].w}>{thumbs[d.id].node}</DocScale>

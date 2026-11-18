@@ -220,7 +220,7 @@ export const WORK_KINDS: Record<WorkKind, WorkKindInfo> = {
 }
 
 // checklist e laudo de vistoria: só no sistema da RDL
-export const WORK_ORDER: WorkKind[] = rdlMode() ? ['vistoria', 'laudo', 'memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os'] : ['memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os']
+export const WORK_ORDER: WorkKind[] = rdlMode() ? ['vistoria', 'laudo', 'visita', 'diario', 'ata', 'os', 'custos'] : ['memorial', 'compras', 'custos', 'diario', 'visita', 'ata', 'os']
 
 
 export const has = (k: WorkKind, f: WorkField) => WORK_KINDS[k].fields.includes(f)

@@ -55,6 +55,8 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
   const upcoming = useMemo(() => {
     const items: { date: string; label: string; sub: string; color: string; link: string; kind: string }[] = []
     data.projects.filter(isOpen).forEach((p) => {
+      // RDL: a vistoria já aparece pelo compromisso da agenda (não repete o serviço)
+      if (rdlMode() && p.id.startsWith('rdl-')) return
       if (p.dueDate && daysUntil(p.dueDate) >= 0 && daysUntil(p.dueDate) <= 7)
         items.push({ date: p.dueDate, label: p.title, sub: 'Entrega', color: PRIORITY[urgency(p).level].color, link: href('projetos', p.id), kind: 'entrega' })
     })
@@ -64,7 +66,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
     })
     data.events.forEach((e) => {
       if (!e.done && daysUntil(e.date) >= 0 && daysUntil(e.date) <= 7)
-        items.push({ date: e.date, label: e.title, sub: `${eventLabel(e)}${e.time ? ` · ${e.time}` : ''}`, color: EVENT_TYPES[e.type].color, link: href('agenda'), kind: 'evento' })
+        items.push({ date: e.date, label: e.title, sub: `${eventLabel(e)}${e.time ? ` · ${e.time}` : ''}`, color: EVENT_TYPES[e.type].color, link: href(rdlMode() && e.id.startsWith('vistoria-') ? 'reservas' : 'agenda'), kind: rdlMode() && e.id.startsWith('vistoria-') ? 'entrega' : 'evento' })
     })
     return items.sort((a, b) => a.date.localeCompare(b.date))
   }, [data, pays])
@@ -138,7 +140,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
 
   return (
     <div className="page">
-      <FirstSteps />
+      {!rdlMode() && <FirstSteps />}
       <InstallHint />
       <section className="welcome">
         <div className="welcome-text">
@@ -149,16 +151,22 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
           <p className="welcome-sub">
             {/* uma frase só: o mais importante da semana (os valores ficam nos cards logo abaixo) */}
             {weekDeliveries > 0
-              ? `${weekDeliveries} ${weekDeliveries === 1 ? 'entrega' : 'entregas'} nesta semana`
+              ? `${weekDeliveries} ${rdlMode() ? (weekDeliveries === 1 ? 'vistoria' : 'vistorias') : weekDeliveries === 1 ? 'entrega' : 'entregas'} nesta semana`
               : waiting.length
                 ? `${waiting.length === 1 ? '1 demanda esperando' : `${waiting.length} demandas esperando`} retorno do cliente`
                 : 'semana tranquila, sem entregas'}
           </p>
         </div>
         <div className="welcome-actions">
-          <button className="btn light" onClick={() => onQuick('projeto')}>
-            <Icon name="plus" size={16} /> nova demanda
-          </button>
+          {rdlMode() ? (
+            <a className="btn light" href={href('reservas')}>
+              <Icon name="hardhat" size={16} /> vistorias
+            </a>
+          ) : (
+            <button className="btn light" onClick={() => onQuick('projeto')}>
+              <Icon name="plus" size={16} /> nova demanda
+            </button>
+          )}
           <a className="btn outline-light" href={href('orcamentos', 'novo')}>
             novo orçamento
           </a>
@@ -197,12 +205,12 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
         />
         <Stat label="A receber (total)" value={money(receivable)} icon="wallet" sub={`${money(m.toReceive)} previstos este mês`} onClick={() => go('financeiro')} />
         <Stat
-          label="Demandas ativas"
+          label={rdlMode() ? 'Serviços ativos' : 'Demandas ativas'}
           value={open.length}
           icon="folder"
           tone={late.length ? 'bad' : undefined}
           sub={late.length ? `${late.length} atrasada(s)` : 'nenhuma atrasada'}
-          onClick={() => go('projetos')}
+          onClick={() => go(rdlMode() ? 'reservas' : 'projetos')}
         />
         <Stat
           label="Lucro do mês"
@@ -214,6 +222,9 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
       </div>
 
       <div className="grid-2 is-even">
+        {rdlMode() ? (
+          <RdlResumo />
+        ) : (
         <Section title="Prioridades agora" action={<a href={href('projetos')} className="link">Ver quadro →</a>}>
           {priorities.length === 0 ? (
             <Empty title="Nada em aberto" text="Sem demandas ativas no momento." />
@@ -245,9 +256,10 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
             </ul>
           )}
         </Section>
+        )}
 
         <Section title="Próximos 7 dias" action={<a href={href('agenda')} className="link">Agenda →</a>}>
-          {waiting.length > 0 && (
+          {waiting.length > 0 && !rdlMode() && (
             <div className="waiting-list">
               <span className="field-label">esperando a cliente · cobrar retorno</span>
               <ul className="timeline">
@@ -300,7 +312,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
       </div>
 
       <DesktopNote>Os gráficos de receitas e despesas aparecem no computador.</DesktopNote>
-      <div className="grid-2 is-even hide-mobile">
+      <div className={rdlMode() ? 'hide-mobile' : 'grid-2 is-even hide-mobile'}>
         <Section title="Receitas × despesas · 6 meses" action={<a href={href('financeiro')} className="link">Financeiro →</a>}>
           <BarChart
             labels={months.map((k) => MONTHS[Number(k.slice(5)) - 1].slice(0, 3))}
@@ -311,9 +323,7 @@ export default function Dashboard({ onQuick }: { onQuick: (k: 'projeto' | 'clien
             ]}
           />
         </Section>
-        {rdlMode() ? (
-          <RdlResumo />
-        ) : (
+        {rdlMode() ? null : (
         <Section title="Receita por perfil · 12 meses">
           <Donut
             center={money(byProfile.prof + byProfile.stud).replace(',00', '')}

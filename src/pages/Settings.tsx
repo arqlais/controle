@@ -99,7 +99,7 @@ export default function SettingsPage() {
         <div>
           <p className="eyebrow">Sistema</p>
           <h1>
-            configurações <em>do estúdio</em>
+            configurações <em>{rdlMode() ? 'da RDL' : 'do estúdio'}</em>
           </h1>
         </div>
       </div>

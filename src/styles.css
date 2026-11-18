@@ -2751,3 +2751,9 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rdp-resumo b { color: #012c60; }
 @media (max-width: 560px) { .rsv-custo-add { grid-template-columns: 1fr 90px; } .rsv-custo-add button { grid-column: 1 / -1; } }
 .rsv-valor > span.muted { font-weight: 400; color: var(--muted); }
+.acs-mais > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: #012c60; padding: 10px 0 4px; }
+.acs-mais[open] > summary { margin-bottom: 10px; }
+.acs-bar { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 32px; align-items: center; gap: 8px; }
+.acs-bar i { display: block; height: 8px; border-radius: 4px; background: #012c60; }
+.acs-bar em { font-style: normal; text-align: right; font-weight: 600; }
+@container (min-width: 640px) and (max-width: 999px) { .rdp .rdp-tel { display: none; } }

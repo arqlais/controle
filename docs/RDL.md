@@ -54,3 +54,6 @@ O sistema da RDL é uma gestão própria de engenharia (foco: vistoria de entreg
 - **ART a emitir** (`art-<reserva>-vistoria` quando o sinal entra; `art-<reserva>-reforma` quando o morador aprova a ART de reforma);
 - **agenda**: compromisso `vistoria-<reserva>` com data, horário e duração.
 Menu da RDL: "serviços" no lugar de "demandas", sem etapas de trabalho, instagram e briefings. Tabela de preços só com engenharia (vistoria, revistoria, ART de reforma + plano), migrada uma vez (`rdlServicosV2`).
+
+## Ver todas as telas da gestão sem login
+`VITE_ARTIFACT=1 npx vite build --outDir /tmp/rdl-dist`, servir a pasta na porta 8799 e rodar `node scripts/rdl-telas.cjs /tmp/rdl-telas`: tira fotos de todas as telas da RDL (celular, iPad deitado e computador), com reservas fictícias (`reservasDemo` em `src/rdlReserva.ts`, só aparece na prévia local, nunca no site).

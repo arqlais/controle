@@ -993,6 +993,8 @@ function Acessos({ reservas }: { reservas: Reserva[] }) {
           <span>no total</span>
         </div>
       </div>
+      <details className="acs-mais">
+        <summary>ver o caminho até assinar, de onde vêm e aparelhos</summary>
       <div className="acs-grid">
         <div className="card acs-box">
           <b>Caminho até assinar</b>
@@ -1044,6 +1046,7 @@ function Acessos({ reservas }: { reservas: Reserva[] }) {
           </div>
         </div>
       </div>
+      </details>
     </Section>
   )
 }
@@ -1176,7 +1179,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
           {(sv.reforma || r.status.reforma?.pedido) && <em className="o">ART reforma</em>}
           {r.status.cortesia && <em>cortesia</em>}
           {f === 'sinal' && <em className={diasSinal(r) <= 2 ? 'o' : ''}>sinal em {diasSinal(r)}d</em>}
-          {f === 'agendada' && <em className="n">{dataCurta(r.status.data!)} {r.status.hora}</em>}
+          {f === 'agendada' && <em className="n">{r.status.data!.slice(8, 10)}/{r.status.data!.slice(5, 7)} {r.status.hora}</em>}
         </span>
       </button>
     )
