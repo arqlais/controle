@@ -3449,3 +3449,4 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 .rv-float-bg .rv-combo-float { position: relative; left: auto; right: auto; bottom: auto; width: 100%; max-width: 380px; margin: 0; animation: rv-pop 0.3s ease-out; }
 @keyframes rv-pop { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
 .rv-float-bg { background: rgba(255, 255, 255, 0.35); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.rv-float-bg { background: rgba(15, 27, 45, 0.3); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
