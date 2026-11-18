@@ -402,19 +402,19 @@ export async function avisarEmail(evento: 'pago' | 'reserva' | 'sinal' | 'data' 
 }
 
 /* ---------- ART de reforma: o morador marca o que vai fazer e vê o valor na hora ---------- */
-/** ART de reforma: base de R$ 300 (ART como responsável técnico + plano de reforma para o condomínio)
+/** ART de reforma: base de R$ 290 (ART como responsável técnico + plano de reforma para o condomínio)
  *  mais o valor de cada serviço, conforme a complexidade. Quem contrata a vistoria junto ganha desconto.
  *  Condição San Levi: os valores podem mudar com o tempo. Nada que mexa nas paredes (concreto estrutural). */
-export const REFORMA_BASE = 300
-export const REFORMA_DESC_VISTORIA = 50
+export const REFORMA_BASE = 290
+export const REFORMA_DESC_VISTORIA = 30
 export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: number }[] = [
-  { id: 'piso', nome: 'Piso na sala e nos quartos', desc: 'Vêm no contrapiso: vinílico, laminado ou porcelanato', mais: 40 },
-  { id: 'armarios', nome: 'Armários e marcenaria', desc: 'Cozinha, quartos e banheiro, com fixação segura', mais: 40 },
-  { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 50 },
-  { id: 'bancada', nome: 'Bancada de pedra', desc: 'Cozinha, banheiro ou área de serviço (peso e fixação)', mais: 50 },
-  { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 60 },
-  { id: 'revest', nome: 'Trocar piso ou azulejo da cozinha ou banheiro', desc: 'Retirar a cerâmica da MRV (mexe na impermeabilização)', mais: 80 },
-  { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Elétrica pelo forro ou por canaleta, sem rasgar parede', mais: 80 },
+  { id: 'piso', nome: 'Piso na sala e nos quartos', desc: 'Vêm no contrapiso: vinílico, laminado ou porcelanato', mais: 20 },
+  { id: 'armarios', nome: 'Armários e marcenaria', desc: 'Cozinha, quartos e banheiro, com fixação segura', mais: 20 },
+  { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 25 },
+  { id: 'bancada', nome: 'Bancada de pedra', desc: 'Cozinha, banheiro ou área de serviço (peso e fixação)', mais: 25 },
+  { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 30 },
+  { id: 'revest', nome: 'Trocar piso ou azulejo da cozinha ou banheiro', desc: 'Retirar a cerâmica da MRV (mexe na impermeabilização)', mais: 40 },
+  { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Elétrica pelo forro ou por canaleta, sem rasgar parede', mais: 40 },
 ]
 /** Menor valor possível (base + o serviço mais simples), sem o desconto da vistoria. */
 export const REFORMA_MIN = REFORMA_BASE + Math.min(...REFORMA_ITENS.map((i) => i.mais))

@@ -114,7 +114,7 @@ export const isRdlBrand = (studio?: string, owner?: string) => owner === RDL_ID 
 export const RDL_SERVICES: ServiceDef[] = [
   { id: 'eng-vistoria', group: 'vistoria e laudos', name: 'vistoria de entrega de chaves (laudo + ART)', unit: 'apartamento', pricing: 'unidade', price: 297, min: 0, hours: 3, tiers: [], askText: 'O que entra na vistoria?', checklistTitle: 'o que inclui', checklist: ['análise da planta e do memorial', 'vistoria presencial de até 2 horas', 'laudo técnico com fotos', 'ART da vistoria'] },
   { id: 'eng-revistoria', group: 'vistoria e laudos', name: 'revistoria (conferir os reparos)', unit: 'visita', pricing: 'unidade', price: 150, min: 0, hours: 1.5, tiers: [] },
-  { id: 'eng-art-reforma', group: 'ART e reforma', name: 'ART de reforma + plano de reforma (NBR 16280)', unit: 'reforma', pricing: 'unidade', price: 300, min: 300, hours: 2, tiers: [], askText: 'O que entra na ART de reforma?', checklistTitle: 'o que inclui', checklist: ['análise dos serviços informados pelo morador', 'plano de reforma para o condomínio', 'ART assinada pelo engenheiro', 'cobre só os serviços informados (sem execução nem visitas)'] },
+  { id: 'eng-art-reforma', group: 'ART e reforma', name: 'ART de reforma + plano de reforma (NBR 16280)', unit: 'reforma', pricing: 'unidade', price: 290, min: 290, hours: 2, tiers: [], askText: 'O que entra na ART de reforma?', checklistTitle: 'o que inclui', checklist: ['análise dos serviços informados pelo morador', 'plano de reforma para o condomínio', 'ART assinada pelo engenheiro', 'cobre só os serviços informados (sem execução nem visitas)'] },
 ]
 
 /** Páginas da RDL (sistema e reserva da vistoria): ícone e nome da aba da RDL, não os da planê. */

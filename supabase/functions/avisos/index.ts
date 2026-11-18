@@ -498,7 +498,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const svc = (d.servicos as unknown as { vistoria?: boolean; reforma?: boolean } | undefined) ?? {}
   const temVist = svc.vistoria !== false
   const temRef = !!svc.reforma
-  const valRef = temRef ? Math.max(300, Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 300)) : 0
+  const valRef = temRef ? Math.max(290, Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 290)) : 0
   const metade = (temVist ? cfg.preco / 2 : 0) + valRef / 2
   const servTxt = [temVist ? 'vistoria de entrega' : '', temRef ? 'ART de reforma' : ''].filter(Boolean).join(' + ')
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
@@ -535,8 +535,8 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
 <p style="margin:10px 0 4px;font-size:21px;font-weight:700;line-height:1.2;color:#ffffff;">10% OFF na loja planê.apê</p>
 <p style="margin:0 0 12px;font-size:13px;color:#D6E0EE;">Para quem garantiu a vistoria: planilha de obra, guia de medidas, marcenaria, pisos e mais.</p>
 <p style="margin:0 0 12px;border:2px dashed #FF8216;border-radius:12px;padding:12px;text-align:center;font-size:24px;font-weight:700;letter-spacing:3px;color:#ffffff;">${cupomRdl(r.id)}</p>
-<a href="${SITE}ape/" style="display:block;background:#FF8216;color:#ffffff;text-decoration:none;text-align:center;font-weight:700;font-size:14px;padding:12px;border-radius:10px;">Usar na loja</a>
-<p style="margin:10px 0 0;font-size:11.5px;color:#B9C7DA;">Só seu: vale uma compra, em todos os arquivos. Cole no campo "cupom" ao pagar.</p>
+<a href="${SITE}ape/?cupom=${cupomRdl(r.id)}" style="display:block;background:#FF8216;color:#ffffff;text-decoration:none;text-align:center;font-weight:700;font-size:14px;padding:12px;border-radius:10px;">Usar na loja</a>
+<p style="margin:10px 0 0;font-size:11.5px;color:#B9C7DA;">Só seu e já ativado: tocando em "Usar na loja", o desconto entra sozinho no pagamento. Vale uma compra, em todos os arquivos.</p>
 </td></tr></table>
 <p style="margin:12px 0 0;font-size:13px;color:#7A7F92;">Dica: salve este e-mail ou adicione o painel à tela inicial do celular para achar fácil depois.</p>`,
         rows: [...base, ['pago', `${brl(metade)} em ${dBR(s.sinal)}`], ['restante', `${brl((temVist ? cfg.preco : 0) + valRef - metade)}${temVist ? ' no dia da vistoria' : ' na entrega da ART'}`]],

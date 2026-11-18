@@ -3085,3 +3085,4 @@ body:has(.ape-sheet) .ape-toast { top: calc(16px + env(safe-area-inset-top, 0px)
 .ape-adm-vend-h .ape-eyebrow { white-space: nowrap; }
 @media (max-width: 760px) { .ape-adm-lojas .nm-l { display: none; } .ape-adm-lojas .ape-adm-cards span { white-space: nowrap; } }
 .ape-precos-de { color: var(--a-muted); font-size: .62em; font-weight: 500; margin-right: 6px; }
+.ape-cupom-ativo { margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: var(--a-ink, #4e6472); color: #fff; font-size: 13.5px; line-height: 1.4; text-align: center; } .ape-cupom-ativo b { font-weight: 700; }

@@ -639,8 +639,17 @@ export function acharCupom(cupons: Cupom[] | undefined, codigo: string, hoje = h
   if (!c || !(c.pct > 0) || c.pct > 50) return null
   return c.ate && hoje > c.ate ? null : c
 }
+/** Cupom da RDL guardado neste aparelho (veio do link do painel ou do e-mail): já vale no checkout, sem digitar. */
+export function cupomRdlGuardado(): Cupom | null {
+  try {
+    const c = (localStorage.getItem('plane-cupom') || '').trim().toUpperCase()
+    return CUPOM_RDL.test(c) ? { codigo: c, pct: CUPOM_RDL_PCT, ativo: true } : null
+  } catch {
+    return null
+  }
+}
 /** Cupom válido hoje para uma frente (para mostrar o aviso na vitrine). */
-export const cupomDaFrente = (cupons: Cupom[] | undefined, f: Frente) => (cupons || []).find((c) => acharCupom(cupons, c.codigo) && (!c.frentes?.length || c.frentes.includes(f))) || null
+export const cupomDaFrente = (cupons: Cupom[] | undefined, f: Frente) => cupomRdlGuardado() || (cupons || []).find((c) => acharCupom(cupons, c.codigo) && (!c.frentes?.length || c.frentes.includes(f))) || null
 
 export function conta(ids: string[], produtos: Produto[], forma: 'pix' | 'cartao' = 'pix', pixPct = PIX_PCT, cupom: Cupom | null = null, cartaoPct = CARTAO_PCT) {
   const map = new Map(produtos.filter((p) => p.ativo && noCarrinho(p)).map((p) => [p.id, p]))

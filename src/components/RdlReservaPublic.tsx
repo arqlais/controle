@@ -640,6 +640,14 @@ function Loja() {
 function CupomLoja({ id }: { id: string }) {
   const codigo = cupomRdl(id)
   const [ok, setOk] = useState(false)
+  // já deixa o cupom ativo neste aparelho: na loja ele entra sozinho no checkout
+  useEffect(() => {
+    try {
+      localStorage.setItem('plane-cupom', codigo)
+    } catch {
+      /* ok */
+    }
+  }, [codigo])
   return (
     <section className="rv-cupom">
       <span className="rv-cupom-tag">
@@ -657,10 +665,10 @@ function CupomLoja({ id }: { id: string }) {
         <span>{codigo}</span>
         <em>{ok ? 'copiado' : 'copiar'}</em>
       </button>
-      <a className="rv-btn wide" href="ape/" target="_blank" rel="noreferrer">
+      <a className="rv-btn wide" href={`ape/?cupom=${codigo}`} target="_blank" rel="noreferrer">
         Usar na loja <I n="arrow" s={14} />
       </a>
-      <small>Só seu: vale uma compra, em todos os arquivos. Cole no campo "cupom" ao pagar.</small>
+      <small>Só seu e já ativado: tocando em "Usar na loja", o desconto entra sozinho no pagamento. Vale uma compra, em todos os arquivos.</small>
     </section>
   )
 }
@@ -1154,6 +1162,13 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
   const sv = servicosDe(d)
   const setSv = (k: 'vistoria' | 'reforma', v: boolean) => setD((x) => ({ ...x, servicos: { ...servicosDe(x), [k]: v } }))
   const sugerida = plantaDoApto(d.apto)
+  // fechou só um serviço: oferece o combo uma vez (desconto na ART + cupom da loja depois do sinal)
+  const [combo, setCombo] = useState<'' | 'aberto' | 'visto'>('')
+  useEffect(() => {
+    if (step !== 1 || combo || sv.vistoria === sv.reforma) return
+    const t = setTimeout(() => setCombo('aberto'), 700)
+    return () => clearTimeout(t)
+  }, [step, combo, sv.vistoria, sv.reforma])
   useEffect(() => {
     if (sugerida && !d.planta) set('planta', sugerida)
   }, [sugerida]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -1252,6 +1267,43 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       <Topo voltar={step > 1 ? { label: 'Voltar', acao: () => ir((step - 1) as 1 | 2) } : { label: 'Início', acao: () => irInicio(teste) }} />
       {teste && <Teste />}
       <main className="rv-main rv-wide">
+        {combo === 'aberto' && (
+          <div className="rv-modal" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && setCombo('visto')}>
+            <div className="rv-sheet rv-combo">
+              <button className="rv-close" onClick={() => setCombo('visto')} aria-label="Fechar">
+                <I n="x" s={18} />
+              </button>
+              <span className="rv-cupom-tag">
+                <I n="gift" s={14} /> FECHANDO OS DOIS
+              </span>
+              <b className="rv-combo-t">Vistoria + ART de reforma sai mais em conta</b>
+              <ul>
+                <li>
+                  <I n="check" s={15} /> <span><b>{brl(REFORMA_DESC_VISTORIA)} de desconto</b> na ART de reforma</span>
+                </li>
+                <li>
+                  <I n="check" s={15} /> <span>Valor do San Levi de hoje garantido (ele pode mudar com o tempo)</span>
+                </li>
+                <li>
+                  <I n="check" s={15} /> <span>E depois do sinal, <b>10% na loja planê.apê</b>, com cupom já ativado</span>
+                </li>
+              </ul>
+              <p className="rv-fine">A ART de reforma só é gerada perto da obra, com as datas e os serviços certos. Não é obrigatório fechar agora.</p>
+              <button
+                className="rv-btn wide"
+                onClick={() => {
+                  setSv(sv.vistoria ? 'reforma' : 'vistoria', true)
+                  setCombo('visto')
+                }}
+              >
+                Quero os dois <I n="arrow" />
+              </button>
+              <button className="rv-combo-nao" onClick={() => setCombo('visto')}>
+                Agora não
+              </button>
+            </div>
+          </div>
+        )}
         {step === 1 && (
           <section className="rv-hero">
             <span className="rv-pill">

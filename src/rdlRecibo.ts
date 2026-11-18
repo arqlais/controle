@@ -199,7 +199,7 @@ export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
     sv.reforma && '📐 A ART cobre só os serviços informados. Se mudar algo na obra, me avise antes.',
     `Seu painel: ${linkPainel(r)}`,
     '',
-    `🎁 Presente: 10% na loja planê.apê (planilhas e guias para a obra) com o cupom *${cupomRdl(r.id)}*`,
+    `🎁 Presente: 10% na loja planê.apê (planilhas e guias para a obra), já ativado neste link: ${location.origin}${location.pathname.replace(/\/(rdl|vistoria)\/?$/, '/')}ape/?cupom=${cupomRdl(r.id)}`,
     '',
     'Segue o recibo 👇',
   ]

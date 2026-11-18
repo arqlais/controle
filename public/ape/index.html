@@ -15,7 +15,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <!-- abre direto a página dos moradores (sem passar pelo site da planê) -->
-<script>location.replace('../#/ape/' + (location.hash.replace(/^#\/?/, '') || 'loja'))</script>
+<script>try{var c=new URLSearchParams(location.search).get('cupom');if(c)localStorage.setItem('plane-cupom',c.trim().toUpperCase())}catch(e){}location.replace('../#/ape/' + (location.hash.replace(/^#\/?/, '') || 'loja'))</script>
 <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f1eb;font-family:system-ui,sans-serif;color:#4e6472}a{color:inherit}</style>
 </head>
 <body><a href="../#/ape/loja">abrir a loja da planê.apê</a></body>

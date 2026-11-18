@@ -3,7 +3,7 @@ import { href } from '../router'
 import { baixarArquivo, avisarErroPagamento, contaApi, guardarSessao, nomeLocal, sessaoLocal, criarPedido, depoimentos as carregarDepoimentos, pedidosLocais, recuperarCompras, simularPagamento, verPedido, apeCloud, type Ajustes, type Pedido, type Vendedor } from './api'
 import { ApeArt } from './ApeArt'
 import { ApeIcon } from './ApeIcon'
-import { APE, BONUS, JUROS_PCT, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, configurarParcelas, maxSemJuros, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
+import { cupomRdlGuardado, APE, BONUS, JUROS_PCT, CARTAO_PCT, SEM_JUROS_MAX, precoCartao, configurarParcelas, maxSemJuros, acharCupom, frenteDe, KIT_PLATAFORMA_MESES, parcelas, brl, conta, digits, dmy, firstName, fmtTel, msgProduto, noCarrinho, reais, wa, type Cupom, type Morador, type Produto } from './model'
 import { Recolhe, lojaNome, lojaRota, mascaraTel, SITE_APE, cpfOk, emailOk, fmtCpf, useCarrinho, useToast, useTravaRolagem, type Carrinho } from './shared'
 
 /* Loja da planê.apê: página de vendas aberta a todos, carrinho, checkout e página do pedido. */
@@ -86,8 +86,14 @@ export function Loja({ ajustes, me, whats, abrir }: { ajustes: Ajustes; me: Mora
         {modais}
       </>
     )
+  const cupomRdl = cupomRdlGuardado()
   return (
     <>
+      {cupomRdl && (
+        <p className="ape-cupom-ativo">
+          <b>Cupom {cupomRdl.codigo} ativo:</b> {cupomRdl.pct}% off em todos os arquivos. Já entra sozinho no checkout.
+        </p>
+      )}
       <section className="ape-lp-hero">
         <div className="ape-blobs" aria-hidden="true"><i /><i /><i /></div>
         <div className="ape-lp-text">
