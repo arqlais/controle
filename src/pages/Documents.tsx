@@ -33,6 +33,9 @@ import { contractSettings } from '../contracts'
 import type { Quote } from '../types'
 import { WorkDocEditor } from './WorkDocEditor'
 import { rdlMode } from '../rdl'
+import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
+import { listarReservas, unidade, type Reserva } from '../rdlReserva'
+import { linkLaudo } from '../rdlLaudo'
 import { WORK_KINDS, WORK_ORDER, type WorkKind } from '../workDocs'
 
 /* Documentos do estúdio (plano Estúdio): peças prontas com a sua marca, no design escolhido
@@ -49,6 +52,68 @@ const LIST: { id: DocId; title: string; text: string; size: string }[] = [
 const titleOf = (k: DocKind) => LIST.find((x) => x.id === k)?.title ?? 'documento'
 type DocValue = MeasureGuideData & PlaqueData & DeckData & { briefingTpl?: string }
 const KEY: Record<DocId, keyof DocsState | 'briefingTpl'> = { guia: 'guide', placa: 'plaque', apresentacao: 'deck', briefing: 'briefingTpl' }
+
+/** RDL: laudo e checklist da vistoria de entrega, com os moradores já puxados das reservas. */
+function RdlVistoriaDocs() {
+  const [lista, setLista] = useState<Reserva[] | null>(null)
+  const [sel, setSel] = useState('')
+  useEffect(() => {
+    void listarReservas()
+      .then((l) => setLista(l.filter((r) => !r.cancelada && (r.dados.servicos?.vistoria ?? true))))
+      .catch(() => setLista([]))
+  }, [])
+  const r = lista?.find((x) => x.id === sel)
+  const st = (x: Reserva) => (x.status.laudo ? 'laudo publicado' : x.status.laudoDados?.itens?.length || x.status.laudoDados?.check ? 'laudo em andamento' : x.status.data ? `vistoria ${x.status.data.slice(8, 10)}/${x.status.data.slice(5, 7)}` : x.status.sinal || x.status.cortesia ? 'sem data' : 'sem sinal')
+  return (
+    <section className="rdl-vdocs">
+      <h2 className="docs-group">vistoria de entrega</h2>
+      <div className="rdl-vdocs-main card">
+        <div className="rdl-vdocs-ic">
+          <Icon name="hardhat" size={20} />
+        </div>
+        <div className="rdl-vdocs-body">
+          <b>Laudo de um morador</b>
+          <small>Checklist por ambiente, fotos, testes e pasta do Drive. Os dados do morador e o nº da ART já vêm preenchidos.</small>
+          <div className="rdl-vdocs-row">
+            <select value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Morador">
+              <option value="">{lista === null ? 'carregando…' : 'escolha o morador'}</option>
+              {(lista ?? []).map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.dados.nome.split(' ')[0]} · {unidade(x.dados)} · {st(x)}
+                </option>
+              ))}
+            </select>
+            <button className="btn" disabled={!r} onClick={() => r && go('reservas', `laudo-${r.id}`)}>
+              <Icon name="edit" size={15} /> {r?.status.laudoDados ? 'continuar o laudo' : 'montar o laudo'}
+            </button>
+          </div>
+          {r && (
+            <div className="rdl-vdocs-row">
+              <button className="btn small ghost" onClick={() => openRdlDoc(checklistHtml({ owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: r.status.laudoDados?.ambientes }))}>
+                <Icon name="printer" size={14} /> checklist deste apê
+              </button>
+              {r.status.laudo && (
+                <a className="btn small ghost" href={r.status.laudo.startsWith('http') ? r.status.laudo : linkLaudo(r)} target="_blank" rel="noreferrer">
+                  <Icon name="eye" size={14} /> laudo publicado
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="rdl-vdocs-blank">
+        <button className="docs-card docs-card-icon" type="button" onClick={() => openRdlDoc(checklistHtml())}>
+          <Icon name="list" size={18} /> <b>checklist em branco</b>
+          <small>para imprimir e levar na vistoria</small>
+        </button>
+        <button className="docs-card docs-card-icon" type="button" onClick={() => openRdlDoc(laudoHtml())}>
+          <Icon name="file" size={18} /> <b>laudo em branco</b>
+          <small>modelo completo da RDL</small>
+        </button>
+      </div>
+    </section>
+  )
+}
 
 export default function Documents({ id }: { id?: string }) {
   const { data } = useStore()
@@ -311,6 +376,7 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
               .
             </span>
           </p>
+          {rdlMode() && <RdlVistoriaDocs />}
           <h2 className="docs-group">do dia a dia</h2>
           <div className="docs-home docs-daily">
             {daily.map((d) =>

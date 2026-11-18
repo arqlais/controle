@@ -2792,3 +2792,16 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .ld-abas button { flex: none; white-space: nowrap; }
 .ld-perg-l > span { min-width: 0; }
 .ld-abas { display: flex; } .ld-abas button { padding: 8px 12px; }
+/* documentos da RDL: laudo e checklist da vistoria */
+.rdl-vdocs { margin-bottom: 18px; }
+.rdl-vdocs-main { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1.5px solid #012c60; }
+.rdl-vdocs-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; background: #012c60; color: #fff; display: grid; place-items: center; }
+.rdl-vdocs-body { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.rdl-vdocs-body > b { color: #012c60; font-size: 15px; }
+.rdl-vdocs-body > small { color: var(--muted); font-size: 12.5px; }
+.rdl-vdocs-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.rdl-vdocs-row select { flex: 1; min-width: 200px; }
+.rdl-vdocs-blank { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.rdl-vdocs-blank .docs-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; text-align: left; }
+.rdl-vdocs-blank small { color: var(--muted); font-size: 12px; }
+.rdl-vdocs-blank .docs-card b { font-size: 14px; line-height: 1.25; } .rdl-vdocs-blank .docs-card { min-height: 0; height: auto; }

@@ -529,7 +529,7 @@ export default function App() {
       case 'arts':
         return <Arts />
       case 'reservas':
-        return RDL ? <Reservas /> : null
+        return RDL ? <Reservas id={route.id} /> : null
       case 'dados-contrato':
         return <ContractDataPage id={route.id} />
       case 'plataforma':

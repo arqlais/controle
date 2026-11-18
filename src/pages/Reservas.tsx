@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
+import { go } from '../router'
 import { Icon } from '../components/Icon'
 import { DateInput } from '../components/DateInput'
 import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
@@ -119,11 +120,22 @@ function livre(occ: Ocupado[], cfg: ReservaConfig, desde = 8 * 60) {
   return ''
 }
 
-export default function Reservas() {
+export default function Reservas({ id }: { id?: string }) {
   const { data, upsert } = useStore()
   const [list, setList] = useState<Reserva[] | null>(null)
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
   const [aberta, setAberta] = useState<Reserva | null>(null)
+  // vindo de documentos ("montar o laudo"): abre a ficha do morador já no laudo
+  const [laudoDireto, setLaudoDireto] = useState('')
+  useEffect(() => {
+    if (!list || !id?.startsWith('laudo-')) return
+    const r = list.find((x) => x.id === id.slice(6))
+    if (r) {
+      setLaudoDireto(r.id)
+      setAberta(r)
+    }
+    go('reservas') // tira o pedido do endereço (não abre de novo quando a lista atualiza)
+  }, [list, id])
   const [config, setConfig] = useState(false)
   const [erro, setErro] = useState('')
 
@@ -268,7 +280,7 @@ export default function Reservas() {
 
       <Acessos reservas={list ?? []} />
 
-      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => setAberta(null)} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} onCancelarReforma={cancelarReforma} />}
+      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => { setAberta(null); setLaudoDireto('') }} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} onCancelarReforma={cancelarReforma} laudoDireto={laudoDireto === aberta.id} />}
       {config && (
         <Config
           cfg={cfg}
@@ -328,6 +340,7 @@ export function Detalhe({
   onData,
   onCancelar,
   onCancelarReforma,
+  laudoDireto,
 }: {
   r: Reserva
   cfg: ReservaConfig
@@ -339,6 +352,7 @@ export function Detalhe({
   onData: (r: Reserva, d: string, h: string) => Promise<void>
   onCancelar: (r: Reserva) => Promise<void>
   onCancelarReforma: (r: Reserva) => Promise<void>
+  laudoDireto?: boolean
 }) {
   const s = r.status
   const { data, upsert } = useStore()
@@ -369,7 +383,7 @@ export function Detalhe({
   const choque = d && toMin(h) !== null ? conflitos(toMin(h)!, occ, cfg) : []
   const sugestao = d && choque.length ? livre(occ, cfg, Math.max(8 * 60, (toMin(h) ?? 8 * 60) - 60)) || livre(occ, cfg) : ''
   const [art, setArt] = useState(s.art ?? '')
-  const [editor, setEditor] = useState(false)
+  const [editor, setEditor] = useState(!!laudoDireto)
   const [recibo, setRecibo] = useState('')
   const rf = s.reforma ?? {}
   const [rfEscopo, setRfEscopo] = useState(rf.escopo ?? '')
