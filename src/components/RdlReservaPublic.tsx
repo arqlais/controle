@@ -636,6 +636,48 @@ function Loja() {
   )
 }
 
+/** Assim que o sinal é confirmado: o cupom aparece flutuando uma vez (depois fica no cartão do painel). */
+function CupomFlutuante({ id }: { id: string }) {
+  const codigo = cupomRdl(id)
+  const chave = `rv-cupom-visto-${id}`
+  const [ver, setVer] = useState(() => {
+    try {
+      return !localStorage.getItem(chave)
+    } catch {
+      return false
+    }
+  })
+  const fechar = () => {
+    setVer(false)
+    try {
+      localStorage.setItem(chave, '1')
+    } catch {
+      /* ok */
+    }
+  }
+  if (!ver) return null
+  return (
+    <div className="rv-combo-float rv-cupom-float" role="dialog" aria-label="Presente: cupom de desconto">
+      <button className="rv-combo-x" onClick={fechar} aria-label="Fechar">
+        <I n="x" s={16} />
+      </button>
+      <div className="rv-combo-eq" aria-hidden="true">
+        <span>
+          <I n="gift" s={20} />
+        </span>
+        <b>10% OFF</b>
+      </div>
+      <p>
+        <b>Presente por garantir a vistoria:</b> desconto na loja planê.apê, já ativado.
+      </p>
+      <span className="rv-cupom-chip">{codigo}</span>
+      <a className="rv-btn wide" href={`ape/?cupom=${codigo}`} target="_blank" rel="noreferrer" onClick={fechar}>
+        Usar agora <I n="arrow" />
+      </a>
+    </div>
+  )
+}
+
 /** Presente de quem garantiu a vistoria: cupom exclusivo de 10% na loja planê.apê. */
 function CupomLoja({ id }: { id: string }) {
   const codigo = cupomRdl(id)
@@ -1268,40 +1310,33 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
       {teste && <Teste />}
       <main className="rv-main rv-wide">
         {combo === 'aberto' && (
-          <div className="rv-modal" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && setCombo('visto')}>
-            <div className="rv-sheet rv-combo">
-              <button className="rv-close" onClick={() => setCombo('visto')} aria-label="Fechar">
-                <I n="x" s={18} />
-              </button>
-              <span className="rv-cupom-tag">
-                <I n="gift" s={14} /> FECHANDO OS DOIS
+          <div className="rv-combo-float" role="dialog" aria-label="Desconto fechando os dois">
+            <button className="rv-combo-x" onClick={() => setCombo('visto')} aria-label="Fechar">
+              <I n="x" s={16} />
+            </button>
+            <div className="rv-combo-eq" aria-hidden="true">
+              <span>
+                <I n="key" s={20} />
               </span>
-              <b className="rv-combo-t">Vistoria + ART de reforma sai mais em conta</b>
-              <ul>
-                <li>
-                  <I n="check" s={15} /> <span><b>{brl(REFORMA_DESC_VISTORIA)} de desconto</b> na ART de reforma</span>
-                </li>
-                <li>
-                  <I n="check" s={15} /> <span>Valor do San Levi de hoje garantido (ele pode mudar com o tempo)</span>
-                </li>
-                <li>
-                  <I n="check" s={15} /> <span>E depois do sinal, <b>10% na loja planê.apê</b>, com cupom já ativado</span>
-                </li>
-              </ul>
-              <p className="rv-fine">A ART de reforma só é gerada perto da obra, com as datas e os serviços certos. Não é obrigatório fechar agora.</p>
-              <button
-                className="rv-btn wide"
-                onClick={() => {
-                  setSv(sv.vistoria ? 'reforma' : 'vistoria', true)
-                  setCombo('visto')
-                }}
-              >
-                Quero os dois <I n="arrow" />
-              </button>
-              <button className="rv-combo-nao" onClick={() => setCombo('visto')}>
-                Agora não
-              </button>
+              <i>+</i>
+              <span>
+                <I n="hammer" s={20} />
+              </span>
+              <i>=</i>
+              <b>−{brl(REFORMA_DESC_VISTORIA)}</b>
             </div>
+            <p>
+              <b>Vistoria + ART de reforma</b> juntas: {brl(REFORMA_DESC_VISTORIA)} off na ART.
+            </p>
+            <button
+              className="rv-btn wide"
+              onClick={() => {
+                setSv(sv.vistoria ? 'reforma' : 'vistoria', true)
+                setCombo('visto')
+              }}
+            >
+              Quero os dois <I n="arrow" />
+            </button>
           </div>
         )}
         {step === 1 && (
@@ -2506,6 +2541,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
         )}
 
         {(s.sinal || s.cortesia) && !r.cancelada && <CupomLoja id={r.id} />}
+        {(s.sinal || s.cortesia) && !r.cancelada && <CupomFlutuante id={r.id} />}
         <section className="rv-card rv-help">
           <h2 className="rv-h2">
             <I n="chat" s={18} /> Precisa de ajuda?
