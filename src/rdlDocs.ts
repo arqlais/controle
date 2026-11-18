@@ -436,6 +436,7 @@ export interface LaudoData {
   general?: LaudoFoto[] // fotos gerais dos ambientes
   revisitDate?: string
   notes?: string
+  fotosLink?: string // pasta com todas as fotos do dia (Google Drive etc.)
 }
 
 const LAUDO_CSS = `
@@ -692,6 +693,7 @@ ${nv.length ? `<div class="chips">${nv.map((t) => `<span class="chip">${ico('x')
     .join('')}</div></div>
 <div class="box" style="margin-top:3mm"><h3><i></i>Vícios e garantias</h3><div class="warr"><div class="box soft"><b>Vícios aparentes</b><p>Defeitos fáceis de ver, como os desta vistoria. Devem ser comunicados à construtora em até 90 dias do recebimento (Código de Defesa do Consumidor, art. 26).</p></div><div class="box soft"><b>Vícios ocultos</b><p>Defeitos que só aparecem com o uso. Seguem os prazos do manual do proprietário (NBR 17170) e do Código de Defesa do Consumidor, contados de quando o defeito aparece.</p></div></div>
 <p style="font-size:6.6pt;color:var(--txt);margin-top:3mm"><b>Manual do proprietário:</b> a construtora deve entregar o manual de uso, operação e manutenção (NBR 14037); o mau uso ou a falta de manutenção podem cancelar a garantia. <b>Vai reformar?</b> A garantia não cobre o que for alterado: antes da obra, confira se os itens deste laudo já foram corrigidos e faça a ART da reforma.</p></div>
+${d.fotosLink ? `<div class="box" style="margin-top:3mm"><h3><i></i>Todas as fotos da vistoria</h3><p style="font-size:7.2pt;color:var(--txt)">As fotos completas do dia, em tamanho original, estão nesta pasta: <a href="${esc(d.fotosLink)}" style="color:var(--navy);font-weight:600;word-break:break-all">${esc(d.fotosLink)}</a></p></div>` : ''}
 <div class="box soft" style="margin-top:3mm"><p class="decl">Declaro que a vistoria foi feita por mim, na data e no horário indicados, e que este laudo retrata as condições aparentes do imóvel naquele momento. Este laudo acompanha a <b>ART${d.art ? ` nº ${esc(d.art)}` : ''}</b> registrada no CREA-SP.</p></div>
 <div class="grid2" style="margin-top:3mm">${f('Local', 'Santo André - SP')}${f('Data', dateBR(d.date))}</div>
 <div class="sigs" style="margin:auto 0 3mm"><div class="box"><span>${esc(RDL.name)}</span><b>RESPONSÁVEL TÉCNICO · CREA ${esc(RDL.crea)}</b></div><div class="box"><span>${esc(d.owner)}</span><b>PROPRIETÁRIO(A)</b></div><div class="box"><span>${esc(d.builder)}</span><b>CONSTRUTORA · CIENTE EM ___/___/___</b></div></div>

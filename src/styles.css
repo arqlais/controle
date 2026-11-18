@@ -2757,3 +2757,38 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .acs-bar i { display: block; height: 8px; border-radius: 4px; background: #012c60; }
 .acs-bar em { font-style: normal; text-align: right; font-weight: 600; }
 @container (min-width: 640px) and (max-width: 999px) { .rdp .rdp-tel { display: none; } }
+/* laudo: dados do cliente, checklist digital e pasta das fotos */
+.ld-cliente { display: flex; flex-wrap: wrap; gap: 6px; }
+.ld-cliente span { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; background: #eaf0f8; color: #012c60; border-radius: 99px; padding: 4px 10px; }
+.ld-ambs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.ld-ambs button { all: unset; box-sizing: border-box; cursor: pointer; position: relative; overflow: hidden; flex: none; min-width: 104px; border: 1.5px solid #e2e8f1; border-radius: 12px; padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 2px; background: #fff; }
+.ld-ambs button b { font-size: 13px; color: #0f1b2d; }
+.ld-ambs button small { font-size: 11px; color: var(--muted); }
+.ld-ambs button i { position: absolute; left: 0; bottom: 0; height: 3px; background: #ff8216; }
+.ld-ambs button.is-on { border-color: #012c60; background: #f4f7fb; }
+.ld-ambs button.is-ok i { background: #012c60; }
+.ld-quadro { display: flex; flex-direction: column; gap: 0; padding: 10px 12px; }
+.ld-quadro > header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px; border-bottom: 1px solid #e2e8f1; }
+.ld-quadro > header b { color: #012c60; }
+.ld-perg { padding: 8px 0; border-bottom: 1px solid #eef2f8; }
+.ld-perg:last-child { border-bottom: 0; }
+.ld-perg-l { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 13px; }
+.ld-perg.is-falha { background: #fff7ef; margin: 0 -12px; padding: 8px 12px; }
+.ld-falha { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ld-falha textarea { width: 100%; }
+.ld-todos { align-self: flex-start; margin-bottom: 6px; }
+.ld-drive { display: flex; gap: 10px; align-items: flex-start; border: 1.5px dashed #c3cfe0; border-radius: 12px; padding: 12px; background: #f4f7fb; }
+.ld-drive > svg, .ld-drive > .icon { flex: none; color: #012c60; margin-top: 2px; }
+.ld-drive > div { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.ld-drive b { color: #012c60; font-size: 13.5px; }
+.ld-drive small { color: var(--muted); font-size: 12px; }
+.ld-drive input { width: 100%; }
+@media (max-width: 560px) { .ld-perg-l { flex-direction: column; align-items: stretch; gap: 6px; } }
+/* laudo no celular: nada passa da largura da tela; abas rolam de lado */
+.ld { min-width: 0; max-width: 100%; }
+.ld > * { min-width: 0; max-width: 100%; }
+.ld-ambs { max-width: 100%; }
+.ld-abas { overflow-x: auto; flex-wrap: nowrap; max-width: 100%; scrollbar-width: none; }
+.ld-abas button { flex: none; white-space: nowrap; }
+.ld-perg-l > span { min-width: 0; }
+.ld-abas { display: flex; } .ld-abas button { padding: 8px 12px; }

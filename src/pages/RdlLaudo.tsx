@@ -3,7 +3,9 @@ import { Icon } from '../components/Icon'
 import { Field, Modal } from '../components/ui'
 import { toast } from '../components/dialog'
 import { GRAVIDADE, TESTES, checklistHtml, laudoHtml, openRdlDoc, type Gravidade, type LaudoFoto, type Teste } from '../rdlDocs'
-import { AMBIENTES_APE, AMBIENTES_EXTRA, enviarFoto, laudoDe, linkLaudo, quadrosDe, rascunhoVazio, type LaudoItemRascunho, type LaudoRascunho } from '../rdlLaudo'
+import { AMBIENTES_APE, AMBIENTES_EXTRA, chaveCheck, checklistDe, enviarFoto, laudoDe, linkLaudo, problemaDe, quadrosDe, rascunhoVazio, type LaudoItemRascunho, type LaudoRascunho } from '../rdlLaudo'
+import { useStore } from '../store'
+import { dataCurta } from '../rdlReserva'
 import { unidade, type Reserva, type ReservaConfig, type ReservaStatus } from '../rdlReserva'
 import { uid } from '../utils'
 
@@ -11,11 +13,18 @@ import { uid } from '../utils'
    ambientes, itens para reparo (com fotos na horizontal ou na vertical), testes, não verificados e observações.
    Salva sozinho na reserva; "publicar" coloca o laudo no painel do morador e manda o e-mail. */
 
-type Aba = 'itens' | 'fotos' | 'testes' | 'final'
+type Aba = 'checklist' | 'itens' | 'fotos' | 'testes' | 'final'
 
 export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Reserva; cfg: ReservaConfig; onClose: () => void; onStatus: (r: Reserva, p: Partial<ReservaStatus>, aviso?: string) => Promise<Reserva>; onPublicar: (link: string) => void }) {
-  const [l, setL] = useState<LaudoRascunho>(() => ({ ...rascunhoVazio(), ...(r.status.laudoDados ?? {}) }))
-  const [aba, setAba] = useState<Aba>('itens')
+  const { data } = useStore()
+  // já puxa o número da ART da vistoria (controle de ARTs) e o horário marcado
+  const artDoControle = (data.arts ?? []).find((a) => a.id === `art-${r.id}-vistoria`)?.number || ''
+  const [l, setL] = useState<LaudoRascunho>(() => {
+    const base = { ...rascunhoVazio(), ...(r.status.laudoDados ?? {}) }
+    return { ...base, artNum: base.artNum || artDoControle, inicio: base.inicio || r.status.hora || '' }
+  })
+  const [aba, setAba] = useState<Aba>('checklist')
+  const [amb, setAmb] = useState(() => l.ambientes[0] ?? 'Sala')
   const [salvo, setSalvo] = useState<'ok' | 'salvando' | 'erro'>('ok')
   const [enviando, setEnviando] = useState('')
   const sujo = useRef(false)
@@ -42,6 +51,33 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
   const novoItem = () => {
     const amb = l.itens[l.itens.length - 1]?.ambiente ?? l.ambientes[0] ?? 'Sala'
     mudar({ itens: [...l.itens, { id: uid(), ambiente: amb, item: '', encontrado: '', gravidade: 'media', fotos: [] }] })
+  }
+  // checklist digital: "falha" vira item para reparo sozinho (e some se voltar para ok)
+  const marcar = (a: string, quadro: string, i: number, pergunta: string, v: Teste) => {
+    const k = chaveCheck(a, quadro, i)
+    const id = `ck-${k}`
+    sujo.current = true
+    setL((x) => {
+      const check = { ...(x.check ?? {}), [k]: v }
+      let itens = x.itens
+      if (v === 'falha' && !itens.some((it) => it.id === id)) itens = [...itens, { id, ambiente: a, item: quadro, encontrado: problemaDe(pergunta), gravidade: 'media', fotos: [] }]
+      if (v !== 'falha') itens = itens.filter((it) => it.id !== id)
+      return { ...x, check, itens }
+    })
+  }
+  const quadroOk = (a: string, quadro: string, n: number) => {
+    sujo.current = true
+    setL((x) => {
+      const check = { ...(x.check ?? {}) }
+      for (let i = 0; i < n; i++) if (!check[chaveCheck(a, quadro, i)]) check[chaveCheck(a, quadro, i)] = 'ok'
+      return { ...x, check }
+    })
+  }
+  const progresso = (a: string) => {
+    const total = checklistDe(a).reduce((n, q) => n + q.itens.length, 0)
+    const feitos = Object.keys(l.check ?? {}).filter((k) => k.startsWith(`${a}|`)).length
+    const falhas = l.itens.filter((it) => it.ambiente === a).length
+    return { total, feitos, falhas }
   }
   const fotos = async (files: FileList | null, alvo: string) => {
     if (!files?.length) return
@@ -103,6 +139,22 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
       }
     >
       <div className="ld">
+        <div className="ld-cliente">
+          <span>
+            <Icon name="user" size={13} /> {r.dados.nome}
+          </span>
+          <span>
+            <Icon name="home" size={13} /> {unidade(r.dados)}
+          </span>
+          {r.dados.planta && <span>{r.dados.planta.replace(/\s*\(.*\)/, '')}</span>}
+          {r.status.data && (
+            <span>
+              <Icon name="calendar" size={13} /> {dataCurta(r.status.data)}
+              {r.status.hora ? ` · ${r.status.hora}` : ''}
+            </span>
+          )}
+          {l.artNum && <span>ART {l.artNum}</span>}
+        </div>
         <div className="ld-resumo">
           <span>
             <b>{l.itens.length}</b> itens
@@ -121,8 +173,9 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
         <div className="ld-abas" role="tablist">
           {(
             [
+              ['checklist', 'check', 'checklist'],
               ['itens', 'list', 'itens'],
-              ['fotos', 'camera', 'fotos gerais'],
+              ['fotos', 'camera', 'fotos e pasta'],
               ['testes', 'check', 'testes'],
               ['final', 'edit', 'dados e final'],
             ] as [Aba, string, string][]
@@ -133,9 +186,82 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
           ))}
         </div>
 
+        {aba === 'checklist' && (
+          <>
+            <p className="muted small">Vá ambiente por ambiente. Marcou falha, o item entra sozinho no laudo: é só tirar a foto e ajustar o texto.</p>
+            <div className="ld-ambs">
+              {l.ambientes.map((a) => {
+                const p = progresso(a)
+                return (
+                  <button key={a} type="button" className={`${amb === a ? 'is-on' : ''} ${p.total && p.feitos >= p.total ? 'is-ok' : ''}`} onClick={() => setAmb(a)}>
+                    <b>{a}</b>
+                    <small>
+                      {p.feitos}/{p.total}
+                      {p.falhas ? ` · ${p.falhas} falha(s)` : ''}
+                    </small>
+                    <i style={{ width: `${p.total ? (p.feitos / p.total) * 100 : 0}%` }} />
+                  </button>
+                )
+              })}
+            </div>
+            {checklistDe(amb).map((q) => (
+              <section key={q.nome} className="card ld-quadro">
+                <header>
+                  <b>{q.nome}</b>
+                  <button type="button" className="btn small ghost" onClick={() => quadroOk(amb, q.nome, q.itens.length)}>
+                    <Icon name="check" size={13} /> resto ok
+                  </button>
+                </header>
+                {q.itens.map((pergunta, i) => {
+                  const v = l.check?.[chaveCheck(amb, q.nome, i)]
+                  const it = l.itens.find((x) => x.id === `ck-${chaveCheck(amb, q.nome, i)}`)
+                  return (
+                    <div key={i} className={`ld-perg ${v ? `is-${v}` : ''}`}>
+                      <div className="ld-perg-l">
+                        <span>{pergunta}</span>
+                        <div className="ld-tri">
+                          {(
+                            [
+                              ['ok', 'ok'],
+                              ['falha', 'falha'],
+                              ['na', 'n/a'],
+                            ] as [Teste, string][]
+                          ).map(([k, lb]) => (
+                            <button key={k} type="button" className={`is-${k} ${v === k ? 'is-on' : ''}`} onClick={() => marcar(amb, q.nome, i, pergunta, k)}>
+                              {lb}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      {it && (
+                        <div className="ld-falha">
+                          <textarea rows={2} value={it.encontrado} onChange={(e) => mudarItem(it.id, { encontrado: e.target.value })} aria-label="O que foi encontrado" />
+                          <div className="ld-grav" role="radiogroup" aria-label="Gravidade">
+                            {(Object.keys(GRAVIDADE) as Gravidade[]).map((g) => (
+                              <button key={g} type="button" role="radio" aria-checked={it.gravidade === g} className={`ld-g is-${g} ${it.gravidade === g ? 'is-on' : ''}`} onClick={() => mudarItem(it.id, { gravidade: g })} title={GRAVIDADE[g].text}>
+                                {GRAVIDADE[g].label}
+                              </button>
+                            ))}
+                          </div>
+                          <Fotos list={it.fotos} alvo={it.id} onChange={(f) => mudarItem(it.id, { fotos: f })} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </section>
+            ))}
+            {l.ambientes.indexOf(amb) < l.ambientes.length - 1 && (
+              <button className="btn ld-novo" onClick={() => setAmb(l.ambientes[l.ambientes.indexOf(amb) + 1])}>
+                próximo: {l.ambientes[l.ambientes.indexOf(amb) + 1]} <Icon name="chevronR" size={15} />
+              </button>
+            )}
+          </>
+        )}
+
         {aba === 'itens' && (
           <>
-            <p className="muted small">Um item para cada problema encontrado, com a foto. Foto na horizontal ou na vertical: as duas entram inteiras no laudo.</p>
+            <p className="muted small">Os itens marcados como falha no checklist já estão aqui. Inclua outros que encontrar, com foto (horizontal ou vertical: entram inteiras).</p>
             {l.itens.map((it, i) => (
               <section key={it.id} className="card ld-item">
                 <header>
@@ -183,6 +309,19 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
 
         {aba === 'fotos' && (
           <>
+            <div className="ld-drive">
+              <Icon name="link" size={16} />
+              <div>
+                <b>Pasta com todas as fotos do dia</b>
+                <small>Cole o link do Google Drive (ou iCloud, OneDrive). Ele aparece no laudo para o morador baixar as fotos em tamanho original.</small>
+                <input value={l.fotosLink ?? ''} onChange={(e) => mudar({ fotosLink: e.target.value.trim() })} placeholder="https://drive.google.com/drive/folders/…" inputMode="url" />
+                {l.fotosLink && (
+                  <a className="link small" href={l.fotosLink} target="_blank" rel="noreferrer">
+                    abrir a pasta
+                  </a>
+                )}
+              </div>
+            </div>
             <p className="muted small">Fotos gerais de cada ambiente (como o apê estava no dia). Opcional.</p>
             <Fotos list={l.gerais} alvo="gerais" onChange={(g) => mudar({ gerais: g })} />
             {l.gerais.length > 0 && (
@@ -205,6 +344,9 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
 
         {aba === 'testes' && (
           <div className="ld-testes">
+            <button type="button" className="btn small ghost ld-todos" onClick={() => mudar({ testes: Object.fromEntries(TESTES.map((t) => [t, l.testes[t] ?? 'ok'])) })}>
+              <Icon name="check" size={13} /> marcar o resto como ok
+            </button>
             {TESTES.map((t) => (
               <div key={t} className="ld-teste">
                 <span>{t}</span>

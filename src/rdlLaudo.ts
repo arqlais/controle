@@ -29,6 +29,10 @@ export interface LaudoRascunho {
   naoVerificados: string
   obs: string
   atualizado?: string
+  /** checklist digital: "ambiente|quadro|nº da pergunta" → ok, falha ou não se aplica */
+  check?: Record<string, Teste>
+  /** link da pasta com todas as fotos do dia (Google Drive, iCloud…) */
+  fotosLink?: string
 }
 
 /** Ambientes do apê do San Levi (2 quartos). Dá para tirar ou incluir no laudo. */
@@ -46,7 +50,20 @@ export const tipoAmbiente = (a: string) => {
 }
 /** Sugestões de "item verificado" para o ambiente (quadros do checklist). */
 export const quadrosDe = (a: string) => VISTORIA_CHECKLIST.find((x) => x.ambiente === tipoAmbiente(a))?.quadros.map((q) => q.nome) ?? []
-const itensDoAmbiente = (a: string) => VISTORIA_CHECKLIST.find((x) => x.ambiente === tipoAmbiente(a))?.quadros.reduce((n, q) => n + q.itens.length, 0) ?? 0
+/** Quadros e perguntas do checklist de um ambiente (sem a linha "APROVADO?", que vira o resultado do quadro). */
+export const checklistDe = (a: string) => (VISTORIA_CHECKLIST.find((x) => x.ambiente === tipoAmbiente(a))?.quadros ?? []).map((q) => ({ nome: q.nome, itens: q.itens.filter((t) => !/^aprovado\??$/i.test(t.trim())) }))
+export const chaveCheck = (a: string, q: string, i: number) => `${a}|${q}|${i}`
+/** Pergunta do checklist virando a descrição do problema ("O ralo está sem entupimento?" → "Ralo com entupimento"). */
+export function problemaDe(pergunta: string) {
+  let t = pergunta.replace(/\?$/, '').trim()
+  t = t.replace(/^(O|A|Os|As)\s+/, '')
+  t = t.replace(/\b(está|estão)\s+sem\b/i, 'com').replace(/\b(está|estão)\s+(em perfeito estado|funcionando|corretamente|adequad[oa]s?)/i, 'não $1 $2').replace(/\b(está|estão)\b/i, 'não $1')
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+const itensDoAmbiente = (a: string, l?: LaudoRascunho) => {
+  const marcados = l?.check ? Object.keys(l.check).filter((k) => k.startsWith(`${a}|`)).length : 0
+  return marcados || checklistDe(a).reduce((n, q) => n + q.itens.length, 0)
+}
 
 export const linkLaudo = (r: Pick<Reserva, 'id' | 'token'>) => `${linkPainelBase()}#/vistoria/laudo-${r.id}.${r.token}`
 
@@ -66,7 +83,7 @@ export function laudoDe(r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>):
     companion: l.acompanhante,
     art: l.artNum,
     items: l.itens.map((it) => ({ room: it.ambiente, item: it.item, found: it.encontrado, gravidade: it.gravidade, photos: it.fotos, fixed: it.corrigido })),
-    rooms: l.ambientes.map((a) => ({ room: a, checked: itensDoAmbiente(a), problems: l.itens.filter((it) => it.ambiente === a).length })),
+    rooms: l.ambientes.map((a) => ({ room: a, checked: itensDoAmbiente(a, l), problems: l.itens.filter((it) => it.ambiente === a).length })),
     tests: l.testes,
     notChecked: l.naoVerificados
       .split('\n')
@@ -75,6 +92,7 @@ export function laudoDe(r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>):
     general: l.gerais,
     revisitDate: r.status.revistoriaData,
     notes: l.obs,
+    fotosLink: l.fotosLink,
   }
 }
 export const htmlDoLaudo = (r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>) => laudoHtml(laudoDe(r, cfg))
