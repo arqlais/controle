@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useKeep } from '../keep'
 import { useStore } from '../store'
+import { corRdl } from '../palette'
 import { rdlMode } from '../rdl'
 import { go, href } from '../router'
 import { askDelete } from '../components/dialog'
@@ -216,8 +217,8 @@ export default function Projects() {
           {!prio &&
             (
               [
-                ['rascunho', 'rascunhos', '#b8aca6', 'Nenhum rascunho de orçamento.'],
-                ['enviado', 'enviados', '#b08a7e', 'Nenhum orçamento esperando resposta.'],
+                ['rascunho', 'rascunhos', corRdl('#b8aca6'), 'Nenhum rascunho de orçamento.'],
+                ['enviado', 'enviados', corRdl('#b08a7e'), 'Nenhum orçamento esperando resposta.'],
               ] as const
             ).map(([st, label, color, empty]) => {
               const list = quotesIn[st]

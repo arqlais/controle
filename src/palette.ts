@@ -1,3 +1,5 @@
+import { rdlMode } from './rdl'
+
 /* Paleta da planê: azul (grafite) e rosa, com os tons de cada um. Toda cor da interface sai daqui
    (status, etiquetas, gráficos). As cores dos documentos de cada profissional ficam nas configurações dela. */
 export const PAL = {
@@ -30,6 +32,25 @@ export const EXTRA = {
   sage: '#8e9b93', // verde acinzentado
   dusk: '#6f7f95', // azul entardecer
 } as const
+
+/** Cor da planê → cor equivalente da RDL (azul-marinho, laranja, cinzas azulados). */
+export const RDL_COR: Record<string, string> = {
+  '#2f3a45': '#011e42', '#3e4b57': '#012c60', '#4f6475': '#012c60', '#566779': '#2c4f80', '#7d8c99': '#6b7f9c', '#9aa3ab': '#a3b1c4',
+  '#8f6d64': '#b85600', '#a07a70': '#d4650a', '#a88a80': '#e8710a', '#b08a7e': '#e8710a', '#c29b92': '#ff8216', '#d6b3ab': '#ffb26b',
+  '#9a5b53': '#b85600', '#b8aca6': '#c3cfe0', '#c9b8aa': '#c3cfe0', '#b98a78': '#f0a060', '#9d93a6': '#8494ad', '#8e9b93': '#5d7391', '#6f7f95': '#3d5f8f',
+}
+/** No sistema da RDL, troca a cor pela equivalente da RDL (fora dela, devolve a mesma). */
+export const corRdl = (hex: string) => (rdlMode() ? RDL_COR[hex.toLowerCase()] ?? hex : hex)
+
+/* Sistema da RDL: os mesmos nomes, com as cores da RDL (azul-marinho, laranja e cinzas azulados). */
+if (rdlMode()) {
+  Object.assign(PAL as Record<string, string>, {
+    navy: '#011e42', slate: '#012c60', blue: '#2c4f80', steel: '#6b7f9c', mist: '#a3b1c4',
+    roseDeep: '#b85600', roseDark: '#d4650a', rose: '#e8710a', roseMid: '#ff8216', roseSoft: '#ffb26b',
+    sand: '#c3cfe0', good: '#012c60', warn: '#e8710a', bad: '#b85600',
+  })
+  Object.assign(EXTRA as Record<string, string>, { sand: '#c3cfe0', clay: '#f0a060', lilac: '#8494ad', sage: '#5d7391', dusk: '#3d5f8f' })
+}
 
 /** Ordem para quando cada item precisa de uma cor (alterna azul e rosa; depois os complementares). */
 export const SERIES = [PAL.slate, PAL.rose, PAL.blue, PAL.roseMid, PAL.steel, PAL.roseDeep, PAL.mist, PAL.roseSoft, EXTRA.sand, EXTRA.dusk, EXTRA.clay, EXTRA.lilac, EXTRA.sage] as const

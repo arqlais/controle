@@ -472,6 +472,9 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
         </div>
         <span>ART + plano de reforma, com a taxa do CREA. A obra é feita por quem você contratar. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
       </div>
+      <p className="rv-calc-nota">
+        <I n="shield" s={14} /> O Rogério confere o que você marcou. Se algum serviço não puder entrar na ART, ele avisa: a ART de reforma pode ser ajustada ou cancelada, e o valor sai do total.
+      </p>
       <details className="rv-what">
         <summary>
           <I n="info" s={14} /> O que é o plano de reforma?
@@ -2258,11 +2261,19 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
             <h2 className="rv-h2">
               <I n="hammer" s={18} /> ART de reforma <span className="rv-opt">OPCIONAL</span>
             </h2>
+            {rf.canceladaEm && !rf.aprovadoEm && !rf.valor && (
+              <div className="rv-state">
+                <I n="info" s={16} />
+                <span>
+                  <b>ART de reforma cancelada</b>O valor saiu do total. Se precisar, é só pedir de novo aqui embaixo.
+                </span>
+              </div>
+            )}
             {rf.aprovadoEm ? (
               <div className="rv-state ok">
                 <I n="check" s={16} />
                 <span>
-                  <b>Orçamento aprovado ({brl(Number(rf.valor ?? 0))})</b>O Rogério vai falar com você para receber as informações da obra e combinar o pagamento. Lembre de passar o plano de reforma e as regras para {rf.prestador ? rf.prestador : 'o seu prestador'} antes de começar.
+                  <b>ART de reforma contratada ({brl(Number(rf.valor ?? 0))})</b>O Rogério confere os serviços que você informou e fala com você para receber as informações da obra. Se algum serviço não puder entrar na ART, ela pode ser ajustada ou cancelada, e o valor sai do total. Lembre de passar o plano de reforma e as regras para {rf.prestador ? rf.prestador : 'o seu prestador'} antes de começar.
                 </span>
               </div>
             ) : rf.valor ? (

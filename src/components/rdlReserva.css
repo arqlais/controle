@@ -3397,3 +3397,5 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 }
 .rv-offer.mini .rv-offer-price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 @media (min-width: 820px) { .rv-wide .rv-dots { max-width: 520px; } }
+.rv-calc-nota { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--txt); background: #eaf0f8; border-radius: 12px; padding: 10px 12px; }
+.rv-calc-nota .rv-i { flex: none; margin-top: 2px; color: var(--navy); }

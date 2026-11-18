@@ -2695,3 +2695,7 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .brand.rdl-brand2 { min-width: 0; }
 .brand.rdl-brand2 .brand-text { min-width: 0; overflow: visible; }
 .brand.rdl-brand2 .brand-name { font-size: 17px; letter-spacing: -0.02em; overflow: visible; text-overflow: clip; white-space: nowrap; }
+.brand.rdl-brand2 .brand-text { display: flex; flex-direction: column; gap: 4px; }
+.brand.rdl-brand2 .brand-kicker { line-height: 1.2; margin: 0; }
+.brand.rdl-brand2 .brand-name { font-size: 16px; line-height: 1.15; }
+.rsv-auto { background: #eaf0f8; border-radius: 10px; padding: 8px 10px; }

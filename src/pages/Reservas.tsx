@@ -174,6 +174,21 @@ export default function Reservas() {
     const evId = `vistoria-${r.id}`
     upsert('events', { id: evId, title: `Vistoria · ${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}`, date: d, time: h, endTime: h && toMin(h) !== null ? toHora(toMin(h)! + (cfg.duracao ?? 120)) : '', type: 'outro', customType: 'vistoria', projectId: '', clientId: novo.status.cliente, place: cfg.empreendimento, notes: `${r.dados.tel}${r.dados.revistoria ? ' · revistoria combinada' : ''}`, done: false })
   }
+  const cancelarReforma = async (r: Reserva) => {
+    if (!(await ask(`Cancelar a ART de reforma de ${r.dados.nome}? O valor sai do total, do financeiro e do painel do morador. Avise o morador pelo WhatsApp.`, { confirmLabel: 'Cancelar ART de reforma' }))) return
+    const dados = { ...r.dados, servicos: { ...servicosDe(r.dados), reforma: false }, reformaEstimativa: undefined }
+    const status = { ...r.status, reforma: { canceladaEm: new Date().toISOString() } }
+    const novo = { ...r, dados, status }
+    setList((l) => l?.map((x) => (x.id === r.id ? novo : x)) ?? null)
+    setAberta((a) => (a?.id === r.id ? novo : a))
+    try {
+      await atualizarReserva(r.id, { dados, status })
+      toast('ART de reforma cancelada. O valor saiu do total e do financeiro.')
+    } catch {
+      toast('Não salvou. Confira a internet e tente de novo.')
+      void carregar()
+    }
+  }
   const cancelar = async (r: Reserva) => {
     if (!(await ask(`Cancelar a reserva de ${r.dados.nome} (${unidade(r.dados)})? O painel dele vai mostrar que a reserva foi cancelada.`, { confirmLabel: 'Cancelar reserva' }))) return
     try {
@@ -253,7 +268,7 @@ export default function Reservas() {
 
       <Acessos reservas={list ?? []} />
 
-      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => setAberta(null)} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} />}
+      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => setAberta(null)} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} onCancelarReforma={cancelarReforma} />}
       {config && (
         <Config
           cfg={cfg}
@@ -284,6 +299,7 @@ function Detalhe({
   onStatus,
   onData,
   onCancelar,
+  onCancelarReforma,
 }: {
   r: Reserva
   cfg: ReservaConfig
@@ -294,6 +310,7 @@ function Detalhe({
   onStatus: (r: Reserva, p: Partial<ReservaStatus>, aviso?: string) => Promise<Reserva>
   onData: (r: Reserva, d: string, h: string) => Promise<void>
   onCancelar: (r: Reserva) => Promise<void>
+  onCancelarReforma: (r: Reserva) => Promise<void>
 }) {
   const s = r.status
   const [d, setD] = useState(s.data ?? '')
@@ -571,6 +588,13 @@ function Detalhe({
           )}
           {rf.aprovadoEm ? (
             <>
+              <p className="rsv-auto small">
+                {rf.pedidoEm && Math.abs(new Date(rf.aprovadoEm).getTime() - new Date(rf.pedidoEm).getTime()) < 120000 ? 'Contratada pelo morador na reserva, com o valor da calculadora. ' : ''}
+                Confira os serviços: se algum não puder entrar na ART, cancele aqui (o valor sai do total, do financeiro e do painel).{' '}
+                <button className="link small" onClick={() => void onCancelarReforma(r)}>
+                  cancelar a ART de reforma
+                </button>
+              </p>
               <p className="small">
                 Aprovado em {dataCurta(rf.aprovadoEm)} · {money(Number(rf.valor ?? 0))}
                 {rf.termoAceito ? ` · termo de responsabilidade aceito em ${new Date(rf.termoAceito).toLocaleString('pt-BR')}` : ''}

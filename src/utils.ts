@@ -1,4 +1,4 @@
-import { EXTRA, harmonize } from './palette'
+import { EXTRA, RDL_COR, harmonize } from './palette'
 import { rdlMode } from './rdl'
 import { ARTIFACT } from './env'
 import { toast } from './components/dialog'
@@ -1078,4 +1078,15 @@ export function tableServices(st: Settings, t: PartnerTable) {
     const tiers = x.areaTiers?.length ? x.areaTiers : [{ upTo: 0, price: x.price }]
     return { ...x, areaTiers: tiers.map((y) => ({ ...y, price: Math.round(y.price * k * 2) / 2 })) }
   })
+}
+
+/* Sistema da RDL: etiquetas, colunas, prioridades e tipos nas cores da RDL (nada dos tons rosados). */
+if (rdlMode()) {
+  const troca = (o: Record<string, { color: string }>) => Object.values(o).forEach((x) => (x.color = RDL_COR[x.color.toLowerCase()] ?? x.color))
+  troca(STATUS)
+  troca(PRIORITY)
+  troca(EVENT_TYPES)
+  troca(QUOTE_STATUS)
+  for (const k of Object.keys(CLIENT_COLORS) as (keyof typeof CLIENT_COLORS)[]) CLIENT_COLORS[k] = RDL_COR[CLIENT_COLORS[k].toLowerCase()] ?? CLIENT_COLORS[k]
+  COLUMN_COLORS.forEach((c, i) => (COLUMN_COLORS[i] = RDL_COR[c.toLowerCase()] ?? c))
 }

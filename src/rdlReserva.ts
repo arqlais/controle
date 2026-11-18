@@ -114,6 +114,7 @@ export interface ReformaPedido {
   art?: string // link da ART de reforma
   prestador?: string // quem vai executar a obra (informado pelo morador)
   termoAceito?: string // quando aceitou o termo da ART de reforma
+  canceladaEm?: string // a RDL cancelou a ART de reforma (o valor sai do total)
 }
 export interface ReservaContrato {
   texto: string
@@ -412,7 +413,6 @@ export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: numb
   { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 40 },
   { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Pelo forro ou por canaleta, sem rasgar parede', mais: 40 },
   { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 20 },
-  { id: 'pintura', nome: 'Pintura', desc: 'Cor nova nas paredes e no teto', mais: 0 },
 ]
 /** Valor estimado: o primeiro serviço está no mínimo; os outros somam o valor de cada um. */
 export function calcReforma(ids: string[]): number {

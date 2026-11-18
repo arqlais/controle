@@ -2,6 +2,7 @@ import { withPanelShare } from '../clientPanel'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../store'
+import { corRdl } from '../palette'
 import { go, href } from '../router'
 import { Icon } from '../components/Icon'
 import { Badge, Empty, Field, Modal, MoreMenu, Section, Segmented } from '../components/ui'
@@ -28,7 +29,7 @@ import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../
 
 const STATUS: Record<ContractStatus, { label: string; color: string }> = {
   rascunho: { label: 'rascunho', color: '#9aa3ab' },
-  enviado: { label: 'enviado', color: '#b08a7e' },
+  enviado: { label: 'enviado', color: corRdl('#b08a7e') },
   assinado: { label: 'assinado', color: '#4f6475' },
 }
 

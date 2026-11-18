@@ -15,7 +15,7 @@ import { newArt } from './pages/Arts'
 import { RDL_SERVICES, rdlMode } from './rdl'
 import { servicesFor } from './clientDefaults'
 import { addDays, today, uid } from './utils'
-import { CONFIG_PADRAO, atualizarReserva, dadosPadrao, lerConfig, listarReservas, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
+import { CONFIG_PADRAO, atualizarReserva, avisarEmail, dadosPadrao, lerConfig, listarReservas, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
 import type { CalendarEvent, Data, Payment, Project } from './types'
 
 type Upsert = ReturnType<typeof useStore>['upsert']
@@ -86,6 +86,7 @@ function projetoDe(r: Reserva, cfg: ReservaConfig, clientId: string, antigo?: Pr
   }
 }
 
+const confirmados = new Set<string>()
 const igual = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 /** Liga cada reserva ao resto do sistema. Seguro de chamar várias vezes: só grava diferenças. */
@@ -123,6 +124,15 @@ export function sincronizarRdl(list: Reserva[], data: Data, upsert: Upsert, cfg:
 
     // 2. serviço + parcelas (financeiro): nasce quando a reserva está ativa; acompanha até cancelar
     const antigo = data.projects.find((x) => x.id === projetoId(r))
+    // sinal marcado como pago no financeiro: confirma a reserva (vaga garantida, contrato assinado pela RDL e e-mail ao morador)
+    const sinalPago = antigo?.payments.find((x) => x.id === `${projetoId(r)}-sinal`)?.paidDate
+    if (sinalPago && !r.status.sinal && !r.cancelada && !r.status.cortesia && !confirmados.has(r.id)) {
+      confirmados.add(r.id)
+      r.status = { ...r.status, sinal: sinalPago, contratada: new Date().toISOString() }
+      void atualizarReserva(r.id, { status: r.status })
+        .then(() => avisarEmail('sinal', r.id))
+        .catch(() => confirmados.delete(r.id))
+    }
     // saldo da vistoria marcado como pago no financeiro: a reserva também fica "vistoria feita e saldo pago"
     const saldoPago = antigo?.payments.find((x) => x.id === `${projetoId(r)}-saldo`)?.paidDate
     if (saldoPago && !r.status.quitado && !r.cancelada) {
@@ -142,6 +152,10 @@ export function sincronizarRdl(list: Reserva[], data: Data, upsert: Upsert, cfg:
     const lugar = `${cfg.empreendimento.replace(/\s*\(.*\)/, '')} · ${unidade(r.dados)}`
     if (servicosDe(r.dados).vistoria && (r.status.sinal || r.status.cortesia) && !temArt(/vistoria/i) && !arts.some((a) => a.notes.includes(r.id.slice(0, 8).toUpperCase()) && !/reforma/i.test(a.service)))
       upsert('arts', newArt({ id: `art-${r.id}-vistoria`, clientId: clienteId, clientName: p.nome, service: 'vistoria de entrega de chaves', place: lugar, contractValue: r.status.cortesia ? 0 : v.vistoria, notes: tag(r) }))
+    // ART de reforma cancelada pela RDL: a ART fica "baixada" no controle
+    if (r.status.reforma?.canceladaEm)
+      for (const a of arts.filter((x) => (x.id === `art-${r.id}-reforma` || x.notes.includes(tag(r))) && /reforma/i.test(x.service) && x.status !== 'baixada'))
+        upsert('arts', { ...a, status: 'baixada', notes: a.notes.includes('cancelada') ? a.notes : `${a.notes} · ART de reforma cancelada` })
     if (r.status.reforma?.aprovadoEm && !temArt(/reforma/i))
       upsert('arts', newArt({ id: `art-${r.id}-reforma`, clientId: clienteId, clientName: p.nome, service: 'ART de reforma + plano de reforma', place: lugar, contractValue: v.reforma, notes: `${tag(r)}${r.status.reforma.escopo ? ` · ${r.status.reforma.escopo}` : ''}` }))
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { rdlTab } from './rdl'
+import { rdlMode, rdlTab } from './rdl'
 import type { Settings } from './types'
 import { OLD_SLOGANS, PLATFORM } from './plans'
 import type { TabBrand } from './platform'
@@ -116,6 +116,26 @@ export function applyTheme(s: Settings, dark = false) {
   for (const v of Object.values(UI_VARS).flat()) root.style.removeProperty(v)
   if (!dark && s.uiColors) for (const [k, hex] of Object.entries(s.uiColors)) if (hex && UI_VARS[k]) for (const v of UI_VARS[k]) vars[v] = hex
   if (!dark && s.uiColors?.button) vars['--accent-contrast'] = luminance(s.uiColors.button) > 0.45 ? '#2b343c' : '#ffffff'
+  // sistema da RDL: tudo na identidade da RDL (azul-marinho, laranja e cinzas azulados), nada dos tons rosados
+  if (rdlMode() && !dark)
+    Object.assign(vars, {
+      '--bg': '#f4f6fa',
+      '--surface': '#ffffff',
+      '--surface-2': '#eef2f8',
+      '--sidebar-bg': '#eef2f8',
+      '--text': '#0f1b2d',
+      '--slate': '#0f1b2d',
+      '--muted': '#6b7a90',
+      '--border': '#e2e8f1',
+      '--accent': '#012c60',
+      '--accent-contrast': '#ffffff',
+      '--accent-soft': '#ffb26b',
+      '--accent-ink': '#e8710a',
+      '--accent-tint': '#eaf0f8',
+      '--good': '#012c60',
+      '--warn': '#e8710a',
+      '--bad': '#b85600',
+    })
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
   root.dataset.appTheme = dark ? 'dark' : 'light'
   // cantos em 0: deixa tudo reto, não só os cartões
