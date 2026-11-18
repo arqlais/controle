@@ -484,6 +484,9 @@ ${rows}${btn}
 </table></td></tr></table></body></html>`
 }
 type RdlCfg = { preco: number; individual?: number; minimo?: number; revistoria: number; periodo: string; pix: string; pixNome?: string; pixBanco?: string; empreendimento: string }
+/** Cupom exclusivo da loja planê.apê para quem pagou o sinal (igual a cupomRdl do site). */
+const cupomRdl = (id: string) => `RDL${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`
+
 function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const d = r.dados as Record<string, string | boolean>
   const nome = String(d.nome ?? '')
@@ -495,7 +498,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const svc = (d.servicos as unknown as { vistoria?: boolean; reforma?: boolean } | undefined) ?? {}
   const temVist = svc.vistoria !== false
   const temRef = !!svc.reforma
-  const valRef = temRef ? Math.max(250, Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 250)) : 0
+  const valRef = temRef ? Math.max(300, Number(d.reformaEstimativa ?? (r.status as Record<string, { valor?: number }>)?.reforma?.valor ?? 300)) : 0
   const metade = (temVist ? cfg.preco / 2 : 0) + valRef / 2
   const servTxt = [temVist ? 'vistoria de entrega' : '', temRef ? 'ART de reforma' : ''].filter(Boolean).join(' + ')
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
@@ -527,6 +530,14 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
 <p style="margin:0 0 8px;"><b style="color:#012C60;">O seu painel já está no ar.</b> É um link só seu, sem senha, que se atualiza sozinho. Nele você acompanha:</p>
 <p style="margin:0 0 12px;">${[temVist ? '• a data e o horário da vistoria' : '', '• o contrato assinado e os pagamentos', temVist ? '• o laudo com fotos e a ART da vistoria, assim que ficarem prontos' : '', temRef ? '• a ART de reforma e o plano de reforma para o condomínio' : '', '• o chat de dúvidas direto com a RDL'].filter(Boolean).join('<br>')}</p>
 ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.periodo)}), avise o Rogério <b>antes</b> de confirmar o horário com ela, para combinarem juntos.</p>` : ''}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 0;border-collapse:separate;"><tr><td style="background:#012C60;border-radius:16px;padding:18px 20px;color:#ffffff;">
+<span style="display:inline-block;background:#FF8216;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:1.5px;padding:4px 10px;border-radius:99px;">PRESENTE EXCLUSIVO</span>
+<p style="margin:10px 0 4px;font-size:21px;font-weight:700;line-height:1.2;color:#ffffff;">10% OFF na loja planê.apê</p>
+<p style="margin:0 0 12px;font-size:13px;color:#D6E0EE;">Para quem garantiu a vistoria: planilha de obra, guia de medidas, marcenaria, pisos e mais.</p>
+<p style="margin:0 0 12px;border:2px dashed #FF8216;border-radius:12px;padding:12px;text-align:center;font-size:24px;font-weight:700;letter-spacing:3px;color:#ffffff;">${cupomRdl(r.id)}</p>
+<a href="${SITE}ape/" style="display:block;background:#FF8216;color:#ffffff;text-decoration:none;text-align:center;font-weight:700;font-size:14px;padding:12px;border-radius:10px;">Usar na loja</a>
+<p style="margin:10px 0 0;font-size:11.5px;color:#B9C7DA;">Só seu: vale uma compra, em todos os arquivos. Cole no campo "cupom" ao pagar.</p>
+</td></tr></table>
 <p style="margin:12px 0 0;font-size:13px;color:#7A7F92;">Dica: salve este e-mail ou adicione o painel à tela inicial do celular para achar fácil depois.</p>`,
         rows: [...base, ['pago', `${brl(metade)} em ${dBR(s.sinal)}`], ['restante', `${brl((temVist ? cfg.preco : 0) + valRef - metade)}${temVist ? ' no dia da vistoria' : ' na entrega da ART'}`]],
         button: 'Abrir o meu painel',

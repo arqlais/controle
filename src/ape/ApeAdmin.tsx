@@ -1044,7 +1044,7 @@ function Loja({ ajustes, onSaved }: { ajustes: Ajustes; onSaved: (a: Ajustes) =>
   const [semJTxt, setSemJTxt] = useState(String(ajustes.semJurosMax ?? SEM_JUROS_MAX))
   const [taxas, setTaxas] = useState<Taxas>(ajustes.taxas || TAXAS)
   const [vend, setVend] = useState<Vendedor>(ajustes.vendedor || { nome: '', doc: '', cidade: '', email: '' })
-  const [cupons, setCupons] = useState<Cupom[]>(ajustes.cupons || CUPONS_PADRAO)
+  const [cupons, setCupons] = useState<Cupom[]>((ajustes.cupons || CUPONS_PADRAO).filter((c) => c.codigo.trim().toUpperCase() !== 'LANCAMENTO'))
   const [canva, setCanva] = useState<Record<string, string>>(ajustes.canva || {})
   const [soFaltam, setSoFaltam] = useState(true)
   const setCupom = (i: number, patch: Partial<Cupom>) => setCupons((l) => l.map((c, j) => (j === i ? { ...c, ...patch } : c)))

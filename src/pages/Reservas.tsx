@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon'
 import { DateInput } from '../components/DateInput'
 import { Badge, Empty, Field, Modal, Section, Segmented } from '../components/ui'
 import { ask, toast } from '../components/dialog'
-import { sincronizarRdl } from '../rdlSync'
+import { contaCliente, projetoId, sincronizarRdl } from '../rdlSync'
 import { LaudoEditor } from './RdlLaudo'
 import { abrirContratoPdf } from '../rdlContratoPdf'
 import { msgConfirmacao, reciboPdf, reciboPng } from '../rdlRecibo'
@@ -48,7 +48,7 @@ async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => 
 }
 import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
 import { PAL } from '../palette'
-import { money, today, whatsappLink } from '../utils'
+import { money, today, uid, whatsappLink } from '../utils'
 import {
   CONFIG_PADRAO,
   atualizarReserva,
@@ -289,7 +289,35 @@ export default function Reservas() {
   )
 }
 
-function Detalhe({
+/** Etapa da ficha: a atual fica aberta; as feitas viram uma linha (abre para ver as ações). */
+function Passo({ n, titulo, estado, resumo, aberto, children }: { n: number; titulo: string; estado: 'done' | 'now' | 'next'; resumo?: string; aberto?: boolean; children: React.ReactNode }) {
+  if (estado === 'done')
+    return (
+      <li className="done">
+        <details open={aberto}>
+          <summary>
+            <span className="rsv-n ok">
+              <Icon name="check" size={13} />
+            </span>
+            <b>{titulo}</b>
+            {resumo && <span className="rsv-res">{resumo}</span>}
+          </summary>
+          <div className="rsv-passo-in">{children}</div>
+        </details>
+      </li>
+    )
+  return (
+    <li className={estado}>
+      <div className="rsv-passo-h">
+        <span className="rsv-n">{n}</span>
+        <b>{titulo}</b>
+      </div>
+      {estado === 'now' ? <div className="rsv-passo-in">{children}</div> : <details className="rsv-depois"><summary>adiantar</summary><div className="rsv-passo-in">{children}</div></details>}
+    </li>
+  )
+}
+
+export function Detalhe({
   r,
   cfg,
   todas,
@@ -313,6 +341,24 @@ function Detalhe({
   onCancelarReforma: (r: Reserva) => Promise<void>
 }) {
   const s = r.status
+  const { data, upsert } = useStore()
+  const conta = contaCliente(r, cfg, data.projects)
+  const [cDesc, setCDesc] = useState('')
+  const [cVal, setCVal] = useState('')
+  const addCusto = () => {
+    const p = data.projects.find((x) => x.id === projetoId(r))
+    const n = Number(cVal.replace(/\./g, '').replace(',', '.'))
+    if (!p) return toast('O serviço deste morador ainda está sendo criado. Tente de novo em alguns segundos.')
+    if (!cDesc.trim() || !(n > 0)) return
+    upsert('projects', { ...p, costs: [...(p.costs ?? []), { id: uid(), date: today(), description: cDesc.trim(), category: 'outros', amount: n }] })
+    setCDesc('')
+    setCVal('')
+    toast('Custo lançado.')
+  }
+  const tiraCusto = (id: string) => {
+    const p = data.projects.find((x) => x.id === projetoId(r))
+    if (p) upsert('projects', { ...p, costs: (p.costs ?? []).filter((c) => c.id !== id) })
+  }
   const [d, setD] = useState(s.data ?? '')
   const [h, setH] = useState(s.hora ?? '')
   const [laudo, setLaudo] = useState(s.laudo ?? '')
@@ -337,58 +383,73 @@ function Detalhe({
   return (
     <Modal title={`${r.dados.nome} · ${unidade(r.dados)}`} onClose={onClose} wide>
       <div className="rsv-detail">
-        <div className="rsv-data">
-          <div>
-            <small>CPF</small>
-            <b>{r.dados.cpf}</b>
+        <div className="rsv-top">
+          <div className="rsv-top-l">
+            <span className={`rsv-fase f-${faseDe(r)}`}>{r.cancelada ? 'cancelada' : FASES[ORDEM.indexOf(faseDe(r))][1]}</span>
+            <span className="rdp-tags">
+              {servicosDe(r.dados).vistoria && <em>vistoria</em>}
+              {r.dados.revistoria && <em>revistoria combinada</em>}
+              {(servicosDe(r.dados).reforma || rf.aprovadoEm) && <em className="o">ART de reforma</em>}
+              {s.cortesia && <em>cortesia</em>}
+            </span>
           </div>
-          <div>
-            <small>WhatsApp</small>
-            <b>{r.dados.tel}</b>
-          </div>
-          <div>
-            <small>e-mail</small>
-            <b>{r.dados.email}</b>
-          </div>
-          <div>
-            <small>endereço atual</small>
-            <b>{r.dados.endereco}</b>
-          </div>
-          <div>
-            <small>reserva</small>
-            <b>
-              {new Date(r.criado).toLocaleString('pt-BR')} · nº {r.id.slice(0, 8).toUpperCase()}
-            </b>
-          </div>
-          <div>
-            <small>revistoria</small>
-            <b>{r.dados.revistoria ? `combinada (${money(cfg.revistoria)})` : 'não, por enquanto'}</b>
-          </div>
-          <div>
-            <small>planta</small>
-            <b>{r.dados.planta || 'não escolheu'}</b>
-          </div>
+          <dl className="rsv-money">
+            <div>
+              <dt>total</dt>
+              <dd>{s.cortesia ? '—' : money(vv.total)}</dd>
+            </div>
+            <div>
+              <dt>pago</dt>
+              <dd>{s.cortesia ? 'cortesia' : money(pagoDe(r, cfg))}</dd>
+            </div>
+            <div>
+              <dt>falta</dt>
+              <dd>{s.cortesia ? '—' : money(Math.max(0, vv.total - pagoDe(r, cfg)))}</dd>
+            </div>
+          </dl>
         </div>
 
-        <div className="row gap-s wrap">
+        <div className="rsv-contato">
+          <a className="btn small" href={whatsappLink(r.dados.tel, `Oi, ${r.dados.nome.split(' ')[0]}! Aqui é o Rogério, da RDL Engenharia.`)} target="_blank" rel="noreferrer">
+            <Icon name="whatsapp" size={14} /> {r.dados.tel}
+          </a>
+          <a className="btn small ghost" href={`mailto:${r.dados.email}`}>
+            <Icon name="mail" size={14} /> e-mail
+          </a>
           <button className="btn small ghost" onClick={() => void abrirContratoPdf(r).then((ok) => ok || toast('Não foi possível gerar o PDF. Tente de novo.'))}>
-            <Icon name="printer" size={14} /> contrato assinado (PDF)
-          </button>
-          <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(painel).then(() => toast('Link do painel copiado.'))}>
-            <Icon name="copy" size={14} /> link do painel
+            <Icon name="printer" size={14} /> contrato
           </button>
           <a className="btn small ghost" href={painel} target="_blank" rel="noreferrer">
-            <Icon name="eye" size={14} /> abrir painel
+            <Icon name="eye" size={14} /> painel
           </a>
+          <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(painel).then(() => toast('Link do painel copiado.'))} title="Copiar o link do painel">
+            <Icon name="copy" size={14} /> link
+          </button>
         </div>
 
+        <details className="rsv-dados">
+          <summary>dados do morador</summary>
+          <dl>
+            <dt>CPF</dt>
+            <dd>{r.dados.cpf}</dd>
+            <dt>e-mail</dt>
+            <dd>{r.dados.email}</dd>
+            <dt>endereço atual</dt>
+            <dd>{r.dados.endereco}</dd>
+            <dt>planta</dt>
+            <dd>{r.dados.planta || 'não escolheu'}</dd>
+            <dt>revistoria</dt>
+            <dd>{r.dados.revistoria ? `combinada (${money(cfg.revistoria)}, no dia)` : 'não, por enquanto'}</dd>
+            <dt>reserva</dt>
+            <dd>
+              nº {r.id.slice(0, 8).toUpperCase()} · {new Date(r.criado).toLocaleString('pt-BR')}
+            </dd>
+          </dl>
+        </details>
+
         <ol className="rsv-steps">
-          <li className={s.sinal ? 'done' : 'now'}>
-            <b>1 · pagamento de {money(vv.agora)} (Pix)</b>
-            <label className="row gap-s small">
-              <input type="checkbox" checked={!!s.cortesia} onChange={(e) => void onStatus(r, { cortesia: e.target.checked ? 'sim' : '' }, e.target.checked ? 'Cortesia: não paga e não conta no grupo.' : 'Voltou a contar no grupo.')} />
-              cortesia (família): não paga, não conta no grupo e não recebe cobrança
-            </label>
+          <Passo n={1} titulo={s.cortesia ? 'cortesia' : `sinal de ${money(vv.agora)} (Pix)`} estado={s.sinal || s.cortesia ? 'done' : 'now'} aberto={!!s.sinal && !s.data} resumo={s.cortesia ? 'não paga' : s.sinal ? `recebido ${dataCurta(s.sinal)} · ${money(Number(s.valorPago) || vv.agora)}` : ''}>
+            {s.cortesia && <span className="muted small">Cortesia (família): não paga, não conta no grupo e não recebe cobrança.</span>}
             {s.sinal && (
               <div className="row gap-s wrap">
                 <button className="btn small" disabled={recibo === 'gerando'} onClick={() => void mandarRecibo(r, cfg, setRecibo)}>
@@ -405,17 +466,14 @@ function Detalhe({
                 </button>
               </div>
             )}
-            {s.sinal ? (
-              <p>
-                Recebido em {dataCurta(s.sinal)}.{' '}
-                <button className="link small" onClick={() => void onStatus(r, { sinal: '', contratada: '' }, 'Sinal desmarcado.')}>
-                  desfazer
-                </button>
-              </p>
-            ) : null}
             {s.sinal && !s.cortesia ? (
               <label className="rsv-valor">
-                valor que caiu na conta
+                <span className="muted">
+                  valor que caiu na conta ·{' '}
+                  <button type="button" className="link small" onClick={() => void onStatus(r, { sinal: '', contratada: '' }, 'Sinal desmarcado.')}>
+                    desfazer o recebido
+                  </button>
+                </span>
                 <span>
                   R${' '}
                   <input
@@ -453,9 +511,8 @@ function Detalhe({
                 <span className="muted small">A reserva cancela sozinha se o sinal não entrar em 7 dias (no 5º dia sai um lembrete automático).</span>
               </div>
             )}
-          </li>
-          <li className={s.data ? 'done' : s.sinal ? 'now' : ''}>
-            <b>2 · data da vistoria</b>
+          </Passo>
+          <Passo n={2} titulo="data da vistoria" estado={s.data ? 'done' : s.sinal || s.cortesia ? 'now' : 'next'} aberto={!!s.data && !s.quitado} resumo={s.data ? `${dataCurta(s.data)}${s.hora ? ` às ${s.hora}` : ''}` : ''}>
             <p className="muted small">Previsão da MRV: {cfg.periodo}. Ao salvar, a data aparece no painel do morador e na agenda.</p>
             {d && occ.length > 0 && (
               <p className="muted small">
@@ -472,7 +529,7 @@ function Detalhe({
                 )}
               </p>
             )}
-            <div className="row gap-s wrap">
+            <div className="rsv-date-row">
               <DateInput value={d} onChange={(e) => setD(e.target.value)} />
               <select value={h} onChange={(e) => setH(e.target.value)} aria-label="Horário">
                 <option value="">horário</option>
@@ -500,15 +557,13 @@ function Detalhe({
                 </div>
               )}
             </div>
-          </li>
-          <li className={s.quitado ? 'done' : s.data ? 'now' : ''}>
-            <b>3 · vistoria e saldo de {money(vv.vistoria - vv.sinalVistoria)}</b>
+          </Passo>
+          <Passo n={3} titulo={`vistoria e saldo de ${money(vv.vistoria - vv.sinalVistoria)}`} estado={s.quitado ? 'done' : s.data ? 'now' : 'next'} resumo={s.quitado ? `feita e paga · ${dataCurta(s.quitado)}` : ''}>
             <label className="row gap-s">
               <input type="checkbox" checked={!!s.quitado} onChange={(e) => void onStatus(r, { quitado: e.target.checked ? today() : '' }, e.target.checked ? 'Quitado.' : undefined)} /> vistoria feita e saldo pago
             </label>
-          </li>
-          <li className={s.laudo ? 'done' : s.quitado ? 'now' : ''}>
-            <b>4 · laudo e ART</b>
+          </Passo>
+          <Passo n={4} titulo="laudo e ART" estado={s.laudo ? 'done' : s.quitado || (s.data && s.data < today()) ? 'now' : 'next'} resumo={s.laudo ? `laudo publicado${s.laudoEm ? ` · ${dataCurta(s.laudoEm)}` : ''}${s.art ? ' · ART no painel' : ''}` : ''}>
             <p className="muted small">Monte o laudo aqui mesmo, pelo celular, durante a vistoria: itens, fotos e testes. Ao publicar, ele aparece no painel do morador e vai o e-mail.</p>
             <div className="row gap-s wrap">
               <button className="btn small" onClick={() => setEditor(true)}>
@@ -559,19 +614,51 @@ function Detalhe({
                 }}
               />
             )}
-          </li>
+          </Passo>
           {r.dados.revistoria && (
-            <li className={s.revistoriaData ? 'done' : ''}>
-              <b>5 · revistoria</b>
+            <Passo n={5} titulo="revistoria" estado={s.revistoriaData ? 'done' : s.laudo ? 'now' : 'next'} aberto resumo={s.revistoriaData ? dataCurta(s.revistoriaData) : ''}>
               <div className="row gap-s wrap">
                 <DateInput value={rev} onChange={(e) => setRev(e.target.value)} />
                 <button className="btn small" disabled={rev === (s.revistoriaData ?? '')} onClick={() => void onStatus(r, { revistoriaData: rev }, 'Revistoria salva e e-mail enviado.').then(() => rev && void avisarEmail('revistoria', r.id))}>
                   salvar
                 </button>
               </div>
-            </li>
+            </Passo>
           )}
         </ol>
+
+        <details className="rsv-custo">
+          <summary>
+            <b>custo e lucro</b>
+            <span>
+              receita {money(conta.receita)} · custos {money(conta.custo)} · <strong>lucro {money(conta.lucro)}</strong>
+            </span>
+          </summary>
+          <ul>
+            {conta.lista.map((c) => (
+              <li key={c.id}>
+                <span>{c.description}</span>
+                <b>{money(c.amount)}</b>
+                {c.id.includes('-taxa-') ? (
+                  <small className="muted">automático</small>
+                ) : (
+                  <button className="link small" onClick={() => tiraCusto(c.id)}>
+                    tirar
+                  </button>
+                )}
+              </li>
+            ))}
+            {!conta.lista.length && <li className="muted small">Sem custos ainda. A taxa da ART entra sozinha quando o sinal é confirmado.</li>}
+          </ul>
+          <div className="rsv-custo-add">
+            <input value={cDesc} onChange={(e) => setCDesc(e.target.value)} placeholder="outro custo (ex.: Uber, estacionamento, impressão)" />
+            <input inputMode="decimal" value={cVal} onChange={(e) => setCVal(e.target.value)} placeholder="R$" />
+            <button className="btn small" disabled={!cDesc.trim() || !cVal} onClick={addCusto}>
+              lançar
+            </button>
+          </div>
+          <small className="muted">A taxa de cada ART segue o valor do controle de ARTs (se mudar lá, muda aqui).</small>
+        </details>
 
         <div className="rsv-reforma card">
           <b>
@@ -654,6 +741,21 @@ function Detalhe({
         <Field label="anotações internas (o morador não vê)">
           <textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} onBlur={() => obs !== (s.obs ?? '') && void onStatus(r, { obs })} />
         </Field>
+        <details className="rsv-mais">
+          <summary className="muted small">mais opções</summary>
+          <label className="row gap-s small">
+            <input
+              type="checkbox"
+              checked={!!s.cortesia}
+              onChange={async (e) => {
+                const on = e.target.checked
+                if (on && !(await ask(`Marcar ${r.dados.nome} como cortesia (família)? Não paga, não conta no grupo e não recebe cobrança.`, { confirmLabel: 'Marcar cortesia' }))) return
+                void onStatus(r, { cortesia: on ? 'sim' : '' }, on ? 'Cortesia: não paga e não conta no grupo.' : 'Voltou a contar no grupo.')
+              }}
+            />
+            cortesia (família): não paga, não conta no grupo e não recebe cobrança
+          </label>
+        </details>
         <div className="row between wrap gap-s">
           <button className="link small" onClick={() => void onCancelar(r)}>
             {r.cancelada ? 'reativar reserva' : 'cancelar reserva'}
@@ -1040,6 +1142,11 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
   const [busca, setBusca] = useState('')
   const [canceladas, setCanceladas] = useState(false)
   const ativas = lista.filter((r) => !r.cancelada)
+  const projetos = useStore().data.projects
+  const somaConta = ativas.reduce((t, r) => {
+    const c = contaCliente(r, cfg, projetos)
+    return { receita: t.receita + c.receita, custo: t.custo + c.custo, lucro: t.lucro + c.lucro }
+  }, { receita: 0, custo: 0, lucro: 0 })
   const t = busca.trim().toLowerCase()
   const filtra = (l: Reserva[]) => (t ? l.filter((r) => `${r.dados.nome} ${unidade(r.dados)} ${r.dados.tel}`.toLowerCase().includes(t)) : l)
   const doGrupo = ativas.filter((r) => !r.status.cortesia && servicosDe(r.dados).vistoria)
@@ -1124,6 +1231,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
                 <th>data</th>
                 <th className="r">pago</th>
                 <th className="r">falta</th>
+                <th className="r">lucro</th>
               </tr>
             </thead>
             <tbody>
@@ -1148,11 +1256,15 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
                     <td>{r.status.data ? `${dataCurta(r.status.data)} ${r.status.hora ?? ''}` : '—'}</td>
                     <td className="r">{r.status.cortesia ? 'cortesia' : money(pago)}</td>
                     <td className="r">{r.status.cortesia ? '—' : money(v.total - pago)}</td>
+                    <td className="r">{money(contaCliente(r, cfg, projetos).lucro)}</td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+          <p className="rdp-resumo">
+            receita prevista <b>{money(somaConta.receita)}</b> · custos (ARTs e outros) <b>{money(somaConta.custo)}</b> · lucro previsto <b>{money(somaConta.lucro)}</b>
+          </p>
           <label className="row gap-s small muted rdp-canc">
             <input type="checkbox" checked={canceladas} onChange={(e) => setCanceladas(e.target.checked)} /> mostrar canceladas
           </label>

@@ -402,23 +402,26 @@ export async function avisarEmail(evento: 'pago' | 'reserva' | 'sinal' | 'data' 
 }
 
 /* ---------- ART de reforma: o morador marca o que vai fazer e vê o valor na hora ---------- */
-/** Mínimo de R$ 250 (ART da reforma como responsável técnico + plano de reforma para o condomínio, com 1 serviço).
- *  Cada serviço a mais soma o valor dele. Nada que mexa nas paredes (concreto estrutural). */
-export const REFORMA_MIN = 250
+/** ART de reforma: base de R$ 300 (ART como responsável técnico + plano de reforma para o condomínio)
+ *  mais o valor de cada serviço, conforme a complexidade. Quem contrata a vistoria junto ganha desconto.
+ *  Condição San Levi: os valores podem mudar com o tempo. Nada que mexa nas paredes (concreto estrutural). */
+export const REFORMA_BASE = 300
+export const REFORMA_DESC_VISTORIA = 50
 export const REFORMA_ITENS: { id: string; nome: string; desc: string; mais: number }[] = [
-  { id: 'piso', nome: 'Piso na sala e nos quartos', desc: 'Vêm no contrapiso: vinílico, laminado ou porcelanato', mais: 30 },
-  { id: 'revest', nome: 'Trocar piso ou azulejo da cozinha ou banheiro', desc: 'Retirar a cerâmica da MRV e colocar outra', mais: 40 },
-  { id: 'armarios', nome: 'Armários e marcenaria', desc: 'Cozinha, quartos e banheiro, com fixação segura', mais: 30 },
-  { id: 'bancada', nome: 'Bancada de pedra', desc: 'Cozinha, banheiro ou área de serviço', mais: 30 },
-  { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 40 },
-  { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Pelo forro ou por canaleta, sem rasgar parede', mais: 40 },
-  { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 20 },
+  { id: 'piso', nome: 'Piso na sala e nos quartos', desc: 'Vêm no contrapiso: vinílico, laminado ou porcelanato', mais: 40 },
+  { id: 'armarios', nome: 'Armários e marcenaria', desc: 'Cozinha, quartos e banheiro, com fixação segura', mais: 40 },
+  { id: 'loucas', nome: 'Louças, metais e box', desc: 'Vaso, cuba, torneiras, chuveiro e box', mais: 50 },
+  { id: 'bancada', nome: 'Bancada de pedra', desc: 'Cozinha, banheiro ou área de serviço (peso e fixação)', mais: 50 },
+  { id: 'gesso', nome: 'Forro de gesso ou sanca', desc: 'Rebaixar o teto, sanca ou cortineiro', mais: 60 },
+  { id: 'revest', nome: 'Trocar piso ou azulejo da cozinha ou banheiro', desc: 'Retirar a cerâmica da MRV (mexe na impermeabilização)', mais: 80 },
+  { id: 'luz', nome: 'Iluminação e tomadas', desc: 'Elétrica pelo forro ou por canaleta, sem rasgar parede', mais: 80 },
 ]
-/** Valor estimado: o primeiro serviço está no mínimo; os outros somam o valor de cada um. */
-export function calcReforma(ids: string[]): number {
-  const itens = REFORMA_ITENS.filter((i) => ids.includes(i.id)).sort((a, b) => b.mais - a.mais)
-  if (!itens.length) return REFORMA_MIN
-  return REFORMA_MIN + itens.slice(1).reduce((t, i) => t + i.mais, 0)
+/** Menor valor possível (base + o serviço mais simples), sem o desconto da vistoria. */
+export const REFORMA_MIN = REFORMA_BASE + Math.min(...REFORMA_ITENS.map((i) => i.mais))
+/** Valor: base + cada serviço marcado; com a vistoria junto, sai o desconto. */
+export function calcReforma(ids: string[], comVistoria = false): number {
+  const soma = REFORMA_ITENS.filter((i) => ids.includes(i.id)).reduce((t, i) => t + i.mais, 0)
+  return REFORMA_BASE + soma - (comVistoria ? REFORMA_DESC_VISTORIA : 0)
 }
 /** Termo da ART de reforma: o morador aceita no painel antes de aprovar o orçamento (protege o responsável técnico). */
 export const TERMO_REFORMA = [
@@ -702,3 +705,6 @@ export function abrirContrato(r: Pick<Reserva, 'contrato' | 'status' | 'id'>, de
   w.document.close()
   return true
 }
+
+/** Cupom exclusivo da loja planê.apê para quem pagou o sinal (10%, uma compra por CPF). O servidor da loja confere. */
+export const cupomRdl = (id: string) => `RDL${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`

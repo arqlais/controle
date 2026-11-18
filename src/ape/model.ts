@@ -622,12 +622,20 @@ export function liquido(total: number, forma: 'pix' | 'cartao', t: Taxas = TAXAS
  *  e o Pix ganha PIX_PCT% sobre o total. Um arquivo que já está num kit do carrinho sai, para não pagar duas vezes. */
 /** Cupom de desconto (painel → produtos e preços). Vale para as frentes listadas (vazio = todas) até a data. */
 export interface Cupom { codigo: string; pct: number; ate?: string; frentes?: Frente[]; ativo?: boolean }
-/** Cupom de lançamento das vitrines novas (o painel troca ou desliga). */
-export const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 10, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
+/** Cupons fixos: nenhum (o de lançamento saiu). O painel da loja ainda pode criar outros. */
+export const CUPONS_PADRAO: Cupom[] = []
+/** Cupons que saíram e não valem mais, mesmo se ficaram salvos. */
+export const CUPONS_FORA = ['LANCAMENTO']
+/** Cupom exclusivo de quem pagou o sinal da vistoria da RDL: "RDL" + 6 letras/números da reserva, 10%.
+ *  Na loja ele é aceito pelo formato; o servidor confere se a reserva existe e tem o sinal pago. */
+export const CUPOM_RDL = /^RDL[0-9A-F]{6}$/
+export const CUPOM_RDL_PCT = 10
 export const hojeISO = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
 /** Acha um cupom válido (ativo, dentro da data). A mesma regra roda no servidor. */
 export function acharCupom(cupons: Cupom[] | undefined, codigo: string, hoje = hojeISO()): Cupom | null {
-  const c = (cupons || []).find((x) => x.ativo !== false && x.codigo.trim().toUpperCase() === codigo.trim().toUpperCase())
+  const cod = codigo.trim().toUpperCase()
+  if (CUPOM_RDL.test(cod)) return { codigo: cod, pct: CUPOM_RDL_PCT, ativo: true }
+  const c = (cupons || []).find((x) => x.ativo !== false && !CUPONS_FORA.includes(x.codigo.trim().toUpperCase()) && x.codigo.trim().toUpperCase() === cod)
   if (!c || !(c.pct > 0) || c.pct > 50) return null
   return c.ate && hoje > c.ate ? null : c
 }

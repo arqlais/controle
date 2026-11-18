@@ -75,10 +75,14 @@ for (const [id, [nome, preco]] of Object.entries(BELEZA_ARQUIVOS)) if (!EXTRAS[i
 const KITS_EXTRAS = [KIT_ARQ, KIT_BELEZA, ...BELEZA_KITS]
 /* cupons (painel → produtos e preços); sem nenhum salvo, vale o de lançamento das vitrines novas. Mesma regra de src/ape/model.ts */
 type Cupom = { codigo: string; pct: number; ate?: string; frentes?: string[]; ativo?: boolean }
-const CUPONS_PADRAO: Cupom[] = [{ codigo: 'LANCAMENTO', pct: 10, ate: '2026-12-31', frentes: ['arquivos', 'arq'], ativo: true }]
+// o cupom de lançamento saiu (não vale mais, mesmo se ficou salvo no painel)
+const CUPONS_PADRAO: Cupom[] = []
+const CUPONS_FORA = ['LANCAMENTO']
+// cupom exclusivo de quem pagou o sinal da vistoria da RDL: RDL + 6 primeiros caracteres da reserva
+const CUPOM_RDL = /^RDL[0-9A-F]{6}$/
 function acharCupom(cupons: Cupom[], codigo: string): Cupom | null {
   const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)
-  const c = cupons.find((x) => x.ativo !== false && String(x.codigo).trim().toUpperCase() === codigo.trim().toUpperCase())
+  const c = cupons.find((x) => x.ativo !== false && !CUPONS_FORA.includes(String(x.codigo).trim().toUpperCase()) && String(x.codigo).trim().toUpperCase() === codigo.trim().toUpperCase())
   if (!c || !(Number(c.pct) > 0) || Number(c.pct) > 50) return null
   return c.ate && hoje > c.ate ? null : { ...c, pct: Number(c.pct) }
 }
@@ -213,7 +217,15 @@ export function makeApe({ db, asaas, json, site, env }: Deps) {
     if (falta.length) return json({ erro: `Confira: ${falta.join(', ')}.` }, 400)
     if (body.aceite !== true) return json({ erro: 'Aceite os termos de uso antes de pagar.' }, 400)
     const { map, pixPct, cartaoPct, semJurosMax, cupons } = await loja()
-    const cupom = body.cupom ? acharCupom(cupons, String(body.cupom).slice(0, 40)) : null
+    const cod = String(body.cupom ?? '').trim().toUpperCase().slice(0, 40)
+    let cupom = cod && !CUPOM_RDL.test(cod) ? acharCupom(cupons, cod) : null
+    if (CUPOM_RDL.test(cod)) {
+      // confere na RDL: reserva ativa com o sinal pago (ou cortesia)
+      const { data: rs } = await db.from('rdl_reservas').select('id,status').eq('cancelada', false)
+      const ok = (rs ?? []).some((x: { id: string; status?: Record<string, unknown> }) => x.id.replace(/-/g, '').slice(0, 6).toUpperCase() === cod.slice(3) && !!(x.status?.sinal || x.status?.cortesia))
+      if (!ok) return json({ erro: `O cupom ${cod} não é válido (ele vale para quem pagou o sinal da vistoria da RDL). Tire o cupom para continuar.` }, 400)
+      cupom = { codigo: cod, pct: 10, ativo: true }
+    }
     // cada cupom vale uma vez por CPF (compras pagas; pedido que não foi pago não conta)
     if (cupom) {
       const { data: usados } = await db.from('ape_pedidos').select('id').eq('cpf', cpf).eq('cupom', cupom.codigo).eq('status', 'pago').limit(1)

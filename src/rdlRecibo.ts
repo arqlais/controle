@@ -1,6 +1,6 @@
 import { RDL_LOGO } from './rdlLogo'
 import { ASSINATURA_RDL } from './rdlAssinatura'
-import { RDL_INFO, linkPainel, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
+import { RDL_INFO, cupomRdl, linkPainel, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
 
 /* Recibo do sinal da vistoria, no mesmo visual da proposta enviada aos moradores (azul-marinho, laranja, Poppins).
    Vira imagem (PNG, para mandar no WhatsApp) e PDF (A4). */
@@ -198,6 +198,8 @@ export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
     sv.vistoria && '📅 Quando a MRV liberar as datas, me avise *antes* de confirmar o horário com eles.',
     sv.reforma && '📐 A ART cobre só os serviços informados. Se mudar algo na obra, me avise antes.',
     `Seu painel: ${linkPainel(r)}`,
+    '',
+    `🎁 Presente: 10% na loja planê.apê (planilhas e guias para a obra) com o cupom *${cupomRdl(r.id)}*`,
     '',
     'Segue o recibo 👇',
   ]

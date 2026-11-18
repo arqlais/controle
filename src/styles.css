@@ -2699,3 +2699,55 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .brand.rdl-brand2 .brand-kicker { line-height: 1.2; margin: 0; }
 .brand.rdl-brand2 .brand-name { font-size: 16px; line-height: 1.15; }
 .rsv-auto { background: #eaf0f8; border-radius: 10px; padding: 8px 10px; }
+.rsv-mais summary { cursor: pointer; padding: 4px 0; } .rsv-mais[open] summary { margin-bottom: 6px; }
+
+/* ficha do morador (RDL): resumo no topo, contato numa linha, dados recolhidos e etapas enxutas */
+.rsv-top { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; background: #f4f7fb; border: 1px solid #e2e8f1; border-radius: 14px; padding: 12px 14px; }
+.rsv-top-l { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rsv-fase { align-self: flex-start; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px; background: #012c60; color: #fff; }
+.rsv-fase.f-sinal, .rsv-fase.f-conferir, .rsv-fase.f-laudo { background: #ff8216; }
+.rsv-fase.f-pronto { background: #eaf0f8; color: #012c60; }
+.rsv-money { display: grid; grid-template-columns: repeat(3, auto); gap: 4px 18px; margin: 0; }
+.rsv-money div { display: flex; flex-direction: column; }
+.rsv-money dt { font-size: 11px; color: var(--muted); }
+.rsv-money dd { margin: 0; font-weight: 700; font-size: 15px; color: #0f1b2d; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rsv-contato { display: flex; flex-wrap: wrap; gap: 6px; }
+.rsv-dados { border: 1px solid #e2e8f1; border-radius: 12px; padding: 0 12px; }
+.rsv-dados summary { cursor: pointer; padding: 10px 0; font-size: 13px; font-weight: 600; color: #012c60; }
+.rsv-dados dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0 0 12px; font-size: 13px; }
+.rsv-dados dt { color: var(--muted); }
+.rsv-dados dd { margin: 0; overflow-wrap: anywhere; }
+.rsv-steps li { padding: 10px 12px; gap: 8px; }
+.rsv-steps li.now { border-color: #ff8216; box-shadow: inset 3px 0 0 #ff8216; background: #fff; }
+.rsv-steps li.done { background: #f4f7fb; border-color: #e2e8f1; }
+.rsv-steps li.next { opacity: 0.75; }
+.rsv-steps li details > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rsv-steps li details > summary::-webkit-details-marker { display: none; }
+.rsv-passo-h { display: flex; align-items: center; gap: 10px; }
+.rsv-n { width: 24px; height: 24px; flex: none; border-radius: 8px; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: #eaf0f8; color: #012c60; }
+.rsv-steps li.now .rsv-n { background: #ff8216; color: #fff; }
+.rsv-n.ok { background: #012c60; color: #fff; }
+.rsv-res { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+.rsv-passo-in { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.rsv-depois summary { cursor: pointer; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.rsv-date-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 150px) auto; gap: 8px; align-items: center; }
+.rsv-date-row > :nth-child(n + 4) { grid-column: 1 / -1; }
+@media (max-width: 560px) {
+  .rsv-date-row { grid-template-columns: 1fr 1fr; }
+  .rsv-date-row > button { grid-column: 1 / -1; }
+  .rsv-money { width: 100%; grid-template-columns: repeat(3, 1fr); }
+  .rsv-res { margin-left: 34px; width: 100%; }
+}
+.rsv-custo { border: 1px solid #e2e8f1; border-radius: 12px; padding: 0 12px; }
+.rsv-custo > summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 6px 12px; flex-wrap: wrap; padding: 10px 0; font-size: 13px; }
+.rsv-custo > summary b { color: #012c60; }
+.rsv-custo > summary span { color: var(--muted); }
+.rsv-custo > summary strong { color: #012c60; }
+.rsv-custo ul { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.rsv-custo li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; }
+.rsv-custo-add { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto; gap: 6px; margin-bottom: 8px; }
+.rsv-custo > small { display: block; margin-bottom: 10px; font-size: 11.5px; }
+.rdp-resumo { margin: 0; padding: 10px 12px; font-size: 13px; color: var(--muted); border-top: 1px solid #e2e8f1; }
+.rdp-resumo b { color: #012c60; }
+@media (max-width: 560px) { .rsv-custo-add { grid-template-columns: 1fr 90px; } .rsv-custo-add button { grid-column: 1 / -1; } }
+.rsv-valor > span.muted { font-weight: 400; color: var(--muted); }

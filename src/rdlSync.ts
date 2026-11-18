@@ -16,7 +16,7 @@ import { RDL_SERVICES, rdlMode } from './rdl'
 import { servicesFor } from './clientDefaults'
 import { addDays, today, uid } from './utils'
 import { CONFIG_PADRAO, atualizarReserva, avisarEmail, dadosPadrao, lerConfig, listarReservas, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
-import type { CalendarEvent, Data, Payment, Project } from './types'
+import type { ArtRecord, CalendarEvent, Data, Payment, Project, ProjectCost } from './types'
 
 type Upsert = ReturnType<typeof useStore>['upsert']
 
@@ -51,6 +51,26 @@ function parcelas(r: Reserva, cfg: ReservaConfig, antigo?: Project): Payment[] {
   })
 }
 
+export const TAXA_ART = 108.39
+/** Custos de cada cliente: a taxa de cada ART (vistoria e reforma, pelo valor do controle de ARTs) + o que a RDL lançar à mão. */
+function custos(r: Reserva, antigo: Project | undefined, arts: ArtRecord[]): ProjectCost[] {
+  const pid = projetoId(r)
+  const manuais = (antigo?.costs ?? []).filter((c) => !c.id.startsWith(`${pid}-taxa-`))
+  const out: ProjectCost[] = []
+  const taxa = (tipo: 'vistoria' | 'reforma') => arts.find((a) => a.id === `art-${r.id}-${tipo}`)?.fee ?? TAXA_ART
+  if (servicosDe(r.dados).vistoria && (r.status.sinal || r.status.cortesia)) out.push({ id: `${pid}-taxa-vistoria`, date: dia(r.status.sinal) || dia(r.criado), description: 'taxa da ART da vistoria (CREA)', category: 'ART', amount: taxa('vistoria') })
+  if (r.status.reforma?.aprovadoEm && !r.status.reforma.canceladaEm) out.push({ id: `${pid}-taxa-reforma`, date: dia(r.status.reforma.aprovadoEm), description: 'taxa da ART de reforma (CREA)', category: 'ART', amount: taxa('reforma') })
+  return [...out, ...manuais]
+}
+/** Receita, custos e lucro previstos de um cliente (custos já lançados no serviço dele). */
+export function contaCliente(r: Reserva, cfg: ReservaConfig, projetos: Project[]) {
+  const v = valoresDe(r, cfg)
+  const receita = r.status.cortesia || r.cancelada ? 0 : v.total
+  const lista = projetos.find((x) => x.id === projetoId(r))?.costs ?? []
+  const custo = lista.reduce((t, c) => t + (c.amount || 0), 0)
+  return { receita, custo, lucro: receita - custo, lista }
+}
+
 function statusDe(r: Reserva): Project['status'] {
   if (r.cancelada) return 'cancelado'
   const s = r.status
@@ -63,7 +83,7 @@ function statusDe(r: Reserva): Project['status'] {
   return 'briefing'
 }
 
-function projetoDe(r: Reserva, cfg: ReservaConfig, clientId: string, antigo?: Project): Project {
+function projetoDe(r: Reserva, cfg: ReservaConfig, clientId: string, antigo: Project | undefined, arts: ArtRecord[]): Project {
   const sv = servicosDe(r.dados)
   const v = valoresDe(r, cfg)
   const nomes = [sv.vistoria && 'Vistoria de entrega', (sv.reforma || r.status.reforma?.aprovadoEm) && 'ART de reforma'].filter(Boolean).join(' + ')
@@ -82,6 +102,7 @@ function projetoDe(r: Reserva, cfg: ReservaConfig, clientId: string, antigo?: Pr
     value: r.status.cortesia ? 0 : v.total,
     discount: 0,
     payments: parcelas(r, cfg, antigo),
+    costs: custos(r, antigo, arts),
     noPhone: true,
   }
 }
@@ -140,7 +161,7 @@ export function sincronizarRdl(list: Reserva[], data: Data, upsert: Upsert, cfg:
       void atualizarReserva(r.id, { status: r.status }).catch(() => undefined)
     }
     if (antigo || !r.cancelada) {
-      const novo = projetoDe(r, cfg, clienteId, antigo)
+      const novo = projetoDe(r, cfg, clienteId, antigo, data.arts ?? [])
       if (!antigo || !igual(novo, antigo)) upsert('projects', novo)
     }
     if (r.cancelada) continue

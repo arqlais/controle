@@ -42,6 +42,9 @@ import {
   REFORMA_ITENS,
   REFORMA_MIN,
   calcReforma,
+  cupomRdl,
+  REFORMA_BASE,
+  REFORMA_DESC_VISTORIA,
   reformaItensTexto,
   TERMO_REFORMA,
   termoReformaTexto,
@@ -80,6 +83,7 @@ const P: Record<string, string> = {
   arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  alert: '<path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17.5h.01"/>',
   lock: '<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
   hammer: '<path d="M14 6l4 4M3 21l9-9M12 4l8 8-2 2-8-8z"/>',
   home: '<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>',
@@ -91,6 +95,7 @@ const P: Record<string, string> = {
   mail: '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M4 7l8 6 8-6"/>',
   play: '<path d="M8 5l11 7-11 7z"/>',
   bag: '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
+  gift: '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9"/><path d="M12 8H7.5a2.5 2.5 0 1 1 0-5C11 3 12 8 12 8zM12 8h4.5a2.5 2.5 0 1 0 0-5C13 3 12 8 12 8z"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01"/>',
   send: '<path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/>',
   list: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
@@ -432,9 +437,9 @@ function ReformaInfo({ recolhido }: { recolhido?: boolean } = {}) {
   )
 }
 
-/** Calculadora da ART de reforma: marca o que vai fazer e o valor muda na hora (mínimo de R$ 250). */
-function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: string[]; onItens: (v: string[]) => void; detalhe: string; onDetalhe: (v: string) => void; bad?: boolean }) {
-  const total = calcReforma(itens)
+/** Calculadora da ART de reforma: base + cada serviço; com a vistoria junto, desconto. */
+function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad, comVistoria = false }: { itens: string[]; onItens: (v: string[]) => void; detalhe: string; onDetalhe: (v: string) => void; bad?: boolean; comVistoria?: boolean }) {
+  const total = calcReforma(itens, comVistoria)
   const toggle = (id: string) => onItens(itens.includes(id) ? itens.filter((x) => x !== id) : [...itens, id])
   return (
     <div className={`rv-calc ${bad ? 'bad' : ''}`}>
@@ -457,6 +462,7 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
                 <b>{i.nome}</b>
                 <small>{i.desc}</small>
               </span>
+              <em className="mais">+{brl(i.mais)}</em>
             </button>
           )
         })}
@@ -470,7 +476,10 @@ function ReformaCalc({ itens, onItens, detalhe, onDetalhe, bad }: { itens: strin
           <small>VALOR ESTIMADO</small>
           <b>{brl(total)}</b>
         </div>
-        <span>ART + plano de reforma, com a taxa do CREA. A obra é feita por quem você contratar. {itens.length > 1 ? `${itens.length} serviços.` : `A partir de ${brl(REFORMA_MIN)}.`}</span>
+        <span>
+          ART + plano {brl(REFORMA_BASE)} + {itens.length === 1 ? '1 serviço' : `${itens.length || 'os'} serviços`}
+          {comVistoria ? ` − ${brl(REFORMA_DESC_VISTORIA)} da vistoria` : ''}. Taxa do CREA inclusa. Valor do San Levi: pode mudar com o tempo.
+        </span>
       </div>
       <p className="rv-calc-nota">
         <I n="shield" s={14} /> O Rogério confere o que você marcou. Se algum serviço não puder entrar na ART, ele avisa: a ART de reforma pode ser ajustada ou cancelada, e o valor sai do total.
@@ -624,6 +633,35 @@ function Loja() {
         </em>
       </span>
     </a>
+  )
+}
+
+/** Presente de quem garantiu a vistoria: cupom exclusivo de 10% na loja planê.apê. */
+function CupomLoja({ id }: { id: string }) {
+  const codigo = cupomRdl(id)
+  const [ok, setOk] = useState(false)
+  return (
+    <section className="rv-cupom">
+      <span className="rv-cupom-tag">
+        <I n="gift" s={14} /> PRESENTE EXCLUSIVO
+      </span>
+      <b className="rv-cupom-t">10% OFF na loja planê.apê</b>
+      <p>Para quem garantiu a vistoria: planilha de obra, guia de medidas, marcenaria, pisos e mais.</p>
+      <button
+        type="button"
+        className="rv-cupom-cod"
+        onClick={() => {
+          void navigator.clipboard?.writeText(codigo).then(() => setOk(true))
+        }}
+      >
+        <span>{codigo}</span>
+        <em>{ok ? 'copiado' : 'copiar'}</em>
+      </button>
+      <a className="rv-btn wide" href="ape/" target="_blank" rel="noreferrer">
+        Usar na loja <I n="arrow" s={14} />
+      </a>
+      <small>Só seu: vale uma compra, em todos os arquivos. Cole no campo "cupom" ao pagar.</small>
+    </section>
   )
 }
 
@@ -789,6 +827,12 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
             Seu apê novo merece ser <span>recebido do jeito certo</span>
           </h1>
           <p>Antes de assinar com a MRV, um engenheiro confere tudo com você. O que estiver errado fica no laudo, com fotos e ART.</p>
+          <div className="rv-importa">
+            <I n="alert" s={16} />
+            <span>
+              <b>Não é obrigatória, mas faz toda a diferença.</b> Depois que você assina o termo de recebimento da MRV, fica bem mais difícil provar que o defeito já estava lá. A vistoria é a sua chance de registrar tudo antes.
+            </span>
+          </div>
           <div className="rv-row center-row">
             <a className="rv-btn" href={reservar} onClick={() => rastrear('clicou', { alvo: 'reservar (topo)' })}>
               <I n="key" /> Reservar minha vistoria
@@ -818,10 +862,16 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
 
         <section className="rv-offers" id="valores" data-sec="valores">
           <div className="rv-sec-head">
-            <small>VALORES EXCLUSIVOS DO SAN LEVI</small>
+            <small>CONDIÇÃO ESPECIAL SAN LEVI</small>
             <h2>Escolha o que você precisa</h2>
             <p>Contrate um, o outro ou os dois.</p>
           </div>
+          <p className="rv-condicao">
+            <I n="clock" s={15} />
+            <span>
+              <b>Não precisa fechar agora.</b> Mas estes valores são uma condição do San Levi e podem mudar com o tempo. Quem contrata antes garante o valor de hoje e o horário na agenda.
+            </span>
+          </p>
           <div className="rv-offer hi">
             <div className="rv-offer-head">
               <span className="ib">
@@ -856,7 +906,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               <strong>
                 <em>a partir de</em> {brl(REFORMA_MIN)}
               </strong>
-              <span>depende do que você vai fazer</span>
+              <span>conforme os serviços · {brl(REFORMA_DESC_VISTORIA)} off com a vistoria</span>
             </div>
             <a className="rv-btn" href={teste ? '#/vistoria/teste-reservar' : '#/vistoria/so-reforma'} onClick={() => rastrear('clicou', { alvo: 'ART de reforma' })}>
               Simular e contratar <I n="arrow" />
@@ -990,6 +1040,9 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </h2>
           <div className="rv-faq-list">
           {[
+            ['A vistoria é obrigatória?', 'Não é obrigatória. Mas é muito recomendada: depois que você assina o termo de recebimento da MRV, fica bem mais difícil provar que um defeito (piso oco, ralo sem caimento, tomada sem energia, infiltração) já estava lá. Com o laudo e a ART, fica tudo registrado para a MRV consertar na garantia.'],
+            ['Preciso fechar agora?', 'Não. Você pode contratar quando quiser. Só que estes valores são uma condição do San Levi e podem mudar com o tempo, e a agenda segue a ordem das reservas. Fechar antes garante o valor de hoje e o seu horário.'],
+            ['Preciso fechar a ART de reforma agora?', `Não. Pode contratar só quando for fazer a obra. Fechar agora garante o valor de hoje (e ${brl(REFORMA_DESC_VISTORIA)} de desconto com a vistoria). A ART mesmo só é gerada perto da reforma, com as datas e os serviços certos.`],
             ['Por que fazer a vistoria antes de receber as chaves?', 'Para a MRV, você recebe o apê ao assinar o termo de recebimento. Com o laudo em mãos antes disso, tudo o que estiver errado fica registrado para ela consertar, dentro da garantia.'],
             ['Quando a MRV entrega?', 'O contrato da MRV prevê a entrega para 31/10/2026, com prazo máximo em 30/04/2027. Ela avisa por e-mail quando o apê estiver pronto para a vistoria.'],
             ['A MRV ainda não marcou a minha data. Posso reservar?', `Pode, e é o ideal. A reserva guarda a sua vaga na agenda. Quando a MRV liberar a data (previsão: ${cfg.periodo}), você combina o horário com o Rogério.`],
@@ -1136,7 +1189,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
     const itens = s2.reforma ? d.reformaItens ?? [] : []
     const txt = s2.reforma ? [reformaItensTexto(itens).join(', '), (d.reforma ?? '').trim()].filter(Boolean).join('. ') : ''
     const dp = dadosPadrao(d)
-    return { ...dp, endereco: enderecoCompleto(dp), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens) : undefined }
+    return { ...dp, endereco: enderecoCompleto(dp), revistoria: s2.vistoria ? d.revistoria : false, reforma: txt, reformaItens: itens, reformaEstimativa: s2.reforma ? calcReforma(itens, s2.vistoria) : undefined }
   }, [d])
   const texto = useMemo(() => contratoTexto(dc, cfg), [dc, cfg])
   const v = valores(dc, cfg)
@@ -1285,7 +1338,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                   {sv.reforma && (
                     <div className="rv-pick-body">
                       <ReformaInfo recolhido />
-                      <ReformaCalc itens={d.reformaItens ?? []} onItens={(x) => set('reformaItens', x)} detalhe={d.reforma ?? ''} onDetalhe={(x) => set('reforma', x)} bad={tried && faltaReforma} />
+                      <ReformaCalc itens={d.reformaItens ?? []} onItens={(x) => set('reformaItens', x)} detalhe={d.reforma ?? ''} onDetalhe={(x) => set('reforma', x)} bad={tried && faltaReforma} comVistoria={sv.vistoria} />
                     </div>
                   )}
                 </div>
@@ -1721,7 +1774,7 @@ function Reassinar({ r, cfg, id, token, onFeito }: { r: Reserva; cfg: ReservaCon
   const [erro, setErro] = useState('')
   const d: ReservaDados = useMemo(() => {
     const txt = reforma ? [reformaItensTexto(itens).join(', '), detalhe.trim()].filter(Boolean).join('. ') : ''
-    return { ...r.dados, servicos: { vistoria: servicosDe(r.dados).vistoria, reforma }, reforma: txt, reformaItens: reforma ? itens : [], reformaEstimativa: reforma ? calcReforma(itens) : undefined }
+    return { ...r.dados, servicos: { vistoria: servicosDe(r.dados).vistoria, reforma }, reforma: txt, reformaItens: reforma ? itens : [], reformaEstimativa: reforma ? calcReforma(itens, servicosDe(r.dados).vistoria) : undefined }
   }, [r.dados, reforma, itens, detalhe])
   const texto = useMemo(() => contratoTexto(d, cfg), [d, cfg])
   const v = valores(d, cfg)
@@ -1775,7 +1828,7 @@ function Reassinar({ r, cfg, id, token, onFeito }: { r: Reserva; cfg: ReservaCon
             {reforma && (
               <div className="rv-pick-body">
                 <ReformaInfo recolhido />
-                <ReformaCalc itens={itens} onItens={setItens} detalhe={detalhe} onDetalhe={setDetalhe} />
+                <ReformaCalc itens={itens} onItens={setItens} detalhe={detalhe} onDetalhe={setDetalhe} comVistoria={servicosDe(r.dados).vistoria} />
               </div>
             )}
           </div>
@@ -1920,12 +1973,12 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
     if ((!rfItens.length && pedido.trim().length < 3) || enviando) return
     setEnviando(true)
     if (teste) {
-      setR({ ...r, status: { ...s, reforma: { pedido: [reformaItensTexto(rfItens).join(', '), pedido.trim()].filter(Boolean).join('. '), itens: rfItens, estimativa: calcReforma(rfItens), pedidoEm: new Date().toISOString() } } })
+      setR({ ...r, status: { ...s, reforma: { pedido: [reformaItensTexto(rfItens).join(', '), pedido.trim()].filter(Boolean).join('. '), itens: rfItens, estimativa: calcReforma(rfItens, servicosDe(r.dados).vistoria), pedidoEm: new Date().toISOString() } } })
       setEnviando(false)
       return
     }
     const txt = [reformaItensTexto(rfItens).join(', '), pedido.trim()].filter(Boolean).join('. ')
-    const ok = await moradorAcao(id, token, 'reforma-pedido', { pedido: txt, itens: rfItens, estimativa: calcReforma(rfItens) })
+    const ok = await moradorAcao(id, token, 'reforma-pedido', { pedido: txt, itens: rfItens, estimativa: calcReforma(rfItens, servicosDe(r.dados).vistoria) })
     setEnviando(false)
     if (!ok) return setMsg('Não consegui enviar agora. Tente de novo ou chame o Rogério no WhatsApp.')
     void avisarEmail('reforma-pedido', id, token)
@@ -2348,9 +2401,9 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                     <p className="rv-alert">
                       <I n="info" s={15} /> <span>No San Levi as paredes são de concreto e <b>estruturais</b>: não dá para derrubar nem rasgar parede para passar cano ou fio.</span>
                     </p>
-                    <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} />
+                    <ReformaCalc itens={rfItens} onItens={setRfItens} detalhe={pedido} onDetalhe={setPedido} comVistoria={servicosDe(r.dados).vistoria} />
                     <button className="rv-btn wide3" disabled={(!rfItens.length && pedido.trim().length < 3) || enviando} onClick={() => void pedirReforma()}>
-                      <I n="arrow" /> <span>Pedir por {brl(calcReforma(rfItens))}</span>
+                      <I n="arrow" /> <span>Pedir por {brl(calcReforma(rfItens, servicosDe(r.dados).vistoria))}</span>
                     </button>
                   </>
                 )}
@@ -2400,6 +2453,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           </section>
         )}
 
+        {(s.sinal || s.cortesia) && !r.cancelada && <CupomLoja id={r.id} />}
         <section className="rv-card rv-help">
           <h2 className="rv-h2">
             <I n="chat" s={18} /> Precisa de ajuda?
@@ -2414,7 +2468,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
           </div>
           <p className="rv-fine">Guarde este link: é o seu acesso a tudo. Reserva nº {r.id.slice(0, 8).toUpperCase()}.</p>
         </section>
-        <Loja />
+        {!(s.sinal || s.cortesia) && <Loja />}
 
           </div>
         </div>
