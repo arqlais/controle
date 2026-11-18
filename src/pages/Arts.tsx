@@ -45,9 +45,9 @@ export default function Arts() {
     <div className="page">
       <div className="page-head">
         <div>
-          <p className="eyebrow">documentos</p>
+          <p className="eyebrow">RDL Engenharia · CREA-SP</p>
           <h1>
-            ARTs <em>&amp; RRTs</em>
+            ARTs <em>da RDL</em>
           </h1>
         </div>
         <div className="row gap-s wrap head-acts">
@@ -84,7 +84,7 @@ export default function Arts() {
         <Empty
           icon="hardhat"
           title={arts.length ? 'nenhum registro nesta situação' : 'nenhum registro ainda'}
-          text="Registre cada ART ou RRT: cliente, imóvel, número, taxa e situação. Assim você sabe o que falta emitir, o que falta pagar e quanto gastou em taxas no ano."
+          text="Registre cada ART: cliente, imóvel, número, taxa e situação. Assim você sabe o que falta emitir, o que falta pagar e quanto gastou em taxas no ano."
           action={!arts.length && <button className="btn primary" onClick={() => setEditing('nova')}>registrar a primeira</button>}
         />
       ) : (
@@ -107,7 +107,7 @@ export default function Arts() {
                     <div className="list-sub">{a.place || 'imóvel não informado'}</div>
                   </td>
                   <td data-label="serviço">
-                    <KeepRS text={`${a.kind} · ${a.service}`} />
+                    <KeepRS text={a.service} />
                   </td>
                   <td className="hide-mobile">{a.number || <span className="muted">a preencher</span>}</td>
                   <td className="num" data-label="taxa">
@@ -187,16 +187,6 @@ function ArtForm({ initial, onClose }: { initial?: ArtRecord; onClose: () => voi
     >
       <DraftNote d={draft} />
       <div className="form-grid">
-        <Field group label="Registro">
-          <Segmented<'ART' | 'RRT'>
-            value={a.kind}
-            onChange={(v) => set('kind', v)}
-            options={[
-              { value: 'ART', label: <KeepRS text="ART (CREA)" /> },
-              { value: 'RRT', label: <KeepRS text="RRT (CAU)" /> },
-            ]}
-          />
-        </Field>
         <Field label="Situação">
           <select value={a.status} onChange={(e) => set('status', e.target.value as ArtStatus)}>
             {STATUS.map((s) => (
