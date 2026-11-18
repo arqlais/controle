@@ -123,6 +123,12 @@ export function sincronizarRdl(list: Reserva[], data: Data, upsert: Upsert, cfg:
 
     // 2. serviço + parcelas (financeiro): nasce quando a reserva está ativa; acompanha até cancelar
     const antigo = data.projects.find((x) => x.id === projetoId(r))
+    // saldo da vistoria marcado como pago no financeiro: a reserva também fica "vistoria feita e saldo pago"
+    const saldoPago = antigo?.payments.find((x) => x.id === `${projetoId(r)}-saldo`)?.paidDate
+    if (saldoPago && !r.status.quitado && !r.cancelada) {
+      r.status = { ...r.status, quitado: saldoPago }
+      void atualizarReserva(r.id, { status: r.status }).catch(() => undefined)
+    }
     if (antigo || !r.cancelada) {
       const novo = projetoDe(r, cfg, clienteId, antigo)
       if (!antigo || !igual(novo, antigo)) upsert('projects', novo)
