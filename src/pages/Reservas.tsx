@@ -216,7 +216,7 @@ export default function Reservas({ id }: { id?: string }) {
   const ativas = (list ?? []).filter((r) => !r.cancelada)
   const doGrupo = ativas.filter((r) => !r.status.cortesia && r.dados.servicos?.vistoria !== false)
   const link = linkReserva()
-  const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\n👥 Já são *${doGrupo.length} de ${cfg.minimo || 10}* apartamentos. Com ${cfg.minimo || 10}, todo mundo paga *${money(cfg.preco)}* (em vez de ${money(cfg.individual)}).\n\n✍️ É só abrir o link, preencher os dados, escolher a planta e assinar o contrato pelo celular (uns 3 minutos).\n💳 Sinal de ${money(cfg.preco / 2)} em até 7 dias garante a vaga.\n📅 Previsão da MRV: ${cfg.periodo}. Quem reserva antes escolhe o horário antes.\n\n${link}`
+  const textoGrupo = `Pessoal, as reservas da vistoria de entrega de chaves estão abertas! 🔑\n\n👥 ${doGrupo.length >= (cfg.minimo || 10) ? `O grupo de ${cfg.minimo || 10} já completou!` : `Já são *${doGrupo.length} de ${cfg.minimo || 10}* apartamentos.`} Com ${cfg.minimo || 10}, todo mundo paga *${money(cfg.preco)}* (em vez de ${money(cfg.individual)}).\n\n✍️ É só abrir o link, preencher os dados, escolher a planta e assinar o contrato pelo celular (uns 3 minutos).\n💳 Sinal de ${money(cfg.preco / 2)} em até 7 dias garante a vaga.\n📅 Previsão da MRV: ${cfg.periodo}. Quem reserva antes escolhe o horário antes.\n\n${link}`
 
   return (
     <div className="page rsv">

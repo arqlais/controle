@@ -180,8 +180,8 @@ function Teste({ children }: { children?: ReactNode }) {
 function Grupo({ g, cfg, compact }: { g: GrupoInfo; cfg: ReservaConfig; compact?: boolean }) {
   const e = estadoGrupo(g, cfg)
   const n = g.reservas
-  const extra = Math.max(0, n - e.min)
-  const titulo = e.fechado ? `Grupo fechado · ${n} ${n === 1 ? 'reserva' : 'reservas'}` : `${Math.min(n, e.min)} de ${e.min} reservados`
+  // passou do mínimo: não mostra mais quantos são (só "grupo fechado"/"10 de 10")
+  const titulo = e.fechado ? 'Grupo fechado' : `${Math.min(n, e.min)} de ${e.min} reservados`
   const sub = e.fechado
     ? `Valor garantido: todos pagam ${brl(cfg.preco)}, inclusive quem reservar agora`
     : e.cheio
@@ -205,7 +205,6 @@ function Grupo({ g, cfg, compact }: { g: GrupoInfo; cfg: ReservaConfig; compact?
           </i>
         ))}
       </div>
-      {extra > 0 && <p className="rv-group-extra">+{extra} {extra === 1 ? 'morador entrou' : 'moradores entraram'} depois que o grupo completou</p>}
       {!compact && !e.fechado && e.cheio && <p>O valor de grupo fica garantido quando os {e.min} pagarem o sinal. Quem ainda não pagou: o Pix está no seu painel.</p>}
       {!compact && !e.fechado && !e.cheio && <p>Se não fechar o grupo, a diferença de {brl(cfg.individual - cfg.preco)} entra no restante, no dia da vistoria.</p>}
     </section>

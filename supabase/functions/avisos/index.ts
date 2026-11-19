@@ -551,7 +551,8 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0, pagos = 0) {
   const ind = cfg.individual ?? 297
   const planta = String(d.planta ?? '')
   const base: [string, string][] = [['morador', nome], ['unidade', `${emp} · ${un}`], ...(planta ? [['planta', planta] as [string, string]] : []), ['reserva', `nº ${r.id.slice(0, 8).toUpperCase()}`]]
-  const grupoTxt = pagos >= min ? `O grupo já fechou (${grupo} reservas): o valor de grupo (${brl(cfg.preco)}) está garantido para você também.` : grupo >= min ? `O grupo já tem ${grupo} reservas; o valor de grupo (${brl(cfg.preco)}) fica garantido quando ${min} pagarem o sinal (${pagos} já pagaram).` : `O grupo está com ${grupo} de ${min} reservas. Com ${min}, todos pagam ${brl(cfg.preco)}; se não chegar, a diferença para ${brl(ind)} entra no restante, no dia da vistoria.`
+  // passou do mínimo: o morador não vê mais quantos são
+  const grupoTxt = pagos >= min ? `O grupo já fechou: o valor de grupo (${brl(cfg.preco)}) está garantido para você também.` : grupo >= min ? `O grupo já completou ${min} reservas; o valor de grupo (${brl(cfg.preco)}) fica garantido quando as ${min} pagarem o sinal.` : `O grupo está com ${grupo} de ${min} reservas. Com ${min}, todos pagam ${brl(cfg.preco)}; se não chegar, a diferença para ${brl(ind)} entra no restante, no dia da vistoria.`
   return {
     reserva: {
       subject: `Contrato assinado: ${servTxt} · ${un}`,
@@ -559,7 +560,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0, pagos = 0) {
         eyebrow: 'reserva da vistoria',
         title: `Recebemos a sua reserva, ${pn}!`,
         text: `<p style="margin:0 0 12px;">O seu contrato (${esc(servTxt)}) foi assinado e está guardado no seu painel.</p><p style="margin:0;"><b>Para garantir</b>, falta o sinal de <b>${brl(metade)}</b>, em até 7 dias (sem o sinal, a reserva é cancelada sozinha)${cfg.pix ? `, no Pix <b>${esc(cfg.pix)}</b>` : ''}. Depois de pagar, toque em <b>Já paguei</b> no seu painel: o Rogério confere e confirma.</p>${temVist ? `<p style="margin:12px 0 0;">${grupoTxt}</p>` : ''}`,
-        rows: [...base, ['serviços', servTxt], ['total', brl((temVist ? precoV : 0) + valRef)], ['agora no Pix', brl(metade)], ...(temVist ? ([['previsão da MRV', cfg.periodo], ['grupo', `${grupo} de ${min} reservas`]] as [string, string][]) : []), ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
+        rows: [...base, ['serviços', servTxt], ['total', brl((temVist ? precoV : 0) + valRef)], ['agora no Pix', brl(metade)], ...(temVist ? ([['previsão da MRV', cfg.periodo], ['grupo', pagos >= min ? 'fechado' : `${Math.min(grupo, min)} de ${min} reservas`]] as [string, string][]) : []), ['revistoria', d.revistoria ? `combinada (${brl(cfg.revistoria)}, paga no dia)` : 'não, por enquanto']],
         button: 'Abrir o meu painel',
         url: painel,
       }),
@@ -630,7 +631,7 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
         eyebrow: 'grupo fechado',
         title: `${pn}, o grupo fechou!`,
         text: `<p style="margin:0 0 12px;">${min} apartamentos do ${esc(emp)} já pagaram o sinal. Com isso, o valor de grupo está <b>garantido</b>: a sua vistoria fica em <b>${brl(precoV)}</b>, sem a diferença de ${brl(ind - cfg.preco)} do valor individual (cláusula 4.3).</p><p style="margin:0;">${s.sinal ? 'O seu sinal já está confirmado. O restante é pago no dia da vistoria, por Pix.' : `Para manter a sua vaga, falta o sinal de <b>${brl(metade)}</b>${prazoPix ? ` até <b>${prazoPix}</b>` : ''}. O Pix está no seu painel.`} Assim que a MRV liberar a agenda, combinamos a data com você.</p>`,
-        rows: [...base, ['vistoria', `${brl(precoV)} (valor de grupo)`], ['grupo', `${grupo} reservas · ${pagos} sinais pagos`]],
+        rows: [...base, ['vistoria', `${brl(precoV)} (valor de grupo)`], ['grupo', 'fechado']],
         button: 'Abrir o meu painel',
         url: painel,
       }),
