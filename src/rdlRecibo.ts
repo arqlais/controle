@@ -56,14 +56,17 @@ export function partesPagas(r: Reserva, cfg: ReservaConfig) {
 export type TipoRecibo = 'sinal' | 'vistoria' | 'reforma'
 export const TIPOS_RECIBO: Record<TipoRecibo, string> = { sinal: 'do sinal', vistoria: 'da vistoria concluída', reforma: 'da ART de reforma' }
 
-export function reciboHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal') {
+/** t: textos editados no editor ao vivo (valor, data, título, selo, serviço, observação). */
+export function reciboHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal', t: Record<string, string | undefined> = {}) {
+  const tt = (k: string) => (t[k] ?? '').trim()
   const d = r.dados
   const sv = servicosDe(d)
   const v = valoresR(r, cfg)
   const pp = partesPagas(r, cfg)
   const quando =
-    (tipo === 'vistoria' ? dBR(r.status.quitado) || dBR(r.status.data) : tipo === 'reforma' ? dBR(r.status.reformaPago) : dBR(r.status.sinal)) || dBR(new Date().toISOString())
-  const pago = tipo === 'vistoria' ? pp.saldoV : tipo === 'reforma' ? pp.saldoR : v.agora
+    tt('data') || (tipo === 'vistoria' ? dBR(r.status.quitado) || dBR(r.status.data) : tipo === 'reforma' ? dBR(r.status.reformaPago) : dBR(r.status.sinal)) || dBR(new Date().toISOString())
+  const valorEditado = Number(tt('valor').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.'))
+  const pago = valorEditado > 0 ? valorEditado : tipo === 'vistoria' ? pp.saldoV : tipo === 'reforma' ? pp.saldoR : v.agora
   const resta = tipo === 'sinal' ? v.total - pago : 0
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
   const num = r.id.slice(0, 8).toUpperCase()
@@ -89,21 +92,23 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 's
           ['Vistoria', tipo === 'vistoria' ? 'feita e quitada' : 'com o engenheiro', tipo === 'vistoria'],
           ['Laudo + ART', r.status.laudo ? 'no seu painel' : 'até 4 dias úteis', !!r.status.laudo],
         ]
-  const titulo = tipo === 'vistoria' ? 'RECIBO DE QUITAÇÃO' : tipo === 'reforma' ? 'RECIBO · ART DE REFORMA' : 'RECIBO'
-  const selo =
+  const titulo = esc(tt('titulo').toUpperCase()) || (tipo === 'vistoria' ? 'RECIBO DE QUITAÇÃO' : tipo === 'reforma' ? 'RECIBO · ART DE REFORMA' : 'RECIBO')
+  const seloPadrao =
     tipo === 'vistoria' ? ['Vistoria concluída', `quitada · ${quando}`] : tipo === 'reforma' ? ['ART de reforma paga', pp.sinalR ? `saldo · ${quando}` : `pagamento · ${quando}`] : ['Vaga garantida', `sinal de 50% · ${quando}`]
+  const selo = [tt('selo') || seloPadrao[0], tt('seloSub') || seloPadrao[1]]
   const tot =
     tipo === 'vistoria'
       ? [['VISTORIA', brl(v.vistoria)], ['SINAL (ANTES)', brl(pp.sinalV)], ['PAGO AGORA', brl(pago)]]
       : tipo === 'reforma'
         ? [['ART DE REFORMA', brl(v.reforma)], ['PAGO ANTES', brl(pp.sinalR)], ['PAGO AGORA', brl(pago)]]
         : [['TOTAL', brl(v.total)], ['PAGO AGORA', brl(pago)], [sv.vistoria ? 'RESTANTE NO DIA' : 'RESTANTE NA ENTREGA', brl(resta)]]
-  const nota =
+  const notaPadrao =
     tipo === 'vistoria'
       ? `<b>Serviço quitado.</b> O laudo com fotos e a ART ficam no seu painel em até 4 dias úteis. Revistoria, se precisar, em até 90 dias (${brl(cfg.revistoria)}). Contrato nº ${num}.`
       : tipo === 'reforma'
         ? `<b>A ART cobre só os serviços informados.</b> Entregue o plano de reforma ao prestador e avise o Rogério antes de qualquer serviço fora dele. Contrato nº ${num}.`
         : `Quando a MRV liberar as datas, <b>avise o Rogério antes de confirmar o horário com ela</b>, para combinarem juntos. Contrato nº ${num}, assinado pelas duas partes.`
+  const nota = tt('nota') ? esc(tt('nota')).replace(/\*([^*]+)\*/g, '<b>$1</b>') : notaPadrao
   const campo = (k: string, val: string) => `<div class="f"><small>${k}</small><b>${esc(val)}</b></div>`
   return `<div class="rc">
 <style>
@@ -157,11 +162,11 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 's
 .rc .foot{background:#012C60;color:#fff;padding:22px 80px;display:flex;justify-content:space-between;font-size:15px}
 .rc .foot span{opacity:.85}
 </style>
-<div class="top"><img src="${RDL_LOGO}" alt=""><div class="r"><small>${titulo}</small><b>Nº ${num}${tipo === 'vistoria' ? '-Q' : tipo === 'reforma' ? '-A' : ''}</b><span>emitido em ${esc(quando)}</span></div></div>
+<div class="top"><img src="${RDL_LOGO}" alt=""><div class="r"><small>${titulo}</small><b>Nº ${esc(tt('numero')) || `${num}${tipo === 'vistoria' ? '-Q' : tipo === 'reforma' ? '-A' : ''}`}</b><span>emitido em ${esc(quando)}</span></div></div>
 <div class="body">
   <div class="val">
     <div><small>VALOR RECEBIDO · PIX</small><strong>${brl(pago)}</strong><p>${esc(porExtenso(pago))}</p></div>
-    <div class="ok"><span>✓</span><b>${selo[0]}</b><em>${esc(selo[1])}</em></div>
+    <div class="ok"><span>✓</span><b>${esc(selo[0])}</b><em>${esc(selo[1])}</em></div>
   </div>
   <div class="grid">
     ${campo('Recebido de', d.nome)}${campo('CPF', d.cpf)}${campo('Telefone', d.tel)}
@@ -184,11 +189,11 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 's
 }
 
 /** Gera o recibo como imagem PNG (1080 × 1527, proporção A4). */
-export async function reciboPng(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal'): Promise<Blob> {
+export async function reciboPng(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal', t: Record<string, string | undefined> = {}): Promise<Blob> {
   const { toBlob } = await import('html-to-image')
   const box = document.createElement('div')
   box.style.cssText = 'position:fixed;left:-20000px;top:0;z-index:-1'
-  box.innerHTML = reciboHtml(r, cfg, tipo)
+  box.innerHTML = reciboHtml(r, cfg, tipo, t)
   document.body.appendChild(box)
   try {
     await document.fonts.ready
@@ -248,11 +253,11 @@ export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
 }
 
 /** Recibo como página para abrir, editar e imprimir (A4), com as fontes da proposta. */
-export function reciboDocHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal') {
+export function reciboDocHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal', t: Record<string, string | undefined> = {}) {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Recibo · ${esc(r.dados.nome)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Herr+Von+Muellerhoff&display=swap" rel="stylesheet">
 <style>@page{size:A4;margin:0}body{margin:0;background:#d9dce3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{width:1080px;margin:24px auto;box-shadow:0 8px 30px rgba(1,44,96,.15)}
-@media print{body{background:#fff}.pg{margin:0;box-shadow:none;zoom:.735}}</style></head><body><div class="pg">${reciboHtml(r, cfg, tipo)}</div></body></html>`
+@media print{body{background:#fff}.pg{margin:0;box-shadow:none;zoom:.735}}</style></head><body><div class="pg">${reciboHtml(r, cfg, tipo, t)}</div></body></html>`
 }
 
 /** Mensagem do fim da vistoria: agradece, confirma a quitação e pede a avaliação (vai junto com o recibo de quitação). */

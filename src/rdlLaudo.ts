@@ -1,6 +1,6 @@
 import { publishPublicBlob, supabase } from './cloud'
 import { RDL_ID } from './rdl'
-import { laudoHtml, type Gravidade, type LaudoData, type LaudoFoto, type Teste } from './rdlDocs'
+import { AMBIENTES_SAN_LEVI, laudoHtml, type Gravidade, type LaudoData, type LaudoFoto, type Teste } from './rdlDocs'
 import { VISTORIA_CHECKLIST } from './vistoriaChecklist'
 import { linkPainelBase, unidade, type Reserva, type ReservaConfig } from './rdlReserva'
 
@@ -28,6 +28,7 @@ export interface LaudoRascunho {
   testes: Record<string, Teste>
   naoVerificados: string
   obs: string
+  textos?: Record<string, string> // textos da capa editados no editor ao vivo (documentos)
   atualizado?: string
   /** checklist digital: "ambiente|quadro|nº da pergunta" → ok, falha ou não se aplica */
   check?: Record<string, Teste>
@@ -36,8 +37,8 @@ export interface LaudoRascunho {
 }
 
 /** Ambientes do apê do San Levi (2 quartos). Dá para tirar ou incluir no laudo. */
-export const AMBIENTES_APE = ['Sala', 'Cozinha', 'Lavanderia', 'Quarto 1', 'Quarto 2', 'Banheiro', 'Corredor']
-export const AMBIENTES_EXTRA = ['Sacada / Varanda', 'Garagem', 'Lavabo', 'Escritório']
+export const AMBIENTES_APE = [...AMBIENTES_SAN_LEVI]
+export const AMBIENTES_EXTRA = ['Corredor', 'Sacada / Varanda', 'Garagem', 'Lavabo', 'Escritório']
 
 export const rascunhoVazio = (): LaudoRascunho => ({ ambientes: [...AMBIENTES_APE], itens: [], gerais: [], testes: {}, naoVerificados: '', obs: '' })
 
@@ -95,7 +96,7 @@ export function laudoDe(r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>):
     fotosLink: l.fotosLink,
   }
 }
-export const htmlDoLaudo = (r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>) => laudoHtml(laudoDe(r, cfg))
+export const htmlDoLaudo = (r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>) => laudoHtml(laudoDe(r, cfg), r.status.laudoDados?.textos ?? {})
 
 /** Reduz a foto (até 1600 px, JPEG) e guarda na pasta da RDL. Devolve o endereço e o tamanho (para saber se é horizontal ou vertical). */
 export async function enviarFoto(file: File, reservaId: string): Promise<LaudoFoto> {

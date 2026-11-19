@@ -802,6 +802,7 @@ export interface Settings {
   navHidden?: string[] // telas escondidas do menu (vazio = o padrão do perfil de trabalho)
   messages: MessageTemplate[] // mensagens padrão para o cliente
   contracts?: ContractSettings // modelos de contrato (plano Completo)
+  rdlDocs?: Record<string, Record<string, string>> // RDL: textos editados no editor ao vivo dos documentos (checklist, laudo em branco, recibos)
   instagramOff?: boolean // não usa o planejamento do instagram (some do menu)
 }
 

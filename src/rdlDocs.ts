@@ -137,7 +137,7 @@ footer .pg{display:inline-grid;place-items:center;min-width:20px;height:20px;bor
 .art{width:100%;height:auto;display:block}
 `
 const foot = (label: string, n?: number) => `<footer><div><b>${esc(RDL.name)}</b><span>${esc(RDL.company)} · CNPJ ${RDL.cnpj}</span></div><div class="r">${esc(label)}<br><span>${RDL.phone} · ${RDL.email}</span>${n ? `<span class="pg">${String(n).padStart(2, '0')}</span>` : ''}</div></footer>`
-const shell = (title: string, pages: string[]) => `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>${RDL_CSS}${EXTRA_CSS}</style></head><body>${pages.join('')}</body></html>`
+const shell = (title: string, pages: string[]) => `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>${RDL_CSS}${EXTRA_CSS}${PLANTA_CSS}</style></head><body>${pages.join('')}</body></html>`
 const head = (kicker: string, title: string, icon: string) => `<div class="top"><div class="ttl"><span class="ib">${ico(icon)}</span><div><small>${esc(kicker)}</small><b>${esc(title)}</b></div></div><img src="${RDL_LOGO}" alt="RDL"></div>`
 const f = (label: string, value = '') => `<div class="fld"><b>${esc(label)}</b><span>${esc(value)}</span></div>`
 
@@ -254,12 +254,33 @@ const EXTRA_CSS = `
 
 /* ================= CHECKLIST DE VISTORIA ================= */
 
+/** Textos editáveis de um documento (editor ao vivo): o que não vier fica com o texto padrão. */
+export type Textos = Record<string, string | undefined>
+const tx = (t: Textos, k: string, padrao: string) => esc((t[k] ?? '').trim() || padrao)
+
+/** San Levi: 2 quartos, sala, cozinha, lavanderia e 1 banheiro. É o padrão do checklist e do laudo. */
+export const AMBIENTES_SAN_LEVI = ['Sala', 'Cozinha', 'Lavanderia', 'Quarto 1', 'Quarto 2', 'Banheiro']
+/** Folha com a planta do apê (a do morador ou as duas do San Levi, quando em branco), para se achar na hora da vistoria. */
+function plantaPage(titulo: string, plan: string | undefined, rodape: string, n: number) {
+  const so = /canto/i.test(plan ?? '') ? 'canto' : /corredor/i.test(plan ?? '') ? 'corredor' : ''
+  const img = (k: string, nome: string, sub: string) => `<figure class="pl-fig"><img src="${asset(`planta-${k}.png`)}" alt=""><figcaption><b>${nome}</b><span>${sub}</span></figcaption></figure>`
+  const canto = img('canto', 'Planta de canto', 'finais 01, 02, 11 e 12')
+  const corr = img('corredor', 'Planta de corredor', 'finais 03 a 10')
+  return `<div class="page">${head(titulo, 'Planta do apartamento', 'plan')}
+<div class="hdr">${so ? `<span class="chip">${ico('plan')}${so === 'canto' ? 'Planta de canto' : 'Planta de corredor'}</span>` : `<span class="chip">${ico('plan')}Confira o final do apto: 01, 02, 11 e 12 são de canto; 03 a 10 são de corredor</span>`}</div>
+<div class="pl-wrap ${so ? 'one' : ''}">${so === 'canto' ? canto : so === 'corredor' ? corr : canto + corr}</div>
+<div class="box" style="margin-top:4mm"><h3><i></i>Ambientes do apê</h3><div class="pl-amb">${AMBIENTES_SAN_LEVI.map((a, i) => `<span><em>${i + 1}</em>${a}</span>`).join('')}</div>
+<p style="font-size:6.6pt;color:var(--mut);margin-top:2.5mm">Siga a ordem dos ambientes: as folhas seguintes já vêm uma por ambiente, nesta ordem. Planta do book do empreendimento, sem escala; as medidas valem as do memorial da construtora.</p></div>
+<div style="flex:1"></div>${foot(rodape, n)}</div>`
+}
+
 export type Resp = 'sim' | 'nao' | undefined
 export interface ChecklistData {
   owner?: string // proprietário
   unit?: string // torre e apto
   date?: string
   by?: string // feito por
+  plan?: string // planta do apto (canto ou corredor)
   rooms?: string[] // ambientes deste apê (vazio = todos, para imprimir o kit)
   answer?: (room: string, quadro: string, item: string) => { r: Resp; obs?: string }
 }
@@ -288,25 +309,25 @@ function quadroHtml(room: string, amb: string, q: { nome: string; itens: string[
   return ft ? `<div class="box q wp"><img class="qimg" src="${ft}" alt=""><div class="qcol">${body}</div></div>` : `<div class="box q">${body}</div>`
 }
 
-export function checklistHtml(d: ChecklistData = {}): string {
+export function checklistHtml(d: ChecklistData = {}, t: Textos = {}): string {
   const all = [GERAL, ...VISTORIA_CHECKLIST]
-  const rooms = [GERAL.ambiente, ...(d.rooms?.length ? d.rooms : VISTORIA_CHECKLIST.map((a) => a.ambiente))]
+  const rooms = [GERAL.ambiente, ...(d.rooms?.length ? d.rooms : AMBIENTES_SAN_LEVI)]
   const pages: string[] = []
   const blank = !d.answer
   let n = 1
   // capa
   const total = rooms.reduce((n2, r) => n2 + (all.find((x) => x.ambiente === r.replace(/\s+\d+$/, '') || r.startsWith(x.ambiente))?.quadros.reduce((m, q) => m + q.itens.length, 0) ?? 0), 0)
   pages.push(`<div class="page"><div class="ck-cover"><img class="logo" src="${RDL_LOGO}" alt="RDL">${ART_CHECKLIST()}
-<div class="kick">CHECKLIST DE VISTORIA</div><h1>Vistoria de <span>entrega de chaves</span></h1>
-<p class="sub">Conferência completa do apartamento novo, item por item e ambiente por ambiente, antes de assinar o recebimento com a construtora.</p>
+<div class="kick">${tx(t, 'kicker', 'CHECKLIST DE VISTORIA')}</div><h1>${tx(t, 'titulo1', 'Vistoria de')} <span>${tx(t, 'titulo2', 'entrega de chaves')}</span></h1>
+<p class="sub">${tx(t, 'sub', 'Conferência completa do apartamento novo, item por item e ambiente por ambiente, antes de assinar o recebimento com a construtora.')}</p>
 <div class="chips" style="margin-top:4mm">${[['list', `${total} itens verificados`], ['building', `${rooms.length} ambientes e itens gerais`], ['camera', 'foto de referência em cada quadro'], ['shield', 'engenheiro com ART no CREA-SP']].map(([i, t]) => `<span class="chip">${ico(i)}${t}</span>`).join('')}</div>
 <div class="who box"><div class="grid2">${f('Feito por', d.by || RDL.name)}${f('Data', dateBR(d.date))}${f('Proprietário(a)', d.owner)}${f('Unidade (torre e apto)', d.unit)}</div></div></div>${foot('Checklist de vistoria')}</div>`)
   // como usar
   if (blank)
     pages.push(`<div class="page">${head('CHECKLIST DE VISTORIA', 'Como usar', 'list')}
-<div class="box" style="margin-top:5mm"><h3><i></i>Monte o seu kit</h3><p style="font-size:7pt;color:var(--txt);margin-bottom:3mm">Conte quantos ambientes de cada tipo o apartamento tem e anote em “Quantos?”. Imprima as folhas de cada tipo uma vez por ambiente. A capa, os itens gerais e o resumo vão sempre, uma vez só.</p>
-<div class="kit">${VISTORIA_CHECKLIST.map((a) => `<div class="box"><div class="qh"><span class="ib">${ico(AMB_ICON[a.ambiente] ?? 'building')}</span>${esc(a.ambiente)}</div><small>${a.quadros.reduce((s, q) => s + q.itens.length, 0)} itens</small>${f('Quantos?')}</div>`).join('')}</div>
-<p style="font-size:6.6pt;color:var(--mut);margin-top:3mm">Tem lavabo, closet ou escritório? Use a folha mais parecida (lavabo: banheiro; closet e escritório: quarto) e escreva o nome em “Nome do ambiente”. Item que o ambiente não tem: risque a linha.</p></div>
+<div class="box" style="margin-top:5mm"><h3><i></i>As folhas deste kit</h3><p style="font-size:7pt;color:var(--txt);margin-bottom:3mm">O apê do San Levi tem 2 quartos, sala, cozinha, lavanderia e 1 banheiro. As folhas já vêm uma por ambiente, depois da planta: é só seguir na ordem.</p>
+<div class="kit">${rooms.slice(1).map((r) => { const a = all.find((x) => x.ambiente === r.replace(/\s+\d+$/, '')) ?? all.find((x) => r.startsWith(x.ambiente)); return `<div class="box"><div class="qh"><span class="ib">${ico(AMB_ICON[a?.ambiente ?? ''] ?? 'building')}</span>${esc(r)}</div><small>${a ? a.quadros.reduce((n3, q) => n3 + q.itens.length, 0) : 0} itens</small></div>` }).join('')}</div>
+<p style="font-size:6.6pt;color:var(--mut);margin-top:3mm">Item que o ambiente não tem: risque a linha.</p></div>
 <div class="box" style="margin-top:4mm"><h3><i></i>Como fazer a vistoria</h3><div class="chips" style="margin-bottom:3mm"><span class="chip">${ico('drop')}Água ligada</span><span class="chip">${ico('bolt')}Energia ligada</span><span class="chip">${ico('clock')}De 45 min a 2 h</span><span class="chip">${ico('user')}Com o responsável da construtora</span></div>
 <div class="how">${[
       ['plan', 'Imprima as folhas de cada ambiente que o apê tem, uma vez por ambiente. Em <b>“Nome do ambiente”</b>, dê um nome a cada um.'],
@@ -318,6 +339,8 @@ export function checklistHtml(d: ChecklistData = {}): string {
       .join('')}</div></div>
 <div class="box" style="margin-top:4mm"><h3><i></i>Leve com você</h3><div class="chips">${['Bolinhas de gude', 'Recipiente com água', 'Cabo de vassoura ou haste', 'Multímetro ou testador de tomadas', 'Régua com nível', 'Lâmpada', 'Espelho portátil', 'Trena', 'Adesivos', 'Celular (fotos e vídeos)', 'Prancheta e caneta', 'Memorial descritivo e plantas'].map((t) => `<span class="chip">${ico('check')}${esc(t)}</span>`).join('')}</div></div>
 ${foot('Checklist de vistoria · como usar', ++n)}</div>`)
+  // planta do apê, antes das folhas dos ambientes
+  pages.push(plantaPage('CHECKLIST DE VISTORIA', d.plan, 'Checklist de vistoria · planta', ++n))
   // folhas por ambiente (quebra automática de página)
   for (const room of rooms) {
     const a = all.find((x) => x.ambiente === room.replace(/\s+\d+$/, '')) ?? all.find((x) => room.startsWith(x.ambiente)) ?? all.find((x) => x.ambiente === (/lavabo/i.test(room) ? 'Banheiro' : /escrit|closet/i.test(room) ? 'Quarto' : ''))
@@ -354,7 +377,7 @@ ${foot('Checklist de vistoria · como usar', ++n)}</div>`)
           return `<tr><td>${esc(room)}</td><td><span class="yn"><i class="s ${nao === 0 ? 'on' : ''}">SIM</i><i class="n ${nao > 0 ? 'on' : ''}">NÃO</i></span></td><td>${nao} de ${total}</td></tr>`
         })
         .join('')
-    : Array.from({ length: 16 }, () => '<tr><td class="blank"></td><td><span class="yn"><i class="s">SIM</i><i class="n">NÃO</i></span></td><td></td></tr>').join('')
+    : rooms.map((room) => `<tr><td>${esc(room)}</td><td><span class="yn"><i class="s">SIM</i><i class="n">NÃO</i></span></td><td></td></tr>`).join('')
   pages.push(`<div class="page">${head('FIM DA VISTORIA', 'Resumo da vistoria', 'list')}
 <div class="hdr">${f('Unidade', d.unit)}${f('Data', dateBR(d.date))}</div>
 <p style="font-size:6.8pt;color:var(--txt);margin:3mm 0">Uma linha por ambiente. O ambiente só é aprovado se todos os quadros dele foram aprovados.</p>
@@ -439,6 +462,17 @@ export interface LaudoData {
   fotosLink?: string // pasta com todas as fotos do dia (Google Drive etc.)
 }
 
+const PLANTA_CSS = `
+.pl-wrap{display:grid;grid-template-columns:1fr;gap:3mm;margin-top:4mm}
+.pl-fig{margin:0;border:1px solid var(--line);border-radius:12px;padding:4mm;background:#fff;display:flex;flex-direction:column;gap:3mm}
+.pl-fig img{width:100%;height:auto;max-height:82mm;object-fit:contain}
+.pl-wrap.one .pl-fig img{max-height:170mm}
+.pl-fig figcaption{display:flex;justify-content:space-between;align-items:baseline;font-size:7.4pt;color:var(--navy)}
+.pl-fig figcaption span{color:var(--mut);font-size:6.6pt}
+.pl-amb{display:grid;grid-template-columns:repeat(3,1fr);gap:2mm}
+.pl-amb span{display:flex;gap:2mm;align-items:center;font-size:7.6pt;color:var(--navy);font-weight:600;background:var(--soft);border-radius:8px;padding:2mm 3mm}
+.pl-amb em{font-style:normal;width:5mm;height:5mm;border-radius:50%;background:var(--or);color:#fff;display:grid;place-items:center;font-size:6.4pt}
+`
 const LAUDO_CSS = `
 .lc-top{display:flex;justify-content:space-between;align-items:center}
 .lc-top img{height:15mm}
@@ -533,7 +567,7 @@ function linhasDeFotos<T extends { f: LaudoFoto }>(fotos: T[]) {
 const ROW_H = { h: 71, v: 85 } // mm de cada linha (foto + legenda + espaço)
 const FOTO_AREA = 240
 
-export function laudoHtml(d: LaudoData = {}): string {
+export function laudoHtml(d: LaudoData = {}, t: Textos = {}): string {
   const items = d.items ?? []
   const blank = !d.items
   const grav = { leve: 0, media: 0, grave: 0 }
@@ -557,10 +591,10 @@ export function laudoHtml(d: LaudoData = {}): string {
   const fotosDoItem: number[][] = items.map((_, i) => fotos.filter((x) => x.item === i + 1).map((x) => x.k).sort((a, b) => a - b))
 
   /* 1. capa */
-  pages.push(`<div class="page lc"><div class="lc-top"><img src="${RDL_LOGO}" alt="RDL"><span class="tag">ENTREGA DE CHAVES · APARTAMENTO NOVO</span></div>
+  pages.push(`<div class="page lc"><div class="lc-top"><img src="${RDL_LOGO}" alt="RDL"><span class="tag">${tx(t, 'tag', 'ENTREGA DE CHAVES · APARTAMENTO NOVO')}</span></div>
 <div class="lc-art">${ART_LAUDO()}</div>
-<div class="lc-k">LAUDO TÉCNICO</div><h1>Relatório de <span>vistoria</span></h1>
-<p class="sub">Estado de conservação, funcionamento e acabamentos do apartamento na entrega das chaves, com os vícios aparentes encontrados e o registro fotográfico.</p>
+<div class="lc-k">${tx(t, 'kicker', 'LAUDO TÉCNICO')}</div><h1>${tx(t, 'titulo1', 'Relatório de')} <span>${tx(t, 'titulo2', 'vistoria')}</span></h1>
+<p class="sub">${tx(t, 'sub', 'Estado de conservação, funcionamento e acabamentos do apartamento na entrega das chaves, com os vícios aparentes encontrados e o registro fotográfico.')}</p>
 <div class="lc-feat">${[
     ['search', 'Vistoria completa', 'Ambiente por ambiente, com testes de funcionamento'],
     ['camera', 'Registro fotográfico', 'Cada item para reparo com foto numerada'],
@@ -578,7 +612,7 @@ export function laudoHtml(d: LaudoData = {}): string {
     .join('')}</div>${foot('Laudo de vistoria', n)}</div>`)
 
   /* 2. identificação e resultado */
-  const toc = ['Identificação e resultado', 'A vistoria: objetivo e método', 'Normas e referências', 'Resumo por ambiente', 'Testes de funcionamento', 'Itens para reparo', 'Registro fotográfico', 'Itens não verificados', 'Conclusão e assinaturas']
+  const toc = ['Identificação e resultado', 'Planta do apartamento', 'A vistoria: objetivo e método', 'Normas e referências', 'Resumo por ambiente', 'Testes de funcionamento', 'Itens para reparo', 'Registro fotográfico', 'Itens não verificados', 'Conclusão e assinaturas']
   pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'Identificação e resultado', 'doc')}
 <div class="box" style="margin-top:4mm"><h3><i></i>Imóvel e proprietário</h3><div class="grid2">${f('Proprietário(a)', d.owner)}${f('Empreendimento', d.development)}${f('Construtora', d.builder)}${f('Endereço', d.address)}${f('Unidade (torre e apto)', d.unit)}${f('Planta', d.plan)}${f('Data da vistoria', dateBR(d.date))}${f('Início e fim', d.time)}${f('Acompanhante da construtora', d.companion)}${f('Nova vistoria em', dateBR(d.revisitDate))}</div></div>
 <div class="box" style="margin-top:3mm"><h3><i></i>Responsável técnico</h3><div class="grid2">${f('Nome', RDL.name)}${f('Título', 'Engenheiro')}${f('CREA-SP nº', RDL.crea)}${f('ART nº', d.art)}${f('Empresa', RDL.company)}${f('CNPJ', RDL.cnpj)}</div></div>
@@ -589,6 +623,7 @@ export function laudoHtml(d: LaudoData = {}): string {
 <div class="cnt"><div><b>${blank ? '&nbsp;' : items.length}</b><small>itens para reparo</small></div><div><b>${blank ? '&nbsp;' : grav.leve}</b><small>leves</small></div><div><b>${blank ? '&nbsp;' : grav.media}</b><small>médios</small></div><div class="g"><b>${blank ? '&nbsp;' : grav.grave}</b><small>graves</small></div></div></div>
 <div class="box" style="margin-top:3mm;flex:1"><h3><i></i>O que tem neste laudo</h3><div class="toc">${toc.map((t, i) => `<div><em>${String(i + 1).padStart(2, '0')}</em>${t}</div>`).join('')}</div></div>
 <div style="height:3mm"></div>${foot('Laudo de vistoria · identificação', ++n)}</div>`)
+  pages.push(plantaPage('LAUDO DE VISTORIA', d.plan, 'Laudo de vistoria · planta', ++n))
 
   /* 3. a vistoria + normas */
   pages.push(`<div class="page">${head('LAUDO DE VISTORIA', 'A vistoria', 'search')}
@@ -604,7 +639,7 @@ export function laudoHtml(d: LaudoData = {}): string {
   /* 4. resumo por ambiente + testes */
   const roomRows = d.rooms?.length
     ? d.rooms.map((r, i) => `<tr><td class="n">${i + 1}</td><td>${esc(r.room)}</td><td>${r.checked}</td><td>${r.problems}</td><td><span class="yn"><i class="s ${r.problems === 0 ? 'on' : ''}">OK</i><i class="n ${r.problems > 0 ? 'on' : ''}">REPARAR</i></span></td></tr>`).join('')
-    : Array.from({ length: 8 }, (_, i) => `<tr class="blank"><td class="n">${i + 1}</td><td></td><td></td><td></td><td><span class="yn"><i class="s">OK</i><i class="n">REPARAR</i></span></td></tr>`).join('')
+    : AMBIENTES_SAN_LEVI.map((room, i) => `<tr class="blank"><td class="n">${i + 1}</td><td>${room}</td><td></td><td></td><td><span class="yn"><i class="s">OK</i><i class="n">REPARAR</i></span></td></tr>`).join('')
   const tst = d.tests ?? {}
   const tstRows = TESTES.map((t) => {
     const v = tst[t]

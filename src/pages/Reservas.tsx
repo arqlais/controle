@@ -18,9 +18,9 @@ const baixar = (b: Blob, nome: string) => {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000)
 }
 const NOME_RECIBO: Record<TipoRecibo, string> = { sinal: 'Recibo RDL', vistoria: 'Recibo de quitação RDL', reforma: 'Recibo ART de reforma RDL' }
-async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png', qual: TipoRecibo = 'sinal') {
+async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png', qual: TipoRecibo = 'sinal', t: Record<string, string> = {}) {
   try {
-    const png = await reciboPng(r, cfg, qual)
+    const png = await reciboPng(r, cfg, qual, t)
     const nome = `${NOME_RECIBO[qual]} ${unidade(r.dados)}`
     if (tipo === 'png') baixar(png, `${nome}.png`)
     else baixar(await reciboPdf(png), `${nome}.pdf`)
@@ -30,11 +30,11 @@ async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png',
 }
 /** Agradece e confirma pelo WhatsApp, com o recibo em imagem (no celular abre o compartilhar direto). */
 const MSG_RECIBO: Record<TipoRecibo, (r: Reserva, cfg: ReservaConfig) => string> = { sinal: msgConfirmacao, vistoria: msgFinal, reforma: msgReforma }
-async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => void, qual: TipoRecibo = 'sinal') {
+async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => void, qual: TipoRecibo = 'sinal', t: Record<string, string> = {}) {
   set(`gerando-${qual}`)
   const texto = MSG_RECIBO[qual](r, cfg)
   try {
-    const png = await reciboPng(r, cfg, qual)
+    const png = await reciboPng(r, cfg, qual, t)
     const file = new File([png], `${NOME_RECIBO[qual]} ${unidade(r.dados)}.png`, { type: 'image/png' })
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.clipboard?.writeText(texto).catch(() => undefined)
@@ -1435,19 +1435,25 @@ function ColunaRola({ children }: { children: ReactNode }) {
 
 /** Botões de um recibo: mandar pelo WhatsApp (com a mensagem pronta), copiar a mensagem, PDF e imagem. */
 function BotoesRecibo({ r, cfg, qual, recibo, setRecibo, rotulo }: { r: Reserva; cfg: ReservaConfig; qual: TipoRecibo; recibo: string; setRecibo: (v: string) => void; rotulo: string }) {
+  const { data } = useStore()
+  // o que foi mudado no editor ao vivo (documentos → recibo) vale também na imagem e no PDF
+  const t = data.settings.rdlDocs?.[`recibo-${qual}:${r.id}`] ?? {}
   return (
     <div className="row gap-s wrap">
-      <button className="btn small" disabled={recibo === `gerando-${qual}`} onClick={() => void mandarRecibo(r, cfg, setRecibo, qual)}>
+      <button className="btn small" disabled={recibo === `gerando-${qual}`} onClick={() => void mandarRecibo(r, cfg, setRecibo, qual, t)}>
         <Icon name="whatsapp" size={14} /> {recibo === `gerando-${qual}` ? 'gerando o recibo…' : rotulo}
       </button>
       <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(MSG_RECIBO[qual](r, cfg)).then(() => toast('Mensagem copiada. É só colar no WhatsApp.'), () => toast('Não consegui copiar.'))}>
         <Icon name="copy" size={14} /> copiar mensagem
       </button>
-      <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'pdf', qual)}>
+      <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'pdf', qual, t)}>
         <Icon name="file" size={14} /> recibo em PDF
       </button>
-      <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'png', qual)}>
+      <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'png', qual, t)}>
         <Icon name="image" size={14} /> recibo em imagem
+      </button>
+      <button className="btn small ghost" onClick={() => go('documentos', `rdl-recibo~${r.id}~${qual}`)}>
+        <Icon name="edit" size={14} /> editar ao vivo
       </button>
     </div>
   )

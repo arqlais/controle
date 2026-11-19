@@ -426,7 +426,7 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
             <Field label="observações do engenheiro">
               <textarea rows={4} value={l.obs} onChange={(e) => mudar({ obs: e.target.value })} />
             </Field>
-            <button className="btn ghost small" onClick={() => openRdlDoc(checklistHtml({ owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: l.ambientes }))}>
+            <button className="btn ghost small" onClick={() => openRdlDoc(checklistHtml({ owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, plan: r.dados.planta, rooms: l.ambientes }))}>
               <Icon name="printer" size={14} /> checklist deste apê para imprimir
             </button>
           </>

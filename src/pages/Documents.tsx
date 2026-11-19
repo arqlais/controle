@@ -32,8 +32,9 @@ import { ContractDoc } from '../components/ContractDoc'
 import { contractSettings } from '../contracts'
 import type { Quote } from '../types'
 import { WorkDocEditor } from './WorkDocEditor'
+import { RdlDocEditor, type RdlDoc } from './RdlDocEditor'
 import { rdlMode } from '../rdl'
-import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
+import { checklistHtml, laudoHtml } from '../rdlDocs'
 import { contratoHtml, lerConfig, listarReservas, unidade, type Reserva, type ReservaConfig } from '../rdlReserva'
 import { TIPOS_RECIBO, partesPagas, reciboDocHtml, type TipoRecibo } from '../rdlRecibo'
 import { linkLaudo } from '../rdlLaudo'
@@ -89,13 +90,14 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
     [contratoModelo],
   )
   const docs = useMemo(() => {
-    const check = checklistHtml(r ? { owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: r.status.laudoDados?.ambientes } : {})
+    const check = checklistHtml(r ? { owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, plan: r.dados.planta, rooms: r.status.laudoDados?.ambientes } : {})
     const laudo = laudoHtml()
     const contrato = r ? contratoHtml(r) : contratoBranco
     const recibo = r && cfg ? reciboDocHtml(r, cfg, qualOk) : ''
     return { check, laudo, contrato, recibo }
   }, [r, cfg, contratoBranco, qualOk])
-  const editar = (html: string, titulo: string) => openRdlDoc(html, { editar: true, titulo })
+  // abre o editor ao vivo (campos + folha que muda enquanto digita), com o morador escolhido
+  const editar = (doc: RdlDoc) => go('documentos', `rdl-${doc}${r ? `~${r.id}` : ''}${doc === 'recibo' && r ? `~${qualOk}` : ''}`)
   return (
     <section className="rdl-vdocs">
       <div className="rdl-vdocs-pick card">
@@ -116,7 +118,7 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
         </div>
       </div>
       <p className="rdl-vdocs-hint">
-        <Icon name="edit" size={14} /> Tudo abre editável: clique no texto da folha, mude o que quiser e imprima ou salve em PDF.
+        <Icon name="edit" size={14} /> Tudo abre no editor ao vivo: você muda os campos e vê a folha mudando na hora. Salva sozinho.
       </p>
       <div className="docs-home docs-daily rdl-vdocs-grid">
         <div className="docs-card docs-card-icon">
@@ -124,7 +126,7 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
           <b>checklist</b>
           <small>{r ? `do apê de ${quem}, com os ambientes do laudo` : 'para imprimir e levar na vistoria'}</small>
           <div className="rdl-vdocs-row">
-            <button className="btn small" onClick={() => editar(docs.check, 'Checklist de vistoria · RDL')}>
+            <button className="btn small" onClick={() => editar('checklist')}>
               <Icon name="edit" size={14} /> abrir e editar
             </button>
           </div>
@@ -134,7 +136,7 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
           <b>contrato</b>
           <small>{r ? `o que ${r.dados.nome.split(' ')[0]} assinou na reserva` : 'vistoria de entrega de chaves, em branco'}</small>
           <div className="rdl-vdocs-row">
-            <button className="btn small" onClick={() => editar(docs.contrato, 'Contrato de vistoria · RDL')}>
+            <button className="btn small" onClick={() => editar('contrato')}>
               <Icon name="edit" size={14} /> abrir e editar
             </button>
             <button className="btn small ghost" onClick={() => go('contratos')}>
@@ -157,7 +159,7 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
                 <Icon name="eye" size={14} /> publicado
               </a>
             )}
-            <button className={`btn small ${r ? 'ghost' : ''}`} onClick={() => editar(docs.laudo, 'Laudo de vistoria · RDL')}>
+            <button className={`btn small ${r ? 'ghost' : ''}`} onClick={() => editar('laudo')}>
               <Icon name="edit" size={14} /> em branco
             </button>
           </div>
@@ -183,7 +185,7 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
             </select>
           )}
           <div className="rdl-vdocs-row">
-            <button className="btn small" disabled={!docs.recibo} onClick={() => editar(docs.recibo, 'Recibo · RDL')}>
+            <button className="btn small" disabled={!docs.recibo} onClick={() => editar('recibo')}>
               <Icon name="edit" size={14} /> abrir e editar
             </button>
           </div>
@@ -195,6 +197,9 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
 
 export default function Documents({ id }: { id?: string }) {
   const { data } = useStore()
+  // RDL: editor ao vivo de um documento (#/documentos/rdl-recibo~idDaReserva~vistoria)
+  const rdlEd = rdlMode() ? id?.match(/^rdl-(checklist|laudo|contrato|recibo)(?:~([^~]*))?(?:~(sinal|vistoria|reforma))?$/) : null
+  if (rdlEd) return <RdlDocEditor key={id} doc={rdlEd[1] as RdlDoc} resId={rdlEd[2] || undefined} tipo={rdlEd[3] as TipoRecibo | undefined} />
   const { has } = useAccess()
   // o documento aberto fica no endereço (#/documentos/placa): o menu "documentos" e o voltar do navegador levam à lista
   const saved = id ? (data.docs ?? []).find((x) => x.id === id) : undefined
