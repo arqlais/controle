@@ -2867,3 +2867,5 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rsv-end-fix { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .rsv-end-alerta { display: inline-flex; align-items: center; gap: 4px; color: #e06d06; font-size: 12px; font-weight: 600; }
 .ld-aceito { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--text); margin: 6px 0; }
+.rsv-laudo-ass { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: #e06d06; font-weight: 600; }
+.rsv-laudo-ass.ok { color: #012c60; }

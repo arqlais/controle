@@ -17,6 +17,7 @@ import {
   dadosPadrao,
   contagem,
   contratoTexto,
+  assinarLaudo,
   avaliar,
   corrigirEndereco,
   enderecoSanLevi,
@@ -1006,10 +1007,17 @@ function ContratoPublico({ id, token }: { id: string; token: string }) {
 /* ================= laudo publicado (link do painel e do e-mail) ================= */
 
 function LaudoPublico({ id, token }: { id: string; token: string }) {
-  const [html, setHtml] = useState<string | null | undefined>(undefined)
-  useEffect(() => {
-    void Promise.all([minhaReserva(id, token), lerConfig()]).then(([r, cfg]) => setHtml(r?.status.laudoDados ? htmlDoLaudo(r, cfg) : null))
-  }, [id, token])
+  const [r, setR] = useState<Reserva | null | undefined>(undefined)
+  const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
+  const carregar = () =>
+    void Promise.all([minhaReserva(id, token), lerConfig()]).then(([x, c]) => {
+      setR(x)
+      setCfg(c)
+    })
+  useEffect(carregar, [id, token]) // eslint-disable-line react-hooks/exhaustive-deps
+  const html = r === undefined ? undefined : r?.status.laudoDados ? htmlDoLaudo(r, cfg) : null
+  const assinado = r?.status.laudoAssinado
+  const podeAssinar = !!r?.status.laudo && !assinado
   // no celular, a folha A4 encolhe para caber na largura da tela (o iframe herda a política da página: sem script dentro dele)
   const ajustar = (fr: HTMLIFrameElement | null) => {
     const doc = fr?.contentDocument
@@ -1034,6 +1042,13 @@ function LaudoPublico({ id, token }: { id: string; token: string }) {
           </button>
         )}
       </div>
+      {r && html && (podeAssinar ? (
+        <AssinarLaudo r={r} html={html} onAssinado={carregar} />
+      ) : assinado ? (
+        <p className="rv-laudo-ok">
+          <I n="check" s={16} /> <span>Laudo assinado por você em {new Date(assinado.em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}. Agora é só <b>salvar em PDF</b> e mandar para a MRV pelo atendimento deles.</span>
+        </p>
+      ) : null)}
       {html === undefined ? (
         <p className="rv-laudo-msg">Abrindo o laudo…</p>
       ) : html === null ? (
@@ -1041,6 +1056,113 @@ function LaudoPublico({ id, token }: { id: string; token: string }) {
       ) : (
         <iframe className="rv-laudo-doc" title="Laudo de vistoria" srcDoc={html} onLoad={(e) => ajustar(e.currentTarget)} />
       )}
+    </div>
+  )
+}
+
+/** O morador lê e assina o laudo (desenho ou nome digitado), com o mesmo registro do contrato. */
+function AssinarLaudo({ r, html, onAssinado }: { r: Reserva; html: string; onAssinado: () => void }) {
+  const [aberto, setAberto] = useState(false)
+  const [ok, setOk] = useState(false)
+  const [modo, setModo] = useState<'desenho' | 'digitado'>('desenho')
+  const [desenho, setDesenho] = useState('')
+  const [nomeAss, setNomeAss] = useState('')
+  const [tela, setTela] = useState(false)
+  const [st, setSt] = useState<'' | 'enviando' | 'erro'>('')
+  const nome = r.dados.nome
+  const nomeOk = nomeAss.trim().toLowerCase() === nome.trim().toLowerCase()
+  const pronto = ok && (modo === 'desenho' ? desenho.length > 30 : nomeOk)
+  const enviar = async () => {
+    if (!pronto) return
+    setSt('enviando')
+    const em = new Date().toISOString()
+    const aparelho = deviceLabel()
+    const fuso = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const codigo = await sha256([html, nome.trim(), r.dados.cpf.replace(/\D/g, ''), em, aparelho].join('|'))
+    const okk = await assinarLaudo(r.id, r.token, { nome: nome.trim(), ...(modo === 'desenho' ? { desenho } : { fonte: 'dancing' }), em, aparelho, fuso, codigo })
+    if (!okk) return setSt('erro')
+    void avisarEmail('laudo-assinado', r.id, r.token)
+    setSt('')
+    onAssinado()
+  }
+  if (!aberto)
+    return (
+      <div className="rv-laudo-assinar">
+        <span>
+          <I n="sign" s={18} /> <b>Leia o laudo e assine</b> antes de mandar para a MRV. Leva 1 minuto.
+        </span>
+        <button className="rv-btn small" onClick={() => setAberto(true)}>
+          <I n="edit" /> Assinar o laudo
+        </button>
+      </div>
+    )
+  return (
+    <div className="rv-laudo-assinar aberto">
+      <label className={`rv-check ${ok ? 'on' : ''}`}>
+        <input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} />
+        <span>
+          <b>Li o laudo e confirmo que acompanhei a vistoria</b>
+          <small>A assinatura confirma o que foi registrado no dia, inclusive os itens que eu aceitei como estão. Ela não tira nenhum direito meu de pedir os reparos à construtora.</small>
+        </span>
+      </label>
+      <div className="rv-signbox">
+        <div className="rv-tabs">
+          <button className={modo === 'desenho' ? 'on' : ''} onClick={() => setModo('desenho')}>
+            <I n="sign" s={14} /> Desenhar
+          </button>
+          <button className={modo === 'digitado' ? 'on' : ''} onClick={() => setModo('digitado')}>
+            <span className="rv-aa">Aa</span> Digitar o nome
+          </button>
+        </div>
+        {modo === 'digitado' ? (
+          <label className="rv-signname">
+            <span>Digite o seu nome completo</span>
+            <input value={nomeAss} onChange={(e) => setNomeAss(e.target.value)} placeholder={nome} autoComplete="name" />
+            {nomeAss && !nomeOk && <em>Precisa ser igual ao da reserva: {nome}</em>}
+          </label>
+        ) : desenho ? (
+          <div className="rv-signprev">
+            <svg viewBox="0 0 600 200" aria-label="Sua assinatura">
+              <path d={desenho} fill="none" stroke="#012C60" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <button type="button" className="rv-link small" onClick={() => setTela(true)}>
+              Assinar de novo
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="rv-btn ghost wide2" onClick={() => setTela(true)}>
+            <I n="edit" /> Abrir a área para assinar
+          </button>
+        )}
+      </div>
+      {tela && (
+        <div className="rv-signfull" role="dialog" aria-label="Assine com o dedo">
+          <div className="rv-signfull-in">
+            <p>
+              <b>Assine com o dedo</b>
+              <small>Dica: deite o celular para ter mais espaço.</small>
+            </p>
+            <RvPad onChange={setDesenho} />
+            <div className="rv-row">
+              <button className="rv-btn ghost" onClick={() => setTela(false)}>
+                Cancelar
+              </button>
+              <button className="rv-btn" disabled={desenho.length < 30} onClick={() => setTela(false)}>
+                <I n="check" /> Pronto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {st === 'erro' && <p className="rv-warn">Não consegui registrar a assinatura. Tente de novo ou chame o Rogério no WhatsApp.</p>}
+      <div className="rv-row">
+        <button className="rv-btn ghost" onClick={() => setAberto(false)}>
+          Agora não
+        </button>
+        <button className="rv-btn" disabled={!pronto || st === 'enviando'} onClick={() => void enviar()}>
+          <I n="check" /> {st === 'enviando' ? 'Registrando…' : 'Assinar o laudo'}
+        </button>
+      </div>
     </div>
   )
 }

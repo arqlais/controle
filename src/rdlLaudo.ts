@@ -84,6 +84,8 @@ export function laudoDe(r: Reserva, cfg: Pick<ReservaConfig, 'empreendimento'>):
     time: [l.inicio, l.fim].filter(Boolean).join(' às ') || r.status.hora,
     companion: l.acompanhante,
     art: l.artNum,
+    rtSign: r.status.laudo ? r.status.laudoEm || undefined : undefined,
+    ownerSign: r.status.laudoAssinado,
     items: l.itens.map((it) => ({ room: it.ambiente, item: it.item, found: it.encontrado, gravidade: it.gravidade, photos: it.fotos, fixed: it.corrigido, accepted: it.aceito })),
     rooms: l.ambientes.map((a) => ({ room: a, checked: itensDoAmbiente(a, l), problems: l.itens.filter((it) => it.ambiente === a).length })),
     tests: l.testes,

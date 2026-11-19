@@ -610,6 +610,11 @@ export function Detalhe({
                 </a>
               )}
               {s.laudo && (
+                <span className={`rsv-laudo-ass ${s.laudoAssinado ? 'ok' : ''}`}>
+                  <Icon name={s.laudoAssinado ? 'check' : 'pen'} size={13} /> {s.laudoAssinado ? `assinado pelo morador em ${new Date(s.laudoAssinado.em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : 'aguardando a assinatura do morador (o link vai na mensagem)'}
+                </span>
+              )}
+              {s.laudo && (
                 <div className="row gap-s wrap">
                 <button className="btn small ghost" onClick={() => zap(msg.laudo)}>
                   <Icon name="whatsapp" size={14} /> avisar que está pronto

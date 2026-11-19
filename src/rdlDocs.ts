@@ -296,7 +296,7 @@ function preencherFolha(doc: Document) {
     })
   })
 }
-const shell = (title: string, pages: string[], preencher = false, paginar = false) => `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><style>${RDL_CSS}${EXTRA_CSS}${PLANTA_CSS}${preencher ? PREENCHER_CSS : ''}</style></head><body${paginar ? ' data-paginar' : ''}${preencher ? ' data-preencher' : ''}>${pages.join('')}</body></html>`
+const shell = (title: string, pages: string[], preencher = false, paginar = false) => `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(title)}</title><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Herr+Von+Muellerhoff&family=Dancing+Script:wght@600&display=swap" rel="stylesheet"><style>${RDL_CSS}${EXTRA_CSS}${PLANTA_CSS}${preencher ? PREENCHER_CSS : ''}</style></head><body${paginar ? ' data-paginar' : ''}${preencher ? ' data-preencher' : ''}>${pages.join('')}</body></html>`
 const head = (kicker: string, title: string, icon: string) => `<div class="top"><div class="ttl"><span class="ib">${ico(icon)}</span><div><small>${esc(kicker)}</small><b>${esc(title)}</b></div></div><img src="${RDL_LOGO}" alt="RDL"></div>`
 const f = (label: string, value = '') => `<div class="fld"><b>${esc(label)}</b><span>${esc(value)}</span></div>`
 
@@ -605,6 +605,8 @@ export interface LaudoData {
   revisitDate?: string
   notes?: string
   fotosLink?: string // pasta com todas as fotos do dia (Google Drive etc.)
+  rtSign?: string // quando a RDL publicou o laudo (vale como assinatura do responsável técnico)
+  ownerSign?: { nome: string; desenho?: string; fonte?: string; em: string; aparelho?: string; fuso?: string; ip?: string; codigo?: string } // o proprietário assinou pelo link
 }
 
 const PLANTA_CSS = `
@@ -618,6 +620,13 @@ const PLANTA_CSS = `
 .pl-amb em{font-style:normal;width:5mm;height:5mm;border-radius:50%;background:var(--or);color:#fff;display:grid;place-items:center;font-size:7.7pt}
 `
 const LAUDO_CSS = `
+.sigs .box.signed{justify-content:flex-end;position:relative;height:auto;min-height:30mm}
+.sg-ass{font-family:'Herr Von Muellerhoff','Dancing Script',cursive;font-style:normal;font-size:22pt;color:var(--navy);line-height:1.1;display:block;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:clip;max-width:100%}
+.sg-rt{font-size:21pt}
+.sg-draw{width:100%;height:12mm;display:block}
+.sg-q{display:block;font-size:6.6pt;color:var(--mut);margin-bottom:1mm}
+.sg-reg{margin-top:2mm;border-radius:9px;background:var(--soft);padding:2.4mm 3mm;font-size:6.8pt;color:var(--txt);line-height:1.45;word-break:break-word}
+.sg-reg b{color:var(--navy)}
 .rep .aceito{display:inline-block;font-size:7pt;font-weight:600;color:var(--navy2);background:var(--soft);border-radius:5px;padding:2px 6px;line-height:1.3}
 .lc-top{display:flex;justify-content:space-between;align-items:center}
 .lc-top img{height:15mm}
@@ -880,7 +889,13 @@ ${nv.length ? `<div class="chips">${nv.map((t) => `<span class="chip">${ico('x')
 ${d.fotosLink ? `<div class="box" style="margin-top:3mm"><h3><i></i>Todas as fotos da vistoria</h3><p style="font-size:8.6pt;color:var(--txt)">As fotos completas do dia, em tamanho original, estão nesta pasta: <a href="${esc(d.fotosLink)}" style="color:var(--navy);font-weight:600;word-break:break-all">${esc(d.fotosLink)}</a></p></div>` : ''}
 <div class="box soft" style="margin-top:3mm"><p class="decl">Declaro que a vistoria foi feita por mim, na data e no horário indicados, e que este laudo retrata as condições aparentes do imóvel naquele momento. Este laudo acompanha a <b>ART${d.art ? ` nº ${esc(d.art)}` : ''}</b> registrada no CREA-SP.</p></div>
 <div class="grid2" style="margin-top:3mm">${f('Local', 'Santo André - SP')}${f('Data', dateBR(d.date))}</div>
-<div class="sigs" style="margin:auto 0 3mm"><div class="box"><span>${esc(RDL.name)}</span><b>RESPONSÁVEL TÉCNICO · CREA ${esc(RDL.crea)}</b></div><div class="box"><span>${esc(d.owner)}</span><b>PROPRIETÁRIO(A)</b></div><div class="box"><span>${esc(d.builder)}</span><b>CONSTRUTORA · CIENTE EM ___/___/___</b></div></div>
+${(() => {
+    const os = d.ownerSign
+    const quando = (iso?: string) => (iso ? new Date(iso.length === 10 ? `${iso}T12:00:00` : iso).toLocaleString('pt-BR', { dateStyle: 'short', ...(iso.length > 10 ? { timeStyle: 'short' } : {}) }) : '')
+    const rt = d.rtSign ? `<em class="sg-ass sg-rt">Rogério F. Vieira</em><small class="sg-q">publicado eletronicamente em ${quando(d.rtSign)}</small>` : ''
+    const pr = os ? `${os.desenho ? `<svg class="sg-draw" viewBox="0 0 600 200"><path d="${esc(os.desenho)}" fill="none" stroke="#012C60" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : `<em class="sg-ass">${esc(os.nome)}</em>`}<small class="sg-q">assinado eletronicamente em ${quando(os.em)}</small>` : ''
+    return `<div class="sigs" style="margin:auto 0 3mm"><div class="box ${rt ? 'signed' : ''}">${rt}<span>${esc(RDL.name)}</span><b>RESPONSÁVEL TÉCNICO · CREA ${esc(RDL.crea)}</b></div><div class="box ${pr ? 'signed' : ''}">${pr}<span>${esc(os?.nome || d.owner)}</span><b>PROPRIETÁRIO(A)</b></div><div class="box"><span>${esc(d.builder)}</span><b>CONSTRUTORA · CIENTE EM ___/___/___</b></div></div>${os ? `<div class="sg-reg"><b>Registro da assinatura eletrônica</b> (art. 10, § 2º, da MP 2.200-2/2001): assinado por ${esc(os.nome)} em ${quando(os.em)}${os.fuso ? ` (${esc(os.fuso)})` : ''}${os.aparelho ? `, pelo aparelho ${esc(os.aparelho)}` : ''}${os.ip ? `, IP ${esc(os.ip)}` : ''}, no link do laudo da RDL Engenharia.${os.codigo ? ` Código do documento (SHA-256): <b>${esc(os.codigo)}</b>.` : ''}</div>` : ''}`
+  })()}
 ${foot('Laudo de vistoria · conclusão', ++n)}</div>`)
   return shell(`Laudo de vistoria${d.unit ? ` · ${d.unit}` : ''}`, pages, blank).replace('</style>', `${LAUDO_CSS}</style>`)
 }

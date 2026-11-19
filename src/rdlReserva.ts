@@ -143,6 +143,7 @@ export interface ReservaStatus {
   quitado?: string
   reformaPago?: string // data em que a ART de reforma foi paga (o que faltava dela)
   avaliacao?: { nota: number; texto?: string; em: string } // avaliação do serviço pelo morador
+  laudoAssinado?: LaudoAssinatura // o morador assinou o laudo pelo link
   data?: string // data da vistoria (AAAA-MM-DD)
   hora?: string
   laudo?: string // link do laudo
@@ -157,6 +158,17 @@ export interface ReservaStatus {
   cortesia?: string // 'sim': família/cortesia, não paga e não conta no grupo
   pagoInformado?: string // o morador marcou "já paguei" (a RDL confere e confirma)
   laudoDados?: import('./rdlLaudo').LaudoRascunho // laudo montado no sistema (itens, fotos, testes)
+}
+/** Assinatura eletrônica do laudo pelo morador (mesmo registro do contrato: quando, aparelho, IP e código do documento). */
+export interface LaudoAssinatura {
+  nome: string
+  desenho?: string // traço (caminho SVG 600 × 200)
+  fonte?: string // letra da assinatura digitada
+  em: string
+  aparelho: string
+  fuso: string
+  codigo: string // SHA-256 do laudo + quem assinou
+  ip?: string // gravado pelo banco
 }
 export interface Reserva {
   id: string
@@ -396,7 +408,7 @@ function reservasDemo(): Reserva[] {
     mk(4, 'Diego Exemplo Rocha', '2', '408', { sinal: dia(-1), contratada: d(1), reforma: { itens: ['piso', 'armarios'], pedidoEm: d(2), aprovadoEm: d(2), valor: 310, termoAceito: d(2) } }, { servicos: { vistoria: true, reforma: true }, reformaItens: ['piso', 'armarios'], reformaEstimativa: 310 }),
     mk(5, 'Elisa Exemplo Prado', '1', '1407', { sinal: dia(-3), contratada: d(3), data: dia(12), hora: '09:00' }),
     mk(6, 'Fábio Exemplo Nunes', '4', '108', { sinal: dia(-9), contratada: d(9), data: dia(-1), hora: '14:00', quitado: dia(-1) }),
-    mk(7, 'Gabi Exemplo Costa', '3', '110', { sinal: dia(-20), contratada: d(20), data: dia(-6), hora: '10:30', quitado: dia(-6), laudo: 'https://useplane.com.br/', laudoEm: dia(-3) }),
+    mk(7, 'Gabi Exemplo Costa', '3', '110', { sinal: dia(-20), contratada: d(20), data: dia(-6), hora: '10:30', quitado: dia(-6), laudo: 'https://useplane.com.br/', laudoEm: dia(-3), laudoAssinado: { nome: 'Gabi Exemplo Costa', fonte: 'dancing', em: d(2), aparelho: 'iPhone · Safari', fuso: 'America/Sao_Paulo', ip: '177.0.0.1', codigo: 'a3f9c1e07b2d4e5f8a1b6c3d9e0f2a7b4c8d1e6f3a9b0c5d2e7f1a4b8c3d6e9f' } }),
     mk(8, 'Laís Exemplo (cortesia)', '2', '1204', { cortesia: 'sim', data: dia(12), hora: '11:30' }, { revistoria: true }),
   ]
 }
@@ -449,7 +461,7 @@ export async function enviarChavePix(): Promise<string[] | null> {
   }
 }
 
-export async function avisarEmail(evento: 'endereco-ok' | 'pago' | 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
+export async function avisarEmail(evento: 'laudo-assinado' | 'endereco-ok' | 'pago' | 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
   if (!supabase) return false
   try {
     const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl', evento, id, token } })
@@ -661,6 +673,12 @@ export const linkPainel = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vist
 /** Página para o morador corrigir o endereço atual (vai no e-mail que pede o endereço certo). */
 export const linkEndereco = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/endereco-${r.id}.${r.token}`
 /** O morador corrige o endereço atual pelo link (o banco não aceita o do San Levi). */
+/** O morador assina o laudo pelo link (#/vistoria/laudo-…). */
+export async function assinarLaudo(id: string, token: string, a: LaudoAssinatura): Promise<boolean> {
+  if (!supabase) return true
+  const { data, error } = await supabase.rpc('rdl_assinar_laudo', { p_id: id, p_token: token, p_ass: a })
+  return !error && !!data
+}
 export async function corrigirEndereco(id: string, token: string, d: Pick<ReservaDados, 'cep' | 'rua' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf'>): Promise<boolean> {
   if (!supabase) return true
   const { data, error } = await supabase.rpc('rdl_endereco', { p_id: id, p_token: token, p_dados: { ...d, endereco: enderecoCompleto(d) } })
@@ -722,7 +740,7 @@ export function mensagens(r: Reserva, c: ReservaConfig) {
     sinal: `Oi, ${nome}! Tudo bem? 😊\nRecebemos a sua reserva da vistoria do ${unidade(r.dados)} no ${c.empreendimento.replace(/\s*\(.*\)/, '')}.\n\nPara garantir a vaga, falta só o sinal de *${brl(metade)}*, em até 7 dias${c.pix ? ` no Pix (chave aleatória):\n*${c.pix}*\n${c.pixNome} · ${c.pixBanco ?? ''}` : '.'}\nDepois de pagar, toque em *Já paguei* no seu painel (ou mande o comprovante por aqui).\n\nO seu painel com o contrato e tudo da vistoria:\n${painel}`,
     confirmado: `Oi, ${nome}! ✅ Sinal recebido, a sua vaga na agenda está garantida.\n\nAssim que a MRV liberar as datas (${c.periodo}), me avisa para a gente combinar o horário antes de você confirmar com eles.\n\nPainel da sua vistoria:\n${painel}`,
     data: `Oi, ${nome}! 📅 A sua vistoria ficou marcada para *${dataCurta(r.status.data)}${r.status.hora ? ` às ${r.status.hora}` : ''}*.\n\nLembretes:\n• água e luz ligadas pela MRV\n• você ou alguém de confiança acompanhando\n• restante de *${brl(vv.vistoria - vv.sinalVistoria)}* no dia (Pix)\n\nQualquer coisa, me chama por aqui.`,
-    laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\nEstá no seu painel:\n${painel}\n\nÉ só encaminhar para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,
+    laudo: `Oi, ${nome}! 📄 O laudo da vistoria do ${unidade(r.dados)} está pronto, junto com a ART.\n\n✍️ Antes de mandar para a MRV, leia e assine aqui (leva 1 minuto):\n${r.status.laudoDados ? painel.replace(/#\/vistoria\/(.+)$/, '#/vistoria/laudo-$1') : painel}\n\nDepois é só encaminhar o PDF assinado para a MRV pelo atendimento deles e guardar o protocolo. Se quiser a revistoria depois dos reparos, é só chamar.`,
     lembrete: `Oi, ${nome}! Tudo bem? Passando para lembrar do sinal da reserva da vistoria (${brl(metade)}), que garante a sua vaga na agenda. Se precisar de alguma coisa, é só falar 😊\n${painel}`,
   }
 }

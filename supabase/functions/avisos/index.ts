@@ -603,10 +603,10 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       html: rdlLayout({
         eyebrow: 'laudo e ART',
         title: 'O seu laudo está pronto',
-        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O laudo da vistoria, com fotos e a ART, está pronto.</p><p style="margin:0;">Encaminhe para a MRV pelo atendimento deles e guarde o protocolo. Se quiser a revistoria depois dos reparos (${brl(cfg.revistoria)}), é só responder este e-mail.</p>`,
+        text: `<p style="margin:0 0 12px;">Oi, ${esc(pn)}! O laudo da vistoria, com fotos e a ART, está pronto.</p><p style="margin:0 0 12px;"><b>Antes de mandar para a MRV, leia e assine o laudo</b> pelo botão abaixo (leva 1 minuto, pelo celular). Depois, salve em PDF.</p><p style="margin:0;">Encaminhe para a MRV pelo atendimento deles e guarde o protocolo. Se quiser a revistoria depois dos reparos (${brl(cfg.revistoria)}), é só responder este e-mail.</p>`,
         rows: base,
-        button: 'Abrir o laudo',
-        url: /^https?:\/\//.test(s.laudo ?? '') ? s.laudo : painel,
+        button: 'Ler e assinar o laudo',
+        url: (r.status as Record<string, unknown>).laudoDados ? `${SITE}#/vistoria/laudo-${r.id}.${r.token}` : /^https?:\/\//.test(s.laudo ?? '') ? s.laudo : painel,
       }),
     },
     revistoria: {
@@ -634,6 +634,10 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
         button: 'Corrigir meu endereço',
         url: `${SITE}#/vistoria/endereco-${r.id}.${r.token}`,
       }),
+    },
+    'laudo-assinado': {
+      subject: `Laudo assinado: ${nome} · ${un}`,
+      html: rdlLayout({ eyebrow: 'laudo assinado', title: `${pn} assinou o laudo`, text: `<p style="margin:0;">O laudo da vistoria foi assinado eletronicamente pelo(a) proprietário(a)${s.laudoAssinado ? ` em ${new Date(String((s.laudoAssinado as unknown as { em?: string }).em ?? '')).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}` : ''}. Já está no painel dele(a), pronto para mandar à construtora.</p>`, rows: base, button: 'Ver o laudo', url: `${SITE}#/vistoria/laudo-${r.id}.${r.token}` }),
     },
     'endereco-ok': {
       subject: `Endereço atualizado: ${nome} · ${un}`,
@@ -1137,11 +1141,11 @@ Deno.serve(async (req) => {
     // as outras etapas só a RDL (Laís ou Rogério, logados). Cada e-mail vai uma vez por etapa (coluna avisos).
     const evento = String(body.evento ?? '')
     const id = String(body.id ?? '')
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'pago', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada', 'endereco-ok'].includes(evento)) return json({ ok: false }, 400)
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'pago', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada', 'endereco-ok', 'laudo-assinado'].includes(evento)) return json({ ok: false }, 400)
     const { data: row } = await db.from('rdl_reservas').select('*').eq('id', id).maybeSingle()
     const r = row as RdlRow | null
     if (!r) return json({ ok: false }, 404)
-    if (evento === 'reserva' || evento === 'pago' || evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'endereco-ok') {
+    if (evento === 'reserva' || evento === 'pago' || evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'endereco-ok' || evento === 'laudo-assinado') {
       if (String(body.token ?? '') !== r.token) return json({ ok: false }, 403)
     } else {
       const mail = String(who?.user?.email ?? '').toLowerCase()
@@ -1149,7 +1153,7 @@ Deno.serve(async (req) => {
     }
     const st = r.status ?? {}
     const rfx = ((r.status ?? {}) as { reforma?: Record<string, string> }).reforma ?? {}
-    const ref = evento === 'pago' ? `pago:${st.pagoInformado ?? ''}` : evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento === 'endereco-ok' ? `end:${String((r.dados as Record<string, string>).endereco ?? '')}` : evento
+    const ref = evento === 'pago' ? `pago:${st.pagoInformado ?? ''}` : evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento === 'endereco-ok' ? `end:${String((r.dados as Record<string, string>).endereco ?? '')}` : evento === 'laudo-assinado' ? `la:${String((st as unknown as { laudoAssinado?: { em?: string } }).laudoAssinado?.em ?? '')}` : evento
     const avisos = r.avisos ?? {}
     if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
     // valores da campanha (arquivo público da RDL)
@@ -1160,8 +1164,8 @@ Deno.serve(async (req) => {
     const nome = String((r.dados as Record<string, string>).nome ?? '')
     const ok: string[] = []
     try {
-      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'pago' || evento === 'endereco-ok'
-      if (isMail(to) && evento !== 'reforma-pedido' && evento !== 'pago' && evento !== 'endereco-ok') {
+      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'pago' || evento === 'endereco-ok' || evento === 'laudo-assinado'
+      if (isMail(to) && evento !== 'reforma-pedido' && evento !== 'pago' && evento !== 'endereco-ok' && evento !== 'laudo-assinado') {
         const base = evento === 'reforma-aprovada' ? { subject: `Você aprovou a ART de reforma`, html: mails['reforma-aprovada'].html } : mails[evento]
         await send(rdlSub(id, to, nome), evento === 'reserva' || evento === 'sinal' ? { ...base, attachment: await anexoContrato(r) } : base, RDL_EMAIL, RDL_FROM)
         ok.push('morador')
