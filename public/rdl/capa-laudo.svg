@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 784" font-family="Poppins, Helvetica, Arial, sans-serif">
+  <defs>
+    <pattern id="g" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="2" fill="#1F4A85"/></pattern>
+    <clipPath id="c"><rect width="1200" height="784" rx="36"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="1200" height="784" fill="#012C60"/>
+    <rect width="1200" height="784" fill="url(#g)" opacity=".55"/>
+    <circle cx="1080" cy="-40" r="260" fill="#0A3A75"/>
+    <circle cx="80" cy="820" r="220" fill="#0A3A75"/>
+
+    <!-- planta baixa -->
+    <g transform="translate(96 132)" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="0" y="0" width="560" height="440" stroke-width="14"/>
+      <path d="M0 250 H170 M250 250 H330 M330 0 V150 M330 230 V440 M430 250 H560" stroke-width="10"/>
+      <!-- quarto destacado -->
+      <rect x="337" y="7" width="216" height="236" fill="#1F4A85" stroke="none"/>
+      <!-- portas -->
+      <path d="M170 250 A80 80 0 0 1 250 170" stroke-width="4" stroke-dasharray="8 8" opacity=".7"/>
+      <path d="M330 150 A80 80 0 0 1 410 230" stroke-width="4" stroke-dasharray="8 8" opacity=".7"/>
+      <!-- janelas -->
+      <path d="M80 0 H230 M400 0 H500 M560 300 V400" stroke="#FF8216" stroke-width="16"/>
+      <!-- móveis -->
+      <rect x="40" y="300" width="150" height="80" rx="16" stroke-width="5" opacity=".75"/>
+      <rect x="390" y="60" width="120" height="140" rx="12" stroke-width="5" opacity=".75"/>
+      <path d="M390 100 H510" stroke-width="5" opacity=".75"/>
+      <rect x="40" y="40" width="70" height="170" rx="8" stroke-width="5" opacity=".75"/>
+      <circle cx="245" cy="345" r="38" stroke-width="5" opacity=".75"/>
+      <!-- cotas -->
+      <path d="M0 -40 H560 M0 -52 V-28 M560 -52 V-28" stroke="#9FB3D1" stroke-width="3"/>
+      <text x="280" y="-52" fill="#9FB3D1" stroke="none" font-size="22" font-weight="600" text-anchor="middle" letter-spacing="2">7,40 m</text>
+      <!-- marcações do laudo -->
+      <g stroke="none">
+        <circle cx="120" cy="250" r="22" fill="#FF8216"/><text x="120" y="258" font-size="22" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+        <circle cx="330" cy="370" r="22" fill="#FF8216"/><text x="330" y="378" font-size="22" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+        <circle cx="445" cy="125" r="22" fill="#FF8216"/><text x="445" y="133" font-size="22" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+      </g>
+    </g>
+
+    <!-- lupa -->
+    <g transform="translate(560 270)">
+      <circle r="84" fill="none" stroke="#fff" stroke-width="16"/>
+      <path d="M62 62 L128 128" stroke="#FF8216" stroke-width="30" stroke-linecap="round"/>
+      <path d="M-40 -46 A62 62 0 0 1 22 -60" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" opacity=".8"/>
+    </g>
+
+    <!-- folha do laudo -->
+    <g transform="translate(760 96) rotate(4)">
+      <rect x="8" y="14" width="330" height="460" rx="22" fill="#000" opacity=".22"/>
+      <rect width="330" height="460" rx="22" fill="#fff"/>
+      <rect x="28" y="30" width="90" height="12" rx="6" fill="#FF8216"/>
+      <rect x="28" y="56" width="230" height="20" rx="10" fill="#012C60"/>
+      <rect x="28" y="86" width="170" height="20" rx="10" fill="#012C60"/>
+      <!-- fotos -->
+      <rect x="28" y="128" width="130" height="96" rx="12" fill="#F1F2F6"/>
+      <path d="M40 210 L78 168 L104 192 L122 176 L148 210 Z" fill="#9FB3D1"/>
+      <circle cx="132" cy="152" r="10" fill="#FF8216"/>
+      <rect x="172" y="128" width="130" height="96" rx="12" fill="#F1F2F6"/>
+      <path d="M184 210 L222 172 L246 194 L266 178 L292 210 Z" fill="#9FB3D1"/>
+      <circle cx="276" cy="152" r="10" fill="#FF8216"/>
+      <!-- itens -->
+      <g>
+        <circle cx="44" cy="262" r="14" fill="#012C60"/><path d="M37 262 l5 5 l10 -11" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="70" y="255" width="200" height="12" rx="6" fill="#D5DCE8"/>
+        <circle cx="44" cy="304" r="14" fill="#FF8216"/><text x="44" y="312" font-size="20" font-weight="700" fill="#fff" text-anchor="middle">!</text>
+        <rect x="70" y="297" width="170" height="12" rx="6" fill="#D5DCE8"/>
+        <circle cx="44" cy="346" r="14" fill="#012C60"/><path d="M37 346 l5 5 l10 -11" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="70" y="339" width="215" height="12" rx="6" fill="#D5DCE8"/>
+        <circle cx="44" cy="388" r="14" fill="#012C60"/><path d="M37 388 l5 5 l10 -11" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="70" y="381" width="150" height="12" rx="6" fill="#D5DCE8"/>
+      </g>
+      <!-- assinatura -->
+      <path d="M180 432 c14 -22 26 -22 30 -4 c4 16 16 -18 26 -10 c8 6 12 10 30 -2" stroke="#012C60" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </g>
+
+    <!-- selo ART -->
+    <g transform="translate(1032 560)">
+      <circle r="78" fill="#FF8216"/>
+      <circle r="62" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="6 6"/>
+      <text y="-6" font-size="34" font-weight="800" fill="#fff" text-anchor="middle">ART</text>
+      <text y="26" font-size="15" font-weight="600" fill="#fff" text-anchor="middle" letter-spacing="2">CREA-SP</text>
+    </g>
+
+    <!-- chave -->
+    <g transform="translate(150 650) rotate(-18)" fill="none" stroke="#FF8216" stroke-linecap="round" stroke-linejoin="round">
+      <circle r="34" stroke-width="14"/>
+      <path d="M34 0 H170 M130 0 V28 M158 0 V22" stroke-width="14"/>
+    </g>
+  </g>
+</svg>

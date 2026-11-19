@@ -69,8 +69,8 @@ const QUADRO_ICON = (q: string) => (/elétric/i.test(q) ? 'bolt' : /porta|janela
 
 /* ---------- ilustrações das capas: as dos modelos da Laís, nas cores da RDL (public/rdl) ---------- */
 const asset = (name: string) => (typeof location === 'undefined' ? `rdl/${name}` : `${location.origin}${location.pathname.replace(/[^/]*$/, '')}rdl/${name}`)
-const ART_CHECKLIST = () => `<img class="photo" src="${asset('fotos/capa-cozinha.jpg')}" alt="">`
-const ART_LAUDO = () => `<img class="photo" src="${asset('fotos/capa-sala.jpg')}" alt="">`
+const ART_CHECKLIST = () => `<img class="photo" src="${asset('capa-checklist.svg')}" alt="">`
+const ART_LAUDO = () => `<img class="photo" src="${asset('capa-laudo.svg')}" alt="">`
 /** Foto de referência de cada quadro do checklist (fotos reais de apartamento novo, dos modelos da Laís). */
 const AMB_SLUG: Record<string, string> = { Cozinha: 'cozinha', Lavanderia: 'lavanderia', Sala: 'sala', 'Sacada / Varanda': 'sacada', Quarto: 'quarto', Corredor: 'corredor', Banheiro: 'banheiro', Garagem: 'garagem' }
 const fotoQuadro = (amb: string, q: string) => {
@@ -808,17 +808,31 @@ ${foot(`Orçamento válido por 30 dias${o.date ? ` · ${dateBR(o.date)}` : ''}`)
 }
 
 /** Abre o documento numa aba nova, pronto para salvar em PDF ou imprimir. */
-export function openRdlDoc(html: string) {
+/** Abre o documento numa aba nova. Com editar: qualquer texto da folha muda com um clique (não salva; é para ajustar e
+ *  imprimir ou salvar em PDF), com uma barra que não sai na impressão. Sem editar: abre já pedindo a impressão. */
+export function openRdlDoc(html: string, o: { editar?: boolean; titulo?: string } = {}) {
   const w = window.open('', '_blank')
+  const barra = `<style>
+.rdl-edit-bar{position:sticky;top:0;z-index:99;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;padding:10px 14px;background:#012C60;color:#fff;font:500 13px/1.4 Poppins,Arial,sans-serif;border-bottom:3px solid #FF8216}
+.rdl-edit-bar span{opacity:.85}.rdl-edit-bar button{font:600 13px Poppins,Arial,sans-serif;border:0;border-radius:10px;padding:8px 16px;cursor:pointer;background:#FF8216;color:#fff}
+.rdl-edit-bar button.l{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
+[contenteditable]:focus{outline:none}[contenteditable] *:hover{outline:1px dashed rgba(255,130,22,.45);outline-offset:2px}
+@media print{.rdl-edit-bar{display:none!important}[contenteditable] *:hover{outline:none}}
+</style><div class="rdl-edit-bar" contenteditable="false"><span>Clique em qualquer texto para editar. As mudanças valem só para esta impressão.</span><button onclick="window.print()">imprimir ou salvar PDF</button><button class="l" onclick="location.reload()">desfazer tudo</button></div>`
+  const final = o.editar
+    ? html
+        .replace(/<body([^>]*)>/, `<body$1 contenteditable="true" spellcheck="true">${barra}`)
+        .replace(/<title>[^<]*<\/title>/, o.titulo ? `<title>${o.titulo}</title>` : '$&')
+    : html.replace('</body>', '<script>setTimeout(function(){try{window.focus();window.print()}catch(e){}},700)</script></body>')
   if (!w) {
     // bloqueador de janelas: baixa o arquivo para abrir e imprimir
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }))
+    a.href = URL.createObjectURL(new Blob([final], { type: 'text/html' }))
     a.download = 'documento-rdl.html'
     a.click()
     return
   }
   w.document.open()
-  w.document.write(html.replace('</body>', '<script>setTimeout(function(){try{window.focus();window.print()}catch(e){}},700)</script></body>'))
+  w.document.write(final)
   w.document.close()
 }

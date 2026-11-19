@@ -2794,6 +2794,15 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .ld-abas { display: flex; } .ld-abas button { padding: 8px 12px; }
 /* documentos da RDL: laudo e checklist da vistoria */
 .rdl-vdocs { margin-bottom: 18px; }
+.rdl-vdocs > .docs-group { margin: 6px 0 10px; }
+.rdl-vdocs-pick { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1.5px solid #012c60; margin-top: 4px; }
+.rdl-vdocs-pick select { max-width: 520px; margin-top: 4px; }
+.rdl-vdocs-hint { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: 12.5px; margin: 12px 0 10px; }
+.rdl-vdocs-grid .docs-card { cursor: default; }
+.rdl-vdocs-grid .rdl-vdocs-row { margin-top: auto; padding-top: 6px; }
+.rdl-thumb { overflow: hidden; }
+.rdl-thumb-empty { display: grid; place-items: center; align-content: center; gap: 6px; background: #f1f2f6; color: #012c60; }
+.rdl-thumb-empty small { color: var(--muted); }
 .rdl-vdocs-main { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border: 1.5px solid #012c60; }
 .rdl-vdocs-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; background: #012c60; color: #fff; display: grid; place-items: center; }
 .rdl-vdocs-body { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
@@ -2805,3 +2814,4 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rdl-vdocs-blank .docs-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; text-align: left; }
 .rdl-vdocs-blank small { color: var(--muted); font-size: 12px; }
 .rdl-vdocs-blank .docs-card b { font-size: 14px; line-height: 1.25; } .rdl-vdocs-blank .docs-card { min-height: 0; height: auto; }
+@media (min-width: 1100px) { .docs-home.rdl-vdocs-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

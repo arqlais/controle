@@ -205,3 +205,11 @@ export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
   ]
   return linhas.filter((l) => typeof l === 'string').join('\n').replace(/\n{3,}/g, '\n\n')
 }
+
+/** Recibo como página para abrir, editar e imprimir (A4), com as fontes da proposta. */
+export function reciboDocHtml(r: Reserva, cfg: ReservaConfig) {
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Recibo · ${esc(r.dados.nome)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Herr+Von+Muellerhoff&display=swap" rel="stylesheet">
+<style>@page{size:A4;margin:0}body{margin:0;background:#d9dce3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{width:1080px;margin:24px auto;box-shadow:0 8px 30px rgba(1,44,96,.15)}
+@media print{body{background:#fff}.pg{margin:0;box-shadow:none;zoom:.735}}</style></head><body><div class="pg">${reciboHtml(r, cfg)}</div></body></html>`
+}

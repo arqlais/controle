@@ -3477,3 +3477,26 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 /* chave Pix numa linha só */
 .rv-pix-conta dd.k { font-size: clamp(11px, 3.3vw, 15px); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: clip; }
 .rv .rv-docs .rv-doc b, .rv .rv-docs .rv-doc small { margin: 0; padding: 0; text-align: left; justify-self: start; } .rv .rv-docs .rv-doc .ib { display: grid; place-items: center; border-radius: 10px; background: #eaf0f8; color: var(--navy); }
+
+/* grupo: quem entrou depois que completou, e aviso do endereço do San Levi */
+.rv-group p.rv-group-extra {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--navy);
+}
+.rv-sub small {
+  font-weight: 400;
+  color: var(--mut);
+  font-size: 12px;
+  margin-left: 4px;
+}
+.rv-endereco-san-levi {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.rv-endereco-san-levi .rv-i {
+  flex: none;
+  margin-top: 2px;
+}

@@ -402,6 +402,46 @@ function rdlAbandono(nome: string, servicos: string) {
     }),
   } as Mail
 }
+type GrupoRow = { cancelada?: boolean; status?: Record<string, unknown>; dados?: Record<string, unknown> }
+const noGrupo = (x: GrupoRow) => !x.cancelada && !(x.status ?? {}).cortesia && (x.dados as { servicos?: { vistoria?: boolean } } | undefined)?.servicos?.vistoria !== false
+// deno-lint-ignore no-explicit-any
+async function rdlGrupo(db: any) {
+  const rows = ((await db.from('rdl_reservas').select('status,dados,cancelada').eq('cancelada', false)).data ?? []) as GrupoRow[]
+  const g = rows.filter(noGrupo)
+  return { grupo: g.length, pagos: g.filter((x) => !!(x.status ?? {}).sinal).length }
+}
+/** Grupo fechado: quando o mínimo paga o sinal (cláusula 4.3), cada morador do grupo recebe um e-mail garantindo o
+ *  valor de grupo (uma vez só, avisos["grupo-fechado"]). Quem reserva depois já fica sabendo no e-mail da reserva. */
+// deno-lint-ignore no-explicit-any
+async function rdlGrupoFechado(db: any, cfg: RdlCfg) {
+  const min = cfg.minimo ?? 10
+  const { data } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
+  const rows = ((data ?? []) as RdlRow[]).filter((x) => noGrupo(x as unknown as GrupoRow))
+  const pagos = rows.filter((x) => !!(x.status ?? {}).sinal).length
+  if (pagos < min) return 0
+  let n = 0
+  for (const r of rows) {
+    const av = r.avisos ?? {}
+    if (av['grupo-fechado']) continue
+    const to = String((r.dados as Record<string, string>).email ?? '').trim()
+    try {
+      if (isMail(to)) {
+        await send(rdlSub(r.id, to, String((r.dados as Record<string, string>).nome ?? '')), rdlMails(r, cfg, rows.length, pagos)['grupo-fechado'], RDL_EMAIL, RDL_FROM)
+        n++
+      }
+      await db.from('rdl_reservas').update({ avisos: { ...av, 'grupo-fechado': new Date().toISOString() } }).eq('id', r.id)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+  // aviso para a RDL, junto com o primeiro envio
+  if (n) {
+    const m = { subject: `Grupo fechado: ${pagos} sinais pagos · vistoria San Levi`, html: rdlLayout({ eyebrow: 'grupo fechado', title: `O grupo fechou com ${pagos} sinais`, text: `<p style="margin:0;">${n} ${n === 1 ? 'morador recebeu' : 'moradores receberam'} o e-mail garantindo o valor de grupo (${brl(cfg.preco)}). Quem reservar daqui em diante também paga ${brl(cfg.preco)}.</p>` }) } as Mail
+    await send(rdlSub('grupo', RDL_EMAIL, 'Rogério'), m, RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
+    if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub('grupo', OWNER_EMAIL, ''), m, RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
+  }
+  return n
+}
 /** Aviso diário da RDL: lembrete do sinal no 5º dia e e-mail de quem foi cancelado por falta de sinal. */
 // deno-lint-ignore no-explicit-any
 async function rdlDiario(db: any) {
@@ -409,8 +449,8 @@ async function rdlDiario(db: any) {
   const cfg = await rdlCfg(db)
   const { data } = await db.from('rdl_reservas').select('*').gte('criado', new Date(Date.now() - 30 * 864e5).toISOString())
   const rows = (data ?? []) as RdlRow[]
-  const grupo = rows.filter((x) => !x.cancelada && !(x.status ?? {}).cortesia && (x.dados as { servicos?: { vistoria?: boolean } }).servicos?.vistoria !== false).length
-  let n = 0
+  const { grupo, pagos } = await rdlGrupo(db)
+  let n = await rdlGrupoFechado(db, cfg)
   for (const r of rows) {
     const st = (r.status ?? {}) as Record<string, string>
     const av = r.avisos ?? {}
@@ -431,7 +471,7 @@ async function rdlDiario(db: any) {
     if (!isMail(to)) continue
     const qual = k.startsWith('vespera') ? 'vespera' : k === 'lembrete-auto' ? 'lembrete' : k
     try {
-      await send(rdlSub(r.id, to, String((r.dados as Record<string, string>).nome ?? '')), rdlMails(r, cfg, grupo)[qual], RDL_EMAIL, RDL_FROM)
+      await send(rdlSub(r.id, to, String((r.dados as Record<string, string>).nome ?? '')), rdlMails(r, cfg, grupo, pagos)[qual], RDL_EMAIL, RDL_FROM)
       await db.from('rdl_reservas').update({ avisos: { ...av, [k]: new Date().toISOString() } }).eq('id', r.id)
       n++
     } catch (e) {
@@ -488,7 +528,7 @@ type RdlCfg = { preco: number; individual?: number; minimo?: number; revistoria:
 /** Cupom exclusivo da loja planê.apê para quem pagou o sinal (igual a cupomRdl do site). */
 const cupomRdl = (id: string) => `RDL${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`
 
-function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
+function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0, pagos = 0) {
   const d = r.dados as Record<string, string | boolean>
   const nome = String(d.nome ?? '')
   const pn = nome.split(' ')[0]
@@ -511,7 +551,7 @@ function rdlMails(r: RdlRow, cfg: RdlCfg, grupo = 0) {
   const ind = cfg.individual ?? 297
   const planta = String(d.planta ?? '')
   const base: [string, string][] = [['morador', nome], ['unidade', `${emp} · ${un}`], ...(planta ? [['planta', planta] as [string, string]] : []), ['reserva', `nº ${r.id.slice(0, 8).toUpperCase()}`]]
-  const grupoTxt = grupo >= min ? `O grupo já tem ${grupo} reservas: vale o valor de grupo (${brl(cfg.preco)}).` : `O grupo está com ${grupo} de ${min} reservas. Com ${min}, todos pagam ${brl(cfg.preco)}; se não chegar, a diferença para ${brl(ind)} entra no restante, no dia da vistoria.`
+  const grupoTxt = pagos >= min ? `O grupo já fechou (${grupo} reservas): o valor de grupo (${brl(cfg.preco)}) está garantido para você também.` : grupo >= min ? `O grupo já tem ${grupo} reservas; o valor de grupo (${brl(cfg.preco)}) fica garantido quando ${min} pagarem o sinal (${pagos} já pagaram).` : `O grupo está com ${grupo} de ${min} reservas. Com ${min}, todos pagam ${brl(cfg.preco)}; se não chegar, a diferença para ${brl(ind)} entra no restante, no dia da vistoria.`
   return {
     reserva: {
       subject: `Contrato assinado: ${servTxt} · ${un}`,
@@ -583,6 +623,17 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
     cancelada: {
       subject: `Reserva cancelada: vistoria do ${un}`,
       html: rdlLayout({ eyebrow: 'reserva', title: 'Reserva cancelada', text: `<p style="margin:0;">Oi, ${esc(pn)}. A reserva da vistoria do ${esc(un)} foi cancelada. Se tiver qualquer dúvida, é só responder este e-mail.</p>`, rows: base }),
+    },
+    'grupo-fechado': {
+      subject: `Grupo fechado: sua vistoria fica em ${brl(cfg.preco)} · ${un}`,
+      html: rdlLayout({
+        eyebrow: 'grupo fechado',
+        title: `${pn}, o grupo fechou!`,
+        text: `<p style="margin:0 0 12px;">${min} apartamentos do ${esc(emp)} já pagaram o sinal. Com isso, o valor de grupo está <b>garantido</b>: a sua vistoria fica em <b>${brl(precoV)}</b>, sem a diferença de ${brl(ind - cfg.preco)} do valor individual (cláusula 4.3).</p><p style="margin:0;">${s.sinal ? 'O seu sinal já está confirmado. O restante é pago no dia da vistoria, por Pix.' : `Para manter a sua vaga, falta o sinal de <b>${brl(metade)}</b>${prazoPix ? ` até <b>${prazoPix}</b>` : ''}. O Pix está no seu painel.`} Assim que a MRV liberar a agenda, combinamos a data com você.</p>`,
+        rows: [...base, ['vistoria', `${brl(precoV)} (valor de grupo)`], ['grupo', `${grupo} reservas · ${pagos} sinais pagos`]],
+        button: 'Abrir o meu painel',
+        url: painel,
+      }),
     },
     lembrete: {
       subject: `Lembrete: sinal da vistoria do ${un}`,
@@ -1016,7 +1067,7 @@ Deno.serve(async (req) => {
     const cfg = await rdlCfg(db)
     if (!cfg.pix) return json({ ok: false, motivo: 'sem chave Pix' })
     const { data: rows } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
-    const grupo = ((await db.from('rdl_reservas').select('status,dados').eq('cancelada', false)).data ?? []).filter((x: { status?: Record<string, string>; dados?: { servicos?: { vistoria?: boolean } } }) => !x.status?.cortesia && x.dados?.servicos?.vistoria !== false).length
+    const { grupo, pagos } = await rdlGrupo(db)
     const enviados: string[] = []
     for (const r of (rows ?? []) as RdlRow[]) {
       const st = r.status ?? {}
@@ -1025,7 +1076,7 @@ Deno.serve(async (req) => {
       const to = String((r.dados as Record<string, string>).email ?? '').trim()
       const nome = String((r.dados as Record<string, string>).nome ?? '')
       if (!isMail(to)) continue
-      const m = rdlMails(r, cfg, grupo ?? 0).pix
+      const m = rdlMails(r, cfg, grupo, pagos).pix
       try {
         await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
         await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
@@ -1062,8 +1113,8 @@ Deno.serve(async (req) => {
     if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
     // valores da campanha (arquivo público da RDL)
     const cfg = await rdlCfg(db)
-    const grupo = ((await db.from('rdl_reservas').select('status,dados').eq('cancelada', false)).data ?? []).filter((x: { status?: Record<string, string>; dados?: { servicos?: { vistoria?: boolean } } }) => !x.status?.cortesia && x.dados?.servicos?.vistoria !== false).length
-    const mails = rdlMails(r, cfg, grupo ?? 0)
+    const { grupo, pagos } = await rdlGrupo(db)
+    const mails = rdlMails(r, cfg, grupo, pagos)
     const to = String((r.dados as Record<string, string>).email ?? '').trim()
     const nome = String((r.dados as Record<string, string>).nome ?? '')
     const ok: string[] = []
@@ -1084,7 +1135,11 @@ Deno.serve(async (req) => {
       console.error(e)
       return json({ ok: false, erro: String(e instanceof Error ? e.message : e).slice(0, 240) })
     }
-    await db.from('rdl_reservas').update({ avisos: { ...avisos, [ref]: new Date().toISOString() } }).eq('id', id)
+    // reserva nova com o grupo já fechado: o e-mail da reserva já avisou, não manda o de grupo fechado de novo
+    const fechado = pagos >= (cfg.minimo ?? 10)
+    await db.from('rdl_reservas').update({ avisos: { ...avisos, [ref]: new Date().toISOString(), ...(evento === 'reserva' && fechado ? { 'grupo-fechado': new Date().toISOString() } : {}) } }).eq('id', id)
+    // sinal confirmado pode ter fechado o grupo: avisa todo mundo (uma vez só)
+    if (evento === 'sinal') await rdlGrupoFechado(db, cfg).catch((e) => console.error(e))
     return json({ ok: true, enviados: ok })
   }
 

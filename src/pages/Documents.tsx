@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { Icon } from '../components/Icon'
 import { DocScale } from '../components/Print'
@@ -34,7 +34,8 @@ import type { Quote } from '../types'
 import { WorkDocEditor } from './WorkDocEditor'
 import { rdlMode } from '../rdl'
 import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
-import { listarReservas, unidade, type Reserva } from '../rdlReserva'
+import { contratoHtml, lerConfig, listarReservas, unidade, type Reserva, type ReservaConfig } from '../rdlReserva'
+import { reciboDocHtml } from '../rdlRecibo'
 import { linkLaudo } from '../rdlLaudo'
 import { WORK_KINDS, WORK_ORDER, type WorkKind } from '../workDocs'
 
@@ -53,63 +54,127 @@ const titleOf = (k: DocKind) => LIST.find((x) => x.id === k)?.title ?? 'document
 type DocValue = MeasureGuideData & PlaqueData & DeckData & { briefingTpl?: string }
 const KEY: Record<DocId, keyof DocsState | 'briefingTpl'> = { guia: 'guide', placa: 'plaque', apresentacao: 'deck', briefing: 'briefingTpl' }
 
-/** RDL: laudo e checklist da vistoria de entrega, com os moradores já puxados das reservas. */
-function RdlVistoriaDocs() {
+/** Miniatura de um documento da RDL (a própria folha, numa moldura que não recebe clique). */
+function RdlThumb({ html, w = 794, h = 1123 }: { html: string; w?: number; h?: number }) {
+  return (
+    <span className="docs-thumb rdl-thumb" aria-hidden>
+      <DocScale width={w}>
+        <iframe title="" srcDoc={html} tabIndex={-1} style={{ width: w, height: h, border: 0, display: 'block', pointerEvents: 'none', background: '#fff' }} />
+      </DocScale>
+    </span>
+  )
+}
+
+/** RDL: só os documentos da vistoria (checklist, contrato, laudo e recibo), nas versões da RDL, com os dados do
+ *  morador escolhido ou em branco. Tudo abre editável: clica no texto, muda e imprime ou salva em PDF. */
+function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
   const [lista, setLista] = useState<Reserva[] | null>(null)
+  const [cfg, setCfg] = useState<ReservaConfig | null>(null)
   const [sel, setSel] = useState('')
   useEffect(() => {
     void listarReservas()
-      .then((l) => setLista(l.filter((r) => !r.cancelada && (r.dados.servicos?.vistoria ?? true))))
+      .then((l) => setLista(l.filter((r) => !r.cancelada)))
       .catch(() => setLista([]))
+    void lerConfig().then(setCfg)
   }, [])
   const r = lista?.find((x) => x.id === sel)
   const st = (x: Reserva) => (x.status.laudo ? 'laudo publicado' : x.status.laudoDados?.itens?.length || x.status.laudoDados?.check ? 'laudo em andamento' : x.status.data ? `vistoria ${x.status.data.slice(8, 10)}/${x.status.data.slice(5, 7)}` : x.status.sinal || x.status.cortesia ? 'sem data' : 'sem sinal')
+  const quem = r ? `${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}` : ''
+  const contratoBranco = useMemo(
+    () => contratoHtml({ id: 'modelo', status: {}, contrato: { texto: contratoModelo, assinatura: '', cpf: '', em: new Date().toISOString(), codigo: '', aparelho: '', fuso: '' } }, undefined, true),
+    [contratoModelo],
+  )
+  const docs = useMemo(() => {
+    const check = checklistHtml(r ? { owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: r.status.laudoDados?.ambientes } : {})
+    const laudo = laudoHtml()
+    const contrato = r ? contratoHtml(r) : contratoBranco
+    const recibo = r && cfg ? reciboDocHtml(r, cfg) : ''
+    return { check, laudo, contrato, recibo }
+  }, [r, cfg, contratoBranco])
+  const editar = (html: string, titulo: string) => openRdlDoc(html, { editar: true, titulo })
   return (
     <section className="rdl-vdocs">
-      <h2 className="docs-group">vistoria de entrega</h2>
-      <div className="rdl-vdocs-main card">
-        <div className="rdl-vdocs-ic">
-          <Icon name="hardhat" size={20} />
-        </div>
+      <div className="rdl-vdocs-pick card">
+        <span className="rdl-vdocs-ic">
+          <Icon name="user" size={18} />
+        </span>
         <div className="rdl-vdocs-body">
-          <b>Laudo de um morador</b>
-          <small>Checklist por ambiente, fotos, testes e pasta do Drive. Os dados do morador e o nº da ART já vêm preenchidos.</small>
-          <div className="rdl-vdocs-row">
-            <select value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Morador">
-              <option value="">{lista === null ? 'carregando…' : 'escolha o morador'}</option>
-              {(lista ?? []).map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.dados.nome.split(' ')[0]} · {unidade(x.dados)} · {st(x)}
-                </option>
-              ))}
-            </select>
-            <button className="btn" disabled={!r} onClick={() => r && go('reservas', `laudo-${r.id}`)}>
-              <Icon name="edit" size={15} /> {r?.status.laudoDados ? 'continuar o laudo' : 'montar o laudo'}
-            </button>
-          </div>
-          {r && (
-            <div className="rdl-vdocs-row">
-              <button className="btn small ghost" onClick={() => openRdlDoc(checklistHtml({ owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: r.status.laudoDados?.ambientes }))}>
-                <Icon name="printer" size={14} /> checklist deste apê
-              </button>
-              {r.status.laudo && (
-                <a className="btn small ghost" href={r.status.laudo.startsWith('http') ? r.status.laudo : linkLaudo(r)} target="_blank" rel="noreferrer">
-                  <Icon name="eye" size={14} /> laudo publicado
-                </a>
-              )}
-            </div>
-          )}
+          <b>Para qual morador?</b>
+          <small>Os documentos já saem com os dados dele. Sem escolher, saem em branco.</small>
+          <select value={sel} onChange={(e) => setSel(e.target.value)} aria-label="Morador">
+            <option value="">{lista === null ? 'carregando…' : 'em branco (sem morador)'}</option>
+            {(lista ?? []).map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.dados.nome.split(' ')[0]} · {unidade(x.dados)} · {st(x)}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-      <div className="rdl-vdocs-blank">
-        <button className="docs-card docs-card-icon" type="button" onClick={() => openRdlDoc(checklistHtml())}>
-          <Icon name="list" size={18} /> <b>checklist em branco</b>
-          <small>para imprimir e levar na vistoria</small>
-        </button>
-        <button className="docs-card docs-card-icon" type="button" onClick={() => openRdlDoc(laudoHtml())}>
-          <Icon name="file" size={18} /> <b>laudo em branco</b>
-          <small>modelo completo da RDL</small>
-        </button>
+      <p className="rdl-vdocs-hint">
+        <Icon name="edit" size={14} /> Tudo abre editável: clique no texto da folha, mude o que quiser e imprima ou salve em PDF.
+      </p>
+      <div className="docs-home docs-daily rdl-vdocs-grid">
+        <div className="docs-card docs-card-icon">
+          <RdlThumb html={docs.check} />
+          <b>checklist</b>
+          <small>{r ? `do apê de ${quem}, com os ambientes do laudo` : 'para imprimir e levar na vistoria'}</small>
+          <div className="rdl-vdocs-row">
+            <button className="btn small" onClick={() => editar(docs.check, 'Checklist de vistoria · RDL')}>
+              <Icon name="edit" size={14} /> abrir e editar
+            </button>
+          </div>
+        </div>
+        <div className="docs-card docs-card-icon">
+          <RdlThumb html={docs.contrato} />
+          <b>contrato</b>
+          <small>{r ? `o que ${r.dados.nome.split(' ')[0]} assinou na reserva` : 'vistoria de entrega de chaves, em branco'}</small>
+          <div className="rdl-vdocs-row">
+            <button className="btn small" onClick={() => editar(docs.contrato, 'Contrato de vistoria · RDL')}>
+              <Icon name="edit" size={14} /> abrir e editar
+            </button>
+            <button className="btn small ghost" onClick={() => go('contratos')}>
+              <Icon name="pen" size={14} /> mudar o modelo
+            </button>
+          </div>
+        </div>
+        <div className="docs-card docs-card-icon">
+          <RdlThumb html={docs.laudo} />
+          <b>laudo</b>
+          <small>{r ? (r.status.laudo ? 'laudo publicado no painel do morador' : 'checklist por ambiente, fotos e testes') : 'escolha o morador para montar com fotos'}</small>
+          <div className="rdl-vdocs-row">
+            {r && (
+              <button className="btn small" onClick={() => go('reservas', `laudo-${r.id}`)}>
+                <Icon name="camera" size={14} /> {r.status.laudoDados ? 'continuar o laudo' : 'montar o laudo'}
+              </button>
+            )}
+            {r?.status.laudo && (
+              <a className="btn small ghost" href={r.status.laudo.startsWith('http') ? r.status.laudo : linkLaudo(r)} target="_blank" rel="noreferrer">
+                <Icon name="eye" size={14} /> publicado
+              </a>
+            )}
+            <button className={`btn small ${r ? 'ghost' : ''}`} onClick={() => editar(docs.laudo, 'Laudo de vistoria · RDL')}>
+              <Icon name="edit" size={14} /> em branco
+            </button>
+          </div>
+        </div>
+        <div className="docs-card docs-card-icon">
+          {docs.recibo ? (
+            <RdlThumb html={docs.recibo} w={1128} h={1575} />
+          ) : (
+            <span className="docs-thumb rdl-thumb rdl-thumb-empty" aria-hidden>
+              <Icon name="wallet" size={28} />
+              <small>escolha o morador</small>
+            </span>
+          )}
+          <b>recibo</b>
+          <small>{r ? (r.status.sinal ? 'do sinal pago, com o que falta' : 'ainda sem sinal confirmado') : 'sai com o valor e os pagamentos do morador'}</small>
+          <div className="rdl-vdocs-row">
+            <button className="btn small" disabled={!docs.recibo} onClick={() => editar(docs.recibo, 'Recibo · RDL')}>
+              <Icon name="edit" size={14} /> abrir e editar
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -345,7 +410,7 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
     <div className="page">
       <div className="page-head">
         <div>
-          <p className="eyebrow">proposta, recibo, contrato e mais</p>
+          <p className="eyebrow">{rdlMode() ? 'checklist, contrato, laudo e recibo' : 'proposta, recibo, contrato e mais'}</p>
           <h1>
             documentos <em>{rdlMode() ? 'da RDL' : 'com a sua marca'}</em>
           </h1>
@@ -364,6 +429,11 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
           <DocLookPanel />
           <ProposalDefaults />
         </>
+      ) : rdlMode() ? (
+        <>
+          <RdlVistoriaDocs contratoModelo={contractSettings(s, false).templates.find((t) => t.id === 'rdl-vistoria')?.body ?? tplBody} />
+          {!!(data.docs ?? []).length && <SavedDocs list={data.docs ?? []} showClient />}
+        </>
       ) : (
         <>
           <p className="pf-note">
@@ -376,7 +446,6 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
               .
             </span>
           </p>
-          {rdlMode() && <RdlVistoriaDocs />}
           <h2 className="docs-group">do dia a dia</h2>
           <div className="docs-home docs-daily">
             {daily.map((d) =>
@@ -408,7 +477,7 @@ function DocsHome({ onOpen, tab }: { onOpen: (id: DocId) => void; tab: 'docs' | 
           </h2>
           <p className="muted small docs-group-hint">Abra, escolha um dos modelos (coluna, faixa, planilha ou editorial), as cores e as fotos, e salve: fica como o seu padrão. Para um cliente, use “usar para um cliente” dentro do documento.</p>
           <div className="docs-home">
-            {LIST.filter((d) => !rdlMode() || d.id === 'placa').map((d) => (
+            {LIST.map((d) => (
               <button key={d.id} type="button" className="docs-card" onClick={() => onOpen(d.id)}>
                 <span className="docs-thumb" aria-hidden>
                   <DocScale width={thumbs[d.id].w}>{thumbs[d.id].node}</DocScale>

@@ -17,6 +17,9 @@ import {
   dadosPadrao,
   contagem,
   contratoTexto,
+  enderecoSanLevi,
+  estadoGrupo,
+  type GrupoInfo,
   dataCurta,
   enderecoCompleto,
   lerConfig,
@@ -172,31 +175,39 @@ function Teste({ children }: { children?: ReactNode }) {
   )
 }
 
-/** "X de 10 reservados": o andamento do grupo, com os quadradinhos. */
-function Grupo({ n, cfg, compact }: { n: number; cfg: ReservaConfig; compact?: boolean }) {
-  const min = cfg.minimo
-  const ok = n >= min
+/** "X de 10 reservados": o andamento do grupo, com os quadradinhos.
+ *  Fecha (valor de grupo garantido, cláusula 4.3) quando o mínimo já pagou o sinal; depois continua contando. */
+function Grupo({ g, cfg, compact }: { g: GrupoInfo; cfg: ReservaConfig; compact?: boolean }) {
+  const e = estadoGrupo(g, cfg)
+  const n = g.reservas
+  const extra = Math.max(0, n - e.min)
+  const titulo = e.fechado ? `Grupo fechado · ${n} ${n === 1 ? 'reserva' : 'reservas'}` : `${Math.min(n, e.min)} de ${e.min} reservados`
+  const sub = e.fechado
+    ? `Valor garantido: todos pagam ${brl(cfg.preco)}, inclusive quem reservar agora`
+    : e.cheio
+      ? `${e.faltamSinal === 1 ? 'Falta 1 sinal' : `Faltam ${e.faltamSinal} sinais`} para garantir ${brl(cfg.preco)} a todos`
+      : `${e.faltamReservas === 1 ? 'Falta 1' : `Faltam ${e.faltamReservas}`} para todos pagarem ${brl(cfg.preco)}`
   return (
-    <section className={`rv-group ${ok ? 'ok' : ''} ${compact ? 'compact' : ''}`}>
+    <section className={`rv-group ${e.fechado ? 'ok' : ''} ${compact ? 'compact' : ''}`}>
       <div className="rv-group-head">
         <span className="ib">
-          <I n="users" s={18} />
+          <I n={e.fechado ? 'check' : 'users'} s={18} />
         </span>
         <div>
-          <b>
-            {Math.min(n, 999)} de {min} reservados
-          </b>
-          <small>{ok ? `Grupo fechado: todos pagam ${brl(cfg.preco)}` : `Faltam ${min - n} para todos pagarem ${brl(cfg.preco)}`}</small>
+          <b>{titulo}</b>
+          <small>{sub}</small>
         </div>
       </div>
       <div className="rv-dots" aria-hidden>
-        {Array.from({ length: min }, (_, i) => (
+        {Array.from({ length: e.min }, (_, i) => (
           <i key={i} className={i < n ? 'on' : ''}>
-            {i < n ? <I n="home" s={13} /> : null}
+            {i < n ? <I n={e.fechado ? 'check' : 'home'} s={13} /> : null}
           </i>
         ))}
       </div>
-      {!compact && !ok && <p>Se não fechar o grupo, a diferença de {brl(cfg.individual - cfg.preco)} entra no restante, no dia da vistoria.</p>}
+      {extra > 0 && <p className="rv-group-extra">+{extra} {extra === 1 ? 'morador entrou' : 'moradores entraram'} depois que o grupo completou</p>}
+      {!compact && !e.fechado && e.cheio && <p>O valor de grupo fica garantido quando os {e.min} pagarem o sinal. Quem ainda não pagou: o Pix está no seu painel.</p>}
+      {!compact && !e.fechado && !e.cheio && <p>Se não fechar o grupo, a diferença de {brl(cfg.individual - cfg.preco)} entra no restante, no dia da vistoria.</p>}
     </section>
   )
 }
@@ -843,7 +854,7 @@ function LaudoPublico({ id, token }: { id: string; token: string }) {
 
 function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string; token: string } }) {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
-  const [n, setN] = useState(0)
+  const [n, setN] = useState<GrupoInfo>({ reservas: 0, sinal: 0 })
   useEffect(() => {
     void lerConfig().then(setCfg)
     void contagem().then(setN)
@@ -909,7 +920,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
               <I n="doc" s={15} /> <span>Laudo com fotos em 4 dias úteis</span>
             </span>
             <span>
-              <I n="users" s={15} /> <span>{n} de {cfg.minimo} vagas do grupo</span>
+              <I n="users" s={15} /> <span>{estadoGrupo(n, cfg).fechado ? `Grupo fechado · ${brl(cfg.preco)} para todos` : `${Math.min(n.reservas, cfg.minimo)} de ${cfg.minimo} vagas do grupo`}</span>
             </span>
           </div>
         </section>
@@ -974,7 +985,7 @@ function Boas({ teste, abrirChat }: { teste?: boolean; abrirChat?: { id: string;
           </div>
         </section>
 
-        <Grupo n={n} cfg={cfg} />
+        <Grupo g={n} cfg={cfg} />
 
 
         <section className="rv-card" id="por-que" data-sec="por que fazer">
@@ -1165,7 +1176,7 @@ const vazio: ReservaDados = { nome: '', cpf: '', email: '', tel: '', endereco: '
 
 function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReforma?: boolean; soReforma?: boolean }) {
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
-  const [, setN] = useState(0)
+  const [, setN] = useState<GrupoInfo>({ reservas: 0, sinal: 0 })
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [d, setD] = useState<ReservaDados>(() => {
     let base = vazio
@@ -1241,6 +1252,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
     numero: !(d.numero ?? '').trim(),
     bairro: !(d.bairro ?? '').trim(),
     cidade: !(d.cidade ?? '').trim() || !(d.uf ?? '').trim(),
+    sanLevi: enderecoSanLevi(d),
     torre: !d.torre.trim(),
     apto: !d.apto.trim(),
     planta: !d.planta,
@@ -1493,7 +1505,7 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                   </label>
                 </div>
                 <div className="rv-sub">
-                  <I n="home" s={14} /> Onde você mora hoje
+                  <I n="home" s={14} /> Onde você mora hoje <small>(não é o endereço do San Levi)</small>
                 </div>
                 <div className="rv-grid">
                   <label className={campo('cep')}>
@@ -1501,13 +1513,13 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                     <input value={d.cep} onChange={(e) => void buscarCep(e.target.value)} inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" />
                     {cepMsg ? <em>{cepMsg}</em> : <small>O endereço aparece sozinho</small>}
                   </label>
-                  <label className={campo('numero')}>
+                  <label className={`${campo('numero')} ${faltando.sanLevi ? 'bad' : ''}`}>
                     <span>Número</span>
                     <input id="rv-numero" value={d.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Ex.: 120" />
                   </label>
                   {(d.rua || d.cidade || (d.cep ?? '').replace(/\D/g, '').length === 8 || cepMsg) && (
                   <>
-                  <label className={`span2 ${campo('rua')}`}>
+                  <label className={`span2 ${campo('rua')} ${faltando.sanLevi ? 'bad' : ''}`}>
                     <span>Rua</span>
                     <input value={d.rua} onChange={(e) => set('rua', e.target.value)} autoComplete="address-line1" />
                   </label>
@@ -1530,6 +1542,11 @@ function Reservar({ teste, comReforma, soReforma }: { teste?: boolean; comReform
                   </>
                   )}
                 </div>
+                {faltando.sanLevi && (
+                  <p className="rv-warn rv-endereco-san-levi">
+                    <I n="alert" s={15} /> <span>Esse é o endereço do San Levi, que ainda não foi entregue. Coloque o endereço onde você mora hoje: é para ele que vão o contrato e a nota.</span>
+                  </p>
+                )}
                 <div className="rv-sub">
                   <I n="building" s={14} /> Seu apê no San Levi
                 </div>
@@ -1968,7 +1985,7 @@ function Reassinar({ r, cfg, id, token, onFeito }: { r: Reserva; cfg: ReservaCon
 
 function Painel({ id, token, teste }: { id: string; token: string; teste?: boolean }) {
   const [r, setR] = useState<Reserva | null | undefined>(undefined)
-  const [grupo, setGrupo] = useState(0)
+  const [grupo, setGrupo] = useState<GrupoInfo>({ reservas: 0, sinal: 0 })
   const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
   const [copiado, setCopiado] = useState('')
   const [etapa, setEtapa] = useState<Etapa>('reserva')
@@ -2005,7 +2022,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
         /* ok */
       }
       setR(base)
-      setGrupo(7)
+      setGrupo({ reservas: 7, sinal: 4 })
       return
     }
     void minhaReserva(id, token).then((x) => {
@@ -2275,7 +2292,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
                     <I n="user" s={15} /> <span>Você ou alguém de confiança <b>acompanha</b> a vistoria</span>
                   </li>
                   <li>
-                    <I n="card" s={15} /> <span>Restante de <b>{brl(restante)}</b> no dia{grupo < cfg.minimo ? ` (ou ${brl(restante + cfg.individual - cfg.preco)}, se o grupo não fechar)` : ''}, por Pix</span>
+                    <I n="card" s={15} /> <span>Restante de <b>{brl(restante)}</b> no dia{!estadoGrupo(grupo, cfg).fechado ? ` (ou ${brl(restante + cfg.individual - cfg.preco)}, se o grupo não fechar)` : ''}, por Pix</span>
                   </li>
                   <li>
                     <I n="clock" s={15} /> <span>Leva até 2 horas</span>
@@ -2531,7 +2548,7 @@ function Painel({ id, token, teste }: { id: string; token: string; teste?: boole
 
           </div>
           <div className="rv-col">
-        {!r.cancelada && svr.vistoria && !s.data && <Grupo n={grupo} cfg={cfg} compact />}
+        {!r.cancelada && svr.vistoria && !s.data && <Grupo g={grupo} cfg={cfg} compact />}
 
         <section className="rv-card">
           <h2 className="rv-h2">

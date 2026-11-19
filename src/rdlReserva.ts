@@ -340,10 +340,43 @@ export async function minhaReserva(id: string, token: string): Promise<Reserva |
   if (error || !data) return null
   return { ...(data as Reserva), token }
 }
-export async function contagem(): Promise<number> {
-  if (!supabase) return 0
-  const { data } = await supabase.rpc('rdl_contagem')
-  return Number(data) || 0
+/** Andamento do grupo: quem reservou a vistoria (sem cortesias) e quantos já pagaram o sinal. */
+export interface GrupoInfo {
+  reservas: number
+  sinal: number
+}
+export async function contagem(): Promise<GrupoInfo> {
+  if (!supabase) {
+    // prévia local (sem nuvem): sessionStorage "rdl-grupo-demo" = {"reservas":12,"sinal":10} para ver cada estado
+    try {
+      const g = JSON.parse(sessionStorage.getItem('rdl-grupo-demo') ?? 'null') as GrupoInfo | null
+      if (g) return g
+    } catch {
+      /* ok */
+    }
+    return { reservas: 0, sinal: 0 }
+  }
+  const { data, error } = await supabase.rpc('rdl_grupo')
+  if (!error && data) {
+    const g = data as Partial<GrupoInfo>
+    return { reservas: Number(g.reservas) || 0, sinal: Number(g.sinal) || 0 }
+  }
+  // banco ainda sem rdl_grupo: usa a contagem antiga (sem saber quem pagou)
+  const { data: n } = await supabase.rpc('rdl_contagem')
+  return { reservas: Number(n) || 0, sinal: 0 }
+}
+/** Estado do grupo (cláusula 4.3): o valor de grupo fica garantido quando o mínimo já pagou o sinal. */
+export function estadoGrupo(g: GrupoInfo, cfg: Pick<ReservaConfig, 'minimo'>) {
+  const min = cfg.minimo || 10
+  const fechado = g.sinal >= min
+  return { min, fechado, cheio: g.reservas >= min, faltamReservas: Math.max(0, min - g.reservas), faltamSinal: Math.max(0, min - g.sinal) }
+}
+/** O endereço atual não pode ser o do próprio San Levi (Estrada Cata Preta, 1098): o prédio ainda não foi entregue. */
+export function enderecoSanLevi(d: Partial<ReservaDados>): boolean {
+  const rua = (d.rua ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const num = (d.numero ?? '').replace(/\D/g, '')
+  const tudo = [d.rua, d.complemento, d.endereco].filter(Boolean).join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return (/cata\s*preta/i.test(rua) && num === '1098') || /cata\s*preta\D{0,6}1098/i.test(tudo) || /san\s*levi/i.test(tudo)
 }
 /** Prévia sem nuvem (só no computador de quem desenvolve): reservas fictícias para ver e testar o painel da RDL. */
 function reservasDemo(): Reserva[] {
@@ -672,7 +705,8 @@ export function mensagens(r: Reserva, c: ReservaConfig) {
 
 /* ---------- contrato para imprimir ou salvar em PDF (papel timbrado da RDL) ---------- */
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-export function contratoHtml(r: Pick<Reserva, 'contrato' | 'status' | 'id'>, desenhoSrc?: string) {
+/** modelo: o contrato em branco (sem assinatura nem registro), para a página de documentos da RDL. */
+export function contratoHtml(r: Pick<Reserva, 'contrato' | 'status' | 'id'>, desenhoSrc?: string, modelo = false) {
   const linhas = r.contrato.texto.split('\n')
   const corpo = linhas
     .map((l, i) => {
@@ -710,9 +744,9 @@ p{margin:0 0 1.2mm;text-align:justify}p b{color:#012C60}p.b{padding-left:4mm}a{c
 <div class="hd"><img src="${RDL_LOGO}" alt="RDL"><i></i></div>
 <table class="pg"><thead><tr><td><div class="sp-t"></div></td></tr></thead><tfoot><tr><td><div class="sp-b"></div></td></tr></tfoot><tbody><tr><td>
 ${corpo}
-<div class="sig"><div>${rdlOk ? `<div class="typed">RDL Engenharia</div>` : ''}<b>RDL ENGENHARIA E REPRESENTAÇÕES</b><small>${esc(RDL_INFO.engineer)} · CREA-SP ${RDL_INFO.crea} · CONTRATADA${rdlOk ? `<br>aceite registrado em ${rdlOk}` : '<br>aceite registrado na confirmação do sinal'}</small></div>
+${modelo ? `<div class="sig"><div><b>RDL ENGENHARIA E REPRESENTAÇÕES</b><small>${esc(RDL_INFO.engineer)} · CREA-SP ${RDL_INFO.crea} · CONTRATADA</small></div><div><b>CONTRATANTE</b><small>nome e CPF</small></div></div>` : `<div class="sig"><div>${rdlOk ? `<div class="typed">RDL Engenharia</div>` : ''}<b>RDL ENGENHARIA E REPRESENTAÇÕES</b><small>${esc(RDL_INFO.engineer)} · CREA-SP ${RDL_INFO.crea} · CONTRATADA${rdlOk ? `<br>aceite registrado em ${rdlOk}` : '<br>aceite registrado na confirmação do sinal'}</small></div>
 <div>${desenhoSrc ? `<img src="${desenhoSrc}" alt="">` : `<div class="typed">${esc(r.contrato.assinatura)}</div>`}<b>CONTRATANTE</b><small>${esc(r.contrato.assinatura)} · CPF ${esc(r.contrato.cpf)}<br>assinado eletronicamente em ${quando}</small></div></div>
-<div class="cert"><b>Registro da assinatura eletrônica</b> (art. 10, § 2º, da MP 2.200-2/2001): assinado por ${esc(r.contrato.assinatura)}, CPF ${esc(r.contrato.cpf)}, em ${quando} (${esc(r.contrato.fuso)}), pelo aparelho ${esc(r.contrato.aparelho)}${r.contrato.ip ? `, IP ${esc(r.contrato.ip)}` : ''}, no link de reserva da RDL Engenharia. Código do documento (SHA-256 do texto assinado): <b>${esc(r.contrato.codigo)}</b>. Reserva nº ${esc(r.id.slice(0, 8).toUpperCase())}.</div>
+<div class="cert"><b>Registro da assinatura eletrônica</b> (art. 10, § 2º, da MP 2.200-2/2001): assinado por ${esc(r.contrato.assinatura)}, CPF ${esc(r.contrato.cpf)}, em ${quando} (${esc(r.contrato.fuso)}), pelo aparelho ${esc(r.contrato.aparelho)}${r.contrato.ip ? `, IP ${esc(r.contrato.ip)}` : ''}, no link de reserva da RDL Engenharia. Código do documento (SHA-256 do texto assinado): <b>${esc(r.contrato.codigo)}</b>. Reserva nº ${esc(r.id.slice(0, 8).toUpperCase())}.</div>`}
 </td></tr></tbody></table>
 <div class="ft"><div><b>${esc(RDL_INFO.engineer)}</b><span>${esc(RDL_INFO.company)} · CNPJ ${RDL_INFO.cnpj}</span></div><div class="r">${RDL_INFO.phone}<br><span>${RDL_INFO.email}</span></div></div>
 </div></body></html>`

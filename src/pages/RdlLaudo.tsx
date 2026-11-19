@@ -79,24 +79,35 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
     const falhas = l.itens.filter((it) => it.ambiente === a).length
     return { total, feitos, falhas }
   }
-  const fotos = async (files: FileList | null, alvo: string) => {
-    if (!files?.length) return
+  // cada foto entra assim que sobe (uma que falhar não derruba as outras); sempre sobre o estado mais novo
+  const fotos = async (files: File[], alvo: string) => {
+    if (!files.length) return
     setEnviando(alvo)
-    try {
-      const novas: LaudoFoto[] = []
-      for (const f of Array.from(files)) novas.push(await enviarFoto(f, r.id))
-      if (alvo === 'gerais') mudar({ gerais: [...l.gerais, ...novas.map((x) => ({ ...x, ambiente: l.ambientes[0] }))] })
-      else setL((x) => ((sujo.current = true), { ...x, itens: x.itens.map((it) => (it.id === alvo ? { ...it, fotos: [...it.fotos, ...novas] } : it)) }))
-    } catch {
-      toast('A foto não foi. Confira a internet e tente de novo.')
+    let falhas = 0
+    for (const f of files) {
+      try {
+        const nova = await enviarFoto(f, r.id)
+        sujo.current = true
+        setL((x) =>
+          alvo === 'gerais'
+            ? { ...x, gerais: [...x.gerais, { ...nova, ambiente: x.ambientes[0] }] }
+            : { ...x, itens: x.itens.map((it) => (it.id === alvo ? { ...it, fotos: [...it.fotos, nova] } : it)) },
+        )
+      } catch (e) {
+        console.error(e)
+        falhas++
+      }
     }
     setEnviando('')
+    if (falhas) toast(falhas === files.length ? 'A foto não foi. Confira a internet e tente de novo.' : `${falhas} ${falhas === 1 ? 'foto não foi' : 'fotos não foram'}. Tente de novo só ${falhas === 1 ? 'ela' : 'elas'}.`)
   }
   const dados = () => laudoDe({ ...r, status: { ...r.status, laudoDados: l } }, cfg)
   const grav = { leve: 0, media: 0, grave: 0 }
   l.itens.forEach((it) => grav[it.gravidade]++)
   const nFotos = l.itens.reduce((n, it) => n + it.fotos.length, 0) + l.gerais.length
 
+  // função comum, não componente: se fosse componente, o input de foto era recriado a cada salvamento
+  // automático e a foto escolhida no celular se perdia
   const Fotos = ({ list, onChange, alvo }: { list: LaudoFoto[]; onChange: (f: LaudoFoto[]) => void; alvo: string }) => (
     <div className="ld-fotos">
       {list.map((f, i) => (
@@ -108,7 +119,18 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
         </figure>
       ))}
       <label className={`ld-add ${enviando === alvo ? 'is-busy' : ''}`}>
-        <input type="file" accept="image/*" multiple hidden onChange={(e) => void fotos(e.target.files, alvo).then(() => (e.target.value = ''))} />
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          disabled={!!enviando}
+          onChange={(e) => {
+            const lista = Array.from(e.target.files ?? [])
+            e.target.value = ''
+            void fotos(lista, alvo)
+          }}
+        />
         <Icon name="camera" size={18} />
         <span>{enviando === alvo ? 'enviando…' : 'foto'}</span>
       </label>
@@ -243,7 +265,7 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
                               </button>
                             ))}
                           </div>
-                          <Fotos list={it.fotos} alvo={it.id} onChange={(f) => mudarItem(it.id, { fotos: f })} />
+                          {Fotos({ list: it.fotos, alvo: it.id, onChange: (f) => mudarItem(it.id, { fotos: f }) })}
                         </div>
                       )}
                     </div>
@@ -297,7 +319,7 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
                     </button>
                   ))}
                 </div>
-                <Fotos list={it.fotos} alvo={it.id} onChange={(f) => mudarItem(it.id, { fotos: f })} />
+                {Fotos({ list: it.fotos, alvo: it.id, onChange: (f) => mudarItem(it.id, { fotos: f }) })}
               </section>
             ))}
             <button className="btn ld-novo" onClick={novoItem}>
@@ -323,7 +345,7 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
               </div>
             </div>
             <p className="muted small">Fotos gerais de cada ambiente (como o apê estava no dia). Opcional.</p>
-            <Fotos list={l.gerais} alvo="gerais" onChange={(g) => mudar({ gerais: g })} />
+            {Fotos({ list: l.gerais, alvo: 'gerais', onChange: (g) => mudar({ gerais: g }) })}
             {l.gerais.length > 0 && (
               <div className="ld-gerais">
                 {l.gerais.map((g, i) => (

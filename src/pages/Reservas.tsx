@@ -1171,7 +1171,11 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
   const aReceber = ativas.filter((r) => !r.status.cortesia).reduce((n, r) => n + valores(r.dados, cfg).total, 0) - recebido
   const por = (f: Fase) => ativas.filter((r) => faseDe(r) === f)
   const kpis: [string, string, string, Fase | null][] = [
-    ['no grupo', `${doGrupo.length}/${cfg.minimo || 10}`, doGrupo.length >= (cfg.minimo || 10) ? `grupo fechado · ${money(cfg.preco)}` : `faltam ${(cfg.minimo || 10) - doGrupo.length} para fechar`, null],
+    ['no grupo', `${doGrupo.length}/${cfg.minimo || 10}`, (() => {
+      const min = cfg.minimo || 10
+      const pagos = doGrupo.filter((r) => !!r.status.sinal).length
+      return pagos >= min ? `grupo fechado · ${money(cfg.preco)}` : doGrupo.length >= min ? `${pagos} de ${min} com sinal · falta${min - pagos === 1 ? '' : 'm'} ${min - pagos}` : `falta${min - doGrupo.length === 1 ? '' : 'm'} ${min - doGrupo.length} para fechar`
+    })(), null],
     ['aguardando sinal', String(por('sinal').length + por('conferir').length), por('conferir').length ? `${por('conferir').length} para conferir` : 'prazo de 7 dias', 'sinal'],
     ['sem data', String(por('semdata').length), 'esperando a MRV', 'semdata'],
     ['agendadas', String(por('agendada').length), por('agendada').length ? `próxima ${dataCurta([...por('agendada')].sort((a, b) => (a.status.data! > b.status.data! ? 1 : -1))[0].status.data!)}` : 'nenhuma ainda', 'agendada'],
