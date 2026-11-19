@@ -66,3 +66,8 @@ Menu da RDL: "serviços" no lugar de "demandas", sem etapas de trabalho, instagr
 
 ## Ver todas as telas da gestão sem login
 `VITE_ARTIFACT=1 npx vite build --outDir /tmp/rdl-dist`, servir a pasta na porta 8799 e rodar `node scripts/rdl-telas.cjs /tmp/rdl-telas`: tira fotos de todas as telas da RDL (celular, iPad deitado e computador), com reservas fictícias (`reservasDemo` em `src/rdlReserva.ts`, só aparece na prévia local, nunca no site).
+
+## Quem recebe os avisos por e-mail
+- **Rogério (roger.rdl76@yahoo.com.br):** só quando um cliente paga ("já paguei" no painel). Recebe também as respostas dos moradores aos e-mails da reserva.
+- **Laís (dona):** todo o resto: reserva nova, pedidos e aprovação de ART de reforma, chat de dúvidas, cópias dos envios em lote (Pix, contrato, endereço), grupo fechado e endereço corrigido.
+- Pedido de endereço certo (`tipo: 'rdl-endereco'`, botão "pedir por e-mail" na ficha): vai para quem ficou com o endereço do San Levi, uma vez só, com cópia para a Laís; a resposta da moradora cai no e-mail da Laís.

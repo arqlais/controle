@@ -437,7 +437,6 @@ async function rdlGrupoFechado(db: any, cfg: RdlCfg) {
   // aviso para a RDL, junto com o primeiro envio
   if (n) {
     const m = { subject: `Grupo fechado: ${pagos} sinais pagos · vistoria San Levi`, html: rdlLayout({ eyebrow: 'grupo fechado', title: `O grupo fechou com ${pagos} sinais`, text: `<p style="margin:0;">${n} ${n === 1 ? 'morador recebeu' : 'moradores receberam'} o e-mail garantindo o valor de grupo (${brl(cfg.preco)}). Quem reservar daqui em diante também paga ${brl(cfg.preco)}.</p>` }) } as Mail
-    await send(rdlSub('grupo', RDL_EMAIL, 'Rogério'), m, RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
     if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub('grupo', OWNER_EMAIL, ''), m, RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
   }
   return n
@@ -1023,7 +1022,6 @@ Deno.serve(async (req) => {
         })
         const replyTo = isMail(c.contato) ? c.contato : isMail(rd.email ?? '') ? rd.email : undefined
         await send(rdlSub(cid, OWNER_EMAIL, ''), { subject: `Nova mensagem no chat: ${quem}`, html }, replyTo, `Chat ${RDL_FROM}`)
-        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(cid, RDL_EMAIL, 'Rogério'), { subject: `Nova mensagem no chat: ${quem}`, html }, replyTo, `Chat ${RDL_FROM}`).catch((e) => console.error(e))
         await db.from('rdl_conversas').update({ avisado: new Date().toISOString() }).eq('id', cid)
         return json({ ok: true })
       }
@@ -1063,7 +1061,6 @@ Deno.serve(async (req) => {
       try {
         await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
         await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html, attachment: m.attachment }, to, RDL_FROM).catch((e) => console.error(e))
-        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(r.id, RDL_EMAIL, 'Rogério'), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html, attachment: m.attachment }, to, RDL_FROM).catch((e) => console.error(e))
         await db.from('rdl_reservas').update({ avisos: { ...avisos, 'contrato-pdf': new Date().toISOString() } }).eq('id', r.id)
         enviados.push(nome)
       } catch (e) {
@@ -1096,7 +1093,6 @@ Deno.serve(async (req) => {
       try {
         await send(rdlSub(r.id, to, nome), m, RDL_EMAIL, RDL_FROM)
         await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
-        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(r.id, RDL_EMAIL, 'Rogério'), { subject: `[cópia] ${m.subject} · ${nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
         await db.from('rdl_reservas').update({ avisos: { ...avisos, 'pix-chave': new Date().toISOString() } }).eq('id', r.id)
         enviados.push(nome)
       } catch (e) {
@@ -1124,9 +1120,8 @@ Deno.serve(async (req) => {
       if (!isMail(to)) continue
       const m = rdlMails(r, cfg).endereco
       try {
-        await send(rdlSub(r.id, to, d.nome ?? ''), m, RDL_EMAIL, RDL_FROM)
+        await send(rdlSub(r.id, to, d.nome ?? ''), m, OWNER_EMAIL, RDL_FROM) // a resposta cai no e-mail da Laís, que atualiza
         await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${d.nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
-        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(r.id, RDL_EMAIL, 'Rogério'), { subject: `[cópia] ${m.subject} · ${d.nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
         await db.from('rdl_reservas').update({ avisos: { ...avisos, endereco: new Date().toISOString() } }).eq('id', r.id)
         enviados.push(d.nome ?? '')
       } catch (e) {
@@ -1173,8 +1168,9 @@ Deno.serve(async (req) => {
       }
       if (evento === 'reserva' || paraRdl) {
         const m = evento === 'reserva' ? mails.rdl : mails[evento]
-        await send(rdlSub(id, RDL_EMAIL, 'Rogério'), m, to || RDL_EMAIL, RDL_FROM)
-        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(id, OWNER_EMAIL, ''), m, to || RDL_EMAIL, RDL_FROM).catch((e) => console.error(e))
+        // o Rogério só recebe quando um cliente paga ("já paguei"); o resto vai só para a dona (Laís)
+        if (evento === 'pago') await send(rdlSub(id, RDL_EMAIL, 'Rogério'), m, to || RDL_EMAIL, RDL_FROM)
+        if (OWNER_EMAIL !== RDL_EMAIL || evento !== 'pago') await send(rdlSub(id, OWNER_EMAIL, ''), m, to || OWNER_EMAIL, RDL_FROM).catch((e) => console.error(e))
         ok.push('rdl')
       }
     } catch (e) {
