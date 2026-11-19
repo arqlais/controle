@@ -18,6 +18,7 @@ import {
   contagem,
   contratoTexto,
   avaliar,
+  corrigirEndereco,
   enderecoSanLevi,
   estadoGrupo,
   type GrupoInfo,
@@ -754,6 +755,10 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
     const [lid, ltk] = sub.slice(6).split('.')
     return <LaudoPublico id={lid} token={ltk} />
   }
+  if (sub?.startsWith('endereco-')) {
+    const [eid, etk] = sub.slice(9).split('.')
+    return <EnderecoPublico id={eid} token={etk} />
+  }
   if (sub?.startsWith('avaliar-')) {
     const [aid, atk] = sub.slice(8).split('.')
     return <AvaliarPublico id={aid} token={atk} />
@@ -766,6 +771,115 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Boas />}</div>
 }
 
+
+/* ================= corrigir o endereço atual (link do e-mail) ================= */
+
+function EnderecoPublico({ id, token }: { id: string; token: string }) {
+  const [r, setR] = useState<Reserva | null | undefined>(undefined)
+  const [d, setD] = useState({ cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' })
+  const [cepMsg, setCepMsg] = useState('')
+  const [tried, setTried] = useState(false)
+  const [st, setSt] = useState<'' | 'enviando' | 'ok' | 'erro'>('')
+  useEffect(() => {
+    // #/vistoria/endereco-teste: só para ver a tela (nada é salvo)
+    if (id === 'teste') return setR(reservaTeste('sinal', CONFIG_PADRAO))
+    void minhaReserva(id, token).then(setR).catch(() => setR(null))
+  }, [id, token])
+  const set = (k: keyof typeof d, v: string) => setD((x) => ({ ...x, [k]: v }))
+  const buscarCep = async (v: string) => {
+    set('cep', formatCep(v))
+    if (v.replace(/\D/g, '').length !== 8) return setCepMsg('')
+    setCepMsg('Buscando o endereço…')
+    const a = await lookupCep(v)
+    if (!a) return setCepMsg('Não achei esse CEP. Preencha o endereço abaixo.')
+    setCepMsg('')
+    setD((x) => ({ ...x, rua: a.street || x.rua, bairro: a.district || x.bairro, cidade: a.city, uf: a.uf }))
+    setTimeout(() => document.getElementById('rv-end-numero')?.focus(), 50)
+  }
+  const sanLevi = enderecoSanLevi(d)
+  const falta = d.cep.replace(/\D/g, '').length !== 8 || !d.rua.trim() || !d.numero.trim() || !d.bairro.trim() || !d.cidade.trim() || !d.uf.trim()
+  const bad = (k: keyof typeof d) => (tried && !d[k].trim() ? 'bad' : '')
+  const enviar = async () => {
+    setTried(true)
+    if (falta || sanLevi) return
+    setSt('enviando')
+    const ok = id === 'teste' || (await corrigirEndereco(id, token, d))
+    if (ok && id !== 'teste') void avisarEmail('endereco-ok', id, token)
+    setSt(ok ? 'ok' : 'erro')
+  }
+  const nome = r?.dados.nome.split(' ')[0] ?? ''
+  return (
+    <div className="rv">
+      <Topo voltar={r ? { label: 'Meu painel', acao: () => (location.hash = `#/vistoria/${id}.${token}`) } : undefined} />
+      <main className="rv-main">
+        <section className="rv-card rv-contrato-pub rv-endereco">
+          <span className="ib">
+            <I n="home" s={20} />
+          </span>
+          {r === undefined ? (
+            <p>Carregando…</p>
+          ) : r === null ? (
+            <p>Não encontrei este link. Confira o e-mail ou fale com o Rogério.</p>
+          ) : st === 'ok' ? (
+            <>
+              <h1>Pronto, {nome}!</h1>
+              <p>Seu endereço foi atualizado na reserva. Obrigado!</p>
+              <a className="rv-btn ghost wide2" href={`#/vistoria/${id}.${token}`}>
+                <span>Voltar para o meu painel</span>
+              </a>
+            </>
+          ) : (
+            <>
+              <h1>Onde você mora hoje{nome ? `, ${nome}` : ''}?</h1>
+              <p>Na reserva ficou o endereço do San Levi, que ainda não foi entregue. Coloque o endereço onde você mora agora: ele vai no contrato e no recibo.</p>
+              <div className="rv-grid rv-end-grid">
+                <label className={tried && d.cep.replace(/\D/g, '').length !== 8 ? 'bad' : ''}>
+                  <span>CEP</span>
+                  <input value={d.cep} onChange={(e) => void buscarCep(e.target.value)} inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" />
+                  {cepMsg ? <em>{cepMsg}</em> : <small>O endereço aparece sozinho</small>}
+                </label>
+                <label className={`${bad('numero')} ${sanLevi ? 'bad' : ''}`}>
+                  <span>Número</span>
+                  <input id="rv-end-numero" value={d.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Ex.: 120" />
+                </label>
+                <label className={`span2 ${bad('rua')} ${sanLevi ? 'bad' : ''}`}>
+                  <span>Rua</span>
+                  <input value={d.rua} onChange={(e) => set('rua', e.target.value)} autoComplete="address-line1" />
+                </label>
+                <label>
+                  <span>Complemento</span>
+                  <input value={d.complemento} onChange={(e) => set('complemento', e.target.value)} placeholder="Apto, bloco, casa" />
+                </label>
+                <label className={bad('bairro')}>
+                  <span>Bairro</span>
+                  <input value={d.bairro} onChange={(e) => set('bairro', e.target.value)} />
+                </label>
+                <label className={bad('cidade')}>
+                  <span>Cidade</span>
+                  <input value={d.cidade} onChange={(e) => set('cidade', e.target.value)} />
+                </label>
+                <label className={bad('uf')}>
+                  <span>Estado</span>
+                  <input value={d.uf} onChange={(e) => set('uf', e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" />
+                </label>
+              </div>
+              {sanLevi && (
+                <p className="rv-warn rv-endereco-san-levi">
+                  <I n="alert" s={15} /> <span>Esse ainda é o endereço do San Levi. Coloque o endereço onde você mora hoje.</span>
+                </p>
+              )}
+              {tried && falta && <p className="rv-warn">Falta preencher os campos marcados.</p>}
+              {st === 'erro' && <p className="rv-warn">Não consegui salvar. Tente de novo ou responda o e-mail com o endereço.</p>}
+              <button className="rv-btn wide2" disabled={st === 'enviando'} onClick={() => void enviar()}>
+                <I n="check" /> <span>{st === 'enviando' ? 'Salvando…' : 'Salvar meu endereço'}</span>
+              </button>
+            </>
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}
 
 /* ================= avaliação do serviço (link da mensagem final) ================= */
 

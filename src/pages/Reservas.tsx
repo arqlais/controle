@@ -55,6 +55,9 @@ import { money, today, uid, whatsappLink } from '../utils'
 import {
   CONFIG_PADRAO,
   atualizarReserva,
+  enderecoSanLevi,
+  linkEndereco,
+  pedirEnderecos,
   avisarEmail,
   enviarChavePix,
   dataCurta,
@@ -203,6 +206,20 @@ export default function Reservas({ id }: { id?: string }) {
       void carregar()
     }
   }
+  /** Corrige o endereço atual do morador (quando ele responde o e-mail com o endereço). */
+  const salvarEndereco = async (r: Reserva, endereco: string) => {
+    const dados = { ...r.dados, endereco: endereco.trim(), cep: '', rua: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '' }
+    const novo = { ...r, dados }
+    setList((l) => l?.map((x) => (x.id === r.id ? novo : x)) ?? null)
+    setAberta((a) => (a?.id === r.id ? novo : a))
+    try {
+      await atualizarReserva(r.id, { dados })
+      toast('Endereço atualizado.')
+    } catch {
+      toast('Não salvou. Confira a internet e tente de novo.')
+      void carregar()
+    }
+  }
   const cancelar = async (r: Reserva) => {
     if (!(await ask(`Cancelar a reserva de ${r.dados.nome} (${unidade(r.dados)})? O painel dele vai mostrar que a reserva foi cancelada.`, { confirmLabel: 'Cancelar reserva' }))) return
     try {
@@ -282,7 +299,7 @@ export default function Reservas({ id }: { id?: string }) {
 
       <Acessos reservas={list ?? []} />
 
-      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => { setAberta(null); setLaudoDireto('') }} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} onCancelarReforma={cancelarReforma} laudoDireto={laudoDireto === aberta.id} />}
+      {aberta && <Detalhe r={aberta} cfg={cfg} todas={list ?? []} eventos={data.events} onClose={() => { setAberta(null); setLaudoDireto('') }} onSinal={confirmarSinal} onStatus={salvarStatus} onData={marcarData} onCancelar={cancelar} onCancelarReforma={cancelarReforma} onEndereco={salvarEndereco} laudoDireto={laudoDireto === aberta.id} />}
       {config && (
         <Config
           cfg={cfg}
@@ -342,6 +359,7 @@ export function Detalhe({
   onData,
   onCancelar,
   onCancelarReforma,
+  onEndereco,
   laudoDireto,
 }: {
   r: Reserva
@@ -354,6 +372,7 @@ export function Detalhe({
   onData: (r: Reserva, d: string, h: string) => Promise<void>
   onCancelar: (r: Reserva) => Promise<void>
   onCancelarReforma: (r: Reserva) => Promise<void>
+  onEndereco: (r: Reserva, endereco: string) => Promise<void>
   laudoDireto?: boolean
 }) {
   const s = r.status
@@ -451,7 +470,10 @@ export function Detalhe({
             <dt>e-mail</dt>
             <dd>{r.dados.email}</dd>
             <dt>endereço atual</dt>
-            <dd>{r.dados.endereco}</dd>
+            <dd>
+              {r.dados.endereco}
+              <EnderecoFix r={r} onSalvar={(e) => onEndereco(r, e)} />
+            </dd>
             <dt>planta</dt>
             <dd>{r.dados.planta || 'não escolheu'}</dd>
             <dt>revistoria</dt>
@@ -1456,5 +1478,60 @@ function BotoesRecibo({ r, cfg, qual, recibo, setRecibo, rotulo }: { r: Reserva;
         <Icon name="edit" size={14} /> editar ao vivo
       </button>
     </div>
+  )
+}
+
+/** Endereço atual igual ao do San Levi: pede o certo por e-mail (com link para o morador corrigir) ou corrige aqui. */
+function EnderecoFix({ r, onSalvar }: { r: Reserva; onSalvar: (e: string) => Promise<void> }) {
+  const [editando, setEditando] = useState(false)
+  const [txt, setTxt] = useState('')
+  const [enviando, setEnviando] = useState(false)
+  const errado = enderecoSanLevi(r.dados)
+  if (!errado && !editando)
+    return (
+      <button className="link small" style={{ marginLeft: 8 }} onClick={() => (setTxt(r.dados.endereco), setEditando(true))}>
+        corrigir
+      </button>
+    )
+  return (
+    <span className="rsv-end-fix">
+      {errado && (
+        <span className="rsv-end-alerta">
+          <Icon name="alert" size={13} /> é o endereço do San Levi
+        </span>
+      )}
+      {editando ? (
+        <span className="row gap-s wrap">
+          <input className="grow" value={txt} onChange={(e) => setTxt(e.target.value)} placeholder="Rua, número, complemento - bairro, cidade - UF, CEP" autoFocus />
+          <button className="btn small" disabled={txt.trim().length < 10 || enderecoSanLevi({ endereco: txt })} onClick={() => void onSalvar(txt).then(() => setEditando(false))}>
+            salvar
+          </button>
+          <button className="btn small ghost" onClick={() => setEditando(false)}>
+            cancelar
+          </button>
+        </span>
+      ) : (
+        <span className="row gap-s wrap">
+          <button
+            className="btn small"
+            disabled={enviando}
+            onClick={async () => {
+              setEnviando(true)
+              const ok = await pedirEnderecos()
+              setEnviando(false)
+              toast(ok === null ? 'Não consegui mandar. Tente de novo.' : ok.length ? 'E-mail enviado pedindo o endereço certo, com cópia para você.' : 'Já tinha sido pedido antes (ou não tem e-mail).')
+            }}
+          >
+            <Icon name="mail" size={14} /> {enviando ? 'mandando…' : 'pedir por e-mail'}
+          </button>
+          <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(linkEndereco(r)).then(() => toast('Link para ela corrigir copiado.'))}>
+            <Icon name="copy" size={14} /> link para corrigir
+          </button>
+          <button className="btn small ghost" onClick={() => (setTxt(''), setEditando(true))}>
+            <Icon name="edit" size={14} /> corrigir aqui
+          </button>
+        </span>
+      )}
+    </span>
   )
 }

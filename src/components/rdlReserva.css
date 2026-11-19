@@ -3511,3 +3511,5 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
 .rv-nota-txt { color: var(--navy); min-height: 1.4em; }
 .rv-avaliar-txt { display: grid; gap: 6px; width: 100%; text-align: left; font-size: 13px; color: var(--txt); }
 .rv-avaliar-txt textarea { width: 100%; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; resize: vertical; box-sizing: border-box; }
+.rv-endereco { max-width: 560px; margin: 0 auto; }
+.rv-end-grid { width: 100%; text-align: left; }

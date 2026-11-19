@@ -449,7 +449,7 @@ export async function enviarChavePix(): Promise<string[] | null> {
   }
 }
 
-export async function avisarEmail(evento: 'pago' | 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
+export async function avisarEmail(evento: 'endereco-ok' | 'pago' | 'reserva' | 'sinal' | 'data' | 'laudo' | 'revistoria' | 'cancelada' | 'lembrete' | 'reforma-pedido' | 'reforma-orcamento' | 'reforma-aprovada', id: string, token?: string): Promise<boolean> {
   if (!supabase) return false
   try {
     const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl', evento, id, token } })
@@ -658,6 +658,20 @@ const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistor
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`
 export const linkPainelBase = () => base()
 export const linkPainel = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/${r.id}.${r.token}`
+/** Página para o morador corrigir o endereço atual (vai no e-mail que pede o endereço certo). */
+export const linkEndereco = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/endereco-${r.id}.${r.token}`
+/** O morador corrige o endereço atual pelo link (o banco não aceita o do San Levi). */
+export async function corrigirEndereco(id: string, token: string, d: Pick<ReservaDados, 'cep' | 'rua' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf'>): Promise<boolean> {
+  if (!supabase) return true
+  const { data, error } = await supabase.rpc('rdl_endereco', { p_id: id, p_token: token, p_dados: { ...d, endereco: enderecoCompleto(d) } })
+  return !error && !!data
+}
+/** Pede por e-mail o endereço certo a quem reservou com o endereço do San Levi (cópia para a dona e a RDL). */
+export async function pedirEnderecos(): Promise<string[] | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.functions.invoke('avisos', { body: { tipo: 'rdl-endereco' } })
+  return error ? null : ((data as { enviados?: string[] })?.enviados ?? [])
+}
 /** Página para o morador avaliar o serviço (vai na mensagem final). */
 export const linkAvaliar = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/avaliar-${r.id}.${r.token}`
 export async function avaliar(id: string, token: string, nota: number, texto: string): Promise<boolean> {

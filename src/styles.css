@@ -2864,3 +2864,5 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
   .rde-folha { padding: 10px; }
   .rde-acts { margin-left: 0; width: 100%; }
 }
+.rsv-end-fix { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.rsv-end-alerta { display: inline-flex; align-items: center; gap: 4px; color: #e06d06; font-size: 12px; font-weight: 600; }

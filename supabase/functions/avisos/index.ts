@@ -625,6 +625,21 @@ ${temVist ? `<p style="margin:0;">Quando a MRV liberar as datas (${esc(cfg.perio
       subject: `Reserva cancelada: vistoria do ${un}`,
       html: rdlLayout({ eyebrow: 'reserva', title: 'Reserva cancelada', text: `<p style="margin:0;">Oi, ${esc(pn)}. A reserva da vistoria do ${esc(un)} foi cancelada. Se tiver qualquer dúvida, é só responder este e-mail.</p>`, rows: base }),
     },
+    endereco: {
+      subject: `Falta corrigir seu endereço atual · vistoria do ${un}`,
+      html: rdlLayout({
+        eyebrow: 'seus dados',
+        title: `${pn}, falta só corrigir seu endereço`,
+        text: `<p style="margin:0 0 12px;">Na sua reserva, o endereço atual ficou como o do próprio San Levi (${esc(String(d.endereco ?? ''))}). Como o prédio ainda não foi entregue, precisamos do endereço onde você <b>mora hoje</b>: é ele que vai no contrato e no recibo.</p><p style="margin:0;">Leva menos de um minuto: toque no botão, coloque o CEP e o número, e pronto. Se preferir, é só responder este e-mail com o endereço completo que a gente atualiza para você.</p>`,
+        rows: base,
+        button: 'Corrigir meu endereço',
+        url: `${SITE}#/vistoria/endereco-${r.id}.${r.token}`,
+      }),
+    },
+    'endereco-ok': {
+      subject: `Endereço atualizado: ${nome} · ${un}`,
+      html: rdlLayout({ eyebrow: 'endereço atualizado', title: `${pn} corrigiu o endereço`, text: `<p style="margin:0;">Novo endereço atual: <b>${esc(String(d.endereco ?? ''))}</b>. Já está na reserva e na ficha do cliente.</p>`, rows: base }),
+    },
     'grupo-fechado': {
       subject: `Grupo fechado: sua vistoria fica em ${brl(cfg.preco)} · ${un}`,
       html: rdlLayout({
@@ -1092,16 +1107,46 @@ Deno.serve(async (req) => {
     return json({ ok: true, enviados, erro: lastError || undefined })
   }
 
+  if (tipo === 'rdl-endereco') {
+    // pede o endereço atual certo para quem reservou com o endereço do próprio San Levi (uma vez por reserva)
+    const servico = token === env('SUPABASE_SERVICE_ROLE_KEY')
+    const mail = String(who?.user?.email ?? '').toLowerCase()
+    if (!servico && !cron && !isOwner && mail !== RDL_EMAIL) return json({ ok: false }, 403)
+    const cfg = await rdlCfg(db)
+    const { data: rows } = await db.from('rdl_reservas').select('*').eq('cancelada', false)
+    const enviados: string[] = []
+    for (const r of (rows ?? []) as RdlRow[]) {
+      const d = r.dados as Record<string, string>
+      const avisos = r.avisos ?? {}
+      const sanLevi = (/cata\s*preta/i.test(d.rua ?? '') && String(d.numero ?? '').replace(/\D/g, '') === '1098') || /cata\s*preta\D{0,6}1098/i.test(d.endereco ?? '') || /san\s*levi/i.test(`${d.rua ?? ''} ${d.complemento ?? ''} ${d.endereco ?? ''}`)
+      if (!sanLevi || avisos.endereco) continue
+      const to = String(d.email ?? '').trim()
+      if (!isMail(to)) continue
+      const m = rdlMails(r, cfg).endereco
+      try {
+        await send(rdlSub(r.id, to, d.nome ?? ''), m, RDL_EMAIL, RDL_FROM)
+        await send(rdlSub(r.id, OWNER_EMAIL, ''), { subject: `[cópia] ${m.subject} · ${d.nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
+        if (OWNER_EMAIL !== RDL_EMAIL) await send(rdlSub(r.id, RDL_EMAIL, 'Rogério'), { subject: `[cópia] ${m.subject} · ${d.nome}`, html: m.html }, to, RDL_FROM).catch((e) => console.error(e))
+        await db.from('rdl_reservas').update({ avisos: { ...avisos, endereco: new Date().toISOString() } }).eq('id', r.id)
+        enviados.push(d.nome ?? '')
+      } catch (e) {
+        console.error(e)
+        lastError = String(e instanceof Error ? e.message : e).slice(0, 240)
+      }
+    }
+    return json({ ok: true, enviados, erro: lastError || undefined })
+  }
+
   if (tipo === 'rdl') {
     // reserva da vistoria (RDL Engenharia). "reserva": a página pública manda com o código do painel;
     // as outras etapas só a RDL (Laís ou Rogério, logados). Cada e-mail vai uma vez por etapa (coluna avisos).
     const evento = String(body.evento ?? '')
     const id = String(body.id ?? '')
-    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'pago', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada'].includes(evento)) return json({ ok: false }, 400)
+    if (!/^[0-9a-f-]{36}$/i.test(id) || !['reserva', 'pago', 'sinal', 'data', 'laudo', 'revistoria', 'cancelada', 'lembrete', 'reforma-pedido', 'reforma-orcamento', 'reforma-aprovada', 'endereco-ok'].includes(evento)) return json({ ok: false }, 400)
     const { data: row } = await db.from('rdl_reservas').select('*').eq('id', id).maybeSingle()
     const r = row as RdlRow | null
     if (!r) return json({ ok: false }, 404)
-    if (evento === 'reserva' || evento === 'pago' || evento === 'reforma-pedido' || evento === 'reforma-aprovada') {
+    if (evento === 'reserva' || evento === 'pago' || evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'endereco-ok') {
       if (String(body.token ?? '') !== r.token) return json({ ok: false }, 403)
     } else {
       const mail = String(who?.user?.email ?? '').toLowerCase()
@@ -1109,7 +1154,7 @@ Deno.serve(async (req) => {
     }
     const st = r.status ?? {}
     const rfx = ((r.status ?? {}) as { reforma?: Record<string, string> }).reforma ?? {}
-    const ref = evento === 'pago' ? `pago:${st.pagoInformado ?? ''}` : evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento
+    const ref = evento === 'pago' ? `pago:${st.pagoInformado ?? ''}` : evento === 'lembrete' ? `lembrete:${new Date().toISOString().slice(0, 10)}` : evento === 'reforma-pedido' ? `rp:${rfx.pedidoEm ?? ''}` : evento === 'reforma-orcamento' ? `ro:${rfx.enviadoEm ?? ''}` : evento === 'data' ? `data:${st.data}:${st.hora ?? ''}` : evento === 'laudo' ? `laudo:${st.laudo ?? ''}` : evento === 'revistoria' ? `rev:${st.revistoriaData ?? ''}` : evento === 'endereco-ok' ? `end:${String((r.dados as Record<string, string>).endereco ?? '')}` : evento
     const avisos = r.avisos ?? {}
     if (avisos[ref]) return json({ ok: true, motivo: 'já enviado' })
     // valores da campanha (arquivo público da RDL)
@@ -1120,8 +1165,8 @@ Deno.serve(async (req) => {
     const nome = String((r.dados as Record<string, string>).nome ?? '')
     const ok: string[] = []
     try {
-      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'pago'
-      if (isMail(to) && evento !== 'reforma-pedido' && evento !== 'pago') {
+      const paraRdl = evento === 'reforma-pedido' || evento === 'reforma-aprovada' || evento === 'pago' || evento === 'endereco-ok'
+      if (isMail(to) && evento !== 'reforma-pedido' && evento !== 'pago' && evento !== 'endereco-ok') {
         const base = evento === 'reforma-aprovada' ? { subject: `Você aprovou a ART de reforma`, html: mails['reforma-aprovada'].html } : mails[evento]
         await send(rdlSub(id, to, nome), evento === 'reserva' || evento === 'sinal' ? { ...base, attachment: await anexoContrato(r) } : base, RDL_EMAIL, RDL_FROM)
         ok.push('morador')
