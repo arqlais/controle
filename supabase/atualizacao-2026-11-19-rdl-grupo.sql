@@ -73,3 +73,17 @@ grant execute on function public.rdl_reservar(jsonb, jsonb) to anon, authenticat
 select upper(left(id::text, 8)) as reserva, dados ->> 'nome' as nome, dados ->> 'endereco' as endereco
   from public.rdl_reservas r
  where not cancelada and public.rdl_endereco_san_levi(dados);
+
+-- avaliação do serviço: o morador dá a nota (1 a 5) e um comentário pelo link da mensagem final.
+-- Fica em status.avaliacao (a RDL vê na ficha). Pode avaliar de novo (vale a última).
+create or replace function public.rdl_avaliar(p_id uuid, p_token text, p_nota int, p_texto text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_nota is null or p_nota < 1 or p_nota > 5 then return false; end if;
+  update public.rdl_reservas
+     set status = status || jsonb_build_object('avaliacao', jsonb_build_object('nota', p_nota, 'texto', left(coalesce(p_texto, ''), 1500), 'em', now()))
+   where id = p_id and token = p_token;
+  return found;
+end;
+$$;
+grant execute on function public.rdl_avaliar(uuid, text, int, text) to anon, authenticated;

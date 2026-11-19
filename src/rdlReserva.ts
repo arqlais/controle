@@ -40,6 +40,7 @@ export interface ReservaConfig {
   plantas: string[] // opções de planta que o morador escolhe
   duracao?: number // minutos de vistoria (agenda)
   respiro?: number // minutos de folga entre uma vistoria e outra (deslocamento, imprevistos)
+  avaliacaoGoogle?: string // link para avaliar a RDL no Google (aparece depois que o morador avalia)
 }
 export const CONFIG_PADRAO: ReservaConfig = {
   empreendimento: 'Condomínio San Levi (MRV)',
@@ -140,6 +141,8 @@ export interface ReservaStatus {
   sinal?: string // data em que a RDL confirmou o sinal
   valorPago?: string // quanto caiu de fato no sinal (a RDL confere no extrato)
   quitado?: string
+  reformaPago?: string // data em que a ART de reforma foi paga (o que faltava dela)
+  avaliacao?: { nota: number; texto?: string; em: string } // avaliação do serviço pelo morador
   data?: string // data da vistoria (AAAA-MM-DD)
   hora?: string
   laudo?: string // link do laudo
@@ -655,6 +658,13 @@ const base = () => `${location.origin}${location.pathname.replace(/\/(rdl|vistor
 export const linkReserva = () => `${base().replace(/\/$/, '')}/vistoria/`
 export const linkPainelBase = () => base()
 export const linkPainel = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/${r.id}.${r.token}`
+/** Página para o morador avaliar o serviço (vai na mensagem final). */
+export const linkAvaliar = (r: Pick<Reserva, 'id' | 'token'>) => `${base()}#/vistoria/avaliar-${r.id}.${r.token}`
+export async function avaliar(id: string, token: string, nota: number, texto: string): Promise<boolean> {
+  if (!supabase) return true
+  const { data, error } = await supabase.rpc('rdl_avaliar', { p_id: id, p_token: token, p_nota: nota, p_texto: texto })
+  return !error && !!data
+}
 
 /* ---------- dados sempre no mesmo padrão (nome, e-mail, telefone, CPF, torre e apto) ---------- */
 export const nomeProprio = (t: string) => titleCase((t || '').toLocaleLowerCase('pt-BR')).replace(/([-'’])(\p{L})/gu, (_m, a: string, b: string) => a + b.toLocaleUpperCase('pt-BR'))

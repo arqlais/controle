@@ -43,7 +43,7 @@ function parcelas(r: Reserva, cfg: ReservaConfig, antigo?: Project): Payment[] {
   const restV = sv.vistoria ? Math.max(0, v.vistoria - pagoV) : 0
   const restR = Math.max(0, v.reforma - pagoR)
   if (restV > 0) out.push({ id: `${pid}-saldo`, description: 'saldo da vistoria (no dia)', amount: restV, dueDate: venc, paidDate: dia(r.status.quitado) || null, method: 'pix', on: 'conclusao' })
-  if (restR > 0) out.push({ id: `${pid}-art`, description: pagoR ? 'saldo da ART de reforma (na entrega)' : 'ART de reforma', amount: restR, dueDate: addDays(dia(r.status.reforma?.aprovadoEm) || criado, 30), paidDate: null, method: 'pix', on: 'conclusao' })
+  if (restR > 0) out.push({ id: `${pid}-art`, description: pagoR ? 'saldo da ART de reforma (na entrega)' : 'ART de reforma', amount: restR, dueDate: addDays(dia(r.status.reforma?.aprovadoEm) || criado, 30), paidDate: dia(r.status.reformaPago) || null, method: 'pix', on: 'conclusao' })
   // o que a RDL marcou como pago no financeiro continua pago
   return out.map((p) => {
     const old = antigo?.payments.find((x) => x.id === p.id)

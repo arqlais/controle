@@ -17,6 +17,7 @@ import {
   dadosPadrao,
   contagem,
   contratoTexto,
+  avaliar,
   enderecoSanLevi,
   estadoGrupo,
   type GrupoInfo,
@@ -753,6 +754,10 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
     const [lid, ltk] = sub.slice(6).split('.')
     return <LaudoPublico id={lid} token={ltk} />
   }
+  if (sub?.startsWith('avaliar-')) {
+    const [aid, atk] = sub.slice(8).split('.')
+    return <AvaliarPublico id={aid} token={atk} />
+  }
   if (sub?.startsWith('duvida-')) {
     const [cid, ctk] = sub.slice(7).split('.')
     return <div className="rv"><Boas abrirChat={cid && ctk ? { id: cid, token: ctk } : undefined} /></div>
@@ -761,6 +766,83 @@ export function RdlReservaPublic({ sub }: { sub?: string }) {
   return <div className="rv">{id && token ? <Painel id={id} token={token} /> : <Boas />}</div>
 }
 
+
+/* ================= avaliação do serviço (link da mensagem final) ================= */
+
+const NOTAS = ['', 'Ruim', 'Regular', 'Bom', 'Muito bom', 'Excelente']
+function AvaliarPublico({ id, token }: { id: string; token: string }) {
+  const [r, setR] = useState<Reserva | null | undefined>(undefined)
+  const [cfg, setCfg] = useState<ReservaConfig>(CONFIG_PADRAO)
+  const [nota, setNota] = useState(0)
+  const [texto, setTexto] = useState('')
+  const [st, setSt] = useState<'' | 'enviando' | 'ok' | 'erro'>('')
+  useEffect(() => {
+    // #/vistoria/avaliar-teste: só para ver a tela (nada é salvo)
+    if (id === 'teste') return setR(reservaTeste('laudo', CONFIG_PADRAO))
+    void minhaReserva(id, token).then((x) => {
+      setR(x)
+      if (x?.status.avaliacao) (setNota(x.status.avaliacao.nota), setTexto(x.status.avaliacao.texto ?? ''))
+    }).catch(() => setR(null))
+    void lerConfig().then(setCfg)
+  }, [id, token])
+  const enviar = async () => {
+    if (!nota) return
+    setSt('enviando')
+    setSt(id === 'teste' || (await avaliar(id, token, nota, texto.trim())) ? 'ok' : 'erro')
+  }
+  const nome = r?.dados.nome.split(' ')[0] ?? ''
+  return (
+    <div className="rv">
+      <Topo voltar={r ? { label: 'Meu painel', acao: () => (location.hash = `#/vistoria/${id}.${token}`) } : undefined} />
+      <main className="rv-main">
+        <section className="rv-card rv-contrato-pub rv-avaliar">
+          <span className="ib">
+            <I n="star" s={20} />
+          </span>
+          {r === undefined ? (
+            <p>Carregando…</p>
+          ) : r === null ? (
+            <p>Não encontrei este link. Confira a mensagem ou fale com o Rogério.</p>
+          ) : st === 'ok' ? (
+            <>
+              <h1>Obrigado, {nome}!</h1>
+              <p>Sua avaliação chegou para o Rogério. Ela ajuda muito a RDL a continuar melhorando.</p>
+              {cfg.avaliacaoGoogle && nota >= 4 && (
+                <a className="rv-btn wide2" href={cfg.avaliacaoGoogle} target="_blank" rel="noreferrer">
+                  <I n="star" /> <span>Deixar também no Google</span>
+                </a>
+              )}
+              <a className="rv-btn ghost wide2" href={`#/vistoria/${id}.${token}`}>
+                <span>Voltar para o meu painel</span>
+              </a>
+            </>
+          ) : (
+            <>
+              <h1>Como foi a vistoria{nome ? `, ${nome}` : ''}?</h1>
+              <p>Toque nas estrelas. Leva 1 minuto.</p>
+              <div className="rv-estrelas" role="radiogroup" aria-label="Nota de 1 a 5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button key={n} type="button" role="radio" aria-checked={nota === n} aria-label={`${n} de 5`} className={n <= nota ? 'on' : ''} onClick={() => setNota(n)}>
+                    <I n="star" s={34} />
+                  </button>
+                ))}
+              </div>
+              <b className="rv-nota-txt">{NOTAS[nota] || ' '}</b>
+              <label className="rv-avaliar-txt">
+                <span>Quer contar mais? (opcional)</span>
+                <textarea rows={4} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="O que gostou, o que pode melhorar…" maxLength={1500} />
+              </label>
+              {st === 'erro' && <p className="rv-warn">Não consegui enviar. Tente de novo ou mande pelo WhatsApp.</p>}
+              <button className="rv-btn wide2" disabled={!nota || st === 'enviando'} onClick={() => void enviar()}>
+                <I n="check" /> <span>{st === 'enviando' ? 'Enviando…' : 'Enviar avaliação'}</span>
+              </button>
+            </>
+          )}
+        </section>
+      </main>
+    </div>
+  )
+}
 
 /* ================= cópia do contrato assinado (link do e-mail) ================= */
 

@@ -1,5 +1,5 @@
 import type { Client, Contract, FullAddress, ContractSettings, ContractTemplate, Quote, Settings } from './types'
-import { CLIENT_CONTRACTS, FINAL_CONTRACT, LAIS_CONTRACTS, VISTORIA_CONTRACT } from './contractTemplates'
+import { ART_REFORMA_CONTRACT, CLIENT_CONTRACTS, FINAL_CONTRACT, FINAL_CONTRACTS, LAIS_CONTRACTS, VISTORIA_CONTRACT } from './contractTemplates'
 import { rdlMode } from './rdl'
 import { dayLabel } from './processes'
 import { porExtenso } from './components/Docs'
@@ -50,13 +50,16 @@ export const CONTRACT_VARS: [string, string][] = [
 ]
 
 // sistema da RDL: o contrato de vistoria vem primeiro (só lá, não aparece na planê)
-export const defaultTemplates = (owner: boolean) => (owner ? LAIS_CONTRACTS : rdlMode() ? [VISTORIA_CONTRACT, ...CLIENT_CONTRACTS] : CLIENT_CONTRACTS)
+// na RDL só os contratos de engenharia (vistoria e ART de reforma); os modelos da planê não aparecem lá
+export const defaultTemplates = (owner: boolean) => (rdlMode() ? [VISTORIA_CONTRACT, ART_REFORMA_CONTRACT] : owner ? LAIS_CONTRACTS : CLIENT_CONTRACTS)
+/** Modelos que são da planê (arquitetura, interiores, 3D…): saem da lista quando a conta está na RDL. */
+const PLANE_IDS = new Set([...CLIENT_CONTRACTS, ...LAIS_CONTRACTS, ...FINAL_CONTRACTS, FINAL_CONTRACT].map((t) => t.id).concat('vistoria-entrega'))
 /** Modelos em uso nesta conta (os editados por ela ou os padrões do perfil). */
 export const contractSettings = (s: Settings, owner: boolean): ContractSettings => {
   const cs = s.contracts
   if (!cs?.templates?.length) return { ...(cs ?? {}), templates: defaultTemplates(owner) }
-  // RDL: o primeiro modelo de vistoria foi trocado pelo contrato completo (rdl-vistoria)
-  if (rdlMode() && cs.templates.some((t) => t.id === 'vistoria-entrega')) return contractSettings({ ...s, contracts: { ...cs, templates: cs.templates.filter((t) => t.id !== 'vistoria-entrega') } }, owner)
+  // RDL: tira os modelos da planê (ficam os de engenharia e os que a RDL criou ou anexou)
+  if (rdlMode() && cs.templates.some((t) => PLANE_IDS.has(t.id))) return contractSettings({ ...s, contracts: { ...cs, templates: cs.templates.filter((t) => !PLANE_IDS.has(t.id)) } }, owner)
   // modelos novos entram também para quem já editou os seus (menos os que a pessoa apagou)
   const missing = defaultTemplates(owner).filter((d) => !cs.templates.some((t) => t.id === d.id) && !(cs.hidden ?? []).includes(d.id))
   return missing.length ? { ...cs, templates: [...cs.templates, ...missing] } : cs
@@ -67,6 +70,8 @@ export function suggestTemplate(templates: ContractTemplate[], q?: Quote) {
   // RDL: orçamento de vistoria usa o contrato de vistoria
   const vist = templates.find((x) => x.id === 'rdl-vistoria')
   if (vist && q && /vistoria/i.test([q.title, ...q.items.map((i) => `${i.service} ${i.title}`)].join(' '))) return vist
+  const artRef = templates.find((x) => x.id === 'rdl-art-reforma')
+  if (artRef && q && /\bART\b|reforma/i.test([q.title, ...q.items.map((i) => `${i.service} ${i.title}`)].join(' '))) return artRef
   // cliente final: o modelo do tipo de projeto do orçamento (interiores, arquitetônico, consultoria, obra…)
   if (q?.audience === 'final') {
     const txt = [q.processId, q.title, ...q.items.map((i) => `${i.service} ${i.title}`), ...(q.steps ?? []).map((x) => x.name)].join(' ').toLowerCase()

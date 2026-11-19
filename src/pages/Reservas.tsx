@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useStore } from '../store'
 import { go } from '../router'
 import { Icon } from '../components/Icon'
@@ -8,7 +8,7 @@ import { ask, toast } from '../components/dialog'
 import { contaCliente, projetoId, sincronizarRdl } from '../rdlSync'
 import { LaudoEditor } from './RdlLaudo'
 import { abrirContratoPdf } from '../rdlContratoPdf'
-import { msgConfirmacao, reciboPdf, reciboPng } from '../rdlRecibo'
+import { msgConfirmacao, msgFinal, msgReforma, partesPagas, reciboPdf, reciboPng, type TipoRecibo } from '../rdlRecibo'
 
 const baixar = (b: Blob, nome: string) => {
   const a = document.createElement('a')
@@ -17,10 +17,11 @@ const baixar = (b: Blob, nome: string) => {
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 4000)
 }
-async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png') {
+const NOME_RECIBO: Record<TipoRecibo, string> = { sinal: 'Recibo RDL', vistoria: 'Recibo de quitação RDL', reforma: 'Recibo ART de reforma RDL' }
+async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png', qual: TipoRecibo = 'sinal') {
   try {
-    const png = await reciboPng(r, cfg)
-    const nome = `Recibo RDL ${unidade(r.dados)}`
+    const png = await reciboPng(r, cfg, qual)
+    const nome = `${NOME_RECIBO[qual]} ${unidade(r.dados)}`
     if (tipo === 'png') baixar(png, `${nome}.png`)
     else baixar(await reciboPdf(png), `${nome}.pdf`)
   } catch {
@@ -28,12 +29,13 @@ async function baixarRecibo(r: Reserva, cfg: ReservaConfig, tipo: 'pdf' | 'png')
   }
 }
 /** Agradece e confirma pelo WhatsApp, com o recibo em imagem (no celular abre o compartilhar direto). */
-async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => void) {
-  set('gerando')
-  const texto = msgConfirmacao(r, cfg)
+const MSG_RECIBO: Record<TipoRecibo, (r: Reserva, cfg: ReservaConfig) => string> = { sinal: msgConfirmacao, vistoria: msgFinal, reforma: msgReforma }
+async function mandarRecibo(r: Reserva, cfg: ReservaConfig, set: (v: string) => void, qual: TipoRecibo = 'sinal') {
+  set(`gerando-${qual}`)
+  const texto = MSG_RECIBO[qual](r, cfg)
   try {
-    const png = await reciboPng(r, cfg)
-    const file = new File([png], `Recibo RDL ${unidade(r.dados)}.png`, { type: 'image/png' })
+    const png = await reciboPng(r, cfg, qual)
+    const file = new File([png], `${NOME_RECIBO[qual]} ${unidade(r.dados)}.png`, { type: 'image/png' })
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.clipboard?.writeText(texto).catch(() => undefined)
       await navigator.share({ files: [file], text: texto }).catch(() => undefined)
@@ -464,22 +466,7 @@ export function Detalhe({
         <ol className="rsv-steps">
           <Passo n={1} titulo={s.cortesia ? 'cortesia' : `sinal de ${money(vv.agora)} (Pix)`} estado={s.sinal || s.cortesia ? 'done' : 'now'} aberto={!!s.sinal && !s.data} resumo={s.cortesia ? 'não paga' : s.sinal ? `recebido ${dataCurta(s.sinal)} · ${money(Number(s.valorPago) || vv.agora)}` : ''}>
             {s.cortesia && <span className="muted small">Cortesia (família): não paga, não conta no grupo e não recebe cobrança.</span>}
-            {s.sinal && (
-              <div className="row gap-s wrap">
-                <button className="btn small" disabled={recibo === 'gerando'} onClick={() => void mandarRecibo(r, cfg, setRecibo)}>
-                  <Icon name="whatsapp" size={14} /> {recibo === 'gerando' ? 'gerando o recibo…' : 'agradecer e mandar o recibo'}
-                </button>
-                <button className="btn small ghost" onClick={() => copiarMsg(msgConfirmacao(r, cfg))}>
-                  <Icon name="copy" size={14} /> copiar mensagem
-                </button>
-                <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'pdf')}>
-                  <Icon name="file" size={14} /> recibo em PDF
-                </button>
-                <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'png')}>
-                  <Icon name="image" size={14} /> recibo em imagem
-                </button>
-              </div>
-            )}
+            {s.sinal && <BotoesRecibo r={r} cfg={cfg} qual="sinal" recibo={recibo} setRecibo={setRecibo} rotulo="agradecer e mandar o recibo" />}
             {s.sinal && !s.cortesia ? (
               <label className="rsv-valor">
                 <span className="muted">
@@ -576,6 +563,18 @@ export function Detalhe({
             <label className="row gap-s">
               <input type="checkbox" checked={!!s.quitado} onChange={(e) => void onStatus(r, { quitado: e.target.checked ? today() : '' }, e.target.checked ? 'Quitado.' : undefined)} /> vistoria feita e saldo pago
             </label>
+            {s.quitado && !s.cortesia && (
+              <>
+                <p className="muted small">Mande o recibo de quitação com a mensagem pronta: agradece, lembra do laudo e pede a avaliação do serviço.</p>
+                <BotoesRecibo r={r} cfg={cfg} qual="vistoria" recibo={recibo} setRecibo={setRecibo} rotulo="agradecer, pedir avaliação e mandar o recibo" />
+              </>
+            )}
+            {s.avaliacao && (
+              <p className="rsv-avaliacao">
+                <span aria-label={`nota ${s.avaliacao.nota} de 5`}>{'★'.repeat(s.avaliacao.nota)}<i>{'★'.repeat(5 - s.avaliacao.nota)}</i></span>
+                <span>{s.avaliacao.texto ? `“${s.avaliacao.texto}”` : 'avaliou sem comentário'} · {dataCurta(s.avaliacao.em.slice(0, 10))}</span>
+              </p>
+            )}
           </Passo>
           <Passo n={4} titulo="laudo e ART" estado={s.laudo ? 'done' : s.quitado || (s.data && s.data < today()) ? 'now' : 'next'} resumo={s.laudo ? `laudo publicado${s.laudoEm ? ` · ${dataCurta(s.laudoEm)}` : ''}${s.art ? ' · ART no painel' : ''}` : ''}>
             <p className="muted small">Monte o laudo aqui mesmo, pelo celular, durante a vistoria: itens, fotos e testes. Ao publicar, ele aparece no painel do morador e vai o e-mail.</p>
@@ -707,6 +706,15 @@ export function Detalhe({
                   salvar ART
                 </button>
               </div>
+              {partesPagas(r, cfg).saldoR > 0 && !s.cortesia && (
+                <>
+                  <label className="row gap-s">
+                    <input type="checkbox" checked={!!s.reformaPago} onChange={(e) => void onStatus(r, { reformaPago: e.target.checked ? today() : '' }, e.target.checked ? 'ART de reforma paga.' : undefined)} /> ART de reforma paga ({money(partesPagas(r, cfg).saldoR)}
+                    {partesPagas(r, cfg).sinalR ? ', o que faltava' : ''})
+                  </label>
+                  {s.reformaPago && <BotoesRecibo r={r} cfg={cfg} qual="reforma" recibo={recibo} setRecibo={setRecibo} rotulo="agradecer e mandar o recibo da ART" />}
+                </>
+              )}
             </>
           ) : (
             <>
@@ -827,6 +835,9 @@ function Config({ cfg, onClose, onSave }: { cfg: ReservaConfig; onClose: () => v
         </Field>
         <Field label="banco">
           <input value={c.pixBanco ?? ''} onChange={(e) => set('pixBanco', e.target.value)} />
+        </Field>
+        <Field label="link de avaliação no Google" hint="Opcional. Quem der 4 ou 5 estrelas na avaliação da RDL vê um botão para avaliar também no Google." span={2}>
+          <input value={c.avaliacaoGoogle ?? ''} onChange={(e) => set('avaliacaoGoogle', e.target.value)} placeholder="https://g.page/r/…/review" />
         </Field>
         <label className="row gap-s span2">
           <input type="checkbox" checked={c.aberta} onChange={(e) => set('aberta', e.target.checked)} /> reservas abertas no link
@@ -1136,7 +1147,8 @@ const pagoDe = (r: Reserva, cfg: ReservaConfig) => {
   if (r.status.cortesia || r.cancelada) return 0
   const v = valores({ ...r.dados, reformaEstimativa: r.status.reforma?.valor ?? r.dados.reformaEstimativa }, cfg)
   const sinal = r.status.sinal ? (Number(String(r.status.valorPago ?? '').replace(',', '.')) || v.agora) : 0
-  return sinal + (r.status.quitado ? v.vistoria - v.sinalVistoria : 0)
+  const pp = partesPagas(r, cfg)
+  return sinal + (r.status.quitado ? pp.saldoV : 0) + (r.status.reformaPago ? pp.saldoR : 0)
 }
 const ORDEM: Fase[] = ['sinal', 'conferir', 'semdata', 'agendada', 'laudo', 'pronto']
 const diasSinal = (r: Reserva) => Math.max(0, 7 - Math.floor((Date.now() - new Date(r.criado).getTime()) / 864e5))
@@ -1233,7 +1245,7 @@ export function PainelVistorias({ lista, cfg, eventos, onOpen, onData }: { lista
                   <span>{l.length}</span>
                 </header>
                 <small className="rdp-sub">{sub}</small>
-                {l.length ? l.map((r) => <Card key={r.id} r={r} />) : <p className="rdp-vazio">ninguém aqui</p>}
+                {l.length ? <ColunaRola>{l.map((r) => <Card key={r.id} r={r} />)}</ColunaRola> : <p className="rdp-vazio">ninguém aqui</p>}
               </div>
             )
           })}
@@ -1391,6 +1403,52 @@ function AgendaDia({ ativas, cfg, eventos, onOpen, onData }: { ativas: Reserva[]
           )}
         </Modal>
       )}
+    </div>
+  )
+}
+
+/** Coluna do painel com altura limite: rola por dentro e mostra um degradê desfocado embaixo enquanto tiver mais. */
+function ColunaRola({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [mais, setMais] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ver = () => setMais(el.scrollHeight - el.scrollTop - el.clientHeight > 4)
+    ver()
+    el.addEventListener('scroll', ver, { passive: true })
+    const ro = new ResizeObserver(ver)
+    ro.observe(el)
+    return () => (el.removeEventListener('scroll', ver), ro.disconnect())
+  }, [children])
+  return (
+    <div className={`rdp-col-rola ${mais ? 'tem-mais' : ''}`}>
+      <div ref={ref} className="rdp-col-lista">
+        {children}
+      </div>
+      <span className="rdp-col-fade" aria-hidden>
+        <Icon name="chevronD" size={14} />
+      </span>
+    </div>
+  )
+}
+
+/** Botões de um recibo: mandar pelo WhatsApp (com a mensagem pronta), copiar a mensagem, PDF e imagem. */
+function BotoesRecibo({ r, cfg, qual, recibo, setRecibo, rotulo }: { r: Reserva; cfg: ReservaConfig; qual: TipoRecibo; recibo: string; setRecibo: (v: string) => void; rotulo: string }) {
+  return (
+    <div className="row gap-s wrap">
+      <button className="btn small" disabled={recibo === `gerando-${qual}`} onClick={() => void mandarRecibo(r, cfg, setRecibo, qual)}>
+        <Icon name="whatsapp" size={14} /> {recibo === `gerando-${qual}` ? 'gerando o recibo…' : rotulo}
+      </button>
+      <button className="btn small ghost" onClick={() => void navigator.clipboard?.writeText(MSG_RECIBO[qual](r, cfg)).then(() => toast('Mensagem copiada. É só colar no WhatsApp.'), () => toast('Não consegui copiar.'))}>
+        <Icon name="copy" size={14} /> copiar mensagem
+      </button>
+      <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'pdf', qual)}>
+        <Icon name="file" size={14} /> recibo em PDF
+      </button>
+      <button className="btn small ghost" onClick={() => void baixarRecibo(r, cfg, 'png', qual)}>
+        <Icon name="image" size={14} /> recibo em imagem
+      </button>
     </div>
   )
 }

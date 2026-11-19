@@ -1,6 +1,6 @@
 import { RDL_LOGO } from './rdlLogo'
 import { ASSINATURA_RDL } from './rdlAssinatura'
-import { RDL_INFO, cupomRdl, linkPainel, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
+import { RDL_INFO, cupomRdl, linkAvaliar, linkPainel, servicosDe, unidade, valores, type Reserva, type ReservaConfig } from './rdlReserva'
 
 /* Recibo do sinal da vistoria, no mesmo visual da proposta enviada aos moradores (azul-marinho, laranja, Poppins).
    Vira imagem (PNG, para mandar no WhatsApp) e PDF (A4). */
@@ -42,27 +42,68 @@ const valoresR = (r: Reserva, cfg: ReservaConfig) => {
 /** O que entra na ART de reforma (os serviços que o morador informou). */
 const itensReforma = (r: Reserva) => (r.status.reforma?.itens ?? r.dados.reformaItens ?? []).join(', ').toLowerCase()
 
-export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
+/** Quanto de cada serviço já entrou no sinal (o sinal paga primeiro a metade da vistoria; o resto abate da ART). */
+export function partesPagas(r: Reserva, cfg: ReservaConfig) {
+  const sv = servicosDe(r.dados)
+  const v = valoresR(r, cfg)
+  const sinal = r.status.cortesia ? 0 : v.agora
+  const sinalV = sv.vistoria ? Math.min(sinal, v.sinalVistoria) : 0
+  const sinalR = Math.max(0, sinal - sinalV)
+  return { ...v, sv, sinal, sinalV, sinalR, saldoV: Math.max(0, v.vistoria - sinalV), saldoR: Math.max(0, v.reforma - sinalR) }
+}
+
+/** Qual recibo: o do sinal (reserva), o da vistoria concluída (saldo, quitação) ou o da ART de reforma paga à parte. */
+export type TipoRecibo = 'sinal' | 'vistoria' | 'reforma'
+export const TIPOS_RECIBO: Record<TipoRecibo, string> = { sinal: 'do sinal', vistoria: 'da vistoria concluída', reforma: 'da ART de reforma' }
+
+export function reciboHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal') {
   const d = r.dados
   const sv = servicosDe(d)
   const v = valoresR(r, cfg)
-  const pago = v.agora
-  const resta = v.total - pago
-  const quando = dBR(r.status.sinal) || dBR(new Date().toISOString())
+  const pp = partesPagas(r, cfg)
+  const quando =
+    (tipo === 'vistoria' ? dBR(r.status.quitado) || dBR(r.status.data) : tipo === 'reforma' ? dBR(r.status.reformaPago) : dBR(r.status.sinal)) || dBR(new Date().toISOString())
+  const pago = tipo === 'vistoria' ? pp.saldoV : tipo === 'reforma' ? pp.saldoR : v.agora
+  const resta = tipo === 'sinal' ? v.total - pago : 0
   const emp = cfg.empreendimento.replace(/\s*\(.*\)/, '')
   const num = r.id.slice(0, 8).toUpperCase()
-  const linhas = [
-    sv.vistoria && ['Vistoria de entrega das chaves', 'engenheiro civil, laudo com fotos e ART', brl(v.vistoria)],
-    sv.reforma && ['ART de reforma + plano de reforma', itensReforma(r) ? `cobre só: ${itensReforma(r)}` : 'cobre só os serviços informados', brl(v.reforma)],
-    sv.vistoria && d.revistoria && ['Revistoria (combinada)', `paga no dia da revistoria`, `${brl(cfg.revistoria)} à parte`],
-  ].filter(Boolean) as string[][]
-  const passos: [string, string, boolean][] = [
-    ['Reserva', 'contrato assinado', true],
-    ['Pagamento', quando, true],
-    ['Data', r.status.data ? dBR(r.status.data) : 'quando a MRV liberar', !!r.status.data],
-    ['Vistoria', 'com o engenheiro', false],
-    ['Laudo + ART', 'até 4 dias úteis', false],
-  ]
+  const lVist = ['Vistoria de entrega das chaves', 'engenheiro civil, laudo com fotos e ART', brl(v.vistoria)]
+  const lRef = ['ART de reforma + plano de reforma', itensReforma(r) ? `cobre só: ${itensReforma(r)}` : 'cobre só os serviços informados', brl(v.reforma)]
+  const lRev = ['Revistoria (combinada)', `paga no dia da revistoria`, `${brl(cfg.revistoria)} à parte`]
+  const linhas = (
+    tipo === 'vistoria' ? [lVist, d.revistoria && lRev] : tipo === 'reforma' ? [lRef] : [sv.vistoria && lVist, sv.reforma && lRef, sv.vistoria && d.revistoria && lRev]
+  ).filter(Boolean) as string[][]
+  const passos: [string, string, boolean][] =
+    tipo === 'reforma'
+      ? [
+          ['Pedido', 'serviços informados', true],
+          ['Orçamento', 'aprovado no painel', true],
+          ['Pagamento', quando, true],
+          ['ART', r.status.reforma?.art ? 'registrada no CREA' : 'registro no CREA', !!r.status.reforma?.art],
+          ['Plano', 'para o condomínio', !!r.status.reforma?.art],
+        ]
+      : [
+          ['Reserva', 'contrato assinado', true],
+          ['Sinal', dBR(r.status.sinal) || 'pago', true],
+          ['Data', r.status.data ? dBR(r.status.data) : 'quando a MRV liberar', !!r.status.data],
+          ['Vistoria', tipo === 'vistoria' ? 'feita e quitada' : 'com o engenheiro', tipo === 'vistoria'],
+          ['Laudo + ART', r.status.laudo ? 'no seu painel' : 'até 4 dias úteis', !!r.status.laudo],
+        ]
+  const titulo = tipo === 'vistoria' ? 'RECIBO DE QUITAÇÃO' : tipo === 'reforma' ? 'RECIBO · ART DE REFORMA' : 'RECIBO'
+  const selo =
+    tipo === 'vistoria' ? ['Vistoria concluída', `quitada · ${quando}`] : tipo === 'reforma' ? ['ART de reforma paga', pp.sinalR ? `saldo · ${quando}` : `pagamento · ${quando}`] : ['Vaga garantida', `sinal de 50% · ${quando}`]
+  const tot =
+    tipo === 'vistoria'
+      ? [['VISTORIA', brl(v.vistoria)], ['SINAL (ANTES)', brl(pp.sinalV)], ['PAGO AGORA', brl(pago)]]
+      : tipo === 'reforma'
+        ? [['ART DE REFORMA', brl(v.reforma)], ['PAGO ANTES', brl(pp.sinalR)], ['PAGO AGORA', brl(pago)]]
+        : [['TOTAL', brl(v.total)], ['PAGO AGORA', brl(pago)], [sv.vistoria ? 'RESTANTE NO DIA' : 'RESTANTE NA ENTREGA', brl(resta)]]
+  const nota =
+    tipo === 'vistoria'
+      ? `<b>Serviço quitado.</b> O laudo com fotos e a ART ficam no seu painel em até 4 dias úteis. Revistoria, se precisar, em até 90 dias (${brl(cfg.revistoria)}). Contrato nº ${num}.`
+      : tipo === 'reforma'
+        ? `<b>A ART cobre só os serviços informados.</b> Entregue o plano de reforma ao prestador e avise o Rogério antes de qualquer serviço fora dele. Contrato nº ${num}.`
+        : `Quando a MRV liberar as datas, <b>avise o Rogério antes de confirmar o horário com ela</b>, para combinarem juntos. Contrato nº ${num}, assinado pelas duas partes.`
   const campo = (k: string, val: string) => `<div class="f"><small>${k}</small><b>${esc(val)}</b></div>`
   return `<div class="rc">
 <style>
@@ -109,18 +150,18 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
 .rc .end{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:28px}
 .rc .end .loc{font-size:18px;color:#46506A;line-height:1.5}
 .rc .sign{text-align:center;width:420px}
-.rc .sign .s{font-family:${ASSINATURA_RDL.family};font-size:84px;color:#012C60;line-height:1;height:76px;white-space:nowrap}
+.rc .sign .s{font-family:${ASSINATURA_RDL.family};font-size:84px;color:#012C60;line-height:1;height:76px;white-space:nowrap;overflow:hidden}
 .rc .sign hr{border:0;border-top:1.5px solid #9AA3B6;margin:4px 0 10px}
 .rc .sign b{display:block;font-size:18px}
 .rc .sign small{font-size:14px;color:#7A7F92}
 .rc .foot{background:#012C60;color:#fff;padding:22px 80px;display:flex;justify-content:space-between;font-size:15px}
 .rc .foot span{opacity:.85}
 </style>
-<div class="top"><img src="${RDL_LOGO}" alt=""><div class="r"><small>RECIBO</small><b>Nº ${num}</b><span>emitido em ${esc(quando)}</span></div></div>
+<div class="top"><img src="${RDL_LOGO}" alt=""><div class="r"><small>${titulo}</small><b>Nº ${num}${tipo === 'vistoria' ? '-Q' : tipo === 'reforma' ? '-A' : ''}</b><span>emitido em ${esc(quando)}</span></div></div>
 <div class="body">
   <div class="val">
     <div><small>VALOR RECEBIDO · PIX</small><strong>${brl(pago)}</strong><p>${esc(porExtenso(pago))}</p></div>
-    <div class="ok"><span>✓</span><b>Vaga garantida</b><em>sinal de 50% · ${esc(quando)}</em></div>
+    <div class="ok"><span>✓</span><b>${selo[0]}</b><em>${esc(selo[1])}</em></div>
   </div>
   <div class="grid">
     ${campo('Recebido de', d.nome)}${campo('CPF', d.cpf)}${campo('Telefone', d.tel)}
@@ -129,10 +170,10 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
   <div class="tb">
     <div class="h"><span>SERVIÇOS DO CONTRATO</span><span>VALOR</span></div>
     ${linhas.map(([t, s, val]) => `<div class="it"><span>${esc(t)}<small>${esc(s)}</small></span><b>${val}</b></div>`).join('')}
-    <div class="tot"><div>TOTAL<b>${brl(v.total)}</b></div><div>PAGO AGORA<b>${brl(pago)}</b></div><div class="o">${sv.vistoria ? 'RESTANTE NO DIA' : 'RESTANTE NA ENTREGA'}<b>${brl(resta)}</b></div></div>
+    <div class="tot">${tot.map(([k, val], i) => `<div${i === 2 ? ' class="o"' : ''}>${k}<b>${val}</b></div>`).join('')}</div>
   </div>
   <div class="steps">${passos.map(([t, s, ok], i) => `<div class="st ${ok ? 'ok' : ''}"><span>${ok ? '✓' : i + 1}</span><b>${t}</b><small>${esc(s)}</small></div>`).join('')}</div>
-  <div class="note"><i>!</i><span>Quando a MRV liberar as datas, <b>avise o Rogério antes de confirmar o horário com ela</b>, para combinarem juntos. Contrato nº ${num}, assinado pelas duas partes.</span></div>
+  <div class="note"><i>!</i><span>${nota}</span></div>
   <div class="end">
     <div class="loc">Santo André, ${esc(quando)}<br>${esc(RDL_INFO.company)}<br>CNPJ ${RDL_INFO.cnpj}</div>
     <div class="sign"><div class="s">${ASSINATURA_RDL.nome}</div><hr><b>${esc(RDL_INFO.engineer)}</b><small>Engenheiro civil · CREA-SP ${RDL_INFO.crea}</small></div>
@@ -143,11 +184,11 @@ export function reciboHtml(r: Reserva, cfg: ReservaConfig) {
 }
 
 /** Gera o recibo como imagem PNG (1080 × 1527, proporção A4). */
-export async function reciboPng(r: Reserva, cfg: ReservaConfig): Promise<Blob> {
+export async function reciboPng(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal'): Promise<Blob> {
   const { toBlob } = await import('html-to-image')
   const box = document.createElement('div')
   box.style.cssText = 'position:fixed;left:-20000px;top:0;z-index:-1'
-  box.innerHTML = reciboHtml(r, cfg)
+  box.innerHTML = reciboHtml(r, cfg, tipo)
   document.body.appendChild(box)
   try {
     await document.fonts.ready
@@ -207,9 +248,49 @@ export function msgConfirmacao(r: Reserva, cfg: ReservaConfig) {
 }
 
 /** Recibo como página para abrir, editar e imprimir (A4), com as fontes da proposta. */
-export function reciboDocHtml(r: Reserva, cfg: ReservaConfig) {
+export function reciboDocHtml(r: Reserva, cfg: ReservaConfig, tipo: TipoRecibo = 'sinal') {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Recibo · ${esc(r.dados.nome)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Herr+Von+Muellerhoff&display=swap" rel="stylesheet">
 <style>@page{size:A4;margin:0}body{margin:0;background:#d9dce3;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pg{width:1080px;margin:24px auto;box-shadow:0 8px 30px rgba(1,44,96,.15)}
-@media print{body{background:#fff}.pg{margin:0;box-shadow:none;zoom:.735}}</style></head><body><div class="pg">${reciboHtml(r, cfg)}</div></body></html>`
+@media print{body{background:#fff}.pg{margin:0;box-shadow:none;zoom:.735}}</style></head><body><div class="pg">${reciboHtml(r, cfg, tipo)}</div></body></html>`
+}
+
+/** Mensagem do fim da vistoria: agradece, confirma a quitação e pede a avaliação (vai junto com o recibo de quitação). */
+export function msgFinal(r: Reserva, cfg: ReservaConfig) {
+  const d = r.dados
+  const pp = partesPagas(r, cfg)
+  const nome = d.nome.split(' ')[0]
+  const linhas = [
+    `Oi, ${nome}! Aqui é o Rogério, da RDL Engenharia. Obrigado por confiar no meu trabalho na vistoria do seu apê 🔑`,
+    '',
+    pp.saldoV > 0 ? `✅ Recebi o saldo de *${brl(pp.saldoV)}*: a vistoria está *quitada*.` : '✅ Vistoria concluída e quitada.',
+    `🏢 ${cfg.empreendimento.replace(/\s*\(.*\)/, '')} · ${unidade(d)}`,
+    r.status.laudo ? `📄 O laudo com fotos e a ART já estão no seu painel: ${linkPainel(r)}` : `📄 O laudo com fotos e a ART ficam prontos em até 4 dias úteis, no seu painel: ${linkPainel(r)}`,
+    '📌 Registre os itens do laudo no canal da MRV e guarde os protocolos.',
+    `🔁 Se precisar, a revistoria (conferir os reparos) é em até 90 dias, por ${brl(cfg.revistoria)}.`,
+    '',
+    `⭐ Se puder, me conta como foi? Leva 1 minuto e me ajuda muito: ${linkAvaliar(r)}`,
+    '',
+    'Segue o recibo de quitação 👇',
+  ]
+  return linhas.join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+/** Mensagem da ART de reforma paga (quando é paga à parte), com o recibo dela. */
+export function msgReforma(r: Reserva, cfg: ReservaConfig) {
+  const d = r.dados
+  const pp = partesPagas(r, cfg)
+  const nome = d.nome.split(' ')[0]
+  const itens = itensReforma(r)
+  const linhas = [
+    `Oi, ${nome}! Aqui é o Rogério, da RDL Engenharia. Recebi o pagamento da ART de reforma (*${brl(pp.saldoR)}*), obrigado!`,
+    '',
+    `📐 ART de reforma${itens ? `: ${itens}` : ''}`,
+    `🏢 ${cfg.empreendimento.replace(/\s*\(.*\)/, '')} · ${unidade(d)}`,
+    r.status.reforma?.art ? `📄 A ART e o plano de reforma estão no seu painel: ${linkPainel(r)}` : `📄 A ART e o plano de reforma vão para o seu painel assim que registrados: ${linkPainel(r)}`,
+    '⚠️ A ART cobre só os serviços informados. Se mudar algo na obra, me avise antes.',
+    '',
+    'Segue o recibo 👇',
+  ]
+  return linhas.join('\n').replace(/\n{3,}/g, '\n\n')
 }

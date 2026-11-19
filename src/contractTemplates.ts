@@ -450,6 +450,78 @@ E, por estarem de acordo, as partes assinam este contrato.
 {cidade}, {data}.`,
 }
 
+/** RDL: ART de reforma contratada sozinha (sem a vistoria), no mesmo padrão do contrato de vistoria. */
+export const ART_REFORMA_CONTRACT: ContractTemplate = {
+  id: 'rdl-art-reforma',
+  name: 'ART de reforma (RDL)',
+  letterhead: { first: RDL_TIMBRADO, top: 150, bottom: 96, side: 72 },
+  body: `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE RESPONSABILIDADE TÉCNICA (ART) DE REFORMA
+
+CONTRATADA
+{contratada}, {doc_contratada}, e-mail {email_contratada}, telefone {telefone_contratada}, neste ato pelo engenheiro civil Rogério Francisco Vieira, registrado no CREA-SP sob o nº 5070438360, responsável técnico pelo serviço.
+
+CONTRATANTE
+{contratante}, {doc_contratante}, com endereço em {endereco_contratante}, e-mail {email_contratante}, telefone {telefone_contratante}.
+
+IMÓVEL DA REFORMA
+{endereco_obra}
+
+1. OBJETO
+1.1 Responsabilidade técnica da reforma do imóvel acima, com registro da ART (Anotação de Responsabilidade Técnica) de reforma no CREA-SP e plano de reforma, para apresentar ao condomínio, conforme a NBR 16280.
+1.2 Serviços cobertos pela ART: {escopo}
+1.3 Estão incluídos no valor:
+• análise da planta, do memorial descritivo e do manual do proprietário do imóvel;
+• plano de reforma com o que pode e o que não pode ser feito, a sequência dos serviços e os cuidados com paredes estruturais, prumadas, gás e fachada;
+• ART de reforma registrada no CREA-SP, com a taxa já inclusa;
+• orientação por WhatsApp sobre dúvidas do plano durante a obra.
+
+2. O QUE NÃO ESTÁ INCLUÍDO
+2.1 Execução da obra, mão de obra, materiais e contratação de prestadores, que são do(a) CONTRATANTE.
+2.2 Visitas ao imóvel e acompanhamento da obra (podem ser contratados à parte).
+2.3 Projetos (arquitetura, elétrica, hidráulica, estrutura, marcenaria), taxas do condomínio e aprovações em outros órgãos.
+2.4 Serviços que não estejam no item 1.2. Qualquer serviço novo depende de novo orçamento e pode exigir nova ART.
+
+3. VALOR E PAGAMENTO
+3.1 Valor do serviço: {valor} ({valor_extenso}), com a taxa da ART inclusa.
+3.2 Entrada de 50% ({entrada}) na assinatura e saldo de 50% ({saldo}) na entrega da ART e do plano de reforma.
+3.3 Forma de pagamento: {pagamento}
+3.4 Prazo de entrega da ART e do plano: {prazo}, contados do pagamento da entrada e do recebimento dos documentos do imóvel.
+
+4. OBRIGAÇÕES DO(A) CONTRATANTE
+4.1 Enviar a planta, o memorial descritivo, o manual do proprietário e as regras do condomínio para reforma.
+4.2 Informar com exatidão os serviços que vai fazer; serviço não informado não está coberto pela ART.
+4.3 Entregar o plano de reforma ao prestador e garantir que ele o siga, junto com o manual do proprietário e as regras do condomínio.
+4.4 Não alterar, cortar, rasgar ou furar paredes estruturais fora do que o plano e o manual permitem, nem mexer em prumadas, gás ou fachada.
+4.5 Combinar antes com a CONTRATADA qualquer serviço fora do plano.
+4.6 Avisar o início e o fim da obra e mandar fotos quando a CONTRATADA pedir.
+
+5. OBRIGAÇÕES DA CONTRATADA
+5.1 Elaborar o plano de reforma com cuidado técnico, seguindo as normas técnicas aplicáveis e as boas práticas de engenharia.
+5.2 Registrar a ART de reforma no CREA-SP e entregá-la junto com o plano, em PDF, por WhatsApp e e-mail.
+5.3 Manter em sigilo os dados e os documentos do imóvel.
+
+6. RESPONSABILIDADES NA OBRA
+6.1 A obra é executada por prestador escolhido e contratado pelo(a) CONTRATANTE, que responde pela qualidade do serviço, pelos materiais, pela segurança dos trabalhadores e por danos ao imóvel, a vizinhos e às áreas comuns.
+6.2 Se a obra for feita em desacordo com o plano, sem aviso, a CONTRATADA pode dar baixa na ART e comunicar o condomínio, e não responde pelo que foi executado fora do plano.
+6.3 A perda de garantia da construtora nos itens reformados é de responsabilidade do(a) CONTRATANTE e do prestador.
+
+7. DESISTÊNCIA
+7.1 O(A) CONTRATANTE pode desistir em até 7 (sete) dias da assinatura, com devolução integral da entrada, desde que a ART ainda não tenha sido registrada (art. 49 do Código de Defesa do Consumidor).
+7.2 Depois do registro da ART, a entrada não é devolvida, porque a taxa do CREA e o trabalho técnico já foram feitos.
+
+8. DADOS PESSOAIS, COMUNICAÇÃO E ASSINATURA
+8.1 Os dados e os documentos do imóvel são usados só para prestar este serviço, conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
+8.2 Mensagens de WhatsApp e e-mails trocados pelos contatos deste contrato valem como comunicação oficial entre as partes.
+8.3 Este contrato pode ser assinado eletronicamente, com a mesma validade da assinatura em papel (art. 10, § 2º, da MP 2.200-2/2001).
+
+9. FORO
+9.1 Fica eleito o foro da comarca de {foro} para resolver qualquer questão sobre este contrato, ressalvado o direito do(a) CONTRATANTE de usar o foro do seu domicílio (art. 101, I, do Código de Defesa do Consumidor).
+
+E, por estarem de acordo, as partes assinam este contrato.
+
+{cidade}, {data}.`,
+}
+
 export const CLIENT_CONTRACTS: ContractTemplate[] = [
   ...FINAL_CONTRACTS,
   {

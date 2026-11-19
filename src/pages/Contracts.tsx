@@ -23,6 +23,10 @@ import { FormatBar } from '../components/FormatBar'
 import { SIGN_SITES, checkSignMessage, ownerStamp, publishSign, unpublishSign, type SignPayload } from '../contractSign'
 import { SIGN_FONTS, SignatureGlyph, SignaturePad, drawingToDataUrl } from '../components/SignaturePad'
 import { fmtDateLong, matches, quoteNumber, today, uid, whatsappLink } from '../utils'
+import { rdlMode } from '../rdl'
+/** Na RDL, as etiquetas que fazem sentido para vistoria e ART de reforma (sem etapas, revisões e arquivos de projeto). */
+const RDL_VARS = new Set(['contratante', 'doc_contratante', 'endereco_contratante', 'email_contratante', 'telefone_contratante', 'endereco_obra', 'contratada', 'doc_contratada', 'email_contratada', 'telefone_contratada', 'escopo', 'observacoes', 'valor', 'valor_extenso', 'pagamento', 'prazo', 'entrada', 'saldo', 'foro', 'orcamento', 'cidade', 'data'])
+const varsDaConta = () => (rdlMode() ? CONTRACT_VARS.filter(([k]) => RDL_VARS.has(k)) : CONTRACT_VARS)
 
 /* Contratos: escolhe um orçamento + um modelo → o texto sai preenchido
    (cliente, CPF/CNPJ, serviços, valor, prazo, pagamento…) e pode ser editado à vontade. */
@@ -81,6 +85,7 @@ function fromTemplate(tpl: ContractTemplate, vars: Record<string, string>): { bo
 const swapHtmlLike = (t: ContractTemplate, _body: string) => t.html ?? ''
 
 function Disclaimer() {
+  if (rdlMode()) return null
   return (
     <p className="pf-note">
       <Icon name="alert" size={16} />
@@ -121,12 +126,12 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
     <div className="page">
       <Head>
         <div className="row gap-s wrap head-acts">
-          <button
+          {!rdlMode() && <button
             className="btn ghost hide-phone"
             onClick={async () => (await ask('Esconder os contratos do menu? Nada é apagado; dá para ligar de novo em configurações → propostas.', { confirmLabel: 'Não uso contratos' })) && setSettings({ contracts: { ...cs, off: true } })}
           >
             não uso contratos
-          </button>
+          </button>}
           <button className="btn primary" onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} /> novo contrato
           </button>
@@ -136,11 +141,17 @@ function ContractList({ startTab }: { startTab: 'lista' | 'modelos' }) {
       <div className="ct-mine">
         <Icon name="pen" size={16} />
         <span>
+          {rdlMode() ? (
+            <>
+              <b>Os contratos da RDL:</b> vistoria de entrega de chaves e ART de reforma, já com o timbrado. Para um contrato diferente, anexe o arquivo (Word ou PDF) ou cole o texto: ele vira um modelo novo, preenchido com os dados do cliente e do orçamento.
+            </>
+          ) : (<>
           <b>Quer usar o texto do seu contrato?</b> Anexe o arquivo (Word ou PDF) ou cole o texto: a planê aproveita as cláusulas e informações e monta tudo no modelo da planê, preenchido com os dados do cliente e do orçamento. O desenho do seu arquivo não vira um modelo editável igual ao original. Para sair com a sua cara, use o <b>papel timbrado</b> (fundo com a sua marca) ou envie o <b>PDF pronto</b>, em “desenho da folha”.
+          </>)}
         </span>
         <div className="ct-mine-actions">
           <button className="btn small primary" disabled={upload.busy} onClick={upload.open}>
-            <Icon name="upload" size={14} /> {upload.busy ? 'lendo…' : 'anexar meu contrato'}
+            <Icon name="upload" size={14} /> {upload.busy ? 'lendo…' : rdlMode() ? 'anexar contrato' : 'anexar meu contrato'}
           </button>
           <button className="btn small ghost" onClick={() => useMine()}>
             colar o texto
@@ -672,7 +683,7 @@ function FieldSwap({ body, onChange, onSwap, open }: { body: string; onChange: (
   const [tag, setTag] = useState('contratante')
   const tagSelect = (value: string, set: (v: string) => void) => (
     <select value={value} onChange={(e) => set(e.target.value)} aria-label="Etiqueta">
-      {CONTRACT_VARS.map(([k, d]) => (
+      {varsDaConta().map(([k, d]) => (
         <option key={k} value={k} title={`{${k}}`}>
           {d}
         </option>
@@ -818,7 +829,7 @@ function TemplatesEditor({ startId, imported }: { startId?: string; imported?: b
           <div>
             <span className="field-label">Toque para inserir no texto</span>
             <div className="pf-vars">
-              {CONTRACT_VARS.map(([k, d]) => (
+              {varsDaConta().map(([k, d]) => (
                 <button key={k} type="button" className="var-chip" title={d} onClick={() => insert(k)}>
                   {`{${k}}`}
                 </button>

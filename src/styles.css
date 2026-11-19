@@ -2815,3 +2815,12 @@ html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent-s
 .rdl-vdocs-blank small { color: var(--muted); font-size: 12px; }
 .rdl-vdocs-blank .docs-card b { font-size: 14px; line-height: 1.25; } .rdl-vdocs-blank .docs-card { min-height: 0; height: auto; }
 @media (min-width: 1100px) { .docs-home.rdl-vdocs-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* painel das vistorias: cada coluna tem altura limite e rola por dentro; degradê desfocado avisa que tem mais */
+.rdp-col-rola { position: relative; min-height: 0; }
+.rdp-col-lista { display: flex; flex-direction: column; gap: 6px; max-height: 560px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-bottom: 2px; }
+.rdp-col-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 72px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; pointer-events: none; border-radius: 0 0 12px 12px; color: #012c60; background: linear-gradient(to bottom, rgba(238, 242, 248, 0), #eef2f8 85%); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%); mask-image: linear-gradient(to bottom, transparent, #000 45%); opacity: 0; transition: opacity .2s; }
+.rdp-col-rola.tem-mais .rdp-col-fade { opacity: 1; }
+@media (max-width: 760px) { .rdp-col-lista { max-height: 420px; } }
+.rsv-avaliacao { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; margin: 6px 0 0; color: var(--text); }
+.rsv-avaliacao > span:first-child { color: #ff8216; letter-spacing: 1px; font-size: 15px; }
+.rsv-avaliacao > span:first-child i { color: #c9cdd8; font-style: normal; }

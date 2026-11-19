@@ -35,7 +35,7 @@ import { WorkDocEditor } from './WorkDocEditor'
 import { rdlMode } from '../rdl'
 import { checklistHtml, laudoHtml, openRdlDoc } from '../rdlDocs'
 import { contratoHtml, lerConfig, listarReservas, unidade, type Reserva, type ReservaConfig } from '../rdlReserva'
-import { reciboDocHtml } from '../rdlRecibo'
+import { TIPOS_RECIBO, partesPagas, reciboDocHtml, type TipoRecibo } from '../rdlRecibo'
 import { linkLaudo } from '../rdlLaudo'
 import { WORK_KINDS, WORK_ORDER, type WorkKind } from '../workDocs'
 
@@ -71,6 +71,7 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
   const [lista, setLista] = useState<Reserva[] | null>(null)
   const [cfg, setCfg] = useState<ReservaConfig | null>(null)
   const [sel, setSel] = useState('')
+  const [qual, setQual] = useState<TipoRecibo>('sinal')
   useEffect(() => {
     void listarReservas()
       .then((l) => setLista(l.filter((r) => !r.cancelada)))
@@ -78,6 +79,9 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
     void lerConfig().then(setCfg)
   }, [])
   const r = lista?.find((x) => x.id === sel)
+  // recibos que fazem sentido para o morador: sinal, quitação da vistoria, ART de reforma (paga à parte)
+  const tipos = (Object.keys(TIPOS_RECIBO) as TipoRecibo[]).filter((t) => !r || !cfg || t === 'sinal' || (t === 'vistoria' ? partesPagas(r, cfg).sv.vistoria : partesPagas(r, cfg).saldoR > 0))
+  const qualOk = tipos.includes(qual) ? qual : 'sinal'
   const st = (x: Reserva) => (x.status.laudo ? 'laudo publicado' : x.status.laudoDados?.itens?.length || x.status.laudoDados?.check ? 'laudo em andamento' : x.status.data ? `vistoria ${x.status.data.slice(8, 10)}/${x.status.data.slice(5, 7)}` : x.status.sinal || x.status.cortesia ? 'sem data' : 'sem sinal')
   const quem = r ? `${r.dados.nome.split(' ')[0]} · ${unidade(r.dados)}` : ''
   const contratoBranco = useMemo(
@@ -88,9 +92,9 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
     const check = checklistHtml(r ? { owner: r.dados.nome, unit: unidade(r.dados), date: r.status.data, rooms: r.status.laudoDados?.ambientes } : {})
     const laudo = laudoHtml()
     const contrato = r ? contratoHtml(r) : contratoBranco
-    const recibo = r && cfg ? reciboDocHtml(r, cfg) : ''
+    const recibo = r && cfg ? reciboDocHtml(r, cfg, qualOk) : ''
     return { check, laudo, contrato, recibo }
-  }, [r, cfg, contratoBranco])
+  }, [r, cfg, contratoBranco, qualOk])
   const editar = (html: string, titulo: string) => openRdlDoc(html, { editar: true, titulo })
   return (
     <section className="rdl-vdocs">
@@ -168,7 +172,16 @@ function RdlVistoriaDocs({ contratoModelo }: { contratoModelo: string }) {
             </span>
           )}
           <b>recibo</b>
-          <small>{r ? (r.status.sinal ? 'do sinal pago, com o que falta' : 'ainda sem sinal confirmado') : 'sai com o valor e os pagamentos do morador'}</small>
+          <small>{r ? 'sinal, quitação da vistoria ou ART de reforma' : 'sinal, quitação da vistoria ou ART de reforma, com os valores do morador'}</small>
+          {r && (
+            <select value={qualOk} onChange={(e) => setQual(e.target.value as TipoRecibo)} aria-label="Qual recibo">
+              {tipos.map((t) => (
+                <option key={t} value={t}>
+                  recibo {TIPOS_RECIBO[t]}
+                </option>
+              ))}
+            </select>
+          )}
           <div className="rdl-vdocs-row">
             <button className="btn small" disabled={!docs.recibo} onClick={() => editar(docs.recibo, 'Recibo · RDL')}>
               <Icon name="edit" size={14} /> abrir e editar

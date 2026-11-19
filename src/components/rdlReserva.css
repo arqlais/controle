@@ -3500,3 +3500,14 @@ button.rv-link:disabled { opacity: 0.4; cursor: default; }
   flex: none;
   margin-top: 2px;
 }
+
+/* avaliação do serviço */
+.rv-avaliar { max-width: 460px; margin: 0 auto; }
+.rv-estrelas { display: flex; gap: 6px; justify-content: center; }
+.rv-estrelas button { background: none; border: 0; padding: 4px; cursor: pointer; color: #c9cdd8; transition: transform .12s, color .12s; }
+.rv-estrelas button.on { color: var(--or); }
+.rv-estrelas button.on .rv-i { fill: var(--or); }
+.rv-estrelas button:active { transform: scale(.92); }
+.rv-nota-txt { color: var(--navy); min-height: 1.4em; }
+.rv-avaliar-txt { display: grid; gap: 6px; width: 100%; text-align: left; font-size: 13px; color: var(--txt); }
+.rv-avaliar-txt textarea { width: 100%; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; resize: vertical; box-sizing: border-box; }
