@@ -6,7 +6,7 @@ import { useStore } from '../store'
 import { useAccess } from '../access'
 import { go } from '../router'
 import { contractSettings } from '../contracts'
-import { AMBIENTES_SAN_LEVI, checklistHtml, laudoHtml, openRdlDoc, type Textos } from '../rdlDocs'
+import { AMBIENTES_SAN_LEVI, checklistHtml, laudoHtml, openRdlDoc, quandoPronta, type Textos } from '../rdlDocs'
 import { AMBIENTES_EXTRA, laudoDe } from '../rdlLaudo'
 import { TIPOS_RECIBO, partesPagas, reciboDocHtml, type TipoRecibo } from '../rdlRecibo'
 import { PLANTA_CANTO, PLANTA_CORREDOR, atualizarReserva, contratoHtml, lerConfig, listarReservas, unidade, type Reserva, type ReservaConfig } from '../rdlReserva'
@@ -312,6 +312,8 @@ function Folha({ html, largura }: { html: string; largura: number }) {
       if (h) f.style.height = `${h}px`
     }
     ajusta()
+    // quebra as páginas medindo de verdade e deixa preencher (marcar, escrever, assinar) direto na folha
+    quandoPronta(d, ajusta)
     const t1 = setTimeout(ajusta, 300)
     const t2 = setTimeout(ajusta, 1200) // imagens e fontes
     return () => (clearTimeout(t1), clearTimeout(t2))

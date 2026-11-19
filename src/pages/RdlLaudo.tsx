@@ -103,7 +103,7 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
   }
   const dados = () => laudoDe({ ...r, status: { ...r.status, laudoDados: l } }, cfg)
   const grav = { leve: 0, media: 0, grave: 0 }
-  l.itens.forEach((it) => grav[it.gravidade]++)
+  l.itens.filter((it) => !it.aceito).forEach((it) => grav[it.gravidade]++)
   const nFotos = l.itens.reduce((n, it) => n + it.fotos.length, 0) + l.gerais.length
 
   // função comum, não componente: se fosse componente, o input de foto era recriado a cada salvamento
@@ -265,6 +265,9 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
                               </button>
                             ))}
                           </div>
+                          <label className="ld-aceito">
+                            <input type="checkbox" checked={!!it.aceito} onChange={(e) => mudarItem(it.id, { aceito: e.target.checked })} /> o morador aceita como está (não pede reparo)
+                          </label>
                           {Fotos({ list: it.fotos, alvo: it.id, onChange: (f) => mudarItem(it.id, { fotos: f }) })}
                         </div>
                       )}
@@ -319,6 +322,9 @@ export function LaudoEditor({ r, cfg, onClose, onStatus, onPublicar }: { r: Rese
                     </button>
                   ))}
                 </div>
+                <label className="ld-aceito">
+                  <input type="checkbox" checked={!!it.aceito} onChange={(e) => mudarItem(it.id, { aceito: e.target.checked })} /> o morador aceita como está (não pede reparo), por exemplo porque vai trocar o piso
+                </label>
                 {Fotos({ list: it.fotos, alvo: it.id, onChange: (f) => mudarItem(it.id, { fotos: f }) })}
               </section>
             ))}
